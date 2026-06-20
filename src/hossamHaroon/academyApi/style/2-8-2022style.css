@@ -1,0 +1,90 @@
+
+/* display none styles */
+a#prev-activity-link, a#next-activity-link, a.feedbackBtn, a.reserveBtn{
+display: none !important;
+}
+.urlselect{
+    display: none !important;
+  }
+  a#prev-activity-link :hover , a#next-activity-link :hover,  a.feedbackBtn:hover, a.reserveBtn:hover{
+    display: none !important;
+
+  }
+
+
+
+
+/* Files Css ( QUIZ , Assignment, Files , etc..) */
+
+.continuebutton{
+    display: none !important;
+}
+#prev-activity-link,
+#next-activity-link 
+{
+    background:  linear-gradient(to right, #D55F2A 10%, 55%, #D55F2A 100%) !important ;
+
+}
+.singlebutton  form button{
+    background:  linear-gradient(to right, #D55F2A 10%, 55%, #D55F2A 100%) !important ;
+
+}
+
+.cell a img {
+    display: none !important; 
+}
+
+
+
+/* footer */
+
+.footer-list {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    color: white;
+}
+
+a, button , a i {
+    background: #D55F2A !important;
+    color:white !important;
+}
+.editquestion a  , .editquestion a i ,.quizattemptcounts a{
+    background: none !important;
+    color:unset !important;
+
+}
+a i.fa-arrow-up{
+    color:white !important;
+}
+.ourSection , .notification-area .control-area .content .content-item-container , .notfContent p{
+    background:  linear-gradient(to right, #D55F2A 10%, 55%, #D55F2A 100%) !important ;
+}
+.notfContent p , .notfContent p a , .notfContent p h4{
+    color:black !important;
+}
+.ourForumtable thead {
+    background-color: #D55F2A !important;
+}
+.ccn-form-post-core header{
+    background:  linear-gradient(to right, #D55F2A 10%, 55%, #D55F2A 100%) !important ;
+}
+
+/* resource video  */
+/* 
+iframe{
+    height: 100% !important;
+} */
+.continuebutton{
+    display: none !important;
+}
+
+.our-dashbord{
+    margin-top:0 !important;
+}
+table.discussion-list thead tr th a , table.discussion-list tbody tr td a 
+,table.discussion-list tbody tr td a i
+,table.discussion-list tbody tr td  div a{
+    background:unset !important;
+    color : unset !important;
+}

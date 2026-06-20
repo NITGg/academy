@@ -1,0 +1,103 @@
+<?php
+
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Resource module version information
+ *
+ * @package    mod_resource
+ * @copyright  2009 Petr Skoda  {@link http://skodak.org}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+require('../../config.php');
+require_once($CFG->dirroot.'/mod/resource/lib.php');
+require_once($CFG->dirroot.'/mod/resource/locallib.php');
+require_once($CFG->libdir.'/completionlib.php');
+require '../../vimeo/vendor/autoload.php';
+use Vimeo\Vimeo;
+$id       = optional_param('id', 0, PARAM_INT); // Course Module ID
+$r        = optional_param('r', 0, PARAM_INT);  // Resource instance ID
+$redirect = optional_param('redirect', 0, PARAM_BOOL);
+$forceview = optional_param('forceview', 0, PARAM_BOOL);
+
+if ($r) {
+    if (!$resource = $DB->get_record('resource', array('id'=>$r))) {
+        resource_redirect_if_migrated($r, 0);
+        print_error('invalidaccessparameter');
+    }
+    $cm = get_coursemodule_from_instance('resource', $resource->id, $resource->course, false, MUST_EXIST);
+
+} else {
+    if (!$cm = get_coursemodule_from_id('resource', $id)) {
+        resource_redirect_if_migrated(0, $id);
+        print_error('invalidcoursemodule');
+    }
+    $resource = $DB->get_record('resource', array('id'=>$cm->instance), '*', MUST_EXIST);
+}
+
+$course = $DB->get_record('course', array('id'=>$cm->course), '*', MUST_EXIST);
+
+require_course_login($course, true, $cm);
+$context = context_module::instance($cm->id);
+require_capability('mod/resource:view', $context);
+
+// Completion and trigger events.
+resource_view($resource, $course, $cm, $context);
+
+$PAGE->set_url('/mod/resource/view.php', array('id' => $cm->id));
+
+if ($redirect && !$forceview) {
+
+}
+
+$PAGE->set_title("File ");
+$PAGE->set_heading("File");
+echo $OUTPUT->header();
+$client = new Vimeo("4dad588b7f47a44426afc26f398fe2367ea49c92", "IHRxCFjq5qvsKlU6DjWGfNQwtZGHGmK1pByyCYWGrkWnE9F91BbNqPdqXY+dHVyvKjvRWYTu3ba2A8KM1GR2gcqqYiz+jXAx6uLrsEb0jFJrUSMIi3KMIyS+Je+nsN3s", "195c95a4e775fca8d6e70cb8db4aca73");
+$course_modules=$DB->get_record("course_modules",array('id'=>$id));
+$video=$DB->get_record("resource",array("id"=>$course_modules->instance));
+$record=$DB->get_record("vimeo_files",array('resource_id'=>$video->id));
+$last_string=substr($record->url, strrpos($record->url, '/') + 1);
+$first_string=preg_replace('/\s+?(\S+)?$/', '', substr($record->url, 0, 18));
+$result=str_replace($first_string, '', $record->url);
+$result=str_replace($last_string, '', $result);
+$uri="/videos/".$result;
+$response = $client->request($uri, [], 'GET');
+ $status=$response['body']['transcode']['status'];
+ if($status=="in_progress"){
+     echo '<div class="spinner-border text-warning"></div>
+     <span>Your video is still transcoding Refresh again after a while.</span>
+     ';
+ }
+ else{
+   
+    $time =$DB->get_records_sql("SELECT UNIX_TIMESTAMP(current_Timestamp())-UNIX_TIMESTAMP(timecreated) as time from mdl_vimeo_files where id='$record->id'");
+    foreach($time as $t){
+        if($t->time<150){
+            echo '
+            <div class="alert alert-success" role="alert" id="alert">
+            Your video finished transcoding.
+       </div>
+            ';
+        }
+    }
+
+ }
+echo '<iframe src="https://player.vimeo.com/video/'.$result.'" width="640" height="564" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>';
+
+echo $OUTPUT->footer();
+

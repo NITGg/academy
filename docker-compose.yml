@@ -1,0 +1,50 @@
+services:
+  app:
+    build: .
+    container_name: academy_app
+    ports:
+      - "8081:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./moodleData:/var/www/moodledata
+    depends_on:
+      - db
+    entrypoint: >
+      sh -c "chown -R www-data:www-data /var/www/moodledata &&
+             chmod -R 755 /var/www/moodledata &&
+             docker-php-entrypoint apache2-foreground"
+
+  db:
+    image: mariadb:10.6
+    container_name: academy_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: academy2022_moodle
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-file-per-table=1
+      --skip-character-set-client-handshake
+      --innodb-buffer-pool-size=512M
+      --innodb-log-file-size=128M
+      --innodb-flush-log-at-trx-commit=2
+      --innodb-flush-method=O_DIRECT
+      --query-cache-type=1
+      --query-cache-size=64M
+      --query-cache-limit=2M
+      --tmp-table-size=64M
+      --max-heap-table-size=64M
+      --table-open-cache=2000
+      --sort-buffer-size=4M
+      --join-buffer-size=4M
+      --slow-query-log=1
+      --long-query-time=1
+    volumes:
+      - academy_db_data:/var/lib/mysql
+      - ./moodleData:/docker-entrypoint-initdb.d
+    ports:
+      - "3307:3306"
+
+volumes:
+  academy_db_data:

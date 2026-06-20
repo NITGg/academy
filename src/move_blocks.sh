@@ -1,0 +1,40 @@
+#!/bin/bash
+mkdir -p /var/www/html/blocks_disabled
+cd /var/www/html/blocks
+
+blocks=(
+cocoon_about_1 cocoon_accordion cocoon_action_panels cocoon_blog_recent
+cocoon_blog_recent_list cocoon_blog_recent_slider cocoon_boxes cocoon_cf_paid
+cocoon_cf_rating cocoon_contact_form cocoon_course_categories_2
+cocoon_course_categories_3 cocoon_course_categories_4 cocoon_course_categories_5
+cocoon_course_details cocoon_course_enrl_c cocoon_course_features
+cocoon_course_feat_a cocoon_course_grid cocoon_course_grid_2 cocoon_course_grid_3
+cocoon_course_grid_4 cocoon_course_grid_5 cocoon_course_grid_6 cocoon_course_grid_7
+cocoon_course_grid_8 cocoon_course_info cocoon_course_instructor cocoon_course_intro
+cocoon_course_list cocoon_course_overview cocoon_course_rating cocoon_event_body
+cocoon_event_contact cocoon_event_details cocoon_event_list cocoon_event_list_2
+cocoon_event_slider cocoon_faqs cocoon_featuredcourses cocoon_featured_event
+cocoon_featured_posts cocoon_featured_teacher cocoon_featured_video cocoon_features
+cocoon_form cocoon_gallery cocoon_globalsearch_n cocoon_globalsearch_sb
+cocoon_hero_1 cocoon_hero_2 cocoon_hero_3 cocoon_hero_4 cocoon_hero_5
+cocoon_hero_6 cocoon_hero_7 cocoon_more_courses cocoon_mynews cocoon_myorders
+cocoon_myviews cocoon_parallax cocoon_parallax_apps cocoon_parallax_counters
+cocoon_parallax_features cocoon_parallax_subscribe cocoon_parallax_subscribe_2
+cocoon_parallax_testimonials cocoon_parallax_white cocoon_partners cocoon_pills
+cocoon_price_tables cocoon_price_tables_dark cocoon_programs cocoon_services_dark
+cocoon_simple_counters cocoon_slider_1 cocoon_slider_1_v cocoon_slider_2
+cocoon_slider_3 cocoon_slider_4 cocoon_slider_5 cocoon_slider_6 cocoon_slider_7
+cocoon_slider_8 cocoon_steps cocoon_steps_dark cocoon_subscribe cocoon_tablets
+cocoon_tabs cocoon_tstmnls cocoon_tstmnls_2 cocoon_tstmnls_3 cocoon_tstmnls_4
+cocoon_tstmnls_5 cocoon_tstmnls_6 cocoon_users cocoon_users_slider_2
+cocoon_users_slider_2_dark cocoon_users_slider_round
+)
+
+moved=0
+for b in "${blocks[@]}"; do
+    if [ -d "$b" ]; then
+        mv "$b" /var/www/html/blocks_disabled/
+        moved=$((moved+1))
+    fi
+done
+echo "Moved $moved block directories to blocks_disabled/"

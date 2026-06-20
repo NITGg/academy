@@ -1,0 +1,5 @@
+firstname,lastname,password,email,phone,parent phone,city,school,center,parent first name,parent last name,password,email,phone
+Ahm02,Stud01,123456,Ahm0005@gmail.com,,12345678901,Giza,55,,parent1,parent1,123456,p_hitham_ex1@gmail.com,12345678901
+Ahm02,Stud02,123456,Ahm0006@gmail.com,12345678901,12345678901,,55,,parent1,parent1,123456,p_hitham_ex2@gmail.com,12345678901
+Ahm03,Stud03,123456,Ahm0007@gmail.com,1234,12345678901,,,test,parent1,parent1,123456,p_hitham_ex@gmail.com3,12345678901
+Ahm03,Stud03,123456,Ahm0008@gmail.com,12345678901,12345678901,Giza,,test,parent1,parent1,123456,p_hitham_ex4@gmail.com,12345678901

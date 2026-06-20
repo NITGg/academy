@@ -1,0 +1,139 @@
+
+:root{
+    --teachermaincolor2022-2023 :#0070B2;
+ }
+ .dropdown .notification_icon{background:var(--teachermaincolor2022-2023) !important;}
+ 
+ .simplebar-content .list-group a:nth-of-type(2),
+ .simplebar-content .list-group a:nth-of-type(3),
+ .simplebar-content .list-group a:nth-of-type(4){display:none;}
+ 
+ #sectionThree .course .course-content button a{color: #fff !important;}
+ 
+ /*  */
+ .details .cc_tab h4.panel-title {
+     background-color: var(--teachermaincolor2022-2023) !important;
+ }
+ #accordion .panel-title{background-color: var(--teachermaincolor2022-2023) !important;}
+ #accordion .panel-title a {color:#fff;}
+ #accordion .panel-heading a.collapsed:hover,
+ #accordion .panel-heading a.collapsed:focus ,
+ #accordion .panel-heading a:not(.collapsed){color:#fff !important;}
+ #accordion .panel-heading .accordion-toggle::before,
+ #accordion .panel-heading .accordion-toggle.collapsed::before{color:#fff !important;}
+ 
+ #ccnSettingsMenuContainer #ccnSettingsMenu,
+ #ccnSettingsMenuContainer #region-main-settings-menu{background-color: var(--teachermaincolor2022-2023) !important;}
+ 
+ button[type=submit],input[type=submit],.btn:not(.dropdown-toggle){
+     color:#fff !important;background-color: var(--teachermaincolor2022-2023) !important;
+     border-color: var(--teachermaincolor2022-2023) !important;
+ }
+ 
+ /* https://academy2022.nitg-eg.com/mod/forum/view.php?id=18 */
+ .breadcrumb_widgets{background: var(--teachermaincolor2022-2023) !important;}
+ .dashboard_main_content .breadcrumb_widgets .title,
+ .dashboard_main_content .breadcrumb_widgets .title a{color:#fff !important;}
+ .breadcrumb_widgets .breadcrumb .breadcrumb-item,
+ .breadcrumb_widgets .breadcrumb .breadcrumb-item a{
+     color : #fff !important ;
+ }
+ .breadcrumb-item+.breadcrumb-item::before{color:#fff !important;}
+ 
+ .dashboard_main_content .btn-primary,
+ .dashboard_main_content .btn-secondary,
+ .dashboard_main_content .btn:not(.btn-link),
+ .ccn_context_frontend .primary-navigation .moremenu .ccn-activate-more-dropdown>a.dropdown-toggle,
+ .modal:not(.sign_up_modal) .btn-primary, .modal:not(.sign_up_modal) .btn-secondary,
+ .modal:not(.sign_up_modal) .btn:not(.btn-link),
+ .ccn-forum-discussion-tools .btn.btn-link.dropdown-toggle,
+ .format-remuiformat .course-content .cards .wdm-card-section .card-section-leftnav .btn,
+ .format-remuiformat .course-content .cards .wdm-card-section .card-section-rightnav .btn,
+ .message_container .iu_heading .candidate_revew_search_box .btn{
+     background: var(--teachermaincolor2022-2023) !important;color:#fff !important;
+ }
+ 
+ .dashboard_main_content .btn-primary:hover,
+ .dashboard_main_content .btn-secondary:hover,
+ .dashboard_main_content .btn:not(.btn-link):hover,
+ .modal:not(.sign_up_modal) .btn-primary:hover,
+ .modal:not(.sign_up_modal) .btn-secondary:hover,
+ .modal:not(.sign_up_modal) .btn:not(.btn-link):hover,
+ .btn-secondary:hover, .btn-primary:hover,
+ .page-context-header .btn:hover,
+ .ccn_context_frontend .primary-navigation .moremenu .ccn-activate-more-dropdown>a.dropdown-toggle:hover,
+ .ccn-forum-discussion-tools .btn.btn-link.dropdown-toggle:hover,
+ .format-remuiformat .course-content .cards .wdm-card-section .card-section-leftnav .btn:hover,
+ .format-remuiformat .course-content .cards .wdm-card-section .card-section-rightnav .btn:hover,
+ .message_container .iu_heading .candidate_revew_search_box .btn:hover,
+ .primary-navigation .moremenu.navigation .ccn-activate-more-dropdown>.btn:focus{
+     background: var(--teachermaincolor2022-2023) !important;color:#fff !important;
+ }
+ 
+ /* https://academy2022.nitg-eg.com/course/view.php?id=3 */
+ #accordion .panel-title{background-color: var(--teachermaincolor2022-2023) !important;}
+ #accordion .panel-title a {color:#fff;}
+ .badge, .badge-pill{background-color: var(--teachermaincolor2022-2023) !important;}
+ 
+ div[class="activity-information"],div[class="availabilityinfo isrestricted isfullinfo"]{
+     display:none !important;
+ }
+ .dashboard_main_content .breadcrumb_widgets .title a{color:#fff !important;}
+ .activity-navigation a{color:#fff;}
+ .generaltable thead tr th{background:var(--teachermaincolor2022-2023) !important;}
+ .submissionlinks .btn{
+     background:var(--teachermaincolor2022-2023) !important;
+     border-color:var(--teachermaincolor2022-2023) !important;
+ }
+ a#prev-activity-link, a#next-activity-link,
+ a.ccn-mod-forum-btn, a.feedbackBtn, a.reserveBtn{
+ color: #fff !important;
+ border-color:var(--teachermaincolor2022-2023) !important ;
+ }
+ .btn-secondary,.btn-secondary:visited{
+     color: #fff !important;
+     border-color:var(--teachermaincolor2022-2023) !important ;
+ }
+ .path-mod-quiz .othernav a, .path-mod-quiz .othernav input {
+     color: #fff !important;background:var(--teachermaincolor2022-2023) !important;
+ }
+ .mod_quiz-prev-nav,.mod_quiz-prev-nav{
+     color: #fff !important;background:var(--teachermaincolor2022-2023) !important;
+ }
+ .btn-thm.white:hover, .btn-thm.white:active, .btn-thm.white:focus{
+     color: #fff !important;background:var(--teachermaincolor2022-2023) !important;
+ }
+ .discussion-list thead tr th{
+    color: #fff !important;background:var(--teachermaincolor2022-2023) !important;
+ }  
+ /* to change hide haytham header */
+@media only screen and (min-width: 400px){
+    .mobile-menu{display:none !important;}
+    .stylehome1::before {display:none !important;}
+    .inner_page_breadcrumb::before{display: none !important;}
+    .ccn_breadcrumb_absent{display:none !important;}
+}
+ /* hide back to course */
+ .quizattempt .continuebutton{
+    display:none !important;
+}
+ /* display odd table rows with bg color */
+.generalbox tbody tr:nth-of-type(odd) th{
+    color: #fff !important;
+    border-color:var(--teachermaincolor2022-2023) !important ;
+    background:var(--teachermaincolor2022-2023) !important ;
+}
+
+.generaltable tbody>tr:nth-of-type(even){
+    color: #000 !important;
+    border-color:var(--teachermaincolor2022-2023) !important ;
+    background-color: rgba(0, 112, 178, .5);
+
+}
+.generaltable td{background:none !important;}
+.path-mod-assign td.submissionstatussubmitted{color:#000;}
+
+@media only screen and (max-width: 400px) {
+    .intro{overflow-x:scroll !important;}
+    .boxaligncenter{overflow-x:scroll !important;}
+}

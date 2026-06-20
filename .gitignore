@@ -1,0 +1,19 @@
+# Docker
+*.log
+
+# Moodle data (uploads, cache, sessions)
+moodleData/
+
+# Database data
+academy_db_data/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

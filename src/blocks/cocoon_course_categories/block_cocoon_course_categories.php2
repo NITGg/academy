@@ -1,0 +1,188 @@
+<?php
+
+include_once($CFG->dirroot . '/course/lib.php');
+require_once($CFG->dirroot. '/course/renderer.php');
+require_once($CFG->dirroot. '/theme/edumy/ccn/block_handler/ccn_block_handler.php');
+require_once($CFG->dirroot. '/theme/edumy/ccn/course_handler/ccn_course_handler.php');
+
+class block_cocoon_course_categories extends block_base {
+    function init() {
+        $this->title = get_string('pluginname', 'block_cocoon_course_categories');
+    }
+
+    function has_config() {
+        return true;
+    }
+
+    function applicable_formats() {
+      $ccnBlockHandler = new ccnBlockHandler();
+      return $ccnBlockHandler->ccnGetBlockApplicability(array('all'));
+    }
+
+
+    function instance_allow_config() {
+      return true;
+    }
+
+    public function instance_allow_multiple() {
+      return true;
+    }
+
+    function specialization() {
+        global $CFG, $DB;
+        include($CFG->dirroot . '/theme/edumy/ccn/block_handler/specialization.php');
+        if (empty($this->config)) {
+          $this->config = new \stdClass();
+          $this->config->title = 'Via School Categories Courses';
+          $this->config->subtitle = 'Cum doctus civibus efficiantur in imperdiet deterruisset.';
+          $this->config->button_text = 'View All Courses';
+          $this->config->body = '0';
+          $this->config->items = '8';
+          $this->config->color_bg = 'rgb(255,255,255)';
+          $this->config->color_title = '#0a0a0a';
+          $this->config->color_subtitle = '#6f7074';
+          $this->config->color_overlay = 'rgba(10,10,10,.5)';
+          $this->config->color_hover = '#2441e7';
+          $this->config->color_btn = '#2441e7';
+          $this->config->button_bdrrd = '50';
+        }
+
+    }
+
+    function get_content() {
+        global $CFG, $USER, $DB, $OUTPUT;
+
+        if($this->content !== NULL) {
+            return $this->content;
+        }
+
+        if (!empty($this->config) && is_object($this->config)) {
+            $data = $this->config;
+            $data->items = !empty($data->items) ?  (int) $data->items : (int) 8;
+            // $data->items = is_numeric($data->items) ? (int)$data->items : (int) 8;
+        } else {
+            $data = new stdClass();
+            $data->items = 0;
+        }
+
+        $this->content = new \stdClass();
+
+        $this->content->text = '';
+        if(!empty($this->config->title)){$this->content->title = $this->config->title;} else {$this->content->title = '';}
+        if(!empty($this->config->subtitle)){$this->content->subtitle = $this->config->subtitle;} else {$this->content->subtitle = '';}
+        if(!empty($this->config->body)){$this->content->body = $this->config->body;} else {$this->content->body = 0;}
+        if(!empty($this->config->button_link)){$this->content->button_link = $this->config->button_link;}else{$this->content->button_link = "#our-courses";}
+        if(!empty($this->config->button_text)){$this->content->button_text = $this->config->button_text;} else {$this->content->button_text = '';}
+        if(!empty($this->config->categories)){$this->content->categories = $this->config->categories;} else {$this->content->categories = NULL ;}
+        if(!empty($this->config->style)){$this->content->style = $this->config->style;} else {$this->content->style = 0;}
+        if(!empty($this->config->color_bg)){$this->content->color_bg = $this->config->color_bg;} else {$this->content->color_bg = 'rgb(255,255,255)';}
+        if(!empty($this->config->color_title)){$this->content->color_title = $this->config->color_title;} else {$this->content->color_title = '#0a0a0a';}
+        if(!empty($this->config->color_subtitle)){$this->content->color_subtitle = $this->config->color_subtitle;} else {$this->content->color_subtitle = '#6f7074';}
+        if(!empty($this->config->color_overlay)){$this->content->color_overlay = $this->config->color_overlay;} else {$this->content->color_overlay = 'rgba(10,10,10,.5)';}
+        if(!empty($this->config->color_hover)){$this->content->color_hover = $this->config->color_hover;} else {$this->content->color_hover = '#2441e7';}
+        if(!empty($this->config->color_btn)){$this->content->color_btn = $this->config->color_btn;} else {$this->content->color_btn = '#2441e7';}
+        if(!empty($this->config->button_bdrrd)){$this->content->button_bdrrd = $this->config->button_bdrrd;} else {$this->content->button_bdrrd = '50';}
+
+        echo '<style>';
+        echo '
+        .main_box_x1 {
+            display: flex;
+            justify-content: center;
+            gap: 38px;
+        }
+        .image_box_2 img,
+        .image_box_1 img{
+            height: auto;
+            width: 500px;
+        }
+        .center_box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .category_name_box {
+            padding: 2px 72px;
+            background-color: #B31F61;
+            border: none;
+            margin-bottom: 20px;
+            border-radius: 54px;
+            text-align: center;
+            font-size: 1.5rem;
+            color: #0E2647;
+            text-align: center;
+            font-family: Bodoni Moda;
+            font-weight: 600;
+        }
+        @media only screen and (max-width: 600px) {
+          .main_box_x1 {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 50px;
+            padding: 20px;
+          }
+        }
+        ';
+        echo '</style>';
+          
+        $this->content->text .='
+        <div class="text-center mb-2">
+          <h3 data-ccn="title" class="mt0" data-ccn-c="color_title" data-ccn-co="content" style="color:'.$this->content->color_title.';">'.format_text($this->content->title, FORMAT_HTML, array('filter' => true)).'</h3>
+      	  <p data-ccn="subtitle" data-ccn-c="color_subtitle" data-ccn-co="content" style="color:'.$this->content->color_subtitle.';">'.format_text($this->content->subtitle, FORMAT_HTML, array('filter' => true)).'</p>
+        </div>
+        ';
+
+        $categories = $DB->get_records('course_categories');
+
+        $this->content->text .='
+        <div class="main_box_x1">
+        <div class="image_box_1"><img src="https://academy2022.nitg-eg.com/services_imgs/talepa.png" alt="img1"></div>
+        <div class="center_box text-center mb-2">
+        ';
+        
+        foreach ($categories as $category) {
+          if ($category->id == 1) {
+            continue;
+          }
+          if ($category->parent == 0) {
+            if ($DB->record_exists('course_categories', array('id' => $category->id))) {
+              $ccnCourseHandler = new ccnCourseHandler();
+              $ccnCategory = $ccnCourseHandler->ccnGetCategoryDetails($category->id);
+              $this->content->text .='
+              
+                <a class="category_name_box" href="'.$ccnCategory->categoryUrl.'">
+                  '.$ccnCategory->categoryName.'
+                </a>
+              
+              ';
+            } 
+           }
+        }
+
+        $this->content->text .='
+        </div>
+        <div class="image_box_2"><img src="https://academy2022.nitg-eg.com/services_imgs/talep.png" alt="img1"></div>
+        </div>
+        ';
+        
+        
+
+        return $this->content;
+    }
+
+
+    /**
+     * Returns the role that best describes the course list block.
+     *
+     * @return string
+     */
+    public function get_aria_role() {
+        return 'navigation';
+    }
+    public function html_attributes() {
+      global $CFG;
+      $attributes = parent::html_attributes();
+      include($CFG->dirroot . '/theme/edumy/ccn/block_handler/attributes.php');
+      return $attributes;
+    }
+}

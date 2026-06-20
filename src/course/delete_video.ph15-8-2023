@@ -1,0 +1,34 @@
+<?php
+require_once('../config.php');
+
+// Ensure the user is logged in
+require_login();
+
+if (isset($_GET['course_id'])) {
+    $course_id = (int) $_GET['course_id'];
+
+    // Get the record for the course promo video
+    $record = $DB->get_record("course_promo_videos", array("course_id" => $course_id));
+
+    if ($record) {
+        // Delete the video file
+        $videoFilePath = "videos/" . $record->url_name;
+        if (file_exists($videoFilePath)) {
+            unlink($videoFilePath);
+        }
+
+        // Delete the record from the database
+        $DB->delete_records("course_promo_videos", array("course_id" => $course_id));
+
+        // Redirect back to the edit page
+        header("Location: edit.php?id=" . $course_id);
+        exit();
+    } else {
+        // Record not found
+        echo "Record not found.";
+    }
+} else {
+    // Invalid input
+    echo "Invalid input.";
+}
+?>

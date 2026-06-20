@@ -1,0 +1,387 @@
+<?php
+require_once($CFG->dirroot . '/theme/edumy/ccn/block_handler/ccn_block_handler.php');
+require_once($CFG->dirroot . '/theme/edumy/ccn/user_handler/ccn_user_handler.php');
+class block_cocoon_users_slider extends block_base
+{
+
+  /**
+   * Initializes class member variables.
+   */
+  public function init()
+  {
+    // Needed by Moodle to differentiate between blocks.
+    $this->title = get_string('pluginname', 'block_cocoon_users_slider');
+  }
+
+
+  /**
+   * Defines configuration data.
+   *
+   * The function is called immediatly after init().
+   */
+  public function specialization()
+  {
+
+    global $CFG, $DB;
+    include($CFG->dirroot . '/theme/edumy/ccn/block_handler/specialization.php');
+    if (empty($this->config)) {
+      $ccnUserHandler = new ccnUserHandler();
+      $ccnUsers = $ccnUserHandler->ccnGetExampleUsersIds(8);
+      $this->config = new \stdClass();
+      $this->config->title = 'Top Rating Instructors';
+      $this->config->title_2 = 'Top Rating Instructors';
+      $this->config->users = $ccnUsers;
+      // $this->config->color_bg = 'rgb(255,255,255)';
+      // $this->config->color_title = '#0a0a0a';
+      // $this->config->color_subtitle = '#6f7074';
+      // $this->config->color_item_title = '#1b2032';
+      // $this->config->color_item_body = '#484848';
+    }
+  }
+
+
+  /**
+   * Returns the block contents.
+   *
+   * @return stdClass The block contents.
+   */
+  public function get_content()
+  {
+    global $CFG, $DB;
+    if ($this->content !== null) {
+      return $this->content;
+    }
+
+    if (empty($this->instance)) {
+      $this->content = '';
+      return $this->content;
+    }
+
+    $this->content = new stdClass();
+    $this->content->items = array();
+    $this->content->icons = array();
+    $this->content->footer = '';
+
+    $this->content->title = !empty($this->config->title) ? $this->config->title : '';
+    $this->content->title_2 = !empty($this->config->title_2) ? $this->config->title_2 : '';
+    $this->content->users = !empty($this->config->users) ? $this->config->users : '';
+    
+
+    $cssStyles = '
+          
+          .vx_box {
+              display: flex;
+              flex-direction: column;
+              padding: 0 35px;
+              align-items: center;
+              justify-content: center;
+              min-height: 100vh;
+              /* background: linear-gradient(to left top, #031A9A, #8B53FF); */
+              width: 100%;
+          }
+          
+          .wrapper_vx {
+              width: 100%;
+              position: relative;
+          }
+          
+          .wrapper_vx i {
+              top: 70%;
+              height: 50px;
+              width: 50px;
+              cursor: pointer;
+              font-size: 2rem;
+              position: absolute;
+              text-align: center;
+              line-height: 50px;
+              background: #fff0;
+              border-radius: 50%;
+              transform: translateY(-50%);
+              transition: transform 0.1s linear;
+              color: #154372;
+          }
+          
+          .wrapper_vx i:active {
+              transform: translateY(-50%) scale(0.85);
+          }
+          
+          .wrapper_vx i:first-child {
+              left: -22px;
+          }
+          
+          .wrapper_vx i:last-child {
+              right: -22px;
+          }
+          
+          .wrapper_vx .carousel {
+              display: grid;
+              grid-auto-flow: column;
+              grid-auto-columns: calc((100% / 3) - 12px);
+              overflow-x: auto;
+              scroll-snap-type: x mandatory;
+              gap: 16px;
+              border-radius: 8px;
+              scroll-behavior: smooth;
+              scrollbar-width: none;
+              margin-right: 20px;
+              margin-left: 20px;
+          }
+          
+          .carousel::-webkit-scrollbar {
+              display: none;
+          }
+          
+          .carousel.no-transition {
+              scroll-behavior: auto;
+          }
+          
+          .carousel.dragging {
+              scroll-snap-type: none;
+              scroll-behavior: auto;
+          }
+          
+          .carousel.dragging .card {
+              cursor: grab;
+              user-select: none;
+          }
+          
+          .carousel :where(.card, .img) {
+              display: flex;
+              justify-content: flex-end;
+              align-items: flex-end;
+          }
+          
+          .carousel .card {
+              display: flex;
+              justify-content: center;
+              flex-direction: row ;
+              scroll-snap-align: start;
+              height: 150px;
+              max-width: 430;
+              list-style: none;
+              background: #154372;
+              cursor: pointer;
+              padding-bottom: 0px;
+              border-radius: 20px;
+              margin-top: 150px;
+              gap: 1rem;
+          }
+
+          .teacher_img{
+              height: 333px;
+              width: auto;
+              margin-left: auto;
+              margin-bottom: 0px;
+          }
+          
+          .carousel .card h2 {
+              font-weight: 500;
+              font-size: 1.5rem;
+              margin: 0px;
+              color: #F5F5F5;
+          }
+          
+          .carousel .card span {
+              color: #F5F5F5;
+              font-size: 1.5rem;
+          }
+          
+          @media screen and (max-width: 900px) {
+              .wrapper_vx .carousel {
+                  grid-auto-columns: calc((100% / 2) - 9px);
+              }
+          }
+          
+          @media screen and (max-width: 600px) {
+              .wrapper_vx .carousel {
+                  grid-auto-columns: 100%;
+              }
+              .carousel .card h2 {
+                font-weight: 600;
+                font-size: 1.9rem;
+                text-align: start;
+              }
+              .card_details {
+                padding: 25px;
+              }
+          }
+      ';
+
+      
+    $carouselContent = '';
+    if (!empty($this->content->users)) {
+      foreach ($this->content->users as $key => $ccnUserId) {
+        if ($ccnUserId == 1 || $ccnUserId == 2) {
+          continue;
+        }
+        if ($ccnUserId) {
+          $ccnUserHandler = new ccnUserHandler();
+          $ccnUser = $ccnUserHandler->ccnGetUserDetails($ccnUserId);
+
+          // custom field data
+          $Profession = $DB->get_record('user_info_field', array('shortname' => 'profession1'));
+          $Profession_data = $DB->get_field('user_info_data', 'data', array('userid' => $ccnUserId, 'fieldid' => $Profession->id));
+
+          /* print_r($ccnUser); */
+          if ($ccnUser->isTeacher == 1) {
+
+            $carouselContent .= '
+              <a href="' . $ccnUser->profileUrl . '" style="height: 300px;margin-bottom: 10px;">
+              <li class="card" style="box-shadow: rgba(0, 0, 0, 0.5) 0px 3px 8px;margin-bottom: 10px;">
+                 <div>
+                 <img class="teacher_img" src="' . $ccnUser->rawAvatar . '" alt="img" draggable="false">
+                 </div>
+                 <div class="card_details" style="padding: 10px;max-width:60%;text-align: left;">
+                 <h2>' . $ccnUser->fullname . '</h2>
+                 <span>' . $Profession_data . '</span>
+                 </div>
+              </li>
+              </a>
+          ';
+          }
+        }
+      }
+    }
+
+    $this->content->text = '
+          <style>' . $cssStyles . '</style>
+          <div class="vx_box">
+          <div class="row">
+              <div class="col-lg-12">
+                <div class="main-title text-center wow fadeInLeft" style="color: #154372;">
+                  <h2 class="mb0 mt0" style="color: #154372;">' . format_text($this->content->title, FORMAT_HTML, array('filter' => true)) . '</h2>
+                  <br>
+                  <p style="font-weight: 400;font-size: 2rem;">' . format_text($this->content->title_2, FORMAT_HTML, array('filter' => true)) . '</p>
+                </div>
+              </div>
+            </div>
+              <div class="wrapper_vx">
+              <ul class="carousel">' . $carouselContent . '</ul>
+              <div>
+                  <i id="left" class="fa fa-caret-left"></i>
+                  <i id="right" class="fa fa-caret-right"></i>
+              </div>
+              </div>
+          </div>
+
+          <script>
+              const wrapper_vx = document.querySelector(".wrapper_vx");
+              const carousel = document.querySelector(".carousel");
+              const firstCardWidth = carousel.querySelector(".card").offsetWidth;
+              const arrowBtns = document.querySelectorAll(".wrapper_vx i");
+              const carouselChildrens = [...carousel.children];
+      
+              let isDragging = false, isAutoPlay = true, startX, startScrollLeft, timeoutId;
+              let cardPerView = Math.round(carousel.offsetWidth / firstCardWidth);
+              carouselChildrens.slice(-cardPerView).reverse().forEach(card => {
+                  carousel.insertAdjacentHTML("afterbegin", card.outerHTML);
+              });
+              carouselChildrens.slice(0, cardPerView).forEach(card => {
+                  carousel.insertAdjacentHTML("beforeend", card.outerHTML);
+              });
+              carousel.classList.add("no-transition");
+              carousel.scrollLeft = carousel.offsetWidth;
+              carousel.classList.remove("no-transition");
+              arrowBtns.forEach(btn => {
+                  btn.addEventListener("click", () => {
+                      carousel.scrollLeft += btn.id == "left" ? -firstCardWidth : firstCardWidth;
+                  });
+              });
+      
+              const dragStart = (e) => {
+                  isDragging = true;
+                  carousel.classList.add("dragging");
+                  // Records the initial cursor and scroll position of the carousel
+                  startX = e.pageX;
+                  startScrollLeft = carousel.scrollLeft;
+              }
+      
+              const dragging = (e) => {
+                  if (!isDragging) return; // if isDragging is false return from here
+                  // Updates the scroll position of the carousel based on the cursor movement
+                  carousel.scrollLeft = startScrollLeft - (e.pageX - startX);
+              }
+      
+              const dragStop = () => {
+                  isDragging = false;
+                  carousel.classList.remove("dragging");
+              }
+      
+              const infiniteScroll = () => {
+                  // If the carousel is at the beginning, scroll to the end
+                  if (carousel.scrollLeft === 0) {
+                      carousel.classList.add("no-transition");
+                      carousel.scrollLeft = carousel.scrollWidth - (2 * carousel.offsetWidth);
+                      carousel.classList.remove("no-transition");
+                  }
+                  // If the carousel is at the end, scroll to the beginning
+                  else if (Math.ceil(carousel.scrollLeft) === carousel.scrollWidth - carousel.offsetWidth) {
+                      carousel.classList.add("no-transition");
+                      carousel.scrollLeft = carousel.offsetWidth;
+                      carousel.classList.remove("no-transition");
+                  }
+      
+                  // Clear existing timeout & start autoplay if mouse is not hovering over carousel
+                  clearTimeout(timeoutId);
+                  if (!wrapper_vx.matches(":hover")) autoPlay();
+              }
+      
+              const autoPlay = () => {
+                  if (window.innerWidth < 800 || !isAutoPlay) return; // Return if window is smaller than 800 or isAutoPlay is false
+                  // Autoplay the carousel after every 2500 ms
+                  timeoutId = setTimeout(() => carousel.scrollLeft += firstCardWidth, 2500);
+              }
+              autoPlay();
+      
+              carousel.addEventListener("mousedown", dragStart);
+              carousel.addEventListener("mousemove", dragging);
+              document.addEventListener("mouseup", dragStop);
+              carousel.addEventListener("scroll", infiniteScroll);
+              wrapper_vx.addEventListener("mouseenter", () => clearTimeout(timeoutId));
+              wrapper_vx.addEventListener("mouseleave", autoPlay);
+          </script>
+          ';
+
+    return $this->content;
+  }
+
+
+  /**
+   * Allow multiple instances in a single course?
+   *
+   * @return bool True if multiple instances are allowed, false otherwise.
+   */
+  public function instance_allow_multiple()
+  {
+    return true;
+  }
+
+  /**
+   * Enables global configuration of the block in settings.php.
+   *
+   * @return bool True if the global configuration is enabled.
+   */
+  function has_config()
+  {
+    return true;
+  }
+
+  /**
+   * Sets the applicable formats for the block.
+   *
+   * @return string[] Array of pages and permissions.
+   */
+  function applicable_formats()
+  {
+    $ccnBlockHandler = new ccnBlockHandler();
+    return $ccnBlockHandler->ccnGetBlockApplicability(array('all'));
+  }
+
+  public function html_attributes()
+  {
+    global $CFG;
+    $attributes = parent::html_attributes();
+    include($CFG->dirroot . '/theme/edumy/ccn/block_handler/attributes.php');
+    return $attributes;
+  }
+}

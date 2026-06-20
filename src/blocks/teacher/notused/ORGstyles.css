@@ -1,0 +1,24 @@
+a.nav-link {
+    padding-right: 1rem !important;
+    padding-left: 1rem !important;
+    font-size: 20px !important;
+    color:#fff !important;
+    font-weight:500;
+}
+.navbar-expand-lg{
+    background: #303235 !important;
+}
+a.nav-link:hover{color:#eb5f2e !important;}
+a.nav-link:active{color:#eb5f2e !important;}
+
+
+#footer{background:#000 !important;}
+#footer div{
+    font-size: 22px !important;
+    text-align:center;color:var(--white);font-weight:500;padding:25px 0px;
+    font-family: "Cairo", sans-serif !important;
+}
+#footer div a{
+    color:var(--white);
+}
+#footer div a:hover{color:var(--orange);}

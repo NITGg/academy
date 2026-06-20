@@ -1,0 +1,308 @@
+.navbar-expand-lg{
+                background: #303235  ;
+            }
+
+            
+            #footer{background:#000  ;}
+            #footer div{
+                font-size: 22px  ;
+                text-align:center;color:var(--white);font-weight:500;padding:25px 0px;
+                font-family: 'Cairo', sans-serif  ;
+            }
+            #footer div a{
+                color:var(--white);
+            }
+            #footer div a:hover{color:var(--orange);}
+            :root{
+    
+            }
+            
+            #region-main{margin:0px;padding: 0px  ;overflow-x:hidden;}
+            a{text-decoration:none ;}
+            
+            
+            .navbar-expand-lg .navbar-nav {
+                flex-direction: row;
+                direction: rtl  ;
+            }
+        
+            
+            
+            
+            
+            .carousel-inner .carousel-item:first-of-type{
+                height:870px  ;
+                background-image:url('" . $userData->src . "');
+                background-size:cover;background-repeat:no-repeat;
+            }
+            .carousel-inner .carousel-item:nth-of-type(2){
+                height:870px  ;
+                background-image:url('https://omar-sherbeni.com/assets/images/Cover-site1.jpg');
+                background-size:cover;background-repeat:no-repeat;
+            }
+            .carousel-inner .carousel-item:first-of-type .content ,
+            .carousel-inner .carousel-item:nth-of-type(2) .content{
+                padding: 200px 0px  250px 0px ;background:rgba(33, 37, 41,0.6)  ;
+                width:100%;height:100%;justify-content:center;align-items:center;
+                display:flex;flex-direction:column  ;padding: 100px 0px  ;
+            }
+            .carousel-inner .carousel-item:first-of-type .content h1,
+            .carousel-inner .carousel-item:nth-of-type(2) .content h1{
+                font-size:75px  ;color:var(--white);font-family: playfair display,serif;
+                font-weight:700;margin-bottom: 0px  ;
+            }
+            .carousel-inner .carousel-item:first-of-type .content p,
+            .carousel-inner .carousel-item:nth-of-type(2) .content p{
+                color:var(--white);font-size:23px  ;font-family:poppins,sans-serif;
+                padding:0px 16%;margin-top: 20px;
+            }
+            .carousel-inner .carousel-item:first-of-type .content div .btn:first-of-type,
+            .carousel-inner .carousel-item:nth-of-type(2) .content div .btn:first-of-type{
+                background:var(--white);padding: 20px 60px;margin:20px 10px   ;
+                border: 2px solid var(--white);
+            }
+            .carousel-inner .carousel-item:first-of-type .content div .btn:first-of-type:hover,
+            .carousel-inner .carousel-item:first-of-type .content div .btn:nth-of-type(2):hover,
+            .carousel-inner .carousel-item:nth-of-type(2) .content div .btn:first-of-type:hover,
+            .carousel-inner .carousel-item:nth-of-type(2) .content div .btn:nth-of-type(2):hover{
+                background:#eb5f2e;border: 2px solid #eb5f2e;
+            }
+            .carousel-inner .carousel-item:first-of-type .content div .btn:first-of-type:hover a ,
+            .carousel-inner .carousel-item:first-of-type .content div .btn:nth-of-type(2):hover a,
+            .carousel-inner .carousel-item:nth-of-type(2) .content div .btn:first-of-type:hover a ,
+            .carousel-inner .carousel-item:nth-of-type(2) .content div .btn:nth-of-type(2):hover a{
+                color:var(--white);
+            }
+            .carousel-inner .carousel-item:first-of-type .content div .btn:nth-of-type(2):hover,
+            .carousel-inner .carousel-item:nth-of-type(2) .content div .btn:nth-of-type(2):hover{
+                border:2px solid #eb5f2e;
+            }
+            .carousel-inner .carousel-item:first-of-type .content div .btn:first-of-type a,
+            .carousel-inner .carousel-item:nth-of-type(2) .content div .btn:first-of-type a{
+                font-size:20px  ;color:var(--orange);font-weight: 600  ;
+            }
+            .carousel-inner .carousel-item:first-of-type .content div .btn:nth-of-type(2),
+            .carousel-inner .carousel-item:nth-of-type(2) .content div .btn:nth-of-type(2){
+                background:transparent;border:2px solid var(--white);padding: 20px 40px;
+                margin:10px;
+            }
+            .carousel-inner .carousel-item:first-of-type .content div .btn:nth-of-type(2) a,
+            .carousel-inner .carousel-item:nth-of-type(2) .content div .btn:nth-of-type(2) a{
+                font-size:20px  ;color:var(--white);font-weight: 600  ;
+            }
+            .carousel-control-prev{margin-left:20px;}
+            .carousel-control-next{margin-right:20px;}
+            .carousel-control-prev, .carousel-control-next {
+                position: absolute;
+                top: 50%;
+                z-index: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction:column;
+                border:none  ;
+                width: 60px;
+                height:60px;
+                color: var(--whitee)  ;
+                text-align: center;
+                opacity: .5;background:var(--white)  ;
+                border-radius:50%;
+            }
+            .bi-caret-left-fill,.bi-caret-right-fill{color:var(--orange)  ;font-size:30px  ;}
+            
+            
+            
+            
+            .service-area .card{
+                background-image:url('https://omar-sherbeni.com/assets/images/servicebg.png');
+                align-items:center;background-repeat:no-repeat;background-size:cover;
+                height:340px ;padding:50px 10px;text-align:center;box-shadow: 2px 2px 20px 4px rgba(0,0,0,.07);
+                border-radius:10px  ;
+            }
+            .service-area .card:hover{
+                margin-top:-10px  ;
+                transition: .3s;
+            }
+            .service-area .card .iconContainer{
+                height:60px;
+                width:60px;
+                justify-content:center;align-items:center;display:flex;flex-direction:column;
+            }
+            .service-area .card .iconContainer .bi-telephone-fill , .service-area .card .iconContainer .bi-facebook
+            ,.service-area .card .iconContainer .bi-people-fill{
+                font-size:25px  ;
+            }
+            .service-area .card h2{
+                font-size: 26px  ;margin-top:20px;
+                color: #181818  ;font-weight:500;
+                margin-bottom: 5px  ;
+            }
+            .service-area .card p{
+                color: #4f4f4f;font-size:18px  ;margin-top:5px;
+                text-overflow:ellipsis;
+                overflow:hidden;
+                display: -webkit-box  ;
+                -webkit-line-clamp: 3;
+                -webkit-box-orient: vertical;
+            }            .service-area .card .p,.service-area .card .p a{
+                font-size:25px  ;
+            }
+            
+            
+            
+            #sectionThree{
+                margin-top: 100px  ;
+                background-size:cover  ;
+                overflow-y:hidden;
+            }
+            #sectionThree .row{margin-top:75px;}
+            #sectionThree .course{box-shadow: 2px 2px 20px 4px rgba(0,0,0,0.1);}
+            #sectionThree .course:hover{margin-top:-15px;transition: 0.3s;}
+            /* #sectionThree>div>h2{font-size:50px  ;font-weight:500 ;} */
+            #sectionThree .courseImg{
+                position: relative  ;
+                
+            }
+            #sectionThree .courseImg div{
+                position: absolute  ;
+                top: 50%  ;
+                left: 50%  ;
+                transform: translate(-50%, -50%)  ;
+                width:100%  ;
+                background:rgba(235, 95, 46,0.7) ;height:100%  ;
+                justify-content:center  ;align-items:center  ;display:flex  ;
+                flex-direction:column  ;text-align:center  ;
+            }
+
+         
+            #sectionThree .course .course-content{padding:30px;text-align:center;}
+            #sectionThree .course .course-content p{
+                font-size:24px  ;line-height: 1.5;color:#616161;padding:0px 10px;
+            }
+            #sectionThree .course .course-content button{
+                border:2px solid var(--orange);padding:15px 30px  ;background:var(--white);
+            }
+            #sectionThree .course .course-content button a{
+                font-size:22px ;
+            }
+            /* #sectionThree .course .course-content button:hover{background:var(--orange);}
+            #sectionThree .course .course-content button:hover a{color:var(--white);} */
+            
+            /* #sectionThree .course div >h2{line-height:30px;color:#000;text-overflow:ellipsis;
+                overflow:hidden;
+                display: -webkit-box  ;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical} */
+            /* #sectionFour{margin-top:100px  ;}
+            #sectionFour .about-image{background:var(--orange);height:100%;border-radius:10px;}
+        
+            #sectionFour h2{font-size:60px  ;font-weight:500;}
+            #sectionFour p{
+                font-size:22px  ;color:#444343 ;
+                line-height:28px ;font-weight:500;
+            }
+            #sectionFour .col-1 .bi-check-circle-fill{
+                color:var(--move)  ;font-size: 22px  ;
+            } */
+            #sectionFour{margin-top:100px  ;}
+            #sectionFour .about-image{height:100%;border-radius:10px;}
+      
+            #sectionFour h2{font-size:60px  ;font-weight:500;}
+            #sectionFour p{
+                font-size:20px  ;color:#444343 ;
+                line-height:28px ;font-weight:500;
+            }
+            #sectionFour .col-1 .bi-check-circle-fill{
+                font-size: 22px  ;
+            }
+            #sectionFive{background:var(--babyBlue) ;}
+            #sectionFive div .row{
+                background:#121624  ;border-radius:30px;
+            }
+            #sectionFive div .row .col-sm-12:nth-of-type(1){
+                justify-content:center;display:flex;flex-direction:column;
+            }
+            #sectionFive div .row .col-sm-12:nth-of-type(1) p{
+              font-size:40px  ;color:var(--white);
+              font-weight:600;max-width:75%;line-height:45px;
+              font-family: poppins,sans-serif;
+            }
+            #sectionFive div .row .col-sm-12:nth-of-type(2) div img{
+                border-radius:30px;
+            }
+            
+            
+            #sectionSix{margin-top:200px;}
+            #sectionSix .card{
+                background-image:url('https://omar-sherbeni.com/assets/images/contact-bg.png');
+                border-radius:50px;
+            }
+            #sectionSix .card h1{
+                font-size:50px;font-weight:600;font-family: 'Playfair Display', serif;
+            }
+            input.form-control{
+                height: 60px  ;
+                border-radius: 90px;
+                border: 1px solid #c0ccff;
+                margin-bottom: 20px;
+                padding: 35px 0px 35px 20px;
+            }
+            textarea{
+                border-radius: 30px  ;
+                border: 1px solid #c0ccff  ;
+                margin-bottom: 20px;
+                padding: 15px 0px 35px 20px  ;
+                resize:none  
+            }
+            input[type='submit']{
+                border-radius: 100px;
+                border: 1px solid var(--orange);
+                margin-bottom: 20px;
+                padding: 18px 30px;
+                background: var(--orange);
+                color:var(--white);
+                font-size:20px;font-weight:500;
+            }
+            input[type='submit']:hover{background:var(--white);color:var(--orange);}
+            textarea:focus{
+                border: 1px solid var(--orange)  ;
+                outline:none  ;box-shadow:none  ;
+            }
+            input.form-control:focus{
+                border: 1px solid var(--orange);
+                outline:none  ;box-shadow:none  ;
+            }
+            ::placeholder{font-size:22px;color:#495057;}
+            
+            
+            
+            
+            
+            #sectionSeven{
+                background-image:url('https://omar-sherbeni.com/assets/images/footer-area.png');
+                margin-top:100px;
+            }
+            #sectionSeven p{font-family:poppins,sans-serif;}
+            #sectionSeven .row div:nth-child(3) div p{font-size:22px;font-weight:600;margin-top:20px;}
+            #sectionSeven h2{font-size:40px  ;font-weight:600  ;font-family:poppins,sans-serif;}
+            #sectionSeven ul li{
+                list-style-type:none;font-size:22px;margin-top:10px;font-weight:500;
+            }
+            #sectionSeven ul li a{color:#fff;font-family:poppins,sans-serif;}
+            @media (min-width: 768px) {
+                .service-area{margin-top:-100px  }
+                #sectionFour .about-image{margin-left:-40px  ;}
+                #sectionSix .card{
+                    margin: -50px 100px 0px -50px  ;z-index:2;
+                }
+                .navbar-expand-lg{padding: 40px 0px  ;}
+            }
+            @media (max-width: 800px) {
+                .service-area{margin-top:40px  }
+                .carousel-inner .carousel-item .content h1{
+                    font-size:40px  ;color:#fff;font-family: playfair display,serif;
+                    font-weight:700;margin-bottom: 0px  ;margin-top:70px;
+                }
+                #sectionFour .about-image{height:400px  ;}
+                
+            } 
