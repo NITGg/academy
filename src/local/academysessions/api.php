@@ -33,13 +33,15 @@ if ($function == 'create_session') {
     $studentids_raw = required_param('studentids', PARAM_TEXT);
     $meetinglink = optional_param('meetinglink', '', PARAM_URL);
     $duration = optional_param('duration', 50, PARAM_INT);
+    $googlemeetid = optional_param('googlemeetid', 0, PARAM_INT);
+    $jitsiid      = optional_param('jitsiid', 0, PARAM_INT);
 
     $context = context_course::instance($courseid);
     require_capability('local/academysessions:managesessions', $context);
 
     $studentids = array_map('intval', explode(',', $studentids_raw));
 
-    $sessionid = session_manager::create_session($courseid, $userid, $title, $starttime, $studentids, $meetinglink, $duration);
+    $sessionid = session_manager::create_session($courseid, $userid, $title, $starttime, $studentids, $meetinglink, $duration, $googlemeetid ?: null, $jitsiid ?: null);
     echo json_encode(['status' => 'success', 'data' => ['sessionid' => $sessionid]]);
 
 } else if ($function == 'get_teacher_sessions') {

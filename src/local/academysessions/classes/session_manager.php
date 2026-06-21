@@ -5,11 +5,13 @@ defined('MOODLE_INTERNAL') || die();
 
 class session_manager {
 
-    public static function create_session($courseid, $teacherid, $title, $starttime, $studentids, $meetinglink = '', $duration = 50) {
+    public static function create_session($courseid, $teacherid, $title, $starttime, $studentids, $meetinglink = '', $duration = 50, $googlemeetid = null, $jitsiid = null) {
         global $DB;
 
         $now = time();
         $session = new \stdClass();
+        $session->googlemeetid = $googlemeetid;
+        $session->jitsiid      = $jitsiid;
         $session->courseid = $courseid;
         $session->teacherid = $teacherid;
         $session->title = $title;
@@ -30,6 +32,57 @@ class session_manager {
         }
 
         return $sessionid;
+    }
+
+    public static function create_recording_activity($session) {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/course/lib.php');
+        require_once($CFG->dirroot . '/lib/grouplib.php');
+
+        $recording = $DB->get_record('academy_session_recordings', array(
+            'sessionid' => $session->id,
+            'status' => 'ready'
+        ));
+        if (!$recording) {
+            return false;
+        }
+
+        $attended = $DB->get_records('academy_session_attendance', array('sessionid' => $session->id));
+        if (empty($attended)) {
+            return false;
+        }
+
+        $groupname = 'Session ' . $session->id . ' Attendees';
+        $groupid = groups_create_group((object)array(
+            'courseid' => $session->courseid,
+            'name' => $groupname,
+            'description' => 'Auto-created for session recording access',
+        ));
+
+        foreach ($attended as $att) {
+            groups_add_member($groupid, $att->userid);
+        }
+
+        $expiry_days = get_config('local_academysessions', 'recording_expiry_days') ?: 30;
+        $bunny = new bunny_client();
+        $expiresat = time() + (2 * 3600);
+        $embedurl = $bunny->get_embed_url($recording->bunny_video_id, $expiresat);
+
+        $moduleinfo = new \stdClass();
+        $moduleinfo->modulename = 'sessionrecording';
+        $moduleinfo->course = $session->courseid;
+        $moduleinfo->name = 'Recording: ' . $session->title;
+        $moduleinfo->intro = '<p>Recorded session from ' . userdate($session->start_time) . '</p>';
+        $moduleinfo->introformat = FORMAT_HTML;
+        $moduleinfo->sessionid = $session->id;
+        $moduleinfo->recordingid = $recording->id;
+        $moduleinfo->bunny_video_url = $embedurl;
+        $moduleinfo->attendee_groupid = $groupid;
+        $moduleinfo->visible_until = time() + ($expiry_days * 86400);
+        $moduleinfo->timemodified = time();
+
+        $recid = $DB->insert_record('sessionrecording', $moduleinfo);
+        return $recid;
     }
 
     public static function get_session($sessionid) {

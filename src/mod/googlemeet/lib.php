@@ -215,6 +215,43 @@ function googlemeet_get_coursemodule_info($coursemodule) {
 }
 
 /**
+ * Dynamically hide Google Meet activity from students not in the session's allowed list.
+ */
+function googlemeet_cm_info_dynamic(cm_info $cm) {
+    global $DB, $USER;
+
+    if (has_capability('mod/googlemeet:editrecording', $cm->context)) {
+        return;
+    }
+
+    $session = $DB->get_record('academy_live_sessions', array('googlemeetid' => $cm->instance));
+    if (!$session) {
+        return;
+    }
+
+    $allowed = $DB->record_exists('academy_session_students', array(
+        'sessionid' => $session->id,
+        'userid' => $USER->id
+    ));
+
+    if (!$allowed) {
+        $cm->set_user_visible(false);
+        $cm->set_available(false);
+        return;
+    }
+
+    $now = time();
+    $visible_from = $session->start_time - 1800;
+    $visible_until = $session->start_time + ($session->duration * 60);
+
+    if ($now < $visible_from || $now > $visible_until) {
+        if ($now < $visible_from) {
+            $cm->set_available(false, false, '');
+        }
+    }
+}
+
+/**
  * Mark the activity completed (if required) and trigger the course_module_viewed event.
  *
  * @param  stdClass $googlemeet googlemeet object

@@ -12,6 +12,15 @@ $tasks = array(
         'month' => '*'
     ),
     array(
+        'classname' => 'local_academysessions\task\sync_recordings',
+        'blocking' => 0,
+        'minute' => '*/15',
+        'hour' => '*',
+        'day' => '*',
+        'dayofweek' => '*',
+        'month' => '*'
+    ),
+    array(
         'classname' => 'local_academysessions\task\cleanup_recordings',
         'blocking' => 0,
         'minute' => '0',
