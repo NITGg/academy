@@ -52,7 +52,8 @@ services:
     container_name: academy_jitsi_web
     restart: unless-stopped
     ports:
-      - "${HTTP_PORT:-8443}:80"
+      - "${HTTP_PORT:-8080}:80"
+      - "${HTTPS_PORT:-8443}:443"
     volumes:
       - ${CONFIG:-./jitsi}/web:/config:Z
       - ${CONFIG:-./jitsi}/transcripts:/usr/share/jitsi-meet/transcripts:Z
@@ -65,6 +66,11 @@ services:
       - ENABLE_BREAKOUT_ROOMS
       - PUBLIC_URL
       - TZ
+      - AUTH_TYPE
+      - JWT_APP_ID
+      - JWT_APP_SECRET
+      - JWT_ACCEPTED_ISSUERS
+      - JWT_ACCEPTED_AUDIENCES
       - XMPP_DOMAIN=meet.jitsi
       - XMPP_AUTH_DOMAIN=auth.meet.jitsi
       - XMPP_BOSH_URL_BASE=http://xmpp.meet.jitsi:5280
@@ -101,6 +107,11 @@ services:
       - ENABLE_RECORDING
       - PUBLIC_URL
       - TZ
+      - AUTH_TYPE
+      - JWT_APP_ID
+      - JWT_APP_SECRET
+      - JWT_ACCEPTED_ISSUERS
+      - JWT_ACCEPTED_AUDIENCES
       - XMPP_DOMAIN=meet.jitsi
       - XMPP_AUTH_DOMAIN=auth.meet.jitsi
       - XMPP_GUEST_DOMAIN=guest.meet.jitsi
@@ -110,6 +121,7 @@ services:
       - XMPP_CROSS_DOMAIN=true
       - GLOBAL_MODULES=bosh,websocket,http_files
       - XMPP_MODULES=bosh,websocket
+      - XMPP_MUC_MODULES=token_affiliation
       - JICOFO_AUTH_USER=focus
       - JICOFO_AUTH_PASSWORD
       - JICOFO_COMPONENT_SECRET=s3cr37
@@ -142,6 +154,7 @@ services:
       - JICOFO_COMPONENT_SECRET=s3cr37
       - JIBRI_BREWERY_MUC=jibribrewery
       - JIBRI_PENDING_TIMEOUT=90
+      - ENABLE_RECORDING=1
     depends_on:
       - prosody
     networks:
@@ -176,6 +189,8 @@ services:
     image: jitsi/jibri:stable-9823
     container_name: academy_jibri
     restart: unless-stopped
+    ports:
+      - "2223:2223"   # Jibri HTTP API — health: http://localhost:2223/jibri/api/v1.0/health
     volumes:
       - ${CONFIG:-./jitsi}/jibri:/config:Z
       - /dev/shm:/dev/shm
@@ -198,6 +213,15 @@ services:
       - JIBRI_RECORDING_DIR=/config/recordings
       - JIBRI_FINALIZE_RECORDING_SCRIPT_PATH=/config/finalize.sh
       - DISPLAY=:0
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
+      - MINIO_BUCKET=academy-recordings
+      - JIBRI_HTTP_API_EXTERNAL_PORT=2223
+      - IGNORE_CERTIFICATE_ERRORS=1
+      - PUBLIC_URL=https://meet.jitsi
+      - MOODLE_URL=http://academy_app
+      - MOODLE_CRON_KEY=academy-cron-2024
     depends_on:
       - jicofo
     networks:
@@ -217,6 +241,10 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin123
     command: server /data --console-address ":9001"
+    networks:
+      - meet.jitsi
+      - default
+
 
   # ── Excalidraw ─────────────────────────────────────────────
   # WebSocket collaboration relay (Socket.IO)

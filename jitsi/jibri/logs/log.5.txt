@@ -1,143 +1,322 @@
-Jibri 2026-06-21 13:58:12.539 INFO: [1] MainKt.handleCommandLineArgs#188: Jibri run with args [--config, /etc/jitsi/jibri/config.json]
-Jibri 2026-06-21 13:58:13.089 INFO: [1] MainKt.setupLegacyConfig#213: Checking legacy config file /etc/jitsi/jibri/config.json
-Jibri 2026-06-21 13:58:13.134 INFO: [1] MainKt.setupLegacyConfig#216: Legacy config file /etc/jitsi/jibri/config.json doesn't exist
-Jibri 2026-06-21 13:58:14.831 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
+Jibri 2026-06-22 12:48:29.991 INFO: [1] MainKt.handleCommandLineArgs#188: Jibri run with args [--config, /etc/jitsi/jibri/config.json]
+Jibri 2026-06-22 12:48:30.359 INFO: [1] MainKt.setupLegacyConfig#213: Checking legacy config file /etc/jitsi/jibri/config.json
+Jibri 2026-06-22 12:48:30.380 INFO: [1] MainKt.setupLegacyConfig#216: Legacy config file /etc/jitsi/jibri/config.json doesn't exist
+Jibri 2026-06-22 12:48:31.248 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
   LambdaSupplier: 'JibriConfig::jibriId'
   ConfigSourceSupplier: key: 'jibri.id', type: 'kotlin.String', source: 'config'
-Jibri 2026-06-21 13:58:14.836 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: LambdaSupplier: Trying to retrieve value via JibriConfig::jibriId
-Jibri 2026-06-21 13:58:14.886 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via LambdaSupplier: 'JibriConfig::jibriId': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$Error: class java.lang.NullPointerException
-Jibri 2026-06-21 13:58:14.900 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.id' from source 'config' as type kotlin.String
-Jibri 2026-06-21 13:58:15.192 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value jibri-022794705 for key 'jibri.id' from source 'config' as type kotlin.String
-Jibri 2026-06-21 13:58:15.205 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.id', type: 'kotlin.String', source: 'config'
-Jibri 2026-06-21 13:58:15.213 INFO: [1] MainKt.main#55: Jibri starting up with id jibri-022794705
-Jibri 2026-06-21 13:58:15.249 FINE: [1] MetricsContainer.registerCounter#152: Counter 'sessions_started' was renamed to 'sessions_started_total' to ensure consistent metric naming.
-Jibri 2026-06-21 13:58:15.288 FINE: [1] MetricsContainer.registerCounter#152: Counter 'sessions_stopped' was renamed to 'sessions_stopped_total' to ensure consistent metric naming.
-Jibri 2026-06-21 13:58:15.297 FINE: [1] MetricsContainer.registerCounter#152: Counter 'errors' was renamed to 'errors_total' to ensure consistent metric naming.
-Jibri 2026-06-21 13:58:15.299 FINE: [1] MetricsContainer.registerCounter#152: Counter 'busy' was renamed to 'busy_total' to ensure consistent metric naming.
-Jibri 2026-06-21 13:58:15.303 FINE: [1] MetricsContainer.registerCounter#152: Counter 'xmpp_connected' was renamed to 'xmpp_connected_total' to ensure consistent metric naming.
-Jibri 2026-06-21 13:58:15.306 FINE: [1] MetricsContainer.registerCounter#152: Counter 'xmpp_reconnecting' was renamed to 'xmpp_reconnecting_total' to ensure consistent metric naming.
-Jibri 2026-06-21 13:58:15.309 FINE: [1] MetricsContainer.registerCounter#152: Counter 'xmpp_reconnection_failed' was renamed to 'xmpp_reconnection_failed_total' to ensure consistent metric naming.
-Jibri 2026-06-21 13:58:15.311 FINE: [1] MetricsContainer.registerCounter#152: Counter 'xmpp_ping_failed' was renamed to 'xmpp_ping_failed_total' to ensure consistent metric naming.
-Jibri 2026-06-21 13:58:15.315 FINE: [1] MetricsContainer.registerCounter#152: Counter 'xmpp_closed' was renamed to 'xmpp_closed_total' to ensure consistent metric naming.
-Jibri 2026-06-21 13:58:15.317 FINE: [1] MetricsContainer.registerCounter#152: Counter 'xmpp_closed_on_error' was renamed to 'xmpp_closed_on_error_total' to ensure consistent metric naming.
-Jibri 2026-06-21 13:58:15.319 FINE: [1] MetricsContainer.registerCounter#152: Counter 'stopped_on_xmpp_closed' was renamed to 'stopped_on_xmpp_closed_total' to ensure consistent metric naming.
-Jibri 2026-06-21 13:58:15.332 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
+Jibri 2026-06-22 12:48:31.253 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: LambdaSupplier: Trying to retrieve value via JibriConfig::jibriId
+Jibri 2026-06-22 12:48:31.281 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via LambdaSupplier: 'JibriConfig::jibriId': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$Error: class java.lang.NullPointerException
+Jibri 2026-06-22 12:48:31.292 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.id' from source 'config' as type kotlin.String
+Jibri 2026-06-22 12:48:31.425 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value jibri-654689236 for key 'jibri.id' from source 'config' as type kotlin.String
+Jibri 2026-06-22 12:48:31.431 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.id', type: 'kotlin.String', source: 'config'
+Jibri 2026-06-22 12:48:31.433 INFO: [1] MainKt.main#55: Jibri starting up with id jibri-654689236
+Jibri 2026-06-22 12:48:31.463 FINE: [1] MetricsContainer.registerCounter#152: Counter 'sessions_started' was renamed to 'sessions_started_total' to ensure consistent metric naming.
+Jibri 2026-06-22 12:48:31.481 FINE: [1] MetricsContainer.registerCounter#152: Counter 'sessions_stopped' was renamed to 'sessions_stopped_total' to ensure consistent metric naming.
+Jibri 2026-06-22 12:48:31.485 FINE: [1] MetricsContainer.registerCounter#152: Counter 'errors' was renamed to 'errors_total' to ensure consistent metric naming.
+Jibri 2026-06-22 12:48:31.488 FINE: [1] MetricsContainer.registerCounter#152: Counter 'busy' was renamed to 'busy_total' to ensure consistent metric naming.
+Jibri 2026-06-22 12:48:31.492 FINE: [1] MetricsContainer.registerCounter#152: Counter 'xmpp_connected' was renamed to 'xmpp_connected_total' to ensure consistent metric naming.
+Jibri 2026-06-22 12:48:31.495 FINE: [1] MetricsContainer.registerCounter#152: Counter 'xmpp_reconnecting' was renamed to 'xmpp_reconnecting_total' to ensure consistent metric naming.
+Jibri 2026-06-22 12:48:31.498 FINE: [1] MetricsContainer.registerCounter#152: Counter 'xmpp_reconnection_failed' was renamed to 'xmpp_reconnection_failed_total' to ensure consistent metric naming.
+Jibri 2026-06-22 12:48:31.501 FINE: [1] MetricsContainer.registerCounter#152: Counter 'xmpp_ping_failed' was renamed to 'xmpp_ping_failed_total' to ensure consistent metric naming.
+Jibri 2026-06-22 12:48:31.504 FINE: [1] MetricsContainer.registerCounter#152: Counter 'xmpp_closed' was renamed to 'xmpp_closed_total' to ensure consistent metric naming.
+Jibri 2026-06-22 12:48:31.506 FINE: [1] MetricsContainer.registerCounter#152: Counter 'xmpp_closed_on_error' was renamed to 'xmpp_closed_on_error_total' to ensure consistent metric naming.
+Jibri 2026-06-22 12:48:31.507 FINE: [1] MetricsContainer.registerCounter#152: Counter 'stopped_on_xmpp_closed' was renamed to 'stopped_on_xmpp_closed_total' to ensure consistent metric naming.
+Jibri 2026-06-22 12:48:31.513 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
   LambdaSupplier: 'JibriConfig::enableStatsD'
   ConfigSourceSupplier: key: 'jibri.stats.enable-stats-d', type: 'kotlin.Boolean', source: 'config'
-Jibri 2026-06-21 13:58:15.334 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: LambdaSupplier: Trying to retrieve value via JibriConfig::enableStatsD
-Jibri 2026-06-21 13:58:15.337 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via LambdaSupplier: 'JibriConfig::enableStatsD': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$Error: class java.lang.NullPointerException
-Jibri 2026-06-21 13:58:15.339 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.stats.enable-stats-d' from source 'config' as type kotlin.Boolean
-Jibri 2026-06-21 13:58:15.349 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value true for key 'jibri.stats.enable-stats-d' from source 'config' as type kotlin.Boolean
-Jibri 2026-06-21 13:58:15.351 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.stats.enable-stats-d', type: 'kotlin.Boolean', source: 'config'
-Jibri 2026-06-21 13:58:15.364 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.stats.host' from source 'config' as type kotlin.String
-Jibri 2026-06-21 13:58:15.370 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value localhost for key 'jibri.stats.host' from source 'config' as type kotlin.String
-Jibri 2026-06-21 13:58:15.374 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.stats.port' from source 'config' as type kotlin.Int
-Jibri 2026-06-21 13:58:15.390 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value 8125 for key 'jibri.stats.port' from source 'config' as type kotlin.Int
-Jibri 2026-06-21 13:58:15.465 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
+Jibri 2026-06-22 12:48:31.518 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: LambdaSupplier: Trying to retrieve value via JibriConfig::enableStatsD
+Jibri 2026-06-22 12:48:31.522 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via LambdaSupplier: 'JibriConfig::enableStatsD': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$Error: class java.lang.NullPointerException
+Jibri 2026-06-22 12:48:31.525 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.stats.enable-stats-d' from source 'config' as type kotlin.Boolean
+Jibri 2026-06-22 12:48:31.540 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value true for key 'jibri.stats.enable-stats-d' from source 'config' as type kotlin.Boolean
+Jibri 2026-06-22 12:48:31.545 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.stats.enable-stats-d', type: 'kotlin.Boolean', source: 'config'
+Jibri 2026-06-22 12:48:31.560 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.stats.host' from source 'config' as type kotlin.String
+Jibri 2026-06-22 12:48:31.563 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value localhost for key 'jibri.stats.host' from source 'config' as type kotlin.String
+Jibri 2026-06-22 12:48:31.570 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.stats.port' from source 'config' as type kotlin.Int
+Jibri 2026-06-22 12:48:31.578 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value 8125 for key 'jibri.stats.port' from source 'config' as type kotlin.Int
+Jibri 2026-06-22 12:48:31.646 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
   ConfigSourceSupplier: key: 'jibri.webhook.subscribers', type: 'kotlin.collections.List<kotlin.String>', source: 'config'
-Jibri 2026-06-21 13:58:15.468 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.webhook.subscribers' from source 'config' as type kotlin.collections.List<kotlin.String>
-Jibri 2026-06-21 13:58:15.489 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value [] for key 'jibri.webhook.subscribers' from source 'config' as type kotlin.collections.List<kotlin.String>
-Jibri 2026-06-21 13:58:15.492 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.webhook.subscribers', type: 'kotlin.collections.List<kotlin.String>', source: 'config'
-Jibri 2026-06-21 13:58:17.696 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.jwt-info' from source 'config' as type com.typesafe.config.ConfigObject
-Jibri 2026-06-21 13:58:17.835 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value SimpleConfigObject({}) for key 'jibri.jwt-info' from source 'config' as type com.typesafe.config.ConfigObject
-Jibri 2026-06-21 13:58:17.837 INFO: [1] JwtInfo$Companion.fromConfig#176: got jwtConfig: {}
+Jibri 2026-06-22 12:48:31.652 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.webhook.subscribers' from source 'config' as type kotlin.collections.List<kotlin.String>
+Jibri 2026-06-22 12:48:31.679 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value [] for key 'jibri.webhook.subscribers' from source 'config' as type kotlin.collections.List<kotlin.String>
+Jibri 2026-06-22 12:48:31.682 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.webhook.subscribers', type: 'kotlin.collections.List<kotlin.String>', source: 'config'
+Jibri 2026-06-22 12:48:32.758 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.jwt-info' from source 'config' as type com.typesafe.config.ConfigObject
+Jibri 2026-06-22 12:48:32.808 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value SimpleConfigObject({}) for key 'jibri.jwt-info' from source 'config' as type com.typesafe.config.ConfigObject
+Jibri 2026-06-22 12:48:32.810 INFO: [1] JwtInfo$Companion.fromConfig#176: got jwtConfig: {}
 
-Jibri 2026-06-21 13:58:17.840 INFO: [1] JwtInfo$Companion.fromConfig#186: Unable to create JwtInfo: com.typesafe.config.ConfigException$Missing: reference.conf @ jar:file:/opt/jitsi/jibri/jibri.jar!/reference.conf: 83: No configuration setting found for key 'signing-key-path'
-Jibri 2026-06-21 13:58:17.888 FINE: [1] RefreshingProperty.getValue#46: Refreshing property jwt (not yet initialized or expired)...
-Jibri 2026-06-21 13:58:18.650 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
+Jibri 2026-06-22 12:48:32.811 INFO: [1] JwtInfo$Companion.fromConfig#186: Unable to create JwtInfo: com.typesafe.config.ConfigException$Missing: reference.conf @ jar:file:/opt/jitsi/jibri/jibri.jar!/reference.conf: 83: No configuration setting found for key 'signing-key-path'
+Jibri 2026-06-22 12:48:32.829 FINE: [1] RefreshingProperty.getValue#46: Refreshing property jwt (not yet initialized or expired)...
+Jibri 2026-06-22 12:48:33.104 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
   ConfigSourceSupplier: key: 'internal_http_port', type: 'kotlin.Int', source: 'command line args'
   ConfigSourceSupplier: key: 'jibri.api.http.internal-api-port', type: 'kotlin.Int', source: 'config'
-Jibri 2026-06-21 13:58:18.656 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'internal_http_port' from source 'command line args' as type kotlin.Int
-Jibri 2026-06-21 13:58:18.659 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via ConfigSourceSupplier: key: 'internal_http_port', type: 'kotlin.Int', source: 'command line args': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$NotFound: not found
-Jibri 2026-06-21 13:58:18.662 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.api.http.internal-api-port' from source 'config' as type kotlin.Int
-Jibri 2026-06-21 13:58:18.665 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value 3333 for key 'jibri.api.http.internal-api-port' from source 'config' as type kotlin.Int
-Jibri 2026-06-21 13:58:18.668 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.api.http.internal-api-port', type: 'kotlin.Int', source: 'config'
-Jibri 2026-06-21 13:58:18.683 INFO: [1] MainKt.main#128: Using port 3333 for internal HTTP API
-Jibri 2026-06-21 13:58:18.724 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 13:58:19.482 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
+Jibri 2026-06-22 12:48:33.106 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'internal_http_port' from source 'command line args' as type kotlin.Int
+Jibri 2026-06-22 12:48:33.109 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via ConfigSourceSupplier: key: 'internal_http_port', type: 'kotlin.Int', source: 'command line args': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$NotFound: not found
+Jibri 2026-06-22 12:48:33.111 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.api.http.internal-api-port' from source 'config' as type kotlin.Int
+Jibri 2026-06-22 12:48:33.116 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value 3333 for key 'jibri.api.http.internal-api-port' from source 'config' as type kotlin.Int
+Jibri 2026-06-22 12:48:33.119 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.api.http.internal-api-port', type: 'kotlin.Int', source: 'config'
+Jibri 2026-06-22 12:48:33.126 INFO: [1] MainKt.main#128: Using port 3333 for internal HTTP API
+Jibri 2026-06-22 12:48:33.138 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 12:48:33.574 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
   LambdaSupplier: 'JibriConfig::xmppEnvironments'
   TypeConvertingSupplier: converting value from ConfigSourceSupplier: key: 'jibri.api.xmpp.environments', type: 'kotlin.collections.List<com.typesafe.config.Config>', source: 'config'
-Jibri 2026-06-21 13:58:19.484 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: LambdaSupplier: Trying to retrieve value via JibriConfig::xmppEnvironments
-Jibri 2026-06-21 13:58:19.487 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via LambdaSupplier: 'JibriConfig::xmppEnvironments': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$NotFound: Considering empty XMPP envs list as not found
-Jibri 2026-06-21 13:58:19.489 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.api.xmpp.environments' from source 'config' as type kotlin.collections.List<com.typesafe.config.Config>
-Jibri 2026-06-21 13:58:19.498 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value [Config(SimpleConfigObject({"call-login":{"domain":"hidden.meet.jitsi","password":"rec0rd3rp4ssw0rd5678901234567890","username":"recorder"},"control-login":{"domain":"meet.jitsi","password":"j1br1p4ssw0rd12345678901234567890","port":"5222","username":"jibri"},"control-muc":{"domain":"internal-muc.meet.jitsi","nickname":"jibri-022794705","room-name":"jibribrewery"},"name":"<no value>-0","strip-from-room-domain":"muc.","trust-all-xmpp-certs":true,"usage-timeout":"0","xmpp-domain":"meet.jitsi","xmpp-server-hosts":["xmpp.meet.jitsi"]}))] for key 'jibri.api.xmpp.environments' from source 'config' as type kotlin.collections.List<com.typesafe.config.Config>
-Jibri 2026-06-21 13:58:19.575 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: TypeConvertingSupplier: Converted value type from ConfigSourceSupplier: key: 'jibri.api.xmpp.environments', type: 'kotlin.collections.List<com.typesafe.config.Config>', source: 'config' to [XmppEnvironmentConfig(name=<no value>-0, xmppServerHosts=[xmpp.meet.jitsi], xmppDomain=meet.jitsi, baseUrl=null, controlLogin=XmppCredentials(domain=meet.jitsi, port=5222, username=jibri, password=*****), controlMuc=XmppMuc(domain=internal-muc.meet.jitsi, roomName=jibribrewery, nickname=jibri-022794705), sipControlMuc=null, callLogin=XmppCredentials(domain=hidden.meet.jitsi, port=null, username=recorder, password=*****), stripFromRoomDomain=muc., usageTimeoutMins=0, trustAllXmppCerts=true, securityMode=null)]
-Jibri 2026-06-21 13:58:19.581 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via TypeConvertingSupplier: converting value from ConfigSourceSupplier: key: 'jibri.api.xmpp.environments', type: 'kotlin.collections.List<com.typesafe.config.Config>', source: 'config'
-Jibri 2026-06-21 13:58:20.298 INFO: [1] XmppApi.updatePresence#203: Jibri reports its status is now JibriStatus(busyStatus=IDLE, health=OverallHealth(healthStatus=HEALTHY, details={})), publishing presence to connections
-Jibri 2026-06-21 13:58:20.306 FINE: [1] MucClientManager.setPresenceExtension#160: Setting a presence extension: org.jitsi.xmpp.extensions.jibri.JibriStatusPacketExt@b52b755
-Jibri 2026-06-21 13:58:20.340 INFO: [1] XmppApi.start#150: Connecting to xmpp environment on xmpp.meet.jitsi with config XmppEnvironmentConfig(name=<no value>-0, xmppServerHosts=[xmpp.meet.jitsi], xmppDomain=meet.jitsi, baseUrl=null, controlLogin=XmppCredentials(domain=meet.jitsi, port=5222, username=jibri, password=*****), controlMuc=XmppMuc(domain=internal-muc.meet.jitsi, roomName=jibribrewery, nickname=jibri-022794705), sipControlMuc=null, callLogin=XmppCredentials(domain=hidden.meet.jitsi, port=null, username=recorder, password=*****), stripFromRoomDomain=muc., usageTimeoutMins=0, trustAllXmppCerts=true, securityMode=null)
-Jibri 2026-06-21 13:58:20.343 INFO: [1] XmppApi.start#168: The trustAllXmppCerts config is enabled for this domain, all XMPP server provided certificates will be accepted
-Jibri 2026-06-21 13:58:20.409 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
+Jibri 2026-06-22 12:48:33.576 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: LambdaSupplier: Trying to retrieve value via JibriConfig::xmppEnvironments
+Jibri 2026-06-22 12:48:33.578 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via LambdaSupplier: 'JibriConfig::xmppEnvironments': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$NotFound: Considering empty XMPP envs list as not found
+Jibri 2026-06-22 12:48:33.582 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.api.xmpp.environments' from source 'config' as type kotlin.collections.List<com.typesafe.config.Config>
+Jibri 2026-06-22 12:48:33.592 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value [Config(SimpleConfigObject({"call-login":{"domain":"hidden.meet.jitsi","password":"rec0rd3rp4ssw0rd5678901234567890","username":"recorder"},"control-login":{"domain":"auth.meet.jitsi","password":"j1br1p4ssw0rd12345678901234567890","port":"5222","username":"jibri"},"control-muc":{"domain":"internal-muc.meet.jitsi","nickname":"jibri-654689236","room-name":"jibribrewery"},"name":"<no value>-0","strip-from-room-domain":"muc.","trust-all-xmpp-certs":true,"usage-timeout":"0","xmpp-domain":"meet.jitsi","xmpp-server-hosts":["xmpp.meet.jitsi"]}))] for key 'jibri.api.xmpp.environments' from source 'config' as type kotlin.collections.List<com.typesafe.config.Config>
+Jibri 2026-06-22 12:48:33.630 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: TypeConvertingSupplier: Converted value type from ConfigSourceSupplier: key: 'jibri.api.xmpp.environments', type: 'kotlin.collections.List<com.typesafe.config.Config>', source: 'config' to [XmppEnvironmentConfig(name=<no value>-0, xmppServerHosts=[xmpp.meet.jitsi], xmppDomain=meet.jitsi, baseUrl=null, controlLogin=XmppCredentials(domain=auth.meet.jitsi, port=5222, username=jibri, password=*****), controlMuc=XmppMuc(domain=internal-muc.meet.jitsi, roomName=jibribrewery, nickname=jibri-654689236), sipControlMuc=null, callLogin=XmppCredentials(domain=hidden.meet.jitsi, port=null, username=recorder, password=*****), stripFromRoomDomain=muc., usageTimeoutMins=0, trustAllXmppCerts=true, securityMode=null)]
+Jibri 2026-06-22 12:48:33.636 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via TypeConvertingSupplier: converting value from ConfigSourceSupplier: key: 'jibri.api.xmpp.environments', type: 'kotlin.collections.List<com.typesafe.config.Config>', source: 'config'
+Jibri 2026-06-22 12:48:34.217 INFO: [1] XmppApi.updatePresence#203: Jibri reports its status is now JibriStatus(busyStatus=IDLE, health=OverallHealth(healthStatus=HEALTHY, details={})), publishing presence to connections
+Jibri 2026-06-22 12:48:34.225 FINE: [1] MucClientManager.setPresenceExtension#160: Setting a presence extension: org.jitsi.xmpp.extensions.jibri.JibriStatusPacketExt@b52b755
+Jibri 2026-06-22 12:48:34.240 INFO: [1] XmppApi.start#150: Connecting to xmpp environment on xmpp.meet.jitsi with config XmppEnvironmentConfig(name=<no value>-0, xmppServerHosts=[xmpp.meet.jitsi], xmppDomain=meet.jitsi, baseUrl=null, controlLogin=XmppCredentials(domain=auth.meet.jitsi, port=5222, username=jibri, password=*****), controlMuc=XmppMuc(domain=internal-muc.meet.jitsi, roomName=jibribrewery, nickname=jibri-654689236), sipControlMuc=null, callLogin=XmppCredentials(domain=hidden.meet.jitsi, port=null, username=recorder, password=*****), stripFromRoomDomain=muc., usageTimeoutMins=0, trustAllXmppCerts=true, securityMode=null)
+Jibri 2026-06-22 12:48:34.242 INFO: [1] XmppApi.start#168: The trustAllXmppCerts config is enabled for this domain, all XMPP server provided certificates will be accepted
+Jibri 2026-06-22 12:48:34.323 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
   ConfigSourceSupplier: key: 'http_api_port', type: 'kotlin.Int', source: 'command line args'
   ConfigSourceSupplier: key: 'jibri.api.http.external-api-port', type: 'kotlin.Int', source: 'config'
-Jibri 2026-06-21 13:58:20.412 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'http_api_port' from source 'command line args' as type kotlin.Int
-Jibri 2026-06-21 13:58:20.414 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via ConfigSourceSupplier: key: 'http_api_port', type: 'kotlin.Int', source: 'command line args': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$NotFound: not found
-Jibri 2026-06-21 13:58:20.416 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.api.http.external-api-port' from source 'config' as type kotlin.Int
-Jibri 2026-06-21 13:58:20.419 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value 2222 for key 'jibri.api.http.external-api-port' from source 'config' as type kotlin.Int
-Jibri 2026-06-21 13:58:20.421 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.api.http.external-api-port', type: 'kotlin.Int', source: 'config'
-Jibri 2026-06-21 13:58:20.423 INFO: [1] MainKt.main#154: Using port 2222 for HTTP API
-Jibri 2026-06-21 13:58:20.432 INFO: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient.initializeConnectAndJoin#288: Initializing a new MucClient for [ org.jitsi.xmpp.mucclient.MucClientConfiguration id=xmpp.meet.jitsi domain=meet.jitsi hostname=xmpp.meet.jitsi port=5222 username=jibri mucs=[jibribrewery@internal-muc.meet.jitsi] mucNickname=jibri-022794705 disableCertificateVerification=true]
-Jibri 2026-06-21 13:58:20.442 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.stats.prometheus.enabled' from source 'config' as type kotlin.Boolean
-Jibri 2026-06-21 13:58:20.444 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value false for key 'jibri.stats.prometheus.enabled' from source 'config' as type kotlin.Boolean
-Jibri 2026-06-21 13:58:20.495 WARNING: [36] MucClient.createXMPPTCPConnectionConfiguration#117: Disabling certificate verification!
-Jibri 2026-06-21 13:58:20.568 INFO: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient.initializeConnectAndJoin#350: Dispatching a thread to connect and login.
-Jibri 2026-06-21 13:58:20.884 FINE: [36] JibriMetrics.incrementStatsDCounter#41: Incrementing statsd counter: xmpp-connected:xmpp_server_host:xmpp.meet.jitsi
-Jibri 2026-06-21 13:58:20.886 INFO: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient$2.connected#321: Connected.
-Jibri 2026-06-21 13:58:20.888 INFO: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient.lambda$getConnectAndLoginCallable$9#646: Logging in.
-Jibri 2026-06-21 13:58:21.188 INFO: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient$2.authenticated#327: Authenticated, b=false
-Jibri 2026-06-21 13:58:21.212 FINE: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient$MucWrapper.resetLastPresenceSent#846: Resetting lastPresenceSent
-Jibri 2026-06-21 13:58:21.315 INFO: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient$MucWrapper.join#771: Joined MUC: jibribrewery@internal-muc.meet.jitsi
-Jibri 2026-06-21 13:58:21.354 FINE: [49] org.jitsi.xmpp.extensions.DefaultPacketExtensionProvider.parse: Could not add a provider for element busy-status from namespace http://jitsi.org/protocol/jibri
-Jibri 2026-06-21 13:58:21.361 FINE: [49] org.jitsi.xmpp.extensions.DefaultPacketExtensionProvider.parse: Could not add a provider for element health-status from namespace http://jitsi.org/protocol/health
-Jibri 2026-06-21 13:59:18.609 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:00:18.600 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:01:18.593 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:02:18.586 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:03:18.581 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:04:18.576 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:05:18.571 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:06:18.565 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:07:18.559 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:08:18.554 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:09:18.549 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:10:18.543 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:11:18.538 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:12:18.535 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:13:18.527 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:14:18.521 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:15:18.516 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:16:18.511 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:17:18.507 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:18:18.486 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:19:18.473 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:20:18.504 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:21:18.452 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
-Jibri 2026-06-21 14:21:26.670 WARNING: [56] org.jivesoftware.smack.AbstractXMPPConnection.callConnectionClosedOnErrorListener: Connection XMPPTCPConnection[jibri@meet.jitsi/9o686-om2YC0] (0) closed with error
-org.jivesoftware.smack.XMPPException$StreamErrorException: system-shutdown You can read more about the meaning of this stream error at http://xmpp.org/rfcs/rfc6120.html#streams-error-conditions
-<stream:error><system-shutdown xmlns='urn:ietf:params:xml:ns:xmpp-streams'/><text>Received SIGTERM</text></stream:error>
-	at org.jivesoftware.smack.tcp.XMPPTCPConnection$PacketReader.parsePackets(XMPPTCPConnection.java:984)
-	at org.jivesoftware.smack.tcp.XMPPTCPConnection$PacketReader.access$700(XMPPTCPConnection.java:916)
-	at org.jivesoftware.smack.tcp.XMPPTCPConnection$PacketReader$1.run(XMPPTCPConnection.java:939)
-	at java.base/java.lang.Thread.run(Thread.java:840)
-Jibri 2026-06-21 14:21:26.702 FINE: [56] JibriMetrics.incrementStatsDCounter#41: Incrementing statsd counter: xmpp-closed-on-error:xmpp_server_host:xmpp.meet.jitsi
-Jibri 2026-06-21 14:21:26.749 WARNING: [56] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient$2.connectionClosedOnError#341: Closed on error:
-org.jivesoftware.smack.XMPPException$StreamErrorException: system-shutdown You can read more about the meaning of this stream error at http://xmpp.org/rfcs/rfc6120.html#streams-error-conditions
-<stream:error><system-shutdown xmlns='urn:ietf:params:xml:ns:xmpp-streams'/><text>Received SIGTERM</text></stream:error>
-	at org.jivesoftware.smack.tcp.XMPPTCPConnection$PacketReader.parsePackets(XMPPTCPConnection.java:984)
-	at org.jivesoftware.smack.tcp.XMPPTCPConnection$PacketReader.access$700(XMPPTCPConnection.java:916)
-	at org.jivesoftware.smack.tcp.XMPPTCPConnection$PacketReader$1.run(XMPPTCPConnection.java:939)
-	at java.base/java.lang.Thread.run(Thread.java:840)
-Jibri 2026-06-21 14:21:31.385 WARNING: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient.lambda$getConnectAndLoginCallable$9#640: Error connecting:
-org.jivesoftware.smack.SmackException$EndpointConnectionException: Could not lookup the following endpoints: RemoteConnectionEndpointLookupFailure(description='DNS lookup exception for xmpp.meet.jitsi' exception='java.net.UnknownHostException: xmpp.meet.jitsi: Name or service not known')
-	at org.jivesoftware.smack.SmackException$EndpointConnectionException.from(SmackException.java:334)
-	at org.jivesoftware.smack.tcp.XMPPTCPConnection.connectUsingConfiguration(XMPPTCPConnection.java:664)
-	at org.jivesoftware.smack.tcp.XMPPTCPConnection.connectInternal(XMPPTCPConnection.java:849)
-	at org.jivesoftware.smack.AbstractXMPPConnection.connect(AbstractXMPPConnection.java:526)
-	at org.jitsi.xmpp.mucclient.MucClient.lambda$getConnectAndLoginCallable$9(MucClient.java:635)
-	at org.jitsi.retry.RetryStrategy$TaskRunner.run(RetryStrategy.java:167)
+Jibri 2026-06-22 12:48:34.326 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'http_api_port' from source 'command line args' as type kotlin.Int
+Jibri 2026-06-22 12:48:34.332 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via ConfigSourceSupplier: key: 'http_api_port', type: 'kotlin.Int', source: 'command line args': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$NotFound: not found
+Jibri 2026-06-22 12:48:34.334 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.api.http.external-api-port' from source 'config' as type kotlin.Int
+Jibri 2026-06-22 12:48:34.337 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value 2223 for key 'jibri.api.http.external-api-port' from source 'config' as type kotlin.Int
+Jibri 2026-06-22 12:48:34.339 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.api.http.external-api-port', type: 'kotlin.Int', source: 'config'
+Jibri 2026-06-22 12:48:34.341 INFO: [1] MainKt.main#154: Using port 2223 for HTTP API
+Jibri 2026-06-22 12:48:34.349 INFO: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient.initializeConnectAndJoin#288: Initializing a new MucClient for [ org.jitsi.xmpp.mucclient.MucClientConfiguration id=xmpp.meet.jitsi domain=auth.meet.jitsi hostname=xmpp.meet.jitsi port=5222 username=jibri mucs=[jibribrewery@internal-muc.meet.jitsi] mucNickname=jibri-654689236 disableCertificateVerification=true]
+Jibri 2026-06-22 12:48:34.368 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.stats.prometheus.enabled' from source 'config' as type kotlin.Boolean
+Jibri 2026-06-22 12:48:34.370 FINE: [1] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value false for key 'jibri.stats.prometheus.enabled' from source 'config' as type kotlin.Boolean
+Jibri 2026-06-22 12:48:34.431 WARNING: [36] MucClient.createXMPPTCPConnectionConfiguration#117: Disabling certificate verification!
+Jibri 2026-06-22 12:48:34.508 INFO: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient.initializeConnectAndJoin#350: Dispatching a thread to connect and login.
+Jibri 2026-06-22 12:48:35.009 FINE: [36] JibriMetrics.incrementStatsDCounter#41: Incrementing statsd counter: xmpp-connected:xmpp_server_host:xmpp.meet.jitsi
+Jibri 2026-06-22 12:48:35.026 INFO: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient$2.connected#321: Connected.
+Jibri 2026-06-22 12:48:35.038 INFO: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient.lambda$getConnectAndLoginCallable$9#646: Logging in.
+Jibri 2026-06-22 12:48:35.649 INFO: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient$2.authenticated#327: Authenticated, b=false
+Jibri 2026-06-22 12:48:35.679 FINE: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient$MucWrapper.resetLastPresenceSent#846: Resetting lastPresenceSent
+Jibri 2026-06-22 12:48:35.834 INFO: [36] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient$MucWrapper.join#771: Joined MUC: jibribrewery@internal-muc.meet.jitsi
+Jibri 2026-06-22 12:48:35.878 FINE: [49] org.jitsi.xmpp.extensions.DefaultPacketExtensionProvider.parse: Could not add a provider for element busy-status from namespace http://jitsi.org/protocol/jibri
+Jibri 2026-06-22 12:48:35.905 FINE: [49] org.jitsi.xmpp.extensions.DefaultPacketExtensionProvider.parse: Could not add a provider for element health-status from namespace http://jitsi.org/protocol/health
+Jibri 2026-06-22 12:48:39.585 FINE: [53] HttpApi$apiModule$2$1$1.invokeSuspend#96: Got health request
+Jibri 2026-06-22 12:48:39.601 FINE: [53] HttpApi$apiModule$2$1$1.invokeSuspend#98: Returning health JibriHealth(status=JibriStatus(busyStatus=IDLE, health=OverallHealth(healthStatus=HEALTHY, details={})), environmentContext=null)
+Jibri 2026-06-22 12:49:33.073 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 12:50:33.064 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 12:51:33.057 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 12:52:33.050 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 12:53:33.042 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 12:53:42.476 FINE: [57] HttpApi$apiModule$2$1$1.invokeSuspend#96: Got health request
+Jibri 2026-06-22 12:53:42.485 FINE: [57] HttpApi$apiModule$2$1$1.invokeSuspend#98: Returning health JibriHealth(status=JibriStatus(busyStatus=IDLE, health=OverallHealth(healthStatus=HEALTHY, details={})), environmentContext=null)
+Jibri 2026-06-22 12:53:52.581 FINE: [59] HttpApi$apiModule$2$1$1.invokeSuspend#96: Got health request
+Jibri 2026-06-22 12:53:52.586 FINE: [59] HttpApi$apiModule$2$1$1.invokeSuspend#98: Returning health JibriHealth(status=JibriStatus(busyStatus=IDLE, health=OverallHealth(healthStatus=HEALTHY, details={})), environmentContext=null)
+Jibri 2026-06-22 12:54:33.038 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 12:55:33.029 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 12:56:33.023 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 12:57:33.016 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 12:58:33.012 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 12:59:33.008 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:00:33.000 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:01:32.996 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:02:32.990 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:03:32.984 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:04:32.978 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:05:32.974 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:06:32.969 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:07:32.965 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:08:32.960 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:09:32.950 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:10:32.946 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:11:32.934 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:12:32.925 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:12:39.331 FINE: [65] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient$3.handleIQRequest#513: Received an IQ with type set: IQ Stanza (jibri http://jitsi.org/protocol/jibri) [to=jibri@auth.meet.jitsi/uC0NUoKcIR8T,from=jibribrewery@internal-muc.meet.jitsi/focus,id=amlicmlAYXV0aC5tZWV0LmppdHNpL3VDME5Vb0tjSVI4VABNVkNVNC0xNDIA0CAlHoBs2cI=,type=set,]
+Jibri 2026-06-22 13:12:39.339 INFO: [65] XmppApi.handleJibriIq#230: Received JibriIq <iq xmlns='jabber:client' to='jibri@auth.meet.jitsi/uC0NUoKcIR8T' from='jibribrewery@internal-muc.meet.jitsi/focus' id='amlicmlAYXV0aC5tZWV0LmppdHNpL3VDME5Vb0tjSVI4VABNVkNVNC0xNDIA0CAlHoBs2cI=' type='set'><jibri xmlns='http://jitsi.org/protocol/jibri' action='start' recording_mode='file' room='academy_jitsi_1965_4a88017f@muc.meet.jitsi' session_id='be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb' app_data='{"file_recording_metadata":{"initiator":{},"conference_details":{"session_id":"564b5cb1-7a83-4d2d-b681-65a055597453"},"share":true}}'/></iq> from environment [MucClient id=xmpp.meet.jitsi hostname=xmpp.meet.jitsi]
+Jibri 2026-06-22 13:12:39.346 INFO: [65] XmppApi.handleStartJibriIq#262: Received start request, starting service
+Jibri 2026-06-22 13:12:39.434 INFO: [65] XmppApi.handleStartService#373: Parsed call url info: CallUrlInfo(baseUrl=https://meet.jitsi, callName=academy_jitsi_1965_4a88017f, urlParams=[])
+Jibri 2026-06-22 13:12:39.439 INFO: [65] JibriManager.startFileRecording#128: Starting a file recording with params: FileRecordingRequestParams(callParams=CallParams(callUrlInfo=CallUrlInfo(baseUrl=https://meet.jitsi, callName=academy_jitsi_1965_4a88017f, urlParams=[]), email='', passcode=null, callStatsUsernameOverride=, displayName=), sessionId=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb, callLoginParams=XmppCredentials(domain=hidden.meet.jitsi, port=null, username=recorder, password=*****))
+Jibri 2026-06-22 13:12:39.478 FINE: [65] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] FfmpegCapturer.<init>#92: Detected os as OS: LINUX
+Jibri 2026-06-22 13:12:39.499 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.call-status-checks.default-call-empty-timeout' from source 'config' as type java.time.Duration
+Jibri 2026-06-22 13:12:39.511 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value PT30S for key 'jibri.call-status-checks.default-call-empty-timeout' from source 'config' as type java.time.Duration
+Jibri 2026-06-22 13:12:39.526 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.chrome.flags' from source 'config' as type kotlin.collections.List<kotlin.String>
+Jibri 2026-06-22 13:12:39.529 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value [--use-fake-ui-for-media-stream, --start-maximized, --kiosk, --enabled, --autoplay-policy=no-user-gesture-required] for key 'jibri.chrome.flags' from source 'config' as type kotlin.collections.List<kotlin.String>
+Jibri 2026-06-22 13:12:42.353 INFO: [65] org.openqa.selenium.remote.ProtocolHandshake.createSession: Detected dialect: OSS
+Jibri 2026-06-22 13:12:42.407 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
+  LambdaSupplier: 'JibriConfig::recordingDirectory'
+  ConfigSourceSupplier: key: 'jibri.recording.recordings-directory', type: 'kotlin.String', source: 'config'
+Jibri 2026-06-22 13:12:42.408 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: LambdaSupplier: Trying to retrieve value via JibriConfig::recordingDirectory
+Jibri 2026-06-22 13:12:42.413 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via LambdaSupplier: 'JibriConfig::recordingDirectory': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$Error: class java.lang.NullPointerException
+Jibri 2026-06-22 13:12:42.417 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.recording.recordings-directory' from source 'config' as type kotlin.String
+Jibri 2026-06-22 13:12:42.421 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value /config/recordings for key 'jibri.recording.recordings-directory' from source 'config' as type kotlin.String
+Jibri 2026-06-22 13:12:42.424 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.recording.recordings-directory', type: 'kotlin.String', source: 'config'
+Jibri 2026-06-22 13:12:42.444 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
+  LambdaSupplier: 'JibriConfig::finalizeRecordingScriptPath'
+  ConfigSourceSupplier: key: 'jibri.recording.finalize-script', type: 'kotlin.String', source: 'config'
+Jibri 2026-06-22 13:12:42.446 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: LambdaSupplier: Trying to retrieve value via JibriConfig::finalizeRecordingScriptPath
+Jibri 2026-06-22 13:12:42.448 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via LambdaSupplier: 'JibriConfig::finalizeRecordingScriptPath': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$Error: class java.lang.NullPointerException
+Jibri 2026-06-22 13:12:42.451 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.recording.finalize-script' from source 'config' as type kotlin.String
+Jibri 2026-06-22 13:12:42.454 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value /config/finalize.sh for key 'jibri.recording.finalize-script' from source 'config' as type kotlin.String
+Jibri 2026-06-22 13:12:42.457 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.recording.finalize-script', type: 'kotlin.String', source: 'config'
+Jibri 2026-06-22 13:12:42.460 INFO: [65] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] FileRecordingJibriService.<init>#134: Writing recording to /config/recordings/be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb, finalize script path /config/finalize.sh
+Jibri 2026-06-22 13:12:42.488 FINE: [65] JibriMetrics.incrementStatsDCounter#41: Incrementing statsd counter: start:recording
+Jibri 2026-06-22 13:12:42.493 INFO: [65] JibriStatusManager$special$$inlined$observable$1.afterChange#75: Busy status has changed: IDLE -> BUSY
+Jibri 2026-06-22 13:12:42.496 FINE: [65] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:12:42.499 INFO: [65] XmppApi.updatePresence#203: Jibri reports its status is now JibriStatus(busyStatus=BUSY, health=OverallHealth(healthStatus=HEALTHY, details={})), publishing presence to connections
+Jibri 2026-06-22 13:12:42.501 FINE: [65] MucClientManager.setPresenceExtension#160: Setting a presence extension: org.jitsi.xmpp.extensions.jibri.JibriStatusPacketExt@5b255168
+Jibri 2026-06-22 13:12:42.503 FINE: [65] MucClientManager.saveExtension#185: Replacing presence extension: org.jitsi.xmpp.extensions.jibri.JibriStatusPacketExt@b52b755
+Jibri 2026-06-22 13:12:42.513 INFO: [65] XmppApi.handleStartJibriIq#275: Sending 'pending' response to start IQ
+Jibri 2026-06-22 13:12:42.515 FINE: [49] org.jitsi.xmpp.extensions.DefaultPacketExtensionProvider.parse: Could not add a provider for element busy-status from namespace http://jitsi.org/protocol/jibri
+Jibri 2026-06-22 13:12:42.517 FINE: [49] org.jitsi.xmpp.extensions.DefaultPacketExtensionProvider.parse: Could not add a provider for element health-status from namespace http://jitsi.org/protocol/health
+Jibri 2026-06-22 13:12:42.526 INFO: [76] AbstractPageObject.visit#32: Visiting url https://meet.jitsi
+Jibri 2026-06-22 13:12:42.921 INFO: [76] AbstractPageObject.visit#38: Waited 388.490349ms for driver to load page
+Jibri 2026-06-22 13:12:42.983 SEVERE: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] JibriSelenium.joinCall$lambda$3#333: An error occurred while joining the call
+org.openqa.selenium.JavascriptException: javascript error: {"status":18,"value":"Failed to read the 'localStorage' property from 'Window': Access is denied for this document."}
+  (Session info: chrome=130.0.6723.116)
+  (Driver info: chromedriver=130.0.6723.116 (6ac35f94ae3d01152cf1946c896b0678e48f8ec4-refs/branch-heads/6723@{#1764}),platform=Linux 5.15.167.4-microsoft-standard-WSL2 x86_64) (WARNING: The server did not provide any stacktrace information)
+Command duration or timeout: 0 milliseconds
+Build info: version: 'unknown', revision: 'unknown', time: 'unknown'
+System info: host: 'c7be47792b52', ip: '172.20.0.6', os.name: 'Linux', os.arch: 'amd64', os.version: '5.15.167.4-microsoft-standard-WSL2', java.version: '17.0.13'
+Driver info: org.openqa.selenium.chrome.ChromeDriver
+Capabilities {acceptInsecureCerts: false, acceptSslCerts: false, browserConnectionEnabled: false, browserName: chrome, chrome: {chromedriverVersion: 130.0.6723.116 (6ac35f94ae3..., userDataDir: /tmp/.org.chromium.Chromium...}, cssSelectorsEnabled: true, databaseEnabled: false, fedcm:accounts: true, goog:chromeOptions: {debuggerAddress: localhost:42855}, handlesAlerts: true, hasTouchScreen: false, javascriptEnabled: true, locationContextEnabled: true, mobileEmulationEnabled: false, nativeEvents: true, networkConnectionEnabled: false, pageLoadStrategy: normal, platform: LINUX, platformName: LINUX, proxy: Proxy(), rotatable: false, setWindowRect: true, strictFileInteractability: false, takesHeapSnapshot: true, takesScreenshot: true, timeouts: {implicit: 0, pageLoad: 300000, script: 30000}, unexpectedAlertBehaviour: ignore, unhandledPromptBehavior: ignore, version: 130.0.6723.116, webStorageEnabled: true, webauthn:extension:credBlob: true, webauthn:extension:largeBlob: true, webauthn:extension:minPinLength: true, webauthn:extension:prf: true, webauthn:virtualAuthenticators: true}
+Session ID: a09d080b1083597c63522318df3068f2
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at org.openqa.selenium.remote.ErrorHandler.createThrowable(ErrorHandler.java:214)
+	at org.openqa.selenium.remote.ErrorHandler.throwIfResponseFailed(ErrorHandler.java:166)
+	at org.openqa.selenium.remote.http.JsonHttpResponseCodec.reconstructValue(JsonHttpResponseCodec.java:40)
+	at org.openqa.selenium.remote.http.AbstractHttpResponseCodec.decode(AbstractHttpResponseCodec.java:80)
+	at org.openqa.selenium.remote.http.AbstractHttpResponseCodec.decode(AbstractHttpResponseCodec.java:44)
+	at org.openqa.selenium.remote.HttpCommandExecutor.execute(HttpCommandExecutor.java:158)
+	at org.openqa.selenium.remote.service.DriverCommandExecutor.execute(DriverCommandExecutor.java:83)
+	at org.openqa.selenium.remote.RemoteWebDriver.execute(RemoteWebDriver.java:543)
+	at org.openqa.selenium.remote.RemoteWebDriver.executeScript(RemoteWebDriver.java:480)
+	at org.jitsi.jibri.selenium.JibriSelenium.setLocalStorageValues(JibriSelenium.kt:213)
+	at org.jitsi.jibri.selenium.JibriSelenium.joinCall$lambda$3(JibriSelenium.kt:323)
 	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
 	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
-	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304)
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
 	at java.base/java.lang.Thread.run(Thread.java:840)
+Jibri 2026-06-22 13:12:42.989 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] JibriSelenium.onSeleniumStateChange#218: Transitioning from state Starting up to Error: FailedToJoinCall SESSION Failed to join the call
+Jibri 2026-06-22 13:12:42.991 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] StatefulJibriService.onServiceStateChange#39: File recording service transitioning from state Starting up to Error: FailedToJoinCall SESSION Failed to join the call
+Jibri 2026-06-22 13:12:42.994 INFO: [76] XmppApi$createServiceStatusHandler$1.invoke#311: Current service had an error Error: FailedToJoinCall SESSION Failed to join the call, sending error iq <iq xmlns='jabber:client' to='jibribrewery@internal-muc.meet.jitsi/focus' id='JANDQ-60' type='set'><jibri xmlns='http://jitsi.org/protocol/jibri' status='off' failure_reason='error' should_retry='true'/></iq>
+Jibri 2026-06-22 13:12:42.996 FINE: [76] JibriMetrics.incrementStatsDCounter#41: Incrementing statsd counter: stop:recording
+Jibri 2026-06-22 13:12:43.001 INFO: [76] JibriManager.stopService#250: Stopping the current service
+Jibri 2026-06-22 13:12:43.003 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] FileRecordingJibriService.stop#182: Stopping capturer
+Jibri 2026-06-22 13:12:43.005 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] JibriSubprocess.stop#75: Stopping ffmpeg process
+Jibri 2026-06-22 13:12:43.007 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] JibriSubprocess.stop#89: ffmpeg exited with value null
+Jibri 2026-06-22 13:12:43.009 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] FileRecordingJibriService.stop#184: Quitting selenium
+Jibri 2026-06-22 13:12:43.013 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] FileRecordingJibriService.stop#191: No media was recorded, deleting directory and skipping metadata file & finalize
+Jibri 2026-06-22 13:12:43.023 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] JibriSelenium.leaveCallAndQuitBrowser#344: Leaving call and quitting browser
+Jibri 2026-06-22 13:12:43.025 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] JibriSelenium.leaveCallAndQuitBrowser#347: Recurring call status checks cancelled
+Jibri 2026-06-22 13:12:43.056 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] JibriSelenium.leaveCallAndQuitBrowser#353: Got 0 log entries for type browser
+Jibri 2026-06-22 13:12:43.097 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] JibriSelenium.leaveCallAndQuitBrowser#353: Got 90 log entries for type driver
+Jibri 2026-06-22 13:12:43.254 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] JibriSelenium.leaveCallAndQuitBrowser#353: Got 0 log entries for type client
+Jibri 2026-06-22 13:12:43.256 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] JibriSelenium.leaveCallAndQuitBrowser#362: Leaving web call
+Jibri 2026-06-22 13:12:43.350 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] JibriSelenium.leaveCallAndQuitBrowser#369: Quitting chrome driver
+Jibri 2026-06-22 13:12:43.498 INFO: [76] [session_id=be7cc02e-dc04-4969-a7c8-0c5a9f2e6fbb] JibriSelenium.leaveCallAndQuitBrowser#371: Chrome driver quit
+Jibri 2026-06-22 13:12:43.502 FINE: [76] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
+  LambdaSupplier: 'JibriConfig::singleUseMode'
+  ConfigSourceSupplier: key: 'jibri.single-use-mode', type: 'kotlin.Boolean', source: 'config'
+Jibri 2026-06-22 13:12:43.503 FINE: [76] MainKt$setupMetaconfigLogger$1.debug#234: LambdaSupplier: Trying to retrieve value via JibriConfig::singleUseMode
+Jibri 2026-06-22 13:12:43.506 FINE: [76] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via LambdaSupplier: 'JibriConfig::singleUseMode': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$Error: class java.lang.NullPointerException
+Jibri 2026-06-22 13:12:43.507 FINE: [76] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.single-use-mode' from source 'config' as type kotlin.Boolean
+Jibri 2026-06-22 13:12:43.509 FINE: [76] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value false for key 'jibri.single-use-mode' from source 'config' as type kotlin.Boolean
+Jibri 2026-06-22 13:12:43.519 FINE: [76] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.single-use-mode', type: 'kotlin.Boolean', source: 'config'
+Jibri 2026-06-22 13:12:43.522 INFO: [76] JibriStatusManager$special$$inlined$observable$1.afterChange#75: Busy status has changed: BUSY -> IDLE
+Jibri 2026-06-22 13:12:43.524 FINE: [76] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:12:43.527 INFO: [76] XmppApi.updatePresence#203: Jibri reports its status is now JibriStatus(busyStatus=IDLE, health=OverallHealth(healthStatus=HEALTHY, details={})), publishing presence to connections
+Jibri 2026-06-22 13:12:43.528 FINE: [76] MucClientManager.setPresenceExtension#160: Setting a presence extension: org.jitsi.xmpp.extensions.jibri.JibriStatusPacketExt@7c61c60a
+Jibri 2026-06-22 13:12:43.531 FINE: [76] MucClientManager.saveExtension#185: Replacing presence extension: org.jitsi.xmpp.extensions.jibri.JibriStatusPacketExt@5b255168
+Jibri 2026-06-22 13:12:43.539 FINE: [49] org.jitsi.xmpp.extensions.DefaultPacketExtensionProvider.parse: Could not add a provider for element busy-status from namespace http://jitsi.org/protocol/jibri
+Jibri 2026-06-22 13:12:43.541 FINE: [49] org.jitsi.xmpp.extensions.DefaultPacketExtensionProvider.parse: Could not add a provider for element health-status from namespace http://jitsi.org/protocol/health
+Jibri 2026-06-22 13:13:32.918 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:14:32.910 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:14:40.674 FINE: [65] [hostname=xmpp.meet.jitsi id=xmpp.meet.jitsi] MucClient$3.handleIQRequest#513: Received an IQ with type set: IQ Stanza (jibri http://jitsi.org/protocol/jibri) [to=jibri@auth.meet.jitsi/uC0NUoKcIR8T,from=jibribrewery@internal-muc.meet.jitsi/focus,id=amlicmlAYXV0aC5tZWV0LmppdHNpL3VDME5Vb0tjSVI4VABNVkNVNC0xODkA0CAlHoBs2cI=,type=set,]
+Jibri 2026-06-22 13:14:40.676 INFO: [65] XmppApi.handleJibriIq#230: Received JibriIq <iq xmlns='jabber:client' to='jibri@auth.meet.jitsi/uC0NUoKcIR8T' from='jibribrewery@internal-muc.meet.jitsi/focus' id='amlicmlAYXV0aC5tZWV0LmppdHNpL3VDME5Vb0tjSVI4VABNVkNVNC0xODkA0CAlHoBs2cI=' type='set'><jibri xmlns='http://jitsi.org/protocol/jibri' action='start' recording_mode='file' room='academy_jitsi_1965_4a88017f@muc.meet.jitsi' session_id='703a902e-7cde-40e5-a08c-62202eda8a31' app_data='{"file_recording_metadata":{"initiator":{},"conference_details":{"session_id":"ed68d86f-7f0c-4526-9852-50a40451b4de"},"share":true}}'/></iq> from environment [MucClient id=xmpp.meet.jitsi hostname=xmpp.meet.jitsi]
+Jibri 2026-06-22 13:14:40.677 INFO: [65] XmppApi.handleStartJibriIq#262: Received start request, starting service
+Jibri 2026-06-22 13:14:40.688 INFO: [65] XmppApi.handleStartService#373: Parsed call url info: CallUrlInfo(baseUrl=https://meet.jitsi, callName=academy_jitsi_1965_4a88017f, urlParams=[])
+Jibri 2026-06-22 13:14:40.689 INFO: [65] JibriManager.startFileRecording#128: Starting a file recording with params: FileRecordingRequestParams(callParams=CallParams(callUrlInfo=CallUrlInfo(baseUrl=https://meet.jitsi, callName=academy_jitsi_1965_4a88017f, urlParams=[]), email='', passcode=null, callStatsUsernameOverride=, displayName=), sessionId=703a902e-7cde-40e5-a08c-62202eda8a31, callLoginParams=XmppCredentials(domain=hidden.meet.jitsi, port=null, username=recorder, password=*****))
+Jibri 2026-06-22 13:14:40.690 FINE: [65] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] FfmpegCapturer.<init>#92: Detected os as OS: LINUX
+Jibri 2026-06-22 13:14:40.691 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.chrome.flags' from source 'config' as type kotlin.collections.List<kotlin.String>
+Jibri 2026-06-22 13:14:40.696 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value [--use-fake-ui-for-media-stream, --start-maximized, --kiosk, --enabled, --autoplay-policy=no-user-gesture-required] for key 'jibri.chrome.flags' from source 'config' as type kotlin.collections.List<kotlin.String>
+Jibri 2026-06-22 13:14:41.211 INFO: [65] org.openqa.selenium.remote.ProtocolHandshake.createSession: Detected dialect: OSS
+Jibri 2026-06-22 13:14:41.218 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
+  LambdaSupplier: 'JibriConfig::recordingDirectory'
+  ConfigSourceSupplier: key: 'jibri.recording.recordings-directory', type: 'kotlin.String', source: 'config'
+Jibri 2026-06-22 13:14:41.219 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: LambdaSupplier: Trying to retrieve value via JibriConfig::recordingDirectory
+Jibri 2026-06-22 13:14:41.220 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via LambdaSupplier: 'JibriConfig::recordingDirectory': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$Error: class java.lang.NullPointerException
+Jibri 2026-06-22 13:14:41.220 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.recording.recordings-directory' from source 'config' as type kotlin.String
+Jibri 2026-06-22 13:14:41.221 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value /config/recordings for key 'jibri.recording.recordings-directory' from source 'config' as type kotlin.String
+Jibri 2026-06-22 13:14:41.222 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.recording.recordings-directory', type: 'kotlin.String', source: 'config'
+Jibri 2026-06-22 13:14:41.222 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: checking for value via suppliers:
+  LambdaSupplier: 'JibriConfig::finalizeRecordingScriptPath'
+  ConfigSourceSupplier: key: 'jibri.recording.finalize-script', type: 'kotlin.String', source: 'config'
+Jibri 2026-06-22 13:14:41.223 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: LambdaSupplier: Trying to retrieve value via JibriConfig::finalizeRecordingScriptPath
+Jibri 2026-06-22 13:14:41.223 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: failed to find value via LambdaSupplier: 'JibriConfig::finalizeRecordingScriptPath': org.jitsi.metaconfig.ConfigException$UnableToRetrieve$Error: class java.lang.NullPointerException
+Jibri 2026-06-22 13:14:41.224 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Trying to retrieve key 'jibri.recording.finalize-script' from source 'config' as type kotlin.String
+Jibri 2026-06-22 13:14:41.225 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: ConfigSourceSupplier: Found value /config/finalize.sh for key 'jibri.recording.finalize-script' from source 'config' as type kotlin.String
+Jibri 2026-06-22 13:14:41.226 FINE: [65] MainKt$setupMetaconfigLogger$1.debug#234: FallbackSupplier: value found via ConfigSourceSupplier: key: 'jibri.recording.finalize-script', type: 'kotlin.String', source: 'config'
+Jibri 2026-06-22 13:14:41.226 INFO: [65] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] FileRecordingJibriService.<init>#134: Writing recording to /config/recordings/703a902e-7cde-40e5-a08c-62202eda8a31, finalize script path /config/finalize.sh
+Jibri 2026-06-22 13:14:41.227 FINE: [65] JibriMetrics.incrementStatsDCounter#41: Incrementing statsd counter: start:recording
+Jibri 2026-06-22 13:14:41.227 INFO: [65] JibriStatusManager$special$$inlined$observable$1.afterChange#75: Busy status has changed: IDLE -> BUSY
+Jibri 2026-06-22 13:14:41.228 FINE: [65] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:14:41.230 INFO: [65] XmppApi.updatePresence#203: Jibri reports its status is now JibriStatus(busyStatus=BUSY, health=OverallHealth(healthStatus=HEALTHY, details={})), publishing presence to connections
+Jibri 2026-06-22 13:14:41.232 FINE: [65] MucClientManager.setPresenceExtension#160: Setting a presence extension: org.jitsi.xmpp.extensions.jibri.JibriStatusPacketExt@1de920b1
+Jibri 2026-06-22 13:14:41.234 FINE: [65] MucClientManager.saveExtension#185: Replacing presence extension: org.jitsi.xmpp.extensions.jibri.JibriStatusPacketExt@7c61c60a
+Jibri 2026-06-22 13:14:41.236 INFO: [65] XmppApi.handleStartJibriIq#275: Sending 'pending' response to start IQ
+Jibri 2026-06-22 13:14:41.238 FINE: [49] org.jitsi.xmpp.extensions.DefaultPacketExtensionProvider.parse: Could not add a provider for element busy-status from namespace http://jitsi.org/protocol/jibri
+Jibri 2026-06-22 13:14:41.239 FINE: [49] org.jitsi.xmpp.extensions.DefaultPacketExtensionProvider.parse: Could not add a provider for element health-status from namespace http://jitsi.org/protocol/health
+Jibri 2026-06-22 13:14:41.240 INFO: [85] AbstractPageObject.visit#32: Visiting url https://meet.jitsi
+Jibri 2026-06-22 13:14:41.443 INFO: [85] AbstractPageObject.visit#38: Waited 202.167646ms for driver to load page
+Jibri 2026-06-22 13:14:41.461 SEVERE: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] JibriSelenium.joinCall$lambda$3#333: An error occurred while joining the call
+org.openqa.selenium.JavascriptException: javascript error: {"status":18,"value":"Failed to read the 'localStorage' property from 'Window': Access is denied for this document."}
+  (Session info: chrome=130.0.6723.116)
+  (Driver info: chromedriver=130.0.6723.116 (6ac35f94ae3d01152cf1946c896b0678e48f8ec4-refs/branch-heads/6723@{#1764}),platform=Linux 5.15.167.4-microsoft-standard-WSL2 x86_64) (WARNING: The server did not provide any stacktrace information)
+Command duration or timeout: 0 milliseconds
+Build info: version: 'unknown', revision: 'unknown', time: 'unknown'
+System info: host: 'c7be47792b52', ip: '172.20.0.6', os.name: 'Linux', os.arch: 'amd64', os.version: '5.15.167.4-microsoft-standard-WSL2', java.version: '17.0.13'
+Driver info: org.openqa.selenium.chrome.ChromeDriver
+Capabilities {acceptInsecureCerts: false, acceptSslCerts: false, browserConnectionEnabled: false, browserName: chrome, chrome: {chromedriverVersion: 130.0.6723.116 (6ac35f94ae3..., userDataDir: /tmp/.org.chromium.Chromium...}, cssSelectorsEnabled: true, databaseEnabled: false, fedcm:accounts: true, goog:chromeOptions: {debuggerAddress: localhost:41859}, handlesAlerts: true, hasTouchScreen: false, javascriptEnabled: true, locationContextEnabled: true, mobileEmulationEnabled: false, nativeEvents: true, networkConnectionEnabled: false, pageLoadStrategy: normal, platform: LINUX, platformName: LINUX, proxy: Proxy(), rotatable: false, setWindowRect: true, strictFileInteractability: false, takesHeapSnapshot: true, takesScreenshot: true, timeouts: {implicit: 0, pageLoad: 300000, script: 30000}, unexpectedAlertBehaviour: ignore, unhandledPromptBehavior: ignore, version: 130.0.6723.116, webStorageEnabled: true, webauthn:extension:credBlob: true, webauthn:extension:largeBlob: true, webauthn:extension:minPinLength: true, webauthn:extension:prf: true, webauthn:virtualAuthenticators: true}
+Session ID: ef1f0d293a4a296c36e4a14f3870ecc8
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at org.openqa.selenium.remote.ErrorHandler.createThrowable(ErrorHandler.java:214)
+	at org.openqa.selenium.remote.ErrorHandler.throwIfResponseFailed(ErrorHandler.java:166)
+	at org.openqa.selenium.remote.http.JsonHttpResponseCodec.reconstructValue(JsonHttpResponseCodec.java:40)
+	at org.openqa.selenium.remote.http.AbstractHttpResponseCodec.decode(AbstractHttpResponseCodec.java:80)
+	at org.openqa.selenium.remote.http.AbstractHttpResponseCodec.decode(AbstractHttpResponseCodec.java:44)
+	at org.openqa.selenium.remote.HttpCommandExecutor.execute(HttpCommandExecutor.java:158)
+	at org.openqa.selenium.remote.service.DriverCommandExecutor.execute(DriverCommandExecutor.java:83)
+	at org.openqa.selenium.remote.RemoteWebDriver.execute(RemoteWebDriver.java:543)
+	at org.openqa.selenium.remote.RemoteWebDriver.executeScript(RemoteWebDriver.java:480)
+	at org.jitsi.jibri.selenium.JibriSelenium.setLocalStorageValues(JibriSelenium.kt:213)
+	at org.jitsi.jibri.selenium.JibriSelenium.joinCall$lambda$3(JibriSelenium.kt:323)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Jibri 2026-06-22 13:14:41.463 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] JibriSelenium.onSeleniumStateChange#218: Transitioning from state Starting up to Error: FailedToJoinCall SESSION Failed to join the call
+Jibri 2026-06-22 13:14:41.465 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] StatefulJibriService.onServiceStateChange#39: File recording service transitioning from state Starting up to Error: FailedToJoinCall SESSION Failed to join the call
+Jibri 2026-06-22 13:14:41.467 INFO: [85] XmppApi$createServiceStatusHandler$1.invoke#311: Current service had an error Error: FailedToJoinCall SESSION Failed to join the call, sending error iq <iq xmlns='jabber:client' to='jibribrewery@internal-muc.meet.jitsi/focus' id='JANDQ-67' type='set'><jibri xmlns='http://jitsi.org/protocol/jibri' status='off' failure_reason='error' should_retry='true'/></iq>
+Jibri 2026-06-22 13:14:41.468 FINE: [85] JibriMetrics.incrementStatsDCounter#41: Incrementing statsd counter: stop:recording
+Jibri 2026-06-22 13:14:41.468 INFO: [85] JibriManager.stopService#250: Stopping the current service
+Jibri 2026-06-22 13:14:41.469 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] FileRecordingJibriService.stop#182: Stopping capturer
+Jibri 2026-06-22 13:14:41.471 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] JibriSubprocess.stop#75: Stopping ffmpeg process
+Jibri 2026-06-22 13:14:41.472 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] JibriSubprocess.stop#89: ffmpeg exited with value null
+Jibri 2026-06-22 13:14:41.473 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] FileRecordingJibriService.stop#184: Quitting selenium
+Jibri 2026-06-22 13:14:41.475 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] FileRecordingJibriService.stop#191: No media was recorded, deleting directory and skipping metadata file & finalize
+Jibri 2026-06-22 13:14:41.482 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] JibriSelenium.leaveCallAndQuitBrowser#344: Leaving call and quitting browser
+Jibri 2026-06-22 13:14:41.483 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] JibriSelenium.leaveCallAndQuitBrowser#347: Recurring call status checks cancelled
+Jibri 2026-06-22 13:14:41.499 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] JibriSelenium.leaveCallAndQuitBrowser#353: Got 0 log entries for type browser
+Jibri 2026-06-22 13:14:41.511 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] JibriSelenium.leaveCallAndQuitBrowser#353: Got 91 log entries for type driver
+Jibri 2026-06-22 13:14:41.548 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] JibriSelenium.leaveCallAndQuitBrowser#353: Got 0 log entries for type client
+Jibri 2026-06-22 13:14:41.549 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] JibriSelenium.leaveCallAndQuitBrowser#362: Leaving web call
+Jibri 2026-06-22 13:14:41.580 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] JibriSelenium.leaveCallAndQuitBrowser#369: Quitting chrome driver
+Jibri 2026-06-22 13:14:41.654 INFO: [85] [session_id=703a902e-7cde-40e5-a08c-62202eda8a31] JibriSelenium.leaveCallAndQuitBrowser#371: Chrome driver quit
+Jibri 2026-06-22 13:14:41.655 INFO: [85] JibriStatusManager$special$$inlined$observable$1.afterChange#75: Busy status has changed: BUSY -> IDLE
+Jibri 2026-06-22 13:14:41.655 FINE: [85] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:14:41.655 INFO: [85] XmppApi.updatePresence#203: Jibri reports its status is now JibriStatus(busyStatus=IDLE, health=OverallHealth(healthStatus=HEALTHY, details={})), publishing presence to connections
+Jibri 2026-06-22 13:14:41.656 FINE: [85] MucClientManager.setPresenceExtension#160: Setting a presence extension: org.jitsi.xmpp.extensions.jibri.JibriStatusPacketExt@616d23c
+Jibri 2026-06-22 13:14:41.656 FINE: [85] MucClientManager.saveExtension#185: Replacing presence extension: org.jitsi.xmpp.extensions.jibri.JibriStatusPacketExt@1de920b1
+Jibri 2026-06-22 13:14:41.658 FINE: [49] org.jitsi.xmpp.extensions.DefaultPacketExtensionProvider.parse: Could not add a provider for element busy-status from namespace http://jitsi.org/protocol/jibri
+Jibri 2026-06-22 13:14:41.660 FINE: [49] org.jitsi.xmpp.extensions.DefaultPacketExtensionProvider.parse: Could not add a provider for element health-status from namespace http://jitsi.org/protocol/health
+Jibri 2026-06-22 13:15:32.904 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:16:32.897 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status
+Jibri 2026-06-22 13:17:32.889 FINE: [22] WebhookClient$updateStatus$1.invokeSuspend#109: Updating 0 subscribers of status

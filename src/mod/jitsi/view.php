@@ -21,13 +21,31 @@ require_once(__DIR__ . '/lib.php');
 
 $id = required_param('id', PARAM_INT);
 
-$cm      = get_coursemodule_from_id('jitsi', $id, 0, false, MUST_EXIST);
+// Use cm_info so Moodle availability conditions (date restrictions etc.) are loaded.
+$modinfo = get_fast_modinfo(get_course(
+    $DB->get_field('course_modules', 'course', ['id' => $id], MUST_EXIST)
+));
+$cm      = $modinfo->get_cm($id);
 $course  = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
 $jitsi   = $DB->get_record('jitsi', ['id' => $cm->instance], '*', MUST_EXIST);
 
 require_login($course, true, $cm);
 $context = context_module::instance($cm->id);
 require_capability('mod/jitsi:view', $context);
+
+// ── Moodle availability / date restriction check ──────────────────────────
+// If the activity has "available until" in the past, block access for students.
+$is_teacher = has_capability('mod/jitsi:moderate', $context);
+if (!$is_teacher && !$cm->available) {
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(format_string($jitsi->name));
+    echo $OUTPUT->notification(
+        $cm->availableinfo ?: get_string('sessionended', 'jitsi'),
+        'warning'
+    );
+    echo $OUTPUT->footer();
+    exit;
+}
 
 $PAGE->set_url('/mod/jitsi/view.php', ['id' => $cm->id]);
 $PAGE->set_context($context);
@@ -37,43 +55,26 @@ $PAGE->set_heading(format_string($course->fullname));
 // -------------------------------------------------------------------------
 // Access control – check linked academy session (if any).
 // -------------------------------------------------------------------------
-$is_teacher = has_capability('mod/jitsi:moderate', $context);
+// $is_teacher already set above.
+
+// Standalone ended check (no linked session — teacher ended via AJAX).
+if (get_config('mod_jitsi', 'ended_' . $cm->id)) {
+    $session_for_ended = $DB->get_record('academy_live_sessions', ['jitsiid' => $jitsi->id]);
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(format_string($jitsi->name));
+    echo $OUTPUT->notification(get_string('sessionended', 'jitsi'), 'info');
+    jitsi_print_recordings($session_for_ended ?: null, $context, $is_teacher, $cm->id);
+    echo $OUTPUT->footer();
+    exit;
+}
+
 $session    = $DB->get_record('academy_live_sessions', ['jitsiid' => $jitsi->id]);
 
-if ($session && !$is_teacher) {
+if ($session) {
 
-    // 1. Student must be on the allowed list.
-    $allowed = $DB->record_exists('academy_session_students', [
-        'sessionid' => $session->id,
-        'userid'    => $USER->id,
-    ]);
-    if (!$allowed) {
-        echo $OUTPUT->header();
-        echo $OUTPUT->heading(format_string($jitsi->name));
-        echo $OUTPUT->notification(get_string('notallowed', 'jitsi'), 'warning');
-        echo $OUTPUT->footer();
-        exit;
-    }
-
-    $now              = time();
-    $open_from        = $session->start_time - 1800;          // 30 min before
-    $open_until       = $session->start_time + ($session->duration * 60);
-
-    // 2. Too early.
-    if ($now < $open_from) {
-        $mins = ceil(($open_from - $now) / 60);
-        echo $OUTPUT->header();
-        echo $OUTPUT->heading(format_string($jitsi->name));
-        echo $OUTPUT->notification(
-            get_string('sessionopening', 'jitsi', $mins),
-            'info'
-        );
-        echo $OUTPUT->footer();
-        exit;
-    }
-
-    // 3. Session has ended — show recordings and exit.
-    if ($now > $open_until) {
+    // For everyone (teachers included): once the session is marked 'ended',
+    // the room is closed — refreshing should not allow rejoining.
+    if ($session->status === 'ended') {
         echo $OUTPUT->header();
         echo $OUTPUT->heading(format_string($jitsi->name));
         echo $OUTPUT->notification(get_string('sessionended', 'jitsi'), 'info');
@@ -82,14 +83,56 @@ if ($session && !$is_teacher) {
         exit;
     }
 
-    // 4. Record attendance (first join only).
-    if (!$DB->record_exists('academy_session_attendance', ['sessionid' => $session->id, 'userid' => $USER->id])) {
-        $att                   = new stdClass();
-        $att->sessionid        = $session->id;
-        $att->userid           = $USER->id;
-        $att->joined_at        = $now;
-        $att->duration_seconds = 0;
-        $DB->insert_record('academy_session_attendance', $att);
+    if (!$is_teacher) {
+        // 1. Student must be on the allowed list.
+        $allowed = $DB->record_exists('academy_session_students', [
+            'sessionid' => $session->id,
+            'userid'    => $USER->id,
+        ]);
+        if (!$allowed) {
+            echo $OUTPUT->header();
+            echo $OUTPUT->heading(format_string($jitsi->name));
+            echo $OUTPUT->notification(get_string('notallowed', 'jitsi'), 'warning');
+            echo $OUTPUT->footer();
+            exit;
+        }
+
+        $now       = time();
+        $open_from = $session->start_time - 1800;
+        $open_until = $session->start_time + ($session->duration * 60);
+
+        // 2. Too early.
+        if ($now < $open_from) {
+            $mins = ceil(($open_from - $now) / 60);
+            echo $OUTPUT->header();
+            echo $OUTPUT->heading(format_string($jitsi->name));
+            echo $OUTPUT->notification(
+                get_string('sessionopening', 'jitsi', $mins),
+                'info'
+            );
+            echo $OUTPUT->footer();
+            exit;
+        }
+
+        // 3. Time window passed (but status not yet 'ended' — lifecycle cron hasn't run).
+        if ($now > $open_until) {
+            echo $OUTPUT->header();
+            echo $OUTPUT->heading(format_string($jitsi->name));
+            echo $OUTPUT->notification(get_string('sessionended', 'jitsi'), 'info');
+            jitsi_print_recordings($session, $context, $is_teacher);
+            echo $OUTPUT->footer();
+            exit;
+        }
+
+        // 4. Record attendance (first join only).
+        if (!$DB->record_exists('academy_session_attendance', ['sessionid' => $session->id, 'userid' => $USER->id])) {
+            $att                   = new stdClass();
+            $att->sessionid        = $session->id;
+            $att->userid           = $USER->id;
+            $att->joined_at        = $now;
+            $att->duration_seconds = 0;
+            $DB->insert_record('academy_session_attendance', $att);
+        }
     }
 }
 
@@ -108,6 +151,11 @@ $jitsi_room = 'academy_jitsi_' . $cm->id . '_' . substr(md5($jitsi->id . $cm->id
 $display_name = fullname($USER);
 $user_email   = $USER->email;
 
+// JWT token — tells Jitsi who is moderator.
+$jitsi_jwt = \local_academysessions\jitsi_jwt::generate(
+    $jitsi_room, $display_name, $user_email, $is_teacher
+);
+
 // Map Moodle lang codes to Jitsi / i18n codes.
 $lang_map = [
     'ar'    => 'ar',
@@ -124,49 +172,55 @@ $lang_map = [
 $moodle_lang  = current_language();
 $jitsi_lang   = $lang_map[$moodle_lang] ?? 'en';
 
-// Toolbar: teachers get recording + admin controls; students get whiteboard + basics.
-$toolbar_teacher = ['microphone','camera','desktop','chat','recording','whiteboard','raisehand','participants-pane','tileview','fullscreen','hangup'];
-$toolbar_student = ['microphone','camera','chat','whiteboard','raisehand','tileview','fullscreen','hangup'];
+// Teacher: full control panel.
+$toolbar_teacher = [
+    'microphone', 'camera', 'desktop',
+    'chat', 'recording', 'livestreaming',
+    'invite',
+    'raisehand', 'participants-pane', 'mute-everyone',
+    'whiteboard', 'etherpad',
+    'select-background', 'noisesuppression',
+    'tileview', 'filmstrip', 'videoquality', 'stats',
+    'security', 'closedcaptions', 'shortcuts',
+    'fullscreen', 'hangup',
+];
+// Students: useful personal controls only.
+$toolbar_student = [
+    'microphone', 'camera', 'desktop',
+    'chat', 'raisehand', 'whiteboard',
+    'select-background', 'noisesuppression',
+    'tileview', 'videoquality',
+    'fullscreen', 'hangup',
+];
 $toolbar         = $is_teacher ? $toolbar_teacher : $toolbar_student;
 
-// Jitsi iframe URL — toolbar goes in the hash WITHOUT double-encoding.
-// json_encode produces ["mic","cam",...]; s() will HTML-escape the quotes
-// inside the attribute value, which is exactly what browsers expect.
-$jitsi_scheme = (strpos($jitsi_host, 'localhost') !== false || strpos($jitsi_host, '127.0.0.1') !== false)
-    ? 'http' : 'https';
-$toolbar_json = json_encode($toolbar);   // raw JSON, no urlencode
-$jitsi_url = $jitsi_scheme . '://' . $jitsi_host . '/' . rawurlencode($jitsi_room)
-    . '#config.startWithAudioMuted=true'
-    . '&config.startWithVideoMuted=false'
-    . '&config.prejoinPageEnabled=false'
-    . '&config.disableDeepLinking=true'
-    . '&config.disableInviteFunctions=true'
-    . '&config.enableClosePage=false'
-    . '&config.subject=' . rawurlencode($jitsi->name)
-    . '&config.defaultLanguage=' . rawurlencode($jitsi_lang)
-    . '&config.toolbarButtons=' . $toolbar_json   // intentionally no urlencode
-    . '&config.fileRecordingsEnabled=' . ($is_teacher ? 'true' : 'false')
-    . '&config.liveStreamingEnabled=false'
-    . '&userInfo.displayName=' . rawurlencode($display_name)
-    . '&userInfo.email=' . rawurlencode($user_email);
+// Jitsi is now on HTTPS (mkcert cert, port 8443 → container 443).
+// External API requires HTTPS — this is now satisfied.
+$jitsi_scheme = 'https';
 
-// Whiteboard — use local app if configured and reachable, otherwise excalidraw.com.
-$excalidraw_app = get_config('local_academysessions', 'excalidraw_app') ?: '';
+// Whiteboard — self-hosted Excalidraw frontend (port 9091).
+// Port 9090 is the Socket.IO relay only; the drawable UI is on 9091.
+$excalidraw_app = get_config('local_academysessions', 'excalidraw_app') ?: 'http://localhost:9091';
+// Guard: if the relay URL (port 9090) was accidentally saved in config, correct it.
+if (strpos($excalidraw_app, ':9090') !== false) {
+    $excalidraw_app = 'http://localhost:9091';
+}
 $wb_room = 'academy_wb_jitsi_' . $cm->id;
-$wb_url  = ($excalidraw_app && strpos($excalidraw_app, 'localhost') === false)
-    ? rtrim($excalidraw_app, '/') . '/#room=' . rawurlencode($wb_room)
-    : 'https://excalidraw.com/#room=' . rawurlencode($wb_room);
+$wb_url  = rtrim($excalidraw_app, '/') . '/#room=' . rawurlencode($wb_room);
 
 // Session token for AJAX end-session call.
 $sesskey      = sesskey();
 $session_id   = $session ? (int)$session->id : 0;
 $end_ajax_url = (new moodle_url('/mod/jitsi/ajax.php'))->out(false);
-$jitsi_origin = $jitsi_scheme . '://' . $jitsi_host;  // for postMessage origin check
 
 // -------------------------------------------------------------------------
 // Output.
 // -------------------------------------------------------------------------
 echo $OUTPUT->header();
+
+// Load Jitsi External API as a static <script> tag.
+echo '<script src="' . s($jitsi_scheme . '://' . $jitsi_host . '/external_api.js') . '"></script>' . "\n";
+
 echo $OUTPUT->heading(format_string($jitsi->name));
 
 if (!empty($jitsi->intro)) {
@@ -187,13 +241,9 @@ if ($is_teacher) {
 }
 echo '</div>';
 
-// ── Jitsi iframe ─────────────────────────────────────────────────────────
+// ── Jitsi External API container ─────────────────────────────────────────
 echo '<div id="panel-video" style="width:100%;height:620px;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.15);">';
-echo '<iframe id="jitsi-iframe" src="' . s($jitsi_url) . '"
-    style="width:100%;height:100%;border:none;"
-    allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen"
-    allowfullscreen>
-</iframe>';
+echo '<div id="jitsi-container" style="width:100%;height:100%;"></div>';
 echo '</div>';
 
 // ── Whiteboard panel ─────────────────────────────────────────────────────
@@ -210,64 +260,168 @@ echo '</div>';
 
 echo '</div>'; // #jitsi-activity-container
 
+// Security settings stored on the activity.
+$room_password  = !empty($jitsi->roompassword)  ? $jitsi->roompassword  : '';
+$lobby_enabled  = !empty($jitsi->lobby_enabled);
+
 $js_config = json_encode([
-    'isTeacher'   => (bool)$is_teacher,
-    'sessionId'   => $session_id,
-    'sesskey'     => $sesskey,
-    'endUrl'      => $end_ajax_url,
-    'jitsiOrigin' => $jitsi_origin,
+    'isTeacher'      => (bool)$is_teacher,
+    'cmId'           => (int)$cm->id,
+    'sessionId'      => $session_id,
+    'sesskey'        => $sesskey,
+    'endUrl'         => $end_ajax_url,
+    'jitsiHost'      => $jitsi_host,
+    'jitsiRoom'      => $jitsi_room,
+    'jitsiName'      => $jitsi->name,
+    'jitsiLang'      => $jitsi_lang,
+    'displayName'    => $display_name,
+    'userEmail'      => $user_email,
+    'toolbarButtons' => $toolbar,
+    'jwt'            => $jitsi_jwt,
+    'roomPassword'   => $room_password,
+    'lobbyEnabled'   => $lobby_enabled,
 ]);
 
 echo <<<HTML
 <script>
 (function() {
     var CFG = {$js_config};
+    var api = null;
 
-    /* ── Jitsi sends postMessage events to the parent window ──────────────
-       We listen for them here — no external_api.js needed.
-       Events arrive as JSON strings: {"name":"video-conference-left",...}  */
-    window.addEventListener('message', function(e) {
-        /* only trust messages from our Jitsi server */
-        if (e.origin !== CFG.jitsiOrigin) return;
-
-        var data = e.data;
-        if (typeof data === 'string') {
-            try { data = JSON.parse(data); } catch(x) { return; }
+    function initJitsiAPI() {
+        if (typeof JitsiMeetExternalAPI === 'undefined') {
+            document.getElementById('jitsi-container').innerHTML =
+                '<div style="padding:40px;text-align:center;color:#dc3545;">'
+                + '<strong>Could not load Jitsi API.</strong><br>'
+                + 'Your browser may be blocking <code>https://' + CFG.jitsiHost + '/external_api.js</code> '
+                + 'due to an untrusted SSL certificate.<br>'
+                + 'Please open <a href="https://' + CFG.jitsiHost + '" target="_blank">https://' + CFG.jitsiHost + '</a> '
+                + 'in a new tab, accept the certificate warning, then refresh this page.'
+                + '</div>';
+            return;
         }
-        if (!data || !data.name) return;
+        api = new JitsiMeetExternalAPI(CFG.jitsiHost, {
+            roomName: CFG.jitsiRoom,
+            jwt: CFG.jwt,
+            parentNode: document.getElementById('jitsi-container'),
+            width: '100%',
+            height: '100%',
+            configOverwrite: {
+                startWithAudioMuted: true,
+                startWithVideoMuted: true,
+                prejoinPageEnabled: false,
+                disableDeepLinking: true,
+                disableInviteFunctions: !CFG.isTeacher,
+                enableClosePage: false,
+                subject: CFG.jitsiName,
+                defaultLanguage: CFG.jitsiLang,
+                toolbarButtons: CFG.toolbarButtons,
+                fileRecordingsEnabled: CFG.isTeacher,
+                localRecording: { enabled: false },
+                liveStreamingEnabled: true,
+                hiddenPremeetingButtons: [],
+                disableProfile: false,
+                enableNoisyMicDetection: true,
+                enableNoAudioDetection: true,
+                channelLastN: -1,
+                startWithAudioMuted: true,
+                startWithVideoMuted: false,
+                disableSelfViewSettings: false,
+                disableRemoteMute: !CFG.isTeacher,
+                remoteVideoMenu: { disabled: false, disableKick: !CFG.isTeacher, disableGrantModerator: !CFG.isTeacher },
+                breakoutRooms: { hideAddRoomButton: !CFG.isTeacher, hideAutoAssignButton: !CFG.isTeacher, hideJoinRoomButton: false },
+                participantsPane: { hideModeratorSettingsTab: !CFG.isTeacher, hideMoreActionsButton: false, hideMuteAllButton: !CFG.isTeacher },
+            },
+            interfaceConfigOverwrite: {
+                SHOW_JITSI_WATERMARK: false,
+                SHOW_WATERMARK_FOR_GUESTS: false,
+                SHOW_BRAND_WATERMARK: false,
+                SHOW_POWERED_BY: false,
+                DISPLAY_WELCOME_FOOTER: false,
+                HIDE_INVITE_MORE_HEADER: !CFG.isTeacher,
+                TOOLBAR_ALWAYS_VISIBLE: false,
+                ENFORCE_NOTIFICATION_AUTO_DISMISS_TIMEOUT: 5000,
+            },
+            userInfo: {
+                displayName: CFG.displayName,
+                email: CFG.userEmail
+            }
+        });
+        // readyToClose fires when teacher clicks "End meeting for all" — ended=true marks the session.
+        api.addEventListener('readyToClose', function() { onSessionLeft(true); });
+        // videoConferenceLeft fires on plain leave — teacher leaving without ending doesn't mark session.
+        api.addEventListener('videoConferenceLeft', function() { onSessionLeft(false); });
 
-        if (data.name === 'readyToClose') {
-            onSessionLeft(true);   /* teacher ended the meeting */
-        } else if (data.name === 'video-conference-left') {
-            onSessionLeft(false);  /* user left (may still rejoin) */
+        // Auto-submit password for everyone so no one gets a prompt
+        // (Moodle already gates who can reach this page).
+        if (CFG.roomPassword) {
+            api.addEventListener('passwordRequired', function() {
+                api.executeCommand('password', CFG.roomPassword);
+            });
         }
-    });
 
-    function onSessionLeft(ended) {
-        /* remove the iframe so the camera/mic are released */
-        var fr = document.getElementById('jitsi-iframe');
-        if (fr) { fr.src = 'about:blank'; fr.remove(); }
+        // Teacher: set password on first join and enable lobby if configured.
+        // JWT moderator role automatically bypasses the lobby on rejoin.
+        if (CFG.isTeacher) {
+            api.addEventListener('videoConferenceJoined', function() {
+                if (CFG.roomPassword) {
+                    api.executeCommand('password', CFG.roomPassword);
+                }
+                if (CFG.lobbyEnabled) {
+                    api.executeCommand('toggleLobby', true);
+                }
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initJitsiAPI);
+    } else {
+        initJitsiAPI();
+    }
+
+    var _sessionEndCalled = false;
+
+    function onSessionLeft(teacherEndedForAll) {
+        if (api) { try { api.dispose(); } catch(x) {} api = null; }
 
         document.getElementById('jitsi-tabs').style.display = 'none';
         document.getElementById('panel-video').style.display = 'none';
         document.getElementById('panel-whiteboard').style.display = 'none';
         document.getElementById('panel-ended').style.display = 'block';
 
-        if (ended && CFG.isTeacher && CFG.sessionId) {
-            document.getElementById('ended-sub').textContent =
-                'Marking session as completed…';
+        if (teacherEndedForAll && CFG.isTeacher && !_sessionEndCalled) {
+            _sessionEndCalled = true;
+            document.getElementById('ended-sub').textContent = 'Ending session…';
+
+            // Determine which AJAX function to call:
+            // end_session  — if there is a linked academy session
+            // end_room     — standalone activity (no linked session)
+            var body = CFG.sessionId
+                ? 'function=end_session&sesskey=' + encodeURIComponent(CFG.sesskey) + '&sessionid=' + CFG.sessionId
+                : 'function=end_room&sesskey=' + encodeURIComponent(CFG.sesskey) + '&cmid=' + CFG.cmId;
+
             fetch(CFG.endUrl, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'function=end_session&sesskey=' + encodeURIComponent(CFG.sesskey)
-                    + '&sessionid=' + CFG.sessionId
-            }).then(function() {
+                body: body
+            }).then(function(r) { return r.json(); })
+            .then(function(data) {
                 document.getElementById('ended-sub').textContent =
-                    'Session marked as done. Recordings will appear below once processed.';
+                    data.status === 'success'
+                        ? 'Session ended. Recordings will appear below once processed.'
+                        : 'Session could not be marked ended: ' + (data.error || '');
                 loadRecordingsAjax();
             }).catch(function() {
+                document.getElementById('ended-sub').textContent =
+                    'Session ended (could not update server status).';
                 loadRecordingsAjax();
             });
+        } else if (teacherEndedForAll && !CFG.isTeacher) {
+            // Student: teacher ended the meeting for all.
+            document.getElementById('ended-sub').textContent =
+                'The host has ended this session. Recordings will appear below once processed.';
+            loadRecordingsAjax();
         } else {
             document.getElementById('ended-sub').textContent =
                 'You left the session. Recordings will appear below once processed.';
@@ -277,7 +431,10 @@ echo <<<HTML
 
     function loadRecordingsAjax() {
         if (!CFG.sessionId) return;
-        fetch(CFG.endUrl + '?function=get_session_recordings&sessionid=' + CFG.sessionId
+        var recParams = CFG.sessionId
+            ? 'sessionid=' + CFG.sessionId + '&cmid=' + CFG.cmId
+            : 'cmid=' + CFG.cmId;
+        fetch(CFG.endUrl + '?function=get_session_recordings&' + recParams
               + '&sesskey=' + encodeURIComponent(CFG.sesskey))
             .then(function(r){ return r.json(); })
             .then(function(data) {
@@ -333,16 +490,24 @@ echo <<<HTML
 </script>
 HTML;
 
-// Recordings shown at page-load only if session has already ended (teacher sees them always).
+// Show recordings below the conference:
+// - If there's a linked session: teacher always sees them; students see after session window ends.
+// - If standalone (no session): always show if any recordings exist.
 if ($session) {
     $show_recs = $is_teacher;
     if (!$is_teacher) {
-        $now = time();
+        $now        = time();
         $open_until = $session->start_time + ($session->duration * 60);
         $show_recs  = ($now > $open_until);
     }
     if ($show_recs) {
-        jitsi_print_recordings($session, $context, $is_teacher);
+        jitsi_print_recordings($session, $context, $is_teacher, $cm->id);
+    }
+} else {
+    // Standalone room — show recordings if any exist for this cmid.
+    $has_recs = $DB->record_exists('academy_session_recordings', ['cmid' => $cm->id]);
+    if ($has_recs) {
+        jitsi_print_recordings(null, $context, $is_teacher, $cm->id);
     }
 }
 
@@ -351,14 +516,36 @@ echo $OUTPUT->footer();
 // -------------------------------------------------------------------------
 // Helper: render recordings for this session.
 // -------------------------------------------------------------------------
-function jitsi_print_recordings($session, $context, $is_teacher) {
-    global $DB, $OUTPUT;
+function jitsi_print_recordings($session, $context, $is_teacher, $cmid = null) {
+    global $DB, $OUTPUT, $cm;
 
-    $recordings = $DB->get_records(
-        'academy_session_recordings',
-        ['sessionid' => $session->id],
-        'timecreated DESC'
-    );
+    if ($session) {
+        $recordings = $DB->get_records(
+            'academy_session_recordings',
+            ['sessionid' => $session->id],
+            'timecreated DESC'
+        );
+        // Also include any standalone recordings by cmid for this activity.
+        $standalone_cmid = $cmid ?: ($cm->id ?? null);
+        if ($standalone_cmid) {
+            $extra = $DB->get_records_sql(
+                "SELECT * FROM {academy_session_recordings}
+                 WHERE cmid = :cmid AND (sessionid IS NULL OR sessionid = 0)
+                 ORDER BY timecreated DESC",
+                ['cmid' => $standalone_cmid]
+            );
+            $recordings = array_merge($recordings, $extra);
+        }
+    } else {
+        $standalone_cmid = $cmid ?: ($cm->id ?? null);
+        $recordings = $standalone_cmid
+            ? $DB->get_records_sql(
+                "SELECT * FROM {academy_session_recordings}
+                 WHERE cmid = :cmid ORDER BY timecreated DESC",
+                ['cmid' => $standalone_cmid]
+              )
+            : [];
+    }
 
     echo '<div class="jitsi-recordings mt-4">';
     echo '<h4>' . get_string('recordings', 'jitsi') . '</h4>';
@@ -372,32 +559,58 @@ function jitsi_print_recordings($session, $context, $is_teacher) {
     foreach ($recordings as $rec) {
         echo '<div class="card mb-3" style="border-radius:8px;">';
         echo '<div class="card-body">';
-        echo '<h5 class="card-title">' . s($rec->title ?: get_string('recording', 'jitsi')) . '</h5>';
-
-        if ($rec->status === 'ready' && !empty($rec->bunny_video_id)) {
-            try {
-                $bunny      = new \local_academysessions\bunny_client();
-                $expiresat  = time() + (2 * 3600);
-                $embed_url  = $bunny->get_embed_url($rec->bunny_video_id, $expiresat);
-
-                echo '<div style="position:relative;padding-top:56.25%;border-radius:6px;overflow:hidden;">';
-                echo '<iframe src="' . s($embed_url) . '" loading="lazy"
-                    style="border:none;position:absolute;top:0;left:0;height:100%;width:100%;"
-                    allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
-                    allowfullscreen="true"></iframe>';
-                echo '</div>';
-            } catch (Exception $e) {
-                echo '<p class="text-muted">' . get_string('recnotavailable', 'jitsi') . '</p>';
+        // title is the MinIO key path — extract a human date from the filename.
+        $display_title = get_string('recording', 'jitsi');
+        if (!empty($rec->title)) {
+            $fname = basename($rec->title, '.mp4');
+            if (preg_match('/(\d{4}-\d{2}-\d{2})-(\d{2})-(\d{2})-(\d{2})$/', $fname, $dm)) {
+                $ts = strtotime("{$dm[1]} {$dm[2]}:{$dm[3]}:{$dm[4]}");
+                if ($ts) {
+                    $display_title = userdate($ts, get_string('strftimedatetimeshort', 'langconfig'));
+                }
             }
-        } else if (!empty($rec->bunny_video_url)) {
+        }
+        echo '<h5 class="card-title">' . s($display_title) . '</h5>';
+
+        $embed_url = null;
+        if ($rec->status === 'ready') {
+            // Use stored signed URL; refresh via demo API if expired.
+            if (!empty($rec->bunny_video_url) && (empty($rec->expires_at) || $rec->expires_at > time() + 300)) {
+                $embed_url = $rec->bunny_video_url;
+            } elseif (!empty($rec->bunny_video_id)) {
+                // Refresh from demo API.
+                try {
+                    $demo_url = get_config('local_academysessions', 'bunny_demo_url') ?: 'http://host.docker.internal:4000';
+                    $demo_key = get_config('local_academysessions', 'bunny_demo_key') ?: 'academy-internal-secret-2024';
+                    $ch = curl_init($demo_url . '/api/internal/videos/' . $rec->bunny_video_id . '/embed');
+                    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ['X-Internal-Key: ' . $demo_key], CURLOPT_TIMEOUT => 10]);
+                    $resp = json_decode(curl_exec($ch), true);
+                    curl_close($ch);
+                    if (!empty($resp['embedUrl'])) {
+                        $embed_url = $resp['embedUrl'];
+                        // Save refreshed URL.
+                        $upd = new stdClass();
+                        $upd->id             = $rec->id;
+                        $upd->bunny_video_url = $embed_url;
+                        $upd->expires_at     = !empty($resp['expiresAt']) ? strtotime($resp['expiresAt']) : (time() + 86400 * 30);
+                        $upd->timemodified   = time();
+                        $DB->update_record('academy_session_recordings', $upd);
+                    }
+                } catch (Exception $e) { /* non-fatal */ }
+            }
+        }
+
+        if ($embed_url) {
             echo '<div style="position:relative;padding-top:56.25%;border-radius:6px;overflow:hidden;">';
-            echo '<iframe src="' . s($rec->bunny_video_url) . '" loading="lazy"
+            echo '<iframe src="' . s($embed_url) . '" loading="lazy"
                 style="border:none;position:absolute;top:0;left:0;height:100%;width:100%;"
                 allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
                 allowfullscreen="true"></iframe>';
             echo '</div>';
-        } else {
+        } else if ($rec->status === 'syncing') {
             echo '<p class="text-muted">' . get_string('recprocessing', 'jitsi') . '</p>';
+        } else {
+            echo '<p class="text-muted">' . get_string('recnotavailable', 'jitsi') . '</p>';
         }
 
         // Show storage location to teachers.

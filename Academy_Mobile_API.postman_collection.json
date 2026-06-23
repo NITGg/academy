@@ -1,0 +1,423 @@
+{
+  "info": {
+    "name": "Academy Mobile API",
+    "_postman_id": "academy-mobile-api-v1",
+    "description": "All mobile API endpoints for Academy LMS — auth, courses, sessions, Jitsi JWT.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8081", "type": "string" },
+    { "key": "wstoken", "value": "PASTE_YOUR_TOKEN_HERE", "type": "string" },
+    { "key": "userid", "value": "2", "type": "string" },
+    { "key": "courseid", "value": "54", "type": "string" },
+    { "key": "sessionid", "value": "1", "type": "string" },
+    { "key": "jitsi_cmid", "value": "1964", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login — Get Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/login/token.php",
+              "host": ["{{base_url}}"],
+              "path": ["login", "token.php"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "admin", "type": "text" },
+                { "key": "password", "value": "YOUR_PASSWORD", "type": "text" },
+                {
+                  "key": "service",
+                  "value": "moodle_mobile_app",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "Exchange username+password for a wstoken. Save the returned `token` into the {{wstoken}} variable."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Moodle Web Service — Courses",
+      "item": [
+        {
+          "name": "Get My Enrolled Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wstoken={{wstoken}}&moodlewsrestformat=json&wsfunction=core_enrol_get_users_courses&userid={{userid}}",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wstoken", "value": "{{wstoken}}" },
+                { "key": "moodlewsrestformat", "value": "json" },
+                {
+                  "key": "wsfunction",
+                  "value": "core_enrol_get_users_courses"
+                },
+                { "key": "userid", "value": "{{userid}}" }
+              ]
+            },
+            "description": "Returns all courses the user is enrolled in. Use `userid` from site_info."
+          }
+        },
+        {
+          "name": "Get Course Contents (Sections + Activities)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wstoken={{wstoken}}&moodlewsrestformat=json&wsfunction=core_course_get_contents&courseid={{courseid}}",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wstoken", "value": "{{wstoken}}" },
+                { "key": "moodlewsrestformat", "value": "json" },
+                { "key": "wsfunction", "value": "core_course_get_contents" },
+                { "key": "courseid", "value": "{{courseid}}" }
+              ]
+            },
+            "description": "Returns all sections and activities. Each module has an `id` (cm_id) and `modname`. Use cm_id with the Jitsi token endpoint."
+          }
+        },
+        {
+          "name": "Get Single Course",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wstoken={{wstoken}}&moodlewsrestformat=json&wsfunction=core_course_get_courses&options[ids][0]={{courseid}}",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wstoken", "value": "{{wstoken}}" },
+                { "key": "moodlewsrestformat", "value": "json" },
+                { "key": "wsfunction", "value": "core_course_get_courses" },
+                { "key": "options[ids][0]", "value": "{{courseid}}" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Moodle Web Service — User",
+      "item": [
+        {
+          "name": "Get Site Info (Current User)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wstoken={{wstoken}}&moodlewsrestformat=json&wsfunction=core_webservice_get_site_info",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wstoken", "value": "{{wstoken}}" },
+                { "key": "moodlewsrestformat", "value": "json" },
+                {
+                  "key": "wsfunction",
+                  "value": "core_webservice_get_site_info"
+                }
+              ]
+            },
+            "description": "Returns userid, fullname, userpictureurl, sitename, etc."
+          }
+        },
+        {
+          "name": "Get User Profile by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wstoken={{wstoken}}&moodlewsrestformat=json&wsfunction=core_user_get_users_by_field&field=id&values[0]={{userid}}",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wstoken", "value": "{{wstoken}}" },
+                { "key": "moodlewsrestformat", "value": "json" },
+                {
+                  "key": "wsfunction",
+                  "value": "core_user_get_users_by_field"
+                },
+                { "key": "field", "value": "id" },
+                { "key": "values[0]", "value": "{{userid}}" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Moodle Web Service — Notifications",
+      "item": [
+        {
+          "name": "Get Unread Notification Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wstoken={{wstoken}}&moodlewsrestformat=json&wsfunction=message_popup_get_unread_popup_notification_count&useridto={{userid}}",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wstoken", "value": "{{wstoken}}" },
+                { "key": "moodlewsrestformat", "value": "json" },
+                {
+                  "key": "wsfunction",
+                  "value": "message_popup_get_unread_popup_notification_count"
+                },
+                { "key": "useridto", "value": "{{userid}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Notifications (Unread)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wstoken={{wstoken}}&moodlewsrestformat=json&wsfunction=core_message_get_messages&useridto={{userid}}&type=notifications&read=0",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wstoken", "value": "{{wstoken}}" },
+                { "key": "moodlewsrestformat", "value": "json" },
+                { "key": "wsfunction", "value": "core_message_get_messages" },
+                { "key": "useridto", "value": "{{userid}}" },
+                { "key": "type", "value": "notifications" },
+                { "key": "read", "value": "0" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Academy Sessions API — Teacher",
+      "item": [
+        {
+          "name": "Get Teacher Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academysessions/api.php?function=get_teacher_sessions&token={{wstoken}}&courseid={{courseid}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academysessions", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_teacher_sessions" },
+                { "key": "token", "value": "{{wstoken}}" },
+                {
+                  "key": "courseid",
+                  "value": "{{courseid}}",
+                  "description": "Optional — omit for all courses"
+                }
+              ]
+            },
+            "description": "Returns all sessions for the teacher. Includes student list and attendance count per session."
+          }
+        },
+        {
+          "name": "Create Session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academysessions/api.php?function=create_session&token={{wstoken}}&courseid={{courseid}}&title=Week+1+Live&starttime=1750000000&studentids=2,3,4&duration=60&jitsiid=1",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academysessions", "api.php"],
+              "query": [
+                { "key": "function", "value": "create_session" },
+                { "key": "token", "value": "{{wstoken}}" },
+                { "key": "courseid", "value": "{{courseid}}" },
+                { "key": "title", "value": "Week 1 Live" },
+                {
+                  "key": "starttime",
+                  "value": "1750000000",
+                  "description": "Unix timestamp"
+                },
+                {
+                  "key": "studentids",
+                  "value": "2,3,4",
+                  "description": "Comma-separated user IDs"
+                },
+                {
+                  "key": "duration",
+                  "value": "60",
+                  "description": "Minutes (default 50)"
+                },
+                {
+                  "key": "jitsiid",
+                  "value": "1",
+                  "description": "Jitsi activity instance ID (optional)"
+                }
+              ]
+            },
+            "description": "Creates a new live session. Returns sessionid."
+          }
+        },
+        {
+          "name": "Update Session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academysessions/api.php?function=update_session&token={{wstoken}}&sessionid={{sessionid}}&title=Updated+Title&duration=90",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academysessions", "api.php"],
+              "query": [
+                { "key": "function", "value": "update_session" },
+                { "key": "token", "value": "{{wstoken}}" },
+                { "key": "sessionid", "value": "{{sessionid}}" },
+                {
+                  "key": "title",
+                  "value": "Updated Title",
+                  "description": "Optional"
+                },
+                {
+                  "key": "starttime",
+                  "value": "",
+                  "description": "Optional — Unix timestamp",
+                  "disabled": true
+                },
+                {
+                  "key": "duration",
+                  "value": "90",
+                  "description": "Optional — minutes"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "End Session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academysessions/api.php?function=end_session&token={{wstoken}}&sessionid={{sessionid}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academysessions", "api.php"],
+              "query": [
+                { "key": "function", "value": "end_session" },
+                { "key": "token", "value": "{{wstoken}}" },
+                { "key": "sessionid", "value": "{{sessionid}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academysessions/api.php?function=delete_session&token={{wstoken}}&sessionid={{sessionid}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academysessions", "api.php"],
+              "query": [
+                { "key": "function", "value": "delete_session" },
+                { "key": "token", "value": "{{wstoken}}" },
+                { "key": "sessionid", "value": "{{sessionid}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Attendance Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academysessions/api.php?function=get_attendance&token={{wstoken}}&sessionid={{sessionid}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academysessions", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_attendance" },
+                { "key": "token", "value": "{{wstoken}}" },
+                { "key": "sessionid", "value": "{{sessionid}}" }
+              ]
+            },
+            "description": "Returns list of students who joined, with join timestamps."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Academy Sessions API — Student",
+      "item": [
+        {
+          "name": "Get My Upcoming Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academysessions/api.php?function=get_student_sessions&token={{wstoken}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academysessions", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_student_sessions" },
+                { "key": "token", "value": "{{wstoken}}" }
+              ]
+            },
+            "description": "Returns upcoming sessions for the student. `link_visible` is true within 30 min before start until end."
+          }
+        },
+        {
+          "name": "Join Session (Record Attendance)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academysessions/api.php?function=join_session&token={{wstoken}}&sessionid={{sessionid}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academysessions", "api.php"],
+              "query": [
+                { "key": "function", "value": "join_session" },
+                { "key": "token", "value": "{{wstoken}}" },
+                { "key": "sessionid", "value": "{{sessionid}}" }
+              ]
+            },
+            "description": "Records student attendance and returns meeting_link. Call this before fetching the Jitsi JWT."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Jitsi — Video Call JWT",
+      "item": [
+        {
+          "name": "Get Jitsi JWT Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/mod/jitsi/api_token.php?wstoken={{wstoken}}&id={{jitsi_cmid}}",
+              "host": ["{{base_url}}"],
+              "path": ["mod", "jitsi", "api_token.php"],
+              "query": [
+                { "key": "wstoken", "value": "{{wstoken}}" },
+                {
+                  "key": "id",
+                  "value": "{{jitsi_cmid}}",
+                  "description": "Course module ID (cm_id) from core_course_get_contents"
+                }
+              ]
+            },
+            "description": "Returns server_url, room, JWT token, is_moderator flag, subject, display_name, email.\n\nTeachers get is_moderator=true (full host controls).\nStudents can only call this 30 min before session start until end time."
+          }
+        }
+      ]
+    }
+  ]
+}

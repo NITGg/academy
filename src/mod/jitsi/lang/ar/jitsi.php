@@ -25,3 +25,10 @@ $string['recording']       = 'تسجيل';
 $string['recprocessing']   = 'جارٍ معالجة التسجيل، يُرجى التحقق لاحقاً.';
 $string['recnotavailable'] = 'التسجيل غير متاح في الوقت الحالي.';
 $string['recstorage']      = 'موقع التخزين';
+
+// Security options.
+$string['security_header']       = 'خيارات الأمان';
+$string['roompassword']          = 'كلمة مرور الغرفة';
+$string['roompassword_help']     = 'إذا تم تعيينها، يجب على المشاركين إدخال هذه الكلمة للانضمام. اتركها فارغة لعدم استخدام كلمة مرور.';
+$string['lobby_enabled']         = 'تفعيل غرفة الانتظار';
+$string['lobby_enabled_help']    = 'عند التفعيل، ينتظر المشاركون في غرفة انتظار ويجب على المعلم الموافقة على دخول كل شخص.';

@@ -1,5 +1,6 @@
-# Docker
+# Logs
 *.log
+jitsi/jibri/logs/
 
 # Moodle data (uploads, cache, sessions)
 moodleData/
@@ -7,8 +8,28 @@ moodleData/
 # Database data
 academy_db_data/
 
-# Environment
+# Environment — contains passwords and secrets, never commit
 .env
+.env.local
+.env.*.local
+
+# TLS certificates — generated locally with mkcert, not portable
+jitsi/web/keys/
+
+# Jitsi generated config — auto-created on first run from .env, contains passwords
+jitsi/prosody/config/data/
+jitsi/prosody/config/conf.d/
+jitsi/jicofo/jicofo.conf
+jitsi/jvb/jvb.conf
+jitsi/web/config.js
+jitsi/web/nginx/
+
+# Jibri runtime
+jitsi/recordings/
+
+# Local binaries
+mkcert.exe
+ngrok.exe
 
 # OS
 .DS_Store
@@ -17,3 +38,5 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+*.sql

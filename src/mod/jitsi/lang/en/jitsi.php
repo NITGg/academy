@@ -25,3 +25,10 @@ $string['recording']       = 'Recording';
 $string['recprocessing']   = 'Recording is being processed, please check back later.';
 $string['recnotavailable'] = 'Recording is not available at this time.';
 $string['recstorage']      = 'Storage location';
+
+// Security options.
+$string['security_header']       = 'Security Options';
+$string['roompassword']          = 'Room password';
+$string['roompassword_help']     = 'If set, participants must enter this password to join the session. Leave blank for no password.';
+$string['lobby_enabled']         = 'Enable waiting room (lobby)';
+$string['lobby_enabled_help']    = 'When enabled, participants wait in a lobby and the teacher must approve each person before they can join.';

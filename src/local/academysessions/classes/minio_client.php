@@ -42,7 +42,7 @@ class minio_client {
     public function list_recordings() {
         $url = $this->endpoint . '/' . $this->bucket . '?prefix=recordings/&list-type=2';
         $date = gmdate('D, d M Y H:i:s T');
-        $resource = '/' . $this->bucket . '/';
+        $resource = '/' . $this->bucket;  // no trailing slash — must match URL path exactly
 
         $tosign = "GET\n\n\n{$date}\n{$resource}";
         $sig = base64_encode(hash_hmac('sha1', $tosign, $this->secretkey, true));
