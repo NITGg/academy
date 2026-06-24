@@ -104,6 +104,10 @@ if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
                     -H "Content-Type: application/offset+octet-stream" \
                     -H "Upload-Offset: ${OFFSET}" \
                     -H "Content-Length: ${ACTUAL_CHUNK}" \
+                    -H "AuthorizationSignature: ${AUTH_SIG}" \
+                    -H "AuthorizationExpire: ${AUTH_EXPIRY}" \
+                    -H "VideoId: ${BUNNY_VIDEO_ID}" \
+                    -H "LibraryId: ${LIBRARY_ID}" \
                     --data-binary @"$CHUNK_TEMP")
 
                 if [ "$CHUNK_CODE" != "204" ]; then
