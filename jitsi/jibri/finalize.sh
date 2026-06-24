@@ -53,7 +53,7 @@ if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
         BUNNY_VIDEO_ID=$(echo "$INTENT" | grep -o '"bunnyVideoId":"[^"]*"' | cut -d'"' -f4)
         AUTH_SIG=$(echo "$INTENT"       | grep -o '"authSignature":"[^"]*"' | cut -d'"' -f4)
         AUTH_EXPIRY=$(echo "$INTENT"    | grep -o '"authExpiry":[0-9]*'     | cut -d':' -f2)
-        LIBRARY_ID=$(echo "$INTENT"     | grep -o '"libraryId":[0-9]*'      | cut -d':' -f2)
+        LIBRARY_ID=$(echo "$INTENT"     | grep -o '"libraryId":"*[0-9]*"*'   | grep -o '[0-9]*')
 
         FILE_SIZE=$(stat -c%s "$MP4_FILE")
 
