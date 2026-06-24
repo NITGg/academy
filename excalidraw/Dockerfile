@@ -17,8 +17,11 @@ RUN yarn install --frozen-lockfile
 ARG VITE_APP_WS_SERVER_URL=ws://localhost:9090
 ENV VITE_APP_WS_SERVER_URL=$VITE_APP_WS_SERVER_URL
 
+ARG VITE_BASE_PATH=/
+ENV VITE_BASE_PATH=$VITE_BASE_PATH
+
 # Build the production bundle
-RUN yarn build
+RUN yarn build --base=$VITE_BASE_PATH
 
 # Stage 2 — serve the static bundle with nginx
 FROM nginx:1.25-alpine
