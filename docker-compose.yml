@@ -225,7 +225,7 @@ services:
       - MINIO_BUCKET=academy-recordings
       - JIBRI_HTTP_API_EXTERNAL_PORT=2223
       - IGNORE_CERTIFICATE_ERRORS=1
-      - PUBLIC_URL=https://meet.jitsi
+      - PUBLIC_URL=http://meet.jitsi
       - MOODLE_URL=http://academy_app
       - MOODLE_CRON_KEY=academy-cron-2024
     depends_on:
