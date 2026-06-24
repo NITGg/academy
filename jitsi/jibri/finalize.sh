@@ -59,8 +59,11 @@ if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
 
         log "Uploading directly to Bunny TUS (videoId=$BUNNY_VIDEO_ID, size=${FILE_SIZE})..."
 
-        # Step 1 — initiate TUS upload, capture Location header
-        TUS_INIT_HEADERS=$(curl -sI -X POST "https://video.bunnycdn.com/tusupload" \
+        # Step 1 — initiate TUS upload, capture Location header.
+        # Use -D to dump headers to stdout and -o /dev/null for body;
+        # avoid -I which sends HEAD regardless of -X POST.
+        TUS_INIT_HEADERS=$(curl -s -D - -o /dev/null \
+            -X POST "https://video.bunnycdn.com/tusupload" \
             -H "AuthorizationSignature: ${AUTH_SIG}" \
             -H "AuthorizationExpire: ${AUTH_EXPIRY}" \
             -H "VideoId: ${BUNNY_VIDEO_ID}" \
@@ -68,7 +71,7 @@ if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
             -H "Tus-Resumable: 1.0.0" \
             -H "Upload-Length: ${FILE_SIZE}" \
             -H "Content-Length: 0")
-        TUS_INIT_STATUS=$(echo "$TUS_INIT_HEADERS" | head -1)
+        TUS_INIT_STATUS=$(echo "$TUS_INIT_HEADERS" | head -1 | tr -d '\r')
         TUS_LOCATION=$(echo "$TUS_INIT_HEADERS" | grep -i "^location:" | tr -d '\r' | awk '{print $2}')
         log "TUS initiation response: ${TUS_INIT_STATUS}"
 
