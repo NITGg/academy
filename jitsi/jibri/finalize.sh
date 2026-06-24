@@ -130,12 +130,12 @@ if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
 
                 # Notify Moodle so the recording card appears in view.php immediately.
                 NOTIFY_URL="${MOODLE_INTERNAL_URL}/mod/jitsi/record_notify.php"
-                NOTIFY_PAYLOAD="{\"title\":\"${TITLE}\",\"bunny_video_id\":\"${BUNNY_VIDEO_ID}\",\"cmid\":${CMID:-0}}"
                 NOTIFY_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
                     -X POST "$NOTIFY_URL" \
-                    -H "Content-Type: application/json" \
                     -H "X-Notify-Key: ${MOODLE_NOTIFY_KEY}" \
-                    -d "$NOTIFY_PAYLOAD")
+                    --data-urlencode "title=${TITLE}" \
+                    --data-urlencode "bunny_video_id=${BUNNY_VIDEO_ID}" \
+                    --data-urlencode "cmid=${CMID:-0}")
                 if [ "$NOTIFY_CODE" -ge 200 ] && [ "$NOTIFY_CODE" -lt 300 ] 2>/dev/null; then
                     log "Moodle record_notify OK (HTTP ${NOTIFY_CODE})"
                 else
@@ -186,12 +186,12 @@ if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
     # record_notify will create a placeholder row that polling will later fill in.
     if [ -n "$MOODLE_NOTIFY_KEY" ]; then
         NOTIFY_URL="${MOODLE_INTERNAL_URL}/mod/jitsi/record_notify.php"
-        NOTIFY_PAYLOAD="{\"title\":\"${TITLE}\",\"bunny_video_id\":\"${BUNNY_VIDEO_ID:-}\",\"cmid\":${CMID:-0}}"
         NOTIFY_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
             -X POST "$NOTIFY_URL" \
-            -H "Content-Type: application/json" \
             -H "X-Notify-Key: ${MOODLE_NOTIFY_KEY}" \
-            -d "$NOTIFY_PAYLOAD")
+            --data-urlencode "title=${TITLE}" \
+            --data-urlencode "bunny_video_id=${BUNNY_VIDEO_ID:-}" \
+            --data-urlencode "cmid=${CMID:-0}")
         if [ "$NOTIFY_CODE" -ge 200 ] && [ "$NOTIFY_CODE" -lt 300 ] 2>/dev/null; then
             log "Moodle record_notify OK (HTTP ${NOTIFY_CODE})"
         else
