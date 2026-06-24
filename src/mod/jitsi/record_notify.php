@@ -10,6 +10,18 @@
 
 define('AJAX_SCRIPT', true);
 define('NO_MOODLE_COOKIES', true);
+
+// Internal calls from jibri/bunny arrive as http://host.docker.internal which
+// doesn't match $CFG->wwwroot (https://...). Moodle's URL check redirects.
+// Fix: spoof HTTP_HOST and HTTPS so setup.php sees a valid request.
+$_tmp = file_get_contents(__DIR__ . '/../../config.php');
+if (preg_match("/wwwroot\s*=\s*['\"]https?:\/\/([^\/'\"\s]+)/", $_tmp, $_m)) {
+    $_SERVER['HTTP_HOST']   = $_m[1];
+    $_SERVER['HTTPS']       = 'on';
+    $_SERVER['SERVER_PORT'] = '443';
+}
+unset($_tmp, $_m);
+
 require(__DIR__ . '/../../config.php');
 
 header('Content-Type: application/json');
