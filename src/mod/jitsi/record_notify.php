@@ -9,6 +9,7 @@
  */
 
 define('AJAX_SCRIPT', true);
+define('NO_MOODLE_COOKIES', true);
 require(__DIR__ . '/../../config.php');
 
 header('Content-Type: application/json');
