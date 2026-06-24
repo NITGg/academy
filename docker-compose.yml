@@ -234,7 +234,7 @@ services:
       - BUNNY_INTERNAL_KEY=${INTERNAL_API_KEY:-academy-internal-secret}
       - MINIO_PUBLIC_URL=http://host.docker.internal:9000
     entrypoint: >
-      sh -c "chmod +x /config/finalize.sh && exec /entrypoint.sh"
+      sh -c "chmod +x /config/finalize.sh && exec /init"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
