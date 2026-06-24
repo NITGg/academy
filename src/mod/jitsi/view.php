@@ -607,10 +607,17 @@ function jitsi_print_recordings($session, $context, $is_teacher, $cmid = null) {
                 allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
                 allowfullscreen="true"></iframe>';
             echo '</div>';
-        } else if ($rec->status === 'syncing') {
-            echo '<p class="text-muted">' . get_string('recprocessing', 'jitsi') . '</p>';
         } else {
-            echo '<p class="text-muted">' . get_string('recnotavailable', 'jitsi') . '</p>';
+            // Still syncing — show spinner and auto-poll until READY.
+            echo '<div id="rec-status-' . (int)$rec->id . '" class="rec-polling-card"'
+                . ' data-rec-id="' . (int)$rec->id . '">';
+            echo '<div style="display:flex;align-items:center;gap:14px;padding:16px 0;">';
+            echo '<div class="spinner-border text-primary" role="status" style="flex-shrink:0;">'
+                . '<span class="sr-only">Loading...</span></div>';
+            echo '<div>';
+            echo '<p class="mb-1" style="font-weight:500;">' . get_string('recprocessing', 'jitsi') . '</p>';
+            echo '<small class="text-muted" id="rec-label-' . (int)$rec->id . '">Uploading to Bunny CDN&hellip;</small>';
+            echo '</div></div></div>';
         }
 
         // Show storage location to teachers.
@@ -632,6 +639,78 @@ function jitsi_print_recordings($session, $context, $is_teacher, $cmid = null) {
 
         echo '</div>'; // card-body
         echo '</div>'; // card
+    }
+
+    // Collect IDs of recordings that are still processing so JS can poll them.
+    $pending_ids = [];
+    foreach ($recordings as $r) {
+        if ($r->status !== 'ready') {
+            $pending_ids[] = (int)$r->id;
+        }
+    }
+
+    if (!empty($pending_ids)) {
+        $ajax_url  = (new moodle_url('/mod/jitsi/ajax.php'))->out(false);
+        $sesskey   = sesskey();
+        $ids_json  = json_encode($pending_ids);
+        $ajax_json = json_encode($ajax_url);
+        $key_json  = json_encode($sesskey);
+        echo <<<POLL_JS
+<script>
+(function() {
+    var pendingIds = {$ids_json};
+    var ajaxUrl   = {$ajax_json};
+    var sesskey   = {$key_json};
+    var pollIntervalMs = 5000;
+
+    var statusLabels = {
+        'PENDING':    'Waiting in queue…',
+        'UPLOADING':  'Uploading to Bunny CDN…',
+        'PROCESSING': 'Transcoding video…',
+        'READY':      'Done!'
+    };
+
+    function pollOne(recId) {
+        fetch(ajaxUrl + '?function=check_recording_status&rec_id=' + recId
+              + '&sesskey=' + encodeURIComponent(sesskey))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var card  = document.getElementById('rec-status-' + recId);
+                var label = document.getElementById('rec-label-' + recId);
+                if (!card) return;
+
+                if (data.status === 'ready' && data.embed_url) {
+                    card.innerHTML =
+                        '<div style="position:relative;padding-top:56.25%;border-radius:6px;overflow:hidden;">'
+                        + '<iframe src="' + data.embed_url + '" loading="lazy"'
+                        + ' style="border:none;position:absolute;top:0;left:0;height:100%;width:100%;"'
+                        + ' allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"'
+                        + ' allowfullscreen></iframe></div>';
+                    // Remove from pending
+                    pendingIds = pendingIds.filter(function(id) { return id !== recId; });
+                    return;
+                }
+
+                // Update status label
+                if (label && data.bunny_status && statusLabels[data.bunny_status]) {
+                    label.textContent = statusLabels[data.bunny_status];
+                }
+
+                // Re-schedule poll
+                setTimeout(function() { pollOne(recId); }, pollIntervalMs);
+            })
+            .catch(function() {
+                setTimeout(function() { pollOne(recId); }, pollIntervalMs * 2);
+            });
+    }
+
+    // Start polling after a short initial delay.
+    pendingIds.forEach(function(id) {
+        setTimeout(function() { pollOne(id); }, pollIntervalMs);
+    });
+})();
+</script>
+POLL_JS;
     }
 
     echo '</div>'; // jitsi-recordings

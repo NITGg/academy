@@ -227,7 +227,9 @@ services:
       - IGNORE_CERTIFICATE_ERRORS=1
       - PUBLIC_URL=http://meet.jitsi
       - MOODLE_URL=http://academy_app
+      - MOODLE_INTERNAL_URL=http://host.docker.internal:8081
       - MOODLE_CRON_KEY=academy-cron-2024
+      - MOODLE_NOTIFY_KEY=${MOODLE_NOTIFY_KEY:-academy-cron-2024}
       - BUNNY_API_URL=http://host.docker.internal:3000
       - BUNNY_INTERNAL_KEY=${INTERNAL_API_KEY:-academy-internal-secret}
       - MINIO_PUBLIC_URL=http://host.docker.internal:9000

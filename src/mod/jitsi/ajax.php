@@ -141,4 +141,82 @@ if ($function === 'get_session_recordings') {
     exit;
 }
 
+// ── check_recording_status ────────────────────────────────────────────────────
+// Polls the Bunny demo API for current transcoding status of a single recording.
+// Updates the Moodle DB record and returns embed_url once READY.
+if ($function === 'check_recording_status') {
+    $rec_id = required_param('rec_id', PARAM_INT);
+    $rec    = $DB->get_record('academy_session_recordings', ['id' => $rec_id], '*', MUST_EXIST);
+
+    // Access check: must be enrolled/attending or a teacher.
+    $can_view = false;
+    if ($rec->sessionid) {
+        $sess = $DB->get_record('academy_live_sessions', ['id' => $rec->sessionid]);
+        if ($sess) {
+            $ctx       = context_course::instance($sess->courseid);
+            $can_view  = has_capability('moodle/course:manageactivities', $ctx)
+                      || $DB->record_exists('academy_session_attendance', ['sessionid' => $rec->sessionid, 'userid' => $USER->id]);
+        }
+    } elseif ($rec->cmid) {
+        $cm_rec   = get_coursemodule_from_id('jitsi', $rec->cmid, 0, false, MUST_EXIST);
+        $ctx      = context_module::instance($cm_rec->id);
+        $can_view = has_capability('mod/jitsi:view', $ctx);
+    }
+    if (!$can_view) {
+        echo json_encode(['status' => 'fail', 'error' => 'Access denied']);
+        exit;
+    }
+
+    // Already ready — just return embed URL.
+    if ($rec->status === 'ready') {
+        $embed_url = null;
+        if (!empty($rec->bunny_video_url)) {
+            $embed_url = $rec->bunny_video_url;
+        } elseif (!empty($rec->bunny_video_id)) {
+            try {
+                $bunny     = new \local_academysessions\bunny_client();
+                $embed_url = $bunny->get_embed_url($rec->bunny_video_id, time() + 7200);
+            } catch (Exception $e) {}
+        }
+        echo json_encode(['status' => 'ready', 'embed_url' => $embed_url]);
+        exit;
+    }
+
+    // Poll the Bunny demo API.
+    if (!empty($rec->bunny_video_id)) {
+        $demo_url = get_config('local_academysessions', 'bunny_demo_url') ?: 'http://host.docker.internal:3000';
+        $demo_key = get_config('local_academysessions', 'bunny_demo_key') ?: 'academy-internal-secret-2024';
+        $ch = curl_init($demo_url . '/api/internal/videos/' . urlencode($rec->bunny_video_id) . '/embed');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => ['X-Internal-Key: ' . $demo_key],
+            CURLOPT_TIMEOUT        => 10,
+        ]);
+        $body = curl_exec($ch);
+        curl_close($ch);
+        $resp = json_decode($body, true);
+
+        if ($resp && isset($resp['status']) && strtolower($resp['status']) === 'ready') {
+            $upd                  = new stdClass();
+            $upd->id              = $rec->id;
+            $upd->status          = 'ready';
+            $upd->bunny_video_url = $resp['embedUrl'] ?? null;
+            $upd->expires_at      = !empty($resp['expiresAt']) ? strtotime($resp['expiresAt']) : time() + 86400 * 30;
+            $upd->timemodified    = time();
+            $DB->update_record('academy_session_recordings', $upd);
+
+            echo json_encode(['status' => 'ready', 'embed_url' => $resp['embedUrl'] ?? null]);
+            exit;
+        }
+
+        // Still processing — return current bunny status for label display.
+        $bunny_status = $resp['status'] ?? 'PROCESSING';
+        echo json_encode(['status' => 'syncing', 'bunny_status' => $bunny_status]);
+        exit;
+    }
+
+    echo json_encode(['status' => $rec->status]);
+    exit;
+}
+
 echo json_encode(['status' => 'fail', 'error' => 'Unknown function']);

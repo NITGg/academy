@@ -1,5 +1,6 @@
 #!/bin/bash
-# Jibri finalize script — uploads the finished MP4 to MinIO.
+# Jibri finalize script — uploads the finished MP4 directly to Bunny CDN via TUS.
+# Falls back to MinIO if Bunny credentials are unavailable.
 # Called by Jibri as: finalize.sh <recording_dir>
 
 RECORDING_DIR="$1"
@@ -9,10 +10,11 @@ MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY:-minioadmin}"
 MINIO_SECRET_KEY="${MINIO_SECRET_KEY:-minioadmin123}"
 MINIO_BUCKET="${MINIO_BUCKET:-academy-recordings}"
 MOODLE_URL="${MOODLE_URL:-http://academy_app}"
-MOODLE_CRON_KEY="${MOODLE_CRON_KEY:-}"   # optional — speeds up sync if set
-BUNNY_API_URL="${BUNNY_API_URL:-}"        # e.g. http://host.docker.internal:3000
+MOODLE_INTERNAL_URL="${MOODLE_INTERNAL_URL:-http://host.docker.internal:8081}"
+MOODLE_CRON_KEY="${MOODLE_CRON_KEY:-}"
+MOODLE_NOTIFY_KEY="${MOODLE_NOTIFY_KEY:-academy-cron-2024}"
+BUNNY_API_URL="${BUNNY_API_URL:-}"
 BUNNY_INTERNAL_KEY="${BUNNY_INTERNAL_KEY:-}"
-MINIO_PUBLIC_URL="${MINIO_PUBLIC_URL:-http://host.docker.internal:9000}"
 
 log() { echo "[finalize] $*" >&2; }
 
@@ -29,14 +31,91 @@ fi
 
 log "Found recording: $MP4_FILE"
 
-DIRNAME=$(basename "$RECORDING_DIR")
 FILENAME=$(basename "$MP4_FILE")
+TITLE="${FILENAME%.mp4}"
+
+# Extract the Moodle cmid from the room name (academy_jitsi_{cmid}_{hash}_…)
+CMID=$(echo "$TITLE" | sed 's/academy_jitsi_\([0-9]*\)_.*/\1/')
+[ "$CMID" = "$TITLE" ] && CMID="" # sed returned unchanged — no match
+
+# ── Upload directly to Bunny via TUS ─────────────────────────────────────────
+if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
+    log "Getting Bunny TUS upload credentials..."
+
+    INTENT=$(curl -sf -X POST "${BUNNY_API_URL}/api/internal/upload-intent" \
+        -H "Content-Type: application/json" \
+        -H "X-Internal-Key: ${BUNNY_INTERNAL_KEY}" \
+        -d "{\"title\": \"${TITLE}\"}")
+
+    if [ $? -ne 0 ] || [ -z "$INTENT" ]; then
+        log "Failed to get upload intent — falling back to MinIO"
+    else
+        BUNNY_VIDEO_ID=$(echo "$INTENT" | grep -o '"bunnyVideoId":"[^"]*"' | cut -d'"' -f4)
+        AUTH_SIG=$(echo "$INTENT"       | grep -o '"authSignature":"[^"]*"' | cut -d'"' -f4)
+        AUTH_EXPIRY=$(echo "$INTENT"    | grep -o '"authExpiry":[0-9]*'     | cut -d':' -f2)
+        LIBRARY_ID=$(echo "$INTENT"     | grep -o '"libraryId":[0-9]*'      | cut -d':' -f2)
+
+        FILE_SIZE=$(stat -c%s "$MP4_FILE")
+
+        log "Uploading directly to Bunny TUS (videoId=$BUNNY_VIDEO_ID, size=${FILE_SIZE})..."
+
+        # Step 1 — initiate TUS upload, capture Location header
+        TUS_LOCATION=$(curl -sI -X POST "https://video.bunnycdn.com/tusupload" \
+            -H "AuthorizationSignature: ${AUTH_SIG}" \
+            -H "AuthorizationExpire: ${AUTH_EXPIRY}" \
+            -H "VideoId: ${BUNNY_VIDEO_ID}" \
+            -H "LibraryId: ${LIBRARY_ID}" \
+            -H "Tus-Resumable: 1.0.0" \
+            -H "Upload-Length: ${FILE_SIZE}" \
+            -H "Content-Length: 0" \
+            | grep -i "^location:" | tr -d '\r' | awk '{print $2}')
+
+        if [ -z "$TUS_LOCATION" ]; then
+            log "TUS initiation failed — falling back to MinIO"
+        else
+            log "TUS location: $TUS_LOCATION"
+
+            # Step 2 — upload file in one PATCH (TUS single-chunk)
+            TUS_CODE=$(curl -s -o /tmp/tus_response.txt -w "%{http_code}" \
+                -X PATCH "$TUS_LOCATION" \
+                -H "Tus-Resumable: 1.0.0" \
+                -H "Content-Type: application/offset+octet-stream" \
+                -H "Upload-Offset: 0" \
+                -H "Content-Length: ${FILE_SIZE}" \
+                --data-binary @"$MP4_FILE")
+
+            if [ "$TUS_CODE" = "204" ]; then
+                log "Bunny TUS upload complete. Removing local recording."
+                rm -rf "$RECORDING_DIR"
+
+                # Notify Moodle so the recording card appears in view.php immediately.
+                NOTIFY_URL="${MOODLE_INTERNAL_URL}/mod/jitsi/record_notify.php"
+                NOTIFY_PAYLOAD="{\"title\":\"${TITLE}\",\"bunny_video_id\":\"${BUNNY_VIDEO_ID}\",\"cmid\":${CMID:-0}}"
+                NOTIFY_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+                    -X POST "$NOTIFY_URL" \
+                    -H "Content-Type: application/json" \
+                    -H "X-Notify-Key: ${MOODLE_NOTIFY_KEY}" \
+                    -d "$NOTIFY_PAYLOAD")
+                if [ "$NOTIFY_CODE" -ge 200 ] && [ "$NOTIFY_CODE" -lt 300 ] 2>/dev/null; then
+                    log "Moodle record_notify OK (HTTP ${NOTIFY_CODE})"
+                else
+                    log "Moodle record_notify failed (HTTP ${NOTIFY_CODE}) — non-fatal"
+                fi
+                exit 0
+            else
+                TUS_BODY=$(cat /tmp/tus_response.txt 2>/dev/null)
+                log "TUS upload failed (HTTP ${TUS_CODE}): ${TUS_BODY} — falling back to MinIO"
+            fi
+        fi
+    fi
+fi
+
+# ── Fallback: upload to MinIO ─────────────────────────────────────────────────
+DIRNAME=$(basename "$RECORDING_DIR")
 OBJECT_KEY="recordings/${DIRNAME}/${FILENAME}"
 
-# ── Ensure bucket exists ─────────────────────────────────────────────────────
 DATE=$(date -u "+%a, %d %b %Y %H:%M:%S GMT")
 RESOURCE="/${MINIO_BUCKET}/"
-# S3 V2 StringToSign: VERB\nContent-MD5\nContent-Type\nDate\nResource
 SIG_STRING=$(printf "PUT\n\n\n%s\n%s" "$DATE" "$RESOURCE")
 SIG=$(printf '%s' "$SIG_STRING" | openssl dgst -sha1 -hmac "$MINIO_SECRET_KEY" -binary | base64)
 curl -sf -X PUT \
@@ -44,13 +123,11 @@ curl -sf -X PUT \
     -H "Authorization: AWS ${MINIO_ACCESS_KEY}:${SIG}" \
     "${MINIO_ENDPOINT}/${MINIO_BUCKET}/" >/dev/null 2>&1 || true
 
-# ── Upload file ──────────────────────────────────────────────────────────────
 log "Uploading to MinIO: ${MINIO_ENDPOINT}/${MINIO_BUCKET}/${OBJECT_KEY}"
 
 CONTENT_TYPE="video/mp4"
 DATE=$(date -u "+%a, %d %b %Y %H:%M:%S GMT")
 RESOURCE="/${MINIO_BUCKET}/${OBJECT_KEY}"
-# S3 V2 StringToSign: VERB\nContent-MD5\nContent-Type\nDate\nResource
 SIG_STRING=$(printf "PUT\n\n%s\n%s\n%s" "$CONTENT_TYPE" "$DATE" "$RESOURCE")
 SIG=$(printf '%s' "$SIG_STRING" | openssl dgst -sha1 -hmac "$MINIO_SECRET_KEY" -binary | base64)
 
@@ -62,40 +139,15 @@ HTTP_CODE=$(curl -s -o /tmp/minio_upload_response.txt -w "%{http_code}" -X PUT \
     "${MINIO_ENDPOINT}/${MINIO_BUCKET}/${OBJECT_KEY}")
 
 if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-    log "Upload successful (HTTP ${HTTP_CODE}). Removing local recording."
+    log "MinIO upload successful (HTTP ${HTTP_CODE}). Removing local recording."
     rm -rf "$RECORDING_DIR"
-
-    # ── Ingest into Bunny Stream ─────────────────────────────────────────────
-    if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
-        TITLE=$(basename "$MP4_FILE" .mp4)
-        VIDEO_URL="${MINIO_PUBLIC_URL}/${MINIO_BUCKET}/${OBJECT_KEY}"
-        log "Triggering Bunny ingest: $VIDEO_URL"
-        INGEST_CODE=$(curl -s -o /tmp/bunny_ingest_response.txt -w "%{http_code}" \
-            -X POST "${BUNNY_API_URL}/api/internal/ingest" \
-            -H "Content-Type: application/json" \
-            -H "X-Internal-Key: ${BUNNY_INTERNAL_KEY}" \
-            -d "{\"title\": \"${TITLE}\", \"minioUrl\": \"${VIDEO_URL}\"}")
-        INGEST_BODY=$(cat /tmp/bunny_ingest_response.txt 2>/dev/null)
-        if [ "$INGEST_CODE" -ge 200 ] && [ "$INGEST_CODE" -lt 300 ]; then
-            log "Bunny ingest started (HTTP ${INGEST_CODE}): ${INGEST_BODY}"
-        else
-            log "Bunny ingest failed (non-fatal, HTTP ${INGEST_CODE}): ${INGEST_BODY}"
-        fi
-    else
-        log "BUNNY_API_URL not set — skipping Bunny ingest."
-    fi
-
-    # ── Trigger Moodle cron ──────────────────────────────────────────────────
     if [ -n "$MOODLE_CRON_KEY" ]; then
-        log "Triggering Moodle cron..."
-        curl -sf "${MOODLE_URL}/admin/cron.php?password=${MOODLE_CRON_KEY}" >/dev/null 2>&1 && \
+        curl -sf "${MOODLE_INTERNAL_URL}/admin/cron.php?password=${MOODLE_CRON_KEY}" >/dev/null 2>&1 && \
             log "Moodle cron triggered." || log "Moodle cron trigger failed (non-fatal)."
-    else
-        log "MOODLE_CRON_KEY not set — Moodle cron will run on its normal schedule."
     fi
     exit 0
 else
     RESPONSE=$(cat /tmp/minio_upload_response.txt 2>/dev/null)
-    log "Upload FAILED (HTTP ${HTTP_CODE}): ${RESPONSE}"
+    log "MinIO upload FAILED (HTTP ${HTTP_CODE}): ${RESPONSE}"
     exit 1
 fi
