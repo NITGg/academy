@@ -16,6 +16,8 @@ services:
       - MOODLE_SSLPROXY
     depends_on:
       - db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     entrypoint: >
       sh -c "chown -R www-data:www-data /var/www/moodledata &&
              chmod -R 755 /var/www/moodledata &&
