@@ -60,18 +60,20 @@ if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
         log "Uploading directly to Bunny TUS (videoId=$BUNNY_VIDEO_ID, size=${FILE_SIZE})..."
 
         # Step 1 — initiate TUS upload, capture Location header
-        TUS_LOCATION=$(curl -sI -X POST "https://video.bunnycdn.com/tusupload" \
+        TUS_INIT_HEADERS=$(curl -sI -X POST "https://video.bunnycdn.com/tusupload" \
             -H "AuthorizationSignature: ${AUTH_SIG}" \
             -H "AuthorizationExpire: ${AUTH_EXPIRY}" \
             -H "VideoId: ${BUNNY_VIDEO_ID}" \
             -H "LibraryId: ${LIBRARY_ID}" \
             -H "Tus-Resumable: 1.0.0" \
             -H "Upload-Length: ${FILE_SIZE}" \
-            -H "Content-Length: 0" \
-            | grep -i "^location:" | tr -d '\r' | awk '{print $2}')
+            -H "Content-Length: 0")
+        TUS_INIT_STATUS=$(echo "$TUS_INIT_HEADERS" | head -1)
+        TUS_LOCATION=$(echo "$TUS_INIT_HEADERS" | grep -i "^location:" | tr -d '\r' | awk '{print $2}')
+        log "TUS initiation response: ${TUS_INIT_STATUS}"
 
         if [ -z "$TUS_LOCATION" ]; then
-            log "TUS initiation failed — falling back to MinIO"
+            log "TUS initiation failed (no Location header) — falling back to MinIO"
         else
             log "TUS location: $TUS_LOCATION"
 
@@ -167,6 +169,25 @@ HTTP_CODE=$(curl -s -o /tmp/minio_upload_response.txt -w "%{http_code}" -X PUT \
 if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
     log "MinIO upload successful (HTTP ${HTTP_CODE}). Removing local recording."
     rm -rf "$RECORDING_DIR"
+
+    # Notify Moodle so the recording card appears in view.php.
+    # bunny_video_id may be empty here if TUS intent also failed — that's fine,
+    # record_notify will create a placeholder row that polling will later fill in.
+    if [ -n "$MOODLE_NOTIFY_KEY" ]; then
+        NOTIFY_URL="${MOODLE_INTERNAL_URL}/mod/jitsi/record_notify.php"
+        NOTIFY_PAYLOAD="{\"title\":\"${TITLE}\",\"bunny_video_id\":\"${BUNNY_VIDEO_ID:-}\",\"cmid\":${CMID:-0}}"
+        NOTIFY_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "$NOTIFY_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Notify-Key: ${MOODLE_NOTIFY_KEY}" \
+            -d "$NOTIFY_PAYLOAD")
+        if [ "$NOTIFY_CODE" -ge 200 ] && [ "$NOTIFY_CODE" -lt 300 ] 2>/dev/null; then
+            log "Moodle record_notify OK (HTTP ${NOTIFY_CODE})"
+        else
+            log "Moodle record_notify failed (HTTP ${NOTIFY_CODE}) — non-fatal"
+        fi
+    fi
+
     if [ -n "$MOODLE_CRON_KEY" ]; then
         curl -sf "${MOODLE_INTERNAL_URL}/admin/cron.php?password=${MOODLE_CRON_KEY}" >/dev/null 2>&1 && \
             log "Moodle cron triggered." || log "Moodle cron trigger failed (non-fatal)."
