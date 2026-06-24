@@ -10,6 +10,9 @@ MINIO_SECRET_KEY="${MINIO_SECRET_KEY:-minioadmin123}"
 MINIO_BUCKET="${MINIO_BUCKET:-academy-recordings}"
 MOODLE_URL="${MOODLE_URL:-http://academy_app}"
 MOODLE_CRON_KEY="${MOODLE_CRON_KEY:-}"   # optional — speeds up sync if set
+BUNNY_API_URL="${BUNNY_API_URL:-}"        # e.g. http://host.docker.internal:3000
+BUNNY_INTERNAL_KEY="${BUNNY_INTERNAL_KEY:-}"
+MINIO_PUBLIC_URL="${MINIO_PUBLIC_URL:-http://host.docker.internal:9000}"
 
 log() { echo "[finalize] $*" >&2; }
 
@@ -62,8 +65,27 @@ if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
     log "Upload successful (HTTP ${HTTP_CODE}). Removing local recording."
     rm -rf "$RECORDING_DIR"
 
-    # Trigger Moodle's cron immediately so the sync_recordings task picks this
-    # up right away instead of waiting for the next scheduled cron cycle.
+    # ── Ingest into Bunny Stream ─────────────────────────────────────────────
+    if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
+        TITLE=$(basename "$MP4_FILE" .mp4)
+        VIDEO_URL="${MINIO_PUBLIC_URL}/${MINIO_BUCKET}/${OBJECT_KEY}"
+        log "Triggering Bunny ingest: $VIDEO_URL"
+        INGEST_CODE=$(curl -s -o /tmp/bunny_ingest_response.txt -w "%{http_code}" \
+            -X POST "${BUNNY_API_URL}/api/internal/ingest" \
+            -H "Content-Type: application/json" \
+            -H "X-Internal-Key: ${BUNNY_INTERNAL_KEY}" \
+            -d "{\"title\": \"${TITLE}\", \"minioUrl\": \"${VIDEO_URL}\"}")
+        INGEST_BODY=$(cat /tmp/bunny_ingest_response.txt 2>/dev/null)
+        if [ "$INGEST_CODE" -ge 200 ] && [ "$INGEST_CODE" -lt 300 ]; then
+            log "Bunny ingest started (HTTP ${INGEST_CODE}): ${INGEST_BODY}"
+        else
+            log "Bunny ingest failed (non-fatal, HTTP ${INGEST_CODE}): ${INGEST_BODY}"
+        fi
+    else
+        log "BUNNY_API_URL not set — skipping Bunny ingest."
+    fi
+
+    # ── Trigger Moodle cron ──────────────────────────────────────────────────
     if [ -n "$MOODLE_CRON_KEY" ]; then
         log "Triggering Moodle cron..."
         curl -sf "${MOODLE_URL}/admin/cron.php?password=${MOODLE_CRON_KEY}" >/dev/null 2>&1 && \

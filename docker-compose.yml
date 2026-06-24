@@ -228,6 +228,11 @@ services:
       - PUBLIC_URL=http://meet.jitsi
       - MOODLE_URL=http://academy_app
       - MOODLE_CRON_KEY=academy-cron-2024
+      - BUNNY_API_URL=http://host.docker.internal:3000
+      - BUNNY_INTERNAL_KEY=${INTERNAL_API_KEY:-academy-internal-secret}
+      - MINIO_PUBLIC_URL=http://host.docker.internal:9000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - jicofo
     networks:
