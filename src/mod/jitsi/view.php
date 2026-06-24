@@ -37,12 +37,18 @@ require_capability('mod/jitsi:view', $context);
 // If the activity has "available until" in the past, block access for students.
 $is_teacher = has_capability('mod/jitsi:moderate', $context);
 if (!$is_teacher && !$cm->available) {
+    $PAGE->set_url('/mod/jitsi/view.php', ['id' => $cm->id]);
+    $PAGE->set_context($context);
+    $PAGE->set_title(format_string($jitsi->name));
+    $PAGE->set_heading(format_string($course->fullname));
+    $session_for_locked = $DB->get_record('academy_live_sessions', ['jitsiid' => $jitsi->id]);
     echo $OUTPUT->header();
     echo $OUTPUT->heading(format_string($jitsi->name));
     echo $OUTPUT->notification(
         $cm->availableinfo ?: get_string('sessionended', 'jitsi'),
         'warning'
     );
+    jitsi_print_recordings($session_for_locked ?: null, $context, $is_teacher, $cm->id);
     echo $OUTPUT->footer();
     exit;
 }
