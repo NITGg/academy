@@ -20,8 +20,9 @@ ENV VITE_APP_WS_SERVER_URL=$VITE_APP_WS_SERVER_URL
 ARG VITE_BASE_PATH=/
 ENV VITE_BASE_PATH=$VITE_BASE_PATH
 
-# Build the production bundle
-RUN yarn build --base=$VITE_BASE_PATH
+# Build the production bundle — run vite directly so --base is honoured
+# (yarn build at repo root uses a workspace script that doesn't forward extra args)
+RUN cd excalidraw-app && npx vite build --base=$VITE_BASE_PATH
 
 # Stage 2 — serve the static bundle with nginx
 FROM nginx:1.25-alpine
