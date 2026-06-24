@@ -19,9 +19,21 @@ function xmldb_local_academysessions_upgrade($oldversion) {
     if ($oldversion < 2026062401) {
         $table = new xmldb_table('academy_session_recordings');
 
+        // Drop the index on sessionid before making it nullable (Moodle blocks
+        // changing NOTNULL on a field that has a dependent index).
+        $index = new xmldb_index('ses_ix', XMLDB_INDEX_NOTUNIQUE, ['sessionid']);
+        if ($dbman->index_exists($table, $index)) {
+            $dbman->drop_index($table, $index);
+        }
+
         // Make sessionid nullable so standalone (no session) recordings are supported.
         $field = new xmldb_field('sessionid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
         $dbman->change_field_notnull($table, $field);
+
+        // Recreate the index (now on a nullable column).
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
 
         // Add cmid — links recording directly to a Jitsi activity (course module).
         $cmid_field = new xmldb_field('cmid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'sessionid');
