@@ -73,6 +73,10 @@ if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
             -H "Content-Length: 0")
         TUS_INIT_STATUS=$(echo "$TUS_INIT_HEADERS" | head -1 | tr -d '\r')
         TUS_LOCATION=$(echo "$TUS_INIT_HEADERS" | grep -i "^location:" | tr -d '\r' | awk '{print $2}')
+        # Location may be a relative path — make it absolute
+        case "$TUS_LOCATION" in
+            /*)  TUS_LOCATION="https://video.bunnycdn.com${TUS_LOCATION}" ;;
+        esac
         log "TUS initiation response: ${TUS_INIT_STATUS}"
 
         if [ -z "$TUS_LOCATION" ]; then
