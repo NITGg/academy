@@ -75,16 +75,43 @@ if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
         else
             log "TUS location: $TUS_LOCATION"
 
-            # Step 2 — upload file in one PATCH (TUS single-chunk)
-            TUS_CODE=$(curl -s -o /tmp/tus_response.txt -w "%{http_code}" \
-                -X PATCH "$TUS_LOCATION" \
-                -H "Tus-Resumable: 1.0.0" \
-                -H "Content-Type: application/offset+octet-stream" \
-                -H "Upload-Offset: 0" \
-                -H "Content-Length: ${FILE_SIZE}" \
-                --data-binary @"$MP4_FILE")
+            # Step 2 — upload in 50 MB chunks (matches tus-js-client web app behaviour)
+            CHUNK_SIZE=$((50 * 1024 * 1024))
+            CHUNK_TEMP="/tmp/tus_chunk_${BUNNY_VIDEO_ID}.bin"
+            OFFSET=0
+            CHUNK_NUM=0
+            TUS_OK=true
 
-            if [ "$TUS_CODE" = "204" ]; then
+            while [ $OFFSET -lt $FILE_SIZE ]; do
+                dd if="$MP4_FILE" bs=$CHUNK_SIZE skip=$CHUNK_NUM count=1 \
+                   of="$CHUNK_TEMP" 2>/dev/null
+                ACTUAL_CHUNK=$(stat -c%s "$CHUNK_TEMP")
+
+                log "  Chunk $CHUNK_NUM: offset=${OFFSET} size=${ACTUAL_CHUNK}"
+
+                CHUNK_CODE=$(curl -s -o /tmp/tus_response.txt -w "%{http_code}" \
+                    -X PATCH "$TUS_LOCATION" \
+                    -H "Tus-Resumable: 1.0.0" \
+                    -H "Content-Type: application/offset+octet-stream" \
+                    -H "Upload-Offset: ${OFFSET}" \
+                    -H "Content-Length: ${ACTUAL_CHUNK}" \
+                    --data-binary @"$CHUNK_TEMP")
+
+                if [ "$CHUNK_CODE" != "204" ]; then
+                    CHUNK_BODY=$(cat /tmp/tus_response.txt 2>/dev/null)
+                    log "TUS chunk $CHUNK_NUM failed (HTTP ${CHUNK_CODE}): ${CHUNK_BODY}"
+                    TUS_OK=false
+                    break
+                fi
+
+                OFFSET=$((OFFSET + ACTUAL_CHUNK))
+                CHUNK_NUM=$((CHUNK_NUM + 1))
+                log "  Progress: ${OFFSET}/${FILE_SIZE} bytes"
+            done
+
+            rm -f "$CHUNK_TEMP"
+
+            if [ "$TUS_OK" = "true" ]; then
                 log "Bunny TUS upload complete. Removing local recording."
                 rm -rf "$RECORDING_DIR"
 
@@ -103,8 +130,7 @@ if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
                 fi
                 exit 0
             else
-                TUS_BODY=$(cat /tmp/tus_response.txt 2>/dev/null)
-                log "TUS upload failed (HTTP ${TUS_CODE}): ${TUS_BODY} — falling back to MinIO"
+                log "TUS chunked upload failed — falling back to MinIO"
             fi
         fi
     fi
