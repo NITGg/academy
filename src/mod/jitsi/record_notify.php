@@ -23,10 +23,31 @@ if (!hash_equals($notify_key, $provided_key)) {
 }
 
 // ── Params ────────────────────────────────────────────────────────────────────
-$title          = required_param('title',          PARAM_TEXT);
 $bunny_video_id = required_param('bunny_video_id', PARAM_TEXT);
-$cmid           = optional_param('cmid',           0, PARAM_INT);
-$sessionid      = optional_param('sessionid',      0, PARAM_INT);
+$status         = optional_param('status',         'syncing', PARAM_ALPHA);
+$title          = optional_param('title',          '',        PARAM_TEXT);
+$cmid           = optional_param('cmid',           0,         PARAM_INT);
+$sessionid      = optional_param('sessionid',      0,         PARAM_INT);
+
+// Status-only update from Bunny webhook (transcoding finished).
+if ($status === 'ready') {
+    $existing = $DB->get_record('academy_session_recordings', ['bunny_video_id' => $bunny_video_id]);
+    if ($existing) {
+        $DB->update_record('academy_session_recordings', (object)[
+            'id' => $existing->id, 'status' => 'ready', 'timemodified' => time(),
+        ]);
+        echo json_encode(['success' => true, 'id' => $existing->id]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'not found']);
+    }
+    exit;
+}
+
+if (!$title) {
+    http_response_code(400);
+    echo json_encode(['error' => 'title required']);
+    exit;
+}
 
 // If cmid is provided but no explicit sessionid, try to resolve session from activity.
 if ($cmid && !$sessionid) {
