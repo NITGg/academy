@@ -586,7 +586,7 @@ function jitsi_print_recordings($session, $context, $is_teacher, $cmid = null) {
             } elseif (!empty($rec->bunny_video_id)) {
                 // Refresh from demo API.
                 try {
-                    $demo_url = get_config('local_academysessions', 'bunny_demo_url') ?: 'http://host.docker.internal:4000';
+                    $demo_url = get_config('local_academysessions', 'bunny_demo_url') ?: 'http://host.docker.internal:3000';
                     $demo_key = get_config('local_academysessions', 'bunny_demo_key') ?: 'academy-internal-secret-2024';
                     $ch = curl_init($demo_url . '/api/internal/videos/' . $rec->bunny_video_id . '/embed');
                     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ['X-Internal-Key: ' . $demo_key], CURLOPT_TIMEOUT => 10]);
