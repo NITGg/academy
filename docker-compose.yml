@@ -267,7 +267,7 @@ services:
     build:
       context: ./excalidraw
       args:
-        VITE_APP_WS_SERVER_URL: wss://whiteboard.academy2026.nitg-eg.com
+        VITE_APP_WS_SERVER_URL: wss://academy2026.nitg-eg.com/whiteboard-ws
     container_name: academy_excalidraw_app
     restart: always
     ports:
