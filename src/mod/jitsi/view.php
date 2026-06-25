@@ -685,14 +685,18 @@ function jitsi_print_recordings($session, $context, $is_teacher, $cmid = null) {
                 var label = document.getElementById('rec-label-' + recId);
                 if (!card) return;
 
-                if (data.status === 'ready' && data.embed_url) {
-                    card.innerHTML =
-                        '<div style="position:relative;padding-top:56.25%;border-radius:6px;overflow:hidden;">'
-                        + '<iframe src="' + data.embed_url + '" loading="lazy"'
-                        + ' style="border:none;position:absolute;top:0;left:0;height:100%;width:100%;"'
-                        + ' allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"'
-                        + ' allowfullscreen></iframe></div>';
-                    // Remove from pending
+                if (data.status === 'ready') {
+                    if (data.embed_url) {
+                        card.innerHTML =
+                            '<div style="position:relative;padding-top:56.25%;border-radius:6px;overflow:hidden;">'
+                            + '<iframe src="' + data.embed_url + '" loading="lazy"'
+                            + ' style="border:none;position:absolute;top:0;left:0;height:100%;width:100%;"'
+                            + ' allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"'
+                            + ' allowfullscreen></iframe></div>';
+                    } else {
+                        // embed_url not available yet — reload so PHP can render it
+                        window.location.reload();
+                    }
                     pendingIds = pendingIds.filter(function(id) { return id !== recId; });
                     return;
                 }
