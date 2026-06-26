@@ -20,8 +20,13 @@ ENV VITE_APP_WS_SERVER_URL=$VITE_APP_WS_SERVER_URL
 ARG VITE_BASE_PATH=/
 ENV VITE_BASE_PATH=$VITE_BASE_PATH
 
-# Allow embedding in iframes (default Excalidraw blocks this with "I'm not a pretzel!")
-ENV VITE_APP_DISABLE_IFRAME_PREVENTION=true
+# Allow embedding in iframes — patch out the "I'm not a pretzel!" iframe guard.
+# Excalidraw checks window.self !== window.top and shows an error; remove that block.
+RUN find excalidraw-app/src -type f -name "*.tsx" -o -name "*.ts" | \
+    xargs grep -l "pretzel" 2>/dev/null | \
+    while read f; do \
+      sed -i 's/window\.self *!== *window\.top/false/g' "$f"; \
+    done
 
 # Build the production bundle — run vite directly so --base is honoured
 # (yarn build at repo root uses a workspace script that doesn't forward extra args)
