@@ -20,6 +20,9 @@ ENV VITE_APP_WS_SERVER_URL=$VITE_APP_WS_SERVER_URL
 ARG VITE_BASE_PATH=/
 ENV VITE_BASE_PATH=$VITE_BASE_PATH
 
+# Allow embedding in iframes (default Excalidraw blocks this with "I'm not a pretzel!")
+ENV VITE_APP_DISABLE_IFRAME_PREVENTION=true
+
 # Build the production bundle — run vite directly so --base is honoured
 # (yarn build at repo root uses a workspace script that doesn't forward extra args)
 RUN cd excalidraw-app && npx vite build --base=$VITE_BASE_PATH
