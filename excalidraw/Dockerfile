@@ -25,11 +25,13 @@ ENV VITE_BASE_PATH=$VITE_BASE_PATH
 RUN cd excalidraw-app && npx vite build --base=$VITE_BASE_PATH
 
 # Patch out the "I'm not a pretzel!" iframe guard from the compiled bundle.
-# Find the JS file containing the string and replace the pretzel render with null.
+# Excalidraw sets a flag via window.self!==window.top and renders the error instead
+# of the canvas. Replace that check with false so the guard never triggers.
 RUN find /app/excalidraw-app/build -name "*.js" | \
     xargs grep -rl "pretzel" 2>/dev/null | \
     while read f; do \
-      sed -i 's/children:"I'\''m not a pretzel!"/children:""/g' "$f"; \
+      sed -i 's/window\.self!==window\.top/false/g' "$f"; \
+      sed -i 's/window\.self !== window\.top/false/g' "$f"; \
     done
 
 # Stage 2 — serve the static bundle with nginx
