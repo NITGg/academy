@@ -161,11 +161,19 @@ $sections = $modinfo->get_section_info_all();
 // In the multitopic format each section has a 'parent' field (section number of parent).
 // Fall back to a flat top-level-only structure if not present.
 $section_parent = [];   // sectionnum => parent sectionnum (0 = top-level)
+$is_multitopic  = ($course->format === 'multitopics');
 foreach ($sections as $snum => $sinfo) {
-    // The multitopic format stores parent in section options or name prefix.
-    // Read from section availability data or database directly.
-    $dbsec = $DB->get_record('course_sections', ['course' => $courseid, 'section' => $snum], 'id,section,name,parent,visible');
-    $parent_val = isset($dbsec->parent) ? (int)$dbsec->parent : 0;
+    $parent_val = 0;
+    if ($is_multitopic) {
+        try {
+            $dbsec = $DB->get_record('course_sections',
+                ['course' => $courseid, 'section' => $snum],
+                'id,section,parent');
+            $parent_val = isset($dbsec->parent) ? (int)$dbsec->parent : 0;
+        } catch (\Exception $e) {
+            // parent column missing — treat all sections as top-level.
+        }
+    }
     $section_parent[$snum] = $parent_val;
 }
 
