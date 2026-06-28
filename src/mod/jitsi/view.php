@@ -186,7 +186,7 @@ $jitsi_lang   = $lang_map[$moodle_lang] ?? 'en';
 // Teacher: full control panel.
 $toolbar_teacher = [
     'microphone', 'camera', 'desktop',
-    'chat', 'recording', 'livestreaming',
+    'chat',
     'invite',
     'raisehand', 'participants-pane', 'mute-everyone',
     'whiteboard', 'etherpad',
