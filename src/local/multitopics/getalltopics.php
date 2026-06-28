@@ -318,6 +318,20 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
                 'host_id'        => (string)$host_id,
                 'whiteboard_url' => $whiteboard_url,
                 'recordings'     => $rec_list,
+                'feature_flags'  => [
+                    'recording.enabled'        => $is_teacher,
+                    'livestreaming.enabled'     => false,
+                    'invite.enabled'            => $is_teacher,
+                    'security-options.enabled'  => $is_teacher,
+                    'breakout-rooms.enabled'    => $is_teacher,
+                    'video-share.enabled'       => $is_teacher,
+                    'kick-out.enabled'          => $is_teacher,
+                    'mute-everyone.enabled'     => $is_teacher,
+                    'screen-sharing.enabled'    => true,
+                    'chat.enabled'              => true,
+                    'raise-hand.enabled'        => true,
+                    'tile-view.enabled'         => true,
+                ],
             ];
         }
 
