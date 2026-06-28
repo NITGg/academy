@@ -168,6 +168,7 @@ if ($is_teacher) {
     $jitsi_base = (strpos($jitsi_host, 'http') === 0) ? rtrim($jitsi_host, '/') : 'https://' . $jitsi_host;
 
     $jibri_body = json_encode([
+        'sessionId'  => 'academy-' . $cm->id . '-' . time(),
         'callParams' => [
             'callUrlInfo' => [
                 'baseUrl'  => $jitsi_base,
