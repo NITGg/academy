@@ -162,6 +162,35 @@ $jitsi_jwt = \local_academysessions\jitsi_jwt::generate(
     $jitsi_room, $display_name, $user_email, $is_teacher
 );
 
+// Auto-start Jibri recording when teacher joins — fire-and-forget.
+if ($is_teacher) {
+    $jibri_url  = get_config('local_academysessions', 'jibri_api_url') ?: 'http://jibri:2222';
+    $jitsi_base = (strpos($jitsi_host, 'http') === 0) ? rtrim($jitsi_host, '/') : 'https://' . $jitsi_host;
+
+    $jibri_body = json_encode([
+        'callParams' => [
+            'callUrlInfo' => [
+                'baseUrl'  => $jitsi_base,
+                'callName' => $jitsi_room,
+            ],
+        ],
+        'appData'        => json_encode(['file_recording_metadata' => ['upload_credentials' => []]]),
+        'serviceParams'  => ['displayName' => 'Recorder'],
+        'usageTimeoutMinutes' => 0,
+    ]);
+
+    $ch = curl_init($jibri_url . '/jibri/api/v1.0/startService');
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $jibri_body,
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 5,
+    ]);
+    curl_exec($ch);
+    curl_close($ch);
+}
+
 // Map Moodle lang codes to Jitsi / i18n codes.
 $lang_map = [
     'ar'    => 'ar',
