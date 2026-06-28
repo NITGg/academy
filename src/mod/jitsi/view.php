@@ -388,14 +388,13 @@ echo <<<HTML
                 if (CFG.lobbyEnabled) {
                     api.executeCommand('toggleLobby', true);
                 }
-                // Auto-start Jibri recording now that the teacher is in the room.
+                // Show stop button and auto-start Jibri recording.
+                var btn = document.getElementById('btn-stop-rec');
+                if (btn) btn.style.display = '';
                 fetch(CFG.autoRecordUrl, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     body: 'cmid=' + CFG.autoRecordCmid + '&sesskey=' + CFG.autoRecordToken
-                }).then(function() {
-                    var btn = document.getElementById('btn-stop-rec');
-                    if (btn) btn.style.display = '';
                 }).catch(function() {});
             });
 
