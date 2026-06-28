@@ -249,6 +249,9 @@ echo '<button id="tab-whiteboard" onclick="jitsiSwitchTab(\'whiteboard\')" class
 if ($is_teacher) {
     echo '<span class="badge badge-info ml-auto" style="align-self:center;font-size:12px;">'
          . get_string('youarehost', 'jitsi') . '</span>';
+    echo '<button id="btn-stop-rec" onclick="jitsiStopRecording()" '
+         . 'style="display:none;margin-left:8px;" class="btn btn-danger btn-sm">'
+         . '&#9209; Stop Recording</button>';
 }
 echo '</div>';
 
@@ -390,22 +393,16 @@ echo <<<HTML
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     body: 'cmid=' + CFG.autoRecordCmid + '&sesskey=' + CFG.autoRecordToken
+                }).then(function() {
+                    var btn = document.getElementById('btn-stop-rec');
+                    if (btn) btn.style.display = '';
                 }).catch(function() {});
-            });
-
-            // Stop Jibri when the teacher manually presses Stop Recording in the UI.
-            api.addEventListener('recordingStatusChanged', function(e) {
-                if (!e.on) {
-                    fetch(CFG.autoRecordStopUrl, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: 'cmid=' + CFG.autoRecordCmid + '&sesskey=' + CFG.autoRecordToken
-                    }).catch(function() {});
-                }
             });
 
             // Stop Jibri when the teacher leaves or ends the meeting.
             function stopJibriRecording() {
+                var btn = document.getElementById('btn-stop-rec');
+                if (btn) btn.style.display = 'none';
                 fetch(CFG.autoRecordStopUrl, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -422,6 +419,21 @@ echo <<<HTML
     } else {
         initJitsiAPI();
     }
+
+    // Called by the Stop Recording button in the Moodle tab bar.
+    window.jitsiStopRecording = function() {
+        var btn = document.getElementById('btn-stop-rec');
+        if (btn) { btn.disabled = true; btn.textContent = 'Stopping…'; }
+        fetch(CFG.autoRecordStopUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'cmid=' + CFG.autoRecordCmid + '&sesskey=' + CFG.autoRecordToken
+        }).then(function() {
+            if (btn) btn.style.display = 'none';
+        }).catch(function() {
+            if (btn) { btn.disabled = false; btn.textContent = '⏹ Stop Recording'; }
+        });
+    };
 
     var _sessionEndCalled = false;
 
