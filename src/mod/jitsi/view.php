@@ -276,21 +276,24 @@ $room_password  = !empty($jitsi->roompassword)  ? $jitsi->roompassword  : '';
 $lobby_enabled  = !empty($jitsi->lobby_enabled);
 
 $js_config = json_encode([
-    'isTeacher'      => (bool)$is_teacher,
-    'cmId'           => (int)$cm->id,
-    'sessionId'      => $session_id,
-    'sesskey'        => $sesskey,
-    'endUrl'         => $end_ajax_url,
-    'jitsiHost'      => $jitsi_host,
-    'jitsiRoom'      => $jitsi_room,
-    'jitsiName'      => $jitsi->name,
-    'jitsiLang'      => $jitsi_lang,
-    'displayName'    => $display_name,
-    'userEmail'      => $user_email,
-    'toolbarButtons' => $toolbar,
-    'jwt'            => $jitsi_jwt,
-    'roomPassword'   => $room_password,
-    'lobbyEnabled'   => $lobby_enabled,
+    'isTeacher'       => (bool)$is_teacher,
+    'cmId'            => (int)$cm->id,
+    'sessionId'       => $session_id,
+    'sesskey'         => $sesskey,
+    'endUrl'          => $end_ajax_url,
+    'jitsiHost'       => $jitsi_host,
+    'jitsiRoom'       => $jitsi_room,
+    'jitsiName'       => $jitsi->name,
+    'jitsiLang'       => $jitsi_lang,
+    'displayName'     => $display_name,
+    'userEmail'       => $user_email,
+    'toolbarButtons'  => $toolbar,
+    'jwt'             => $jitsi_jwt,
+    'roomPassword'    => $room_password,
+    'lobbyEnabled'    => $lobby_enabled,
+    'autoRecordUrl'   => $jibri_auto_record_url,
+    'autoRecordCmid'  => (int)$jibri_auto_record_cmid,
+    'autoRecordToken' => $jibri_auto_record_token,
 ]);
 
 echo <<<HTML
@@ -382,10 +385,10 @@ echo <<<HTML
                     api.executeCommand('toggleLobby', true);
                 }
                 // Auto-start Jibri recording now that the teacher is in the room.
-                fetch('<?php echo s($jibri_auto_record_url); ?>', {
+                fetch(CFG.autoRecordUrl, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'cmid=<?php echo (int)$jibri_auto_record_cmid; ?>&sesskey=<?php echo s($jibri_auto_record_token); ?>'
+                    body: 'cmid=' + CFG.autoRecordCmid + '&sesskey=' + CFG.autoRecordToken
                 }).catch(function() {});
             });
         }
