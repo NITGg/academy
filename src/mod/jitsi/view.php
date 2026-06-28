@@ -167,18 +167,23 @@ if ($is_teacher) {
     $jibri_url  = get_config('local_academysessions', 'jibri_api_url') ?: 'http://academy_jibri:2223';
     $jitsi_base = (strpos($jitsi_host, 'http') === 0) ? rtrim($jitsi_host, '/') : 'https://' . $jitsi_host;
 
+    $jibri_recorder_pass = get_config('local_academysessions', 'jibri_recorder_password')
+        ?: '3542497ebee440c2c4b12b5a41f474d2';
     $jibri_body = json_encode([
-        'sessionId'  => 'academy-' . $cm->id . '-' . time(),
-        'sinkType'   => 'FILE',
-        'callParams' => [
+        'sessionId'       => 'academy-' . $cm->id . '-' . time(),
+        'sinkType'        => 'file',
+        'callParams'      => [
             'callUrlInfo' => [
                 'baseUrl'  => $jitsi_base,
                 'callName' => $jitsi_room,
             ],
         ],
-        'appData'        => json_encode(['file_recording_metadata' => ['upload_credentials' => []]]),
-        'serviceParams'  => ['displayName' => 'Recorder'],
-        'usageTimeoutMinutes' => 0,
+        'callLoginParams' => [
+            'domain'   => 'hidden.meet.jitsi',
+            'username' => 'recorder',
+            'password' => $jibri_recorder_pass,
+        ],
+        'appData' => json_encode(['file_recording_metadata' => ['upload_credentials' => []]]),
     ]);
 
     $ch = curl_init($jibri_url . '/jibri/api/v1.0/startService');
