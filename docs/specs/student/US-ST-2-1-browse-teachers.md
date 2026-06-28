@@ -1,6 +1,6 @@
 # US-ST-2-1: Browse Teachers
 
-[← spec index](../README.md) · Area: Student · **Status:** Spec
+[← spec index](../README.md) · Area: Student · **Status:** Built · API: [platform-apis](../../api/platform-apis-postman-guide.md)
 
 As a student, I want to browse available teachers, so that I can find a suitable teacher.
 

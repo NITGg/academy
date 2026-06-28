@@ -10,6 +10,8 @@ require_once($CFG->dirroot . '/webservice/lib.php');
 
 use local_academy\package_manager;
 use local_academy\purchase_manager;
+use local_academy\settings_manager;
+use local_academy\teacher_manager;
 
 header('Content-Type: application/json');
 
@@ -41,13 +43,19 @@ if (empty($userid)) {
     academy_respond(['status' => 'fail', 'error' => 'Authentication required']);
 }
 
-// ── Admin functions require the site-level capability; student functions only need a valid token ──
-$adminfunctions = ['create_package', 'update_package', 'deactivate_package', 'activate_package',
-    'delete_package', 'get_packages', 'get_package'];
-if (in_array($function, $adminfunctions, true)) {
-    if (!has_capability('local/academy:managepackages', context_system::instance())) {
-        academy_respond(['status' => 'fail', 'error' => 'Permission denied']);
-    }
+// ── Capability gate: admin-only functions map to a capability; others only need a valid token ──
+$capmap = [
+    'create_package'       => 'local/academy:managepackages',
+    'update_package'       => 'local/academy:managepackages',
+    'deactivate_package'   => 'local/academy:managepackages',
+    'activate_package'     => 'local/academy:managepackages',
+    'delete_package'       => 'local/academy:managepackages',
+    'get_packages'         => 'local/academy:managepackages',
+    'get_package'          => 'local/academy:managepackages',
+    'update_lesson_settings' => 'local/academy:manageplatform',
+];
+if (isset($capmap[$function]) && !has_capability($capmap[$function], context_system::instance())) {
+    academy_respond(['status' => 'fail', 'error' => 'Permission denied']);
 }
 
 try {
@@ -149,6 +157,56 @@ try {
         // US-PK-2-1 (payment history)
         case 'get_payment_history':
             academy_respond(['status' => 'success', 'data' => purchase_manager::get_payment_history($userid)]);
+            break;
+
+        // ── Lesson settings (US-AD-2-1) ──
+        case 'get_lesson_settings': // readable by any authenticated user (app needs the deadlines)
+            academy_respond(['status' => 'success', 'data' => settings_manager::get_settings()]);
+            break;
+
+        case 'update_lesson_settings': // admin (manageplatform)
+            $fields = ['min_booking_minutes', 'cancel_deadline_minutes', 'update_deadline_minutes',
+                'start_allowed_minutes', 'absence_report_minutes', 'teacher_percent', 'platform_percent'];
+            $data = [];
+            foreach ($fields as $f) {
+                if (isset($_REQUEST[$f])) { $data[$f] = required_param($f, PARAM_INT); }
+            }
+            academy_respond(['status' => 'success', 'data' => settings_manager::update_settings($data)]);
+            break;
+
+        // ── Teacher profile (US-TR-1-1) ──
+        case 'update_teacher_profile': // teacher edits own profile
+            if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+                academy_respond(['status' => 'fail', 'error' => 'This action requires POST']);
+            }
+            $data = [];
+            foreach (['headline', 'bio', 'experience', 'photourl'] as $f) {
+                if (isset($_REQUEST[$f])) { $data[$f] = required_param($f, PARAM_TEXT); }
+            }
+            if (isset($_REQUEST['available'])) { $data['available'] = required_param('available', PARAM_BOOL); }
+            // subjects / hours are JSON arrays.
+            if (isset($_REQUEST['subjects'])) {
+                $data['subjects'] = json_decode(required_param('subjects', PARAM_RAW), true) ?: [];
+            }
+            if (isset($_REQUEST['hours'])) {
+                $data['hours'] = json_decode(required_param('hours', PARAM_RAW), true) ?: [];
+            }
+            academy_respond(['status' => 'success', 'data' => teacher_manager::update_profile($userid, $data)]);
+            break;
+
+        case 'get_teacher_profile': // teacher views own profile
+            academy_respond(['status' => 'success', 'data' => teacher_manager::get_profile($userid)]);
+            break;
+
+        // ── Browse teachers (US-ST-2-1) ──
+        case 'browse_teachers':
+            $subject = optional_param('subject', '', PARAM_TEXT);
+            academy_respond(['status' => 'success', 'data' => teacher_manager::browse_teachers($subject)]);
+            break;
+
+        case 'get_teacher':
+            $teacherid = required_param('teacherid', PARAM_INT);
+            academy_respond(['status' => 'success', 'data' => teacher_manager::get_teacher($teacherid)]);
             break;
 
         default:

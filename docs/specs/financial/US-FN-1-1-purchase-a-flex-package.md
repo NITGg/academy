@@ -1,6 +1,6 @@
 # US-FN-1-1: Purchase a Flex Package
 
-[← spec index](../README.md) · Area: Financial · **Status:** Spec
+[← spec index](../README.md) · Area: Financial · **Status:** Built (via student purchase_package)
 
 As a student, I want to purchase a Flex package, so that I can use Flexes to book lessons.
 

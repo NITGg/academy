@@ -1,8 +1,8 @@
-# US-FN-1-3: View Teacher Earnings and Withdrawals
+# US-TR-1-3: View Teacher Earnings and Withdrawals
 
 [← spec index](../README.md) · Area: Teacher (financial) · **Status:** Spec
 
-> ⚠️ Duplicate ID — `US-FN-1-3` is also used by [Return a Reserved Flex](../financial/US-FN-1-3-return-a-reserved-flex.md). Resolve numbering later.
+> Renamed from `US-FN-1-3` to `US-TR-1-3` (teacher-facing). `US-FN-1-3` now uniquely means [Return a Reserved Flex](../financial/US-FN-1-3-return-a-reserved-flex.md).
 
 As a teacher, I want to view my earnings and withdrawal history, so that I can track my available balance and withdrawn money.
 

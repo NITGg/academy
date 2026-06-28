@@ -1,6 +1,6 @@
 # US-AD-2-1: Update Lesson Settings
 
-[← spec index](../README.md) · Area: Admin · **Status:** Spec
+[← spec index](../README.md) · Area: Admin · **Status:** Built · API: [platform-apis](../../api/platform-apis-postman-guide.md)
 
 As an admin, I want to update lesson deadlines and financial settings, so that the system applies the correct lesson and revenue rules.
 

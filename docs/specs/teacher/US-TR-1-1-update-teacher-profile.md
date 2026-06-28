@@ -1,6 +1,6 @@
 # US-TR-1-1: Update Teacher Profile
 
-[← spec index](../README.md) · Area: Teacher · **Status:** Spec
+[← spec index](../README.md) · Area: Teacher · **Status:** Built · API: [platform-apis](../../api/platform-apis-postman-guide.md)
 
 As a teacher, I want to update my profile and working hours, so that students see my current information and availability.
 

@@ -1,0 +1,222 @@
+{
+  "info": {
+    "name": "Academy — Platform APIs",
+    "_postman_id": "academy-platform-api-v1",
+    "description": "Platform APIs built in local_academy beyond packages.\n\nPhase 1: Lesson settings (admin), Teacher profile (teacher), Browse teachers (student).\n\nSetup: run the matching Login request first (Login as Admin / Login as Teacher). Each saves its token into {{admin_token}} / {{teacher_token}}. Then send any request.\n\nEndpoint: {{base_url}}/local/academy/api.php (action chosen by the `function` param).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8081", "type": "string" },
+    { "key": "admin_token", "value": "f65e3a453f23cdf4f550dedc23fc2c31", "type": "string" },
+    { "key": "teacher_token", "value": "ea6d941746294c7b034d5d1ed5dbd385", "type": "string" },
+    { "key": "teacherid", "value": "16", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j && j.token) { pm.collectionVariables.set('admin_token', j.token); console.log('admin_token saved'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "admin", "type": "text" },
+                { "key": "password", "value": "123456", "type": "text" },
+                { "key": "service", "value": "moodle_mobile_app", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/login/token.php",
+              "host": ["{{base_url}}"],
+              "path": ["login", "token.php"]
+            },
+            "description": "Saves the token into {{admin_token}}."
+          }
+        },
+        {
+          "name": "Login as Teacher",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j && j.token) { pm.collectionVariables.set('teacher_token', j.token); console.log('teacher_token saved'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "mohamedmekhammr@gmail.com", "type": "text" },
+                { "key": "password", "value": "123456", "type": "text" },
+                { "key": "service", "value": "moodle_mobile_app", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/login/token.php",
+              "host": ["{{base_url}}"],
+              "path": ["login", "token.php"]
+            },
+            "description": "Saves the token into {{teacher_token}}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Lesson Settings (US-AD-2-1)",
+      "item": [
+        {
+          "name": "Get Lesson Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_lesson_settings&token={{admin_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_lesson_settings" },
+                { "key": "token", "value": "{{admin_token}}" }
+              ]
+            },
+            "description": "Returns all deadline + percentage settings. Readable by any logged-in user."
+          }
+        },
+        {
+          "name": "Update Lesson Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=update_lesson_settings&token={{admin_token}}&teacher_percent=40&platform_percent=60&cancel_deadline_minutes=120&min_booking_minutes=60",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "update_lesson_settings" },
+                { "key": "token", "value": "{{admin_token}}" },
+                { "key": "teacher_percent", "value": "40" },
+                { "key": "platform_percent", "value": "60", "description": "teacher + platform must total 100" },
+                { "key": "cancel_deadline_minutes", "value": "120" },
+                { "key": "min_booking_minutes", "value": "60" },
+                { "key": "update_deadline_minutes", "value": "120", "disabled": true },
+                { "key": "start_allowed_minutes", "value": "30", "disabled": true },
+                { "key": "absence_report_minutes", "value": "15", "disabled": true }
+              ]
+            },
+            "description": "Admin only (manageplatform). Send only the fields you want to change. teacher_percent + platform_percent must total 100; all values >= 0."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Teacher — Profile (US-TR-1-1)",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_teacher_profile&token={{teacher_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_teacher_profile" },
+                { "key": "token", "value": "{{teacher_token}}" }
+              ]
+            },
+            "description": "The logged-in teacher's own profile + subjects + hours."
+          }
+        },
+        {
+          "name": "Update My Profile (POST)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "update_teacher_profile", "type": "text" },
+                { "key": "token", "value": "{{teacher_token}}", "type": "text" },
+                { "key": "headline", "value": "Senior Math Teacher", "type": "text" },
+                { "key": "bio", "value": "10 years teaching", "type": "text" },
+                { "key": "experience", "value": "10 years", "type": "text" },
+                { "key": "available", "value": "1", "type": "text" },
+                { "key": "subjects", "value": "[{\"subject\":\"Math\",\"specialization\":\"Algebra\"},{\"subject\":\"Physics\",\"specialization\":\"\"}]", "type": "text" },
+                { "key": "hours", "value": "[{\"dayofweek\":1,\"starttime\":\"09:00\",\"endtime\":\"12:00\"},{\"dayofweek\":1,\"starttime\":\"14:00\",\"endtime\":\"16:00\"}]", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "POST only. `subjects` and `hours` are JSON arrays (sent as text). Sending `subjects`/`hours` replaces the whole set. Working hours must not overlap. dayofweek: 0=Sun .. 6=Sat; times HH:MM."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Student — Browse Teachers (US-ST-2-1)",
+      "item": [
+        {
+          "name": "Browse Teachers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=browse_teachers&token={{admin_token}}&subject=",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "browse_teachers" },
+                { "key": "token", "value": "{{admin_token}}", "description": "any valid token works" },
+                { "key": "subject", "value": "", "description": "optional filter, e.g. Math" }
+              ]
+            },
+            "description": "Approved + available teachers (public fields, no email)."
+          }
+        },
+        {
+          "name": "Get Teacher",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_teacher&token={{admin_token}}&teacherid={{teacherid}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_teacher" },
+                { "key": "token", "value": "{{admin_token}}" },
+                { "key": "teacherid", "value": "{{teacherid}}" }
+              ]
+            },
+            "description": "One teacher's public profile by user id."
+          }
+        }
+      ]
+    }
+  ]
+}

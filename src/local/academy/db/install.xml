@@ -32,7 +32,9 @@
         <FIELD NAME="expiration_days" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="snapshot of package expiration at purchase"/>
         <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="active" SEQUENCE="false" COMMENT="pending | active | fully_used | expired | cancelled"/>
         <FIELD NAME="source" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="online" SEQUENCE="false" COMMENT="online | admin_assigned"/>
-        <FIELD NAME="remaining_flex" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Flexes left in this purchase"/>
+        <FIELD NAME="remaining_flex" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="available Flexes (not reserved/consumed)"/>
+        <FIELD NAME="reserved_flex" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="reserved for confirmed lessons"/>
+        <FIELD NAME="consumed_flex" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="permanently consumed"/>
         <FIELD NAME="expires_at" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0 = never expires"/>
         <FIELD NAME="timeactivated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
@@ -67,6 +69,58 @@
       <INDEXES>
         <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
         <INDEX NAME="txn_idx" UNIQUE="true" FIELDS="transaction_no"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_teacher_profiles" COMMENT="Teacher profile for the Flex platform">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="headline" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="bio" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="experience" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="photourl" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="rating" TYPE="number" LENGTH="4" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="approved" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="available" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid_uk" UNIQUE="true" FIELDS="userid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_teacher_subjects" COMMENT="Subjects/specializations a teacher offers">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="teacherid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="subject" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="specialization" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="teacherid_idx" UNIQUE="false" FIELDS="teacherid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_teacher_hours" COMMENT="Teacher weekly working hours">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="teacherid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="dayofweek" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false" COMMENT="0=Sun .. 6=Sat"/>
+        <FIELD NAME="starttime" TYPE="char" LENGTH="5" NOTNULL="true" SEQUENCE="false" COMMENT="HH:MM"/>
+        <FIELD NAME="endtime" TYPE="char" LENGTH="5" NOTNULL="true" SEQUENCE="false" COMMENT="HH:MM"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="teacherid_idx" UNIQUE="false" FIELDS="teacherid"/>
       </INDEXES>
     </TABLE>
   </TABLES>

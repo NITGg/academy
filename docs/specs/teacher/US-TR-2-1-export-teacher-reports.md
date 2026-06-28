@@ -1,8 +1,8 @@
-# US-FN-2-1: Export Teacher Reports
+# US-TR-2-1: Export Teacher Reports
 
 [← spec index](../README.md) · Area: Teacher (financial) · **Status:** Spec
 
-> ⚠️ Duplicate ID — `US-FN-2-1` is also used by [Teacher Earnings Withdrawal](../financial/US-FN-2-1-teacher-earnings-withdrawal.md). Resolve numbering later.
+> Renamed from `US-FN-2-1` to `US-TR-2-1` (teacher-facing). `US-FN-2-1` now uniquely means [Teacher Earnings Withdrawal](../financial/US-FN-2-1-teacher-earnings-withdrawal.md).
 
 As a teacher, I want to download my reports as PDF or CSV, so that I can keep a record of my lessons, earnings, and withdrawals.
 

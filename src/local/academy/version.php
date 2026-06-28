@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_academy';
-$plugin->version   = 2026062802;
+$plugin->version   = 2026062803;
 $plugin->requires  = 2021051100;
 $plugin->maturity  = MATURITY_ALPHA;
 $plugin->release   = '0.1.0';

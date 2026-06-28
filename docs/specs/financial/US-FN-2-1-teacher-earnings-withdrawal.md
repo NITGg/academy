@@ -2,7 +2,7 @@
 
 [← spec index](../README.md) · Area: Financial · **Status:** Spec
 
-> ⚠️ Duplicate ID — `US-FN-2-1` is also used by [Export Teacher Reports](../teacher/US-FN-2-1-export-teacher-reports.md). Resolve numbering later.
+> Note: the teacher-facing export story was renamed to [US-TR-2-1](../teacher/US-TR-2-1-export-teacher-reports.md); this `US-FN-2-1` is now unique.
 
 As a teacher, I want to request a withdrawal from my available earnings, so that I can receive the money I earned.
 
