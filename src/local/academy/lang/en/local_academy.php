@@ -8,6 +8,8 @@ $string['managesettings'] = 'Lesson settings';
 $string['myteacherprofile'] = 'My teacher profile';
 $string['teacherprofile'] = 'Teacher profile';
 $string['editmyteacherprofile'] = 'Edit my teacher profile';
+$string['notateacher'] = 'This page is only available to teachers.';
+$string['mylessons'] = 'My lessons';
 
 // Error messages (surfaced in API JSON via getMessage()).
 $string['err_namerequired']  = 'Package name is required';
@@ -25,3 +27,21 @@ $string['err_percenttotal']        = 'Teacher percentage and platform percentage
 $string['err_badhours']            = 'Working hours are invalid (use HH:MM and end after start)';
 $string['err_hoursoverlap']        = 'Working hours must not overlap';
 $string['err_teachernotfound']     = 'Teacher not found';
+
+// Lessons + Flex engine (Phase 2).
+$string['err_subjectrequired']     = 'A subject is required';
+$string['err_subjectunsupported']  = 'This teacher does not offer the selected subject';
+$string['err_selfbooking']         = 'You cannot request a lesson with yourself';
+$string['err_noflex']              = 'You need an active package with available Flex';
+$string['err_minbooking']          = 'The lesson must be booked further in advance';
+$string['err_notime']              = 'A valid time is required';
+$string['err_forbidden']           = 'You are not allowed to perform this action';
+$string['err_badstate']            = 'This action is not allowed for the lesson\'s current status';
+$string['err_badaction']           = 'Unknown action';
+$string['err_lessonnotfound']      = 'Lesson not found';
+$string['err_tooearlytostart']     = 'The lesson cannot be started yet';
+$string['err_reasonrequired']      = 'A reason is required';
+$string['err_absencetooearly']     = 'It is too early to report an absence';
+$string['err_updatedeadline']      = 'The time-update deadline has passed';
+$string['err_updatepending']       = 'There is already a pending time-update request';
+$string['err_noupdaterequest']     = 'There is no pending time-update request to respond to';

@@ -10,6 +10,22 @@ defined('MOODLE_INTERNAL') || die();
  */
 class teacher_manager {
 
+    /**
+     * Is this user a teacher? True if they hold a (editing)teacher role anywhere.
+     * Uses role archetype (not capability) so site admins are NOT treated as teachers.
+     */
+    public static function is_teacher($userid) {
+        global $DB;
+        if (empty($userid) || isguestuser($userid)) {
+            return false;
+        }
+        $sql = "SELECT 1
+                  FROM {role_assignments} ra
+                  JOIN {role} r ON r.id = ra.roleid
+                 WHERE ra.userid = :uid AND r.archetype IN ('teacher', 'editingteacher')";
+        return $DB->record_exists_sql($sql, array('uid' => $userid));
+    }
+
     /** Full profile for a teacher (own view): profile + subjects + hours. */
     public static function get_profile($userid) {
         global $DB;

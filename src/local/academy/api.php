@@ -12,6 +12,15 @@ use local_academy\package_manager;
 use local_academy\purchase_manager;
 use local_academy\settings_manager;
 use local_academy\teacher_manager;
+use local_academy\lesson_manager;
+use local_academy\flex_manager;
+
+/** Reject non-POST for state-changing actions. */
+function academy_require_post() {
+    if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+        academy_respond(['status' => 'fail', 'error' => 'This action requires POST']);
+    }
+}
 
 header('Content-Type: application/json');
 
@@ -207,6 +216,147 @@ try {
         case 'get_teacher':
             $teacherid = required_param('teacherid', PARAM_INT);
             academy_respond(['status' => 'success', 'data' => teacher_manager::get_teacher($teacherid)]);
+            break;
+
+        // ── Lessons + Flex engine (Phase 2) ──
+
+        // US-LS-1-1: student requests a lesson.
+        case 'request_lesson':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => lesson_manager::request_lesson(
+                $userid,
+                required_param('teacherid', PARAM_INT),
+                required_param('subject', PARAM_TEXT),
+                required_param('requested_time', PARAM_INT),
+                optional_param('note', '', PARAM_TEXT)
+            )]);
+            break;
+
+        // US-LS-2-1 / US-LS-2-3: teacher accept / reject / suggest.
+        case 'teacher_respond_lesson':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => lesson_manager::teacher_respond(
+                $userid,
+                required_param('lessonid', PARAM_INT),
+                required_param('action', PARAM_ALPHA),
+                [
+                    'suggested_time' => optional_param('suggested_time', 0, PARAM_INT),
+                    'reject_reason'  => optional_param('reject_reason', '', PARAM_TEXT),
+                ]
+            )]);
+            break;
+
+        // US-LS-2-2: student accept / reject / suggest.
+        case 'student_respond_lesson':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => lesson_manager::student_respond(
+                $userid,
+                required_param('lessonid', PARAM_INT),
+                required_param('action', PARAM_ALPHA),
+                [
+                    'suggested_time' => optional_param('suggested_time', 0, PARAM_INT),
+                    'reject_reason'  => optional_param('reject_reason', '', PARAM_TEXT),
+                ]
+            )]);
+            break;
+
+        // US-ST-2-2: student withdraws an un-confirmed request.
+        case 'cancel_lesson_request':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => lesson_manager::cancel_request_as_student(
+                $userid,
+                required_param('lessonid', PARAM_INT),
+                optional_param('reason', '', PARAM_TEXT)
+            )]);
+            break;
+
+        // US-LS-3-1: teacher starts the lesson.
+        case 'start_lesson':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => lesson_manager::start_lesson(
+                $userid, required_param('lessonid', PARAM_INT))]);
+            break;
+
+        // US-LS-3-2: teacher completes the lesson (consumes the Flex).
+        case 'complete_lesson':
+            academy_require_post();
+            $note = isset($_REQUEST['note']) ? required_param('note', PARAM_TEXT) : null;
+            academy_respond(['status' => 'success', 'data' => lesson_manager::complete_lesson(
+                $userid, required_param('lessonid', PARAM_INT), $note)]);
+            break;
+
+        // US-LS-3-3: teacher reports student absence.
+        case 'report_student_absent':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => lesson_manager::report_student_absent(
+                $userid, required_param('lessonid', PARAM_INT))]);
+            break;
+
+        // US-LS-3-4: student reports teacher absence (returns the Flex).
+        case 'report_teacher_absent':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => lesson_manager::report_teacher_absent(
+                $userid, required_param('lessonid', PARAM_INT))]);
+            break;
+
+        // US-LS-4-1: student cancels a confirmed lesson.
+        case 'cancel_lesson_student':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => lesson_manager::cancel_as_student(
+                $userid,
+                required_param('lessonid', PARAM_INT),
+                optional_param('reason', '', PARAM_TEXT)
+            )]);
+            break;
+
+        // US-LS-4-2: teacher cancels a confirmed lesson (returns the Flex).
+        case 'cancel_lesson_teacher':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => lesson_manager::cancel_as_teacher(
+                $userid,
+                required_param('lessonid', PARAM_INT),
+                optional_param('reason', '', PARAM_TEXT)
+            )]);
+            break;
+
+        // US-LS-5-1: request a time update (either party).
+        case 'request_time_update':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => lesson_manager::request_time_update(
+                $userid,
+                required_param('lessonid', PARAM_INT),
+                required_param('proposed_time', PARAM_INT)
+            )]);
+            break;
+
+        // US-LS-5-2: respond to a time-update request (the other party).
+        case 'respond_time_update':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => lesson_manager::respond_time_update(
+                $userid,
+                required_param('lessonid', PARAM_INT),
+                required_param('action', PARAM_ALPHA)
+            )]);
+            break;
+
+        // US-TR-1-2 / US-ST-2-2: list my lessons.
+        case 'get_my_lessons':
+            academy_respond(['status' => 'success', 'data' => lesson_manager::get_my_lessons(
+                $userid,
+                optional_param('role', '', PARAM_ALPHA),
+                optional_param('status', '', PARAM_ALPHANUMEXT)
+            )]);
+            break;
+
+        // US-TR-1-2 / US-ST-2-2: a single lesson with proposals + available actions.
+        case 'get_lesson':
+            academy_respond(['status' => 'success', 'data' => lesson_manager::get_lesson(
+                $userid, required_param('lessonid', PARAM_INT))]);
+            break;
+
+        // Student's own Flex ledger (reserve/consume/return history).
+        case 'get_flex_history':
+            academy_respond(['status' => 'success', 'data' => flex_manager::get_history($userid)]);
             break;
 
         default:

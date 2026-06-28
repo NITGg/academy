@@ -9,6 +9,17 @@ require_login();
 
 global $DB, $OUTPUT, $CFG, $PAGE, $USER;
 
+// Teachers only — this page edits a teacher profile.
+if (!\local_academy\teacher_manager::is_teacher($USER->id)) {
+    $PAGE->set_context(context_system::instance());
+    $PAGE->set_url(new moodle_url('/local/academy/teacher_profile.php'));
+    $PAGE->set_title(get_string('myteacherprofile', 'local_academy'));
+    echo $OUTPUT->header();
+    echo $OUTPUT->notification(get_string('notateacher', 'local_academy'), 'notifyproblem');
+    echo $OUTPUT->footer();
+    exit;
+}
+
 $service = $DB->get_record('external_services', array('shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE), '*', MUST_EXIST);
 $token = external_generate_token_for_current_user($service)->token;
 
@@ -74,13 +85,12 @@ echo html_writer::script(<<<'JS'
   function msg(t,k){var e=$('tp-msg');e.textContent=t;e.className='alert alert-'+(k||'info');e.style.display='block';if(k==='success'){setTimeout(function(){e.style.display='none';},3000);}}
   function parse(r){return r.text().then(function(t){var j;try{j=JSON.parse(t);}catch(e){throw new Error('Session expired — reload the page.');}if(j.status!=='success'){throw new Error(j.error||'Failed');}return j.data;});}
 
-  function subjectRow(subject, spec){
+  function subjectRow(subject){
     var row=el('div',{class:'tp-row'});
     var s=el('input',{class:'form-control tp-subject',placeholder:'Subject (e.g. Math)'}); s.value=subject||'';
-    var sp=el('input',{class:'form-control tp-spec',placeholder:'Specialization (optional)'}); sp.value=spec||'';
     var rm=el('button',{type:'button',class:'btn btn-outline-danger tp-remove'},'&times;');
     rm.onclick=function(){row.remove();};
-    row.appendChild(s);row.appendChild(sp);row.appendChild(rm);
+    row.appendChild(s);row.appendChild(rm);
     return row;
   }
   function hourRow(day, start, end){
@@ -102,15 +112,15 @@ echo html_writer::script(<<<'JS'
     $('t-experience').value=(d.experience||'').toString().replace(/[^0-9]/g,'');
     $('t-available').checked=(d.available==1);
     var subs=$('t-subjects'); subs.innerHTML='';
-    (d.subjects||[]).forEach(function(s){subs.appendChild(subjectRow(s.subject,s.specialization));});
-    if(!(d.subjects||[]).length){subs.appendChild(subjectRow('',''));}
+    (d.subjects||[]).forEach(function(s){subs.appendChild(subjectRow(s.subject));});
+    if(!(d.subjects||[]).length){subs.appendChild(subjectRow(''));}
     var hrs=$('t-hours'); hrs.innerHTML='';
     (d.hours||[]).forEach(function(h){hrs.appendChild(hourRow(h.dayofweek,h.starttime,h.endtime));});
   }
 
   function collectSubjects(){
     return Array.prototype.map.call($('t-subjects').querySelectorAll('.tp-row'),function(r){
-      return {subject:r.querySelector('.tp-subject').value.trim(),specialization:r.querySelector('.tp-spec').value.trim()};
+      return {subject:r.querySelector('.tp-subject').value.trim()};
     }).filter(function(s){return s.subject;});
   }
   function collectHours(){
@@ -129,7 +139,7 @@ echo html_writer::script(<<<'JS'
       .then(parse).then(function(d){fill(d);msg('Profile saved.','success');}).catch(function(e){msg(e.message,'danger');});
   }
 
-  $('t-addsubject').onclick=function(){$('t-subjects').appendChild(subjectRow('',''));};
+  $('t-addsubject').onclick=function(){$('t-subjects').appendChild(subjectRow(''));};
   $('t-addhour').onclick=function(){$('t-hours').appendChild(hourRow(1,'09:00','10:00'));};
   $('tp-save').onclick=save;
 

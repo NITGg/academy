@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/academy/db" VERSION="2026062800" COMMENT="Academy Flex platform tables">
+<XMLDB PATH="local/academy/db" VERSION="2026062804" COMMENT="Academy Flex platform tables">
   <TABLES>
     <TABLE NAME="academy_packages" COMMENT="Lesson (Flex) packages defined by admins">
       <FIELDS>
@@ -121,6 +121,80 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="teacherid_idx" UNIQUE="false" FIELDS="teacherid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_lessons" COMMENT="Lesson requests/sessions between a student and a teacher (Flex engine)">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="studentid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="teacherid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="subject" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="30" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending|waiting_student|waiting_teacher|confirmed|in_progress|completed|student_absent|teacher_absent|cancelled|cancelled_teacher|rejected"/>
+        <FIELD NAME="requested_time" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="original requested start (unix)"/>
+        <FIELD NAME="confirmed_time" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="agreed start (unix)"/>
+        <FIELD NAME="duration" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="60" SEQUENCE="false" COMMENT="minutes"/>
+        <FIELD NAME="note" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="reject_reason" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="cancel_reason" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="purchaseid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="purchase the flex was reserved from"/>
+        <FIELD NAME="flex_state" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="none" SEQUENCE="false" COMMENT="none|reserved|consumed|returned"/>
+        <FIELD NAME="actual_start" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="actual_end" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="student_status_idx" UNIQUE="false" FIELDS="studentid, status"/>
+        <INDEX NAME="teacher_status_idx" UNIQUE="false" FIELDS="teacherid, status"/>
+        <INDEX NAME="purchaseid_idx" UNIQUE="false" FIELDS="purchaseid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_lesson_proposals" COMMENT="Suggested/rescheduled times during lesson negotiation">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="lessonid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="proposedby" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="userid who proposed"/>
+        <FIELD NAME="role" TYPE="char" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="student|teacher"/>
+        <FIELD NAME="proposed_time" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="type" TYPE="char" LENGTH="12" NOTNULL="true" DEFAULT="suggest" SEQUENCE="false" COMMENT="suggest|reschedule"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="12" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending|accepted|rejected|superseded"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="lessonid_fk" TYPE="foreign" FIELDS="lessonid" REFTABLE="academy_lessons" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="lesson_status_idx" UNIQUE="false" FIELDS="lessonid, status"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_flex_tx" COMMENT="Flex ledger: every reserve/consume/return/expire/adjust on a student's balance">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="student who owns the flex"/>
+        <FIELD NAME="purchaseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="lessonid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="type" TYPE="char" LENGTH="12" NOTNULL="true" SEQUENCE="false" COMMENT="reserve|consume|return|expire|adjust"/>
+        <FIELD NAME="amount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="signed change to remaining_flex"/>
+        <FIELD NAME="balance_before" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="remaining_flex before"/>
+        <FIELD NAME="balance_after" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="remaining_flex after"/>
+        <FIELD NAME="performedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="reason" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
+        <INDEX NAME="purchaseid_idx" UNIQUE="false" FIELDS="purchaseid"/>
+        <INDEX NAME="lessonid_idx" UNIQUE="false" FIELDS="lessonid"/>
       </INDEXES>
     </TABLE>
   </TABLES>

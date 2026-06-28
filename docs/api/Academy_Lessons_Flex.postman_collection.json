@@ -1,0 +1,645 @@
+{
+  "info": {
+    "name": "Academy — Lessons & Flex (Phase 2)",
+    "_postman_id": "academy-lessons-flex-v1",
+    "description": "Lesson lifecycle + Flex engine built in local_academy (Phase 2).\n\nStories: US-LS-1-1 (request) · US-LS-2-1/2-2/2-3 (negotiate) · US-LS-3-1..3-4 (start/complete/absence) · US-LS-4-1/4-2 (cancel) · US-LS-5-1/5-2 (time update) · US-TR-1-2 / US-ST-2-2 (view) · US-FN-1-2 (reserve) / US-FN-1-3 (return).\n\nHOW TO RUN:\n1. Auth → Login as Student / Teacher / Admin (each saves its token).\n2. Setup → Purchase Flex package (the student needs an active package with Flex before requesting).\n3. Request & Negotiation → Request a lesson (saves {{lessonid}}), then accept/suggest/reject.\n4. Lifecycle / Cancellation / Time update / Views.\n\nEndpoint: {{base_url}}/local/academy/api.php (action chosen by the `function` param). Every state-changing call is POST; reads are GET. The token identifies the acting user.\n\nA collection pre-request script auto-sets {{future_time}} (now +2d) and {{future_time2}} (now +3d) so requested/suggested times are always valid.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "var now = Math.floor(Date.now() / 1000);",
+          "pm.collectionVariables.set('future_time', now + 2 * 86400);",
+          "pm.collectionVariables.set('future_time2', now + 3 * 86400);"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8081", "type": "string" },
+    { "key": "student_token", "value": "", "type": "string" },
+    { "key": "teacher_token", "value": "ea6d941746294c7b034d5d1ed5dbd385", "type": "string" },
+    { "key": "admin_token", "value": "f65e3a453f23cdf4f550dedc23fc2c31", "type": "string" },
+    { "key": "teacherid", "value": "16", "type": "string" },
+    { "key": "packageid", "value": "6", "type": "string" },
+    { "key": "lessonid", "value": "", "type": "string" },
+    { "key": "future_time", "value": "", "type": "string" },
+    { "key": "future_time2", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login as Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j && j.token) { pm.collectionVariables.set('student_token', j.token); console.log('student_token saved'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "hmprep02-001", "type": "text" },
+                { "key": "password", "value": "123456", "type": "text" },
+                { "key": "service", "value": "moodle_mobile_app", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/login/token.php",
+              "host": ["{{base_url}}"],
+              "path": ["login", "token.php"]
+            },
+            "description": "Saves the token into {{student_token}}."
+          }
+        },
+        {
+          "name": "Login as Teacher",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j && j.token) { pm.collectionVariables.set('teacher_token', j.token); console.log('teacher_token saved'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "mohamedmekhammr@gmail.com", "type": "text" },
+                { "key": "password", "value": "123456", "type": "text" },
+                { "key": "service", "value": "moodle_mobile_app", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/login/token.php",
+              "host": ["{{base_url}}"],
+              "path": ["login", "token.php"]
+            },
+            "description": "Saves the token into {{teacher_token}}."
+          }
+        },
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j && j.token) { pm.collectionVariables.set('admin_token', j.token); console.log('admin_token saved'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "admin", "type": "text" },
+                { "key": "password", "value": "123456", "type": "text" },
+                { "key": "service", "value": "moodle_mobile_app", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/login/token.php",
+              "host": ["{{base_url}}"],
+              "path": ["login", "token.php"]
+            },
+            "description": "Saves the token into {{admin_token}} (used for lesson settings only)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Setup (prerequisite)",
+      "item": [
+        {
+          "name": "Purchase Flex package (student)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "purchase_package", "type": "text" },
+                { "key": "token", "value": "{{student_token}}", "type": "text" },
+                { "key": "packageid", "value": "{{packageid}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "The student must hold an active package with available Flex before requesting a lesson. One active package per student. (Defined in the Packages collection; included here for convenience.)"
+          }
+        },
+        {
+          "name": "Get Lesson Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_lesson_settings&token={{student_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_lesson_settings" },
+                { "key": "token", "value": "{{student_token}}" }
+              ]
+            },
+            "description": "The deadline/window settings that gate these flows: min_booking_minutes, cancel_deadline_minutes, update_deadline_minutes, start_allowed_minutes, absence_report_minutes."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Request & Negotiation (US-LS-1-1, 2-x)",
+      "item": [
+        {
+          "name": "Request a lesson (student) — saves {{lessonid}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j && j.status === 'success' && j.data && j.data.id) { pm.collectionVariables.set('lessonid', j.data.id); console.log('lessonid = ' + j.data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "request_lesson", "type": "text" },
+                { "key": "token", "value": "{{student_token}}", "type": "text" },
+                { "key": "teacherid", "value": "{{teacherid}}", "type": "text" },
+                { "key": "subject", "value": "Math", "type": "text", "description": "must be a subject the teacher offers" },
+                { "key": "requested_time", "value": "{{future_time}}", "type": "text", "description": "unix seconds; >= min_booking_minutes ahead" },
+                { "key": "note", "value": "Looking forward to it", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-LS-1-1. Creates a Pending request. No Flex reserved yet. Requires an active package + available Flex, a supported subject, and a time at least min_booking_minutes away."
+          }
+        },
+        {
+          "name": "Teacher respond — Accept (US-LS-2-1/2-3)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "teacher_respond_lesson", "type": "text" },
+                { "key": "token", "value": "{{teacher_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" },
+                { "key": "action", "value": "accept", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "From Pending: confirms at the requested time. From Waiting for Teacher: confirms at the student's latest suggested time. → Confirmed, 1 Flex reserved (US-FN-1-2)."
+          }
+        },
+        {
+          "name": "Teacher respond — Suggest another time (US-LS-2-1)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "teacher_respond_lesson", "type": "text" },
+                { "key": "token", "value": "{{teacher_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" },
+                { "key": "action", "value": "suggest", "type": "text" },
+                { "key": "suggested_time", "value": "{{future_time2}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "Only from Pending. → Waiting for Student. Creates a proposal at suggested_time."
+          }
+        },
+        {
+          "name": "Teacher respond — Reject (US-LS-2-1/2-3)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "teacher_respond_lesson", "type": "text" },
+                { "key": "token", "value": "{{teacher_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" },
+                { "key": "action", "value": "reject", "type": "text" },
+                { "key": "reject_reason", "value": "Not available that week", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "From Pending or Waiting for Teacher → Rejected by Teacher."
+          }
+        },
+        {
+          "name": "Student respond — Accept suggested time (US-LS-2-2)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "student_respond_lesson", "type": "text" },
+                { "key": "token", "value": "{{student_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" },
+                { "key": "action", "value": "accept", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "Only from Waiting for Student. Confirms at the teacher's latest suggested time. → Confirmed, 1 Flex reserved."
+          }
+        },
+        {
+          "name": "Student respond — Suggest another time (US-LS-2-2)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "student_respond_lesson", "type": "text" },
+                { "key": "token", "value": "{{student_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" },
+                { "key": "action", "value": "suggest", "type": "text" },
+                { "key": "suggested_time", "value": "{{future_time}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "From Waiting for Student → Waiting for Teacher."
+          }
+        },
+        {
+          "name": "Student respond — Reject suggested time (US-LS-2-2)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "student_respond_lesson", "type": "text" },
+                { "key": "token", "value": "{{student_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" },
+                { "key": "action", "value": "reject", "type": "text" },
+                { "key": "reject_reason", "value": "Time does not work for me", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "From Waiting for Student. Ends the negotiation → Cancelled (no Flex was reserved)."
+          }
+        },
+        {
+          "name": "Cancel request (student, pre-confirm) (US-ST-2-2)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "cancel_lesson_request", "type": "text" },
+                { "key": "token", "value": "{{student_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" },
+                { "key": "reason", "value": "No longer needed", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "Withdraw an un-confirmed request (Pending / Waiting). No Flex involved. → Cancelled."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lifecycle (US-LS-3-x)",
+      "item": [
+        {
+          "name": "Start lesson (teacher)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "start_lesson", "type": "text" },
+                { "key": "token", "value": "{{teacher_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-LS-3-1. From Confirmed, not before start_allowed_minutes ahead of confirmed_time. → In Progress. (For a near-term smoke test, raise start_allowed_minutes via update_lesson_settings.)"
+          }
+        },
+        {
+          "name": "Complete lesson (teacher) — consumes Flex",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "complete_lesson", "type": "text" },
+                { "key": "token", "value": "{{teacher_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" },
+                { "key": "note", "value": "Great session", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-LS-3-2. From Confirmed/In Progress → Completed; the reserved Flex is permanently consumed. (Revenue split US-FN-1-4 is Phase 3.)"
+          }
+        },
+        {
+          "name": "Report student absent (teacher) — consumes Flex",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "report_student_absent", "type": "text" },
+                { "key": "token", "value": "{{teacher_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-LS-3-3. Allowed after absence_report_minutes past the start. → Student Absent; Flex consumed (platform policy)."
+          }
+        },
+        {
+          "name": "Report teacher absent (student) — returns Flex",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "report_teacher_absent", "type": "text" },
+                { "key": "token", "value": "{{student_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-LS-3-4. Allowed after absence_report_minutes past the start. → Teacher Absent; reserved Flex returned (US-FN-1-3)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cancellation (US-LS-4-x)",
+      "item": [
+        {
+          "name": "Cancel confirmed lesson (student)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "cancel_lesson_student", "type": "text" },
+                { "key": "token", "value": "{{student_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" },
+                { "key": "reason", "value": "Something came up", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-LS-4-1. From Confirmed → Cancelled. Early (<= cancel_deadline_minutes ahead) returns the Flex; late consumes it."
+          }
+        },
+        {
+          "name": "Cancel confirmed lesson (teacher) — returns Flex",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "cancel_lesson_teacher", "type": "text" },
+                { "key": "token", "value": "{{teacher_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" },
+                { "key": "reason", "value": "I am unwell", "type": "text", "description": "required" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-LS-4-2. From Confirmed → Cancelled by Teacher; reserved Flex returned. Reason is required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Time update (US-LS-5-x)",
+      "item": [
+        {
+          "name": "Request time update (student or teacher)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "request_time_update", "type": "text" },
+                { "key": "token", "value": "{{student_token}}", "type": "text", "description": "either participant may request" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" },
+                { "key": "proposed_time", "value": "{{future_time2}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-LS-5-1. From Confirmed, before update_deadline_minutes. Only one pending update at a time. Lesson stays Confirmed; no extra Flex reserved."
+          }
+        },
+        {
+          "name": "Respond to time update (the other party)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "respond_time_update", "type": "text" },
+                { "key": "token", "value": "{{teacher_token}}", "type": "text", "description": "must be the party who did NOT request" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text" },
+                { "key": "action", "value": "accept", "type": "text", "description": "accept | reject" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-LS-5-2. Accept → confirmed_time moves to the proposed time. Reject → original time kept. Lesson stays Confirmed; Flex unaffected."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Views (US-TR-1-2 / US-ST-2-2)",
+      "item": [
+        {
+          "name": "Get my lessons (student)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_my_lessons&token={{student_token}}&role=student&status=",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_my_lessons" },
+                { "key": "token", "value": "{{student_token}}" },
+                { "key": "role", "value": "student", "description": "student | teacher | (empty = both)" },
+                { "key": "status", "value": "", "description": "optional filter, e.g. confirmed" }
+              ]
+            },
+            "description": "Open/negotiating first, then upcoming confirmed by soonest, then history. Each item includes my_role and status-dependent actions."
+          }
+        },
+        {
+          "name": "Get my lessons (teacher)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_my_lessons&token={{teacher_token}}&role=teacher",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_my_lessons" },
+                { "key": "token", "value": "{{teacher_token}}" },
+                { "key": "role", "value": "teacher" }
+              ]
+            },
+            "description": "The teacher's own lessons (US-TR-1-2)."
+          }
+        },
+        {
+          "name": "Get one lesson (participant)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_lesson&token={{student_token}}&lessonid={{lessonid}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_lesson" },
+                { "key": "token", "value": "{{student_token}}" },
+                { "key": "lessonid", "value": "{{lessonid}}" }
+              ]
+            },
+            "description": "Lesson detail + proposals[] + available actions. Caller must be the student or teacher."
+          }
+        },
+        {
+          "name": "Get my Flex history (student)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_flex_history&token={{student_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_flex_history" },
+                { "key": "token", "value": "{{student_token}}" }
+              ]
+            },
+            "description": "The caller's Flex ledger: reserve / consume / return with running balance."
+          }
+        }
+      ]
+    }
+  ]
+}
