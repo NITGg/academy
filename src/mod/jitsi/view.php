@@ -164,7 +164,7 @@ $jitsi_jwt = \local_academysessions\jitsi_jwt::generate(
 
 // Auto-start Jibri recording when teacher joins — fire-and-forget.
 if ($is_teacher) {
-    $jibri_url  = get_config('local_academysessions', 'jibri_api_url') ?: 'http://jibri:2222';
+    $jibri_url  = get_config('local_academysessions', 'jibri_api_url') ?: 'http://academy_jibri:2223';
     $jitsi_base = (strpos($jitsi_host, 'http') === 0) ? rtrim($jitsi_host, '/') : 'https://' . $jitsi_host;
 
     $jibri_body = json_encode([
