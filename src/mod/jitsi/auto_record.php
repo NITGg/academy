@@ -19,20 +19,28 @@ require_capability('mod/jitsi:moderate', $context);
 
 $jitsi = $DB->get_record('jitsi', ['id' => $cm->instance], '*', MUST_EXIST);
 
-$jitsi_host = get_config('local_academysessions', 'jitsi_host') ?: 'localhost:8443';
-$jitsi_base = (strpos($jitsi_host, 'http') === 0) ? rtrim($jitsi_host, '/') : 'https://' . $jitsi_host;
 $jitsi_room = 'academy_jitsi_' . $cm->id . '_' . substr(md5($jitsi->id . $cm->id), 0, 8);
 
-$jibri_url  = get_config('local_academysessions', 'jibri_api_url') ?: 'http://academy_jibri:2223';
-$jibri_pass = get_config('local_academysessions', 'jibri_recorder_password') ?: '3542497ebee440c2c4b12b5a41f474d2';
+// Jibri runs inside Docker and reaches Jitsi web via the internal network name.
+// The JWT is required because Jitsi uses JWT auth — without it, the page shows
+// an error and APP never initializes (causing "APP is not defined" timeout).
+$jibri_base_url = get_config('local_academysessions', 'jibri_jitsi_url') ?: 'http://meet.jitsi';
+$jibri_url      = get_config('local_academysessions', 'jibri_api_url') ?: 'http://academy_jibri:2223';
+$jibri_pass     = get_config('local_academysessions', 'jibri_recorder_password') ?: '3542497ebee440c2c4b12b5a41f474d2';
+
+// Generate a recorder JWT (non-moderator, so it doesn't affect room ownership).
+$recorder_jwt = \local_academysessions\jitsi_jwt::generate(
+    $jitsi_room, 'Recorder', 'recorder@meet.jitsi', false
+);
 
 $body = json_encode([
     'sessionId'       => 'academy-' . $cm->id . '-' . time(),
     'sinkType'        => 'file',
     'callParams'      => [
         'callUrlInfo' => [
-            'baseUrl'  => $jitsi_base,
-            'callName' => $jitsi_room,
+            'baseUrl'   => $jibri_base_url,
+            'callName'  => $jitsi_room,
+            'urlParams' => ['jwt=' . $recorder_jwt],
         ],
     ],
     'callLoginParams' => [
@@ -54,6 +62,5 @@ $resp = curl_exec($ch);
 $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-http_response_code($code >= 200 && $code < 300 ? 200 : 200);
 header('Content-Type: application/json');
 echo json_encode(['status' => $code, 'response' => $resp]);
