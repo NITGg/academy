@@ -169,7 +169,7 @@ if ($is_teacher) {
 
     $jibri_body = json_encode([
         'sessionId'  => 'academy-' . $cm->id . '-' . time(),
-        'sinkType'   => 'file',
+        'sinkType'   => 'FILE',
         'callParams' => [
             'callUrlInfo' => [
                 'baseUrl'  => $jitsi_base,
