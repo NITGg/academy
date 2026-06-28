@@ -162,6 +162,11 @@ $jitsi_jwt = \local_academysessions\jitsi_jwt::generate(
     $jitsi_room, $display_name, $user_email, $is_teacher
 );
 
+// Jibri auto-record vars for JS (triggered after teacher joins the call, not at page load).
+$jibri_auto_record_url = $CFG->wwwroot . '/mod/jitsi/auto_record.php';
+$jibri_auto_record_cmid = $cm->id;
+$jibri_auto_record_token = sesskey();
+
 // Map Moodle lang codes to Jitsi / i18n codes.
 $lang_map = [
     'ar'    => 'ar',
@@ -376,6 +381,12 @@ echo <<<HTML
                 if (CFG.lobbyEnabled) {
                     api.executeCommand('toggleLobby', true);
                 }
+                // Auto-start Jibri recording now that the teacher is in the room.
+                fetch('<?php echo s($jibri_auto_record_url); ?>', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'cmid=<?php echo (int)$jibri_auto_record_cmid; ?>&sesskey=<?php echo s($jibri_auto_record_token); ?>'
+                }).catch(function() {});
             });
         }
     }
