@@ -162,41 +162,10 @@ $jitsi_jwt = \local_academysessions\jitsi_jwt::generate(
     $jitsi_room, $display_name, $user_email, $is_teacher
 );
 
-// Auto-start Jibri recording when teacher joins — fire-and-forget.
-if ($is_teacher) {
-    $jibri_url  = get_config('local_academysessions', 'jibri_api_url') ?: 'http://academy_jibri:2223';
-    $jitsi_base = (strpos($jitsi_host, 'http') === 0) ? rtrim($jitsi_host, '/') : 'https://' . $jitsi_host;
-
-    $jibri_recorder_pass = get_config('local_academysessions', 'jibri_recorder_password')
-        ?: '3542497ebee440c2c4b12b5a41f474d2';
-    $jibri_body = json_encode([
-        'sessionId'       => 'academy-' . $cm->id . '-' . time(),
-        'sinkType'        => 'file',
-        'callParams'      => [
-            'callUrlInfo' => [
-                'baseUrl'  => $jitsi_base,
-                'callName' => $jitsi_room,
-            ],
-        ],
-        'callLoginParams' => [
-            'domain'   => 'hidden.meet.jitsi',
-            'username' => 'recorder',
-            'password' => $jibri_recorder_pass,
-        ],
-        'appData' => json_encode(['file_recording_metadata' => ['upload_credentials' => []]]),
-    ]);
-
-    $ch = curl_init($jibri_url . '/jibri/api/v1.0/startService');
-    curl_setopt_array($ch, [
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => $jibri_body,
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 5,
-    ]);
-    curl_exec($ch);
-    curl_close($ch);
-}
+// Jibri auto-record vars for JS (triggered after teacher joins the call, not at page load).
+$jibri_auto_record_url = $CFG->wwwroot . '/mod/jitsi/auto_record.php';
+$jibri_auto_record_cmid = $cm->id;
+$jibri_auto_record_token = sesskey();
 
 // Map Moodle lang codes to Jitsi / i18n codes.
 $lang_map = [
@@ -412,6 +381,12 @@ echo <<<HTML
                 if (CFG.lobbyEnabled) {
                     api.executeCommand('toggleLobby', true);
                 }
+                // Auto-start Jibri recording now that the teacher is in the room.
+                fetch('<?php echo s($jibri_auto_record_url); ?>', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'cmid=<?php echo (int)$jibri_auto_record_cmid; ?>&sesskey=<?php echo s($jibri_auto_record_token); ?>'
+                }).catch(function() {});
             });
         }
     }
