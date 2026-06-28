@@ -291,9 +291,10 @@ $js_config = json_encode([
     'jwt'             => $jitsi_jwt,
     'roomPassword'    => $room_password,
     'lobbyEnabled'    => $lobby_enabled,
-    'autoRecordUrl'   => $jibri_auto_record_url,
-    'autoRecordCmid'  => (int)$jibri_auto_record_cmid,
-    'autoRecordToken' => $jibri_auto_record_token,
+    'autoRecordUrl'     => $jibri_auto_record_url,
+    'autoRecordStopUrl' => $CFG->wwwroot . '/mod/jitsi/auto_record_stop.php',
+    'autoRecordCmid'    => (int)$jibri_auto_record_cmid,
+    'autoRecordToken'   => $jibri_auto_record_token,
 ]);
 
 echo <<<HTML
@@ -391,6 +392,28 @@ echo <<<HTML
                     body: 'cmid=' + CFG.autoRecordCmid + '&sesskey=' + CFG.autoRecordToken
                 }).catch(function() {});
             });
+
+            // Stop Jibri when the teacher manually presses Stop Recording in the UI.
+            api.addEventListener('recordingStatusChanged', function(e) {
+                if (!e.on) {
+                    fetch(CFG.autoRecordStopUrl, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: 'cmid=' + CFG.autoRecordCmid + '&sesskey=' + CFG.autoRecordToken
+                    }).catch(function() {});
+                }
+            });
+
+            // Stop Jibri when the teacher leaves or ends the meeting.
+            function stopJibriRecording() {
+                fetch(CFG.autoRecordStopUrl, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'cmid=' + CFG.autoRecordCmid + '&sesskey=' + CFG.autoRecordToken
+                }).catch(function() {});
+            }
+            api.addEventListener('videoConferenceLeft', stopJibriRecording);
+            api.addEventListener('readyToClose', stopJibriRecording);
         }
     }
 
