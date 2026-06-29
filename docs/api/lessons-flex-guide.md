@@ -93,10 +93,10 @@ Params: `lessonid`. From `confirmed`, not before `start_allowed_minutes` ahead o
 `err_nolessonscourse`.
 
 ### Complete — `complete_lesson` (POST) · teacher
-Params: `lessonid`, `note?`. From `confirmed`/`in_progress`, and **not after the completion deadline** —
-`complete_allowed_minutes` past `confirmed_time` (mirrors the start window; `err_completedeadline`).
-Consumes the reserved Flex and closes the meeting room. → `completed`, records `actual_end`.
-*(Revenue split US-FN-1-4 is Phase 3.)*
+Params: `lessonid`, `note?`. From `confirmed`/`in_progress`, and **only after the lesson has run** —
+at least `complete_allowed_minutes` past the actual start (or `confirmed_time` if it was never started);
+completing earlier returns `err_completetooearly`. Consumes the reserved Flex and closes the meeting
+room. → `completed`, records `actual_end`. *(Revenue split US-FN-1-4 is Phase 3.)*
 
 ### Student absent — `report_student_absent` (POST) · teacher
 Params: `lessonid`. From `confirmed`/`in_progress`, after `absence_report_minutes` past start.
@@ -195,8 +195,8 @@ curl -s "$BASE?function=get_flex_history&token=$STUDENT"
 `start_allowed_minutes` · `complete_allowed_minutes` · `absence_report_minutes` · `lessons_courseid`.
 Read them with `get_lesson_settings`; change them with `update_lesson_settings` (admin).
 
-`complete_allowed_minutes` is the window after `confirmed_time` within which the teacher may still tap
-**Complete** (default 180). After it, `complete_lesson` returns `err_completedeadline`.
+`complete_allowed_minutes` is the **minimum** time after the lesson starts before the teacher may tap
+**Complete** (default 180 = the full hour plus buffer). Completing earlier returns `err_completetooearly`.
 
 `lessons_courseid` is the Moodle course that hosts the per-lesson Jitsi rooms — **it must be set before
 `start_lesson` will work** (otherwise start fails with `err_nolessonscourse`).

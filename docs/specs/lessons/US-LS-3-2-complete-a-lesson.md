@@ -7,7 +7,7 @@ As a teacher, I want to complete an in-progress lesson, so that the lesson, Flex
 ## Flow
 1. 👨‍🏫 Conduct the lesson in the meeting room
 2. 👨‍🏫 Tap "Complete Lesson"
-3. ⚙️ Check the completion is within the allowed completion deadline
+3. ⚙️ Check the lesson has run for the minimum time before allowing completion
 4. ⚙️ End the meeting room
 5. ⚙️ Status → `Completed` → record the completion time
 6. ⚙️ **Permanently consume the reserved Flex**
@@ -16,7 +16,7 @@ As a teacher, I want to complete an in-progress lesson, so that the lesson, Flex
 
 ## Notes
 - Only `In Progress` lessons can be completed.
-- The lesson cannot be completed after the allowed completion deadline (admin-configured, mirrors the lesson start allowed time — see [US-AD-2-1](../admin/US-AD-2-1-update-lesson-settings.md)).
+- The lesson cannot be completed until it has run for the configured minimum time after starting (admin-configured "minimum minutes after start before completing" — see [US-AD-2-1](../admin/US-AD-2-1-update-lesson-settings.md)).
 - Only the assigned teacher can complete the lesson.
 - The teacher can add optional lesson notes.
 - The lesson cannot be completed more than once.

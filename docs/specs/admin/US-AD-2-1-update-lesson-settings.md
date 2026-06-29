@@ -12,7 +12,7 @@ As an admin, I want to update lesson deadlines and financial settings, so that t
 5. 🔧 Save → ⚙️ validate and apply
 
 ## Lesson deadlines
-Minimum lesson booking time · student cancellation deadline · lesson time-update deadline · lesson start allowed time · **lesson completion allowed time** · absence reporting time.
+Minimum lesson booking time · student cancellation deadline · lesson time-update deadline · lesson start allowed time · **minimum minutes after start before completing** · absence reporting time.
 
 ## Financial settings
 Teacher earning % · platform earning %.

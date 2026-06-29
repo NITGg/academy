@@ -223,8 +223,8 @@ class lesson_manager {
         if (!in_array($lesson->status, array(self::STATUS_CONFIRMED, self::STATUS_IN_PROGRESS), true)) {
             throw new \moodle_exception('err_badstate', 'local_academy');
         }
-        // US-LS-3-2: completion has a deadline, mirroring the start-allowed constraint — the lesson
-        // cannot be completed more than complete_allowed_minutes after its confirmed start time.
+        // US-LS-3-2: the lesson can only be completed once it has run for the configured time —
+        // at least complete_allowed_minutes after it started.
         self::require_complete_window($lesson);
         $transaction = $DB->start_delegated_transaction();
         room_manager::end_for_lesson($lesson); // close the meeting room

@@ -31,7 +31,7 @@ echo html_writer::script('window.ACADEMY_SET = ' . json_encode(array(
     <div class="form-group"><label>Student cancellation deadline (minutes)</label><input class="form-control" id="s-cancel_deadline_minutes" type="number" min="0"></div>
     <div class="form-group"><label>Lesson time-update deadline (minutes)</label><input class="form-control" id="s-update_deadline_minutes" type="number" min="0"></div>
     <div class="form-group"><label>Lesson start allowed time (minutes)</label><input class="form-control" id="s-start_allowed_minutes" type="number" min="0"></div>
-    <div class="form-group"><label>Lesson completion allowed time (minutes after start)</label><input class="form-control" id="s-complete_allowed_minutes" type="number" min="0"></div>
+    <div class="form-group"><label>Minimum minutes after start before completing</label><input class="form-control" id="s-complete_allowed_minutes" type="number" min="0"></div>
     <div class="form-group"><label>Absence reporting time (minutes)</label><input class="form-control" id="s-absence_report_minutes" type="number" min="0"></div>
     <hr>
     <div class="form-group"><label>Teacher earning %</label><input class="form-control" id="s-teacher_percent" type="number" min="0" max="100"></div>

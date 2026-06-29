@@ -57,7 +57,7 @@ GET /local/academy/api.php?function=update_lesson_settings&token=ADMIN_TOKEN
 | `cancel_deadline_minutes` | student cancellation deadline before start |
 | `update_deadline_minutes` | time-update (reschedule) deadline before start |
 | `start_allowed_minutes` | how early a lesson may start / link is visible |
-| `complete_allowed_minutes` | window after start within which the teacher may complete the lesson |
+| `complete_allowed_minutes` | minimum minutes after start before the teacher may complete the lesson |
 | `absence_report_minutes` | wait before an absence can be reported |
 | `lessons_courseid` | course that hosts the per-lesson Jitsi rooms — **must be set before `start_lesson` works** |
 | `teacher_percent` / `platform_percent` | revenue split — **must total 100** |

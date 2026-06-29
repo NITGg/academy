@@ -78,6 +78,30 @@ $session    = $DB->get_record('academy_live_sessions', ['jitsiid' => $jitsi->id]
 
 if ($session) {
 
+    // ── Restrict a linked lesson/academy room to its related participants ──────
+    // Only the session's assigned teacher and the whitelisted students may enter.
+    // $is_teacher above is the course-wide mod/jitsi:moderate capability, but every
+    // lesson room lives in one shared lessons course (and create_for_lesson() enrols
+    // each teacher there as editingteacher), so without this gate any other teacher
+    // or manager could open someone else's room as a moderator. Pin access — and
+    // moderator status — to the people actually related to this session.
+    $is_session_teacher     = ((int)$session->teacherid === (int)$USER->id);
+    $is_whitelisted_student = $DB->record_exists('academy_session_students', [
+        'sessionid' => $session->id,
+        'userid'    => $USER->id,
+    ]);
+
+    if (!$is_session_teacher && !$is_whitelisted_student && !is_siteadmin()) {
+        echo $OUTPUT->header();
+        echo $OUTPUT->heading(format_string($jitsi->name));
+        echo $OUTPUT->notification(get_string('notallowed', 'jitsi'), 'warning');
+        echo $OUTPUT->footer();
+        exit;
+    }
+
+    // Moderator is the assigned teacher only (site admins keep moderator for support).
+    $is_teacher = $is_session_teacher || (is_siteadmin() && !$is_whitelisted_student);
+
     // For everyone (teachers included): once the session is marked 'ended',
     // the room is closed — refreshing should not allow rejoining.
     if ($session->status === 'ended') {
