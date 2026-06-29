@@ -104,7 +104,7 @@ echo html_writer::script(<<<'JS'
   function parse(r){return r.text().then(function(t){var j;try{j=JSON.parse(t);}catch(e){throw new Error('Session expired — reload the page.');}if(j.status!=='success'){throw new Error(j.error||'Failed');}return j.data;});}
 
   var STATUS_LABEL={pending:'Pending',waiting_student:'Waiting for student',waiting_teacher:'Waiting for teacher',confirmed:'Confirmed',in_progress:'In progress',completed:'Completed',student_absent:'Student absent',teacher_absent:'Teacher absent',cancelled:'Cancelled (student)',cancelled_teacher:'Cancelled (teacher)',rejected:'Rejected'};
-  var ACTION_LABEL={accept:'Accept',reject:'Reject',suggest:'Suggest time',start:'Start',complete:'Complete',report_student_absent:'Student absent',cancel:'Cancel',request_time_update:'Reschedule',respond_time_update:'Respond to reschedule'};
+  var ACTION_LABEL={accept:'Accept',reject:'Reject',suggest:'Suggest time',start:'Start',join:'Join meeting',complete:'Complete',report_student_absent:'Student absent',cancel:'Cancel',request_time_update:'Reschedule',respond_time_update:'Respond to reschedule'};
 
   function fmt(ts){if(!ts){return '—';}var d=new Date(ts*1000);return d.toLocaleString();}
 
@@ -164,6 +164,10 @@ echo html_writer::script(<<<'JS'
         return run(apiPost('teacher_respond_lesson',{lessonid:id,action:'accept'}));
       case 'start':
         return run(apiPost('start_lesson',{lessonid:id}));
+      case 'join':
+        if(!lesson.join_url){msg('The meeting room is not ready yet.','danger');return;}
+        window.open(lesson.join_url,'_blank');
+        return;
       case 'report_student_absent':
         return modal({title:'Report student absent',text:'Confirm the student did not attend? The Flex will be consumed.'}).then(function(r){if(r){return run(apiPost('report_student_absent',{lessonid:id}));}});
       case 'reject':
@@ -216,7 +220,7 @@ echo html_writer::script(<<<'JS'
         }
         return;
       }
-      var cls=(a==='accept'||a==='start'||a==='complete')?'btn-primary':(a==='reject'||a==='cancel'||a==='report_student_absent'?'btn-outline-danger':'btn-outline-secondary');
+      var cls=(a==='join')?'btn-success':((a==='accept'||a==='start'||a==='complete')?'btn-primary':(a==='reject'||a==='cancel'||a==='report_student_absent'?'btn-outline-danger':'btn-outline-secondary'));
       actions.appendChild(button(ACTION_LABEL[a]||a,cls,function(){doAction(lesson,a);}));
     });
     c.appendChild(actions);
