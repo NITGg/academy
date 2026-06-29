@@ -58,6 +58,13 @@ class room_manager {
         $jitsiid = (int) $created->instance;
         $joinurl = $CFG->wwwroot . '/mod/jitsi/view.php?id=' . $cmid;
 
+        // Restrict the room on the course page to its two participants (US-LS-3-1): a per-lesson
+        // group holds the teacher + student, and the activity is made available only to that group
+        // (hidden from everyone else). Belt-and-braces with the view.php entry gate — it also keeps
+        // unrelated users from even seeing other people's lesson rooms in the shared lessons course.
+        $groupid = self::participant_group($courseid, $lesson);
+        self::restrict_module_to_group($courseid, $cmid, $groupid);
+
         // Link the activity to a session so the whitelist + time window apply (reuses the existing service).
         // Window opens now so the student can join immediately after the teacher starts.
         $sessionid = session_manager::create_session(
@@ -151,5 +158,49 @@ class room_manager {
         global $DB;
         $role = $DB->get_record('role', array('shortname' => $roleshortname));
         enrol_try_internal_enrol($courseid, $userid, $role ? $role->id : null);
+    }
+
+    /**
+     * Create (or reuse) the group that holds this lesson's teacher + student.
+     * Both must already be enrolled in $courseid. Returns the group id.
+     */
+    private static function participant_group($courseid, $lesson) {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/group/lib.php');
+
+        // One stable group per lesson, keyed by idnumber so re-starts reuse it.
+        $idnumber = 'academy_lesson_' . (int)$lesson->id;
+        $group = $DB->get_record('groups', array('courseid' => $courseid, 'idnumber' => $idnumber));
+        if ($group) {
+            $groupid = (int)$group->id;
+        } else {
+            $groupid = groups_create_group((object) array(
+                'courseid'    => $courseid,
+                'name'        => 'Lesson #' . (int)$lesson->id . ' participants',
+                'idnumber'    => $idnumber,
+                'description' => 'Auto-created to restrict the lesson room to its teacher and student.',
+            ));
+        }
+        groups_add_member($groupid, (int)$lesson->teacherid);
+        groups_add_member($groupid, (int)$lesson->studentid);
+        return $groupid;
+    }
+
+    /**
+     * Set the course module's access restriction to "must belong to $groupid", hidden from
+     * everyone else. This is the "Restricted" availability condition shown on the course page.
+     */
+    private static function restrict_module_to_group($courseid, $cmid, $groupid) {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/lib/modinfolib.php');
+
+        // core_availability tree: all of (member of $groupid); showc=false → hidden when not met.
+        $availability = json_encode(array(
+            'op'    => '&',
+            'c'     => array(array('type' => 'group', 'id' => (int)$groupid)),
+            'showc' => array(false),
+        ));
+        $DB->set_field('course_modules', 'availability', $availability, array('id' => (int)$cmid));
+        rebuild_course_cache($courseid, true);
     }
 }
