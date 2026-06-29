@@ -76,6 +76,68 @@ class room_manager {
         return (object) array('sessionid' => $sessionid, 'cmid' => $cmid, 'join_url' => $joinurl);
     }
 
+    /**
+     * Build the native-SDK Jitsi session payload for a lesson's viewer (US-LS-3-1).
+     *
+     * Mirrors the `jitsi_session` object produced by local/multitopics/getalltopics.php so the
+     * mobile app can join the room directly with the Jitsi SDK (server_url + room + jwt) without
+     * loading view.php. The JWT is signed for this specific viewer (moderator = the teacher).
+     *
+     * @param \stdClass $lesson academy_lessons row (needs cmid, teacherid, subject)
+     * @param int $viewerid the user the JWT/identity is minted for
+     * @return array|null null when there is no room or no viewer
+     */
+    public static function session_payload($lesson, $viewerid) {
+        global $DB;
+
+        $cmid = (int) $lesson->cmid;
+        if ($cmid <= 0 || !$viewerid) {
+            return null;
+        }
+        $jitsiid = (int) $DB->get_field('course_modules', 'instance', array('id' => $cmid));
+        $user = $DB->get_record('user', array('id' => $viewerid));
+        if (!$jitsiid || !$user) {
+            return null;
+        }
+
+        $isteacher = ((int)$lesson->teacherid === (int)$viewerid);
+
+        $jitsihost = get_config('local_academysessions', 'jitsi_host') ?: 'localhost:8443';
+        $serverurl = (strpos($jitsihost, 'http') === 0) ? rtrim($jitsihost, '/') : 'https://' . $jitsihost;
+
+        // Same stable room name formula used by view.php / getalltopics — the JWT is signed for it.
+        $room = 'academy_jitsi_' . $cmid . '_' . substr(md5($jitsiid . $cmid), 0, 8);
+        $jwt  = \local_academysessions\jitsi_jwt::generate($room, fullname($user), $user->email, $isteacher);
+
+        $jitsirec = $DB->get_record('jitsi', array('id' => $jitsiid), 'id, name');
+        $subject  = $jitsirec ? format_string($jitsirec->name) : $lesson->subject;
+
+        return array(
+            'server_url'     => $serverurl,
+            'room'           => $room,
+            'jwt'            => $jwt,
+            'subject'        => $subject,
+            'is_teacher'     => $isteacher,
+            'available'      => true, // gated by can_join (lesson is in progress)
+            'available_info' => '',
+            'host_id'        => (string)(int)$lesson->teacherid,
+            'feature_flags'  => array(
+                'recording.enabled'        => $isteacher,
+                'livestreaming.enabled'    => false,
+                'invite.enabled'           => $isteacher,
+                'security-options.enabled' => $isteacher,
+                'breakout-rooms.enabled'   => $isteacher,
+                'video-share.enabled'      => $isteacher,
+                'kick-out.enabled'         => $isteacher,
+                'mute-everyone.enabled'    => $isteacher,
+                'screen-sharing.enabled'   => true,
+                'chat.enabled'             => true,
+                'raise-hand.enabled'       => true,
+                'tile-view.enabled'        => true,
+            ),
+        );
+    }
+
     /** Close the room when the lesson ends (complete / absence). No-op if no room was created. */
     public static function end_for_lesson($lesson) {
         if (empty($lesson->sessionid)) {

@@ -630,6 +630,8 @@ class lesson_manager {
         $canjoin = ($lesson->status === self::STATUS_IN_PROGRESS) && ((int)$lesson->cmid > 0);
         $out['can_join'] = $canjoin;
         $out['join_url'] = $canjoin ? ($CFG->wwwroot . '/mod/jitsi/view.php?id=' . (int)$lesson->cmid) : '';
+        // Native Jitsi SDK payload (server_url + room + jwt) for the viewer — same shape as getalltopics.php.
+        $out['jitsi_session'] = ($canjoin && $viewerid) ? room_manager::session_payload($lesson, $viewerid) : null;
         if ($viewerid) {
             $out['my_role'] = ((int)$lesson->studentid === (int)$viewerid) ? 'student'
                 : (((int)$lesson->teacherid === (int)$viewerid) ? 'teacher' : '');
