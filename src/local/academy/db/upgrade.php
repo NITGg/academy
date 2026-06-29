@@ -264,8 +264,8 @@ function xmldb_local_academy_upgrade($oldversion) {
             $t->add_field('role', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'system');
             $t->add_field('time_enc', XMLDB_TYPE_TEXT, null, null, null, null, null);
             $t->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            // FK on lessonid already provides the index — no separate lessonid_idx (avoids collision).
             $t->add_key('lessonid_fk', XMLDB_KEY_FOREIGN, array('lessonid'), 'academy_lessons', array('id'));
-            $t->add_index('lessonid_idx', XMLDB_INDEX_NOTUNIQUE, array('lessonid'));
             $dbman->create_table($t);
         }
 
