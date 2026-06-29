@@ -32,6 +32,10 @@ class room_manager {
             throw new \moodle_exception('err_nolessonscourse', 'local_academy');
         }
 
+        // In this dedicated lessons course, stop editing teachers from bypassing the per-room
+        // group restriction so they only see their own rooms (mirrors how students are limited).
+        self::lock_down_teacher_visibility($courseid);
+
         // Both participants need access to the course that hosts the room.
         self::enrol($courseid, (int)$lesson->teacherid, 'editingteacher');
         self::enrol($courseid, (int)$lesson->studentid, 'student');
@@ -158,6 +162,46 @@ class room_manager {
         global $DB;
         $role = $DB->get_record('role', array('shortname' => $roleshortname));
         enrol_try_internal_enrol($courseid, $userid, $role ? $role->id : null);
+    }
+
+    /**
+     * Prevent editing teachers from bypassing the per-room availability restriction in the lessons
+     * course, so a teacher only sees rooms they belong to (the same effect the group restriction
+     * already has on students). Applied once as a capability override on the course context;
+     * idempotent — after the first run the checks are cheap no-ops.
+     */
+    private static function lock_down_teacher_visibility($courseid) {
+        global $DB;
+
+        $context = \context_course::instance($courseid);
+        // ignoreavailabilityrestrictions is what lets editingteacher/teacher see restricted rooms;
+        // viewhiddenactivities is its clone-permission sibling, prevented for good measure.
+        $caps = array(
+            'moodle/course:ignoreavailabilityrestrictions',
+            'moodle/course:viewhiddenactivities',
+        );
+        $changed = false;
+        foreach (array('editingteacher', 'teacher') as $shortname) {
+            $roleid = $DB->get_field('role', 'id', array('shortname' => $shortname));
+            if (!$roleid) {
+                continue;
+            }
+            foreach ($caps as $cap) {
+                $existing = $DB->get_field('role_capabilities', 'permission', array(
+                    'roleid'     => $roleid,
+                    'contextid'  => $context->id,
+                    'capability' => $cap,
+                ));
+                if ((int)$existing === CAP_PREVENT) {
+                    continue; // already locked down
+                }
+                assign_capability($cap, CAP_PREVENT, $roleid, $context->id, true);
+                $changed = true;
+            }
+        }
+        if ($changed) {
+            $context->mark_dirty();
+        }
     }
 
     /**
