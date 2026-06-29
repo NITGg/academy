@@ -17,7 +17,7 @@ class settings_manager {
         'absence_report_minutes'  => 15,   // wait before reporting absence
         'teacher_percent'         => 40,   // teacher share of a consumed Flex
         'platform_percent'        => 60,   // platform share of a consumed Flex
-        'lessons_courseid'        => 0,    // course that hosts the per-lesson Jitsi meeting rooms (0 = unset)
+        'lessons_courseid'        => 54,   // course that hosts the per-lesson Jitsi meeting rooms (hardcoded for now)
     );
 
     /** Return all settings (defaults applied). */
