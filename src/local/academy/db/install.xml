@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/academy/db" VERSION="2026062804" COMMENT="Academy Flex platform tables">
+<XMLDB PATH="local/academy/db" VERSION="2026062805" COMMENT="Academy Flex platform tables">
   <TABLES>
     <TABLE NAME="academy_packages" COMMENT="Lesson (Flex) packages defined by admins">
       <FIELDS>
@@ -195,6 +195,56 @@
         <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
         <INDEX NAME="purchaseid_idx" UNIQUE="false" FIELDS="purchaseid"/>
         <INDEX NAME="lessonid_idx" UNIQUE="false" FIELDS="lessonid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_earnings" COMMENT="Revenue split recorded when a consumed Flex is distributed (US-FN-1-4)">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="lessonid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="teacherid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="studentid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="purchaseid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="flex_value" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="price_paid / flex_count"/>
+        <FIELD NAME="teacher_amount" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="platform_amount" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="teacher_percent" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="platform_percent" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="12" NOTNULL="true" DEFAULT="active" SEQUENCE="false" COMMENT="active | reversed"/>
+        <FIELD NAME="reverse_reason" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="reversedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timereversed" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="lessonid_fk" TYPE="foreign" FIELDS="lessonid" REFTABLE="academy_lessons" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="teacher_status_idx" UNIQUE="false" FIELDS="teacherid, status"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_withdrawals" COMMENT="Teacher withdrawal requests (US-FN-2-1 / US-FN-2-2)">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="teacherid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="amount" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="method" TYPE="char" LENGTH="30" NOTNULL="true" DEFAULT="bank" SEQUENCE="false"/>
+        <FIELD NAME="account" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="account / payout details"/>
+        <FIELD NAME="reference" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="payment reference once paid"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="12" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending | approved | rejected | paid"/>
+        <FIELD NAME="reason" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="rejection reason"/>
+        <FIELD NAME="processedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timeprocessed" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="teacher_status_idx" UNIQUE="false" FIELDS="teacherid, status"/>
+        <INDEX NAME="status_idx" UNIQUE="false" FIELDS="status"/>
       </INDEXES>
     </TABLE>
   </TABLES>

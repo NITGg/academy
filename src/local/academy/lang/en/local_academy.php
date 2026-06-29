@@ -10,6 +10,10 @@ $string['teacherprofile'] = 'Teacher profile';
 $string['editmyteacherprofile'] = 'Edit my teacher profile';
 $string['notateacher'] = 'This page is only available to teachers.';
 $string['mylessons'] = 'My lessons';
+$string['mywallet'] = 'My earnings';
+$string['managewithdrawals'] = 'Teacher withdrawals';
+$string['assignpackage'] = 'Assign package to student';
+$string['reports'] = 'Flex platform reports';
 
 // Error messages (surfaced in API JSON via getMessage()).
 $string['err_namerequired']  = 'Package name is required';
@@ -45,3 +49,16 @@ $string['err_absencetooearly']     = 'It is too early to report an absence';
 $string['err_updatedeadline']      = 'The time-update deadline has passed';
 $string['err_updatepending']       = 'There is already a pending time-update request';
 $string['err_noupdaterequest']     = 'There is no pending time-update request to respond to';
+
+// Financial (Phase 3).
+$string['err_notdistributed']      = 'The lesson has no purchase to distribute revenue from';
+$string['err_earningnotfound']     = 'No active earning found for this lesson';
+$string['err_alreadyreversed']     = 'This lesson\'s Flex has already been reversed';
+$string['err_amountpositive']      = 'Amount must be greater than zero';
+$string['err_insufficientbalance'] = 'Amount exceeds your available balance';
+$string['err_withdrawalnotfound']  = 'Withdrawal request not found';
+$string['err_withdrawalstate']     = 'This action is not allowed for the withdrawal\'s current status';
+
+// Reports / assign (Phase 4).
+$string['err_studentnotfound']     = 'Student not found';
+$string['err_studenthaspackage']   = 'This student already has an active package';

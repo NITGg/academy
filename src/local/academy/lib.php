@@ -55,13 +55,23 @@ function local_academy_extend_navigation_user_settings($navigation, $user, $cont
         'local_academy_mylessons',
         new pix_icon('i/calendar', '')
     );
+    $walletnode = navigation_node::create(
+        get_string('mywallet', 'local_academy'),
+        new moodle_url('/local/academy/wallet.php'),
+        navigation_node::TYPE_SETTING,
+        null,
+        'local_academy_mywallet',
+        new pix_icon('i/payment', '')
+    );
     // Place these inside the "User account" group (with Edit profile, Change password, ...).
     $useraccount = $navigation->find('useraccount', navigation_node::TYPE_CONTAINER);
     if ($useraccount) {
         $useraccount->add_node($node);
         $useraccount->add_node($lessonsnode);
+        $useraccount->add_node($walletnode);
     } else {
         $navigation->add_node($node);
         $navigation->add_node($lessonsnode);
+        $navigation->add_node($walletnode);
     }
 }

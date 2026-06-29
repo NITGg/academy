@@ -21,11 +21,21 @@ defined('MOODLE_INTERNAL') || die();
  */
 class flex_manager {
 
-    const TYPE_RESERVE = 'reserve';
-    const TYPE_CONSUME = 'consume';
-    const TYPE_RETURN  = 'return';
-    const TYPE_EXPIRE  = 'expire';
-    const TYPE_ADJUST  = 'adjust';
+    const TYPE_RESERVE  = 'reserve';
+    const TYPE_CONSUME  = 'consume';
+    const TYPE_RETURN   = 'return';
+    const TYPE_EXPIRE   = 'expire';
+    const TYPE_ADJUST   = 'adjust';
+    const TYPE_PURCHASE = 'purchase';
+    const TYPE_ASSIGN   = 'assign';
+
+    /**
+     * Record Flexes added to a student's balance when a package is purchased or admin-assigned, so the
+     * ledger (US-AD-3-4) captures every balance change. Called within the purchase/assign transaction.
+     */
+    public static function log_grant($studentid, $purchaseid, $amount, $performedby, $type, $reason = '') {
+        self::log($studentid, $purchaseid, 0, $type, (int)$amount, 0, (int)$amount, $performedby, $reason);
+    }
 
     /**
      * Reserve one Flex from the student's active package when a lesson is confirmed (US-FN-1-2).
@@ -89,6 +99,31 @@ class flex_manager {
             $purchase->reserved_flex = (int)$purchase->reserved_flex - 1;
         }
         // Returning a Flex revives a purchase that had been fully used.
+        if ($purchase->status === 'fully_used') {
+            $purchase->status = 'active';
+        }
+        $DB->update_record('academy_package_purchases', $purchase);
+
+        self::log($studentid, $purchaseid, $lessonid, self::TYPE_RETURN, 1, $before, $after, $performedby, $reason);
+    }
+
+    /**
+     * Reverse a previously consumed Flex back to the student's balance (US-FN-1-5 admin reversal).
+     * The Flex moves from consumed back to remaining (unlike {@see return_flex}, which releases a
+     * reservation).
+     */
+    public static function reverse_consumed($studentid, $purchaseid, $lessonid, $performedby, $reason = '') {
+        global $DB;
+        $purchase = $DB->get_record('academy_package_purchases', array('id' => $purchaseid));
+        if (!$purchase) {
+            throw new \moodle_exception('err_notfound', 'local_academy');
+        }
+        $before = (int)$purchase->remaining_flex;
+        $after  = $before + 1;
+        $purchase->remaining_flex = $after;
+        if ((int)$purchase->consumed_flex > 0) {
+            $purchase->consumed_flex = (int)$purchase->consumed_flex - 1;
+        }
         if ($purchase->status === 'fully_used') {
             $purchase->status = 'active';
         }

@@ -186,5 +186,54 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026062804, 'local', 'academy');
     }
 
+    if ($oldversion < 2026062805) {
+
+        // Earnings (revenue split per consumed Flex).
+        $t = new xmldb_table('academy_earnings');
+        if (!$dbman->table_exists($t)) {
+            $t->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $t->add_field('lessonid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('teacherid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('studentid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('purchaseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('flex_value', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('teacher_amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('platform_amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('teacher_percent', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('platform_percent', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('status', XMLDB_TYPE_CHAR, '12', null, XMLDB_NOTNULL, null, 'active');
+            $t->add_field('reverse_reason', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+            $t->add_field('reversedby', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('timereversed', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $t->add_key('lessonid_fk', XMLDB_KEY_FOREIGN, array('lessonid'), 'academy_lessons', array('id'));
+            $t->add_index('teacher_status_idx', XMLDB_INDEX_NOTUNIQUE, array('teacherid', 'status'));
+            $dbman->create_table($t);
+        }
+
+        // Withdrawals.
+        $t = new xmldb_table('academy_withdrawals');
+        if (!$dbman->table_exists($t)) {
+            $t->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $t->add_field('teacherid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('method', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL, null, 'bank');
+            $t->add_field('account', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+            $t->add_field('reference', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+            $t->add_field('status', XMLDB_TYPE_CHAR, '12', null, XMLDB_NOTNULL, null, 'pending');
+            $t->add_field('reason', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+            $t->add_field('processedby', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('timeprocessed', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $t->add_index('teacher_status_idx', XMLDB_INDEX_NOTUNIQUE, array('teacherid', 'status'));
+            $t->add_index('status_idx', XMLDB_INDEX_NOTUNIQUE, array('status'));
+            $dbman->create_table($t);
+        }
+
+        upgrade_plugin_savepoint(true, 2026062805, 'local', 'academy');
+    }
+
     return true;
 }

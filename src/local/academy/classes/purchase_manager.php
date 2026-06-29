@@ -88,6 +88,10 @@ class purchase_manager {
         $payment->timecreated    = $now;
         $payment->id = $DB->insert_record('academy_payments', $payment);
 
+        // Ledger entry so the student Flex history (US-AD-3-4) captures the opening balance.
+        flex_manager::log_grant($userid, $purchase->id, $purchase->remaining_flex, $userid,
+            flex_manager::TYPE_PURCHASE, 'Package purchased: ' . $package->name);
+
         $transaction->allow_commit();
 
         return array(
@@ -97,6 +101,86 @@ class purchase_manager {
             'flex_balance'   => (int)$purchase->remaining_flex,
             'expires_at'     => (int)$purchase->expires_at,
             'status'         => 'active',
+        );
+    }
+
+    /**
+     * US-AD-4-1: an admin assigns a package to a student who paid outside the platform.
+     *
+     * @param int $adminid the assigning admin
+     * @param int $studentid recipient
+     * @param int $packageid active package to assign
+     * @param float $amount amount paid externally (defaults to the package price if <= 0)
+     * @param string $method external payment method
+     * @param string $reference external payment reference
+     * @param string $note optional note
+     * @return array assignment summary
+     */
+    public static function assign_package($adminid, $studentid, $packageid, $amount, $method = 'offline',
+            $reference = '', $note = '') {
+        global $DB;
+
+        $student = $DB->get_record('user', array('id' => $studentid, 'deleted' => 0));
+        if (!$student) {
+            throw new \moodle_exception('err_studentnotfound', 'local_academy');
+        }
+        $package = $DB->get_record('academy_packages', array('id' => $packageid));
+        if (!$package) {
+            throw new \moodle_exception('err_notfound', 'local_academy');
+        }
+        if ($package->status !== package_manager::STATUS_ACTIVE) {
+            throw new \moodle_exception('err_packagenotavailable', 'local_academy');
+        }
+        if (self::get_active_purchase($studentid)) {
+            throw new \moodle_exception('err_studenthaspackage', 'local_academy');
+        }
+
+        $price = ((float)$amount > 0) ? round((float)$amount, 2) : (float)$package->price;
+        $now = time();
+        $transaction = $DB->start_delegated_transaction();
+
+        $purchase = new \stdClass();
+        $purchase->packageid       = $package->id;
+        $purchase->userid          = $studentid;
+        $purchase->price_paid      = $price;
+        $purchase->flex_count      = $package->flex_count;
+        $purchase->expiration_days = $package->expiration_days;
+        $purchase->status          = 'active';
+        $purchase->source          = 'admin_assigned';
+        $purchase->remaining_flex  = $package->flex_count;
+        $purchase->expires_at      = $package->expiration_days > 0
+            ? $now + ($package->expiration_days * DAYSECS) : 0;
+        $purchase->timeactivated   = $now;
+        $purchase->timecreated     = $now;
+        $purchase->id = $DB->insert_record('academy_package_purchases', $purchase);
+
+        $payment = new \stdClass();
+        $payment->userid         = $studentid;
+        $payment->purchaseid     = $purchase->id;
+        $payment->packageid      = $package->id;
+        $payment->amount         = $price;
+        $payment->method         = $method !== '' ? $method : 'offline';
+        $payment->reference      = trim($reference . ($note !== '' ? ' | ' . $note : ''));
+        $payment->transaction_no = self::generate_txn();
+        $payment->status         = 'success';
+        $payment->timecreated    = $now;
+        $payment->id = $DB->insert_record('academy_payments', $payment);
+
+        flex_manager::log_grant($studentid, $purchase->id, $purchase->remaining_flex, $adminid,
+            flex_manager::TYPE_ASSIGN, 'Package assigned by admin: ' . $package->name);
+
+        $transaction->allow_commit();
+
+        return array(
+            'purchaseid'    => (int)$purchase->id,
+            'paymentid'     => (int)$payment->id,
+            'studentid'     => (int)$studentid,
+            'student_name'  => trim($student->firstname . ' ' . $student->lastname),
+            'package_name'  => $package->name,
+            'flex_balance'  => (int)$purchase->remaining_flex,
+            'price_paid'    => $price,
+            'expires_at'    => (int)$purchase->expires_at,
+            'source'        => 'admin_assigned',
         );
     }
 

@@ -14,12 +14,26 @@ use local_academy\settings_manager;
 use local_academy\teacher_manager;
 use local_academy\lesson_manager;
 use local_academy\flex_manager;
+use local_academy\finance_manager;
+use local_academy\report_manager;
 
 /** Reject non-POST for state-changing actions. */
 function academy_require_post() {
     if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
         academy_respond(['status' => 'fail', 'error' => 'This action requires POST']);
     }
+}
+
+/** Collect common report filters from the request (only those actually sent). */
+function academy_report_filters() {
+    $f = [];
+    foreach (['teacherid', 'studentid', 'from', 'to'] as $k) {
+        if (isset($_REQUEST[$k]) && $_REQUEST[$k] !== '') { $f[$k] = required_param($k, PARAM_INT); }
+    }
+    foreach (['status', 'source'] as $k) {
+        if (isset($_REQUEST[$k]) && $_REQUEST[$k] !== '') { $f[$k] = required_param($k, PARAM_ALPHANUMEXT); }
+    }
+    return $f;
 }
 
 header('Content-Type: application/json');
@@ -62,6 +76,15 @@ $capmap = [
     'get_packages'         => 'local/academy:managepackages',
     'get_package'          => 'local/academy:managepackages',
     'update_lesson_settings' => 'local/academy:manageplatform',
+    'reverse_flex'           => 'local/academy:manageplatform',
+    'list_withdrawals'       => 'local/academy:manageplatform',
+    'process_withdrawal'     => 'local/academy:manageplatform',
+    'get_platform_wallet'    => 'local/academy:manageplatform',
+    'assign_package'         => 'local/academy:manageplatform',
+    'report_lessons'         => 'local/academy:manageplatform',
+    'report_platform_earnings' => 'local/academy:manageplatform',
+    'report_packages'        => 'local/academy:manageplatform',
+    'report_student_flex'    => 'local/academy:manageplatform',
 ];
 if (isset($capmap[$function]) && !has_capability($capmap[$function], context_system::instance())) {
     academy_respond(['status' => 'fail', 'error' => 'Permission denied']);
@@ -357,6 +380,101 @@ try {
         // Student's own Flex ledger (reserve/consume/return history).
         case 'get_flex_history':
             academy_respond(['status' => 'success', 'data' => flex_manager::get_history($userid)]);
+            break;
+
+        // ── Financial (Phase 3) ──
+
+        // Teacher wallet: balance + earnings + withdrawals (acts on the token's user).
+        case 'get_teacher_wallet':
+            academy_respond(['status' => 'success', 'data' => finance_manager::get_teacher_wallet($userid)]);
+            break;
+
+        // US-FN-2-1: teacher requests a withdrawal.
+        case 'request_withdrawal':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => finance_manager::request_withdrawal(
+                $userid,
+                required_param('amount', PARAM_FLOAT),
+                optional_param('method', 'bank', PARAM_ALPHANUMEXT),
+                optional_param('account', '', PARAM_TEXT)
+            )]);
+            break;
+
+        // Teacher's own withdrawals.
+        case 'get_my_withdrawals':
+            academy_respond(['status' => 'success', 'data' => finance_manager::get_my_withdrawals($userid)]);
+            break;
+
+        // US-FN-1-5: admin reverses a consumed/distributed Flex (manageplatform).
+        case 'reverse_flex':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => finance_manager::reverse_flex(
+                required_param('lessonid', PARAM_INT),
+                $userid,
+                required_param('reason', PARAM_TEXT)
+            )]);
+            break;
+
+        // US-FN-2-2: admin lists withdrawal requests (manageplatform).
+        case 'list_withdrawals':
+            academy_respond(['status' => 'success', 'data' => finance_manager::list_withdrawals(
+                optional_param('status', '', PARAM_ALPHA))]);
+            break;
+
+        // US-FN-2-2: admin processes a withdrawal (manageplatform).
+        case 'process_withdrawal':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => finance_manager::process_withdrawal(
+                $userid,
+                required_param('withdrawalid', PARAM_INT),
+                required_param('action', PARAM_ALPHA),
+                [
+                    'reason'    => optional_param('reason', '', PARAM_TEXT),
+                    'reference' => optional_param('reference', '', PARAM_TEXT),
+                ]
+            )]);
+            break;
+
+        // Admin platform wallet overview (manageplatform).
+        case 'get_platform_wallet':
+            academy_respond(['status' => 'success', 'data' => finance_manager::get_platform_wallet()]);
+            break;
+
+        // ── Admin reports + assign (Phase 4, manageplatform) ──
+
+        // US-AD-4-1: admin assigns a package to a student (offline payment).
+        case 'assign_package':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => purchase_manager::assign_package(
+                $userid,
+                required_param('studentid', PARAM_INT),
+                required_param('packageid', PARAM_INT),
+                optional_param('amount', 0, PARAM_FLOAT),
+                optional_param('method', 'offline', PARAM_ALPHANUMEXT),
+                optional_param('reference', '', PARAM_TEXT),
+                optional_param('note', '', PARAM_TEXT)
+            )]);
+            break;
+
+        // US-AD-3-1: lessons & attendance report.
+        case 'report_lessons':
+            academy_respond(['status' => 'success', 'data' => report_manager::lessons_report(academy_report_filters())]);
+            break;
+
+        // US-AD-3-2: platform earnings report.
+        case 'report_platform_earnings':
+            academy_respond(['status' => 'success', 'data' => report_manager::platform_earnings_report(academy_report_filters())]);
+            break;
+
+        // US-AD-3-3: package & flex report.
+        case 'report_packages':
+            academy_respond(['status' => 'success', 'data' => report_manager::package_flex_report(academy_report_filters())]);
+            break;
+
+        // US-AD-3-4: student flex balance + history.
+        case 'report_student_flex':
+            academy_respond(['status' => 'success', 'data' => report_manager::student_flex_report(
+                required_param('studentid', PARAM_INT))]);
             break;
 
         default:

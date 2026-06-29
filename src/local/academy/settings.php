@@ -14,4 +14,22 @@ if ($hassiteconfig) {
         get_string('managesettings', 'local_academy'),
         new moodle_url('/local/academy/manage_settings.php')
     ));
+
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_academy_managewithdrawals',
+        get_string('managewithdrawals', 'local_academy'),
+        new moodle_url('/local/academy/manage_withdrawals.php')
+    ));
+
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_academy_assignpackage',
+        get_string('assignpackage', 'local_academy'),
+        new moodle_url('/local/academy/assign_package.php')
+    ));
+
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_academy_reports',
+        get_string('reports', 'local_academy'),
+        new moodle_url('/local/academy/manage_reports.php')
+    ));
 }

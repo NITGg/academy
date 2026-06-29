@@ -157,7 +157,20 @@ In Progress → Completed | Student Absent | Teacher Absent | Cancelled / Cancel
 Reserve 1 flex on Confirm (US-FN-1-2); return on teacher cancel/absence or early student cancel (US-FN-1-3);
 honor settings deadlines (min_booking, cancel_deadline, update_deadline, start_allowed, absence_report).
 
-### Phase 3 — Financial
+### Phase 3 — Financial ✅ BUILT (verified end-to-end over HTTP)
+New tables: `academy_earnings`, `academy_withdrawals` (version `2026062805`). Manager: `finance_manager`
+(+ `flex_manager::reverse_consumed`). Distribution is automatic inside `lesson_manager::complete_lesson`
+(US-FN-1-4) — no separate endpoint. Endpoints: `get_teacher_wallet` (GET), `request_withdrawal` (POST),
+`get_my_withdrawals` (GET); admin (manageplatform): `reverse_flex` (POST, US-FN-1-5),
+`list_withdrawals` (GET), `process_withdrawal` (POST, US-FN-2-2), `get_platform_wallet` (GET). Money:
+flex_value = price_paid/flex_count; teacher_amount = round(flex_value*teacher_percent/100,2);
+platform_amount = flex_value − teacher_amount. Available balance = active teacher earnings −
+(pending+approved+paid withdrawals); reject releases, reversal drops the earning (can go negative if
+already paid — matches spec). UI: teacher `wallet.php` ("My earnings", Preferences → User account);
+admin `manage_withdrawals.php` ("Teacher withdrawals", Site admin → Plugins → Local plugins; includes a
+Reverse-Flex form). Docs: `docs/api/financial-guide.md` + `Academy_Financial.postman_collection.json`.
+
+#### Phase 3 — original notes
 US-FN-1-4 distribute revenue on Complete (teacher_percent/platform_percent of flex value),
 US-FN-1-5 admin reversal of a consumed flex, US-FN-2-1 teacher withdrawal request, US-FN-2-2 admin process
 withdrawal; teacher wallet + platform wallet model (see `docs/specs/financial/00-wallet-model.md`).
@@ -166,7 +179,19 @@ percents, status active|reversed), `academy_withdrawals` (teacherid, amount, met
 status Pending|Approved|Rejected|Paid, reason, processedby). Wallet balance = active earnings − reserved/paid
 withdrawals. Flex value = purchase price_paid ÷ flex_count.
 
-### Phase 4 — Admin reports + assign + teacher earnings/export
+### Phase 4 — Admin reports + assign + teacher earnings/export ✅ BUILT (verified end-to-end over HTTP)
+No schema change (reused `manageplatform`; all data already existed). New `report_manager`;
+`purchase_manager::assign_package` (US-AD-4-1) + Flex ledger grant logging (`flex_manager::log_grant`,
+types `purchase`/`assign`); `finance_manager::list_earnings` enriched with student name + lesson date.
+Endpoints (admin GET unless noted): `assign_package` (POST), `report_lessons`,
+`report_platform_earnings`, `report_packages`, `report_student_flex`. CSV via `export.php?type=…`
+(admin: lessons|platform_earnings|packages|student_flex; teacher: my_earnings|my_withdrawals; 403/401
+guarded). UI: admin `manage_reports.php` (tabbed reports + CSV) and `assign_package.php`; teacher
+`wallet.php` extended (earnings detail + CSV export) — covers US-TR-1-3/US-TR-2-1. Docs:
+`docs/api/reports-export-guide.md` + `Academy_Reports.postman_collection.json`; index at
+`docs/api/README.md`. PDF export deferred (CSV only).
+
+#### Phase 4 — original notes
 US-AD-3-1 lessons/attendance reports, US-AD-3-2 platform earnings, US-AD-3-3 package/flex reports,
 US-AD-3-4 student flex balance + history (reads academy_flex_tx), US-AD-4-1 assign package to student
 (admin, offline payment → reuse purchase logic with source=admin_assigned), US-TR-1-3 teacher earnings/

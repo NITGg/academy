@@ -208,8 +208,9 @@ class lesson_manager {
         flex_manager::consume($lesson->studentid, $lesson->purchaseid, $lesson->id, $teacherid, 'Lesson completed');
         $extra = array('actual_end' => time(), 'flex_state' => 'consumed');
         if ($note !== null) { $extra['note'] = $note; }
-        // NOTE: revenue distribution (US-FN-1-4) is Phase 3 — hook in here when built.
         $result = self::transition($lesson, self::STATUS_COMPLETED, $teacherid, $extra);
+        // Distribute revenue on completion (US-FN-1-4): teacher/platform split of the Flex value.
+        finance_manager::distribute_for_lesson($DB->get_record('academy_lessons', array('id' => $lesson->id)));
         $transaction->allow_commit();
         return $result;
     }

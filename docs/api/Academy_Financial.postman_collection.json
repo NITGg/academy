@@ -1,0 +1,270 @@
+{
+  "info": {
+    "name": "Academy — Financial (Phase 3)",
+    "_postman_id": "academy-financial-v1",
+    "description": "Revenue distribution, reversal, teacher wallet, and withdrawals (local_academy, Phase 3).\n\nStories: US-FN-1-4 (distribute on complete) · US-FN-1-5 (admin reversal) · US-FN-2-1 (teacher withdrawal) · US-FN-2-2 (admin process).\n\nHOW IT WORKS:\n- Earnings are created automatically when a lesson is COMPLETED (see the Lessons & Flex collection). There is no 'distribute' endpoint. To produce an earning: purchase a package → request a lesson → teacher accept → teacher complete.\n- Teacher functions act on the token's user. Admin functions require the local/academy:manageplatform capability.\n\nRUN ORDER for a full demo:\n1. Auth → Login as Teacher / Admin.\n2. Teacher → Get wallet (see earnings produced by completed lessons).\n3. Teacher → Request withdrawal (saves {{withdrawalid}}).\n4. Admin → List withdrawals, Approve, then Mark paid.\n5. Admin → Reverse flex (needs a completed lesson id) / Platform wallet.\n\nEndpoint: {{base_url}}/local/academy/api.php (action chosen by the `function` param). Writes are POST; reads are GET.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8081", "type": "string" },
+    { "key": "teacher_token", "value": "ea6d941746294c7b034d5d1ed5dbd385", "type": "string" },
+    { "key": "admin_token", "value": "f65e3a453f23cdf4f550dedc23fc2c31", "type": "string" },
+    { "key": "withdrawalid", "value": "", "type": "string" },
+    { "key": "lessonid", "value": "", "type": "string" },
+    { "key": "amount", "value": "20", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login as Teacher",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j && j.token) { pm.collectionVariables.set('teacher_token', j.token); console.log('teacher_token saved'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "mohamedmekhammr@gmail.com", "type": "text" },
+                { "key": "password", "value": "123456", "type": "text" },
+                { "key": "service", "value": "moodle_mobile_app", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/login/token.php", "host": ["{{base_url}}"], "path": ["login", "token.php"] },
+            "description": "Saves the token into {{teacher_token}}."
+          }
+        },
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j && j.token) { pm.collectionVariables.set('admin_token', j.token); console.log('admin_token saved'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "admin", "type": "text" },
+                { "key": "password", "value": "123456", "type": "text" },
+                { "key": "service", "value": "moodle_mobile_app", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/login/token.php", "host": ["{{base_url}}"], "path": ["login", "token.php"] },
+            "description": "Saves the token into {{admin_token}}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Teacher — Wallet & Withdrawals (US-FN-2-1)",
+      "item": [
+        {
+          "name": "Get teacher wallet",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_teacher_wallet&token={{teacher_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_teacher_wallet" },
+                { "key": "token", "value": "{{teacher_token}}" }
+              ]
+            },
+            "description": "Balance summary (total_earned, available_balance, pending_withdrawals, total_withdrawn) + earnings[] + withdrawals[]. Earnings appear after lessons are completed."
+          }
+        },
+        {
+          "name": "Request withdrawal — saves {{withdrawalid}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j && j.status==='success' && j.data && j.data.id) { pm.collectionVariables.set('withdrawalid', j.data.id); console.log('withdrawalid = ' + j.data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "request_withdrawal", "type": "text" },
+                { "key": "token", "value": "{{teacher_token}}", "type": "text" },
+                { "key": "amount", "value": "{{amount}}", "type": "text", "description": "> 0 and <= available balance" },
+                { "key": "method", "value": "bank", "type": "text", "description": "bank | wallet | cash" },
+                { "key": "account", "value": "IBAN EG12 3456 7890", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/local/academy/api.php", "host": ["{{base_url}}"], "path": ["local", "academy", "api.php"] },
+            "description": "US-FN-2-1. Creates a pending request and reserves the amount against the balance."
+          }
+        },
+        {
+          "name": "Get my withdrawals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_my_withdrawals&token={{teacher_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_my_withdrawals" },
+                { "key": "token", "value": "{{teacher_token}}" }
+              ]
+            },
+            "description": "The caller's own withdrawal requests with status."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Process Withdrawals (US-FN-2-2)",
+      "item": [
+        {
+          "name": "List withdrawals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=list_withdrawals&token={{admin_token}}&status=",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "list_withdrawals" },
+                { "key": "token", "value": "{{admin_token}}" },
+                { "key": "status", "value": "", "description": "optional: pending | approved | paid | rejected" }
+              ]
+            },
+            "description": "Admin (manageplatform). All requests with teacher name/email."
+          }
+        },
+        {
+          "name": "Approve withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "process_withdrawal", "type": "text" },
+                { "key": "token", "value": "{{admin_token}}", "type": "text" },
+                { "key": "withdrawalid", "value": "{{withdrawalid}}", "type": "text" },
+                { "key": "action", "value": "approve", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/local/academy/api.php", "host": ["{{base_url}}"], "path": ["local", "academy", "api.php"] },
+            "description": "pending → approved."
+          }
+        },
+        {
+          "name": "Mark paid",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "process_withdrawal", "type": "text" },
+                { "key": "token", "value": "{{admin_token}}", "type": "text" },
+                { "key": "withdrawalid", "value": "{{withdrawalid}}", "type": "text" },
+                { "key": "action", "value": "pay", "type": "text" },
+                { "key": "reference", "value": "PAY-001", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/local/academy/api.php", "host": ["{{base_url}}"], "path": ["local", "academy", "api.php"] },
+            "description": "approved → paid. Records the payment reference. Only approved requests can be paid."
+          }
+        },
+        {
+          "name": "Reject withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "process_withdrawal", "type": "text" },
+                { "key": "token", "value": "{{admin_token}}", "type": "text" },
+                { "key": "withdrawalid", "value": "{{withdrawalid}}", "type": "text" },
+                { "key": "action", "value": "reject", "type": "text" },
+                { "key": "reason", "value": "Incomplete payout details", "type": "text", "description": "required" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/local/academy/api.php", "host": ["{{base_url}}"], "path": ["local", "academy", "api.php"] },
+            "description": "pending/approved → rejected. Reason required. The reserved amount returns to the teacher's balance."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Reversal & Platform Wallet",
+      "item": [
+        {
+          "name": "Reverse flex (US-FN-1-5)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "reverse_flex", "type": "text" },
+                { "key": "token", "value": "{{admin_token}}", "type": "text" },
+                { "key": "lessonid", "value": "{{lessonid}}", "type": "text", "description": "a COMPLETED lesson with an active earning" },
+                { "key": "reason", "value": "Dispute upheld", "type": "text", "description": "required" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/local/academy/api.php", "host": ["{{base_url}}"], "path": ["local", "academy", "api.php"] },
+            "description": "Admin (manageplatform). Returns one consumed Flex to the student and reverses the teacher/platform earning. A lesson can be reversed only once."
+          }
+        },
+        {
+          "name": "Get platform wallet",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_platform_wallet&token={{admin_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_platform_wallet" },
+                { "key": "token", "value": "{{admin_token}}" }
+              ]
+            },
+            "description": "Overview: current_money, undistributed_money, teachers_money, platform_earnings, total_payments, total_paid_out."
+          }
+        }
+      ]
+    }
+  ]
+}
