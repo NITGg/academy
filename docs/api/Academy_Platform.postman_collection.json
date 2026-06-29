@@ -121,10 +121,11 @@
                 { "key": "min_booking_minutes", "value": "60" },
                 { "key": "update_deadline_minutes", "value": "120", "disabled": true },
                 { "key": "start_allowed_minutes", "value": "30", "disabled": true },
-                { "key": "absence_report_minutes", "value": "15", "disabled": true }
+                { "key": "absence_report_minutes", "value": "15", "disabled": true },
+                { "key": "lessons_courseid", "value": "2", "description": "course that hosts the per-lesson Jitsi rooms; must be set before start_lesson works", "disabled": true }
               ]
             },
-            "description": "Admin only (manageplatform). Send only the fields you want to change. teacher_percent + platform_percent must total 100; all values >= 0."
+            "description": "Admin only (manageplatform). Send only the fields you want to change. teacher_percent + platform_percent must total 100; all values >= 0. lessons_courseid names the Moodle course that hosts the per-lesson Jitsi meeting rooms — set it before any lesson can be started."
           }
         }
       ]

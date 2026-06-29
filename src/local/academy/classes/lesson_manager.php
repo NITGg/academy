@@ -188,7 +188,13 @@ class lesson_manager {
         if (time() < $allowed) {
             throw new \moodle_exception('err_tooearlytostart', 'local_academy');
         }
-        return self::transition($lesson, self::STATUS_IN_PROGRESS, $teacherid, array('actual_start' => time()));
+        // Create the meeting room (teacher + student whitelisted). If this fails the lesson stays confirmed.
+        $room = room_manager::create_for_lesson($lesson);
+        return self::transition($lesson, self::STATUS_IN_PROGRESS, $teacherid, array(
+            'actual_start' => time(),
+            'sessionid'    => $room->sessionid,
+            'cmid'         => $room->cmid,
+        ));
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -205,6 +211,7 @@ class lesson_manager {
             throw new \moodle_exception('err_badstate', 'local_academy');
         }
         $transaction = $DB->start_delegated_transaction();
+        room_manager::end_for_lesson($lesson); // close the meeting room
         flex_manager::consume($lesson->studentid, $lesson->purchaseid, $lesson->id, $teacherid, 'Lesson completed');
         $extra = array('actual_end' => time(), 'flex_state' => 'consumed');
         if ($note !== null) { $extra['note'] = $note; }
@@ -230,6 +237,7 @@ class lesson_manager {
         }
         self::require_absence_window($lesson);
         $transaction = $DB->start_delegated_transaction();
+        room_manager::end_for_lesson($lesson); // close the meeting room
         flex_manager::consume($lesson->studentid, $lesson->purchaseid, $lesson->id, $teacherid, 'Student absent');
         $result = self::transition($lesson, self::STATUS_STUDENT_ABSENT, $teacherid, array('flex_state' => 'consumed'));
         $transaction->allow_commit();
@@ -251,6 +259,7 @@ class lesson_manager {
         }
         self::require_absence_window($lesson);
         $transaction = $DB->start_delegated_transaction();
+        room_manager::end_for_lesson($lesson); // close the meeting room
         flex_manager::return_flex($lesson->studentid, $lesson->purchaseid, $lesson->id, $studentid, 'Teacher absent');
         $result = self::transition($lesson, self::STATUS_TEACHER_ABSENT, $studentid, array('flex_state' => 'returned'));
         $transaction->allow_commit();
@@ -589,7 +598,7 @@ class lesson_manager {
     }
 
     private static function format_lesson($lesson, $viewerid = 0, $withdetail = false) {
-        global $DB;
+        global $DB, $CFG;
         $student = $DB->get_record('user', array('id' => $lesson->studentid), 'id, firstname, lastname');
         $teacher = $DB->get_record('user', array('id' => $lesson->teacherid), 'id, firstname, lastname');
         $confirmed = (int)$lesson->confirmed_time;
@@ -611,9 +620,16 @@ class lesson_manager {
             'flex_state'     => $lesson->flex_state,
             'actual_start'   => (int)$lesson->actual_start,
             'actual_end'     => (int)$lesson->actual_end,
+            'sessionid'      => (int)$lesson->sessionid,
+            'cmid'           => (int)$lesson->cmid,
             'timecreated'    => (int)$lesson->timecreated,
             'timemodified'   => (int)$lesson->timemodified,
         );
+        // Meeting room (US-LS-3-1): while the lesson is in progress, both the teacher and the
+        // student can open the room. The app shows a "Join Lesson" button when can_join is true.
+        $canjoin = ($lesson->status === self::STATUS_IN_PROGRESS) && ((int)$lesson->cmid > 0);
+        $out['can_join'] = $canjoin;
+        $out['join_url'] = $canjoin ? ($CFG->wwwroot . '/mod/jitsi/view.php?id=' . (int)$lesson->cmid) : '';
         if ($viewerid) {
             $out['my_role'] = ((int)$lesson->studentid === (int)$viewerid) ? 'student'
                 : (((int)$lesson->teacherid === (int)$viewerid) ? 'teacher' : '');
@@ -649,7 +665,7 @@ class lesson_manager {
                 $a = array('start', 'cancel', 'request_time_update');
                 if ($hasreschedule) { $a[] = 'respond_time_update'; }
             } else if ($status === self::STATUS_IN_PROGRESS) {
-                $a = array('complete', 'report_student_absent');
+                $a = array('join', 'complete', 'report_student_absent');
             }
         } else if ($role === 'student') {
             if ($status === self::STATUS_PENDING) { $a = array('cancel_request'); }
@@ -658,7 +674,7 @@ class lesson_manager {
                 $a = array('cancel', 'report_teacher_absent', 'request_time_update');
                 if ($hasreschedule) { $a[] = 'respond_time_update'; }
             } else if ($status === self::STATUS_IN_PROGRESS) {
-                $a = array('report_teacher_absent');
+                $a = array('join', 'report_teacher_absent');
             }
         }
         $a[] = 'view';

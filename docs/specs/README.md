@@ -84,8 +84,8 @@ The two teacher-facing financial stories were renamed so every ID is now unique:
 | US-LS-2-1 | [Teacher Accept/Reject/Suggest](lessons/US-LS-2-1-teacher-accept-reject-suggest.md) | Spec |
 | US-LS-2-2 | [Student Accept/Reject/Suggest](lessons/US-LS-2-2-student-accept-reject-suggest.md) | Spec |
 | US-LS-2-3 | [Teacher Accept/Reject (after response)](lessons/US-LS-2-3-teacher-accept-reject.md) | Spec |
-| US-LS-3-1 | [Start a Lesson](lessons/US-LS-3-1-start-a-lesson.md) | Spec |
-| US-LS-3-2 | [Complete a Lesson](lessons/US-LS-3-2-complete-a-lesson.md) | Spec |
+| US-LS-3-1 | [Start and Join a Lesson](lessons/US-LS-3-1-start-a-lesson.md) | In progress |
+| US-LS-3-2 | [Complete a Lesson](lessons/US-LS-3-2-complete-a-lesson.md) | In progress |
 | US-LS-3-3 | [Report Student Absence](lessons/US-LS-3-3-report-student-absence.md) | Spec |
 | US-LS-3-4 | [Report Teacher Absence](lessons/US-LS-3-4-report-teacher-absence.md) | Spec |
 | US-LS-4-1 | [Cancel a Lesson as a Student](lessons/US-LS-4-1-cancel-lesson-as-student.md) | Spec |

@@ -42,7 +42,7 @@ GET /local/academy/api.php?function=get_lesson_settings&token=TOKEN
 { "status": "success", "data": {
   "min_booking_minutes": 60, "cancel_deadline_minutes": 120, "update_deadline_minutes": 120,
   "start_allowed_minutes": 30, "absence_report_minutes": 15,
-  "teacher_percent": 40, "platform_percent": 60 } }
+  "teacher_percent": 40, "platform_percent": 60, "lessons_courseid": 0 } }
 ```
 
 ### `update_lesson_settings` — GET (admin)
@@ -58,6 +58,7 @@ GET /local/academy/api.php?function=update_lesson_settings&token=ADMIN_TOKEN
 | `update_deadline_minutes` | time-update (reschedule) deadline before start |
 | `start_allowed_minutes` | how early a lesson may start / link is visible |
 | `absence_report_minutes` | wait before an absence can be reported |
+| `lessons_courseid` | course that hosts the per-lesson Jitsi rooms — **must be set before `start_lesson` works** |
 | `teacher_percent` / `platform_percent` | revenue split — **must total 100** |
 
 Rules: every value ≥ 0; `teacher_percent + platform_percent = 100`. Errors:

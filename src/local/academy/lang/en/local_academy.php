@@ -49,6 +49,7 @@ $string['err_absencetooearly']     = 'It is too early to report an absence';
 $string['err_updatedeadline']      = 'The time-update deadline has passed';
 $string['err_updatepending']       = 'There is already a pending time-update request';
 $string['err_noupdaterequest']     = 'There is no pending time-update request to respond to';
+$string['err_nolessonscourse']     = 'The lessons course for meeting rooms is not configured';
 
 // Financial (Phase 3).
 $string['err_notdistributed']      = 'The lesson has no purchase to distribute revenue from';

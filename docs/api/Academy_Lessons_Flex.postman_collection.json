@@ -172,7 +172,7 @@
                 { "key": "token", "value": "{{student_token}}" }
               ]
             },
-            "description": "The deadline/window settings that gate these flows: min_booking_minutes, cancel_deadline_minutes, update_deadline_minutes, start_allowed_minutes, absence_report_minutes."
+            "description": "The deadline/window settings that gate these flows: min_booking_minutes, cancel_deadline_minutes, update_deadline_minutes, start_allowed_minutes, absence_report_minutes. Also lessons_courseid — the course that hosts the per-lesson Jitsi rooms, which must be set before start_lesson works (change it via Platform collection → Update Lesson Settings)."
           }
         }
       ]
@@ -397,7 +397,7 @@
               "host": ["{{base_url}}"],
               "path": ["local", "academy", "api.php"]
             },
-            "description": "US-LS-3-1. From Confirmed, not before start_allowed_minutes ahead of confirmed_time. → In Progress. (For a near-term smoke test, raise start_allowed_minutes via update_lesson_settings.)"
+            "description": "US-LS-3-1. From Confirmed, not before start_allowed_minutes ahead of confirmed_time. → In Progress. Also creates the lesson's Jitsi meeting room, so the response now carries can_join=true, join_url (…/mod/jitsi/view.php?id={cmid}), cmid and sessionid, and `join` appears in actions for both parties. Requires the lessons_courseid setting (see Platform collection → Update Lesson Settings), else fails with err_nolessonscourse. (For a near-term smoke test, raise start_allowed_minutes via update_lesson_settings.)"
           }
         },
         {
@@ -583,7 +583,7 @@
                 { "key": "status", "value": "", "description": "optional filter, e.g. confirmed" }
               ]
             },
-            "description": "Open/negotiating first, then upcoming confirmed by soonest, then history. Each item includes my_role and status-dependent actions."
+            "description": "Open/negotiating first, then upcoming confirmed by soonest, then history. Each item includes my_role and status-dependent actions, plus the room fields can_join / join_url / cmid / sessionid (populated while a lesson is in_progress)."
           }
         },
         {
@@ -619,7 +619,7 @@
                 { "key": "lessonid", "value": "{{lessonid}}" }
               ]
             },
-            "description": "Lesson detail + proposals[] + available actions. Caller must be the student or teacher."
+            "description": "Lesson detail + proposals[] + available actions. Caller must be the student or teacher. The response carries the room fields can_join / join_url / cmid / sessionid; while in_progress, can_join is true, join_url points at the Jitsi room, and `join` is among the actions for both parties (open join_url with &token= appended)."
           }
         },
         {

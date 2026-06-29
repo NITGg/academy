@@ -235,5 +235,22 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026062805, 'local', 'academy');
     }
 
+    if ($oldversion < 2026062806) {
+
+        // Meeting-room link on lessons (US-LS-3-1): the live session + Jitsi course module created on start.
+        $table = new xmldb_table('academy_lessons');
+
+        $field = new xmldb_field('sessionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'actual_end');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $field = new xmldb_field('cmid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'sessionid');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026062806, 'local', 'academy');
+    }
+
     return true;
 }
