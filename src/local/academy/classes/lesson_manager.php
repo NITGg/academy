@@ -555,11 +555,13 @@ class lesson_manager {
         return $time;
     }
 
-    /** Enforce the completion deadline (complete_allowed_minutes after the confirmed start). */
+    /** Minimum run time: a lesson can only be completed complete_allowed_minutes after it starts. */
     private static function require_complete_window($lesson) {
-        $allowed = settings_manager::get('complete_allowed_minutes') * MINSECS;
-        if (time() > (int)$lesson->confirmed_time + $allowed) {
-            throw new \moodle_exception('err_completedeadline', 'local_academy');
+        $wait = settings_manager::get('complete_allowed_minutes') * MINSECS;
+        // Count from the actual start if it was started; otherwise from the confirmed (scheduled) time.
+        $start = (int)$lesson->actual_start > 0 ? (int)$lesson->actual_start : (int)$lesson->confirmed_time;
+        if (time() < $start + $wait) {
+            throw new \moodle_exception('err_completetooearly', 'local_academy');
         }
     }
 
@@ -701,7 +703,12 @@ class lesson_manager {
                 $a = array('start', 'cancel', 'request_time_update');
                 if ($hasreschedule) { $a[] = 'respond_time_update'; }
             } else if ($status === self::STATUS_IN_PROGRESS) {
-                $a = array('join', 'complete', 'report_student_absent');
+                $a = array('join', 'report_student_absent');
+                $wait = settings_manager::get('complete_allowed_minutes') * MINSECS;
+                $start = (int)$lesson->actual_start > 0 ? (int)$lesson->actual_start : (int)$lesson->confirmed_time;
+                if (time() >= $start + $wait) {
+                    $a[] = 'complete';
+                }
             }
         } else if ($role === 'student') {
             if ($status === self::STATUS_PENDING) { $a = array('cancel_request'); }
