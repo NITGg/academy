@@ -19,6 +19,7 @@ As an admin, I want to view lessons, teachers, students, attendance, and activit
 - Per-lesson student attendance
 - Overall attendance % per student across all lessons
 - Per-course student activity report
+- Per-lesson **action timeline** — the time of every student/teacher/system action on the request (created, accepted, rejected, suggested, started, completed, cancelled, absence reported, time-update). Timestamps are stored encrypted and decrypted for display. See [audit trail](../00-overview.md#lesson-action-audit-trail).
 
 ## الخصائص المتضمنة (Arabic source)
 - استعراض جميع الحصص في جميع الكورسات
@@ -30,6 +31,7 @@ As an admin, I want to view lessons, teachers, students, attendance, and activit
 - استعراض حضور الطالب في كل حصة مباشرة
 - استعراض نسبة الحضور الإجمالية للطالب عبر جميع حصصه
 - استعراض تقرير نشاط الطالب داخل كل كورس
+- استعراض الخط الزمني لكل إجراء على الحصة (الإنشاء، القبول، الرفض، الاقتراح، البدء، الإكمال، الإلغاء، تسجيل الغياب، طلب تعديل الوقت) — تُخزَّن أوقات الإجراءات مشفّرة وتُفك للعرض
 
 ## Notes
 - Filter by course, teacher, student, date, lesson status, or attendance status.

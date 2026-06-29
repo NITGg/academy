@@ -14,6 +14,7 @@ class settings_manager {
         'cancel_deadline_minutes' => 120,  // student cancellation deadline before start
         'update_deadline_minutes' => 120,  // lesson time-update deadline before start
         'start_allowed_minutes'   => 30,   // how early a lesson may start / link visible
+        'complete_allowed_minutes' => 180, // how long after the start a lesson may still be completed
         'absence_report_minutes'  => 15,   // wait before reporting absence
         'teacher_percent'         => 40,   // teacher share of a consumed Flex
         'platform_percent'        => 60,   // platform share of a consumed Flex

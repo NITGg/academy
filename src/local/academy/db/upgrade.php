@@ -252,5 +252,25 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026062806, 'local', 'academy');
     }
 
+    if ($oldversion < 2026062807) {
+
+        // Lesson action audit trail (encrypted timestamps) — docs/specs/00-overview.md + US-AD-3-1.
+        $t = new xmldb_table('academy_lesson_events');
+        if (!$dbman->table_exists($t)) {
+            $t->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $t->add_field('lessonid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('action', XMLDB_TYPE_CHAR, '40', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('actorid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('role', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'system');
+            $t->add_field('time_enc', XMLDB_TYPE_TEXT, null, null, null, null, null);
+            $t->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $t->add_key('lessonid_fk', XMLDB_KEY_FOREIGN, array('lessonid'), 'academy_lessons', array('id'));
+            $t->add_index('lessonid_idx', XMLDB_INDEX_NOTUNIQUE, array('lessonid'));
+            $dbman->create_table($t);
+        }
+
+        upgrade_plugin_savepoint(true, 2026062807, 'local', 'academy');
+    }
+
     return true;
 }

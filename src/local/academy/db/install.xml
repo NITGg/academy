@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/academy/db" VERSION="2026062806" COMMENT="Academy Flex platform tables">
+<XMLDB PATH="local/academy/db" VERSION="2026062807" COMMENT="Academy Flex platform tables">
   <TABLES>
     <TABLE NAME="academy_packages" COMMENT="Lesson (Flex) packages defined by admins">
       <FIELDS>
@@ -247,6 +247,24 @@
       <INDEXES>
         <INDEX NAME="teacher_status_idx" UNIQUE="false" FIELDS="teacherid, status"/>
         <INDEX NAME="status_idx" UNIQUE="false" FIELDS="status"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_lesson_events" COMMENT="Audit trail: time of every student/teacher/system action on a lesson request (time stored encrypted)">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="lessonid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="action" TYPE="char" LENGTH="40" NOTNULL="true" SEQUENCE="false" COMMENT="requested|teacher_accepted|teacher_rejected|teacher_suggested|student_accepted|student_rejected|student_suggested|started|completed|student_absent_reported|teacher_absent_reported|request_cancelled|cancelled_by_student|cancelled_by_teacher|time_update_requested|time_update_accepted|time_update_rejected"/>
+        <FIELD NAME="actorid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="user who performed the action (0 = system)"/>
+        <FIELD NAME="role" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="system" SEQUENCE="false" COMMENT="student|teacher|admin|system"/>
+        <FIELD NAME="time_enc" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="base64(\core\encryption::encrypt(unix time)) — encrypted at rest"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="lessonid_fk" TYPE="foreign" FIELDS="lessonid" REFTABLE="academy_lessons" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="lessonid_idx" UNIQUE="false" FIELDS="lessonid"/>
       </INDEXES>
     </TABLE>
   </TABLES>

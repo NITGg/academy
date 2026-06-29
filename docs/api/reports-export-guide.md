@@ -51,6 +51,17 @@ Param: `studentid` (required). Returns the student's current balance (available/
 active package + expiry) and the full Flex ledger (`purchase`, `assign`, `reserve`, `consume`,
 `return`, `expire`, `adjust`) with balance-before/after, related package/lesson, performer, and reason.
 
+### `report_lesson_events` — US-AD-3-1 (action audit trail)
+Param: `lessonid` (required). Returns `{ lesson:{id,student_name,teacher_name,subject,status},
+events:[{action, actorid, actor_name, role, time}] }`, oldest action first. `time` is the unix time
+the action happened, **decrypted on read** — it is stored encrypted (`academy_lesson_events.time_enc`,
+base64 over `\core\encryption`) and never persisted in plaintext. `action` ∈ `requested`,
+`teacher_accepted`, `teacher_rejected`, `teacher_suggested`, `student_accepted`, `student_rejected`,
+`student_suggested`, `started`, `completed`, `student_absent_reported`, `teacher_absent_reported`,
+`request_cancelled`, `cancelled_by_student`, `cancelled_by_teacher`, `time_update_requested`,
+`time_update_accepted`, `time_update_rejected`. Surfaced in the admin Lessons report via a **Timeline**
+button per row. (`time` is `0` if a row can't be decrypted, e.g. after a key change.)
+
 ---
 
 ## CSV export (US-AD-3-x export, US-TR-2-1)

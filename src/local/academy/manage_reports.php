@@ -51,6 +51,13 @@ table.rp-table th,table.rp-table td{border-bottom:1px solid #eee;padding:.4rem .
   <div id="rp-filters"></div>
   <div id="rp-summary"></div>
   <div style="overflow-x:auto"><table class="rp-table"><thead id="rp-head"></thead><tbody id="rp-body"></tbody></table></div>
+  <div id="rp-timeline" style="display:none;margin-top:1rem;border:1px solid #dee2e6;border-radius:.5rem;padding:.75rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <strong id="rp-tl-title">Action timeline</strong>
+      <button id="rp-tl-close" class="btn btn-sm btn-outline-secondary">Close</button>
+    </div>
+    <table class="rp-table"><thead><tr><th>#</th><th>Action</th><th>By</th><th>Role</th><th>Time</th></tr></thead><tbody id="rp-tl-body"></tbody></table>
+  </div>
 </div>
 <?php
 echo html_writer::script(<<<'JS'
@@ -124,16 +131,47 @@ echo html_writer::script(<<<'JS'
     if(d.history){return d.history;}
     return [];
   }
+  // Pretty labels for the audit-trail action keys.
+  var ACTION_LABELS={requested:'Student requested',teacher_accepted:'Teacher accepted',teacher_rejected:'Teacher rejected',
+    teacher_suggested:'Teacher suggested time',student_accepted:'Student accepted',student_rejected:'Student rejected',
+    student_suggested:'Student suggested time',started:'Lesson started',completed:'Lesson completed',
+    student_absent_reported:'Student absence reported',teacher_absent_reported:'Teacher absence reported',
+    request_cancelled:'Request withdrawn',cancelled_by_student:'Cancelled by student',cancelled_by_teacher:'Cancelled by teacher',
+    time_update_requested:'Time-update requested',time_update_accepted:'Time-update accepted',time_update_rejected:'Time-update rejected'};
+  function actionLabel(a){return ACTION_LABELS[a]||a;}
+
   function render(d){
     renderSummary(d);
+    $('rp-timeline').style.display='none';
     var cols=COLS[current];
-    $('rp-head').innerHTML='<tr>'+cols.map(function(c){return '<th>'+c[1]+'</th>';}).join('')+'</tr>';
+    var tl=(current==='lessons'); // lessons rows get an action-timeline button
+    $('rp-head').innerHTML='<tr>'+cols.map(function(c){return '<th>'+c[1]+'</th>';}).join('')+(tl?'<th>Timeline</th>':'')+'</tr>';
     var rows=rowsOf(d);
-    if(!rows.length){$('rp-body').innerHTML='<tr><td colspan="'+cols.length+'" class="text-muted">No data.</td></tr>';return;}
+    if(!rows.length){$('rp-body').innerHTML='<tr><td colspan="'+(cols.length+(tl?1:0))+'" class="text-muted">No data.</td></tr>';return;}
     $('rp-body').innerHTML=rows.map(function(r){
-      return '<tr>'+cols.map(function(c){var v=r[c[0]];if(c[2]){v=c[2](v);}return '<td>'+esc(v)+'</td>';}).join('')+'</tr>';
+      var tds=cols.map(function(c){var v=r[c[0]];if(c[2]){v=c[2](v);}return '<td>'+esc(v)+'</td>';}).join('');
+      if(tl){tds+='<td><button type="button" class="btn btn-sm btn-outline-secondary rp-tl" data-id="'+r.id+'">Timeline</button></td>';}
+      return '<tr>'+tds+'</tr>';
     }).join('');
   }
+
+  function showTimeline(id){
+    apiGet('report_lesson_events',{lessonid:id}).then(function(d){
+      var l=d.lesson||{};
+      $('rp-tl-title').textContent='Action timeline — lesson #'+id+' ('+(l.subject||'')+', '+(l.student_name||'')+' ↔ '+(l.teacher_name||'')+')';
+      var ev=d.events||[];
+      $('rp-tl-body').innerHTML=ev.length?ev.map(function(e,i){
+        return '<tr><td>'+(i+1)+'</td><td>'+esc(actionLabel(e.action))+'</td><td>'+esc(e.actor_name||'—')+'</td><td>'+esc(e.role)+'</td><td>'+(e.time?fmt(e.time):'—')+'</td></tr>';
+      }).join(''):'<tr><td colspan="5" class="text-muted">No recorded actions.</td></tr>';
+      $('rp-timeline').style.display='block';
+      $('rp-timeline').scrollIntoView({behavior:'smooth',block:'nearest'});
+    }).catch(function(e){msg(e.message,'danger');});
+  }
+  $('rp-tl-close').onclick=function(){$('rp-timeline').style.display='none';};
+  $('rp-body').addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('.rp-tl');
+    if(b){showTimeline(b.getAttribute('data-id'));}
+  });
 
   function load(){
     msg('');

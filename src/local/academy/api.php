@@ -85,6 +85,7 @@ $capmap = [
     'report_platform_earnings' => 'local/academy:manageplatform',
     'report_packages'        => 'local/academy:manageplatform',
     'report_student_flex'    => 'local/academy:manageplatform',
+    'report_lesson_events'   => 'local/academy:manageplatform',
 ];
 if (isset($capmap[$function]) && !has_capability($capmap[$function], context_system::instance())) {
     academy_respond(['status' => 'fail', 'error' => 'Permission denied']);
@@ -198,8 +199,8 @@ try {
 
         case 'update_lesson_settings': // admin (manageplatform)
             $fields = ['min_booking_minutes', 'cancel_deadline_minutes', 'update_deadline_minutes',
-                'start_allowed_minutes', 'absence_report_minutes', 'teacher_percent', 'platform_percent',
-                'lessons_courseid'];
+                'start_allowed_minutes', 'complete_allowed_minutes', 'absence_report_minutes',
+                'teacher_percent', 'platform_percent', 'lessons_courseid'];
             $data = [];
             foreach ($fields as $f) {
                 if (isset($_REQUEST[$f])) { $data[$f] = required_param($f, PARAM_INT); }
@@ -476,6 +477,12 @@ try {
         case 'report_student_flex':
             academy_respond(['status' => 'success', 'data' => report_manager::student_flex_report(
                 required_param('studentid', PARAM_INT))]);
+            break;
+
+        // US-AD-3-1: decrypted action timeline (audit trail) for one lesson.
+        case 'report_lesson_events':
+            academy_respond(['status' => 'success', 'data' => report_manager::lesson_events_report(
+                required_param('lessonid', PARAM_INT))]);
             break;
 
         default:

@@ -54,6 +54,17 @@ periods · view payments & reports · suspend/activate accounts.
 `Completed` | `Student Absent` | `Teacher Absent` | `Cancelled` / `Cancelled by Teacher` |
 `Rejected by Teacher`.
 
+## Lesson action audit trail
+
+Every action on a lesson request — by student, teacher, or system — records the **time it
+occurred**. This covers (non-exhaustive): student creates the request, teacher accept / reject /
+suggest, student accept / reject / suggest, teacher start, teacher complete, absence reports,
+cancellations, and time-update requests/responses.
+
+- Each recorded timestamp is **encrypted at rest**.
+- The full action timeline is surfaced to the admin in the lesson reports UI — see
+  [US-AD-3-1](admin/US-AD-3-1-view-lessons-and-attendance-reports.md).
+
 ## Package status model
 
 `Pending Payment` → (`Payment Failed` | `Cancelled`) | `Active` → (`Fully Used` | `Expired`).

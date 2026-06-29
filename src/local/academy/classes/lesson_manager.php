@@ -49,6 +49,11 @@ class lesson_manager {
         if ($subject === '') {
             throw new \moodle_exception('err_subjectrequired', 'local_academy');
         }
+        // US-LS-1-1: the lesson note is required (not optional).
+        $note = trim($note);
+        if ($note === '') {
+            throw new \moodle_exception('err_noterequired', 'local_academy');
+        }
         if (!teacher_manager::is_teacher($teacherid)) {
             throw new \moodle_exception('err_teachernotfound', 'local_academy');
         }
@@ -83,6 +88,7 @@ class lesson_manager {
             'timemodified'   => $now,
         );
         $lesson->id = $DB->insert_record('academy_lessons', $lesson);
+        audit_manager::record($lesson->id, 'requested', $studentid, 'student');
         return self::format_lesson($DB->get_record('academy_lessons', array('id' => $lesson->id)), $studentid);
     }
 
@@ -112,10 +118,12 @@ class lesson_manager {
                 $time = ($lesson->status === self::STATUS_PENDING)
                     ? (int)$lesson->requested_time
                     : self::latest_pending_proposal_time($lessonid);
+                audit_manager::record($lessonid, 'teacher_accepted', $teacherid, 'teacher');
                 return self::confirm_lesson($lesson, $time, $teacherid);
 
             case 'reject':
                 self::supersede_pending_proposals($lessonid);
+                audit_manager::record($lessonid, 'teacher_rejected', $teacherid, 'teacher');
                 return self::transition($lesson, self::STATUS_REJECTED, $teacherid, array(
                     'reject_reason' => trim($opts['reject_reason'] ?? ''),
                 ));
@@ -128,6 +136,7 @@ class lesson_manager {
                 }
                 $time = self::required_future_time($opts['suggested_time'] ?? 0);
                 self::add_proposal($lessonid, $teacherid, 'teacher', $time, 'suggest');
+                audit_manager::record($lessonid, 'teacher_suggested', $teacherid, 'teacher');
                 return self::transition($lesson, self::STATUS_WAITING_STUDENT, $teacherid);
 
             default:
@@ -152,11 +161,13 @@ class lesson_manager {
         switch ($action) {
             case 'accept':
                 $time = self::latest_pending_proposal_time($lessonid);
+                audit_manager::record($lessonid, 'student_accepted', $studentid, 'student');
                 return self::confirm_lesson($lesson, $time, $studentid);
 
             case 'reject':
                 // Student declines the suggested time — negotiation ends (no Flex was reserved).
                 self::supersede_pending_proposals($lessonid);
+                audit_manager::record($lessonid, 'student_rejected', $studentid, 'student');
                 return self::transition($lesson, self::STATUS_CANCELLED, $studentid, array(
                     'cancel_reason' => trim($opts['reject_reason'] ?? 'Student rejected the suggested time'),
                 ));
@@ -164,6 +175,7 @@ class lesson_manager {
             case 'suggest':
                 $time = self::required_future_time($opts['suggested_time'] ?? 0);
                 self::add_proposal($lessonid, $studentid, 'student', $time, 'suggest');
+                audit_manager::record($lessonid, 'student_suggested', $studentid, 'student');
                 return self::transition($lesson, self::STATUS_WAITING_TEACHER, $studentid);
 
             default:
@@ -190,6 +202,7 @@ class lesson_manager {
         }
         // Create the meeting room (teacher + student whitelisted). If this fails the lesson stays confirmed.
         $room = room_manager::create_for_lesson($lesson);
+        audit_manager::record($lessonid, 'started', $teacherid, 'teacher');
         return self::transition($lesson, self::STATUS_IN_PROGRESS, $teacherid, array(
             'actual_start' => time(),
             'sessionid'    => $room->sessionid,
@@ -210,11 +223,15 @@ class lesson_manager {
         if (!in_array($lesson->status, array(self::STATUS_CONFIRMED, self::STATUS_IN_PROGRESS), true)) {
             throw new \moodle_exception('err_badstate', 'local_academy');
         }
+        // US-LS-3-2: completion has a deadline, mirroring the start-allowed constraint — the lesson
+        // cannot be completed more than complete_allowed_minutes after its confirmed start time.
+        self::require_complete_window($lesson);
         $transaction = $DB->start_delegated_transaction();
         room_manager::end_for_lesson($lesson); // close the meeting room
         flex_manager::consume($lesson->studentid, $lesson->purchaseid, $lesson->id, $teacherid, 'Lesson completed');
         $extra = array('actual_end' => time(), 'flex_state' => 'consumed');
         if ($note !== null) { $extra['note'] = $note; }
+        audit_manager::record($lesson->id, 'completed', $teacherid, 'teacher');
         $result = self::transition($lesson, self::STATUS_COMPLETED, $teacherid, $extra);
         // Distribute revenue on completion (US-FN-1-4): teacher/platform split of the Flex value.
         finance_manager::distribute_for_lesson($DB->get_record('academy_lessons', array('id' => $lesson->id)));
@@ -239,6 +256,7 @@ class lesson_manager {
         $transaction = $DB->start_delegated_transaction();
         room_manager::end_for_lesson($lesson); // close the meeting room
         flex_manager::consume($lesson->studentid, $lesson->purchaseid, $lesson->id, $teacherid, 'Student absent');
+        audit_manager::record($lesson->id, 'student_absent_reported', $teacherid, 'teacher');
         $result = self::transition($lesson, self::STATUS_STUDENT_ABSENT, $teacherid, array('flex_state' => 'consumed'));
         $transaction->allow_commit();
         return $result;
@@ -261,6 +279,7 @@ class lesson_manager {
         $transaction = $DB->start_delegated_transaction();
         room_manager::end_for_lesson($lesson); // close the meeting room
         flex_manager::return_flex($lesson->studentid, $lesson->purchaseid, $lesson->id, $studentid, 'Teacher absent');
+        audit_manager::record($lesson->id, 'teacher_absent_reported', $studentid, 'student');
         $result = self::transition($lesson, self::STATUS_TEACHER_ABSENT, $studentid, array('flex_state' => 'returned'));
         $transaction->allow_commit();
         return $result;
@@ -280,6 +299,7 @@ class lesson_manager {
             throw new \moodle_exception('err_badstate', 'local_academy');
         }
         self::supersede_pending_proposals($lessonid);
+        audit_manager::record($lessonid, 'request_cancelled', $studentid, 'student');
         return self::transition($lesson, self::STATUS_CANCELLED, $studentid, array(
             'cancel_reason' => trim($reason) !== '' ? trim($reason) : 'Request withdrawn by student',
         ));
@@ -310,6 +330,7 @@ class lesson_manager {
             flex_manager::consume($lesson->studentid, $lesson->purchaseid, $lesson->id, $studentid, 'Student cancelled (late)');
             $flexstate = 'consumed';
         }
+        audit_manager::record($lesson->id, 'cancelled_by_student', $studentid, 'student');
         $result = self::transition($lesson, self::STATUS_CANCELLED, $studentid, array(
             'cancel_reason' => trim($reason),
             'flex_state'    => $flexstate,
@@ -337,6 +358,7 @@ class lesson_manager {
         }
         $transaction = $DB->start_delegated_transaction();
         flex_manager::return_flex($lesson->studentid, $lesson->purchaseid, $lesson->id, $teacherid, 'Teacher cancelled');
+        audit_manager::record($lesson->id, 'cancelled_by_teacher', $teacherid, 'teacher');
         $result = self::transition($lesson, self::STATUS_CANCELLED_TEACHER, $teacherid, array(
             'cancel_reason' => $reason,
             'flex_state'    => 'returned',
@@ -366,6 +388,7 @@ class lesson_manager {
             throw new \moodle_exception('err_updatepending', 'local_academy');
         }
         self::add_proposal($lessonid, $userid, $role, $time, 'reschedule');
+        audit_manager::record($lessonid, 'time_update_requested', $userid, $role);
         return self::get_lesson($userid, $lessonid);
     }
 
@@ -391,14 +414,17 @@ class lesson_manager {
             throw new \moodle_exception('err_forbidden', 'local_academy');
         }
 
+        $role = self::participant_role($lesson, $userid);
         if ($action === 'accept') {
             $proposal->status = 'accepted';
             $DB->update_record('academy_lesson_proposals', $proposal);
+            audit_manager::record($lessonid, 'time_update_accepted', $userid, $role);
             return self::transition($lesson, self::STATUS_CONFIRMED, $userid,
                 array('confirmed_time' => (int)$proposal->proposed_time));
         } else if ($action === 'reject') {
             $proposal->status = 'rejected';
             $DB->update_record('academy_lesson_proposals', $proposal);
+            audit_manager::record($lessonid, 'time_update_rejected', $userid, $role);
             return self::get_lesson($userid, $lessonid);
         }
         throw new \moodle_exception('err_badaction', 'local_academy');
@@ -527,6 +553,14 @@ class lesson_manager {
         }
         self::require_min_booking($time);
         return $time;
+    }
+
+    /** Enforce the completion deadline (complete_allowed_minutes after the confirmed start). */
+    private static function require_complete_window($lesson) {
+        $allowed = settings_manager::get('complete_allowed_minutes') * MINSECS;
+        if (time() > (int)$lesson->confirmed_time + $allowed) {
+            throw new \moodle_exception('err_completedeadline', 'local_academy');
+        }
     }
 
     /** Enforce the absence-report wait window (absence_report_minutes after the confirmed start). */

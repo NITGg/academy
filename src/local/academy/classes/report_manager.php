@@ -63,6 +63,35 @@ class report_manager {
         return array('rows' => $out, 'summary' => $summary);
     }
 
+    /**
+     * US-AD-3-1: decrypted action timeline for one lesson (audit trail).
+     *
+     * Returns every student/teacher/system action recorded against the lesson with its time
+     * decrypted for display. See {@see audit_manager} and docs/specs/00-overview.md.
+     *
+     * @param int $lessonid
+     * @return array ['lesson' => [...], 'events' => [...]]
+     */
+    public static function lesson_events_report($lessonid) {
+        global $DB;
+        $lesson = $DB->get_record('academy_lessons', array('id' => $lessonid));
+        if (!$lesson) {
+            throw new \moodle_exception('err_lessonnotfound', 'local_academy');
+        }
+        $student = $DB->get_record('user', array('id' => $lesson->studentid), 'id, firstname, lastname');
+        $teacher = $DB->get_record('user', array('id' => $lesson->teacherid), 'id, firstname, lastname');
+        return array(
+            'lesson' => array(
+                'id'           => (int)$lesson->id,
+                'student_name' => $student ? trim($student->firstname . ' ' . $student->lastname) : '',
+                'teacher_name' => $teacher ? trim($teacher->firstname . ' ' . $teacher->lastname) : '',
+                'subject'      => $lesson->subject,
+                'status'       => $lesson->status,
+            ),
+            'events' => audit_manager::get_timeline($lessonid),
+        );
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     // US-AD-3-2: platform earnings
     // ──────────────────────────────────────────────────────────────────────────
