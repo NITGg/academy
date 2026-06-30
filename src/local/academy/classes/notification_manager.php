@@ -83,7 +83,15 @@ class notification_manager {
             $message->contexturl        = $url->out(false);
             $message->contexturlname    = get_string('mylessons', 'local_academy');
 
-            message_send($message);
+            // Buffer message_send: a mis-configured mail server makes the email processor *print*
+            // a warning (it does not throw), which would otherwise corrupt the JSON API response
+            // and surface to the app as "Session expired". Capture and discard any such output.
+            ob_start();
+            try {
+                message_send($message);
+            } finally {
+                ob_end_clean();
+            }
         } catch (\Throwable $e) {
             // Notifications must never block the lesson action; swallow and move on.
             debugging('academy notification failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
