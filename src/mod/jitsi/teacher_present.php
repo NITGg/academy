@@ -28,6 +28,17 @@ $session = $DB->get_record('academy_live_sessions', ['jitsiid' => $cm->instance]
 if ($session) {
     $DB->set_field('academy_live_sessions', 'teacher_joined_at',
         $present ? time() : null, ['id' => $session->id]);
+
+    // Track first join time in attendance table for historical reports,
+    // since teacher_joined_at is cleared when they leave the room.
+    if ($present && !$DB->record_exists('academy_session_attendance', ['sessionid' => $session->id, 'userid' => $USER->id])) {
+        $att = new \stdClass();
+        $att->sessionid        = $session->id;
+        $att->userid           = $USER->id;
+        $att->joined_at        = time();
+        $att->duration_seconds = 0;
+        $DB->insert_record('academy_session_attendance', $att);
+    }
 }
 
 header('Content-Type: application/json');

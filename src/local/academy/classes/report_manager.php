@@ -80,11 +80,15 @@ class report_manager {
         }
         $student = $DB->get_record('user', array('id' => $lesson->studentid), 'id, firstname, lastname');
         $teacher = $DB->get_record('user', array('id' => $lesson->teacherid), 'id, firstname, lastname');
-        // When the teacher actually entered the meeting room (academy_live_sessions, linked by sessionid).
+        // When the teacher actually entered the meeting room.
+        // We fetch this from attendance since the live session column is cleared when they leave to gate students.
         $teacherjoined = 0;
         if (!empty($lesson->sessionid)) {
-            $teacherjoined = (int)$DB->get_field('academy_live_sessions', 'teacher_joined_at',
-                array('id' => (int)$lesson->sessionid));
+            $att = $DB->get_field('academy_session_attendance', 'joined_at',
+                array('sessionid' => (int)$lesson->sessionid, 'userid' => (int)$lesson->teacherid));
+            if ($att) {
+                $teacherjoined = (int)$att;
+            }
         }
         return array(
             'lesson' => array(

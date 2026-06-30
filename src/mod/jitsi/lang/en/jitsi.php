@@ -15,7 +15,7 @@ $string['privacy:metadata'] = 'The Jitsi Session module does not store any perso
 // View page strings.
 $string['notallowed']      = 'You are not enrolled in this session.';
 $string['sessionopening']  = 'The session will open in {$a} minute(s).';
-$string['waitingforteacher'] = 'Waiting for the teacher to start the meeting. You will join automatically once they arrive.';
+$string['waitingforteacher'] = 'Waiting for the teacher to start the meeting.';
 $string['sessionended']    = 'This session has ended.';
 $string['youarehost']      = 'You are the host';
 $string['tab_video']       = 'Video Session';
