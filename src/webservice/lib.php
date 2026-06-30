@@ -118,8 +118,22 @@ class webservice {
         enrol_check_plugins($user);
 
         // setup user session to check capability
+        // Preserve the interactive browser session's sesskey across set_user(). set_user()
+        // regenerates the sesskey (the freshly loaded user record carries none), which would
+        // silently invalidate the sesskey already baked into a rendered page. Same-origin XHR
+        // that carries the MoodleSession cookie (e.g. local/academy/api.php called on load from
+        // the wallet / my_lessons / teacher_profile / student pages) otherwise breaks the very
+        // next navbar AJAX (notifications/messages popover) with "invalidsesskey". Only restore
+        // when the token belongs to the user already logged in interactively, so genuine
+        // token-only web-service requests (guest -> token user) still get a freshly minted key.
+        global $USER;
+        $presesskey = (!empty($USER->id) && $USER->id == $user->id && !empty($USER->sesskey))
+            ? $USER->sesskey : null;
         \core\session\manager::set_user($user);
         set_login_session_preferences();
+        if ($presesskey !== null) {
+            $USER->sesskey = $presesskey;
+        }
 
         //assumes that if sid is set then there must be a valid associated session no matter the token type
         if ($token->sid) {
