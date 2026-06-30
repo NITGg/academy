@@ -39,8 +39,6 @@ class room_manager {
         // Both participants need access to the course that hosts the room.
         self::enrol($courseid, (int)$lesson->teacherid, 'editingteacher');
         self::enrol($courseid, (int)$lesson->studentid, 'student');
-        // Refresh the current user's (teacher's) capabilities so create_module() sees the new role.
-        reload_all_capabilities();
 
         $student = $DB->get_record('user', array('id' => $lesson->studentid), 'id, firstname, lastname');
         $title = trim($lesson->subject) . ' — ' . ($student ? fullname($student) : 'Lesson #' . $lesson->id);
@@ -56,7 +54,10 @@ class room_manager {
         $moduleinfo->name              = $title;
         $moduleinfo->introeditor       = array('text' => '', 'format' => FORMAT_HTML, 'itemid' => 0);
         $moduleinfo->lobby_enabled     = 1; // 1:1 lesson — the teacher admits the student.
-        $created = create_module($moduleinfo);
+        // Create the room with elevated privileges: teachers are deliberately denied
+        // moodle/course:manageactivities in this course (see lock_down_teacher_visibility) so
+        // they can't see other teachers' rooms, which means they also can't create this one.
+        $created = self::create_module_elevated($moduleinfo);
 
         $cmid    = (int) $created->coursemodule;
         $jitsiid = (int) $created->instance;
@@ -164,19 +165,38 @@ class room_manager {
         enrol_try_internal_enrol($courseid, $userid, $role ? $role->id : null);
     }
 
+    /** Create a course module with site-admin privileges (used because teachers are denied
+     *  manageactivities in the lessons course — see lock_down_teacher_visibility). */
+    private static function create_module_elevated($moduleinfo) {
+        global $USER;
+        $realuser = $USER;
+        \core\session\manager::set_user(get_admin());
+        try {
+            return create_module($moduleinfo);
+        } finally {
+            \core\session\manager::set_user($realuser);
+        }
+    }
+
     /**
-     * Prevent editing teachers from bypassing the per-room availability restriction in the lessons
-     * course, so a teacher only sees rooms they belong to (the same effect the group restriction
-     * already has on students). Applied once as a capability override on the course context;
-     * idempotent — after the first run the checks are cheap no-ops.
+     * Prevent teachers from seeing rooms they don't belong to in the lessons course, so a teacher
+     * only sees their own rooms (the same effect the group restriction already has on students).
+     * Applied once as a capability override on the course context; idempotent — after the first run
+     * the checks are cheap no-ops. The room is created with admin privileges instead (see
+     * {@see create_module_elevated()}), so removing manageactivities here does not block creation.
      */
     private static function lock_down_teacher_visibility($courseid) {
         global $DB;
 
         $context = \context_course::instance($courseid);
-        // ignoreavailabilityrestrictions is what lets editingteacher/teacher see restricted rooms;
-        // viewhiddenactivities is its clone-permission sibling, prevented for good measure.
+        // Capabilities that would otherwise let a teacher see rooms they don't belong to:
+        //  - accessallgroups: makes the group-availability condition treat them as a member of every
+        //    group, bypassing the per-room restriction entirely (the main leak).
+        //  - manageactivities: makes them a course editor — Moodle shows editors every activity.
+        //  - ignoreavailabilityrestrictions / viewhiddenactivities: direct availability bypasses.
         $caps = array(
+            'moodle/site:accessallgroups',
+            'moodle/course:manageactivities',
             'moodle/course:ignoreavailabilityrestrictions',
             'moodle/course:viewhiddenactivities',
         );
