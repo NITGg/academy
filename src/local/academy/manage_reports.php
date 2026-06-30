@@ -135,7 +135,8 @@ echo html_writer::script(<<<'JS'
   // Pretty labels for the audit-trail action keys.
   var ACTION_LABELS={requested:'Student requested',teacher_accepted:'Teacher accepted',teacher_rejected:'Teacher rejected',
     teacher_suggested:'Teacher suggested time',student_accepted:'Student accepted',student_rejected:'Student rejected',
-    student_suggested:'Student suggested time',started:'Lesson started',completed:'Lesson completed',
+    student_suggested:'Student suggested time',started:'Teacher started lesson (room created)',
+    teacher_joined:'Teacher joined meeting',student_joined:'Student joined meeting',completed:'Lesson completed',
     student_absent_reported:'Student absence reported',teacher_absent_reported:'Teacher absence reported',
     request_cancelled:'Request withdrawn',cancelled_by_student:'Cancelled by student',cancelled_by_teacher:'Cancelled by teacher',
     time_update_requested:'Time-update requested',time_update_accepted:'Time-update accepted',time_update_rejected:'Time-update rejected'};
