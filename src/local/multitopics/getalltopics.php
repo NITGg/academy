@@ -113,15 +113,19 @@ foreach ($jitsi_cms as $jcm) {
     // Include if within window or starting within 24h.
     if ($now >= $open_from && $now <= $open_until) {
         $is_teacher_ctx = context_module::instance($jcm->cmid);
+        $is_moderator   = has_capability('mod/jitsi:moderate', $is_teacher_ctx);
         $jitsi_host     = get_config('local_academysessions', 'jitsi_host') ?: 'localhost:8443';
         $server_url     = (strpos($jitsi_host, 'http') === 0)
             ? rtrim($jitsi_host, '/')
             : 'https://' . $jitsi_host;
 
+        // Hold the student until the teacher is actually in the call (set by teacher_present.php).
+        $teacher_present = !empty($session->teacher_joined_at);
+        $available       = $is_moderator || $teacher_present;
+
         $room = 'academy_jitsi_' . $jcm->cmid . '_' . substr(md5($jcm->jitsiid . $jcm->cmid), 0, 8);
         $jwt  = \local_academysessions\jitsi_jwt::generate(
-            $room, fullname($USER), $USER->email,
-            has_capability('mod/jitsi:moderate', $is_teacher_ctx)
+            $room, fullname($USER), $USER->email, $is_moderator
         );
 
         $start_dt = date('Y-m-d\TH:i:s', $session->start_time);
@@ -137,14 +141,16 @@ foreach ($jitsi_cms as $jcm) {
         $other_fields = (object)[
             'online' => 'no',
             'jitsi'  => (object)[
-                'cmid'       => (int)$jcm->cmid,
-                'room'       => $room,
-                'server_url' => $server_url,
-                'jwt'        => $jwt,
-                'title'      => $jcm->name,
-                'start'      => $start_dt,
-                'end'        => $end_dt,
-                'host_id'    => (string)$host_id,
+                'cmid'           => (int)$jcm->cmid,
+                'room'           => $room,
+                'server_url'     => $server_url,
+                'jwt'            => $jwt,
+                'title'          => $jcm->name,
+                'start'          => $start_dt,
+                'end'            => $end_dt,
+                'host_id'        => (string)$host_id,
+                'available'      => $available,
+                'available_info' => $available ? '' : get_string('waitingforteacher', 'jitsi'),
             ],
         ];
         break;
@@ -298,6 +304,10 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
             $sess_end      = $session ? date('Y-m-d\TH:i:s', $session->start_time + ($session->duration * 60)) : null;
             $sess_status   = $session ? $session->status : null;
 
+            // Hold the student until the teacher is actually in the call (set by teacher_present.php).
+            $teacher_present = $session ? !empty($session->teacher_joined_at) : false;
+            $available       = $is_teacher || $teacher_present;
+
             $host_id = 0;
             $teachers = get_enrolled_users($jitsi_ctx, 'mod/jitsi:moderate', 0, 'u.id', null, 0, 1);
             if ($teachers) {
@@ -310,8 +320,8 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
                 'jwt'            => $jwt,
                 'subject'        => format_string($jitsi_rec->name ?? $cm->name),
                 'is_teacher'     => $is_teacher,
-                'available'      => $is_teacher || (bool)$cm->available,
-                'available_info' => strip_tags($cm->availableinfo ?? ''),
+                'available'      => $available,
+                'available_info' => $available ? '' : get_string('waitingforteacher', 'jitsi'),
                 'session_start'  => $sess_start ?? '',
                 'session_end'    => $sess_end   ?? '',
                 'session_status' => $sess_status ?? '',
