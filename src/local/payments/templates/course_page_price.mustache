@@ -1,0 +1,57 @@
+{{!
+    Course page price display with full details.
+    Context: {price, sale_price, original_price, currency, is_sale_active, discount_pct, is_purchased, is_enrolled, country}
+}}
+<div class="local-payments-course-price card mb-3">
+    <div class="card-body">
+        {{#is_enrolled}}
+            <div class="text-center">
+                <i class="fa fa-check-circle text-success" style="font-size: 2rem;"></i>
+                <h5 class="mt-2">{{#str}}already_enrolled, local_payments{{/str}}</h5>
+            </div>
+        {{/is_enrolled}}
+        {{^is_enrolled}}
+            {{#is_purchased}}
+                <div class="text-center">
+                    <i class="fa fa-shopping-cart text-info" style="font-size: 2rem;"></i>
+                    <h5 class="mt-2">{{#str}}already_purchased, local_payments{{/str}}</h5>
+                </div>
+            {{/is_purchased}}
+            {{^is_purchased}}
+                <div class="text-center">
+                    {{#is_sale_active}}
+                        <span class="badge badge-danger mb-2">
+                            {{#str}}sale, local_payments{{/str}} -{{discount_pct}}%
+                        </span>
+                        <div class="mb-1">
+                            <span class="text-muted" style="text-decoration: line-through; font-size: 1.1rem;">
+                                {{original_price}} {{currency}}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-danger font-weight-bold" style="font-size: 1.8rem;">
+                                {{sale_price}} {{currency}}
+                            </span>
+                        </div>
+                    {{/is_sale_active}}
+                    {{^is_sale_active}}
+                        <div class="mb-2">
+                            <span class="font-weight-bold" style="font-size: 1.8rem;">
+                                {{price}} {{currency}}
+                            </span>
+                        </div>
+                    {{/is_sale_active}}
+
+                    <a href="{{buy_url}}" class="btn btn-primary btn-lg btn-block" id="local-payments-buy-btn"
+                       data-courseid="{{courseid}}">
+                        {{#str}}buycourse, local_payments{{/str}}
+                    </a>
+
+                    <small class="text-muted mt-2 d-block">
+                        {{#str}}secure_checkout, local_payments{{/str}}
+                    </small>
+                </div>
+            {{/is_purchased}}
+        {{/is_enrolled}}
+    </div>
+</div>

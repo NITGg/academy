@@ -1,0 +1,35 @@
+{{!
+    Course card price display.
+    Context: {price, sale_price, original_price, currency, is_sale_active, discount_pct, is_purchased, is_enrolled}
+}}
+<div class="local-payments-card-price">
+    {{#is_enrolled}}
+        <span class="badge badge-success">{{#str}}enrolled, local_payments{{/str}}</span>
+    {{/is_enrolled}}
+    {{^is_enrolled}}
+        {{#is_purchased}}
+            <span class="badge badge-info">{{#str}}purchased, local_payments{{/str}}</span>
+        {{/is_purchased}}
+        {{^is_purchased}}
+            <div class="price-display">
+                {{#is_sale_active}}
+                    <span class="badge badge-danger mr-1">{{#str}}sale, local_payments{{/str}} -{{discount_pct}}%</span>
+                    <span class="original-price text-muted" style="text-decoration: line-through;">
+                        {{original_price}} {{currency}}
+                    </span>
+                    <span class="sale-price font-weight-bold text-danger">
+                        {{sale_price}} {{currency}}
+                    </span>
+                {{/is_sale_active}}
+                {{^is_sale_active}}
+                    <span class="current-price font-weight-bold">
+                        {{price}} {{currency}}
+                    </span>
+                {{/is_sale_active}}
+            </div>
+            <a href="{{buy_url}}" class="btn btn-primary btn-sm mt-1">
+                {{#str}}buynow, local_payments{{/str}}
+            </a>
+        {{/is_purchased}}
+    {{/is_enrolled}}
+</div>
