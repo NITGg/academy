@@ -2,7 +2,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'Academy Flex platform';
-$string['newnotification'] = 'You have a new notification';
 $string['academy:managepackages'] = 'Manage lesson (Flex) packages';
 $string['managepackages'] = 'Manage lesson packages';
 $string['managesettings'] = 'Lesson settings';
