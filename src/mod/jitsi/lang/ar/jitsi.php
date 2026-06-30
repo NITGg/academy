@@ -15,6 +15,7 @@ $string['privacy:metadata'] = 'لا يخزّن هذا المكوّن أي بيا
 // View page strings.
 $string['notallowed']      = 'أنت غير مسجّل في هذه الجلسة.';
 $string['sessionopening']  = 'ستُفتح الجلسة خلال {$a} دقيقة.';
+$string['waitingforteacher'] = 'في انتظار انضمام المعلم لبدء الجلسة. سيتم إدخالك تلقائياً عند انضمامه.';
 $string['sessionended']    = 'انتهت هذه الجلسة.';
 $string['youarehost']      = 'أنت المضيف';
 $string['tab_video']       = 'الجلسة المرئية';

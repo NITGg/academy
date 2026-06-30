@@ -154,7 +154,22 @@ if ($session) {
             exit;
         }
 
-        // 4. Record attendance (first join only).
+        // 4. Hold the student out of the room until the teacher is actually in the call.
+        //    teacher_joined_at is stamped by teacher_present.php on the teacher's
+        //    videoConferenceJoined event (and cleared when they leave). The waiting page
+        //    auto-reloads, so the student drops into the room the moment the teacher arrives.
+        if (empty($session->teacher_joined_at)) {
+            echo $OUTPUT->header();
+            echo $OUTPUT->heading(format_string($jitsi->name));
+            echo html_writer::tag('div',
+                $OUTPUT->notification(get_string('waitingforteacher', 'jitsi'), 'info'),
+                ['id' => 'jitsi-waiting']);
+            echo html_writer::script('setTimeout(function(){ location.reload(); }, 5000);');
+            echo $OUTPUT->footer();
+            exit;
+        }
+
+        // 5. Record attendance (first join only).
         if (!$DB->record_exists('academy_session_attendance', ['sessionid' => $session->id, 'userid' => $USER->id])) {
             $att                   = new stdClass();
             $att->sessionid        = $session->id;
@@ -318,6 +333,7 @@ $js_config = json_encode([
     'jwt'             => $jitsi_jwt,
     'roomPassword'    => $room_password,
     'lobbyEnabled'    => $lobby_enabled,
+    'teacherPresentUrl' => $CFG->wwwroot . '/mod/jitsi/teacher_present.php',
     'autoRecordUrl'     => $jibri_auto_record_url,
     'autoRecordStopUrl' => $CFG->wwwroot . '/mod/jitsi/auto_record_stop.php',
     'autoRecordCmid'    => (int)$jibri_auto_record_cmid,
@@ -404,8 +420,20 @@ echo <<<HTML
 
         // Teacher: set password on first join and enable lobby if configured.
         // JWT moderator role automatically bypasses the lobby on rejoin.
+        // Tell the backend whether the teacher is currently in the call, so the student
+        // entry gate in view.php only opens while the teacher is present.
+        function setTeacherPresent(present) {
+            fetch(CFG.teacherPresentUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'cmid=' + CFG.autoRecordCmid + '&sesskey=' + CFG.autoRecordToken + '&present=' + (present ? 1 : 0),
+                keepalive: true
+            }).catch(function() {});
+        }
+
         if (CFG.isTeacher) {
             api.addEventListener('videoConferenceJoined', function() {
+                setTeacherPresent(true);
                 if (CFG.roomPassword) {
                     api.executeCommand('password', CFG.roomPassword);
                 }
@@ -422,8 +450,9 @@ echo <<<HTML
                 }).catch(function() {});
             });
 
-            // Stop Jibri when the teacher leaves or ends the meeting.
+            // Stop Jibri and re-gate students when the teacher leaves or ends the meeting.
             function stopJibriRecording() {
+                setTeacherPresent(false);
                 var btn = document.getElementById('btn-stop-rec');
                 if (btn) btn.style.display = 'none';
                 fetch(CFG.autoRecordStopUrl, {

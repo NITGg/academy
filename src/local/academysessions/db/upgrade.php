@@ -44,5 +44,17 @@ function xmldb_local_academysessions_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026062401, 'local', 'academysessions');
     }
 
+    if ($oldversion < 2026063000) {
+        // Track when the teacher actually enters the Jitsi call so students can be held
+        // out of the room until the teacher is present (US-LS-3-1 lobby gate).
+        $table = new xmldb_table('academy_live_sessions');
+        $field = new xmldb_field('teacher_joined_at', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'status');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026063000, 'local', 'academysessions');
+    }
+
     return true;
 }

@@ -65,10 +65,9 @@ Every movement is appended to `academy_flex_tx` (auditable via `get_flex_history
 ## Endpoints
 
 ### Request a lesson — `request_lesson` (POST) · student
-Params: `teacherid`, `subject`, `requested_time`, `note` (**required**)
-Checks: a non-empty `note` is given (`err_noterequired`); teacher offers the subject; student has an
-active package with available Flex; the time is at least `min_booking_minutes` away. No Flex is reserved
-yet. → status `pending`.
+Params: `teacherid`, `subject`, `requested_time`, `note?`
+Checks: teacher offers the subject; student has an active package with available Flex; the time is at
+least `min_booking_minutes` away. No Flex is reserved yet. → status `pending`.
 
 ### Teacher responds — `teacher_respond_lesson` (POST) · teacher
 Params: `lessonid`, `action` = `accept` | `reject` | `suggest`, plus `suggested_time?`, `reject_reason?`
@@ -93,10 +92,8 @@ Params: `lessonid`. From `confirmed`, not before `start_allowed_minutes` ahead o
 `err_nolessonscourse`.
 
 ### Complete — `complete_lesson` (POST) · teacher
-Params: `lessonid`, `note?`. From `confirmed`/`in_progress`, and **only after the lesson has run** —
-at least `complete_allowed_minutes` past the actual start (or `confirmed_time` if it was never started);
-completing earlier returns `err_completetooearly`. Consumes the reserved Flex and closes the meeting
-room. → `completed`, records `actual_end`. *(Revenue split US-FN-1-4 is Phase 3.)*
+Params: `lessonid`, `note?`. From `confirmed`/`in_progress`. Consumes the reserved Flex and closes the
+meeting room. → `completed`, records `actual_end`. *(Revenue split US-FN-1-4 is Phase 3.)*
 
 ### Student absent — `report_student_absent` (POST) · teacher
 Params: `lessonid`. From `confirmed`/`in_progress`, after `absence_report_minutes` past start.
@@ -132,11 +129,6 @@ Params: `lessonid`. Returns the lesson plus its `proposals[]` and available `act
 ### Flex history — `get_flex_history` (GET) · student
 The caller's full Flex ledger (`reserve` / `consume` / `return`) with running balance.
 
-> **Action audit trail.** Every lifecycle call above also appends one `academy_lesson_events` row
-> recording **who did what and when**, with the timestamp **encrypted at rest**. Admins read the
-> decrypted timeline via `report_lesson_events` (see the reports guide). This is automatic — no
-> parameter or extra call is needed.
-
 ---
 
 ## Meeting room & joining (US-LS-3-1)
@@ -157,9 +149,24 @@ four room fields:
 
 While `in_progress`, `actions` includes **`join`** for *both* the teacher and the student.
 
-**Mobile app:** show a **"Join Lesson"** button whenever `can_join` is `true` — for teacher and student
-alike. Open `join_url` with the caller's token appended (`{{join_url}}&token={{token}}`) so Moodle logs
-the user straight into the Jitsi room. When `can_join` is `false`, hide the button (`join_url` is empty).
+### Teacher-presence gate
+
+`can_join` only means a room exists — it does **not** mean the student may enter yet. The student is
+held out of the room until the teacher is actually in the call:
+
+- When the teacher enters the Jitsi call, the backend stamps the session (`teacher_joined_at`); when
+  the teacher leaves or ends the meeting, it is cleared.
+- The native session payload (`jitsi_session`) reflects this in two fields:
+  - `available` — `false` for the student until the teacher is present (always `true` for the teacher).
+  - `available_info` — a "Waiting for the teacher…" message while `available` is `false`.
+- On the web room (`join_url`), a student who opens it before the teacher sees a waiting page that
+  auto-refreshes and drops them into the room the moment the teacher arrives.
+
+**Mobile app:** show the **"Join Lesson"** button whenever `can_join` is `true`. For the **teacher**,
+open `join_url` (with the caller's token appended, `{{join_url}}&token={{token}}`) straight away. For the
+**student**, only enter the room when `jitsi_session.available` is `true`; while it is `false`, show
+`available_info` ("Waiting for the teacher…") and poll until it flips. When `can_join` is `false`, hide
+the button (`join_url` is empty).
 
 ---
 
@@ -192,11 +199,8 @@ curl -s "$BASE?function=get_flex_history&token=$STUDENT"
 ## Settings that gate these flows (US-AD-2-1)
 
 `min_booking_minutes` · `cancel_deadline_minutes` · `update_deadline_minutes` ·
-`start_allowed_minutes` · `complete_allowed_minutes` · `absence_report_minutes` · `lessons_courseid`.
-Read them with `get_lesson_settings`; change them with `update_lesson_settings` (admin).
-
-`complete_allowed_minutes` is the **minimum** time after the lesson starts before the teacher may tap
-**Complete** (default 180 = the full hour plus buffer). Completing earlier returns `err_completetooearly`.
+`start_allowed_minutes` · `absence_report_minutes` · `lessons_courseid`. Read them with
+`get_lesson_settings`; change them with `update_lesson_settings` (admin).
 
 `lessons_courseid` is the Moodle course that hosts the per-lesson Jitsi rooms — **it must be set before
 `start_lesson` will work** (otherwise start fails with `err_nolessonscourse`).

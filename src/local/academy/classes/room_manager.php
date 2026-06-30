@@ -114,6 +114,14 @@ class room_manager {
 
         $isteacher = ((int)$lesson->teacherid === (int)$viewerid);
 
+        // Hold the student until the teacher is actually in the call (set by teacher_present.php).
+        // The teacher themselves is never gated.
+        $session = !empty($lesson->sessionid)
+            ? $DB->get_record('academy_live_sessions', array('id' => (int)$lesson->sessionid), 'id, teacher_joined_at')
+            : null;
+        $teacherpresent = $session ? !empty($session->teacher_joined_at) : false;
+        $available = $isteacher || $teacherpresent;
+
         $jitsihost = get_config('local_academysessions', 'jitsi_host') ?: 'localhost:8443';
         $serverurl = (strpos($jitsihost, 'http') === 0) ? rtrim($jitsihost, '/') : 'https://' . $jitsihost;
 
@@ -130,8 +138,8 @@ class room_manager {
             'jwt'            => $jwt,
             'subject'        => $subject,
             'is_teacher'     => $isteacher,
-            'available'      => true, // gated by can_join (lesson is in progress)
-            'available_info' => '',
+            'available'      => $available, // gated by can_join AND teacher presence
+            'available_info' => $available ? '' : get_string('waitingforteacher', 'jitsi'),
             'host_id'        => (string)(int)$lesson->teacherid,
             'feature_flags'  => array(
                 'recording.enabled'        => $isteacher,

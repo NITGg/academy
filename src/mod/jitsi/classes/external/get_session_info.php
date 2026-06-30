@@ -53,6 +53,18 @@ class get_session_info extends external_api {
         $is_teacher = has_capability('mod/jitsi:moderate', $context);
         $available  = $is_teacher || (bool)$cm->available;
 
+        // For a linked academy lesson room, hold the student until the teacher is in the call
+        // (teacher_joined_at is stamped by teacher_present.php). The teacher is never gated.
+        $available_info = strip_tags($cm->availableinfo ?? '');
+        if ($available && !$is_teacher) {
+            $session = $DB->get_record('academy_live_sessions',
+                ['jitsiid' => $jitsi->id], 'id, teacher_joined_at');
+            if ($session && empty($session->teacher_joined_at)) {
+                $available      = false;
+                $available_info = get_string('waitingforteacher', 'jitsi');
+            }
+        }
+
         // ── Jitsi config ─────────────────────────────────────────────────────
         $jitsi_host = get_config('local_academysessions', 'jitsi_host') ?: 'localhost:8443';
         $server_url = (strpos($jitsi_host, 'http') === 0)
@@ -119,7 +131,7 @@ class get_session_info extends external_api {
             'cmid'          => $cm->id,
             'name'          => format_string($jitsi->name),
             'available'     => $available,
-            'available_info'=> strip_tags($cm->availableinfo ?? ''),
+            'available_info'=> $available_info,
             'is_teacher'    => $is_teacher,
             'server_url'    => $server_url,
             'room'          => $room,
