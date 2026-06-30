@@ -154,19 +154,21 @@ While `in_progress`, `actions` includes **`join`** for *both* the teacher and th
 `can_join` only means a room exists — it does **not** mean the student may enter yet. The student is
 held out of the room until the teacher is actually in the call:
 
-- When the teacher enters the Jitsi call, the backend stamps the session (`teacher_joined_at`); when
-  the teacher leaves or ends the meeting, it is cleared.
-- The native session payload (`jitsi_session`) reflects this in two fields:
+- The **teacher** joins through the Moodle room page (`join_url` → `view.php`), which records when the
+  teacher enters/leaves the call automatically (stamps/clears `teacher_joined_at` on the session).
+- The native session payload (`jitsi_session`) reflects presence in two fields:
   - `available` — `false` for the student until the teacher is present (always `true` for the teacher).
   - `available_info` — a "Waiting for the teacher…" message while `available` is `false`.
-- On the web room (`join_url`), a student who opens it before the teacher sees a waiting page that
-  auto-refreshes and drops them into the room the moment the teacher arrives.
 
-**Mobile app:** show the **"Join Lesson"** button whenever `can_join` is `true`. For the **teacher**,
-open `join_url` (with the caller's token appended, `{{join_url}}&token={{token}}`) straight away. For the
-**student**, only enter the room when `jitsi_session.available` is `true`; while it is `false`, show
-`available_info` ("Waiting for the teacher…") and poll until it flips. When `can_join` is `false`, hide
-the button (`join_url` is empty).
+> ⚠️ **`is_teacher` is NOT a presence flag.** `jitsi_session.is_teacher` means *"is the caller the
+> teacher"* — it is always `false` for a student and never changes. To know whether the teacher has
+> joined, the student app reads **`available`**, not `is_teacher`.
+
+**Student mobile app:** show "Join Lesson" whenever `can_join` is `true`, but only **connect** when
+`jitsi_session.available` is `true`. While it is `false`, show `available_info` ("Waiting for the
+teacher…") and poll `get_lesson` / `get_my_lessons` until it flips, then connect. When `can_join` is
+`false`, hide the button (`join_url` is empty). See
+[meeting-teacher-presence-mobile.md](meeting-teacher-presence-mobile.md).
 
 ---
 

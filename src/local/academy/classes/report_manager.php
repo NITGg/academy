@@ -80,13 +80,22 @@ class report_manager {
         }
         $student = $DB->get_record('user', array('id' => $lesson->studentid), 'id, firstname, lastname');
         $teacher = $DB->get_record('user', array('id' => $lesson->teacherid), 'id, firstname, lastname');
+        // When the teacher actually entered the meeting room (academy_live_sessions, linked by sessionid).
+        $teacherjoined = 0;
+        if (!empty($lesson->sessionid)) {
+            $teacherjoined = (int)$DB->get_field('academy_live_sessions', 'teacher_joined_at',
+                array('id' => (int)$lesson->sessionid));
+        }
         return array(
             'lesson' => array(
-                'id'           => (int)$lesson->id,
-                'student_name' => $student ? trim($student->firstname . ' ' . $student->lastname) : '',
-                'teacher_name' => $teacher ? trim($teacher->firstname . ' ' . $teacher->lastname) : '',
-                'subject'      => $lesson->subject,
-                'status'       => $lesson->status,
+                'id'                => (int)$lesson->id,
+                'student_name'      => $student ? trim($student->firstname . ' ' . $student->lastname) : '',
+                'teacher_name'      => $teacher ? trim($teacher->firstname . ' ' . $teacher->lastname) : '',
+                'subject'           => $lesson->subject,
+                'status'            => $lesson->status,
+                'actual_start'      => (int)$lesson->actual_start,
+                'actual_end'        => (int)$lesson->actual_end,
+                'teacher_joined_at' => $teacherjoined,
             ),
             'events' => audit_manager::get_timeline($lessonid),
         );

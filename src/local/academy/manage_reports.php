@@ -56,6 +56,7 @@ table.rp-table th,table.rp-table td{border-bottom:1px solid #eee;padding:.4rem .
       <strong id="rp-tl-title">Action timeline</strong>
       <button id="rp-tl-close" class="btn btn-sm btn-outline-secondary">Close</button>
     </div>
+    <div id="rp-tl-meta" style="margin-bottom:.6rem;display:flex;gap:.5rem;flex-wrap:wrap"></div>
     <table class="rp-table"><thead><tr><th>#</th><th>Action</th><th>By</th><th>Role</th><th>Time</th></tr></thead><tbody id="rp-tl-body"></tbody></table>
   </div>
 </div>
@@ -159,6 +160,10 @@ echo html_writer::script(<<<'JS'
     apiGet('report_lesson_events',{lessonid:id}).then(function(d){
       var l=d.lesson||{};
       $('rp-tl-title').textContent='Action timeline — lesson #'+id+' ('+(l.subject||'')+', '+(l.student_name||'')+' ↔ '+(l.teacher_name||'')+')';
+      $('rp-tl-meta').innerHTML=
+        '<div class="rp-chip">Teacher joined room<b>'+fmt(l.teacher_joined_at)+'</b></div>'+
+        '<div class="rp-chip">Lesson started<b>'+fmt(l.actual_start)+'</b></div>'+
+        '<div class="rp-chip">Lesson ended<b>'+fmt(l.actual_end)+'</b></div>';
       var ev=d.events||[];
       $('rp-tl-body').innerHTML=ev.length?ev.map(function(e,i){
         return '<tr><td>'+(i+1)+'</td><td>'+esc(actionLabel(e.action))+'</td><td>'+esc(e.actor_name||'—')+'</td><td>'+esc(e.role)+'</td><td>'+(e.time?fmt(e.time):'—')+'</td></tr>';
