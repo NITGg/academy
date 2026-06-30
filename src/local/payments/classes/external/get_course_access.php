@@ -1,0 +1,71 @@
+<?php
+namespace local_payments\external;
+
+defined('MOODLE_INTERNAL') || die();
+
+global $CFG;
+require_once($CFG->libdir . '/externallib.php');
+
+class get_course_access extends \external_api {
+
+    public static function execute_parameters(): \external_function_parameters {
+        return new \external_function_parameters([
+            'courseid' => new \external_value(PARAM_INT, 'Course ID'),
+        ]);
+    }
+
+    public static function execute(int $courseid): array {
+        global $USER, $DB;
+
+        $params = self::validate_parameters(self::execute_parameters(), ['courseid' => $courseid]);
+
+        $context = \context_course::instance($params['courseid']);
+        self::validate_context($context);
+
+        $is_enrolled = \local_payments\enrollment_handler::is_enrolled($USER->id, $params['courseid']);
+        $is_purchased = \local_payments\price_resolver::is_purchased($params['courseid'], $USER->id);
+
+        $payment_status = '';
+        $order_id = '';
+        if ($is_purchased) {
+            $txn = $DB->get_record_select(
+                'local_payments_transactions',
+                'userid = :userid AND courseid = :courseid AND status = :status',
+                ['userid' => $USER->id, 'courseid' => $params['courseid'], 'status' => 'completed'],
+                'id, order_id, status',
+                IGNORE_MULTIPLE
+            );
+            if ($txn) {
+                $payment_status = $txn->status;
+                $order_id = $txn->order_id;
+            }
+        }
+
+        // Check for pending payment.
+        $has_pending = $DB->record_exists_select(
+            'local_payments_transactions',
+            'userid = :userid AND courseid = :courseid AND status = :status AND expires_at > :now',
+            ['userid' => $USER->id, 'courseid' => $params['courseid'], 'status' => 'pending', 'now' => time()]
+        );
+
+        return [
+            'courseid' => $params['courseid'],
+            'is_enrolled' => $is_enrolled,
+            'is_purchased' => $is_purchased,
+            'payment_status' => $payment_status,
+            'order_id' => $order_id,
+            'has_pending_payment' => $has_pending,
+        ];
+    }
+
+    public static function execute_returns(): \external_single_structure {
+        return new \external_single_structure([
+            'courseid' => new \external_value(PARAM_INT, 'Course ID'),
+            'is_enrolled' => new \external_value(PARAM_BOOL, 'Enrolled'),
+            'is_purchased' => new \external_value(PARAM_BOOL, 'Purchased'),
+            'payment_status' => new \external_value(PARAM_TEXT, 'Payment status'),
+            'order_id' => new \external_value(PARAM_TEXT, 'Order ID'),
+            'has_pending_payment' => new \external_value(PARAM_BOOL, 'Has pending payment'),
+        ]);
+    }
+}

@@ -1,0 +1,68 @@
+<?php
+namespace local_payments\external;
+
+defined('MOODLE_INTERNAL') || die();
+
+global $CFG;
+require_once($CFG->libdir . '/externallib.php');
+
+class get_course_price extends \external_api {
+
+    public static function execute_parameters(): \external_function_parameters {
+        return new \external_function_parameters([
+            'courseid' => new \external_value(PARAM_INT, 'Course ID'),
+            'country' => new \external_value(PARAM_ALPHA, 'Country code from app', VALUE_DEFAULT, ''),
+        ]);
+    }
+
+    public static function execute(int $courseid, string $country = ''): array {
+        global $USER;
+
+        $params = self::validate_parameters(self::execute_parameters(), [
+            'courseid' => $courseid,
+            'country' => $country,
+        ]);
+
+        $context = \context_course::instance($params['courseid']);
+        self::validate_context($context);
+
+        $pricing = \local_payments\price_resolver::resolve(
+            $params['courseid'],
+            $USER->id,
+            !empty($params['country']) ? $params['country'] : null
+        );
+
+        $is_purchased = \local_payments\price_resolver::is_purchased($params['courseid'], $USER->id);
+        $is_enrolled = \local_payments\enrollment_handler::is_enrolled($USER->id, $params['courseid']);
+
+        return [
+            'courseid' => $params['courseid'],
+            'country' => $pricing->country,
+            'currency' => $pricing->currency,
+            'price' => $pricing->price,
+            'sale_price' => $pricing->sale_price ?? 0,
+            'original_price' => $pricing->original_price,
+            'discount_percentage' => $pricing->discount_pct,
+            'is_sale_active' => $pricing->is_sale_active,
+            'sale_ends_at' => $pricing->sale_ends_at ?? 0,
+            'is_purchased' => $is_purchased,
+            'is_enrolled' => $is_enrolled,
+        ];
+    }
+
+    public static function execute_returns(): \external_single_structure {
+        return new \external_single_structure([
+            'courseid' => new \external_value(PARAM_INT, 'Course ID'),
+            'country' => new \external_value(PARAM_ALPHA, 'Detected country'),
+            'currency' => new \external_value(PARAM_ALPHA, 'Currency code'),
+            'price' => new \external_value(PARAM_FLOAT, 'Effective price'),
+            'sale_price' => new \external_value(PARAM_FLOAT, 'Sale price or 0'),
+            'original_price' => new \external_value(PARAM_FLOAT, 'Original price'),
+            'discount_percentage' => new \external_value(PARAM_INT, 'Discount percentage'),
+            'is_sale_active' => new \external_value(PARAM_BOOL, 'Whether sale is active'),
+            'sale_ends_at' => new \external_value(PARAM_INT, 'Sale end timestamp or 0'),
+            'is_purchased' => new \external_value(PARAM_BOOL, 'Already purchased'),
+            'is_enrolled' => new \external_value(PARAM_BOOL, 'Already enrolled'),
+        ]);
+    }
+}
