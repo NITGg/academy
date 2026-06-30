@@ -67,3 +67,76 @@ $string['err_withdrawalstate']     = 'This action is not allowed for the withdra
 // Reports / assign (Phase 4).
 $string['err_studentnotfound']     = 'Student not found';
 $string['err_studenthaspackage']   = 'This student already has an active package';
+
+// ── Lesson-lifecycle notifications (in-app + email) ──
+$string['messageprovider:lessonnotification'] = 'Lesson updates (requests, responses, reminders)';
+
+// US-LS-1-1: student requested a lesson → teacher.
+$string['notif_requested_subject'] = 'New lesson request from {$a->student}';
+$string['notif_requested_body']    = '{$a->student} requested a {$a->subject} lesson for {$a->time}. Note: {$a->note}. Open "My lessons" to accept, reject, or suggest another time.';
+
+// US-LS-2-1 / US-LS-2-3: teacher confirmed → student.
+$string['notif_confirmed_by_teacher_subject'] = 'Lesson confirmed: {$a->subject}';
+$string['notif_confirmed_by_teacher_body']    = '{$a->teacher} confirmed your {$a->subject} lesson for {$a->time}.';
+
+// US-LS-2-1 / US-LS-2-3: teacher rejected → student.
+$string['notif_rejected_by_teacher_subject'] = 'Lesson request declined: {$a->subject}';
+$string['notif_rejected_by_teacher_body']    = '{$a->teacher} declined your {$a->subject} lesson request. Reason: {$a->reason}';
+
+// US-LS-2-1: teacher suggested another time → student.
+$string['notif_teacher_suggested_subject'] = 'New time suggested: {$a->subject}';
+$string['notif_teacher_suggested_body']    = '{$a->teacher} suggested a new time for your {$a->subject} lesson: {$a->time}. Open "My lessons" to accept, reject, or suggest another time.';
+
+// US-LS-2-2: student accepted the suggested time → teacher.
+$string['notif_confirmed_by_student_subject'] = 'Lesson confirmed: {$a->subject}';
+$string['notif_confirmed_by_student_body']    = '{$a->student} accepted the suggested time. The {$a->subject} lesson is confirmed for {$a->time}.';
+
+// US-LS-2-2: student rejected the suggested time → teacher.
+$string['notif_rejected_by_student_subject'] = 'Suggested time declined: {$a->subject}';
+$string['notif_rejected_by_student_body']    = '{$a->student} declined the suggested time for the {$a->subject} lesson. Reason: {$a->reason}';
+
+// US-LS-2-2: student suggested another time → teacher.
+$string['notif_student_suggested_subject'] = 'Student suggested a new time: {$a->subject}';
+$string['notif_student_suggested_body']    = '{$a->student} suggested a new time for the {$a->subject} lesson: {$a->time}. Open "My lessons" to accept or reject.';
+
+// US-LS-3-1: lesson started → student.
+$string['notif_started_subject'] = 'Your lesson has started: {$a->subject}';
+$string['notif_started_body']    = '{$a->teacher} started the {$a->subject} lesson. Open the lesson and tap "Join Lesson" to enter the meeting room.';
+
+// US-LS-3-2: lesson completed → student.
+$string['notif_completed_subject'] = 'Lesson completed: {$a->subject}';
+$string['notif_completed_body']    = 'Your {$a->subject} lesson with {$a->teacher} is complete. {$a->reason}';
+
+// US-LS-3-3: student reported absent → student.
+$string['notif_student_absent_subject'] = 'You were marked absent: {$a->subject}';
+$string['notif_student_absent_body']    = '{$a->teacher} reported that you did not attend the {$a->subject} lesson scheduled for {$a->time}.';
+
+// US-LS-3-4: teacher reported absent → teacher + admins.
+$string['notif_teacher_absent_subject'] = 'Absence reported: {$a->subject}';
+$string['notif_teacher_absent_body']    = '{$a->student} reported that you did not attend the {$a->subject} lesson scheduled for {$a->time}. The student\'s Flex has been returned.';
+$string['notif_teacher_absent_admin_subject'] = 'Teacher absence reported: {$a->subject}';
+$string['notif_teacher_absent_admin_body']    = '{$a->student} reported teacher {$a->teacher} absent for the {$a->subject} lesson scheduled for {$a->time}.';
+
+// US-ST-2-2: student withdrew a pending request → teacher.
+$string['notif_request_cancelled_subject'] = 'Lesson request withdrawn: {$a->subject}';
+$string['notif_request_cancelled_body']    = '{$a->student} withdrew the {$a->subject} lesson request for {$a->time}. Reason: {$a->reason}';
+
+// US-LS-4-1: student cancelled a confirmed lesson → teacher.
+$string['notif_cancelled_by_student_subject'] = 'Lesson cancelled: {$a->subject}';
+$string['notif_cancelled_by_student_body']    = '{$a->student} cancelled the {$a->subject} lesson scheduled for {$a->time}. Reason: {$a->reason}';
+
+// US-LS-4-2: teacher cancelled a confirmed lesson → student.
+$string['notif_cancelled_by_teacher_subject'] = 'Lesson cancelled by teacher: {$a->subject}';
+$string['notif_cancelled_by_teacher_body']    = '{$a->teacher} cancelled the {$a->subject} lesson scheduled for {$a->time}. Your Flex has been returned. Reason: {$a->reason}';
+
+// US-LS-5-1: time-update requested → other party.
+$string['notif_time_update_requested_subject'] = 'New time requested: {$a->subject}';
+$string['notif_time_update_requested_body']    = '{$a->actor} requested to move the {$a->subject} lesson to {$a->time}. Open the lesson to accept or reject.';
+
+// US-LS-5-2: time-update accepted → requester.
+$string['notif_time_update_accepted_subject'] = 'New time accepted: {$a->subject}';
+$string['notif_time_update_accepted_body']    = '{$a->actor} accepted the new time. The {$a->subject} lesson is now scheduled for {$a->time}.';
+
+// US-LS-5-2: time-update rejected → requester.
+$string['notif_time_update_rejected_subject'] = 'New time rejected: {$a->subject}';
+$string['notif_time_update_rejected_body']    = '{$a->actor} rejected the new time. The {$a->subject} lesson stays on {$a->time}.';
