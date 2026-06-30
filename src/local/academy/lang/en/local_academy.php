@@ -10,6 +10,7 @@ $string['teacherprofile'] = 'Teacher profile';
 $string['editmyteacherprofile'] = 'Edit my teacher profile';
 $string['notateacher'] = 'This page is only available to teachers.';
 $string['mylessons'] = 'My lessons';
+$string['studenthub'] = 'Book lessons & Flex';
 $string['mywallet'] = 'My earnings';
 $string['managewithdrawals'] = 'Teacher withdrawals';
 $string['assignpackage'] = 'Assign package to student';

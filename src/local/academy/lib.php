@@ -36,6 +36,23 @@ function local_academy_extend_navigation_user_settings($navigation, $user, $cont
     if (empty($USER->id) || $USER->id != $user->id) {
         return; // only on your own preferences page
     }
+
+    // Student hub (book lessons + Flex packages) — available to every logged-in user.
+    $studentnode = navigation_node::create(
+        get_string('studenthub', 'local_academy'),
+        new moodle_url('/local/academy/student.php'),
+        navigation_node::TYPE_SETTING,
+        null,
+        'local_academy_studenthub',
+        new pix_icon('i/courseevent', '')
+    );
+    $useraccountstud = $navigation->find('useraccount', navigation_node::TYPE_CONTAINER);
+    if ($useraccountstud) {
+        $useraccountstud->add_node($studentnode);
+    } else {
+        $navigation->add_node($studentnode);
+    }
+
     if (!\local_academy\teacher_manager::is_teacher($user->id)) {
         return; // teachers only — admins/students don't get a teacher profile link
     }
