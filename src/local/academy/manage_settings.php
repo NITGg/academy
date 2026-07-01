@@ -33,6 +33,7 @@ echo html_writer::script('window.ACADEMY_SET = ' . json_encode(array(
     <div class="form-group"><label>Lesson start allowed time (minutes)</label><input class="form-control" id="s-start_allowed_minutes" type="number" min="0"></div>
     <div class="form-group"><label>Minimum minutes after start before completing</label><input class="form-control" id="s-complete_allowed_minutes" type="number" min="0"></div>
     <div class="form-group"><label>Absence reporting time (minutes)</label><input class="form-control" id="s-absence_report_minutes" type="number" min="0"></div>
+    <div class="form-group"><label>Package expiry reminder (days before)</label><input class="form-control" id="s-expiry_reminder_days" type="number" min="0"><small class="text-muted">Notify the student this many days before their package expires. 0 disables the reminder.</small></div>
     <hr>
     <div class="form-group"><label>Teacher earning %</label><input class="form-control" id="s-teacher_percent" type="number" min="0" max="100"></div>
     <div class="form-group"><label>Platform earning %</label><input class="form-control" id="s-platform_percent" type="number" min="0" max="100"></div>
@@ -45,7 +46,8 @@ echo html_writer::script(<<<'JS'
 (function () {
   var CFG = window.ACADEMY_SET;
   var KEYS = ['min_booking_minutes','cancel_deadline_minutes','update_deadline_minutes',
-    'start_allowed_minutes','complete_allowed_minutes','absence_report_minutes','teacher_percent','platform_percent'];
+    'start_allowed_minutes','complete_allowed_minutes','absence_report_minutes','expiry_reminder_days',
+    'teacher_percent','platform_percent'];
   function $(id){return document.getElementById(id);}
   function msg(t,k){var e=$('set-msg');e.textContent=t;e.className='alert alert-'+(k||'info');e.style.display='block';if(k==='success'){setTimeout(function(){e.style.display='none';},3000);}}
   function api(func,params){var qs=new URLSearchParams({function:func,token:CFG.token});Object.keys(params||{}).forEach(function(k){qs.append(k,params[k]);});

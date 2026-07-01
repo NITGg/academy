@@ -300,7 +300,8 @@ services:
     environment:
       - PORT=3100
       - NOTIFY_SECRET=${NOTIFY_SECRET:-academy-internal-secret}
-      - INTERNAL_KEY=${INTERNAL_API_KEY:-academy-internal-secret}
+      # Emit key defaults to the same secret, so you only ever set NOTIFY_SECRET.
+      - INTERNAL_KEY=${NOTIFY_SECRET:-academy-internal-secret}
       - SOCKET_PATH=${NOTIFY_SOCKET_PATH:-/socket.io}
       - ALLOWED_ORIGIN=${NOTIFY_ALLOWED_ORIGIN:-*}
 
