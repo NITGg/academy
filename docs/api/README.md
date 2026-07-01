@@ -25,6 +25,8 @@ student `hmprep02-001/123456`. Admin-only functions require the `local/academy:m
 |-------|------|-------|---------|
 | 1 | Admin packages | `admin-packages.md` | `Academy_Packages.postman_collection.json` |
 | 1 | Student packages | `student-packages-mobile-guide.md` | (in Packages) |
+| 5 | Admin subscriptions | `admin-subscriptions.md` | `Academy_Subscriptions.postman_collection.json` |
+| 5 | Student subscriptions | `subscriptions-mobile-guide.md` | (in Subscriptions) |
 | 1 | Settings / teacher profile / browse | `platform-apis-postman-guide.md` | `Academy_Platform.postman_collection.json` |
 | 2 | Lessons + Flex engine | `lessons-flex-guide.md` | `Academy_Lessons_Flex.postman_collection.json` |
 | 2 | Meeting "wait for teacher" (mobile) | `meeting-teacher-presence-mobile.md` | (in Lessons + Flex) |

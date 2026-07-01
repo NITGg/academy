@@ -284,5 +284,83 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026070100, 'local', 'academy');
     }
 
+    if ($oldversion < 2026070200) {
+
+        // ── Subscriptions (course-access plans): US-AD-5-*, US-AD-6-1, US-SB-*. ──
+
+        // Subscription plans.
+        $t = new xmldb_table('academy_subscriptions');
+        if (!$dbman->table_exists($t)) {
+            $t->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $t->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('description', XMLDB_TYPE_TEXT, null, null, null, null, null);
+            $t->add_field('price', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('duration_days', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'active');
+            $t->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $t->add_index('status_idx', XMLDB_INDEX_NOTUNIQUE, array('status'));
+            $dbman->create_table($t);
+        }
+
+        // Course access map (which subscription unlocks which course; subscriptionid 0 = all).
+        $t = new xmldb_table('academy_course_access');
+        if (!$dbman->table_exists($t)) {
+            $t->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $t->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('subscriptionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $t->add_index('course_sub_uk', XMLDB_INDEX_UNIQUE, array('courseid', 'subscriptionid'));
+            $t->add_index('subscriptionid_idx', XMLDB_INDEX_NOTUNIQUE, array('subscriptionid'));
+            $dbman->create_table($t);
+        }
+
+        // Student subscription purchases.
+        $t = new xmldb_table('academy_sub_purchases');
+        if (!$dbman->table_exists($t)) {
+            $t->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $t->add_field('subscriptionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('price_paid', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('duration_days', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'active');
+            $t->add_field('source', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'online');
+            $t->add_field('timeactivated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('expires_at', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('expiry_notified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $t->add_key('subscriptionid_fk', XMLDB_KEY_FOREIGN, array('subscriptionid'), 'academy_subscriptions', array('id'));
+            $t->add_index('user_status_idx', XMLDB_INDEX_NOTUNIQUE, array('userid', 'status'));
+            $dbman->create_table($t);
+        }
+
+        // Subscription payments.
+        $t = new xmldb_table('academy_sub_payments');
+        if (!$dbman->table_exists($t)) {
+            $t->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $t->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('purchaseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('subscriptionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('method', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL, null, 'online');
+            $t->add_field('reference', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+            $t->add_field('transaction_no', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'success');
+            $t->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $t->add_key('purchaseid_fk', XMLDB_KEY_FOREIGN, array('purchaseid'), 'academy_sub_purchases', array('id'));
+            $t->add_index('userid_idx', XMLDB_INDEX_NOTUNIQUE, array('userid'));
+            $t->add_index('txn_idx', XMLDB_INDEX_UNIQUE, array('transaction_no'));
+            $dbman->create_table($t);
+        }
+
+        upgrade_plugin_savepoint(true, 2026070200, 'local', 'academy');
+    }
+
     return true;
 }

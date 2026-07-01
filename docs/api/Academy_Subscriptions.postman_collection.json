@@ -1,0 +1,345 @@
+{
+  "info": {
+    "name": "Academy — Subscriptions API",
+    "_postman_id": "academy-subscriptions-api-v1",
+    "description": "Admin + Student course-subscription APIs (local_academy plugin). Import this file into Postman.\n\nSetup: 1) run \"0. Login (get token)\" once — it saves the token into the {{token}} collection variable automatically. 2) Then run any request below.\n\nEndpoint: {{base_url}}/local/academy/api.php  (action chosen by the `function` param). Reads are GET; state-changing actions are POST.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8081", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "subscriptionid", "value": "1", "type": "string" },
+    { "key": "courseid", "value": "12", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "0. Login (get token)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var json = pm.response.json();",
+              "if (json && json.token) {",
+              "    pm.collectionVariables.set('token', json.token);",
+              "    console.log('Saved token to {{token}}');",
+              "} else {",
+              "    console.log('No token in response', json);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "username", "value": "admin", "type": "text" },
+            { "key": "password", "value": "123456", "type": "text" },
+            { "key": "service", "value": "moodle_mobile_app", "type": "text" }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/login/token.php",
+          "host": ["{{base_url}}"],
+          "path": ["login", "token.php"]
+        },
+        "description": "Exchange username + password for a web-service token. The test script saves it into {{token}}. For admin requests log in as an admin/manager; for the Student folder log in as a student."
+      }
+    },
+    {
+      "name": "Admin — Subscriptions",
+      "item": [
+        {
+          "name": "Create Subscription (POST)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "create_subscription", "type": "text" },
+                { "key": "token", "value": "{{token}}", "type": "text" },
+                { "key": "name", "value": "365-day", "type": "text" },
+                { "key": "description", "value": "Full-year access", "type": "text" },
+                { "key": "price", "value": "365", "type": "text" },
+                { "key": "duration_days", "value": "365", "type": "text" },
+                { "key": "active", "value": "1", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-AD-5-1. Admin only. Returns {data:{subscriptionid}}."
+          }
+        },
+        {
+          "name": "List Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_subscriptions&token={{token}}&status=active",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_subscriptions" },
+                { "key": "token", "value": "{{token}}" },
+                { "key": "status", "value": "active", "description": "active | inactive | omit for all" }
+              ]
+            },
+            "description": "Admin list of subscription plans (each with its courses)."
+          }
+        },
+        {
+          "name": "Get Subscription",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_subscription&token={{token}}&id={{subscriptionid}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_subscription" },
+                { "key": "token", "value": "{{token}}" },
+                { "key": "id", "value": "{{subscriptionid}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Subscription (POST)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "update_subscription", "type": "text" },
+                { "key": "token", "value": "{{token}}", "type": "text" },
+                { "key": "id", "value": "{{subscriptionid}}", "type": "text" },
+                { "key": "price", "value": "400", "type": "text", "description": "send only the fields you want to change" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-AD-5-2. Only sent fields change. Applies to future purchases only."
+          }
+        },
+        {
+          "name": "Deactivate Subscription (POST)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "deactivate_subscription", "type": "text" },
+                { "key": "token", "value": "{{token}}", "type": "text" },
+                { "key": "id", "value": "{{subscriptionid}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-AD-5-3."
+          }
+        },
+        {
+          "name": "Activate Subscription (POST)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "activate_subscription", "type": "text" },
+                { "key": "token", "value": "{{token}}", "type": "text" },
+                { "key": "id", "value": "{{subscriptionid}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            }
+          }
+        },
+        {
+          "name": "Delete Subscription (POST)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "delete_subscription", "type": "text" },
+                { "key": "token", "value": "{{token}}", "type": "text" },
+                { "key": "id", "value": "{{subscriptionid}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-AD-5-4. Fails if the plan was ever purchased — deactivate instead."
+          }
+        },
+        {
+          "name": "Set Course Access — specific (POST)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "set_course_subscriptions", "type": "text" },
+                { "key": "token", "value": "{{token}}", "type": "text" },
+                { "key": "courseid", "value": "{{courseid}}", "type": "text" },
+                { "key": "mode", "value": "specific", "type": "text" },
+                { "key": "subscriptionids", "value": "[{{subscriptionid}}]", "type": "text", "description": "JSON array of subscription ids" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-AD-6-1. Only the listed subscriptions unlock this course."
+          }
+        },
+        {
+          "name": "Set Course Access — all (POST)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "set_course_subscriptions", "type": "text" },
+                { "key": "token", "value": "{{token}}", "type": "text" },
+                { "key": "courseid", "value": "{{courseid}}", "type": "text" },
+                { "key": "mode", "value": "all", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-AD-6-1. Every subscription unlocks this course."
+          }
+        },
+        {
+          "name": "Get Course Access",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_course_access&token={{token}}&courseid={{courseid}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_course_access" },
+                { "key": "token", "value": "{{token}}" },
+                { "key": "courseid", "value": "{{courseid}}" }
+              ]
+            },
+            "description": "US-AD-6-1. Returns {mode: all|specific|none, subscriptionids:[]}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Student — Subscriptions",
+      "item": [
+        {
+          "name": "Get Available Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_available_subscriptions&token={{token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_available_subscriptions" },
+                { "key": "token", "value": "{{token}}" }
+              ]
+            },
+            "description": "US-SB-1-1. Active plans a student can buy (with courses)."
+          }
+        },
+        {
+          "name": "Purchase Subscription (POST)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "purchase_subscription", "type": "text" },
+                { "key": "token", "value": "{{token}}", "type": "text" },
+                { "key": "subscriptionid", "value": "{{subscriptionid}}", "type": "text" },
+                { "key": "method", "value": "online", "type": "text" },
+                { "key": "reference", "value": "DEMO123", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "US-SB-1-2. POST only (payment assumed paid). Enrols the student into the plan's courses until expiry."
+          }
+        },
+        {
+          "name": "My Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_my_subscriptions&token={{token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_my_subscriptions" },
+                { "key": "token", "value": "{{token}}" }
+              ]
+            },
+            "description": "US-SB-2-1. The student's own subscriptions, active first."
+          }
+        },
+        {
+          "name": "Subscription Payment History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_subscription_payment_history&token={{token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_subscription_payment_history" },
+                { "key": "token", "value": "{{token}}" }
+              ]
+            },
+            "description": "US-SB-2-1. The student's own subscription payments."
+          }
+        }
+      ]
+    }
+  ]
+}

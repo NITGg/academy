@@ -153,6 +153,59 @@ class notification_manager {
     }
 
     /**
+     * Remind a student that a subscription is about to expire.
+     *
+     * Sent by {@see \local_academy\task\subscription_expiry_task} when a purchase is within the
+     * admin-configured `expiry_reminder_days` window. Delivered on the `expirynotification`
+     * provider (web bell + mobile `get_notifications` pull + email). Best-effort.
+     *
+     * @param object $purchase academy_sub_purchases record joined with `subscription_name`
+     * @param int    $daysleft whole days remaining until expiry (shown to the student)
+     */
+    public static function subscription_expiry_reminder($purchase, $daysleft) {
+        global $DB;
+        try {
+            $recipient = $DB->get_record('user', array('id' => $purchase->userid, 'deleted' => 0, 'suspended' => 0));
+            if (!$recipient) {
+                return;
+            }
+
+            $a = (object) array(
+                'subscription' => isset($purchase->subscription_name) ? format_string($purchase->subscription_name) : '',
+                'days'         => (int)$daysleft,
+                'date'         => (int)$purchase->expires_at > 0
+                    ? userdate((int)$purchase->expires_at, get_string('strftimedate', 'langconfig')) : '',
+            );
+
+            $url = new \moodle_url('/local/academy/subscriptions.php');
+
+            $message = new \core\message\message();
+            $message->component         = 'local_academy';
+            $message->name              = 'expirynotification';
+            $message->userfrom          = \core_user::get_noreply_user();
+            $message->userto            = $recipient;
+            $message->subject           = get_string('notif_subscription_expiring_subject', 'local_academy', $a);
+            $message->fullmessage       = get_string('notif_subscription_expiring_body', 'local_academy', $a);
+            $message->fullmessageformat = FORMAT_PLAIN;
+            $message->fullmessagehtml   = '<p>' . s($message->fullmessage) . '</p>';
+            $message->smallmessage      = $message->subject;
+            $message->notification      = 1;
+            $message->contexturl        = $url->out(false);
+            $message->contexturlname    = get_string('mysubscriptions', 'local_academy');
+
+            // See lesson_event: buffer to swallow any warning the mail processor prints.
+            ob_start();
+            try {
+                message_send($message);
+            } finally {
+                ob_end_clean();
+            }
+        } catch (\Throwable $e) {
+            debugging('academy subscription expiry reminder failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+    }
+
+    /**
      * Notify every platform admin (manageplatform capability) about a lesson event.
      * Used for teacher-absence reports (US-LS-3-4).
      */

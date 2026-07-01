@@ -14,4 +14,13 @@ $tasks = array(
         'month'     => '*',
         'dayofweek' => '*',
     ),
+    array(
+        'classname' => 'local_academy\task\subscription_expiry_task',
+        'blocking'  => 0,
+        'minute'    => '5',
+        'hour'      => '8',
+        'day'       => '*',
+        'month'     => '*',
+        'dayofweek' => '*',
+    ),
 );

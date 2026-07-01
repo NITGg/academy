@@ -10,6 +10,8 @@ require_once($CFG->dirroot . '/webservice/lib.php');
 
 use local_academy\package_manager;
 use local_academy\purchase_manager;
+use local_academy\subscription_manager;
+use local_academy\subscription_purchase_manager;
 use local_academy\settings_manager;
 use local_academy\teacher_manager;
 use local_academy\lesson_manager;
@@ -85,6 +87,15 @@ $capmap = [
     'delete_package'       => 'local/academy:managepackages',
     'get_packages'         => 'local/academy:managepackages',
     'get_package'          => 'local/academy:managepackages',
+    'create_subscription'      => 'local/academy:managesubscriptions',
+    'update_subscription'      => 'local/academy:managesubscriptions',
+    'deactivate_subscription'  => 'local/academy:managesubscriptions',
+    'activate_subscription'    => 'local/academy:managesubscriptions',
+    'delete_subscription'      => 'local/academy:managesubscriptions',
+    'get_subscriptions'        => 'local/academy:managesubscriptions',
+    'get_subscription'         => 'local/academy:managesubscriptions',
+    'set_course_subscriptions' => 'local/academy:managesubscriptions',
+    'get_course_access'        => 'local/academy:managesubscriptions',
     'update_lesson_settings' => 'local/academy:manageplatform',
     'reverse_flex'           => 'local/academy:manageplatform',
     'list_withdrawals'       => 'local/academy:manageplatform',
@@ -170,6 +181,126 @@ try {
         case 'get_package':
             $id = required_param('id', PARAM_INT);
             academy_respond(['status' => 'success', 'data' => package_manager::get_package($id)]);
+            break;
+
+        // ── Subscriptions: admin plan CRUD (US-AD-5-*, managesubscriptions) ──
+
+        // US-AD-5-1
+        case 'create_subscription':
+            academy_require_post();
+            $subid = subscription_manager::create_subscription([
+                'name'          => required_param('name', PARAM_TEXT),
+                'description'   => optional_param('description', '', PARAM_TEXT),
+                'price'         => required_param('price', PARAM_FLOAT),
+                'duration_days' => required_param('duration_days', PARAM_INT),
+                'active'        => optional_param('active', 1, PARAM_BOOL),
+            ], $userid);
+            academy_respond(['status' => 'success', 'data' => ['subscriptionid' => $subid]]);
+            break;
+
+        // US-AD-5-2
+        case 'update_subscription':
+            academy_require_post();
+            $id = required_param('id', PARAM_INT);
+            $data = [];
+            foreach (['name', 'description', 'status'] as $key) {
+                if (isset($_REQUEST[$key])) {
+                    $data[$key] = ($key === 'name' || $key === 'status')
+                        ? required_param($key, PARAM_TEXT)
+                        : optional_param($key, '', PARAM_TEXT);
+                }
+            }
+            if (isset($_REQUEST['duration_days'])) {
+                $data['duration_days'] = required_param('duration_days', PARAM_INT);
+            }
+            if (isset($_REQUEST['price'])) {
+                $data['price'] = required_param('price', PARAM_FLOAT);
+            }
+            subscription_manager::update_subscription($id, $data, $userid);
+            academy_respond(['status' => 'success', 'data' => ['id' => $id]]);
+            break;
+
+        // US-AD-5-3
+        case 'deactivate_subscription':
+            academy_require_post();
+            $id = required_param('id', PARAM_INT);
+            subscription_manager::deactivate_subscription($id, $userid);
+            academy_respond(['status' => 'success', 'data' => ['id' => $id, 'status' => 'inactive']]);
+            break;
+
+        case 'activate_subscription':
+            academy_require_post();
+            $id = required_param('id', PARAM_INT);
+            subscription_manager::activate_subscription($id, $userid);
+            academy_respond(['status' => 'success', 'data' => ['id' => $id, 'status' => 'active']]);
+            break;
+
+        // US-AD-5-4
+        case 'delete_subscription':
+            academy_require_post();
+            $id = required_param('id', PARAM_INT);
+            subscription_manager::delete_subscription($id);
+            academy_respond(['status' => 'success', 'data' => ['id' => $id, 'deleted' => true]]);
+            break;
+
+        case 'get_subscriptions':
+            $status = optional_param('status', '', PARAM_ALPHA);
+            academy_respond(['status' => 'success', 'data' => subscription_manager::get_subscriptions($status)]);
+            break;
+
+        case 'get_subscription':
+            $id = required_param('id', PARAM_INT);
+            academy_respond(['status' => 'success', 'data' => subscription_manager::get_subscription($id)]);
+            break;
+
+        // US-AD-6-1: set which subscriptions can access a course.
+        case 'set_course_subscriptions':
+            academy_require_post();
+            $courseid = required_param('courseid', PARAM_INT);
+            $mode     = required_param('mode', PARAM_ALPHA); // 'all' | 'specific'
+            $subids   = [];
+            if (isset($_REQUEST['subscriptionids'])) {
+                $decoded = json_decode(required_param('subscriptionids', PARAM_RAW), true);
+                $subids  = is_array($decoded) ? $decoded : [];
+            }
+            academy_respond(['status' => 'success',
+                'data' => subscription_manager::set_course_subscriptions($courseid, $mode, $subids, $userid)]);
+            break;
+
+        // US-AD-6-1: read a course's current access rule.
+        case 'get_course_access':
+            $courseid = required_param('courseid', PARAM_INT);
+            academy_respond(['status' => 'success', 'data' => subscription_manager::get_course_access($courseid)]);
+            break;
+
+        // ── Subscriptions: student (any authenticated user, acting as themselves) ──
+
+        // US-SB-1-1
+        case 'get_available_subscriptions':
+            academy_respond(['status' => 'success',
+                'data' => subscription_purchase_manager::get_available_subscriptions()]);
+            break;
+
+        // US-SB-1-2 (payment gateway skipped — assumed paid)
+        case 'purchase_subscription':
+            academy_require_post();
+            $subid     = required_param('subscriptionid', PARAM_INT);
+            $method    = optional_param('method', 'online', PARAM_ALPHANUMEXT);
+            $reference = optional_param('reference', '', PARAM_TEXT);
+            academy_respond(['status' => 'success',
+                'data' => subscription_purchase_manager::purchase_subscription($userid, $subid, $method, $reference)]);
+            break;
+
+        // US-SB-2-1 (subscriptions)
+        case 'get_my_subscriptions':
+            academy_respond(['status' => 'success',
+                'data' => subscription_purchase_manager::get_my_subscriptions($userid)]);
+            break;
+
+        // US-SB-2-1 (payment history)
+        case 'get_subscription_payment_history':
+            academy_respond(['status' => 'success',
+                'data' => subscription_purchase_manager::get_payment_history($userid)]);
             break;
 
         // ── Student functions (any authenticated user, acting as themselves) ──

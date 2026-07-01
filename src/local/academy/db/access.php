@@ -13,6 +13,16 @@ $capabilities = array(
         ),
     ),
 
+    // Manage subscription plans + course access (create / update / deactivate / delete / course map).
+    'local/academy:managesubscriptions' => array(
+        'riskbitmask'  => RISK_CONFIG,
+        'captype'      => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes'   => array(
+            'manager' => CAP_ALLOW,
+        ),
+    ),
+
     // Manage the platform: lesson settings, reports, assign packages, process withdrawals, reversals.
     'local/academy:manageplatform' => array(
         'riskbitmask'  => RISK_CONFIG,
