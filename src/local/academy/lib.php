@@ -94,21 +94,19 @@ function local_academy_extend_navigation_user_settings($navigation, $user, $cont
 }
 
 /**
- * Live notification updates: realtime push (Socket.IO) → chime + auto page refresh.
+ * Live notification updates via realtime push (Socket.IO) — no polling.
  *
- * Moodle's navbar notification bell only fetches the unread count at page render and the list when
- * the user opens the popover — so a notification that arrives while the user sits on a page never
- * shows up until they refresh.
+ * Moodle's navbar notification bell only fetches the unread count at page render, so a notification
+ * that arrives while the user sits on a page never shows up until they refresh. This connects the
+ * browser to the notify-ws Socket.IO relay (authenticated with a short-lived HMAC token) and joins a
+ * private per-user room. The instant a notification is sent, Moodle's
+ * {@see \local_academy\observer::notification_sent} pushes it and the client plays a short chime and
+ * refreshes the page — so e.g. a teacher sees a new lesson request without touching anything.
  *
- * Primary path: the browser connects to the notify-ws Socket.IO server (authenticated with a
- * short-lived HMAC token), joins a private per-user room, and gets a "notification" event the
- * instant one is sent (Moodle's {@see \local_academy\observer::notification_sent} pushes it). On
- * each event we play a short chime (one per notification) and refresh the page.
- *
- * Fallback path: if the socket can't connect (relay down / proxy misconfigured / realtime
- * disabled), the client degrades to polling message_popup_get_unread_popup_notification_count every
- * 30s, so notifications are never silently lost. The chime needs a prior user gesture (browser
- * autoplay policy); the reload happens regardless.
+ * Requires the relay to be reachable from the browser (locally: direct on :3100; in production: a
+ * reverse-proxy route such as nginx /notify-ws). If it can't connect, nothing happens until the
+ * page is reloaded — there is no polling fallback by design. The chime needs a prior user gesture
+ * (browser autoplay policy); the reload happens regardless.
  */
 function local_academy_before_footer() {
     global $PAGE, $USER;
@@ -120,33 +118,28 @@ function local_academy_before_footer() {
     if (!isloggedin() || isguestuser()) {
         return;
     }
+    if (!\local_academy\realtime::enabled()) {
+        return;
+    }
 
-    $enabled = \local_academy\realtime::enabled();
     $cfg = array(
-        // Empty url => realtime disabled => client uses the polling fallback only.
-        'url'      => $enabled ? \local_academy\realtime::public_url() : '',
-        'path'     => \local_academy\realtime::socket_path(),
-        'token'    => \local_academy\realtime::mint_token((int) $USER->id),
-        'interval' => 30000,
+        'url'   => \local_academy\realtime::public_url(),
+        'path'  => \local_academy\realtime::socket_path(),
+        'token' => \local_academy\realtime::mint_token((int) $USER->id),
     );
     $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
 
     $js = <<<JS
-require(['core/ajax'], function(Ajax) {
+require([], function() {
     var CFG = {$cfgjson};
+    if (!CFG.url || !CFG.token) { return; }
     var container = document.getElementById('nav-notification-popover-container');
     if (!container) { return; }
     var userid = parseInt(container.getAttribute('data-userid'), 10) || 0;
     if (!userid) { return; }
-    var badge = container.querySelector('[data-region="count-container"]');
 
-    var lastCount = (function() {
-        var n = badge ? parseInt((badge.textContent || '').trim(), 10) : 0;
-        return isNaN(n) ? 0 : n;
-    })();
-
-    // Short chime via the Web Audio API (no asset file needed). Browsers block audio until the
-    // user has interacted with the page, so the context is lazily created/resumed on first gesture.
+    // Short chime via the Web Audio API (no asset file). Browsers block audio until the user has
+    // interacted with the page, so the context is lazily created/resumed on first gesture.
     var audioCtx = null;
     function ensureAudio() {
         try {
@@ -178,95 +171,45 @@ require(['core/ajax'], function(Ajax) {
         } catch (e) { /* ignore */ }
     }
 
-    var CHIME_GAP = 450;
-    var MAX_CHIMES = 5;
-
-    // Reload shortly after the last notification, so several arriving together still each chime
-    // but the page only reloads once.
+    // On each pushed notification: chime, then refresh (debounced so a burst reloads once).
     var reloadTimer = null;
-    function scheduleReload(delay) {
-        if (reloadTimer) { clearTimeout(reloadTimer); }
-        reloadTimer = setTimeout(function() { window.location.reload(); }, delay);
-    }
-
-    // ── Realtime path ──────────────────────────────────────────────────────────────────────────
-    var socketConnected = false;
     function onPush() {
-        chime();              // one chime per pushed notification
-        scheduleReload(1000); // debounced single reload
-    }
-    function connectSocket() {
-        if (!CFG.url || !CFG.token) { startPolling(); return; }
-        var s = document.createElement('script');
-        s.src = CFG.url.replace(/\\/$/, '') + CFG.path + '/socket.io.js';
-        s.onload = function() {
-            try {
-                if (!window.io) { startPolling(); return; }
-                var socket = window.io(CFG.url, {
-                    path: CFG.path,
-                    transports: ['websocket', 'polling'],
-                    auth: { token: CFG.token },
-                    reconnection: true,
-                    timeout: 5000
-                });
-                socket.on('connect', function() { socketConnected = true; stopPolling(); });
-                socket.on('notification', onPush);
-                socket.on('connect_error', function() { socketConnected = false; startPolling(); });
-                socket.on('disconnect', function() { socketConnected = false; startPolling(); });
-            } catch (e) { startPolling(); }
-        };
-        s.onerror = function() { startPolling(); };
-        document.head.appendChild(s);
-        // Safety net: if the socket hasn't connected shortly, poll in the meantime.
-        setTimeout(function() { if (!socketConnected) { startPolling(); } }, 6000);
+        chime();
+        if (reloadTimer) { clearTimeout(reloadTimer); }
+        reloadTimer = setTimeout(function() { window.location.reload(); }, 1000);
     }
 
-    // ── Polling fallback ───────────────────────────────────────────────────────────────────────
-    function chimeFor(newcount) {
-        var times = Math.min(newcount, MAX_CHIMES);
-        for (var i = 0; i < times; i++) { setTimeout(chime, i * CHIME_GAP); }
-        return times;
-    }
-    var pollTimer = null;
-    function poll() {
-        if (socketConnected) { return; }
-        Ajax.call([{
-            methodname: 'message_popup_get_unread_popup_notification_count',
-            args: {useridto: userid}
-        }])[0].then(function(count) {
-            count = parseInt(count, 10) || 0;
-            if (count > lastCount) {
-                var played = chimeFor(count - lastCount);
-                scheduleReload(400 + played * CHIME_GAP);
-                return null;
-            }
-            if (count !== lastCount && badge) {
-                badge.textContent = count;
-                if (count > 0) { badge.classList.remove('hidden'); }
-                else { badge.classList.add('hidden'); }
-            }
-            lastCount = count;
-            return null;
-        }).catch(function() { /* transient — retry next tick */ });
-    }
-    function startPolling() {
-        if (pollTimer || socketConnected) { return; }
-        poll();
-        pollTimer = setInterval(poll, CFG.interval);
-    }
-    function stopPolling() {
-        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    }
+    // Load the socket.io client. It is a UMD bundle; on a RequireJS page (Moodle) it would register
+    // as an anonymous AMD module and never set window.io — so hide AMD across the load, then restore.
+    var src = CFG.url.replace(/\\/$/, '') + CFG.path + '/socket.io.js';
+    var savedDefine = window.define;
+    try { window.define = undefined; } catch (e) {}
+    function restore() { try { window.define = savedDefine; } catch (e) {} }
 
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            stopPolling();
-        } else if (!socketConnected) {
-            startPolling();
+    var s = document.createElement('script');
+    s.src = src;
+    s.onload = function() {
+        restore();
+        if (!window.io) {
+            if (window.console) { console.warn('[academy-notify] socket.io client did not initialise'); }
+            return;
         }
-    });
-
-    connectSocket();
+        var socket = window.io(CFG.url, {
+            path: CFG.path,
+            transports: ['websocket'],
+            auth: { token: CFG.token },
+            reconnection: true
+        });
+        socket.on('notification', onPush);
+        socket.on('connect_error', function(e) {
+            if (window.console) { console.warn('[academy-notify] socket connect_error: ' + (e && e.message)); }
+        });
+    };
+    s.onerror = function() {
+        restore();
+        if (window.console) { console.warn('[academy-notify] failed to load socket.io client from ' + src); }
+    };
+    document.head.appendChild(s);
 });
 JS;
 

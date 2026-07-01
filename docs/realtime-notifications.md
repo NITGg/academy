@@ -20,7 +20,7 @@ message_send()  ─►  \core\event\notification_sent
 - **Relay:** `notify-socket/` — a small Node + Socket.IO server (container `academy_notify_ws`, port `3100`). No DB, no Moodle bootstrap.
 - **Auth:** the page injects a short-lived HMAC token (`<userid>.<exp>.<sig>`) minted by `\local_academy\realtime::mint_token()`. The relay verifies the signature and joins the socket to a private room `user:<id>`. Forged tokens are disconnected immediately.
 - **Server→relay:** `\local_academy\observer::notification_sent` calls `realtime::emit()`, a fire-and-forget POST to `/emit` (1s connect / 2s total timeout) authenticated by the shared `x-internal-key`. It can never delay or break message sending.
-- **Client:** injected in `local_academy_before_footer()`. Connects the socket; on each `notification` event it plays one chime and debounces a single page reload. **If the socket can't connect, it automatically falls back to polling** `message_popup_get_unread_popup_notification_count` every 30s — notifications are never lost.
+- **Client:** injected in `local_academy_before_footer()`. Connects the socket; on each `notification` event it plays one chime and refreshes the page (debounced so a burst reloads once). **Socket-only — there is no polling fallback.** If the relay is unreachable, the client does nothing until the next page load; `[academy-notify]` warnings appear in the browser console to diagnose.
 
 ## Configuration
 
@@ -28,7 +28,7 @@ All optional. Local-docker defaults work out of the box; override in `src/config
 
 | `$CFG->` setting | Default | Meaning |
 |---|---|---|
-| `academy_notify_enabled` | `true` | Master switch. `false` → client uses polling fallback only, observer stops emitting. |
+| `academy_notify_enabled` | `true` | Master switch. `false` → client injects nothing and the observer stops emitting. |
 | `academy_notify_secret` | `academy-internal-secret` | HMAC secret + internal `/emit` key. **Must match** the relay's `NOTIFY_SECRET` / `INTERNAL_KEY`. |
 | `academy_notify_internalurl` | `http://notify-ws:3100` | Base URL Moodle POSTs to (docker network). |
 | `academy_notify_publicurl` | `http://localhost:3100` | Base URL the browser connects to. |
