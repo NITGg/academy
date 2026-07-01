@@ -4,15 +4,13 @@ namespace local_payments\external;
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
-require_once($CFG->libdir . '/externallib.php');
+require_once($CFG->libdir  . '/externallib.php');
+require_once($CFG->dirroot . '/course/externallib.php');
 
 /**
- * Returns courses matching a field filter, each enriched with country-resolved
- * pricing. Mirrors the field/value API of core_course_get_courses_by_field so
- * the Flutter app can replace two round-trips (get courses + get price per
- * course) with a single call.
- *
- * Supported field values: id, ids (comma-separated), shortname, idnumber, category.
+ * Wraps core_course_external::get_courses_by_field and appends country-resolved
+ * pricing fields to every course in the result. The course data is identical to
+ * what the core function returns (same fields, visibility rules, formatting).
  */
 class get_courses_with_pricing extends \external_api {
 
@@ -20,19 +18,19 @@ class get_courses_with_pricing extends \external_api {
         return new \external_function_parameters([
             'field' => new \external_value(
                 PARAM_ALPHA,
-                'Field to filter by: id | ids | shortname | idnumber | category',
+                'Field to filter by: id | ids | shortname | idnumber | category. Empty = all courses.',
                 VALUE_DEFAULT,
                 ''
             ),
             'value' => new \external_value(
                 PARAM_RAW,
-                'Value for the filter field (for ids, comma-separated integers)',
+                'Value for the filter field. For ids, comma-separated integers.',
                 VALUE_DEFAULT,
                 ''
             ),
             'country' => new \external_value(
                 PARAM_ALPHA,
-                'ISO-3166-1 alpha-2 country code from the app (overrides auto-detection)',
+                'ISO-3166-1 alpha-2 country code from the app (overrides auto-detection).',
                 VALUE_DEFAULT,
                 ''
             ),
@@ -40,7 +38,7 @@ class get_courses_with_pricing extends \external_api {
     }
 
     public static function execute(string $field = '', string $value = '', string $country = ''): array {
-        global $DB, $USER;
+        global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'field'   => $field,
@@ -50,21 +48,28 @@ class get_courses_with_pricing extends \external_api {
 
         self::validate_context(\context_system::instance());
 
-        $app_country = !empty($params['country']) ? $params['country'] : null;
-        $courses     = self::fetch_courses($params['field'], $params['value']);
+        // Delegate to the core function — gets all standard fields, visibility
+        // filtering, capability checks, and formatted output for free.
+        $core_result = \core_course_external::get_courses_by_field(
+            $params['field'],
+            $params['value']
+        );
 
-        $result = [];
-        foreach ($courses as $course) {
-            // Skip the site course.
-            if ((int) $course->id === SITEID) {
+        $app_country = !empty($params['country']) ? $params['country'] : null;
+        $courses     = [];
+
+        foreach ($core_result['courses'] as $course_data) {
+            $courseid = (int) $course_data['id'];
+
+            if ($courseid === SITEID) {
                 continue;
             }
 
-            $is_purchased = \local_payments\price_resolver::is_purchased($course->id, $USER->id);
-            $is_enrolled  = \local_payments\enrollment_handler::is_enrolled($USER->id, $course->id);
+            $is_purchased = \local_payments\price_resolver::is_purchased($courseid, $USER->id);
+            $is_enrolled  = \local_payments\enrollment_handler::is_enrolled($USER->id, $courseid);
 
-            $pricing_data = [
-                'country'             => '',
+            $pricing = [
+                'pricing_country'     => '',
                 'currency'            => '',
                 'price'               => 0.0,
                 'sale_price'          => 0.0,
@@ -73,140 +78,136 @@ class get_courses_with_pricing extends \external_api {
                 'is_sale_active'      => false,
                 'sale_ends_at'        => 0,
                 'is_free'             => true,
+                'is_purchased'        => $is_purchased,
+                'is_enrolled'         => $is_enrolled,
             ];
 
-            if (\local_payments\price_resolver::has_pricing($course->id)) {
+            if (\local_payments\price_resolver::has_pricing($courseid)) {
                 try {
-                    $pricing = \local_payments\price_resolver::resolve($course->id, $USER->id, $app_country);
-                    $pricing_data = [
-                        'country'             => $pricing->country,
-                        'currency'            => $pricing->currency,
-                        'price'               => $pricing->price,
-                        'sale_price'          => $pricing->sale_price ?? 0.0,
-                        'original_price'      => $pricing->original_price,
-                        'discount_percentage' => $pricing->discount_pct,
-                        'is_sale_active'      => $pricing->is_sale_active,
-                        'sale_ends_at'        => (int) ($pricing->sale_ends_at ?? 0),
-                        'is_free'             => false,
-                    ];
+                    $resolved = \local_payments\price_resolver::resolve($courseid, $USER->id, $app_country);
+                    $pricing['pricing_country']     = $resolved->country;
+                    $pricing['currency']            = $resolved->currency;
+                    $pricing['price']               = $resolved->price;
+                    $pricing['sale_price']          = $resolved->sale_price ?? 0.0;
+                    $pricing['original_price']      = $resolved->original_price;
+                    $pricing['discount_percentage'] = $resolved->discount_pct;
+                    $pricing['is_sale_active']      = $resolved->is_sale_active;
+                    $pricing['sale_ends_at']        = (int) ($resolved->sale_ends_at ?? 0);
+                    $pricing['is_free']             = false;
                 } catch (\moodle_exception $e) {
-                    // No matching pricing row for this country — treat as free.
+                    // No pricing rule for this country — treat as free.
                 }
             }
 
-            $result[] = array_merge([
-                'id'          => (int) $course->id,
-                'fullname'    => $course->fullname,
-                'shortname'   => $course->shortname,
-                'summary'     => $course->summary ?? '',
-                'categoryid'  => (int) $course->category,
-                'visible'     => (bool) $course->visible,
-                'image_url'   => self::get_course_image_url($course->id),
-                'is_purchased' => $is_purchased,
-                'is_enrolled'  => $is_enrolled,
-            ], $pricing_data);
+            $courses[] = array_merge($course_data, $pricing);
         }
 
-        return ['courses' => $result];
+        return [
+            'courses'  => $courses,
+            'warnings' => $core_result['warnings'],
+        ];
     }
 
     public static function execute_returns(): \external_single_structure {
-        $course_structure = new \external_single_structure([
-            'id'                  => new \external_value(PARAM_INT,   'Course ID'),
-            'fullname'            => new \external_value(PARAM_TEXT,  'Course full name'),
-            'shortname'           => new \external_value(PARAM_TEXT,  'Course short name'),
-            'summary'             => new \external_value(PARAM_RAW,   'Course summary'),
-            'categoryid'          => new \external_value(PARAM_INT,   'Category ID'),
-            'visible'             => new \external_value(PARAM_BOOL,  'Visible to students'),
-            'image_url'           => new \external_value(PARAM_URL,   'Course image URL or empty', VALUE_DEFAULT, ''),
-            'country'             => new \external_value(PARAM_ALPHA, 'Detected/resolved country code'),
-            'currency'            => new \external_value(PARAM_ALPHA, 'Currency code'),
-            'price'               => new \external_value(PARAM_FLOAT, 'Effective price (sale or original)'),
-            'sale_price'          => new \external_value(PARAM_FLOAT, 'Sale price or 0'),
-            'original_price'      => new \external_value(PARAM_FLOAT, 'Original price'),
-            'discount_percentage' => new \external_value(PARAM_INT,   'Discount percentage'),
-            'is_sale_active'      => new \external_value(PARAM_BOOL,  'Whether a sale is currently active'),
-            'sale_ends_at'        => new \external_value(PARAM_INT,   'Sale end timestamp or 0'),
-            'is_free'             => new \external_value(PARAM_BOOL,  'No active pricing — open access'),
-            'is_purchased'        => new \external_value(PARAM_BOOL,  'User has a completed purchase'),
-            'is_enrolled'         => new \external_value(PARAM_BOOL,  'User is enrolled'),
-        ]);
+        // Full course structure — mirrors core_course_external::get_course_structure(false).
+        $course_structure = [
+            // --- Public fields (always returned) ---
+            'id'           => new \external_value(PARAM_INT, 'course id'),
+            'fullname'     => new \external_value(PARAM_RAW, 'course full name'),
+            'displayname'  => new \external_value(PARAM_RAW, 'course display name'),
+            'shortname'    => new \external_value(PARAM_RAW, 'course short name'),
+            'categoryid'   => new \external_value(PARAM_INT, 'category id'),
+            'categoryname' => new \external_value(PARAM_RAW, 'category name'),
+            'sortorder'    => new \external_value(PARAM_INT, 'sort order in the category', VALUE_OPTIONAL),
+            'summary'      => new \external_value(PARAM_RAW, 'summary'),
+            'summaryformat' => new \external_format_value('summary'),
+            'summaryfiles' => new \external_files('summary files', VALUE_OPTIONAL),
+            'overviewfiles' => new \external_files('overview files attached to this course'),
+            'showactivitydates' => new \external_value(PARAM_BOOL, 'whether activity dates are shown'),
+            'showcompletionconditions' => new \external_value(PARAM_BOOL, 'whether completion conditions are shown'),
+            'contacts' => new \external_multiple_structure(
+                new \external_single_structure([
+                    'id'       => new \external_value(PARAM_INT,    'contact user id'),
+                    'fullname' => new \external_value(PARAM_NOTAGS, 'contact user fullname'),
+                ]),
+                'contact users'
+            ),
+            'enrollmentmethods' => new \external_multiple_structure(
+                new \external_value(PARAM_PLUGIN, 'enrollment method'),
+                'enrollment methods list'
+            ),
+            'customfields' => new \external_multiple_structure(
+                new \external_single_structure([
+                    'name'      => new \external_value(PARAM_RAW,        'custom field name'),
+                    'shortname' => new \external_value(PARAM_RAW,        'custom field shortname'),
+                    'type'      => new \external_value(PARAM_ALPHANUMEXT,'custom field type'),
+                    'valueraw'  => new \external_value(PARAM_RAW,        'custom field raw value'),
+                    'value'     => new \external_value(PARAM_RAW,        'custom field value'),
+                ]),
+                'custom fields',
+                VALUE_OPTIONAL
+            ),
+            // --- Fields returned for users who can access the course ---
+            'idnumber'           => new \external_value(PARAM_RAW,    'id number',           VALUE_OPTIONAL),
+            'format'             => new \external_value(PARAM_PLUGIN,  'course format',       VALUE_OPTIONAL),
+            'showgrades'         => new \external_value(PARAM_INT,    '1 if grades shown',   VALUE_OPTIONAL),
+            'newsitems'          => new \external_value(PARAM_INT,    'number of news items', VALUE_OPTIONAL),
+            'startdate'          => new \external_value(PARAM_INT,    'course start timestamp', VALUE_OPTIONAL),
+            'enddate'            => new \external_value(PARAM_INT,    'course end timestamp',   VALUE_OPTIONAL),
+            'maxbytes'           => new \external_value(PARAM_INT,    'max upload file size',   VALUE_OPTIONAL),
+            'showreports'        => new \external_value(PARAM_INT,    'activity reports shown', VALUE_OPTIONAL),
+            'visible'            => new \external_value(PARAM_INT,    '1: available, 0: not',   VALUE_OPTIONAL),
+            'groupmode'          => new \external_value(PARAM_INT,    'group mode',             VALUE_OPTIONAL),
+            'groupmodeforce'     => new \external_value(PARAM_INT,    '1: forced, 0: no',       VALUE_OPTIONAL),
+            'defaultgroupingid'  => new \external_value(PARAM_INT,    'default grouping id',    VALUE_OPTIONAL),
+            'enablecompletion'   => new \external_value(PARAM_INT,    'completion enabled',     VALUE_OPTIONAL),
+            'completionnotify'   => new \external_value(PARAM_INT,    'notify on completion',   VALUE_OPTIONAL),
+            'lang'               => new \external_value(PARAM_SAFEDIR,'forced language',        VALUE_OPTIONAL),
+            'theme'              => new \external_value(PARAM_PLUGIN,  'forced theme',           VALUE_OPTIONAL),
+            'marker'             => new \external_value(PARAM_INT,    'current course marker',  VALUE_OPTIONAL),
+            'legacyfiles'        => new \external_value(PARAM_INT,    'legacy files enabled',   VALUE_OPTIONAL),
+            'calendartype'       => new \external_value(PARAM_PLUGIN,  'calendar type',          VALUE_OPTIONAL),
+            'timecreated'        => new \external_value(PARAM_INT,    'time course was created', VALUE_OPTIONAL),
+            'timemodified'       => new \external_value(PARAM_INT,    'time course was updated', VALUE_OPTIONAL),
+            'requested'          => new \external_value(PARAM_INT,    'is a requested course',   VALUE_OPTIONAL),
+            'cacherev'           => new \external_value(PARAM_INT,    'cache revision number',   VALUE_OPTIONAL),
+            'filters' => new \external_multiple_structure(
+                new \external_single_structure([
+                    'filter'         => new \external_value(PARAM_PLUGIN, 'filter plugin name'),
+                    'localstate'     => new \external_value(PARAM_INT,    'filter state: 1 on, -1 off, 0 inherit'),
+                    'inheritedstate' => new \external_value(PARAM_INT,    '1 or 0 for inherited state'),
+                ]),
+                'course filters',
+                VALUE_OPTIONAL
+            ),
+            'courseformatoptions' => new \external_multiple_structure(
+                new \external_single_structure([
+                    'name'  => new \external_value(PARAM_RAW, 'course format option name'),
+                    'value' => new \external_value(PARAM_RAW, 'course format option value'),
+                ]),
+                'additional course format options',
+                VALUE_OPTIONAL
+            ),
+            // --- Pricing fields (added by this function) ---
+            'pricing_country'     => new \external_value(PARAM_ALPHA, 'resolved country code for pricing'),
+            'currency'            => new \external_value(PARAM_ALPHA, 'currency code (e.g. EGP)'),
+            'price'               => new \external_value(PARAM_FLOAT, 'effective price — sale price if active, otherwise original'),
+            'sale_price'          => new \external_value(PARAM_FLOAT, 'sale price, or 0 if no active sale'),
+            'original_price'      => new \external_value(PARAM_FLOAT, 'original price before any discount'),
+            'discount_percentage' => new \external_value(PARAM_INT,   'discount percentage 0–100'),
+            'is_sale_active'      => new \external_value(PARAM_BOOL,  'whether a sale is currently active'),
+            'sale_ends_at'        => new \external_value(PARAM_INT,   'sale end unix timestamp, or 0'),
+            'is_free'             => new \external_value(PARAM_BOOL,  'true if no active pricing rule — open access'),
+            'is_purchased'        => new \external_value(PARAM_BOOL,  'current user has a completed purchase'),
+            'is_enrolled'         => new \external_value(PARAM_BOOL,  'current user is enrolled in the course'),
+        ];
 
         return new \external_single_structure([
-            'courses' => new \external_multiple_structure($course_structure),
+            'courses'  => new \external_multiple_structure(
+                new \external_single_structure($course_structure),
+                'courses with pricing'
+            ),
+            'warnings' => new \external_warnings(),
         ]);
-    }
-
-    // -------------------------------------------------------------------------
-
-    private static function fetch_courses(string $field, string $value): array {
-        global $DB;
-
-        $select_fields = 'id, fullname, shortname, summary, category, visible';
-
-        switch ($field) {
-            case 'id':
-                $id = clean_param($value, PARAM_INT);
-                if (!$id) {
-                    return [];
-                }
-                $record = $DB->get_record('course', ['id' => $id], $select_fields);
-                return $record ? [$record] : [];
-
-            case 'ids':
-                $ids = array_filter(array_map('intval', explode(',', $value)));
-                if (empty($ids)) {
-                    return [];
-                }
-                list($in_sql, $in_params) = $DB->get_in_or_equal($ids);
-                return array_values($DB->get_records_select('course', "id {$in_sql}", $in_params, 'sortorder ASC', $select_fields));
-
-            case 'shortname':
-                $sn = clean_param($value, PARAM_TEXT);
-                $record = $DB->get_record('course', ['shortname' => $sn], $select_fields);
-                return $record ? [$record] : [];
-
-            case 'idnumber':
-                $idn = clean_param($value, PARAM_TEXT);
-                $record = $DB->get_record('course', ['idnumber' => $idn], $select_fields);
-                return $record ? [$record] : [];
-
-            case 'category':
-                $catid = clean_param($value, PARAM_INT);
-                if (!$catid) {
-                    return [];
-                }
-                return array_values($DB->get_records('course', ['category' => $catid], 'sortorder ASC', $select_fields));
-
-            default:
-                // No field or unrecognised — return empty; caller should use a specific field.
-                return [];
-        }
-    }
-
-    private static function get_course_image_url(int $courseid): string {
-        try {
-            $context = \context_course::instance($courseid);
-            $fs      = get_file_storage();
-            $files   = $fs->get_area_files(
-                $context->id, 'course', 'overviewfiles', false, 'filename', false
-            );
-            foreach ($files as $f) {
-                $mime = $f->get_mimetype();
-                if (strpos($mime, 'image/') === 0) {
-                    return \moodle_url::make_pluginfile_url(
-                        $f->get_contextid(),
-                        $f->get_component(),
-                        $f->get_filearea(),
-                        null,
-                        $f->get_filepath(),
-                        $f->get_filename()
-                    )->out(false);
-                }
-            }
-        } catch (\Exception $e) {
-            // Context may not exist for deleted/invisible courses — silently skip.
-        }
-        return '';
     }
 }
