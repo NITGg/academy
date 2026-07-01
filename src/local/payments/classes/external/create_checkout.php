@@ -25,8 +25,12 @@ class create_checkout extends \external_api {
             'lang' => $lang,
         ]);
 
+        // Validate against the SYSTEM context, not the course context: the buyer is by
+        // definition NOT enrolled yet, so validating the course context (require_login)
+        // would reject them with require_login_exception. The purchasecourse capability is
+        // still checked against the course context (capability checks don't require enrolment).
         $context = \context_course::instance($params['courseid']);
-        self::validate_context($context);
+        self::validate_context(\context_system::instance());
         require_capability('local/payments:purchasecourse', $context);
 
         $result = \local_payments\manager::create_checkout(

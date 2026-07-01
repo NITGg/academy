@@ -66,4 +66,12 @@ $functions = [
         'ajax'        => true,
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    'local_payments_get_courses_with_pricing' => [
+        'classname'   => 'local_payments\external\get_courses_with_pricing',
+        'methodname'  => 'execute',
+        'description' => 'Get courses filtered by field with country-resolved pricing for each course.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
 ];

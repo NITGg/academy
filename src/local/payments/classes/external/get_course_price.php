@@ -23,8 +23,12 @@ class get_course_price extends \external_api {
             'country' => $country,
         ]);
 
-        $context = \context_course::instance($params['courseid']);
-        self::validate_context($context);
+        // Course must exist (context_course::instance throws otherwise), but validate
+        // against the SYSTEM context: this endpoint is called by users who are NOT yet
+        // enrolled (they're deciding whether to buy). Validating the course context runs
+        // require_login($course) and would reject them with require_login_exception.
+        \context_course::instance($params['courseid']);
+        self::validate_context(\context_system::instance());
 
         $is_purchased = \local_payments\price_resolver::is_purchased($params['courseid'], $USER->id);
         $is_enrolled = \local_payments\enrollment_handler::is_enrolled($USER->id, $params['courseid']);

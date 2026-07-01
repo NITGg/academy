@@ -19,8 +19,12 @@ class get_course_access extends \external_api {
 
         $params = self::validate_parameters(self::execute_parameters(), ['courseid' => $courseid]);
 
-        $context = \context_course::instance($params['courseid']);
-        self::validate_context($context);
+        // Validate against the SYSTEM context: this endpoint is polled for unenrolled
+        // users deciding whether to buy, so validating the course context (which enforces
+        // course access via require_login) would reject them. context_course::instance
+        // still confirms the course exists.
+        \context_course::instance($params['courseid']);
+        self::validate_context(\context_system::instance());
 
         $is_enrolled = \local_payments\enrollment_handler::is_enrolled($USER->id, $params['courseid']);
         $is_purchased = \local_payments\price_resolver::is_purchased($params['courseid'], $USER->id);
