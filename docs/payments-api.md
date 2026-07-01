@@ -302,6 +302,71 @@ Invoice details for a specific transaction.
 
 ---
 
+### 9. `local_payments_get_courses_with_pricing`
+Get a list of courses filtered by a field, with country-resolved pricing for each course. Replaces a separate `core_course_get_courses_by_field` + per-course `get_course_price` loop with a single call — ideal for course catalog and category screens.
+
+**Parameters**
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| field | string | no | `category`, `id`, `ids`, `shortname`, or `idnumber`. Omit to get an empty result. |
+| value | string | no | Value for the field. For `ids`, pass comma-separated integers: `"54,59,62"` |
+| country | string | no | ISO 3166-1 alpha-2. Auto-detected from user profile/IP if omitted. |
+
+**Example — all courses in category 3**
+```
+POST /webservice/rest/server.php
+wsfunction=local_payments_get_courses_with_pricing
+field=category
+value=3
+```
+
+**Example — specific courses by IDs**
+```
+POST /webservice/rest/server.php
+wsfunction=local_payments_get_courses_with_pricing
+field=ids
+value=54,59
+```
+
+**Response**
+```json
+{
+  "courses": [
+    {
+      "id": 59,
+      "fullname": "test 26",
+      "shortname": "T26",
+      "summary": "Course description...",
+      "categoryid": 3,
+      "visible": true,
+      "image_url": "https://your-domain.com/pluginfile.php/123/course/overviewfiles/cover.jpg",
+      "country": "EG",
+      "currency": "EGP",
+      "price": 150.00,
+      "original_price": 200.00,
+      "sale_price": 150.00,
+      "discount_percentage": 25,
+      "is_sale_active": true,
+      "sale_ends_at": 1751385600,
+      "is_free": false,
+      "is_purchased": false,
+      "is_enrolled": false
+    }
+  ]
+}
+```
+
+| Field | Description |
+|---|---|
+| `image_url` | Course cover image URL, empty string if no image uploaded |
+| `price` | Effective price — use this as the displayed/charged amount |
+| `is_free` | `true` if the course has no active pricing rule (open access) |
+| `is_purchased` | User already has a completed payment for this course |
+| `is_enrolled` | User is already enrolled |
+| `sale_ends_at` | Unix timestamp of sale end, `0` if no active sale |
+
+---
+
 ## Error Handling
 
 Moodle returns errors in this shape:

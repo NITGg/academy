@@ -19,13 +19,6 @@ function local_payments_extend_navigation_course(\navigation_node $navigation, \
     }
 }
 
-function local_payments_before_standard_html_head() {
-    global $CFG;
-
-    $url = new \moodle_url('/local/payments/styles.css', ['v' => filemtime($CFG->dirroot . '/local/payments/styles.css')]);
-    return \html_writer::empty_tag('link', ['rel' => 'stylesheet', 'href' => $url->out(false)]);
-}
-
 /**
  * Intercept course view for unenrolled users and redirect to the buy page
  * when the course has active payment pricing.
