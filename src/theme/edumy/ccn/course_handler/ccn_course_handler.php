@@ -317,6 +317,18 @@ class ccnCourseHandler {
       $ccnCourse->price = $ccnCoursePriceDisplay;
       $ccnCourse->priceMethods = $ccnEnrolmentCosts;
       $ccnCourse->priceFormats = $ccnCoursePrice;
+
+      // If local_payments has an active pricing rule for this course, its price/sale/
+      // subscribe card takes over the price slot instead of the raw enrolment fee.
+      if (class_exists('\local_payments\price_resolver') && \local_payments\price_resolver::has_pricing($courseId)) {
+        $ccnPriceCardContext = \local_payments\price_resolver::card_context($courseId);
+        $ccnPriceCardHtml = $OUTPUT->render_from_template('local_payments/course_card_price', $ccnPriceCardContext);
+        $ccnCourse->price = html_writer::div($ccnPriceCardHtml, 'lp-context-dark-footer');
+        $ccnCourse->hasPrice = 1;
+        if (!empty($ccnPriceCardContext['buy_url'])) {
+          $ccnCourse->enrolmentLink = $ccnPriceCardContext['buy_url'];
+        }
+      }
       $ccnCourse->overallRating = $ccnProcessRatingCountFunction;
       $ccnCourse->numberOfRatings = $ccnProcessRatingCountTotalFunction;
 

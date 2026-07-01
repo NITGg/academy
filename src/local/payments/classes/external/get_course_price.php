@@ -26,14 +26,32 @@ class get_course_price extends \external_api {
         $context = \context_course::instance($params['courseid']);
         self::validate_context($context);
 
+        $is_purchased = \local_payments\price_resolver::is_purchased($params['courseid'], $USER->id);
+        $is_enrolled = \local_payments\enrollment_handler::is_enrolled($USER->id, $params['courseid']);
+
+        // No active pricing rule — course is free, nothing to buy.
+        if (!\local_payments\price_resolver::has_pricing($params['courseid'])) {
+            return [
+                'courseid' => $params['courseid'],
+                'country' => '',
+                'currency' => '',
+                'price' => 0.0,
+                'sale_price' => 0.0,
+                'original_price' => 0.0,
+                'discount_percentage' => 0,
+                'is_sale_active' => false,
+                'sale_ends_at' => 0,
+                'is_purchased' => $is_purchased,
+                'is_enrolled' => $is_enrolled,
+                'is_free' => true,
+            ];
+        }
+
         $pricing = \local_payments\price_resolver::resolve(
             $params['courseid'],
             $USER->id,
             !empty($params['country']) ? $params['country'] : null
         );
-
-        $is_purchased = \local_payments\price_resolver::is_purchased($params['courseid'], $USER->id);
-        $is_enrolled = \local_payments\enrollment_handler::is_enrolled($USER->id, $params['courseid']);
 
         return [
             'courseid' => $params['courseid'],
@@ -47,6 +65,7 @@ class get_course_price extends \external_api {
             'sale_ends_at' => $pricing->sale_ends_at ?? 0,
             'is_purchased' => $is_purchased,
             'is_enrolled' => $is_enrolled,
+            'is_free' => false,
         ];
     }
 
@@ -63,6 +82,7 @@ class get_course_price extends \external_api {
             'sale_ends_at' => new \external_value(PARAM_INT, 'Sale end timestamp or 0'),
             'is_purchased' => new \external_value(PARAM_BOOL, 'Already purchased'),
             'is_enrolled' => new \external_value(PARAM_BOOL, 'Already enrolled'),
+            'is_free' => new \external_value(PARAM_BOOL, 'Course has no active pricing — free/open access'),
         ]);
     }
 }
