@@ -23,8 +23,11 @@ class get_payment_methods extends \external_api {
             'country' => $country,
         ]);
 
-        $context = \context_course::instance($params['courseid']);
-        self::validate_context($context);
+        // Validate against the SYSTEM context: called for unenrolled users before purchase,
+        // so the course context (require_login) would wrongly reject them. The course
+        // existence is still checked via context_course::instance.
+        \context_course::instance($params['courseid']);
+        self::validate_context(\context_system::instance());
 
         $pricing = \local_payments\price_resolver::resolve(
             $params['courseid'], $USER->id,
