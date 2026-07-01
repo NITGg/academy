@@ -95,6 +95,8 @@ function=purchase_subscription&token=TOKEN&subscriptionid=1&method=online&refere
 - On success the student is **enrolled** into `courses` until `expires_at`.
 - `expires_at` = unix seconds = activation + `duration_days`.
 - The full price is recorded as a successful payment (platform revenue).
+- **Rule:** a student may hold only **one active subscription**. Buying while one is active returns
+  `fail` → `"You already have an active subscription"`.
 - Failures: `"This subscription is not available for purchase"` (inactive),
   `"Subscription not found"` (bad id).
 
@@ -110,7 +112,7 @@ GET /local/academy/api.php?function=get_my_subscriptions&token=TOKEN
     "courses": [ { "id": 12, "fullname": "English" } ] }
 ] }
 ```
-- Active subscription(s) returned **first**.
+- The active subscription is returned **first** (a student has at most one active at a time).
 - `status` is computed live: `active` | `expired` (and `cancelled` / `payment_failed` if set).
 - `remaining_days` is whole days until expiry (0 when not active).
 
@@ -150,6 +152,7 @@ get_subscription_payment_history  → "Payment History" screen
 |---------|---------|--------------|
 | `Authentication required` / `Invalid token` | missing/bad token | go to login |
 | (HTML instead of JSON) | expired/invalid token | go to login |
+| `You already have an active subscription` | one-active-subscription rule | disable Buy / show current subscription |
 | `This subscription is not available for purchase` | plan inactive | refresh list |
 | `Subscription not found` | bad `subscriptionid` | refresh list |
 | `This action requires POST` | purchase sent as GET | use POST |
@@ -159,7 +162,7 @@ get_subscription_payment_history  → "Payment History" screen
 - Time fields are **unix seconds**. `duration_days` is whole days.
 - Access is real Moodle enrolment; the courses also appear in the student's normal course list.
 - A daily task expires overdue subscriptions and removes course access automatically.
-- Nothing here forbids holding more than one active subscription — access is additive across plans.
+- A student may hold only **one active subscription** at a time (buy again only after it expires).
 
 ## 8. Quick test (curl)
 ```bash

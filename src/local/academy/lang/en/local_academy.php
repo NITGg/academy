@@ -79,6 +79,7 @@ $string['err_durationpositive'] = 'Number of days must be greater than zero';
 $string['err_subnotfound']      = 'Subscription not found';
 $string['err_subhaspurchases']  = 'This subscription has purchase records and cannot be deleted. Deactivate it instead.';
 $string['err_subnotavailable']  = 'This subscription is not available for purchase';
+$string['err_alreadyhassubscription'] = 'You already have an active subscription';
 $string['err_coursenotfound']   = 'Course not found';
 
 // ── Lesson-lifecycle notifications (in-app + email) ──

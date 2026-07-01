@@ -51,6 +51,10 @@ class subscription_purchase_manager {
         if ($sub->status !== subscription_manager::STATUS_ACTIVE) {
             throw new \moodle_exception('err_subnotavailable', 'local_academy');
         }
+        // Rule: a student may hold only one active subscription at a time.
+        if (self::get_active_subscription($userid)) {
+            throw new \moodle_exception('err_alreadyhassubscription', 'local_academy');
+        }
 
         $now = time();
         $expiresat = $now + ((int)$sub->duration_days * DAYSECS);
@@ -162,6 +166,19 @@ class subscription_purchase_manager {
             );
         }
         return $out;
+    }
+
+    /** The student's current active, non-expired subscription (or null). */
+    public static function get_active_subscription($userid) {
+        global $DB;
+        $purchases = $DB->get_records('academy_sub_purchases',
+            array('userid' => $userid, 'status' => 'active'), 'timecreated DESC');
+        foreach ($purchases as $p) {
+            if (self::effective_status($p) === 'active') {
+                return $p;
+            }
+        }
+        return null;
     }
 
     /** Compute the real status of a purchase at read time (expired if past expiry). */

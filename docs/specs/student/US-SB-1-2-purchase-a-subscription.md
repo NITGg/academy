@@ -19,6 +19,7 @@ As a student, I want to purchase a subscription, so that I can access its availa
 12. 🎓 Receive a purchase confirmation
 
 ## Notes
+- A student may hold only **one active subscription** at a time (buy again only after it expires).
 - The subscription is activated only after successful payment.
 - The full subscription price belongs to the platform.
 - Subscription revenue is not divided between the platform and teachers.
