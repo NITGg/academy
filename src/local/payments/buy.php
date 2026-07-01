@@ -14,6 +14,11 @@ if (is_enrolled($context, $USER->id)) {
     redirect(new moodle_url('/course/view.php', ['id' => $courseid]));
 }
 
+// No active pricing — course is free/open, no payment gate to show.
+if (!\local_payments\price_resolver::has_pricing($courseid)) {
+    redirect(new moodle_url('/course/view.php', ['id' => $courseid]));
+}
+
 $PAGE->set_url(new moodle_url('/local/payments/buy.php', ['courseid' => $courseid]));
 $PAGE->set_context($context);
 $PAGE->set_title($course->fullname);

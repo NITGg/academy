@@ -387,8 +387,13 @@ class manager {
 
         // Enrol the student.
         try {
-            enrollment_handler::enrol_user((int) $transaction->userid, (int) $transaction->courseid);
-            self::audit_log($transaction->id, $transaction->userid, 'student_enrolled', '', (string) $transaction->courseid);
+            $enrolled = enrollment_handler::enrol_user((int) $transaction->userid, (int) $transaction->courseid);
+            if ($enrolled) {
+                self::audit_log($transaction->id, $transaction->userid, 'student_enrolled', '', (string) $transaction->courseid);
+            } else {
+                self::log_entry($transaction->provider_id, $transaction->id, 'error',
+                    'Enrolment call completed without throwing but user is not enrolled.');
+            }
         } catch (\Exception $e) {
             self::log_entry($transaction->provider_id, $transaction->id, 'error',
                 'Enrolment failed: ' . $e->getMessage());
@@ -517,16 +522,32 @@ class manager {
                 self::audit_log($transaction->id, $transaction->userid, 'status_changed',
                     $transaction->status, status_machine::COMPLETED);
 
-                enrollment_handler::enrol_user((int) $transaction->userid, (int) $transaction->courseid);
+                try {
+                    $enrolled = enrollment_handler::enrol_user((int) $transaction->userid, (int) $transaction->courseid);
+                } catch (\Exception $e) {
+                    $enrolled = false;
+                    self::log_entry($transaction->provider_id, $transaction->id, 'error',
+                        'Enrolment failed: ' . $e->getMessage());
+                }
+
+                if ($enrolled) {
+                    self::audit_log($transaction->id, $transaction->userid, 'student_enrolled', '', (string) $transaction->courseid);
+                } else {
+                    self::log_entry($transaction->provider_id, $transaction->id, 'error',
+                        'Enrolment call completed without throwing but user is not enrolled.');
+                }
+
                 invoice_generator::create((int) $transaction->id);
                 self::send_confirmation($transaction);
+            } else {
+                $enrolled = enrollment_handler::is_enrolled((int) $transaction->userid, (int) $transaction->courseid);
             }
 
             return (object) [
                 'success' => true,
                 'status' => status_machine::COMPLETED,
                 'courseid' => (int) $transaction->courseid,
-                'enrolled' => true,
+                'enrolled' => $enrolled,
             ];
         }
 

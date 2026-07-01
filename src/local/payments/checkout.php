@@ -13,6 +13,11 @@ $context = context_course::instance($courseid);
 require_login();
 require_capability('local/payments:purchasecourse', $context);
 
+// No active pricing — course is free, nothing to check out.
+if (!\local_payments\price_resolver::has_pricing($courseid)) {
+    redirect(new moodle_url('/course/view.php', ['id' => $courseid]));
+}
+
 $PAGE->set_url(new moodle_url('/local/payments/checkout.php', ['courseid' => $courseid]));
 $PAGE->set_context($context);
 $PAGE->set_title(get_string('buycourse', 'local_payments'));

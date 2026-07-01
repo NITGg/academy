@@ -55,6 +55,7 @@ class get_course_access extends \external_api {
             'payment_status' => $payment_status,
             'order_id' => $order_id,
             'has_pending_payment' => $has_pending,
+            'is_free' => !\local_payments\price_resolver::has_pricing($params['courseid']),
         ];
     }
 
@@ -66,6 +67,7 @@ class get_course_access extends \external_api {
             'payment_status' => new \external_value(PARAM_TEXT, 'Payment status'),
             'order_id' => new \external_value(PARAM_TEXT, 'Order ID'),
             'has_pending_payment' => new \external_value(PARAM_BOOL, 'Has pending payment'),
+            'is_free' => new \external_value(PARAM_BOOL, 'Course has no active pricing — free/open access'),
         ]);
     }
 }

@@ -20,7 +20,10 @@ function local_payments_extend_navigation_course(\navigation_node $navigation, \
 }
 
 function local_payments_before_standard_html_head() {
-    return '';
+    global $CFG;
+
+    $url = new \moodle_url('/local/payments/styles.css', ['v' => filemtime($CFG->dirroot . '/local/payments/styles.css')]);
+    return \html_writer::empty_tag('link', ['rel' => 'stylesheet', 'href' => $url->out(false)]);
 }
 
 /**
@@ -57,8 +60,10 @@ function local_payments_before_http_headers() {
         return;
     }
 
-    // Only redirect if this course has active payment pricing.
-    if (!$DB->record_exists('local_payments_course_prices', ['courseid' => $courseid, 'is_active' => 1])) {
+    // Only redirect if this course has active payment pricing. A course
+    // with no active pricing (removed/diminished) is free — let the user
+    // through to Moodle's normal enrolment flow.
+    if (!\local_payments\price_resolver::has_pricing($courseid)) {
         return;
     }
 
