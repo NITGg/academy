@@ -16,6 +16,7 @@ class settings_manager {
         'start_allowed_minutes'   => 30,   // how early a lesson may start / link visible
         'complete_allowed_minutes' => 180, // how long after the start a lesson may still be completed
         'absence_report_minutes'  => 15,   // wait before reporting absence
+        'expiry_reminder_days'    => 3,    // notify a student this many days before a package expires (0 = off)
         'teacher_percent'         => 40,   // teacher share of a consumed Flex
         'platform_percent'        => 60,   // platform share of a consumed Flex
         'lessons_courseid'        => 54,   // course that hosts the per-lesson Jitsi meeting rooms (hardcoded for now)

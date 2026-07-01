@@ -140,3 +140,10 @@ $string['notif_time_update_accepted_body']    = '{$a->actor} accepted the new ti
 // US-LS-5-2: time-update rejected → requester.
 $string['notif_time_update_rejected_subject'] = 'New time rejected: {$a->subject}';
 $string['notif_time_update_rejected_body']    = '{$a->actor} rejected the new time. The {$a->subject} lesson stays on {$a->time}.';
+
+// Package expiry reminder (sent by the daily expiry_reminder task).
+$string['notif_package_expiring_subject'] = 'Your package expires in {$a->days} day(s)';
+$string['notif_package_expiring_body']    = 'Your "{$a->package}" package expires on {$a->date} ({$a->days} day(s) left). You still have {$a->flex} Flex remaining — book a lesson before it expires so you don\'t lose it.';
+
+$string['mypackages'] = 'My packages';
+$string['task_expiry_reminder'] = 'Send package-expiry reminders to students';
