@@ -177,7 +177,7 @@ class notification_manager {
                     ? userdate((int)$purchase->expires_at, get_string('strftimedate', 'langconfig')) : '',
             );
 
-            $url = new \moodle_url('/local/academy/subscriptions.php');
+            $url = new \moodle_url('/local/academy/student.php');
 
             $message = new \core\message\message();
             $message->component         = 'local_academy';
