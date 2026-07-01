@@ -41,6 +41,32 @@ class audit_manager {
     }
 
     /**
+     * Record an action only the first time it happens for a lesson.
+     *
+     * Used for meeting-join events that can fire repeatedly (a teacher/student leaving and
+     * rejoining the call) but should appear exactly once in the timeline. Best-effort like
+     * {@see record()} — never breaks the action it logs.
+     *
+     * @param int $lessonid
+     * @param string $action short action key, e.g. 'teacher_joined', 'student_joined'
+     * @param int $actorid user who performed the action (0 = system)
+     * @param string $role  'student' | 'teacher' | 'admin' | 'system'
+     */
+    public static function record_once($lessonid, $action, $actorid = 0, $role = 'system') {
+        global $DB;
+        try {
+            if ($DB->record_exists('academy_lesson_events',
+                    array('lessonid' => (int)$lessonid, 'action' => (string)$action))) {
+                return;
+            }
+        } catch (\Throwable $e) {
+            debugging('academy audit record_once check failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return;
+        }
+        self::record($lessonid, $action, $actorid, $role);
+    }
+
+    /**
      * Decrypted action timeline for a lesson, oldest first.
      *
      * @param int $lessonid

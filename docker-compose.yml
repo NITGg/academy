@@ -286,6 +286,24 @@ services:
     depends_on:
       - excalidraw-room
 
+  # ── Realtime notification relay (Socket.IO) ────────────────
+  # Pushes "new notification" events to a logged-in user's browser so the navbar bell can chime +
+  # refresh live, instead of polling. Moodle's event observer POSTs to /emit (server-to-server);
+  # browsers connect over the proxied path. In prod, reverse-proxy wss://<host>/notify-ws here and
+  # set SOCKET_PATH=/notify-ws/socket.io (plus matching $CFG->academy_notify_* in config.php).
+  notify-ws:
+    build: ./notify-socket
+    container_name: academy_notify_ws
+    restart: always
+    ports:
+      - "3100:3100"
+    environment:
+      - PORT=3100
+      - NOTIFY_SECRET=${NOTIFY_SECRET:-academy-internal-secret}
+      - INTERNAL_KEY=${INTERNAL_API_KEY:-academy-internal-secret}
+      - SOCKET_PATH=${NOTIFY_SOCKET_PATH:-/socket.io}
+      - ALLOWED_ORIGIN=${NOTIFY_ALLOWED_ORIGIN:-*}
+
 networks:
   meet.jitsi:
 

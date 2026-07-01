@@ -38,10 +38,20 @@ function academy_report_filters() {
 
 header('Content-Type: application/json');
 
+// Capture anything a handler might accidentally print (e.g. a mail-processor warning when SMTP is
+// misconfigured, or a debug message). Without this, that text gets mixed into the JSON body and the
+// app fails to parse it — surfacing as "Session expired". academy_respond() discards the buffer
+// before emitting the real JSON, so responses are always clean JSON.
+ob_start();
+
 /**
  * Emit a JSON response and stop.
  */
 function academy_respond($payload) {
+    // Drop any stray output captured so far so it can't corrupt the JSON.
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     echo json_encode($payload);
     exit;
 }

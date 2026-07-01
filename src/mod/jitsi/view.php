@@ -178,6 +178,15 @@ if ($session) {
             $att->duration_seconds = 0;
             $DB->insert_record('academy_session_attendance', $att);
         }
+
+        // Audit timeline: record when the student entered the meeting room (distinct from the
+        // teacher's start/join). record_once so a reload/rejoin adds no duplicate rows.
+        if (!$is_teacher) {
+            $lessonid = $DB->get_field('academy_lessons', 'id', ['sessionid' => $session->id]);
+            if ($lessonid) {
+                \local_academy\audit_manager::record_once($lessonid, 'student_joined', $USER->id, 'student');
+            }
+        }
     }
 }
 

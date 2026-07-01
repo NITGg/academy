@@ -89,7 +89,10 @@ class lesson_manager {
         );
         $lesson->id = $DB->insert_record('academy_lessons', $lesson);
         audit_manager::record($lesson->id, 'requested', $studentid, 'student');
-        return self::format_lesson($DB->get_record('academy_lessons', array('id' => $lesson->id)), $studentid);
+        // US-LS-1-1: notify the teacher of the new request.
+        $saved = $DB->get_record('academy_lessons', array('id' => $lesson->id));
+        notification_manager::lesson_event($saved, 'requested', $teacherid, $studentid);
+        return self::format_lesson($saved, $studentid);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -119,14 +122,22 @@ class lesson_manager {
                     ? (int)$lesson->requested_time
                     : self::latest_pending_proposal_time($lessonid);
                 audit_manager::record($lessonid, 'teacher_accepted', $teacherid, 'teacher');
-                return self::confirm_lesson($lesson, $time, $teacherid);
+                $result = self::confirm_lesson($lesson, $time, $teacherid);
+                // US-LS-2-1 / US-LS-2-3: tell the student the lesson is confirmed.
+                notification_manager::lesson_event($lesson, 'confirmed_by_teacher', $lesson->studentid, $teacherid,
+                    array('time' => $time));
+                return $result;
 
             case 'reject':
                 self::supersede_pending_proposals($lessonid);
                 audit_manager::record($lessonid, 'teacher_rejected', $teacherid, 'teacher');
-                return self::transition($lesson, self::STATUS_REJECTED, $teacherid, array(
-                    'reject_reason' => trim($opts['reject_reason'] ?? ''),
+                $reason = trim($opts['reject_reason'] ?? '');
+                $result = self::transition($lesson, self::STATUS_REJECTED, $teacherid, array(
+                    'reject_reason' => $reason,
                 ));
+                notification_manager::lesson_event($lesson, 'rejected_by_teacher', $lesson->studentid, $teacherid,
+                    array('reason' => $reason));
+                return $result;
 
             case 'suggest':
                 // Teacher can only suggest from a pending request (US-LS-2-1); from waiting_teacher the
@@ -137,7 +148,11 @@ class lesson_manager {
                 $time = self::required_future_time($opts['suggested_time'] ?? 0);
                 self::add_proposal($lessonid, $teacherid, 'teacher', $time, 'suggest');
                 audit_manager::record($lessonid, 'teacher_suggested', $teacherid, 'teacher');
-                return self::transition($lesson, self::STATUS_WAITING_STUDENT, $teacherid);
+                $result = self::transition($lesson, self::STATUS_WAITING_STUDENT, $teacherid);
+                // US-LS-2-1: tell the student a new time was suggested.
+                notification_manager::lesson_event($lesson, 'teacher_suggested', $lesson->studentid, $teacherid,
+                    array('time' => $time));
+                return $result;
 
             default:
                 throw new \moodle_exception('err_badaction', 'local_academy');
@@ -162,21 +177,33 @@ class lesson_manager {
             case 'accept':
                 $time = self::latest_pending_proposal_time($lessonid);
                 audit_manager::record($lessonid, 'student_accepted', $studentid, 'student');
-                return self::confirm_lesson($lesson, $time, $studentid);
+                $result = self::confirm_lesson($lesson, $time, $studentid);
+                // US-LS-2-2: tell the teacher the student accepted the suggested time.
+                notification_manager::lesson_event($lesson, 'confirmed_by_student', $lesson->teacherid, $studentid,
+                    array('time' => $time));
+                return $result;
 
             case 'reject':
                 // Student declines the suggested time — negotiation ends (no Flex was reserved).
                 self::supersede_pending_proposals($lessonid);
                 audit_manager::record($lessonid, 'student_rejected', $studentid, 'student');
-                return self::transition($lesson, self::STATUS_CANCELLED, $studentid, array(
-                    'cancel_reason' => trim($opts['reject_reason'] ?? 'Student rejected the suggested time'),
+                $reason = trim($opts['reject_reason'] ?? 'Student rejected the suggested time');
+                $result = self::transition($lesson, self::STATUS_CANCELLED, $studentid, array(
+                    'cancel_reason' => $reason,
                 ));
+                notification_manager::lesson_event($lesson, 'rejected_by_student', $lesson->teacherid, $studentid,
+                    array('reason' => $reason));
+                return $result;
 
             case 'suggest':
                 $time = self::required_future_time($opts['suggested_time'] ?? 0);
                 self::add_proposal($lessonid, $studentid, 'student', $time, 'suggest');
                 audit_manager::record($lessonid, 'student_suggested', $studentid, 'student');
-                return self::transition($lesson, self::STATUS_WAITING_TEACHER, $studentid);
+                $result = self::transition($lesson, self::STATUS_WAITING_TEACHER, $studentid);
+                // US-LS-2-2: tell the teacher the student suggested a new time.
+                notification_manager::lesson_event($lesson, 'student_suggested', $lesson->teacherid, $studentid,
+                    array('time' => $time));
+                return $result;
 
             default:
                 throw new \moodle_exception('err_badaction', 'local_academy');
@@ -203,11 +230,14 @@ class lesson_manager {
         // Create the meeting room (teacher + student whitelisted). If this fails the lesson stays confirmed.
         $room = room_manager::create_for_lesson($lesson);
         audit_manager::record($lessonid, 'started', $teacherid, 'teacher');
-        return self::transition($lesson, self::STATUS_IN_PROGRESS, $teacherid, array(
+        $result = self::transition($lesson, self::STATUS_IN_PROGRESS, $teacherid, array(
             'actual_start' => time(),
             'sessionid'    => $room->sessionid,
             'cmid'         => $room->cmid,
         ));
+        // US-LS-3-1: tell the student the room is ready to join.
+        notification_manager::lesson_event($lesson, 'started', $lesson->studentid, $teacherid);
+        return $result;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -236,6 +266,9 @@ class lesson_manager {
         // Distribute revenue on completion (US-FN-1-4): teacher/platform split of the Flex value.
         finance_manager::distribute_for_lesson($DB->get_record('academy_lessons', array('id' => $lesson->id)));
         $transaction->allow_commit();
+        // US-LS-3-2: tell the student the lesson is complete (after the commit).
+        notification_manager::lesson_event($lesson, 'completed', $lesson->studentid, $teacherid,
+            array('reason' => $note !== null ? trim((string)$note) : ''));
         return $result;
     }
 
@@ -259,6 +292,8 @@ class lesson_manager {
         audit_manager::record($lesson->id, 'student_absent_reported', $teacherid, 'teacher');
         $result = self::transition($lesson, self::STATUS_STUDENT_ABSENT, $teacherid, array('flex_state' => 'consumed'));
         $transaction->allow_commit();
+        // US-LS-3-3: tell the student they were marked absent.
+        notification_manager::lesson_event($lesson, 'student_absent', $lesson->studentid, $teacherid);
         return $result;
     }
 
@@ -282,6 +317,9 @@ class lesson_manager {
         audit_manager::record($lesson->id, 'teacher_absent_reported', $studentid, 'student');
         $result = self::transition($lesson, self::STATUS_TEACHER_ABSENT, $studentid, array('flex_state' => 'returned'));
         $transaction->allow_commit();
+        // US-LS-3-4: notify the teacher and the platform admins.
+        notification_manager::lesson_event($lesson, 'teacher_absent', $lesson->teacherid, $studentid);
+        notification_manager::lesson_event_admins($lesson, 'teacher_absent_admin', $studentid);
         return $result;
     }
 
@@ -300,9 +338,14 @@ class lesson_manager {
         }
         self::supersede_pending_proposals($lessonid);
         audit_manager::record($lessonid, 'request_cancelled', $studentid, 'student');
-        return self::transition($lesson, self::STATUS_CANCELLED, $studentid, array(
-            'cancel_reason' => trim($reason) !== '' ? trim($reason) : 'Request withdrawn by student',
+        $reason = trim($reason) !== '' ? trim($reason) : 'Request withdrawn by student';
+        $result = self::transition($lesson, self::STATUS_CANCELLED, $studentid, array(
+            'cancel_reason' => $reason,
         ));
+        // US-ST-2-2: tell the teacher the pending request was withdrawn.
+        notification_manager::lesson_event($lesson, 'request_cancelled', $lesson->teacherid, $studentid,
+            array('reason' => $reason));
+        return $result;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -336,6 +379,9 @@ class lesson_manager {
             'flex_state'    => $flexstate,
         ));
         $transaction->allow_commit();
+        // US-LS-4-1: tell the teacher the lesson was cancelled.
+        notification_manager::lesson_event($lesson, 'cancelled_by_student', $lesson->teacherid, $studentid,
+            array('reason' => trim($reason)));
         return $result;
     }
 
@@ -364,6 +410,9 @@ class lesson_manager {
             'flex_state'    => 'returned',
         ));
         $transaction->allow_commit();
+        // US-LS-4-2: tell the student the teacher cancelled (Flex returned).
+        notification_manager::lesson_event($lesson, 'cancelled_by_teacher', $lesson->studentid, $teacherid,
+            array('reason' => $reason));
         return $result;
     }
 
@@ -389,6 +438,10 @@ class lesson_manager {
         }
         self::add_proposal($lessonid, $userid, $role, $time, 'reschedule');
         audit_manager::record($lessonid, 'time_update_requested', $userid, $role);
+        // US-LS-5-1: notify the other party of the requested new time.
+        $recipientid = ($role === 'student') ? $lesson->teacherid : $lesson->studentid;
+        notification_manager::lesson_event($lesson, 'time_update_requested', $recipientid, $userid,
+            array('time' => $time, 'actor' => self::user_fullname($userid)));
         return self::get_lesson($userid, $lessonid);
     }
 
@@ -415,16 +468,25 @@ class lesson_manager {
         }
 
         $role = self::participant_role($lesson, $userid);
+        // The party who requested the reschedule is the one to notify of the outcome.
+        $requesterid = (int)$proposal->proposedby;
         if ($action === 'accept') {
             $proposal->status = 'accepted';
             $DB->update_record('academy_lesson_proposals', $proposal);
             audit_manager::record($lessonid, 'time_update_accepted', $userid, $role);
-            return self::transition($lesson, self::STATUS_CONFIRMED, $userid,
+            $result = self::transition($lesson, self::STATUS_CONFIRMED, $userid,
                 array('confirmed_time' => (int)$proposal->proposed_time));
+            // US-LS-5-2: tell the requester the new time was accepted.
+            notification_manager::lesson_event($lesson, 'time_update_accepted', $requesterid, $userid,
+                array('time' => (int)$proposal->proposed_time, 'actor' => self::user_fullname($userid)));
+            return $result;
         } else if ($action === 'reject') {
             $proposal->status = 'rejected';
             $DB->update_record('academy_lesson_proposals', $proposal);
             audit_manager::record($lessonid, 'time_update_rejected', $userid, $role);
+            // US-LS-5-2: tell the requester the new time was rejected (original time stands).
+            notification_manager::lesson_event($lesson, 'time_update_rejected', $requesterid, $userid,
+                array('time' => (int)$lesson->confirmed_time, 'actor' => self::user_fullname($userid)));
             return self::get_lesson($userid, $lessonid);
         }
         throw new \moodle_exception('err_badaction', 'local_academy');
@@ -530,6 +592,13 @@ class lesson_manager {
         if ((int)$lesson->studentid === (int)$userid) { return 'student'; }
         if ((int)$lesson->teacherid === (int)$userid) { return 'teacher'; }
         throw new \moodle_exception('err_forbidden', 'local_academy');
+    }
+
+    /** Display name for a user id (used in reschedule notifications). */
+    private static function user_fullname($userid) {
+        global $DB;
+        $u = $DB->get_record('user', array('id' => $userid), 'id, firstname, lastname');
+        return $u ? fullname($u) : '';
     }
 
     private static function teacher_supports_subject($teacherid, $subject) {
