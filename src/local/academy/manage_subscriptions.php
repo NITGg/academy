@@ -131,10 +131,36 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
             display: flex;
             flex-wrap: wrap;
         }
+        .academy-modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1050;
+        }
+        .academy-modal {
+            background: #fff;
+            border-radius: 10px;
+            padding: 1.5rem;
+            max-width: 440px;
+            width: 90%;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+        }
+        .academy-modal-title {
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+        .academy-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1.25rem;
+        }
     </style>
 
     <div id="course-selector-area" style="display:none;">
-        <div id="categories-container" class="mb-4"></div>
         <div class="mb-3">
             <label for="target-subscription">Target Subscription:</label>
             <select id="target-subscription" class="form-control" style="max-width: 300px; display: inline-block;">
@@ -142,6 +168,7 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
             </select>
             <button id="save-course-selection" class="btn btn-primary ml-2">Save courses to subscription</button>
         </div>
+        <div id="categories-container" class="mb-4"></div>
     </div>
 
     <!-- ── User Subscriptions (New UI) ── -->
@@ -161,6 +188,24 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
         </thead>
         <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
     </table>
+
+    <!-- ── Unsubscribe confirmation modal ── -->
+    <div id="unsub-modal-backdrop" class="academy-modal-backdrop" style="display:none;">
+        <div class="academy-modal">
+            <h5 class="academy-modal-title">Unsubscribe user</h5>
+            <p id="unsub-modal-text"></p>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="unsub-refund-checkbox">
+                <label class="form-check-label" for="unsub-refund-checkbox">
+                    Refund payment to student <span class="text-muted">(optional)</span>
+                </label>
+            </div>
+            <div class="academy-modal-actions">
+                <button id="unsub-modal-cancel" class="btn btn-link">Cancel</button>
+                <button id="unsub-modal-confirm" class="btn btn-danger">Unsubscribe</button>
+            </div>
+        </div>
+    </div>
 </div>
 <?php
 
@@ -334,13 +379,34 @@ echo html_writer::script(<<<'JS'
 
     function populateSubscriptionDropdown() {
         var select = $('target-subscription');
+        var prevValue = select.value;
         select.innerHTML = '<option value="">Select a subscription...</option>';
         ALL_SUBS.forEach(function(sub) {
             if (sub.status === 'active') {
                 select.innerHTML += '<option value="' + sub.id + '">' + esc(sub.name) + ' (#' + sub.id + ')</option>';
             }
         });
+        select.value = prevValue;
+        applySubscriptionCourseSelection();
     }
+
+    // Tick the checkboxes for courses already granted by the selected subscription,
+    // so unchecking one and saving removes it from that plan.
+    function applySubscriptionCourseSelection() {
+        var subId = $('target-subscription').value;
+        var checkedIds = {};
+        if (subId) {
+            var sub = ALL_SUBS.find(function(s) { return String(s.id) === String(subId); });
+            if (sub && sub.courses) {
+                sub.courses.forEach(function(c) { checkedIds[c.id] = true; });
+            }
+        }
+        document.querySelectorAll('.course-checkbox').forEach(function(cb) {
+            cb.checked = !!checkedIds[parseInt(cb.value, 10)];
+        });
+    }
+
+    $('target-subscription').addEventListener('change', applySubscriptionCourseSelection);
 
     $('save-course-selection').addEventListener('click', function() {
         var subId = $('target-subscription').value;
@@ -352,18 +418,12 @@ echo html_writer::script(<<<'JS'
         document.querySelectorAll('.course-checkbox:checked').forEach(function(cb) {
             courseIds.push(parseInt(cb.value, 10));
         });
-        if (!courseIds.length) {
-            msg('Please select at least one course.', 'danger');
-            return;
-        }
         api('set_subscription_courses', {
             subscriptionid: subId,
             courseids: JSON.stringify(courseIds)
         }, 'POST').then(function() {
             msg('Courses assigned successfully.', 'success');
             loadSubs();
-            document.querySelectorAll('.course-checkbox:checked').forEach(function(cb) { cb.checked = false; });
-            $('target-subscription').value = '';
         }).catch(function(e) { msg(e.message, 'danger'); });
     });
 
@@ -388,25 +448,55 @@ echo html_writer::script(<<<'JS'
                     '<td>' + esc(r.status) + '</td>' +
                     '<td>' + expires + '</td>' +
                     '<td>' + toggle + '</td>';
+                tr._row = r;
                 tbody.appendChild(tr);
             });
         }).catch(function(e) { msg(e.message, 'danger'); });
     }
 
+    // ── Unsubscribe confirmation modal ──
+    var pendingUnsubscribe = null;
+
+    function openUnsubscribeModal(row) {
+        pendingUnsubscribe = row;
+        var priceText = row.price_paid ? (' — <strong>' + esc(row.price_paid) + '</strong> paid') : '';
+        $('unsub-modal-text').innerHTML =
+            'Unsubscribe <strong>' + esc(row.user_fullname) + '</strong> from <strong>' + esc(row.name) + '</strong>' +
+            priceText + '? This cannot be undone.';
+        $('unsub-refund-checkbox').checked = false;
+        $('unsub-modal-backdrop').style.display = 'flex';
+    }
+
+    function closeUnsubscribeModal() {
+        pendingUnsubscribe = null;
+        $('unsub-modal-backdrop').style.display = 'none';
+    }
+
     $('users-table').addEventListener('click', function(ev) {
         var btn = ev.target.closest('.btn-unsubscribe');
         if (!btn) return;
-        var purchaseId = btn.getAttribute('data-id');
-        var refund = confirm('Do you want to refund the money for this subscription?');
-        if (confirm('Are you sure you want to unsubscribe this user? This cannot be undone.')) {
-            api('unsubscribe_user', {
-                purchaseid: purchaseId,
-                refund: refund ? 1 : 0
-            }, 'POST').then(function() {
-                msg('User unsubscribed successfully.', 'success');
-                loadUsers();
-            }).catch(function(e) { msg(e.message, 'danger'); });
-        }
+        openUnsubscribeModal(btn.closest('tr')._row);
+    });
+
+    $('unsub-modal-cancel').addEventListener('click', closeUnsubscribeModal);
+    $('unsub-modal-backdrop').addEventListener('click', function(ev) {
+        if (ev.target === this) { closeUnsubscribeModal(); }
+    });
+    document.addEventListener('keydown', function(ev) {
+        if (ev.key === 'Escape' && $('unsub-modal-backdrop').style.display !== 'none') { closeUnsubscribeModal(); }
+    });
+    $('unsub-modal-confirm').addEventListener('click', function() {
+        var row = pendingUnsubscribe;
+        if (!row) { return; }
+        var refund = $('unsub-refund-checkbox').checked;
+        api('unsubscribe_user', {
+            purchaseid: row.id,
+            refund: refund ? 1 : 0
+        }, 'POST').then(function() {
+            msg('User unsubscribed successfully.', 'success');
+            closeUnsubscribeModal();
+            loadUsers();
+        }).catch(function(e) { msg(e.message, 'danger'); });
     });
 
     $('refresh-users').addEventListener('click', loadUsers);

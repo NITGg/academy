@@ -121,6 +121,24 @@ class price_resolver {
     }
 
     /**
+     * Whether an active subscription of the user's covers this course (grants access but
+     * hasn't created real Moodle enrolment yet — see buy.php's action=enroll handler).
+     */
+    public static function is_covered_by_active_subscription(int $courseid, int $userid): bool {
+        if ($userid <= 0
+            || !class_exists('\local_academy\subscription_purchase_manager')
+            || !class_exists('\local_academy\subscription_manager')) {
+            return false;
+        }
+        $activesub = \local_academy\subscription_purchase_manager::get_active_subscription($userid);
+        if (!$activesub) {
+            return false;
+        }
+        $covered_courses = \local_academy\subscription_manager::courses_for_subscription($activesub->subscriptionid);
+        return in_array($courseid, $covered_courses);
+    }
+
+    /**
      * Build the context array for rendering the local_payments/course_card_price
      * template for a given course, from any course-listing page (catalog grids,
      * category pages, etc).
@@ -132,15 +150,21 @@ class price_resolver {
         $is_enrolled = $userid > 0 ? enrollment_handler::is_enrolled($userid, $courseid) : false;
         $course_url = (new \moodle_url('/course/view.php', ['id' => $courseid]))->out(false);
 
-        // Auto-detect subscription coverage for card context
-        if (!$is_enrolled && $userid > 0 && class_exists('\local_academy\subscription_purchase_manager') && class_exists('\local_academy\subscription_manager')) {
-            $activesub = \local_academy\subscription_purchase_manager::get_active_subscription($userid);
-            if ($activesub) {
-                $covered_courses = \local_academy\subscription_manager::courses_for_subscription($activesub->subscriptionid);
-                if (in_array($courseid, $covered_courses)) {
-                    $is_enrolled = true;
-                }
-            }
+        // Subscription coverage grants access but doesn't create real Moodle enrolment until
+        // the student explicitly clicks "Enroll" (see buy.php's action=enroll handler) — so it
+        // must not be treated as already enrolled here.
+        $can_enroll_via_sub = !$is_enrolled && self::is_covered_by_active_subscription($courseid, $userid);
+
+        if ($can_enroll_via_sub) {
+            return [
+                'is_enrolled' => false,
+                'is_free' => false,
+                'is_purchased' => false,
+                'can_enroll_via_sub' => true,
+                'course_url' => $course_url,
+                'enroll_url' => (new \moodle_url('/local/payments/buy.php',
+                    ['courseid' => $courseid, 'action' => 'enroll', 'sesskey' => sesskey()]))->out(false),
+            ];
         }
 
         if ($is_enrolled || !self::has_pricing($courseid)) {

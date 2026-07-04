@@ -318,15 +318,22 @@ class ccnCourseHandler {
       $ccnCourse->priceMethods = $ccnEnrolmentCosts;
       $ccnCourse->priceFormats = $ccnCoursePrice;
 
-      // If local_payments has an active pricing rule for this course, its price/sale/
-      // subscribe card takes over the price slot instead of the raw enrolment fee.
-      if (class_exists('\local_payments\price_resolver') && \local_payments\price_resolver::has_pricing($courseId)) {
+      // If local_payments has an active pricing rule for this course, or the student's active
+      // subscription covers it, its price/sale/subscribe/enroll card takes over the price slot
+      // instead of the raw enrolment fee.
+      $ccnShowPaymentsCard = class_exists('\local_payments\price_resolver') && (
+        \local_payments\price_resolver::has_pricing($courseId)
+        || (!empty($USER->id) && \local_payments\price_resolver::is_covered_by_active_subscription($courseId, $USER->id))
+      );
+      if ($ccnShowPaymentsCard) {
         $ccnPriceCardContext = \local_payments\price_resolver::card_context($courseId);
         $ccnPriceCardHtml = $OUTPUT->render_from_template('local_payments/course_card_price', $ccnPriceCardContext);
         $ccnCourse->price = html_writer::div($ccnPriceCardHtml, 'lp-context-dark-footer');
         $ccnCourse->hasPrice = 1;
         if (!empty($ccnPriceCardContext['buy_url'])) {
           $ccnCourse->enrolmentLink = $ccnPriceCardContext['buy_url'];
+        } else if (!empty($ccnPriceCardContext['enroll_url'])) {
+          $ccnCourse->enrolmentLink = $ccnPriceCardContext['enroll_url'];
         }
       }
       $ccnCourse->overallRating = $ccnProcessRatingCountFunction;

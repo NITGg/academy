@@ -240,7 +240,11 @@ echo html_writer::script(<<<'JS'
     });
   }
 
-  function button(label,cls,onclick){var b=el('button',{type:'button',class:'btn btn-sm '+cls},label);b.onclick=onclick;return b;}
+  function button(label,cls,onclick,disabled){
+    var b=el('button',{type:'button',class:'btn btn-sm '+cls},label);
+    if(disabled){b.disabled=true;}else{b.onclick=onclick;}
+    return b;
+  }
 
   // ──────────────────────────────────────────────────────────────────────────
   // Flex balance banner (sum of remaining Flex across active packages)
@@ -399,15 +403,16 @@ echo html_writer::script(<<<'JS'
   // ──────────────────────────────────────────────────────────────────────────
   // Tab 3: Packages & Flex
   // ──────────────────────────────────────────────────────────────────────────
-  function packageCard(p){
+  function packageCard(p,hasActive){
     var c=el('div',{class:'st-card'});
     c.appendChild(el('div',{class:'st-title'},esc(p.name)));
     if(p.description){c.appendChild(el('div',{class:'st-meta'},esc(p.description)));}
     var meta='<b>'+p.flex_count+'</b> Flex · <b>'+money(p.price)+'</b>';
     meta += (Number(p.expiration_days)>0) ? (' · valid '+p.expiration_days+' days') : ' · never expires';
     c.appendChild(el('div',{class:'st-meta'},meta));
+    if(hasActive){c.appendChild(el('div',{class:'st-meta',style:'color:#856404'},'You already have an active package.'));}
     var actions=el('div',{class:'st-actions'});
-    actions.appendChild(button('Buy package','btn-primary',function(){buyPackage(p);}));
+    actions.appendChild(button('Buy package','btn-primary',function(){buyPackage(p);},hasActive));
     c.appendChild(actions);
     return c;
   }
@@ -435,16 +440,17 @@ echo html_writer::script(<<<'JS'
   var FLEX_TYPE={reserve:'Reserved',consume:'Consumed',return:'Returned',purchase:'Purchased',assign:'Assigned',expire:'Expired',adjust:'Adjusted'};
 
   function loadPackages(){
-    apiGet('get_available_packages').then(function(rows){
-      var box=$('st-available');box.innerHTML='';
-      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},'No packages available right now.'));return;}
-      rows.forEach(function(p){box.appendChild(packageCard(p));});
-    }).catch(function(e){msg(e.message,'danger');});
+    Promise.all([apiGet('get_available_packages'), apiGet('get_my_packages')]).then(function(results){
+      var rows=results[0], myrows=results[1];
+      var hasActive=myrows.some(function(p){return p.status==='active';});
 
-    apiGet('get_my_packages').then(function(rows){
+      var box=$('st-available');box.innerHTML='';
+      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},'No packages available right now.'));}
+      else{rows.forEach(function(p){box.appendChild(packageCard(p,hasActive));});}
+
       var tb=$('st-mypackages');tb.innerHTML='';
-      if(!rows.length){tb.innerHTML='<tr><td colspan="5" class="text-muted">No packages yet.</td></tr>';return;}
-      rows.forEach(function(p){
+      if(!myrows.length){tb.innerHTML='<tr><td colspan="5" class="text-muted">No packages yet.</td></tr>';return;}
+      myrows.forEach(function(p){
         tb.innerHTML+='<tr><td>'+esc(p.name)+'</td>'+
           '<td><span class="st-flex-pill">'+p.remaining_flex+'</span> left ('+p.used_flex+' / '+p.total_flex+')</td>'+
           '<td><span class="st-badge s-'+p.status+'">'+(PKG_STATUS[p.status]||p.status)+'</span></td>'+
@@ -488,7 +494,7 @@ echo html_writer::script(<<<'JS'
     return subs;
   }
 
-  function subCard(s){
+  function subCard(s,hasActive){
     var c=el('div',{class:'st-card'});
     c.appendChild(el('div',{class:'st-title'},esc(s.name)));
     c.appendChild(el('div',{class:'st-price',style:'font-size:1.3rem;font-weight:700;color:#084298'},money(s.price)+' EGP'));
@@ -496,8 +502,9 @@ echo html_writer::script(<<<'JS'
     if(s.description){c.appendChild(el('div',{class:'st-meta'},esc(s.description)));}
     c.appendChild(el('div',{class:'st-meta',style:'margin-top:.4rem'},'Courses:'));
     c.appendChild(courseChips(s.courses));
+    if(hasActive){c.appendChild(el('div',{class:'st-meta',style:'color:#856404;margin-top:.4rem'},'You already have an active subscription.'));}
     var actions=el('div',{class:'st-actions'});
-    actions.appendChild(button('Buy subscription','btn-primary',function(){buySubscription(s);}));
+    actions.appendChild(button('Buy subscription','btn-primary',function(){buySubscription(s);},hasActive));
     c.appendChild(actions);
     return c;
   }
@@ -521,16 +528,17 @@ echo html_writer::script(<<<'JS'
   }
 
   function loadSubscriptions(){
-    apiGet('get_available_subscriptions').then(function(rows){
-      var box=$('st-subavailable');box.innerHTML='';
-      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},'No subscriptions available right now.'));return;}
-      rows.forEach(function(s){box.appendChild(subCard(s));});
-    }).catch(function(e){msg(e.message,'danger');});
+    Promise.all([apiGet('get_available_subscriptions'), apiGet('get_my_subscriptions')]).then(function(results){
+      var rows=results[0], myrows=results[1];
+      var hasActive=myrows.some(function(s){return s.status==='active';});
 
-    apiGet('get_my_subscriptions').then(function(rows){
+      var box=$('st-subavailable');box.innerHTML='';
+      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},'No subscriptions available right now.'));}
+      else{rows.forEach(function(s){box.appendChild(subCard(s,hasActive));});}
+
       var tb=$('st-mysubs');tb.innerHTML='';
-      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">No subscriptions yet.</td></tr>';return;}
-      rows.forEach(function(s){
+      if(!myrows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">No subscriptions yet.</td></tr>';return;}
+      myrows.forEach(function(s){
         var courses=(s.courses||[]).map(function(c){return esc(c.fullname);}).join(', ')||'—';
         tb.innerHTML+='<tr><td>'+esc(s.name)+'</td>'+
           '<td><span class="st-badge s-'+s.status+'">'+(SUB_STATUS[s.status]||s.status)+'</span></td>'+
