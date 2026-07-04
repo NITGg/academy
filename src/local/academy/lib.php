@@ -148,6 +148,26 @@ function local_academy_available_subscriptions_section() {
 .la-subs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
 .la-subs-note{display:flex;align-items:flex-start;gap:.5rem;margin-top:.9rem;padding:.6rem .75rem;background:#fdf6ec;border:1px solid #f3d9a8;border-radius:.5rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
 .la-subs-note svg{width:16px;height:16px;flex-shrink:0;fill:#c07f00;margin-top:.05rem}
+/* Confirmation dialog (replaces the native window.confirm). */
+.la-subs-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease}
+.la-subs-modal-bg.open{display:flex;opacity:1}
+.la-subs-modal{background:#fff;border-radius:1rem;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
+.la-subs-modal-bg.open .la-subs-modal{transform:none}
+.la-subs-modal-head{display:flex;align-items:center;gap:.7rem;padding:1.25rem 1.4rem 0}
+.la-subs-modal-head svg{width:34px;height:34px;fill:#a435f0;flex-shrink:0}
+.la-subs-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#1c1d1f}
+.la-subs-modal-body{padding:.9rem 1.4rem 0;color:#3c3c3c;font-size:.95rem;line-height:1.5}
+.la-subs-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:#faf5ff;border:1px solid #ecdcfb;border-radius:.6rem}
+.la-subs-modal-plan .name{font-weight:700;color:#1c1d1f;margin-bottom:.35rem}
+.la-subs-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#4b4b4b;margin-top:.2rem}
+.la-subs-modal-row b{color:#1c1d1f}
+.la-subs-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#6a6f73;margin-top:.2rem}
+.la-subs-modal-secure svg{width:14px;height:14px;fill:#1f9d55}
+.la-subs-modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:1.2rem 1.4rem 1.3rem}
+.la-subs-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:.5rem;cursor:pointer}
+.la-subs-modal-cancel:hover{background:#f6f7f8}
+.la-subs-modal-ok{background:#a435f0;border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:.5rem;cursor:pointer}
+.la-subs-modal-ok:hover{background:#8710d8}
 CSS;
 
     $section = html_writer::tag('style', $css) .
@@ -220,13 +240,57 @@ require([], function() {
     ];
     var CAP = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 1 8l11 5 9-4.09V17h2V8L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>';
 
+    // A styled confirm dialog (replaces the ugly native window.confirm). Resolves true/false.
+    function confirmSubscribe(s) {
+        return new Promise(function(resolve) {
+            var LOCK = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1a5 5 0 00-5 5v3H6a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2v-9a2 2 0 00-2-2h-1V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 016 0v3z"/></svg>';
+            var CROWN = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 16 3 5l5.5 4L12 3l3.5 6L21 5l-2 11H5zm0 2h14v2H5v-2z"/></svg>';
+            var bg = el('div', {class: 'la-subs-modal-bg'});
+            bg.innerHTML =
+                '<div class="la-subs-modal" role="dialog" aria-modal="true">' +
+                    '<div class="la-subs-modal-head">' + CROWN + '<h4>Confirm your subscription</h4></div>' +
+                    '<div class="la-subs-modal-body">' +
+                        '<p>You are about to subscribe to this plan. You will be taken to secure checkout to complete the payment.</p>' +
+                        '<div class="la-subs-modal-plan">' +
+                            '<div class="name">' + esc(s.name) + '</div>' +
+                            '<div class="la-subs-modal-row"><span>Duration</span><b>' + esc(s.duration_days) + ' days</b></div>' +
+                            '<div class="la-subs-modal-row"><span>Total</span><b>' + esc(money(s.price)) + ' EGP</b></div>' +
+                        '</div>' +
+                        '<div class="la-subs-modal-secure">' + LOCK + '<span>Secure payment via Kashier</span></div>' +
+                    '</div>' +
+                    '<div class="la-subs-modal-foot">' +
+                        '<button type="button" class="la-subs-modal-cancel">Cancel</button>' +
+                        '<button type="button" class="la-subs-modal-ok">Proceed to payment</button>' +
+                    '</div>' +
+                '</div>';
+            document.body.appendChild(bg);
+            // Force reflow so the open transition runs.
+            void bg.offsetWidth;
+            bg.classList.add('open');
+
+            function close(result) {
+                bg.classList.remove('open');
+                document.removeEventListener('keydown', onKey);
+                setTimeout(function() { if (bg.parentNode) { bg.parentNode.removeChild(bg); } }, 180);
+                resolve(result);
+            }
+            function onKey(e) { if (e.key === 'Escape') { close(false); } }
+            document.addEventListener('keydown', onKey);
+            bg.querySelector('.la-subs-modal-cancel').onclick = function() { close(false); };
+            bg.querySelector('.la-subs-modal-ok').onclick = function() { close(true); };
+            bg.onclick = function(e) { if (e.target === bg) { close(false); } };
+        });
+    }
+
     function subscribe(s, btn) {
-        if (!window.confirm('Subscribe to "' + s.name + '" for ' + money(s.price) + ' EGP (' + s.duration_days + ' days)?')) { return; }
-        var orig = btn.textContent;
-        btn.disabled = true; btn.textContent = 'Redirecting…';
-        apiPost('create_subscription_checkout', {subscriptionid: s.id})
-            .then(function(d) { window.location.href = d.checkout_url; })
-            .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
+        confirmSubscribe(s).then(function(ok) {
+            if (!ok) { return; }
+            var orig = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Redirecting…';
+            apiPost('create_subscription_checkout', {subscriptionid: s.id})
+                .then(function(d) { window.location.href = d.checkout_url; })
+                .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
+        });
     }
 
     function subCard(s, hasActive, idx) {
