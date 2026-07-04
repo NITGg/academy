@@ -167,11 +167,18 @@ class price_resolver {
             ];
         }
 
+        // The course keeps showing in "My courses" after a subscription/package lapses (the
+        // enrolment record survives but is expired). Flag that so the card can invite the
+        // student to renew instead of silently looking like a fresh, never-enrolled course.
+        $can_renew = !$is_enrolled && $userid > 0
+            && enrollment_handler::has_expired_enrolment($userid, $courseid);
+
         if ($is_enrolled || !self::has_pricing($courseid)) {
             return [
                 'is_enrolled' => $is_enrolled,
                 'is_free' => !self::has_pricing($courseid),
                 'is_purchased' => false,
+                'can_renew' => $can_renew,
                 'course_url' => $course_url,
             ];
         }
@@ -184,6 +191,7 @@ class price_resolver {
                 'is_enrolled' => false,
                 'is_free' => false,
                 'is_purchased' => true,
+                'can_renew' => $can_renew,
                 'course_url' => $course_url,
                 'buy_url' => $buy_url,
             ];
@@ -196,6 +204,7 @@ class price_resolver {
                 'is_enrolled' => false,
                 'is_free' => true,
                 'is_purchased' => false,
+                'can_renew' => $can_renew,
                 'course_url' => $course_url,
             ];
         }
@@ -204,6 +213,7 @@ class price_resolver {
             'is_enrolled' => false,
             'is_free' => false,
             'is_purchased' => false,
+            'can_renew' => $can_renew,
             'price' => number_format((float) $pricing->price, 2),
             'sale_price' => $pricing->sale_price !== null ? number_format((float) $pricing->sale_price, 2) : '',
             'original_price' => number_format((float) $pricing->original_price, 2),

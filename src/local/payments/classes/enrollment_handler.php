@@ -64,6 +64,20 @@ class enrollment_handler {
     }
 
     /**
+     * Whether the user has an enrolment record in the course that is no longer
+     * active — i.e. a lapsed subscription/package: they were enrolled once
+     * (timeend has passed or the enrolment was suspended) but active access has
+     * ended. Used to surface a "Renew your subscription" hint on course cards
+     * that keep showing in "My courses" after access expired.
+     */
+    public static function has_expired_enrolment(int $userid, int $courseid): bool {
+        $context = \context_course::instance($courseid);
+        // Enrolled at all (incl. expired/suspended) but not actively.
+        return is_enrolled($context, $userid, '', false)
+            && !is_enrolled($context, $userid, '', true);
+    }
+
+    /**
      * Unenrol a user from a course (for refund scenarios).
      */
     public static function unenrol_user(int $userid, int $courseid): bool {

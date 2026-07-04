@@ -63,6 +63,7 @@ $string['already_purchased'] = 'You have purchased this course';
 $string['secure_checkout'] = 'Secure checkout powered by trusted payment providers';
 $string['covered_by_subscription'] = 'Covered by your subscription';
 $string['enroll'] = 'Enroll';
+$string['renew_subscription'] = 'Renew your subscription';
 
 // Payment flow.
 $string['paymentfor'] = 'Payment for: {$a}';

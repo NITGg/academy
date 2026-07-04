@@ -136,6 +136,9 @@ function local_academy_available_subscriptions_section() {
 .la-subs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
 .la-subs-courses{font-size:.86rem;color:#3c3c3c;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
 .la-subs-courses b{color:#1c1d1f}
+.la-subs-courses-label{margin-bottom:.5rem}
+.la-subs-courses-list{display:flex;flex-wrap:wrap;gap:.35rem}
+.la-subs-course-chip{max-width:100%;background:#f3eafe;color:#5a189a;border:1px solid #e3d3fb;border-radius:1rem;padding:.2rem .6rem;font-size:.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .la-subs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-top:.5rem}
 .la-subs-price{font-size:1.5rem;font-weight:800;color:#1c1d1f}
 .la-subs-price small{font-size:.8rem;font-weight:600;color:#6a6f73}
@@ -143,6 +146,8 @@ function local_academy_available_subscriptions_section() {
 .la-subs-btn:hover{background:#8710d8}
 .la-subs-btn:active{transform:scale(.97)}
 .la-subs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
+.la-subs-note{display:flex;align-items:flex-start;gap:.5rem;margin-top:.9rem;padding:.6rem .75rem;background:#fdf6ec;border:1px solid #f3d9a8;border-radius:.5rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
+.la-subs-note svg{width:16px;height:16px;flex-shrink:0;fill:#c07f00;margin-top:.05rem}
 CSS;
 
     $section = html_writer::tag('style', $css) .
@@ -233,9 +238,21 @@ require([], function() {
         var body = el('div', {class: 'la-subs-body'});
         body.appendChild(el('div', {class: 'la-subs-name'}, esc(s.name)));
         if (s.description) { body.appendChild(el('div', {class: 'la-subs-desc'}, esc(s.description))); }
-        var n = (s.courses || []).length;
-        body.appendChild(el('div', {class: 'la-subs-courses'},
-            n ? ('<b>' + n + '</b> course' + (n === 1 ? '' : 's') + ' included') : 'Full course access'));
+        var courses = s.courses || [];
+        var n = courses.length;
+        var coursesBox = el('div', {class: 'la-subs-courses'});
+        if (n) {
+            coursesBox.appendChild(el('div', {class: 'la-subs-courses-label'},
+                '<b>' + n + '</b> course' + (n === 1 ? '' : 's') + ' included'));
+            var chips = el('div', {class: 'la-subs-courses-list'});
+            courses.forEach(function(c) {
+                chips.appendChild(el('span', {class: 'la-subs-course-chip', title: esc(c.fullname)}, esc(c.fullname)));
+            });
+            coursesBox.appendChild(chips);
+        } else {
+            coursesBox.appendChild(el('div', {class: 'la-subs-courses-label'}, 'Full course access'));
+        }
+        body.appendChild(coursesBox);
 
         var foot = el('div', {class: 'la-subs-foot'});
         foot.appendChild(el('div', {class: 'la-subs-price'}, esc(money(s.price)) + ' <small>EGP</small>'));
@@ -243,6 +260,15 @@ require([], function() {
         if (hasActive) { btn.disabled = true; } else { btn.onclick = function() { subscribe(s, btn); }; }
         foot.appendChild(btn);
         body.appendChild(foot);
+
+        // Only one subscription can be active at a time — explain why the button is disabled
+        // instead of leaving a greyed-out "Subscribed" with no context.
+        if (hasActive) {
+            var INFO = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
+            body.appendChild(el('div', {class: 'la-subs-note'},
+                INFO + '<span>You already have an active subscription. You can subscribe to this plan once your current subscription ends.</span>'));
+        }
+
         card.appendChild(body);
         return card;
     }
