@@ -1,8 +1,8 @@
 <?php 
 require('../config.php');
-require_once('../faridshawky/PHPMailer/src/Exception.php');
-require_once('../faridshawky/PHPMailer/src/PHPMailer.php');
-require_once('../faridshawky/PHPMailer/src/SMTP.php');
+require_once('../academy/PHPMailer/src/Exception.php');
+require_once('../academy/PHPMailer/src/PHPMailer.php');
+require_once('../academy/PHPMailer/src/SMTP.php');
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 require_once($CFG->dirroot . '/course/externallib.php');

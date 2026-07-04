@@ -373,41 +373,88 @@ $PAGE->set_heading("$site->fullname");
 
 echo $OUTPUT->header();
 echo "<style>
-.ccn_first-time{
-    display:none;
+:root { --brand:#B21F61; --brand-dark:#8f184e; }
+.ccn_first-time{ display:none; }
+.login_form .divide { display: none; }
+.mt-3 { display: block; }
+
+/* Page background */
+.our-log.bgc-fa { background: linear-gradient(135deg,#fdf1f6 0%, #f4f5fb 100%); }
+
+/* Login card */
+.login_form.inner_page {
+    background:#fff;
+    border-radius:20px;
+    box-shadow:0 18px 50px rgba(178,31,97,.14);
+    padding:38px 34px;
+    margin-top:26px;
 }
-.login_form .divide {
-    display: none;
+.login_form .heading h3 { color:var(--brand); font-weight:700; }
+/* Un-hide + style the in-card sign-up link (theme hides .heading p by default) */
+.login_form.inner_page .heading p { display:block !important; font-size:15px; color:#666; margin-top:6px; }
+.login_form.inner_page .heading p a { color:var(--brand); font-weight:700; }
+.login_form.inner_page .heading p a:hover { text-decoration:underline; }
+
+/* Welcome image (white title PNG for dark bg) — hidden: invisible on the light card and redundant with the site header */
+#welcome_text { display:none; }
+
+/* Inputs */
+.login_form .form-control {
+    border-radius:12px;
+    height:50px;
+    border:1px solid #e7e7ef;
+    padding:0 16px;
+    margin-bottom:14px;
+    transition:border-color .15s, box-shadow .15s;
 }
-.mt-3 {
-    display: block;
+.login_form .form-control:focus {
+    border-color:var(--brand);
+    box-shadow:0 0 0 3px rgba(178,31,97,.15);
 }
-#loginbtn {
-    border-radius: 90px;
-    background-color: #B21F61;
-    font-size: 25px;
+
+/* Primary login button */
+#loginbtn, .btn-log, .btn-thm2 {
+    border-radius:90px !important;
+    background-color:var(--brand) !important;
+    border-color:var(--brand) !important;
+    color:#fff !important;
+    font-size:20px;
+    font-weight:600;
+    padding:12px;
 }
-#loginbtn:hover {
-    border-color: #B21F61;
-    color: #B21F61;
-    background-color: #b21f6100;
+#loginbtn:hover, .btn-log:hover, .btn-thm2:hover {
+    background-color:var(--brand-dark) !important;
+    border-color:var(--brand-dark) !important;
+    color:#fff !important;
 }
-.mt-2 {
-    color: white;
+.btn-fpswd { color:var(--brand) !important; font-weight:500; }
+.mt-2 { color:#555; }
+
+/* Sign-up call-to-action */
+#signup {
+    margin-top:24px;
+    padding-top:22px;
+    border-top:1px solid #eee;
+    justify-content:center;
 }
-.mt-2 form button {
-    border-radius: 90px;
-    background-color: #B21F61;
+#signup p {
+    display:flex; align-items:center; justify-content:center; gap:12px;
+    flex-wrap:wrap; margin:0; font-size:15px; color:#666;
 }
-.mt-2 form button:hover {
-    border-color: #B21F61;
-    color: #B21F61;
+#signup .btn {
+    border-radius:90px;
+    background:transparent;
+    border:2px solid var(--brand);
+    color:var(--brand) !important;
+    font-weight:600;
+    padding:9px 26px;
+    transition:all .15s;
 }
+#signup .btn:hover { background:var(--brand); color:#fff !important; }
+
 /* Extra small devices (phones, 600px and down) */
 @media only screen and (max-width: 600px) {
-    #welcome_text {
-        margin-top: -50px;
-    }
+    .login_form.inner_page { padding:26px 20px; }
 }
 </style>";
 if (isloggedin() and !isguestuser()) {
@@ -424,7 +471,8 @@ if (isloggedin() and !isguestuser()) {
     echo $OUTPUT->render($loginform);
 }
 echo '<div class="row" id="signup">
-<p ><a href="'.$CFG->signup.'" class="btn btn-secondary">'.get_string('create_new_acc', 'theme_edumy').'</a></p>
+<p><span>'.get_string('no_account', 'theme_edumy').'</span>
+<a href="'.$CFG->signup.'" class="btn btn-secondary">'.get_string('create_new_acc', 'theme_edumy').'</a></p>
 
 </div>';
 

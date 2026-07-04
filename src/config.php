@@ -50,6 +50,7 @@ if (isset($_COOKIE["userdata"])) {
     $CFG->userId = $_COOKIE['userdata'];
 } else {
     $CFG->logouturl = "$CFG->wwwroot/login/index.php";
+    $CFG->signup    = "$CFG->wwwroot/login/signup.php?id=14&lang=ar";
 }
 
 require_once(__DIR__ . '/lib/setup.php');

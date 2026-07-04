@@ -43,7 +43,8 @@ if (!isloggedin() or isguestuser()) {   // Show the block
   }
   </style>";
   $_ccnlogin .= '<div class="row" id="signup">
-  <p ><a href="'.$CFG->signup.'" class="btn btn-secondary">'.get_string('create_new_acc', 'theme_edumy').'</a></p>
+  <p><span>'.get_string('no_account', 'theme_edumy').'</span>
+  <a href="'.$CFG->signup.'" class="btn btn-secondary">'.get_string('create_new_acc', 'theme_edumy').'</a></p>
 
  </div>';
 
