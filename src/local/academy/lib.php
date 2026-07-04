@@ -98,7 +98,7 @@ function local_academy_extend_navigation_user_settings($navigation, $user, $cont
  * (book a lesson, my lessons, packages & Flex, subscriptions) directly from home instead of digging
  * through the user menu.
  */
-function local_academy_before_standard_top_of_body_html() {
+function local_academy_standard_footer_html() {
     global $PAGE, $COURSE;
 
     if (CLI_SCRIPT || (defined('AJAX_SCRIPT') && AJAX_SCRIPT)) {

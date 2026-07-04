@@ -86,8 +86,7 @@ class subscription_purchase_manager {
         $payment->timecreated    = $now;
         $payment->id = $DB->insert_record('academy_sub_payments', $payment);
 
-        // 3. Grant course access via real Moodle enrolment (ends at expiry).
-        self::grant_course_access($userid, $sub->id, $expiresat);
+        // 3. (Removed) Auto-enrolment is now done on-demand per course when the student clicks "Enroll".
 
         $transaction->allow_commit();
 
@@ -202,6 +201,15 @@ class subscription_purchase_manager {
         foreach (subscription_manager::courses_for_subscription($subscriptionid) as $courseid) {
             self::enrol($courseid, $userid, $roleid, $timeend);
         }
+    }
+
+    /**
+     * Enrol the student into a single course (manual enrolment, student role),
+     * ending at $timeend.
+     */
+    public static function grant_single_course_access($courseid, $userid, $timeend) {
+        $roleid = self::student_roleid();
+        self::enrol($courseid, $userid, $roleid, $timeend);
     }
 
     /**

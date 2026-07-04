@@ -42,10 +42,21 @@
                         </div>
                     {{/is_sale_active}}
 
-                    <a href="{{buy_url}}" class="lp-btn lp-btn--subscribe lp-btn--block lp-btn--lg" id="local-payments-buy-btn"
-                       data-courseid="{{courseid}}">
-                        <i class="fa fa-credit-card"></i> {{#str}}buycourse, local_payments{{/str}}
-                    </a>
+                    {{#can_enroll_via_sub}}
+                        <div class="lp-page-price-row">
+                            <span class="lp-price lp-price--current lp-price--xl">{{#str}}covered_by_subscription, local_payments{{/str}}</span>
+                        </div>
+                        <a href="{{enroll_url}}" class="lp-btn lp-btn--subscribe lp-btn--block lp-btn--lg" id="local-payments-enroll-btn"
+                           data-courseid="{{courseid}}">
+                            <i class="fa fa-sign-in-alt"></i> {{#str}}enroll, local_payments{{/str}}
+                        </a>
+                    {{/can_enroll_via_sub}}
+                    {{^can_enroll_via_sub}}
+                        <a href="{{buy_url}}" class="lp-btn lp-btn--subscribe lp-btn--block lp-btn--lg" id="local-payments-buy-btn"
+                           data-courseid="{{courseid}}">
+                            <i class="fa fa-credit-card"></i> {{#str}}buycourse, local_payments{{/str}}
+                        </a>
+                    {{/can_enroll_via_sub}}
 
                     <small class="lp-secure-note">
                         <i class="fa fa-lock"></i> {{#str}}secure_checkout, local_payments{{/str}}
