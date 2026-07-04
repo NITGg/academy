@@ -250,7 +250,8 @@ class manager {
 
         $currency = 'EGP'; 
         
-        $provider = self::get_provider($app_country ?? $user->country ?? 'EG', $currency);
+        $country = country_detector::detect($userid, $app_country);
+        $provider = self::get_provider($country, $currency);
         $provider_record = $DB->get_record('local_payments_providers', ['name' => $provider->get_name()]);
 
         $order_id = self::generate_order_id();
@@ -273,7 +274,7 @@ class manager {
             'customer_email' => $user->email,
             'customer_reference' => (string) $userid,
             'display_lang' => $display_lang,
-            'country' => $app_country ?? $user->country ?? 'EG',
+            'country' => $country,
             'ip_address' => getremoteaddr(),
             'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500),
             'metadata' => json_encode([
@@ -362,7 +363,8 @@ class manager {
 
         $currency = 'EGP'; 
         
-        $provider = self::get_provider($app_country ?? $user->country ?? 'EG', $currency);
+        $country = country_detector::detect($userid, $app_country);
+        $provider = self::get_provider($country, $currency);
         $provider_record = $DB->get_record('local_payments_providers', ['name' => $provider->get_name()]);
 
         $order_id = self::generate_order_id();
@@ -385,7 +387,7 @@ class manager {
             'customer_email' => $user->email,
             'customer_reference' => (string) $userid,
             'display_lang' => $display_lang,
-            'country' => $app_country ?? $user->country ?? 'EG',
+            'country' => $country,
             'ip_address' => getremoteaddr(),
             'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500),
             'metadata' => json_encode([
