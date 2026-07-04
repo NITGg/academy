@@ -1,0 +1,369 @@
+{
+  "info": {
+    "name": "Moodle Core — Teacher CRUD",
+    "_postman_id": "moodle-core-teachers-v1",
+    "description": "Core Moodle REST web-service functions for managing teacher accounts and role assignments.\nNo custom plugin required — these are built-in Moodle WS functions.\n\nEndpoint: {{base_url}}/webservice/rest/server.php\n\nSetup:\n1. Run 'Login as Admin' — saves {{admin_token}}.\n2. Set {{courseid}} to the course you work with (default lessons course = 2).\n3. Set {{teacher_userid}} to the user id of the teacher you want to manage.\n\nSee: docs/api/moodle-core-teachers-guide.md",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",       "value": "http://localhost:8081", "type": "string" },
+    { "key": "admin_token",    "value": "f65e3a453f23cdf4f550dedc23fc2c31", "type": "string" },
+    { "key": "courseid",       "value": "2",  "type": "string", "description": "Course to query / enrol in" },
+    { "key": "teacher_userid", "value": "16", "type": "string", "description": "Teacher user id for update/delete/role ops" },
+    { "key": "new_teacher_id", "value": "",   "type": "string", "description": "Populated automatically after Create User" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j && j.token) { pm.collectionVariables.set('admin_token', j.token); console.log('admin_token saved:', j.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "admin",            "type": "text" },
+                { "key": "password", "value": "123456",           "type": "text" },
+                { "key": "service",  "value": "moodle_mobile_app","type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/login/token.php",
+              "host": ["{{base_url}}"],
+              "path": ["login", "token.php"]
+            },
+            "description": "Saves admin token into {{admin_token}}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Utility",
+      "item": [
+        {
+          "name": "List All Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wsfunction=core_role_get_roles&wstoken={{admin_token}}&moodlewsrestformat=json",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wsfunction",          "value": "core_role_get_roles" },
+                { "key": "wstoken",             "value": "{{admin_token}}" },
+                { "key": "moodlewsrestformat",  "value": "json" }
+              ]
+            },
+            "description": "Returns all roles with their IDs. Use this to confirm teacher role IDs on your instance.\nDefault: editingteacher = 3, non-editing teacher = 4."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Read — Get Teachers",
+      "item": [
+        {
+          "name": "Get Teachers in Course (by role)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wsfunction=core_enrol_get_enrolled_users&wstoken={{admin_token}}&moodlewsrestformat=json&courseid={{courseid}}&options[0][name]=roleid&options[0][value]=3",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wsfunction",         "value": "core_enrol_get_enrolled_users" },
+                { "key": "wstoken",            "value": "{{admin_token}}" },
+                { "key": "moodlewsrestformat", "value": "json" },
+                { "key": "courseid",           "value": "{{courseid}}" },
+                { "key": "options[0][name]",   "value": "roleid", "description": "filter by role" },
+                { "key": "options[0][value]",  "value": "3",      "description": "3=editingteacher, 4=non-editing teacher" }
+              ]
+            },
+            "description": "Returns all users enrolled in the course with the editingteacher role (roleid=3).\nChange options[0][value] to 4 for non-editing teachers.\nReturns full user objects including roles[], email, profile picture."
+          }
+        },
+        {
+          "name": "Get Non-Editing Teachers in Course",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wsfunction=core_enrol_get_enrolled_users&wstoken={{admin_token}}&moodlewsrestformat=json&courseid={{courseid}}&options[0][name]=roleid&options[0][value]=4",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wsfunction",         "value": "core_enrol_get_enrolled_users" },
+                { "key": "wstoken",            "value": "{{admin_token}}" },
+                { "key": "moodlewsrestformat", "value": "json" },
+                { "key": "courseid",           "value": "{{courseid}}" },
+                { "key": "options[0][name]",   "value": "roleid" },
+                { "key": "options[0][value]",  "value": "4", "description": "4 = non-editing teacher" }
+              ]
+            },
+            "description": "Same as above but for non-editing teachers (roleid=4)."
+          }
+        },
+        {
+          "name": "Search Users by Email",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wsfunction=core_user_get_users&wstoken={{admin_token}}&moodlewsrestformat=json&criteria[0][key]=email&criteria[0][value]=teacher@example.com",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wsfunction",          "value": "core_user_get_users" },
+                { "key": "wstoken",             "value": "{{admin_token}}" },
+                { "key": "moodlewsrestformat",  "value": "json" },
+                { "key": "criteria[0][key]",    "value": "email" },
+                { "key": "criteria[0][value]",  "value": "teacher@example.com" }
+              ]
+            },
+            "description": "Search all users by email. Replace criteria[0][key] with any of: id, username, email, firstname, lastname, idnumber, auth, city, country.\nRequires admin token."
+          }
+        },
+        {
+          "name": "Get Users by ID (bulk)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wsfunction=core_user_get_users_by_field&wstoken={{admin_token}}&moodlewsrestformat=json&field=id&values[0]={{teacher_userid}}",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wsfunction",         "value": "core_user_get_users_by_field" },
+                { "key": "wstoken",            "value": "{{admin_token}}" },
+                { "key": "moodlewsrestformat", "value": "json" },
+                { "key": "field",              "value": "id" },
+                { "key": "values[0]",          "value": "{{teacher_userid}}" },
+                { "key": "values[1]",          "value": "17", "disabled": true, "description": "add more ids here" }
+              ]
+            },
+            "description": "Fetch one or more users by id (or by field=username/email/idnumber). Returns full user profile for each."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create — New Teacher",
+      "item": [
+        {
+          "name": "Step 1 — Create User Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (Array.isArray(j) && j[0] && j[0].id) {",
+                  "  pm.collectionVariables.set('new_teacher_id', j[0].id);",
+                  "  console.log('new_teacher_id saved:', j[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "wsfunction",           "value": "core_user_create_users",  "type": "text" },
+                { "key": "wstoken",              "value": "{{admin_token}}",         "type": "text" },
+                { "key": "moodlewsrestformat",   "value": "json",                    "type": "text" },
+                { "key": "users[0][username]",   "value": "newteacher",              "type": "text", "description": "unique, lowercase" },
+                { "key": "users[0][password]",   "value": "Teacher@123",             "type": "text", "description": "must meet site policy" },
+                { "key": "users[0][firstname]",  "value": "Ahmed",                   "type": "text" },
+                { "key": "users[0][lastname]",   "value": "Hassan",                  "type": "text" },
+                { "key": "users[0][email]",      "value": "newteacher@example.com",  "type": "text", "description": "unique" },
+                { "key": "users[0][auth]",       "value": "manual",                  "type": "text", "description": "or email, oauth2" },
+                { "key": "users[0][lang]",       "value": "ar",                      "type": "text" },
+                { "key": "users[0][timezone]",   "value": "Africa/Cairo",            "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"]
+            },
+            "description": "Creates the Moodle user. Returns [{id, username}]. The test script saves the new user id into {{new_teacher_id}} for Step 2.\n\nNote: this only creates the account — the user has no teacher role yet. Run Step 2 next."
+          }
+        },
+        {
+          "name": "Step 2 — Enrol in Course as Teacher",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "wsfunction",                   "value": "enrol_manual_enrol_users", "type": "text" },
+                { "key": "wstoken",                      "value": "{{admin_token}}",          "type": "text" },
+                { "key": "moodlewsrestformat",           "value": "json",                     "type": "text" },
+                { "key": "enrolments[0][roleid]",        "value": "3",                        "type": "text", "description": "3=editingteacher, 4=non-editing" },
+                { "key": "enrolments[0][userid]",        "value": "{{new_teacher_id}}",       "type": "text", "description": "from Step 1" },
+                { "key": "enrolments[0][courseid]",      "value": "{{courseid}}",             "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"]
+            },
+            "description": "Enrols the new user in the course with the editingteacher role (roleid=3).\nReturns empty array [] on success.\n\nTo assign a system-level teacher role instead, use core_role_assign_roles with contextlevel=system."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update — Teacher Account",
+      "item": [
+        {
+          "name": "Update Teacher Profile Fields",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "wsfunction",           "value": "core_user_update_users", "type": "text" },
+                { "key": "wstoken",              "value": "{{admin_token}}",        "type": "text" },
+                { "key": "moodlewsrestformat",   "value": "json",                   "type": "text" },
+                { "key": "users[0][id]",         "value": "{{teacher_userid}}",     "type": "text", "description": "required" },
+                { "key": "users[0][firstname]",  "value": "Ahmed",                  "type": "text" },
+                { "key": "users[0][lastname]",   "value": "Ibrahim",                "type": "text" },
+                { "key": "users[0][email]",      "value": "updated@example.com",    "type": "text", "disabled": true },
+                { "key": "users[0][suspended]",  "value": "0",                      "type": "text", "disabled": true, "description": "1=suspend, 0=unsuspend" },
+                { "key": "users[0][password]",   "value": "NewPass@456",            "type": "text", "disabled": true }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"]
+            },
+            "description": "Updates any subset of user fields. Only send what needs to change — id is always required.\nReturns empty array [] on success.\n\nTo suspend a teacher without deleting: enable users[0][suspended]=1."
+          }
+        },
+        {
+          "name": "Suspend Teacher (without deleting)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "wsfunction",          "value": "core_user_update_users", "type": "text" },
+                { "key": "wstoken",             "value": "{{admin_token}}",        "type": "text" },
+                { "key": "moodlewsrestformat",  "value": "json",                   "type": "text" },
+                { "key": "users[0][id]",        "value": "{{teacher_userid}}",     "type": "text" },
+                { "key": "users[0][suspended]", "value": "1",                      "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"]
+            },
+            "description": "Suspends the user — they cannot log in but all records are preserved.\nPrefer this over core_user_delete_users to keep lesson history and financial records intact."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete — Remove Teacher",
+      "item": [
+        {
+          "name": "Remove from Course (Unenrol)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "wsfunction",                  "value": "enrol_manual_unenrol_users", "type": "text" },
+                { "key": "wstoken",                     "value": "{{admin_token}}",            "type": "text" },
+                { "key": "moodlewsrestformat",          "value": "json",                       "type": "text" },
+                { "key": "enrolments[0][userid]",       "value": "{{teacher_userid}}",         "type": "text" },
+                { "key": "enrolments[0][courseid]",     "value": "{{courseid}}",               "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"]
+            },
+            "description": "Removes the user from the course entirely (unenrol). Their account still exists. Returns null on success."
+          }
+        },
+        {
+          "name": "Remove Teacher Role Only (keep enrolled)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "wsfunction",                          "value": "core_role_unassign_roles", "type": "text" },
+                { "key": "wstoken",                             "value": "{{admin_token}}",          "type": "text" },
+                { "key": "moodlewsrestformat",                  "value": "json",                     "type": "text" },
+                { "key": "unassignments[0][roleid]",            "value": "3",                        "type": "text", "description": "3=editingteacher" },
+                { "key": "unassignments[0][userid]",            "value": "{{teacher_userid}}",       "type": "text" },
+                { "key": "unassignments[0][contextlevel]",      "value": "course",                   "type": "text" },
+                { "key": "unassignments[0][instanceid]",        "value": "{{courseid}}",             "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"]
+            },
+            "description": "Removes the teacher role from the user in this course context, but keeps them enrolled (e.g. to downgrade them to student role after).\ncontextlevel: system | coursecat | course | module | block | user"
+          }
+        },
+        {
+          "name": "Delete User Account (permanent)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "wsfunction",         "value": "core_user_delete_users", "type": "text" },
+                { "key": "wstoken",            "value": "{{admin_token}}",        "type": "text" },
+                { "key": "moodlewsrestformat", "value": "json",                   "type": "text" },
+                { "key": "userids[0]",         "value": "{{teacher_userid}}",     "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"]
+            },
+            "description": "Marks the user as deleted in Moodle (soft-delete — row remains but is flagged). Cannot be undone via API.\n\nWARNING: This will break any academy lesson/financial records that reference this userid. Use Suspend instead unless you are certain."
+          }
+        }
+      ]
+    }
+  ]
+}

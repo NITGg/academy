@@ -111,6 +111,7 @@ $capmap = [
     'report_packages'        => 'local/academy:manageplatform',
     'report_student_flex'    => 'local/academy:manageplatform',
     'report_lesson_events'   => 'local/academy:manageplatform',
+    'get_all_teachers'       => 'local/academy:manageplatform',
 ];
 if (isset($capmap[$function]) && !has_capability($capmap[$function], context_system::instance())) {
     academy_respond(['status' => 'fail', 'error' => 'Permission denied']);
@@ -405,6 +406,27 @@ try {
                 if (isset($_REQUEST[$f])) { $data[$f] = required_param($f, PARAM_INT); }
             }
             academy_respond(['status' => 'success', 'data' => settings_manager::update_settings($data)]);
+            break;
+
+        // ── Admin: list all teachers with filters (manageplatform) ──
+        case 'get_all_teachers':
+            $filters = [];
+            foreach (['approved', 'available'] as $f) {
+                if (isset($_REQUEST[$f]) && $_REQUEST[$f] !== '') {
+                    $filters[$f] = required_param($f, PARAM_INT);
+                }
+            }
+            foreach (['subject', 'search'] as $f) {
+                if (isset($_REQUEST[$f]) && $_REQUEST[$f] !== '') {
+                    $filters[$f] = required_param($f, PARAM_TEXT);
+                }
+            }
+            foreach (['page', 'perpage'] as $f) {
+                if (isset($_REQUEST[$f])) {
+                    $filters[$f] = required_param($f, PARAM_INT);
+                }
+            }
+            academy_respond(['status' => 'success', 'data' => teacher_manager::get_all_teachers($filters)]);
             break;
 
         // ── Teacher profile (US-TR-1-1) ──

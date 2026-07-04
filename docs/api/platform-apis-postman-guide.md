@@ -1,15 +1,15 @@
-# Platform APIs — Guide & Postman (Phase 1)
+# Platform APIs — Guide & Postman
 
-Covers the `local_academy` platform endpoints built **beyond packages**. This phase:
+Covers the `local_academy` platform endpoints built **beyond packages**.
 
 | Story | Area | Endpoints |
 |-------|------|-----------|
 | US-AD-2-1 | Admin | `get_lesson_settings`, `update_lesson_settings` |
+| US-AD-2-2 | Admin | `get_all_teachers` |
 | US-TR-1-1 | Teacher | `get_teacher_profile`, `update_teacher_profile` |
 | US-ST-2-1 | Student | `browse_teachers`, `get_teacher` |
 
-> This file grows as later phases (lessons, financial, reports) are built. Packages have their own
-> guide: [admin-packages.md](admin-packages.md) (frontend) and
+> Packages have their own guide: [admin-packages.md](admin-packages.md) (frontend) and
 > [student-packages-mobile-guide.md](student-packages-mobile-guide.md) (mobile).
 
 ---
@@ -26,7 +26,7 @@ Covers the `local_academy` platform endpoints built **beyond packages**. This ph
 - **Response:** JSON `{ "status": "success", "data": ... }` or `{ "status": "fail", "error": "..." }`.
   A bad/expired token returns an **HTML** page instead of JSON — treat that as "re-login".
 - **Who can call what:**
-  - `update_lesson_settings` → **admin** (capability `local/academy:manageplatform`).
+  - `update_lesson_settings`, `get_all_teachers` → **admin** (capability `local/academy:manageplatform`).
   - `get_lesson_settings`, `browse_teachers`, `get_teacher` → any logged-in user.
   - `get_teacher_profile`, `update_teacher_profile` → the logged-in **teacher** (acts on their own profile).
 
@@ -67,7 +67,54 @@ Rules: every value ≥ 0; `teacher_percent + platform_percent = 100`. Errors:
 
 ---
 
-## 3. Teacher — Profile (US-TR-1-1)
+## 3. Admin — Get All Teachers (US-AD-2-2)
+
+### `get_all_teachers` — GET (admin)
+
+Returns **all** teachers regardless of `approved` or `available` status, including email.
+All parameters are optional and are AND-ed together.
+
+```
+GET /local/academy/api.php?function=get_all_teachers&token=ADMIN_TOKEN
+    [&approved=1] [&available=1] [&subject=Math] [&search=ahmed] [&page=0] [&perpage=20]
+```
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `approved` | `0` or `1` | Filter by approval status. Omit to return all. |
+| `available` | `0` or `1` | Filter by availability status. Omit to return all. |
+| `subject` | string | Partial, case-insensitive match against any of the teacher's subjects. |
+| `search` | string | Partial match on `firstname`, `lastname`, or `email`. |
+| `page` | int | 0-based page index (default `0`). |
+| `perpage` | int | Results per page, max `200` (default `20`). |
+
+**Response:**
+```json
+{ "status": "success", "data": {
+  "total": 42,
+  "page": 0,
+  "perpage": 20,
+  "teachers": [
+    {
+      "userid": 16, "fullname": "Dr. Mohamed Ali", "email": "m.ali@example.com",
+      "headline": "Senior Math Teacher", "bio": "...", "experience": "10 years",
+      "photourl": "", "rating": 4.5, "approved": 1, "available": 1,
+      "subjects": [ { "subject": "Math", "specialization": "Algebra" } ],
+      "hours":    [ { "dayofweek": 1, "starttime": "09:00", "endtime": "12:00" } ]
+    }
+  ]
+} }
+```
+
+**Pagination:** use `total` ÷ `perpage` to compute the number of pages.
+Increment `page` (0, 1, 2 …) to walk through results.
+Results are ordered by `lastname ASC, firstname ASC`.
+
+**Errors:** `Permission denied` (non-admin token).
+
+---
+
+## 4. Teacher — Profile (US-TR-1-1)
 
 ### `get_teacher_profile` — GET (own profile)
 ```
@@ -103,7 +150,7 @@ Notes:
 
 ---
 
-## 4. Student — Browse Teachers (US-ST-2-1)
+## 5. Student — Browse Teachers (US-ST-2-1)
 
 ### `browse_teachers` — GET
 ```
@@ -129,28 +176,41 @@ One teacher's public profile by user id. Error `Teacher not found` if the id isn
 
 ---
 
-## 5. Postman quick start
+## 6. Postman quick start
 
 1. Postman → **Import** → **File** → choose `docs/api/Academy_Platform.postman_collection.json`.
 2. In the **Auth** folder, run **Login as Admin** and **Login as Teacher** once — they save tokens into
    `{{admin_token}}` and `{{teacher_token}}` automatically.
 3. Use the folders:
    - **Admin — Lesson Settings** (uses `{{admin_token}}`)
+   - **Admin — All Teachers** (uses `{{admin_token}}` — 6 pre-built requests covering every filter combo)
    - **Teacher — Profile** (uses `{{teacher_token}}`; Update is a POST with JSON `subjects`/`hours`)
    - **Student — Browse Teachers** (any token)
 
 Collection variables (collection → *Variables* tab): `base_url`, `admin_token`, `teacher_token`,
 `teacherid`. Tokens are pre-filled with current local ones and refreshed by the Login requests.
 
-## 6. Quick test (curl)
+## 7. Quick test (curl)
 ```bash
 B=http://localhost:8081
 AT=$(curl -s -X POST "$B/login/token.php" -d "username=admin&password=123456&service=moodle_mobile_app" | sed -E 's/.*"token":"([a-f0-9]+)".*/\1/')
 TT=$(curl -s -X POST "$B/login/token.php" -d "username=mohamedmekhammr@gmail.com&password=123456&service=moodle_mobile_app" | sed -E 's/.*"token":"([a-f0-9]+)".*/\1/')
 
+# lesson settings
 curl "$B/local/academy/api.php?function=get_lesson_settings&token=$AT"
 curl "$B/local/academy/api.php?function=update_lesson_settings&token=$AT&teacher_percent=40&platform_percent=60"
+
+# get all teachers — various filters
+curl "$B/local/academy/api.php?function=get_all_teachers&token=$AT"
+curl "$B/local/academy/api.php?function=get_all_teachers&token=$AT&approved=1&available=1"
+curl "$B/local/academy/api.php?function=get_all_teachers&token=$AT&subject=Math"
+curl "$B/local/academy/api.php?function=get_all_teachers&token=$AT&search=ahmed"
+curl "$B/local/academy/api.php?function=get_all_teachers&token=$AT&page=0&perpage=10"
+
+# teacher own profile
 curl "$B/local/academy/api.php?function=get_teacher_profile&token=$TT"
 curl -X POST "$B/local/academy/api.php" --data-urlencode "function=update_teacher_profile" --data-urlencode "token=$TT" --data-urlencode "headline=Senior Math Teacher" --data-urlencode 'subjects=[{"subject":"Math","specialization":"Algebra"}]'
+
+# public browse
 curl "$B/local/academy/api.php?function=browse_teachers&token=$AT&subject=Math"
 ```
