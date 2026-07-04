@@ -227,6 +227,80 @@ class subscription_manager {
     }
 
     /**
+     * Set the courses for a specific subscription (US-AD-6-1 alternative flow).
+     *
+     * @param int $subscriptionid
+     * @param int[] $courseids
+     * @param int $userid
+     * @return array the new courses for the subscription
+     */
+    public static function set_subscription_courses($subscriptionid, array $courseids, $userid) {
+        global $DB;
+        self::get_subscription($subscriptionid); // validate
+
+        $now = time();
+        $transaction = $DB->start_delegated_transaction();
+        
+        $DB->delete_records('academy_course_access', array('subscriptionid' => $subscriptionid));
+        
+        $seen = array();
+        foreach ($courseids as $cid) {
+            $cid = (int)$cid;
+            if ($cid <= 0 || isset($seen[$cid])) {
+                continue;
+            }
+            if (!$DB->record_exists('course', array('id' => $cid))) {
+                continue;
+            }
+            $seen[$cid] = true;
+            $DB->insert_record('academy_course_access', (object) array(
+                'courseid'       => $cid,
+                'subscriptionid' => $subscriptionid,
+                'timecreated'    => $now,
+                'usermodified'   => $userid,
+            ));
+        }
+        
+        $transaction->allow_commit();
+        return self::courses_detail($subscriptionid);
+    }
+
+    /**
+     * Get categories and their courses for the admin UI.
+     *
+     * @return array
+     */
+    public static function get_categories_with_courses() {
+        global $DB;
+        $cats = $DB->get_records('course_categories', array(), 'sortorder ASC', 'id, name');
+        $courses = $DB->get_records('course', array(), 'sortorder ASC', 'id, fullname, category');
+        $tree = array();
+        foreach ($cats as $cat) {
+            $tree[$cat->id] = array(
+                'id' => (int)$cat->id,
+                'name' => format_string($cat->name),
+                'courses' => array()
+            );
+        }
+        foreach ($courses as $c) {
+            if ($c->category > 0 && isset($tree[$c->category])) {
+                $tree[$c->category]['courses'][] = array(
+                    'id' => (int)$c->id,
+                    'fullname' => format_string($c->fullname)
+                );
+            }
+        }
+        // Filter out empty categories
+        $result = array();
+        foreach ($tree as $node) {
+            if (!empty($node['courses'])) {
+                $result[] = $node;
+            }
+        }
+        return $result;
+    }
+
+    /**
      * The access rule for a course.
      *
      * @param int $courseid

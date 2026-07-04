@@ -198,6 +198,28 @@
           }
         },
         {
+          "name": "Unsubscribe User (POST)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "unsubscribe_user", "type": "text" },
+                { "key": "token", "value": "{{token}}", "type": "text" },
+                { "key": "purchaseid", "value": "1", "type": "text" },
+                { "key": "refund", "value": "1", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "Unsubscribe a user and optionally refund."
+          }
+        },
+        {
           "name": "Set Course Access — specific (POST)",
           "request": {
             "method": "POST",

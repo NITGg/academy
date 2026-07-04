@@ -94,8 +94,12 @@ $capmap = [
     'delete_subscription'      => 'local/academy:managesubscriptions',
     'get_subscriptions'        => 'local/academy:managesubscriptions',
     'get_subscription'         => 'local/academy:managesubscriptions',
+    'unsubscribe_user'         => 'local/academy:managesubscriptions',
     'set_course_subscriptions' => 'local/academy:managesubscriptions',
+    'set_subscription_courses' => 'local/academy:managesubscriptions',
     'get_course_access'        => 'local/academy:managesubscriptions',
+    'get_categories_with_courses'=> 'local/academy:managesubscriptions',
+    'get_all_user_subscriptions'=> 'local/academy:managesubscriptions',
     'update_lesson_settings' => 'local/academy:manageplatform',
     'reverse_flex'           => 'local/academy:manageplatform',
     'list_withdrawals'       => 'local/academy:manageplatform',
@@ -271,6 +275,34 @@ try {
         case 'get_course_access':
             $courseid = required_param('courseid', PARAM_INT);
             academy_respond(['status' => 'success', 'data' => subscription_manager::get_course_access($courseid)]);
+            break;
+
+        case 'set_subscription_courses':
+            academy_require_post();
+            $subscriptionid = required_param('subscriptionid', PARAM_INT);
+            $courseids   = [];
+            if (isset($_REQUEST['courseids'])) {
+                $decoded = json_decode(required_param('courseids', PARAM_RAW), true);
+                $courseids = is_array($decoded) ? $decoded : [];
+            }
+            academy_respond(['status' => 'success',
+                'data' => subscription_manager::set_subscription_courses($subscriptionid, $courseids, $userid)]);
+            break;
+
+        case 'get_categories_with_courses':
+            academy_respond(['status' => 'success', 'data' => subscription_manager::get_categories_with_courses()]);
+            break;
+
+        case 'unsubscribe_user':
+            academy_require_post();
+            $purchaseid = required_param('purchaseid', PARAM_INT);
+            $refund = optional_param('refund', 0, PARAM_BOOL);
+            subscription_purchase_manager::unsubscribe_user($purchaseid, $refund, $userid);
+            academy_respond(['status' => 'success', 'data' => true]);
+            break;
+
+        case 'get_all_user_subscriptions':
+            academy_respond(['status' => 'success', 'data' => subscription_purchase_manager::get_all_user_subscriptions()]);
             break;
 
         // ── Subscriptions: student (any authenticated user, acting as themselves) ──

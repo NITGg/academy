@@ -76,29 +76,38 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
         </div>
     </div>
 
-    <!-- ── Course access (US-AD-6-1) ── -->
+    <!-- ── Course access (New UI) ── -->
     <h4 class="mt-4">Course subscription availability</h4>
-    <p class="text-muted">Choose which subscriptions can access a course. Enter a course ID and load it.</p>
-    <div class="form-inline mb-3">
-        <input type="number" class="form-control mr-2" id="ca-course" placeholder="Course ID" min="1">
-        <button id="ca-load" class="btn btn-secondary">Load</button>
+    <p class="text-muted">Choose courses and append them to a specific subscription.</p>
+
+    <div id="course-selector-area" style="display:none;">
+        <div class="mb-3">
+            <label for="target-subscription">Target Subscription:</label>
+            <select id="target-subscription" class="form-control" style="max-width: 300px; display: inline-block;">
+                <option value="">Select a subscription...</option>
+            </select>
+            <button id="save-course-selection" class="btn btn-primary ml-2">Save courses to subscription</button>
+        </div>
+        <div id="categories-container" class="mb-4"></div>
     </div>
 
-    <div id="ca-editor" class="card" style="display:none; max-width:560px;">
-        <div class="card-body">
-            <h5 id="ca-title" class="card-title"></h5>
-            <div class="form-check">
-                <input type="radio" class="form-check-input" name="ca-mode" id="ca-mode-all" value="all">
-                <label class="form-check-label" for="ca-mode-all">All subscriptions</label>
-            </div>
-            <div class="form-check mb-2">
-                <input type="radio" class="form-check-input" name="ca-mode" id="ca-mode-specific" value="specific">
-                <label class="form-check-label" for="ca-mode-specific">Specific subscriptions</label>
-            </div>
-            <div id="ca-sublist" class="mb-3" style="padding-left:1.5rem"></div>
-            <button id="ca-save" class="btn btn-primary">Save access</button>
-        </div>
-    </div>
+    <!-- ── User Subscriptions (New UI) ── -->
+    <h4 class="mt-4">User Subscriptions</h4>
+    <p class="text-muted">Manage active and expired user subscriptions.</p>
+    <button id="refresh-users" class="btn btn-secondary mb-2">Refresh</button>
+    <table class="table table-striped" id="users-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Subscription</th>
+                <th>Price Paid</th>
+                <th>Status</th>
+                <th>Expires At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
+    </table>
 </div>
 <?php
 
@@ -240,54 +249,119 @@ echo html_writer::script(<<<'JS'
     $('sub-save').addEventListener('click', save);
     $('sub-cancel').addEventListener('click', hideForm);
 
-    // ── Course access (US-AD-6-1) ──
-    function renderSubChecks(selectedIds) {
-        var sel = {};
-        (selectedIds || []).forEach(function (i) { sel[i] = true; });
-        var box = $('ca-sublist');
-        if (!ALL_SUBS.length) { box.innerHTML = '<span class="text-muted">No subscriptions defined.</span>'; return; }
-        box.innerHTML = ALL_SUBS.map(function (s) {
-            return '<div class="form-check">' +
-                '<input type="checkbox" class="form-check-input ca-sub" id="ca-sub-' + s.id + '" value="' + s.id + '"' +
-                (sel[s.id] ? ' checked' : '') + '>' +
-                '<label class="form-check-label" for="ca-sub-' + s.id + '">' + esc(s.name) + ' (#' + s.id + ')</label>' +
-                '</div>';
-        }).join('');
+    // ── Course access (New UI) ──
+    function loadCategories() {
+        api('get_categories_with_courses').then(function(categories) {
+            var container = $('categories-container');
+            if (!categories.length) {
+                container.innerHTML = '<span class="text-muted">No categories with courses found.</span>';
+                return;
+            }
+            var html = '';
+            categories.forEach(function(cat) {
+                html += '<div class="card mb-2">';
+                html += '<div class="card-header"><strong>' + esc(cat.name) + '</strong></div>';
+                html += '<div class="card-body">';
+                cat.courses.forEach(function(c) {
+                    html += '<div class="form-check form-check-inline">' +
+                        '<input type="checkbox" class="form-check-input course-checkbox" id="cb-course-' + c.id + '" value="' + c.id + '">' +
+                        '<label class="form-check-label" for="cb-course-' + c.id + '">' + esc(c.fullname) + '</label>' +
+                        '</div>';
+                });
+                html += '</div></div>';
+            });
+            container.innerHTML = html;
+            $('course-selector-area').style.display = 'block';
+        }).catch(function(e) { msg(e.message, 'danger'); });
     }
 
-    function loadCourseAccess() {
-        var courseid = $('ca-course').value;
-        if (!courseid) { msg('Enter a course ID.', 'danger'); return; }
-        // Make sure ALL_SUBS is populated for the checkboxes.
-        var ensure = ALL_SUBS.length ? Promise.resolve() : api('get_subscriptions').then(function (r) { ALL_SUBS = r; });
-        ensure.then(function () { return api('get_course_access', { courseid: courseid }); })
-            .then(function (access) {
-                $('ca-title').textContent = 'Course #' + courseid + ' access';
-                var mode = access.mode === 'all' ? 'all' : 'specific';
-                $('ca-mode-all').checked = (mode === 'all');
-                $('ca-mode-specific').checked = (mode !== 'all');
-                renderSubChecks(access.subscriptionids);
-                $('ca-editor').style.display = 'block';
-            }).catch(function (e) { msg(e.message, 'danger'); });
+    function populateSubscriptionDropdown() {
+        var select = $('target-subscription');
+        select.innerHTML = '<option value="">Select a subscription...</option>';
+        ALL_SUBS.forEach(function(sub) {
+            if (sub.status === 'active') {
+                select.innerHTML += '<option value="' + sub.id + '">' + esc(sub.name) + ' (#' + sub.id + ')</option>';
+            }
+        });
     }
 
-    function saveCourseAccess() {
-        var courseid = $('ca-course').value;
-        var mode = $('ca-mode-all').checked ? 'all' : 'specific';
-        var ids = [];
-        document.querySelectorAll('.ca-sub:checked').forEach(function (c) { ids.push(parseInt(c.value, 10)); });
-        api('set_course_subscriptions', {
-            courseid: courseid,
-            mode: mode,
-            subscriptionids: JSON.stringify(ids)
-        }, 'POST').then(function () {
-            msg('Course access saved.', 'success');
-            loadSubs(); // refresh the plans' course lists
-        }).catch(function (e) { msg(e.message, 'danger'); });
+    $('save-course-selection').addEventListener('click', function() {
+        var subId = $('target-subscription').value;
+        if (!subId) {
+            msg('Please select a target subscription.', 'danger');
+            return;
+        }
+        var courseIds = [];
+        document.querySelectorAll('.course-checkbox:checked').forEach(function(cb) {
+            courseIds.push(parseInt(cb.value, 10));
+        });
+        if (!courseIds.length) {
+            msg('Please select at least one course.', 'danger');
+            return;
+        }
+        api('set_subscription_courses', {
+            subscriptionid: subId,
+            courseids: JSON.stringify(courseIds)
+        }, 'POST').then(function() {
+            msg('Courses assigned successfully.', 'success');
+            loadSubs();
+            document.querySelectorAll('.course-checkbox:checked').forEach(function(cb) { cb.checked = false; });
+            $('target-subscription').value = '';
+        }).catch(function(e) { msg(e.message, 'danger'); });
+    });
+
+    // ── User Subscriptions (New UI) ──
+    function loadUsers() {
+        var tbody = $('users-table').querySelector('tbody');
+        tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+        api('get_all_user_subscriptions').then(function(rows) {
+            if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6">No user subscriptions found.</td></tr>'; return; }
+            tbody.innerHTML = '';
+            rows.forEach(function(r) {
+                var tr = document.createElement('tr');
+                var toggle = '';
+                if (r.status === 'active') {
+                    toggle = '<button class="btn btn-sm btn-danger btn-unsubscribe" data-id="' + r.id + '">Unsubscribe</button>';
+                }
+                var expires = r.expires_at > 0 ? new Date(r.expires_at * 1000).toLocaleString() : 'Never';
+                tr.innerHTML = 
+                    '<td>' + esc(r.user_fullname) + ' <br><small class="text-muted">' + esc(r.user_email) + '</small></td>' +
+                    '<td>' + esc(r.name) + '</td>' +
+                    '<td>' + esc(r.price_paid) + '</td>' +
+                    '<td>' + esc(r.status) + '</td>' +
+                    '<td>' + expires + '</td>' +
+                    '<td>' + toggle + '</td>';
+                tbody.appendChild(tr);
+            });
+        }).catch(function(e) { msg(e.message, 'danger'); });
     }
 
-    $('ca-load').addEventListener('click', loadCourseAccess);
-    $('ca-save').addEventListener('click', saveCourseAccess);
+    $('users-table').addEventListener('click', function(ev) {
+        var btn = ev.target.closest('.btn-unsubscribe');
+        if (!btn) return;
+        var purchaseId = btn.getAttribute('data-id');
+        var refund = confirm('Do you want to refund the money for this subscription?');
+        if (confirm('Are you sure you want to unsubscribe this user? This cannot be undone.')) {
+            api('unsubscribe_user', {
+                purchaseid: purchaseId,
+                refund: refund ? 1 : 0
+            }, 'POST').then(function() {
+                msg('User unsubscribed successfully.', 'success');
+                loadUsers();
+            }).catch(function(e) { msg(e.message, 'danger'); });
+        }
+    });
+
+    $('refresh-users').addEventListener('click', loadUsers);
+
+    var originalLoadSubs = loadSubs;
+    loadSubs = function() {
+        originalLoadSubs();
+        setTimeout(populateSubscriptionDropdown, 500); 
+    };
+
+    loadCategories();
+    loadUsers();
 
     loadSubs();
 })();

@@ -167,6 +167,79 @@ class subscription_purchase_manager {
         return $out;
     }
 
+    /** Admin: Unsubscribe a specific user from a subscription. (US-AD-5-*) */
+    public static function unsubscribe_user($purchaseid, $refund, $adminid) {
+        global $DB;
+        $purchase = $DB->get_record('academy_sub_purchases', array('id' => $purchaseid));
+        if (!$purchase) {
+            throw new \moodle_exception('err_subnotfound', 'local_academy');
+        }
+
+        $now = time();
+        $transaction = $DB->start_delegated_transaction();
+
+        // Mark purchase as cancelled
+        $update = new \stdClass();
+        $update->id = $purchase->id;
+        $update->status = 'cancelled';
+        $update->expires_at = $now;
+        $DB->update_record('academy_sub_purchases', $update);
+
+        // Revoke access
+        self::revoke_course_access($purchase->userid, $purchase->subscriptionid);
+
+        // Refund if requested
+        if ($refund) {
+            $payment = new \stdClass();
+            $payment->userid         = $purchase->userid;
+            $payment->purchaseid     = $purchase->id;
+            $payment->subscriptionid = $purchase->subscriptionid;
+            $payment->amount         = -1 * abs($purchase->price_paid);
+            $payment->method         = 'refund';
+            $payment->reference      = 'Unsubscribed by admin: ' . $adminid;
+            $payment->transaction_no = self::generate_txn();
+            $payment->status         = 'success';
+            $payment->timecreated    = $now;
+            $DB->insert_record('academy_sub_payments', $payment);
+        }
+
+        $transaction->allow_commit();
+    }
+
+    /** Admin: Get all user subscriptions. */
+    public static function get_all_user_subscriptions() {
+        global $DB;
+        $sql = "SELECT sp.*, s.name AS subscription_name, u.firstname, u.lastname, u.email
+                  FROM {academy_sub_purchases} sp
+                  JOIN {academy_subscriptions} s ON s.id = sp.subscriptionid
+                  JOIN {user} u ON u.id = sp.userid
+              ORDER BY sp.timecreated DESC";
+        $rows = $DB->get_records_sql($sql);
+
+        $now = time();
+        $out = array();
+        foreach ($rows as $r) {
+            $status = self::effective_status($r);
+            $daysleft = ($status === 'active' && (int)$r->expires_at > 0)
+                ? max(0, (int) ceil(((int)$r->expires_at - $now) / DAYSECS)) : 0;
+            $out[] = array(
+                'id'             => (int)$r->id,
+                'userid'         => (int)$r->userid,
+                'user_fullname'  => fullname($r),
+                'user_email'     => $r->email,
+                'subscriptionid' => (int)$r->subscriptionid,
+                'name'           => $r->subscription_name,
+                'price_paid'     => $r->price_paid,
+                'status'         => $status,
+                'timeactivated'  => (int)$r->timeactivated,
+                'expires_at'     => (int)$r->expires_at,
+                'remaining_days' => $daysleft,
+                'duration_days'  => (int)$r->duration_days,
+            );
+        }
+        return $out;
+    }
+
     /** The student's current active, non-expired subscription (or null). */
     public static function get_active_subscription($userid) {
         global $DB;
