@@ -49,7 +49,10 @@ function local_payments_before_http_headers() {
         return;
     }
 
-    if (is_enrolled($context)) {
+    // Only an *active* enrolment grants access. An expired one (lapsed
+    // subscription/package) must fall through to the buy/enrol gate instead of
+    // letting the user hit course/view.php only to be bounced to enrol/index.php.
+    if (is_enrolled($context, null, '', true)) {
         return;
     }
 

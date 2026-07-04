@@ -50,6 +50,19 @@ try {
     $result = \local_payments\manager::verify_callback($order_id);
 
     if ($result->success) {
+        // Packages and subscriptions are not tied to a single course, so there
+        // is no course page to land on. Send the student straight to the home
+        // dashboard with a success notice instead of the generic success page.
+        $item_type = $result->item_type ?? 'course';
+        if ($item_type === 'package' || $item_type === 'subscription') {
+            redirect(
+                new moodle_url('/'),
+                get_string('payment_success', 'local_payments'),
+                null,
+                \core\output\notification::NOTIFY_SUCCESS
+            );
+        }
+
         $PAGE->set_title(get_string('payment_success', 'local_payments'));
         echo $OUTPUT->header();
 

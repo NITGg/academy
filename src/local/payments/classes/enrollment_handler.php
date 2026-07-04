@@ -39,21 +39,28 @@ class enrollment_handler {
             $manual_instance = $DB->get_record('enrol', ['id' => $enrolid], '*', MUST_EXIST);
         }
 
-        // Check if already enrolled.
-        if (is_enrolled(\context_course::instance($courseid), $userid)) {
+        // Check if already actively enrolled. An expired/suspended enrolment
+        // must fall through so we re-enrol (manual enrol_user updates the
+        // existing record's timestart/timeend), restoring access.
+        if (is_enrolled(\context_course::instance($courseid), $userid, '', true)) {
             return true;
         }
 
         $enrol->enrol_user($manual_instance, $userid, $roleid, time(), 0);
 
-        return is_enrolled(\context_course::instance($courseid), $userid);
+        return is_enrolled(\context_course::instance($courseid), $userid, '', true);
     }
 
     /**
-     * Check if a user is enrolled in a course.
+     * Check if a user has an *active* enrolment in a course.
+     *
+     * Uses $onlyactive = true so that expired enrolments (past their timeend,
+     * e.g. a lapsed subscription/package) or suspended ones are treated as
+     * not-enrolled — matching what actual course access allows. Otherwise the
+     * UI would keep showing "Enrolled" while the course itself denies entry.
      */
     public static function is_enrolled(int $userid, int $courseid): bool {
-        return is_enrolled(\context_course::instance($courseid), $userid);
+        return is_enrolled(\context_course::instance($courseid), $userid, '', true);
     }
 
     /**

@@ -120,26 +120,28 @@ function local_academy_available_subscriptions_section() {
 
     // Scoped CSS (la-subs-* prefix keeps it away from the theme + student.php's st-* styles).
     $css = <<<CSS
-.la-subs{max-width:1200px;margin:2.5rem auto;padding:0 1rem}
-.la-subs-head{margin-bottom:1.25rem}
-.la-subs-title{font-size:1.6rem;font-weight:800;color:#1c1d1f;margin:0 0 .25rem}
-.la-subs-sub{color:#6a6f73;margin:0}
-.la-subs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem}
-.la-subs-card{display:flex;flex-direction:column;background:#fff;border:1px solid #e5e7eb;border-radius:.75rem;overflow:hidden;transition:transform .15s ease,box-shadow .15s ease}
-.la-subs-card:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,.14)}
-.la-subs-banner{height:128px;display:flex;align-items:flex-end;justify-content:space-between;padding:.75rem;color:#fff}
-.la-subs-banner svg{width:38px;height:38px;opacity:.9;fill:#fff}
-.la-subs-daysbadge{background:rgba(255,255,255,.92);color:#1c1d1f;font-weight:700;font-size:.78rem;padding:.2rem .6rem;border-radius:1rem}
-.la-subs-body{padding:1rem;display:flex;flex-direction:column;flex:1}
-.la-subs-name{font-weight:700;font-size:1.1rem;color:#1c1d1f;margin:0 0 .35rem;line-height:1.3}
-.la-subs-desc{color:#6a6f73;font-size:.9rem;margin:0 0 .6rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.la-subs-courses{font-size:.82rem;color:#3c3c3c;margin-bottom:.9rem}
+.la-subs{max-width:1280px;margin:3rem auto;padding:0 1rem}
+.la-subs-head{margin-bottom:1.5rem}
+.la-subs-title{font-size:1.7rem;font-weight:800;color:#1c1d1f;margin:0 0 .3rem}
+.la-subs-sub{color:#6a6f73;margin:0;font-size:1.02rem}
+.la-subs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;align-items:stretch}
+.la-subs-card{display:flex;flex-direction:column;height:100%;background:#fff;border:1px solid #e5e7eb;border-radius:1rem;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:transform .18s ease,box-shadow .18s ease}
+.la-subs-card:hover{transform:translateY(-6px);box-shadow:0 16px 32px rgba(0,0,0,.16)}
+.la-subs-banner{position:relative;height:190px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden}
+.la-subs-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.22),transparent 55%)}
+.la-subs-banner svg{width:52px;height:52px;opacity:.95;fill:#fff;position:relative;z-index:1}
+.la-subs-daysbadge{align-self:flex-start;background:rgba(255,255,255,.95);color:#1c1d1f;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;position:relative;z-index:1}
+.la-subs-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
+.la-subs-name{font-weight:700;font-size:1.2rem;color:#1c1d1f;margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
+.la-subs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
+.la-subs-courses{font-size:.86rem;color:#3c3c3c;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
 .la-subs-courses b{color:#1c1d1f}
-.la-subs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
-.la-subs-price{font-size:1.35rem;font-weight:800;color:#1c1d1f}
-.la-subs-price small{font-size:.78rem;font-weight:600;color:#6a6f73}
-.la-subs-btn{background:#a435f0;border:none;color:#fff;font-weight:700;padding:.55rem 1.1rem;border-radius:.4rem;cursor:pointer;transition:background .15s ease}
+.la-subs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-top:.5rem}
+.la-subs-price{font-size:1.5rem;font-weight:800;color:#1c1d1f}
+.la-subs-price small{font-size:.8rem;font-weight:600;color:#6a6f73}
+.la-subs-btn{background:#a435f0;border:none;color:#fff;font-weight:700;font-size:.95rem;padding:.7rem 1.4rem;border-radius:.5rem;cursor:pointer;transition:background .15s ease,transform .1s ease}
 .la-subs-btn:hover{background:#8710d8}
+.la-subs-btn:active{transform:scale(.97)}
 .la-subs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
 CSS;
 
