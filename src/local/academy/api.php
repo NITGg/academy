@@ -324,6 +324,18 @@ try {
                 'data' => subscription_purchase_manager::purchase_subscription($userid, $subid, $method, $reference)]);
             break;
 
+        case 'create_subscription_checkout':
+            academy_require_post();
+            $subid = required_param('subscriptionid', PARAM_INT);
+            require_once($CFG->dirroot . '/local/payments/classes/manager.php');
+            try {
+                $checkout = \local_payments\manager::create_subscription_checkout($subid, $userid);
+                academy_respond(['status' => 'success', 'data' => $checkout]);
+            } catch (\Exception $e) {
+                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+            }
+            break;
+
         // US-SB-2-1 (subscriptions)
         case 'get_my_subscriptions':
             academy_respond(['status' => 'success',
@@ -354,6 +366,20 @@ try {
             $reference = optional_param('reference', '', PARAM_TEXT);
             academy_respond(['status' => 'success',
                 'data' => purchase_manager::purchase_package($userid, $packageid, $method, $reference)]);
+            break;
+
+        case 'create_package_checkout':
+            if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+                academy_respond(['status' => 'fail', 'error' => 'This action requires POST']);
+            }
+            $packageid = required_param('packageid', PARAM_INT);
+            require_once($CFG->dirroot . '/local/payments/classes/manager.php');
+            try {
+                $checkout = \local_payments\manager::create_package_checkout($packageid, $userid);
+                academy_respond(['status' => 'success', 'data' => $checkout]);
+            } catch (\Exception $e) {
+                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+            }
             break;
 
         // US-PK-2-1 (packages)

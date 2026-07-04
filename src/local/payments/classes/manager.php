@@ -228,6 +228,232 @@ class manager {
     }
 
     /**
+     * Create a package checkout.
+     *
+     * @param int $packageid
+     * @param int|null $userid
+     * @param string|null $app_country
+     * @param string $display_lang
+     * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
+     */
+    public static function create_package_checkout(int $packageid, ?int $userid = null, ?string $app_country = null,
+            string $display_lang = 'en'): object {
+        global $DB, $USER, $CFG;
+
+        $userid = $userid ?? $USER->id;
+        $user = $DB->get_record('user', ['id' => $userid], 'id, email, firstname, lastname, country', MUST_EXIST);
+        $package = $DB->get_record('academy_packages', ['id' => $packageid], '*', MUST_EXIST);
+
+        if (\local_academy\purchase_manager::get_active_purchase($userid)) {
+            throw new \moodle_exception('err_alreadyhaspackage', 'local_academy');
+        }
+
+        $currency = 'EGP'; 
+        
+        $country = country_detector::detect($userid, $app_country);
+        $provider = self::get_provider($country, $currency);
+        $provider_record = $DB->get_record('local_payments_providers', ['name' => $provider->get_name()]);
+
+        $order_id = self::generate_order_id();
+        $idempotency_key = self::generate_idempotency_key($userid, $packageid + 1000000); 
+
+        $ttl = (int) get_config('local_payments', 'payment_ttl') ?: 1800;
+        $expires_at = time() + $ttl;
+
+        $transaction = (object) [
+            'userid' => $userid,
+            'courseid' => 0, 
+            'provider_id' => $provider_record->id,
+            'price_id' => null,
+            'order_id' => $order_id,
+            'idempotency_key' => $idempotency_key,
+            'amount' => $package->price,
+            'original_amount' => $package->price,
+            'currency' => $currency,
+            'status' => status_machine::PENDING,
+            'customer_email' => $user->email,
+            'customer_reference' => (string) $userid,
+            'display_lang' => $display_lang,
+            'country' => $country,
+            'ip_address' => getremoteaddr(),
+            'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500),
+            'metadata' => json_encode([
+                'item_type' => 'package',
+                'item_id' => $packageid,
+                'package_name' => $package->name,
+            ]),
+            'expires_at' => $expires_at,
+            'timecreated' => time(),
+            'timemodified' => time(),
+        ];
+
+        $transaction_id = $DB->insert_record('local_payments_transactions', $transaction);
+        self::audit_log($transaction_id, $userid, 'payment_created', '', status_machine::PENDING);
+
+        $webhook_url = $CFG->wwwroot . '/local/payments/webhook.php?provider=' . $provider->get_name();
+        $success_url = $CFG->wwwroot . '/local/payments/callback.php?order_id=' . urlencode($order_id);
+        $failure_url = $CFG->wwwroot . '/local/payments/callback.php?order_id=' . urlencode($order_id) . '&status=failed';
+
+        $request = new payment_request([
+            'order_id' => $order_id,
+            'amount' => $package->price,
+            'currency' => $currency,
+            'description' => 'Package: ' . $package->name,
+            'userid' => $userid,
+            'courseid' => 0,
+            'customer_email' => $user->email,
+            'customer_reference' => (string) $userid,
+            'display_lang' => $display_lang,
+            'webhook_url' => $webhook_url,
+            'success_url' => $success_url,
+            'failure_url' => $failure_url,
+            'metadata' => ['transaction_id' => $transaction_id],
+            'transaction_id' => $transaction_id,
+        ]);
+
+        $response = $provider->initialize_payment($request);
+
+        if (!$response->success) {
+            $DB->update_record('local_payments_transactions', (object) [
+                'id' => $transaction_id,
+                'status' => status_machine::FAILED,
+                'reject_reason' => substr($response->error_message, 0, 255),
+                'timemodified' => time(),
+            ]);
+            self::audit_log($transaction_id, $userid, 'status_changed', status_machine::PENDING, status_machine::FAILED);
+            throw new \moodle_exception('paymentinitiationfailed', 'local_payments', '', $response->error_message);
+        }
+
+        $DB->update_record('local_payments_transactions', (object) [
+            'id' => $transaction_id,
+            'provider_session_id' => $response->provider_session_id,
+            'checkout_url' => $response->checkout_url,
+            'timemodified' => time(),
+        ]);
+
+        return (object) [
+            'order_id' => $order_id,
+            'checkout_url' => $response->checkout_url,
+            'expires_at' => $expires_at,
+            'provider' => $provider->get_name(),
+            'transaction_id' => $transaction_id,
+        ];
+    }
+
+    /**
+     * Create a subscription checkout.
+     *
+     * @param int $subscriptionid
+     * @param int|null $userid
+     * @param string|null $app_country
+     * @param string $display_lang
+     * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
+     */
+    public static function create_subscription_checkout(int $subscriptionid, ?int $userid = null, ?string $app_country = null,
+            string $display_lang = 'en'): object {
+        global $DB, $USER, $CFG;
+
+        $userid = $userid ?? $USER->id;
+        $user = $DB->get_record('user', ['id' => $userid], 'id, email, firstname, lastname, country', MUST_EXIST);
+        $sub = $DB->get_record('academy_subscriptions', ['id' => $subscriptionid], '*', MUST_EXIST);
+
+        if (\local_academy\subscription_purchase_manager::get_active_subscription($userid)) {
+            throw new \moodle_exception('err_alreadyhassubscription', 'local_academy');
+        }
+
+        $currency = 'EGP'; 
+        
+        $country = country_detector::detect($userid, $app_country);
+        $provider = self::get_provider($country, $currency);
+        $provider_record = $DB->get_record('local_payments_providers', ['name' => $provider->get_name()]);
+
+        $order_id = self::generate_order_id();
+        $idempotency_key = self::generate_idempotency_key($userid, $subscriptionid + 2000000); 
+
+        $ttl = (int) get_config('local_payments', 'payment_ttl') ?: 1800;
+        $expires_at = time() + $ttl;
+
+        $transaction = (object) [
+            'userid' => $userid,
+            'courseid' => 0, 
+            'provider_id' => $provider_record->id,
+            'price_id' => null,
+            'order_id' => $order_id,
+            'idempotency_key' => $idempotency_key,
+            'amount' => $sub->price,
+            'original_amount' => $sub->price,
+            'currency' => $currency,
+            'status' => status_machine::PENDING,
+            'customer_email' => $user->email,
+            'customer_reference' => (string) $userid,
+            'display_lang' => $display_lang,
+            'country' => $country,
+            'ip_address' => getremoteaddr(),
+            'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500),
+            'metadata' => json_encode([
+                'item_type' => 'subscription',
+                'item_id' => $subscriptionid,
+                'subscription_name' => $sub->name,
+            ]),
+            'expires_at' => $expires_at,
+            'timecreated' => time(),
+            'timemodified' => time(),
+        ];
+
+        $transaction_id = $DB->insert_record('local_payments_transactions', $transaction);
+        self::audit_log($transaction_id, $userid, 'payment_created', '', status_machine::PENDING);
+
+        $webhook_url = $CFG->wwwroot . '/local/payments/webhook.php?provider=' . $provider->get_name();
+        $success_url = $CFG->wwwroot . '/local/payments/callback.php?order_id=' . urlencode($order_id);
+        $failure_url = $CFG->wwwroot . '/local/payments/callback.php?order_id=' . urlencode($order_id) . '&status=failed';
+
+        $request = new payment_request([
+            'order_id' => $order_id,
+            'amount' => $sub->price,
+            'currency' => $currency,
+            'description' => 'Subscription: ' . $sub->name,
+            'userid' => $userid,
+            'courseid' => 0,
+            'customer_email' => $user->email,
+            'customer_reference' => (string) $userid,
+            'display_lang' => $display_lang,
+            'webhook_url' => $webhook_url,
+            'success_url' => $success_url,
+            'failure_url' => $failure_url,
+            'metadata' => ['transaction_id' => $transaction_id],
+            'transaction_id' => $transaction_id,
+        ]);
+
+        $response = $provider->initialize_payment($request);
+
+        if (!$response->success) {
+            $DB->update_record('local_payments_transactions', (object) [
+                'id' => $transaction_id,
+                'status' => status_machine::FAILED,
+                'reject_reason' => substr($response->error_message, 0, 255),
+                'timemodified' => time(),
+            ]);
+            self::audit_log($transaction_id, $userid, 'status_changed', status_machine::PENDING, status_machine::FAILED);
+            throw new \moodle_exception('paymentinitiationfailed', 'local_payments', '', $response->error_message);
+        }
+
+        $DB->update_record('local_payments_transactions', (object) [
+            'id' => $transaction_id,
+            'provider_session_id' => $response->provider_session_id,
+            'checkout_url' => $response->checkout_url,
+            'timemodified' => time(),
+        ]);
+
+        return (object) [
+            'order_id' => $order_id,
+            'checkout_url' => $response->checkout_url,
+            'expires_at' => $expires_at,
+            'provider' => $provider->get_name(),
+            'transaction_id' => $transaction_id,
+        ];
+    }
+
+    /**
      * Process a webhook from a payment provider.
      */
     public static function process_webhook(string $provider_name, string $payload, array $headers): bool {
@@ -385,18 +611,38 @@ class manager {
         self::audit_log($transaction->id, $transaction->userid, 'status_changed',
             $transaction->status, status_machine::COMPLETED);
 
-        // Enrol the student.
+        $meta = json_decode($transaction->metadata ?? '{}');
+        $item_type = $meta->item_type ?? 'course';
+
         try {
-            $enrolled = enrollment_handler::enrol_user((int) $transaction->userid, (int) $transaction->courseid);
-            if ($enrolled) {
-                self::audit_log($transaction->id, $transaction->userid, 'student_enrolled', '', (string) $transaction->courseid);
+            if ($item_type === 'package') {
+                \local_academy\purchase_manager::purchase_package(
+                    (int) $transaction->userid,
+                    (int) $meta->item_id,
+                    $result->payment_method ?? 'kashier',
+                    $transaction->order_id
+                );
+                self::audit_log($transaction->id, $transaction->userid, 'package_purchased', '', (string) $meta->item_id);
+            } else if ($item_type === 'subscription') {
+                \local_academy\subscription_purchase_manager::purchase_subscription(
+                    (int) $transaction->userid,
+                    (int) $meta->item_id,
+                    $result->payment_method ?? 'kashier',
+                    $transaction->order_id
+                );
+                self::audit_log($transaction->id, $transaction->userid, 'subscription_purchased', '', (string) $meta->item_id);
             } else {
-                self::log_entry($transaction->provider_id, $transaction->id, 'error',
-                    'Enrolment call completed without throwing but user is not enrolled.');
+                $enrolled = enrollment_handler::enrol_user((int) $transaction->userid, (int) $transaction->courseid);
+                if ($enrolled) {
+                    self::audit_log($transaction->id, $transaction->userid, 'student_enrolled', '', (string) $transaction->courseid);
+                } else {
+                    self::log_entry($transaction->provider_id, $transaction->id, 'error',
+                        'Enrolment call completed without throwing but user is not enrolled.');
+                }
             }
         } catch (\Exception $e) {
             self::log_entry($transaction->provider_id, $transaction->id, 'error',
-                'Enrolment failed: ' . $e->getMessage());
+                'Fulfillment failed: ' . $e->getMessage());
         }
 
         // Generate invoice.
@@ -407,22 +653,24 @@ class manager {
                 'Invoice generation failed: ' . $e->getMessage());
         }
 
-        // Send confirmation message.
-        self::send_confirmation($transaction);
+        if ($item_type === 'course') {
+            // Send confirmation message.
+            self::send_confirmation($transaction);
 
-        // Fire event.
-        $event = \local_payments\event\payment_completed::create([
-            'context' => \context_course::instance($transaction->courseid),
-            'objectid' => $transaction->id,
-            'userid' => $transaction->userid,
-            'other' => [
-                'courseid' => $transaction->courseid,
-                'amount' => $transaction->amount,
-                'currency' => $transaction->currency,
-                'provider' => $DB->get_field('local_payments_providers', 'name', ['id' => $transaction->provider_id]),
-            ],
-        ]);
-        $event->trigger();
+            // Fire event.
+            $event = \local_payments\event\payment_completed::create([
+                'context' => \context_course::instance($transaction->courseid),
+                'objectid' => $transaction->id,
+                'userid' => $transaction->userid,
+                'other' => [
+                    'courseid' => $transaction->courseid,
+                    'amount' => $transaction->amount,
+                    'currency' => $transaction->currency,
+                    'provider' => $DB->get_field('local_payments_providers', 'name', ['id' => $transaction->provider_id]),
+                ],
+            ]);
+            $event->trigger();
+        }
 
         return true;
     }
@@ -476,13 +724,16 @@ class manager {
             throw new \moodle_exception('transactionnotfound', 'local_payments');
         }
 
+        $meta = json_decode($transaction->metadata ?? '{}');
+        $item_type = $meta->item_type ?? 'course';
+
         // If already completed (by webhook), return success immediately.
         if ($transaction->status === status_machine::COMPLETED) {
             return (object) [
                 'success' => true,
                 'status' => $transaction->status,
                 'courseid' => (int) $transaction->courseid,
-                'enrolled' => enrollment_handler::is_enrolled((int) $transaction->userid, (int) $transaction->courseid),
+                'enrolled' => $item_type === 'course' ? enrollment_handler::is_enrolled((int) $transaction->userid, (int) $transaction->courseid) : false,
             ];
         }
 
@@ -522,25 +773,45 @@ class manager {
                 self::audit_log($transaction->id, $transaction->userid, 'status_changed',
                     $transaction->status, status_machine::COMPLETED);
 
+                $enrolled = false;
                 try {
-                    $enrolled = enrollment_handler::enrol_user((int) $transaction->userid, (int) $transaction->courseid);
+                    if ($item_type === 'package') {
+                        \local_academy\purchase_manager::purchase_package(
+                            (int) $transaction->userid,
+                            (int) $meta->item_id,
+                            $result->payment_method_type ?? 'kashier',
+                            $transaction->order_id
+                        );
+                        self::audit_log($transaction->id, $transaction->userid, 'package_purchased', '', (string) $meta->item_id);
+                    } else if ($item_type === 'subscription') {
+                        \local_academy\subscription_purchase_manager::purchase_subscription(
+                            (int) $transaction->userid,
+                            (int) $meta->item_id,
+                            $result->payment_method_type ?? 'kashier',
+                            $transaction->order_id
+                        );
+                        self::audit_log($transaction->id, $transaction->userid, 'subscription_purchased', '', (string) $meta->item_id);
+                    } else {
+                        $enrolled = enrollment_handler::enrol_user((int) $transaction->userid, (int) $transaction->courseid);
+                        if ($enrolled) {
+                            self::audit_log($transaction->id, $transaction->userid, 'student_enrolled', '', (string) $transaction->courseid);
+                        } else {
+                            self::log_entry($transaction->provider_id, $transaction->id, 'error',
+                                'Enrolment call completed without throwing but user is not enrolled.');
+                        }
+                    }
                 } catch (\Exception $e) {
-                    $enrolled = false;
                     self::log_entry($transaction->provider_id, $transaction->id, 'error',
-                        'Enrolment failed: ' . $e->getMessage());
-                }
-
-                if ($enrolled) {
-                    self::audit_log($transaction->id, $transaction->userid, 'student_enrolled', '', (string) $transaction->courseid);
-                } else {
-                    self::log_entry($transaction->provider_id, $transaction->id, 'error',
-                        'Enrolment call completed without throwing but user is not enrolled.');
+                        'Fulfillment failed: ' . $e->getMessage());
                 }
 
                 invoice_generator::create((int) $transaction->id);
-                self::send_confirmation($transaction);
+                
+                if ($item_type === 'course') {
+                    self::send_confirmation($transaction);
+                }
             } else {
-                $enrolled = enrollment_handler::is_enrolled((int) $transaction->userid, (int) $transaction->courseid);
+                $enrolled = $item_type === 'course' ? enrollment_handler::is_enrolled((int) $transaction->userid, (int) $transaction->courseid) : false;
             }
 
             return (object) [

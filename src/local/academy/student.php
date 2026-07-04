@@ -420,17 +420,12 @@ echo html_writer::script(<<<'JS'
   function buyPackage(p){
     modal({
       title:'Buy “'+p.name+'”',
-      text:'You will get '+p.flex_count+' Flex for '+money(p.price)+'. (Payment is assumed successful.)',
-      okLabel:'Confirm purchase',
-      fields:[
-        {name:'method',label:'Payment method',type:'select',options:[
-          {value:'online',label:'Online'},{value:'bank_transfer',label:'Bank transfer'},{value:'cash',label:'Cash'}]},
-        {name:'reference',label:'Reference (optional)',placeholder:'External transaction reference'}
-      ]
+      text:'You will get '+p.flex_count+' Flex for '+money(p.price)+' via Kashier secure checkout.',
+      okLabel:'Proceed to Payment'
     }).then(function(r){
-      if(!r){return;}
-      apiPost('purchase_package',{packageid:p.id,method:r.method,reference:r.reference||''})
-        .then(function(d){msg('Purchase complete — transaction '+(d.transaction_no||'')+'. Flex balance: '+d.flex_balance+'.','success');loadPackages();refreshFlex();})
+      if(r === null){return;}
+      apiPost('create_package_checkout',{packageid:p.id})
+        .then(function(d){ window.location.href = d.checkout_url; })
         .catch(function(e){msg(e.message,'danger');});
     });
   }
@@ -512,17 +507,12 @@ echo html_writer::script(<<<'JS'
   function buySubscription(s){
     modal({
       title:'Buy “'+s.name+'”',
-      text:'You will get '+s.duration_days+' days of course access for '+money(s.price)+'. (Payment is assumed successful.)',
-      okLabel:'Confirm purchase',
-      fields:[
-        {name:'method',label:'Payment method',type:'select',options:[
-          {value:'online',label:'Online'},{value:'bank_transfer',label:'Bank transfer'},{value:'cash',label:'Cash'}]},
-        {name:'reference',label:'Reference (optional)',placeholder:'External transaction reference'}
-      ]
+      text:'You will get '+s.duration_days+' days of course access for '+money(s.price)+' via Kashier secure checkout.',
+      okLabel:'Proceed to Payment'
     }).then(function(r){
-      if(!r){return;}
-      apiPost('purchase_subscription',{subscriptionid:s.id,method:r.method,reference:r.reference||''})
-        .then(function(d){msg('Subscription active — transaction '+(d.transaction_no||'')+'. You now have access to '+((d.courses||[]).length)+' course(s).','success');loadSubscriptions();})
+      if(r === null){return;}
+      apiPost('create_subscription_checkout',{subscriptionid:s.id})
+        .then(function(d){ window.location.href = d.checkout_url; })
         .catch(function(e){msg(e.message,'danger');});
     });
   }

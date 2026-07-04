@@ -94,25 +94,186 @@ function local_academy_extend_navigation_user_settings($navigation, $user, $cont
 }
 
 /**
- * Add a "Book lessons & Flex" section to the site front page so students reach the student hub
- * (book a lesson, my lessons, packages & Flex, subscriptions) directly from home instead of digging
- * through the user menu.
+ * Build the front-page "Available subscriptions" section: scoped CSS + an empty card grid, plus the
+ * JS (driving /local/academy/api.php with a mobile WS token, exactly like student.php) that fetches
+ * the available subscriptions and renders Udemy/Coursera-style cards. Returns '' when a WS token
+ * cannot be minted; the section then simply does not appear.
+ *
+ * @return string HTML to echo before the footer
+ */
+function local_academy_available_subscriptions_section() {
+    global $DB, $CFG, $PAGE;
+
+    // Mint the same mobile web-service token student.php uses so the front-page cards and the student
+    // hub exercise identical endpoints. If the mobile service is unavailable, skip the section.
+    require_once($CFG->dirroot . '/webservice/lib.php');
+    try {
+        $service = $DB->get_record('external_services',
+            array('shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE), '*', MUST_EXIST);
+        $token = external_generate_token_for_current_user($service)->token;
+    } catch (\Exception $e) {
+        return '';
+    }
+
+    $heading = get_string('availsubs_heading', 'local_academy');
+    $desc    = get_string('availsubs_desc', 'local_academy');
+
+    // Scoped CSS (la-subs-* prefix keeps it away from the theme + student.php's st-* styles).
+    $css = <<<CSS
+.la-subs{max-width:1200px;margin:2.5rem auto;padding:0 1rem}
+.la-subs-head{margin-bottom:1.25rem}
+.la-subs-title{font-size:1.6rem;font-weight:800;color:#1c1d1f;margin:0 0 .25rem}
+.la-subs-sub{color:#6a6f73;margin:0}
+.la-subs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem}
+.la-subs-card{display:flex;flex-direction:column;background:#fff;border:1px solid #e5e7eb;border-radius:.75rem;overflow:hidden;transition:transform .15s ease,box-shadow .15s ease}
+.la-subs-card:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,.14)}
+.la-subs-banner{height:128px;display:flex;align-items:flex-end;justify-content:space-between;padding:.75rem;color:#fff}
+.la-subs-banner svg{width:38px;height:38px;opacity:.9;fill:#fff}
+.la-subs-daysbadge{background:rgba(255,255,255,.92);color:#1c1d1f;font-weight:700;font-size:.78rem;padding:.2rem .6rem;border-radius:1rem}
+.la-subs-body{padding:1rem;display:flex;flex-direction:column;flex:1}
+.la-subs-name{font-weight:700;font-size:1.1rem;color:#1c1d1f;margin:0 0 .35rem;line-height:1.3}
+.la-subs-desc{color:#6a6f73;font-size:.9rem;margin:0 0 .6rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.la-subs-courses{font-size:.82rem;color:#3c3c3c;margin-bottom:.9rem}
+.la-subs-courses b{color:#1c1d1f}
+.la-subs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.la-subs-price{font-size:1.35rem;font-weight:800;color:#1c1d1f}
+.la-subs-price small{font-size:.78rem;font-weight:600;color:#6a6f73}
+.la-subs-btn{background:#a435f0;border:none;color:#fff;font-weight:700;padding:.55rem 1.1rem;border-radius:.4rem;cursor:pointer;transition:background .15s ease}
+.la-subs-btn:hover{background:#8710d8}
+.la-subs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
+CSS;
+
+    $section = html_writer::tag('style', $css) .
+        '<section id="la-subs" class="la-subs" style="display:none">' .
+            '<div class="la-subs-head">' .
+                html_writer::tag('h3', s($heading), array('class' => 'la-subs-title')) .
+                html_writer::tag('p', s($desc), array('class' => 'la-subs-sub')) .
+            '</div>' .
+            '<div id="la-subs-msg" class="alert" style="display:none"></div>' .
+            '<div id="la-subs-grid" class="la-subs-grid"></div>' .
+        '</section>';
+
+    $cfg = array(
+        'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
+        'token'    => $token,
+    );
+    $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
+
+    $js = <<<JS
+require([], function() {
+    var CFG = {$cfgjson};
+    var sec = document.getElementById('la-subs');
+    if (!sec || !CFG.token) { return; }
+    var grid = document.getElementById('la-subs-grid');
+
+    function el(tag, attrs, html) {
+        var e = document.createElement(tag);
+        for (var k in (attrs || {})) { e.setAttribute(k, attrs[k]); }
+        if (html != null) { e.innerHTML = html; }
+        return e;
+    }
+    function esc(v) {
+        return (v == null ? '' : String(v)).replace(/[&<>"]/g, function(c) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+        });
+    }
+    function money(n) { return Number(n || 0).toFixed(2); }
+    function showMsg(t, k) {
+        var m = document.getElementById('la-subs-msg');
+        m.textContent = t; m.className = 'alert alert-' + (k || 'info'); m.style.display = 'block';
+    }
+    function parse(r) {
+        return r.text().then(function(t) {
+            var j;
+            try { j = JSON.parse(t); } catch (e) { throw new Error('Session expired — reload the page.'); }
+            if (j.status !== 'success') { throw new Error(j.error || 'Request failed'); }
+            return j.data;
+        });
+    }
+    function apiGet(fn, params) {
+        var q = new URLSearchParams(Object.assign({function: fn, token: CFG.token}, params || {}));
+        return fetch(CFG.endpoint + '?' + q.toString()).then(parse);
+    }
+    function apiPost(fn, params) {
+        var body = new URLSearchParams(Object.assign({function: fn, token: CFG.token}, params || {}));
+        return fetch(CFG.endpoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: body.toString()
+        }).then(parse);
+    }
+
+    var GRADS = [
+        'linear-gradient(135deg,#6a11cb,#2575fc)',
+        'linear-gradient(135deg,#ff512f,#dd2476)',
+        'linear-gradient(135deg,#11998e,#38ef7d)',
+        'linear-gradient(135deg,#f7971e,#ffd200)',
+        'linear-gradient(135deg,#8e2de2,#4a00e0)',
+        'linear-gradient(135deg,#1a2980,#26d0ce)'
+    ];
+    var CAP = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 1 8l11 5 9-4.09V17h2V8L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>';
+
+    function subscribe(s, btn) {
+        if (!window.confirm('Subscribe to "' + s.name + '" for ' + money(s.price) + ' EGP (' + s.duration_days + ' days)?')) { return; }
+        var orig = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Redirecting…';
+        apiPost('create_subscription_checkout', {subscriptionid: s.id})
+            .then(function(d) { window.location.href = d.checkout_url; })
+            .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
+    }
+
+    function subCard(s, hasActive, idx) {
+        var card = el('div', {class: 'la-subs-card'});
+        var banner = el('div', {class: 'la-subs-banner', style: 'background:' + GRADS[idx % GRADS.length]});
+        banner.innerHTML = CAP + '<span class="la-subs-daysbadge">' + esc(s.duration_days) + ' days</span>';
+        card.appendChild(banner);
+
+        var body = el('div', {class: 'la-subs-body'});
+        body.appendChild(el('div', {class: 'la-subs-name'}, esc(s.name)));
+        if (s.description) { body.appendChild(el('div', {class: 'la-subs-desc'}, esc(s.description))); }
+        var n = (s.courses || []).length;
+        body.appendChild(el('div', {class: 'la-subs-courses'},
+            n ? ('<b>' + n + '</b> course' + (n === 1 ? '' : 's') + ' included') : 'Full course access'));
+
+        var foot = el('div', {class: 'la-subs-foot'});
+        foot.appendChild(el('div', {class: 'la-subs-price'}, esc(money(s.price)) + ' <small>EGP</small>'));
+        var btn = el('button', {type: 'button', class: 'la-subs-btn'}, hasActive ? 'Subscribed' : 'Subscribe');
+        if (hasActive) { btn.disabled = true; } else { btn.onclick = function() { subscribe(s, btn); }; }
+        foot.appendChild(btn);
+        body.appendChild(foot);
+        card.appendChild(body);
+        return card;
+    }
+
+    Promise.all([apiGet('get_available_subscriptions'), apiGet('get_my_subscriptions')]).then(function(res) {
+        var rows = res[0] || [], mine = res[1] || [];
+        if (!rows.length) { return; } // nothing to sell — leave the section hidden
+        var hasActive = mine.some(function(s) { return s.status === 'active'; });
+        grid.innerHTML = '';
+        rows.forEach(function(s, i) { grid.appendChild(subCard(s, hasActive, i)); });
+        sec.style.display = 'block';
+    }).catch(function() { /* keep the section hidden on any error */ });
+});
+JS;
+
+    $PAGE->requires->js_amd_inline($js);
+    return $section;
+}
+
+/**
+ * Add an "Available subscriptions" section (Udemy/Coursera-style cards) to the site front page so
+ * students can discover and buy course-access subscriptions directly from home. Replaces the old
+ * "Book lessons & Flex" banner. The section renders itself only when at least one subscription is
+ * available and hides silently otherwise.
  */
 function local_academy_before_footer() {
-    global $PAGE, $USER, $COURSE;
+    global $PAGE, $USER, $COURSE, $DB, $CFG;
     $output = '';
 
-    // 1. Front page student hub banner
+    // 1. Front page "Available subscriptions" cards
     if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
         if (isloggedin() && !isguestuser() && $PAGE->pagetype === 'site-index') {
-            $url = new moodle_url('/local/academy/student.php');
-            $output .= html_writer::div(
-                html_writer::tag('h4', get_string('studenthub', 'local_academy'), array('class' => 'mb-2')) .
-                html_writer::tag('p', get_string('studenthubdesc', 'local_academy'), array('class' => 'mb-2')) .
-                html_writer::link($url, get_string('studenthub', 'local_academy'), array('class' => 'btn btn-primary')),
-                'local-academy-studenthub',
-                array('style' => 'background:#eaf3ff;border:1px solid #b6d4fe;border-radius:.5rem;padding:1rem 1.25rem;margin:1rem 0;')
-            );
+            $output .= local_academy_available_subscriptions_section();
         }
     }
 
