@@ -127,36 +127,100 @@ echo $OUTPUT->header();
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js" integrity="sha512-rstIgDs0xPgmG6RX1Aba4KV5cWJbAMcvRCVmglpam9SoHZiUCyQVDdH2LPlxoHtrv17XWblE/V/PP+Tr04hbtA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <style>
+    :root { --brand:#B21F61; --brand-dark:#8f184e; }
+
+    body { background: linear-gradient(135deg,#fdf1f6 0%, #f4f5fb 100%); }
+
     #content {
-        /* text-align: center; */
-        padding: 10px;
-        background-color: #eeeeee;
-        width: 50%;
-        margin: auto;
+        padding: 34px 32px;
+        background-color: #ffffff;
+        width: 100%;
+        max-width: 580px;
+        margin: 34px auto;
+        border-radius: 20px;
+        box-shadow: 0 18px 50px rgba(178,31,97,.14);
+    }
+
+    #content h3 {
+        color: var(--brand);
+        font-weight: 700;
+        margin-bottom: 6px;
     }
 
     .center {
-        /* padding: 10px; */
         display: flex;
         justify-content: center;
         align-items: center;
     }
 
-    button {
-        color: white !important;
+    #content label {
+        font-weight: 600;
+        color: #444;
+        font-size: 14px;
+        margin-bottom: 4px;
     }
 
-    input {
-        margin-bottom: 10px;
+    /* required marker inside labels */
+    #content label span {
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 500;
     }
+
+    #content .form-control {
+        border-radius: 12px;
+        height: 46px;
+        border: 1px solid #e7e7ef;
+        padding: 0 14px;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    #content .form-control:focus {
+        border-color: var(--brand);
+        box-shadow: 0 0 0 3px rgba(178,31,97,.15);
+    }
+
+    #passEye, #confPassEye { cursor: pointer; color: var(--brand); }
+
+    /* Sign-up submit button */
+    .btn-warning {
+        background: var(--brand) !important;
+        border-color: var(--brand) !important;
+        color: #fff !important;
+        border-radius: 90px;
+        font-weight: 600;
+        font-size: 17px;
+        padding: 11px 44px;
+        margin-top: 10px;
+    }
+    .btn-warning:hover {
+        background: var(--brand-dark) !important;
+        border-color: var(--brand-dark) !important;
+    }
+
+    button { color: white !important; }
+
+    input { margin-bottom: 8px; }
 
     #passwordContainrer {
         justify-content: center;
         align-items: center;
     }
+
+    /* "Already have an account? Login" link */
+    #login-link {
+        margin-top: 18px;
+        font-size: 15px;
+        color: #666;
+    }
+    #login-link a {
+        color: var(--brand);
+        font-weight: 700;
+        margin-right: 6px;
+    }
+    #login-link a:hover { text-decoration: underline; }
 </style>
 <!-- <div class="container-fluid"> -->
-<div id="content  " class="mt-2">
+<div id="content" class="mt-2">
     <div class="text-center">
         <h3><?php echo get_string('create_new_acc', 'theme_edumy'); ?></h3>
     </div>
@@ -249,6 +313,12 @@ echo $OUTPUT->header();
             <div class="row center">
                 <button class="btn btn-warning" type="submit"><?php echo get_string('signup', 'theme_edumy'); ?></button>
 
+            </div>
+            <div class="row center mt-2" id="login-link">
+                <span><?php echo get_string('have_account', 'theme_edumy'); ?></span>
+                <a href="<?php echo $CFG->wwwroot; ?>/login/index.php?lang=ar" class="ml-1">
+                    <?php echo get_string('login', 'theme_edumy'); ?>
+                </a>
             </div>
             <div class='alert alert-danger' id="error"></div>
 

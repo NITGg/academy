@@ -1,6 +1,7 @@
 # Logs
 *.log
-jitsi/jibri/logs/
+jitsi/jibri/logs/*
+jitsi/jibri/logs/log.*.txt
 
 # Moodle data (uploads, cache, sessions)
 moodleData/

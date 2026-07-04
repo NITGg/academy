@@ -111,9 +111,10 @@
 
   <div class="heading">
     <h3 class="text-center">{{#str}} login_welcome, theme_edumy {{/str}}</h3>
-    {{#signup_is_enabled}}
-      <p class="text-center">{{#str}} login_no_account, theme_edumy {{/str}} <a class="text-thm" href="{{signupurl}}">{{#str}} signup, theme_edumy {{/str}}</a></p>
-    {{/signup_is_enabled}}
+    <p class="text-center ccn-signup-line" style="display:block !important;font-size:15px;margin-top:8px;color:#666;">
+      {{#str}} no_account, theme_edumy {{/str}}
+      <a href="{{signupurl}}?id=14&amp;lang=ar" style="color:#B21F61;font-weight:700;text-decoration:underline;">{{#str}} create_new_acc, theme_edumy {{/str}}</a>
+    </p>
   </div>
 
   <input id="anchor" type="hidden" name="anchor" value="">
@@ -198,6 +199,8 @@
             {{{instructions}}}
             {{#cansignup}}
               <form class="mt-3" action="{{signupurl}}" method="get" id="signup">
+                <input type="hidden" name="id" value="14">
+                <input type="hidden" name="lang" value="ar">
                 <button type="submit" class="btn btn-secondary">{{#str}}startsignup{{/str}}</button>
               </form>
             {{/cansignup}}

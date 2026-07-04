@@ -1,0 +1,170 @@
+{
+  "info": {
+    "name": "Academy — Registration API (core_user_create_users)",
+    "description": "Standard Moodle REST web service for registering users, including the Year custom profile field.\n\nEndpoint: {{base_url}}/webservice/rest/server.php\n\nSetup (once, as admin):\n1. Site admin > Server > Web services > External services > add 'Registration API' (enabled).\n2. Add function core_user_create_users (and core_role_assign_roles if you want to assign the student role).\n3. Manage tokens > create a token for an admin/manager user + this service. Put it in {{admin_token}}.\n\nThe token user needs the moodle/user:create capability. Keep the token server-side.\n\nYear values (send the option TEXT, not a number):\nprimary 1..6 | preparatory 1..3 | Secondary 1..3",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8081" },
+    { "key": "admin_token", "value": "PASTE_ADMIN_TOKEN_HERE" }
+  ],
+  "item": [
+    {
+      "name": "Create user (with Year)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "wstoken", "value": "{{admin_token}}" },
+            { "key": "wsfunction", "value": "core_user_create_users" },
+            { "key": "moodlewsrestformat", "value": "json" },
+            { "key": "users[0][username]", "value": "ahmed.ali" },
+            { "key": "users[0][password]", "value": "SecurePass123!", "description": "Must meet the site password policy" },
+            { "key": "users[0][firstname]", "value": "Ahmed" },
+            { "key": "users[0][lastname]", "value": "Ali" },
+            { "key": "users[0][email]", "value": "ahmed.ali@example.com" },
+            { "key": "users[0][auth]", "value": "manual" },
+            { "key": "users[0][customfields][0][type]", "value": "year", "description": "Profile field shortname" },
+            { "key": "users[0][customfields][0][value]", "value": "Secondary 1", "description": "Option text: primary 1..6 | preparatory 1..3 | Secondary 1..3" }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/webservice/rest/server.php",
+          "host": ["{{base_url}}"],
+          "path": ["webservice", "rest", "server.php"]
+        },
+        "description": "Creates one user and sets the Year custom profile field.\n\nSuccess: [ { \"id\": 1234, \"username\": \"ahmed.ali\" } ]\nErrors: accessexception (missing capability / function not in service) | Username already exists | Email address already exists | invalidparameter (weak password) | invalid customfields value."
+      }
+    },
+    {
+      "name": "Create user (with Year) — GET variant",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/webservice/rest/server.php?wstoken={{admin_token}}&wsfunction=core_user_create_users&moodlewsrestformat=json&users[0][username]=sara.hassan&users[0][password]=SecurePass123!&users[0][firstname]=Sara&users[0][lastname]=Hassan&users[0][email]=sara.hassan@example.com&users[0][customfields][0][type]=year&users[0][customfields][0][value]=Secondary 3",
+          "host": ["{{base_url}}"],
+          "path": ["webservice", "rest", "server.php"],
+          "query": [
+            { "key": "wstoken", "value": "{{admin_token}}" },
+            { "key": "wsfunction", "value": "core_user_create_users" },
+            { "key": "moodlewsrestformat", "value": "json" },
+            { "key": "users[0][username]", "value": "sara.hassan" },
+            { "key": "users[0][password]", "value": "SecurePass123!" },
+            { "key": "users[0][firstname]", "value": "Sara" },
+            { "key": "users[0][lastname]", "value": "Hassan" },
+            { "key": "users[0][email]", "value": "sara.hassan@example.com" },
+            { "key": "users[0][customfields][0][type]", "value": "year" },
+            { "key": "users[0][customfields][0][value]", "value": "Secondary 3" }
+          ]
+        },
+        "description": "Same call as a flat GET URL. Handy for quick tests; POST is cleaner for many fields."
+      }
+    },
+    {
+      "name": "Create multiple users",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "wstoken", "value": "{{admin_token}}" },
+            { "key": "wsfunction", "value": "core_user_create_users" },
+            { "key": "moodlewsrestformat", "value": "json" },
+            { "key": "users[0][username]", "value": "omar.saeed" },
+            { "key": "users[0][password]", "value": "SecurePass123!" },
+            { "key": "users[0][firstname]", "value": "Omar" },
+            { "key": "users[0][lastname]", "value": "Saeed" },
+            { "key": "users[0][email]", "value": "omar.saeed@example.com" },
+            { "key": "users[0][customfields][0][type]", "value": "year" },
+            { "key": "users[0][customfields][0][value]", "value": "primary 6" },
+            { "key": "users[1][username]", "value": "mona.adel" },
+            { "key": "users[1][password]", "value": "SecurePass123!" },
+            { "key": "users[1][firstname]", "value": "Mona" },
+            { "key": "users[1][lastname]", "value": "Adel" },
+            { "key": "users[1][email]", "value": "mona.adel@example.com" },
+            { "key": "users[1][customfields][0][type]", "value": "year" },
+            { "key": "users[1][customfields][0][value]", "value": "preparatory 2" }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/webservice/rest/server.php",
+          "host": ["{{base_url}}"],
+          "path": ["webservice", "rest", "server.php"]
+        },
+        "description": "Batch-create: repeat the users[N][...] block per user."
+      }
+    },
+    {
+      "name": "Verify user (get by username)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/webservice/rest/server.php?wstoken={{admin_token}}&wsfunction=core_user_get_users_by_field&moodlewsrestformat=json&field=username&values[0]=ahmed.ali",
+          "host": ["{{base_url}}"],
+          "path": ["webservice", "rest", "server.php"],
+          "query": [
+            { "key": "wstoken", "value": "{{admin_token}}" },
+            { "key": "wsfunction", "value": "core_user_get_users_by_field" },
+            { "key": "moodlewsrestformat", "value": "json" },
+            { "key": "field", "value": "username" },
+            { "key": "values[0]", "value": "ahmed.ali" }
+          ]
+        },
+        "description": "Returns the user incl. customfields (check the 'year' value)."
+      }
+    },
+    {
+      "name": "Get profile fields (with option values)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/webservice/rest/server.php?wstoken={{admin_token}}&wsfunction=local_profilefields_get_profile_fields&moodlewsrestformat=json",
+          "host": ["{{base_url}}"],
+          "path": ["webservice", "rest", "server.php"],
+          "query": [
+            { "key": "wstoken", "value": "{{admin_token}}" },
+            { "key": "wsfunction", "value": "local_profilefields_get_profile_fields" },
+            { "key": "moodlewsrestformat", "value": "json" }
+          ]
+        },
+        "description": "Returns all custom user profile fields.\n\nFor menu fields, the 'options' array contains the exact text values accepted by core_user_create_users (customfields[N][value]).\n\nFor text / checkbox / datetime fields, 'options' is empty.\n\nRequires the local_profilefields plugin installed (local/profilefields). The function is auto-added to the Moodle mobile web service on install — no manual service wiring needed."
+      }
+    },
+    {
+      "name": "(Optional) Assign student role at system level",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "wstoken", "value": "{{admin_token}}" },
+            { "key": "wsfunction", "value": "core_role_assign_roles" },
+            { "key": "moodlewsrestformat", "value": "json" },
+            { "key": "assignments[0][roleid]", "value": "5", "description": "5 = student, 9 = parent" },
+            { "key": "assignments[0][userid]", "value": "1234", "description": "id returned by create" },
+            { "key": "assignments[0][contextid]", "value": "1", "description": "1 = system context" }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/webservice/rest/server.php",
+          "host": ["{{base_url}}"],
+          "path": ["webservice", "rest", "server.php"]
+        },
+        "description": "core_user_create_users only creates the account; use this to grant the student role. Requires core_role_assign_roles in the service and moodle/role:assign capability. Empty response body = success."
+      }
+    }
+  ]
+}
