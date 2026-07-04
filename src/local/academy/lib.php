@@ -94,6 +94,34 @@ function local_academy_extend_navigation_user_settings($navigation, $user, $cont
 }
 
 /**
+ * Add a "Book lessons & Flex" section to the site front page so students reach the student hub
+ * (book a lesson, my lessons, packages & Flex, subscriptions) directly from home instead of digging
+ * through the user menu.
+ */
+function local_academy_before_standard_top_of_body_html() {
+    global $PAGE, $COURSE;
+
+    if (CLI_SCRIPT || (defined('AJAX_SCRIPT') && AJAX_SCRIPT)) {
+        return '';
+    }
+    if (!isloggedin() || isguestuser()) {
+        return '';
+    }
+    if (empty($COURSE->id) || $COURSE->id != SITEID) {
+        return ''; // site front page only
+    }
+
+    $url = new moodle_url('/local/academy/student.php');
+    return html_writer::div(
+        html_writer::tag('h4', get_string('studenthub', 'local_academy'), array('class' => 'mb-2')) .
+        html_writer::tag('p', get_string('studenthubdesc', 'local_academy'), array('class' => 'mb-2')) .
+        html_writer::link($url, get_string('studenthub', 'local_academy'), array('class' => 'btn btn-primary')),
+        'local-academy-studenthub',
+        array('style' => 'background:#eaf3ff;border:1px solid #b6d4fe;border-radius:.5rem;padding:1rem 1.25rem;margin:1rem 0;')
+    );
+}
+
+/**
  * Live notification updates via realtime push (Socket.IO) — no polling.
  *
  * Moodle's navbar notification bell only fetches the unread count at page render, so a notification

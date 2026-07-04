@@ -14,6 +14,18 @@ if (is_enrolled($context, $USER->id)) {
     redirect(new moodle_url('/course/view.php', ['id' => $courseid]));
 }
 
+// Auto-enroll if the user has an active subscription that covers this course.
+if (class_exists('\local_academy\subscription_purchase_manager') && class_exists('\local_academy\subscription_manager')) {
+    $activesub = \local_academy\subscription_purchase_manager::get_active_subscription($USER->id);
+    if ($activesub) {
+        $covered_courses = \local_academy\subscription_manager::courses_for_subscription($activesub->subscriptionid);
+        if (in_array($courseid, $covered_courses)) {
+            \local_academy\subscription_purchase_manager::grant_course_access($USER->id, $activesub->subscriptionid, $activesub->expires_at);
+            redirect(new moodle_url('/course/view.php', ['id' => $courseid]));
+        }
+    }
+}
+
 // No active pricing — course is free/open, no payment gate to show.
 if (!\local_payments\price_resolver::has_pricing($courseid)) {
     redirect(new moodle_url('/course/view.php', ['id' => $courseid]));

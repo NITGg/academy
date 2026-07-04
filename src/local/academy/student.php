@@ -82,7 +82,8 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
     <button class="st-tab active" data-tab="book">Book a lesson</button>
     <button class="st-tab" data-tab="lessons">My lessons</button>
     <button class="st-tab" data-tab="packages">Packages &amp; Flex</button>
-    <button class="st-tab" data-tab="subscriptions">Subscriptions</button>
+    <button class="st-tab" data-tab="subavailable">Available subscriptions</button>
+    <button class="st-tab" data-tab="mysubs">My subscriptions</button>
   </div>
 
   <!-- ── Tab 1: Book a lesson ── -->
@@ -147,18 +148,19 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
     </div>
   </div>
 
-  <!-- ── Tab 4: Subscriptions ── -->
-  <div class="st-panel" id="panel-subscriptions">
+  <!-- ── Tab 4: Available subscriptions ── -->
+  <div class="st-panel" id="panel-subavailable">
     <h5>Available subscriptions</h5>
     <div id="st-subavailable" class="st-grid"></div>
+  </div>
 
-    <div class="st-section">
-      <h5>My subscriptions</h5>
-      <table class="st-table">
-        <thead><tr><th>Subscription</th><th>Status</th><th>Activated</th><th>Expires</th><th>Days left</th><th>Courses</th></tr></thead>
-        <tbody id="st-mysubs"></tbody>
-      </table>
-    </div>
+  <!-- ── Tab 5: My subscriptions ── -->
+  <div class="st-panel" id="panel-mysubs">
+    <h5>My subscriptions</h5>
+    <table class="st-table">
+      <thead><tr><th>Subscription</th><th>Status</th><th>Activated</th><th>Expires</th><th>Days left</th><th>Courses</th></tr></thead>
+      <tbody id="st-mysubs"></tbody>
+    </table>
 
     <div class="st-section">
       <h5>Subscription payments</h5>
@@ -560,7 +562,7 @@ echo html_writer::script(<<<'JS'
     if(name==='book' && !loaded.book){loaded.book=true;loadTeachers();}
     if(name==='lessons' && !loaded.lessons){loaded.lessons=true;loadLessons();}
     if(name==='packages' && !loaded.packages){loaded.packages=true;loadPackages();}
-    if(name==='subscriptions' && !loaded.subscriptions){loaded.subscriptions=true;loadSubscriptions();}
+    if((name==='subavailable'||name==='mysubs') && !loaded.subscriptions){loaded.subscriptions=true;loadSubscriptions();}
   }
   document.querySelectorAll('.st-tab').forEach(function(b){b.onclick=function(){switchTab(b.getAttribute('data-tab'));};});
 

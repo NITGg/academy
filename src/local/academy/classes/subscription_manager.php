@@ -167,7 +167,7 @@ class subscription_manager {
         }
         $rows = array_values($DB->get_records('academy_subscriptions', $conditions, 'timecreated DESC'));
         foreach ($rows as $r) {
-            $r->courses = self::courses_for_subscription($r->id);
+            $r->courses = self::courses_detail($r->id);
         }
         return $rows;
     }
@@ -265,6 +265,27 @@ class subscription_manager {
             array('sid' => $subscriptionid, 'all' => self::ALL_SUBSCRIPTIONS),
             '', 'DISTINCT courseid');
         return array_map('intval', array_keys($rows));
+    }
+
+    /**
+     * The courses a subscription unlocks, as [{id, fullname}] for display.
+     *
+     * @param int $subscriptionid
+     * @return array
+     */
+    public static function courses_detail($subscriptionid) {
+        global $DB;
+        $ids = self::courses_for_subscription($subscriptionid);
+        if (empty($ids)) {
+            return array();
+        }
+        list($insql, $params) = $DB->get_in_or_equal($ids, SQL_PARAMS_NAMED);
+        $rows = $DB->get_records_select('course', "id $insql", $params, 'fullname ASC', 'id, fullname');
+        $out = array();
+        foreach ($rows as $c) {
+            $out[] = array('id' => (int)$c->id, 'fullname' => format_string($c->fullname));
+        }
+        return $out;
     }
 
     // ── helpers ──

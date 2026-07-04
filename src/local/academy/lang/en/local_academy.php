@@ -15,6 +15,7 @@ $string['editmyteacherprofile'] = 'Edit my teacher profile';
 $string['notateacher'] = 'This page is only available to teachers.';
 $string['mylessons'] = 'My lessons';
 $string['studenthub'] = 'Book lessons & Flex';
+$string['studenthubdesc'] = 'Book a lesson, track your lessons, and manage your packages, Flex, and subscriptions — all in one place.';
 $string['mywallet'] = 'My earnings';
 $string['managewithdrawals'] = 'Teacher withdrawals';
 $string['assignpackage'] = 'Assign package to student';
