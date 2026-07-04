@@ -87,6 +87,19 @@ class teacher_manager {
             }
         }
 
+        // Replace years if provided.
+        if (array_key_exists('years', $data) && is_array($data['years'])) {
+            $DB->delete_records('academy_teacher_years', array('teacherid' => $teacherid));
+            foreach ($data['years'] as $y) {
+                $year = trim((string)$y);
+                if ($year === '') { continue; }
+                $DB->insert_record('academy_teacher_years', (object) array(
+                    'teacherid' => $teacherid,
+                    'year'      => $year,
+                ));
+            }
+        }
+
         // Replace working hours if provided (validate no overlap within a day).
         if (array_key_exists('hours', $data) && is_array($data['hours'])) {
             self::validate_hours($data['hours']);
@@ -140,6 +153,39 @@ class teacher_manager {
                                            WHERE s.teacherid = u.id
                                              AND ' . $DB->sql_like('s.subject', ':subject', false) . ')';
             $params['subject'] = '%' . $DB->sql_like_escape($filters['subject']) . '%';
+        }
+
+        // year filter — teacher must teach this year/grade level
+        if (!empty($filters['year'])) {
+            $where[]        = 'EXISTS (SELECT 1 FROM {academy_teacher_years} ty
+                                        WHERE ty.teacherid = u.id
+                                          AND ' . $DB->sql_like('ty.year', ':year', false) . ')';
+            $params['year'] = '%' . $DB->sql_like_escape($filters['year']) . '%';
+        }
+
+        // courseid filter — teacher must hold a teacher role in that specific course
+        if (!empty($filters['courseid'])) {
+            $where[]            = 'EXISTS (SELECT 1 FROM {role_assignments} raf
+                                            JOIN {context} ctx ON ctx.id = raf.contextid
+                                                               AND ctx.contextlevel = 50
+                                            JOIN {role} rf ON rf.id = raf.roleid
+                                                          AND rf.archetype IN (\'teacher\', \'editingteacher\')
+                                           WHERE raf.userid = u.id
+                                             AND ctx.instanceid = :courseid)';
+            $params['courseid'] = (int)$filters['courseid'];
+        }
+
+        // categoryid filter — teacher must teach in at least one course inside that category
+        if (!empty($filters['categoryid'])) {
+            $where[]               = 'EXISTS (SELECT 1 FROM {role_assignments} raf
+                                               JOIN {context} ctx ON ctx.id = raf.contextid
+                                                                  AND ctx.contextlevel = 50
+                                               JOIN {course} c    ON c.id = ctx.instanceid
+                                                                  AND c.category = :categoryid
+                                               JOIN {role} rf     ON rf.id = raf.roleid
+                                                                  AND rf.archetype IN (\'teacher\', \'editingteacher\')
+                                              WHERE raf.userid = u.id)';
+            $params['categoryid'] = (int)$filters['categoryid'];
         }
 
         // free-text search on name or email
@@ -248,6 +294,8 @@ class teacher_manager {
         $hours = array_values($DB->get_records('academy_teacher_hours',
             array('teacherid' => $teacherid), 'dayofweek ASC, starttime ASC',
             'id, dayofweek, starttime, endtime'));
+        $years = array_values($DB->get_records('academy_teacher_years',
+            array('teacherid' => $teacherid), 'year ASC', 'id, year'));
         return array(
             'userid'     => (int)$teacherid,
             'fullname'   => $user ? trim($user->firstname . ' ' . $user->lastname) : '',
@@ -262,6 +310,7 @@ class teacher_manager {
             'subjects'   => array_map(function ($s) {
                 return array('subject' => $s->subject, 'specialization' => $s->specialization);
             }, $subjects),
+            'years'      => array_map(function ($y) { return $y->year; }, $years),
             'hours'      => array_map(function ($h) {
                 return array('dayofweek' => (int)$h->dayofweek,
                     'starttime' => $h->starttime, 'endtime' => $h->endtime);

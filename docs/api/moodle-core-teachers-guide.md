@@ -66,6 +66,9 @@ GET /local/academy/api.php
   [&approved=1]
   [&available=1]
   [&subject=Math]
+  [&year=Year+10]
+  [&courseid=2]
+  [&categoryid=5]
   [&search=ahmed]
   [&page=0]
   [&perpage=20]
@@ -75,9 +78,12 @@ All filter params are optional and are AND-ed together.
 
 | Param | Type | Description |
 |-------|------|-------------|
-| `approved` | `0` / `1` | Match `approved` field. Omit to return all. Teachers with no profile are treated as `approved=1`. |
-| `available` | `0` / `1` | Match `available` field. Omit to return all. Teachers with no profile are treated as `available=1`. |
-| `subject` | string | Partial, case-insensitive match on any of the teacher's saved subjects. Teachers with no subjects set will not match this filter. |
+| `approved` | `0` / `1` | Match `approved` field. Omit to return all. Teachers with no profile default to `1`. |
+| `available` | `0` / `1` | Match `available` field. Omit to return all. Teachers with no profile default to `1`. |
+| `subject` | string | Partial, case-insensitive match on any of the teacher's saved subjects. |
+| `year` | string | Partial, case-insensitive match on any of the teacher's saved year/grade levels (e.g. `Year 10`, `Grade 5`, `KG2`). |
+| `courseid` | int | Teacher must hold a teacher/editingteacher role in this specific course. |
+| `categoryid` | int | Teacher must teach in at least one course inside this category. |
 | `search` | string | Partial, case-insensitive match on `firstname`, `lastname`, or `email`. |
 | `page` | int | 0-based page index. Default `0`. |
 | `perpage` | int | Results per page. Default `20`, max `200`. |
@@ -101,6 +107,7 @@ All filter params are optional and are AND-ed together.
       "approved": 1,
       "available": 1,
       "subjects": [ { "subject": "Math", "specialization": "Algebra" } ],
+      "years":    [ "Year 10", "Year 11" ],
       "hours":    [ { "dayofweek": 1, "starttime": "09:00", "endtime": "12:00" } ]
     }
   ]
