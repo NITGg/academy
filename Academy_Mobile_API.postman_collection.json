@@ -18,6 +18,26 @@
       "name": "Auth",
       "item": [
         {
+          "name": "Login — Google Sign-In",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idtoken\": \"PASTE_GOOGLE_ID_TOKEN_HERE\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/local/googleauth/google_login.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "googleauth", "google_login.php"]
+            },
+            "description": "Exchange a Google id_token (from the mobile Google Sign-In SDK) for a Moodle wstoken.\n\nOn success, save the returned `token` into {{wstoken}} and `userid` into {{userid}} — they work exactly like a normal login.\n\nThe Moodle account is created automatically on first login (auth=oauth2). Subsequent logins reuse the same account and the same token.\n\nErrors:\n- 400 missing_idtoken / unverified_email\n- 401 invalid_token / token_expired / invalid_audience\n- 403 user_suspended"
+          }
+        },
+        {
           "name": "Login — Get Token",
           "request": {
             "method": "POST",
