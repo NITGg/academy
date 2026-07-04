@@ -80,7 +80,61 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
     <h4 class="mt-4">Course subscription availability</h4>
     <p class="text-muted">Choose courses and append them to a specific subscription.</p>
 
+    <style>
+        .course-chip {
+            display: inline-flex;
+            align-items: center;
+            background: #f1f3f5;
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+            padding: 8px 16px;
+            margin: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            color: #495057;
+            user-select: none;
+        }
+        .course-chip:hover {
+            background: #e9ecef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            transform: translateY(-1px);
+        }
+        .course-chip input[type="checkbox"] {
+            margin-right: 10px;
+            cursor: pointer;
+            width: 1.1rem;
+            height: 1.1rem;
+        }
+        .category-card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-bottom: 1.5rem !important;
+            background: #fff;
+        }
+        .category-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+        }
+        .category-card .card-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-bottom: 1px solid #dee2e6;
+            font-size: 1.15rem;
+            color: #212529;
+            padding: 1rem 1.25rem;
+        }
+        .category-card .card-body {
+            padding: 1.25rem;
+            display: flex;
+            flex-wrap: wrap;
+        }
+    </style>
+
     <div id="course-selector-area" style="display:none;">
+        <div id="categories-container" class="mb-4"></div>
         <div class="mb-3">
             <label for="target-subscription">Target Subscription:</label>
             <select id="target-subscription" class="form-control" style="max-width: 300px; display: inline-block;">
@@ -88,7 +142,6 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
             </select>
             <button id="save-course-selection" class="btn btn-primary ml-2">Save courses to subscription</button>
         </div>
-        <div id="categories-container" class="mb-4"></div>
     </div>
 
     <!-- ── User Subscriptions (New UI) ── -->
@@ -166,7 +219,11 @@ echo html_writer::script(<<<'JS'
         tbody.innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
         api('get_subscriptions').then(function (rows) {
             ALL_SUBS = rows;
-            if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7">No subscriptions yet.</td></tr>'; return; }
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="7">No subscriptions yet.</td></tr>';
+                populateSubscriptionDropdown();
+                return;
+            }
             tbody.innerHTML = '';
             rows.forEach(function (s) {
                 var tr = document.createElement('tr');
@@ -188,6 +245,7 @@ echo html_writer::script(<<<'JS'
                 tr._sub = s;
                 tbody.appendChild(tr);
             });
+            populateSubscriptionDropdown();
         }).catch(function (e) { msg(e.message, 'danger'); });
     }
 
@@ -259,14 +317,13 @@ echo html_writer::script(<<<'JS'
             }
             var html = '';
             categories.forEach(function(cat) {
-                html += '<div class="card mb-2">';
+                html += '<div class="card category-card">';
                 html += '<div class="card-header"><strong>' + esc(cat.name) + '</strong></div>';
                 html += '<div class="card-body">';
                 cat.courses.forEach(function(c) {
-                    html += '<div class="form-check form-check-inline">' +
-                        '<input type="checkbox" class="form-check-input course-checkbox" id="cb-course-' + c.id + '" value="' + c.id + '">' +
-                        '<label class="form-check-label" for="cb-course-' + c.id + '">' + esc(c.fullname) + '</label>' +
-                        '</div>';
+                    html += '<label class="course-chip">' +
+                        '<input type="checkbox" class="course-checkbox" id="cb-course-' + c.id + '" value="' + c.id + '">' +
+                        esc(c.fullname) + '</label>';
                 });
                 html += '</div></div>';
             });
@@ -353,12 +410,6 @@ echo html_writer::script(<<<'JS'
     });
 
     $('refresh-users').addEventListener('click', loadUsers);
-
-    var originalLoadSubs = loadSubs;
-    loadSubs = function() {
-        originalLoadSubs();
-        setTimeout(populateSubscriptionDropdown, 500); 
-    };
 
     loadCategories();
     loadUsers();
