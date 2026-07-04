@@ -104,7 +104,7 @@ function local_academy_before_footer() {
 
     // 1. Front page student hub banner
     if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
-        if (isloggedin() && !isguestuser() && !empty($COURSE->id) && $COURSE->id == SITEID) {
+        if (isloggedin() && !isguestuser() && $PAGE->pagetype === 'site-index') {
             $url = new moodle_url('/local/academy/student.php');
             $output .= html_writer::div(
                 html_writer::tag('h4', get_string('studenthub', 'local_academy'), array('class' => 'mb-2')) .

@@ -80,6 +80,86 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
     <h4 class="mt-4">Course subscription availability</h4>
     <p class="text-muted">Choose courses and append them to a specific subscription.</p>
 
+    <style>
+        .course-chip {
+            display: inline-flex;
+            align-items: center;
+            background: #f1f3f5;
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+            padding: 8px 16px;
+            margin: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            color: #495057;
+            user-select: none;
+        }
+        .course-chip:hover {
+            background: #e9ecef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            transform: translateY(-1px);
+        }
+        .course-chip input[type="checkbox"] {
+            margin-right: 10px;
+            cursor: pointer;
+            width: 1.1rem;
+            height: 1.1rem;
+        }
+        .category-card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-bottom: 1.5rem !important;
+            background: #fff;
+        }
+        .category-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+        }
+        .category-card .card-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-bottom: 1px solid #dee2e6;
+            font-size: 1.15rem;
+            color: #212529;
+            padding: 1rem 1.25rem;
+        }
+        .category-card .card-body {
+            padding: 1.25rem;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .academy-modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1050;
+        }
+        .academy-modal {
+            background: #fff;
+            border-radius: 10px;
+            padding: 1.5rem;
+            max-width: 440px;
+            width: 90%;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+        }
+        .academy-modal-title {
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+        .academy-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1.25rem;
+        }
+    </style>
+
     <div id="course-selector-area" style="display:none;">
         <div class="mb-3">
             <label for="target-subscription">Target Subscription:</label>
@@ -108,6 +188,24 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
         </thead>
         <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
     </table>
+
+    <!-- ── Unsubscribe confirmation modal ── -->
+    <div id="unsub-modal-backdrop" class="academy-modal-backdrop" style="display:none;">
+        <div class="academy-modal">
+            <h5 class="academy-modal-title">Unsubscribe user</h5>
+            <p id="unsub-modal-text"></p>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="unsub-refund-checkbox">
+                <label class="form-check-label" for="unsub-refund-checkbox">
+                    Refund payment to student <span class="text-muted">(optional)</span>
+                </label>
+            </div>
+            <div class="academy-modal-actions">
+                <button id="unsub-modal-cancel" class="btn btn-link">Cancel</button>
+                <button id="unsub-modal-confirm" class="btn btn-danger">Unsubscribe</button>
+            </div>
+        </div>
+    </div>
 </div>
 <?php
 
@@ -166,7 +264,11 @@ echo html_writer::script(<<<'JS'
         tbody.innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
         api('get_subscriptions').then(function (rows) {
             ALL_SUBS = rows;
-            if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7">No subscriptions yet.</td></tr>'; return; }
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="7">No subscriptions yet.</td></tr>';
+                populateSubscriptionDropdown();
+                return;
+            }
             tbody.innerHTML = '';
             rows.forEach(function (s) {
                 var tr = document.createElement('tr');
@@ -188,6 +290,7 @@ echo html_writer::script(<<<'JS'
                 tr._sub = s;
                 tbody.appendChild(tr);
             });
+            populateSubscriptionDropdown();
         }).catch(function (e) { msg(e.message, 'danger'); });
     }
 
@@ -259,14 +362,13 @@ echo html_writer::script(<<<'JS'
             }
             var html = '';
             categories.forEach(function(cat) {
-                html += '<div class="card mb-2">';
+                html += '<div class="card category-card">';
                 html += '<div class="card-header"><strong>' + esc(cat.name) + '</strong></div>';
                 html += '<div class="card-body">';
                 cat.courses.forEach(function(c) {
-                    html += '<div class="form-check form-check-inline">' +
-                        '<input type="checkbox" class="form-check-input course-checkbox" id="cb-course-' + c.id + '" value="' + c.id + '">' +
-                        '<label class="form-check-label" for="cb-course-' + c.id + '">' + esc(c.fullname) + '</label>' +
-                        '</div>';
+                    html += '<label class="course-chip">' +
+                        '<input type="checkbox" class="course-checkbox" id="cb-course-' + c.id + '" value="' + c.id + '">' +
+                        esc(c.fullname) + '</label>';
                 });
                 html += '</div></div>';
             });
@@ -277,13 +379,34 @@ echo html_writer::script(<<<'JS'
 
     function populateSubscriptionDropdown() {
         var select = $('target-subscription');
+        var prevValue = select.value;
         select.innerHTML = '<option value="">Select a subscription...</option>';
         ALL_SUBS.forEach(function(sub) {
             if (sub.status === 'active') {
                 select.innerHTML += '<option value="' + sub.id + '">' + esc(sub.name) + ' (#' + sub.id + ')</option>';
             }
         });
+        select.value = prevValue;
+        applySubscriptionCourseSelection();
     }
+
+    // Tick the checkboxes for courses already granted by the selected subscription,
+    // so unchecking one and saving removes it from that plan.
+    function applySubscriptionCourseSelection() {
+        var subId = $('target-subscription').value;
+        var checkedIds = {};
+        if (subId) {
+            var sub = ALL_SUBS.find(function(s) { return String(s.id) === String(subId); });
+            if (sub && sub.courses) {
+                sub.courses.forEach(function(c) { checkedIds[c.id] = true; });
+            }
+        }
+        document.querySelectorAll('.course-checkbox').forEach(function(cb) {
+            cb.checked = !!checkedIds[parseInt(cb.value, 10)];
+        });
+    }
+
+    $('target-subscription').addEventListener('change', applySubscriptionCourseSelection);
 
     $('save-course-selection').addEventListener('click', function() {
         var subId = $('target-subscription').value;
@@ -295,18 +418,12 @@ echo html_writer::script(<<<'JS'
         document.querySelectorAll('.course-checkbox:checked').forEach(function(cb) {
             courseIds.push(parseInt(cb.value, 10));
         });
-        if (!courseIds.length) {
-            msg('Please select at least one course.', 'danger');
-            return;
-        }
         api('set_subscription_courses', {
             subscriptionid: subId,
             courseids: JSON.stringify(courseIds)
         }, 'POST').then(function() {
             msg('Courses assigned successfully.', 'success');
             loadSubs();
-            document.querySelectorAll('.course-checkbox:checked').forEach(function(cb) { cb.checked = false; });
-            $('target-subscription').value = '';
         }).catch(function(e) { msg(e.message, 'danger'); });
     });
 
@@ -331,34 +448,58 @@ echo html_writer::script(<<<'JS'
                     '<td>' + esc(r.status) + '</td>' +
                     '<td>' + expires + '</td>' +
                     '<td>' + toggle + '</td>';
+                tr._row = r;
                 tbody.appendChild(tr);
             });
         }).catch(function(e) { msg(e.message, 'danger'); });
     }
 
+    // ── Unsubscribe confirmation modal ──
+    var pendingUnsubscribe = null;
+
+    function openUnsubscribeModal(row) {
+        pendingUnsubscribe = row;
+        var priceText = row.price_paid ? (' — <strong>' + esc(row.price_paid) + '</strong> paid') : '';
+        $('unsub-modal-text').innerHTML =
+            'Unsubscribe <strong>' + esc(row.user_fullname) + '</strong> from <strong>' + esc(row.name) + '</strong>' +
+            priceText + '? This cannot be undone.';
+        $('unsub-refund-checkbox').checked = false;
+        $('unsub-modal-backdrop').style.display = 'flex';
+    }
+
+    function closeUnsubscribeModal() {
+        pendingUnsubscribe = null;
+        $('unsub-modal-backdrop').style.display = 'none';
+    }
+
     $('users-table').addEventListener('click', function(ev) {
         var btn = ev.target.closest('.btn-unsubscribe');
         if (!btn) return;
-        var purchaseId = btn.getAttribute('data-id');
-        var refund = confirm('Do you want to refund the money for this subscription?');
-        if (confirm('Are you sure you want to unsubscribe this user? This cannot be undone.')) {
-            api('unsubscribe_user', {
-                purchaseid: purchaseId,
-                refund: refund ? 1 : 0
-            }, 'POST').then(function() {
-                msg('User unsubscribed successfully.', 'success');
-                loadUsers();
-            }).catch(function(e) { msg(e.message, 'danger'); });
-        }
+        openUnsubscribeModal(btn.closest('tr')._row);
+    });
+
+    $('unsub-modal-cancel').addEventListener('click', closeUnsubscribeModal);
+    $('unsub-modal-backdrop').addEventListener('click', function(ev) {
+        if (ev.target === this) { closeUnsubscribeModal(); }
+    });
+    document.addEventListener('keydown', function(ev) {
+        if (ev.key === 'Escape' && $('unsub-modal-backdrop').style.display !== 'none') { closeUnsubscribeModal(); }
+    });
+    $('unsub-modal-confirm').addEventListener('click', function() {
+        var row = pendingUnsubscribe;
+        if (!row) { return; }
+        var refund = $('unsub-refund-checkbox').checked;
+        api('unsubscribe_user', {
+            purchaseid: row.id,
+            refund: refund ? 1 : 0
+        }, 'POST').then(function() {
+            msg('User unsubscribed successfully.', 'success');
+            closeUnsubscribeModal();
+            loadUsers();
+        }).catch(function(e) { msg(e.message, 'danger'); });
     });
 
     $('refresh-users').addEventListener('click', loadUsers);
-
-    var originalLoadSubs = loadSubs;
-    loadSubs = function() {
-        originalLoadSubs();
-        setTimeout(populateSubscriptionDropdown, 500); 
-    };
 
     loadCategories();
     loadUsers();
