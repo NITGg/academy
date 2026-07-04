@@ -104,6 +104,102 @@ class teacher_manager {
         return self::get_profile($userid);
     }
 
+    /**
+     * Admin: list all teachers with optional filters and pagination.
+     *
+     * Base set is every Moodle user with a teacher/editingteacher role archetype,
+     * regardless of whether they have saved an academy profile yet.
+     * Profile fields default to empty/1 for users without a profile row.
+     *
+     * @param array $filters  approved (0|1|''), available (0|1|''), subject, search, page, perpage
+     * @return array          { total, page, perpage, teachers[] }
+     */
+    public static function get_all_teachers(array $filters = []) {
+        global $DB;
+
+        // Start from role_assignments so teachers without a profile row still appear.
+        $where  = [
+            'u.deleted = 0',
+            "r.archetype IN ('teacher', 'editingteacher')",
+        ];
+        $params = [];
+
+        // approved / available — use COALESCE so profile-less teachers default to 1
+        if (isset($filters['approved']) && $filters['approved'] !== '') {
+            $where[]            = 'COALESCE(p.approved, 1) = :approved';
+            $params['approved'] = (int)$filters['approved'];
+        }
+        if (isset($filters['available']) && $filters['available'] !== '') {
+            $where[]             = 'COALESCE(p.available, 1) = :available';
+            $params['available'] = (int)$filters['available'];
+        }
+
+        // subject filter — teacher must have at least one matching subject
+        if (!empty($filters['subject'])) {
+            $where[]           = 'EXISTS (SELECT 1 FROM {academy_teacher_subjects} s
+                                           WHERE s.teacherid = u.id
+                                             AND ' . $DB->sql_like('s.subject', ':subject', false) . ')';
+            $params['subject'] = '%' . $DB->sql_like_escape($filters['subject']) . '%';
+        }
+
+        // free-text search on name or email
+        if (!empty($filters['search'])) {
+            $q             = '%' . $DB->sql_like_escape($filters['search']) . '%';
+            $where[]       = '(' . $DB->sql_like('u.firstname', ':sq1', false)
+                           . ' OR ' . $DB->sql_like('u.lastname',  ':sq2', false)
+                           . ' OR ' . $DB->sql_like('u.email',     ':sq3', false) . ')';
+            $params['sq1'] = $q;
+            $params['sq2'] = $q;
+            $params['sq3'] = $q;
+        }
+
+        $whereClause = implode(' AND ', $where);
+        $baseSql     = "FROM {user} u
+                        JOIN {role_assignments} ra ON ra.userid = u.id
+                        JOIN {role} r              ON r.id = ra.roleid
+                   LEFT JOIN {academy_teacher_profiles} p ON p.userid = u.id
+                       WHERE $whereClause";
+
+        $total   = (int)$DB->count_records_sql("SELECT COUNT(DISTINCT u.id) $baseSql", $params);
+        $page    = max(0, (int)($filters['page']    ?? 0));
+        $perpage = min(200, max(1, (int)($filters['perpage'] ?? 20)));
+
+        $rows = $DB->get_records_sql(
+            "SELECT DISTINCT u.id AS userid, u.firstname, u.lastname, u.email,
+                    p.headline, p.bio, p.experience, p.photourl,
+                    p.rating, p.approved, p.available
+               $baseSql
+              ORDER BY u.lastname ASC, u.firstname ASC",
+            $params,
+            $page * $perpage,
+            $perpage
+        );
+
+        $teachers = [];
+        foreach ($rows as $row) {
+            $user = (object)[
+                'id'        => $row->userid,
+                'firstname' => $row->firstname,
+                'lastname'  => $row->lastname,
+                'email'     => $row->email,
+            ];
+            // Build a profile object with safe defaults for teachers without a profile row.
+            $p = (object)[
+                'userid'     => $row->userid,
+                'headline'   => $row->headline   ?? '',
+                'bio'        => $row->bio         ?? '',
+                'experience' => $row->experience  ?? '',
+                'photourl'   => $row->photourl    ?? '',
+                'rating'     => $row->rating      ?? 0,
+                'approved'   => $row->approved    ?? 1,
+                'available'  => $row->available   ?? 1,
+            ];
+            $teachers[] = self::format_profile($p, $user);
+        }
+
+        return ['total' => $total, 'page' => $page, 'perpage' => $perpage, 'teachers' => $teachers];
+    }
+
     /** US-ST-2-1: list approved + available teachers, optionally filtered by subject. */
     public static function browse_teachers($subject = '') {
         global $DB;

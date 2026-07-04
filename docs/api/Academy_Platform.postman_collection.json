@@ -179,6 +179,129 @@
       ]
     },
     {
+      "name": "Admin — All Teachers (get_all_teachers)",
+      "item": [
+        {
+          "name": "Get All Teachers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function",   "value": "get_all_teachers" },
+                { "key": "token",      "value": "{{admin_token}}" },
+                { "key": "approved",   "value": "",  "disabled": true, "description": "1 = approved only, 0 = pending/rejected only, omit = all" },
+                { "key": "available",  "value": "",  "disabled": true, "description": "1 = available only, 0 = unavailable only, omit = all" },
+                { "key": "subject",    "value": "",  "disabled": true, "description": "partial match on any subject, e.g. Math" },
+                { "key": "search",     "value": "",  "disabled": true, "description": "partial match on firstname, lastname, or email" },
+                { "key": "page",       "value": "0", "disabled": true, "description": "0-based page index" },
+                { "key": "perpage",    "value": "20","disabled": true, "description": "results per page, max 200" }
+              ]
+            },
+            "description": "Admin only (manageplatform). Returns all teachers regardless of approved/available status, including email.\n\nResponse: { total, page, perpage, teachers[] }\n\nAll filter params are optional — omit any you don't need."
+          }
+        },
+        {
+          "name": "Get All Teachers — filter: approved only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&approved=1",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function",  "value": "get_all_teachers" },
+                { "key": "token",     "value": "{{admin_token}}" },
+                { "key": "approved",  "value": "1" }
+              ]
+            },
+            "description": "Only teachers with approved=1."
+          }
+        },
+        {
+          "name": "Get All Teachers — filter: by subject",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&subject=Math",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_all_teachers" },
+                { "key": "token",    "value": "{{admin_token}}" },
+                { "key": "subject",  "value": "Math", "description": "partial, case-insensitive" }
+              ]
+            },
+            "description": "Teachers who have at least one subject matching 'Math' (partial, case-insensitive)."
+          }
+        },
+        {
+          "name": "Get All Teachers — filter: name/email search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&search=ahmed",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_all_teachers" },
+                { "key": "token",    "value": "{{admin_token}}" },
+                { "key": "search",   "value": "ahmed", "description": "matches firstname, lastname, or email" }
+              ]
+            },
+            "description": "Free-text search across firstname, lastname, and email."
+          }
+        },
+        {
+          "name": "Get All Teachers — paginated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&page=0&perpage=10",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_all_teachers" },
+                { "key": "token",    "value": "{{admin_token}}" },
+                { "key": "page",     "value": "0",  "description": "0-based page" },
+                { "key": "perpage",  "value": "10", "description": "max 200" }
+              ]
+            },
+            "description": "Returns first 10 teachers. Increase `page` to paginate (0, 1, 2 …). Check `total` in the response to know how many pages exist."
+          }
+        },
+        {
+          "name": "Get All Teachers — combined filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&approved=1&available=1&subject=Math&page=0&perpage=20",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function",  "value": "get_all_teachers" },
+                { "key": "token",     "value": "{{admin_token}}" },
+                { "key": "approved",  "value": "1" },
+                { "key": "available", "value": "1" },
+                { "key": "subject",   "value": "Math" },
+                { "key": "page",      "value": "0" },
+                { "key": "perpage",   "value": "20" }
+              ]
+            },
+            "description": "Combine any filters together. All are optional and AND-ed."
+          }
+        }
+      ]
+    },
+    {
       "name": "Student — Browse Teachers (US-ST-2-1)",
       "item": [
         {
