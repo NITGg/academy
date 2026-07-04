@@ -94,26 +94,31 @@ function local_academy_extend_navigation_user_settings($navigation, $user, $cont
 }
 
 /**
- * Live notification updates via realtime push (Socket.IO) — no polling.
- *
- * Moodle's navbar notification bell only fetches the unread count at page render, so a notification
- * that arrives while the user sits on a page never shows up until they refresh. This connects the
- * browser to the notify-ws Socket.IO relay (authenticated with a short-lived HMAC token) and joins a
- * private per-user room. The instant a notification is sent, Moodle's
- * {@see \local_academy\observer::notification_sent} pushes it and the client plays a short chime and
- * refreshes the page — so e.g. a teacher sees a new lesson request without touching anything.
- *
- * Requires the relay to be reachable from the browser (locally: direct on :3100; in production: a
- * reverse-proxy route such as nginx /notify-ws). If it can't connect, nothing happens until the
- * page is reloaded — there is no polling fallback by design. The chime needs a prior user gesture
- * (browser autoplay policy); the reload happens regardless.
+ * Add a "Book lessons & Flex" section to the site front page so students reach the student hub
+ * (book a lesson, my lessons, packages & Flex, subscriptions) directly from home instead of digging
+ * through the user menu.
  */
 function local_academy_before_footer() {
-    global $PAGE, $USER;
+    global $PAGE, $USER, $COURSE;
+    $output = '';
 
-    // Only for real, interactive, logged-in users — skip guests, AJAX/WS/CLI requests.
+    // 1. Front page student hub banner
+    if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
+        if (isloggedin() && !isguestuser() && !empty($COURSE->id) && $COURSE->id == SITEID) {
+            $url = new moodle_url('/local/academy/student.php');
+            $output .= html_writer::div(
+                html_writer::tag('h4', get_string('studenthub', 'local_academy'), array('class' => 'mb-2')) .
+                html_writer::tag('p', get_string('studenthubdesc', 'local_academy'), array('class' => 'mb-2')) .
+                html_writer::link($url, get_string('studenthub', 'local_academy'), array('class' => 'btn btn-primary')),
+                'local-academy-studenthub',
+                array('style' => 'background:#eaf3ff;border:1px solid #b6d4fe;border-radius:.5rem;padding:1rem 1.25rem;margin:1rem 0;')
+            );
+        }
+    }
+
+    // 2. Only for real, interactive, logged-in users — skip guests, AJAX/WS/CLI requests.
     if (CLI_SCRIPT || (defined('AJAX_SCRIPT') && AJAX_SCRIPT) || (defined('WS_SERVER') && WS_SERVER)) {
-        return;
+        return $output;
     }
     if (!isloggedin() || isguestuser()) {
         return;
@@ -214,4 +219,5 @@ require([], function() {
 JS;
 
     $PAGE->requires->js_amd_inline($js);
+    return $output;
 }

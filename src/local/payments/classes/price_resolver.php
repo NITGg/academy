@@ -132,6 +132,17 @@ class price_resolver {
         $is_enrolled = $userid > 0 ? enrollment_handler::is_enrolled($userid, $courseid) : false;
         $course_url = (new \moodle_url('/course/view.php', ['id' => $courseid]))->out(false);
 
+        // Auto-detect subscription coverage for card context
+        if (!$is_enrolled && $userid > 0 && class_exists('\local_academy\subscription_purchase_manager') && class_exists('\local_academy\subscription_manager')) {
+            $activesub = \local_academy\subscription_purchase_manager::get_active_subscription($userid);
+            if ($activesub) {
+                $covered_courses = \local_academy\subscription_manager::courses_for_subscription($activesub->subscriptionid);
+                if (in_array($courseid, $covered_courses)) {
+                    $is_enrolled = true;
+                }
+            }
+        }
+
         if ($is_enrolled || !self::has_pricing($courseid)) {
             return [
                 'is_enrolled' => $is_enrolled,

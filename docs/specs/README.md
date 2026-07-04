@@ -32,6 +32,7 @@ docs/specs/
 | TR | Teacher | `teacher/` |
 | ST | Student | `student/` |
 | PK | Packages (student-facing) | `student/` |
+| SB | Subscriptions (student-facing) | `student/` |
 | LS | Lessons | `lessons/` |
 | FN | Financial | `financial/` (or `teacher/` for teacher-facing financial) |
 
@@ -58,6 +59,11 @@ The two teacher-facing financial stories were renamed so every ID is now unique:
 | US-AD-3-3 | [View Package and Flex Reports](admin/US-AD-3-3-view-package-and-flex-reports.md) | Spec |
 | US-AD-3-4 | [View Student Flex Balance and History](admin/US-AD-3-4-view-student-flex-balance-and-history.md) | Spec |
 | US-AD-4-1 | [Assign a Lesson Package to a Student](admin/US-AD-4-1-assign-lesson-package-to-student.md) | Spec |
+| US-AD-5-1 | [Create a Subscription Plan](admin/US-AD-5-1-create-subscription-plan.md) | In progress |
+| US-AD-5-2 | [Update a Subscription Plan](admin/US-AD-5-2-update-subscription-plan.md) | In progress |
+| US-AD-5-3 | [Deactivate a Subscription Plan](admin/US-AD-5-3-deactivate-subscription-plan.md) | In progress |
+| US-AD-5-4 | [Delete an Unused Subscription Plan](admin/US-AD-5-4-delete-unused-subscription-plan.md) | In progress |
+| US-AD-6-1 | [Set Course Subscription Availability](admin/US-AD-6-1-set-course-subscription-availability.md) | In progress |
 
 ### Teacher — `teacher/`
 | ID | Title | Status |
@@ -76,6 +82,9 @@ The two teacher-facing financial stories were renamed so every ID is now unique:
 | US-PK-1-1 | [View Available Packages](student/US-PK-1-1-view-available-packages.md) | Built |
 | US-PK-1-2 | [Purchase a Package](student/US-PK-1-2-purchase-a-package.md) | Built |
 | US-PK-2-1 | [View My Packages and Payment History](student/US-PK-2-1-view-my-packages-and-payment-history.md) | Built |
+| US-SB-1-1 | [View Available Subscriptions](student/US-SB-1-1-view-available-subscriptions.md) | In progress |
+| US-SB-1-2 | [Purchase a Subscription](student/US-SB-1-2-purchase-a-subscription.md) | In progress |
+| US-SB-2-1 | [View My Subscriptions and Payment History](student/US-SB-2-1-view-my-subscriptions-and-payment-history.md) | In progress |
 
 ### Lessons — `lessons/`
 | ID | Title | Status |

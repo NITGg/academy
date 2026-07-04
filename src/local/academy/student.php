@@ -82,6 +82,8 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
     <button class="st-tab active" data-tab="book">Book a lesson</button>
     <button class="st-tab" data-tab="lessons">My lessons</button>
     <button class="st-tab" data-tab="packages">Packages &amp; Flex</button>
+    <button class="st-tab" data-tab="subavailable">Available subscriptions</button>
+    <button class="st-tab" data-tab="mysubs">My subscriptions</button>
   </div>
 
   <!-- ── Tab 1: Book a lesson ── -->
@@ -142,6 +144,29 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
       <table class="st-table">
         <thead><tr><th>Date</th><th>Type</th><th>Change</th><th>Balance</th><th>Lesson</th><th>Note</th></tr></thead>
         <tbody id="st-flexhistory"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Tab 4: Available subscriptions ── -->
+  <div class="st-panel" id="panel-subavailable">
+    <h5>Available subscriptions</h5>
+    <div id="st-subavailable" class="st-grid"></div>
+  </div>
+
+  <!-- ── Tab 5: My subscriptions ── -->
+  <div class="st-panel" id="panel-mysubs">
+    <h5>My subscriptions</h5>
+    <table class="st-table">
+      <thead><tr><th>Subscription</th><th>Status</th><th>Activated</th><th>Expires</th><th>Days left</th><th>Courses</th></tr></thead>
+      <tbody id="st-mysubs"></tbody>
+    </table>
+
+    <div class="st-section">
+      <h5>Subscription payments</h5>
+      <table class="st-table">
+        <thead><tr><th>Date</th><th>Subscription</th><th>Amount</th><th>Method</th><th>Transaction</th><th>Status</th></tr></thead>
+        <tbody id="st-subpayments"></tbody>
       </table>
     </div>
   </div>
@@ -452,15 +477,92 @@ echo html_writer::script(<<<'JS'
   }
 
   // ──────────────────────────────────────────────────────────────────────────
+  // Tab 4: Subscriptions (US-SB-1-1, US-SB-1-2, US-SB-2-1)
+  // ──────────────────────────────────────────────────────────────────────────
+  var SUB_STATUS={active:'Active',expired:'Expired',cancelled:'Cancelled',pending:'Pending',payment_failed:'Payment failed'};
+
+  function courseChips(courses){
+    var subs=el('div',{class:'st-subjects'});
+    if(!courses||!courses.length){subs.appendChild(el('span',{class:'st-meta'},'—'));return subs;}
+    courses.forEach(function(c){subs.appendChild(el('span',{class:'st-chip'},esc(c.fullname)));});
+    return subs;
+  }
+
+  function subCard(s){
+    var c=el('div',{class:'st-card'});
+    c.appendChild(el('div',{class:'st-title'},esc(s.name)));
+    c.appendChild(el('div',{class:'st-price',style:'font-size:1.3rem;font-weight:700;color:#084298'},money(s.price)+' EGP'));
+    c.appendChild(el('div',{class:'st-meta'},s.duration_days+' days'));
+    if(s.description){c.appendChild(el('div',{class:'st-meta'},esc(s.description)));}
+    c.appendChild(el('div',{class:'st-meta',style:'margin-top:.4rem'},'Courses:'));
+    c.appendChild(courseChips(s.courses));
+    var actions=el('div',{class:'st-actions'});
+    actions.appendChild(button('Buy subscription','btn-primary',function(){buySubscription(s);}));
+    c.appendChild(actions);
+    return c;
+  }
+
+  function buySubscription(s){
+    modal({
+      title:'Buy “'+s.name+'”',
+      text:'You will get '+s.duration_days+' days of course access for '+money(s.price)+'. (Payment is assumed successful.)',
+      okLabel:'Confirm purchase',
+      fields:[
+        {name:'method',label:'Payment method',type:'select',options:[
+          {value:'online',label:'Online'},{value:'bank_transfer',label:'Bank transfer'},{value:'cash',label:'Cash'}]},
+        {name:'reference',label:'Reference (optional)',placeholder:'External transaction reference'}
+      ]
+    }).then(function(r){
+      if(!r){return;}
+      apiPost('purchase_subscription',{subscriptionid:s.id,method:r.method,reference:r.reference||''})
+        .then(function(d){msg('Subscription active — transaction '+(d.transaction_no||'')+'. You now have access to '+((d.courses||[]).length)+' course(s).','success');loadSubscriptions();})
+        .catch(function(e){msg(e.message,'danger');});
+    });
+  }
+
+  function loadSubscriptions(){
+    apiGet('get_available_subscriptions').then(function(rows){
+      var box=$('st-subavailable');box.innerHTML='';
+      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},'No subscriptions available right now.'));return;}
+      rows.forEach(function(s){box.appendChild(subCard(s));});
+    }).catch(function(e){msg(e.message,'danger');});
+
+    apiGet('get_my_subscriptions').then(function(rows){
+      var tb=$('st-mysubs');tb.innerHTML='';
+      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">No subscriptions yet.</td></tr>';return;}
+      rows.forEach(function(s){
+        var courses=(s.courses||[]).map(function(c){return esc(c.fullname);}).join(', ')||'—';
+        tb.innerHTML+='<tr><td>'+esc(s.name)+'</td>'+
+          '<td><span class="st-badge s-'+s.status+'">'+(SUB_STATUS[s.status]||s.status)+'</span></td>'+
+          '<td>'+fmt(s.timeactivated)+'</td>'+
+          '<td>'+(Number(s.expires_at)>0?fmt(s.expires_at):'—')+'</td>'+
+          '<td>'+(s.status==='active'?s.remaining_days:'—')+'</td>'+
+          '<td>'+courses+'</td></tr>';
+      });
+    }).catch(function(e){msg(e.message,'danger');});
+
+    apiGet('get_subscription_payment_history').then(function(rows){
+      var tb=$('st-subpayments');tb.innerHTML='';
+      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">No payments yet.</td></tr>';return;}
+      rows.forEach(function(x){
+        tb.innerHTML+='<tr><td>'+fmt(x.timecreated)+'</td><td>'+esc(x.name)+'</td><td>'+money(x.amount)+'</td>'+
+          '<td>'+esc(x.method)+'</td><td>'+esc(x.transaction_no)+'</td>'+
+          '<td><span class="st-badge s-'+x.status+'">'+(PAY_STATUS[x.status]||x.status)+'</span></td></tr>';
+      });
+    }).catch(function(e){msg(e.message,'danger');});
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
   // Tabs + init
   // ──────────────────────────────────────────────────────────────────────────
-  var loaded={book:false,lessons:false,packages:false};
+  var loaded={book:false,lessons:false,packages:false,subscriptions:false};
   function switchTab(name){
     document.querySelectorAll('.st-tab').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-tab')===name);});
     document.querySelectorAll('.st-panel').forEach(function(p){p.classList.toggle('active',p.id==='panel-'+name);});
     if(name==='book' && !loaded.book){loaded.book=true;loadTeachers();}
     if(name==='lessons' && !loaded.lessons){loaded.lessons=true;loadLessons();}
     if(name==='packages' && !loaded.packages){loaded.packages=true;loadPackages();}
+    if((name==='subavailable'||name==='mysubs') && !loaded.subscriptions){loaded.subscriptions=true;loadSubscriptions();}
   }
   document.querySelectorAll('.st-tab').forEach(function(b){b.onclick=function(){switchTab(b.getAttribute('data-tab'));};});
 

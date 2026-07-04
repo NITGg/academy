@@ -3,7 +3,11 @@ defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'Academy Flex platform';
 $string['academy:managepackages'] = 'Manage lesson (Flex) packages';
+$string['academy:managesubscriptions'] = 'Manage course subscriptions';
 $string['managepackages'] = 'Manage lesson packages';
+$string['managesubscriptions'] = 'Manage subscriptions';
+$string['subscriptionhub'] = 'Subscriptions';
+$string['mysubscriptions'] = 'My subscriptions';
 $string['managesettings'] = 'Lesson settings';
 $string['myteacherprofile'] = 'My teacher profile';
 $string['teacherprofile'] = 'Teacher profile';
@@ -11,6 +15,7 @@ $string['editmyteacherprofile'] = 'Edit my teacher profile';
 $string['notateacher'] = 'This page is only available to teachers.';
 $string['mylessons'] = 'My lessons';
 $string['studenthub'] = 'Book lessons & Flex';
+$string['studenthubdesc'] = 'Book a lesson, track your lessons, and manage your packages, Flex, and subscriptions — all in one place.';
 $string['mywallet'] = 'My earnings';
 $string['managewithdrawals'] = 'Teacher withdrawals';
 $string['assignpackage'] = 'Assign package to student';
@@ -67,6 +72,16 @@ $string['err_withdrawalstate']     = 'This action is not allowed for the withdra
 // Reports / assign (Phase 4).
 $string['err_studentnotfound']     = 'Student not found';
 $string['err_studenthaspackage']   = 'This student already has an active package';
+
+// Subscriptions (US-AD-5-*, US-AD-6-1, US-SB-*).
+$string['err_subnamerequired']  = 'Subscription name is required';
+$string['err_subnameempty']     = 'Subscription name cannot be empty';
+$string['err_durationpositive'] = 'Number of days must be greater than zero';
+$string['err_subnotfound']      = 'Subscription not found';
+$string['err_subhaspurchases']  = 'This subscription has purchase records and cannot be deleted. Deactivate it instead.';
+$string['err_subnotavailable']  = 'This subscription is not available for purchase';
+$string['err_alreadyhassubscription'] = 'You already have an active subscription';
+$string['err_coursenotfound']   = 'Course not found';
 
 // ── Lesson-lifecycle notifications (in-app + email) ──
 $string['messageprovider:lessonnotification'] = 'Lesson updates (requests, responses, reminders)';
@@ -147,3 +162,8 @@ $string['notif_package_expiring_body']    = 'Your "{$a->package}" package expire
 
 $string['mypackages'] = 'My packages';
 $string['task_expiry_reminder'] = 'Send package-expiry reminders to students';
+
+// Subscription expiry reminder + expiry (sent/run by the daily subscription_expiry task).
+$string['task_subscription_expiry'] = 'Expire subscriptions and send expiry reminders';
+$string['notif_subscription_expiring_subject'] = 'Your subscription expires in {$a->days} day(s)';
+$string['notif_subscription_expiring_body']    = 'Your "{$a->subscription}" subscription expires on {$a->date} ({$a->days} day(s) left). Renew it to keep access to your courses.';

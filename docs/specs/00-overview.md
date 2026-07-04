@@ -68,3 +68,12 @@ cancellations, and time-update requests/responses.
 ## Package status model
 
 `Pending Payment` → (`Payment Failed` | `Cancelled`) | `Active` → (`Fully Used` | `Expired`).
+
+## Subscription status model
+
+Subscriptions are a **separate** access mechanism from Flex packages: a student pays for
+time-boxed access to a set of courses. The full price is platform revenue (not split with
+teachers). See [US-SB-1-2](student/US-SB-1-2-purchase-a-subscription.md) and
+[US-AD-6-1](admin/US-AD-6-1-set-course-subscription-availability.md).
+
+`Pending Payment` → (`Payment Failed` | `Cancelled`) | `Active` → `Expired`.
