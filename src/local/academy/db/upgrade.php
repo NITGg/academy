@@ -378,5 +378,21 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026070403, 'local', 'academy');
     }
 
+    if ($oldversion < 2026070406) {
+
+        // Ensure academy_teacher_years exists (skipped if DB version jumped past 2026070403).
+        $t = new xmldb_table('academy_teacher_years');
+        if (!$dbman->table_exists($t)) {
+            $t->add_field('id',        XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $t->add_field('teacherid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null,           null);
+            $t->add_field('year',      XMLDB_TYPE_CHAR,    '50', null, XMLDB_NOTNULL, null,           null);
+            $t->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $t->add_index('teacherid_idx', XMLDB_INDEX_NOTUNIQUE, array('teacherid'));
+            $dbman->create_table($t);
+        }
+
+        upgrade_plugin_savepoint(true, 2026070406, 'local', 'academy');
+    }
+
     return true;
 }
