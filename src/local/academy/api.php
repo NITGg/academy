@@ -424,6 +424,11 @@ try {
             academy_respond(['status' => 'success', 'data' => teacher_manager::get_all_teachers($filters)]);
             break;
 
+        // Any authenticated user — used to populate year/grade filter dropdowns.
+        case 'get_years':
+            academy_respond(['status' => 'success', 'data' => teacher_manager::get_years()]);
+            break;
+
         // ── Teacher profile (US-TR-1-1) ──
         case 'update_teacher_profile': // teacher edits own profile
             if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
