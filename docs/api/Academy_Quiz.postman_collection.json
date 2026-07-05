@@ -1,0 +1,249 @@
+{
+  "info": {
+    "name": "Academy — Quiz API",
+    "_postman_id": "academy-quiz-api-v1",
+    "description": "REST API for Moodle quizzes — replaces web view with native mobile UI.\n\nSupported question types: multichoice (single + multi-answer), truefalse.\nUnsupported types appear with supported=false and no options.\n\nFlow:\n1. Run Login as Admin or Login as Student to get tokens.\n2. Use Get Quizzes to find a quiz and its cmid.\n3. Student: Start Attempt → Submit Attempt → Get Attempt (review).\n4. Admin: Get Quiz includes correct answers on every option.\n\nVariables: base_url, admin_token, student_token, cmid, quizid, attemptid.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",      "value": "http://localhost:8081", "type": "string" },
+    { "key": "admin_token",   "value": "",                      "type": "string" },
+    { "key": "student_token", "value": "",                      "type": "string" },
+    { "key": "cmid",          "value": "",                      "type": "string" },
+    { "key": "quizid",        "value": "",                      "type": "string" },
+    { "key": "attemptid",     "value": "",                      "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "if (j && j.token) { pm.collectionVariables.set('admin_token', j.token); console.log('admin_token saved'); }"
+          ]}}],
+          "request": {
+            "method": "POST", "header": [],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "username", "value": "admin",             "type": "text" },
+              { "key": "password", "value": "123456",            "type": "text" },
+              { "key": "service",  "value": "moodle_mobile_app", "type": "text" }
+            ]},
+            "url": { "raw": "{{base_url}}/login/token.php", "host": ["{{base_url}}"], "path": ["login","token.php"] },
+            "description": "Logs in as admin. Saves token into {{admin_token}}."
+          }
+        },
+        {
+          "name": "Login as Student",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "if (j && j.token) { pm.collectionVariables.set('student_token', j.token); console.log('student_token saved'); }"
+          ]}}],
+          "request": {
+            "method": "POST", "header": [],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "username", "value": "student@example.com", "type": "text" },
+              { "key": "password", "value": "123456",              "type": "text" },
+              { "key": "service",  "value": "moodle_mobile_app",   "type": "text" }
+            ]},
+            "url": { "raw": "{{base_url}}/login/token.php", "host": ["{{base_url}}"], "path": ["login","token.php"] },
+            "description": "Logs in as student. Saves token into {{student_token}}."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Browse Quizzes",
+      "item": [
+        {
+          "name": "Get All Quizzes",
+          "request": {
+            "method": "GET", "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_quizzes&token={{student_token}}",
+              "host": ["{{base_url}}"], "path": ["local","academy","api.php"],
+              "query": [
+                { "key": "function", "value": "get_quizzes" },
+                { "key": "token",    "value": "{{student_token}}" }
+              ]
+            },
+            "description": "Returns all quizzes on the platform.\n\nResponse fields per quiz:\n- quizid, cmid, courseid, name, intro, timelimit (seconds, 0=none), attempts_allowed (0=unlimited)"
+          }
+        },
+        {
+          "name": "Get Quizzes by Course",
+          "request": {
+            "method": "GET", "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_quizzes&token={{student_token}}&courseid=2",
+              "host": ["{{base_url}}"], "path": ["local","academy","api.php"],
+              "query": [
+                { "key": "function", "value": "get_quizzes" },
+                { "key": "token",    "value": "{{student_token}}" },
+                { "key": "courseid", "value": "2" }
+              ]
+            },
+            "description": "Filter quizzes by course id."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Get Quiz Questions",
+      "item": [
+        {
+          "name": "Get Quiz — Student (no correct answers)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "if (j && j.status === 'success' && j.data) {",
+            "  pm.collectionVariables.set('quizid', j.data.quizid);",
+            "  console.log('quizid saved: ' + j.data.quizid);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "GET", "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_quiz&token={{student_token}}&cmid={{cmid}}",
+              "host": ["{{base_url}}"], "path": ["local","academy","api.php"],
+              "query": [
+                { "key": "function", "value": "get_quiz" },
+                { "key": "token",    "value": "{{student_token}}" },
+                { "key": "cmid",     "value": "{{cmid}}" }
+              ]
+            },
+            "description": "Returns quiz with all questions and answer options.\nStudent token: options do NOT include the 'correct' field.\nAlso saves quizid into {{quizid}}."
+          }
+        },
+        {
+          "name": "Get Quiz — Admin (with correct answers)",
+          "request": {
+            "method": "GET", "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_quiz&token={{admin_token}}&cmid={{cmid}}",
+              "host": ["{{base_url}}"], "path": ["local","academy","api.php"],
+              "query": [
+                { "key": "function", "value": "get_quiz" },
+                { "key": "token",    "value": "{{admin_token}}" },
+                { "key": "cmid",     "value": "{{cmid}}" }
+              ]
+            },
+            "description": "Same as above but with admin token.\nEach option includes: \"correct\": true / false."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Take a Quiz (Student Flow)",
+      "item": [
+        {
+          "name": "1 — Start Attempt",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "if (j && j.status === 'success' && j.data) {",
+            "  pm.collectionVariables.set('attemptid', j.data.attemptid);",
+            "  console.log('attemptid saved: ' + j.data.attemptid);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST", "header": [],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "function", "value": "start_quiz_attempt",  "type": "text" },
+              { "key": "token",    "value": "{{student_token}}",   "type": "text" },
+              { "key": "quizid",   "value": "{{quizid}}",          "type": "text" }
+            ]},
+            "url": { "raw": "{{base_url}}/local/academy/api.php", "host": ["{{base_url}}"], "path": ["local","academy","api.php"] },
+            "description": "Starts a new quiz attempt for the logged-in student.\nSaves the returned attemptid into {{attemptid}}.\n\nResponse: attemptid, quizid, attempt_number, timestart, timelimit, state"
+          }
+        },
+        {
+          "name": "2 — Submit Answers (Single MCQ + True/False)",
+          "request": {
+            "method": "POST", "header": [],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "function",   "value": "submit_quiz_attempt",                                 "type": "text" },
+              { "key": "token",      "value": "{{student_token}}",                                   "type": "text" },
+              { "key": "attemptid",  "value": "{{attemptid}}",                                       "type": "text" },
+              { "key": "answers",    "value": "[{\"questionid\":101,\"answer\":3},{\"questionid\":102,\"answer\":11}]", "type": "text" }
+            ]},
+            "url": { "raw": "{{base_url}}/local/academy/api.php", "host": ["{{base_url}}"], "path": ["local","academy","api.php"] },
+            "description": "Submit answers and finish the attempt.\n\nanswers format:\n- Single MCQ or True/False: { \"questionid\": 101, \"answer\": 3 }  (answer = the id of the chosen option)\n- Multi-answer MCQ:          { \"questionid\": 103, \"answer\": [3,5] }\n\nResponse: score, max_score, percent, results[] with per-question mark and correct flag."
+          }
+        },
+        {
+          "name": "2 — Submit Answers (Multi-answer MCQ)",
+          "request": {
+            "method": "POST", "header": [],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "function",   "value": "submit_quiz_attempt",                                        "type": "text" },
+              { "key": "token",      "value": "{{student_token}}",                                          "type": "text" },
+              { "key": "attemptid",  "value": "{{attemptid}}",                                              "type": "text" },
+              { "key": "answers",    "value": "[{\"questionid\":103,\"answer\":[3,5]},{\"questionid\":104,\"answer\":11}]", "type": "text" }
+            ]},
+            "url": { "raw": "{{base_url}}/local/academy/api.php", "host": ["{{base_url}}"], "path": ["local","academy","api.php"] },
+            "description": "Example with a multi-answer MCQ question (answer is an array of option ids)."
+          }
+        },
+        {
+          "name": "3 — Review My Attempt",
+          "request": {
+            "method": "GET", "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_quiz_attempt&token={{student_token}}&attemptid={{attemptid}}",
+              "host": ["{{base_url}}"], "path": ["local","academy","api.php"],
+              "query": [
+                { "key": "function",   "value": "get_quiz_attempt" },
+                { "key": "token",      "value": "{{student_token}}" },
+                { "key": "attemptid",  "value": "{{attemptid}}" }
+              ]
+            },
+            "description": "Review a finished attempt.\nStudent token: question data returned without correct answers.\nAdmin token: each question includes correct_answers[]."
+          }
+        },
+        {
+          "name": "Review Attempt — Admin (with correct answers)",
+          "request": {
+            "method": "GET", "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_quiz_attempt&token={{admin_token}}&attemptid={{attemptid}}",
+              "host": ["{{base_url}}"], "path": ["local","academy","api.php"],
+              "query": [
+                { "key": "function",  "value": "get_quiz_attempt" },
+                { "key": "token",     "value": "{{admin_token}}" },
+                { "key": "attemptid", "value": "{{attemptid}}" }
+              ]
+            },
+            "description": "Admin review — includes correct_answers[] per question."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "My Attempt History",
+      "item": [
+        {
+          "name": "Get My Quiz Attempts",
+          "request": {
+            "method": "GET", "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_my_quiz_attempts&token={{student_token}}&quizid={{quizid}}",
+              "host": ["{{base_url}}"], "path": ["local","academy","api.php"],
+              "query": [
+                { "key": "function", "value": "get_my_quiz_attempts" },
+                { "key": "token",    "value": "{{student_token}}" },
+                { "key": "quizid",   "value": "{{quizid}}" }
+              ]
+            },
+            "description": "Lists all attempts the current student has made on this quiz.\n\nResponse per attempt: attemptid, attempt_number, state, score, max_score, percent, timestart, timefinish."
+          }
+        }
+      ]
+    }
+
+  ]
+}

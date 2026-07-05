@@ -18,6 +18,7 @@ use local_academy\lesson_manager;
 use local_academy\flex_manager;
 use local_academy\finance_manager;
 use local_academy\report_manager;
+use local_academy\quiz_manager;
 
 /** Reject non-POST for state-changing actions. */
 function academy_require_post() {
@@ -722,6 +723,54 @@ try {
         case 'report_lesson_events':
             academy_respond(['status' => 'success', 'data' => report_manager::lesson_events_report(
                 required_param('lessonid', PARAM_INT))]);
+            break;
+
+        // ── Quiz API ──────────────────────────────────────────────────────────────
+
+        // List quizzes. Students only see their enrolled courses; admins see all.
+        case 'get_quizzes':
+            $courseid = optional_param('courseid', 0, PARAM_INT);
+            $is_admin = has_capability('local/academy:manageplatform', context_system::instance());
+            academy_respond(['status' => 'success', 'data' => quiz_manager::get_quizzes($userid, $is_admin, $courseid)]);
+            break;
+
+        // Get a quiz with structured questions. Correct answers shown to admin only.
+        case 'get_quiz':
+            $cmid     = required_param('cmid', PARAM_INT);
+            $is_admin = has_capability('local/academy:manageplatform', context_system::instance());
+            academy_respond(['status' => 'success', 'data' => quiz_manager::get_quiz($cmid, $userid, $is_admin, $is_admin)]);
+            break;
+
+        // Start a new attempt (any authenticated user, acts as themselves).
+        case 'start_quiz_attempt':
+            academy_require_post();
+            $quizid = required_param('quizid', PARAM_INT);
+            academy_respond(['status' => 'success', 'data' => quiz_manager::start_attempt($quizid, $userid)]);
+            break;
+
+        // Submit answers and finish an attempt.
+        case 'submit_quiz_attempt':
+            academy_require_post();
+            $attemptid = required_param('attemptid', PARAM_INT);
+            $raw       = required_param('answers', PARAM_RAW);
+            $answers   = json_decode($raw, true);
+            if (!is_array($answers)) {
+                academy_respond(['status' => 'fail', 'error' => 'answers must be a JSON array']);
+            }
+            academy_respond(['status' => 'success', 'data' => quiz_manager::submit_attempt($attemptid, $userid, $answers)]);
+            break;
+
+        // Review a finished attempt. Correct answers shown to admin only.
+        case 'get_quiz_attempt':
+            $attemptid = required_param('attemptid', PARAM_INT);
+            $is_admin  = has_capability('local/academy:manageplatform', context_system::instance());
+            academy_respond(['status' => 'success', 'data' => quiz_manager::get_attempt($attemptid, $userid, $is_admin)]);
+            break;
+
+        // List the current user's attempts on a quiz.
+        case 'get_my_quiz_attempts':
+            $quizid = required_param('quizid', PARAM_INT);
+            academy_respond(['status' => 'success', 'data' => quiz_manager::get_my_attempts($quizid, $userid)]);
             break;
 
         default:
