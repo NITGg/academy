@@ -76,14 +76,18 @@ All parameters are optional and are AND-ed together.
 
 ```
 GET /local/academy/api.php?function=get_all_teachers&token=ADMIN_TOKEN
-    [&approved=1] [&available=1] [&subject=Math] [&search=ahmed] [&page=0] [&perpage=20]
+    [&approved=1] [&available=1] [&subject=Math] [&year=Year+10]
+    [&courseid=2] [&categoryid=5] [&search=ahmed] [&page=0] [&perpage=20]
 ```
 
 | Param | Type | Description |
 |-------|------|-------------|
-| `approved` | `0` or `1` | Filter by approval status. Omit to return all. |
-| `available` | `0` or `1` | Filter by availability status. Omit to return all. |
-| `subject` | string | Partial, case-insensitive match against any of the teacher's subjects. |
+| `approved` | `0` or `1` | Filter by approval status. Omit to return all. Teachers with no profile default to `1`. |
+| `available` | `0` or `1` | Filter by availability status. Omit to return all. Teachers with no profile default to `1`. |
+| `subject` | string | Partial, case-insensitive match on any of the teacher's subjects. |
+| `year` | string | Partial, case-insensitive match on any of the teacher's year/grade levels (e.g. `Year 10`, `Grade 5`, `KG2`). |
+| `courseid` | int | Teacher must hold a teacher/editingteacher role in this specific course. |
+| `categoryid` | int | Teacher must teach in at least one course inside this category. |
 | `search` | string | Partial match on `firstname`, `lastname`, or `email`. |
 | `page` | int | 0-based page index (default `0`). |
 | `perpage` | int | Results per page, max `200` (default `20`). |
@@ -100,6 +104,7 @@ GET /local/academy/api.php?function=get_all_teachers&token=ADMIN_TOKEN
       "headline": "Senior Math Teacher", "bio": "...", "experience": "10 years",
       "photourl": "", "rating": 4.5, "approved": 1, "available": 1,
       "subjects": [ { "subject": "Math", "specialization": "Algebra" } ],
+      "years":    [ "Year 10", "Year 11" ],
       "hours":    [ { "dayofweek": 1, "starttime": "09:00", "endtime": "12:00" } ]
     }
   ]
@@ -129,6 +134,7 @@ Content-Type: application/x-www-form-urlencoded
 function=update_teacher_profile&token=TEACHER_TOKEN
 &headline=Senior Math Teacher&bio=10 years teaching&experience=10 years&available=1
 &subjects=[{"subject":"Math","specialization":"Algebra"},{"subject":"Physics","specialization":""}]
+&years=["Year 10","Year 11","Year 12"]
 &hours=[{"dayofweek":1,"starttime":"09:00","endtime":"12:00"},{"dayofweek":1,"starttime":"14:00","endtime":"16:00"}]
 ```
 Response (same shape from both endpoints):
@@ -138,11 +144,12 @@ Response (same shape from both endpoints):
   "headline": "Senior Math Teacher", "bio": "...", "experience": "10 years",
   "photourl": "", "rating": 0, "approved": 1, "available": 1,
   "subjects": [ { "subject": "Math", "specialization": "Algebra" } ],
-  "hours": [ { "dayofweek": 1, "starttime": "09:00", "endtime": "12:00" } ] } }
+  "years":   [ "Year 10", "Year 11", "Year 12" ],
+  "hours":   [ { "dayofweek": 1, "starttime": "09:00", "endtime": "12:00" } ] } }
 ```
 Notes:
 - **POST only.** Send any subset of the simple fields.
-- `subjects` and `hours` are **JSON arrays sent as text**; sending them **replaces the whole set**
+- `subjects`, `years`, and `hours` are **JSON arrays sent as text**; sending them **replaces the whole set**
   (omit them to leave existing ones unchanged).
 - `dayofweek`: `0`=Sunday … `6`=Saturday; times are `HH:MM`.
 - Working hours **must not overlap** within a day → error `Working hours must not overlap`

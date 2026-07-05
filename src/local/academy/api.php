@@ -411,19 +411,14 @@ try {
         // ── Admin: list all teachers with filters (manageplatform) ──
         case 'get_all_teachers':
             $filters = [];
-            foreach (['approved', 'available'] as $f) {
+            foreach (['approved', 'available', 'courseid', 'categoryid', 'page', 'perpage'] as $f) {
                 if (isset($_REQUEST[$f]) && $_REQUEST[$f] !== '') {
                     $filters[$f] = required_param($f, PARAM_INT);
                 }
             }
-            foreach (['subject', 'search'] as $f) {
+            foreach (['subject', 'year', 'search'] as $f) {
                 if (isset($_REQUEST[$f]) && $_REQUEST[$f] !== '') {
                     $filters[$f] = required_param($f, PARAM_TEXT);
-                }
-            }
-            foreach (['page', 'perpage'] as $f) {
-                if (isset($_REQUEST[$f])) {
-                    $filters[$f] = required_param($f, PARAM_INT);
                 }
             }
             academy_respond(['status' => 'success', 'data' => teacher_manager::get_all_teachers($filters)]);
@@ -445,6 +440,9 @@ try {
             }
             if (isset($_REQUEST['hours'])) {
                 $data['hours'] = json_decode(required_param('hours', PARAM_RAW), true) ?: [];
+            }
+            if (isset($_REQUEST['years'])) {
+                $data['years'] = json_decode(required_param('years', PARAM_RAW), true) ?: [];
             }
             academy_respond(['status' => 'success', 'data' => teacher_manager::update_profile($userid, $data)]);
             break;

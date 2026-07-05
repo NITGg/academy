@@ -165,6 +165,7 @@
                 { "key": "experience", "value": "10 years", "type": "text" },
                 { "key": "available", "value": "1", "type": "text" },
                 { "key": "subjects", "value": "[{\"subject\":\"Math\",\"specialization\":\"Algebra\"},{\"subject\":\"Physics\",\"specialization\":\"\"}]", "type": "text" },
+                { "key": "years",    "value": "[\"Year 10\",\"Year 11\",\"Year 12\"]", "type": "text", "description": "JSON array of year/grade level strings" },
                 { "key": "hours", "value": "[{\"dayofweek\":1,\"starttime\":\"09:00\",\"endtime\":\"12:00\"},{\"dayofweek\":1,\"starttime\":\"14:00\",\"endtime\":\"16:00\"}]", "type": "text" }
               ]
             },
@@ -173,7 +174,7 @@
               "host": ["{{base_url}}"],
               "path": ["local", "academy", "api.php"]
             },
-            "description": "POST only. `subjects` and `hours` are JSON arrays (sent as text). Sending `subjects`/`hours` replaces the whole set. Working hours must not overlap. dayofweek: 0=Sun .. 6=Sat; times HH:MM."
+            "description": "POST only. `subjects`, `years`, and `hours` are JSON arrays (sent as text). Sending any of them replaces the whole set. Working hours must not overlap. dayofweek: 0=Sun .. 6=Sat; times HH:MM.\n\n`years` example: [\"Year 10\",\"Year 11\",\"KG2\"]"
           }
         }
       ]
@@ -193,15 +194,18 @@
               "query": [
                 { "key": "function",   "value": "get_all_teachers" },
                 { "key": "token",      "value": "{{admin_token}}" },
-                { "key": "approved",   "value": "",  "disabled": true, "description": "1 = approved only, 0 = pending/rejected only, omit = all" },
-                { "key": "available",  "value": "",  "disabled": true, "description": "1 = available only, 0 = unavailable only, omit = all" },
-                { "key": "subject",    "value": "",  "disabled": true, "description": "partial match on any subject, e.g. Math" },
-                { "key": "search",     "value": "",  "disabled": true, "description": "partial match on firstname, lastname, or email" },
-                { "key": "page",       "value": "0", "disabled": true, "description": "0-based page index" },
-                { "key": "perpage",    "value": "20","disabled": true, "description": "results per page, max 200" }
+                { "key": "approved",    "value": "",  "disabled": true, "description": "1=approved only, 0=unapproved only, omit=all" },
+                { "key": "available",   "value": "",  "disabled": true, "description": "1=available only, 0=unavailable only, omit=all" },
+                { "key": "subject",     "value": "",  "disabled": true, "description": "partial match on any subject, e.g. Math" },
+                { "key": "year",        "value": "",  "disabled": true, "description": "partial match on year/grade level, e.g. Year 10" },
+                { "key": "courseid",    "value": "",  "disabled": true, "description": "teacher must be enrolled in this course (int)" },
+                { "key": "categoryid",  "value": "",  "disabled": true, "description": "teacher must teach in a course of this category (int)" },
+                { "key": "search",      "value": "",  "disabled": true, "description": "partial match on firstname, lastname, or email" },
+                { "key": "page",        "value": "0", "disabled": true, "description": "0-based page index" },
+                { "key": "perpage",     "value": "20","disabled": true, "description": "results per page, max 200" }
               ]
             },
-            "description": "Admin only (manageplatform). Returns all teachers regardless of approved/available status, including email.\n\nResponse: { total, page, perpage, teachers[] }\n\nAll filter params are optional — omit any you don't need."
+            "description": "Admin only (manageplatform). Returns all teachers regardless of approved/available status, including email.\n\nResponse: { total, page, perpage, teachers[] } — each teacher includes subjects[], years[], hours[].\n\nAll filter params are optional — omit any you don't need."
           }
         },
         {
@@ -238,6 +242,60 @@
               ]
             },
             "description": "Teachers who have at least one subject matching 'Math' (partial, case-insensitive)."
+          }
+        },
+        {
+          "name": "Get All Teachers — filter: by year/grade level",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&year=Year+10",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_all_teachers" },
+                { "key": "token",    "value": "{{admin_token}}" },
+                { "key": "year",     "value": "Year 10", "description": "partial, case-insensitive — also matches 'Year 10 Advanced'" }
+              ]
+            },
+            "description": "Teachers who have 'Year 10' in any of their saved year/grade levels."
+          }
+        },
+        {
+          "name": "Get All Teachers — filter: by course",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&courseid={{courseid}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function",  "value": "get_all_teachers" },
+                { "key": "token",     "value": "{{admin_token}}" },
+                { "key": "courseid",  "value": "{{courseid}}", "description": "Moodle course id" }
+              ]
+            },
+            "description": "Teachers who hold a teacher/editingteacher role assignment in the specified course."
+          }
+        },
+        {
+          "name": "Get All Teachers — filter: by category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&categoryid=1",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function",    "value": "get_all_teachers" },
+                { "key": "token",       "value": "{{admin_token}}" },
+                { "key": "categoryid",  "value": "1", "description": "Moodle course category id" }
+              ]
+            },
+            "description": "Teachers who teach in at least one course belonging to this category."
           }
         },
         {
@@ -283,17 +341,21 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&approved=1&available=1&subject=Math&page=0&perpage=20",
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&approved=1&available=1&subject=Math&year=Year+10&courseid={{courseid}}&page=0&perpage=20",
               "host": ["{{base_url}}"],
               "path": ["local", "academy", "api.php"],
               "query": [
-                { "key": "function",  "value": "get_all_teachers" },
-                { "key": "token",     "value": "{{admin_token}}" },
-                { "key": "approved",  "value": "1" },
-                { "key": "available", "value": "1" },
-                { "key": "subject",   "value": "Math" },
-                { "key": "page",      "value": "0" },
-                { "key": "perpage",   "value": "20" }
+                { "key": "function",   "value": "get_all_teachers" },
+                { "key": "token",      "value": "{{admin_token}}" },
+                { "key": "approved",   "value": "1" },
+                { "key": "available",  "value": "1" },
+                { "key": "subject",    "value": "Math" },
+                { "key": "year",       "value": "Year 10" },
+                { "key": "courseid",   "value": "{{courseid}}", "disabled": true },
+                { "key": "categoryid", "value": "1",            "disabled": true },
+                { "key": "search",     "value": "",             "disabled": true },
+                { "key": "page",       "value": "0" },
+                { "key": "perpage",    "value": "20" }
               ]
             },
             "description": "Combine any filters together. All are optional and AND-ed."
