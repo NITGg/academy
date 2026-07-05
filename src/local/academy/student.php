@@ -406,11 +406,12 @@ echo html_writer::script(<<<'JS'
   function packageCard(p,hasActive){
     var c=el('div',{class:'st-card'});
     c.appendChild(el('div',{class:'st-title'},esc(p.name)));
-    if(p.description){c.appendChild(el('div',{class:'st-meta'},esc(p.description)));}
-    var meta='<b>'+p.flex_count+'</b> Flex · <b>'+money(p.price)+'</b>';
+    c.appendChild(el('div',{class:'st-price',style:'font-size:1.3rem;font-weight:700;color:#084298'},money(p.price)+' EGP'));
+    var meta=p.flex_count+' Flex';
     meta += (Number(p.expiration_days)>0) ? (' · valid '+p.expiration_days+' days') : ' · never expires';
     c.appendChild(el('div',{class:'st-meta'},meta));
-    if(hasActive){c.appendChild(el('div',{class:'st-meta',style:'color:#856404'},'You already have an active package.'));}
+    if(p.description){c.appendChild(el('div',{class:'st-meta'},esc(p.description)));}
+    if(hasActive){c.appendChild(el('div',{class:'st-meta',style:'color:#856404;margin-top:.4rem'},'You already have an active package.'));}
     var actions=el('div',{class:'st-actions'});
     actions.appendChild(button('Buy package','btn-primary',function(){buyPackage(p);},hasActive));
     c.appendChild(actions);
