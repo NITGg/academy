@@ -1,0 +1,222 @@
+{
+  "info": {
+    "name": "Academy — Packages & Subscriptions Kashier Checkout",
+    "_postman_id": "academy-packages-subscriptions-kashier-v1",
+    "description": "Real-money Kashier checkout for Flex packages and subscriptions (local_academy + local_payments). Import this file into Postman.\n\nSetup: 1) run \"0. Login (get token)\" once — it saves the token into the {{token}} collection variable automatically. 2) Set {{packageid}} / {{subscriptionid}} to real ids (from the Academy_Packages / Academy_Subscriptions collections' \"Get Available\" requests). 3) Run \"Create ... Checkout\" — it auto-saves {{package_order_id}} / {{subscription_order_id}}. 4) Open the returned checkout_url in a browser and pay on Kashier (sandbox). 5) Run \"Verify ... Payment\".\n\nTwo different endpoints are used here:\n- create_package_checkout / create_subscription_checkout → {{base_url}}/local/academy/api.php (custom dispatcher, `token` param)\n- local_payments_verify_payment → {{base_url}}/webservice/rest/server.php (real Moodle web service, `wstoken` param) — same token value, different param name.\n\nSee docs/api/packages-subscriptions-kashier-mobile-guide.md for the full write-up.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8081", "type": "string" },
+    { "key": "token", "value": "f65e3a453f23cdf4f550dedc23fc2c31", "type": "string" },
+    { "key": "packageid", "value": "6", "type": "string" },
+    { "key": "subscriptionid", "value": "1", "type": "string" },
+    { "key": "package_order_id", "value": "", "type": "string", "description": "Populated automatically after Create Package Checkout" },
+    { "key": "subscription_order_id", "value": "", "type": "string", "description": "Populated automatically after Create Subscription Checkout" }
+  ],
+  "item": [
+    {
+      "name": "0. Login (get token)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var json = pm.response.json();",
+              "if (json && json.token) {",
+              "    pm.collectionVariables.set('token', json.token);",
+              "    console.log('Saved token to {{token}}');",
+              "} else {",
+              "    console.log('No token in response', json);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "username", "value": "STUDENT", "type": "text" },
+            { "key": "password", "value": "PASSWORD", "type": "text" },
+            { "key": "service", "value": "moodle_mobile_app", "type": "text" }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/login/token.php",
+          "host": ["{{base_url}}"],
+          "path": ["login", "token.php"]
+        },
+        "description": "Exchange username + password for a web-service token. The test script saves it into {{token}}. This same token is reused as {{token}} on api.php calls and as wstoken on webservice/rest/server.php calls below."
+      }
+    },
+    {
+      "name": "Packages — Kashier Checkout",
+      "item": [
+        {
+          "name": "Create Package Checkout (POST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.status === 'success' && json.data && json.data.order_id) {",
+                  "    pm.collectionVariables.set('package_order_id', json.data.order_id);",
+                  "    console.log('Saved order_id to {{package_order_id}}:', json.data.order_id);",
+                  "    console.log('Open this checkout_url to pay:', json.data.checkout_url);",
+                  "} else {",
+                  "    console.log('No order_id in response', json);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "create_package_checkout", "type": "text" },
+                { "key": "token", "value": "{{token}}", "type": "text" },
+                { "key": "packageid", "value": "{{packageid}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "POST only. Returns {data:{order_id, checkout_url, expires_at, provider, transaction_id}}. Fails with 'You already have an active package' if the one-active-package rule is hit. Re-running while a session is still pending returns the same order_id/checkout_url instead of creating a duplicate."
+          }
+        },
+        {
+          "name": "Verify Package Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "wstoken", "value": "{{token}}", "type": "text" },
+                { "key": "wsfunction", "value": "local_payments_verify_payment", "type": "text" },
+                { "key": "moodlewsrestformat", "value": "json", "type": "text" },
+                { "key": "order_id", "value": "{{package_order_id}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"]
+            },
+            "description": "Real Moodle web service (not api.php) — note wstoken/wsfunction params and the different path. Returns {success, status, courseid, enrolled}. For packages/subscriptions ignore courseid/enrolled (always 0/false); just check success + status === 'completed'. Usually just reads a result the Kashier webhook already wrote; falls back to an API check with Kashier if the webhook hasn't landed yet."
+          }
+        },
+        {
+          "name": "My Packages (after verify)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_my_packages&token={{token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_my_packages" },
+                { "key": "token", "value": "{{token}}" }
+              ]
+            },
+            "description": "Confirms the package shows status=active with the right flex balance after a successful checkout."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions — Kashier Checkout",
+      "item": [
+        {
+          "name": "Create Subscription Checkout (POST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.status === 'success' && json.data && json.data.order_id) {",
+                  "    pm.collectionVariables.set('subscription_order_id', json.data.order_id);",
+                  "    console.log('Saved order_id to {{subscription_order_id}}:', json.data.order_id);",
+                  "    console.log('Open this checkout_url to pay:', json.data.checkout_url);",
+                  "} else {",
+                  "    console.log('No order_id in response', json);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "function", "value": "create_subscription_checkout", "type": "text" },
+                { "key": "token", "value": "{{token}}", "type": "text" },
+                { "key": "subscriptionid", "value": "{{subscriptionid}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"]
+            },
+            "description": "POST only. Returns {data:{order_id, checkout_url, expires_at, provider, transaction_id}}. Fails with 'You already have an active subscription' if the one-active-subscription rule is hit."
+          }
+        },
+        {
+          "name": "Verify Subscription Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "wstoken", "value": "{{token}}", "type": "text" },
+                { "key": "wsfunction", "value": "local_payments_verify_payment", "type": "text" },
+                { "key": "moodlewsrestformat", "value": "json", "type": "text" },
+                { "key": "order_id", "value": "{{subscription_order_id}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"]
+            },
+            "description": "Real Moodle web service (not api.php). Returns {success, status, courseid, enrolled}. For subscriptions ignore courseid/enrolled; just check success + status === 'completed'. On success the student is enrolled into the plan's courses."
+          }
+        },
+        {
+          "name": "My Subscriptions (after verify)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_my_subscriptions&token={{token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_my_subscriptions" },
+                { "key": "token", "value": "{{token}}" }
+              ]
+            },
+            "description": "Confirms the subscription shows status=active with the enrolled courses after a successful checkout."
+          }
+        }
+      ]
+    }
+  ]
+}

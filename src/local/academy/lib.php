@@ -134,11 +134,11 @@ function local_academy_available_subscriptions_section() {
 .la-subs-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
 .la-subs-name{font-weight:700;font-size:1.2rem;color:#1c1d1f;margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
 .la-subs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
-.la-subs-courses{font-size:.86rem;color:#3c3c3c;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
-.la-subs-courses b{color:#1c1d1f}
-.la-subs-courses-label{margin-bottom:.5rem}
-.la-subs-courses-list{display:flex;flex-wrap:wrap;gap:.35rem}
-.la-subs-course-chip{max-width:100%;background:#f3eafe;color:#5a189a;border:1px solid #e3d3fb;border-radius:1rem;padding:.2rem .6rem;font-size:.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.la-subs-card--active{border-color:#a435f0;box-shadow:0 0 0 2px rgba(164,53,240,.28)}
+.la-subs-activebadge{align-self:flex-start;background:#1f9d55;color:#fff;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;position:relative;z-index:1}
+.la-subs-dates{font-size:.86rem;color:#3c3c3c;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
+.la-subs-dates-row{display:flex;justify-content:space-between;margin-top:.3rem}
+.la-subs-dates-row b{color:#1c1d1f}
 .la-subs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-top:.5rem}
 .la-subs-price{font-size:1.5rem;font-weight:800;color:#1c1d1f}
 .la-subs-price small{font-size:.8rem;font-weight:600;color:#6a6f73}
@@ -205,6 +205,7 @@ require([], function() {
         });
     }
     function money(n) { return Number(n || 0).toFixed(2); }
+    function fmtDate(ts) { if (!ts) { return '—'; } return new Date(ts * 1000).toLocaleDateString(); }
     function showMsg(t, k) {
         var m = document.getElementById('la-subs-msg');
         m.textContent = t; m.className = 'alert alert-' + (k || 'info'); m.style.display = 'block';
@@ -293,41 +294,37 @@ require([], function() {
         });
     }
 
-    function subCard(s, hasActive, idx) {
-        var card = el('div', {class: 'la-subs-card'});
+    function subCard(s, hasActive, idx, activeSub) {
+        var isActive = !!(activeSub && Number(activeSub.subscriptionid) === Number(s.id));
+        var card = el('div', {class: 'la-subs-card' + (isActive ? ' la-subs-card--active' : '')});
         var banner = el('div', {class: 'la-subs-banner', style: 'background:' + GRADS[idx % GRADS.length]});
-        banner.innerHTML = CAP + '<span class="la-subs-daysbadge">' + esc(s.duration_days) + ' days</span>';
+        banner.innerHTML = CAP + (isActive
+            ? '<span class="la-subs-activebadge">Active</span>'
+            : '<span class="la-subs-daysbadge">' + esc(s.duration_days) + ' days</span>');
         card.appendChild(banner);
 
         var body = el('div', {class: 'la-subs-body'});
         body.appendChild(el('div', {class: 'la-subs-name'}, esc(s.name)));
         if (s.description) { body.appendChild(el('div', {class: 'la-subs-desc'}, esc(s.description))); }
-        var courses = s.courses || [];
-        var n = courses.length;
-        var coursesBox = el('div', {class: 'la-subs-courses'});
-        if (n) {
-            coursesBox.appendChild(el('div', {class: 'la-subs-courses-label'},
-                '<b>' + n + '</b> course' + (n === 1 ? '' : 's') + ' included'));
-            var chips = el('div', {class: 'la-subs-courses-list'});
-            courses.forEach(function(c) {
-                chips.appendChild(el('span', {class: 'la-subs-course-chip', title: esc(c.fullname)}, esc(c.fullname)));
-            });
-            coursesBox.appendChild(chips);
-        } else {
-            coursesBox.appendChild(el('div', {class: 'la-subs-courses-label'}, 'Full course access'));
+
+        if (isActive) {
+            var datesBox = el('div', {class: 'la-subs-dates'});
+            datesBox.innerHTML =
+                '<div class="la-subs-dates-row"><span>Start date</span><b>' + esc(fmtDate(activeSub.timeactivated)) + '</b></div>' +
+                '<div class="la-subs-dates-row"><span>End date</span><b>' + (Number(activeSub.expires_at) > 0 ? esc(fmtDate(activeSub.expires_at)) : 'Never') + '</b></div>';
+            body.appendChild(datesBox);
         }
-        body.appendChild(coursesBox);
 
         var foot = el('div', {class: 'la-subs-foot'});
         foot.appendChild(el('div', {class: 'la-subs-price'}, esc(money(s.price)) + ' <small>EGP</small>'));
-        var btn = el('button', {type: 'button', class: 'la-subs-btn'}, hasActive ? 'Subscribed' : 'Subscribe');
+        var btn = el('button', {type: 'button', class: 'la-subs-btn'}, isActive ? 'Active' : (hasActive ? 'Subscribed' : 'Subscribe'));
         if (hasActive) { btn.disabled = true; } else { btn.onclick = function() { subscribe(s, btn); }; }
         foot.appendChild(btn);
         body.appendChild(foot);
 
         // Only one subscription can be active at a time — explain why the button is disabled
         // instead of leaving a greyed-out "Subscribed" with no context.
-        if (hasActive) {
+        if (hasActive && !isActive) {
             var INFO = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
             body.appendChild(el('div', {class: 'la-subs-note'},
                 INFO + '<span>You already have an active subscription. You can subscribe to this plan once your current subscription ends.</span>'));
@@ -340,9 +337,188 @@ require([], function() {
     Promise.all([apiGet('get_available_subscriptions'), apiGet('get_my_subscriptions')]).then(function(res) {
         var rows = res[0] || [], mine = res[1] || [];
         if (!rows.length) { return; } // nothing to sell — leave the section hidden
-        var hasActive = mine.some(function(s) { return s.status === 'active'; });
+        var activeSub = mine.filter(function(s) { return s.status === 'active'; })[0] || null;
+        var hasActive = !!activeSub;
         grid.innerHTML = '';
-        rows.forEach(function(s, i) { grid.appendChild(subCard(s, hasActive, i)); });
+        rows.forEach(function(s, i) { grid.appendChild(subCard(s, hasActive, i, activeSub)); });
+        sec.style.display = 'block';
+    }).catch(function() { /* keep the section hidden on any error */ });
+});
+JS;
+
+    $PAGE->requires->js_amd_inline($js);
+    return $section;
+}
+
+/**
+ * Build the front-page "Available packages" section: same Udemy/Coursera-style cards as the
+ * subscriptions section, but for Flex packages (see the "Packages & Flex" tab of student.php).
+ * Mints the same mobile web-service token; returns '' when it cannot be minted, so the section
+ * simply does not appear.
+ *
+ * @return string HTML to echo before the footer
+ */
+function local_academy_available_packages_section() {
+    global $DB, $CFG, $PAGE;
+
+    require_once($CFG->dirroot . '/webservice/lib.php');
+    try {
+        $service = $DB->get_record('external_services',
+            array('shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE), '*', MUST_EXIST);
+        $token = external_generate_token_for_current_user($service)->token;
+    } catch (\Exception $e) {
+        return '';
+    }
+
+    $heading = get_string('availpkgs_heading', 'local_academy');
+    $desc    = get_string('availpkgs_desc', 'local_academy');
+
+    // Scoped CSS (la-pkgs-* prefix keeps it away from la-subs-* and student.php's st-* styles).
+    $css = <<<CSS
+.la-pkgs{max-width:1280px;margin:3rem auto;padding:0 1rem}
+.la-pkgs-head{margin-bottom:1.5rem}
+.la-pkgs-title{font-size:1.7rem;font-weight:800;color:#1c1d1f;margin:0 0 .3rem}
+.la-pkgs-sub{color:#6a6f73;margin:0;font-size:1.02rem}
+.la-pkgs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;align-items:stretch}
+.la-pkgs-card{display:flex;flex-direction:column;height:100%;background:#fff;border:1px solid #e5e7eb;border-radius:1rem;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:transform .18s ease,box-shadow .18s ease}
+.la-pkgs-card:hover{transform:translateY(-6px);box-shadow:0 16px 32px rgba(0,0,0,.16)}
+.la-pkgs-banner{position:relative;height:190px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden}
+.la-pkgs-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.22),transparent 55%)}
+.la-pkgs-banner svg{width:52px;height:52px;opacity:.95;fill:#fff;position:relative;z-index:1}
+.la-pkgs-flexbadge{align-self:flex-start;background:rgba(255,255,255,.95);color:#1c1d1f;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;position:relative;z-index:1}
+.la-pkgs-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
+.la-pkgs-name{font-weight:700;font-size:1.2rem;color:#1c1d1f;margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
+.la-pkgs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
+.la-pkgs-meta{font-size:.86rem;color:#3c3c3c;margin-top:auto;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
+.la-pkgs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-top:.5rem}
+.la-pkgs-price{font-size:1.5rem;font-weight:800;color:#1c1d1f}
+.la-pkgs-price small{font-size:.8rem;font-weight:600;color:#6a6f73}
+.la-pkgs-btn{background:#0d6efd;border:none;color:#fff;font-weight:700;font-size:.95rem;padding:.7rem 1.4rem;border-radius:.5rem;cursor:pointer;transition:background .15s ease,transform .1s ease}
+.la-pkgs-btn:hover{background:#0b5ed7}
+.la-pkgs-btn:active{transform:scale(.97)}
+.la-pkgs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
+.la-pkgs-note{display:flex;align-items:flex-start;gap:.5rem;margin-top:.9rem;padding:.6rem .75rem;background:#fdf6ec;border:1px solid #f3d9a8;border-radius:.5rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
+.la-pkgs-note svg{width:16px;height:16px;flex-shrink:0;fill:#c07f00;margin-top:.05rem}
+CSS;
+
+    $section = html_writer::tag('style', $css) .
+        '<section id="la-pkgs" class="la-pkgs" style="display:none">' .
+            '<div class="la-pkgs-head">' .
+                html_writer::tag('h3', s($heading), array('class' => 'la-pkgs-title')) .
+                html_writer::tag('p', s($desc), array('class' => 'la-pkgs-sub')) .
+            '</div>' .
+            '<div id="la-pkgs-msg" class="alert" style="display:none"></div>' .
+            '<div id="la-pkgs-grid" class="la-pkgs-grid"></div>' .
+        '</section>';
+
+    $cfg = array(
+        'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
+        'token'    => $token,
+    );
+    $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
+
+    $js = <<<JS
+require([], function() {
+    var CFG = {$cfgjson};
+    var sec = document.getElementById('la-pkgs');
+    if (!sec || !CFG.token) { return; }
+    var grid = document.getElementById('la-pkgs-grid');
+
+    function el(tag, attrs, html) {
+        var e = document.createElement(tag);
+        for (var k in (attrs || {})) { e.setAttribute(k, attrs[k]); }
+        if (html != null) { e.innerHTML = html; }
+        return e;
+    }
+    function esc(v) {
+        return (v == null ? '' : String(v)).replace(/[&<>"]/g, function(c) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+        });
+    }
+    function money(n) { return Number(n || 0).toFixed(2); }
+    function showMsg(t, k) {
+        var m = document.getElementById('la-pkgs-msg');
+        m.textContent = t; m.className = 'alert alert-' + (k || 'info'); m.style.display = 'block';
+    }
+    function parse(r) {
+        return r.text().then(function(t) {
+            var j;
+            try { j = JSON.parse(t); } catch (e) { throw new Error('Session expired — reload the page.'); }
+            if (j.status !== 'success') { throw new Error(j.error || 'Request failed'); }
+            return j.data;
+        });
+    }
+    function apiGet(fn, params) {
+        var q = new URLSearchParams(Object.assign({function: fn, token: CFG.token}, params || {}));
+        return fetch(CFG.endpoint + '?' + q.toString()).then(parse);
+    }
+    function apiPost(fn, params) {
+        var body = new URLSearchParams(Object.assign({function: fn, token: CFG.token}, params || {}));
+        return fetch(CFG.endpoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: body.toString()
+        }).then(parse);
+    }
+
+    var GRADS = [
+        'linear-gradient(135deg,#0d6efd,#00d4ff)',
+        'linear-gradient(135deg,#fc4a1a,#f7b733)',
+        'linear-gradient(135deg,#0f2027,#2c5364)',
+        'linear-gradient(135deg,#f857a6,#ff5858)',
+        'linear-gradient(135deg,#00b09b,#96c93d)',
+        'linear-gradient(135deg,#7f00ff,#e100ff)'
+    ];
+    var BOLT = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.72 10.6 10.85 7.08 13 3.5h1l-1 7h4.5c.5 0 .5.33.36.61-.13.28-.08.19-.11.24C15.09 15.34 13 18.85 11 21z"/></svg>';
+
+    function subscribe(p, btn) {
+        if (!window.confirm('Buy "' + p.name + '" for ' + money(p.price) + ' EGP (' + p.flex_count + ' Flex)?')) { return; }
+        var orig = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Redirecting…';
+        apiPost('create_package_checkout', {packageid: p.id})
+            .then(function(d) { window.location.href = d.checkout_url; })
+            .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
+    }
+
+    function pkgCard(p, hasActive, idx) {
+        var card = el('div', {class: 'la-pkgs-card'});
+        var banner = el('div', {class: 'la-pkgs-banner', style: 'background:' + GRADS[idx % GRADS.length]});
+        banner.innerHTML = BOLT + '<span class="la-pkgs-flexbadge">' + esc(p.flex_count) + ' Flex</span>';
+        card.appendChild(banner);
+
+        var body = el('div', {class: 'la-pkgs-body'});
+        body.appendChild(el('div', {class: 'la-pkgs-name'}, esc(p.name)));
+        if (p.description) { body.appendChild(el('div', {class: 'la-pkgs-desc'}, esc(p.description))); }
+        var meta = el('div', {class: 'la-pkgs-meta'});
+        meta.innerHTML = (Number(p.expiration_days) > 0)
+            ? ('Valid for <b>' + esc(p.expiration_days) + '</b> days after activation')
+            : '<b>Never expires</b>';
+        body.appendChild(meta);
+
+        var foot = el('div', {class: 'la-pkgs-foot'});
+        foot.appendChild(el('div', {class: 'la-pkgs-price'}, esc(money(p.price)) + ' <small>EGP</small>'));
+        var btn = el('button', {type: 'button', class: 'la-pkgs-btn'}, hasActive ? 'Purchased' : 'Buy package');
+        if (hasActive) { btn.disabled = true; } else { btn.onclick = function() { subscribe(p, btn); }; }
+        foot.appendChild(btn);
+        body.appendChild(foot);
+
+        // Only one package can be active at a time — explain why the button is disabled.
+        if (hasActive) {
+            var INFO = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
+            body.appendChild(el('div', {class: 'la-pkgs-note'},
+                INFO + '<span>You already have an active package. You can buy a new one once it is fully used or expires.</span>'));
+        }
+
+        card.appendChild(body);
+        return card;
+    }
+
+    Promise.all([apiGet('get_available_packages'), apiGet('get_my_packages')]).then(function(res) {
+        var rows = res[0] || [], mine = res[1] || [];
+        if (!rows.length) { return; } // nothing to sell — leave the section hidden
+        var hasActive = mine.some(function(p) { return p.status === 'active'; });
+        grid.innerHTML = '';
+        rows.forEach(function(p, i) { grid.appendChild(pkgCard(p, hasActive, i)); });
         sec.style.display = 'block';
     }).catch(function() { /* keep the section hidden on any error */ });
 });
@@ -362,10 +538,11 @@ function local_academy_before_footer() {
     global $PAGE, $USER, $COURSE, $DB, $CFG;
     $output = '';
 
-    // 1. Front page "Available subscriptions" cards
+    // 1. Front page "Available subscriptions" cards, followed by "Available packages" cards.
     if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
         if (isloggedin() && !isguestuser() && $PAGE->pagetype === 'site-index') {
             $output .= local_academy_available_subscriptions_section();
+            $output .= local_academy_available_packages_section();
         }
     }
 

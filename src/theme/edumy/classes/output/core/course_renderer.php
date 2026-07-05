@@ -1408,8 +1408,40 @@ class course_renderer extends \core_course_renderer {
               }
               $output .= html_writer::end_tag('div'); // .courses
           }
+      } else {
+          // No enrolled courses yet — show a friendly empty state instead of hiding the
+          // whole "My courses" section (the caller only prints the section when this
+          // method returns non-empty output).
+          $output .= $this->edumy_my_courses_empty_state();
       }
       return $output;
+  }
+
+  /**
+   * Friendly empty state shown in place of the "My courses" section when the student has
+   * not enrolled in any course yet.
+   *
+   * @return string
+   */
+  private function edumy_my_courses_empty_state() {
+      $browseurl = new moodle_url('/course/index.php');
+
+      $css = <<<CSS
+.edumy-mycourses-empty{max-width:640px;margin:0 auto;padding:2.5rem 1.5rem;text-align:center}
+.edumy-mycourses-empty-icon{width:72px;height:72px;margin:0 auto 1rem;border-radius:50%;background:#f3eafe;color:#a435f0;display:flex;align-items:center;justify-content:center;font-size:2rem}
+.edumy-mycourses-empty h4{font-weight:700;color:#1c1d1f;margin:0 0 .5rem}
+.edumy-mycourses-empty p{color:#6a6f73;margin:0 0 1.25rem}
+.edumy-mycourses-empty-btn{display:inline-block;background:#a435f0;border:none;color:#fff;font-weight:700;padding:.7rem 1.6rem;border-radius:.5rem;text-decoration:none}
+.edumy-mycourses-empty-btn:hover{background:#8710d8;color:#fff;text-decoration:none}
+CSS;
+
+      return html_writer::tag('style', $css) .
+          html_writer::start_div('edumy-mycourses-empty') .
+          html_writer::div('<i class="fa fa-graduation-cap" aria-hidden="true"></i>', 'edumy-mycourses-empty-icon') .
+          html_writer::tag('h4', get_string('nomycoursesyet', 'theme_edumy')) .
+          html_writer::tag('p', get_string('nomycoursesyet_desc', 'theme_edumy')) .
+          html_writer::link($browseurl, get_string('browsecourses', 'theme_edumy'), array('class' => 'edumy-mycourses-empty-btn')) .
+          html_writer::end_div();
   }
 
   /**
