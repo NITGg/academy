@@ -709,3 +709,19 @@ JS;
     $PAGE->requires->js_amd_inline($js);
     return $output;
 }
+
+/**
+ * Build a { key => localised string } map for the given local_academy string keys, for injection
+ * into the browser as window.ACADEMY_STR. Placeholder strings (containing {$a...}) are returned
+ * verbatim so the JS side can interpolate them (see the strf() helper in the page scripts).
+ *
+ * @param array $keys list of string identifiers in the local_academy component
+ * @return array
+ */
+function local_academy_string_map(array $keys) {
+    $map = array();
+    foreach ($keys as $key) {
+        $map[$key] = get_string($key, 'local_academy');
+    }
+    return $map;
+}

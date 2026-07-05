@@ -57,8 +57,43 @@ Store the returned `token` and send it as a `token` param on every call below.
 - **Always send:** `function` + `token`.
 - **Response (valid token):** always JSON
   - Success → `{ "status": "success", "data": { ... } }`
+  - State-changing actions also include a localised `message`, e.g.
+    `{ "status": "success", "message": "Package created.", "data": { "packageid": 12 } }`
   - Failure → `{ "status": "fail", "error": "message" }`
 - ⚠️ **Invalid/expired token → HTML, not JSON** (see §7). Treat any non-JSON response as "auth failed".
+
+---
+
+## 3.1 Localization (`?lang`) & multilang content
+
+**System messages** (`error` and `message`) are localised. Add `lang=en` or `lang=ar` to any request
+and the response text comes back in that language:
+
+```
+GET {BASE_URL}/local/academy/api.php?function=get_packages&token=TOKEN&lang=ar
+```
+
+- Valid values: any installed language code (`en`, `ar`). Invalid/omitted → the caller's default language,
+  so existing clients are unaffected.
+- Applies to both `error` (failures) and the new `message` (successes).
+
+**Multilang content fields** (`name`, `description`). To offer a package name/description in more than
+one language, store a Moodle **multilang** value in the field — both language spans in one string:
+
+```
+<span lang="en" class="multilang">Gold Package</span><span lang="ar" class="multilang">الحزمة الذهبية</span>
+```
+
+Send that exact string as `name` when you `create_package` / `update_package` (the field accepts it).
+Behaviour on read:
+
+- **Admin reads** (`get_packages`, `get_package`) return the **raw** multilang string, so your admin
+  editor can show and edit every language.
+- **Student reads** (`get_available_packages`, `get_my_packages`, `get_payment_history`) return the
+  name/description already **resolved** to the request language (via `?lang=`), so the app shows a single
+  clean value.
+
+Requires the site **Multilingual content (multilang)** filter to be enabled and the Arabic language pack installed.
 
 ---
 

@@ -13,6 +13,12 @@ use local_academy\finance_manager;
 $type  = optional_param('type', '', PARAM_ALPHANUMEXT);
 $token = optional_param('token', '', PARAM_TEXT);
 
+// Optional ?lang=en|ar — resolve multilang content in the exported rows to the requested language.
+$lang = optional_param('lang', '', PARAM_LANG);
+if ($lang !== '') {
+    force_current_language($lang);
+}
+
 // Authenticate via web-service token (same pattern as api.php).
 $api = new webservice();
 try {

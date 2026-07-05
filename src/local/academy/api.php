@@ -22,7 +22,7 @@ use local_academy\report_manager;
 /** Reject non-POST for state-changing actions. */
 function academy_require_post() {
     if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-        academy_respond(['status' => 'fail', 'error' => 'This action requires POST']);
+        academy_respond(['status' => 'fail', 'error' => get_string('err_postrequired', 'local_academy')]);
     }
 }
 
@@ -61,9 +61,17 @@ function academy_respond($payload) {
 $function = optional_param('function', '', PARAM_ALPHANUMEXT);
 $token    = optional_param('token', '', PARAM_TEXT);
 
+// Optional ?lang=en|ar — render system messages (get_string) and multilang content (format_string)
+// in the requested language. Must run before any get_string()/format_string() call below. When
+// omitted or invalid, the caller's normal language is kept, so existing clients are unaffected.
+$lang = optional_param('lang', '', PARAM_LANG);
+if ($lang !== '') {
+    force_current_language($lang);
+}
+
 // ── Authenticate via web-service token (sets $USER to the token's user) ──
 if (empty($token)) {
-    academy_respond(['status' => 'fail', 'error' => 'Authentication required']);
+    academy_respond(['status' => 'fail', 'error' => get_string('err_authrequired', 'local_academy')]);
 }
 // Note: lib/setup.php already authenticates any ?token= globally (project core patch), so a bad
 // token errors out before reaching here. This block keeps behaviour correct if that ever changes.
@@ -72,10 +80,10 @@ try {
     $authresult = json_decode(json_encode($api->authenticate_user($token)), true);
     $userid = $authresult['user']['id'];
 } catch (Exception $e) {
-    academy_respond(['status' => 'fail', 'error' => 'Invalid token']);
+    academy_respond(['status' => 'fail', 'error' => get_string('err_invalidtoken', 'local_academy')]);
 }
 if (empty($userid)) {
-    academy_respond(['status' => 'fail', 'error' => 'Authentication required']);
+    academy_respond(['status' => 'fail', 'error' => get_string('err_authrequired', 'local_academy')]);
 }
 
 // ── Capability gate: admin-only functions map to a capability; others only need a valid token ──
@@ -116,7 +124,7 @@ $capmap = [
     'get_all_teachers'       => 'local/academy:manageplatform',
 ];
 if (isset($capmap[$function]) && !has_capability($capmap[$function], context_system::instance())) {
-    academy_respond(['status' => 'fail', 'error' => 'Permission denied']);
+    academy_respond(['status' => 'fail', 'error' => get_string('err_permissiondenied', 'local_academy')]);
 }
 
 try {
@@ -132,7 +140,7 @@ try {
                 'expiration_days' => optional_param('expiration_days', 0, PARAM_INT),
                 'active'          => optional_param('active', 1, PARAM_BOOL),
             ], $userid);
-            academy_respond(['status' => 'success', 'data' => ['packageid' => $packageid]]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_package_created', 'local_academy'), 'data' => ['packageid' => $packageid]]);
             break;
 
         // US-AD-1-2
@@ -156,27 +164,27 @@ try {
                 $data['price'] = required_param('price', PARAM_FLOAT);
             }
             package_manager::update_package($id, $data, $userid);
-            academy_respond(['status' => 'success', 'data' => ['id' => $id]]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_package_updated', 'local_academy'), 'data' => ['id' => $id]]);
             break;
 
         // US-AD-1-3
         case 'deactivate_package':
             $id = required_param('id', PARAM_INT);
             package_manager::deactivate_package($id, $userid);
-            academy_respond(['status' => 'success', 'data' => ['id' => $id, 'status' => 'inactive']]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_package_deactivated', 'local_academy'), 'data' => ['id' => $id, 'status' => 'inactive']]);
             break;
 
         case 'activate_package':
             $id = required_param('id', PARAM_INT);
             package_manager::activate_package($id, $userid);
-            academy_respond(['status' => 'success', 'data' => ['id' => $id, 'status' => 'active']]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_package_activated', 'local_academy'), 'data' => ['id' => $id, 'status' => 'active']]);
             break;
 
         // US-AD-1-4
         case 'delete_package':
             $id = required_param('id', PARAM_INT);
             package_manager::delete_package($id);
-            academy_respond(['status' => 'success', 'data' => ['id' => $id, 'deleted' => true]]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_package_deleted', 'local_academy'), 'data' => ['id' => $id, 'deleted' => true]]);
             break;
 
         // Helpers (listing / single fetch) — handy for the admin UI and testing.
@@ -199,7 +207,7 @@ try {
             $purchaseid = required_param('purchaseid', PARAM_INT);
             $refund = optional_param('refund', 0, PARAM_BOOL);
             purchase_manager::unassign_package($purchaseid, $refund, $userid);
-            academy_respond(['status' => 'success', 'data' => true]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_package_unassigned', 'local_academy'), 'data' => true]);
             break;
 
         // ── Subscriptions: admin plan CRUD (US-AD-5-*, managesubscriptions) ──
@@ -373,18 +381,18 @@ try {
         case 'purchase_package':
             // Purchasing changes state + records a payment — require POST (not a safe GET).
             if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-                academy_respond(['status' => 'fail', 'error' => 'This action requires POST']);
+                academy_respond(['status' => 'fail', 'error' => get_string('err_postrequired', 'local_academy')]);
             }
             $packageid = required_param('packageid', PARAM_INT);
             $method    = optional_param('method', 'online', PARAM_ALPHANUMEXT);
             $reference = optional_param('reference', '', PARAM_TEXT);
-            academy_respond(['status' => 'success',
+            academy_respond(['status' => 'success', 'message' => get_string('msg_package_purchased', 'local_academy'),
                 'data' => purchase_manager::purchase_package($userid, $packageid, $method, $reference)]);
             break;
 
         case 'create_package_checkout':
             if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-                academy_respond(['status' => 'fail', 'error' => 'This action requires POST']);
+                academy_respond(['status' => 'fail', 'error' => get_string('err_postrequired', 'local_academy')]);
             }
             $packageid = required_param('packageid', PARAM_INT);
             require_once($CFG->dirroot . '/local/payments/classes/manager.php');
@@ -446,7 +454,7 @@ try {
         // ── Teacher profile (US-TR-1-1) ──
         case 'update_teacher_profile': // teacher edits own profile
             if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-                academy_respond(['status' => 'fail', 'error' => 'This action requires POST']);
+                academy_respond(['status' => 'fail', 'error' => get_string('err_postrequired', 'local_academy')]);
             }
             $data = [];
             $data['phone'] = required_param('phone', PARAM_TEXT);
@@ -725,7 +733,7 @@ try {
             break;
 
         default:
-            academy_respond(['status' => 'fail', 'error' => 'Unknown function']);
+            academy_respond(['status' => 'fail', 'error' => get_string('err_unknownfunction', 'local_academy')]);
     }
 } catch (Exception $e) {
     academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
