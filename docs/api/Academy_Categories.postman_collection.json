@@ -1,0 +1,279 @@
+{
+  "info": {
+    "name": "Academy — Categories",
+    "_postman_id": "academy-categories-v1",
+    "description": "All category-related API calls for the Academy platform.\n\nCovers:\n- Moodle core: core_course_get_categories (list / filter / nested)\n- Academy custom: get_categories_with_courses (admin, with subscription access info)\n\nSetup: run Login as Admin first — it saves the token into {{admin_token}}.\n\nVariables: base_url, admin_token, category_id (set after you find a real one).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",    "value": "http://localhost:8081", "type": "string" },
+    { "key": "admin_token", "value": "",                      "type": "string" },
+    { "key": "category_id", "value": "1",                     "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j && j.token) { pm.collectionVariables.set('admin_token', j.token); console.log('admin_token saved'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "admin",             "type": "text" },
+                { "key": "password", "value": "123456",            "type": "text" },
+                { "key": "service",  "value": "moodle_mobile_app", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/login/token.php",
+              "host": ["{{base_url}}"],
+              "path": ["login", "token.php"]
+            },
+            "description": "Logs in as admin and saves the token into {{admin_token}}."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Core Moodle — core_course_get_categories",
+      "item": [
+
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wsfunction=core_course_get_categories&wstoken={{admin_token}}&moodlewsrestformat=json",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wsfunction",        "value": "core_course_get_categories" },
+                { "key": "wstoken",           "value": "{{admin_token}}" },
+                { "key": "moodlewsrestformat","value": "json" }
+              ]
+            },
+            "description": "Returns every category in the site (including nested). No filter = all categories.\n\nResponse fields per category:\n- id, name, idnumber, description, parent, sortorder, coursecount, visible, depth, path"
+          }
+        },
+
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wsfunction=core_course_get_categories&wstoken={{admin_token}}&moodlewsrestformat=json&criteria[0][key]=id&criteria[0][value]={{category_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wsfunction",        "value": "core_course_get_categories" },
+                { "key": "wstoken",           "value": "{{admin_token}}" },
+                { "key": "moodlewsrestformat","value": "json" },
+                { "key": "criteria[0][key]",  "value": "id" },
+                { "key": "criteria[0][value]","value": "{{category_id}}" }
+              ]
+            },
+            "description": "Fetch a single category by its id. Set {{category_id}} in the collection variables."
+          }
+        },
+
+        {
+          "name": "Get Category by Name",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wsfunction=core_course_get_categories&wstoken={{admin_token}}&moodlewsrestformat=json&criteria[0][key]=name&criteria[0][value]=Mathematics",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wsfunction",        "value": "core_course_get_categories" },
+                { "key": "wstoken",           "value": "{{admin_token}}" },
+                { "key": "moodlewsrestformat","value": "json" },
+                { "key": "criteria[0][key]",  "value": "name" },
+                { "key": "criteria[0][value]","value": "Mathematics" }
+              ]
+            },
+            "description": "Filter categories by exact name. Change the value to match your category name."
+          }
+        },
+
+        {
+          "name": "Get Children of a Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wsfunction=core_course_get_categories&wstoken={{admin_token}}&moodlewsrestformat=json&criteria[0][key]=parent&criteria[0][value]={{category_id}}&addsubcategories=1",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wsfunction",        "value": "core_course_get_categories" },
+                { "key": "wstoken",           "value": "{{admin_token}}" },
+                { "key": "moodlewsrestformat","value": "json" },
+                { "key": "criteria[0][key]",  "value": "parent" },
+                { "key": "criteria[0][value]","value": "{{category_id}}" },
+                { "key": "addsubcategories",  "value": "1" }
+              ]
+            },
+            "description": "Returns all direct children (and their descendants if addsubcategories=1) of the given parent category id."
+          }
+        },
+
+        {
+          "name": "Get Visible Categories Only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wsfunction=core_course_get_categories&wstoken={{admin_token}}&moodlewsrestformat=json&criteria[0][key]=visible&criteria[0][value]=1",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wsfunction",        "value": "core_course_get_categories" },
+                { "key": "wstoken",           "value": "{{admin_token}}" },
+                { "key": "moodlewsrestformat","value": "json" },
+                { "key": "criteria[0][key]",  "value": "visible" },
+                { "key": "criteria[0][value]","value": "1" }
+              ]
+            },
+            "description": "Returns only categories that are visible to students (visible=1). Use visible=0 for hidden categories."
+          }
+        },
+
+        {
+          "name": "Get Top-Level Categories Only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webservice/rest/server.php?wsfunction=core_course_get_categories&wstoken={{admin_token}}&moodlewsrestformat=json&criteria[0][key]=parent&criteria[0][value]=0&addsubcategories=0",
+              "host": ["{{base_url}}"],
+              "path": ["webservice", "rest", "server.php"],
+              "query": [
+                { "key": "wsfunction",        "value": "core_course_get_categories" },
+                { "key": "wstoken",           "value": "{{admin_token}}" },
+                { "key": "moodlewsrestformat","value": "json" },
+                { "key": "criteria[0][key]",  "value": "parent" },
+                { "key": "criteria[0][value]","value": "0" },
+                { "key": "addsubcategories",  "value": "0" }
+              ]
+            },
+            "description": "parent=0 means root-level categories only. addsubcategories=0 prevents nesting — gives a flat list of top-level categories."
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "Academy Custom — get_categories_with_courses",
+      "item": [
+
+        {
+          "name": "Get All Categories with Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_categories_with_courses&token={{admin_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function", "value": "get_categories_with_courses" },
+                { "key": "token",    "value": "{{admin_token}}" }
+              ]
+            },
+            "description": "Academy custom endpoint (admin only — managesubscriptions).\n\nReturns all categories, each with:\n- id, name\n- courses[]: id, fullname, shortname, subscriptionid (0 = all-access)\n\nUsed to configure which subscription unlocks which course."
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "Filter Teachers by Category",
+      "item": [
+
+        {
+          "name": "Get Teachers in Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&categoryid={{category_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function",    "value": "get_all_teachers" },
+                { "key": "token",       "value": "{{admin_token}}" },
+                { "key": "categoryid",  "value": "{{category_id}}" }
+              ]
+            },
+            "description": "Returns all teachers who teach at least one course inside the given category.\nRequires admin token."
+          }
+        },
+
+        {
+          "name": "Get Teachers in Category + Subject Filter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&categoryid={{category_id}}&subject=Math",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function",   "value": "get_all_teachers" },
+                { "key": "token",      "value": "{{admin_token}}" },
+                { "key": "categoryid", "value": "{{category_id}}" },
+                { "key": "subject",    "value": "Math" }
+              ]
+            },
+            "description": "Teachers inside the category who also teach the given subject."
+          }
+        },
+
+        {
+          "name": "Get Teachers in Category + Year Filter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/local/academy/api.php?function=get_all_teachers&token={{admin_token}}&categoryid={{category_id}}&year=Year+10",
+              "host": ["{{base_url}}"],
+              "path": ["local", "academy", "api.php"],
+              "query": [
+                { "key": "function",   "value": "get_all_teachers" },
+                { "key": "token",      "value": "{{admin_token}}" },
+                { "key": "categoryid", "value": "{{category_id}}" },
+                { "key": "year",       "value": "Year 10" }
+              ]
+            },
+            "description": "Teachers inside the category who teach the given year/grade level."
+          }
+        }
+
+      ]
+    }
+
+  ]
+}
