@@ -127,6 +127,14 @@ class teacher_manager {
      * @param array $filters  approved (0|1|''), available (0|1|''), subject, search, page, perpage
      * @return array          { total, page, perpage, teachers[] }
      */
+
+    /** All distinct year/grade levels saved across all teacher profiles, sorted alphabetically. */
+    public static function get_years() {
+        global $DB;
+        $rows = $DB->get_records_sql('SELECT DISTINCT year FROM {academy_teacher_years} ORDER BY year ASC');
+        return array_values(array_column(array_map(function($r) { return (array)$r; }, $rows), 'year'));
+    }
+
     public static function get_all_teachers(array $filters = []) {
         global $DB;
 
