@@ -23,6 +23,10 @@ $string['configtitle'] = 'Edumy settings';
 $string['choosereadme'] = 'Edumy Premium Moodle Theme, Created by Cocoon.';
 $string['ccn_settings_menu'] = 'Options';
 $string['ccn_page_settings_menu'] = 'Page Settings';
+// Frontpage "My courses" empty state.
+$string['nomycoursesyet'] = "You haven't enrolled in any courses yet";
+$string['nomycoursesyet_desc'] = 'Browse our course catalogue and start learning today.';
+$string['browsecourses'] = 'Browse courses';
 // CCN Plugin Constants: Backend
 $string['config_title'] = 'Title';
 $string['config_title_desc'] = 'The main title to use for the item.';
