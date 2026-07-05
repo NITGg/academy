@@ -244,36 +244,47 @@ echo html_writer::script(<<<'JS'
     }
 
     // ── Multilang helpers ──────────────────────────────────────────────────────
-    // The DB keeps a SINGLE name/description field. To hold two languages in it we use Moodle's
-    // multilang markup: <span lang="en" class="multilang">…</span><span lang="ar" class="multilang">…</span>.
+    // The DB keeps a SINGLE name/description field. To hold two languages in it we use the site's
+    // active "Multi-Language Content (v2)" filter syntax: {mlang en}…{mlang}{mlang ar}…{mlang}.
     // These helpers let the admin edit two clean boxes (EN / AR) that map to that one field.
 
-    // Pull the {en, ar} values out of a stored multilang string. A plain value (no spans) is treated
-    // as the English text so legacy/simple entries still load into the form.
+    // Pull the {en, ar} values out of a stored multilang string. Understands both the v2 {mlang}
+    // syntax and the legacy core <span class="multilang"> syntax (so older entries still load).
+    // A plain value (no markup) is treated as the English text.
     function parseMultilang(value) {
         var out = { en: '', ar: '' };
         var raw = String(value == null ? '' : value);
-        var re = /<span[^>]*\bclass\s*=\s*"[^"]*\bmultilang\b[^"]*"[^>]*\blang\s*=\s*"([a-zA-Z0-9_-]+)"[^>]*>([\s\S]*?)<\/span>|<span[^>]*\blang\s*=\s*"([a-zA-Z0-9_-]+)"[^>]*\bclass\s*=\s*"[^"]*\bmultilang\b[^"]*"[^>]*>([\s\S]*?)<\/span>/g;
         var m, found = false;
-        while ((m = re.exec(raw)) !== null) {
+
+        // v2 syntax: {mlang en}…{mlang}
+        var re2 = /\{\s*mlang\s+([a-zA-Z0-9_-]+)\s*\}([\s\S]*?)\{\s*mlang\s*\}/g;
+        while ((m = re2.exec(raw)) !== null) {
             found = true;
-            var code = (m[1] || m[3] || '').toLowerCase();
-            var text = (m[1] ? m[2] : m[4]);
-            if (code.indexOf('ar') === 0) { out.ar = text; }
-            else if (code.indexOf('en') === 0) { out.en = text; }
+            var code2 = m[1].toLowerCase();
+            if (code2.indexOf('ar') === 0) { out.ar = m[2].trim(); }
+            else if (code2.indexOf('en') === 0) { out.en = m[2].trim(); }
+        }
+        if (found) { return out; }
+
+        // Legacy core syntax: <span lang="xx" class="multilang">…</span>
+        var re1 = /<span[^>]*\blang\s*=\s*"([a-zA-Z0-9_-]+)"[^>]*>([\s\S]*?)<\/span>/g;
+        while ((m = re1.exec(raw)) !== null) {
+            found = true;
+            var code1 = m[1].toLowerCase();
+            if (code1.indexOf('ar') === 0) { out.ar = m[2].trim(); }
+            else if (code1.indexOf('en') === 0) { out.en = m[2].trim(); }
         }
         if (!found) { out.en = raw; } // plain text → English box
         return out;
     }
 
-    // Combine the two boxes back into one field value. Two langs → multilang spans; a single lang →
-    // plain text (so it still works even when the multilang filter is off); both empty → ''.
+    // Combine the two boxes back into one field value. Two langs → {mlang} blocks; a single lang →
+    // plain text (so it still shows even if the filter is off); both empty → ''.
     function buildMultilang(en, ar) {
         en = String(en == null ? '' : en).trim();
         ar = String(ar == null ? '' : ar).trim();
         if (en && ar) {
-            return '<span lang="en" class="multilang">' + en + '</span>' +
-                   '<span lang="ar" class="multilang">' + ar + '</span>';
+            return '{mlang en}' + en + '{mlang}{mlang ar}' + ar + '{mlang}';
         }
         return en || ar;
     }

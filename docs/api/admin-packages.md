@@ -78,10 +78,11 @@ GET {BASE_URL}/local/academy/api.php?function=get_packages&token=TOKEN&lang=ar
 - Applies to both `error` (failures) and the new `message` (successes).
 
 **Multilang content fields** (`name`, `description`). To offer a package name/description in more than
-one language, store a Moodle **multilang** value in the field — both language spans in one string:
+one language, store a **multilang** value in the field — both languages in one string, using the
+**Multi-Language Content (v2)** filter syntax the site runs:
 
 ```
-<span lang="en" class="multilang">Gold Package</span><span lang="ar" class="multilang">الحزمة الذهبية</span>
+{mlang en}Gold Package{mlang}{mlang ar}الحزمة الذهبية{mlang}
 ```
 
 Send that exact string as `name` when you `create_package` / `update_package` (the field accepts it).
@@ -93,7 +94,7 @@ Behaviour on read:
   name/description already **resolved** to the request language (via `?lang=`), so the app shows a single
   clean value.
 
-Requires the site **Multilingual content (multilang)** filter to be enabled and the Arabic language pack installed.
+Requires the site **Multi-Language Content (v2)** filter (`filter_multilang2`) to be enabled and the Arabic language pack installed.
 
 ---
 

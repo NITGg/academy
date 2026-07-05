@@ -185,6 +185,7 @@ CSS;
     $cfg = array(
         'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
         'token'    => $token,
+        'lang'     => current_language(),
     );
     $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
 
@@ -221,11 +222,13 @@ require([], function() {
         });
     }
     function apiGet(fn, params) {
-        var q = new URLSearchParams(Object.assign({function: fn, token: CFG.token}, params || {}));
+        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.lang = CFG.lang; }
+        var q = new URLSearchParams(Object.assign(base, params || {}));
         return fetch(CFG.endpoint + '?' + q.toString()).then(parse);
     }
     function apiPost(fn, params) {
-        var body = new URLSearchParams(Object.assign({function: fn, token: CFG.token}, params || {}));
+        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.lang = CFG.lang; }
+        var body = new URLSearchParams(Object.assign(base, params || {}));
         return fetch(CFG.endpoint, {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -432,6 +435,7 @@ CSS;
     $cfg = array(
         'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
         'token'    => $token,
+        'lang'     => current_language(),
     );
     $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
 
@@ -468,11 +472,13 @@ require([], function() {
         });
     }
     function apiGet(fn, params) {
-        var q = new URLSearchParams(Object.assign({function: fn, token: CFG.token}, params || {}));
+        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.lang = CFG.lang; }
+        var q = new URLSearchParams(Object.assign(base, params || {}));
         return fetch(CFG.endpoint + '?' + q.toString()).then(parse);
     }
     function apiPost(fn, params) {
-        var body = new URLSearchParams(Object.assign({function: fn, token: CFG.token}, params || {}));
+        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.lang = CFG.lang; }
+        var body = new URLSearchParams(Object.assign(base, params || {}));
         return fetch(CFG.endpoint, {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},

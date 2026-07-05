@@ -13,7 +13,7 @@ class purchase_manager {
 
     /** US-PK-1-1: active packages a student can buy. */
     public static function get_available_packages() {
-        // Resolve any multilang content (admin may store <span class="multilang">…</span> in the
+        // Resolve any multilang content (admin may store {mlang en}…{mlang}{mlang ar}…{mlang} in the
         // name/description) to the current language before it reaches the student app/UI. Admin
         // listings (package_manager::get_packages) stay raw so admins can still edit both languages.
         $packages = package_manager::get_packages(package_manager::STATUS_ACTIVE);

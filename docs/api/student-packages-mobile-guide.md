@@ -66,7 +66,8 @@ POST … purchase_package … &lang=ar
 - Pass the device/app language (`en` or `ar`). Omit it and the user's saved Moodle language is used —
   so older app versions keep working unchanged.
 - Package `name` / `description` are returned already resolved to `lang` (admins may author them as
-  Moodle multilang content — both languages stored in one field). No client-side language handling needed.
+  multilang content — `{mlang en}…{mlang}{mlang ar}…{mlang}` — both languages in one field). No
+  client-side language handling needed.
 
 ---
 
