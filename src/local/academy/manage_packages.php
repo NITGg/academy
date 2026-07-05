@@ -82,7 +82,73 @@ echo html_writer::script('window.ACADEMY_PKG = ' . json_encode(array(
             <button id="pkg-cancel" class="btn btn-link">Cancel</button>
         </div>
     </div>
+
+    <!-- ── User Packages ── -->
+    <h4 class="mt-4">User Packages</h4>
+    <p class="text-muted">Manage active and expired user packages.</p>
+    <button id="refresh-users" class="btn btn-secondary mb-2">Refresh</button>
+    <table class="table table-striped" id="users-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Package</th>
+                <th>Flex</th>
+                <th>Price Paid</th>
+                <th>Status</th>
+                <th>Expires At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody><tr><td colspan="7">Loading...</td></tr></tbody>
+    </table>
+
+    <!-- ── Unassign confirmation modal ── -->
+    <div id="unassign-modal-backdrop" class="academy-modal-backdrop" style="display:none;">
+        <div class="academy-modal">
+            <h5 class="academy-modal-title">Unassign package</h5>
+            <p id="unassign-modal-text"></p>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="unassign-refund-checkbox">
+                <label class="form-check-label" for="unassign-refund-checkbox">
+                    Refund payment to student <span class="text-muted">(optional)</span>
+                </label>
+            </div>
+            <div class="academy-modal-actions">
+                <button id="unassign-modal-cancel" class="btn btn-link">Cancel</button>
+                <button id="unassign-modal-confirm" class="btn btn-danger">Unassign</button>
+            </div>
+        </div>
+    </div>
 </div>
+<style>
+    .academy-modal-backdrop {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+    }
+    .academy-modal {
+        background: #fff;
+        border-radius: 10px;
+        padding: 1.5rem;
+        max-width: 440px;
+        width: 90%;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+    }
+    .academy-modal-title {
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+    }
+    .academy-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        margin-top: 1.25rem;
+    }
+</style>
 <?php
 
 echo html_writer::script(<<<'JS'
@@ -100,11 +166,19 @@ echo html_writer::script(<<<'JS'
     }
 
     // Call the package API. Resolves with `data`, rejects with an Error(message).
-    function api(func, params) {
+    function api(func, params, method) {
         params = params || {};
-        var qs = new URLSearchParams({ function: func, token: CFG.token });
-        Object.keys(params).forEach(function (k) { qs.append(k, params[k]); });
-        return fetch(CFG.endpoint + '?' + qs.toString())
+        method = method || 'GET';
+        var data = new URLSearchParams({ function: func, token: CFG.token });
+        Object.keys(params).forEach(function (k) { data.append(k, params[k]); });
+        var opts, url = CFG.endpoint;
+        if (method === 'POST') {
+            opts = { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: data.toString() };
+        } else {
+            url = CFG.endpoint + '?' + data.toString();
+            opts = {};
+        }
+        return fetch(url, opts)
             .then(function (r) { return r.text(); })
             .then(function (text) {
                 var json;
@@ -212,7 +286,83 @@ echo html_writer::script(<<<'JS'
     $('pkg-save').addEventListener('click', save);
     $('pkg-cancel').addEventListener('click', hideForm);
 
+    // ── User Packages ──
+    function loadUsers() {
+        var tbody = $('users-table').querySelector('tbody');
+        tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
+        api('get_all_user_packages').then(function(rows) {
+            if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7">No user packages found.</td></tr>'; return; }
+            tbody.innerHTML = '';
+            rows.forEach(function(r) {
+                var tr = document.createElement('tr');
+                var toggle = '';
+                if (r.status === 'active') {
+                    toggle = '<button class="btn btn-sm btn-danger btn-unassign" data-id="' + r.id + '">Unassign</button>';
+                }
+                var expires = r.expires_at > 0 ? new Date(r.expires_at * 1000).toLocaleString() : 'Never';
+                tr.innerHTML =
+                    '<td>' + esc(r.user_fullname) + ' <br><small class="text-muted">' + esc(r.user_email) + '</small></td>' +
+                    '<td>' + esc(r.name) + '</td>' +
+                    '<td>' + esc(r.remaining_flex) + ' / ' + esc(r.total_flex) + '</td>' +
+                    '<td>' + esc(r.price_paid) + '</td>' +
+                    '<td>' + esc(r.status) + '</td>' +
+                    '<td>' + expires + '</td>' +
+                    '<td>' + toggle + '</td>';
+                tr._row = r;
+                tbody.appendChild(tr);
+            });
+        }).catch(function(e) { msg(e.message, 'danger'); });
+    }
+
+    // ── Unassign confirmation modal ──
+    var pendingUnassign = null;
+
+    function openUnassignModal(row) {
+        pendingUnassign = row;
+        var priceText = row.price_paid ? (' — <strong>' + esc(row.price_paid) + '</strong> paid') : '';
+        $('unassign-modal-text').innerHTML =
+            'Unassign <strong>' + esc(row.name) + '</strong> from <strong>' + esc(row.user_fullname) + '</strong>' +
+            priceText + '? This cannot be undone.';
+        $('unassign-refund-checkbox').checked = false;
+        $('unassign-modal-backdrop').style.display = 'flex';
+    }
+
+    function closeUnassignModal() {
+        pendingUnassign = null;
+        $('unassign-modal-backdrop').style.display = 'none';
+    }
+
+    $('users-table').addEventListener('click', function(ev) {
+        var btn = ev.target.closest('.btn-unassign');
+        if (!btn) return;
+        openUnassignModal(btn.closest('tr')._row);
+    });
+
+    $('unassign-modal-cancel').addEventListener('click', closeUnassignModal);
+    $('unassign-modal-backdrop').addEventListener('click', function(ev) {
+        if (ev.target === this) { closeUnassignModal(); }
+    });
+    document.addEventListener('keydown', function(ev) {
+        if (ev.key === 'Escape' && $('unassign-modal-backdrop').style.display !== 'none') { closeUnassignModal(); }
+    });
+    $('unassign-modal-confirm').addEventListener('click', function() {
+        var row = pendingUnassign;
+        if (!row) { return; }
+        var refund = $('unassign-refund-checkbox').checked;
+        api('unassign_package', {
+            purchaseid: row.id,
+            refund: refund ? 1 : 0
+        }, 'POST').then(function() {
+            msg('Package unassigned successfully.', 'success');
+            closeUnassignModal();
+            loadUsers();
+        }).catch(function(e) { msg(e.message, 'danger'); });
+    });
+
+    $('refresh-users').addEventListener('click', loadUsers);
+
     loadPackages();
+    loadUsers();
 })();
 JS
 );

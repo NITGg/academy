@@ -87,6 +87,8 @@ $capmap = [
     'delete_package'       => 'local/academy:managepackages',
     'get_packages'         => 'local/academy:managepackages',
     'get_package'          => 'local/academy:managepackages',
+    'get_all_user_packages' => 'local/academy:managepackages',
+    'unassign_package'     => 'local/academy:managepackages',
     'create_subscription'      => 'local/academy:managesubscriptions',
     'update_subscription'      => 'local/academy:managesubscriptions',
     'deactivate_subscription'  => 'local/academy:managesubscriptions',
@@ -186,6 +188,18 @@ try {
         case 'get_package':
             $id = required_param('id', PARAM_INT);
             academy_respond(['status' => 'success', 'data' => package_manager::get_package($id)]);
+            break;
+
+        case 'get_all_user_packages':
+            academy_respond(['status' => 'success', 'data' => purchase_manager::get_all_user_packages()]);
+            break;
+
+        case 'unassign_package':
+            academy_require_post();
+            $purchaseid = required_param('purchaseid', PARAM_INT);
+            $refund = optional_param('refund', 0, PARAM_BOOL);
+            purchase_manager::unassign_package($purchaseid, $refund, $userid);
+            academy_respond(['status' => 'success', 'data' => true]);
             break;
 
         // ── Subscriptions: admin plan CRUD (US-AD-5-*, managesubscriptions) ──

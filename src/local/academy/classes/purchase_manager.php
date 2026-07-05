@@ -248,6 +248,78 @@ class purchase_manager {
         return $out;
     }
 
+    /** Admin: unassign (cancel) a specific user's package purchase. Mirrors
+     * {@see subscription_purchase_manager::unsubscribe_user}. */
+    public static function unassign_package($purchaseid, $refund, $adminid) {
+        global $DB;
+        $purchase = $DB->get_record('academy_package_purchases', array('id' => $purchaseid));
+        if (!$purchase) {
+            throw new \moodle_exception('err_notfound', 'local_academy');
+        }
+
+        $now = time();
+        $transaction = $DB->start_delegated_transaction();
+
+        // Zero out any remaining flex balance so it can no longer be spent, and log it.
+        flex_manager::log_revoke($purchase->userid, $purchase->id, $adminid,
+            'Unassigned by admin: ' . $adminid);
+
+        $update = new \stdClass();
+        $update->id = $purchase->id;
+        $update->status = 'cancelled';
+        $update->expires_at = $now;
+        $DB->update_record('academy_package_purchases', $update);
+
+        // Refund if requested.
+        if ($refund) {
+            $payment = new \stdClass();
+            $payment->userid         = $purchase->userid;
+            $payment->purchaseid     = $purchase->id;
+            $payment->packageid      = $purchase->packageid;
+            $payment->amount         = -1 * abs($purchase->price_paid);
+            $payment->method         = 'refund';
+            $payment->reference      = 'Unassigned by admin: ' . $adminid;
+            $payment->transaction_no = self::generate_txn();
+            $payment->status         = 'success';
+            $payment->timecreated    = $now;
+            $DB->insert_record('academy_payments', $payment);
+        }
+
+        $transaction->allow_commit();
+    }
+
+    /** Admin: get all user package purchases. */
+    public static function get_all_user_packages() {
+        global $DB;
+        $sql = "SELECT pu.*, p.name AS package_name, u.firstname, u.lastname, u.email
+                  FROM {academy_package_purchases} pu
+                  JOIN {academy_packages} p ON p.id = pu.packageid
+                  JOIN {user} u ON u.id = pu.userid
+              ORDER BY pu.timecreated DESC";
+        $rows = $DB->get_records_sql($sql);
+
+        $out = array();
+        foreach ($rows as $r) {
+            $status = self::effective_status($r);
+            $out[] = array(
+                'id'             => (int)$r->id,
+                'userid'         => (int)$r->userid,
+                'user_fullname'  => fullname($r),
+                'user_email'     => $r->email,
+                'packageid'      => (int)$r->packageid,
+                'name'           => $r->package_name,
+                'total_flex'     => (int)$r->flex_count,
+                'remaining_flex' => (int)$r->remaining_flex,
+                'used_flex'      => (int)$r->flex_count - (int)$r->remaining_flex,
+                'price_paid'     => $r->price_paid,
+                'status'         => $status,
+                'timeactivated'  => (int)$r->timeactivated,
+                'expires_at'     => (int)$r->expires_at,
+            );
+        }
+        return $out;
+    }
+
     /** Compute the real status of a purchase at read time. */
     public static function effective_status($purchase) {
         if ($purchase->status === 'active') {
