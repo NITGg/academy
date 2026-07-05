@@ -50,10 +50,14 @@ class teacher_manager {
         global $DB;
         $now = time();
 
+        if (empty($data['phone'])) {
+            throw new \moodle_exception('err_phonerequired', 'local_academy', '', null, 'Phone number is required');
+        }
+
         $p = $DB->get_record('academy_teacher_profiles', array('userid' => $userid));
         $record = $p ?: new \stdClass();
         $record->userid = $userid;
-        foreach (array('headline', 'bio', 'experience', 'photourl') as $f) {
+        foreach (array('headline', 'bio', 'experience', 'photourl', 'phone') as $f) {
             if (array_key_exists($f, $data)) {
                 $record->$f = $data[$f];
             }
@@ -196,6 +200,12 @@ class teacher_manager {
             $params['categoryid'] = (int)$filters['categoryid'];
         }
 
+        // phone filter — partial match on stored phone number
+        if (!empty($filters['phone'])) {
+            $where[]         = $DB->sql_like('p.phone', ':phone', false);
+            $params['phone'] = '%' . $DB->sql_like_escape($filters['phone']) . '%';
+        }
+
         // free-text search on name or email
         if (!empty($filters['search'])) {
             $q             = '%' . $DB->sql_like_escape($filters['search']) . '%';
@@ -220,7 +230,7 @@ class teacher_manager {
 
         $rows = $DB->get_records_sql(
             "SELECT DISTINCT u.id AS userid, u.firstname, u.lastname, u.email,
-                    p.headline, p.bio, p.experience, p.photourl,
+                    p.headline, p.bio, p.experience, p.photourl, p.phone,
                     p.rating, p.approved, p.available
                $baseSql
               ORDER BY u.lastname ASC, u.firstname ASC",
@@ -244,6 +254,7 @@ class teacher_manager {
                 'bio'        => $row->bio         ?? '',
                 'experience' => $row->experience  ?? '',
                 'photourl'   => $row->photourl    ?? '',
+                'phone'      => $row->phone       ?? '',
                 'rating'     => $row->rating      ?? 0,
                 'approved'   => $row->approved    ?? 1,
                 'available'  => $row->available   ?? 1,
@@ -308,6 +319,7 @@ class teacher_manager {
             'userid'     => (int)$teacherid,
             'fullname'   => $user ? trim($user->firstname . ' ' . $user->lastname) : '',
             'email'      => $user ? $user->email : '',
+            'phone'      => $p->phone ?? '',
             'headline'   => $p->headline ?? '',
             'bio'        => $p->bio ?? '',
             'experience' => $p->experience ?? '',

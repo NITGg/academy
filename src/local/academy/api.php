@@ -416,7 +416,7 @@ try {
                     $filters[$f] = required_param($f, PARAM_INT);
                 }
             }
-            foreach (['subject', 'year', 'search'] as $f) {
+            foreach (['subject', 'year', 'search', 'phone'] as $f) {
                 if (isset($_REQUEST[$f]) && $_REQUEST[$f] !== '') {
                     $filters[$f] = required_param($f, PARAM_TEXT);
                 }
@@ -435,6 +435,7 @@ try {
                 academy_respond(['status' => 'fail', 'error' => 'This action requires POST']);
             }
             $data = [];
+            $data['phone'] = required_param('phone', PARAM_TEXT);
             foreach (['headline', 'bio', 'experience', 'photourl'] as $f) {
                 if (isset($_REQUEST[$f])) { $data[$f] = required_param($f, PARAM_TEXT); }
             }
