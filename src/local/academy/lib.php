@@ -185,6 +185,8 @@ CSS;
     $cfg = array(
         'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
         'token'    => $token,
+        // Honour an explicit ?lang= in the URL; otherwise use the page's current language.
+        'lang'     => optional_param('lang', current_language(), PARAM_LANG),
     );
     $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
 
@@ -221,11 +223,13 @@ require([], function() {
         });
     }
     function apiGet(fn, params) {
-        var q = new URLSearchParams(Object.assign({function: fn, token: CFG.token}, params || {}));
+        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.lang = CFG.lang; }
+        var q = new URLSearchParams(Object.assign(base, params || {}));
         return fetch(CFG.endpoint + '?' + q.toString()).then(parse);
     }
     function apiPost(fn, params) {
-        var body = new URLSearchParams(Object.assign({function: fn, token: CFG.token}, params || {}));
+        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.lang = CFG.lang; }
+        var body = new URLSearchParams(Object.assign(base, params || {}));
         return fetch(CFG.endpoint, {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -432,6 +436,8 @@ CSS;
     $cfg = array(
         'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
         'token'    => $token,
+        // Honour an explicit ?lang= in the URL; otherwise use the page's current language.
+        'lang'     => optional_param('lang', current_language(), PARAM_LANG),
     );
     $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
 
@@ -468,11 +474,13 @@ require([], function() {
         });
     }
     function apiGet(fn, params) {
-        var q = new URLSearchParams(Object.assign({function: fn, token: CFG.token}, params || {}));
+        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.lang = CFG.lang; }
+        var q = new URLSearchParams(Object.assign(base, params || {}));
         return fetch(CFG.endpoint + '?' + q.toString()).then(parse);
     }
     function apiPost(fn, params) {
-        var body = new URLSearchParams(Object.assign({function: fn, token: CFG.token}, params || {}));
+        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.lang = CFG.lang; }
+        var body = new URLSearchParams(Object.assign(base, params || {}));
         return fetch(CFG.endpoint, {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -708,4 +716,20 @@ JS;
 
     $PAGE->requires->js_amd_inline($js);
     return $output;
+}
+
+/**
+ * Build a { key => localised string } map for the given local_academy string keys, for injection
+ * into the browser as window.ACADEMY_STR. Placeholder strings (containing {$a...}) are returned
+ * verbatim so the JS side can interpolate them (see the strf() helper in the page scripts).
+ *
+ * @param array $keys list of string identifiers in the local_academy component
+ * @return array
+ */
+function local_academy_string_map(array $keys) {
+    $map = array();
+    foreach ($keys as $key) {
+        $map[$key] = get_string($key, 'local_academy');
+    }
+    return $map;
 }

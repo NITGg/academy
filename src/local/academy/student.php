@@ -8,6 +8,7 @@
 require('../../config.php');
 require_once($CFG->dirroot . '/webservice/lib.php');
 require_once($CFG->libdir . '/externallib.php');
+require_once($CFG->dirroot . '/local/academy/lib.php'); // local_academy_string_map()
 
 require_login();
 
@@ -24,10 +25,37 @@ $PAGE->set_heading(get_string('studenthub', 'local_academy'));
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('studenthub', 'local_academy'));
+
+// Localised strings for the tab bar, flex banner and Packages tab. Server-rendered HTML reads
+// $STR['key']; the JS reads window.ACADEMY_STR via the str()/strf() helpers. (Pilot scope: the
+// Packages & Flex tab — other tabs are localised in the rollout phase.)
+$STR = local_academy_string_map(array(
+    // Tab bar.
+    'tab_book', 'tab_lessons', 'tab_packages', 'tab_subavailable', 'tab_mysubs',
+    // Flex banner.
+    'st_available_flex', 'st_book_up_to', 'st_no_active_pkg',
+    // Packages tab — section headings + table headers.
+    'availpkgs_heading', 'mypackages', 'st_payment_history', 'st_flex_history',
+    'st_col_package', 'st_col_flexusedtot', 'st_col_status', 'st_col_activated', 'st_col_expires',
+    'st_col_date', 'st_col_amount', 'st_col_method', 'st_col_transaction',
+    'st_col_type', 'st_col_change', 'st_col_balance', 'st_col_lesson', 'st_col_note',
+    // Packages tab — dynamic JS strings.
+    'ui_never', 'ui_currency_egp', 'st_pkg_none_available', 'st_pkg_none', 'st_pay_none',
+    'st_flex_none', 'st_already_active_pkg', 'st_buy_package', 'st_buy_title', 'st_buy_text',
+    'st_proceed_payment', 'st_pkgmeta_flex', 'st_pkgmeta_validdays', 'st_pkgmeta_neverexp',
+    'st_flex_left',
+    'pstat_active', 'pstat_fully_used', 'pstat_expired', 'pstat_cancelled', 'pstat_pending',
+    'pay_completed', 'pay_pending', 'pay_failed', 'pay_refunded',
+    'flx_reserve', 'flx_consume', 'flx_return', 'flx_purchase', 'flx_assign', 'flx_expire', 'flx_adjust',
+    'err_sessionexpired', 'err_requestfailed',
+));
+
 echo html_writer::script('window.ACADEMY_ST = ' . json_encode(array(
     'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
     'token'    => $token,
+    'lang'     => optional_param('lang', current_language(), PARAM_LANG),
 )) . ';');
+echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
 <style>
 #st-app{max-width:920px}
@@ -73,17 +101,17 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
   <div id="st-msg" class="alert" style="display:none"></div>
 
   <div id="st-flexbar">
-    <div><div class="st-meta" style="margin:0">Available Flex credits</div>
+    <div><div class="st-meta" style="margin:0"><?php echo $STR['st_available_flex']; ?></div>
       <span class="st-flexval" id="st-flex">—</span></div>
     <div id="st-flexnote" class="st-meta" style="margin:0"></div>
   </div>
 
   <div id="st-tabs">
-    <button class="st-tab active" data-tab="book">Book a lesson</button>
-    <button class="st-tab" data-tab="lessons">My lessons</button>
-    <button class="st-tab" data-tab="packages">Packages &amp; Flex</button>
-    <button class="st-tab" data-tab="subavailable">Available subscriptions</button>
-    <button class="st-tab" data-tab="mysubs">My subscriptions</button>
+    <button class="st-tab active" data-tab="book"><?php echo $STR['tab_book']; ?></button>
+    <button class="st-tab" data-tab="lessons"><?php echo $STR['tab_lessons']; ?></button>
+    <button class="st-tab" data-tab="packages"><?php echo $STR['tab_packages']; ?></button>
+    <button class="st-tab" data-tab="subavailable"><?php echo $STR['tab_subavailable']; ?></button>
+    <button class="st-tab" data-tab="mysubs"><?php echo $STR['tab_mysubs']; ?></button>
   </div>
 
   <!-- ── Tab 1: Book a lesson ── -->
@@ -120,29 +148,29 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
 
   <!-- ── Tab 3: Packages & Flex ── -->
   <div class="st-panel" id="panel-packages">
-    <h5>Available packages</h5>
+    <h5><?php echo $STR['availpkgs_heading']; ?></h5>
     <div id="st-available" class="st-grid"></div>
 
     <div class="st-section">
-      <h5>My packages</h5>
+      <h5><?php echo $STR['mypackages']; ?></h5>
       <table class="st-table">
-        <thead><tr><th>Package</th><th>Flex (used / total)</th><th>Status</th><th>Activated</th><th>Expires</th></tr></thead>
+        <thead><tr><th><?php echo $STR['st_col_package']; ?></th><th><?php echo $STR['st_col_flexusedtot']; ?></th><th><?php echo $STR['st_col_status']; ?></th><th><?php echo $STR['st_col_activated']; ?></th><th><?php echo $STR['st_col_expires']; ?></th></tr></thead>
         <tbody id="st-mypackages"></tbody>
       </table>
     </div>
 
     <div class="st-section">
-      <h5>Payment history</h5>
+      <h5><?php echo $STR['st_payment_history']; ?></h5>
       <table class="st-table">
-        <thead><tr><th>Date</th><th>Package</th><th>Amount</th><th>Method</th><th>Transaction</th><th>Status</th></tr></thead>
+        <thead><tr><th><?php echo $STR['st_col_date']; ?></th><th><?php echo $STR['st_col_package']; ?></th><th><?php echo $STR['st_col_amount']; ?></th><th><?php echo $STR['st_col_method']; ?></th><th><?php echo $STR['st_col_transaction']; ?></th><th><?php echo $STR['st_col_status']; ?></th></tr></thead>
         <tbody id="st-payments"></tbody>
       </table>
     </div>
 
     <div class="st-section">
-      <h5>Flex history</h5>
+      <h5><?php echo $STR['st_flex_history']; ?></h5>
       <table class="st-table">
-        <thead><tr><th>Date</th><th>Type</th><th>Change</th><th>Balance</th><th>Lesson</th><th>Note</th></tr></thead>
+        <thead><tr><th><?php echo $STR['st_col_date']; ?></th><th><?php echo $STR['st_col_type']; ?></th><th><?php echo $STR['st_col_change']; ?></th><th><?php echo $STR['st_col_balance']; ?></th><th><?php echo $STR['st_col_lesson']; ?></th><th><?php echo $STR['st_col_note']; ?></th></tr></thead>
         <tbody id="st-flexhistory"></tbody>
       </table>
     </div>
@@ -187,20 +215,27 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
 echo html_writer::script(<<<'JS'
 (function () {
   var CFG = window.ACADEMY_ST;
+  var STR = window.ACADEMY_STR || {};
   function $(id){return document.getElementById(id);}
   function el(tag,attrs,html){var e=document.createElement(tag);for(var k in (attrs||{})){e.setAttribute(k,attrs[k]);}if(html!=null){e.innerHTML=html;}return e;}
+  // Localised string lookup; falls back to the key so a missing string is visible, not blank.
+  function str(k){return (k in STR)?STR[k]:k;}
+  // Like str() but fills Moodle {$a} / {$a->name} placeholders from a params object (or scalar).
+  function strf(k,params){var s=str(k);if(params==null){return s;}if(typeof params!=='object'){return s.replace(/\{\$a\}/g,params);}return s.replace(/\{\$a->(\w+)\}/g,function(m,name){return (name in params)?params[name]:m;});}
   function msg(t,k){var e=$('st-msg');e.textContent=t;e.className='alert alert-'+(k||'info');e.style.display='block';window.scrollTo(0,0);if(k==='success'){setTimeout(function(){e.style.display='none';},3500);}}
-  function parse(r){return r.text().then(function(t){var j;try{j=JSON.parse(t);}catch(e){throw new Error('Session expired — reload the page.');}if(j.status!=='success'){throw new Error(j.error||'Request failed');}return j.data;});}
+  function parse(r){return r.text().then(function(t){var j;try{j=JSON.parse(t);}catch(e){throw new Error(str('err_sessionexpired'));}if(j.status!=='success'){throw new Error(j.error||str('err_requestfailed'));}return j.data;});}
   function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function fmt(ts){if(!ts){return '—';}var d=new Date(ts*1000);return d.toLocaleString();}
   function money(n){return Number(n||0).toFixed(2);}
 
   function apiGet(fn,params){
-    var q=new URLSearchParams(Object.assign({function:fn,token:CFG.token},params||{}));
+    var base={function:fn,token:CFG.token};if(CFG.lang){base.lang=CFG.lang;}
+    var q=new URLSearchParams(Object.assign(base,params||{}));
     return fetch(CFG.endpoint+'?'+q.toString()).then(parse);
   }
   function apiPost(fn,params){
-    var body=new URLSearchParams(Object.assign({function:fn,token:CFG.token},params||{}));
+    var base={function:fn,token:CFG.token};if(CFG.lang){base.lang=CFG.lang;}
+    var body=new URLSearchParams(Object.assign(base,params||{}));
     return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()}).then(parse);
   }
 
@@ -255,8 +290,8 @@ echo html_writer::script(<<<'JS'
       (pkgs||[]).forEach(function(p){if(p.status==='active'){bal+=Number(p.remaining_flex||0);active=true;}});
       $('st-flex').textContent=bal;
       $('st-flexnote').innerHTML = active
-        ? ('You can book up to <b>'+bal+'</b> lesson'+(bal===1?'':'s')+'.')
-        : 'No active package — buy one in the <b>Packages</b> tab to start booking.';
+        ? strf('st_book_up_to',{count:bal})
+        : str('st_no_active_pkg');
       return bal;
     }).catch(function(){/* balance is best-effort */});
   }
@@ -406,22 +441,23 @@ echo html_writer::script(<<<'JS'
   function packageCard(p,hasActive){
     var c=el('div',{class:'st-card'});
     c.appendChild(el('div',{class:'st-title'},esc(p.name)));
-    if(p.description){c.appendChild(el('div',{class:'st-meta'},esc(p.description)));}
-    var meta='<b>'+p.flex_count+'</b> Flex · <b>'+money(p.price)+'</b>';
-    meta += (Number(p.expiration_days)>0) ? (' · valid '+p.expiration_days+' days') : ' · never expires';
+    c.appendChild(el('div',{class:'st-price',style:'font-size:1.3rem;font-weight:700;color:#084298'},money(p.price)+' '+str('ui_currency_egp')));
+    var meta=strf('st_pkgmeta_flex',p.flex_count);
+    meta += (Number(p.expiration_days)>0) ? strf('st_pkgmeta_validdays',p.expiration_days) : str('st_pkgmeta_neverexp');
     c.appendChild(el('div',{class:'st-meta'},meta));
-    if(hasActive){c.appendChild(el('div',{class:'st-meta',style:'color:#856404'},'You already have an active package.'));}
+    if(p.description){c.appendChild(el('div',{class:'st-meta'},esc(p.description)));}
+    if(hasActive){c.appendChild(el('div',{class:'st-meta',style:'color:#856404;margin-top:.4rem'},str('st_already_active_pkg')));}
     var actions=el('div',{class:'st-actions'});
-    actions.appendChild(button('Buy package','btn-primary',function(){buyPackage(p);},hasActive));
+    actions.appendChild(button(str('st_buy_package'),'btn-primary',function(){buyPackage(p);},hasActive));
     c.appendChild(actions);
     return c;
   }
 
   function buyPackage(p){
     modal({
-      title:'Buy “'+p.name+'”',
-      text:'You will get '+p.flex_count+' Flex for '+money(p.price)+' via Kashier secure checkout.',
-      okLabel:'Proceed to Payment'
+      title:strf('st_buy_title',p.name),
+      text:strf('st_buy_text',{flex:p.flex_count,price:money(p.price)+' '+str('ui_currency_egp')}),
+      okLabel:str('st_proceed_payment')
     }).then(function(r){
       if(r === null){return;}
       apiPost('create_package_checkout',{packageid:p.id})
@@ -430,9 +466,9 @@ echo html_writer::script(<<<'JS'
     });
   }
 
-  var PKG_STATUS={active:'Active',fully_used:'Fully used',expired:'Expired',cancelled:'Cancelled',pending:'Pending'};
-  var PAY_STATUS={success:'Completed',completed:'Completed',pending:'Pending',failed:'Failed',refunded:'Refunded'};
-  var FLEX_TYPE={reserve:'Reserved',consume:'Consumed',return:'Returned',purchase:'Purchased',assign:'Assigned',expire:'Expired',adjust:'Adjusted'};
+  var PKG_STATUS={active:str('pstat_active'),fully_used:str('pstat_fully_used'),expired:str('pstat_expired'),cancelled:str('pstat_cancelled'),pending:str('pstat_pending')};
+  var PAY_STATUS={success:str('pay_completed'),completed:str('pay_completed'),pending:str('pay_pending'),failed:str('pay_failed'),refunded:str('pay_refunded')};
+  var FLEX_TYPE={reserve:str('flx_reserve'),consume:str('flx_consume'),return:str('flx_return'),purchase:str('flx_purchase'),assign:str('flx_assign'),expire:str('flx_expire'),adjust:str('flx_adjust')};
 
   function loadPackages(){
     Promise.all([apiGet('get_available_packages'), apiGet('get_my_packages')]).then(function(results){
@@ -440,37 +476,37 @@ echo html_writer::script(<<<'JS'
       var hasActive=myrows.some(function(p){return p.status==='active';});
 
       var box=$('st-available');box.innerHTML='';
-      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},'No packages available right now.'));}
+      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},str('st_pkg_none_available')));}
       else{rows.forEach(function(p){box.appendChild(packageCard(p,hasActive));});}
 
       var tb=$('st-mypackages');tb.innerHTML='';
-      if(!myrows.length){tb.innerHTML='<tr><td colspan="5" class="text-muted">No packages yet.</td></tr>';return;}
+      if(!myrows.length){tb.innerHTML='<tr><td colspan="5" class="text-muted">'+esc(str('st_pkg_none'))+'</td></tr>';return;}
       myrows.forEach(function(p){
         tb.innerHTML+='<tr><td>'+esc(p.name)+'</td>'+
-          '<td><span class="st-flex-pill">'+p.remaining_flex+'</span> left ('+p.used_flex+' / '+p.total_flex+')</td>'+
-          '<td><span class="st-badge s-'+p.status+'">'+(PKG_STATUS[p.status]||p.status)+'</span></td>'+
+          '<td>'+strf('st_flex_left',{remaining:esc(p.remaining_flex),used:esc(p.used_flex),total:esc(p.total_flex)})+'</td>'+
+          '<td><span class="st-badge s-'+p.status+'">'+esc(PKG_STATUS[p.status]||p.status)+'</span></td>'+
           '<td>'+fmt(p.timeactivated)+'</td>'+
-          '<td>'+(Number(p.expires_at)>0?fmt(p.expires_at):'Never')+'</td></tr>';
+          '<td>'+(Number(p.expires_at)>0?fmt(p.expires_at):esc(str('ui_never')))+'</td></tr>';
       });
     }).catch(function(e){msg(e.message,'danger');});
 
     apiGet('get_payment_history').then(function(rows){
       var tb=$('st-payments');tb.innerHTML='';
-      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">No payments yet.</td></tr>';return;}
+      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">'+esc(str('st_pay_none'))+'</td></tr>';return;}
       rows.forEach(function(x){
         tb.innerHTML+='<tr><td>'+fmt(x.timecreated)+'</td><td>'+esc(x.name)+'</td><td>'+money(x.amount)+'</td>'+
           '<td>'+esc(x.method)+'</td><td>'+esc(x.transaction_no)+'</td>'+
-          '<td><span class="st-badge s-'+x.status+'">'+(PAY_STATUS[x.status]||x.status)+'</span></td></tr>';
+          '<td><span class="st-badge s-'+x.status+'">'+esc(PAY_STATUS[x.status]||x.status)+'</span></td></tr>';
       });
     }).catch(function(e){msg(e.message,'danger');});
 
     apiGet('get_flex_history').then(function(rows){
       var tb=$('st-flexhistory');tb.innerHTML='';
-      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">No Flex activity yet.</td></tr>';return;}
+      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">'+esc(str('st_flex_none'))+'</td></tr>';return;}
       rows.forEach(function(x){
         var sign=x.amount>0?('+'+x.amount):String(x.amount);
         tb.innerHTML+='<tr><td>'+fmt(x.timecreated)+'</td>'+
-          '<td><span class="st-badge s-'+(x.type==='consume'?'rejected':(x.type==='reserve'?'pending':'active'))+'">'+(FLEX_TYPE[x.type]||x.type)+'</span></td>'+
+          '<td><span class="st-badge s-'+(x.type==='consume'?'rejected':(x.type==='reserve'?'pending':'active'))+'">'+esc(FLEX_TYPE[x.type]||x.type)+'</span></td>'+
           '<td>'+sign+'</td><td>'+x.balance_after+'</td>'+
           '<td>'+(x.lessonid?('#'+x.lessonid):'—')+'</td><td>'+esc(x.reason)+'</td></tr>';
       });

@@ -49,8 +49,25 @@ These endpoints work for **any logged-in user** (no admin rights needed). Each c
   `{"status":"fail","error":"This action requires POST"}`. Send params as a form body.
 - Always send `function` + `token`.
 - Valid token → JSON: `{ "status": "success", "data": ... }` or `{ "status": "fail", "error": "..." }`.
+  State-changing calls (e.g. `purchase_package`) also include a localised `message`.
 - ⚠️ Invalid/expired token → an **HTML** page, not JSON (platform-wide behaviour). Treat any
   non-JSON / non-200 body as "session expired → re-login".
+
+### 3.1 Language (`?lang=en|ar`)
+
+Add `lang` to any call to control the language of both the response **messages** (`error` / `message`)
+and the **package name/description** shown to the student:
+
+```
+GET  {BASE_URL}/local/academy/api.php?function=get_available_packages&token=TOKEN&lang=ar
+POST … purchase_package … &lang=ar
+```
+
+- Pass the device/app language (`en` or `ar`). Omit it and the user's saved Moodle language is used —
+  so older app versions keep working unchanged.
+- Package `name` / `description` are returned already resolved to `lang` (admins may author them as
+  multilang content — `{mlang en}…{mlang}{mlang ar}…{mlang}` — both languages in one field). No
+  client-side language handling needed.
 
 ---
 

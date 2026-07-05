@@ -1427,12 +1427,88 @@ class course_renderer extends \core_course_renderer {
       $browseurl = new moodle_url('/course/index.php');
 
       $css = <<<CSS
-.edumy-mycourses-empty{max-width:640px;margin:0 auto;padding:2.5rem 1.5rem;text-align:center}
-.edumy-mycourses-empty-icon{width:72px;height:72px;margin:0 auto 1rem;border-radius:50%;background:#f3eafe;color:#a435f0;display:flex;align-items:center;justify-content:center;font-size:2rem}
-.edumy-mycourses-empty h4{font-weight:700;color:#1c1d1f;margin:0 0 .5rem}
-.edumy-mycourses-empty p{color:#6a6f73;margin:0 0 1.25rem}
-.edumy-mycourses-empty-btn{display:inline-block;background:#a435f0;border:none;color:#fff;font-weight:700;padding:.7rem 1.6rem;border-radius:.5rem;text-decoration:none}
-.edumy-mycourses-empty-btn:hover{background:#8710d8;color:#fff;text-decoration:none}
+.edumy-mycourses-empty {
+    max-width: 640px;
+    margin: 2rem auto;
+    padding: 3.5rem 2.5rem;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 1.5rem;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+    animation: edumyEmptyFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform: translateY(20px);
+    opacity: 0;
+}
+@keyframes edumyEmptyFadeIn {
+    to { opacity: 1; transform: translateY(0); }
+}
+.edumy-mycourses-empty-icon {
+    width: 88px;
+    height: 88px;
+    margin: 0 auto 1.5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a435f0 0%, #6812d1 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    box-shadow: 0 12px 24px rgba(164, 53, 240, 0.35);
+    animation: edumyEmptyFloat 4s ease-in-out infinite;
+    position: relative;
+}
+.edumy-mycourses-empty-icon::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    background: inherit;
+    filter: blur(16px);
+    opacity: 0.4;
+    z-index: -1;
+}
+@keyframes edumyEmptyFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+.edumy-mycourses-empty h4 {
+    font-weight: 800;
+    color: #1c1d1f;
+    font-size: 1.75rem;
+    margin: 0 0 .75rem;
+    letter-spacing: -0.02em;
+}
+.edumy-mycourses-empty p {
+    color: #6a6f73;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin: 0 0 2rem;
+}
+.edumy-mycourses-empty-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, #a435f0 0%, #6812d1 100%);
+    border: none;
+    color: #fff;
+    font-weight: 700;
+    padding: .85rem 2rem;
+    border-radius: 50px;
+    text-decoration: none;
+    font-size: 1.05rem;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 8px 20px rgba(164, 53, 240, 0.3);
+}
+.edumy-mycourses-empty-btn:hover {
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 28px rgba(164, 53, 240, 0.45);
+}
+.edumy-mycourses-empty-btn:active {
+    transform: translateY(0) scale(0.98);
+}
 CSS;
 
       return html_writer::tag('style', $css) .

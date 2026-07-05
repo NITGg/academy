@@ -54,7 +54,6 @@ $string['err_badstate']            = 'This action is not allowed for the lesson\
 $string['err_badaction']           = 'Unknown action';
 $string['err_lessonnotfound']      = 'Lesson not found';
 $string['err_tooearlytostart']     = 'The lesson cannot be started yet';
-$string['err_completetooearly']    = 'The lesson cannot be completed yet — it must run for the configured time first';
 $string['err_completetooearly']    = 'The lesson cannot be completed yet (minimum duration has not been met)';
 $string['err_noterequired']        = 'A note is required to request a lesson';
 $string['err_reasonrequired']      = 'A reason is required';
@@ -76,6 +75,24 @@ $string['err_withdrawalstate']     = 'This action is not allowed for the withdra
 // Reports / assign (Phase 4).
 $string['err_studentnotfound']     = 'Student not found';
 $string['err_studenthaspackage']   = 'This student already has an active package';
+
+// API-level system messages (moved out of api.php so they localise via ?lang=).
+$string['err_postrequired']      = 'This action requires POST';
+$string['err_authrequired']      = 'Authentication required';
+$string['err_invalidtoken']      = 'Invalid token';
+$string['err_permissiondenied']  = 'Permission denied';
+$string['err_unknownfunction']   = 'Unknown function';
+$string['err_requestfailed']     = 'Request failed';
+$string['err_sessionexpired']    = 'Session expired — please reload the page and log in again.';
+
+// API success messages (returned in the top-level "message" field on state-changing actions).
+$string['msg_package_created']     = 'Package created.';
+$string['msg_package_updated']     = 'Package updated.';
+$string['msg_package_activated']   = 'Package activated.';
+$string['msg_package_deactivated'] = 'Package deactivated.';
+$string['msg_package_deleted']     = 'Package deleted.';
+$string['msg_package_unassigned']  = 'Package unassigned successfully.';
+$string['msg_package_purchased']   = 'Package purchased.';
 
 // Subscriptions (US-AD-5-*, US-AD-6-1, US-SB-*).
 $string['err_subnamerequired']  = 'Subscription name is required';
@@ -171,3 +188,120 @@ $string['task_expiry_reminder'] = 'Send package-expiry reminders to students';
 $string['task_subscription_expiry'] = 'Expire subscriptions and send expiry reminders';
 $string['notif_subscription_expiring_subject'] = 'Your subscription expires in {$a->days} day(s)';
 $string['notif_subscription_expiring_body']    = 'Your "{$a->subscription}" subscription expires on {$a->date} ({$a->days} day(s) left). Renew it to keep access to your courses.';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — packages pilot (manage_packages.php + student.php Packages tab).
+// Consumed in the browser via window.ACADEMY_STR (see local_academy_string_map()).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Generic / shared UI.
+$string['ui_refresh']      = 'Refresh';
+$string['ui_loading']      = 'Loading…';
+$string['ui_save']         = 'Save';
+$string['ui_cancel']       = 'Cancel';
+$string['ui_edit']         = 'Edit';
+$string['ui_delete']       = 'Delete';
+$string['ui_activate']     = 'Activate';
+$string['ui_deactivate']   = 'Deactivate';
+$string['ui_active']       = 'Active';
+$string['ui_never']        = 'Never';
+$string['ui_optional']     = '(optional)';
+$string['ui_currency_egp'] = 'EGP';
+
+// manage_packages.php — package CRUD.
+$string['pkg_new']              = 'New package';
+$string['pkg_edit_titled']      = 'Edit package #{$a}';
+$string['pkg_field_name']       = 'Name';
+$string['pkg_field_description'] = 'Description';
+$string['pkg_field_name_en']    = 'Name (English)';
+$string['pkg_field_name_ar']    = 'Name (Arabic)';
+$string['pkg_field_desc_en']    = 'Description (English)';
+$string['pkg_field_desc_ar']    = 'Description (Arabic)';
+$string['pkg_field_flexcount']  = 'Flex count';
+$string['pkg_field_price']      = 'Price (EGP)';
+$string['pkg_field_expdays']    = 'Expiration days (0 = unlimited)';
+$string['pkg_col_id']           = 'ID';
+$string['pkg_col_name']         = 'Name';
+$string['pkg_col_flexes']       = 'Flexes';
+$string['pkg_col_price']        = 'Price';
+$string['pkg_col_expdays']      = 'Expiration (days)';
+$string['pkg_col_status']       = 'Status';
+$string['pkg_col_actions']      = 'Actions';
+$string['pkg_none']             = 'No packages yet.';
+$string['pkg_confirm_delete']   = 'Delete this package? This cannot be undone.';
+
+// manage_packages.php — user packages + unassign.
+$string['pkg_userpackages']       = 'User Packages';
+$string['pkg_userpackages_desc']  = 'Manage active and expired user packages.';
+$string['pkg_col_user']           = 'User';
+$string['pkg_col_package']        = 'Package';
+$string['pkg_col_flex']           = 'Flex';
+$string['pkg_col_pricepaid']      = 'Price Paid';
+$string['pkg_col_expiresat']      = 'Expires At';
+$string['pkg_users_none']         = 'No user packages found.';
+$string['pkg_unassign']           = 'Unassign';
+$string['pkg_unassign_title']     = 'Unassign package';
+$string['pkg_unassign_refund']    = 'Refund payment to student';
+$string['pkg_unassign_confirm']   = 'Unassign <strong>{$a->name}</strong> from <strong>{$a->user}</strong>{$a->price}? This cannot be undone.';
+$string['pkg_unassign_paid']      = ' — <strong>{$a}</strong> paid';
+
+// student.php — tab bar.
+$string['tab_book']         = 'Book a lesson';
+$string['tab_lessons']      = 'My lessons';
+$string['tab_packages']     = 'Packages & Flex';
+$string['tab_subavailable'] = 'Available subscriptions';
+$string['tab_mysubs']       = 'My subscriptions';
+
+// student.php — flex banner.
+$string['st_available_flex']   = 'Available Flex credits';
+$string['st_book_up_to']       = 'You can book up to <b>{$a->count}</b> lesson(s).';
+$string['st_no_active_pkg']    = 'No active package — buy one in the <b>Packages</b> tab to start booking.';
+
+// student.php — Packages & Flex tab.
+$string['st_payment_history']    = 'Payment history';
+$string['st_flex_history']       = 'Flex history';
+$string['st_pkg_none_available'] = 'No packages available right now.';
+$string['st_pkg_none']           = 'No packages yet.';
+$string['st_pay_none']           = 'No payments yet.';
+$string['st_flex_none']          = 'No Flex activity yet.';
+$string['st_already_active_pkg'] = 'You already have an active package.';
+$string['st_buy_package']        = 'Buy package';
+$string['st_buy_title']          = 'Buy “{$a}”';
+$string['st_buy_text']           = 'You will get {$a->flex} Flex for {$a->price} via Kashier secure checkout.';
+$string['st_proceed_payment']    = 'Proceed to Payment';
+$string['st_pkgmeta_flex']       = '{$a} Flex';
+$string['st_pkgmeta_validdays']  = ' · valid {$a} days';
+$string['st_pkgmeta_neverexp']   = ' · never expires';
+$string['st_flex_left']          = '<span class="st-flex-pill">{$a->remaining}</span> left ({$a->used} / {$a->total})';
+// Column headers (packages tab tables).
+$string['st_col_package']     = 'Package';
+$string['st_col_flexusedtot'] = 'Flex (used / total)';
+$string['st_col_status']      = 'Status';
+$string['st_col_activated']   = 'Activated';
+$string['st_col_expires']     = 'Expires';
+$string['st_col_date']        = 'Date';
+$string['st_col_amount']      = 'Amount';
+$string['st_col_method']      = 'Method';
+$string['st_col_transaction'] = 'Transaction';
+$string['st_col_type']        = 'Type';
+$string['st_col_change']      = 'Change';
+$string['st_col_balance']     = 'Balance';
+$string['st_col_lesson']      = 'Lesson';
+$string['st_col_note']        = 'Note';
+// Status label maps.
+$string['pstat_active']     = 'Active';
+$string['pstat_fully_used'] = 'Fully used';
+$string['pstat_expired']    = 'Expired';
+$string['pstat_cancelled']  = 'Cancelled';
+$string['pstat_pending']    = 'Pending';
+$string['pay_completed']    = 'Completed';
+$string['pay_pending']      = 'Pending';
+$string['pay_failed']       = 'Failed';
+$string['pay_refunded']     = 'Refunded';
+$string['flx_reserve']      = 'Reserved';
+$string['flx_consume']      = 'Consumed';
+$string['flx_return']       = 'Returned';
+$string['flx_purchase']     = 'Purchased';
+$string['flx_assign']       = 'Assigned';
+$string['flx_expire']       = 'Expired';
+$string['flx_adjust']       = 'Adjusted';

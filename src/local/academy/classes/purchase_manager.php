@@ -13,7 +13,17 @@ class purchase_manager {
 
     /** US-PK-1-1: active packages a student can buy. */
     public static function get_available_packages() {
-        return package_manager::get_packages(package_manager::STATUS_ACTIVE);
+        // Resolve any multilang content (admin may store {mlang en}…{mlang}{mlang ar}…{mlang} in the
+        // name/description) to the current language before it reaches the student app/UI. Admin
+        // listings (package_manager::get_packages) stay raw so admins can still edit both languages.
+        $packages = package_manager::get_packages(package_manager::STATUS_ACTIVE);
+        foreach ($packages as $p) {
+            $p->name = format_string($p->name);
+            if (isset($p->description)) {
+                $p->description = format_string($p->description);
+            }
+        }
+        return $packages;
     }
 
     /**
@@ -200,7 +210,7 @@ class purchase_manager {
             $out[] = array(
                 'id'              => (int)$r->id,
                 'packageid'       => (int)$r->packageid,
-                'name'            => $r->package_name,
+                'name'            => format_string($r->package_name),
                 'total_flex'      => (int)$r->flex_count,
                 'remaining_flex'  => (int)$r->remaining_flex,
                 'used_flex'       => (int)$r->flex_count - (int)$r->remaining_flex,
@@ -236,7 +246,7 @@ class purchase_manager {
             $out[] = array(
                 'id'             => (int)$r->id,
                 'packageid'      => (int)$r->packageid,
-                'name'           => $r->package_name,
+                'name'           => format_string($r->package_name),
                 'amount'         => $r->amount,
                 'method'         => $r->method,
                 'reference'      => $r->reference,
