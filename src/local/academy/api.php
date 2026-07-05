@@ -127,6 +127,13 @@ if (isset($capmap[$function]) && !has_capability($capmap[$function], context_sys
     academy_respond(['status' => 'fail', 'error' => get_string('err_permissiondenied', 'local_academy')]);
 }
 
+// Re-apply the requested language right before dispatch. Token authentication above sets $USER to
+// the token's user, which can re-initialise the language to that user's preference — so we force it
+// again here to guarantee format_string()/multilang content resolves to ?lang for the response.
+if ($lang !== '') {
+    force_current_language($lang);
+}
+
 try {
     switch ($function) {
 
