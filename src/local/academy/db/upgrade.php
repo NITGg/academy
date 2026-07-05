@@ -410,5 +410,17 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026070407, 'local', 'academy');
     }
 
+    if ($oldversion < 2026070408) {
+
+        // Add phone field to teacher profiles.
+        $table = new xmldb_table('academy_teacher_profiles');
+        $field = new xmldb_field('phone', XMLDB_TYPE_CHAR, '30', null, null, null, null, 'available');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026070408, 'local', 'academy');
+    }
+
     return true;
 }
