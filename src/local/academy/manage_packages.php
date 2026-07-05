@@ -31,6 +31,7 @@ $STR = local_academy_string_map(array(
     'pkg_new', 'ui_refresh', 'ui_loading', 'ui_active', 'ui_save', 'ui_cancel', 'ui_optional',
     'pkg_col_id', 'pkg_col_name', 'pkg_col_flexes', 'pkg_col_price', 'pkg_col_expdays',
     'pkg_col_status', 'pkg_col_actions', 'pkg_field_name', 'pkg_field_description',
+    'pkg_field_name_en', 'pkg_field_name_ar', 'pkg_field_desc_en', 'pkg_field_desc_ar',
     'pkg_field_flexcount', 'pkg_field_price', 'pkg_field_expdays',
     'pkg_userpackages', 'pkg_userpackages_desc', 'pkg_col_user', 'pkg_col_package', 'pkg_col_flex',
     'pkg_col_pricepaid', 'pkg_col_expiresat', 'pkg_unassign_title', 'pkg_unassign_refund',
@@ -80,12 +81,20 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <h4 id="pkg-form-title" class="card-title"><?php echo $STR['pkg_new']; ?></h4>
             <input type="hidden" id="f-id">
             <div class="form-group">
-                <label for="f-name"><?php echo $STR['pkg_field_name']; ?></label>
-                <input type="text" class="form-control" id="f-name">
+                <label for="f-name-en"><?php echo $STR['pkg_field_name_en']; ?></label>
+                <input type="text" class="form-control" id="f-name-en" dir="ltr">
             </div>
             <div class="form-group">
-                <label for="f-description"><?php echo $STR['pkg_field_description']; ?></label>
-                <textarea class="form-control" id="f-description" rows="2"></textarea>
+                <label for="f-name-ar"><?php echo $STR['pkg_field_name_ar']; ?></label>
+                <input type="text" class="form-control" id="f-name-ar" dir="rtl">
+            </div>
+            <div class="form-group">
+                <label for="f-desc-en"><?php echo $STR['pkg_field_desc_en']; ?></label>
+                <textarea class="form-control" id="f-desc-en" rows="2" dir="ltr"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="f-desc-ar"><?php echo $STR['pkg_field_desc_ar']; ?></label>
+                <textarea class="form-control" id="f-desc-ar" rows="2" dir="rtl"></textarea>
             </div>
             <div class="form-group">
                 <label for="f-flex"><?php echo $STR['pkg_field_flexcount']; ?></label>
@@ -234,6 +243,47 @@ echo html_writer::script(<<<'JS'
         });
     }
 
+    // ── Multilang helpers ──────────────────────────────────────────────────────
+    // The DB keeps a SINGLE name/description field. To hold two languages in it we use Moodle's
+    // multilang markup: <span lang="en" class="multilang">…</span><span lang="ar" class="multilang">…</span>.
+    // These helpers let the admin edit two clean boxes (EN / AR) that map to that one field.
+
+    // Pull the {en, ar} values out of a stored multilang string. A plain value (no spans) is treated
+    // as the English text so legacy/simple entries still load into the form.
+    function parseMultilang(value) {
+        var out = { en: '', ar: '' };
+        var raw = String(value == null ? '' : value);
+        var re = /<span[^>]*\bclass\s*=\s*"[^"]*\bmultilang\b[^"]*"[^>]*\blang\s*=\s*"([a-zA-Z0-9_-]+)"[^>]*>([\s\S]*?)<\/span>|<span[^>]*\blang\s*=\s*"([a-zA-Z0-9_-]+)"[^>]*\bclass\s*=\s*"[^"]*\bmultilang\b[^"]*"[^>]*>([\s\S]*?)<\/span>/g;
+        var m, found = false;
+        while ((m = re.exec(raw)) !== null) {
+            found = true;
+            var code = (m[1] || m[3] || '').toLowerCase();
+            var text = (m[1] ? m[2] : m[4]);
+            if (code.indexOf('ar') === 0) { out.ar = text; }
+            else if (code.indexOf('en') === 0) { out.en = text; }
+        }
+        if (!found) { out.en = raw; } // plain text → English box
+        return out;
+    }
+
+    // Combine the two boxes back into one field value. Two langs → multilang spans; a single lang →
+    // plain text (so it still works even when the multilang filter is off); both empty → ''.
+    function buildMultilang(en, ar) {
+        en = String(en == null ? '' : en).trim();
+        ar = String(ar == null ? '' : ar).trim();
+        if (en && ar) {
+            return '<span lang="en" class="multilang">' + en + '</span>' +
+                   '<span lang="ar" class="multilang">' + ar + '</span>';
+        }
+        return en || ar;
+    }
+
+    // Readable label for the admin table: "English / Arabic" (whichever are present).
+    function displayName(value) {
+        var v = parseMultilang(value);
+        return [v.en, v.ar].filter(function (x) { return x; }).join(' / ') || value || '';
+    }
+
     function loadPackages() {
         var tbody = $('pkg-table').querySelector('tbody');
         tbody.innerHTML = '<tr><td colspan="7">' + esc(str('ui_loading')) + '</td></tr>';
@@ -247,7 +297,7 @@ echo html_writer::script(<<<'JS'
                     : '<button class="btn btn-sm btn-success" data-act="activate" data-id="' + p.id + '">' + esc(str('ui_activate')) + '</button>';
                 tr.innerHTML =
                     '<td>' + esc(p.id) + '</td>' +
-                    '<td>' + esc(p.name) + '</td>' +
+                    '<td>' + esc(displayName(p.name)) + '</td>' +
                     '<td>' + esc(p.flex_count) + '</td>' +
                     '<td>' + esc(p.price) + '</td>' +
                     '<td>' + esc(p.expiration_days) + '</td>' +
@@ -265,9 +315,13 @@ echo html_writer::script(<<<'JS'
 
     function showForm(pkg) {
         $('pkg-form-title').textContent = pkg ? strf('pkg_edit_titled', pkg.id) : str('pkg_new');
+        var nm = parseMultilang(pkg ? pkg.name : '');
+        var ds = parseMultilang(pkg ? (pkg.description || '') : '');
         $('f-id').value          = pkg ? pkg.id : '';
-        $('f-name').value        = pkg ? pkg.name : '';
-        $('f-description').value = pkg ? (pkg.description || '') : '';
+        $('f-name-en').value     = nm.en;
+        $('f-name-ar').value     = nm.ar;
+        $('f-desc-en').value     = ds.en;
+        $('f-desc-ar').value     = ds.ar;
         $('f-flex').value        = pkg ? pkg.flex_count : '';
         $('f-price').value       = pkg ? pkg.price : '';
         $('f-exp').value         = pkg ? pkg.expiration_days : 0;
@@ -279,8 +333,8 @@ echo html_writer::script(<<<'JS'
     function save() {
         var id = $('f-id').value;
         var params = {
-            name: $('f-name').value.trim(),
-            description: $('f-description').value,
+            name: buildMultilang($('f-name-en').value, $('f-name-ar').value),
+            description: buildMultilang($('f-desc-en').value, $('f-desc-ar').value),
             flex_count: $('f-flex').value,
             price: $('f-price').value,
             expiration_days: $('f-exp').value || 0
