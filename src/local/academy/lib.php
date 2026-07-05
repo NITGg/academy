@@ -120,27 +120,54 @@ function local_academy_available_subscriptions_section() {
 
     // Scoped CSS (la-subs-* prefix keeps it away from the theme + student.php's st-* styles).
     $css = <<<CSS
-.la-subs{max-width:1200px;margin:2.5rem auto;padding:0 1rem}
-.la-subs-head{margin-bottom:1.25rem}
-.la-subs-title{font-size:1.6rem;font-weight:800;color:#1c1d1f;margin:0 0 .25rem}
-.la-subs-sub{color:#6a6f73;margin:0}
-.la-subs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem}
-.la-subs-card{display:flex;flex-direction:column;background:#fff;border:1px solid #e5e7eb;border-radius:.75rem;overflow:hidden;transition:transform .15s ease,box-shadow .15s ease}
-.la-subs-card:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,.14)}
-.la-subs-banner{height:128px;display:flex;align-items:flex-end;justify-content:space-between;padding:.75rem;color:#fff}
-.la-subs-banner svg{width:38px;height:38px;opacity:.9;fill:#fff}
-.la-subs-daysbadge{background:rgba(255,255,255,.92);color:#1c1d1f;font-weight:700;font-size:.78rem;padding:.2rem .6rem;border-radius:1rem}
-.la-subs-body{padding:1rem;display:flex;flex-direction:column;flex:1}
-.la-subs-name{font-weight:700;font-size:1.1rem;color:#1c1d1f;margin:0 0 .35rem;line-height:1.3}
-.la-subs-desc{color:#6a6f73;font-size:.9rem;margin:0 0 .6rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.la-subs-courses{font-size:.82rem;color:#3c3c3c;margin-bottom:.9rem}
+.la-subs{max-width:1280px;margin:3rem auto;padding:0 1rem}
+.la-subs-head{margin-bottom:1.5rem}
+.la-subs-title{font-size:1.7rem;font-weight:800;color:#1c1d1f;margin:0 0 .3rem}
+.la-subs-sub{color:#6a6f73;margin:0;font-size:1.02rem}
+.la-subs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;align-items:stretch}
+.la-subs-card{display:flex;flex-direction:column;height:100%;background:#fff;border:1px solid #e5e7eb;border-radius:1rem;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:transform .18s ease,box-shadow .18s ease}
+.la-subs-card:hover{transform:translateY(-6px);box-shadow:0 16px 32px rgba(0,0,0,.16)}
+.la-subs-banner{position:relative;height:190px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden}
+.la-subs-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.22),transparent 55%)}
+.la-subs-banner svg{width:52px;height:52px;opacity:.95;fill:#fff;position:relative;z-index:1}
+.la-subs-daysbadge{align-self:flex-start;background:rgba(255,255,255,.95);color:#1c1d1f;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;position:relative;z-index:1}
+.la-subs-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
+.la-subs-name{font-weight:700;font-size:1.2rem;color:#1c1d1f;margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
+.la-subs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
+.la-subs-courses{font-size:.86rem;color:#3c3c3c;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
 .la-subs-courses b{color:#1c1d1f}
-.la-subs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
-.la-subs-price{font-size:1.35rem;font-weight:800;color:#1c1d1f}
-.la-subs-price small{font-size:.78rem;font-weight:600;color:#6a6f73}
-.la-subs-btn{background:#a435f0;border:none;color:#fff;font-weight:700;padding:.55rem 1.1rem;border-radius:.4rem;cursor:pointer;transition:background .15s ease}
+.la-subs-courses-label{margin-bottom:.5rem}
+.la-subs-courses-list{display:flex;flex-wrap:wrap;gap:.35rem}
+.la-subs-course-chip{max-width:100%;background:#f3eafe;color:#5a189a;border:1px solid #e3d3fb;border-radius:1rem;padding:.2rem .6rem;font-size:.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.la-subs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-top:.5rem}
+.la-subs-price{font-size:1.5rem;font-weight:800;color:#1c1d1f}
+.la-subs-price small{font-size:.8rem;font-weight:600;color:#6a6f73}
+.la-subs-btn{background:#a435f0;border:none;color:#fff;font-weight:700;font-size:.95rem;padding:.7rem 1.4rem;border-radius:.5rem;cursor:pointer;transition:background .15s ease,transform .1s ease}
 .la-subs-btn:hover{background:#8710d8}
+.la-subs-btn:active{transform:scale(.97)}
 .la-subs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
+.la-subs-note{display:flex;align-items:flex-start;gap:.5rem;margin-top:.9rem;padding:.6rem .75rem;background:#fdf6ec;border:1px solid #f3d9a8;border-radius:.5rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
+.la-subs-note svg{width:16px;height:16px;flex-shrink:0;fill:#c07f00;margin-top:.05rem}
+/* Confirmation dialog (replaces the native window.confirm). */
+.la-subs-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease}
+.la-subs-modal-bg.open{display:flex;opacity:1}
+.la-subs-modal{background:#fff;border-radius:1rem;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
+.la-subs-modal-bg.open .la-subs-modal{transform:none}
+.la-subs-modal-head{display:flex;align-items:center;gap:.7rem;padding:1.25rem 1.4rem 0}
+.la-subs-modal-head svg{width:34px;height:34px;fill:#a435f0;flex-shrink:0}
+.la-subs-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#1c1d1f}
+.la-subs-modal-body{padding:.9rem 1.4rem 0;color:#3c3c3c;font-size:.95rem;line-height:1.5}
+.la-subs-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:#faf5ff;border:1px solid #ecdcfb;border-radius:.6rem}
+.la-subs-modal-plan .name{font-weight:700;color:#1c1d1f;margin-bottom:.35rem}
+.la-subs-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#4b4b4b;margin-top:.2rem}
+.la-subs-modal-row b{color:#1c1d1f}
+.la-subs-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#6a6f73;margin-top:.2rem}
+.la-subs-modal-secure svg{width:14px;height:14px;fill:#1f9d55}
+.la-subs-modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:1.2rem 1.4rem 1.3rem}
+.la-subs-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:.5rem;cursor:pointer}
+.la-subs-modal-cancel:hover{background:#f6f7f8}
+.la-subs-modal-ok{background:#a435f0;border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:.5rem;cursor:pointer}
+.la-subs-modal-ok:hover{background:#8710d8}
 CSS;
 
     $section = html_writer::tag('style', $css) .
@@ -213,13 +240,57 @@ require([], function() {
     ];
     var CAP = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 1 8l11 5 9-4.09V17h2V8L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>';
 
+    // A styled confirm dialog (replaces the ugly native window.confirm). Resolves true/false.
+    function confirmSubscribe(s) {
+        return new Promise(function(resolve) {
+            var LOCK = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1a5 5 0 00-5 5v3H6a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2v-9a2 2 0 00-2-2h-1V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 016 0v3z"/></svg>';
+            var CROWN = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 16 3 5l5.5 4L12 3l3.5 6L21 5l-2 11H5zm0 2h14v2H5v-2z"/></svg>';
+            var bg = el('div', {class: 'la-subs-modal-bg'});
+            bg.innerHTML =
+                '<div class="la-subs-modal" role="dialog" aria-modal="true">' +
+                    '<div class="la-subs-modal-head">' + CROWN + '<h4>Confirm your subscription</h4></div>' +
+                    '<div class="la-subs-modal-body">' +
+                        '<p>You are about to subscribe to this plan. You will be taken to secure checkout to complete the payment.</p>' +
+                        '<div class="la-subs-modal-plan">' +
+                            '<div class="name">' + esc(s.name) + '</div>' +
+                            '<div class="la-subs-modal-row"><span>Duration</span><b>' + esc(s.duration_days) + ' days</b></div>' +
+                            '<div class="la-subs-modal-row"><span>Total</span><b>' + esc(money(s.price)) + ' EGP</b></div>' +
+                        '</div>' +
+                        '<div class="la-subs-modal-secure">' + LOCK + '<span>Secure payment via Kashier</span></div>' +
+                    '</div>' +
+                    '<div class="la-subs-modal-foot">' +
+                        '<button type="button" class="la-subs-modal-cancel">Cancel</button>' +
+                        '<button type="button" class="la-subs-modal-ok">Proceed to payment</button>' +
+                    '</div>' +
+                '</div>';
+            document.body.appendChild(bg);
+            // Force reflow so the open transition runs.
+            void bg.offsetWidth;
+            bg.classList.add('open');
+
+            function close(result) {
+                bg.classList.remove('open');
+                document.removeEventListener('keydown', onKey);
+                setTimeout(function() { if (bg.parentNode) { bg.parentNode.removeChild(bg); } }, 180);
+                resolve(result);
+            }
+            function onKey(e) { if (e.key === 'Escape') { close(false); } }
+            document.addEventListener('keydown', onKey);
+            bg.querySelector('.la-subs-modal-cancel').onclick = function() { close(false); };
+            bg.querySelector('.la-subs-modal-ok').onclick = function() { close(true); };
+            bg.onclick = function(e) { if (e.target === bg) { close(false); } };
+        });
+    }
+
     function subscribe(s, btn) {
-        if (!window.confirm('Subscribe to "' + s.name + '" for ' + money(s.price) + ' EGP (' + s.duration_days + ' days)?')) { return; }
-        var orig = btn.textContent;
-        btn.disabled = true; btn.textContent = 'Redirecting…';
-        apiPost('create_subscription_checkout', {subscriptionid: s.id})
-            .then(function(d) { window.location.href = d.checkout_url; })
-            .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
+        confirmSubscribe(s).then(function(ok) {
+            if (!ok) { return; }
+            var orig = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Redirecting…';
+            apiPost('create_subscription_checkout', {subscriptionid: s.id})
+                .then(function(d) { window.location.href = d.checkout_url; })
+                .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
+        });
     }
 
     function subCard(s, hasActive, idx) {
@@ -231,9 +302,21 @@ require([], function() {
         var body = el('div', {class: 'la-subs-body'});
         body.appendChild(el('div', {class: 'la-subs-name'}, esc(s.name)));
         if (s.description) { body.appendChild(el('div', {class: 'la-subs-desc'}, esc(s.description))); }
-        var n = (s.courses || []).length;
-        body.appendChild(el('div', {class: 'la-subs-courses'},
-            n ? ('<b>' + n + '</b> course' + (n === 1 ? '' : 's') + ' included') : 'Full course access'));
+        var courses = s.courses || [];
+        var n = courses.length;
+        var coursesBox = el('div', {class: 'la-subs-courses'});
+        if (n) {
+            coursesBox.appendChild(el('div', {class: 'la-subs-courses-label'},
+                '<b>' + n + '</b> course' + (n === 1 ? '' : 's') + ' included'));
+            var chips = el('div', {class: 'la-subs-courses-list'});
+            courses.forEach(function(c) {
+                chips.appendChild(el('span', {class: 'la-subs-course-chip', title: esc(c.fullname)}, esc(c.fullname)));
+            });
+            coursesBox.appendChild(chips);
+        } else {
+            coursesBox.appendChild(el('div', {class: 'la-subs-courses-label'}, 'Full course access'));
+        }
+        body.appendChild(coursesBox);
 
         var foot = el('div', {class: 'la-subs-foot'});
         foot.appendChild(el('div', {class: 'la-subs-price'}, esc(money(s.price)) + ' <small>EGP</small>'));
@@ -241,6 +324,15 @@ require([], function() {
         if (hasActive) { btn.disabled = true; } else { btn.onclick = function() { subscribe(s, btn); }; }
         foot.appendChild(btn);
         body.appendChild(foot);
+
+        // Only one subscription can be active at a time — explain why the button is disabled
+        // instead of leaving a greyed-out "Subscribed" with no context.
+        if (hasActive) {
+            var INFO = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
+            body.appendChild(el('div', {class: 'la-subs-note'},
+                INFO + '<span>You already have an active subscription. You can subscribe to this plan once your current subscription ends.</span>'));
+        }
+
         card.appendChild(body);
         return card;
     }

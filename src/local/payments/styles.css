@@ -278,6 +278,14 @@
     border: 1px solid rgba(37, 99, 235, 0.16);
 }
 
+/* Renew hint — shown when a lapsed enrolment keeps a course in "My courses". */
+.lp-card-status--renew {
+    background: #fdf3e7;
+    color: #b26b00;
+    border: 1px solid rgba(178, 107, 0, 0.18);
+    margin-bottom: 0.5rem;
+}
+
 /* ------------------------------------------------------------------ */
 /* Full course-page card (buy.php)                                   */
 /* ------------------------------------------------------------------ */
@@ -382,6 +390,13 @@
     background: rgba(255, 255, 255, 0.14);
     border-color: rgba(255, 255, 255, 0.22);
     color: #fff;
+    backdrop-filter: blur(2px);
+}
+
+.lp-context-dark-footer .lp-card-status--renew {
+    background: rgba(255, 193, 94, 0.22);
+    border-color: rgba(255, 193, 94, 0.42);
+    color: #ffd89b;
     backdrop-filter: blur(2px);
 }
 

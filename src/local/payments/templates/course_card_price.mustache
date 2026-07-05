@@ -1,8 +1,14 @@
 {{!
     Course card price display.
-    Context: {price, sale_price, original_price, currency, is_sale_active, discount_pct, is_purchased, is_enrolled, is_free, can_enroll_via_sub, course_url, buy_url, enroll_url}
+    Context: {price, sale_price, original_price, currency, is_sale_active, discount_pct, is_purchased, is_enrolled, is_free, can_enroll_via_sub, can_renew, course_url, buy_url, enroll_url}
 }}
 <div class="local-payments-card-price">
+    {{#can_renew}}
+        <div class="lp-card-status lp-card-status--renew">
+            <i class="fa fa-exclamation-circle"></i>
+            <span>{{#str}}renew_subscription, local_payments{{/str}}</span>
+        </div>
+    {{/can_renew}}
     {{#is_enrolled}}
         <div class="lp-card-status lp-card-status--enrolled">
             <i class="fa fa-check-circle"></i>

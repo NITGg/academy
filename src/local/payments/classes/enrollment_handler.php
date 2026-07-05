@@ -39,21 +39,42 @@ class enrollment_handler {
             $manual_instance = $DB->get_record('enrol', ['id' => $enrolid], '*', MUST_EXIST);
         }
 
-        // Check if already enrolled.
-        if (is_enrolled(\context_course::instance($courseid), $userid)) {
+        // Check if already actively enrolled. An expired/suspended enrolment
+        // must fall through so we re-enrol (manual enrol_user updates the
+        // existing record's timestart/timeend), restoring access.
+        if (is_enrolled(\context_course::instance($courseid), $userid, '', true)) {
             return true;
         }
 
         $enrol->enrol_user($manual_instance, $userid, $roleid, time(), 0);
 
-        return is_enrolled(\context_course::instance($courseid), $userid);
+        return is_enrolled(\context_course::instance($courseid), $userid, '', true);
     }
 
     /**
-     * Check if a user is enrolled in a course.
+     * Check if a user has an *active* enrolment in a course.
+     *
+     * Uses $onlyactive = true so that expired enrolments (past their timeend,
+     * e.g. a lapsed subscription/package) or suspended ones are treated as
+     * not-enrolled — matching what actual course access allows. Otherwise the
+     * UI would keep showing "Enrolled" while the course itself denies entry.
      */
     public static function is_enrolled(int $userid, int $courseid): bool {
-        return is_enrolled(\context_course::instance($courseid), $userid);
+        return is_enrolled(\context_course::instance($courseid), $userid, '', true);
+    }
+
+    /**
+     * Whether the user has an enrolment record in the course that is no longer
+     * active — i.e. a lapsed subscription/package: they were enrolled once
+     * (timeend has passed or the enrolment was suspended) but active access has
+     * ended. Used to surface a "Renew your subscription" hint on course cards
+     * that keep showing in "My courses" after access expired.
+     */
+    public static function has_expired_enrolment(int $userid, int $courseid): bool {
+        $context = \context_course::instance($courseid);
+        // Enrolled at all (incl. expired/suspended) but not actively.
+        return is_enrolled($context, $userid, '', false)
+            && !is_enrolled($context, $userid, '', true);
     }
 
     /**

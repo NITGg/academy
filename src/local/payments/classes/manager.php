@@ -733,6 +733,7 @@ class manager {
                 'success' => true,
                 'status' => $transaction->status,
                 'courseid' => (int) $transaction->courseid,
+                'item_type' => $item_type,
                 'enrolled' => $item_type === 'course' ? enrollment_handler::is_enrolled((int) $transaction->userid, (int) $transaction->courseid) : false,
             ];
         }
@@ -743,6 +744,7 @@ class manager {
                 'success' => false,
                 'status' => $transaction->status,
                 'courseid' => (int) $transaction->courseid,
+                'item_type' => $item_type,
                 'enrolled' => false,
             ];
         }
@@ -757,6 +759,7 @@ class manager {
                     'success' => false,
                     'status' => 'amount_mismatch',
                     'courseid' => (int) $transaction->courseid,
+                    'item_type' => $item_type,
                     'enrolled' => false,
                 ];
             }
@@ -818,6 +821,7 @@ class manager {
                 'success' => true,
                 'status' => status_machine::COMPLETED,
                 'courseid' => (int) $transaction->courseid,
+                'item_type' => $item_type,
                 'enrolled' => $enrolled,
             ];
         }
@@ -826,6 +830,7 @@ class manager {
             'success' => false,
             'status' => $transaction->status,
             'courseid' => (int) $transaction->courseid,
+            'item_type' => $item_type,
             'enrolled' => false,
         ];
     }

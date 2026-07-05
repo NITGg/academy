@@ -9,8 +9,11 @@ $context = context_course::instance($courseid);
 require_login();
 require_capability('local/payments:purchasecourse', $context);
 
-// Already enrolled — send straight to the course.
-if (is_enrolled($context, $USER->id)) {
+// Already actively enrolled — send straight to the course. An expired
+// enrolment (lapsed subscription/package) must NOT short-circuit here, so the
+// student can re-purchase or re-enrol rather than bouncing to a course they
+// can no longer access.
+if (is_enrolled($context, $USER->id, '', true)) {
     redirect(new moodle_url('/course/view.php', ['id' => $courseid]));
 }
 
