@@ -38,6 +38,21 @@ class flex_manager {
     }
 
     /**
+     * Zero out a student's remaining Flex balance when an admin unassigns their package
+     * (US-AD-4-*), so the ledger reflects the balance going to 0. No-op if nothing remains.
+     */
+    public static function log_revoke($studentid, $purchaseid, $performedby, $reason = '') {
+        global $DB;
+        $purchase = $DB->get_record('academy_package_purchases', array('id' => $purchaseid));
+        if (!$purchase || (int)$purchase->remaining_flex <= 0) {
+            return;
+        }
+        $before = (int)$purchase->remaining_flex;
+        $DB->set_field('academy_package_purchases', 'remaining_flex', 0, array('id' => $purchaseid));
+        self::log($studentid, $purchaseid, 0, self::TYPE_ADJUST, -$before, $before, 0, $performedby, $reason);
+    }
+
+    /**
      * Reserve one Flex from the student's active package when a lesson is confirmed (US-FN-1-2).
      *
      * @param int $studentid

@@ -130,12 +130,13 @@ function local_academy_available_subscriptions_section() {
 .la-subs-banner{position:relative;height:190px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden}
 .la-subs-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.22),transparent 55%)}
 .la-subs-banner svg{width:52px;height:52px;opacity:.95;fill:#fff;position:relative;z-index:1}
-.la-subs-daysbadge{align-self:flex-start;background:rgba(255,255,255,.95);color:#1c1d1f;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;position:relative;z-index:1}
+.la-subs-badges{align-self:flex-start;position:relative;z-index:1;display:flex;gap:.4rem;flex-wrap:wrap}
+.la-subs-daysbadge{background:rgba(255,255,255,.95);color:#1c1d1f;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
 .la-subs-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
 .la-subs-name{font-weight:700;font-size:1.2rem;color:#1c1d1f;margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
 .la-subs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
 .la-subs-card--active{border-color:#a435f0;box-shadow:0 0 0 2px rgba(164,53,240,.28)}
-.la-subs-activebadge{align-self:flex-start;background:#1f9d55;color:#fff;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;position:relative;z-index:1}
+.la-subs-activebadge{background:#1f9d55;color:#fff;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
 .la-subs-dates{font-size:.86rem;color:#3c3c3c;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
 .la-subs-dates-row{display:flex;justify-content:space-between;margin-top:.3rem}
 .la-subs-dates-row b{color:#1c1d1f}
@@ -146,8 +147,8 @@ function local_academy_available_subscriptions_section() {
 .la-subs-btn:hover{background:#8710d8}
 .la-subs-btn:active{transform:scale(.97)}
 .la-subs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
-.la-subs-note{display:flex;align-items:flex-start;gap:.5rem;margin-top:.9rem;padding:.6rem .75rem;background:#fdf6ec;border:1px solid #f3d9a8;border-radius:.5rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
-.la-subs-note svg{width:16px;height:16px;flex-shrink:0;fill:#c07f00;margin-top:.05rem}
+.la-subs-headnote{display:none;align-items:center;gap:.4rem;margin-top:.6rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
+.la-subs-headnote svg{width:15px;height:15px;flex-shrink:0;fill:#c07f00}
 /* Confirmation dialog (replaces the native window.confirm). */
 .la-subs-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease}
 .la-subs-modal-bg.open{display:flex;opacity:1}
@@ -175,6 +176,7 @@ CSS;
             '<div class="la-subs-head">' .
                 html_writer::tag('h3', s($heading), array('class' => 'la-subs-title')) .
                 html_writer::tag('p', s($desc), array('class' => 'la-subs-sub')) .
+                '<div id="la-subs-headnote" class="la-subs-headnote"></div>' .
             '</div>' .
             '<div id="la-subs-msg" class="alert" style="display:none"></div>' .
             '<div id="la-subs-grid" class="la-subs-grid"></div>' .
@@ -240,6 +242,7 @@ require([], function() {
         'linear-gradient(135deg,#1a2980,#26d0ce)'
     ];
     var CAP = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 1 8l11 5 9-4.09V17h2V8L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>';
+    var INFO = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
 
     // A styled confirm dialog (replaces the ugly native window.confirm). Resolves true/false.
     function confirmSubscribe(s) {
@@ -298,9 +301,11 @@ require([], function() {
         var isActive = !!(activeSub && Number(activeSub.subscriptionid) === Number(s.id));
         var card = el('div', {class: 'la-subs-card' + (isActive ? ' la-subs-card--active' : '')});
         var banner = el('div', {class: 'la-subs-banner', style: 'background:' + GRADS[idx % GRADS.length]});
-        banner.innerHTML = CAP + (isActive
-            ? '<span class="la-subs-activebadge">Active</span>'
-            : '<span class="la-subs-daysbadge">' + esc(s.duration_days) + ' days</span>');
+        banner.innerHTML = CAP +
+            '<span class="la-subs-badges">' +
+                '<span class="la-subs-daysbadge">' + esc(s.duration_days) + ' days</span>' +
+                (isActive ? '<span class="la-subs-activebadge">Active</span>' : '') +
+            '</span>';
         card.appendChild(banner);
 
         var body = el('div', {class: 'la-subs-body'});
@@ -322,14 +327,6 @@ require([], function() {
         foot.appendChild(btn);
         body.appendChild(foot);
 
-        // Only one subscription can be active at a time — explain why the button is disabled
-        // instead of leaving a greyed-out "Subscribed" with no context.
-        if (hasActive && !isActive) {
-            var INFO = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
-            body.appendChild(el('div', {class: 'la-subs-note'},
-                INFO + '<span>You already have an active subscription. You can subscribe to this plan once your current subscription ends.</span>'));
-        }
-
         card.appendChild(body);
         return card;
     }
@@ -339,6 +336,20 @@ require([], function() {
         if (!rows.length) { return; } // nothing to sell — leave the section hidden
         var activeSub = mine.filter(function(s) { return s.status === 'active'; })[0] || null;
         var hasActive = !!activeSub;
+
+        // Only one subscription can be active at a time — explain why every "Subscribe" button
+        // is disabled with a single note under the section heading, instead of repeating it on
+        // every card.
+        var headnote = document.getElementById('la-subs-headnote');
+        if (headnote) {
+            if (hasActive) {
+                headnote.innerHTML = INFO + '<span>You already have an active subscription. You can subscribe to another plan once your current subscription ends.</span>';
+                headnote.style.display = 'flex';
+            } else {
+                headnote.style.display = 'none';
+            }
+        }
+
         grid.innerHTML = '';
         rows.forEach(function(s, i) { grid.appendChild(subCard(s, hasActive, i, activeSub)); });
         sec.style.display = 'block';
@@ -385,11 +396,17 @@ function local_academy_available_packages_section() {
 .la-pkgs-banner{position:relative;height:190px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden}
 .la-pkgs-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.22),transparent 55%)}
 .la-pkgs-banner svg{width:52px;height:52px;opacity:.95;fill:#fff;position:relative;z-index:1}
-.la-pkgs-flexbadge{align-self:flex-start;background:rgba(255,255,255,.95);color:#1c1d1f;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;position:relative;z-index:1}
+.la-pkgs-badges{align-self:flex-start;position:relative;z-index:1;display:flex;gap:.4rem;flex-wrap:wrap}
+.la-pkgs-flexbadge{background:rgba(255,255,255,.95);color:#1c1d1f;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
 .la-pkgs-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
 .la-pkgs-name{font-weight:700;font-size:1.2rem;color:#1c1d1f;margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
 .la-pkgs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
+.la-pkgs-card--active{border-color:#0d6efd;box-shadow:0 0 0 2px rgba(13,110,253,.28)}
+.la-pkgs-activebadge{background:#1f9d55;color:#fff;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
 .la-pkgs-meta{font-size:.86rem;color:#3c3c3c;margin-top:auto;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
+.la-pkgs-dates{font-size:.86rem;color:#3c3c3c;margin-top:auto;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
+.la-pkgs-dates-row{display:flex;justify-content:space-between;margin-top:.3rem}
+.la-pkgs-dates-row b{color:#1c1d1f}
 .la-pkgs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-top:.5rem}
 .la-pkgs-price{font-size:1.5rem;font-weight:800;color:#1c1d1f}
 .la-pkgs-price small{font-size:.8rem;font-weight:600;color:#6a6f73}
@@ -397,8 +414,8 @@ function local_academy_available_packages_section() {
 .la-pkgs-btn:hover{background:#0b5ed7}
 .la-pkgs-btn:active{transform:scale(.97)}
 .la-pkgs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
-.la-pkgs-note{display:flex;align-items:flex-start;gap:.5rem;margin-top:.9rem;padding:.6rem .75rem;background:#fdf6ec;border:1px solid #f3d9a8;border-radius:.5rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
-.la-pkgs-note svg{width:16px;height:16px;flex-shrink:0;fill:#c07f00;margin-top:.05rem}
+.la-pkgs-headnote{display:none;align-items:center;gap:.4rem;margin-top:.6rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
+.la-pkgs-headnote svg{width:15px;height:15px;flex-shrink:0;fill:#c07f00}
 CSS;
 
     $section = html_writer::tag('style', $css) .
@@ -406,6 +423,7 @@ CSS;
             '<div class="la-pkgs-head">' .
                 html_writer::tag('h3', s($heading), array('class' => 'la-pkgs-title')) .
                 html_writer::tag('p', s($desc), array('class' => 'la-pkgs-sub')) .
+                '<div id="la-pkgs-headnote" class="la-pkgs-headnote"></div>' .
             '</div>' .
             '<div id="la-pkgs-msg" class="alert" style="display:none"></div>' .
             '<div id="la-pkgs-grid" class="la-pkgs-grid"></div>' .
@@ -436,6 +454,7 @@ require([], function() {
         });
     }
     function money(n) { return Number(n || 0).toFixed(2); }
+    function fmtDate(ts) { if (!ts) { return '—'; } return new Date(ts * 1000).toLocaleDateString(); }
     function showMsg(t, k) {
         var m = document.getElementById('la-pkgs-msg');
         m.textContent = t; m.className = 'alert alert-' + (k || 'info'); m.style.display = 'block';
@@ -470,6 +489,7 @@ require([], function() {
         'linear-gradient(135deg,#7f00ff,#e100ff)'
     ];
     var BOLT = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.72 10.6 10.85 7.08 13 3.5h1l-1 7h4.5c.5 0 .5.33.36.61-.13.28-.08.19-.11.24C15.09 15.34 13 18.85 11 21z"/></svg>';
+    var INFO = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
 
     function subscribe(p, btn) {
         if (!window.confirm('Buy "' + p.name + '" for ' + money(p.price) + ' EGP (' + p.flex_count + ' Flex)?')) { return; }
@@ -480,34 +500,42 @@ require([], function() {
             .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
     }
 
-    function pkgCard(p, hasActive, idx) {
-        var card = el('div', {class: 'la-pkgs-card'});
+    function pkgCard(p, hasActive, idx, activePkg) {
+        var isActive = !!(activePkg && Number(activePkg.packageid) === Number(p.id));
+        var card = el('div', {class: 'la-pkgs-card' + (isActive ? ' la-pkgs-card--active' : '')});
         var banner = el('div', {class: 'la-pkgs-banner', style: 'background:' + GRADS[idx % GRADS.length]});
-        banner.innerHTML = BOLT + '<span class="la-pkgs-flexbadge">' + esc(p.flex_count) + ' Flex</span>';
+        banner.innerHTML = BOLT +
+            '<span class="la-pkgs-badges">' +
+                '<span class="la-pkgs-flexbadge">' + esc(p.flex_count) + ' Flex</span>' +
+                (isActive ? '<span class="la-pkgs-activebadge">Active</span>' : '') +
+            '</span>';
         card.appendChild(banner);
 
         var body = el('div', {class: 'la-pkgs-body'});
         body.appendChild(el('div', {class: 'la-pkgs-name'}, esc(p.name)));
         if (p.description) { body.appendChild(el('div', {class: 'la-pkgs-desc'}, esc(p.description))); }
-        var meta = el('div', {class: 'la-pkgs-meta'});
-        meta.innerHTML = (Number(p.expiration_days) > 0)
-            ? ('Valid for <b>' + esc(p.expiration_days) + '</b> days after activation')
-            : '<b>Never expires</b>';
-        body.appendChild(meta);
+
+        if (isActive) {
+            var datesBox = el('div', {class: 'la-pkgs-dates'});
+            datesBox.innerHTML =
+                '<div class="la-pkgs-dates-row"><span>Flex (used / total)</span><b>' + esc(activePkg.used_flex) + ' / ' + esc(activePkg.total_flex) + '</b></div>' +
+                '<div class="la-pkgs-dates-row"><span>Activated</span><b>' + esc(fmtDate(activePkg.timeactivated)) + '</b></div>' +
+                '<div class="la-pkgs-dates-row"><span>Expires</span><b>' + (Number(activePkg.expires_at) > 0 ? esc(fmtDate(activePkg.expires_at)) : 'Never') + '</b></div>';
+            body.appendChild(datesBox);
+        } else {
+            var meta = el('div', {class: 'la-pkgs-meta'});
+            meta.innerHTML = (Number(p.expiration_days) > 0)
+                ? ('Valid for <b>' + esc(p.expiration_days) + '</b> days after activation')
+                : '<b>Never expires</b>';
+            body.appendChild(meta);
+        }
 
         var foot = el('div', {class: 'la-pkgs-foot'});
         foot.appendChild(el('div', {class: 'la-pkgs-price'}, esc(money(p.price)) + ' <small>EGP</small>'));
-        var btn = el('button', {type: 'button', class: 'la-pkgs-btn'}, hasActive ? 'Purchased' : 'Buy package');
+        var btn = el('button', {type: 'button', class: 'la-pkgs-btn'}, isActive ? 'Active' : (hasActive ? 'Purchased' : 'Buy package'));
         if (hasActive) { btn.disabled = true; } else { btn.onclick = function() { subscribe(p, btn); }; }
         foot.appendChild(btn);
         body.appendChild(foot);
-
-        // Only one package can be active at a time — explain why the button is disabled.
-        if (hasActive) {
-            var INFO = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
-            body.appendChild(el('div', {class: 'la-pkgs-note'},
-                INFO + '<span>You already have an active package. You can buy a new one once it is fully used or expires.</span>'));
-        }
 
         card.appendChild(body);
         return card;
@@ -516,9 +544,23 @@ require([], function() {
     Promise.all([apiGet('get_available_packages'), apiGet('get_my_packages')]).then(function(res) {
         var rows = res[0] || [], mine = res[1] || [];
         if (!rows.length) { return; } // nothing to sell — leave the section hidden
-        var hasActive = mine.some(function(p) { return p.status === 'active'; });
+        var activePkg = mine.filter(function(p) { return p.status === 'active'; })[0] || null;
+        var hasActive = !!activePkg;
+
+        // Only one package can be active at a time — explain why every "Buy package" button is
+        // disabled with a single note under the section heading, instead of repeating it per card.
+        var headnote = document.getElementById('la-pkgs-headnote');
+        if (headnote) {
+            if (hasActive) {
+                headnote.innerHTML = INFO + '<span>You already have an active package. You can buy a new one once it is fully used or expires.</span>';
+                headnote.style.display = 'flex';
+            } else {
+                headnote.style.display = 'none';
+            }
+        }
+
         grid.innerHTML = '';
-        rows.forEach(function(p, i) { grid.appendChild(pkgCard(p, hasActive, i)); });
+        rows.forEach(function(p, i) { grid.appendChild(pkgCard(p, hasActive, i, activePkg)); });
         sec.style.display = 'block';
     }).catch(function() { /* keep the section hidden on any error */ });
 });
@@ -526,6 +568,20 @@ JS;
 
     $PAGE->requires->js_amd_inline($js);
     return $section;
+}
+
+/**
+ * True if the current user manages the Academy Flex platform (site admin or the 'manager' role
+ * that holds the plugin's manage capabilities). The student-facing front-page purchase sections
+ * ("Available subscriptions" / "Available packages") are not shown to them.
+ *
+ * @return bool
+ */
+function local_academy_is_platform_manager() {
+    $context = \context_system::instance();
+    return has_capability('local/academy:managepackages', $context)
+        || has_capability('local/academy:managesubscriptions', $context)
+        || has_capability('local/academy:manageplatform', $context);
 }
 
 /**
@@ -539,8 +595,10 @@ function local_academy_before_footer() {
     $output = '';
 
     // 1. Front page "Available subscriptions" cards, followed by "Available packages" cards.
+    // Students only — admins/managers already manage these from their own dashboards.
     if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
-        if (isloggedin() && !isguestuser() && $PAGE->pagetype === 'site-index') {
+        if (isloggedin() && !isguestuser() && $PAGE->pagetype === 'site-index'
+                && !local_academy_is_platform_manager()) {
             $output .= local_academy_available_subscriptions_section();
             $output .= local_academy_available_packages_section();
         }
