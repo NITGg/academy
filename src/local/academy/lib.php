@@ -185,7 +185,8 @@ CSS;
     $cfg = array(
         'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
         'token'    => $token,
-        'lang'     => current_language(),
+        // Honour an explicit ?lang= in the URL; otherwise use the page's current language.
+        'lang'     => optional_param('lang', current_language(), PARAM_LANG),
     );
     $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
 
@@ -435,7 +436,8 @@ CSS;
     $cfg = array(
         'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
         'token'    => $token,
-        'lang'     => current_language(),
+        // Honour an explicit ?lang= in the URL; otherwise use the page's current language.
+        'lang'     => optional_param('lang', current_language(), PARAM_LANG),
     );
     $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
 

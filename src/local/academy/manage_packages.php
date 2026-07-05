@@ -49,7 +49,7 @@ $STR = local_academy_string_map(array(
 echo html_writer::script('window.ACADEMY_PKG = ' . json_encode(array(
     'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
     'token'    => $token,
-    'lang'     => current_language(),
+    'lang'     => optional_param('lang', current_language(), PARAM_LANG),
 )) . ';');
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 
