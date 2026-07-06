@@ -63,11 +63,15 @@ $function = optional_param('function', '', PARAM_ALPHANUMEXT);
 $token    = optional_param('token', '', PARAM_TEXT);
 
 // Optional ?lang=en|ar — render system messages (get_string) and multilang content (format_string)
-// in the requested language. Must run before any get_string()/format_string() call below. When
-// omitted or invalid, the caller's normal language is kept, so existing clients are unaffected.
-$lang = optional_param('lang', '', PARAM_LANG);
-if ($lang !== '') {
-    force_current_language($lang);
+// in the requested language. We set $SESSION->forcelang directly rather than via
+// force_current_language(): that helper gates on the STRICT installed-language list
+// (translation_exists($lang, false)), which drops languages restricted from the language menu
+// ($CFG->langlist) and can leave the request in English even when the language renders fine on
+// normal pages. The lenient translation_exists($lang) check below matches the site's own behaviour.
+$lang = optional_param('lang', '', PARAM_SAFEDIR);
+$canforcelang = ($lang !== '' && get_string_manager()->translation_exists($lang));
+if ($canforcelang) {
+    $SESSION->forcelang = $lang;
 }
 
 // ── Authenticate via web-service token (sets $USER to the token's user) ──
@@ -129,10 +133,10 @@ if (isset($capmap[$function]) && !has_capability($capmap[$function], context_sys
 }
 
 // Re-apply the requested language right before dispatch. Token authentication above sets $USER to
-// the token's user, which can re-initialise the language to that user's preference — so we force it
-// again here to guarantee format_string()/multilang content resolves to ?lang for the response.
-if ($lang !== '') {
-    force_current_language($lang);
+// the token's user, which can re-initialise the language to that user's preference — so we set the
+// override again here to guarantee format_string()/multilang content resolves to ?lang.
+if ($canforcelang) {
+    $SESSION->forcelang = $lang;
 }
 
 try {

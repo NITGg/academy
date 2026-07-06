@@ -14,9 +14,10 @@ $type  = optional_param('type', '', PARAM_ALPHANUMEXT);
 $token = optional_param('token', '', PARAM_TEXT);
 
 // Optional ?lang=en|ar — resolve multilang content in the exported rows to the requested language.
-$lang = optional_param('lang', '', PARAM_LANG);
-if ($lang !== '') {
-    force_current_language($lang);
+// Set $SESSION->forcelang directly (see api.php) so a language restricted from the menu still works.
+$lang = optional_param('lang', '', PARAM_SAFEDIR);
+if ($lang !== '' && get_string_manager()->translation_exists($lang)) {
+    $SESSION->forcelang = $lang;
 }
 
 // Authenticate via web-service token (same pattern as api.php).
