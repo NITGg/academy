@@ -29,6 +29,7 @@ $STR = local_academy_string_map(array(
     'ui_activate', 'ui_deactivate', 'ui_edit', 'ui_delete', 'ui_never', 'ui_optional',
     'pkg_col_id', 'pkg_col_name', 'pkg_col_price', 'sub_col_days', 'sub_col_courses', 'pkg_col_status',
     'pkg_col_actions', 'pkg_field_name', 'pkg_field_price', 'pkg_col_user', 'sub_col_subscription',
+    'pkg_field_name_en', 'pkg_field_name_ar', 'pkg_field_desc_en', 'pkg_field_desc_ar',
     'pkg_col_pricepaid', 'pkg_col_expiresat',
     'sub_field_desc', 'sub_field_days', 'sub_courseavail_heading', 'sub_courseavail_desc', 'sub_target',
     'sub_select_placeholder', 'sub_save_courses', 'sub_usersubs_heading', 'sub_usersubs_desc',
@@ -71,12 +72,20 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <h4 id="sub-form-title" class="card-title"><?php echo $STR['sub_new']; ?></h4>
             <input type="hidden" id="f-id">
             <div class="form-group">
-                <label for="f-name"><?php echo $STR['pkg_field_name']; ?></label>
-                <input type="text" class="form-control" id="f-name">
+                <label for="f-name-en"><?php echo $STR['pkg_field_name_en']; ?></label>
+                <input type="text" class="form-control" id="f-name-en" dir="ltr">
             </div>
             <div class="form-group">
-                <label for="f-description"><?php echo $STR['sub_field_desc']; ?></label>
-                <textarea class="form-control" id="f-description" rows="2"></textarea>
+                <label for="f-name-ar"><?php echo $STR['pkg_field_name_ar']; ?></label>
+                <input type="text" class="form-control" id="f-name-ar" dir="rtl">
+            </div>
+            <div class="form-group">
+                <label for="f-desc-en"><?php echo $STR['pkg_field_desc_en']; ?></label>
+                <textarea class="form-control" id="f-desc-en" rows="2" dir="ltr"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="f-desc-ar"><?php echo $STR['pkg_field_desc_ar']; ?></label>
+                <textarea class="form-control" id="f-desc-ar" rows="2" dir="rtl"></textarea>
             </div>
             <div class="form-group">
                 <label for="f-price"><?php echo $STR['pkg_field_price']; ?></label>
@@ -276,6 +285,49 @@ echo html_writer::script(<<<'JS'
         });
     }
 
+    // ── Multilang helpers (same one-field approach as manage_packages.php) ──────
+    // A single DB name/description field holds two languages via the site's Multi-Language
+    // Content (v2) filter syntax: {mlang en}…{mlang}{mlang ar}…{mlang}. These helpers let the admin
+    // edit two clean boxes (EN / AR) that map to that one field. No DB change.
+
+    // Split a stored value into {en, ar}. Understands v2 {mlang} and legacy <span class="multilang">.
+    function parseMultilang(value) {
+        var out = { en: '', ar: '' };
+        var raw = String(value == null ? '' : value);
+        var m, found = false;
+        var re2 = /\{\s*mlang\s+([a-zA-Z0-9_-]+)\s*\}([\s\S]*?)\{\s*mlang\s*\}/g;
+        while ((m = re2.exec(raw)) !== null) {
+            found = true;
+            var code2 = m[1].toLowerCase();
+            if (code2.indexOf('ar') === 0) { out.ar = m[2].trim(); }
+            else if (code2.indexOf('en') === 0) { out.en = m[2].trim(); }
+        }
+        if (found) { return out; }
+        var re1 = /<span[^>]*\blang\s*=\s*"([a-zA-Z0-9_-]+)"[^>]*>([\s\S]*?)<\/span>/g;
+        while ((m = re1.exec(raw)) !== null) {
+            found = true;
+            var code1 = m[1].toLowerCase();
+            if (code1.indexOf('ar') === 0) { out.ar = m[2].trim(); }
+            else if (code1.indexOf('en') === 0) { out.en = m[2].trim(); }
+        }
+        if (!found) { out.en = raw; }
+        return out;
+    }
+
+    // Combine two boxes into one field value. Two langs → {mlang} blocks; single lang → plain text.
+    function buildMultilang(en, ar) {
+        en = String(en == null ? '' : en).trim();
+        ar = String(ar == null ? '' : ar).trim();
+        if (en && ar) { return '{mlang en}' + en + '{mlang}{mlang ar}' + ar + '{mlang}'; }
+        return en || ar;
+    }
+
+    // Readable label for the admin table/dropdown: "English / Arabic".
+    function displayName(value) {
+        var v = parseMultilang(value);
+        return [v.en, v.ar].filter(function (x) { return x; }).join(' / ') || value || '';
+    }
+
     function courseNames(sub) {
         if (!sub.courses || !sub.courses.length) { return '<span class="text-muted">—</span>'; }
         return sub.courses.map(function (c) { return esc(c.fullname); }).join(', ');
@@ -301,7 +353,7 @@ echo html_writer::script(<<<'JS'
                     : '<button class="btn btn-sm btn-success" data-act="activate" data-id="' + s.id + '">' + esc(str('ui_activate')) + '</button>';
                 tr.innerHTML =
                     '<td>' + esc(s.id) + '</td>' +
-                    '<td>' + esc(s.name) + '</td>' +
+                    '<td>' + esc(displayName(s.name)) + '</td>' +
                     '<td>' + esc(s.price) + '</td>' +
                     '<td>' + esc(s.duration_days) + '</td>' +
                     '<td>' + courseNames(s) + '</td>' +
@@ -320,12 +372,16 @@ echo html_writer::script(<<<'JS'
 
     function showForm(sub) {
         $('sub-form-title').textContent = sub ? strf('sub_edit_titled', sub.id) : str('sub_new');
-        $('f-id').value          = sub ? sub.id : '';
-        $('f-name').value        = sub ? sub.name : '';
-        $('f-description').value = sub ? (sub.description || '') : '';
-        $('f-price').value       = sub ? sub.price : '';
-        $('f-days').value        = sub ? sub.duration_days : '';
-        $('f-active').checked    = sub ? (sub.status === 'active') : true;
+        var nm = parseMultilang(sub ? sub.name : '');
+        var ds = parseMultilang(sub ? (sub.description || '') : '');
+        $('f-id').value       = sub ? sub.id : '';
+        $('f-name-en').value  = nm.en;
+        $('f-name-ar').value  = nm.ar;
+        $('f-desc-en').value  = ds.en;
+        $('f-desc-ar').value  = ds.ar;
+        $('f-price').value    = sub ? sub.price : '';
+        $('f-days').value     = sub ? sub.duration_days : '';
+        $('f-active').checked = sub ? (sub.status === 'active') : true;
         $('sub-form-card').style.display = 'block';
     }
     function hideForm() { $('sub-form-card').style.display = 'none'; }
@@ -333,8 +389,8 @@ echo html_writer::script(<<<'JS'
     function save() {
         var id = $('f-id').value;
         var params = {
-            name: $('f-name').value.trim(),
-            description: $('f-description').value,
+            name: buildMultilang($('f-name-en').value, $('f-name-ar').value),
+            description: buildMultilang($('f-desc-en').value, $('f-desc-ar').value),
             price: $('f-price').value,
             duration_days: $('f-days').value
         };
@@ -407,7 +463,7 @@ echo html_writer::script(<<<'JS'
         select.innerHTML = '<option value="">' + esc(str('sub_select_placeholder')) + '</option>';
         ALL_SUBS.forEach(function(sub) {
             if (sub.status === 'active') {
-                select.innerHTML += '<option value="' + sub.id + '">' + esc(sub.name) + ' (#' + sub.id + ')</option>';
+                select.innerHTML += '<option value="' + sub.id + '">' + esc(displayName(sub.name)) + ' (#' + sub.id + ')</option>';
             }
         });
         select.value = prevValue;
@@ -467,7 +523,7 @@ echo html_writer::script(<<<'JS'
                 var expires = r.expires_at > 0 ? new Date(r.expires_at * 1000).toLocaleString() : str('ui_never');
                 tr.innerHTML =
                     '<td>' + esc(r.user_fullname) + ' <br><small class="text-muted">' + esc(r.user_email) + '</small></td>' +
-                    '<td>' + esc(r.name) + '</td>' +
+                    '<td>' + esc(displayName(r.name)) + '</td>' +
                     '<td>' + esc(r.price_paid) + '</td>' +
                     '<td>' + esc(sstat(r.status)) + '</td>' +
                     '<td>' + esc(expires) + '</td>' +
@@ -485,7 +541,7 @@ echo html_writer::script(<<<'JS'
         pendingUnsubscribe = row;
         var priceText = row.price_paid ? strf('pkg_unassign_paid', esc(row.price_paid)) : '';
         $('unsub-modal-text').innerHTML = strf('sub_unsub_confirm', {
-            user: esc(row.user_fullname), name: esc(row.name), price: priceText
+            user: esc(row.user_fullname), name: esc(displayName(row.name)), price: priceText
         });
         $('unsub-refund-checkbox').checked = false;
         $('unsub-modal-backdrop').style.display = 'flex';
