@@ -468,6 +468,24 @@ $string['rp_tl_none']        = 'لا توجد إجراءات مسجّلة.';
 $string['rp_no_data']            = 'لا توجد بيانات.';
 $string['rp_enter_student']      = 'أدخل معرّف الطالب.';
 $string['rp_enter_student_run']  = 'أدخل معرّف الطالب ثم اضغط تشغيل.';
+// Summary chip labels (keyed off the report summary field names).
+$string['rp_sum_total']                   = 'الإجمالي';
+$string['rp_sum_completed']               = 'مكتملة';
+$string['rp_sum_student_absent']          = 'غياب الطالب';
+$string['rp_sum_teacher_absent']          = 'غياب المعلّم';
+$string['rp_sum_attendance_rate']         = 'نسبة الحضور';
+$string['rp_sum_total_platform_earnings'] = 'إجمالي أرباح المنصّة';
+$string['rp_sum_total_teacher_earnings']  = 'إجمالي أرباح المعلّمين';
+$string['rp_sum_total_consumed_value']    = 'إجمالي القيمة المستهلكة';
+$string['rp_sum_completed_lessons']       = 'الدروس المكتملة';
+$string['rp_sum_total_purchases']         = 'إجمالي المشتريات';
+$string['rp_sum_total_sales_amount']      = 'إجمالي قيمة المبيعات';
+$string['rp_sum_online_count']            = 'مشتريات عبر الإنترنت';
+$string['rp_sum_assigned_count']          = 'المخصّصة';
+$string['rp_sum_total_flex_added']        = 'إجمالي الفلكس المضاف';
+$string['rp_sum_total_flex_consumed']     = 'إجمالي الفلكس المستهلك';
+$string['rp_sum_total_flex_returned']     = 'إجمالي الفلكس المُرجَع';
+$string['rp_sum_reversals']               = 'عمليات الاسترجاع';
 // Audit-trail action labels.
 $string['rp_act_requested']               = 'طلب الطالب';
 $string['rp_act_teacher_accepted']        = 'قبل المعلّم';

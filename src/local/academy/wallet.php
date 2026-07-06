@@ -124,8 +124,8 @@ echo html_writer::script(<<<'JS'
   // Withdrawal + earning status → localised label.
   function wstat(s){return str('wstat_'+s)!=='wstat_'+s?str('wstat_'+s):s;}
 
-  function apiGet(fn){var base={function:fn,token:CFG.token};if(CFG.lang){base.lang=CFG.lang;}return fetch(CFG.endpoint+'?'+new URLSearchParams(base)).then(parse);}
-  function apiPost(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.lang=CFG.lang;}var b=new URLSearchParams(Object.assign(base,p));return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b.toString()}).then(parse);}
+  function apiGet(fn){var base={function:fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}return fetch(CFG.endpoint+'?'+new URLSearchParams(base)).then(parse);}
+  function apiPost(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}var b=new URLSearchParams(Object.assign(base,p));return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b.toString()}).then(parse);}
 
   function card(label,value,cls){return '<div class="w-card '+(cls||'')+'"><div class="w-label">'+label+'</div><div class="w-value">'+value+'</div></div>';}
 
@@ -157,8 +157,8 @@ echo html_writer::script(<<<'JS'
   function load(){apiGet('get_teacher_wallet').then(render).catch(function(e){msg(e.message,'danger');});}
 
   // CSV export links (US-TR-2-1) — teacher exports their own data.
-  $('w-exp-wd').href=CFG.export+'?'+new URLSearchParams({type:'my_withdrawals',token:CFG.token,lang:CFG.lang||''}).toString();
-  $('w-exp-earn').href=CFG.export+'?'+new URLSearchParams({type:'my_earnings',token:CFG.token,lang:CFG.lang||''}).toString();
+  $('w-exp-wd').href=CFG.export+'?'+new URLSearchParams({type:'my_withdrawals',token:CFG.token,alang:CFG.lang||''}).toString();
+  $('w-exp-earn').href=CFG.export+'?'+new URLSearchParams({type:'my_earnings',token:CFG.token,alang:CFG.lang||''}).toString();
 
   $('w-withdraw').onclick=function(){$('w-modal-bg').style.display='flex';};
   $('w-cancel').onclick=function(){$('w-modal-bg').style.display='none';};

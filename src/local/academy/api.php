@@ -51,6 +51,18 @@ ob_start();
  * Emit a JSON response and stop.
  */
 function academy_respond($payload) {
+    global $SESSION;
+    // Restore the session's real language override before we exit. We force ?lang for THIS request
+    // only; persisting $SESSION->forcelang would leak into the next normal page load and override
+    // the navbar language switch (it has the highest priority in current_language()) — the cause of
+    // the "first click does nothing, second click works" / "?lang differs from applied lang" bug.
+    if (array_key_exists('academy_prev_forcelang', $GLOBALS)) {
+        if ($GLOBALS['academy_prev_forcelang'] === null) {
+            unset($SESSION->forcelang);
+        } else {
+            $SESSION->forcelang = $GLOBALS['academy_prev_forcelang'];
+        }
+    }
     // Drop any stray output captured so far so it can't corrupt the JSON.
     while (ob_get_level() > 0) {
         ob_end_clean();
@@ -62,14 +74,23 @@ function academy_respond($payload) {
 $function = optional_param('function', '', PARAM_ALPHANUMEXT);
 $token    = optional_param('token', '', PARAM_TEXT);
 
-// Optional ?lang=en|ar — render system messages (get_string) and multilang content (format_string)
-// in the requested language. We set $SESSION->forcelang directly rather than via
-// force_current_language(): that helper gates on the STRICT installed-language list
-// (translation_exists($lang, false)), which drops languages restricted from the language menu
-// ($CFG->langlist) and can leave the request in English even when the language renders fine on
-// normal pages. The lenient translation_exists($lang) check below matches the site's own behaviour.
-$lang = optional_param('lang', '', PARAM_SAFEDIR);
+// Optional ?alang=en|ar — render system messages (get_string) and multilang content (format_string)
+// in the requested language. We read 'alang' (academy language), NOT 'lang', on purpose: core
+// setup.php writes $SESSION->lang from any ?lang GET param on every request — including these AJAX
+// calls — so an in-flight request from a page rendered in the previous language could silently
+// reset the user's navbar language choice. 'alang' is invisible to core, so an API request can
+// render its response in a language without ever touching the session/site language. (Falls back to
+// 'lang' for any legacy caller.)
+// We set $SESSION->forcelang directly rather than via force_current_language(): that helper gates on
+// the STRICT installed-language list (translation_exists($lang, false)), which drops languages
+// restricted from the language menu ($CFG->langlist) and can leave the request in English even when
+// the language renders fine on normal pages. The lenient translation_exists($lang) check below
+// matches the site's own behaviour.
+$lang = optional_param('alang', optional_param('lang', '', PARAM_SAFEDIR), PARAM_SAFEDIR);
 $canforcelang = ($lang !== '' && get_string_manager()->translation_exists($lang));
+// Remember the session's real language override so academy_respond() can restore it before exiting.
+// Forcing the language for this request must NOT persist to later page loads (see academy_respond()).
+$GLOBALS['academy_prev_forcelang'] = isset($SESSION->forcelang) ? $SESSION->forcelang : null;
 if ($canforcelang) {
     $SESSION->forcelang = $lang;
 }
@@ -438,7 +459,7 @@ try {
         case 'update_lesson_settings': // admin (manageplatform)
             $fields = ['min_booking_minutes', 'cancel_deadline_minutes', 'update_deadline_minutes',
                 'start_allowed_minutes', 'complete_allowed_minutes', 'absence_report_minutes',
-                'teacher_percent', 'platform_percent', 'lessons_courseid'];
+                'lesson_start_reminder_minutes', 'teacher_percent', 'platform_percent', 'lessons_courseid'];
             $data = [];
             foreach ($fields as $f) {
                 if (isset($_REQUEST[$f])) { $data[$f] = required_param($f, PARAM_INT); }

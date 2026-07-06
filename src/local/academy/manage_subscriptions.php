@@ -259,7 +259,7 @@ echo html_writer::script(<<<'JS'
         params = params || {};
         method = method || 'GET';
         var data = new URLSearchParams({ function: func, token: CFG.token });
-        if (CFG.lang) { data.append('lang', CFG.lang); }
+        if (CFG.lang) { data.append('alang', CFG.lang); }
         Object.keys(params).forEach(function (k) { data.append(k, params[k]); });
         var opts, url = CFG.endpoint;
         if (method === 'POST') {

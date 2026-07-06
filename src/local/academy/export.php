@@ -13,11 +13,29 @@ use local_academy\finance_manager;
 $type  = optional_param('type', '', PARAM_ALPHANUMEXT);
 $token = optional_param('token', '', PARAM_TEXT);
 
-// Optional ?lang=en|ar — resolve multilang content in the exported rows to the requested language.
-// Set $SESSION->forcelang directly (see api.php) so a language restricted from the menu still works.
-$lang = optional_param('lang', '', PARAM_SAFEDIR);
-if ($lang !== '' && get_string_manager()->translation_exists($lang)) {
+// Optional ?alang=en|ar — resolve multilang content in the exported rows to the requested language.
+// We read 'alang' (not 'lang') so this download can't reset the user's session language via core
+// setup.php (which writes $SESSION->lang from any ?lang GET param). We also force it for THIS request
+// only and restore it before finishing (academy_export_restore_lang()): a persisted
+// $SESSION->forcelang would leak into the next page load and override the navbar language switch
+// (highest priority in current_language()). Falls back to 'lang' for any legacy caller.
+$lang = optional_param('alang', optional_param('lang', '', PARAM_SAFEDIR), PARAM_SAFEDIR);
+$canforcelang = ($lang !== '' && get_string_manager()->translation_exists($lang));
+$GLOBALS['academy_prev_forcelang'] = isset($SESSION->forcelang) ? $SESSION->forcelang : null;
+if ($canforcelang) {
     $SESSION->forcelang = $lang;
+}
+
+/** Restore the session language override set above, so it doesn't leak to later page loads. */
+function academy_export_restore_lang() {
+    global $SESSION;
+    if (array_key_exists('academy_prev_forcelang', $GLOBALS)) {
+        if ($GLOBALS['academy_prev_forcelang'] === null) {
+            unset($SESSION->forcelang);
+        } else {
+            $SESSION->forcelang = $GLOBALS['academy_prev_forcelang'];
+        }
+    }
 }
 
 // Authenticate via web-service token (same pattern as api.php).
@@ -29,6 +47,7 @@ try {
     $userid = 0;
 }
 if (empty($userid)) {
+    academy_export_restore_lang();
     header('HTTP/1.1 401 Unauthorized');
     echo 'Authentication required';
     exit;
@@ -36,6 +55,7 @@ if (empty($userid)) {
 
 $admintypes = array('lessons', 'platform_earnings', 'packages', 'student_flex');
 if (in_array($type, $admintypes, true) && !has_capability('local/academy:manageplatform', context_system::instance())) {
+    academy_export_restore_lang();
     header('HTTP/1.1 403 Forbidden');
     echo 'Permission denied';
     exit;
@@ -126,10 +146,14 @@ switch ($type) {
         break;
 
     default:
+        academy_export_restore_lang();
         header('HTTP/1.1 400 Bad Request');
         echo 'Unknown report type';
         exit;
 }
+
+// Report rows are built; restore the real session language before emitting/exiting.
+academy_export_restore_lang();
 
 // Emit CSV.
 $filename = 'academy_' . $type . '_' . date('Ymd_His') . '.csv';

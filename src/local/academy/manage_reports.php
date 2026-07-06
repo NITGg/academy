@@ -33,6 +33,12 @@ $STR = local_academy_string_map(array(
     'rp_timeline_title', 'rp_close', 'rp_tl_num', 'rp_tl_action', 'rp_tl_by', 'rp_tl_role',
     'rp_tl_time', 'rp_tl_title_full', 'rp_tl_joinedroom', 'rp_tl_started', 'rp_tl_ended', 'rp_tl_none',
     'rp_no_data', 'rp_enter_student', 'rp_enter_student_run',
+    'rp_sum_total', 'rp_sum_completed', 'rp_sum_student_absent', 'rp_sum_teacher_absent',
+    'rp_sum_attendance_rate', 'rp_sum_total_platform_earnings', 'rp_sum_total_teacher_earnings',
+    'rp_sum_total_consumed_value', 'rp_sum_completed_lessons', 'rp_sum_total_purchases',
+    'rp_sum_total_sales_amount', 'rp_sum_online_count', 'rp_sum_assigned_count',
+    'rp_sum_total_flex_added', 'rp_sum_total_flex_consumed', 'rp_sum_total_flex_returned',
+    'rp_sum_reversals',
     'rp_act_requested', 'rp_act_teacher_accepted', 'rp_act_teacher_rejected', 'rp_act_teacher_suggested',
     'rp_act_student_accepted', 'rp_act_student_rejected', 'rp_act_student_suggested', 'rp_act_started',
     'rp_act_teacher_joined', 'rp_act_student_joined', 'rp_act_completed', 'rp_act_student_absent_reported',
@@ -97,7 +103,7 @@ echo html_writer::script(<<<'JS'
   function money(n){return Number(n||0).toFixed(2);}
   function fmt(ts){return ts?new Date(ts*1000).toLocaleString():'—';}
   function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function apiGet(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.lang=CFG.lang;}return fetch(CFG.endpoint+'?'+new URLSearchParams(Object.assign(base,p||{}))).then(parse);}
+  function apiGet(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}return fetch(CFG.endpoint+'?'+new URLSearchParams(Object.assign(base,p||{}))).then(parse);}
 
   var current='lessons';
   var FILTERS={
@@ -125,7 +131,7 @@ echo html_writer::script(<<<'JS'
   }
   function updateExportLink(){
     var p=Object.assign({type:EXPORTTYPE[current],token:CFG.token},readFilters());
-    if(CFG.lang){p.lang=CFG.lang;}
+    if(CFG.lang){p.alang=CFG.lang;}
     $('rp-export').href=CFG.export+'?'+new URLSearchParams(p).toString();
   }
 
@@ -151,7 +157,9 @@ echo html_writer::script(<<<'JS'
     Object.keys(s).forEach(function(k){
       if(k==='by_status'){return;}
       var v=s[k]; if(typeof v==='number' && String(k).indexOf('amount')>=0 || String(k).indexOf('earnings')>=0 || String(k).indexOf('value')>=0){v=money(v);}
-      box.innerHTML+='<div class="rp-chip">'+esc(k.replace(/_/g,' '))+'<b>'+esc(v)+'</b></div>';
+      // Localised chip label (rp_sum_<field>), falling back to the humanised field name.
+      var label=str('rp_sum_'+k); if(label==='rp_sum_'+k){label=k.replace(/_/g,' ');}
+      box.innerHTML+='<div class="rp-chip">'+esc(label)+'<b>'+esc(v)+'</b></div>';
     });
   }
 
