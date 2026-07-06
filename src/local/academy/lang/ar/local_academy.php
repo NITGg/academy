@@ -276,3 +276,4 @@ $string['sub_buy_text']       = 'ستحصل على {$a->days} يومًا من ا
 $string['sub_none_available'] = 'لا توجد اشتراكات متاحة حاليًا.';
 $string['sub_none_mine']      = 'لا توجد اشتراكات بعد.';
 $string['sub_no_payments']    = 'لا توجد مدفوعات بعد.';
+$string['err_timeconflict']        = '??? ?????? ??? ????? ?? ??? ?????.';

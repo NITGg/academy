@@ -48,7 +48,7 @@ $STR = local_academy_string_map(array(
     'pstat_active', 'pstat_fully_used', 'pstat_expired', 'pstat_cancelled', 'pstat_pending',
     'pay_completed', 'pay_pending', 'pay_failed', 'pay_refunded',
     'flx_reserve', 'flx_consume', 'flx_return', 'flx_purchase', 'flx_assign', 'flx_expire', 'flx_adjust',
-    'err_sessionexpired', 'err_requestfailed',
+    'err_sessionexpired', 'err_requestfailed', 'err_timeconflict',
     // Book a lesson tab.
     'st_search_placeholder', 'st_teacher_num', 'st_request_lesson', 'st_no_subjects',
     'st_request_with', 'st_send_request', 'st_field_subject', 'st_field_datetime',
@@ -301,7 +301,7 @@ echo html_writer::script(<<<'JS'
         if(f.placeholder){inp.setAttribute('placeholder',f.placeholder);}
         g.appendChild(inp);body.appendChild(g);inputs[f.name]=inp;
         if(f.type==='datetime-local'){
-          datePickers.push({el:inp, hours:f.teacherHours});
+          datePickers.push({el:inp, hours:f.teacherHours, busyTimes: f.busyTimes});
         }
       });
       var bg=$('st-modal-bg');bg.style.display='flex';
@@ -327,6 +327,19 @@ echo html_writer::script(<<<'JS'
             onChange: function(selectedDates, dateStr, instance) {
               if (selectedDates.length > 0) {
                 var date = selectedDates[0];
+                var u = Math.floor(date.getTime() / 1000);
+                
+                if (dp.busyTimes && dp.busyTimes.length > 0) {
+                  var overlap = dp.busyTimes.some(function(bt) {
+                    return (u < bt[1] && u + 3600 > bt[0]);
+                  });
+                  if (overlap) {
+                    msg(window.ACADEMY_STR && window.ACADEMY_STR.err_timeconflict ? window.ACADEMY_STR.err_timeconflict : "This time is already booked.", "danger");
+                    instance.clear();
+                    return;
+                  }
+                }
+                
                 var day = date.getDay();
                 var min = null, max = null;
                 
@@ -410,7 +423,7 @@ echo html_writer::script(<<<'JS'
       okLabel:str('st_send_request'),
       fields:[
         {name:'subject',label:str('st_field_subject'),type:'select',options:subs},
-        {name:'t',label:str('st_field_datetime'),type:'datetime-local',value:tomorrow0900(), teacherHours: teacher.hours},
+        {name:'t',label:str('st_field_datetime'),type:'datetime-local',value:tomorrow0900(), teacherHours: teacher.hours, busyTimes: teacher.busy_times},
         {name:'note',label:str('st_field_note_req'),type:'textarea',placeholder:str('st_note_placeholder')}
       ]
     }).then(function(r){
@@ -452,7 +465,9 @@ echo html_writer::script(<<<'JS'
       case 'reject':
         return modal({title:str('la_reject_title'),fields:[{name:'reject_reason',label:str('la_reason_optional')}]}).then(function(r){if(r){return run(apiPost('student_respond_lesson',{lessonid:id,action:'reject',reject_reason:r.reject_reason||''}));}});
       case 'suggest':
-        return modal({title:str('la_suggest_title'),fields:[{name:'t',label:str('la_suggested_time'),type:'datetime-local',value:tomorrow0900()}]}).then(function(r){if(r){var u=toUnix(r.t);if(!u){msg(str('la_pick_valid_time'),'danger');return;}return run(apiPost('student_respond_lesson',{lessonid:id,action:'suggest',suggested_time:u}));}});
+        return apiGet('get_teacher', {teacherid: lesson.teacherid}).then(function(t) {
+          return modal({title:str('la_suggest_title'),fields:[{name:'t',label:str('la_suggested_time'),type:'datetime-local',value:tomorrow0900(), teacherHours: t.hours, busyTimes: t.busy_times}]}).then(function(r){if(r){var u=toUnix(r.t);if(!u){msg(str('la_pick_valid_time'),'danger');return;}return run(apiPost('student_respond_lesson',{lessonid:id,action:'suggest',suggested_time:u}));}});
+        });
       case 'cancel_request':
         return modal({title:str('la_withdraw_title'),text:str('la_withdraw_text'),fields:[{name:'reason',label:str('la_reason_optional')}]}).then(function(r){if(r){return run(apiPost('cancel_lesson_request',{lessonid:id,reason:r.reason||''}));}});
       case 'cancel':
@@ -460,7 +475,9 @@ echo html_writer::script(<<<'JS'
       case 'report_teacher_absent':
         return modal({title:str('la_report_absent_title'),text:str('la_report_absent_text')}).then(function(r){if(r){return run(apiPost('report_teacher_absent',{lessonid:id}));}});
       case 'request_time_update':
-        return modal({title:str('la_newtime_title'),fields:[{name:'t',label:str('la_newtime_label'),type:'datetime-local',value:tomorrow0900()}]}).then(function(r){if(r){var u=toUnix(r.t);if(!u){msg(str('la_pick_valid_time'),'danger');return;}return run(apiPost('request_time_update',{lessonid:id,proposed_time:u}));}});
+        return apiGet('get_teacher', {teacherid: lesson.teacherid}).then(function(t) {
+          return modal({title:str('la_newtime_title'),fields:[{name:'t',label:str('la_newtime_label'),type:'datetime-local',value:tomorrow0900(), teacherHours: t.hours, busyTimes: t.busy_times}]}).then(function(r){if(r){var u=toUnix(r.t);if(!u){msg(str('la_pick_valid_time'),'danger');return;}return run(apiPost('request_time_update',{lessonid:id,proposed_time:u}));}});
+        });
       case 'respond_time_update_accept':
         return run(apiPost('respond_time_update',{lessonid:id,action:'accept'}));
       case 'respond_time_update_reject':

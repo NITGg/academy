@@ -48,6 +48,7 @@ $string['err_subjectunsupported']  = 'This teacher does not offer the selected s
 $string['err_selfbooking']         = 'You cannot request a lesson with yourself';
 $string['err_noflex']              = 'You need an active package with available Flex';
 $string['err_minbooking']          = 'The lesson must be booked further in advance';
+$string['err_timeconflict']        = 'The teacher already has a lesson scheduled at this time.';
 $string['err_notime']              = 'A valid time is required';
 $string['err_forbidden']           = 'You are not allowed to perform this action';
 $string['err_badstate']            = 'This action is not allowed for the lesson\'s current status';
