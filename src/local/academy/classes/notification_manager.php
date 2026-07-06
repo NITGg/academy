@@ -43,54 +43,65 @@ class notification_manager {
                 return;
             }
 
-            $student = $DB->get_record('user', array('id' => $lesson->studentid), 'id, firstname, lastname');
-            $teacher = $DB->get_record('user', array('id' => $lesson->teacherid), 'id, firstname, lastname');
-
-            // Default to the confirmed time, falling back to the originally requested time;
-            // callers pass an explicit 'time' for suggestions / reschedules.
-            $time = isset($extra['time']) ? (int)$extra['time']
-                : ((int)$lesson->confirmed_time > 0 ? (int)$lesson->confirmed_time : (int)$lesson->requested_time);
-
-            $a = (object) array(
-                'subject' => format_string($lesson->subject),
-                'student' => $student ? fullname($student) : '',
-                'teacher' => $teacher ? fullname($teacher) : '',
-                'time'    => $time > 0 ? userdate($time) : '',
-                'note'    => isset($lesson->note) ? trim((string)$lesson->note) : '',
-                'reason'  => isset($extra['reason']) ? trim((string)$extra['reason']) : '',
-                'actor'   => isset($extra['actor']) ? (string)$extra['actor'] : '',
-            );
-
-            $subject = get_string("notif_{$key}_subject", 'local_academy', $a);
-            $body    = get_string("notif_{$key}_body", 'local_academy', $a);
-
-            // Recipients open their own management page: teachers → my_lessons, everyone else → student hub.
-            $page = ((int)$recipientid === (int)$lesson->teacherid)
-                ? '/local/academy/my_lessons.php' : '/local/academy/student.php';
-            $url = new \moodle_url($page);
-
-            $message = new \core\message\message();
-            $message->component         = 'local_academy';
-            $message->name              = 'lessonnotification';
-            $message->userfrom          = $fromid > 0 ? \core_user::get_user($fromid) : \core_user::get_noreply_user();
-            $message->userto            = $recipient;
-            $message->subject           = $subject;
-            $message->fullmessage       = $body;
-            $message->fullmessageformat = FORMAT_PLAIN;
-            $message->fullmessagehtml   = '<p>' . s($body) . '</p>';
-            $message->smallmessage      = $subject;
-            $message->notification      = 1;
-            $message->contexturl        = $url->out(false);
-            $message->contexturlname    = get_string('mylessons', 'local_academy');
-
-            // Buffer message_send: a mis-configured mail server makes the email processor *print*
-            // a warning (it does not throw), which would otherwise corrupt the JSON API response
-            // and surface to the app as "Session expired". Capture and discard any such output.
-            ob_start();
+            // Render the notification in the RECIPIENT's language, not the acting user's. Strings are
+            // built with get_string/userdate, which follow current_language() — the actor's session
+            // language — so without this a student browsing in English would send an English message
+            // to an Arabic-preferring teacher (and vice versa). force_current_language() also localises
+            // the userdate() below; restore the previous value in the finally so we never leak it.
+            $reciplang = !empty($recipient->lang) ? $recipient->lang : $CFG->lang;
+            $prevforcelang = force_current_language($reciplang);
             try {
-                message_send($message);
+                $student = $DB->get_record('user', array('id' => $lesson->studentid), 'id, firstname, lastname');
+                $teacher = $DB->get_record('user', array('id' => $lesson->teacherid), 'id, firstname, lastname');
+
+                // Default to the confirmed time, falling back to the originally requested time;
+                // callers pass an explicit 'time' for suggestions / reschedules.
+                $time = isset($extra['time']) ? (int)$extra['time']
+                    : ((int)$lesson->confirmed_time > 0 ? (int)$lesson->confirmed_time : (int)$lesson->requested_time);
+
+                $a = (object) array(
+                    'subject' => format_string($lesson->subject),
+                    'student' => $student ? fullname($student) : '',
+                    'teacher' => $teacher ? fullname($teacher) : '',
+                    'time'    => $time > 0 ? userdate($time) : '',
+                    'note'    => isset($lesson->note) ? trim((string)$lesson->note) : '',
+                    'reason'  => isset($extra['reason']) ? trim((string)$extra['reason']) : '',
+                    'actor'   => isset($extra['actor']) ? (string)$extra['actor'] : '',
+                );
+
+                $subject = get_string("notif_{$key}_subject", 'local_academy', $a);
+                $body    = get_string("notif_{$key}_body", 'local_academy', $a);
+
+                // Recipients open their own management page: teachers → my_lessons, everyone else → student hub.
+                $page = ((int)$recipientid === (int)$lesson->teacherid)
+                    ? '/local/academy/my_lessons.php' : '/local/academy/student.php';
+                $url = new \moodle_url($page);
+
+                $message = new \core\message\message();
+                $message->component         = 'local_academy';
+                $message->name              = 'lessonnotification';
+                $message->userfrom          = $fromid > 0 ? \core_user::get_user($fromid) : \core_user::get_noreply_user();
+                $message->userto            = $recipient;
+                $message->subject           = $subject;
+                $message->fullmessage       = $body;
+                $message->fullmessageformat = FORMAT_PLAIN;
+                $message->fullmessagehtml   = '<p>' . s($body) . '</p>';
+                $message->smallmessage      = $subject;
+                $message->notification      = 1;
+                $message->contexturl        = $url->out(false);
+                $message->contexturlname    = get_string('mylessons', 'local_academy');
+
+                // Buffer message_send: a mis-configured mail server makes the email processor *print*
+                // a warning (it does not throw), which would otherwise corrupt the JSON API response
+                // and surface to the app as "Session expired". Capture and discard any such output.
+                ob_start();
+                try {
+                    message_send($message);
+                } finally {
+                    ob_end_clean();
+                }
             } finally {
-                ob_end_clean();
+                force_current_language($prevforcelang);
             }
         } catch (\Throwable $e) {
             // Notifications must never block the lesson action; swallow and move on.
@@ -110,42 +121,50 @@ class notification_manager {
      * @param int    $daysleft whole days remaining until expiry (shown to the student)
      */
     public static function package_expiry_reminder($purchase, $daysleft) {
-        global $DB;
+        global $DB, $CFG;
         try {
             $recipient = $DB->get_record('user', array('id' => $purchase->userid, 'deleted' => 0, 'suspended' => 0));
             if (!$recipient) {
                 return;
             }
 
-            $a = (object) array(
-                'package'   => isset($purchase->package_name) ? format_string($purchase->package_name) : '',
-                'days'      => (int)$daysleft,
-                'date'      => (int)$purchase->expires_at > 0 ? userdate((int)$purchase->expires_at, get_string('strftimedate', 'langconfig')) : '',
-                'flex'      => (int)$purchase->remaining_flex,
-            );
-
-            $url = new \moodle_url('/local/academy/student.php');
-
-            $message = new \core\message\message();
-            $message->component         = 'local_academy';
-            $message->name              = 'expirynotification';
-            $message->userfrom          = \core_user::get_noreply_user();
-            $message->userto            = $recipient;
-            $message->subject           = get_string('notif_package_expiring_subject', 'local_academy', $a);
-            $message->fullmessage       = get_string('notif_package_expiring_body', 'local_academy', $a);
-            $message->fullmessageformat = FORMAT_PLAIN;
-            $message->fullmessagehtml   = '<p>' . s($message->fullmessage) . '</p>';
-            $message->smallmessage      = $message->subject;
-            $message->notification      = 1;
-            $message->contexturl        = $url->out(false);
-            $message->contexturlname    = get_string('mypackages', 'local_academy');
-
-            // See lesson_event: buffer to swallow any warning the mail processor prints.
-            ob_start();
+            // Render in the student's language (see lesson_event): this runs from cron, where
+            // current_language() is the site default, not the recipient's preference.
+            $reciplang = !empty($recipient->lang) ? $recipient->lang : $CFG->lang;
+            $prevforcelang = force_current_language($reciplang);
             try {
-                message_send($message);
+                $a = (object) array(
+                    'package'   => isset($purchase->package_name) ? format_string($purchase->package_name) : '',
+                    'days'      => (int)$daysleft,
+                    'date'      => (int)$purchase->expires_at > 0 ? userdate((int)$purchase->expires_at, get_string('strftimedate', 'langconfig')) : '',
+                    'flex'      => (int)$purchase->remaining_flex,
+                );
+
+                $url = new \moodle_url('/local/academy/student.php');
+
+                $message = new \core\message\message();
+                $message->component         = 'local_academy';
+                $message->name              = 'expirynotification';
+                $message->userfrom          = \core_user::get_noreply_user();
+                $message->userto            = $recipient;
+                $message->subject           = get_string('notif_package_expiring_subject', 'local_academy', $a);
+                $message->fullmessage       = get_string('notif_package_expiring_body', 'local_academy', $a);
+                $message->fullmessageformat = FORMAT_PLAIN;
+                $message->fullmessagehtml   = '<p>' . s($message->fullmessage) . '</p>';
+                $message->smallmessage      = $message->subject;
+                $message->notification      = 1;
+                $message->contexturl        = $url->out(false);
+                $message->contexturlname    = get_string('mypackages', 'local_academy');
+
+                // See lesson_event: buffer to swallow any warning the mail processor prints.
+                ob_start();
+                try {
+                    message_send($message);
+                } finally {
+                    ob_end_clean();
+                }
             } finally {
-                ob_end_clean();
+                force_current_language($prevforcelang);
             }
         } catch (\Throwable $e) {
             debugging('academy expiry reminder failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
@@ -163,42 +182,50 @@ class notification_manager {
      * @param int    $daysleft whole days remaining until expiry (shown to the student)
      */
     public static function subscription_expiry_reminder($purchase, $daysleft) {
-        global $DB;
+        global $DB, $CFG;
         try {
             $recipient = $DB->get_record('user', array('id' => $purchase->userid, 'deleted' => 0, 'suspended' => 0));
             if (!$recipient) {
                 return;
             }
 
-            $a = (object) array(
-                'subscription' => isset($purchase->subscription_name) ? format_string($purchase->subscription_name) : '',
-                'days'         => (int)$daysleft,
-                'date'         => (int)$purchase->expires_at > 0
-                    ? userdate((int)$purchase->expires_at, get_string('strftimedate', 'langconfig')) : '',
-            );
-
-            $url = new \moodle_url('/local/academy/student.php');
-
-            $message = new \core\message\message();
-            $message->component         = 'local_academy';
-            $message->name              = 'expirynotification';
-            $message->userfrom          = \core_user::get_noreply_user();
-            $message->userto            = $recipient;
-            $message->subject           = get_string('notif_subscription_expiring_subject', 'local_academy', $a);
-            $message->fullmessage       = get_string('notif_subscription_expiring_body', 'local_academy', $a);
-            $message->fullmessageformat = FORMAT_PLAIN;
-            $message->fullmessagehtml   = '<p>' . s($message->fullmessage) . '</p>';
-            $message->smallmessage      = $message->subject;
-            $message->notification      = 1;
-            $message->contexturl        = $url->out(false);
-            $message->contexturlname    = get_string('mysubscriptions', 'local_academy');
-
-            // See lesson_event: buffer to swallow any warning the mail processor prints.
-            ob_start();
+            // Render in the student's language (see lesson_event): this runs from cron, where
+            // current_language() is the site default, not the recipient's preference.
+            $reciplang = !empty($recipient->lang) ? $recipient->lang : $CFG->lang;
+            $prevforcelang = force_current_language($reciplang);
             try {
-                message_send($message);
+                $a = (object) array(
+                    'subscription' => isset($purchase->subscription_name) ? format_string($purchase->subscription_name) : '',
+                    'days'         => (int)$daysleft,
+                    'date'         => (int)$purchase->expires_at > 0
+                        ? userdate((int)$purchase->expires_at, get_string('strftimedate', 'langconfig')) : '',
+                );
+
+                $url = new \moodle_url('/local/academy/student.php');
+
+                $message = new \core\message\message();
+                $message->component         = 'local_academy';
+                $message->name              = 'expirynotification';
+                $message->userfrom          = \core_user::get_noreply_user();
+                $message->userto            = $recipient;
+                $message->subject           = get_string('notif_subscription_expiring_subject', 'local_academy', $a);
+                $message->fullmessage       = get_string('notif_subscription_expiring_body', 'local_academy', $a);
+                $message->fullmessageformat = FORMAT_PLAIN;
+                $message->fullmessagehtml   = '<p>' . s($message->fullmessage) . '</p>';
+                $message->smallmessage      = $message->subject;
+                $message->notification      = 1;
+                $message->contexturl        = $url->out(false);
+                $message->contexturlname    = get_string('mysubscriptions', 'local_academy');
+
+                // See lesson_event: buffer to swallow any warning the mail processor prints.
+                ob_start();
+                try {
+                    message_send($message);
+                } finally {
+                    ob_end_clean();
+                }
             } finally {
-                ob_end_clean();
+                force_current_language($prevforcelang);
             }
         } catch (\Throwable $e) {
             debugging('academy subscription expiry reminder failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
