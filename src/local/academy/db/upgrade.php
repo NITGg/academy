@@ -422,5 +422,26 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026070408, 'local', 'academy');
     }
 
+    if ($oldversion < 2026070411) {
+
+        // Per-question answers saved during an in-progress quiz attempt (mobile quiz API).
+        $table = new xmldb_table('academy_quiz_answers');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id',           XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('attemptid',    XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('questionid',   XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('userid',       XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('answer',       XMLDB_TYPE_TEXT,    null, null, XMLDB_NOTNULL, null, null);
+            $table->add_field('timecreated',  XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $table->add_index('attempt_question_idx', XMLDB_INDEX_UNIQUE, array('attemptid', 'questionid'));
+            $table->add_index('userid_idx', XMLDB_INDEX_NOTUNIQUE, array('userid'));
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026070411, 'local', 'academy');
+    }
+
     return true;
 }

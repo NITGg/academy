@@ -2,7 +2,7 @@
   "info": {
     "name": "Academy — Quiz API",
     "_postman_id": "academy-quiz-api-v1",
-    "description": "REST API for Moodle quizzes — replaces web view with native mobile UI.\n\nSupported question types: multichoice (single + multi-answer), truefalse.\nUnsupported types appear with supported=false and no options.\n\nFlow:\n1. Run Login as Admin or Login as Student to get tokens.\n2. Use Get Quizzes to find a quiz and its cmid.\n3. Student: Start Attempt → Submit Attempt → Get Attempt (review).\n4. Admin: Get Quiz includes correct answers on every option.\n\nVariables: base_url, admin_token, student_token, cmid, quizid, attemptid.",
+    "description": "REST API for Moodle quizzes — replaces web view with native mobile UI.\n\nSupported question types: multichoice (single + multi-answer), truefalse.\nUnsupported types appear with supported=false and no options.\n\nImages: every question and option returns a plain 'text' field (all HTML tags stripped) plus an 'images' array of image URLs (webservice/pluginfile.php). No HTML is returned. Append '?token=STUDENT_TOKEN' to each image URL to load it.\n\nFlow A (one-shot): Start Attempt → Submit Answers → Get Attempt (review).\nFlow B (incremental): Start Attempt → Save One Answer (per question, no close) → Finish Attempt (submit all).\n\n1. Run Login as Admin or Login as Student to get tokens.\n2. Use Get Quizzes to find a quiz and its cmid.\n3. Admin: Get Quiz includes correct answers on every option.\n\nVariables: base_url, admin_token, student_token, cmid, quizid, attemptid.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -186,6 +186,34 @@
             ]},
             "url": { "raw": "{{base_url}}/local/academy/api.php", "host": ["{{base_url}}"], "path": ["local","academy","api.php"] },
             "description": "Example with a multi-answer MCQ question (answer is an array of option ids)."
+          }
+        },
+        {
+          "name": "2a — Save One Answer (no close)",
+          "request": {
+            "method": "POST", "header": [],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "function",   "value": "save_quiz_answer",   "type": "text" },
+              { "key": "token",      "value": "{{student_token}}",  "type": "text" },
+              { "key": "attemptid",  "value": "{{attemptid}}",      "type": "text" },
+              { "key": "questionid", "value": "101",                "type": "text" },
+              { "key": "answer",     "value": "3",                  "type": "text" }
+            ]},
+            "url": { "raw": "{{base_url}}/local/academy/api.php", "host": ["{{base_url}}"], "path": ["local","academy","api.php"] },
+            "description": "Save the answer to ONE question WITHOUT finishing the attempt.\nThe attempt stays 'inprogress'. Call once per question as the student answers.\n\nanswer format:\n- Single MCQ / True-False: answer=3  (the chosen option id)\n- Multi-answer MCQ:        answer=[3,5]\n\nCalling it again for the same questionid overwrites the previous answer."
+          }
+        },
+        {
+          "name": "2b — Finish Attempt (submit all saved)",
+          "request": {
+            "method": "POST", "header": [],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "function",  "value": "finish_quiz_attempt", "type": "text" },
+              { "key": "token",     "value": "{{student_token}}",   "type": "text" },
+              { "key": "attemptid", "value": "{{attemptid}}",       "type": "text" }
+            ]},
+            "url": { "raw": "{{base_url}}/local/academy/api.php", "host": ["{{base_url}}"], "path": ["local","academy","api.php"] },
+            "description": "Submit ALL questions: grades every answer saved via 'save_quiz_answer' and closes the attempt.\nNo answers body needed.\n\nResponse: same shape as submit_quiz_attempt (score, max_score, percent, results[])."
           }
         },
         {
