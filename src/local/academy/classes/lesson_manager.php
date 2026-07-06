@@ -713,7 +713,7 @@ class lesson_manager {
             'student_name'   => $student ? trim($student->firstname . ' ' . $student->lastname) : '',
             'teacherid'      => (int)$lesson->teacherid,
             'teacher_name'   => $teacher ? trim($teacher->firstname . ' ' . $teacher->lastname) : '',
-            'subject'        => $lesson->subject,
+            'subject'        => format_string($lesson->subject),
             'status'         => $lesson->status,
             'requested_time' => (int)$lesson->requested_time,
             'confirmed_time' => $confirmed,

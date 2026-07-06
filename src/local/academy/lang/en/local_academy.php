@@ -305,3 +305,125 @@ $string['flx_purchase']     = 'Purchased';
 $string['flx_assign']       = 'Assigned';
 $string['flx_expire']       = 'Expired';
 $string['flx_adjust']       = 'Adjusted';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — student.php Book / My lessons / Subscriptions tabs (rollout).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Shared UI extras.
+$string['ui_confirm']  = 'Confirm';
+$string['ui_search']   = 'Search';
+
+// Book a lesson tab.
+$string['st_search_placeholder'] = 'Search by subject…';
+$string['st_teacher_num']        = 'Teacher #{$a}';
+$string['st_request_lesson']     = 'Request a lesson';
+$string['st_no_subjects']        = 'This teacher has not listed any subjects yet.';
+$string['st_request_with']       = 'Request a lesson with {$a}';
+$string['st_send_request']       = 'Send request';
+$string['st_field_subject']      = 'Subject';
+$string['st_field_datetime']     = 'Preferred date & time';
+$string['st_field_note_req']     = 'Note to the teacher (required)';
+$string['st_note_placeholder']   = 'What do you need help with?';
+$string['st_pick_valid_time']    = 'Please pick a valid date and time.';
+$string['st_note_required']      = 'A note is required to request a lesson.';
+$string['st_lesson_requested']   = 'Lesson requested. Track it in “My lessons”.';
+$string['st_no_teachers']        = 'No teachers found.';
+
+// My lessons tab — filter dropdown.
+$string['st_status']            = 'Status';
+$string['lf_all']               = 'All';
+$string['lf_pending']           = 'Pending';
+$string['lf_waiting_student']   = 'Waiting for me';
+$string['lf_waiting_teacher']   = 'Waiting for teacher';
+$string['lf_confirmed']         = 'Confirmed';
+$string['lf_in_progress']       = 'In progress';
+$string['lf_completed']         = 'Completed';
+$string['lf_student_absent']    = 'I was absent';
+$string['lf_teacher_absent']    = 'Teacher absent';
+$string['lf_cancelled']         = 'Cancelled';
+$string['lf_cancelled_teacher'] = 'Cancelled (teacher)';
+$string['lf_rejected']          = 'Rejected';
+
+// My lessons tab — status badge labels.
+$string['lstat_pending']           = 'Pending teacher response';
+$string['lstat_waiting_student']   = 'Waiting for you';
+$string['lstat_waiting_teacher']   = 'Waiting for teacher';
+$string['lstat_confirmed']         = 'Confirmed';
+$string['lstat_in_progress']       = 'In progress';
+$string['lstat_completed']         = 'Completed';
+$string['lstat_student_absent']    = 'You were absent';
+$string['lstat_teacher_absent']    = 'Teacher absent';
+$string['lstat_cancelled']         = 'Cancelled';
+$string['lstat_cancelled_teacher'] = 'Cancelled by teacher';
+$string['lstat_rejected']          = 'Rejected';
+
+// My lessons tab — action button labels.
+$string['lact_accept']             = 'Accept';
+$string['lact_reject']             = 'Reject';
+$string['lact_suggest']            = 'Suggest time';
+$string['lact_cancel_request']     = 'Withdraw request';
+$string['lact_cancel']             = 'Cancel lesson';
+$string['lact_report_teacher_absent'] = 'Report teacher absent';
+$string['lact_request_time_update'] = 'Reschedule';
+$string['lact_join']               = 'Join lesson';
+$string['lact_accept_newtime']     = 'Accept new time';
+$string['lact_reject_newtime']     = 'Reject new time';
+
+// My lessons tab — action dialogs.
+$string['la_done']              = 'Done.';
+$string['la_reason_optional']   = 'Reason (optional)';
+$string['la_pick_valid_time']   = 'Pick a valid time.';
+$string['la_reject_title']      = 'Reject the suggested time';
+$string['la_suggest_title']     = 'Suggest another time';
+$string['la_suggested_time']    = 'Suggested date & time';
+$string['la_withdraw_title']    = 'Withdraw request';
+$string['la_withdraw_text']     = 'Withdraw this lesson request? No Flex has been reserved yet.';
+$string['la_cancel_title']      = 'Cancel lesson';
+$string['la_cancel_text']       = 'Cancelling before the deadline returns your Flex; cancelling late consumes it.';
+$string['la_report_absent_title'] = 'Report teacher absent';
+$string['la_report_absent_text']  = 'Confirm the teacher did not show up? Your Flex will be returned.';
+$string['la_newtime_title']     = 'Request a new time';
+$string['la_newtime_label']     = 'New date & time';
+$string['la_room_not_ready']    = 'The meeting room is not ready yet.';
+
+// My lessons tab — lesson card.
+$string['lc_teacher_num']    = 'teacher #{$a}';
+$string['lc_title']          = '{$a->subject} · with {$a->teacher}';
+$string['lc_confirmed']      = 'Confirmed: {$a}';
+$string['lc_requested']      = 'Requested: {$a}';
+$string['lc_duration']       = '{$a} min';
+$string['lc_your_note']      = 'Your note: {$a}';
+$string['lc_reject_reason']  = 'Reject reason: {$a}';
+$string['lc_cancel_reason']  = 'Cancel reason: {$a}';
+$string['lc_flex']           = 'Flex: {$a}';
+$string['lc_you']            = 'You';
+$string['lc_the_teacher']    = 'The teacher';
+$string['lc_resched_moved']  = '{$a->who} requested to move this lesson to <b>{$a->time}</b>.';
+$string['st_no_lessons']     = 'No lessons yet — book one from the “Book a lesson” tab.';
+
+// Subscriptions tabs — headings + table headers.
+$string['sub_available_heading'] = 'Available subscriptions';
+$string['sub_my_heading']        = 'My subscriptions';
+$string['sub_payments_heading']  = 'Subscription payments';
+$string['sub_col_subscription']  = 'Subscription';
+$string['sub_col_daysleft']      = 'Days left';
+$string['sub_col_courses']       = 'Courses';
+
+// Subscriptions tabs — status badges.
+$string['sstat_active']         = 'Active';
+$string['sstat_expired']        = 'Expired';
+$string['sstat_cancelled']      = 'Cancelled';
+$string['sstat_pending']        = 'Pending';
+$string['sstat_payment_failed'] = 'Payment failed';
+
+// Subscriptions tabs — cards + dialogs.
+$string['sub_days']           = '{$a} days';
+$string['sub_courses_label']  = 'Courses:';
+$string['sub_already_active'] = 'You already have an active subscription.';
+$string['sub_buy']            = 'Buy subscription';
+$string['sub_buy_title']      = 'Buy “{$a}”';
+$string['sub_buy_text']       = 'You will get {$a->days} days of course access for {$a->price} via Kashier secure checkout.';
+$string['sub_none_available'] = 'No subscriptions available right now.';
+$string['sub_none_mine']      = 'No subscriptions yet.';
+$string['sub_no_payments']    = 'No payments yet.';

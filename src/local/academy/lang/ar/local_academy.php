@@ -156,3 +156,123 @@ $string['flx_purchase']     = 'مشترى';
 $string['flx_assign']       = 'مُعيَّن';
 $string['flx_expire']       = 'منتهٍ';
 $string['flx_adjust']       = 'مُعدَّل';
+
+// ── student.php — Book / My lessons / Subscriptions tabs ──
+
+// Shared UI extras.
+$string['ui_confirm']  = 'تأكيد';
+$string['ui_search']   = 'بحث';
+
+// Book a lesson tab.
+$string['st_search_placeholder'] = 'ابحث حسب المادة…';
+$string['st_teacher_num']        = 'معلّم رقم {$a}';
+$string['st_request_lesson']     = 'طلب درس';
+$string['st_no_subjects']        = 'لم يُدرج هذا المعلّم أي مواد بعد.';
+$string['st_request_with']       = 'طلب درس مع {$a}';
+$string['st_send_request']       = 'إرسال الطلب';
+$string['st_field_subject']      = 'المادة';
+$string['st_field_datetime']     = 'التاريخ والوقت المفضّل';
+$string['st_field_note_req']     = 'ملاحظة للمعلّم (مطلوبة)';
+$string['st_note_placeholder']   = 'بماذا تحتاج المساعدة؟';
+$string['st_pick_valid_time']    = 'يرجى اختيار تاريخ ووقت صحيحين.';
+$string['st_note_required']      = 'الملاحظة مطلوبة لطلب الدرس.';
+$string['st_lesson_requested']   = 'تم إرسال طلب الدرس. تابعه في "دروسي".';
+$string['st_no_teachers']        = 'لا يوجد معلّمون.';
+
+// My lessons tab — filter dropdown.
+$string['st_status']            = 'الحالة';
+$string['lf_all']               = 'الكل';
+$string['lf_pending']           = 'قيد الانتظار';
+$string['lf_waiting_student']   = 'بانتظار ردّي';
+$string['lf_waiting_teacher']   = 'بانتظار المعلّم';
+$string['lf_confirmed']         = 'مؤكّد';
+$string['lf_in_progress']       = 'جارٍ';
+$string['lf_completed']         = 'مكتمل';
+$string['lf_student_absent']    = 'كنت غائبًا';
+$string['lf_teacher_absent']    = 'المعلّم غائب';
+$string['lf_cancelled']         = 'ملغى';
+$string['lf_cancelled_teacher'] = 'ملغى (المعلّم)';
+$string['lf_rejected']          = 'مرفوض';
+
+// My lessons tab — status badge labels.
+$string['lstat_pending']           = 'بانتظار ردّ المعلّم';
+$string['lstat_waiting_student']   = 'بانتظار ردّك';
+$string['lstat_waiting_teacher']   = 'بانتظار المعلّم';
+$string['lstat_confirmed']         = 'مؤكّد';
+$string['lstat_in_progress']       = 'جارٍ';
+$string['lstat_completed']         = 'مكتمل';
+$string['lstat_student_absent']    = 'كنت غائبًا';
+$string['lstat_teacher_absent']    = 'المعلّم غائب';
+$string['lstat_cancelled']         = 'ملغى';
+$string['lstat_cancelled_teacher'] = 'ألغاه المعلّم';
+$string['lstat_rejected']          = 'مرفوض';
+
+// My lessons tab — action button labels.
+$string['lact_accept']             = 'قبول';
+$string['lact_reject']             = 'رفض';
+$string['lact_suggest']            = 'اقتراح وقت';
+$string['lact_cancel_request']     = 'سحب الطلب';
+$string['lact_cancel']             = 'إلغاء الدرس';
+$string['lact_report_teacher_absent'] = 'الإبلاغ عن غياب المعلّم';
+$string['lact_request_time_update'] = 'إعادة جدولة';
+$string['lact_join']               = 'الانضمام للدرس';
+$string['lact_accept_newtime']     = 'قبول الوقت الجديد';
+$string['lact_reject_newtime']     = 'رفض الوقت الجديد';
+
+// My lessons tab — action dialogs.
+$string['la_done']              = 'تم.';
+$string['la_reason_optional']   = 'السبب (اختياري)';
+$string['la_pick_valid_time']   = 'اختر وقتًا صحيحًا.';
+$string['la_reject_title']      = 'رفض الوقت المقترح';
+$string['la_suggest_title']     = 'اقتراح وقت آخر';
+$string['la_suggested_time']    = 'التاريخ والوقت المقترح';
+$string['la_withdraw_title']    = 'سحب الطلب';
+$string['la_withdraw_text']     = 'سحب طلب الدرس هذا؟ لم يُحجز أي فلكس بعد.';
+$string['la_cancel_title']      = 'إلغاء الدرس';
+$string['la_cancel_text']       = 'الإلغاء قبل الموعد النهائي يعيد الفلكس؛ والإلغاء المتأخر يستهلكه.';
+$string['la_report_absent_title'] = 'الإبلاغ عن غياب المعلّم';
+$string['la_report_absent_text']  = 'تأكيد أن المعلّم لم يحضر؟ سيُعاد الفلكس الخاص بك.';
+$string['la_newtime_title']     = 'طلب وقت جديد';
+$string['la_newtime_label']     = 'التاريخ والوقت الجديد';
+$string['la_room_not_ready']    = 'غرفة الاجتماع غير جاهزة بعد.';
+
+// My lessons tab — lesson card.
+$string['lc_teacher_num']    = 'معلّم رقم {$a}';
+$string['lc_title']          = '{$a->subject} · مع {$a->teacher}';
+$string['lc_confirmed']      = 'مؤكّد: {$a}';
+$string['lc_requested']      = 'مطلوب: {$a}';
+$string['lc_duration']       = '{$a} دقيقة';
+$string['lc_your_note']      = 'ملاحظتك: {$a}';
+$string['lc_reject_reason']  = 'سبب الرفض: {$a}';
+$string['lc_cancel_reason']  = 'سبب الإلغاء: {$a}';
+$string['lc_flex']           = 'فلكس: {$a}';
+$string['lc_you']            = 'أنت';
+$string['lc_the_teacher']    = 'المعلّم';
+$string['lc_resched_moved']  = 'طلب {$a->who} نقل هذا الدرس إلى <b>{$a->time}</b>.';
+$string['st_no_lessons']     = 'لا توجد دروس بعد — احجز درسًا من تبويب "حجز درس".';
+
+// Subscriptions tabs — headings + table headers.
+$string['sub_available_heading'] = 'الاشتراكات المتاحة';
+$string['sub_my_heading']        = 'اشتراكاتي';
+$string['sub_payments_heading']  = 'مدفوعات الاشتراكات';
+$string['sub_col_subscription']  = 'الاشتراك';
+$string['sub_col_daysleft']      = 'الأيام المتبقية';
+$string['sub_col_courses']       = 'المقررات';
+
+// Subscriptions tabs — status badges.
+$string['sstat_active']         = 'نشط';
+$string['sstat_expired']        = 'منتهٍ';
+$string['sstat_cancelled']      = 'ملغى';
+$string['sstat_pending']        = 'قيد الانتظار';
+$string['sstat_payment_failed'] = 'فشل الدفع';
+
+// Subscriptions tabs — cards + dialogs.
+$string['sub_days']           = '{$a} يوم';
+$string['sub_courses_label']  = 'المقررات:';
+$string['sub_already_active'] = 'لديك بالفعل اشتراك نشط.';
+$string['sub_buy']            = 'شراء الاشتراك';
+$string['sub_buy_title']      = 'شراء "{$a}"';
+$string['sub_buy_text']       = 'ستحصل على {$a->days} يومًا من الوصول للمقررات مقابل {$a->price} عبر بوابة Kashier الآمنة.';
+$string['sub_none_available'] = 'لا توجد اشتراكات متاحة حاليًا.';
+$string['sub_none_mine']      = 'لا توجد اشتراكات بعد.';
+$string['sub_no_payments']    = 'لا توجد مدفوعات بعد.';
