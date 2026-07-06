@@ -74,13 +74,19 @@ function academy_respond($payload) {
 $function = optional_param('function', '', PARAM_ALPHANUMEXT);
 $token    = optional_param('token', '', PARAM_TEXT);
 
-// Optional ?lang=en|ar — render system messages (get_string) and multilang content (format_string)
-// in the requested language. We set $SESSION->forcelang directly rather than via
-// force_current_language(): that helper gates on the STRICT installed-language list
-// (translation_exists($lang, false)), which drops languages restricted from the language menu
-// ($CFG->langlist) and can leave the request in English even when the language renders fine on
-// normal pages. The lenient translation_exists($lang) check below matches the site's own behaviour.
-$lang = optional_param('lang', '', PARAM_SAFEDIR);
+// Optional ?alang=en|ar — render system messages (get_string) and multilang content (format_string)
+// in the requested language. We read 'alang' (academy language), NOT 'lang', on purpose: core
+// setup.php writes $SESSION->lang from any ?lang GET param on every request — including these AJAX
+// calls — so an in-flight request from a page rendered in the previous language could silently
+// reset the user's navbar language choice. 'alang' is invisible to core, so an API request can
+// render its response in a language without ever touching the session/site language. (Falls back to
+// 'lang' for any legacy caller.)
+// We set $SESSION->forcelang directly rather than via force_current_language(): that helper gates on
+// the STRICT installed-language list (translation_exists($lang, false)), which drops languages
+// restricted from the language menu ($CFG->langlist) and can leave the request in English even when
+// the language renders fine on normal pages. The lenient translation_exists($lang) check below
+// matches the site's own behaviour.
+$lang = optional_param('alang', optional_param('lang', '', PARAM_SAFEDIR), PARAM_SAFEDIR);
 $canforcelang = ($lang !== '' && get_string_manager()->translation_exists($lang));
 // Remember the session's real language override so academy_respond() can restore it before exiting.
 // Forcing the language for this request must NOT persist to later page loads (see academy_respond()).

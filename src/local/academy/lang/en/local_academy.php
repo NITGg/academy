@@ -632,6 +632,24 @@ $string['rp_tl_none']        = 'No recorded actions.';
 $string['rp_no_data']            = 'No data.';
 $string['rp_enter_student']      = 'Enter a student ID.';
 $string['rp_enter_student_run']  = 'Enter a student ID and click Run.';
+// Summary chip labels (keyed off the report summary field names).
+$string['rp_sum_total']                   = 'Total';
+$string['rp_sum_completed']               = 'Completed';
+$string['rp_sum_student_absent']          = 'Student absent';
+$string['rp_sum_teacher_absent']          = 'Teacher absent';
+$string['rp_sum_attendance_rate']         = 'Attendance rate';
+$string['rp_sum_total_platform_earnings'] = 'Total platform earnings';
+$string['rp_sum_total_teacher_earnings']  = 'Total teacher earnings';
+$string['rp_sum_total_consumed_value']    = 'Total consumed value';
+$string['rp_sum_completed_lessons']       = 'Completed lessons';
+$string['rp_sum_total_purchases']         = 'Total purchases';
+$string['rp_sum_total_sales_amount']      = 'Total sales amount';
+$string['rp_sum_online_count']            = 'Online purchases';
+$string['rp_sum_assigned_count']          = 'Assigned';
+$string['rp_sum_total_flex_added']        = 'Total Flex added';
+$string['rp_sum_total_flex_consumed']     = 'Total Flex consumed';
+$string['rp_sum_total_flex_returned']     = 'Total Flex returned';
+$string['rp_sum_reversals']               = 'Reversals';
 // Audit-trail action labels.
 $string['rp_act_requested']               = 'Student requested';
 $string['rp_act_teacher_accepted']        = 'Teacher accepted';

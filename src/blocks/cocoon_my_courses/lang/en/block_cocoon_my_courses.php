@@ -15,3 +15,5 @@ $string['deletelink'] = '<a href="{$a}">Delete</a>';
 $string['delete_featuredcourse'] = 'Delete featured course';
 $string['confirmdelete'] = 'Are you sure you want to delete this course from the list of featured courses?';
 $string['config_title'] = 'Title';
+$string['nocourses'] = 'No courses yet';
+$string['nocourses_desc'] = 'You are not enrolled in any courses at the moment.';

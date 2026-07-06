@@ -113,8 +113,8 @@ echo html_writer::script(<<<'JS'
   function money(n){return Number(n||0).toFixed(2);}
   function fmt(ts){return ts?new Date(ts*1000).toLocaleString():'—';}
   function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function apiGet(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.lang=CFG.lang;}return fetch(CFG.endpoint+'?'+new URLSearchParams(Object.assign(base,p||{}))).then(parse);}
-  function apiPost(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.lang=CFG.lang;}var b=new URLSearchParams(Object.assign(base,p));return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b.toString()}).then(parse);}
+  function apiGet(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}return fetch(CFG.endpoint+'?'+new URLSearchParams(Object.assign(base,p||{}))).then(parse);}
+  function apiPost(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}var b=new URLSearchParams(Object.assign(base,p));return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b.toString()}).then(parse);}
 
   function modal(opts){
     return new Promise(function(resolve){

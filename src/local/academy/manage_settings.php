@@ -63,7 +63,7 @@ echo html_writer::script(<<<'JS'
     'teacher_percent','platform_percent'];
   function $(id){return document.getElementById(id);}
   function msg(t,k){var e=$('set-msg');e.textContent=t;e.className='alert alert-'+(k||'info');e.style.display='block';if(k==='success'){setTimeout(function(){e.style.display='none';},3000);}}
-  function api(func,params){var qs=new URLSearchParams({function:func,token:CFG.token});if(CFG.lang){qs.append('lang',CFG.lang);}Object.keys(params||{}).forEach(function(k){qs.append(k,params[k]);});
+  function api(func,params){var qs=new URLSearchParams({function:func,token:CFG.token});if(CFG.lang){qs.append('alang',CFG.lang);}Object.keys(params||{}).forEach(function(k){qs.append(k,params[k]);});
     return fetch(CFG.endpoint+'?'+qs.toString()).then(function(r){return r.text();}).then(function(t){var j;try{j=JSON.parse(t);}catch(e){throw new Error(str('err_sessionexpired'));}if(j.status!=='success'){throw new Error(j.error||str('err_requestfailed'));}return j.data;});}
   function load(){api('get_lesson_settings',{}).then(function(d){KEYS.forEach(function(k){$('s-'+k).value=d[k];});}).catch(function(e){msg(e.message,'danger');});}
   function save(){var p={};KEYS.forEach(function(k){p[k]=$('s-'+k).value;});api('update_lesson_settings',p).then(function(d){KEYS.forEach(function(k){$('s-'+k).value=d[k];});msg(str('set_saved'),'success');}).catch(function(e){msg(e.message,'danger');});}
