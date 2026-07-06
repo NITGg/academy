@@ -83,6 +83,7 @@ echo html_writer::script('window.ACADEMY_ST = ' . json_encode(array(
     'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
     'token'    => $token,
     'lang'     => optional_param('lang', current_language(), PARAM_LANG),
+    'min_booking_minutes' => (int)\local_academy\settings_manager::get('min_booking_minutes'),
 )) . ';');
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
@@ -310,10 +311,11 @@ echo html_writer::script(<<<'JS'
       var fps = [];
       if (typeof flatpickr !== 'undefined') {
         datePickers.forEach(function(dp) {
+          var minDateObj = new Date(Date.now() + (CFG.min_booking_minutes || 0) * 60000);
           fps.push(flatpickr(dp.el, {
             enableTime: true,
             dateFormat: "Y-m-d\\TH:i",
-            minDate: "today",
+            minDate: minDateObj,
             disable: [
               function(date) {
                 if (!dp.hours || dp.hours.length === 0) return false;
@@ -323,22 +325,31 @@ echo html_writer::script(<<<'JS'
               }
             ],
             onChange: function(selectedDates, dateStr, instance) {
-              if (selectedDates.length > 0 && dp.hours && dp.hours.length > 0) {
+              if (selectedDates.length > 0) {
                 var date = selectedDates[0];
                 var day = date.getDay();
-                var dayHours = dp.hours.filter(function(h){ return h.dayofweek === day; });
-                if (dayHours.length > 0) {
-                  var min = "23:59", max = "00:00";
-                  dayHours.forEach(function(h) {
-                    if (h.starttime < min) min = h.starttime;
-                    if (h.endtime > max) max = h.endtime;
-                  });
-                  instance.set("minTime", min);
-                  instance.set("maxTime", max);
-                } else {
-                  instance.set("minTime", null);
-                  instance.set("maxTime", null);
+                var min = null, max = null;
+                
+                if (dp.hours && dp.hours.length > 0) {
+                  var dayHours = dp.hours.filter(function(h){ return h.dayofweek === day; });
+                  if (dayHours.length > 0) {
+                    min = "23:59"; max = "00:00";
+                    dayHours.forEach(function(h) {
+                      if (h.starttime < min) min = h.starttime;
+                      if (h.endtime > max) max = h.endtime;
+                    });
+                  }
                 }
+                
+                if (date.toDateString() === minDateObj.toDateString()) {
+                  var minDateStr = minDateObj.getHours().toString().padStart(2, '0') + ':' + minDateObj.getMinutes().toString().padStart(2, '0');
+                  if (!min || minDateStr > min) {
+                    min = minDateStr;
+                  }
+                }
+                
+                instance.set("minTime", min);
+                instance.set("maxTime", max);
               }
             }
           }));
