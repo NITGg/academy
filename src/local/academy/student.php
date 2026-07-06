@@ -130,14 +130,13 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
 /* block-based slot picker (Request a lesson) */
 .st-slotpicker{margin-top:.25rem}
 .st-slot-sub{font-size:.8rem;font-weight:600;color:#6c757d;margin:.6rem 0 .35rem;text-transform:uppercase;letter-spacing:.03em}
-.st-slot-days{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.35rem;-webkit-overflow-scrolling:touch}
-.st-day{flex:0 0 auto;min-width:64px;border:1px solid #dee2e6;background:#fff;border-radius:.5rem;padding:.4rem .5rem;cursor:pointer;text-align:center;line-height:1.2;transition:all .12s}
-.st-day:hover{border-color:#0d6efd}
-.st-day .st-day-dow{font-size:.72rem;color:#6c757d;text-transform:uppercase}
-.st-day .st-day-num{font-size:1.05rem;font-weight:700;color:#212529}
-.st-day .st-day-mon{font-size:.7rem;color:#6c757d}
+.st-slot-days{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:.4rem;max-height:200px;overflow-y:auto}
+.st-day{display:flex;flex-direction:column;align-items:center;gap:.1rem;border:1px solid #dee2e6;background:#fff;border-radius:.5rem;padding:.45rem .3rem;cursor:pointer;line-height:1.2;transition:all .12s}
+.st-day:hover{border-color:#0d6efd;background:#eaf3ff}
+.st-day .st-day-dow{font-size:.72rem;font-weight:600;color:#6c757d;text-transform:uppercase}
+.st-day .st-day-date{font-size:.95rem;font-weight:700;color:#212529}
 .st-day.active{background:#0d6efd;border-color:#0d6efd}
-.st-day.active .st-day-dow,.st-day.active .st-day-num,.st-day.active .st-day-mon{color:#fff}
+.st-day.active .st-day-dow,.st-day.active .st-day-date{color:#fff}
 .st-slot-times{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:.4rem;max-height:220px;overflow-y:auto}
 .st-slot{border:1px solid #dee2e6;background:#fff;border-radius:.4rem;padding:.4rem .3rem;font-size:.9rem;font-weight:600;color:#0d6efd;cursor:pointer;text-align:center;transition:all .12s}
 .st-slot:hover:not(:disabled){border-color:#0d6efd;background:#eaf3ff}
@@ -309,11 +308,32 @@ echo html_writer::script(<<<'JS'
 
     var wrap = el('div',{class:'st-slotpicker'});
 
-    // Days: scan the next 30 days, keep those the teacher works (or all if none set).
+    // Hourly slot objects for a given day, each flagged disabled if it's before the
+    // min-booking lead time or overlaps a busy time.
+    function daySlots(day){
+      var intervals = hasHours
+        ? hours.filter(function(h){return h.dayofweek === day.getDay();})
+               .map(function(h){return [timeToMin(h.starttime), timeToMin(h.endtime)];})
+        : [[timeToMin(DEFAULT_WINDOW[0]), timeToMin(DEFAULT_WINDOW[1])]];
+      var mins = [];
+      intervals.forEach(function(iv){
+        for (var m = iv[0]; m + SLOT_MINUTES <= iv[1]; m += SLOT_MINUTES) { mins.push(m); }
+      });
+      mins.sort(function(a,b){return a-b;});
+      return mins.map(function(m){
+        var start = new Date(day.getTime()); start.setHours(0, m, 0, 0);
+        var startU = Math.floor(start.getTime() / 1000);
+        var endU = startU + SLOT_MINUTES * 60;
+        var disabled = start < earliest || busy.some(function(bt){return startU < bt[1] && endU > bt[0];});
+        return {start: start, disabled: disabled};
+      });
+    }
+
+    // Every day in the next fortnight that still has at least one open slot.
     var days = [];
-    for (var i = 0; i < 30 && days.length < 14; i++) {
+    for (var i = 0; i < 14; i++) {
       var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + i);
-      if (!hasHours || hours.some(function(h){return h.dayofweek === d.getDay();})) { days.push(d); }
+      if (daySlots(d).some(function(s){return !s.disabled;})) { days.push(d); }
     }
     if (!days.length) {
       wrap.appendChild(el('div',{class:'st-slot-empty'}, esc(str('st_slot_noavail'))));
@@ -327,39 +347,22 @@ echo html_writer::script(<<<'JS'
     var timesRow = el('div',{class:'st-slot-times'});
     wrap.appendChild(timesRow);
 
-    // Working-hours intervals (in minutes) for a given weekday.
-    function intervalsFor(dow){
-      if (!hasHours) { return [[timeToMin(DEFAULT_WINDOW[0]), timeToMin(DEFAULT_WINDOW[1])]]; }
-      return hours.filter(function(h){return h.dayofweek === dow;})
-                  .map(function(h){return [timeToMin(h.starttime), timeToMin(h.endtime)];});
-    }
-
     function renderTimes(day){
       timesRow.innerHTML = '';
       hidden.value = '';
-      var slots = [];
-      intervalsFor(day.getDay()).forEach(function(iv){
-        for (var m = iv[0]; m + SLOT_MINUTES <= iv[1]; m += SLOT_MINUTES) { slots.push(m); }
-      });
-      slots.sort(function(a,b){return a-b;});
+      var slots = daySlots(day);
       if (!slots.length) {
         timesRow.appendChild(el('div',{class:'st-slot-empty'}, esc(str('st_slot_nodayslots'))));
         return;
       }
-      slots.forEach(function(m){
-        var start = new Date(day.getTime()); start.setHours(0, m, 0, 0);
-        var startU = Math.floor(start.getTime() / 1000);
-        var endU = startU + SLOT_MINUTES * 60;
-        var past = start < earliest;
-        var taken = busy.some(function(bt){return startU < bt[1] && endU > bt[0];});
-        var disabled = past || taken;
-        var b = el('button',{type:'button',class:'st-slot'}, esc(start.toLocaleTimeString(locale(), {hour:'2-digit', minute:'2-digit'})));
-        if (disabled) { b.disabled = true; }
+      slots.forEach(function(s){
+        var b = el('button',{type:'button',class:'st-slot'}, esc(s.start.toLocaleTimeString(locale(), {hour:'2-digit', minute:'2-digit'})));
+        if (s.disabled) { b.disabled = true; }
         else {
           b.onclick = function(){
             timesRow.querySelectorAll('.st-slot.active').forEach(function(x){x.classList.remove('active');});
             b.classList.add('active');
-            hidden.value = localVal(start);
+            hidden.value = localVal(s.start);
           };
         }
         timesRow.appendChild(b);
@@ -368,9 +371,8 @@ echo html_writer::script(<<<'JS'
 
     days.forEach(function(day, idx){
       var b = el('button',{type:'button',class:'st-day'},
-        '<div class="st-day-dow">'+esc(day.toLocaleDateString(locale(),{weekday:'short'}))+'</div>'+
-        '<div class="st-day-num">'+esc(day.toLocaleDateString(locale(),{day:'numeric'}))+'</div>'+
-        '<div class="st-day-mon">'+esc(day.toLocaleDateString(locale(),{month:'short'}))+'</div>');
+        '<span class="st-day-dow">'+esc(day.toLocaleDateString(locale(),{weekday:'short'}))+'</span>'+
+        '<span class="st-day-date">'+esc(day.toLocaleDateString(locale(),{day:'numeric', month:'short'}))+'</span>');
       b.onclick = function(){
         daysRow.querySelectorAll('.st-day.active').forEach(function(x){x.classList.remove('active');});
         b.classList.add('active');

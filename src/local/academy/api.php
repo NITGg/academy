@@ -234,7 +234,7 @@ try {
                 'duration_days' => required_param('duration_days', PARAM_INT),
                 'active'        => optional_param('active', 1, PARAM_BOOL),
             ], $userid);
-            academy_respond(['status' => 'success', 'data' => ['subscriptionid' => $subid]]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_created', 'local_academy'), 'data' => ['subscriptionid' => $subid]]);
             break;
 
         // US-AD-5-2
@@ -256,7 +256,7 @@ try {
                 $data['price'] = required_param('price', PARAM_FLOAT);
             }
             subscription_manager::update_subscription($id, $data, $userid);
-            academy_respond(['status' => 'success', 'data' => ['id' => $id]]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_updated', 'local_academy'), 'data' => ['id' => $id]]);
             break;
 
         // US-AD-5-3
@@ -264,14 +264,14 @@ try {
             academy_require_post();
             $id = required_param('id', PARAM_INT);
             subscription_manager::deactivate_subscription($id, $userid);
-            academy_respond(['status' => 'success', 'data' => ['id' => $id, 'status' => 'inactive']]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_deactivated', 'local_academy'), 'data' => ['id' => $id, 'status' => 'inactive']]);
             break;
 
         case 'activate_subscription':
             academy_require_post();
             $id = required_param('id', PARAM_INT);
             subscription_manager::activate_subscription($id, $userid);
-            academy_respond(['status' => 'success', 'data' => ['id' => $id, 'status' => 'active']]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_activated', 'local_academy'), 'data' => ['id' => $id, 'status' => 'active']]);
             break;
 
         // US-AD-5-4
@@ -279,7 +279,7 @@ try {
             academy_require_post();
             $id = required_param('id', PARAM_INT);
             subscription_manager::delete_subscription($id);
-            academy_respond(['status' => 'success', 'data' => ['id' => $id, 'deleted' => true]]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_deleted', 'local_academy'), 'data' => ['id' => $id, 'deleted' => true]]);
             break;
 
         case 'get_subscriptions':
@@ -320,7 +320,7 @@ try {
                 $decoded = json_decode(required_param('courseids', PARAM_RAW), true);
                 $courseids = is_array($decoded) ? $decoded : [];
             }
-            academy_respond(['status' => 'success',
+            academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_courses_set', 'local_academy'),
                 'data' => subscription_manager::set_subscription_courses($subscriptionid, $courseids, $userid)]);
             break;
 
@@ -333,7 +333,7 @@ try {
             $purchaseid = required_param('purchaseid', PARAM_INT);
             $refund = optional_param('refund', 0, PARAM_BOOL);
             subscription_purchase_manager::unsubscribe_user($purchaseid, $refund, $userid);
-            academy_respond(['status' => 'success', 'data' => true]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_user_unsubscribed', 'local_academy'), 'data' => true]);
             break;
 
         case 'get_all_user_subscriptions':

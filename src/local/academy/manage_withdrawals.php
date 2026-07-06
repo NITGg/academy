@@ -5,6 +5,7 @@ require('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->dirroot . '/webservice/lib.php');
 require_once($CFG->libdir . '/externallib.php');
+require_once($CFG->dirroot . '/local/academy/lib.php'); // local_academy_string_map()
 
 admin_externalpage_setup('local_academy_managewithdrawals');
 require_capability('local/academy:manageplatform', context_system::instance());
@@ -19,10 +20,24 @@ $PAGE->set_heading(get_string('managewithdrawals', 'local_academy'));
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managewithdrawals', 'local_academy'));
+// Localised strings: server-rendered HTML reads $STR['key']; the JS reads window.ACADEMY_STR.
+$STR = local_academy_string_map(array(
+    'st_status', 'lf_all', 'ui_refresh', 'ui_cancel', 'ui_confirm',
+    'st_col_date', 'st_col_amount', 'st_col_status', 'pkg_col_actions',
+    'wstat_pending', 'wstat_approved', 'wstat_paid', 'wstat_rejected',
+    'wd_col_teacher', 'wd_col_methodaccount', 'wd_reversal_title', 'wd_reversal_help', 'wd_lesson_id',
+    'wd_reason', 'wd_return_flex', 'wd_updated', 'wd_approve', 'wd_reject', 'wd_markpaid',
+    'wd_reject_title', 'wd_reason_required_field', 'wd_markpaid_title', 'wd_payref_optional',
+    'wd_reason_required', 'wd_card_current', 'wd_card_undistributed', 'wd_card_teachers',
+    'wd_card_platform', 'wd_none', 'wd_enter_lesson', 'wd_flex_returned', 'w_ref', 'err_reasonrequired',
+    'err_sessionexpired', 'err_requestfailed',
+));
 echo html_writer::script('window.ACADEMY_WD = ' . json_encode(array(
     'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
     'token'    => $token,
+    'lang'     => optional_param('lang', current_language(), PARAM_LANG),
 )) . ';');
+echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
 <style>
 #wd-app{max-width:980px}
@@ -49,28 +64,28 @@ table.wd-table th,table.wd-table td{border-bottom:1px solid #eee;padding:.45rem 
   <div id="wd-cards"></div>
 
   <div id="wd-toolbar">
-    <label class="m-0" for="wd-filter">Status</label>
+    <label class="m-0" for="wd-filter"><?php echo $STR['st_status']; ?></label>
     <select id="wd-filter" class="form-control">
-      <option value="">All</option>
-      <option value="pending">Pending</option>
-      <option value="approved">Approved</option>
-      <option value="paid">Paid</option>
-      <option value="rejected">Rejected</option>
+      <option value=""><?php echo $STR['lf_all']; ?></option>
+      <option value="pending"><?php echo $STR['wstat_pending']; ?></option>
+      <option value="approved"><?php echo $STR['wstat_approved']; ?></option>
+      <option value="paid"><?php echo $STR['wstat_paid']; ?></option>
+      <option value="rejected"><?php echo $STR['wstat_rejected']; ?></option>
     </select>
-    <button id="wd-refresh" class="btn btn-outline-secondary">Refresh</button>
+    <button id="wd-refresh" class="btn btn-outline-secondary"><?php echo $STR['ui_refresh']; ?></button>
   </div>
 
   <table class="wd-table">
-    <thead><tr><th>Date</th><th>Teacher</th><th>Amount</th><th>Method / account</th><th>Status</th><th>Actions</th></tr></thead>
+    <thead><tr><th><?php echo $STR['st_col_date']; ?></th><th><?php echo $STR['wd_col_teacher']; ?></th><th><?php echo $STR['st_col_amount']; ?></th><th><?php echo $STR['wd_col_methodaccount']; ?></th><th><?php echo $STR['st_col_status']; ?></th><th><?php echo $STR['pkg_col_actions']; ?></th></tr></thead>
     <tbody id="wd-rows"></tbody>
   </table>
 
   <div class="wd-reversal">
-    <h6>Reverse a completed lesson's Flex (US-FN-1-5)</h6>
-    <p class="text-muted" style="font-size:.88rem">Returns one consumed Flex to the student and reverses the teacher/platform earning. A reason is required.</p>
-    <div class="form-group"><label for="wd-rev-lesson">Lesson ID</label><input class="form-control" id="wd-rev-lesson" type="number" min="1" style="max-width:200px"></div>
-    <div class="form-group"><label for="wd-rev-reason">Reason</label><input class="form-control" id="wd-rev-reason"></div>
-    <button id="wd-rev-btn" class="btn btn-warning">Return Flex</button>
+    <h6><?php echo $STR['wd_reversal_title']; ?></h6>
+    <p class="text-muted" style="font-size:.88rem"><?php echo $STR['wd_reversal_help']; ?></p>
+    <div class="form-group"><label for="wd-rev-lesson"><?php echo $STR['wd_lesson_id']; ?></label><input class="form-control" id="wd-rev-lesson" type="number" min="1" style="max-width:200px"></div>
+    <div class="form-group"><label for="wd-rev-reason"><?php echo $STR['wd_reason']; ?></label><input class="form-control" id="wd-rev-reason"></div>
+    <button id="wd-rev-btn" class="btn btn-warning"><?php echo $STR['wd_return_flex']; ?></button>
   </div>
 </div>
 
@@ -79,8 +94,8 @@ table.wd-table th,table.wd-table td{border-bottom:1px solid #eee;padding:.45rem 
     <h5 id="wd-modal-title"></h5>
     <div id="wd-modal-body"></div>
     <div class="wd-modal-actions">
-      <button class="btn btn-outline-secondary" id="wd-modal-cancel">Cancel</button>
-      <button class="btn btn-primary" id="wd-modal-ok">Confirm</button>
+      <button class="btn btn-outline-secondary" id="wd-modal-cancel"><?php echo $STR['ui_cancel']; ?></button>
+      <button class="btn btn-primary" id="wd-modal-ok"><?php echo $STR['ui_confirm']; ?></button>
     </div>
   </div>
 </div>
@@ -88,14 +103,18 @@ table.wd-table th,table.wd-table td{border-bottom:1px solid #eee;padding:.45rem 
 echo html_writer::script(<<<'JS'
 (function () {
   var CFG = window.ACADEMY_WD;
+  var STR = window.ACADEMY_STR || {};
+  function str(k){return (k in STR)?STR[k]:k;}
+  function strf(k,params){var s=str(k);if(params==null){return s;}if(typeof params!=='object'){return s.replace(/\{\$a\}/g,params);}return s.replace(/\{\$a->(\w+)\}/g,function(m,name){return (name in params)?params[name]:m;});}
+  function wstat(s){return str('wstat_'+s)!=='wstat_'+s?str('wstat_'+s):s;}
   function $(id){return document.getElementById(id);}
   function msg(t,k){var e=$('wd-msg');e.textContent=t;e.className='alert alert-'+(k||'info');e.style.display='block';if(k==='success'){setTimeout(function(){e.style.display='none';},3000);}}
-  function parse(r){return r.text().then(function(t){var j;try{j=JSON.parse(t);}catch(e){throw new Error('Session expired — reload the page.');}if(j.status!=='success'){throw new Error(j.error||'Failed');}return j.data;});}
+  function parse(r){return r.text().then(function(t){var j;try{j=JSON.parse(t);}catch(e){throw new Error(str('err_sessionexpired'));}if(j.status!=='success'){throw new Error(j.error||str('err_requestfailed'));}return j.data;});}
   function money(n){return Number(n||0).toFixed(2);}
   function fmt(ts){return ts?new Date(ts*1000).toLocaleString():'—';}
   function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function apiGet(fn,p){return fetch(CFG.endpoint+'?'+new URLSearchParams(Object.assign({function:fn,token:CFG.token},p||{}))).then(parse);}
-  function apiPost(fn,p){var b=new URLSearchParams(Object.assign({function:fn,token:CFG.token},p));return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b.toString()}).then(parse);}
+  function apiGet(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.lang=CFG.lang;}return fetch(CFG.endpoint+'?'+new URLSearchParams(Object.assign(base,p||{}))).then(parse);}
+  function apiPost(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.lang=CFG.lang;}var b=new URLSearchParams(Object.assign(base,p));return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b.toString()}).then(parse);}
 
   function modal(opts){
     return new Promise(function(resolve){
@@ -119,41 +138,41 @@ echo html_writer::script(<<<'JS'
 
   function process(id,action,params){
     apiPost('process_withdrawal',Object.assign({withdrawalid:id,action:action},params||{}))
-      .then(function(){msg('Updated.','success');load();}).catch(function(e){msg(e.message,'danger');});
+      .then(function(){msg(str('wd_updated'),'success');load();}).catch(function(e){msg(e.message,'danger');});
   }
 
   function actionButtons(w){
     var box=document.createElement('div');box.className='wd-actions';
     function btn(label,cls,fn){var b=document.createElement('button');b.className='btn btn-sm '+cls;b.textContent=label;b.onclick=fn;box.appendChild(b);}
     if(w.status==='pending'){
-      btn('Approve','btn-primary',function(){process(w.id,'approve');});
-      btn('Reject','btn-outline-danger',function(){modal({title:'Reject withdrawal',fields:[{name:'reason',label:'Reason (required)'}]}).then(function(r){if(r){if(!(r.reason||'').trim()){msg('Reason required.','danger');return;}process(w.id,'reject',{reason:r.reason});}});});
+      btn(str('wd_approve'),'btn-primary',function(){process(w.id,'approve');});
+      btn(str('wd_reject'),'btn-outline-danger',function(){modal({title:str('wd_reject_title'),fields:[{name:'reason',label:str('wd_reason_required_field')}]}).then(function(r){if(r){if(!(r.reason||'').trim()){msg(str('wd_reason_required'),'danger');return;}process(w.id,'reject',{reason:r.reason});}});});
     } else if(w.status==='approved'){
-      btn('Mark paid','btn-success',function(){modal({title:'Mark as paid',fields:[{name:'reference',label:'Payment reference (optional)'}]}).then(function(r){if(r){process(w.id,'pay',{reference:r.reference||''});}});});
-      btn('Reject','btn-outline-danger',function(){modal({title:'Reject withdrawal',fields:[{name:'reason',label:'Reason (required)'}]}).then(function(r){if(r){if(!(r.reason||'').trim()){msg('Reason required.','danger');return;}process(w.id,'reject',{reason:r.reason});}});});
+      btn(str('wd_markpaid'),'btn-success',function(){modal({title:str('wd_markpaid_title'),fields:[{name:'reference',label:str('wd_payref_optional')}]}).then(function(r){if(r){process(w.id,'pay',{reference:r.reference||''});}});});
+      btn(str('wd_reject'),'btn-outline-danger',function(){modal({title:str('wd_reject_title'),fields:[{name:'reason',label:str('wd_reason_required_field')}]}).then(function(r){if(r){if(!(r.reason||'').trim()){msg(str('wd_reason_required'),'danger');return;}process(w.id,'reject',{reason:r.reason});}});});
     }
     return box;
   }
 
   function renderCards(p){
     $('wd-cards').innerHTML=
-      '<div class="wd-card"><div class="l">Platform current money</div><div class="v">'+money(p.current_money)+'</div></div>'+
-      '<div class="wd-card"><div class="l">Undistributed (unused Flex)</div><div class="v">'+money(p.undistributed_money)+'</div></div>'+
-      '<div class="wd-card"><div class="l">Teachers\' money (unpaid)</div><div class="v">'+money(p.teachers_money)+'</div></div>'+
-      '<div class="wd-card"><div class="l">Platform earnings</div><div class="v">'+money(p.platform_earnings)+'</div></div>';
+      '<div class="wd-card"><div class="l">'+esc(str('wd_card_current'))+'</div><div class="v">'+money(p.current_money)+'</div></div>'+
+      '<div class="wd-card"><div class="l">'+esc(str('wd_card_undistributed'))+'</div><div class="v">'+money(p.undistributed_money)+'</div></div>'+
+      '<div class="wd-card"><div class="l">'+esc(str('wd_card_teachers'))+'</div><div class="v">'+money(p.teachers_money)+'</div></div>'+
+      '<div class="wd-card"><div class="l">'+esc(str('wd_card_platform'))+'</div><div class="v">'+money(p.platform_earnings)+'</div></div>';
   }
 
   function load(){
     apiGet('get_platform_wallet').then(renderCards).catch(function(e){msg(e.message,'danger');});
     apiGet('list_withdrawals',{status:$('wd-filter').value}).then(function(rows){
       var tb=$('wd-rows');tb.innerHTML='';
-      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">No withdrawal requests.</td></tr>';return;}
+      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">'+esc(str('wd_none'))+'</td></tr>';return;}
       rows.forEach(function(w){
         var tr=document.createElement('tr');
-        var note=w.status==='rejected'?('<br><small>'+esc(w.reason||'')+'</small>'):(w.status==='paid'&&w.reference?('<br><small>Ref: '+esc(w.reference)+'</small>'):'');
+        var note=w.status==='rejected'?('<br><small>'+esc(w.reason||'')+'</small>'):(w.status==='paid'&&w.reference?('<br><small>'+strf('w_ref',esc(w.reference))+'</small>'):'');
         tr.innerHTML='<td>'+fmt(w.timecreated)+'</td><td>'+esc(w.teacher_name||('#'+w.teacherid))+'<br><small>'+esc(w.teacher_email||'')+'</small></td>'+
           '<td>'+money(w.amount)+'</td><td>'+esc(w.method)+'<br><small>'+esc(w.account||'')+'</small></td>'+
-          '<td><span class="wd-badge s-'+w.status+'">'+w.status+'</span>'+note+'</td>';
+          '<td><span class="wd-badge s-'+w.status+'">'+esc(wstat(w.status))+'</span>'+note+'</td>';
         var td=document.createElement('td');td.appendChild(actionButtons(w));tr.appendChild(td);
         tb.appendChild(tr);
       });
@@ -164,9 +183,9 @@ echo html_writer::script(<<<'JS'
   $('wd-refresh').onclick=load;
   $('wd-rev-btn').onclick=function(){
     var lid=$('wd-rev-lesson').value, reason=$('wd-rev-reason').value;
-    if(!lid){msg('Enter a lesson ID.','danger');return;}
-    if(!reason.trim()){msg('A reason is required.','danger');return;}
-    apiPost('reverse_flex',{lessonid:lid,reason:reason}).then(function(){msg('Flex returned and earning reversed.','success');$('wd-rev-lesson').value='';$('wd-rev-reason').value='';load();}).catch(function(e){msg(e.message,'danger');});
+    if(!lid){msg(str('wd_enter_lesson'),'danger');return;}
+    if(!reason.trim()){msg(str('err_reasonrequired'),'danger');return;}
+    apiPost('reverse_flex',{lessonid:lid,reason:reason}).then(function(){msg(str('wd_flex_returned'),'success');$('wd-rev-lesson').value='';$('wd-rev-reason').value='';load();}).catch(function(e){msg(e.message,'danger');});
   };
 
   load();

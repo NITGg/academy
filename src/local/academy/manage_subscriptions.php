@@ -7,6 +7,7 @@ require('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->dirroot . '/webservice/lib.php');
 require_once($CFG->libdir . '/externallib.php');
+require_once($CFG->dirroot . '/local/academy/lib.php'); // local_academy_string_map()
 
 admin_externalpage_setup('local_academy_managesubscriptions');
 require_capability('local/academy:managesubscriptions', context_system::instance());
@@ -22,63 +23,81 @@ $PAGE->set_heading(get_string('managesubscriptions', 'local_academy'));
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managesubscriptions', 'local_academy'));
 
+// Localised strings: server-rendered HTML reads $STR['key']; the JS reads window.ACADEMY_STR.
+$STR = local_academy_string_map(array(
+    'sub_plans_heading', 'sub_new', 'ui_refresh', 'ui_loading', 'ui_save', 'ui_cancel', 'ui_active',
+    'ui_activate', 'ui_deactivate', 'ui_edit', 'ui_delete', 'ui_never', 'ui_optional',
+    'pkg_col_id', 'pkg_col_name', 'pkg_col_price', 'sub_col_days', 'sub_col_courses', 'pkg_col_status',
+    'pkg_col_actions', 'pkg_field_name', 'pkg_field_price', 'pkg_col_user', 'sub_col_subscription',
+    'pkg_col_pricepaid', 'pkg_col_expiresat',
+    'sub_field_desc', 'sub_field_days', 'sub_courseavail_heading', 'sub_courseavail_desc', 'sub_target',
+    'sub_select_placeholder', 'sub_save_courses', 'sub_usersubs_heading', 'sub_usersubs_desc',
+    'sub_unsub_title', 'sub_unsub_refund', 'sub_unsubscribe', 'sub_none_admin', 'sub_inactive',
+    'sub_edit_titled', 'sub_updated', 'sub_created', 'sub_activated', 'sub_deactivated', 'sub_deleted',
+    'sub_confirm_delete', 'sub_no_categories', 'sub_select_target', 'sub_courses_assigned',
+    'sub_no_usersubs', 'sub_unsub_confirm', 'sub_unsub_success', 'pkg_unassign_paid',
+    'sstat_active', 'sstat_expired', 'sstat_cancelled', 'sstat_pending', 'sstat_payment_failed',
+    'err_sessionexpired', 'err_requestfailed',
+));
 echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
     'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
     'token'    => $token,
+    'lang'     => optional_param('lang', current_language(), PARAM_LANG),
 )) . ';');
+echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
 <div id="academy-sub-app">
     <div id="sub-message" class="alert" style="display:none"></div>
 
     <!-- ── Subscription plans (US-AD-5-*) ── -->
-    <h4>Subscription plans</h4>
+    <h4><?php echo $STR['sub_plans_heading']; ?></h4>
     <div class="mb-3">
-        <button id="sub-new" class="btn btn-primary">New subscription</button>
-        <button id="sub-refresh" class="btn btn-secondary">Refresh</button>
+        <button id="sub-new" class="btn btn-primary"><?php echo $STR['sub_new']; ?></button>
+        <button id="sub-refresh" class="btn btn-secondary"><?php echo $STR['ui_refresh']; ?></button>
     </div>
 
     <table class="table table-striped" id="sub-table">
         <thead>
             <tr>
-                <th>ID</th><th>Name</th><th>Price</th><th>Days</th>
-                <th>Courses</th><th>Status</th><th>Actions</th>
+                <th><?php echo $STR['pkg_col_id']; ?></th><th><?php echo $STR['pkg_col_name']; ?></th><th><?php echo $STR['pkg_col_price']; ?></th><th><?php echo $STR['sub_col_days']; ?></th>
+                <th><?php echo $STR['sub_col_courses']; ?></th><th><?php echo $STR['pkg_col_status']; ?></th><th><?php echo $STR['pkg_col_actions']; ?></th>
             </tr>
         </thead>
-        <tbody><tr><td colspan="7">Loading…</td></tr></tbody>
+        <tbody><tr><td colspan="7"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
     </table>
 
     <div id="sub-form-card" class="card" style="display:none; max-width:560px;">
         <div class="card-body">
-            <h4 id="sub-form-title" class="card-title">New subscription</h4>
+            <h4 id="sub-form-title" class="card-title"><?php echo $STR['sub_new']; ?></h4>
             <input type="hidden" id="f-id">
             <div class="form-group">
-                <label for="f-name">Name</label>
+                <label for="f-name"><?php echo $STR['pkg_field_name']; ?></label>
                 <input type="text" class="form-control" id="f-name">
             </div>
             <div class="form-group">
-                <label for="f-description">Description (optional)</label>
+                <label for="f-description"><?php echo $STR['sub_field_desc']; ?></label>
                 <textarea class="form-control" id="f-description" rows="2"></textarea>
             </div>
             <div class="form-group">
-                <label for="f-price">Price (EGP)</label>
+                <label for="f-price"><?php echo $STR['pkg_field_price']; ?></label>
                 <input type="number" class="form-control" id="f-price" min="0" step="0.01">
             </div>
             <div class="form-group">
-                <label for="f-days">Number of days</label>
+                <label for="f-days"><?php echo $STR['sub_field_days']; ?></label>
                 <input type="number" class="form-control" id="f-days" min="1">
             </div>
             <div class="form-check mb-3">
                 <input type="checkbox" class="form-check-input" id="f-active" checked>
-                <label class="form-check-label" for="f-active">Active</label>
+                <label class="form-check-label" for="f-active"><?php echo $STR['ui_active']; ?></label>
             </div>
-            <button id="sub-save" class="btn btn-primary">Save</button>
-            <button id="sub-cancel" class="btn btn-link">Cancel</button>
+            <button id="sub-save" class="btn btn-primary"><?php echo $STR['ui_save']; ?></button>
+            <button id="sub-cancel" class="btn btn-link"><?php echo $STR['ui_cancel']; ?></button>
         </div>
     </div>
 
     <!-- ── Course access (New UI) ── -->
-    <h4 class="mt-4">Course subscription availability</h4>
-    <p class="text-muted">Choose courses and append them to a specific subscription.</p>
+    <h4 class="mt-4"><?php echo $STR['sub_courseavail_heading']; ?></h4>
+    <p class="text-muted"><?php echo $STR['sub_courseavail_desc']; ?></p>
 
     <style>
         .course-chip {
@@ -162,47 +181,47 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
 
     <div id="course-selector-area" style="display:none;">
         <div class="mb-3">
-            <label for="target-subscription">Target Subscription:</label>
+            <label for="target-subscription"><?php echo $STR['sub_target']; ?></label>
             <select id="target-subscription" class="form-control" style="max-width: 300px; display: inline-block;">
-                <option value="">Select a subscription...</option>
+                <option value=""><?php echo $STR['sub_select_placeholder']; ?></option>
             </select>
-            <button id="save-course-selection" class="btn btn-primary ml-2">Save courses to subscription</button>
+            <button id="save-course-selection" class="btn btn-primary ml-2"><?php echo $STR['sub_save_courses']; ?></button>
         </div>
         <div id="categories-container" class="mb-4"></div>
     </div>
 
     <!-- ── User Subscriptions (New UI) ── -->
-    <h4 class="mt-4">User Subscriptions</h4>
-    <p class="text-muted">Manage active and expired user subscriptions.</p>
-    <button id="refresh-users" class="btn btn-secondary mb-2">Refresh</button>
+    <h4 class="mt-4"><?php echo $STR['sub_usersubs_heading']; ?></h4>
+    <p class="text-muted"><?php echo $STR['sub_usersubs_desc']; ?></p>
+    <button id="refresh-users" class="btn btn-secondary mb-2"><?php echo $STR['ui_refresh']; ?></button>
     <table class="table table-striped" id="users-table">
         <thead>
             <tr>
-                <th>User</th>
-                <th>Subscription</th>
-                <th>Price Paid</th>
-                <th>Status</th>
-                <th>Expires At</th>
-                <th>Actions</th>
+                <th><?php echo $STR['pkg_col_user']; ?></th>
+                <th><?php echo $STR['sub_col_subscription']; ?></th>
+                <th><?php echo $STR['pkg_col_pricepaid']; ?></th>
+                <th><?php echo $STR['pkg_col_status']; ?></th>
+                <th><?php echo $STR['pkg_col_expiresat']; ?></th>
+                <th><?php echo $STR['pkg_col_actions']; ?></th>
             </tr>
         </thead>
-        <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
+        <tbody><tr><td colspan="6"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
     </table>
 
     <!-- ── Unsubscribe confirmation modal ── -->
     <div id="unsub-modal-backdrop" class="academy-modal-backdrop" style="display:none;">
         <div class="academy-modal">
-            <h5 class="academy-modal-title">Unsubscribe user</h5>
+            <h5 class="academy-modal-title"><?php echo $STR['sub_unsub_title']; ?></h5>
             <p id="unsub-modal-text"></p>
             <div class="form-check">
                 <input type="checkbox" class="form-check-input" id="unsub-refund-checkbox">
                 <label class="form-check-label" for="unsub-refund-checkbox">
-                    Refund payment to student <span class="text-muted">(optional)</span>
+                    <?php echo $STR['sub_unsub_refund']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span>
                 </label>
             </div>
             <div class="academy-modal-actions">
-                <button id="unsub-modal-cancel" class="btn btn-link">Cancel</button>
-                <button id="unsub-modal-confirm" class="btn btn-danger">Unsubscribe</button>
+                <button id="unsub-modal-cancel" class="btn btn-link"><?php echo $STR['ui_cancel']; ?></button>
+                <button id="unsub-modal-confirm" class="btn btn-danger"><?php echo $STR['sub_unsubscribe']; ?></button>
             </div>
         </div>
     </div>
@@ -212,6 +231,10 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
 echo html_writer::script(<<<'JS'
 (function () {
     var CFG = window.ACADEMY_SUB;
+    var STR = window.ACADEMY_STR || {};
+    function str(k){return (k in STR)?STR[k]:k;}
+    function strf(k,params){var s=str(k);if(params==null){return s;}if(typeof params!=='object'){return s.replace(/\{\$a\}/g,params);}return s.replace(/\{\$a->(\w+)\}/g,function(m,name){return (name in params)?params[name]:m;});}
+    function sstat(s){return str('sstat_'+s)!=='sstat_'+s?str('sstat_'+s):(s==='inactive'?str('sub_inactive'):(s==='active'?str('ui_active'):s));}
     function $(id) { return document.getElementById(id); }
 
     function msg(text, type) {
@@ -227,6 +250,7 @@ echo html_writer::script(<<<'JS'
         params = params || {};
         method = method || 'GET';
         var data = new URLSearchParams({ function: func, token: CFG.token });
+        if (CFG.lang) { data.append('lang', CFG.lang); }
         Object.keys(params).forEach(function (k) { data.append(k, params[k]); });
         var opts, url = CFG.endpoint;
         if (method === 'POST') {
@@ -240,8 +264,8 @@ echo html_writer::script(<<<'JS'
             .then(function (text) {
                 var json;
                 try { json = JSON.parse(text); }
-                catch (e) { throw new Error('Session expired — please reload the page and log in again.'); }
-                if (json.status !== 'success') { throw new Error(json.error || 'Request failed'); }
+                catch (e) { throw new Error(str('err_sessionexpired')); }
+                if (json.status !== 'success') { throw new Error(json.error || str('err_requestfailed')); }
                 return json.data;
             });
     }
@@ -261,11 +285,11 @@ echo html_writer::script(<<<'JS'
 
     function loadSubs() {
         var tbody = $('sub-table').querySelector('tbody');
-        tbody.innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7">' + esc(str('ui_loading')) + '</td></tr>';
         api('get_subscriptions').then(function (rows) {
             ALL_SUBS = rows;
             if (!rows.length) {
-                tbody.innerHTML = '<tr><td colspan="7">No subscriptions yet.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7">' + esc(str('sub_none_admin')) + '</td></tr>';
                 populateSubscriptionDropdown();
                 return;
             }
@@ -273,19 +297,19 @@ echo html_writer::script(<<<'JS'
             rows.forEach(function (s) {
                 var tr = document.createElement('tr');
                 var toggle = s.status === 'active'
-                    ? '<button class="btn btn-sm btn-warning" data-act="deactivate" data-id="' + s.id + '">Deactivate</button>'
-                    : '<button class="btn btn-sm btn-success" data-act="activate" data-id="' + s.id + '">Activate</button>';
+                    ? '<button class="btn btn-sm btn-warning" data-act="deactivate" data-id="' + s.id + '">' + esc(str('ui_deactivate')) + '</button>'
+                    : '<button class="btn btn-sm btn-success" data-act="activate" data-id="' + s.id + '">' + esc(str('ui_activate')) + '</button>';
                 tr.innerHTML =
                     '<td>' + esc(s.id) + '</td>' +
                     '<td>' + esc(s.name) + '</td>' +
                     '<td>' + esc(s.price) + '</td>' +
                     '<td>' + esc(s.duration_days) + '</td>' +
                     '<td>' + courseNames(s) + '</td>' +
-                    '<td>' + esc(s.status) + '</td>' +
+                    '<td>' + esc(sstat(s.status)) + '</td>' +
                     '<td>' +
-                        '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="' + s.id + '">Edit</button> ' +
+                        '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="' + s.id + '">' + esc(str('ui_edit')) + '</button> ' +
                         toggle + ' ' +
-                        '<button class="btn btn-sm btn-danger" data-act="delete" data-id="' + s.id + '">Delete</button>' +
+                        '<button class="btn btn-sm btn-danger" data-act="delete" data-id="' + s.id + '">' + esc(str('ui_delete')) + '</button>' +
                     '</td>';
                 tr._sub = s;
                 tbody.appendChild(tr);
@@ -295,7 +319,7 @@ echo html_writer::script(<<<'JS'
     }
 
     function showForm(sub) {
-        $('sub-form-title').textContent = sub ? ('Edit subscription #' + sub.id) : 'New subscription';
+        $('sub-form-title').textContent = sub ? strf('sub_edit_titled', sub.id) : str('sub_new');
         $('f-id').value          = sub ? sub.id : '';
         $('f-name').value        = sub ? sub.name : '';
         $('f-description').value = sub ? (sub.description || '') : '';
@@ -324,7 +348,7 @@ echo html_writer::script(<<<'JS'
             p = api('create_subscription', params, 'POST');
         }
         p.then(function () {
-            msg(id ? 'Subscription updated.' : 'Subscription created.', 'success');
+            msg(id ? str('sub_updated') : str('sub_created'), 'success');
             hideForm();
             loadSubs();
         }).catch(function (e) { msg(e.message, 'danger'); });
@@ -338,12 +362,12 @@ echo html_writer::script(<<<'JS'
         var row = btn.closest('tr');
         if (act === 'edit') { showForm(row._sub); return; }
         if (act === 'activate') {
-            api('activate_subscription', { id: id }, 'POST').then(function () { msg('Activated.', 'success'); loadSubs(); }).catch(function (e) { msg(e.message, 'danger'); });
+            api('activate_subscription', { id: id }, 'POST').then(function () { msg(str('sub_activated'), 'success'); loadSubs(); }).catch(function (e) { msg(e.message, 'danger'); });
         } else if (act === 'deactivate') {
-            api('deactivate_subscription', { id: id }, 'POST').then(function () { msg('Deactivated.', 'success'); loadSubs(); }).catch(function (e) { msg(e.message, 'danger'); });
+            api('deactivate_subscription', { id: id }, 'POST').then(function () { msg(str('sub_deactivated'), 'success'); loadSubs(); }).catch(function (e) { msg(e.message, 'danger'); });
         } else if (act === 'delete') {
-            if (!confirm('Delete this subscription? Only possible if it was never purchased. This cannot be undone.')) { return; }
-            api('delete_subscription', { id: id }, 'POST').then(function () { msg('Deleted.', 'success'); loadSubs(); }).catch(function (e) { msg(e.message, 'danger'); });
+            if (!confirm(str('sub_confirm_delete'))) { return; }
+            api('delete_subscription', { id: id }, 'POST').then(function () { msg(str('sub_deleted'), 'success'); loadSubs(); }).catch(function (e) { msg(e.message, 'danger'); });
         }
     });
 
@@ -357,7 +381,7 @@ echo html_writer::script(<<<'JS'
         api('get_categories_with_courses').then(function(categories) {
             var container = $('categories-container');
             if (!categories.length) {
-                container.innerHTML = '<span class="text-muted">No categories with courses found.</span>';
+                container.innerHTML = '<span class="text-muted">' + esc(str('sub_no_categories')) + '</span>';
                 return;
             }
             var html = '';
@@ -380,7 +404,7 @@ echo html_writer::script(<<<'JS'
     function populateSubscriptionDropdown() {
         var select = $('target-subscription');
         var prevValue = select.value;
-        select.innerHTML = '<option value="">Select a subscription...</option>';
+        select.innerHTML = '<option value="">' + esc(str('sub_select_placeholder')) + '</option>';
         ALL_SUBS.forEach(function(sub) {
             if (sub.status === 'active') {
                 select.innerHTML += '<option value="' + sub.id + '">' + esc(sub.name) + ' (#' + sub.id + ')</option>';
@@ -411,7 +435,7 @@ echo html_writer::script(<<<'JS'
     $('save-course-selection').addEventListener('click', function() {
         var subId = $('target-subscription').value;
         if (!subId) {
-            msg('Please select a target subscription.', 'danger');
+            msg(str('sub_select_target'), 'danger');
             return;
         }
         var courseIds = [];
@@ -422,7 +446,7 @@ echo html_writer::script(<<<'JS'
             subscriptionid: subId,
             courseids: JSON.stringify(courseIds)
         }, 'POST').then(function() {
-            msg('Courses assigned successfully.', 'success');
+            msg(str('sub_courses_assigned'), 'success');
             loadSubs();
         }).catch(function(e) { msg(e.message, 'danger'); });
     });
@@ -430,23 +454,23 @@ echo html_writer::script(<<<'JS'
     // ── User Subscriptions (New UI) ──
     function loadUsers() {
         var tbody = $('users-table').querySelector('tbody');
-        tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6">' + esc(str('ui_loading')) + '</td></tr>';
         api('get_all_user_subscriptions').then(function(rows) {
-            if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6">No user subscriptions found.</td></tr>'; return; }
+            if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6">' + esc(str('sub_no_usersubs')) + '</td></tr>'; return; }
             tbody.innerHTML = '';
             rows.forEach(function(r) {
                 var tr = document.createElement('tr');
                 var toggle = '';
                 if (r.status === 'active') {
-                    toggle = '<button class="btn btn-sm btn-danger btn-unsubscribe" data-id="' + r.id + '">Unsubscribe</button>';
+                    toggle = '<button class="btn btn-sm btn-danger btn-unsubscribe" data-id="' + r.id + '">' + esc(str('sub_unsubscribe')) + '</button>';
                 }
-                var expires = r.expires_at > 0 ? new Date(r.expires_at * 1000).toLocaleString() : 'Never';
-                tr.innerHTML = 
+                var expires = r.expires_at > 0 ? new Date(r.expires_at * 1000).toLocaleString() : str('ui_never');
+                tr.innerHTML =
                     '<td>' + esc(r.user_fullname) + ' <br><small class="text-muted">' + esc(r.user_email) + '</small></td>' +
                     '<td>' + esc(r.name) + '</td>' +
                     '<td>' + esc(r.price_paid) + '</td>' +
-                    '<td>' + esc(r.status) + '</td>' +
-                    '<td>' + expires + '</td>' +
+                    '<td>' + esc(sstat(r.status)) + '</td>' +
+                    '<td>' + esc(expires) + '</td>' +
                     '<td>' + toggle + '</td>';
                 tr._row = r;
                 tbody.appendChild(tr);
@@ -459,10 +483,10 @@ echo html_writer::script(<<<'JS'
 
     function openUnsubscribeModal(row) {
         pendingUnsubscribe = row;
-        var priceText = row.price_paid ? (' — <strong>' + esc(row.price_paid) + '</strong> paid') : '';
-        $('unsub-modal-text').innerHTML =
-            'Unsubscribe <strong>' + esc(row.user_fullname) + '</strong> from <strong>' + esc(row.name) + '</strong>' +
-            priceText + '? This cannot be undone.';
+        var priceText = row.price_paid ? strf('pkg_unassign_paid', esc(row.price_paid)) : '';
+        $('unsub-modal-text').innerHTML = strf('sub_unsub_confirm', {
+            user: esc(row.user_fullname), name: esc(row.name), price: priceText
+        });
         $('unsub-refund-checkbox').checked = false;
         $('unsub-modal-backdrop').style.display = 'flex';
     }
@@ -493,7 +517,7 @@ echo html_writer::script(<<<'JS'
             purchaseid: row.id,
             refund: refund ? 1 : 0
         }, 'POST').then(function() {
-            msg('User unsubscribed successfully.', 'success');
+            msg(str('sub_unsub_success'), 'success');
             closeUnsubscribeModal();
             loadUsers();
         }).catch(function(e) { msg(e.message, 'danger'); });
