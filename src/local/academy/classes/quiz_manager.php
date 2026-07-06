@@ -14,6 +14,17 @@ defined('MOODLE_INTERNAL') || die();
  */
 class quiz_manager {
 
+    /** @var string Web-service token of the current request, appended to image URLs. */
+    private static $token = '';
+
+    /**
+     * Set the web-service token used to authenticate returned image URLs.
+     * Call this before get_quiz()/get_attempt() so <img> URLs are ready to load.
+     */
+    public static function set_token(string $token): void {
+        self::$token = $token;
+    }
+
     // ── Public API ────────────────────────────────────────────────────────────
 
     /**
@@ -172,6 +183,7 @@ class quiz_manager {
     public static function save_answer(int $attemptid, int $userid, int $questionid, $answer): array {
         global $DB;
 
+        self::require_answers_table();
         $attemptrow = self::require_open_attempt($attemptid, $userid);
 
         // The question must belong to this attempt's quiz.
@@ -216,6 +228,7 @@ class quiz_manager {
      * that actually closes the attempt.
      */
     public static function finish_attempt(int $attemptid, int $userid): array {
+        self::require_answers_table();
         $attemptrow = self::require_open_attempt($attemptid, $userid);
         $submitted  = self::saved_answers_map($attemptid);
         return self::grade_and_finish($attemptrow, $userid, $submitted);
@@ -245,7 +258,7 @@ class quiz_manager {
             $maxscore += $maxmark;
 
             $ctx     = self::question_contextid($q);
-            $content = self::content_fields($q->questiontext, $ctx, 'questiontext', (int)$q->id);
+            $content = self::content_fields($q->questiontext, $ctx, 'questiontext', (int)$q->id, (int)$q->id);
             $qdata = [
                 'slot'       => (int)$slot->slot,
                 'questionid' => (int)$q->id,
@@ -257,8 +270,8 @@ class quiz_manager {
 
             if ($is_admin && in_array($q->qtype, ['multichoice', 'truefalse'])) {
                 $allAnswers = $DB->get_records('question_answers', ['question' => $q->id], 'id ASC');
-                $qdata['correct_answers'] = array_values(array_map(function($a) use ($ctx) {
-                    $c = self::content_fields($a->answer, $ctx, 'answer', (int)$a->id);
+                $qdata['correct_answers'] = array_values(array_map(function($a) use ($ctx, $q) {
+                    $c = self::content_fields($a->answer, $ctx, 'answer', (int)$a->id, (int)$q->id);
                     return ['id' => (int)$a->id, 'text' => $c['text'], 'images' => $c['images'], 'correct' => (float)$a->fraction > 0];
                 }, $allAnswers));
                 self::dedupe_question_images($qdata, 'correct_answers');
@@ -315,7 +328,7 @@ class quiz_manager {
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private static function format_question(\stdClass $q, int $slot, bool $show_correct): array {
-        $content = self::content_fields($q->questiontext, self::question_contextid($q), 'questiontext', (int)$q->id);
+        $content = self::content_fields($q->questiontext, self::question_contextid($q), 'questiontext', (int)$q->id, (int)$q->id);
         $base = [
             'slot'        => $slot,
             'questionid'  => (int)$q->id,
@@ -351,14 +364,30 @@ class quiz_manager {
         $optionfilenames = [];
         foreach ($question[$optionskey] as $opt) {
             foreach ($opt['images'] ?? [] as $url) {
-                $optionfilenames[basename(parse_url($url, PHP_URL_PATH))] = true;
+                $optionfilenames[self::image_filename($url)] = true;
             }
         }
         if ($optionfilenames) {
             $question['images'] = array_values(array_filter($question['images'], function($url) use ($optionfilenames) {
-                return !isset($optionfilenames[basename(parse_url($url, PHP_URL_PATH))]);
+                return !isset($optionfilenames[self::image_filename($url)]);
             }));
         }
+    }
+
+    /**
+     * Best-effort filename for an image URL, used to detect the same file reused across
+     * a question and its options. Our qfile.php URLs carry the name in the ?file= param;
+     * fall back to the path basename for any other URL shape.
+     */
+    private static function image_filename(string $url): string {
+        $query = parse_url($url, PHP_URL_QUERY);
+        if (is_string($query)) {
+            parse_str($query, $params);
+            if (!empty($params['file'])) {
+                return basename($params['file']);
+            }
+        }
+        return basename((string)parse_url($url, PHP_URL_PATH));
     }
 
     private static function format_multichoice(\stdClass $q, bool $show_correct): array {
@@ -369,7 +398,7 @@ class quiz_manager {
 
         $options = [];
         foreach ($answers as $a) {
-            $content = self::content_fields($a->answer, $ctx, 'answer', (int)$a->id);
+            $content = self::content_fields($a->answer, $ctx, 'answer', (int)$a->id, (int)$q->id);
             $opt = ['id' => (int)$a->id, 'text' => $content['text'], 'images' => $content['images']];
             if ($show_correct) { $opt['correct'] = (float)$a->fraction > 0; }
             $options[] = $opt;
@@ -388,7 +417,7 @@ class quiz_manager {
 
         $options = [];
         foreach ($answers as $a) {
-            $content = self::content_fields($a->answer, $ctx, 'answer', (int)$a->id);
+            $content = self::content_fields($a->answer, $ctx, 'answer', (int)$a->id, (int)$q->id);
             $opt = ['id' => (int)$a->id, 'text' => $content['text'], 'images' => $content['images']];
             if ($show_correct) { $opt['correct'] = (float)$a->fraction > 0; }
             $options[] = $opt;
@@ -426,23 +455,28 @@ class quiz_manager {
      * @param int    $itemid    Question id (questiontext) or answer id (answer)
      * @return array{text: string, images: string[]}
      */
-    private static function content_fields($html, int $contextid, string $filearea, int $itemid): array {
+    private static function content_fields($html, int $contextid, string $filearea, int $itemid, int $questionid): array {
         global $CFG;
         require_once($CFG->dirroot . '/lib/filelib.php');
 
         $html = (string)$html;
         if ($contextid) {
             $html = \file_rewrite_pluginfile_urls(
-                $html, 'webservice/pluginfile.php', $contextid, 'question', $filearea, $itemid);
+                $html, 'pluginfile.php', $contextid, 'question', $filearea, $itemid);
         }
 
         // Pull out every <img> src so the app can render images without parsing HTML.
+        // Each is rewritten to our own token-authorised endpoint (see local_file_url).
         $images = [];
         if (preg_match_all('/<img\b[^>]*?\bsrc\s*=\s*("|\')(.*?)\1/i', $html, $m)) {
             foreach ($m[2] as $src) {
                 $src = trim(html_entity_decode($src, ENT_QUOTES));
-                if ($src !== '') {
-                    $images[] = $src;
+                if ($src === '') {
+                    continue;
+                }
+                $url = self::local_file_url($src, $questionid);
+                if ($url !== null) {
+                    $images[] = $url;
                 }
             }
         }
@@ -451,6 +485,51 @@ class quiz_manager {
         $text = trim(\html_to_text($html, 0, false));
 
         return ['text' => $text, 'images' => $images];
+    }
+
+    /**
+     * Turn a Moodle pluginfile URL for a question image into a URL served by our own
+     * token-authorised endpoint (local/academy/qfile.php).
+     *
+     * The standard webservice/pluginfile.php route fails for question-bank files with
+     * "Course or activity not accessible", because question_pluginfile only authorises
+     * them inside an attempt/preview context. Our endpoint authorises by token + course
+     * enrolment instead, so the app can load the image with just the student token.
+     *
+     * @param string $src        the rewritten pluginfile URL from the question HTML
+     * @param int    $questionid the question the image belongs to (for the access check)
+     * @return string|null the local URL, or the original src if it is not a pluginfile URL
+     */
+    private static function local_file_url(string $src, int $questionid): ?string {
+        $path = parse_url($src, PHP_URL_PATH);
+        if (!is_string($path)) {
+            return $src;
+        }
+        $marker = '/pluginfile.php/';
+        $pos = strpos($path, $marker);
+        if ($pos === false) {
+            return $src; // Not a Moodle file URL — leave it untouched.
+        }
+        // Path after the marker: contextid / 'question' / filearea / itemid / file[/subpath].
+        $rest = substr($path, $pos + strlen($marker));
+        $segs = array_values(array_filter(explode('/', $rest), function($s) {
+            return $s !== '';
+        }));
+        if (count($segs) < 5) {
+            return $src;
+        }
+        $filearea = clean_param($segs[2], PARAM_ALPHANUMEXT);
+        $fileitem = (int)$segs[3];
+        $filename = rawurldecode(implode('/', array_slice($segs, 4)));
+
+        $url = new \moodle_url('/local/academy/qfile.php', [
+            'questionid' => $questionid,
+            'area'       => $filearea,
+            'itemid'     => $fileitem,
+            'file'       => $filename,
+            'token'      => self::$token,
+        ]);
+        return $url->out(false);
     }
 
     /**
@@ -471,15 +550,35 @@ class quiz_manager {
     /**
      * Return the per-question answers saved with save_answer(), keyed by questionid.
      * Each value is the decoded answer (int, or array of ints for multi-answer).
+     *
+     * The academy_quiz_answers table only exists once the plugin upgrade has run. If it
+     * is missing there simply are no pre-saved answers, so one-shot submit_quiz_attempt
+     * (which passes its answers in the request) keeps working without the upgrade.
      */
     private static function saved_answers_map(int $attemptid): array {
         global $DB;
+        if (!$DB->get_manager()->table_exists('academy_quiz_answers')) {
+            return [];
+        }
         $rows = $DB->get_records('academy_quiz_answers', ['attemptid' => $attemptid]);
         $map  = [];
         foreach ($rows as $r) {
             $map[(int)$r->questionid] = json_decode($r->answer, true);
         }
         return $map;
+    }
+
+    /**
+     * The per-question save/finish flow needs the academy_quiz_answers table. Fail with a
+     * clear message (instead of a raw DB error) if the plugin upgrade has not run yet.
+     */
+    private static function require_answers_table(): void {
+        global $DB;
+        if (!$DB->get_manager()->table_exists('academy_quiz_answers')) {
+            throw new \Exception('Per-question answer storage is not installed yet — run the '
+                . 'Academy plugin upgrade (Site administration → Notifications, or '
+                . 'php admin/cli/upgrade.php).');
+        }
     }
 
     /**

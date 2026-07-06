@@ -46,23 +46,24 @@ the `<img>` tags are parsed out server-side so the app never has to touch HTML.
 {
   "id": 1,
   "text": "",
-  "images": ["https://site/webservice/pluginfile.php/123/question/answer/1/diagram.png"]
+  "images": ["https://site/local/academy/qfile.php?questionid=717&area=answer&itemid=1&file=diagram.png&token=STUDENT_TOKEN"]
 }
 ```
 
 An option can have both text and images (e.g. `"text": "1+1"`, plus an image), or just
 one of them. Render `text` (if non-empty) and then each URL in `images`.
 
-> Previously image content came back as an empty string (`strip_tags` deleted the
-> `<img>`), and a later revision returned raw HTML. Now the file placeholders are
-> rewritten to real `webservice/pluginfile.php` URLs and the image URLs are extracted
-> into the `images` array.
+**Image URLs point at `local/academy/qfile.php`** — a dedicated, token-authorised image
+server — with the token already included, so the app (or a browser) can load them
+directly. No `?token=` handling needed on the client.
 
-**The app must append its token to each image URL** so the file request is authenticated:
-
-```
-https://site/webservice/pluginfile.php/123/question/answer/1/diagram.png?token=STUDENT_TOKEN
-```
+> **Why not `webservice/pluginfile.php`?** Question-bank images can't be served that way
+> with a plain student token — Moodle's `question_pluginfile` only authorises them inside
+> a quiz attempt/preview context, so it fails with
+> `{"errorcode":"requireloginerror"}` ("Course or activity not accessible").
+> `qfile.php` authorises by **token + course enrolment** instead, so it works even before
+> an attempt is started. Access is denied (`403`) if the user isn't enrolled in a course
+> whose quiz uses that question (admins with `manageplatform` can load any).
 
 ---
 
