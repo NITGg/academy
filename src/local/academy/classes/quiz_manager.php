@@ -145,99 +145,80 @@ class quiz_manager {
      *   For multi-answer MCQ:                { "questionid": 102, "answer": [3, 5] }
      */
     public static function submit_attempt(int $attemptid, int $userid, array $answers): array {
-        global $DB, $CFG;
-        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+        global $DB;
 
-        $attemptrow = $DB->get_record('quiz_attempts', ['id' => $attemptid], '*', MUST_EXIST);
+        $attemptrow = self::require_open_attempt($attemptid, $userid);
 
-        if ((int)$attemptrow->userid !== $userid) {
-            throw new \moodle_exception('notyourattempt', 'quiz');
-        }
-        if ($attemptrow->state === 'finished') {
-            throw new \moodle_exception('attemptalreadyclosed', 'quiz');
-        }
-
-        $quiz  = $DB->get_record('quiz', ['id' => $attemptrow->quiz], '*', MUST_EXIST);
-        $slots = $DB->get_records('quiz_slots', ['quizid' => $quiz->id], 'slot ASC');
-
-        // Map questionid → slot number.
-        $qid_to_slot = [];
-        foreach ($slots as $s) { $qid_to_slot[(int)$s->questionid] = (int)$s->slot; }
-
-        // Index submitted answers by questionid.
-        $submitted = [];
-        foreach ($answers as $a) { $submitted[(int)$a['questionid']] = $a['answer']; }
-
-        // Grade each question and accumulate score.
-        $results   = [];
-        $sumgrades = 0.0;
-
-        foreach ($slots as $slot) {
-            $q        = $DB->get_record('question', ['id' => $slot->questionid]);
-            $maxmark  = (float)$slot->maxmark;
-            $answer   = $submitted[(int)$q->id] ?? null;
-            $mark     = 0.0;
-            $correct  = false;
-
-            if ($answer !== null && in_array($q->qtype, ['multichoice', 'truefalse'])) {
-                $allAnswers = array_values($DB->get_records('question_answers', ['question' => $q->id], 'id ASC'));
-
-                if ($q->qtype === 'truefalse' || !is_array($answer)) {
-                    // Single answer: find the fraction for the chosen answer id.
-                    foreach ($allAnswers as $a) {
-                        if ((int)$a->id === (int)$answer) {
-                            $frac    = (float)$a->fraction;
-                            $mark    = max(0, $frac * $maxmark);
-                            $correct = $frac >= 1.0;
-                            break;
-                        }
-                    }
-                } else {
-                    // Multi-answer MCQ: sum fractions of chosen answers.
-                    $frac = 0.0;
-                    foreach ($allAnswers as $a) {
-                        if (in_array((int)$a->id, array_map('intval', $answer))) {
-                            $frac += (float)$a->fraction;
-                        }
-                    }
-                    $mark    = max(0, round($frac * $maxmark, 5));
-                    $correct = $frac >= 1.0;
-                }
-            }
-
-            $sumgrades += $mark;
-            $results[] = [
-                'questionid' => (int)$q->id,
-                'type'       => $q->qtype,
-                'mark'       => round($mark, 2),
-                'max_mark'   => round($maxmark, 2),
-                'correct'    => $correct,
-            ];
+        // Start from any answers previously saved with save_answer, then let the
+        // answers passed in this call override them.
+        $submitted = self::saved_answers_map($attemptid);
+        foreach ($answers as $a) {
+            $submitted[(int)$a['questionid']] = $a['answer'];
         }
 
-        // Mark attempt as finished.
-        $now = time();
-        $DB->update_record('quiz_attempts', (object)[
-            'id'         => $attemptid,
-            'state'      => 'finished',
-            'timefinish' => $now,
-            'timemodified' => $now,
-            'sumgrades'  => $sumgrades,
-        ]);
+        return self::grade_and_finish($attemptrow, $userid, $submitted);
+    }
 
-        // Update gradebook.
-        quiz_save_best_grade($quiz, $userid);
+    /**
+     * Save (or update) the answer to a single question WITHOUT finishing the attempt.
+     *
+     * This is the per-question submit: the app calls it as the student answers each
+     * question, and the attempt stays open ('inprogress'). The final grade is only
+     * computed when finish_attempt() (submit all) is called.
+     *
+     * @param mixed $answer answer row id (int) for single MCQ / true-false,
+     *                      or an array of answer row ids for multi-answer MCQ
+     */
+    public static function save_answer(int $attemptid, int $userid, int $questionid, $answer): array {
+        global $DB;
 
-        $maxscore = array_sum(array_column(array_map('get_object_vars', $slots), 'maxmark'));
+        $attemptrow = self::require_open_attempt($attemptid, $userid);
+
+        // The question must belong to this attempt's quiz.
+        if (!$DB->record_exists('quiz_slots', ['quizid' => $attemptrow->quiz, 'questionid' => $questionid])) {
+            throw new \moodle_exception('invalidquestionid', 'question');
+        }
+
+        $now      = time();
+        $encoded  = json_encode($answer);
+        $existing = $DB->get_record('academy_quiz_answers',
+            ['attemptid' => $attemptid, 'questionid' => $questionid]);
+
+        if ($existing) {
+            $DB->update_record('academy_quiz_answers', (object)[
+                'id'           => $existing->id,
+                'answer'       => $encoded,
+                'timemodified' => $now,
+            ]);
+        } else {
+            $DB->insert_record('academy_quiz_answers', (object)[
+                'attemptid'    => $attemptid,
+                'questionid'   => $questionid,
+                'userid'       => $userid,
+                'answer'       => $encoded,
+                'timecreated'  => $now,
+                'timemodified' => $now,
+            ]);
+        }
 
         return [
-            'attemptid' => $attemptid,
-            'state'     => 'finished',
-            'score'     => round($sumgrades, 2),
-            'max_score' => round((float)$maxscore, 2),
-            'percent'   => $maxscore > 0 ? round(($sumgrades / $maxscore) * 100, 1) : 0,
-            'results'   => $results,
+            'attemptid'  => $attemptid,
+            'questionid' => $questionid,
+            'saved'      => true,
+            'state'      => $attemptrow->state,
         ];
+    }
+
+    /**
+     * Submit all questions: grade every saved answer and finish the attempt.
+     *
+     * Uses the answers stored by save_answer(). This is the "submit all" endpoint
+     * that actually closes the attempt.
+     */
+    public static function finish_attempt(int $attemptid, int $userid): array {
+        $attemptrow = self::require_open_attempt($attemptid, $userid);
+        $submitted  = self::saved_answers_map($attemptid);
+        return self::grade_and_finish($attemptrow, $userid, $submitted);
     }
 
     /**
@@ -263,19 +244,24 @@ class quiz_manager {
             $maxmark = (float)$slot->maxmark;
             $maxscore += $maxmark;
 
+            $ctx     = self::question_contextid($q);
+            $content = self::content_fields($q->questiontext, $ctx, 'questiontext', (int)$q->id);
             $qdata = [
                 'slot'       => (int)$slot->slot,
                 'questionid' => (int)$q->id,
                 'type'       => $q->qtype,
-                'text'       => strip_tags($q->questiontext),
+                'text'       => $content['text'],
+                'images'     => $content['images'],
                 'max_mark'   => round($maxmark, 2),
             ];
 
             if ($is_admin && in_array($q->qtype, ['multichoice', 'truefalse'])) {
                 $allAnswers = $DB->get_records('question_answers', ['question' => $q->id], 'id ASC');
-                $qdata['correct_answers'] = array_values(array_map(function($a) {
-                    return ['id' => (int)$a->id, 'text' => strip_tags($a->answer), 'correct' => (float)$a->fraction > 0];
+                $qdata['correct_answers'] = array_values(array_map(function($a) use ($ctx) {
+                    $c = self::content_fields($a->answer, $ctx, 'answer', (int)$a->id);
+                    return ['id' => (int)$a->id, 'text' => $c['text'], 'images' => $c['images'], 'correct' => (float)$a->fraction > 0];
                 }, $allAnswers));
+                self::dedupe_question_images($qdata, 'correct_answers');
             }
 
             $questions[] = $qdata;
@@ -329,19 +315,49 @@ class quiz_manager {
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private static function format_question(\stdClass $q, int $slot, bool $show_correct): array {
+        $content = self::content_fields($q->questiontext, self::question_contextid($q), 'questiontext', (int)$q->id);
         $base = [
             'slot'        => $slot,
             'questionid'  => (int)$q->id,
             'type'        => $q->qtype,
-            'text'        => strip_tags($q->questiontext),
+            'text'        => $content['text'],
+            'images'      => $content['images'],
             'defaultmark' => (float)$q->defaultmark,
             'supported'   => in_array($q->qtype, ['multichoice', 'truefalse']),
         ];
 
         switch ($q->qtype) {
-            case 'multichoice': return array_merge($base, self::format_multichoice($q, $show_correct));
-            case 'truefalse':   return array_merge($base, self::format_truefalse($q, $show_correct));
+            case 'multichoice': $result = array_merge($base, self::format_multichoice($q, $show_correct)); break;
+            case 'truefalse':   $result = array_merge($base, self::format_truefalse($q, $show_correct)); break;
             default:            return $base;
+        }
+
+        self::dedupe_question_images($result);
+        return $result;
+    }
+
+    /**
+     * An image that was (accidentally) inserted into both the question stem and one of
+     * its answer options is only useful attached to the option, so drop it from the
+     * question's own images[] when the same URL also appears under one of its options.
+     */
+    private static function dedupe_question_images(array &$question, string $optionskey = 'options'): void {
+        if (empty($question[$optionskey])) {
+            return;
+        }
+        // Compare by filename, not full URL: the same physical file reused on both the
+        // question and an option is served from two different paths (different itemid),
+        // so the URLs never match exactly even though it's the same image.
+        $optionfilenames = [];
+        foreach ($question[$optionskey] as $opt) {
+            foreach ($opt['images'] ?? [] as $url) {
+                $optionfilenames[basename(parse_url($url, PHP_URL_PATH))] = true;
+            }
+        }
+        if ($optionfilenames) {
+            $question['images'] = array_values(array_filter($question['images'], function($url) use ($optionfilenames) {
+                return !isset($optionfilenames[basename(parse_url($url, PHP_URL_PATH))]);
+            }));
         }
     }
 
@@ -349,10 +365,12 @@ class quiz_manager {
         global $DB;
         $opts    = $DB->get_record('qtype_multichoice_options', ['questionid' => $q->id]);
         $answers = $DB->get_records('question_answers', ['question' => $q->id], 'id ASC');
+        $ctx     = self::question_contextid($q);
 
         $options = [];
         foreach ($answers as $a) {
-            $opt = ['id' => (int)$a->id, 'text' => strip_tags($a->answer)];
+            $content = self::content_fields($a->answer, $ctx, 'answer', (int)$a->id);
+            $opt = ['id' => (int)$a->id, 'text' => $content['text'], 'images' => $content['images']];
             if ($show_correct) { $opt['correct'] = (float)$a->fraction > 0; }
             $options[] = $opt;
         }
@@ -366,14 +384,199 @@ class quiz_manager {
     private static function format_truefalse(\stdClass $q, bool $show_correct): array {
         global $DB;
         $answers = $DB->get_records('question_answers', ['question' => $q->id], 'id ASC');
+        $ctx     = self::question_contextid($q);
 
         $options = [];
         foreach ($answers as $a) {
-            $opt = ['id' => (int)$a->id, 'text' => strip_tags($a->answer)];
+            $content = self::content_fields($a->answer, $ctx, 'answer', (int)$a->id);
+            $opt = ['id' => (int)$a->id, 'text' => $content['text'], 'images' => $content['images']];
             if ($show_correct) { $opt['correct'] = (float)$a->fraction > 0; }
             $options[] = $opt;
         }
 
         return ['options' => $options];
+    }
+
+    /**
+     * Context id used for a question's file areas (the question category context).
+     */
+    private static function question_contextid(\stdClass $q): int {
+        global $DB;
+        $cat = $DB->get_record('question_categories', ['id' => $q->category], 'contextid');
+        return $cat ? (int)$cat->contextid : 0;
+    }
+
+    /**
+     * Rewrite @@PLUGINFILE@@ placeholders to real URLs and split the content into
+     * clean, separately-consumable pieces: plain text + a list of image URLs.
+     *
+     * Previously this returned a blob of raw HTML (with <p>/<br>/style/dir wrappers)
+     * whenever an image was present, forcing the app to parse HTML. Instead we now
+     * *extract* the useful parts:
+     *   - 'text'   : the human-readable text with all tags stripped (may be '')
+     *   - 'images' : the src URLs of every <img> found, in document order (may be [])
+     *
+     * The mobile app must append its token to each returned image URL, e.g.
+     *   …/webservice/pluginfile.php/CTX/question/questiontext/ID/img.png
+     *   → append "?token=WSTOKEN" so the file request is authenticated.
+     *
+     * @param string $html      Raw HTML from the question tables
+     * @param int    $contextid Question category context id
+     * @param string $filearea  'questiontext' or 'answer'
+     * @param int    $itemid    Question id (questiontext) or answer id (answer)
+     * @return array{text: string, images: string[]}
+     */
+    private static function content_fields($html, int $contextid, string $filearea, int $itemid): array {
+        global $CFG;
+        require_once($CFG->dirroot . '/lib/filelib.php');
+
+        $html = (string)$html;
+        if ($contextid) {
+            $html = \file_rewrite_pluginfile_urls(
+                $html, 'webservice/pluginfile.php', $contextid, 'question', $filearea, $itemid);
+        }
+
+        // Pull out every <img> src so the app can render images without parsing HTML.
+        $images = [];
+        if (preg_match_all('/<img\b[^>]*?\bsrc\s*=\s*("|\')(.*?)\1/i', $html, $m)) {
+            foreach ($m[2] as $src) {
+                $src = trim(html_entity_decode($src, ENT_QUOTES));
+                if ($src !== '') {
+                    $images[] = $src;
+                }
+            }
+        }
+
+        // Everything else becomes clean plain text (tags stripped, entities decoded).
+        $text = trim(\html_to_text($html, 0, false));
+
+        return ['text' => $text, 'images' => $images];
+    }
+
+    /**
+     * Load an in-progress attempt, verifying ownership and that it is not finished.
+     */
+    private static function require_open_attempt(int $attemptid, int $userid): \stdClass {
+        global $DB;
+        $attemptrow = $DB->get_record('quiz_attempts', ['id' => $attemptid], '*', MUST_EXIST);
+        if ((int)$attemptrow->userid !== $userid) {
+            throw new \moodle_exception('notyourattempt', 'quiz');
+        }
+        if ($attemptrow->state === 'finished') {
+            throw new \moodle_exception('attemptalreadyclosed', 'quiz');
+        }
+        return $attemptrow;
+    }
+
+    /**
+     * Return the per-question answers saved with save_answer(), keyed by questionid.
+     * Each value is the decoded answer (int, or array of ints for multi-answer).
+     */
+    private static function saved_answers_map(int $attemptid): array {
+        global $DB;
+        $rows = $DB->get_records('academy_quiz_answers', ['attemptid' => $attemptid]);
+        $map  = [];
+        foreach ($rows as $r) {
+            $map[(int)$r->questionid] = json_decode($r->answer, true);
+        }
+        return $map;
+    }
+
+    /**
+     * Grade the given answers against every question in the attempt's quiz, mark the
+     * attempt finished, update the gradebook and return the score payload.
+     *
+     * @param array $submitted questionid => answer (int or array of ints)
+     */
+    private static function grade_and_finish(\stdClass $attemptrow, int $userid, array $submitted): array {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+
+        $quiz  = $DB->get_record('quiz', ['id' => $attemptrow->quiz], '*', MUST_EXIST);
+        $slots = $DB->get_records('quiz_slots', ['quizid' => $quiz->id], 'slot ASC');
+
+        $results   = [];
+        $sumgrades = 0.0;
+
+        foreach ($slots as $slot) {
+            $q       = $DB->get_record('question', ['id' => $slot->questionid]);
+            $maxmark = (float)$slot->maxmark;
+            $answer  = $submitted[(int)$q->id] ?? null;
+
+            list($mark, $correct) = self::grade_one($q, $answer, $maxmark);
+
+            $sumgrades += $mark;
+            $results[] = [
+                'questionid' => (int)$q->id,
+                'type'       => $q->qtype,
+                'mark'       => round($mark, 2),
+                'max_mark'   => round($maxmark, 2),
+                'correct'    => $correct,
+            ];
+        }
+
+        // Mark attempt as finished.
+        $now = time();
+        $DB->update_record('quiz_attempts', (object)[
+            'id'           => $attemptrow->id,
+            'state'        => 'finished',
+            'timefinish'   => $now,
+            'timemodified' => $now,
+            'sumgrades'    => $sumgrades,
+        ]);
+
+        // Update gradebook.
+        quiz_save_best_grade($quiz, $userid);
+
+        $maxscore = array_sum(array_column(array_map('get_object_vars', $slots), 'maxmark'));
+
+        return [
+            'attemptid' => (int)$attemptrow->id,
+            'state'     => 'finished',
+            'score'     => round($sumgrades, 2),
+            'max_score' => round((float)$maxscore, 2),
+            'percent'   => $maxscore > 0 ? round(($sumgrades / $maxscore) * 100, 1) : 0,
+            'results'   => $results,
+        ];
+    }
+
+    /**
+     * Grade a single question. Returns [mark, correct].
+     *
+     * @param mixed $answer answer row id (int) or array of ids (multi-answer MCQ)
+     */
+    private static function grade_one(\stdClass $q, $answer, float $maxmark): array {
+        global $DB;
+
+        $mark    = 0.0;
+        $correct = false;
+
+        if ($answer !== null && in_array($q->qtype, ['multichoice', 'truefalse'])) {
+            $allAnswers = array_values($DB->get_records('question_answers', ['question' => $q->id], 'id ASC'));
+
+            if ($q->qtype === 'truefalse' || !is_array($answer)) {
+                // Single answer: find the fraction for the chosen answer id.
+                foreach ($allAnswers as $a) {
+                    if ((int)$a->id === (int)$answer) {
+                        $frac    = (float)$a->fraction;
+                        $mark    = max(0, $frac * $maxmark);
+                        $correct = $frac >= 1.0;
+                        break;
+                    }
+                }
+            } else {
+                // Multi-answer MCQ: sum fractions of chosen answers.
+                $frac = 0.0;
+                foreach ($allAnswers as $a) {
+                    if (in_array((int)$a->id, array_map('intval', $answer))) {
+                        $frac += (float)$a->fraction;
+                    }
+                }
+                $mark    = max(0, round($frac * $maxmark, 5));
+                $correct = $frac >= 1.0;
+            }
+        }
+
+        return [$mark, $correct];
     }
 }

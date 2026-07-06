@@ -30,6 +30,42 @@ Unsupported questions appear in the response with `"supported": false` and no `o
 
 ---
 
+## Images in questions & answers
+
+Every question and every answer option is returned as two clean fields:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `text` | string | The human-readable text, **all HTML tags stripped** (may be `""`). |
+| `images` | string[] | The URL of every image, in order (may be `[]`). |
+
+No HTML is returned anymore — the wrapping `<p>`, `<br>`, `style`, `dir` markup and
+the `<img>` tags are parsed out server-side so the app never has to touch HTML.
+
+```json
+{
+  "id": 1,
+  "text": "",
+  "images": ["https://site/webservice/pluginfile.php/123/question/answer/1/diagram.png"]
+}
+```
+
+An option can have both text and images (e.g. `"text": "1+1"`, plus an image), or just
+one of them. Render `text` (if non-empty) and then each URL in `images`.
+
+> Previously image content came back as an empty string (`strip_tags` deleted the
+> `<img>`), and a later revision returned raw HTML. Now the file placeholders are
+> rewritten to real `webservice/pluginfile.php` URLs and the image URLs are extracted
+> into the `images` array.
+
+**The app must append its token to each image URL** so the file request is authenticated:
+
+```
+https://site/webservice/pluginfile.php/123/question/answer/1/diagram.png?token=STUDENT_TOKEN
+```
+
+---
+
 ## 1. `get_quizzes` — GET
 
 List all quizzes on the platform, optionally filtered by course.
@@ -90,13 +126,14 @@ GET /local/academy/api.php?function=get_quiz&token=TOKEN&cmid=12
       "questionid": 101,
       "type": "multichoice",
       "text": "What is the capital of Egypt?",
+      "images": [],
       "defaultmark": 1.0,
       "supported": true,
       "single": true,
       "options": [
-        { "id": 1, "text": "Cairo" },
-        { "id": 2, "text": "Alexandria" },
-        { "id": 3, "text": "Luxor" }
+        { "id": 1, "text": "Cairo",      "images": [] },
+        { "id": 2, "text": "Alexandria", "images": [] },
+        { "id": 3, "text": "Luxor",      "images": [] }
       ]
     },
     {
@@ -104,26 +141,28 @@ GET /local/academy/api.php?function=get_quiz&token=TOKEN&cmid=12
       "questionid": 102,
       "type": "truefalse",
       "text": "The Earth orbits the Sun.",
+      "images": [],
       "defaultmark": 1.0,
       "supported": true,
       "options": [
-        { "id": 10, "text": "True" },
-        { "id": 11, "text": "False" }
+        { "id": 10, "text": "True",  "images": [] },
+        { "id": 11, "text": "False", "images": [] }
       ]
     },
     {
       "slot": 3,
       "questionid": 103,
       "type": "multichoice",
-      "text": "Which are primary colours? (select all)",
+      "text": "",
+      "images": ["https://site/webservice/pluginfile.php/355/question/questiontext/103/diagram.png"],
       "defaultmark": 1.0,
       "supported": true,
       "single": false,
       "options": [
-        { "id": 20, "text": "Red" },
-        { "id": 21, "text": "Green" },
-        { "id": 22, "text": "Blue" },
-        { "id": 23, "text": "Yellow" }
+        { "id": 20, "text": "Red",    "images": [] },
+        { "id": 21, "text": "Green",  "images": [] },
+        { "id": 22, "text": "Blue",   "images": [] },
+        { "id": 23, "text": "", "images": ["https://site/webservice/pluginfile.php/355/question/answer/23/opt.png"] }
       ]
     }
   ]
@@ -132,8 +171,8 @@ GET /local/academy/api.php?function=get_quiz&token=TOKEN&cmid=12
 
 **Response (admin token)** — same but each option includes `"correct"`:
 ```json
-{ "id": 1, "text": "Cairo",      "correct": true  },
-{ "id": 2, "text": "Alexandria", "correct": false }
+{ "id": 1, "text": "Cairo",      "images": [], "correct": true  },
+{ "id": 2, "text": "Alexandria", "images": [], "correct": false }
 ```
 
 > `single: true` = pick one answer. `single: false` = pick multiple answers.
@@ -220,6 +259,74 @@ function=submit_quiz_attempt&token=STUDENT_TOKEN
 - `attemptalreadyclosed` — attempt was already submitted.
 - `notyourattempt` — attemptid belongs to a different user.
 
+> `submit_quiz_attempt` also grades any answers previously stored with
+> `save_quiz_answer` (below); answers passed in this call take priority.
+
+---
+
+## 4.1 `save_quiz_answer` — POST
+
+Save the answer to **one** question **without finishing** the attempt. Use this to
+persist answers as the student moves through the quiz question-by-question; the
+attempt stays `inprogress`. Calling it again for the same question overwrites the
+previous answer.
+
+```
+POST /local/academy/api.php
+Content-Type: application/x-www-form-urlencoded
+
+function=save_quiz_answer&token=STUDENT_TOKEN
+&attemptid=88
+&questionid=101
+&answer=1
+```
+
+| Param | Type | Description |
+|---|---|---|
+| `attemptid` | int | **Required.** From `start_quiz_attempt`. |
+| `questionid` | int | **Required.** The question being answered. |
+| `answer` | int or JSON array | **Required.** Option id (single MCQ / true-false) or `[id,id]` (multi MCQ). |
+
+**Response:**
+```json
+{ "status": "success", "data": {
+  "attemptid": 88,
+  "questionid": 101,
+  "saved": true,
+  "state": "inprogress"
+}}
+```
+
+**Errors:**
+- `attemptalreadyclosed` — the attempt has already been finished.
+- `notyourattempt` — attemptid belongs to a different user.
+- `invalidquestionid` — the question is not part of this attempt's quiz.
+
+---
+
+## 4.2 `finish_quiz_attempt` — POST
+
+Submit **all** questions: grade every answer saved with `save_quiz_answer` and
+close the attempt. This is the "submit all" endpoint for the incremental flow — no
+`answers` body is needed.
+
+```
+POST /local/academy/api.php
+Content-Type: application/x-www-form-urlencoded
+
+function=finish_quiz_attempt&token=STUDENT_TOKEN&attemptid=88
+```
+
+| Param | Type | Description |
+|---|---|---|
+| `attemptid` | int | **Required.** |
+
+**Response:** identical to `submit_quiz_attempt` (score, max_score, percent, results[]).
+
+**Errors:**
+- `attemptalreadyclosed` — the attempt has already been finished.
+- `notyourattempt` — attemptid belongs to a different user.
+
 ---
 
 ## 5. `get_quiz_attempt` — GET
@@ -248,7 +355,7 @@ GET /local/academy/api.php?function=get_quiz_attempt&token=TOKEN&attemptid=88
   "max_score": 3.0,
   "percent": 66.7,
   "questions": [
-    { "slot": 1, "questionid": 101, "type": "multichoice", "text": "...", "max_mark": 1.0 }
+    { "slot": 1, "questionid": 101, "type": "multichoice", "text": "...", "images": [], "max_mark": 1.0 }
   ]
 }}
 ```
@@ -256,8 +363,8 @@ GET /local/academy/api.php?function=get_quiz_attempt&token=TOKEN&attemptid=88
 **Admin token** adds `correct_answers[]` per question:
 ```json
 "correct_answers": [
-  { "id": 1, "text": "Cairo",      "correct": true  },
-  { "id": 2, "text": "Alexandria", "correct": false }
+  { "id": 1, "text": "Cairo",      "images": [], "correct": true  },
+  { "id": 2, "text": "Alexandria", "images": [], "correct": false }
 ]
 ```
 
@@ -305,14 +412,27 @@ GET /local/academy/api.php?function=get_my_quiz_attempts&token=STUDENT_TOKEN&qui
 
 ## Typical mobile flow
 
+**A — one-shot submit** (collect all answers, send once):
 ```
 get_quizzes          →  show quiz list
   ↓ user taps a quiz
 get_quiz(cmid)       →  render questions natively (no web view)
-  ↓ user answers all questions
 start_quiz_attempt   →  get attemptid
-submit_quiz_attempt  →  send answers, get score
-  ↓ show results screen
+  ↓ user answers all questions
+submit_quiz_attempt  →  send all answers, get score
+```
+
+**B — incremental submit** (save each answer, finish at the end):
+```
+start_quiz_attempt   →  get attemptid
+  ↓ for each question the student answers
+save_quiz_answer     →  persist that answer, attempt stays open
+  ↓ user taps "Submit"
+finish_quiz_attempt  →  grade all saved answers, get score
+```
+
+Then either flow:
+```
 get_quiz_attempt     →  detailed review (optional)
 get_my_quiz_attempts →  show attempt history
 ```

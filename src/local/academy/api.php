@@ -756,7 +756,7 @@ try {
             academy_respond(['status' => 'success', 'data' => quiz_manager::start_attempt($quizid, $userid)]);
             break;
 
-        // Submit answers and finish an attempt.
+        // Submit answers and finish an attempt (one-shot: grade all + close).
         case 'submit_quiz_attempt':
             academy_require_post();
             $attemptid = required_param('attemptid', PARAM_INT);
@@ -766,6 +766,27 @@ try {
                 academy_respond(['status' => 'fail', 'error' => 'answers must be a JSON array']);
             }
             academy_respond(['status' => 'success', 'data' => quiz_manager::submit_attempt($attemptid, $userid, $answers)]);
+            break;
+
+        // Save the answer to ONE question without finishing the attempt.
+        case 'save_quiz_answer':
+            academy_require_post();
+            $attemptid  = required_param('attemptid', PARAM_INT);
+            $questionid = required_param('questionid', PARAM_INT);
+            $raw        = required_param('answer', PARAM_RAW);
+            // Accept either a JSON value ("3" or "[3,5]") or a bare scalar (3).
+            $answer = json_decode($raw, true);
+            if ($answer === null && trim($raw) !== 'null') {
+                $answer = is_numeric($raw) ? (int)$raw : $raw;
+            }
+            academy_respond(['status' => 'success', 'data' => quiz_manager::save_answer($attemptid, $userid, $questionid, $answer)]);
+            break;
+
+        // Submit all saved answers and finish the attempt.
+        case 'finish_quiz_attempt':
+            academy_require_post();
+            $attemptid = required_param('attemptid', PARAM_INT);
+            academy_respond(['status' => 'success', 'data' => quiz_manager::finish_attempt($attemptid, $userid)]);
             break;
 
         // Review a finished attempt. Correct answers shown to admin only.
