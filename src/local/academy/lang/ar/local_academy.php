@@ -579,6 +579,38 @@ $string['notateacher']         = 'هذه الصفحة متاحة للمعلّم�
 $string['studenthubdesc']      = 'احجز درسًا، وتابع دروسك، وأدر باقاتك والفلكس والاشتراكات — كل ذلك في مكان واحد.';
 $string['availpkgs_desc']      = 'اشترِ باقة فلكس لحجز دروس فردية مع معلّمينا.';
 $string['availsubs_desc']      = 'اشترك لفتح وصول كامل لمجموعة من المقررات لمدة محددة.';
+// نصوص بطاقات الاشتراكات/الباقات في الصفحة الرئيسية (تُعرض عبر JS في lib.php). {n} عنصر نائب للرقم.
+$string['hp_days']            = '{$a} يوم';
+$string['hp_flex']            = '{$a} فلكس';
+$string['hp_active']          = 'نشط';
+$string['hp_subscribe']       = 'اشترك';
+$string['hp_subscribed']      = 'مشترك';
+$string['hp_buy_package']     = 'شراء الباقة';
+$string['hp_purchased']       = 'تم الشراء';
+$string['hp_redirecting']     = 'جارٍ التحويل…';
+$string['hp_cancel']          = 'إلغاء';
+$string['hp_proceed']         = 'المتابعة إلى الدفع';
+$string['hp_total']           = 'الإجمالي';
+$string['hp_secure']          = 'دفع آمن عبر Kashier';
+$string['hp_egp']             = 'ج.م';
+$string['hp_sess_expired']    = 'انتهت الجلسة — أعد تحميل الصفحة.';
+$string['hp_req_failed']      = 'فشل الطلب';
+$string['hp_sub_confirm_title'] = 'تأكيد اشتراكك';
+$string['hp_sub_confirm_body']  = 'أنت على وشك الاشتراك في هذه الخطة. سيتم تحويلك إلى صفحة دفع آمنة لإتمام العملية.';
+$string['hp_duration']        = 'المدة';
+$string['hp_start_date']      = 'تاريخ البدء';
+$string['hp_end_date']        = 'تاريخ الانتهاء';
+$string['hp_never']           = 'أبدًا';
+$string['hp_sub_active_note'] = 'لديك بالفعل اشتراك نشط. يمكنك الاشتراك في خطة أخرى بعد انتهاء اشتراكك الحالي.';
+$string['hp_pkg_confirm_title'] = 'تأكيد شراء الباقة';
+$string['hp_pkg_confirm_body']  = 'أنت على وشك شراء هذه الباقة. سيتم تحويلك إلى صفحة دفع آمنة لإتمام العملية.';
+$string['hp_flex_count']      = 'عدد الفلكس';
+$string['hp_flex_used_total'] = 'الفلكس (المستخدَم / الإجمالي)';
+$string['hp_activated']       = 'تاريخ التفعيل';
+$string['hp_expires']         = 'تاريخ الانتهاء';
+$string['hp_never_expires']   = 'لا ينتهي أبدًا';
+$string['hp_valid_for']       = 'صالحة لمدة {$a} يوم بعد التفعيل';
+$string['hp_pkg_active_note'] = 'لديك بالفعل باقة نشطة. يمكنك شراء باقة جديدة بعد استهلاكها بالكامل أو انتهاء صلاحيتها.';
 
 // ── Error messages surfaced in API JSON / UI alerts ──
 $string['err_settingnegative']     = 'يجب أن تكون قيم الإعدادات صفرًا أو أكبر';
@@ -667,3 +699,12 @@ $string['notif_package_expiring_subject'] = 'تنتهي باقتك خلال {$a-
 $string['notif_package_expiring_body']    = 'تنتهي باقة "{$a->package}" في {$a->date} (باقٍ {$a->days} يوم). لا يزال لديك {$a->flex} فلكس — احجز درسًا قبل انتهائها حتى لا تفقدها.';
 $string['notif_subscription_expiring_subject'] = 'ينتهي اشتراكك خلال {$a->days} يوم';
 $string['notif_subscription_expiring_body']    = 'ينتهي اشتراك "{$a->subscription}" في {$a->date} (باقٍ {$a->days} يوم). جدّده للحفاظ على وصولك إلى مقرراتك.';
+// US: تذكير ببدء الدرس.
+$string['set_lesson_start_reminder'] = 'تذكير ببدء الدرس (بالدقائق)';
+$string['set_lesson_start_reminder_help'] = 'أشعر الطالب قبل هذا العدد من الدقائق من بدء درسه (0 للتعطيل).';
+$string['notif_lesson_reminder_subject'] = 'درسك سيبدأ قريبًا!';
+$string['notif_lesson_reminder_body'] = 'مرحبًا {$a->studentname}،
+
+سيبدأ درسك "{$a->subject}" مع {$a->teachername} خلال {$a->time}.
+
+يرجى الانضمام إلى غرفة الدرس في الوقت المحدد.';

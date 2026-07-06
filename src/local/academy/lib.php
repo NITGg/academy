@@ -190,9 +190,35 @@ CSS;
     );
     $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
 
+    // Client-side string map so the JS-rendered cards/modal localize like the rest of the page.
+    // {n} is a number placeholder the JS substitutes at render time.
+    $str = array(
+        'sess_expired'    => get_string('hp_sess_expired', 'local_academy'),
+        'req_failed'      => get_string('hp_req_failed', 'local_academy'),
+        'confirm_title'   => get_string('hp_sub_confirm_title', 'local_academy'),
+        'confirm_body'    => get_string('hp_sub_confirm_body', 'local_academy'),
+        'duration'        => get_string('hp_duration', 'local_academy'),
+        'days'            => get_string('hp_days', 'local_academy', '{n}'),
+        'total'           => get_string('hp_total', 'local_academy'),
+        'egp'             => get_string('hp_egp', 'local_academy'),
+        'secure'          => get_string('hp_secure', 'local_academy'),
+        'cancel'          => get_string('hp_cancel', 'local_academy'),
+        'proceed'         => get_string('hp_proceed', 'local_academy'),
+        'redirecting'     => get_string('hp_redirecting', 'local_academy'),
+        'active'          => get_string('hp_active', 'local_academy'),
+        'start_date'      => get_string('hp_start_date', 'local_academy'),
+        'end_date'        => get_string('hp_end_date', 'local_academy'),
+        'never'           => get_string('hp_never', 'local_academy'),
+        'subscribed'      => get_string('hp_subscribed', 'local_academy'),
+        'subscribe'       => get_string('hp_subscribe', 'local_academy'),
+        'active_note'     => get_string('hp_sub_active_note', 'local_academy'),
+    );
+    $strjson = json_encode($str, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
     $js = <<<JS
 require([], function() {
     var CFG = {$cfgjson};
+    var T = {$strjson};
     var sec = document.getElementById('la-subs');
     if (!sec || !CFG.token) { return; }
     var grid = document.getElementById('la-subs-grid');
@@ -217,11 +243,12 @@ require([], function() {
     function parse(r) {
         return r.text().then(function(t) {
             var j;
-            try { j = JSON.parse(t); } catch (e) { throw new Error('Session expired — reload the page.'); }
-            if (j.status !== 'success') { throw new Error(j.error || 'Request failed'); }
+            try { j = JSON.parse(t); } catch (e) { throw new Error(T.sess_expired); }
+            if (j.status !== 'success') { throw new Error(j.error || T.req_failed); }
             return j.data;
         });
     }
+    function num(tpl, n) { return String(tpl).replace('{n}', n); }
     function apiGet(fn, params) {
         var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.alang = CFG.lang; }
         var q = new URLSearchParams(Object.assign(base, params || {}));
@@ -256,19 +283,19 @@ require([], function() {
             var bg = el('div', {class: 'la-subs-modal-bg'});
             bg.innerHTML =
                 '<div class="la-subs-modal" role="dialog" aria-modal="true">' +
-                    '<div class="la-subs-modal-head">' + CROWN + '<h4>Confirm your subscription</h4></div>' +
+                    '<div class="la-subs-modal-head">' + CROWN + '<h4>' + esc(T.confirm_title) + '</h4></div>' +
                     '<div class="la-subs-modal-body">' +
-                        '<p>You are about to subscribe to this plan. You will be taken to secure checkout to complete the payment.</p>' +
+                        '<p>' + esc(T.confirm_body) + '</p>' +
                         '<div class="la-subs-modal-plan">' +
                             '<div class="name">' + esc(s.name) + '</div>' +
-                            '<div class="la-subs-modal-row"><span>Duration</span><b>' + esc(s.duration_days) + ' days</b></div>' +
-                            '<div class="la-subs-modal-row"><span>Total</span><b>' + esc(money(s.price)) + ' EGP</b></div>' +
+                            '<div class="la-subs-modal-row"><span>' + esc(T.duration) + '</span><b>' + esc(num(T.days, s.duration_days)) + '</b></div>' +
+                            '<div class="la-subs-modal-row"><span>' + esc(T.total) + '</span><b>' + esc(money(s.price)) + ' ' + esc(T.egp) + '</b></div>' +
                         '</div>' +
-                        '<div class="la-subs-modal-secure">' + LOCK + '<span>Secure payment via Kashier</span></div>' +
+                        '<div class="la-subs-modal-secure">' + LOCK + '<span>' + esc(T.secure) + '</span></div>' +
                     '</div>' +
                     '<div class="la-subs-modal-foot">' +
-                        '<button type="button" class="la-subs-modal-cancel">Cancel</button>' +
-                        '<button type="button" class="la-subs-modal-ok">Proceed to payment</button>' +
+                        '<button type="button" class="la-subs-modal-cancel">' + esc(T.cancel) + '</button>' +
+                        '<button type="button" class="la-subs-modal-ok">' + esc(T.proceed) + '</button>' +
                     '</div>' +
                 '</div>';
             document.body.appendChild(bg);
@@ -294,7 +321,7 @@ require([], function() {
         confirmSubscribe(s).then(function(ok) {
             if (!ok) { return; }
             var orig = btn.textContent;
-            btn.disabled = true; btn.textContent = 'Redirecting…';
+            btn.disabled = true; btn.textContent = T.redirecting;
             apiPost('create_subscription_checkout', {subscriptionid: s.id})
                 .then(function(d) { window.location.href = d.checkout_url; })
                 .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
@@ -307,8 +334,8 @@ require([], function() {
         var banner = el('div', {class: 'la-subs-banner', style: 'background:' + GRADS[idx % GRADS.length]});
         banner.innerHTML = CAP +
             '<span class="la-subs-badges">' +
-                '<span class="la-subs-daysbadge">' + esc(s.duration_days) + ' days</span>' +
-                (isActive ? '<span class="la-subs-activebadge">Active</span>' : '') +
+                '<span class="la-subs-daysbadge">' + esc(num(T.days, s.duration_days)) + '</span>' +
+                (isActive ? '<span class="la-subs-activebadge">' + esc(T.active) + '</span>' : '') +
             '</span>';
         card.appendChild(banner);
 
@@ -319,14 +346,14 @@ require([], function() {
         if (isActive) {
             var datesBox = el('div', {class: 'la-subs-dates'});
             datesBox.innerHTML =
-                '<div class="la-subs-dates-row"><span>Start date</span><b>' + esc(fmtDate(activeSub.timeactivated)) + '</b></div>' +
-                '<div class="la-subs-dates-row"><span>End date</span><b>' + (Number(activeSub.expires_at) > 0 ? esc(fmtDate(activeSub.expires_at)) : 'Never') + '</b></div>';
+                '<div class="la-subs-dates-row"><span>' + esc(T.start_date) + '</span><b>' + esc(fmtDate(activeSub.timeactivated)) + '</b></div>' +
+                '<div class="la-subs-dates-row"><span>' + esc(T.end_date) + '</span><b>' + (Number(activeSub.expires_at) > 0 ? esc(fmtDate(activeSub.expires_at)) : esc(T.never)) + '</b></div>';
             body.appendChild(datesBox);
         }
 
         var foot = el('div', {class: 'la-subs-foot'});
         foot.appendChild(el('div', {class: 'la-subs-price'}, esc(money(s.price)) + ' <small>EGP</small>'));
-        var btn = el('button', {type: 'button', class: 'la-subs-btn'}, isActive ? 'Active' : (hasActive ? 'Subscribed' : 'Subscribe'));
+        var btn = el('button', {type: 'button', class: 'la-subs-btn'}, isActive ? T.active : (hasActive ? T.subscribed : T.subscribe));
         if (hasActive) { btn.disabled = true; } else { btn.onclick = function() { subscribe(s, btn); }; }
         foot.appendChild(btn);
         body.appendChild(foot);
@@ -347,7 +374,7 @@ require([], function() {
         var headnote = document.getElementById('la-subs-headnote');
         if (headnote) {
             if (hasActive) {
-                headnote.innerHTML = INFO + '<span>You already have an active subscription. You can subscribe to another plan once your current subscription ends.</span>';
+                headnote.innerHTML = INFO + '<span>' + esc(T.active_note) + '</span>';
                 headnote.style.display = 'flex';
             } else {
                 headnote.style.display = 'none';
@@ -461,9 +488,37 @@ CSS;
     );
     $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
 
+    // Client-side string map so the JS-rendered cards/modal localize like the rest of the page.
+    $str = array(
+        'sess_expired'    => get_string('hp_sess_expired', 'local_academy'),
+        'req_failed'      => get_string('hp_req_failed', 'local_academy'),
+        'confirm_title'   => get_string('hp_pkg_confirm_title', 'local_academy'),
+        'confirm_body'    => get_string('hp_pkg_confirm_body', 'local_academy'),
+        'flex_count'      => get_string('hp_flex_count', 'local_academy'),
+        'flex'            => get_string('hp_flex', 'local_academy', '{n}'),
+        'total'           => get_string('hp_total', 'local_academy'),
+        'egp'             => get_string('hp_egp', 'local_academy'),
+        'secure'          => get_string('hp_secure', 'local_academy'),
+        'cancel'          => get_string('hp_cancel', 'local_academy'),
+        'proceed'         => get_string('hp_proceed', 'local_academy'),
+        'redirecting'     => get_string('hp_redirecting', 'local_academy'),
+        'active'          => get_string('hp_active', 'local_academy'),
+        'flex_used_total' => get_string('hp_flex_used_total', 'local_academy'),
+        'activated'       => get_string('hp_activated', 'local_academy'),
+        'expires'         => get_string('hp_expires', 'local_academy'),
+        'never'           => get_string('hp_never', 'local_academy'),
+        'never_expires'   => get_string('hp_never_expires', 'local_academy'),
+        'valid_for'       => get_string('hp_valid_for', 'local_academy', '{n}'),
+        'purchased'       => get_string('hp_purchased', 'local_academy'),
+        'buy_package'     => get_string('hp_buy_package', 'local_academy'),
+        'active_note'     => get_string('hp_pkg_active_note', 'local_academy'),
+    );
+    $strjson = json_encode($str, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
     $js = <<<JS
 require([], function() {
     var CFG = {$cfgjson};
+    var T = {$strjson};
     var sec = document.getElementById('la-pkgs');
     if (!sec || !CFG.token) { return; }
     var grid = document.getElementById('la-pkgs-grid');
@@ -488,11 +543,12 @@ require([], function() {
     function parse(r) {
         return r.text().then(function(t) {
             var j;
-            try { j = JSON.parse(t); } catch (e) { throw new Error('Session expired — reload the page.'); }
-            if (j.status !== 'success') { throw new Error(j.error || 'Request failed'); }
+            try { j = JSON.parse(t); } catch (e) { throw new Error(T.sess_expired); }
+            if (j.status !== 'success') { throw new Error(j.error || T.req_failed); }
             return j.data;
         });
     }
+    function num(tpl, n) { return String(tpl).replace('{n}', n); }
     function apiGet(fn, params) {
         var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.alang = CFG.lang; }
         var q = new URLSearchParams(Object.assign(base, params || {}));
@@ -526,19 +582,19 @@ require([], function() {
             var bg = el('div', {class: 'la-pkgs-modal-bg'});
             bg.innerHTML =
                 '<div class="la-pkgs-modal" role="dialog" aria-modal="true">' +
-                    '<div class="la-pkgs-modal-head">' + BOLT_ICON + '<h4>Confirm your package purchase</h4></div>' +
+                    '<div class="la-pkgs-modal-head">' + BOLT_ICON + '<h4>' + esc(T.confirm_title) + '</h4></div>' +
                     '<div class="la-pkgs-modal-body">' +
-                        '<p>You are about to buy this package. You will be taken to secure checkout to complete the payment.</p>' +
+                        '<p>' + esc(T.confirm_body) + '</p>' +
                         '<div class="la-pkgs-modal-plan">' +
                             '<div class="name">' + esc(p.name) + '</div>' +
-                            '<div class="la-pkgs-modal-row"><span>Flex Count</span><b>' + esc(p.flex_count) + ' Flex</b></div>' +
-                            '<div class="la-pkgs-modal-row"><span>Total</span><b>' + esc(money(p.price)) + ' EGP</b></div>' +
+                            '<div class="la-pkgs-modal-row"><span>' + esc(T.flex_count) + '</span><b>' + esc(num(T.flex, p.flex_count)) + '</b></div>' +
+                            '<div class="la-pkgs-modal-row"><span>' + esc(T.total) + '</span><b>' + esc(money(p.price)) + ' ' + esc(T.egp) + '</b></div>' +
                         '</div>' +
-                        '<div class="la-pkgs-modal-secure">' + LOCK + '<span>Secure payment via Kashier</span></div>' +
+                        '<div class="la-pkgs-modal-secure">' + LOCK + '<span>' + esc(T.secure) + '</span></div>' +
                     '</div>' +
                     '<div class="la-pkgs-modal-foot">' +
-                        '<button type="button" class="la-pkgs-modal-cancel">Cancel</button>' +
-                        '<button type="button" class="la-pkgs-modal-ok">Proceed to payment</button>' +
+                        '<button type="button" class="la-pkgs-modal-cancel">' + esc(T.cancel) + '</button>' +
+                        '<button type="button" class="la-pkgs-modal-ok">' + esc(T.proceed) + '</button>' +
                     '</div>' +
                 '</div>';
             document.body.appendChild(bg);
@@ -563,7 +619,7 @@ require([], function() {
         confirmBuyPackage(p).then(function(ok) {
             if (!ok) { return; }
             var orig = btn.textContent;
-            btn.disabled = true; btn.textContent = 'Redirecting…';
+            btn.disabled = true; btn.textContent = T.redirecting;
             apiPost('create_package_checkout', {packageid: p.id})
                 .then(function(d) { window.location.href = d.checkout_url; })
                 .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
@@ -576,8 +632,8 @@ require([], function() {
         var banner = el('div', {class: 'la-pkgs-banner', style: 'background:' + GRADS[idx % GRADS.length]});
         banner.innerHTML = BOLT +
             '<span class="la-pkgs-badges">' +
-                '<span class="la-pkgs-flexbadge">' + esc(p.flex_count) + ' Flex</span>' +
-                (isActive ? '<span class="la-pkgs-activebadge">Active</span>' : '') +
+                '<span class="la-pkgs-flexbadge">' + esc(num(T.flex, p.flex_count)) + '</span>' +
+                (isActive ? '<span class="la-pkgs-activebadge">' + esc(T.active) + '</span>' : '') +
             '</span>';
         card.appendChild(banner);
 
@@ -588,21 +644,21 @@ require([], function() {
         if (isActive) {
             var datesBox = el('div', {class: 'la-pkgs-dates'});
             datesBox.innerHTML =
-                '<div class="la-pkgs-dates-row"><span>Flex (used / total)</span><b>' + esc(activePkg.used_flex) + ' / ' + esc(activePkg.total_flex) + '</b></div>' +
-                '<div class="la-pkgs-dates-row"><span>Activated</span><b>' + esc(fmtDate(activePkg.timeactivated)) + '</b></div>' +
-                '<div class="la-pkgs-dates-row"><span>Expires</span><b>' + (Number(activePkg.expires_at) > 0 ? esc(fmtDate(activePkg.expires_at)) : 'Never') + '</b></div>';
+                '<div class="la-pkgs-dates-row"><span>' + esc(T.flex_used_total) + '</span><b>' + esc(activePkg.used_flex) + ' / ' + esc(activePkg.total_flex) + '</b></div>' +
+                '<div class="la-pkgs-dates-row"><span>' + esc(T.activated) + '</span><b>' + esc(fmtDate(activePkg.timeactivated)) + '</b></div>' +
+                '<div class="la-pkgs-dates-row"><span>' + esc(T.expires) + '</span><b>' + (Number(activePkg.expires_at) > 0 ? esc(fmtDate(activePkg.expires_at)) : esc(T.never)) + '</b></div>';
             body.appendChild(datesBox);
         } else {
             var meta = el('div', {class: 'la-pkgs-meta'});
             meta.innerHTML = (Number(p.expiration_days) > 0)
-                ? ('Valid for <b>' + esc(p.expiration_days) + '</b> days after activation')
-                : '<b>Never expires</b>';
+                ? esc(T.valid_for).replace('{n}', '<b>' + esc(p.expiration_days) + '</b>')
+                : '<b>' + esc(T.never_expires) + '</b>';
             body.appendChild(meta);
         }
 
         var foot = el('div', {class: 'la-pkgs-foot'});
         foot.appendChild(el('div', {class: 'la-pkgs-price'}, esc(money(p.price)) + ' <small>EGP</small>'));
-        var btn = el('button', {type: 'button', class: 'la-pkgs-btn'}, isActive ? 'Active' : (hasActive ? 'Purchased' : 'Buy package'));
+        var btn = el('button', {type: 'button', class: 'la-pkgs-btn'}, isActive ? T.active : (hasActive ? T.purchased : T.buy_package));
         if (hasActive) { btn.disabled = true; } else { btn.onclick = function() { subscribe(p, btn); }; }
         foot.appendChild(btn);
         body.appendChild(foot);
@@ -622,7 +678,7 @@ require([], function() {
         var headnote = document.getElementById('la-pkgs-headnote');
         if (headnote) {
             if (hasActive) {
-                headnote.innerHTML = INFO + '<span>You already have an active package. You can buy a new one once it is fully used or expires.</span>';
+                headnote.innerHTML = INFO + '<span>' + esc(T.active_note) + '</span>';
                 headnote.style.display = 'flex';
             } else {
                 headnote.style.display = 'none';
