@@ -330,6 +330,10 @@ $string['st_pick_valid_time']    = 'Please pick a valid date and time.';
 $string['st_note_required']      = 'A note is required to request a lesson.';
 $string['st_lesson_requested']   = 'Lesson requested. Track it in “My lessons”.';
 $string['st_no_teachers']        = 'No teachers found.';
+$string['st_slot_pickday']       = 'Choose a day';
+$string['st_slot_picktime']      = 'Choose a time';
+$string['st_slot_noavail']       = 'This teacher has no available times in the coming days.';
+$string['st_slot_nodayslots']    = 'No open times on this day.';
 
 // My lessons tab — filter dropdown.
 $string['st_status']            = 'Status';

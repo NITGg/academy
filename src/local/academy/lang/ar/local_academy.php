@@ -178,6 +178,10 @@ $string['st_pick_valid_time']    = 'يرجى اختيار تاريخ ووقت ص
 $string['st_note_required']      = 'الملاحظة مطلوبة لطلب الدرس.';
 $string['st_lesson_requested']   = 'تم إرسال طلب الدرس. تابعه في "دروسي".';
 $string['st_no_teachers']        = 'لا يوجد معلّمون.';
+$string['st_slot_pickday']       = 'اختر يومًا';
+$string['st_slot_picktime']      = 'اختر وقتًا';
+$string['st_slot_noavail']       = 'لا تتوفر أوقات لهذا المعلّم في الأيام القادمة.';
+$string['st_slot_nodayslots']    = 'لا توجد أوقات متاحة في هذا اليوم.';
 
 // My lessons tab — filter dropdown.
 $string['st_status']            = 'الحالة';

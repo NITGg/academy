@@ -54,6 +54,7 @@ $STR = local_academy_string_map(array(
     'st_request_with', 'st_send_request', 'st_field_subject', 'st_field_datetime',
     'st_field_note_req', 'st_note_placeholder', 'st_pick_valid_time', 'st_note_required',
     'st_lesson_requested', 'st_no_teachers',
+    'st_slot_pickday', 'st_slot_picktime', 'st_slot_noavail', 'st_slot_nodayslots',
     // My lessons tab — filter, statuses, actions, dialogs, card.
     'st_status', 'lf_all', 'lf_pending', 'lf_waiting_student', 'lf_waiting_teacher', 'lf_confirmed',
     'lf_in_progress', 'lf_completed', 'lf_student_absent', 'lf_teacher_absent', 'lf_cancelled',
@@ -87,7 +88,6 @@ echo html_writer::script('window.ACADEMY_ST = ' . json_encode(array(
 )) . ';');
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
 #st-app{max-width:920px}
 #st-flexbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:#eaf3ff;border:1px solid #b6d4fe;border-radius:.5rem;padding:.6rem 1rem;margin-bottom:1rem;flex-wrap:wrap}
@@ -127,6 +127,23 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
 .st-modal .form-group{margin-bottom:.75rem}
 .st-modal-actions{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.5rem}
 .st-flex-pill{font-weight:700;color:#084298}
+/* block-based slot picker (Request a lesson) */
+.st-slotpicker{margin-top:.25rem}
+.st-slot-sub{font-size:.8rem;font-weight:600;color:#6c757d;margin:.6rem 0 .35rem;text-transform:uppercase;letter-spacing:.03em}
+.st-slot-days{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.35rem;-webkit-overflow-scrolling:touch}
+.st-day{flex:0 0 auto;min-width:64px;border:1px solid #dee2e6;background:#fff;border-radius:.5rem;padding:.4rem .5rem;cursor:pointer;text-align:center;line-height:1.2;transition:all .12s}
+.st-day:hover{border-color:#0d6efd}
+.st-day .st-day-dow{font-size:.72rem;color:#6c757d;text-transform:uppercase}
+.st-day .st-day-num{font-size:1.05rem;font-weight:700;color:#212529}
+.st-day .st-day-mon{font-size:.7rem;color:#6c757d}
+.st-day.active{background:#0d6efd;border-color:#0d6efd}
+.st-day.active .st-day-dow,.st-day.active .st-day-num,.st-day.active .st-day-mon{color:#fff}
+.st-slot-times{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:.4rem;max-height:220px;overflow-y:auto}
+.st-slot{border:1px solid #dee2e6;background:#fff;border-radius:.4rem;padding:.4rem .3rem;font-size:.9rem;font-weight:600;color:#0d6efd;cursor:pointer;text-align:center;transition:all .12s}
+.st-slot:hover:not(:disabled){border-color:#0d6efd;background:#eaf3ff}
+.st-slot.active{background:#0d6efd;border-color:#0d6efd;color:#fff}
+.st-slot:disabled{background:#f1f3f5;border-color:#e9ecef;color:#adb5bd;cursor:not-allowed;text-decoration:line-through}
+.st-slot-empty{color:#6c757d;font-size:.9rem;padding:1rem 0;text-align:center}
 </style>
 <div id="st-app">
   <div id="st-msg" class="alert" style="display:none"></div>
@@ -242,7 +259,6 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
     </div>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <?php
 echo html_writer::script(<<<'JS'
 (function () {
@@ -271,9 +287,101 @@ echo html_writer::script(<<<'JS'
     return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()}).then(parse);
   }
 
-  // datetime-local <-> unix seconds
+  // "Y-m-dTH:i" local string <-> unix seconds
   function toUnix(localval){if(!localval){return 0;}var t=new Date(localval).getTime();return isNaN(t)?0:Math.floor(t/1000);}
-  function tomorrow0900(){var d=new Date();d.setDate(d.getDate()+1);d.setHours(9,0,0,0);function p(n){return (n<10?'0':'')+n;}return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());}
+
+  // ── Block-based availability picker ──
+  // Renders the teacher's availability as day blocks + hourly time blocks. Slots that
+  // fall outside the min-booking lead time or overlap a busy time are shown but disabled.
+  // The chosen slot is written into `hidden` as a "Y-m-dTH:i" string (so toUnix() reads it).
+  var SLOT_MINUTES = 60;                 // one lesson = 1 hour (lesson_manager::DEFAULT_DURATION)
+  var DEFAULT_WINDOW = ['08:00','20:00']; // fallback when a teacher has no working hours set
+  function pad2(n){return (n<10?'0':'')+n;}
+  function localVal(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+'T'+pad2(d.getHours())+':'+pad2(d.getMinutes());}
+  function timeToMin(t){var p=String(t).split(':');return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0);}
+  function locale(){return CFG.lang||undefined;}
+
+  function buildSlotPicker(field, hidden){
+    var hours = field.teacherHours || [];
+    var busy = field.busyTimes || [];
+    var hasHours = hours.length > 0;
+    var earliest = new Date(Date.now() + (CFG.min_booking_minutes || 0) * 60000);
+
+    var wrap = el('div',{class:'st-slotpicker'});
+
+    // Days: scan the next 30 days, keep those the teacher works (or all if none set).
+    var days = [];
+    for (var i = 0; i < 30 && days.length < 14; i++) {
+      var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + i);
+      if (!hasHours || hours.some(function(h){return h.dayofweek === d.getDay();})) { days.push(d); }
+    }
+    if (!days.length) {
+      wrap.appendChild(el('div',{class:'st-slot-empty'}, esc(str('st_slot_noavail'))));
+      return wrap;
+    }
+
+    wrap.appendChild(el('div',{class:'st-slot-sub'}, esc(str('st_slot_pickday'))));
+    var daysRow = el('div',{class:'st-slot-days'});
+    wrap.appendChild(daysRow);
+    wrap.appendChild(el('div',{class:'st-slot-sub'}, esc(str('st_slot_picktime'))));
+    var timesRow = el('div',{class:'st-slot-times'});
+    wrap.appendChild(timesRow);
+
+    // Working-hours intervals (in minutes) for a given weekday.
+    function intervalsFor(dow){
+      if (!hasHours) { return [[timeToMin(DEFAULT_WINDOW[0]), timeToMin(DEFAULT_WINDOW[1])]]; }
+      return hours.filter(function(h){return h.dayofweek === dow;})
+                  .map(function(h){return [timeToMin(h.starttime), timeToMin(h.endtime)];});
+    }
+
+    function renderTimes(day){
+      timesRow.innerHTML = '';
+      hidden.value = '';
+      var slots = [];
+      intervalsFor(day.getDay()).forEach(function(iv){
+        for (var m = iv[0]; m + SLOT_MINUTES <= iv[1]; m += SLOT_MINUTES) { slots.push(m); }
+      });
+      slots.sort(function(a,b){return a-b;});
+      if (!slots.length) {
+        timesRow.appendChild(el('div',{class:'st-slot-empty'}, esc(str('st_slot_nodayslots'))));
+        return;
+      }
+      slots.forEach(function(m){
+        var start = new Date(day.getTime()); start.setHours(0, m, 0, 0);
+        var startU = Math.floor(start.getTime() / 1000);
+        var endU = startU + SLOT_MINUTES * 60;
+        var past = start < earliest;
+        var taken = busy.some(function(bt){return startU < bt[1] && endU > bt[0];});
+        var disabled = past || taken;
+        var b = el('button',{type:'button',class:'st-slot'}, esc(start.toLocaleTimeString(locale(), {hour:'2-digit', minute:'2-digit'})));
+        if (disabled) { b.disabled = true; }
+        else {
+          b.onclick = function(){
+            timesRow.querySelectorAll('.st-slot.active').forEach(function(x){x.classList.remove('active');});
+            b.classList.add('active');
+            hidden.value = localVal(start);
+          };
+        }
+        timesRow.appendChild(b);
+      });
+    }
+
+    days.forEach(function(day, idx){
+      var b = el('button',{type:'button',class:'st-day'},
+        '<div class="st-day-dow">'+esc(day.toLocaleDateString(locale(),{weekday:'short'}))+'</div>'+
+        '<div class="st-day-num">'+esc(day.toLocaleDateString(locale(),{day:'numeric'}))+'</div>'+
+        '<div class="st-day-mon">'+esc(day.toLocaleDateString(locale(),{month:'short'}))+'</div>');
+      b.onclick = function(){
+        daysRow.querySelectorAll('.st-day.active').forEach(function(x){x.classList.remove('active');});
+        b.classList.add('active');
+        renderTimes(day);
+      };
+      daysRow.appendChild(b);
+      if (idx === 0) { b.classList.add('active'); renderTimes(day); }
+    });
+
+    return wrap;
+  }
 
   // ── Shared modal: collects fields, resolves with their values (or null on cancel) ──
   function modal(opts){
@@ -281,97 +389,37 @@ echo html_writer::script(<<<'JS'
       $('st-modal-title').textContent=opts.title||'';
       var body=$('st-modal-body');body.innerHTML='';
       var inputs={};
-      var datePickers = [];
       if(opts.text){body.appendChild(el('p',{class:'text-muted'},esc(opts.text)));}
       (opts.fields||[]).forEach(function(f){
         var g=el('div',{class:'form-group'});
         g.appendChild(el('label',{},f.label));
+        if(f.type==='slotpicker'){
+          var hidden=el('input',{type:'hidden'});
+          inputs[f.name]=hidden;
+          g.appendChild(hidden);
+          g.appendChild(buildSlotPicker(f, hidden));
+          body.appendChild(g);
+          return;
+        }
         var inp;
         if(f.type==='select'){
           inp=el('select',{class:'form-control'});
           (f.options||[]).forEach(function(o){var op=el('option',{value:o.value},esc(o.label));inp.appendChild(op);});
         }else if(f.type==='textarea'){
           inp=el('textarea',{class:'form-control',rows:'2'});
-        }else if(f.type==='datetime-local'){
-          inp=el('input',{class:'form-control',type:'text'});
         }else{
           inp=el('input',{class:'form-control',type:f.type||'text'});
         }
         if(f.value){inp.value=f.value;}
         if(f.placeholder){inp.setAttribute('placeholder',f.placeholder);}
         g.appendChild(inp);body.appendChild(g);inputs[f.name]=inp;
-        if(f.type==='datetime-local'){
-          datePickers.push({el:inp, hours:f.teacherHours, busyTimes: f.busyTimes});
-        }
       });
       var bg=$('st-modal-bg');bg.style.display='flex';
       var ok=$('st-modal-ok'),cancel=$('st-modal-cancel');
       ok.textContent=opts.okLabel||str('ui_confirm');
-      
-      var fps = [];
-      if (typeof flatpickr !== 'undefined') {
-        datePickers.forEach(function(dp) {
-          var minDateObj = new Date(Date.now() + (CFG.min_booking_minutes || 0) * 60000);
-          fps.push(flatpickr(dp.el, {
-            enableTime: true,
-            dateFormat: "Y-m-d\\TH:i",
-            minDate: minDateObj,
-            disable: [
-              function(date) {
-                if (!dp.hours || dp.hours.length === 0) return false;
-                var day = date.getDay();
-                var hasHours = dp.hours.some(function(h){ return h.dayofweek === day; });
-                return !hasHours;
-              }
-            ],
-            onChange: function(selectedDates, dateStr, instance) {
-              if (selectedDates.length > 0) {
-                var date = selectedDates[0];
-                var u = Math.floor(date.getTime() / 1000);
-                
-                if (dp.busyTimes && dp.busyTimes.length > 0) {
-                  var overlap = dp.busyTimes.some(function(bt) {
-                    return (u < bt[1] && u + 3600 > bt[0]);
-                  });
-                  if (overlap) {
-                    msg(window.ACADEMY_STR && window.ACADEMY_STR.err_timeconflict ? window.ACADEMY_STR.err_timeconflict : "This time is already booked.", "danger");
-                    instance.clear();
-                    return;
-                  }
-                }
-                
-                var day = date.getDay();
-                var min = null, max = null;
-                
-                if (dp.hours && dp.hours.length > 0) {
-                  var dayHours = dp.hours.filter(function(h){ return h.dayofweek === day; });
-                  if (dayHours.length > 0) {
-                    min = "23:59"; max = "00:00";
-                    dayHours.forEach(function(h) {
-                      if (h.starttime < min) min = h.starttime;
-                      if (h.endtime > max) max = h.endtime;
-                    });
-                  }
-                }
-                
-                if (date.toDateString() === minDateObj.toDateString()) {
-                  var minDateStr = minDateObj.getHours().toString().padStart(2, '0') + ':' + minDateObj.getMinutes().toString().padStart(2, '0');
-                  if (!min || minDateStr > min) {
-                    min = minDateStr;
-                  }
-                }
-                
-                instance.set("minTime", min);
-                instance.set("maxTime", max);
-              }
-            }
-          }));
-        });
-      }
 
       function close(){
         bg.style.display='none';ok.onclick=null;cancel.onclick=null;
-        fps.forEach(function(fp){ fp.destroy(); });
       }
       ok.onclick=function(){var out={};for(var k in inputs){out[k]=inputs[k].value;}close();resolve(out);};
       cancel.onclick=function(){close();resolve(null);};
@@ -423,7 +471,7 @@ echo html_writer::script(<<<'JS'
       okLabel:str('st_send_request'),
       fields:[
         {name:'subject',label:str('st_field_subject'),type:'select',options:subs},
-        {name:'t',label:str('st_field_datetime'),type:'datetime-local',value:tomorrow0900(), teacherHours: teacher.hours, busyTimes: teacher.busy_times},
+        {name:'t',label:str('st_field_datetime'),type:'slotpicker', teacherHours: teacher.hours, busyTimes: teacher.busy_times},
         {name:'note',label:str('st_field_note_req'),type:'textarea',placeholder:str('st_note_placeholder')}
       ]
     }).then(function(r){
@@ -466,7 +514,7 @@ echo html_writer::script(<<<'JS'
         return modal({title:str('la_reject_title'),fields:[{name:'reject_reason',label:str('la_reason_optional')}]}).then(function(r){if(r){return run(apiPost('student_respond_lesson',{lessonid:id,action:'reject',reject_reason:r.reject_reason||''}));}});
       case 'suggest':
         return apiGet('get_teacher', {teacherid: lesson.teacherid}).then(function(t) {
-          return modal({title:str('la_suggest_title'),fields:[{name:'t',label:str('la_suggested_time'),type:'datetime-local',value:tomorrow0900(), teacherHours: t.hours, busyTimes: t.busy_times}]}).then(function(r){if(r){var u=toUnix(r.t);if(!u){msg(str('la_pick_valid_time'),'danger');return;}return run(apiPost('student_respond_lesson',{lessonid:id,action:'suggest',suggested_time:u}));}});
+          return modal({title:str('la_suggest_title'),fields:[{name:'t',label:str('la_suggested_time'),type:'slotpicker', teacherHours: t.hours, busyTimes: t.busy_times}]}).then(function(r){if(r){var u=toUnix(r.t);if(!u){msg(str('la_pick_valid_time'),'danger');return;}return run(apiPost('student_respond_lesson',{lessonid:id,action:'suggest',suggested_time:u}));}});
         });
       case 'cancel_request':
         return modal({title:str('la_withdraw_title'),text:str('la_withdraw_text'),fields:[{name:'reason',label:str('la_reason_optional')}]}).then(function(r){if(r){return run(apiPost('cancel_lesson_request',{lessonid:id,reason:r.reason||''}));}});
@@ -476,7 +524,7 @@ echo html_writer::script(<<<'JS'
         return modal({title:str('la_report_absent_title'),text:str('la_report_absent_text')}).then(function(r){if(r){return run(apiPost('report_teacher_absent',{lessonid:id}));}});
       case 'request_time_update':
         return apiGet('get_teacher', {teacherid: lesson.teacherid}).then(function(t) {
-          return modal({title:str('la_newtime_title'),fields:[{name:'t',label:str('la_newtime_label'),type:'datetime-local',value:tomorrow0900(), teacherHours: t.hours, busyTimes: t.busy_times}]}).then(function(r){if(r){var u=toUnix(r.t);if(!u){msg(str('la_pick_valid_time'),'danger');return;}return run(apiPost('request_time_update',{lessonid:id,proposed_time:u}));}});
+          return modal({title:str('la_newtime_title'),fields:[{name:'t',label:str('la_newtime_label'),type:'slotpicker', teacherHours: t.hours, busyTimes: t.busy_times}]}).then(function(r){if(r){var u=toUnix(r.t);if(!u){msg(str('la_pick_valid_time'),'danger');return;}return run(apiPost('request_time_update',{lessonid:id,proposed_time:u}));}});
         });
       case 'respond_time_update_accept':
         return run(apiPost('respond_time_update',{lessonid:id,action:'accept'}));
