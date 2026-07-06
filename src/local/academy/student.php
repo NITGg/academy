@@ -86,6 +86,7 @@ echo html_writer::script('window.ACADEMY_ST = ' . json_encode(array(
 )) . ';');
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
 #st-app{max-width:920px}
 #st-flexbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:#eaf3ff;border:1px solid #b6d4fe;border-radius:.5rem;padding:.6rem 1rem;margin-bottom:1rem;flex-wrap:wrap}
@@ -240,6 +241,7 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
     </div>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <?php
 echo html_writer::script(<<<'JS'
 (function () {
@@ -278,6 +280,7 @@ echo html_writer::script(<<<'JS'
       $('st-modal-title').textContent=opts.title||'';
       var body=$('st-modal-body');body.innerHTML='';
       var inputs={};
+      var datePickers = [];
       if(opts.text){body.appendChild(el('p',{class:'text-muted'},esc(opts.text)));}
       (opts.fields||[]).forEach(function(f){
         var g=el('div',{class:'form-group'});
@@ -288,17 +291,64 @@ echo html_writer::script(<<<'JS'
           (f.options||[]).forEach(function(o){var op=el('option',{value:o.value},esc(o.label));inp.appendChild(op);});
         }else if(f.type==='textarea'){
           inp=el('textarea',{class:'form-control',rows:'2'});
+        }else if(f.type==='datetime-local'){
+          inp=el('input',{class:'form-control',type:'text'});
         }else{
           inp=el('input',{class:'form-control',type:f.type||'text'});
         }
         if(f.value){inp.value=f.value;}
         if(f.placeholder){inp.setAttribute('placeholder',f.placeholder);}
         g.appendChild(inp);body.appendChild(g);inputs[f.name]=inp;
+        if(f.type==='datetime-local'){
+          datePickers.push({el:inp, hours:f.teacherHours});
+        }
       });
       var bg=$('st-modal-bg');bg.style.display='flex';
       var ok=$('st-modal-ok'),cancel=$('st-modal-cancel');
       ok.textContent=opts.okLabel||str('ui_confirm');
-      function close(){bg.style.display='none';ok.onclick=null;cancel.onclick=null;}
+      
+      var fps = [];
+      if (typeof flatpickr !== 'undefined') {
+        datePickers.forEach(function(dp) {
+          fps.push(flatpickr(dp.el, {
+            enableTime: true,
+            dateFormat: "Y-m-d\\TH:i",
+            minDate: "today",
+            disable: [
+              function(date) {
+                if (!dp.hours || dp.hours.length === 0) return false;
+                var day = date.getDay();
+                var hasHours = dp.hours.some(function(h){ return h.dayofweek === day; });
+                return !hasHours;
+              }
+            ],
+            onChange: function(selectedDates, dateStr, instance) {
+              if (selectedDates.length > 0 && dp.hours && dp.hours.length > 0) {
+                var date = selectedDates[0];
+                var day = date.getDay();
+                var dayHours = dp.hours.filter(function(h){ return h.dayofweek === day; });
+                if (dayHours.length > 0) {
+                  var min = "23:59", max = "00:00";
+                  dayHours.forEach(function(h) {
+                    if (h.starttime < min) min = h.starttime;
+                    if (h.endtime > max) max = h.endtime;
+                  });
+                  instance.set("minTime", min);
+                  instance.set("maxTime", max);
+                } else {
+                  instance.set("minTime", null);
+                  instance.set("maxTime", null);
+                }
+              }
+            }
+          }));
+        });
+      }
+
+      function close(){
+        bg.style.display='none';ok.onclick=null;cancel.onclick=null;
+        fps.forEach(function(fp){ fp.destroy(); });
+      }
       ok.onclick=function(){var out={};for(var k in inputs){out[k]=inputs[k].value;}close();resolve(out);};
       cancel.onclick=function(){close();resolve(null);};
     });
@@ -349,7 +399,7 @@ echo html_writer::script(<<<'JS'
       okLabel:str('st_send_request'),
       fields:[
         {name:'subject',label:str('st_field_subject'),type:'select',options:subs},
-        {name:'t',label:str('st_field_datetime'),type:'datetime-local',value:tomorrow0900()},
+        {name:'t',label:str('st_field_datetime'),type:'datetime-local',value:tomorrow0900(), teacherHours: teacher.hours},
         {name:'note',label:str('st_field_note_req'),type:'textarea',placeholder:str('st_note_placeholder')}
       ]
     }).then(function(r){
