@@ -728,3 +728,13 @@ $string['sub_courses_assigned']    = 'Courses assigned successfully.';
 $string['sub_no_usersubs']         = 'No user subscriptions found.';
 $string['sub_unsub_confirm']       = 'Unsubscribe <strong>{$a->user}</strong> from <strong>{$a->name}</strong>{$a->price}? This cannot be undone.';
 $string['sub_unsub_success']       = 'User unsubscribed successfully.';
+
+$string['set_lesson_start_reminder'] = 'Lesson start reminder (minutes)';
+$string['set_lesson_start_reminder_help'] = 'Notify the student this many minutes before their lesson starts (0 to disable).';
+$string['notif_lesson_reminder_subject'] = 'Your lesson starts soon!';
+$string['notif_lesson_reminder_body'] = 'Hi {$a->studentname},
+
+Your lesson "{$a->subject}" with {$a->teachername} is starting in {$a->time}.
+
+Please join the lesson room on time.';
+

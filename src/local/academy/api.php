@@ -455,7 +455,7 @@ try {
         case 'update_lesson_settings': // admin (manageplatform)
             $fields = ['min_booking_minutes', 'cancel_deadline_minutes', 'update_deadline_minutes',
                 'start_allowed_minutes', 'complete_allowed_minutes', 'absence_report_minutes',
-                'teacher_percent', 'platform_percent', 'lessons_courseid'];
+                'lesson_start_reminder_minutes', 'teacher_percent', 'platform_percent', 'lessons_courseid'];
             $data = [];
             foreach ($fields as $f) {
                 if (isset($_REQUEST[$f])) { $data[$f] = required_param($f, PARAM_INT); }

@@ -569,6 +569,21 @@ class lesson_manager {
             'purchaseid'     => $purchaseid,
             'flex_state'     => 'reserved',
         ));
+        
+        $reminder_minutes = settings_manager::get('lesson_start_reminder_minutes');
+        if ($reminder_minutes > 0) {
+            $run_time = (int)$time - ($reminder_minutes * 60);
+            if ($run_time > time()) {
+                $task = new \local_academy\task\lesson_start_reminder_task();
+                $task->set_next_run_time($run_time);
+                $task->set_custom_data(array(
+                    'lessonid'       => $lesson->id,
+                    'confirmed_time' => (int)$time,
+                ));
+                \core\task\manager::queue_adhoc_task($task);
+            }
+        }
+        
         $transaction->allow_commit();
         return $result;
     }

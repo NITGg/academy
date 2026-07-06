@@ -223,12 +223,12 @@ require([], function() {
         });
     }
     function apiGet(fn, params) {
-        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.lang = CFG.lang; }
+        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.alang = CFG.lang; }
         var q = new URLSearchParams(Object.assign(base, params || {}));
         return fetch(CFG.endpoint + '?' + q.toString()).then(parse);
     }
     function apiPost(fn, params) {
-        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.lang = CFG.lang; }
+        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.alang = CFG.lang; }
         var body = new URLSearchParams(Object.assign(base, params || {}));
         return fetch(CFG.endpoint, {
             method: 'POST',
@@ -494,12 +494,12 @@ require([], function() {
         });
     }
     function apiGet(fn, params) {
-        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.lang = CFG.lang; }
+        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.alang = CFG.lang; }
         var q = new URLSearchParams(Object.assign(base, params || {}));
         return fetch(CFG.endpoint + '?' + q.toString()).then(parse);
     }
     function apiPost(fn, params) {
-        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.lang = CFG.lang; }
+        var base = {function: fn, token: CFG.token}; if (CFG.lang) { base.alang = CFG.lang; }
         var body = new URLSearchParams(Object.assign(base, params || {}));
         return fetch(CFG.endpoint, {
             method: 'POST',
