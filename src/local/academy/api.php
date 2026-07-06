@@ -51,6 +51,18 @@ ob_start();
  * Emit a JSON response and stop.
  */
 function academy_respond($payload) {
+    global $SESSION;
+    // Restore the session's real language override before we exit. We force ?lang for THIS request
+    // only; persisting $SESSION->forcelang would leak into the next normal page load and override
+    // the navbar language switch (it has the highest priority in current_language()) — the cause of
+    // the "first click does nothing, second click works" / "?lang differs from applied lang" bug.
+    if (array_key_exists('academy_prev_forcelang', $GLOBALS)) {
+        if ($GLOBALS['academy_prev_forcelang'] === null) {
+            unset($SESSION->forcelang);
+        } else {
+            $SESSION->forcelang = $GLOBALS['academy_prev_forcelang'];
+        }
+    }
     // Drop any stray output captured so far so it can't corrupt the JSON.
     while (ob_get_level() > 0) {
         ob_end_clean();
@@ -70,6 +82,9 @@ $token    = optional_param('token', '', PARAM_TEXT);
 // normal pages. The lenient translation_exists($lang) check below matches the site's own behaviour.
 $lang = optional_param('lang', '', PARAM_SAFEDIR);
 $canforcelang = ($lang !== '' && get_string_manager()->translation_exists($lang));
+// Remember the session's real language override so academy_respond() can restore it before exiting.
+// Forcing the language for this request must NOT persist to later page loads (see academy_respond()).
+$GLOBALS['academy_prev_forcelang'] = isset($SESSION->forcelang) ? $SESSION->forcelang : null;
 if ($canforcelang) {
     $SESSION->forcelang = $lang;
 }

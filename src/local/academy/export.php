@@ -14,10 +14,26 @@ $type  = optional_param('type', '', PARAM_ALPHANUMEXT);
 $token = optional_param('token', '', PARAM_TEXT);
 
 // Optional ?lang=en|ar — resolve multilang content in the exported rows to the requested language.
-// Set $SESSION->forcelang directly (see api.php) so a language restricted from the menu still works.
+// We force it for THIS request only and restore it before finishing (academy_export_restore_lang()):
+// a persisted $SESSION->forcelang would leak into the next page load and override the navbar
+// language switch (highest priority in current_language()).
 $lang = optional_param('lang', '', PARAM_SAFEDIR);
-if ($lang !== '' && get_string_manager()->translation_exists($lang)) {
+$canforcelang = ($lang !== '' && get_string_manager()->translation_exists($lang));
+$GLOBALS['academy_prev_forcelang'] = isset($SESSION->forcelang) ? $SESSION->forcelang : null;
+if ($canforcelang) {
     $SESSION->forcelang = $lang;
+}
+
+/** Restore the session language override set above, so it doesn't leak to later page loads. */
+function academy_export_restore_lang() {
+    global $SESSION;
+    if (array_key_exists('academy_prev_forcelang', $GLOBALS)) {
+        if ($GLOBALS['academy_prev_forcelang'] === null) {
+            unset($SESSION->forcelang);
+        } else {
+            $SESSION->forcelang = $GLOBALS['academy_prev_forcelang'];
+        }
+    }
 }
 
 // Authenticate via web-service token (same pattern as api.php).
