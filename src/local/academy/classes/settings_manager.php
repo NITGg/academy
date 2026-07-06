@@ -16,7 +16,7 @@ class settings_manager {
         'start_allowed_minutes'   => 30,   // how early a lesson may start / link visible
         'complete_allowed_minutes' => 180, // how long after the start a lesson may still be completed
         'absence_report_minutes'  => 15,   // wait before reporting absence
-        'lesson_start_reminder_minutes' => 15, // notify a student this many minutes before lesson starts
+        'lesson_start_reminder_minutes' => '15', // notify a student this many minutes before lesson starts (comma separated)
         'expiry_reminder_days'    => 3,    // notify a student this many days before a package expires (0 = off)
         'teacher_percent'         => 40,   // teacher share of a consumed Flex
         'platform_percent'        => 60,   // platform share of a consumed Flex
@@ -28,7 +28,11 @@ class settings_manager {
         $out = array();
         foreach (self::DEFAULTS as $key => $default) {
             $val = get_config('local_academy', $key);
-            $out[$key] = ($val === false || $val === null || $val === '') ? $default : (int)$val;
+            if ($key === 'lesson_start_reminder_minutes') {
+                $out[$key] = ($val === false || $val === null || $val === '') ? $default : (string)$val;
+            } else {
+                $out[$key] = ($val === false || $val === null || $val === '') ? $default : (int)$val;
+            }
         }
         return $out;
     }
@@ -52,10 +56,14 @@ class settings_manager {
             if (!array_key_exists($key, self::DEFAULTS)) {
                 continue; // ignore unknown keys
             }
-            if ((int)$value < 0) {
-                throw new \moodle_exception('err_settingnegative', 'local_academy');
+            if ($key === 'lesson_start_reminder_minutes') {
+                $current[$key] = (string)$value;
+            } else {
+                if ((int)$value < 0) {
+                    throw new \moodle_exception('err_settingnegative', 'local_academy');
+                }
+                $current[$key] = (int)$value;
             }
-            $current[$key] = (int)$value;
         }
 
         // Teacher % + platform % must total 100.
@@ -65,7 +73,11 @@ class settings_manager {
 
         foreach ($data as $key => $value) {
             if (array_key_exists($key, self::DEFAULTS)) {
-                set_config($key, (int)$value, 'local_academy');
+                if ($key === 'lesson_start_reminder_minutes') {
+                    set_config($key, (string)$value, 'local_academy');
+                } else {
+                    set_config($key, (int)$value, 'local_academy');
+                }
             }
         }
         return self::get_settings();

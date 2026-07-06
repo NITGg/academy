@@ -570,19 +570,31 @@ class lesson_manager {
             'flex_state'     => 'reserved',
         ));
         
-        $reminder_minutes = settings_manager::get('lesson_start_reminder_minutes');
-        if ($reminder_minutes > 0) {
-            $run_time = (int)$time - ($reminder_minutes * 60);
-            if ($run_time < time()) {
-                $run_time = time(); // Queue it to run immediately
+        $reminder_minutes_str = settings_manager::get('lesson_start_reminder_minutes');
+        if (!empty($reminder_minutes_str)) {
+            $minutes_arr = array_filter(array_map('trim', explode(',', (string)$reminder_minutes_str)));
+            $immediate_queued = false;
+            foreach ($minutes_arr as $min_val) {
+                $m = (int)$min_val;
+                if ($m > 0) {
+                    $run_time = (int)$time - ($m * 60);
+                    if ($run_time < time()) {
+                        if (!$immediate_queued) {
+                            $run_time = time(); // Queue one to run immediately
+                            $immediate_queued = true;
+                        } else {
+                            continue; // Skip queuing duplicate immediate tasks
+                        }
+                    }
+                    $task = new \local_academy\task\lesson_start_reminder_task();
+                    $task->set_next_run_time($run_time);
+                    $task->set_custom_data(array(
+                        'lessonid'       => $lesson->id,
+                        'confirmed_time' => (int)$time,
+                    ));
+                    \core\task\manager::queue_adhoc_task($task);
+                }
             }
-            $task = new \local_academy\task\lesson_start_reminder_task();
-            $task->set_next_run_time($run_time);
-            $task->set_custom_data(array(
-                'lessonid'       => $lesson->id,
-                'confirmed_time' => (int)$time,
-            ));
-            \core\task\manager::queue_adhoc_task($task);
         }
         
         $transaction->allow_commit();

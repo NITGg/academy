@@ -455,10 +455,13 @@ try {
         case 'update_lesson_settings': // admin (manageplatform)
             $fields = ['min_booking_minutes', 'cancel_deadline_minutes', 'update_deadline_minutes',
                 'start_allowed_minutes', 'complete_allowed_minutes', 'absence_report_minutes',
-                'lesson_start_reminder_minutes', 'teacher_percent', 'platform_percent', 'lessons_courseid'];
+                'teacher_percent', 'platform_percent', 'lessons_courseid'];
             $data = [];
             foreach ($fields as $f) {
                 if (isset($_REQUEST[$f])) { $data[$f] = required_param($f, PARAM_INT); }
+            }
+            if (isset($_REQUEST['lesson_start_reminder_minutes'])) {
+                $data['lesson_start_reminder_minutes'] = required_param('lesson_start_reminder_minutes', PARAM_TEXT);
             }
             academy_respond(['status' => 'success', 'data' => settings_manager::update_settings($data)]);
             break;

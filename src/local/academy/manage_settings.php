@@ -44,7 +44,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     <div class="form-group"><label><?php echo $STR['set_start_allowed']; ?></label><input class="form-control" id="s-start_allowed_minutes" type="number" min="0"></div>
     <div class="form-group"><label><?php echo $STR['set_complete_allowed']; ?></label><input class="form-control" id="s-complete_allowed_minutes" type="number" min="0"></div>
     <div class="form-group"><label><?php echo $STR['set_absence_report']; ?></label><input class="form-control" id="s-absence_report_minutes" type="number" min="0"></div>
-    <div class="form-group"><label><?php echo $STR['set_lesson_start_reminder']; ?></label><input class="form-control" id="s-lesson_start_reminder_minutes" type="number" min="0"><small class="text-muted"><?php echo $STR['set_lesson_start_reminder_help']; ?></small></div>
+    <div class="form-group"><label><?php echo $STR['set_lesson_start_reminder']; ?></label><input class="form-control" id="s-lesson_start_reminder_minutes" type="text"><small class="text-muted"><?php echo $STR['set_lesson_start_reminder_help']; ?></small></div>
     <div class="form-group"><label><?php echo $STR['set_expiry_reminder']; ?></label><input class="form-control" id="s-expiry_reminder_days" type="number" min="0"><small class="text-muted"><?php echo $STR['set_expiry_reminder_help']; ?></small></div>
     <hr>
     <div class="form-group"><label><?php echo $STR['set_teacher_percent']; ?></label><input class="form-control" id="s-teacher_percent" type="number" min="0" max="100"></div>
