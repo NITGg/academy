@@ -26,34 +26,65 @@ $PAGE->set_heading(get_string('studenthub', 'local_academy'));
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('studenthub', 'local_academy'));
 
-// Localised strings for the tab bar, flex banner and Packages tab. Server-rendered HTML reads
-// $STR['key']; the JS reads window.ACADEMY_STR via the str()/strf() helpers. (Pilot scope: the
-// Packages & Flex tab — other tabs are localised in the rollout phase.)
+// Localised strings for the whole student hub. Server-rendered HTML reads $STR['key']; the JS reads
+// window.ACADEMY_STR via the str()/strf() helpers.
 $STR = local_academy_string_map(array(
     // Tab bar.
     'tab_book', 'tab_lessons', 'tab_packages', 'tab_subavailable', 'tab_mysubs',
     // Flex banner.
     'st_available_flex', 'st_book_up_to', 'st_no_active_pkg',
+    // Shared UI + modal.
+    'ui_cancel', 'ui_confirm', 'ui_search', 'ui_refresh', 'ui_never', 'ui_currency_egp',
     // Packages tab — section headings + table headers.
     'availpkgs_heading', 'mypackages', 'st_payment_history', 'st_flex_history',
     'st_col_package', 'st_col_flexusedtot', 'st_col_status', 'st_col_activated', 'st_col_expires',
     'st_col_date', 'st_col_amount', 'st_col_method', 'st_col_transaction',
     'st_col_type', 'st_col_change', 'st_col_balance', 'st_col_lesson', 'st_col_note',
     // Packages tab — dynamic JS strings.
-    'ui_never', 'ui_currency_egp', 'st_pkg_none_available', 'st_pkg_none', 'st_pay_none',
+    'st_pkg_none_available', 'st_pkg_none', 'st_pay_none',
     'st_flex_none', 'st_already_active_pkg', 'st_buy_package', 'st_buy_title', 'st_buy_text',
     'st_proceed_payment', 'st_pkgmeta_flex', 'st_pkgmeta_validdays', 'st_pkgmeta_neverexp',
     'st_flex_left',
     'pstat_active', 'pstat_fully_used', 'pstat_expired', 'pstat_cancelled', 'pstat_pending',
     'pay_completed', 'pay_pending', 'pay_failed', 'pay_refunded',
     'flx_reserve', 'flx_consume', 'flx_return', 'flx_purchase', 'flx_assign', 'flx_expire', 'flx_adjust',
-    'err_sessionexpired', 'err_requestfailed',
+    'err_sessionexpired', 'err_requestfailed', 'err_timeconflict',
+    // Book a lesson tab.
+    'st_search_placeholder', 'st_teacher_num', 'st_request_lesson', 'st_no_subjects',
+    'st_request_with', 'st_send_request', 'st_field_subject', 'st_field_datetime',
+    'st_field_note_req', 'st_note_placeholder', 'st_pick_valid_time', 'st_note_required',
+    'st_lesson_requested', 'st_no_teachers',
+    'st_slot_pickday', 'st_slot_picktime', 'st_slot_noavail', 'st_slot_nodayslots',
+    // My lessons tab — filter, statuses, actions, dialogs, card.
+    'st_status', 'lf_all', 'lf_pending', 'lf_waiting_student', 'lf_waiting_teacher', 'lf_confirmed',
+    'lf_in_progress', 'lf_completed', 'lf_student_absent', 'lf_teacher_absent', 'lf_cancelled',
+    'lf_cancelled_teacher', 'lf_rejected',
+    'lstat_pending', 'lstat_waiting_student', 'lstat_waiting_teacher', 'lstat_confirmed',
+    'lstat_in_progress', 'lstat_completed', 'lstat_student_absent', 'lstat_teacher_absent',
+    'lstat_cancelled', 'lstat_cancelled_teacher', 'lstat_rejected',
+    'lact_accept', 'lact_reject', 'lact_suggest', 'lact_cancel_request', 'lact_cancel',
+    'lact_report_teacher_absent', 'lact_request_time_update', 'lact_join',
+    'lact_accept_newtime', 'lact_reject_newtime',
+    'la_done', 'la_reason_optional', 'la_pick_valid_time', 'la_reject_title', 'la_suggest_title',
+    'la_suggested_time', 'la_withdraw_title', 'la_withdraw_text', 'la_cancel_title', 'la_cancel_text',
+    'la_report_absent_title', 'la_report_absent_text', 'la_newtime_title', 'la_newtime_label',
+    'la_room_not_ready',
+    'lc_teacher_num', 'lc_title', 'lc_confirmed', 'lc_requested', 'lc_duration', 'lc_your_note',
+    'lc_reject_reason', 'lc_cancel_reason', 'lc_flex', 'lc_you', 'lc_the_teacher', 'lc_resched_moved',
+    'st_no_lessons',
+    // Subscriptions tabs.
+    'sub_available_heading', 'sub_my_heading', 'sub_payments_heading', 'sub_col_subscription',
+    'sub_col_daysleft', 'sub_col_courses',
+    'sstat_active', 'sstat_expired', 'sstat_cancelled', 'sstat_pending', 'sstat_payment_failed',
+    'sub_days', 'sub_courses_label', 'sub_already_active', 'sub_buy', 'sub_buy_title', 'sub_buy_text',
+    'sub_none_available', 'sub_none_mine', 'sub_no_payments',
 ));
 
 echo html_writer::script('window.ACADEMY_ST = ' . json_encode(array(
     'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
     'token'    => $token,
     'lang'     => optional_param('lang', current_language(), PARAM_LANG),
+    'min_booking_minutes' => (int)\local_academy\settings_manager::get('min_booking_minutes'),
 )) . ';');
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
@@ -96,6 +127,22 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
 .st-modal .form-group{margin-bottom:.75rem}
 .st-modal-actions{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.5rem}
 .st-flex-pill{font-weight:700;color:#084298}
+/* block-based slot picker (Request a lesson) */
+.st-slotpicker{margin-top:.25rem}
+.st-slot-sub{font-size:.8rem;font-weight:600;color:#6c757d;margin:.6rem 0 .35rem;text-transform:uppercase;letter-spacing:.03em}
+.st-slot-days{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:.4rem;max-height:200px;overflow-y:auto}
+.st-day{display:flex;flex-direction:column;align-items:center;gap:.1rem;border:1px solid #dee2e6;background:#fff;border-radius:.5rem;padding:.45rem .3rem;cursor:pointer;line-height:1.2;transition:all .12s}
+.st-day:hover{border-color:#0d6efd;background:#eaf3ff}
+.st-day .st-day-dow{font-size:.72rem;font-weight:600;color:#6c757d;text-transform:uppercase}
+.st-day .st-day-date{font-size:.95rem;font-weight:700;color:#212529}
+.st-day.active{background:#0d6efd;border-color:#0d6efd}
+.st-day.active .st-day-dow,.st-day.active .st-day-date{color:#fff}
+.st-slot-times{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:.4rem;max-height:220px;overflow-y:auto}
+.st-slot{border:1px solid #dee2e6;background:#fff;border-radius:.4rem;padding:.4rem .3rem;font-size:.9rem;font-weight:600;color:#0d6efd;cursor:pointer;text-align:center;transition:all .12s}
+.st-slot:hover:not(:disabled){border-color:#0d6efd;background:#eaf3ff}
+.st-slot.active{background:#0d6efd;border-color:#0d6efd;color:#fff}
+.st-slot:disabled{background:#f1f3f5;border-color:#e9ecef;color:#adb5bd;cursor:not-allowed;text-decoration:line-through}
+.st-slot-empty{color:#6c757d;font-size:.9rem;padding:1rem 0;text-align:center}
 </style>
 <div id="st-app">
   <div id="st-msg" class="alert" style="display:none"></div>
@@ -117,8 +164,8 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
   <!-- ── Tab 1: Book a lesson ── -->
   <div class="st-panel active" id="panel-book">
     <div class="st-toolbar">
-      <input id="st-teacher-search" class="form-control" placeholder="Search by subject…">
-      <button id="st-teacher-refresh" class="btn btn-outline-secondary">Search</button>
+      <input id="st-teacher-search" class="form-control" placeholder="<?php echo s($STR['st_search_placeholder']); ?>">
+      <button id="st-teacher-refresh" class="btn btn-outline-secondary"><?php echo $STR['ui_search']; ?></button>
     </div>
     <div id="st-teachers" class="st-grid"></div>
   </div>
@@ -126,22 +173,22 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
   <!-- ── Tab 2: My lessons ── -->
   <div class="st-panel" id="panel-lessons">
     <div class="st-toolbar">
-      <label class="m-0" for="st-filter">Status</label>
+      <label class="m-0" for="st-filter"><?php echo $STR['st_status']; ?></label>
       <select id="st-filter" class="form-control">
-        <option value="">All</option>
-        <option value="pending">Pending</option>
-        <option value="waiting_student">Waiting for me</option>
-        <option value="waiting_teacher">Waiting for teacher</option>
-        <option value="confirmed">Confirmed</option>
-        <option value="in_progress">In progress</option>
-        <option value="completed">Completed</option>
-        <option value="student_absent">I was absent</option>
-        <option value="teacher_absent">Teacher absent</option>
-        <option value="cancelled">Cancelled</option>
-        <option value="cancelled_teacher">Cancelled (teacher)</option>
-        <option value="rejected">Rejected</option>
+        <option value=""><?php echo $STR['lf_all']; ?></option>
+        <option value="pending"><?php echo $STR['lf_pending']; ?></option>
+        <option value="waiting_student"><?php echo $STR['lf_waiting_student']; ?></option>
+        <option value="waiting_teacher"><?php echo $STR['lf_waiting_teacher']; ?></option>
+        <option value="confirmed"><?php echo $STR['lf_confirmed']; ?></option>
+        <option value="in_progress"><?php echo $STR['lf_in_progress']; ?></option>
+        <option value="completed"><?php echo $STR['lf_completed']; ?></option>
+        <option value="student_absent"><?php echo $STR['lf_student_absent']; ?></option>
+        <option value="teacher_absent"><?php echo $STR['lf_teacher_absent']; ?></option>
+        <option value="cancelled"><?php echo $STR['lf_cancelled']; ?></option>
+        <option value="cancelled_teacher"><?php echo $STR['lf_cancelled_teacher']; ?></option>
+        <option value="rejected"><?php echo $STR['lf_rejected']; ?></option>
       </select>
-      <button id="st-lessons-refresh" class="btn btn-outline-secondary">Refresh</button>
+      <button id="st-lessons-refresh" class="btn btn-outline-secondary"><?php echo $STR['ui_refresh']; ?></button>
     </div>
     <div id="st-lessons"></div>
   </div>
@@ -178,22 +225,22 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
 
   <!-- ── Tab 4: Available subscriptions ── -->
   <div class="st-panel" id="panel-subavailable">
-    <h5>Available subscriptions</h5>
+    <h5><?php echo $STR['sub_available_heading']; ?></h5>
     <div id="st-subavailable" class="st-grid"></div>
   </div>
 
   <!-- ── Tab 5: My subscriptions ── -->
   <div class="st-panel" id="panel-mysubs">
-    <h5>My subscriptions</h5>
+    <h5><?php echo $STR['sub_my_heading']; ?></h5>
     <table class="st-table">
-      <thead><tr><th>Subscription</th><th>Status</th><th>Activated</th><th>Expires</th><th>Days left</th><th>Courses</th></tr></thead>
+      <thead><tr><th><?php echo $STR['sub_col_subscription']; ?></th><th><?php echo $STR['st_col_status']; ?></th><th><?php echo $STR['st_col_activated']; ?></th><th><?php echo $STR['st_col_expires']; ?></th><th><?php echo $STR['sub_col_daysleft']; ?></th><th><?php echo $STR['sub_col_courses']; ?></th></tr></thead>
       <tbody id="st-mysubs"></tbody>
     </table>
 
     <div class="st-section">
-      <h5>Subscription payments</h5>
+      <h5><?php echo $STR['sub_payments_heading']; ?></h5>
       <table class="st-table">
-        <thead><tr><th>Date</th><th>Subscription</th><th>Amount</th><th>Method</th><th>Transaction</th><th>Status</th></tr></thead>
+        <thead><tr><th><?php echo $STR['st_col_date']; ?></th><th><?php echo $STR['sub_col_subscription']; ?></th><th><?php echo $STR['st_col_amount']; ?></th><th><?php echo $STR['st_col_method']; ?></th><th><?php echo $STR['st_col_transaction']; ?></th><th><?php echo $STR['st_col_status']; ?></th></tr></thead>
         <tbody id="st-subpayments"></tbody>
       </table>
     </div>
@@ -206,8 +253,8 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
     <h5 id="st-modal-title"></h5>
     <div id="st-modal-body"></div>
     <div class="st-modal-actions">
-      <button class="btn btn-outline-secondary" id="st-modal-cancel">Cancel</button>
-      <button class="btn btn-primary" id="st-modal-ok">Confirm</button>
+      <button class="btn btn-outline-secondary" id="st-modal-cancel"><?php echo $STR['ui_cancel']; ?></button>
+      <button class="btn btn-primary" id="st-modal-ok"><?php echo $STR['ui_confirm']; ?></button>
     </div>
   </div>
 </div>
@@ -239,9 +286,104 @@ echo html_writer::script(<<<'JS'
     return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()}).then(parse);
   }
 
-  // datetime-local <-> unix seconds
+  // "Y-m-dTH:i" local string <-> unix seconds
   function toUnix(localval){if(!localval){return 0;}var t=new Date(localval).getTime();return isNaN(t)?0:Math.floor(t/1000);}
-  function tomorrow0900(){var d=new Date();d.setDate(d.getDate()+1);d.setHours(9,0,0,0);function p(n){return (n<10?'0':'')+n;}return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());}
+
+  // ── Block-based availability picker ──
+  // Renders the teacher's availability as day blocks + hourly time blocks. Slots that
+  // fall outside the min-booking lead time or overlap a busy time are shown but disabled.
+  // The chosen slot is written into `hidden` as a "Y-m-dTH:i" string (so toUnix() reads it).
+  var SLOT_MINUTES = 60;                 // one lesson = 1 hour (lesson_manager::DEFAULT_DURATION)
+  var DEFAULT_WINDOW = ['08:00','20:00']; // fallback when a teacher has no working hours set
+  function pad2(n){return (n<10?'0':'')+n;}
+  function localVal(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+'T'+pad2(d.getHours())+':'+pad2(d.getMinutes());}
+  function timeToMin(t){var p=String(t).split(':');return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0);}
+  function locale(){return CFG.lang||undefined;}
+
+  function buildSlotPicker(field, hidden){
+    var hours = field.teacherHours || [];
+    var busy = field.busyTimes || [];
+    var hasHours = hours.length > 0;
+    var earliest = new Date(Date.now() + (CFG.min_booking_minutes || 0) * 60000);
+
+    var wrap = el('div',{class:'st-slotpicker'});
+
+    // Hourly slot objects for a given day, each flagged disabled if it's before the
+    // min-booking lead time or overlaps a busy time.
+    function daySlots(day){
+      var intervals = hasHours
+        ? hours.filter(function(h){return h.dayofweek === day.getDay();})
+               .map(function(h){return [timeToMin(h.starttime), timeToMin(h.endtime)];})
+        : [[timeToMin(DEFAULT_WINDOW[0]), timeToMin(DEFAULT_WINDOW[1])]];
+      var mins = [];
+      intervals.forEach(function(iv){
+        for (var m = iv[0]; m + SLOT_MINUTES <= iv[1]; m += SLOT_MINUTES) { mins.push(m); }
+      });
+      mins.sort(function(a,b){return a-b;});
+      return mins.map(function(m){
+        var start = new Date(day.getTime()); start.setHours(0, m, 0, 0);
+        var startU = Math.floor(start.getTime() / 1000);
+        var endU = startU + SLOT_MINUTES * 60;
+        var disabled = start < earliest || busy.some(function(bt){return startU < bt[1] && endU > bt[0];});
+        return {start: start, disabled: disabled};
+      });
+    }
+
+    // Every day in the next fortnight that still has at least one open slot.
+    var days = [];
+    for (var i = 0; i < 14; i++) {
+      var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + i);
+      if (daySlots(d).some(function(s){return !s.disabled;})) { days.push(d); }
+    }
+    if (!days.length) {
+      wrap.appendChild(el('div',{class:'st-slot-empty'}, esc(str('st_slot_noavail'))));
+      return wrap;
+    }
+
+    wrap.appendChild(el('div',{class:'st-slot-sub'}, esc(str('st_slot_pickday'))));
+    var daysRow = el('div',{class:'st-slot-days'});
+    wrap.appendChild(daysRow);
+    wrap.appendChild(el('div',{class:'st-slot-sub'}, esc(str('st_slot_picktime'))));
+    var timesRow = el('div',{class:'st-slot-times'});
+    wrap.appendChild(timesRow);
+
+    function renderTimes(day){
+      timesRow.innerHTML = '';
+      hidden.value = '';
+      var slots = daySlots(day);
+      if (!slots.length) {
+        timesRow.appendChild(el('div',{class:'st-slot-empty'}, esc(str('st_slot_nodayslots'))));
+        return;
+      }
+      slots.forEach(function(s){
+        var b = el('button',{type:'button',class:'st-slot'}, esc(s.start.toLocaleTimeString(locale(), {hour:'2-digit', minute:'2-digit'})));
+        if (s.disabled) { b.disabled = true; }
+        else {
+          b.onclick = function(){
+            timesRow.querySelectorAll('.st-slot.active').forEach(function(x){x.classList.remove('active');});
+            b.classList.add('active');
+            hidden.value = localVal(s.start);
+          };
+        }
+        timesRow.appendChild(b);
+      });
+    }
+
+    days.forEach(function(day, idx){
+      var b = el('button',{type:'button',class:'st-day'},
+        '<span class="st-day-dow">'+esc(day.toLocaleDateString(locale(),{weekday:'short'}))+'</span>'+
+        '<span class="st-day-date">'+esc(day.toLocaleDateString(locale(),{day:'numeric', month:'short'}))+'</span>');
+      b.onclick = function(){
+        daysRow.querySelectorAll('.st-day.active').forEach(function(x){x.classList.remove('active');});
+        b.classList.add('active');
+        renderTimes(day);
+      };
+      daysRow.appendChild(b);
+      if (idx === 0) { b.classList.add('active'); renderTimes(day); }
+    });
+
+    return wrap;
+  }
 
   // ── Shared modal: collects fields, resolves with their values (or null on cancel) ──
   function modal(opts){
@@ -253,6 +395,14 @@ echo html_writer::script(<<<'JS'
       (opts.fields||[]).forEach(function(f){
         var g=el('div',{class:'form-group'});
         g.appendChild(el('label',{},f.label));
+        if(f.type==='slotpicker'){
+          var hidden=el('input',{type:'hidden'});
+          inputs[f.name]=hidden;
+          g.appendChild(hidden);
+          g.appendChild(buildSlotPicker(f, hidden));
+          body.appendChild(g);
+          return;
+        }
         var inp;
         if(f.type==='select'){
           inp=el('select',{class:'form-control'});
@@ -268,8 +418,11 @@ echo html_writer::script(<<<'JS'
       });
       var bg=$('st-modal-bg');bg.style.display='flex';
       var ok=$('st-modal-ok'),cancel=$('st-modal-cancel');
-      ok.textContent=opts.okLabel||'Confirm';
-      function close(){bg.style.display='none';ok.onclick=null;cancel.onclick=null;}
+      ok.textContent=opts.okLabel||str('ui_confirm');
+
+      function close(){
+        bg.style.display='none';ok.onclick=null;cancel.onclick=null;
+      }
       ok.onclick=function(){var out={};for(var k in inputs){out[k]=inputs[k].value;}close();resolve(out);};
       cancel.onclick=function(){close();resolve(null);};
     });
@@ -301,35 +454,35 @@ echo html_writer::script(<<<'JS'
   // ──────────────────────────────────────────────────────────────────────────
   function teacherCard(t){
     var c=el('div',{class:'st-card'});
-    c.appendChild(el('div',{class:'st-title'},esc(t.fullname||('Teacher #'+t.userid))));
+    c.appendChild(el('div',{class:'st-title'},esc(t.fullname||strf('st_teacher_num',t.userid))));
     if(t.headline){c.appendChild(el('div',{class:'st-meta'},esc(t.headline)));}
     var subs=el('div',{class:'st-subjects'});
     (t.subjects||[]).forEach(function(s){subs.appendChild(el('span',{class:'st-chip'},esc(s.subject)));});
     c.appendChild(subs);
     var actions=el('div',{class:'st-actions'});
-    actions.appendChild(button('Request a lesson','btn-primary',function(){bookWith(t);}));
+    actions.appendChild(button(str('st_request_lesson'),'btn-primary',function(){bookWith(t);}));
     c.appendChild(actions);
     return c;
   }
 
   function bookWith(teacher){
     var subs=(teacher.subjects||[]).map(function(s){return {value:s.subject,label:s.subject};});
-    if(!subs.length){msg('This teacher has not listed any subjects yet.','danger');return;}
+    if(!subs.length){msg(str('st_no_subjects'),'danger');return;}
     modal({
-      title:'Request a lesson with '+(teacher.fullname||('teacher #'+teacher.userid)),
-      okLabel:'Send request',
+      title:strf('st_request_with',teacher.fullname||strf('st_teacher_num',teacher.userid)),
+      okLabel:str('st_send_request'),
       fields:[
-        {name:'subject',label:'Subject',type:'select',options:subs},
-        {name:'t',label:'Preferred date & time',type:'datetime-local',value:tomorrow0900()},
-        {name:'note',label:'Note to the teacher (required)',type:'textarea',placeholder:'What do you need help with?'}
+        {name:'subject',label:str('st_field_subject'),type:'select',options:subs},
+        {name:'t',label:str('st_field_datetime'),type:'slotpicker', teacherHours: teacher.hours, busyTimes: teacher.busy_times},
+        {name:'note',label:str('st_field_note_req'),type:'textarea',placeholder:str('st_note_placeholder')}
       ]
     }).then(function(r){
       if(!r){return;}
       var u=toUnix(r.t);
-      if(!u){msg('Please pick a valid date and time.','danger');return;}
-      if(!(r.note||'').trim()){msg('A note is required to request a lesson.','danger');return;}
+      if(!u){msg(str('st_pick_valid_time'),'danger');return;}
+      if(!(r.note||'').trim()){msg(str('st_note_required'),'danger');return;}
       apiPost('request_lesson',{teacherid:teacher.userid,subject:r.subject,requested_time:u,note:r.note.trim()})
-        .then(function(){msg('Lesson requested. Track it in “My lessons”.','success');switchTab('lessons');loadLessons();})
+        .then(function(){msg(str('st_lesson_requested'),'success');switchTab('lessons');loadLessons();})
         .catch(function(e){msg(e.message,'danger');});
     });
   }
@@ -338,7 +491,7 @@ echo html_writer::script(<<<'JS'
     var subject=$('st-teacher-search').value.trim();
     apiGet('browse_teachers',subject?{subject:subject}:null).then(function(rows){
       var box=$('st-teachers');box.innerHTML='';
-      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},'No teachers found.'));return;}
+      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},str('st_no_teachers')));return;}
       rows.forEach(function(t){box.appendChild(teacherCard(t));});
     }).catch(function(e){msg(e.message,'danger');});
   }
@@ -346,13 +499,13 @@ echo html_writer::script(<<<'JS'
   // ──────────────────────────────────────────────────────────────────────────
   // Tab 2: My lessons
   // ──────────────────────────────────────────────────────────────────────────
-  var STATUS_LABEL={pending:'Pending teacher response',waiting_student:'Waiting for you',waiting_teacher:'Waiting for teacher',confirmed:'Confirmed',in_progress:'In progress',completed:'Completed',student_absent:'You were absent',teacher_absent:'Teacher absent',cancelled:'Cancelled',cancelled_teacher:'Cancelled by teacher',rejected:'Rejected'};
+  var STATUS_LABEL={pending:str('lstat_pending'),waiting_student:str('lstat_waiting_student'),waiting_teacher:str('lstat_waiting_teacher'),confirmed:str('lstat_confirmed'),in_progress:str('lstat_in_progress'),completed:str('lstat_completed'),student_absent:str('lstat_student_absent'),teacher_absent:str('lstat_teacher_absent'),cancelled:str('lstat_cancelled'),cancelled_teacher:str('lstat_cancelled_teacher'),rejected:str('lstat_rejected')};
 
   function pendingReschedule(lesson){
     return (lesson.proposals||[]).filter(function(p){return p.type==='reschedule'&&p.status==='pending';})[0]||null;
   }
 
-  function run(p){return p.then(function(){msg('Done.','success');loadLessons();refreshFlex();}).catch(function(e){msg(e.message,'danger');});}
+  function run(p){return p.then(function(){msg(str('la_done'),'success');loadLessons();refreshFlex();}).catch(function(e){msg(e.message,'danger');});}
 
   function doAction(lesson,action){
     var id=lesson.id;
@@ -360,41 +513,45 @@ echo html_writer::script(<<<'JS'
       case 'accept':
         return run(apiPost('student_respond_lesson',{lessonid:id,action:'accept'}));
       case 'reject':
-        return modal({title:'Reject the suggested time',fields:[{name:'reject_reason',label:'Reason (optional)'}]}).then(function(r){if(r){return run(apiPost('student_respond_lesson',{lessonid:id,action:'reject',reject_reason:r.reject_reason||''}));}});
+        return modal({title:str('la_reject_title'),fields:[{name:'reject_reason',label:str('la_reason_optional')}]}).then(function(r){if(r){return run(apiPost('student_respond_lesson',{lessonid:id,action:'reject',reject_reason:r.reject_reason||''}));}});
       case 'suggest':
-        return modal({title:'Suggest another time',fields:[{name:'t',label:'Suggested date & time',type:'datetime-local',value:tomorrow0900()}]}).then(function(r){if(r){var u=toUnix(r.t);if(!u){msg('Pick a valid time.','danger');return;}return run(apiPost('student_respond_lesson',{lessonid:id,action:'suggest',suggested_time:u}));}});
+        return apiGet('get_teacher', {teacherid: lesson.teacherid}).then(function(t) {
+          return modal({title:str('la_suggest_title'),fields:[{name:'t',label:str('la_suggested_time'),type:'slotpicker', teacherHours: t.hours, busyTimes: t.busy_times}]}).then(function(r){if(r){var u=toUnix(r.t);if(!u){msg(str('la_pick_valid_time'),'danger');return;}return run(apiPost('student_respond_lesson',{lessonid:id,action:'suggest',suggested_time:u}));}});
+        });
       case 'cancel_request':
-        return modal({title:'Withdraw request',text:'Withdraw this lesson request? No Flex has been reserved yet.',fields:[{name:'reason',label:'Reason (optional)'}]}).then(function(r){if(r){return run(apiPost('cancel_lesson_request',{lessonid:id,reason:r.reason||''}));}});
+        return modal({title:str('la_withdraw_title'),text:str('la_withdraw_text'),fields:[{name:'reason',label:str('la_reason_optional')}]}).then(function(r){if(r){return run(apiPost('cancel_lesson_request',{lessonid:id,reason:r.reason||''}));}});
       case 'cancel':
-        return modal({title:'Cancel lesson',text:'Cancelling before the deadline returns your Flex; cancelling late consumes it.',fields:[{name:'reason',label:'Reason (optional)'}]}).then(function(r){if(r){return run(apiPost('cancel_lesson_student',{lessonid:id,reason:r.reason||''}));}});
+        return modal({title:str('la_cancel_title'),text:str('la_cancel_text'),fields:[{name:'reason',label:str('la_reason_optional')}]}).then(function(r){if(r){return run(apiPost('cancel_lesson_student',{lessonid:id,reason:r.reason||''}));}});
       case 'report_teacher_absent':
-        return modal({title:'Report teacher absent',text:'Confirm the teacher did not show up? Your Flex will be returned.'}).then(function(r){if(r){return run(apiPost('report_teacher_absent',{lessonid:id}));}});
+        return modal({title:str('la_report_absent_title'),text:str('la_report_absent_text')}).then(function(r){if(r){return run(apiPost('report_teacher_absent',{lessonid:id}));}});
       case 'request_time_update':
-        return modal({title:'Request a new time',fields:[{name:'t',label:'New date & time',type:'datetime-local',value:tomorrow0900()}]}).then(function(r){if(r){var u=toUnix(r.t);if(!u){msg('Pick a valid time.','danger');return;}return run(apiPost('request_time_update',{lessonid:id,proposed_time:u}));}});
+        return apiGet('get_teacher', {teacherid: lesson.teacherid}).then(function(t) {
+          return modal({title:str('la_newtime_title'),fields:[{name:'t',label:str('la_newtime_label'),type:'slotpicker', teacherHours: t.hours, busyTimes: t.busy_times}]}).then(function(r){if(r){var u=toUnix(r.t);if(!u){msg(str('la_pick_valid_time'),'danger');return;}return run(apiPost('request_time_update',{lessonid:id,proposed_time:u}));}});
+        });
       case 'respond_time_update_accept':
         return run(apiPost('respond_time_update',{lessonid:id,action:'accept'}));
       case 'respond_time_update_reject':
         return run(apiPost('respond_time_update',{lessonid:id,action:'reject'}));
       case 'join':
-        if(!lesson.join_url){msg('The meeting room is not ready yet.','danger');return;}
+        if(!lesson.join_url){msg(str('la_room_not_ready'),'danger');return;}
         window.open(lesson.join_url,'_blank');
         return;
     }
   }
 
-  var ACTION_LABEL={accept:'Accept',reject:'Reject',suggest:'Suggest time',cancel_request:'Withdraw request',cancel:'Cancel lesson',report_teacher_absent:'Report teacher absent',request_time_update:'Reschedule',join:'Join lesson'};
+  var ACTION_LABEL={accept:str('lact_accept'),reject:str('lact_reject'),suggest:str('lact_suggest'),cancel_request:str('lact_cancel_request'),cancel:str('lact_cancel'),report_teacher_absent:str('lact_report_teacher_absent'),request_time_update:str('lact_request_time_update'),join:str('lact_join')};
 
   function lessonCard(lesson){
     var c=el('div',{class:'st-card'});
     var top=el('div',{class:'st-top'});
     var left=el('div',{});
-    left.appendChild(el('div',{class:'st-title'},esc(lesson.subject)+' · with '+esc(lesson.teacher_name||('teacher #'+lesson.teacherid))));
-    var when=lesson.confirmed_time?('Confirmed: '+fmt(lesson.confirmed_time)):('Requested: '+fmt(lesson.requested_time));
-    left.appendChild(el('div',{class:'st-meta'},when+' · '+lesson.duration+' min'));
-    if(lesson.note){left.appendChild(el('div',{class:'st-meta'},'Your note: '+esc(lesson.note)));}
-    if(lesson.reject_reason){left.appendChild(el('div',{class:'st-meta'},'Reject reason: '+esc(lesson.reject_reason)));}
-    if(lesson.cancel_reason){left.appendChild(el('div',{class:'st-meta'},'Cancel reason: '+esc(lesson.cancel_reason)));}
-    if(lesson.flex_state&&lesson.flex_state!=='none'){left.appendChild(el('div',{class:'st-meta'},'Flex: '+esc(lesson.flex_state)));}
+    left.appendChild(el('div',{class:'st-title'},strf('lc_title',{subject:esc(lesson.subject),teacher:esc(lesson.teacher_name||strf('lc_teacher_num',lesson.teacherid))})));
+    var when=lesson.confirmed_time?strf('lc_confirmed',fmt(lesson.confirmed_time)):strf('lc_requested',fmt(lesson.requested_time));
+    left.appendChild(el('div',{class:'st-meta'},when+' · '+strf('lc_duration',lesson.duration)));
+    if(lesson.note){left.appendChild(el('div',{class:'st-meta'},strf('lc_your_note',esc(lesson.note))));}
+    if(lesson.reject_reason){left.appendChild(el('div',{class:'st-meta'},strf('lc_reject_reason',esc(lesson.reject_reason))));}
+    if(lesson.cancel_reason){left.appendChild(el('div',{class:'st-meta'},strf('lc_cancel_reason',esc(lesson.cancel_reason))));}
+    if(lesson.flex_state&&lesson.flex_state!=='none'){left.appendChild(el('div',{class:'st-meta'},strf('lc_flex',esc(lesson.flex_state))));}
     top.appendChild(left);
     top.appendChild(el('span',{class:'st-badge s-'+lesson.status},STATUS_LABEL[lesson.status]||lesson.status));
     c.appendChild(top);
@@ -403,8 +560,8 @@ echo html_writer::script(<<<'JS'
     var resched=pendingReschedule(lesson);
     if(resched){
       var box=el('div',{class:'st-reschedule'});
-      var who=resched.role==='student'?'You':'The teacher';
-      box.innerHTML=who+' requested to move this lesson to <b>'+fmt(resched.proposed_time)+'</b>.';
+      var who=resched.role==='student'?str('lc_you'):str('lc_the_teacher');
+      box.innerHTML=strf('lc_resched_moved',{who:esc(who),time:fmt(resched.proposed_time)});
       c.appendChild(box);
     }
 
@@ -414,8 +571,8 @@ echo html_writer::script(<<<'JS'
       if(a==='respond_time_update'){
         // Only the party who did NOT propose may respond.
         if(resched && resched.role!=='student'){
-          actions.appendChild(button('Accept new time','btn-success',function(){doAction(lesson,'respond_time_update_accept');}));
-          actions.appendChild(button('Reject new time','btn-outline-danger',function(){doAction(lesson,'respond_time_update_reject');}));
+          actions.appendChild(button(str('lact_accept_newtime'),'btn-success',function(){doAction(lesson,'respond_time_update_accept');}));
+          actions.appendChild(button(str('lact_reject_newtime'),'btn-outline-danger',function(){doAction(lesson,'respond_time_update_reject');}));
         }
         return;
       }
@@ -430,7 +587,7 @@ echo html_writer::script(<<<'JS'
     var status=$('st-filter').value;
     apiGet('get_my_lessons',{role:'student',status:status}).then(function(rows){
       var list=$('st-lessons');list.innerHTML='';
-      if(!rows.length){list.appendChild(el('div',{class:'st-empty'},'No lessons yet — book one from the “Book a lesson” tab.'));return;}
+      if(!rows.length){list.appendChild(el('div',{class:'st-empty'},str('st_no_lessons')));return;}
       rows.forEach(function(l){list.appendChild(lessonCard(l));});
     }).catch(function(e){msg(e.message,'danger');});
   }
@@ -516,7 +673,7 @@ echo html_writer::script(<<<'JS'
   // ──────────────────────────────────────────────────────────────────────────
   // Tab 4: Subscriptions (US-SB-1-1, US-SB-1-2, US-SB-2-1)
   // ──────────────────────────────────────────────────────────────────────────
-  var SUB_STATUS={active:'Active',expired:'Expired',cancelled:'Cancelled',pending:'Pending',payment_failed:'Payment failed'};
+  var SUB_STATUS={active:str('sstat_active'),expired:str('sstat_expired'),cancelled:str('sstat_cancelled'),pending:str('sstat_pending'),payment_failed:str('sstat_payment_failed')};
 
   function courseChips(courses){
     var subs=el('div',{class:'st-subjects'});
@@ -528,23 +685,23 @@ echo html_writer::script(<<<'JS'
   function subCard(s,hasActive){
     var c=el('div',{class:'st-card'});
     c.appendChild(el('div',{class:'st-title'},esc(s.name)));
-    c.appendChild(el('div',{class:'st-price',style:'font-size:1.3rem;font-weight:700;color:#084298'},money(s.price)+' EGP'));
-    c.appendChild(el('div',{class:'st-meta'},s.duration_days+' days'));
+    c.appendChild(el('div',{class:'st-price',style:'font-size:1.3rem;font-weight:700;color:#084298'},money(s.price)+' '+str('ui_currency_egp')));
+    c.appendChild(el('div',{class:'st-meta'},strf('sub_days',s.duration_days)));
     if(s.description){c.appendChild(el('div',{class:'st-meta'},esc(s.description)));}
-    c.appendChild(el('div',{class:'st-meta',style:'margin-top:.4rem'},'Courses:'));
+    c.appendChild(el('div',{class:'st-meta',style:'margin-top:.4rem'},str('sub_courses_label')));
     c.appendChild(courseChips(s.courses));
-    if(hasActive){c.appendChild(el('div',{class:'st-meta',style:'color:#856404;margin-top:.4rem'},'You already have an active subscription.'));}
+    if(hasActive){c.appendChild(el('div',{class:'st-meta',style:'color:#856404;margin-top:.4rem'},str('sub_already_active')));}
     var actions=el('div',{class:'st-actions'});
-    actions.appendChild(button('Buy subscription','btn-primary',function(){buySubscription(s);},hasActive));
+    actions.appendChild(button(str('sub_buy'),'btn-primary',function(){buySubscription(s);},hasActive));
     c.appendChild(actions);
     return c;
   }
 
   function buySubscription(s){
     modal({
-      title:'Buy “'+s.name+'”',
-      text:'You will get '+s.duration_days+' days of course access for '+money(s.price)+' via Kashier secure checkout.',
-      okLabel:'Proceed to Payment'
+      title:strf('sub_buy_title',s.name),
+      text:strf('sub_buy_text',{days:s.duration_days,price:money(s.price)+' '+str('ui_currency_egp')}),
+      okLabel:str('st_proceed_payment')
     }).then(function(r){
       if(r === null){return;}
       apiPost('create_subscription_checkout',{subscriptionid:s.id})
@@ -559,11 +716,11 @@ echo html_writer::script(<<<'JS'
       var hasActive=myrows.some(function(s){return s.status==='active';});
 
       var box=$('st-subavailable');box.innerHTML='';
-      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},'No subscriptions available right now.'));}
+      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},str('sub_none_available')));}
       else{rows.forEach(function(s){box.appendChild(subCard(s,hasActive));});}
 
       var tb=$('st-mysubs');tb.innerHTML='';
-      if(!myrows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">No subscriptions yet.</td></tr>';return;}
+      if(!myrows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">'+esc(str('sub_none_mine'))+'</td></tr>';return;}
       myrows.forEach(function(s){
         var courses=(s.courses||[]).map(function(c){return esc(c.fullname);}).join(', ')||'—';
         tb.innerHTML+='<tr><td>'+esc(s.name)+'</td>'+
@@ -577,7 +734,7 @@ echo html_writer::script(<<<'JS'
 
     apiGet('get_subscription_payment_history').then(function(rows){
       var tb=$('st-subpayments');tb.innerHTML='';
-      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">No payments yet.</td></tr>';return;}
+      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">'+esc(str('sub_no_payments'))+'</td></tr>';return;}
       rows.forEach(function(x){
         tb.innerHTML+='<tr><td>'+fmt(x.timecreated)+'</td><td>'+esc(x.name)+'</td><td>'+money(x.amount)+'</td>'+
           '<td>'+esc(x.method)+'</td><td>'+esc(x.transaction_no)+'</td>'+

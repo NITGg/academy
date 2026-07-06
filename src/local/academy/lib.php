@@ -420,6 +420,26 @@ function local_academy_available_packages_section() {
 .la-pkgs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
 .la-pkgs-headnote{display:none;align-items:center;gap:.4rem;margin-top:.6rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
 .la-pkgs-headnote svg{width:15px;height:15px;flex-shrink:0;fill:#c07f00}
+/* Confirmation dialog (replaces the native window.confirm). */
+.la-pkgs-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease}
+.la-pkgs-modal-bg.open{display:flex;opacity:1}
+.la-pkgs-modal{background:#fff;border-radius:1rem;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
+.la-pkgs-modal-bg.open .la-pkgs-modal{transform:none}
+.la-pkgs-modal-head{display:flex;align-items:center;gap:.7rem;padding:1.25rem 1.4rem 0}
+.la-pkgs-modal-head svg{width:34px;height:34px;fill:#0d6efd;flex-shrink:0}
+.la-pkgs-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#1c1d1f}
+.la-pkgs-modal-body{padding:.9rem 1.4rem 0;color:#3c3c3c;font-size:.95rem;line-height:1.5}
+.la-pkgs-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:#f0f7ff;border:1px solid #cce5ff;border-radius:.6rem}
+.la-pkgs-modal-plan .name{font-weight:700;color:#1c1d1f;margin-bottom:.35rem}
+.la-pkgs-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#4b4b4b;margin-top:.2rem}
+.la-pkgs-modal-row b{color:#1c1d1f}
+.la-pkgs-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#6a6f73;margin-top:.2rem}
+.la-pkgs-modal-secure svg{width:14px;height:14px;fill:#1f9d55}
+.la-pkgs-modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:1.2rem 1.4rem 1.3rem}
+.la-pkgs-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:.5rem;cursor:pointer}
+.la-pkgs-modal-cancel:hover{background:#f6f7f8}
+.la-pkgs-modal-ok{background:#0d6efd;border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:.5rem;cursor:pointer}
+.la-pkgs-modal-ok:hover{background:#0b5ed7}
 CSS;
 
     $section = html_writer::tag('style', $css) .
@@ -499,13 +519,55 @@ require([], function() {
     var BOLT = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.72 10.6 10.85 7.08 13 3.5h1l-1 7h4.5c.5 0 .5.33.36.61-.13.28-.08.19-.11.24C15.09 15.34 13 18.85 11 21z"/></svg>';
     var INFO = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
 
+    function confirmBuyPackage(p) {
+        return new Promise(function(resolve) {
+            var LOCK = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1a5 5 0 00-5 5v3H6a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2v-9a2 2 0 00-2-2h-1V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 016 0v3z"/></svg>';
+            var BOLT_ICON = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.72 10.6 10.85 7.08 13 3.5h1l-1 7h4.5c.5 0 .5.33.36.61-.13.28-.08.19-.11.24C15.09 15.34 13 18.85 11 21z"/></svg>';
+            var bg = el('div', {class: 'la-pkgs-modal-bg'});
+            bg.innerHTML =
+                '<div class="la-pkgs-modal" role="dialog" aria-modal="true">' +
+                    '<div class="la-pkgs-modal-head">' + BOLT_ICON + '<h4>Confirm your package purchase</h4></div>' +
+                    '<div class="la-pkgs-modal-body">' +
+                        '<p>You are about to buy this package. You will be taken to secure checkout to complete the payment.</p>' +
+                        '<div class="la-pkgs-modal-plan">' +
+                            '<div class="name">' + esc(p.name) + '</div>' +
+                            '<div class="la-pkgs-modal-row"><span>Flex Count</span><b>' + esc(p.flex_count) + ' Flex</b></div>' +
+                            '<div class="la-pkgs-modal-row"><span>Total</span><b>' + esc(money(p.price)) + ' EGP</b></div>' +
+                        '</div>' +
+                        '<div class="la-pkgs-modal-secure">' + LOCK + '<span>Secure payment via Kashier</span></div>' +
+                    '</div>' +
+                    '<div class="la-pkgs-modal-foot">' +
+                        '<button type="button" class="la-pkgs-modal-cancel">Cancel</button>' +
+                        '<button type="button" class="la-pkgs-modal-ok">Proceed to payment</button>' +
+                    '</div>' +
+                '</div>';
+            document.body.appendChild(bg);
+            void bg.offsetWidth;
+            bg.classList.add('open');
+
+            function close(result) {
+                bg.classList.remove('open');
+                document.removeEventListener('keydown', onKey);
+                setTimeout(function() { if (bg.parentNode) { bg.parentNode.removeChild(bg); } }, 180);
+                resolve(result);
+            }
+            function onKey(e) { if (e.key === 'Escape') { close(false); } }
+            document.addEventListener('keydown', onKey);
+            bg.querySelector('.la-pkgs-modal-cancel').onclick = function() { close(false); };
+            bg.querySelector('.la-pkgs-modal-ok').onclick = function() { close(true); };
+            bg.onclick = function(e) { if (e.target === bg) { close(false); } };
+        });
+    }
+
     function subscribe(p, btn) {
-        if (!window.confirm('Buy "' + p.name + '" for ' + money(p.price) + ' EGP (' + p.flex_count + ' Flex)?')) { return; }
-        var orig = btn.textContent;
-        btn.disabled = true; btn.textContent = 'Redirecting…';
-        apiPost('create_package_checkout', {packageid: p.id})
-            .then(function(d) { window.location.href = d.checkout_url; })
-            .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
+        confirmBuyPackage(p).then(function(ok) {
+            if (!ok) { return; }
+            var orig = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Redirecting…';
+            apiPost('create_package_checkout', {packageid: p.id})
+                .then(function(d) { window.location.href = d.checkout_url; })
+                .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
+        });
     }
 
     function pkgCard(p, hasActive, idx, activePkg) {
@@ -605,8 +667,7 @@ function local_academy_before_footer() {
     // 1. Front page "Available subscriptions" cards, followed by "Available packages" cards.
     // Students only — admins/managers already manage these from their own dashboards.
     if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
-        if (isloggedin() && !isguestuser() && $PAGE->pagetype === 'site-index'
-                && !local_academy_is_platform_manager()) {
+        if (isloggedin() && !isguestuser() && $PAGE->pagetype === 'site-index') {
             $output .= local_academy_available_subscriptions_section();
             $output .= local_academy_available_packages_section();
         }

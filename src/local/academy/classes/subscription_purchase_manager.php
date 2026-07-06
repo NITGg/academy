@@ -120,7 +120,7 @@ class subscription_purchase_manager {
             $out[] = array(
                 'id'             => (int)$r->id,
                 'subscriptionid' => (int)$r->subscriptionid,
-                'name'           => $r->subscription_name,
+                'name'           => format_string($r->subscription_name),
                 'price_paid'     => $r->price_paid,
                 'status'         => $status,
                 'timeactivated'  => (int)$r->timeactivated,
@@ -155,7 +155,7 @@ class subscription_purchase_manager {
             $out[] = array(
                 'id'             => (int)$r->id,
                 'subscriptionid' => (int)$r->subscriptionid,
-                'name'           => $r->subscription_name,
+                'name'           => format_string($r->subscription_name),
                 'amount'         => $r->amount,
                 'method'         => $r->method,
                 'reference'      => $r->reference,
@@ -377,8 +377,8 @@ class subscription_purchase_manager {
     private static function format_plan($s) {
         return array(
             'id'            => (int)$s->id,
-            'name'          => $s->name,
-            'description'   => $s->description,
+            'name'          => format_string($s->name),
+            'description'   => format_string($s->description),
             'price'         => $s->price,
             'duration_days' => (int)$s->duration_days,
             'status'        => $s->status,

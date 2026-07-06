@@ -48,6 +48,7 @@ $string['err_subjectunsupported']  = 'This teacher does not offer the selected s
 $string['err_selfbooking']         = 'You cannot request a lesson with yourself';
 $string['err_noflex']              = 'You need an active package with available Flex';
 $string['err_minbooking']          = 'The lesson must be booked further in advance';
+$string['err_timeconflict']        = 'The teacher already has a lesson scheduled at this time.';
 $string['err_notime']              = 'A valid time is required';
 $string['err_forbidden']           = 'You are not allowed to perform this action';
 $string['err_badstate']            = 'This action is not allowed for the lesson\'s current status';
@@ -93,6 +94,15 @@ $string['msg_package_deactivated'] = 'Package deactivated.';
 $string['msg_package_deleted']     = 'Package deleted.';
 $string['msg_package_unassigned']  = 'Package unassigned successfully.';
 $string['msg_package_purchased']   = 'Package purchased.';
+
+// API success messages — subscriptions.
+$string['msg_subscription_created']     = 'Subscription created.';
+$string['msg_subscription_updated']     = 'Subscription updated.';
+$string['msg_subscription_activated']   = 'Subscription activated.';
+$string['msg_subscription_deactivated'] = 'Subscription deactivated.';
+$string['msg_subscription_deleted']     = 'Subscription deleted.';
+$string['msg_subscription_courses_set'] = 'Courses assigned successfully.';
+$string['msg_user_unsubscribed']        = 'User unsubscribed successfully.';
 
 // Subscriptions (US-AD-5-*, US-AD-6-1, US-SB-*).
 $string['err_subnamerequired']  = 'Subscription name is required';
@@ -305,3 +315,398 @@ $string['flx_purchase']     = 'Purchased';
 $string['flx_assign']       = 'Assigned';
 $string['flx_expire']       = 'Expired';
 $string['flx_adjust']       = 'Adjusted';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — student.php Book / My lessons / Subscriptions tabs (rollout).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Shared UI extras.
+$string['ui_confirm']  = 'Confirm';
+$string['ui_search']   = 'Search';
+
+// Book a lesson tab.
+$string['st_search_placeholder'] = 'Search by subject…';
+$string['st_teacher_num']        = 'Teacher #{$a}';
+$string['st_request_lesson']     = 'Request a lesson';
+$string['st_no_subjects']        = 'This teacher has not listed any subjects yet.';
+$string['st_request_with']       = 'Request a lesson with {$a}';
+$string['st_send_request']       = 'Send request';
+$string['st_field_subject']      = 'Subject';
+$string['st_field_datetime']     = 'Preferred date & time';
+$string['st_field_note_req']     = 'Note to the teacher (required)';
+$string['st_note_placeholder']   = 'What do you need help with?';
+$string['st_pick_valid_time']    = 'Please pick a valid date and time.';
+$string['st_note_required']      = 'A note is required to request a lesson.';
+$string['st_lesson_requested']   = 'Lesson requested. Track it in “My lessons”.';
+$string['st_no_teachers']        = 'No teachers found.';
+$string['st_slot_pickday']       = 'Choose a day';
+$string['st_slot_picktime']      = 'Choose a time';
+$string['st_slot_noavail']       = 'This teacher has no available times in the coming days.';
+$string['st_slot_nodayslots']    = 'No open times on this day.';
+
+// My lessons tab — filter dropdown.
+$string['st_status']            = 'Status';
+$string['lf_all']               = 'All';
+$string['lf_pending']           = 'Pending';
+$string['lf_waiting_student']   = 'Waiting for me';
+$string['lf_waiting_teacher']   = 'Waiting for teacher';
+$string['lf_confirmed']         = 'Confirmed';
+$string['lf_in_progress']       = 'In progress';
+$string['lf_completed']         = 'Completed';
+$string['lf_student_absent']    = 'I was absent';
+$string['lf_teacher_absent']    = 'Teacher absent';
+$string['lf_cancelled']         = 'Cancelled';
+$string['lf_cancelled_teacher'] = 'Cancelled (teacher)';
+$string['lf_rejected']          = 'Rejected';
+
+// My lessons tab — status badge labels.
+$string['lstat_pending']           = 'Pending teacher response';
+$string['lstat_waiting_student']   = 'Waiting for you';
+$string['lstat_waiting_teacher']   = 'Waiting for teacher';
+$string['lstat_confirmed']         = 'Confirmed';
+$string['lstat_in_progress']       = 'In progress';
+$string['lstat_completed']         = 'Completed';
+$string['lstat_student_absent']    = 'You were absent';
+$string['lstat_teacher_absent']    = 'Teacher absent';
+$string['lstat_cancelled']         = 'Cancelled';
+$string['lstat_cancelled_teacher'] = 'Cancelled by teacher';
+$string['lstat_rejected']          = 'Rejected';
+
+// My lessons tab — action button labels.
+$string['lact_accept']             = 'Accept';
+$string['lact_reject']             = 'Reject';
+$string['lact_suggest']            = 'Suggest time';
+$string['lact_cancel_request']     = 'Withdraw request';
+$string['lact_cancel']             = 'Cancel lesson';
+$string['lact_report_teacher_absent'] = 'Report teacher absent';
+$string['lact_request_time_update'] = 'Reschedule';
+$string['lact_join']               = 'Join lesson';
+$string['lact_accept_newtime']     = 'Accept new time';
+$string['lact_reject_newtime']     = 'Reject new time';
+
+// My lessons tab — action dialogs.
+$string['la_done']              = 'Done.';
+$string['la_reason_optional']   = 'Reason (optional)';
+$string['la_pick_valid_time']   = 'Pick a valid time.';
+$string['la_reject_title']      = 'Reject the suggested time';
+$string['la_suggest_title']     = 'Suggest another time';
+$string['la_suggested_time']    = 'Suggested date & time';
+$string['la_withdraw_title']    = 'Withdraw request';
+$string['la_withdraw_text']     = 'Withdraw this lesson request? No Flex has been reserved yet.';
+$string['la_cancel_title']      = 'Cancel lesson';
+$string['la_cancel_text']       = 'Cancelling before the deadline returns your Flex; cancelling late consumes it.';
+$string['la_report_absent_title'] = 'Report teacher absent';
+$string['la_report_absent_text']  = 'Confirm the teacher did not show up? Your Flex will be returned.';
+$string['la_newtime_title']     = 'Request a new time';
+$string['la_newtime_label']     = 'New date & time';
+$string['la_room_not_ready']    = 'The meeting room is not ready yet.';
+
+// My lessons tab — lesson card.
+$string['lc_teacher_num']    = 'teacher #{$a}';
+$string['lc_title']          = '{$a->subject} · with {$a->teacher}';
+$string['lc_confirmed']      = 'Confirmed: {$a}';
+$string['lc_requested']      = 'Requested: {$a}';
+$string['lc_duration']       = '{$a} min';
+$string['lc_your_note']      = 'Your note: {$a}';
+$string['lc_reject_reason']  = 'Reject reason: {$a}';
+$string['lc_cancel_reason']  = 'Cancel reason: {$a}';
+$string['lc_flex']           = 'Flex: {$a}';
+$string['lc_you']            = 'You';
+$string['lc_the_teacher']    = 'The teacher';
+$string['lc_resched_moved']  = '{$a->who} requested to move this lesson to <b>{$a->time}</b>.';
+$string['st_no_lessons']     = 'No lessons yet — book one from the “Book a lesson” tab.';
+
+// Subscriptions tabs — headings + table headers.
+$string['sub_available_heading'] = 'Available subscriptions';
+$string['sub_my_heading']        = 'My subscriptions';
+$string['sub_payments_heading']  = 'Subscription payments';
+$string['sub_col_subscription']  = 'Subscription';
+$string['sub_col_daysleft']      = 'Days left';
+$string['sub_col_courses']       = 'Courses';
+
+// Subscriptions tabs — status badges.
+$string['sstat_active']         = 'Active';
+$string['sstat_expired']        = 'Expired';
+$string['sstat_cancelled']      = 'Cancelled';
+$string['sstat_pending']        = 'Pending';
+$string['sstat_payment_failed'] = 'Payment failed';
+
+// Subscriptions tabs — cards + dialogs.
+$string['sub_days']           = '{$a} days';
+$string['sub_courses_label']  = 'Courses:';
+$string['sub_already_active'] = 'You already have an active subscription.';
+$string['sub_buy']            = 'Buy subscription';
+$string['sub_buy_title']      = 'Buy “{$a}”';
+$string['sub_buy_text']       = 'You will get {$a->days} days of course access for {$a->price} via Kashier secure checkout.';
+$string['sub_none_available'] = 'No subscriptions available right now.';
+$string['sub_none_mine']      = 'No subscriptions yet.';
+$string['sub_no_payments']    = 'No payments yet.';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — manage_settings.php (admin lesson settings).
+// ─────────────────────────────────────────────────────────────────────────────
+$string['set_min_booking']          = 'Minimum booking time (minutes)';
+$string['set_cancel_deadline']      = 'Student cancellation deadline (minutes)';
+$string['set_update_deadline']      = 'Lesson time-update deadline (minutes)';
+$string['set_start_allowed']        = 'Lesson start allowed time (minutes)';
+$string['set_complete_allowed']     = 'Minimum minutes after start before completing';
+$string['set_absence_report']       = 'Absence reporting time (minutes)';
+$string['set_expiry_reminder']      = 'Package expiry reminder (days before)';
+$string['set_expiry_reminder_help'] = 'Notify the student this many days before their package expires. 0 disables the reminder.';
+$string['set_teacher_percent']      = 'Teacher earning %';
+$string['set_platform_percent']     = 'Platform earning %';
+$string['set_percent_help']         = 'Teacher % + Platform % must total 100.';
+$string['set_save']                 = 'Save changes';
+$string['set_saved']                = 'Saved.';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — assign_package.php (admin: assign package to student).
+// ─────────────────────────────────────────────────────────────────────────────
+$string['ap_student_label']       = 'Student user ID';
+$string['ap_student_help']        = 'The numeric Moodle user id of the student.';
+$string['ap_student_placeholder'] = 'e.g. 4770';
+$string['ap_package_label']       = 'Package';
+$string['ap_amount_label']        = 'Amount paid (offline)';
+$string['ap_amount_placeholder']  = 'defaults to package price';
+$string['ap_method_label']        = 'Payment method';
+$string['ap_method_offline']      = 'Offline / cash';
+$string['ap_method_bank']         = 'Bank transfer';
+$string['ap_method_wallet']       = 'Mobile wallet';
+$string['ap_reference_label']     = 'Payment reference';
+$string['ap_reference_placeholder'] = 'receipt / transfer no.';
+$string['ap_note_label']          = 'Note (optional)';
+$string['ap_submit']              = 'Assign package';
+$string['ap_pkg_option']          = '{$a->name} — {$a->flex} Flex / {$a->price}';
+$string['ap_no_packages']         = 'No active packages exist. Create one first.';
+$string['ap_enter_student']       = 'Enter a student user id.';
+$string['ap_assigned']            = 'Assigned “{$a->name}” ({$a->flex} Flex) to {$a->student}.';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — teacher_profile.php (teacher's own profile editor).
+// ─────────────────────────────────────────────────────────────────────────────
+$string['tp_headline']      = 'Headline';
+$string['tp_headline_ph']   = 'e.g. Senior Mathematics Teacher';
+$string['tp_bio']           = 'About me';
+$string['tp_experience']    = 'Years of experience';
+$string['tp_available']     = 'Available for lessons';
+$string['tp_subjects']      = 'Subjects';
+$string['tp_add_subject']   = '+ Add subject';
+$string['tp_working_hours'] = 'Working hours';
+$string['tp_add_slot']      = '+ Add time slot';
+$string['tp_subject_ph']    = 'Subject (e.g. Math)';
+$string['tp_to']            = 'to';
+$string['tp_saved']         = 'Profile saved.';
+$string['tp_day_sun']       = 'Sunday';
+$string['tp_day_mon']       = 'Monday';
+$string['tp_day_tue']       = 'Tuesday';
+$string['tp_day_wed']       = 'Wednesday';
+$string['tp_day_thu']       = 'Thursday';
+$string['tp_day_fri']       = 'Friday';
+$string['tp_day_sat']       = 'Saturday';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — wallet.php (teacher earnings / withdrawals).
+// ─────────────────────────────────────────────────────────────────────────────
+$string['ui_export_csv']         = 'Export CSV';
+$string['ui_request']            = 'Request';
+$string['w_withdraw']            = 'Withdraw earnings';
+$string['w_withdrawals_heading'] = 'Withdrawals';
+$string['w_earnings_heading']    = 'Earnings';
+$string['w_col_noteref']         = 'Note / ref';
+$string['w_col_student']         = 'Student';
+$string['w_col_lessondate']      = 'Lesson date';
+$string['w_col_flexvalue']       = 'Flex value';
+$string['w_col_yourshare']       = 'Your share';
+$string['w_amount']              = 'Amount';
+$string['w_method']              = 'Method';
+$string['w_method_cash']         = 'Cash';
+$string['w_account']             = 'Account / payout details';
+$string['w_account_ph']          = 'IBAN / phone / note';
+$string['w_available_balance']   = 'Available balance';
+$string['w_total_earned']        = 'Total earned';
+$string['w_pending_withdrawals'] = 'Pending withdrawals';
+$string['w_total_withdrawn']     = 'Total withdrawn';
+$string['w_no_withdrawals']      = 'No withdrawals yet.';
+$string['w_no_earnings']         = 'No earnings yet.';
+$string['w_ref']                 = 'Ref: {$a}';
+$string['w_requested']           = 'Withdrawal requested.';
+$string['w_share']               = '{$a->amount} ({$a->percent}%)';
+$string['wstat_pending']         = 'Pending';
+$string['wstat_approved']        = 'Approved';
+$string['wstat_paid']            = 'Paid';
+$string['wstat_rejected']        = 'Rejected';
+$string['wstat_active']          = 'Active';
+$string['wstat_reversed']        = 'Reversed';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — manage_withdrawals.php (admin withdrawals + Flex reversal).
+// ─────────────────────────────────────────────────────────────────────────────
+$string['wd_col_teacher']        = 'Teacher';
+$string['wd_col_methodaccount']  = 'Method / account';
+$string['wd_reversal_title']     = 'Reverse a completed lesson\'s Flex (US-FN-1-5)';
+$string['wd_reversal_help']      = 'Returns one consumed Flex to the student and reverses the teacher/platform earning. A reason is required.';
+$string['wd_lesson_id']          = 'Lesson ID';
+$string['wd_reason']             = 'Reason';
+$string['wd_return_flex']        = 'Return Flex';
+$string['wd_updated']            = 'Updated.';
+$string['wd_approve']            = 'Approve';
+$string['wd_reject']             = 'Reject';
+$string['wd_markpaid']           = 'Mark paid';
+$string['wd_reject_title']       = 'Reject withdrawal';
+$string['wd_reason_required_field'] = 'Reason (required)';
+$string['wd_markpaid_title']     = 'Mark as paid';
+$string['wd_payref_optional']    = 'Payment reference (optional)';
+$string['wd_reason_required']    = 'Reason required.';
+$string['wd_card_current']       = 'Platform current money';
+$string['wd_card_undistributed'] = 'Undistributed (unused Flex)';
+$string['wd_card_teachers']      = 'Teachers\' money (unpaid)';
+$string['wd_card_platform']      = 'Platform earnings';
+$string['wd_none']               = 'No withdrawal requests.';
+$string['wd_enter_lesson']       = 'Enter a lesson ID.';
+$string['wd_flex_returned']      = 'Flex returned and earning reversed.';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — manage_reports.php (admin reports, 4 tabs).
+// ─────────────────────────────────────────────────────────────────────────────
+// Tabs.
+$string['rp_tab_lessons']     = 'Lessons & attendance';
+$string['rp_tab_platform']    = 'Platform earnings';
+$string['rp_tab_packages']    = 'Packages & Flex';
+$string['rp_tab_studentflex'] = 'Student Flex';
+// Filters.
+$string['rp_f_status']        = 'Status';
+$string['rp_f_teacherid']     = 'Teacher ID';
+$string['rp_f_studentid']     = 'Student ID';
+$string['rp_f_from']          = 'From (unix)';
+$string['rp_f_to']            = 'To (unix)';
+$string['rp_f_earnstatus']    = 'Earning status';
+$string['rp_f_source']        = 'Source';
+$string['rp_f_studentid_req'] = 'Student ID (required)';
+$string['rp_run']             = 'Run';
+// Column headers.
+$string['rp_c_id']         = 'ID';
+$string['rp_c_student']    = 'Student';
+$string['rp_c_teacher']    = 'Teacher';
+$string['rp_c_subject']    = 'Subject';
+$string['rp_c_status']     = 'Status';
+$string['rp_c_confirmed']  = 'Confirmed';
+$string['rp_c_flex']       = 'Flex';
+$string['rp_c_lesson']     = 'Lesson';
+$string['rp_c_date']       = 'Date';
+$string['rp_c_flexvalue']  = 'Flex value';
+$string['rp_c_platpct']    = 'Plat %';
+$string['rp_c_platform']   = 'Platform';
+$string['rp_c_package']    = 'Package';
+$string['rp_c_source']     = 'Source';
+$string['rp_c_price']      = 'Price';
+$string['rp_c_rem']        = 'Rem';
+$string['rp_c_resv']       = 'Resv';
+$string['rp_c_used']       = 'Used';
+$string['rp_c_type']       = 'Type';
+$string['rp_c_amount']     = 'Amount';
+$string['rp_c_before']     = 'Before';
+$string['rp_c_after']      = 'After';
+$string['rp_c_by']         = 'By';
+$string['rp_c_reason']     = 'Reason';
+$string['rp_c_timeline']   = 'Timeline';
+// Student-Flex summary chips.
+$string['rp_s_available']  = 'Available';
+$string['rp_s_reserved']   = 'Reserved';
+$string['rp_s_consumed']   = 'Consumed';
+$string['rp_s_package']    = 'Package';
+$string['rp_s_expires']    = 'Expires';
+// Timeline.
+$string['rp_timeline_title'] = 'Action timeline';
+$string['rp_close']          = 'Close';
+$string['rp_tl_num']         = '#';
+$string['rp_tl_action']      = 'Action';
+$string['rp_tl_by']          = 'By';
+$string['rp_tl_role']        = 'Role';
+$string['rp_tl_time']        = 'Time';
+$string['rp_tl_title_full']  = 'Action timeline — lesson #{$a->id} ({$a->subject}, {$a->student} ↔ {$a->teacher})';
+$string['rp_tl_joinedroom']  = 'Teacher joined room';
+$string['rp_tl_started']     = 'Lesson started';
+$string['rp_tl_ended']       = 'Lesson ended';
+$string['rp_tl_none']        = 'No recorded actions.';
+// Messages.
+$string['rp_no_data']            = 'No data.';
+$string['rp_enter_student']      = 'Enter a student ID.';
+$string['rp_enter_student_run']  = 'Enter a student ID and click Run.';
+// Audit-trail action labels.
+$string['rp_act_requested']               = 'Student requested';
+$string['rp_act_teacher_accepted']        = 'Teacher accepted';
+$string['rp_act_teacher_rejected']        = 'Teacher rejected';
+$string['rp_act_teacher_suggested']       = 'Teacher suggested time';
+$string['rp_act_student_accepted']        = 'Student accepted';
+$string['rp_act_student_rejected']        = 'Student rejected';
+$string['rp_act_student_suggested']       = 'Student suggested time';
+$string['rp_act_started']                 = 'Teacher started lesson (room created)';
+$string['rp_act_teacher_joined']          = 'Teacher joined meeting';
+$string['rp_act_student_joined']          = 'Student joined meeting';
+$string['rp_act_completed']               = 'Lesson completed';
+$string['rp_act_student_absent_reported'] = 'Student absence reported';
+$string['rp_act_teacher_absent_reported'] = 'Teacher absence reported';
+$string['rp_act_request_cancelled']       = 'Request withdrawn';
+$string['rp_act_cancelled_by_student']    = 'Cancelled by student';
+$string['rp_act_cancelled_by_teacher']    = 'Cancelled by teacher';
+$string['rp_act_time_update_requested']   = 'Time-update requested';
+$string['rp_act_time_update_accepted']    = 'Time-update accepted';
+$string['rp_act_time_update_rejected']    = 'Time-update rejected';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — my_lessons.php (teacher's lessons; reuses many lesson keys).
+// ─────────────────────────────────────────────────────────────────────────────
+$string['mlf_waiting_student']        = 'Waiting for student';
+$string['mlf_student_absent']         = 'Student absent';
+$string['mlf_cancelled']              = 'Cancelled (student)';
+$string['ml_act_start']               = 'Start';
+$string['ml_act_join']                = 'Join meeting';
+$string['ml_act_complete']            = 'Complete';
+$string['ml_act_report_student_absent'] = 'Student absent';
+$string['ml_act_cancel']              = 'Cancel';
+$string['ml_act_respond']             = 'Respond to reschedule';
+$string['ml_report_absent_title']     = 'Report student absent';
+$string['ml_report_absent_text']      = 'Confirm the student did not attend? The Flex will be consumed.';
+$string['ml_reject_title']            = 'Reject request';
+$string['ml_complete_title']          = 'Complete lesson';
+$string['ml_note_optional']           = 'Note (optional)';
+$string['ml_cancel_text']             = 'The reserved Flex will be returned to the student.';
+$string['ml_card_title']              = '{$a->subject} · with {$a->student}';
+$string['ml_student_num']             = 'student #{$a}';
+$string['ml_note']                    = 'Note: {$a}';
+$string['ml_the_student']             = 'The student';
+$string['ml_no_lessons']              = 'No lessons to show.';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — manage_subscriptions.php (admin subscription plans + user subs).
+// ─────────────────────────────────────────────────────────────────────────────
+$string['sub_plans_heading']       = 'Subscription plans';
+$string['sub_new']                 = 'New subscription';
+$string['sub_col_days']            = 'Days';
+$string['sub_field_desc']          = 'Description (optional)';
+$string['sub_field_days']          = 'Number of days';
+$string['sub_courseavail_heading'] = 'Course subscription availability';
+$string['sub_courseavail_desc']    = 'Choose courses and append them to a specific subscription.';
+$string['sub_target']              = 'Target Subscription:';
+$string['sub_select_placeholder']  = 'Select a subscription...';
+$string['sub_save_courses']        = 'Save courses to subscription';
+$string['sub_usersubs_heading']    = 'User Subscriptions';
+$string['sub_usersubs_desc']       = 'Manage active and expired user subscriptions.';
+$string['sub_unsub_title']         = 'Unsubscribe user';
+$string['sub_unsub_refund']        = 'Refund payment to student';
+$string['sub_unsubscribe']         = 'Unsubscribe';
+$string['sub_none_admin']          = 'No subscriptions yet.';
+$string['sub_inactive']            = 'Inactive';
+$string['sub_edit_titled']         = 'Edit subscription #{$a}';
+$string['sub_updated']             = 'Subscription updated.';
+$string['sub_created']             = 'Subscription created.';
+$string['sub_activated']           = 'Activated.';
+$string['sub_deactivated']         = 'Deactivated.';
+$string['sub_deleted']             = 'Deleted.';
+$string['sub_confirm_delete']      = 'Delete this subscription? Only possible if it was never purchased. This cannot be undone.';
+$string['sub_no_categories']       = 'No categories with courses found.';
+$string['sub_select_target']       = 'Please select a target subscription.';
+$string['sub_courses_assigned']    = 'Courses assigned successfully.';
+$string['sub_no_usersubs']         = 'No user subscriptions found.';
+$string['sub_unsub_confirm']       = 'Unsubscribe <strong>{$a->user}</strong> from <strong>{$a->name}</strong>{$a->price}? This cannot be undone.';
+$string['sub_unsub_success']       = 'User unsubscribed successfully.';

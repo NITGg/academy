@@ -315,6 +315,19 @@ class teacher_manager {
             'id, dayofweek, starttime, endtime'));
         $years = array_values($DB->get_records('academy_teacher_years',
             array('teacherid' => $teacherid), 'year ASC', 'id, year'));
+            
+        $busy_sql = "SELECT id, requested_time, confirmed_time, duration 
+                       FROM {academy_lessons}
+                      WHERE teacherid = :tid 
+                        AND status IN ('pending', 'waiting_student', 'waiting_teacher', 'confirmed', 'in_progress')";
+        $busy_rows = $DB->get_records_sql($busy_sql, array('tid' => $teacherid));
+        $busy_times = array();
+        foreach ($busy_rows as $br) {
+            $start = (int)$br->confirmed_time > 0 ? (int)$br->confirmed_time : (int)$br->requested_time;
+            $end = $start + (int)$br->duration * MINSECS;
+            $busy_times[] = array($start, $end);
+        }
+        
         return array(
             'userid'     => (int)$teacherid,
             'fullname'   => $user ? trim($user->firstname . ' ' . $user->lastname) : '',
@@ -335,6 +348,7 @@ class teacher_manager {
                 return array('dayofweek' => (int)$h->dayofweek,
                     'starttime' => $h->starttime, 'endtime' => $h->endtime);
             }, $hours),
+            'busy_times' => $busy_times,
         );
     }
 

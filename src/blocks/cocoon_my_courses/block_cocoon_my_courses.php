@@ -140,11 +140,16 @@ class block_cocoon_my_courses extends block_base {
 <div class="row">
 ';
 
-
-
-
-        $chelper = new coursecat_helper();
-        foreach ($courses as $course) {
+        if ($total_courses == 0) {
+            $this->content->text .= '
+            <div class="col-12 text-center" style="padding: 40px 15px; background: #f8f9fa; border-radius: 10px; border: 1px dashed #ced4da; margin-bottom: 30px; width: 100%;">
+                <svg viewBox="0 0 24 24" style="width: 60px; height: 60px; fill: #6c757d; margin-bottom: 15px;"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72l5 2.73 5-2.73v3.72z"/></svg>
+                <h4 style="color: #495057; font-weight: 600; margin-bottom: 10px;">No courses yet</h4>
+                <p style="color: #6c757d; margin-bottom: 0;">You are not enrolled in any courses at the moment.</p>
+            </div>';
+        } else {
+            $chelper = new coursecat_helper();
+            foreach ($courses as $course) {
           if ($DB->record_exists('course', array('id' => $course->id))) {
 
             $ccnCourseHandler = new ccnCourseHandler();
@@ -234,7 +239,7 @@ class block_cocoon_my_courses extends block_base {
             ';
           }
         }
-
+        }
 
         $this->content->text .= '
         		</div></div></div></div></section>

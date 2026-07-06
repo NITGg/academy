@@ -47,6 +47,15 @@ $string['msg_package_deleted']     = 'تم حذف الباقة.';
 $string['msg_package_unassigned']  = 'تم إلغاء تعيين الباقة بنجاح.';
 $string['msg_package_purchased']   = 'تم شراء الباقة.';
 
+// API success messages — subscriptions.
+$string['msg_subscription_created']     = 'تم إنشاء الاشتراك.';
+$string['msg_subscription_updated']     = 'تم تحديث الاشتراك.';
+$string['msg_subscription_activated']   = 'تم تفعيل الاشتراك.';
+$string['msg_subscription_deactivated'] = 'تم تعطيل الاشتراك.';
+$string['msg_subscription_deleted']     = 'تم حذف الاشتراك.';
+$string['msg_subscription_courses_set'] = 'تم تعيين المقررات بنجاح.';
+$string['msg_user_unsubscribed']        = 'تم إلغاء اشتراك المستخدم بنجاح.';
+
 // ── Generic / shared UI ──
 $string['ui_refresh']      = 'تحديث';
 $string['ui_loading']      = 'جارٍ التحميل…';
@@ -156,3 +165,487 @@ $string['flx_purchase']     = 'مشترى';
 $string['flx_assign']       = 'مُعيَّن';
 $string['flx_expire']       = 'منتهٍ';
 $string['flx_adjust']       = 'مُعدَّل';
+
+// ── student.php — Book / My lessons / Subscriptions tabs ──
+
+// Shared UI extras.
+$string['ui_confirm']  = 'تأكيد';
+$string['ui_search']   = 'بحث';
+
+// Book a lesson tab.
+$string['st_search_placeholder'] = 'ابحث حسب المادة…';
+$string['st_teacher_num']        = 'معلّم رقم {$a}';
+$string['st_request_lesson']     = 'طلب درس';
+$string['st_no_subjects']        = 'لم يُدرج هذا المعلّم أي مواد بعد.';
+$string['st_request_with']       = 'طلب درس مع {$a}';
+$string['st_send_request']       = 'إرسال الطلب';
+$string['st_field_subject']      = 'المادة';
+$string['st_field_datetime']     = 'التاريخ والوقت المفضّل';
+$string['st_field_note_req']     = 'ملاحظة للمعلّم (مطلوبة)';
+$string['st_note_placeholder']   = 'بماذا تحتاج المساعدة؟';
+$string['st_pick_valid_time']    = 'يرجى اختيار تاريخ ووقت صحيحين.';
+$string['st_note_required']      = 'الملاحظة مطلوبة لطلب الدرس.';
+$string['st_lesson_requested']   = 'تم إرسال طلب الدرس. تابعه في "دروسي".';
+$string['st_no_teachers']        = 'لا يوجد معلّمون.';
+$string['st_slot_pickday']       = 'اختر يومًا';
+$string['st_slot_picktime']      = 'اختر وقتًا';
+$string['st_slot_noavail']       = 'لا تتوفر أوقات لهذا المعلّم في الأيام القادمة.';
+$string['st_slot_nodayslots']    = 'لا توجد أوقات متاحة في هذا اليوم.';
+
+// My lessons tab — filter dropdown.
+$string['st_status']            = 'الحالة';
+$string['lf_all']               = 'الكل';
+$string['lf_pending']           = 'قيد الانتظار';
+$string['lf_waiting_student']   = 'بانتظار ردّي';
+$string['lf_waiting_teacher']   = 'بانتظار المعلّم';
+$string['lf_confirmed']         = 'مؤكّد';
+$string['lf_in_progress']       = 'جارٍ';
+$string['lf_completed']         = 'مكتمل';
+$string['lf_student_absent']    = 'كنت غائبًا';
+$string['lf_teacher_absent']    = 'المعلّم غائب';
+$string['lf_cancelled']         = 'ملغى';
+$string['lf_cancelled_teacher'] = 'ملغى (المعلّم)';
+$string['lf_rejected']          = 'مرفوض';
+
+// My lessons tab — status badge labels.
+$string['lstat_pending']           = 'بانتظار ردّ المعلّم';
+$string['lstat_waiting_student']   = 'بانتظار ردّك';
+$string['lstat_waiting_teacher']   = 'بانتظار المعلّم';
+$string['lstat_confirmed']         = 'مؤكّد';
+$string['lstat_in_progress']       = 'جارٍ';
+$string['lstat_completed']         = 'مكتمل';
+$string['lstat_student_absent']    = 'كنت غائبًا';
+$string['lstat_teacher_absent']    = 'المعلّم غائب';
+$string['lstat_cancelled']         = 'ملغى';
+$string['lstat_cancelled_teacher'] = 'ألغاه المعلّم';
+$string['lstat_rejected']          = 'مرفوض';
+
+// My lessons tab — action button labels.
+$string['lact_accept']             = 'قبول';
+$string['lact_reject']             = 'رفض';
+$string['lact_suggest']            = 'اقتراح وقت';
+$string['lact_cancel_request']     = 'سحب الطلب';
+$string['lact_cancel']             = 'إلغاء الدرس';
+$string['lact_report_teacher_absent'] = 'الإبلاغ عن غياب المعلّم';
+$string['lact_request_time_update'] = 'إعادة جدولة';
+$string['lact_join']               = 'الانضمام للدرس';
+$string['lact_accept_newtime']     = 'قبول الوقت الجديد';
+$string['lact_reject_newtime']     = 'رفض الوقت الجديد';
+
+// My lessons tab — action dialogs.
+$string['la_done']              = 'تم.';
+$string['la_reason_optional']   = 'السبب (اختياري)';
+$string['la_pick_valid_time']   = 'اختر وقتًا صحيحًا.';
+$string['la_reject_title']      = 'رفض الوقت المقترح';
+$string['la_suggest_title']     = 'اقتراح وقت آخر';
+$string['la_suggested_time']    = 'التاريخ والوقت المقترح';
+$string['la_withdraw_title']    = 'سحب الطلب';
+$string['la_withdraw_text']     = 'سحب طلب الدرس هذا؟ لم يُحجز أي فلكس بعد.';
+$string['la_cancel_title']      = 'إلغاء الدرس';
+$string['la_cancel_text']       = 'الإلغاء قبل الموعد النهائي يعيد الفلكس؛ والإلغاء المتأخر يستهلكه.';
+$string['la_report_absent_title'] = 'الإبلاغ عن غياب المعلّم';
+$string['la_report_absent_text']  = 'تأكيد أن المعلّم لم يحضر؟ سيُعاد الفلكس الخاص بك.';
+$string['la_newtime_title']     = 'طلب وقت جديد';
+$string['la_newtime_label']     = 'التاريخ والوقت الجديد';
+$string['la_room_not_ready']    = 'غرفة الاجتماع غير جاهزة بعد.';
+
+// My lessons tab — lesson card.
+$string['lc_teacher_num']    = 'معلّم رقم {$a}';
+$string['lc_title']          = '{$a->subject} · مع {$a->teacher}';
+$string['lc_confirmed']      = 'مؤكّد: {$a}';
+$string['lc_requested']      = 'مطلوب: {$a}';
+$string['lc_duration']       = '{$a} دقيقة';
+$string['lc_your_note']      = 'ملاحظتك: {$a}';
+$string['lc_reject_reason']  = 'سبب الرفض: {$a}';
+$string['lc_cancel_reason']  = 'سبب الإلغاء: {$a}';
+$string['lc_flex']           = 'فلكس: {$a}';
+$string['lc_you']            = 'أنت';
+$string['lc_the_teacher']    = 'المعلّم';
+$string['lc_resched_moved']  = 'طلب {$a->who} نقل هذا الدرس إلى <b>{$a->time}</b>.';
+$string['st_no_lessons']     = 'لا توجد دروس بعد — احجز درسًا من تبويب "حجز درس".';
+
+// Subscriptions tabs — headings + table headers.
+$string['sub_available_heading'] = 'الاشتراكات المتاحة';
+$string['sub_my_heading']        = 'اشتراكاتي';
+$string['sub_payments_heading']  = 'مدفوعات الاشتراكات';
+$string['sub_col_subscription']  = 'الاشتراك';
+$string['sub_col_daysleft']      = 'الأيام المتبقية';
+$string['sub_col_courses']       = 'المقررات';
+
+// Subscriptions tabs — status badges.
+$string['sstat_active']         = 'نشط';
+$string['sstat_expired']        = 'منتهٍ';
+$string['sstat_cancelled']      = 'ملغى';
+$string['sstat_pending']        = 'قيد الانتظار';
+$string['sstat_payment_failed'] = 'فشل الدفع';
+
+// Subscriptions tabs — cards + dialogs.
+$string['sub_days']           = '{$a} يوم';
+$string['sub_courses_label']  = 'المقررات:';
+$string['sub_already_active'] = 'لديك بالفعل اشتراك نشط.';
+$string['sub_buy']            = 'شراء الاشتراك';
+$string['sub_buy_title']      = 'شراء "{$a}"';
+$string['sub_buy_text']       = 'ستحصل على {$a->days} يومًا من الوصول للمقررات مقابل {$a->price} عبر بوابة Kashier الآمنة.';
+$string['sub_none_available'] = 'لا توجد اشتراكات متاحة حاليًا.';
+$string['sub_none_mine']      = 'لا توجد اشتراكات بعد.';
+$string['sub_no_payments']    = 'لا توجد مدفوعات بعد.';
+
+// ── manage_settings.php (admin lesson settings) ──
+$string['set_min_booking']          = 'الحد الأدنى لوقت الحجز (دقائق)';
+$string['set_cancel_deadline']      = 'الموعد النهائي لإلغاء الطالب (دقائق)';
+$string['set_update_deadline']      = 'الموعد النهائي لتعديل وقت الدرس (دقائق)';
+$string['set_start_allowed']        = 'الوقت المسموح لبدء الدرس (دقائق)';
+$string['set_complete_allowed']     = 'أقل عدد دقائق بعد البدء قبل الإكمال';
+$string['set_absence_report']       = 'وقت الإبلاغ عن الغياب (دقائق)';
+$string['set_expiry_reminder']      = 'تذكير انتهاء الباقة (أيام قبل الانتهاء)';
+$string['set_expiry_reminder_help'] = 'إشعار الطالب قبل انتهاء باقته بهذا العدد من الأيام. القيمة 0 تعطّل التذكير.';
+$string['set_teacher_percent']      = 'نسبة أرباح المعلّم %';
+$string['set_platform_percent']     = 'نسبة أرباح المنصة %';
+$string['set_percent_help']         = 'يجب أن يكون مجموع نسبة المعلّم + نسبة المنصة 100.';
+$string['set_save']                 = 'حفظ التغييرات';
+$string['set_saved']                = 'تم الحفظ.';
+
+// ── assign_package.php (admin: assign package to student) ──
+$string['ap_student_label']       = 'معرّف المستخدم (الطالب)';
+$string['ap_student_help']        = 'معرّف مستخدم Moodle الرقمي للطالب.';
+$string['ap_student_placeholder'] = 'مثال: 4770';
+$string['ap_package_label']       = 'الباقة';
+$string['ap_amount_label']        = 'المبلغ المدفوع (خارج المنصة)';
+$string['ap_amount_placeholder']  = 'يُحدَّد افتراضيًا بسعر الباقة';
+$string['ap_method_label']        = 'طريقة الدفع';
+$string['ap_method_offline']      = 'نقدًا / خارج المنصة';
+$string['ap_method_bank']         = 'تحويل بنكي';
+$string['ap_method_wallet']       = 'محفظة إلكترونية';
+$string['ap_reference_label']     = 'مرجع الدفع';
+$string['ap_reference_placeholder'] = 'رقم الإيصال / التحويل';
+$string['ap_note_label']          = 'ملاحظة (اختياري)';
+$string['ap_submit']              = 'تعيين الباقة';
+$string['ap_pkg_option']          = '{$a->name} — {$a->flex} فلكس / {$a->price}';
+$string['ap_no_packages']         = 'لا توجد باقات نشطة. أنشئ واحدة أولًا.';
+$string['ap_enter_student']       = 'أدخل معرّف مستخدم الطالب.';
+$string['ap_assigned']            = 'تم تعيين "{$a->name}" ({$a->flex} فلكس) إلى {$a->student}.';
+
+// ── teacher_profile.php (teacher's own profile editor) ──
+$string['tp_headline']      = 'العنوان الوظيفي';
+$string['tp_headline_ph']   = 'مثال: معلّم رياضيات أول';
+$string['tp_bio']           = 'نبذة عني';
+$string['tp_experience']    = 'سنوات الخبرة';
+$string['tp_available']     = 'متاح للدروس';
+$string['tp_subjects']      = 'المواد';
+$string['tp_add_subject']   = '+ إضافة مادة';
+$string['tp_working_hours'] = 'ساعات العمل';
+$string['tp_add_slot']      = '+ إضافة فترة زمنية';
+$string['tp_subject_ph']    = 'المادة (مثال: رياضيات)';
+$string['tp_to']            = 'إلى';
+$string['tp_saved']         = 'تم حفظ الملف الشخصي.';
+$string['tp_day_sun']       = 'الأحد';
+$string['tp_day_mon']       = 'الاثنين';
+$string['tp_day_tue']       = 'الثلاثاء';
+$string['tp_day_wed']       = 'الأربعاء';
+$string['tp_day_thu']       = 'الخميس';
+$string['tp_day_fri']       = 'الجمعة';
+$string['tp_day_sat']       = 'السبت';
+
+// ── wallet.php (teacher earnings / withdrawals) ──
+$string['ui_export_csv']         = 'تصدير CSV';
+$string['ui_request']            = 'طلب';
+$string['w_withdraw']            = 'سحب الأرباح';
+$string['w_withdrawals_heading'] = 'عمليات السحب';
+$string['w_earnings_heading']    = 'الأرباح';
+$string['w_col_noteref']         = 'ملاحظة / مرجع';
+$string['w_col_student']         = 'الطالب';
+$string['w_col_lessondate']      = 'تاريخ الدرس';
+$string['w_col_flexvalue']       = 'قيمة الفلكس';
+$string['w_col_yourshare']       = 'نصيبك';
+$string['w_amount']              = 'المبلغ';
+$string['w_method']              = 'الطريقة';
+$string['w_method_cash']         = 'نقدًا';
+$string['w_account']             = 'الحساب / بيانات الدفع';
+$string['w_account_ph']          = 'IBAN / هاتف / ملاحظة';
+$string['w_available_balance']   = 'الرصيد المتاح';
+$string['w_total_earned']        = 'إجمالي المكتسب';
+$string['w_pending_withdrawals'] = 'عمليات سحب معلّقة';
+$string['w_total_withdrawn']     = 'إجمالي المسحوب';
+$string['w_no_withdrawals']      = 'لا توجد عمليات سحب بعد.';
+$string['w_no_earnings']         = 'لا توجد أرباح بعد.';
+$string['w_ref']                 = 'مرجع: {$a}';
+$string['w_requested']           = 'تم طلب السحب.';
+$string['w_share']               = '{$a->amount} ({$a->percent}%)';
+$string['wstat_pending']         = 'قيد الانتظار';
+$string['wstat_approved']        = 'موافق عليه';
+$string['wstat_paid']            = 'مدفوع';
+$string['wstat_rejected']        = 'مرفوض';
+$string['wstat_active']          = 'نشط';
+$string['wstat_reversed']        = 'معكوس';
+
+// ── manage_withdrawals.php (admin withdrawals + Flex reversal) ──
+$string['wd_col_teacher']        = 'المعلّم';
+$string['wd_col_methodaccount']  = 'الطريقة / الحساب';
+$string['wd_reversal_title']     = 'عكس فلكس درس مكتمل (US-FN-1-5)';
+$string['wd_reversal_help']      = 'يعيد فلكس واحدًا مستهلكًا إلى الطالب ويعكس أرباح المعلّم/المنصة. السبب مطلوب.';
+$string['wd_lesson_id']          = 'معرّف الدرس';
+$string['wd_reason']             = 'السبب';
+$string['wd_return_flex']        = 'إعادة الفلكس';
+$string['wd_updated']            = 'تم التحديث.';
+$string['wd_approve']            = 'موافقة';
+$string['wd_reject']             = 'رفض';
+$string['wd_markpaid']           = 'تحديد كمدفوع';
+$string['wd_reject_title']       = 'رفض السحب';
+$string['wd_reason_required_field'] = 'السبب (مطلوب)';
+$string['wd_markpaid_title']     = 'تحديد كمدفوع';
+$string['wd_payref_optional']    = 'مرجع الدفع (اختياري)';
+$string['wd_reason_required']    = 'السبب مطلوب.';
+$string['wd_card_current']       = 'الرصيد الحالي للمنصة';
+$string['wd_card_undistributed'] = 'غير موزّع (فلكس غير مستخدم)';
+$string['wd_card_teachers']      = 'أموال المعلّمين (غير مدفوعة)';
+$string['wd_card_platform']      = 'أرباح المنصة';
+$string['wd_none']               = 'لا توجد طلبات سحب.';
+$string['wd_enter_lesson']       = 'أدخل معرّف الدرس.';
+$string['wd_flex_returned']      = 'تمت إعادة الفلكس وعكس الأرباح.';
+
+// ── manage_reports.php (admin reports, 4 tabs) ──
+// Tabs.
+$string['rp_tab_lessons']     = 'الدروس والحضور';
+$string['rp_tab_platform']    = 'أرباح المنصة';
+$string['rp_tab_packages']    = 'الباقات والفلكس';
+$string['rp_tab_studentflex'] = 'فلكس الطالب';
+// Filters.
+$string['rp_f_status']        = 'الحالة';
+$string['rp_f_teacherid']     = 'معرّف المعلّم';
+$string['rp_f_studentid']     = 'معرّف الطالب';
+$string['rp_f_from']          = 'من (unix)';
+$string['rp_f_to']            = 'إلى (unix)';
+$string['rp_f_earnstatus']    = 'حالة الربح';
+$string['rp_f_source']        = 'المصدر';
+$string['rp_f_studentid_req'] = 'معرّف الطالب (مطلوب)';
+$string['rp_run']             = 'تشغيل';
+// Column headers.
+$string['rp_c_id']         = 'المعرّف';
+$string['rp_c_student']    = 'الطالب';
+$string['rp_c_teacher']    = 'المعلّم';
+$string['rp_c_subject']    = 'المادة';
+$string['rp_c_status']     = 'الحالة';
+$string['rp_c_confirmed']  = 'مؤكّد';
+$string['rp_c_flex']       = 'الفلكس';
+$string['rp_c_lesson']     = 'الدرس';
+$string['rp_c_date']       = 'التاريخ';
+$string['rp_c_flexvalue']  = 'قيمة الفلكس';
+$string['rp_c_platpct']    = 'نسبة المنصة %';
+$string['rp_c_platform']   = 'المنصة';
+$string['rp_c_package']    = 'الباقة';
+$string['rp_c_source']     = 'المصدر';
+$string['rp_c_price']      = 'السعر';
+$string['rp_c_rem']        = 'متبقٍ';
+$string['rp_c_resv']       = 'محجوز';
+$string['rp_c_used']       = 'مستخدم';
+$string['rp_c_type']       = 'النوع';
+$string['rp_c_amount']     = 'المبلغ';
+$string['rp_c_before']     = 'قبل';
+$string['rp_c_after']      = 'بعد';
+$string['rp_c_by']         = 'بواسطة';
+$string['rp_c_reason']     = 'السبب';
+$string['rp_c_timeline']   = 'المسار الزمني';
+// Student-Flex summary chips.
+$string['rp_s_available']  = 'متاح';
+$string['rp_s_reserved']   = 'محجوز';
+$string['rp_s_consumed']   = 'مستهلك';
+$string['rp_s_package']    = 'الباقة';
+$string['rp_s_expires']    = 'تنتهي';
+// Timeline.
+$string['rp_timeline_title'] = 'المسار الزمني للإجراءات';
+$string['rp_close']          = 'إغلاق';
+$string['rp_tl_num']         = '#';
+$string['rp_tl_action']      = 'الإجراء';
+$string['rp_tl_by']          = 'بواسطة';
+$string['rp_tl_role']        = 'الدور';
+$string['rp_tl_time']        = 'الوقت';
+$string['rp_tl_title_full']  = 'المسار الزمني — الدرس رقم {$a->id} ({$a->subject}، {$a->student} ↔ {$a->teacher})';
+$string['rp_tl_joinedroom']  = 'انضم المعلّم للغرفة';
+$string['rp_tl_started']     = 'بدأ الدرس';
+$string['rp_tl_ended']       = 'انتهى الدرس';
+$string['rp_tl_none']        = 'لا توجد إجراءات مسجّلة.';
+// Messages.
+$string['rp_no_data']            = 'لا توجد بيانات.';
+$string['rp_enter_student']      = 'أدخل معرّف الطالب.';
+$string['rp_enter_student_run']  = 'أدخل معرّف الطالب ثم اضغط تشغيل.';
+// Audit-trail action labels.
+$string['rp_act_requested']               = 'طلب الطالب';
+$string['rp_act_teacher_accepted']        = 'قبل المعلّم';
+$string['rp_act_teacher_rejected']        = 'رفض المعلّم';
+$string['rp_act_teacher_suggested']       = 'اقترح المعلّم وقتًا';
+$string['rp_act_student_accepted']        = 'قبل الطالب';
+$string['rp_act_student_rejected']        = 'رفض الطالب';
+$string['rp_act_student_suggested']       = 'اقترح الطالب وقتًا';
+$string['rp_act_started']                 = 'بدأ المعلّم الدرس (تم إنشاء الغرفة)';
+$string['rp_act_teacher_joined']          = 'انضم المعلّم للاجتماع';
+$string['rp_act_student_joined']          = 'انضم الطالب للاجتماع';
+$string['rp_act_completed']               = 'اكتمل الدرس';
+$string['rp_act_student_absent_reported'] = 'تم الإبلاغ عن غياب الطالب';
+$string['rp_act_teacher_absent_reported'] = 'تم الإبلاغ عن غياب المعلّم';
+$string['rp_act_request_cancelled']       = 'تم سحب الطلب';
+$string['rp_act_cancelled_by_student']    = 'ألغاه الطالب';
+$string['rp_act_cancelled_by_teacher']    = 'ألغاه المعلّم';
+$string['rp_act_time_update_requested']   = 'طُلب تعديل الوقت';
+$string['rp_act_time_update_accepted']    = 'قُبل تعديل الوقت';
+$string['rp_act_time_update_rejected']    = 'رُفض تعديل الوقت';
+
+// ── my_lessons.php (teacher's lessons; reuses many lesson keys) ──
+$string['mlf_waiting_student']        = 'بانتظار الطالب';
+$string['mlf_student_absent']         = 'الطالب غائب';
+$string['mlf_cancelled']              = 'ملغى (الطالب)';
+$string['ml_act_start']               = 'بدء';
+$string['ml_act_join']                = 'الانضمام للاجتماع';
+$string['ml_act_complete']            = 'إكمال';
+$string['ml_act_report_student_absent'] = 'الطالب غائب';
+$string['ml_act_cancel']              = 'إلغاء';
+$string['ml_act_respond']             = 'الرد على إعادة الجدولة';
+$string['ml_report_absent_title']     = 'الإبلاغ عن غياب الطالب';
+$string['ml_report_absent_text']      = 'تأكيد أن الطالب لم يحضر؟ سيُستهلك الفلكس.';
+$string['ml_reject_title']            = 'رفض الطلب';
+$string['ml_complete_title']          = 'إكمال الدرس';
+$string['ml_note_optional']           = 'ملاحظة (اختياري)';
+$string['ml_cancel_text']             = 'سيُعاد الفلكس المحجوز إلى الطالب.';
+$string['ml_card_title']              = '{$a->subject} · مع {$a->student}';
+$string['ml_student_num']             = 'طالب رقم {$a}';
+$string['ml_note']                    = 'ملاحظة: {$a}';
+$string['ml_the_student']             = 'الطالب';
+$string['ml_no_lessons']              = 'لا توجد دروس لعرضها.';
+
+// ── manage_subscriptions.php (admin subscription plans + user subs) ──
+$string['sub_plans_heading']       = 'خطط الاشتراك';
+$string['sub_new']                 = 'اشتراك جديد';
+$string['sub_col_days']            = 'الأيام';
+$string['sub_field_desc']          = 'الوصف (اختياري)';
+$string['sub_field_days']          = 'عدد الأيام';
+$string['sub_courseavail_heading'] = 'إتاحة المقررات للاشتراك';
+$string['sub_courseavail_desc']    = 'اختر المقررات وأضِفها إلى اشتراك محدد.';
+$string['sub_target']              = 'الاشتراك المستهدف:';
+$string['sub_select_placeholder']  = 'اختر اشتراكًا...';
+$string['sub_save_courses']        = 'حفظ المقررات في الاشتراك';
+$string['sub_usersubs_heading']    = 'اشتراكات المستخدمين';
+$string['sub_usersubs_desc']       = 'إدارة اشتراكات المستخدمين النشطة والمنتهية.';
+$string['sub_unsub_title']         = 'إلغاء اشتراك المستخدم';
+$string['sub_unsub_refund']        = 'استرداد المبلغ للطالب';
+$string['sub_unsubscribe']         = 'إلغاء الاشتراك';
+$string['sub_none_admin']          = 'لا توجد اشتراكات بعد.';
+$string['sub_inactive']            = 'غير نشط';
+$string['sub_edit_titled']         = 'تعديل الاشتراك رقم {$a}';
+$string['sub_updated']             = 'تم تحديث الاشتراك.';
+$string['sub_created']             = 'تم إنشاء الاشتراك.';
+$string['sub_activated']           = 'تم التفعيل.';
+$string['sub_deactivated']         = 'تم التعطيل.';
+$string['sub_deleted']             = 'تم الحذف.';
+$string['sub_confirm_delete']      = 'حذف هذا الاشتراك؟ ممكن فقط إن لم يُشترَ من قبل. لا يمكن التراجع عن ذلك.';
+$string['sub_no_categories']       = 'لا توجد فئات تحتوي على مقررات.';
+$string['sub_select_target']       = 'يرجى اختيار الاشتراك المستهدف.';
+$string['sub_courses_assigned']    = 'تم تعيين المقررات بنجاح.';
+$string['sub_no_usersubs']         = 'لا توجد اشتراكات مستخدمين.';
+$string['sub_unsub_confirm']       = 'إلغاء اشتراك <strong>{$a->user}</strong> من <strong>{$a->name}</strong>{$a->price}؟ لا يمكن التراجع عن ذلك.';
+$string['sub_unsub_success']       = 'تم إلغاء اشتراك المستخدم بنجاح.';
+$string['err_timeconflict']        = '??? ?????? ??? ????? ?? ??? ?????.';
+
+// ── Page titles / headings / capabilities ──
+$string['academy:managepackages']      = 'إدارة باقات الدروس (فلكس)';
+$string['academy:managesubscriptions'] = 'إدارة اشتراكات المقررات';
+$string['managesubscriptions'] = 'إدارة الاشتراكات';
+$string['managesettings']      = 'إعدادات الدروس';
+$string['managewithdrawals']   = 'عمليات سحب المعلّمين';
+$string['assignpackage']       = 'تعيين باقة لطالب';
+$string['reports']             = 'تقارير منصة فلكس';
+$string['mywallet']            = 'أرباحي';
+$string['mylessons']           = 'دروسي';
+$string['myteacherprofile']    = 'ملفي كمعلّم';
+$string['teacherprofile']      = 'ملف المعلّم';
+$string['editmyteacherprofile'] = 'تعديل ملفي كمعلّم';
+$string['notateacher']         = 'هذه الصفحة متاحة للمعلّمين فقط.';
+$string['studenthubdesc']      = 'احجز درسًا، وتابع دروسك، وأدر باقاتك والفلكس والاشتراكات — كل ذلك في مكان واحد.';
+$string['availpkgs_desc']      = 'اشترِ باقة فلكس لحجز دروس فردية مع معلّمينا.';
+$string['availsubs_desc']      = 'اشترك لفتح وصول كامل لمجموعة من المقررات لمدة محددة.';
+
+// ── Error messages surfaced in API JSON / UI alerts ──
+$string['err_settingnegative']     = 'يجب أن تكون قيم الإعدادات صفرًا أو أكبر';
+$string['err_percenttotal']        = 'يجب أن يكون مجموع نسبة المعلّم ونسبة المنصة 100';
+$string['err_badhours']            = 'ساعات العمل غير صالحة (استخدم HH:MM وأن ينتهي الوقت بعد بدايته)';
+$string['err_hoursoverlap']        = 'يجب ألا تتداخل ساعات العمل';
+$string['err_teachernotfound']     = 'المعلّم غير موجود';
+$string['err_subjectrequired']     = 'المادة مطلوبة';
+$string['err_subjectunsupported']  = 'هذا المعلّم لا يقدّم المادة المختارة';
+$string['err_selfbooking']         = 'لا يمكنك طلب درس مع نفسك';
+$string['err_noflex']              = 'تحتاج إلى باقة نشطة بها فلكس متاح';
+$string['err_minbooking']          = 'يجب حجز الدرس قبل الموعد بوقت أطول';
+$string['err_notime']              = 'الوقت الصحيح مطلوب';
+$string['err_forbidden']           = 'غير مسموح لك بتنفيذ هذا الإجراء';
+$string['err_badstate']            = 'هذا الإجراء غير مسموح للحالة الحالية للدرس';
+$string['err_badaction']           = 'إجراء غير معروف';
+$string['err_lessonnotfound']      = 'الدرس غير موجود';
+$string['err_tooearlytostart']     = 'لا يمكن بدء الدرس بعد';
+$string['err_completetooearly']    = 'لا يمكن إكمال الدرس بعد (لم تُستوفَ المدة الدنيا)';
+$string['err_noterequired']        = 'الملاحظة مطلوبة لطلب الدرس';
+$string['err_reasonrequired']      = 'السبب مطلوب';
+$string['err_absencetooearly']     = 'من المبكر جدًا الإبلاغ عن غياب';
+$string['err_updatedeadline']      = 'انقضى الموعد النهائي لتعديل الوقت';
+$string['err_updatepending']       = 'يوجد بالفعل طلب تعديل وقت قيد الانتظار';
+$string['err_noupdaterequest']     = 'لا يوجد طلب تعديل وقت قيد الانتظار للرد عليه';
+$string['err_nolessonscourse']     = 'لم يُضبط مقرر الدروس الخاص بغرف الاجتماعات';
+$string['err_notdistributed']      = 'لا يوجد للدرس عملية شراء لتوزيع الأرباح منها';
+$string['err_earningnotfound']     = 'لا يوجد ربح نشط لهذا الدرس';
+$string['err_alreadyreversed']     = 'تم بالفعل عكس فلكس هذا الدرس';
+$string['err_amountpositive']      = 'يجب أن يكون المبلغ أكبر من صفر';
+$string['err_insufficientbalance'] = 'المبلغ يتجاوز رصيدك المتاح';
+$string['err_withdrawalnotfound']  = 'طلب السحب غير موجود';
+$string['err_withdrawalstate']     = 'هذا الإجراء غير مسموح للحالة الحالية للسحب';
+$string['err_durationpositive']    = 'يجب أن يكون عدد الأيام أكبر من صفر';
+$string['err_subnamerequired']     = 'اسم الاشتراك مطلوب';
+$string['err_subnameempty']        = 'لا يمكن ترك اسم الاشتراك فارغًا';
+$string['err_subnotfound']         = 'الاشتراك غير موجود';
+$string['err_subhaspurchases']     = 'هذا الاشتراك لديه سجلات شراء ولا يمكن حذفه. قم بتعطيله بدلاً من ذلك.';
+$string['err_subnotavailable']     = 'هذا الاشتراك غير متاح للشراء';
+$string['err_alreadyhassubscription'] = 'لديك بالفعل اشتراك نشط';
+$string['err_coursenotfound']      = 'المقرر غير موجود';
+
+// ── Scheduled task names ──
+$string['task_expiry_reminder']      = 'إرسال تذكيرات انتهاء الباقات للطلاب';
+$string['task_subscription_expiry']  = 'إنهاء الاشتراكات وإرسال تذكيرات الانتهاء';
+
+// ── Lesson-lifecycle notifications (in-app + email) ──
+$string['messageprovider:lessonnotification'] = 'تحديثات الدروس (الطلبات والردود والتذكيرات)';
+$string['notif_requested_subject'] = 'طلب درس جديد من {$a->student}';
+$string['notif_requested_body']    = 'طلب {$a->student} درس {$a->subject} في {$a->time}. ملاحظة: {$a->note}. افتح "دروسي" للقبول أو الرفض أو اقتراح وقت آخر.';
+$string['notif_confirmed_by_teacher_subject'] = 'تم تأكيد الدرس: {$a->subject}';
+$string['notif_confirmed_by_teacher_body']    = 'أكّد {$a->teacher} درس {$a->subject} الخاص بك في {$a->time}.';
+$string['notif_rejected_by_teacher_subject'] = 'تم رفض طلب الدرس: {$a->subject}';
+$string['notif_rejected_by_teacher_body']    = 'رفض {$a->teacher} طلب درس {$a->subject} الخاص بك. السبب: {$a->reason}';
+$string['notif_teacher_suggested_subject'] = 'تم اقتراح وقت جديد: {$a->subject}';
+$string['notif_teacher_suggested_body']    = 'اقترح {$a->teacher} وقتًا جديدًا لدرس {$a->subject}: {$a->time}. افتح "دروسي" للقبول أو الرفض أو اقتراح وقت آخر.';
+$string['notif_confirmed_by_student_subject'] = 'تم تأكيد الدرس: {$a->subject}';
+$string['notif_confirmed_by_student_body']    = 'قبِل {$a->student} الوقت المقترح. تم تأكيد درس {$a->subject} في {$a->time}.';
+$string['notif_rejected_by_student_subject'] = 'تم رفض الوقت المقترح: {$a->subject}';
+$string['notif_rejected_by_student_body']    = 'رفض {$a->student} الوقت المقترح لدرس {$a->subject}. السبب: {$a->reason}';
+$string['notif_student_suggested_subject'] = 'اقترح الطالب وقتًا جديدًا: {$a->subject}';
+$string['notif_student_suggested_body']    = 'اقترح {$a->student} وقتًا جديدًا لدرس {$a->subject}: {$a->time}. افتح "دروسي" للقبول أو الرفض.';
+$string['notif_started_subject'] = 'بدأ درسك: {$a->subject}';
+$string['notif_started_body']    = 'بدأ {$a->teacher} درس {$a->subject}. افتح الدرس واضغط "الانضمام للدرس" للدخول إلى غرفة الاجتماع.';
+$string['notif_completed_subject'] = 'اكتمل الدرس: {$a->subject}';
+$string['notif_completed_body']    = 'اكتمل درس {$a->subject} مع {$a->teacher}. {$a->reason}';
+$string['notif_student_absent_subject'] = 'تم تسجيلك كغائب: {$a->subject}';
+$string['notif_student_absent_body']    = 'أبلغ {$a->teacher} بأنك لم تحضر درس {$a->subject} المقرر في {$a->time}.';
+$string['notif_teacher_absent_subject'] = 'تم الإبلاغ عن غياب: {$a->subject}';
+$string['notif_teacher_absent_body']    = 'أبلغ {$a->student} بأنك لم تحضر درس {$a->subject} المقرر في {$a->time}. تمت إعادة فلكس الطالب.';
+$string['notif_teacher_absent_admin_subject'] = 'تم الإبلاغ عن غياب معلّم: {$a->subject}';
+$string['notif_teacher_absent_admin_body']    = 'أبلغ {$a->student} عن غياب المعلّم {$a->teacher} في درس {$a->subject} المقرر في {$a->time}.';
+$string['notif_request_cancelled_subject'] = 'تم سحب طلب الدرس: {$a->subject}';
+$string['notif_request_cancelled_body']    = 'سحب {$a->student} طلب درس {$a->subject} المقرر في {$a->time}. السبب: {$a->reason}';
+$string['notif_cancelled_by_student_subject'] = 'تم إلغاء الدرس: {$a->subject}';
+$string['notif_cancelled_by_student_body']    = 'ألغى {$a->student} درس {$a->subject} المقرر في {$a->time}. السبب: {$a->reason}';
+$string['notif_cancelled_by_teacher_subject'] = 'ألغى المعلّم الدرس: {$a->subject}';
+$string['notif_cancelled_by_teacher_body']    = 'ألغى {$a->teacher} درس {$a->subject} المقرر في {$a->time}. تمت إعادة الفلكس الخاص بك. السبب: {$a->reason}';
+$string['notif_time_update_requested_subject'] = 'تم طلب وقت جديد: {$a->subject}';
+$string['notif_time_update_requested_body']    = 'طلب {$a->actor} نقل درس {$a->subject} إلى {$a->time}. افتح الدرس للقبول أو الرفض.';
+$string['notif_time_update_accepted_subject'] = 'تم قبول الوقت الجديد: {$a->subject}';
+$string['notif_time_update_accepted_body']    = 'قبِل {$a->actor} الوقت الجديد. أصبح درس {$a->subject} مقررًا في {$a->time}.';
+$string['notif_time_update_rejected_subject'] = 'تم رفض الوقت الجديد: {$a->subject}';
+$string['notif_time_update_rejected_body']    = 'رفض {$a->actor} الوقت الجديد. يبقى درس {$a->subject} في {$a->time}.';
+$string['notif_package_expiring_subject'] = 'تنتهي باقتك خلال {$a->days} يوم';
+$string['notif_package_expiring_body']    = 'تنتهي باقة "{$a->package}" في {$a->date} (باقٍ {$a->days} يوم). لا يزال لديك {$a->flex} فلكس — احجز درسًا قبل انتهائها حتى لا تفقدها.';
+$string['notif_subscription_expiring_subject'] = 'ينتهي اشتراكك خلال {$a->days} يوم';
+$string['notif_subscription_expiring_body']    = 'ينتهي اشتراك "{$a->subscription}" في {$a->date} (باقٍ {$a->days} يوم). جدّده للحفاظ على وصولك إلى مقرراتك.';

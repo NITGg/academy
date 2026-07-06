@@ -71,6 +71,7 @@ class lesson_manager {
         }
         // The lesson must be at least the minimum booking lead time from now.
         self::require_min_booking($requestedtime);
+        self::check_time_conflict($teacherid, $requestedtime);
 
         $now = time();
         $lesson = (object) array(
@@ -121,6 +122,7 @@ class lesson_manager {
                 $time = ($lesson->status === self::STATUS_PENDING)
                     ? (int)$lesson->requested_time
                     : self::latest_pending_proposal_time($lessonid);
+                self::check_time_conflict($teacherid, $time, $lesson->duration, $lessonid);
                 audit_manager::record($lessonid, 'teacher_accepted', $teacherid, 'teacher');
                 $result = self::confirm_lesson($lesson, $time, $teacherid);
                 // US-LS-2-1 / US-LS-2-3: tell the student the lesson is confirmed.
@@ -146,6 +148,7 @@ class lesson_manager {
                     throw new \moodle_exception('err_badstate', 'local_academy');
                 }
                 $time = self::required_future_time($opts['suggested_time'] ?? 0);
+                self::check_time_conflict($teacherid, $time, $lesson->duration, $lessonid);
                 self::add_proposal($lessonid, $teacherid, 'teacher', $time, 'suggest');
                 audit_manager::record($lessonid, 'teacher_suggested', $teacherid, 'teacher');
                 $result = self::transition($lesson, self::STATUS_WAITING_STUDENT, $teacherid);
@@ -176,6 +179,7 @@ class lesson_manager {
         switch ($action) {
             case 'accept':
                 $time = self::latest_pending_proposal_time($lessonid);
+                self::check_time_conflict($lesson->teacherid, $time, $lesson->duration, $lessonid);
                 audit_manager::record($lessonid, 'student_accepted', $studentid, 'student');
                 $result = self::confirm_lesson($lesson, $time, $studentid);
                 // US-LS-2-2: tell the teacher the student accepted the suggested time.
@@ -197,6 +201,7 @@ class lesson_manager {
 
             case 'suggest':
                 $time = self::required_future_time($opts['suggested_time'] ?? 0);
+                self::check_time_conflict($lesson->teacherid, $time, $lesson->duration, $lessonid);
                 self::add_proposal($lessonid, $studentid, 'student', $time, 'suggest');
                 audit_manager::record($lessonid, 'student_suggested', $studentid, 'student');
                 $result = self::transition($lesson, self::STATUS_WAITING_TEACHER, $studentid);
@@ -432,6 +437,7 @@ class lesson_manager {
             throw new \moodle_exception('err_updatedeadline', 'local_academy');
         }
         $time = self::required_future_time($proposedtime);
+        self::check_time_conflict($lesson->teacherid, $time, $lesson->duration, $lessonid);
         // Only one active time-update request per lesson.
         if (self::has_pending_reschedule($lessonid)) {
             throw new \moodle_exception('err_updatepending', 'local_academy');
@@ -471,6 +477,7 @@ class lesson_manager {
         // The party who requested the reschedule is the one to notify of the outcome.
         $requesterid = (int)$proposal->proposedby;
         if ($action === 'accept') {
+            self::check_time_conflict($lesson->teacherid, (int)$proposal->proposed_time, $lesson->duration, $lessonid);
             $proposal->status = 'accepted';
             $DB->update_record('academy_lesson_proposals', $proposal);
             audit_manager::record($lessonid, 'time_update_accepted', $userid, $role);
@@ -624,6 +631,32 @@ class lesson_manager {
         return $time;
     }
 
+    private static function check_time_conflict($teacherid, $time, $duration = self::DEFAULT_DURATION, $exclude_lessonid = 0) {
+        global $DB;
+        $start = (int)$time;
+        $end = $start + (int)$duration * MINSECS;
+        
+        $sql = "SELECT id, requested_time, confirmed_time, duration 
+                  FROM {academy_lessons}
+                 WHERE teacherid = :tid
+                   AND status IN ('pending', 'waiting_student', 'waiting_teacher', 'confirmed', 'in_progress')";
+        $params = array('tid' => $teacherid);
+        
+        if ($exclude_lessonid > 0) {
+            $sql .= " AND id != :exid";
+            $params['exid'] = $exclude_lessonid;
+        }
+        
+        $active_lessons = $DB->get_records_sql($sql, $params);
+        foreach ($active_lessons as $l) {
+            $l_start = (int)$l->confirmed_time > 0 ? (int)$l->confirmed_time : (int)$l->requested_time;
+            $l_end = $l_start + (int)$l->duration * MINSECS;
+            if ($start < $l_end && $end > $l_start) {
+                throw new \moodle_exception('err_timeconflict', 'local_academy');
+            }
+        }
+    }
+
     /** Minimum run time: a lesson can only be completed complete_allowed_minutes after it starts. */
     private static function require_complete_window($lesson) {
         $wait = settings_manager::get('complete_allowed_minutes') * MINSECS;
@@ -713,7 +746,7 @@ class lesson_manager {
             'student_name'   => $student ? trim($student->firstname . ' ' . $student->lastname) : '',
             'teacherid'      => (int)$lesson->teacherid,
             'teacher_name'   => $teacher ? trim($teacher->firstname . ' ' . $teacher->lastname) : '',
-            'subject'        => $lesson->subject,
+            'subject'        => format_string($lesson->subject),
             'status'         => $lesson->status,
             'requested_time' => (int)$lesson->requested_time,
             'confirmed_time' => $confirmed,

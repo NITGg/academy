@@ -29,11 +29,9 @@ class block_teacher extends block_base
 
     public function init()
     {
-        global $PAGE;
-
-        $currentcss2 = '/blocks/teacher/styles.css';
-
-        $PAGE->requires->css($currentcss2, true);
+        // Note: blocks/teacher/styles.css is auto-included in the theme CSS by Moodle, so we must
+        // NOT call $PAGE->requires->css() here. Doing so throws "Cannot require a CSS file after
+        // <head> has been printed" whenever this block is rendered after the page head is emitted.
         $this->title = '';
     }
 
@@ -345,8 +343,8 @@ class block_teacher extends block_base
         global $DB, $CFG, $USER, $PAGE;
         require_once($CFG->dirroot . '/lib/enrollib.php');
 
-        $PAGE->requires->css(new moodle_url($CFG->wwwroot . '/blocks/teacher/styles.css'));
-
+        // styles.css is auto-loaded via the theme's plugin CSS aggregation; requiring it here runs
+        // during body rendering (after <head> is printed) and throws a coding_exception.
 
         $this->content = new stdClass();
 

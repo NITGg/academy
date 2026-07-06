@@ -5,6 +5,7 @@
 require('../../config.php');
 require_once($CFG->dirroot . '/webservice/lib.php');
 require_once($CFG->libdir . '/externallib.php');
+require_once($CFG->dirroot . '/local/academy/lib.php'); // local_academy_string_map()
 
 require_login();
 
@@ -32,11 +33,24 @@ $PAGE->set_heading(get_string('mywallet', 'local_academy'));
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('mywallet', 'local_academy'));
+// Localised strings: server-rendered HTML reads $STR['key']; the JS reads window.ACADEMY_STR.
+$STR = local_academy_string_map(array(
+    'ui_export_csv', 'ui_request', 'ui_cancel',
+    'w_withdraw', 'w_withdrawals_heading', 'w_earnings_heading', 'w_col_noteref', 'w_col_student',
+    'w_col_lessondate', 'w_col_flexvalue', 'w_col_yourshare', 'w_amount', 'w_method', 'w_method_cash',
+    'w_account', 'w_account_ph', 'w_available_balance', 'w_total_earned', 'w_pending_withdrawals',
+    'w_total_withdrawn', 'w_no_withdrawals', 'w_no_earnings', 'w_ref', 'w_requested', 'w_share',
+    'wstat_pending', 'wstat_approved', 'wstat_paid', 'wstat_rejected', 'wstat_active', 'wstat_reversed',
+    'st_col_date', 'st_col_amount', 'st_col_method', 'st_col_status', 'st_col_lesson',
+    'ap_method_bank', 'ap_method_wallet', 'err_sessionexpired', 'err_requestfailed',
+));
 echo html_writer::script('window.ACADEMY_W = ' . json_encode(array(
     'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
     'export'   => $CFG->wwwroot . '/local/academy/export.php',
     'token'    => $token,
+    'lang'     => optional_param('lang', current_language(), PARAM_LANG),
 )) . ';');
+echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
 <style>
 #w-app{max-width:860px}
@@ -60,37 +74,37 @@ table.w-table th,table.w-table td{border-bottom:1px solid #eee;padding:.45rem .5
 <div id="w-app">
   <div id="w-msg" class="alert" style="display:none"></div>
   <div id="w-cards"></div>
-  <button id="w-withdraw" class="btn btn-primary">Withdraw earnings</button>
+  <button id="w-withdraw" class="btn btn-primary"><?php echo $STR['w_withdraw']; ?></button>
 
   <div class="w-section">
-    <h5>Withdrawals <a id="w-exp-wd" class="btn btn-sm btn-outline-secondary" target="_blank" style="float:right">Export CSV</a></h5>
-    <table class="w-table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Status</th><th>Note / ref</th></tr></thead>
+    <h5><?php echo $STR['w_withdrawals_heading']; ?> <a id="w-exp-wd" class="btn btn-sm btn-outline-secondary" target="_blank" style="float:right"><?php echo $STR['ui_export_csv']; ?></a></h5>
+    <table class="w-table"><thead><tr><th><?php echo $STR['st_col_date']; ?></th><th><?php echo $STR['st_col_amount']; ?></th><th><?php echo $STR['st_col_method']; ?></th><th><?php echo $STR['st_col_status']; ?></th><th><?php echo $STR['w_col_noteref']; ?></th></tr></thead>
       <tbody id="w-withdrawals"></tbody></table>
   </div>
 
   <div class="w-section">
-    <h5>Earnings <a id="w-exp-earn" class="btn btn-sm btn-outline-secondary" target="_blank" style="float:right">Export CSV</a></h5>
-    <table class="w-table"><thead><tr><th>Date</th><th>Lesson</th><th>Student</th><th>Lesson date</th><th>Flex value</th><th>Your share</th><th>Status</th></tr></thead>
+    <h5><?php echo $STR['w_earnings_heading']; ?> <a id="w-exp-earn" class="btn btn-sm btn-outline-secondary" target="_blank" style="float:right"><?php echo $STR['ui_export_csv']; ?></a></h5>
+    <table class="w-table"><thead><tr><th><?php echo $STR['st_col_date']; ?></th><th><?php echo $STR['st_col_lesson']; ?></th><th><?php echo $STR['w_col_student']; ?></th><th><?php echo $STR['w_col_lessondate']; ?></th><th><?php echo $STR['w_col_flexvalue']; ?></th><th><?php echo $STR['w_col_yourshare']; ?></th><th><?php echo $STR['st_col_status']; ?></th></tr></thead>
       <tbody id="w-earnings"></tbody></table>
   </div>
 </div>
 
 <div class="w-modal-bg" id="w-modal-bg">
   <div class="w-modal">
-    <h5>Withdraw earnings</h5>
-    <div class="form-group"><label for="w-amount">Amount</label>
+    <h5><?php echo $STR['w_withdraw']; ?></h5>
+    <div class="form-group"><label for="w-amount"><?php echo $STR['w_amount']; ?></label>
       <input type="number" min="0" step="0.01" class="form-control" id="w-amount"></div>
-    <div class="form-group"><label for="w-method">Method</label>
+    <div class="form-group"><label for="w-method"><?php echo $STR['w_method']; ?></label>
       <select class="form-control" id="w-method">
-        <option value="bank">Bank transfer</option>
-        <option value="wallet">Mobile wallet</option>
-        <option value="cash">Cash</option>
+        <option value="bank"><?php echo $STR['ap_method_bank']; ?></option>
+        <option value="wallet"><?php echo $STR['ap_method_wallet']; ?></option>
+        <option value="cash"><?php echo $STR['w_method_cash']; ?></option>
       </select></div>
-    <div class="form-group"><label for="w-account">Account / payout details</label>
-      <input class="form-control" id="w-account" placeholder="IBAN / phone / note"></div>
+    <div class="form-group"><label for="w-account"><?php echo $STR['w_account']; ?></label>
+      <input class="form-control" id="w-account" placeholder="<?php echo s($STR['w_account_ph']); ?>"></div>
     <div class="w-modal-actions">
-      <button class="btn btn-outline-secondary" id="w-cancel">Cancel</button>
-      <button class="btn btn-primary" id="w-submit">Request</button>
+      <button class="btn btn-outline-secondary" id="w-cancel"><?php echo $STR['ui_cancel']; ?></button>
+      <button class="btn btn-primary" id="w-submit"><?php echo $STR['ui_request']; ?></button>
     </div>
   </div>
 </div>
@@ -98,55 +112,60 @@ table.w-table th,table.w-table td{border-bottom:1px solid #eee;padding:.45rem .5
 echo html_writer::script(<<<'JS'
 (function () {
   var CFG = window.ACADEMY_W;
+  var STR = window.ACADEMY_STR || {};
+  function str(k){return (k in STR)?STR[k]:k;}
+  function strf(k,params){var s=str(k);if(params==null){return s;}if(typeof params!=='object'){return s.replace(/\{\$a\}/g,params);}return s.replace(/\{\$a->(\w+)\}/g,function(m,name){return (name in params)?params[name]:m;});}
   function $(id){return document.getElementById(id);}
   function msg(t,k){var e=$('w-msg');e.textContent=t;e.className='alert alert-'+(k||'info');e.style.display='block';if(k==='success'){setTimeout(function(){e.style.display='none';},3000);}}
-  function parse(r){return r.text().then(function(t){var j;try{j=JSON.parse(t);}catch(e){throw new Error('Session expired — reload the page.');}if(j.status!=='success'){throw new Error(j.error||'Failed');}return j.data;});}
+  function parse(r){return r.text().then(function(t){var j;try{j=JSON.parse(t);}catch(e){throw new Error(str('err_sessionexpired'));}if(j.status!=='success'){throw new Error(j.error||str('err_requestfailed'));}return j.data;});}
   function money(n){return Number(n||0).toFixed(2);}
   function fmt(ts){return ts?new Date(ts*1000).toLocaleString():'—';}
   function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  // Withdrawal + earning status → localised label.
+  function wstat(s){return str('wstat_'+s)!=='wstat_'+s?str('wstat_'+s):s;}
 
-  function apiGet(fn){return fetch(CFG.endpoint+'?'+new URLSearchParams({function:fn,token:CFG.token})).then(parse);}
-  function apiPost(fn,p){var b=new URLSearchParams(Object.assign({function:fn,token:CFG.token},p));return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b.toString()}).then(parse);}
+  function apiGet(fn){var base={function:fn,token:CFG.token};if(CFG.lang){base.lang=CFG.lang;}return fetch(CFG.endpoint+'?'+new URLSearchParams(base)).then(parse);}
+  function apiPost(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.lang=CFG.lang;}var b=new URLSearchParams(Object.assign(base,p));return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b.toString()}).then(parse);}
 
   function card(label,value,cls){return '<div class="w-card '+(cls||'')+'"><div class="w-label">'+label+'</div><div class="w-value">'+value+'</div></div>';}
 
   function render(w){
     $('w-cards').innerHTML =
-      card('Available balance', money(w.available_balance), 'primary') +
-      card('Total earned', money(w.total_earned)) +
-      card('Pending withdrawals', money(w.pending_withdrawals)) +
-      card('Total withdrawn', money(w.total_withdrawn));
+      card(str('w_available_balance'), money(w.available_balance), 'primary') +
+      card(str('w_total_earned'), money(w.total_earned)) +
+      card(str('w_pending_withdrawals'), money(w.pending_withdrawals)) +
+      card(str('w_total_withdrawn'), money(w.total_withdrawn));
 
     var wb=$('w-withdrawals'); wb.innerHTML='';
-    if(!w.withdrawals.length){wb.innerHTML='<tr><td colspan="5" class="text-muted">No withdrawals yet.</td></tr>';}
+    if(!w.withdrawals.length){wb.innerHTML='<tr><td colspan="5" class="text-muted">'+esc(str('w_no_withdrawals'))+'</td></tr>';}
     w.withdrawals.forEach(function(x){
-      var note = x.status==='rejected' ? esc(x.reason||'') : (x.status==='paid' ? ('Ref: '+esc(x.reference||'—')) : '');
+      var note = x.status==='rejected' ? esc(x.reason||'') : (x.status==='paid' ? strf('w_ref',esc(x.reference||'—')) : '');
       wb.innerHTML += '<tr><td>'+fmt(x.timecreated)+'</td><td>'+money(x.amount)+'</td><td>'+esc(x.method)+'</td>'+
-        '<td><span class="w-badge s-'+x.status+'">'+x.status+'</span></td><td>'+note+'</td></tr>';
+        '<td><span class="w-badge s-'+x.status+'">'+esc(wstat(x.status))+'</span></td><td>'+note+'</td></tr>';
     });
 
     var eb=$('w-earnings'); eb.innerHTML='';
-    if(!w.earnings.length){eb.innerHTML='<tr><td colspan="7" class="text-muted">No earnings yet.</td></tr>';}
+    if(!w.earnings.length){eb.innerHTML='<tr><td colspan="7" class="text-muted">'+esc(str('w_no_earnings'))+'</td></tr>';}
     w.earnings.forEach(function(x){
       eb.innerHTML += '<tr><td>'+fmt(x.timecreated)+'</td><td>#'+x.lessonid+'</td><td>'+esc(x.student_name||'')+'</td>'+
         '<td>'+fmt(x.lesson_time)+'</td><td>'+money(x.flex_value)+'</td>'+
-        '<td>'+money(x.teacher_amount)+' ('+x.teacher_percent+'%)</td>'+
-        '<td><span class="w-badge s-'+x.status+'">'+x.status+'</span></td></tr>';
+        '<td>'+strf('w_share',{amount:money(x.teacher_amount),percent:x.teacher_percent})+'</td>'+
+        '<td><span class="w-badge s-'+x.status+'">'+esc(wstat(x.status))+'</span></td></tr>';
     });
   }
 
   function load(){apiGet('get_teacher_wallet').then(render).catch(function(e){msg(e.message,'danger');});}
 
   // CSV export links (US-TR-2-1) — teacher exports their own data.
-  $('w-exp-wd').href=CFG.export+'?'+new URLSearchParams({type:'my_withdrawals',token:CFG.token}).toString();
-  $('w-exp-earn').href=CFG.export+'?'+new URLSearchParams({type:'my_earnings',token:CFG.token}).toString();
+  $('w-exp-wd').href=CFG.export+'?'+new URLSearchParams({type:'my_withdrawals',token:CFG.token,lang:CFG.lang||''}).toString();
+  $('w-exp-earn').href=CFG.export+'?'+new URLSearchParams({type:'my_earnings',token:CFG.token,lang:CFG.lang||''}).toString();
 
   $('w-withdraw').onclick=function(){$('w-modal-bg').style.display='flex';};
   $('w-cancel').onclick=function(){$('w-modal-bg').style.display='none';};
   $('w-submit').onclick=function(){
     var amount=$('w-amount').value;
     apiPost('request_withdrawal',{amount:amount,method:$('w-method').value,account:$('w-account').value})
-      .then(function(){$('w-modal-bg').style.display='none';$('w-amount').value='';$('w-account').value='';msg('Withdrawal requested.','success');load();})
+      .then(function(){$('w-modal-bg').style.display='none';$('w-amount').value='';$('w-account').value='';msg(str('w_requested'),'success');load();})
       .catch(function(e){msg(e.message,'danger');});
   };
 

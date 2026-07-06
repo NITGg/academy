@@ -63,11 +63,15 @@ $function = optional_param('function', '', PARAM_ALPHANUMEXT);
 $token    = optional_param('token', '', PARAM_TEXT);
 
 // Optional ?lang=en|ar — render system messages (get_string) and multilang content (format_string)
-// in the requested language. Must run before any get_string()/format_string() call below. When
-// omitted or invalid, the caller's normal language is kept, so existing clients are unaffected.
-$lang = optional_param('lang', '', PARAM_LANG);
-if ($lang !== '') {
-    force_current_language($lang);
+// in the requested language. We set $SESSION->forcelang directly rather than via
+// force_current_language(): that helper gates on the STRICT installed-language list
+// (translation_exists($lang, false)), which drops languages restricted from the language menu
+// ($CFG->langlist) and can leave the request in English even when the language renders fine on
+// normal pages. The lenient translation_exists($lang) check below matches the site's own behaviour.
+$lang = optional_param('lang', '', PARAM_SAFEDIR);
+$canforcelang = ($lang !== '' && get_string_manager()->translation_exists($lang));
+if ($canforcelang) {
+    $SESSION->forcelang = $lang;
 }
 
 // ── Authenticate via web-service token (sets $USER to the token's user) ──
@@ -126,6 +130,13 @@ $capmap = [
 ];
 if (isset($capmap[$function]) && !has_capability($capmap[$function], context_system::instance())) {
     academy_respond(['status' => 'fail', 'error' => get_string('err_permissiondenied', 'local_academy')]);
+}
+
+// Re-apply the requested language right before dispatch. Token authentication above sets $USER to
+// the token's user, which can re-initialise the language to that user's preference — so we set the
+// override again here to guarantee format_string()/multilang content resolves to ?lang.
+if ($canforcelang) {
+    $SESSION->forcelang = $lang;
 }
 
 try {
@@ -223,7 +234,7 @@ try {
                 'duration_days' => required_param('duration_days', PARAM_INT),
                 'active'        => optional_param('active', 1, PARAM_BOOL),
             ], $userid);
-            academy_respond(['status' => 'success', 'data' => ['subscriptionid' => $subid]]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_created', 'local_academy'), 'data' => ['subscriptionid' => $subid]]);
             break;
 
         // US-AD-5-2
@@ -245,7 +256,7 @@ try {
                 $data['price'] = required_param('price', PARAM_FLOAT);
             }
             subscription_manager::update_subscription($id, $data, $userid);
-            academy_respond(['status' => 'success', 'data' => ['id' => $id]]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_updated', 'local_academy'), 'data' => ['id' => $id]]);
             break;
 
         // US-AD-5-3
@@ -253,14 +264,14 @@ try {
             academy_require_post();
             $id = required_param('id', PARAM_INT);
             subscription_manager::deactivate_subscription($id, $userid);
-            academy_respond(['status' => 'success', 'data' => ['id' => $id, 'status' => 'inactive']]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_deactivated', 'local_academy'), 'data' => ['id' => $id, 'status' => 'inactive']]);
             break;
 
         case 'activate_subscription':
             academy_require_post();
             $id = required_param('id', PARAM_INT);
             subscription_manager::activate_subscription($id, $userid);
-            academy_respond(['status' => 'success', 'data' => ['id' => $id, 'status' => 'active']]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_activated', 'local_academy'), 'data' => ['id' => $id, 'status' => 'active']]);
             break;
 
         // US-AD-5-4
@@ -268,7 +279,7 @@ try {
             academy_require_post();
             $id = required_param('id', PARAM_INT);
             subscription_manager::delete_subscription($id);
-            academy_respond(['status' => 'success', 'data' => ['id' => $id, 'deleted' => true]]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_deleted', 'local_academy'), 'data' => ['id' => $id, 'deleted' => true]]);
             break;
 
         case 'get_subscriptions':
@@ -309,7 +320,7 @@ try {
                 $decoded = json_decode(required_param('courseids', PARAM_RAW), true);
                 $courseids = is_array($decoded) ? $decoded : [];
             }
-            academy_respond(['status' => 'success',
+            academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_courses_set', 'local_academy'),
                 'data' => subscription_manager::set_subscription_courses($subscriptionid, $courseids, $userid)]);
             break;
 
@@ -322,7 +333,7 @@ try {
             $purchaseid = required_param('purchaseid', PARAM_INT);
             $refund = optional_param('refund', 0, PARAM_BOOL);
             subscription_purchase_manager::unsubscribe_user($purchaseid, $refund, $userid);
-            academy_respond(['status' => 'success', 'data' => true]);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_user_unsubscribed', 'local_academy'), 'data' => true]);
             break;
 
         case 'get_all_user_subscriptions':
