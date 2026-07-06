@@ -139,6 +139,10 @@ if ($canforcelang) {
     $SESSION->forcelang = $lang;
 }
 
+// Make the request token available to the quiz API so returned image URLs
+// (webservice/pluginfile.php/...) carry ?token= and can be loaded directly.
+quiz_manager::set_token($token);
+
 try {
     switch ($function) {
 
