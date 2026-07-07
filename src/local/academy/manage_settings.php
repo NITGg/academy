@@ -44,7 +44,18 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     <div class="form-group"><label><?php echo $STR['set_start_allowed']; ?></label><input class="form-control" id="s-start_allowed_minutes" type="number" min="0"></div>
     <div class="form-group"><label><?php echo $STR['set_complete_allowed']; ?></label><input class="form-control" id="s-complete_allowed_minutes" type="number" min="0"></div>
     <div class="form-group"><label><?php echo $STR['set_absence_report']; ?></label><input class="form-control" id="s-absence_report_minutes" type="number" min="0"></div>
-    <div class="form-group"><label><?php echo $STR['set_lesson_start_reminder']; ?></label><input class="form-control" id="s-lesson_start_reminder_minutes" type="number" min="0"><small class="text-muted"><?php echo $STR['set_lesson_start_reminder_help']; ?></small></div>
+    <div class="form-group">
+      <label><?php echo $STR['set_lesson_start_reminder']; ?></label>
+      <div id="reminder-tags" style="margin-bottom:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
+      <div class="input-group" style="max-width:200px; margin-bottom:0.25rem;">
+        <input class="form-control" id="reminder-add-input" type="number" min="1" placeholder="Mins (e.g. 15)">
+        <div class="input-group-append">
+          <button class="btn btn-outline-secondary" type="button" id="reminder-add-btn">Add</button>
+        </div>
+      </div>
+      <input type="hidden" id="s-lesson_start_reminder_minutes">
+      <small class="text-muted"><?php echo $STR['set_lesson_start_reminder_help']; ?></small>
+    </div>
     <div class="form-group"><label><?php echo $STR['set_expiry_reminder']; ?></label><input class="form-control" id="s-expiry_reminder_days" type="number" min="0"><small class="text-muted"><?php echo $STR['set_expiry_reminder_help']; ?></small></div>
     <hr>
     <div class="form-group"><label><?php echo $STR['set_teacher_percent']; ?></label><input class="form-control" id="s-teacher_percent" type="number" min="0" max="100"></div>
@@ -66,8 +77,50 @@ echo html_writer::script(<<<'JS'
   function msg(t,k){var e=$('set-msg');e.textContent=t;e.className='alert alert-'+(k||'info');e.style.display='block';if(k==='success'){setTimeout(function(){e.style.display='none';},3000);}}
   function api(func,params){var qs=new URLSearchParams({function:func,token:CFG.token});if(CFG.lang){qs.append('alang',CFG.lang);}Object.keys(params||{}).forEach(function(k){qs.append(k,params[k]);});
     return fetch(CFG.endpoint+'?'+qs.toString()).then(function(r){return r.text();}).then(function(t){var j;try{j=JSON.parse(t);}catch(e){throw new Error(str('err_sessionexpired'));}if(j.status!=='success'){throw new Error(j.error||str('err_requestfailed'));}return j.data;});}
-  function load(){api('get_lesson_settings',{}).then(function(d){KEYS.forEach(function(k){$('s-'+k).value=d[k];});}).catch(function(e){msg(e.message,'danger');});}
-  function save(){var p={};KEYS.forEach(function(k){p[k]=$('s-'+k).value;});api('update_lesson_settings',p).then(function(d){KEYS.forEach(function(k){$('s-'+k).value=d[k];});msg(str('set_saved'),'success');}).catch(function(e){msg(e.message,'danger');});}
+  function renderReminders() {
+    var remTags = $('reminder-tags');
+    var remInput = $('s-lesson_start_reminder_minutes');
+    if (!remTags || !remInput) return;
+    remTags.innerHTML = '';
+    var vals = (remInput.value || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s !== '';});
+    vals.forEach(function(val, idx) {
+      var tag = document.createElement('span');
+      tag.className = 'badge badge-primary';
+      tag.style.cssText = 'font-size:0.9rem; padding:0.4rem 0.6rem; display:inline-flex; align-items:center; gap:0.4rem;';
+      tag.innerHTML = val + ' min <span style="cursor:pointer; font-weight:bold;" data-idx="'+idx+'">&times;</span>';
+      remTags.appendChild(tag);
+    });
+  }
+
+  $('reminder-tags').addEventListener('click', function(e) {
+    if (e.target.tagName === 'SPAN' && e.target.hasAttribute('data-idx')) {
+      var idx = parseInt(e.target.getAttribute('data-idx'), 10);
+      var remInput = $('s-lesson_start_reminder_minutes');
+      var vals = (remInput.value || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s !== '';});
+      vals.splice(idx, 1);
+      remInput.value = vals.join(',');
+      renderReminders();
+    }
+  });
+
+  $('reminder-add-btn').addEventListener('click', function() {
+    var remAddInput = $('reminder-add-input');
+    var remInput = $('s-lesson_start_reminder_minutes');
+    var val = remAddInput.value.trim();
+    if (val && parseInt(val, 10) > 0) {
+      var vals = (remInput.value || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s !== '';});
+      if (vals.indexOf(val) === -1) {
+        vals.push(val);
+        vals.sort(function(a,b){return parseInt(b,10) - parseInt(a,10);});
+        remInput.value = vals.join(',');
+        renderReminders();
+      }
+      remAddInput.value = '';
+    }
+  });
+
+  function load(){api('get_lesson_settings',{}).then(function(d){KEYS.forEach(function(k){$('s-'+k).value=d[k];});renderReminders();}).catch(function(e){msg(e.message,'danger');});}
+  function save(){var p={};KEYS.forEach(function(k){p[k]=$('s-'+k).value;});api('update_lesson_settings',p).then(function(d){KEYS.forEach(function(k){$('s-'+k).value=d[k];});renderReminders();msg(str('set_saved'),'success');}).catch(function(e){msg(e.message,'danger');});}
   $('set-save').addEventListener('click',save);
   load();
 })();

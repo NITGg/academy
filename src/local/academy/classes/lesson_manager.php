@@ -570,19 +570,39 @@ class lesson_manager {
             'flex_state'     => 'reserved',
         ));
         
-        $reminder_minutes = settings_manager::get('lesson_start_reminder_minutes');
-        if ($reminder_minutes > 0) {
-            $run_time = (int)$time - ($reminder_minutes * 60);
-            if ($run_time < time()) {
-                $run_time = time(); // Queue it to run immediately
+        $reminder_minutes_str = settings_manager::get('lesson_start_reminder_minutes');
+        if (!empty($reminder_minutes_str)) {
+            $minutes_arr = array_filter(array_map('trim', explode(',', (string)$reminder_minutes_str)));
+            $immediate_sent = false;
+            foreach ($minutes_arr as $min_val) {
+                $m = (int)$min_val;
+                if ($m > 0) {
+                    $run_time = (int)$time - ($m * 60);
+                    
+                    // If the reminder time has already passed (e.g. lesson is too close),
+                    // send the notification synchronously right now, exactly like the accept notification.
+                    if ($run_time <= time()) {
+                        if (!$immediate_sent) {
+                            \local_academy\notification_manager::lesson_event(
+                                $lesson,
+                                'lesson_reminder',
+                                $lesson->studentid
+                            );
+                            $immediate_sent = true;
+                        }
+                        continue; // No need to queue a task for the past
+                    }
+                    
+                    // Otherwise, queue it for the future.
+                    $task = new \local_academy\task\lesson_start_reminder_task();
+                    $task->set_next_run_time($run_time);
+                    $task->set_custom_data(array(
+                        'lessonid'       => $lesson->id,
+                        'confirmed_time' => (int)$time,
+                    ));
+                    \core\task\manager::queue_adhoc_task($task);
+                }
             }
-            $task = new \local_academy\task\lesson_start_reminder_task();
-            $task->set_next_run_time($run_time);
-            $task->set_custom_data(array(
-                'lessonid'       => $lesson->id,
-                'confirmed_time' => (int)$time,
-            ));
-            \core\task\manager::queue_adhoc_task($task);
         }
         
         $transaction->allow_commit();
