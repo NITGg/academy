@@ -95,24 +95,39 @@ function local_academy_extend_navigation_user_settings($navigation, $user, $cont
 
 /**
  * Build the front-page "Available subscriptions" section: scoped CSS + an empty card grid, plus the
- * JS (driving /local/academy/api.php with a mobile WS token, exactly like student.php) that fetches
- * the available subscriptions and renders Udemy/Coursera-style cards. Returns '' when a WS token
- * cannot be minted; the section then simply does not appear.
+ * JS that renders Udemy/Coursera-style cards. Logged-in students drive /local/academy/api.php with a
+ * mobile WS token, exactly like student.php. Guests/visitors get the plan list fetched server-side
+ * instead (no token to mint) and their card buttons link to the login page rather than checkout.
+ * Returns '' when there is nothing to show (no WS token for a real user, or no active plans for a
+ * guest); the section then simply does not appear.
  *
  * @return string HTML to echo before the footer
  */
 function local_academy_available_subscriptions_section() {
     global $DB, $CFG, $PAGE;
 
-    // Mint the same mobile web-service token student.php uses so the front-page cards and the student
-    // hub exercise identical endpoints. If the mobile service is unavailable, skip the section.
-    require_once($CFG->dirroot . '/webservice/lib.php');
-    try {
-        $service = $DB->get_record('external_services',
-            array('shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE), '*', MUST_EXIST);
-        $token = external_generate_token_for_current_user($service)->token;
-    } catch (\Exception $e) {
-        return '';
+    // Real (non-guest) logged-in users get the same mobile web-service token student.php uses, so
+    // the front-page cards and the student hub exercise identical endpoints. Guests/visitors have no
+    // account to mint a token for, so their card data is fetched server-side (no purchase state to
+    // merge in) and their buttons send them to log in instead of to checkout.
+    $isrealuser = isloggedin() && !isguestuser();
+    $token = '';
+    $guestrows = null;
+
+    if ($isrealuser) {
+        require_once($CFG->dirroot . '/webservice/lib.php');
+        try {
+            $service = $DB->get_record('external_services',
+                array('shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE), '*', MUST_EXIST);
+            $token = external_generate_token_for_current_user($service)->token;
+        } catch (\Exception $e) {
+            return '';
+        }
+    } else {
+        $guestrows = \local_academy\subscription_purchase_manager::get_available_subscriptions();
+        if (empty($guestrows)) {
+            return ''; // nothing to sell — leave the section hidden, same as the logged-in path
+        }
     }
 
     $heading = get_string('availsubs_heading', 'local_academy');
@@ -183,10 +198,12 @@ CSS;
         '</section>';
 
     $cfg = array(
-        'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
-        'token'    => $token,
+        'endpoint'  => $CFG->wwwroot . '/local/academy/api.php',
+        'token'     => $token,
         // Honour an explicit ?lang= in the URL; otherwise use the page's current language.
-        'lang'     => optional_param('lang', current_language(), PARAM_LANG),
+        'lang'      => optional_param('lang', current_language(), PARAM_LANG),
+        'loginurl'  => (string) new moodle_url('/login/index.php'),
+        'guestRows' => $isrealuser ? null : array_values($guestrows),
     );
     $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
 
@@ -206,6 +223,7 @@ CSS;
         'proceed'         => get_string('hp_proceed', 'local_academy'),
         'redirecting'     => get_string('hp_redirecting', 'local_academy'),
         'active'          => get_string('hp_active', 'local_academy'),
+        'login_to_subscribe' => get_string('hp_login_to_subscribe', 'local_academy'),
         'start_date'      => get_string('hp_start_date', 'local_academy'),
         'end_date'        => get_string('hp_end_date', 'local_academy'),
         'never'           => get_string('hp_never', 'local_academy'),
@@ -220,7 +238,7 @@ require([], function() {
     var CFG = {$cfgjson};
     var T = {$strjson};
     var sec = document.getElementById('la-subs');
-    if (!sec || !CFG.token) { return; }
+    if (!sec || (!CFG.token && !(CFG.guestRows && CFG.guestRows.length))) { return; }
     var grid = document.getElementById('la-subs-grid');
 
     function el(tag, attrs, html) {
@@ -353,8 +371,18 @@ require([], function() {
 
         var foot = el('div', {class: 'la-subs-foot'});
         foot.appendChild(el('div', {class: 'la-subs-price'}, esc(money(s.price)) + ' <small>EGP</small>'));
-        var btn = el('button', {type: 'button', class: 'la-subs-btn'}, isActive ? T.active : (hasActive ? T.subscribed : T.subscribe));
-        if (hasActive) { btn.disabled = true; } else { btn.onclick = function() { subscribe(s, btn); }; }
+        var btn = el('button', {type: 'button', class: 'la-subs-btn'});
+        if (!CFG.token) {
+            // Guest/visitor — no account to buy with yet, send them to log in first.
+            btn.textContent = T.login_to_subscribe;
+            btn.onclick = function() { window.location.href = CFG.loginurl; };
+        } else if (isActive) {
+            btn.textContent = T.active; btn.disabled = true;
+        } else if (hasActive) {
+            btn.textContent = T.subscribed; btn.disabled = true;
+        } else {
+            btn.textContent = T.subscribe; btn.onclick = function() { subscribe(s, btn); };
+        }
         foot.appendChild(btn);
         body.appendChild(foot);
 
@@ -362,11 +390,8 @@ require([], function() {
         return card;
     }
 
-    Promise.all([apiGet('get_available_subscriptions'), apiGet('get_my_subscriptions')]).then(function(res) {
-        var rows = res[0] || [], mine = res[1] || [];
+    function renderRows(rows, hasActive, activeSub) {
         if (!rows.length) { return; } // nothing to sell — leave the section hidden
-        var activeSub = mine.filter(function(s) { return s.status === 'active'; })[0] || null;
-        var hasActive = !!activeSub;
 
         // Only one subscription can be active at a time — explain why every "Subscribe" button
         // is disabled with a single note under the section heading, instead of repeating it on
@@ -384,7 +409,18 @@ require([], function() {
         grid.innerHTML = '';
         rows.forEach(function(s, i) { grid.appendChild(subCard(s, hasActive, i, activeSub)); });
         sec.style.display = 'block';
-    }).catch(function() { /* keep the section hidden on any error */ });
+    }
+
+    if (CFG.token) {
+        Promise.all([apiGet('get_available_subscriptions'), apiGet('get_my_subscriptions')]).then(function(res) {
+            var rows = res[0] || [], mine = res[1] || [];
+            var activeSub = mine.filter(function(s) { return s.status === 'active'; })[0] || null;
+            renderRows(rows, !!activeSub, activeSub);
+        }).catch(function() { /* keep the section hidden on any error */ });
+    } else {
+        // Guest/visitor — server already rendered the available plans; no purchase state to merge.
+        renderRows(CFG.guestRows || [], false, null);
+    }
 });
 JS;
 
@@ -395,21 +431,35 @@ JS;
 /**
  * Build the front-page "Available packages" section: same Udemy/Coursera-style cards as the
  * subscriptions section, but for Flex packages (see the "Packages & Flex" tab of student.php).
- * Mints the same mobile web-service token; returns '' when it cannot be minted, so the section
- * simply does not appear.
+ * Same logged-in-vs-guest split as local_academy_available_subscriptions_section(): real users get a
+ * mobile WS token; guests get the package list fetched server-side and a login button instead of
+ * checkout. Returns '' when there is nothing to show, so the section simply does not appear.
  *
  * @return string HTML to echo before the footer
  */
 function local_academy_available_packages_section() {
     global $DB, $CFG, $PAGE;
 
-    require_once($CFG->dirroot . '/webservice/lib.php');
-    try {
-        $service = $DB->get_record('external_services',
-            array('shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE), '*', MUST_EXIST);
-        $token = external_generate_token_for_current_user($service)->token;
-    } catch (\Exception $e) {
-        return '';
+    // See local_academy_available_subscriptions_section() for why guests get server-fetched rows
+    // and a login button instead of a web-service token.
+    $isrealuser = isloggedin() && !isguestuser();
+    $token = '';
+    $guestrows = null;
+
+    if ($isrealuser) {
+        require_once($CFG->dirroot . '/webservice/lib.php');
+        try {
+            $service = $DB->get_record('external_services',
+                array('shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE), '*', MUST_EXIST);
+            $token = external_generate_token_for_current_user($service)->token;
+        } catch (\Exception $e) {
+            return '';
+        }
+    } else {
+        $guestrows = \local_academy\purchase_manager::get_available_packages();
+        if (empty($guestrows)) {
+            return ''; // nothing to sell — leave the section hidden, same as the logged-in path
+        }
     }
 
     $heading = get_string('availpkgs_heading', 'local_academy');
@@ -481,10 +531,12 @@ CSS;
         '</section>';
 
     $cfg = array(
-        'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
-        'token'    => $token,
+        'endpoint'  => $CFG->wwwroot . '/local/academy/api.php',
+        'token'     => $token,
         // Honour an explicit ?lang= in the URL; otherwise use the page's current language.
-        'lang'     => optional_param('lang', current_language(), PARAM_LANG),
+        'lang'      => optional_param('lang', current_language(), PARAM_LANG),
+        'loginurl'  => (string) new moodle_url('/login/index.php'),
+        'guestRows' => $isrealuser ? null : array_values($guestrows),
     );
     $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
 
@@ -498,6 +550,7 @@ CSS;
         'flex'            => get_string('hp_flex', 'local_academy', '{n}'),
         'total'           => get_string('hp_total', 'local_academy'),
         'egp'             => get_string('hp_egp', 'local_academy'),
+        'login_to_buy'    => get_string('hp_login_to_buy', 'local_academy'),
         'secure'          => get_string('hp_secure', 'local_academy'),
         'cancel'          => get_string('hp_cancel', 'local_academy'),
         'proceed'         => get_string('hp_proceed', 'local_academy'),
@@ -520,7 +573,7 @@ require([], function() {
     var CFG = {$cfgjson};
     var T = {$strjson};
     var sec = document.getElementById('la-pkgs');
-    if (!sec || !CFG.token) { return; }
+    if (!sec || (!CFG.token && !(CFG.guestRows && CFG.guestRows.length))) { return; }
     var grid = document.getElementById('la-pkgs-grid');
 
     function el(tag, attrs, html) {
@@ -658,8 +711,18 @@ require([], function() {
 
         var foot = el('div', {class: 'la-pkgs-foot'});
         foot.appendChild(el('div', {class: 'la-pkgs-price'}, esc(money(p.price)) + ' <small>EGP</small>'));
-        var btn = el('button', {type: 'button', class: 'la-pkgs-btn'}, isActive ? T.active : (hasActive ? T.purchased : T.buy_package));
-        if (hasActive) { btn.disabled = true; } else { btn.onclick = function() { subscribe(p, btn); }; }
+        var btn = el('button', {type: 'button', class: 'la-pkgs-btn'});
+        if (!CFG.token) {
+            // Guest/visitor — no account to buy with yet, send them to log in first.
+            btn.textContent = T.login_to_buy;
+            btn.onclick = function() { window.location.href = CFG.loginurl; };
+        } else if (isActive) {
+            btn.textContent = T.active; btn.disabled = true;
+        } else if (hasActive) {
+            btn.textContent = T.purchased; btn.disabled = true;
+        } else {
+            btn.textContent = T.buy_package; btn.onclick = function() { subscribe(p, btn); };
+        }
         foot.appendChild(btn);
         body.appendChild(foot);
 
@@ -667,11 +730,8 @@ require([], function() {
         return card;
     }
 
-    Promise.all([apiGet('get_available_packages'), apiGet('get_my_packages')]).then(function(res) {
-        var rows = res[0] || [], mine = res[1] || [];
+    function renderRows(rows, hasActive, activePkg) {
         if (!rows.length) { return; } // nothing to sell — leave the section hidden
-        var activePkg = mine.filter(function(p) { return p.status === 'active'; })[0] || null;
-        var hasActive = !!activePkg;
 
         // Only one package can be active at a time — explain why every "Buy package" button is
         // disabled with a single note under the section heading, instead of repeating it per card.
@@ -688,7 +748,18 @@ require([], function() {
         grid.innerHTML = '';
         rows.forEach(function(p, i) { grid.appendChild(pkgCard(p, hasActive, i, activePkg)); });
         sec.style.display = 'block';
-    }).catch(function() { /* keep the section hidden on any error */ });
+    }
+
+    if (CFG.token) {
+        Promise.all([apiGet('get_available_packages'), apiGet('get_my_packages')]).then(function(res) {
+            var rows = res[0] || [], mine = res[1] || [];
+            var activePkg = mine.filter(function(p) { return p.status === 'active'; })[0] || null;
+            renderRows(rows, !!activePkg, activePkg);
+        }).catch(function() { /* keep the section hidden on any error */ });
+    } else {
+        // Guest/visitor — server already rendered the available packages; no purchase state to merge.
+        renderRows(CFG.guestRows || [], false, null);
+    }
 });
 JS;
 
@@ -712,18 +783,21 @@ function local_academy_is_platform_manager() {
 
 /**
  * Add an "Available subscriptions" section (Udemy/Coursera-style cards) to the site front page so
- * students can discover and buy course-access subscriptions directly from home. Replaces the old
- * "Book lessons & Flex" banner. The section renders itself only when at least one subscription is
- * available and hides silently otherwise.
+ * visitors — logged in or not — can discover course-access subscriptions and Flex packages directly
+ * from home. Replaces the old "Book lessons & Flex" banner. Guests can browse the cards but their
+ * buy buttons lead to the login page rather than checkout. Each section renders itself only when at
+ * least one plan is available and hides silently otherwise.
  */
 function local_academy_before_footer() {
     global $PAGE, $USER, $COURSE, $DB, $CFG;
     $output = '';
 
     // 1. Front page "Available subscriptions" cards, followed by "Available packages" cards.
-    // Students only — admins/managers already manage these from their own dashboards.
+    // Shown to everyone (including guests/visitors not logged in) so they can browse what's on
+    // offer; the cards themselves send guests to log in instead of straight to checkout. Real
+    // admins/managers already manage these from their own dashboards, not from here.
     if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
-        if (isloggedin() && !isguestuser() && $PAGE->pagetype === 'site-index') {
+        if ($PAGE->pagetype === 'site-index' && !local_academy_is_platform_manager()) {
             $output .= local_academy_available_subscriptions_section();
             $output .= local_academy_available_packages_section();
         }
@@ -734,10 +808,10 @@ function local_academy_before_footer() {
         return $output;
     }
     if (!isloggedin() || isguestuser()) {
-        return;
+        return $output;
     }
     if (!\local_academy\realtime::enabled()) {
-        return;
+        return $output;
     }
 
     $cfg = array(
