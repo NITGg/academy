@@ -66,7 +66,7 @@ class mod_resource_mod_form extends moodleform_mod {
         $filemanager_options['maxfiles'] = -1;
         $filemanager_options['mainfile'] = true;
 
-        // $mform->addElement('filemanager', 'files', get_string('selectfiles'), null, $filemanager_options);
+        $mform->addElement('filemanager', 'files', get_string('selectfiles'), null, $filemanager_options);
 
         // add legacy files flag only if used
         if (isset($this->current->legacyfiles) and $this->current->legacyfiles != RESOURCELIB_LEGACYFILES_NO) {
