@@ -77,7 +77,7 @@ $fs = get_file_storage();
 $files = $fs->get_area_files($context->id, 'mod_testnew', 'content', 0, 'sortorder DESC, id ASC', false); // TODO: this is not very efficient!!
 foreach($files as $file){
         $fileurl = moodle_url::make_pluginfile_url($file->get_contextid(), $file->get_component(), $file->get_filearea(), $file->get_itemid(), $file->get_filepath(), $file->get_filename());
-        $download_url = $fileurl->get_port() ? $fileurl->get_scheme() . '://' . $fileurl->get_host() . $fileurl->get_path() . ':' . $fileurl->get_port() : $fileurl->get_scheme() . '://' . $fileurl->get_host() . $fileurl->get_path();
+        $download_url = $fileurl->out(false);
         echo '
 
         <div>

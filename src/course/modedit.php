@@ -182,10 +182,28 @@ if ($mform->is_cancelled()) {
         if (empty($fromform->showgradingmanagement)) {
             $record = $DB->get_record("course_modules", array('instance' => $fromform->id));
 
-            if (!empty($record) && ($module->name == "resource")) {
-                $url = $CFG->wwwroot . "/test/submit.php?resource_id=" . $fromform->id . "&update=" . $check . "";
-            } elseif (!empty($record) && ($module->name == "resource2")) {
-                $url = $CFG->wwwroot . "/test2/submit.php?resource_id=" . $fromform->id . "&update=" . $check . "";
+            // The custom Vimeo-upload page (test/submit.php, test2/submit.php) only accepts
+            // video files. Route through it only when the resource's saved content is
+            // actually a video; PDFs/docs/images have no way to attach there, so send those
+            // straight to the normal activity view instead.
+            if (!empty($record) && in_array($module->name, ['resource', 'resource2'])) {
+                $modcontext  = context_module::instance($record->id);
+                $component   = ($module->name == 'resource') ? 'mod_resource' : 'mod_resource2';
+                $contentfiles = get_file_storage()->get_area_files(
+                    $modcontext->id, $component, 'content', false, 'sortorder DESC, id ASC', false);
+
+                $is_video = false;
+                foreach ($contentfiles as $cf) {
+                    if (strpos($cf->get_mimetype(), 'video/') === 0) {
+                        $is_video = true;
+                        break;
+                    }
+                }
+
+                if ($is_video) {
+                    $vimeoscript = ($module->name == 'resource') ? '/test/submit.php' : '/test2/submit.php';
+                    $url = $CFG->wwwroot . $vimeoscript . "?resource_id=" . $fromform->id . "&update=" . $check . "";
+                }
             }
             redirect($url);
         } else {

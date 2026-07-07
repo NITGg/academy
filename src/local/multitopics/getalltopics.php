@@ -14,14 +14,23 @@
 define('NO_MOODLE_COOKIES', true);
 
 // Spoof HTTP_HOST so Moodle's URL check doesn't redirect internal calls.
-$_wwwroot = getenv('MOODLE_WWWROOT') ?: 'http://localhost';
-$_parsed  = parse_url($_wwwroot);
+// Must match the actual scheme of $CFG->wwwroot (set below by config.php) — forcing
+// HTTPS unconditionally trips Moodle's wwwroot-mismatch redirect when the site is
+// actually served over plain HTTP, which silently turns the JSON response into an
+// HTML "Redirect" page.
+$_wwwroot  = getenv('MOODLE_WWWROOT') ?: 'http://localhost';
+$_parsed   = parse_url($_wwwroot);
 if (!empty($_parsed['host'])) {
-    $_SERVER['HTTP_HOST']   = $_parsed['host'];
-    $_SERVER['HTTPS']       = 'on';
-    $_SERVER['SERVER_PORT'] = '443';
+    $_host = $_parsed['host'];
+    if (!empty($_parsed['port'])) {
+        $_host .= ':' . $_parsed['port'];
+    }
+    $_is_https              = (($_parsed['scheme'] ?? 'http') === 'https');
+    $_SERVER['HTTP_HOST']   = $_host;
+    $_SERVER['HTTPS']       = $_is_https ? 'on' : '';
+    $_SERVER['SERVER_PORT'] = (string)($_parsed['port'] ?: ($_is_https ? 443 : 80));
 }
-unset($_wwwroot, $_parsed);
+unset($_wwwroot, $_parsed, $_host, $_is_https);
 
 require(__DIR__ . '/../../config.php');
 
@@ -231,6 +240,38 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
                 $act['resourcetype'] = $mime;
                 $act['fileurl']      = \moodle_url::make_pluginfile_url(
                     $ctx->id, 'mod_resource', 'content', $file->get_itemid(),
+                    $file->get_filepath(), $file->get_filename()
+                )->out(false) . '?token=' . $wstoken;
+            }
+        }
+
+        // ── resource2: custom fork of mod_resource, get file URL and type ───
+        if ($cm->modname === 'resource2') {
+            $fs   = get_file_storage();
+            $ctx  = context_module::instance($cm->id);
+            $files = $fs->get_area_files($ctx->id, 'mod_resource2', 'content', false, 'sortorder DESC, id ASC', false);
+            if ($files) {
+                $file = reset($files);
+                $mime = $file->get_mimetype();
+                $act['resourcetype'] = $mime;
+                $act['fileurl']      = \moodle_url::make_pluginfile_url(
+                    $ctx->id, 'mod_resource2', 'content', $file->get_itemid(),
+                    $file->get_filepath(), $file->get_filename()
+                )->out(false) . '?token=' . $wstoken;
+            }
+        }
+
+        // ── testnew: custom single-PDF activity, get file URL and type ──────
+        if ($cm->modname === 'testnew') {
+            $fs   = get_file_storage();
+            $ctx  = context_module::instance($cm->id);
+            $files = $fs->get_area_files($ctx->id, 'mod_testnew', 'content', 0, 'sortorder DESC, id ASC', false);
+            if ($files) {
+                $file = reset($files);
+                $mime = $file->get_mimetype();
+                $act['resourcetype'] = $mime;
+                $act['fileurl']      = \moodle_url::make_pluginfile_url(
+                    $ctx->id, 'mod_testnew', 'content', $file->get_itemid(),
                     $file->get_filepath(), $file->get_filename()
                 )->out(false) . '?token=' . $wstoken;
             }
