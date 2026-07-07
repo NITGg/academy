@@ -187,6 +187,7 @@ class subscription_purchase_manager {
                 'id'             => (int)$r->id,
                 'subscriptionid' => (int)$r->subscriptionid,
                 'name'           => format_string($r->subscription_name),
+                'type'           => $r->type ?? 'normal',
                 'price_paid'     => $r->price_paid,
                 'status'         => $status,
                 'timeactivated'  => (int)$r->timeactivated,

@@ -415,10 +415,14 @@ try {
 
         case 'create_subscription_checkout':
             academy_require_post();
-            $subid = required_param('subscriptionid', PARAM_INT);
+            $subid   = required_param('subscriptionid', PARAM_INT);
+            $subtype = optional_param('type', 'normal', PARAM_ALPHA);
+            $seats   = optional_param('seats', 0, PARAM_INT);
+            $lang    = optional_param('alang', current_language(), PARAM_LANG);
             require_once($CFG->dirroot . '/local/payments/classes/manager.php');
             try {
-                $checkout = \local_payments\manager::create_subscription_checkout($subid, $userid);
+                $checkout = \local_payments\manager::create_subscription_checkout(
+                    $subid, $userid, null, $lang, $subtype, $seats);
                 academy_respond(['status' => 'success', 'data' => $checkout]);
             } catch (\Exception $e) {
                 academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);

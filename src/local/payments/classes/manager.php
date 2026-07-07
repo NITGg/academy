@@ -347,21 +347,45 @@ class manager {
      * @param int|null $userid
      * @param string|null $app_country
      * @param string $display_lang
+     * @param string $type 'normal' | 'b2b'
+     * @param int $seats purchased capacity (B2B only; must match a seat option)
      * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
      */
     public static function create_subscription_checkout(int $subscriptionid, ?int $userid = null, ?string $app_country = null,
-            string $display_lang = 'en'): object {
+            string $display_lang = 'en', string $type = 'normal', int $seats = 0): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
         $user = $DB->get_record('user', ['id' => $userid], 'id, email, firstname, lastname, country', MUST_EXIST);
         $sub = $DB->get_record('academy_subscriptions', ['id' => $subscriptionid], '*', MUST_EXIST);
 
-        if (\local_academy\subscription_purchase_manager::get_active_subscription($userid)) {
-            throw new \moodle_exception('err_alreadyhassubscription', 'local_academy');
+        $isb2b = ($type === 'b2b');
+        $b2bseats = 0;
+        $amount = (float) $sub->price;
+
+        if ($isb2b) {
+            // B2B: charge base_price × seats − discount for the chosen seat option (mirrors the
+            // recompute in subscription_purchase_manager::purchase_subscription so the amount matches).
+            if (empty($sub->b2b_enabled)) {
+                throw new \moodle_exception('err_b2bnotenabled', 'local_academy');
+            }
+            $option = $DB->get_record('academy_sub_seat_options',
+                ['subscriptionid' => $sub->id, 'seats' => (int) $seats]);
+            if (!$option) {
+                throw new \moodle_exception('err_seatoptioninvalid', 'local_academy');
+            }
+            $b2bseats = (int) $seats;
+            $price = \local_academy\subscription_manager::b2b_price($sub->price, $b2bseats, $option->discount_percent);
+            $amount = (float) $price['final'];
+        } else {
+            // Rule: a user may hold only one active NORMAL subscription at a time (B2B is separate).
+            $existing = \local_academy\subscription_purchase_manager::get_active_subscription($userid);
+            if ($existing && (!isset($existing->type) || $existing->type === 'normal')) {
+                throw new \moodle_exception('err_alreadyhassubscription', 'local_academy');
+            }
         }
 
-        $currency = 'EGP'; 
+        $currency = 'EGP';
         
         $country = country_detector::detect($userid, $app_country);
         $provider = self::get_provider($country, $currency);
@@ -380,8 +404,8 @@ class manager {
             'price_id' => null,
             'order_id' => $order_id,
             'idempotency_key' => $idempotency_key,
-            'amount' => $sub->price,
-            'original_amount' => $sub->price,
+            'amount' => $amount,
+            'original_amount' => $amount,
             'currency' => $currency,
             'status' => status_machine::PENDING,
             'customer_email' => $user->email,
@@ -394,6 +418,8 @@ class manager {
                 'item_type' => 'subscription',
                 'item_id' => $subscriptionid,
                 'subscription_name' => $sub->name,
+                'sub_type' => $isb2b ? 'b2b' : 'normal',
+                'seats' => $b2bseats,
             ]),
             'expires_at' => $expires_at,
             'timecreated' => time(),
@@ -409,7 +435,7 @@ class manager {
 
         $request = new payment_request([
             'order_id' => $order_id,
-            'amount' => $sub->price,
+            'amount' => $amount,
             'currency' => $currency,
             'description' => 'Subscription: ' . $sub->name,
             'userid' => $userid,
@@ -628,7 +654,9 @@ class manager {
                     (int) $transaction->userid,
                     (int) $meta->item_id,
                     $result->payment_method ?? 'kashier',
-                    $transaction->order_id
+                    $transaction->order_id,
+                    $meta->sub_type ?? 'normal',
+                    (int) ($meta->seats ?? 0)
                 );
                 self::audit_log($transaction->id, $transaction->userid, 'subscription_purchased', '', (string) $meta->item_id);
             } else {
@@ -791,7 +819,9 @@ class manager {
                             (int) $transaction->userid,
                             (int) $meta->item_id,
                             $result->payment_method_type ?? 'kashier',
-                            $transaction->order_id
+                            $transaction->order_id,
+                            $meta->sub_type ?? 'normal',
+                            (int) ($meta->seats ?? 0)
                         );
                         self::audit_log($transaction->id, $transaction->userid, 'subscription_purchased', '', (string) $meta->item_id);
                     } else {

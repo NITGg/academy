@@ -446,8 +446,10 @@ require([], function() {
             if (!seats) { return; }
             var orig = btn.textContent;
             btn.disabled = true; btn.textContent = T.redirecting;
-            apiPost('purchase_subscription', {subscriptionid: s.id, type: 'b2b', seats: seats})
-                .then(function() { showMsg(T.b2b_success, 'success'); setTimeout(function(){ window.location.reload(); }, 1200); })
+            // Same gateway flow as a normal subscription: create a checkout, redirect to the
+            // payment page; the B2B purchase + role are created on webhook success.
+            apiPost('create_subscription_checkout', {subscriptionid: s.id, type: 'b2b', seats: seats})
+                .then(function(d) { window.location.href = d.checkout_url; })
                 .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
         });
     }
@@ -532,7 +534,11 @@ require([], function() {
     if (CFG.token) {
         Promise.all([apiGet('get_available_subscriptions'), apiGet('get_my_subscriptions')]).then(function(res) {
             var rows = res[0] || [], mine = res[1] || [];
-            var activeSub = mine.filter(function(s) { return s.status === 'active'; })[0] || null;
+            // Only a NORMAL subscription drives the "one active plan" button state; B2B purchases
+            // are a separate system and must not mark the normal cards as already subscribed.
+            var activeSub = mine.filter(function(s) {
+                return s.status === 'active' && (s.type || 'normal') === 'normal';
+            })[0] || null;
             renderRows(rows, !!activeSub, activeSub);
         }).catch(function() { /* keep the section hidden on any error */ });
     } else {
