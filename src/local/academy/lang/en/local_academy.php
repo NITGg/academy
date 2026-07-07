@@ -56,6 +56,7 @@ $string['hp_b2b_base']          = 'Base price';
 $string['hp_b2b_discount']      = 'Discount';
 $string['hp_b2b_total']         = 'B2B total';
 $string['hp_b2b_success']       = 'Business subscription purchased. You are now a B2B administrator.';
+$string['hp_b2b_manage']        = 'Manage business plan';
 $string['hp_pkg_confirm_title'] = 'Confirm your package purchase';
 $string['hp_pkg_confirm_body']  = 'You are about to buy this package. You will be taken to secure checkout to complete the payment.';
 $string['hp_flex_count']      = 'Flex Count';

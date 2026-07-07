@@ -229,6 +229,7 @@ CSS;
         // Honour an explicit ?lang= in the URL; otherwise use the page's current language.
         'lang'      => optional_param('lang', current_language(), PARAM_LANG),
         'loginurl'  => (string) new moodle_url('/login/index.php'),
+        'b2bdashurl' => (string) new moodle_url('/local/academy/b2b_dashboard.php'),
         'guestRows' => $isrealuser ? null : array_values($guestrows),
     );
     $cfgjson = json_encode($cfg, JSON_UNESCAPED_SLASHES);
@@ -265,6 +266,7 @@ CSS;
         'b2b_discount'    => get_string('hp_b2b_discount', 'local_academy'),
         'b2b_total'       => get_string('hp_b2b_total', 'local_academy'),
         'b2b_success'     => get_string('hp_b2b_success', 'local_academy'),
+        'b2b_manage'      => get_string('hp_b2b_manage', 'local_academy'),
     );
     $strjson = json_encode($str, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
@@ -275,6 +277,7 @@ require([], function() {
     var sec = document.getElementById('la-subs');
     if (!sec || (!CFG.token && !(CFG.guestRows && CFG.guestRows.length))) { return; }
     var grid = document.getElementById('la-subs-grid');
+    var B2B_OWNED = {}; // subscriptionid -> true for plans the user holds an active B2B sub for
 
     function el(tag, attrs, html) {
         var e = document.createElement(tag);
@@ -500,6 +503,10 @@ require([], function() {
             b2bBtn.textContent = T.b2b_business;
             if (!CFG.token) {
                 b2bBtn.onclick = function() { window.location.href = CFG.loginurl; };
+            } else if (B2B_OWNED[s.id]) {
+                // Already a B2B admin for this plan — send them to the dashboard instead of re-buying.
+                b2bBtn.textContent = T.b2b_manage;
+                b2bBtn.onclick = function() { window.location.href = CFG.b2bdashurl; };
             } else {
                 b2bBtn.onclick = function() { subscribeB2b(s, b2bBtn); };
             }
@@ -539,6 +546,12 @@ require([], function() {
             var activeSub = mine.filter(function(s) {
                 return s.status === 'active' && (s.type || 'normal') === 'normal';
             })[0] || null;
+            // Plans the user already owns an active B2B subscription for — so the "Business (B2B)"
+            // button shows an owned/manage state instead of letting them buy the same plan again.
+            B2B_OWNED = {};
+            mine.forEach(function(s) {
+                if (s.status === 'active' && (s.type || 'normal') === 'b2b') { B2B_OWNED[s.subscriptionid] = true; }
+            });
             renderRows(rows, !!activeSub, activeSub);
         }).catch(function() { /* keep the section hidden on any error */ });
     } else {

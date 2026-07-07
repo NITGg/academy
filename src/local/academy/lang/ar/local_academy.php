@@ -758,6 +758,7 @@ $string['hp_b2b_base']          = 'السعر الأساسي';
 $string['hp_b2b_discount']      = 'الخصم';
 $string['hp_b2b_total']         = 'إجمالي الأعمال';
 $string['hp_b2b_success']       = 'تم شراء اشتراك الأعمال. أنت الآن مدير أعمال.';
+$string['hp_b2b_manage']        = 'إدارة اشتراك الأعمال';
 
 $string['messageprovider:b2bnotification'] = 'تحديثات اشتراك الأعمال (الشراء، طلبات الانضمام، الموافقات)';
 $string['notif_b2b_purchased_subject'] = 'اشتراك الأعمال الخاص بك نشط';
