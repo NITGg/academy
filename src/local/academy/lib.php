@@ -54,9 +54,16 @@ function local_academy_extend_navigation_user_settings($navigation, $user, $cont
     }
 
     // B2B subscription dashboard — only for users who own an active B2B subscription (US-B2B-1-8).
+    // Guarded: the `type` column is added by the plugin upgrade; before it runs this must not error.
     global $DB;
-    if ($DB->record_exists('academy_sub_purchases',
-            array('userid' => $user->id, 'type' => 'b2b', 'status' => 'active'))) {
+    $ownsb2b = false;
+    try {
+        $ownsb2b = $DB->record_exists('academy_sub_purchases',
+            array('userid' => $user->id, 'type' => 'b2b', 'status' => 'active'));
+    } catch (\Throwable $e) {
+        $ownsb2b = false;
+    }
+    if ($ownsb2b) {
         $b2bnode = navigation_node::create(
             get_string('b2b_dashboard_title', 'local_academy'),
             new moodle_url('/local/academy/b2b_dashboard.php'),
@@ -909,8 +916,18 @@ function local_academy_before_footer() {
     // admins/managers already manage these from their own dashboards, not from here.
     if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
         if ($PAGE->pagetype === 'site-index' && !local_academy_is_platform_manager()) {
-            $output .= local_academy_available_subscriptions_section();
-            $output .= local_academy_available_packages_section();
+            // Never let a card section take the front page down (e.g. a pending DB upgrade where the
+            // new subscription columns/tables do not exist yet) — render what we can, skip the rest.
+            try {
+                $output .= local_academy_available_subscriptions_section();
+            } catch (\Throwable $e) {
+                debugging('academy subscriptions section failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            }
+            try {
+                $output .= local_academy_available_packages_section();
+            } catch (\Throwable $e) {
+                debugging('academy packages section failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            }
         }
     }
 
