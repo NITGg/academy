@@ -22,7 +22,9 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('reports', 'local_academy'));
 // Localised strings: server-rendered HTML reads $STR['key']; the JS reads window.ACADEMY_STR.
 $STR = local_academy_string_map(array(
-    'rp_tab_lessons', 'rp_tab_platform', 'rp_tab_packages', 'rp_tab_studentflex',
+    'rp_tab_lessons', 'rp_tab_platform', 'rp_tab_packages', 'rp_tab_studentflex', 'rp_tab_useractivity',
+    'rp_f_userid', 'rp_f_email', 'rp_ua_registered', 'rp_ua_lastlogin', 'rp_ua_status', 'rp_ua_roles',
+    'rp_ua_subs', 'rp_ua_memberships', 'rp_ua_courses', 'rp_ua_actions', 'rp_ua_none', 'rp_enter_user',
     'rp_f_status', 'rp_f_teacherid', 'rp_f_studentid', 'rp_f_from', 'rp_f_to', 'rp_f_earnstatus',
     'rp_f_source', 'rp_f_studentid_req', 'rp_run', 'ui_export_csv',
     'rp_c_id', 'rp_c_student', 'rp_c_teacher', 'rp_c_subject', 'rp_c_status', 'rp_c_confirmed',
@@ -77,10 +79,12 @@ table.rp-table th,table.rp-table td{border-bottom:1px solid #eee;padding:.4rem .
     <button data-tab="platform_earnings"><?php echo $STR['rp_tab_platform']; ?></button>
     <button data-tab="packages"><?php echo $STR['rp_tab_packages']; ?></button>
     <button data-tab="student_flex"><?php echo $STR['rp_tab_studentflex']; ?></button>
+    <button data-tab="user_activity"><?php echo $STR['rp_tab_useractivity']; ?></button>
   </div>
   <div id="rp-filters"></div>
   <div id="rp-summary"></div>
-  <div style="overflow-x:auto"><table class="rp-table"><thead id="rp-head"></thead><tbody id="rp-body"></tbody></table></div>
+  <div id="rp-generic" style="overflow-x:auto"><table class="rp-table"><thead id="rp-head"></thead><tbody id="rp-body"></tbody></table></div>
+  <div id="rp-useractivity" style="display:none"></div>
   <div id="rp-timeline" style="display:none;margin-top:1rem;border:1px solid #dee2e6;border-radius:.5rem;padding:.75rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
       <strong id="rp-tl-title"><?php echo $STR['rp_timeline_title']; ?></strong>
@@ -110,9 +114,10 @@ echo html_writer::script(<<<'JS'
     lessons:[['status',str('rp_f_status'),'text'],['teacherid',str('rp_f_teacherid'),'number'],['studentid',str('rp_f_studentid'),'number'],['from',str('rp_f_from'),'number'],['to',str('rp_f_to'),'number']],
     platform_earnings:[['status',str('rp_f_earnstatus'),'text'],['teacherid',str('rp_f_teacherid'),'number'],['from',str('rp_f_from'),'number'],['to',str('rp_f_to'),'number']],
     packages:[['source',str('rp_f_source'),'text'],['studentid',str('rp_f_studentid'),'number'],['from',str('rp_f_from'),'number'],['to',str('rp_f_to'),'number']],
-    student_flex:[['studentid',str('rp_f_studentid_req'),'number']]
+    student_flex:[['studentid',str('rp_f_studentid_req'),'number']],
+    user_activity:[['userid',str('rp_f_userid'),'number'],['email',str('rp_f_email'),'text'],['from',str('rp_f_from'),'number'],['to',str('rp_f_to'),'number']]
   };
-  var FN={lessons:'report_lessons',platform_earnings:'report_platform_earnings',packages:'report_packages',student_flex:'report_student_flex'};
+  var FN={lessons:'report_lessons',platform_earnings:'report_platform_earnings',packages:'report_packages',student_flex:'report_student_flex',user_activity:'report_user_activity'};
   var EXPORTTYPE={lessons:'lessons',platform_earnings:'platform_earnings',packages:'packages',student_flex:'student_flex'};
 
   function readFilters(){
@@ -127,9 +132,12 @@ echo html_writer::script(<<<'JS'
       fg.appendChild(inp);box.appendChild(fg);
     });
     var run=document.createElement('button');run.className='btn btn-primary';run.textContent=str('rp_run');run.onclick=load;box.appendChild(run);
-    var exp=document.createElement('a');exp.className='btn btn-outline-secondary';exp.textContent=str('ui_export_csv');exp.id='rp-export';exp.target='_blank';box.appendChild(exp);
+    if(EXPORTTYPE[current]){
+      var exp=document.createElement('a');exp.className='btn btn-outline-secondary';exp.textContent=str('ui_export_csv');exp.id='rp-export';exp.target='_blank';box.appendChild(exp);
+    }
   }
   function updateExportLink(){
+    if(!EXPORTTYPE[current]||!$('rp-export')){return;}
     var p=Object.assign({type:EXPORTTYPE[current],token:CFG.token},readFilters());
     if(CFG.lang){p.alang=CFG.lang;}
     $('rp-export').href=CFG.export+'?'+new URLSearchParams(p).toString();
@@ -208,27 +216,69 @@ echo html_writer::script(<<<'JS'
     if(b){showTimeline(b.getAttribute('data-id'));}
   });
 
+  // US-B2B-1-9: custom panel for the nested user-activity payload (profile + subs + memberships + courses + actions).
+  function renderUserActivity(d){
+    var u=d.user||{};
+    function tbl(title, head, rows){
+      var h='<h5 class="mt-3">'+esc(title)+'</h5>';
+      if(!rows.length){return h+'<p class="text-muted">'+esc(str('rp_ua_none'))+'</p>';}
+      h+='<div style="overflow-x:auto"><table class="rp-table"><thead><tr>'+head.map(function(c){return '<th>'+esc(c)+'</th>';}).join('')+'</tr></thead><tbody>';
+      h+=rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+esc(c)+'</td>';}).join('')+'</tr>';}).join('');
+      return h+'</tbody></table></div>';
+    }
+    var html='<div id="rp-summary" class="rp-summary" style="display:flex;gap:.6rem;flex-wrap:wrap;margin:.5rem 0">'+
+      '<div class="rp-chip">'+esc(u.name||'')+'<b>'+esc(u.email||'')+'</b></div>'+
+      '<div class="rp-chip">'+esc(str('rp_ua_registered'))+'<b>'+fmt(u.registered)+'</b></div>'+
+      '<div class="rp-chip">'+esc(str('rp_ua_lastlogin'))+'<b>'+fmt(u.last_login)+'</b></div>'+
+      '<div class="rp-chip">'+esc(str('rp_ua_status'))+'<b>'+esc(u.account_status)+'</b></div>'+
+      '<div class="rp-chip">'+esc(str('rp_ua_roles'))+'<b>'+esc((u.roles||[]).join(', ')||'—')+'</b></div>'+
+    '</div>';
+    html+=tbl(str('rp_ua_subs'),[str('rp_c_package'),str('rp_c_type'),str('rp_c_status'),str('rp_s_expires')],
+      (d.subscriptions||[]).map(function(s){return [s.name,s.type+(s.seats?(' ('+s.seats+')'):''),s.status,fmt(s.expires_at)];}));
+    html+=tbl(str('rp_ua_memberships'),[str('rp_c_package'),str('rp_c_status'),str('rp_c_date')],
+      (d.memberships||[]).map(function(m){return [m.subscription,m.status,fmt(m.timecreated)];}));
+    html+=tbl(str('rp_ua_courses'),[str('rp_c_id'),str('rp_c_package')],
+      (d.courses||[]).map(function(c){return [c.id,c.fullname];}));
+    html+=tbl(str('rp_ua_actions'),[str('rp_c_date'),str('rp_c_type'),str('rp_c_amount'),str('rp_c_status')],
+      (d.actions||[]).map(function(a){return [fmt(a.timecreated),a.detail,money(a.amount),a.status];}));
+    $('rp-useractivity').innerHTML=html;
+  }
+
   function load(){
     msg('');
     if(current==='student_flex'){
       var sid=$('f-studentid').value;
       if(!sid){msg(str('rp_enter_student'),'info');$('rp-body').innerHTML='';$('rp-head').innerHTML='';$('rp-summary').innerHTML='';return;}
     }
+    if(current==='user_activity'){
+      var uid=$('f-userid').value, em=$('f-email').value;
+      if(!uid && !em){msg(str('rp_enter_user'),'info');$('rp-useractivity').innerHTML='';return;}
+      apiGet(FN[current],readFilters()).then(renderUserActivity).catch(function(e){msg(e.message,'danger');});
+      return;
+    }
     updateExportLink();
     apiGet(FN[current],readFilters()).then(render).catch(function(e){msg(e.message,'danger');});
+  }
+
+  function togglePanels(){
+    var ua=(current==='user_activity');
+    $('rp-generic').style.display=ua?'none':'block';
+    $('rp-summary').style.display=ua?'none':'flex';
+    $('rp-useractivity').style.display=ua?'block':'none';
   }
 
   Array.prototype.forEach.call(document.querySelectorAll('#rp-tabs button'),function(b){
     b.onclick=function(){
       Array.prototype.forEach.call(document.querySelectorAll('#rp-tabs button'),function(x){x.classList.remove('active');});
       b.classList.add('active');current=b.getAttribute('data-tab');
-      renderFilters();updateExportLink();
+      renderFilters();updateExportLink();togglePanels();
       if(current==='student_flex'){$('rp-body').innerHTML='';$('rp-head').innerHTML='';$('rp-summary').innerHTML='';msg(str('rp_enter_student_run'),'info');}
+      else if(current==='user_activity'){$('rp-useractivity').innerHTML='';msg(str('rp_enter_user'),'info');}
       else{load();}
     };
   });
 
-  renderFilters();load();
+  renderFilters();togglePanels();load();
 })();
 JS
 );

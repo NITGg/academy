@@ -26,4 +26,12 @@ $messageproviders = array(
             'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
         ),
     ),
+
+    // B2B subscription events: purchase confirmation, pending request, approve/reject/remove (US-B2B-1-*).
+    'b2bnotification' => array(
+        'defaults' => array(
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
+            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
+        ),
+    ),
 );

@@ -289,6 +289,7 @@
         <FIELD NAME="price" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="duration_days" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="access length in days (must be &gt; 0)"/>
         <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="active" SEQUENCE="false" COMMENT="active | inactive"/>
+        <FIELD NAME="b2b_enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = plan can be purchased as a B2B (seat-based) subscription (US-B2B-1-1)"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -298,6 +299,24 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="status_idx" UNIQUE="false" FIELDS="status"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_sub_seat_options" COMMENT="B2B seat-capacity options per plan, each with its own discount % (US-AD-5-1)">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="subscriptionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="seats" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="user capacity (must be &gt; 0)"/>
+        <FIELD NAME="discount_percent" TYPE="number" LENGTH="5" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0..100"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="subscriptionid_fk" TYPE="foreign" FIELDS="subscriptionid" REFTABLE="academy_subscriptions" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="sub_seats_uk" UNIQUE="true" FIELDS="subscriptionid, seats"/>
       </INDEXES>
     </TABLE>
 
@@ -323,6 +342,10 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="subscriptionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="type" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="normal" SEQUENCE="false" COMMENT="normal | b2b (US-B2B-1-1)"/>
+        <FIELD NAME="seats" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="purchased user capacity (0 for normal)"/>
+        <FIELD NAME="base_price" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="snapshot of normal price (B2B base)"/>
+        <FIELD NAME="discount_percent" TYPE="number" LENGTH="5" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="B2B seat-option discount snapshot"/>
         <FIELD NAME="price_paid" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="duration_days" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="snapshot of plan duration at purchase"/>
         <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="active" SEQUENCE="false" COMMENT="pending | active | expired | cancelled | payment_failed"/>
@@ -361,6 +384,54 @@
       <INDEXES>
         <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
         <INDEX NAME="txn_idx" UNIQUE="true" FIELDS="transaction_no"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_b2b_invitations" COMMENT="B2B invitation links (hashed token; never grants access directly) (US-B2B-1-2)">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="purchaseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="b2b_admin_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="token_hash" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="active" SEQUENCE="false" COMMENT="active | expired | disabled | revoked"/>
+        <FIELD NAME="expires_at" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0 = never"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="purchaseid_fk" TYPE="foreign" FIELDS="purchaseid" REFTABLE="academy_sub_purchases" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="token_uk" UNIQUE="true" FIELDS="token_hash"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_b2b_memberships" COMMENT="B2B membership per (subscription, user); consumes_seat stored per record (US-B2B-1-3..1-8)">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="purchaseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="subscriptionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="b2b_admin_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="invitationid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending | approved | rejected | removed | expired"/>
+        <FIELD NAME="consumes_seat" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="reject_reason" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="approved_by" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="approved_at" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="removed_by" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="removed_at" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="purchaseid_fk" TYPE="foreign" FIELDS="purchaseid" REFTABLE="academy_sub_purchases" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="purchase_user_uk" UNIQUE="true" FIELDS="purchaseid, userid"/>
+        <INDEX NAME="purchase_status_idx" UNIQUE="false" FIELDS="purchaseid, status"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="academy_quiz_answers" COMMENT="Per-question answers saved during an in-progress quiz attempt (mobile quiz API)">

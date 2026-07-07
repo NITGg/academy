@@ -53,6 +53,25 @@ function local_academy_extend_navigation_user_settings($navigation, $user, $cont
         $navigation->add_node($studentnode);
     }
 
+    // B2B subscription dashboard — only for users who own an active B2B subscription (US-B2B-1-8).
+    global $DB;
+    if ($DB->record_exists('academy_sub_purchases',
+            array('userid' => $user->id, 'type' => 'b2b', 'status' => 'active'))) {
+        $b2bnode = navigation_node::create(
+            get_string('b2b_dashboard_title', 'local_academy'),
+            new moodle_url('/local/academy/b2b_dashboard.php'),
+            navigation_node::TYPE_SETTING,
+            null,
+            'local_academy_b2b',
+            new pix_icon('i/cohort', '')
+        );
+        if ($useraccountstud) {
+            $useraccountstud->add_node($b2bnode);
+        } else {
+            $navigation->add_node($b2bnode);
+        }
+    }
+
     if (!\local_academy\teacher_manager::is_teacher($user->id)) {
         return; // teachers only — admins/students don't get a teacher profile link
     }
@@ -230,6 +249,15 @@ CSS;
         'subscribed'      => get_string('hp_subscribed', 'local_academy'),
         'subscribe'       => get_string('hp_subscribe', 'local_academy'),
         'active_note'     => get_string('hp_sub_active_note', 'local_academy'),
+        'b2b_business'    => get_string('hp_b2b_business', 'local_academy'),
+        'b2b_confirm_title' => get_string('hp_b2b_confirm_title', 'local_academy'),
+        'b2b_confirm_body'  => get_string('hp_b2b_confirm_body', 'local_academy'),
+        'b2b_capacity'    => get_string('hp_b2b_capacity', 'local_academy'),
+        'b2b_users'       => get_string('hp_b2b_users', 'local_academy', '{n}'),
+        'b2b_base'        => get_string('hp_b2b_base', 'local_academy'),
+        'b2b_discount'    => get_string('hp_b2b_discount', 'local_academy'),
+        'b2b_total'       => get_string('hp_b2b_total', 'local_academy'),
+        'b2b_success'     => get_string('hp_b2b_success', 'local_academy'),
     );
     $strjson = json_encode($str, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
@@ -346,6 +374,77 @@ require([], function() {
         });
     }
 
+    // B2B purchase dialog: pick a seat capacity, see base/discount/final, then buy (US-B2B-1-1).
+    // Resolves the chosen seats (int) or null if cancelled.
+    function confirmB2b(s) {
+        return new Promise(function(resolve) {
+            var opts = s.seat_options || [];
+            var bg = el('div', {class: 'la-subs-modal-bg'});
+            var optionsHtml = opts.map(function(o, i) {
+                return '<option value="' + i + '">' + esc(num(T.b2b_users, o.seats)) +
+                    ' — ' + esc(money(o.b2b_price)) + ' ' + esc(T.egp) + '</option>';
+            }).join('');
+            bg.innerHTML =
+                '<div class="la-subs-modal" role="dialog" aria-modal="true">' +
+                    '<div class="la-subs-modal-head">' + CAP + '<h4>' + esc(T.b2b_confirm_title) + '</h4></div>' +
+                    '<div class="la-subs-modal-body">' +
+                        '<p>' + esc(T.b2b_confirm_body) + '</p>' +
+                        '<div class="la-subs-modal-plan">' +
+                            '<div class="name">' + esc(s.name) + '</div>' +
+                            '<div class="la-subs-modal-row"><span>' + esc(T.b2b_capacity) + '</span>' +
+                                '<select class="la-subs-b2b-cap" style="max-width:60%">' + optionsHtml + '</select></div>' +
+                            '<div class="la-subs-modal-row"><span>' + esc(T.b2b_base) + '</span><b class="la-subs-b2b-base"></b></div>' +
+                            '<div class="la-subs-modal-row"><span>' + esc(T.b2b_discount) + '</span><b class="la-subs-b2b-disc"></b></div>' +
+                            '<div class="la-subs-modal-row"><span>' + esc(T.b2b_total) + '</span><b class="la-subs-b2b-total"></b></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="la-subs-modal-foot">' +
+                        '<button type="button" class="la-subs-modal-cancel">' + esc(T.cancel) + '</button>' +
+                        '<button type="button" class="la-subs-modal-ok">' + esc(T.proceed) + '</button>' +
+                    '</div>' +
+                '</div>';
+            document.body.appendChild(bg);
+            void bg.offsetWidth;
+            bg.classList.add('open');
+
+            var sel = bg.querySelector('.la-subs-b2b-cap');
+            function refresh() {
+                var o = opts[Number(sel.value)] || {};
+                bg.querySelector('.la-subs-b2b-base').textContent = money(o.original_price) + ' ' + T.egp;
+                bg.querySelector('.la-subs-b2b-disc').textContent = '-' + money(o.discount_amount) + ' ' + T.egp + ' (' + Number(o.discount_percent || 0) + '%)';
+                bg.querySelector('.la-subs-b2b-total').textContent = money(o.b2b_price) + ' ' + T.egp;
+            }
+            sel.onchange = refresh;
+            refresh();
+
+            function close(result) {
+                bg.classList.remove('open');
+                document.removeEventListener('keydown', onKey);
+                setTimeout(function() { if (bg.parentNode) { bg.parentNode.removeChild(bg); } }, 180);
+                resolve(result);
+            }
+            function onKey(e) { if (e.key === 'Escape') { close(null); } }
+            document.addEventListener('keydown', onKey);
+            bg.querySelector('.la-subs-modal-cancel').onclick = function() { close(null); };
+            bg.querySelector('.la-subs-modal-ok').onclick = function() {
+                var o = opts[Number(sel.value)];
+                close(o ? o.seats : null);
+            };
+            bg.onclick = function(e) { if (e.target === bg) { close(null); } };
+        });
+    }
+
+    function subscribeB2b(s, btn) {
+        confirmB2b(s).then(function(seats) {
+            if (!seats) { return; }
+            var orig = btn.textContent;
+            btn.disabled = true; btn.textContent = T.redirecting;
+            apiPost('purchase_subscription', {subscriptionid: s.id, type: 'b2b', seats: seats})
+                .then(function() { showMsg(T.b2b_success, 'success'); setTimeout(function(){ window.location.reload(); }, 1200); })
+                .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
+        });
+    }
+
     function subCard(s, hasActive, idx, activeSub) {
         var isActive = !!(activeSub && Number(activeSub.subscriptionid) === Number(s.id));
         var card = el('div', {class: 'la-subs-card' + (isActive ? ' la-subs-card--active' : '')});
@@ -385,6 +484,18 @@ require([], function() {
         }
         foot.appendChild(btn);
         body.appendChild(foot);
+
+        // Business (B2B) purchase: shown when the plan is B2B-enabled and has seat options.
+        if (s.b2b_enabled && s.seat_options && s.seat_options.length) {
+            var b2bBtn = el('button', {type: 'button', class: 'la-subs-btn', style: 'width:100%;margin-top:.6rem;background:#1c1d1f'});
+            b2bBtn.textContent = T.b2b_business;
+            if (!CFG.token) {
+                b2bBtn.onclick = function() { window.location.href = CFG.loginurl; };
+            } else {
+                b2bBtn.onclick = function() { subscribeB2b(s, b2bBtn); };
+            }
+            body.appendChild(b2bBtn);
+        }
 
         card.appendChild(body);
         return card;

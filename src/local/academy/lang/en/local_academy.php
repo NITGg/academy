@@ -8,7 +8,7 @@ $string['managepackages'] = 'Manage lesson packages';
 $string['managesubscriptions'] = 'Manage subscriptions';
 $string['subscriptionhub'] = 'Subscriptions';
 $string['mysubscriptions'] = 'My subscriptions';
-$string['managesettings'] = 'Lesson settings';
+$string['managesettings'] = 'Admin settings';
 $string['myteacherprofile'] = 'My teacher profile';
 $string['teacherprofile'] = 'Teacher profile';
 $string['editmyteacherprofile'] = 'Edit my teacher profile';
@@ -46,6 +46,16 @@ $string['hp_start_date']      = 'Start date';
 $string['hp_end_date']        = 'End date';
 $string['hp_never']           = 'Never';
 $string['hp_sub_active_note'] = 'You already have an active subscription. You can subscribe to another plan once your current subscription ends.';
+// B2B purchase card (US-B2B-1-1).
+$string['hp_b2b_business']      = 'Business (B2B)';
+$string['hp_b2b_confirm_title'] = 'Buy a business subscription';
+$string['hp_b2b_confirm_body']  = 'Choose how many user seats you need. You will manage seats and invite users after purchase.';
+$string['hp_b2b_capacity']      = 'Capacity';
+$string['hp_b2b_users']         = '{n} users';
+$string['hp_b2b_base']          = 'Base price';
+$string['hp_b2b_discount']      = 'Discount';
+$string['hp_b2b_total']         = 'B2B total';
+$string['hp_b2b_success']       = 'Business subscription purchased. You are now a B2B administrator.';
 $string['hp_pkg_confirm_title'] = 'Confirm your package purchase';
 $string['hp_pkg_confirm_body']  = 'You are about to buy this package. You will be taken to secure checkout to complete the payment.';
 $string['hp_flex_count']      = 'Flex Count';
@@ -148,6 +158,20 @@ $string['err_subhaspurchases']  = 'This subscription has purchase records and ca
 $string['err_subnotavailable']  = 'This subscription is not available for purchase';
 $string['err_alreadyhassubscription'] = 'You already have an active subscription';
 $string['err_coursenotfound']   = 'Course not found';
+// ── B2B subscriptions (US-B2B-1-*) ──
+$string['err_seatspositive']    = 'Number of seats must be greater than zero';
+$string['err_discountrange']    = 'Discount percentage must be between 0 and 100';
+$string['err_b2bnotenabled']    = 'This subscription is not available for B2B purchase';
+$string['err_seatoptioninvalid'] = 'The selected capacity is not available for this subscription';
+$string['err_b2bnotowner']      = 'You do not manage this B2B subscription';
+$string['err_b2bnotactive']     = 'This B2B subscription is not active';
+$string['err_b2bexpired']       = 'This B2B subscription has expired';
+$string['err_nofreeseats']      = 'No available seats remain in this B2B subscription';
+$string['err_invalidinvite']    = 'This invitation link is invalid, expired, disabled, or revoked';
+$string['err_membershipnotfound'] = 'Membership not found';
+$string['err_notpending']       = 'This membership is not pending approval';
+$string['err_notapproved']      = 'This membership is not currently approved';
+$string['err_b2brole_missing']  = 'The B2B administrator role is not configured on this site';
 
 // ── Lesson-lifecycle notifications (in-app + email) ──
 $string['messageprovider:lessonnotification'] = 'Lesson updates (requests, responses, reminders)';
@@ -233,6 +257,19 @@ $string['task_expiry_reminder'] = 'Send package-expiry reminders to students';
 $string['task_subscription_expiry'] = 'Expire subscriptions and send expiry reminders';
 $string['notif_subscription_expiring_subject'] = 'Your subscription expires in {$a->days} day(s)';
 $string['notif_subscription_expiring_body']    = 'Your "{$a->subscription}" subscription expires on {$a->date} ({$a->days} day(s) left). Renew it to keep access to your courses.';
+
+// ── B2B subscription notifications (US-B2B-1-*) ──
+$string['messageprovider:b2bnotification'] = 'B2B subscription updates (purchase, join requests, approvals)';
+$string['notif_b2b_purchased_subject'] = 'Your B2B subscription is active';
+$string['notif_b2b_purchased_body']    = 'Your business subscription "{$a->subscription}" with {$a->seats} seat(s) is now active. You are a B2B administrator and can invite and approve users.';
+$string['notif_b2b_pending_subject']   = 'A user is waiting for your approval';
+$string['notif_b2b_pending_body']      = '{$a->user} requested to join your "{$a->subscription}" B2B subscription. Open your B2B dashboard to approve or reject the request.';
+$string['notif_b2b_approved_subject']  = 'Your B2B membership was approved';
+$string['notif_b2b_approved_body']     = 'You now have access to the courses of the "{$a->subscription}" subscription.';
+$string['notif_b2b_rejected_subject']  = 'Your B2B join request was rejected';
+$string['notif_b2b_rejected_body']     = 'Your request to join the "{$a->subscription}" subscription was rejected. {$a->reason}';
+$string['notif_b2b_removed_subject']   = 'Your B2B access was removed';
+$string['notif_b2b_removed_body']      = 'Your access through the "{$a->subscription}" B2B subscription has been removed.';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UI strings — packages pilot (manage_packages.php + student.php Packages tab).
@@ -493,6 +530,16 @@ $string['set_platform_percent']     = 'Platform earning %';
 $string['set_percent_help']         = 'Teacher % + Platform % must total 100.';
 $string['set_save']                 = 'Save changes';
 $string['set_saved']                = 'Saved.';
+// Settings tabs (US-AD-2-1).
+$string['set_tab_deadlines']        = 'Lesson Deadlines';
+$string['set_tab_financial']        = 'Financial Settings';
+$string['set_tab_b2b']              = 'B2B Subscription Settings';
+$string['set_b2b_auto_approve']     = 'Automatically approve invited users';
+$string['set_b2b_auto_approve_help'] = 'When enabled, an invited user is approved automatically if the B2B subscription has an available seat; otherwise they stay pending until the B2B administrator approves them.';
+$string['set_b2b_return_seat']      = 'Return seat when a user is removed';
+$string['set_b2b_return_seat_help'] = 'When enabled, removing an approved user frees their seat so another user can be approved. When disabled, the seat stays consumed until the subscription expires.';
+$string['set_enabled']              = 'Enabled';
+$string['set_disabled']             = 'Disabled';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UI strings — assign_package.php (admin: assign package to student).
@@ -608,6 +655,20 @@ $string['rp_tab_lessons']     = 'Lessons & attendance';
 $string['rp_tab_platform']    = 'Platform earnings';
 $string['rp_tab_packages']    = 'Packages & Flex';
 $string['rp_tab_studentflex'] = 'Student Flex';
+$string['rp_tab_useractivity'] = 'User Activity';
+// User activity report (US-B2B-1-9).
+$string['rp_f_userid']        = 'User ID';
+$string['rp_f_email']         = 'Email';
+$string['rp_ua_registered']   = 'Registered';
+$string['rp_ua_lastlogin']    = 'Last login';
+$string['rp_ua_status']       = 'Account';
+$string['rp_ua_roles']        = 'Roles';
+$string['rp_ua_subs']         = 'Subscriptions';
+$string['rp_ua_memberships']  = 'B2B memberships';
+$string['rp_ua_courses']      = 'Courses accessed';
+$string['rp_ua_actions']      = 'Recent actions';
+$string['rp_ua_none']         = 'None.';
+$string['rp_enter_user']      = 'Enter a user ID or email and click Run.';
 // Filters.
 $string['rp_f_status']        = 'Status';
 $string['rp_f_teacherid']     = 'Teacher ID';
@@ -738,6 +799,62 @@ $string['sub_new']                 = 'New subscription';
 $string['sub_col_days']            = 'Days';
 $string['sub_field_desc']          = 'Description (optional)';
 $string['sub_field_days']          = 'Number of days';
+// B2B plan fields (US-AD-5-1 / US-AD-5-2).
+$string['sub_field_b2b']           = 'B2B purchase available';
+$string['sub_seat_options']        = 'Seat options';
+$string['sub_seat_options_help']   = 'Add one or more user-capacity options, each with its own discount %. The B2B price is calculated as (normal price × seats) − discount.';
+$string['sub_col_seats']           = 'Seats';
+$string['sub_col_discount']        = 'Discount %';
+$string['sub_col_b2bprice']        = 'B2B price';
+$string['sub_seat_add']            = 'Add seat option';
+$string['sub_b2b_badge']           = 'B2B';
+$string['ui_remove']               = 'Remove';
+
+// ── B2B administrator dashboard + join page (US-B2B-1-2 .. 1-8) ──
+$string['b2b_dashboard_title'] = 'B2B subscription';
+$string['b2b_no_subs']         = 'You do not manage any B2B subscription.';
+$string['b2b_purchased']       = 'Purchased seats';
+$string['b2b_consumed']        = 'Consumed seats';
+$string['b2b_available']       = 'Available seats';
+$string['b2b_expires']         = 'Expires';
+$string['b2b_pending']         = 'Pending';
+$string['b2b_approved']        = 'Approved';
+$string['b2b_rejected']        = 'Rejected';
+$string['b2b_removed']         = 'Removed';
+$string['b2b_expired']         = 'Expired';
+$string['b2b_removed_returned'] = 'Removed (seat returned)';
+$string['b2b_removed_kept']    = 'Removed (seat kept)';
+$string['b2b_invite_heading']  = 'Invitation link';
+$string['b2b_generate']        = 'Generate link';
+$string['b2b_revoke']          = 'Revoke';
+$string['b2b_copy']            = 'Copy';
+$string['b2b_copied']          = 'Copied!';
+$string['b2b_link_none']       = 'No active invitation link. Generate one to invite users.';
+$string['b2b_link_active']     = 'An invitation link is active.';
+$string['b2b_members']         = 'Members';
+$string['b2b_col_user']        = 'User';
+$string['b2b_col_status']      = 'Status';
+$string['b2b_col_seat']        = 'Seat';
+$string['b2b_col_actions']     = 'Actions';
+$string['b2b_approve']         = 'Approve';
+$string['b2b_reject']          = 'Reject';
+$string['b2b_remove']          = 'Remove';
+$string['b2b_seat_yes']        = 'Consumes seat';
+$string['b2b_seat_no']         = 'No seat';
+$string['b2b_none']            = 'No members yet.';
+$string['b2b_reason_prompt']   = 'Reason (optional):';
+$string['b2b_confirm_remove']  = 'Remove this user from your B2B subscription?';
+$string['b2b_tab_all']         = 'All';
+$string['b2b_action_done']     = 'Done.';
+$string['b2b_never']           = 'Never';
+// Join page.
+$string['b2b_join_title']      = 'Join a B2B subscription';
+$string['b2b_join_login']      = 'Please log in or register to join this B2B subscription.';
+$string['b2b_join_pending']    = 'Your request to join has been received and is pending approval by the B2B administrator.';
+$string['b2b_join_approved']   = 'You have been approved and now have access to the subscription courses.';
+$string['b2b_join_rejected']   = 'Your previous request to join this subscription was rejected.';
+$string['b2b_join_removed']    = 'You were removed from this subscription.';
+$string['b2b_join_goto']       = 'Go to my dashboard';
 $string['sub_courseavail_heading'] = 'Course subscription availability';
 $string['sub_courseavail_desc']    = 'Choose courses and append them to a specific subscription.';
 $string['sub_target']              = 'Target Subscription:';

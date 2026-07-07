@@ -232,6 +232,114 @@ class notification_manager {
         }
     }
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // B2B subscription notifications (US-B2B-1-*)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Send a B2B notification to one user on the `b2bnotification` provider.
+     * Subject/body come from `notif_{$key}_subject` / `notif_{$key}_body`, rendered in the
+     * recipient's language. Best-effort (never breaks the triggering action).
+     *
+     * @param int    $recipientid user to notify
+     * @param string $key         event key, e.g. 'b2b_approved'
+     * @param object $a           placeholder bag for the lang strings
+     * @param int    $fromid      acting user (0 → no-reply)
+     * @param string $page        target page for the notification link
+     */
+    protected static function b2b_send($recipientid, $key, $a, $fromid = 0, $page = '/local/academy/student.php') {
+        global $DB, $CFG;
+        try {
+            $recipientid = (int)$recipientid;
+            if ($recipientid <= 0) {
+                return;
+            }
+            $recipient = $DB->get_record('user', array('id' => $recipientid, 'deleted' => 0, 'suspended' => 0));
+            if (!$recipient) {
+                return;
+            }
+            $reciplang = !empty($recipient->lang) ? $recipient->lang : $CFG->lang;
+            $prevforcelang = force_current_language($reciplang);
+            try {
+                $subject = get_string("notif_{$key}_subject", 'local_academy', $a);
+                $body    = get_string("notif_{$key}_body", 'local_academy', $a);
+                $url = new \moodle_url($page);
+
+                $message = new \core\message\message();
+                $message->component         = 'local_academy';
+                $message->name              = 'b2bnotification';
+                $message->userfrom          = $fromid > 0 ? \core_user::get_user($fromid) : \core_user::get_noreply_user();
+                $message->userto            = $recipient;
+                $message->subject           = $subject;
+                $message->fullmessage       = $body;
+                $message->fullmessageformat = FORMAT_PLAIN;
+                $message->fullmessagehtml   = '<p>' . s($body) . '</p>';
+                $message->smallmessage      = $subject;
+                $message->notification      = 1;
+                $message->contexturl        = $url->out(false);
+                $message->contexturlname    = get_string('managesubscriptions', 'local_academy');
+
+                ob_start();
+                try {
+                    message_send($message);
+                } finally {
+                    ob_end_clean();
+                }
+            } finally {
+                force_current_language($prevforcelang);
+            }
+        } catch (\Throwable $e) {
+            debugging('academy b2b notification failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+    }
+
+    /** Build the shared placeholder bag ({subscription, seats}) for a B2B purchase/membership record. */
+    protected static function b2b_plan_bag($rec) {
+        global $DB;
+        $name = $DB->get_field('academy_subscriptions', 'name', array('id' => $rec->subscriptionid));
+        return (object) array(
+            'subscription' => $name ? format_string($name) : '',
+            'seats'        => (int)($rec->seats ?? 0),
+        );
+    }
+
+    /** Confirm a completed B2B purchase to the buyer (US-B2B-1-1). */
+    public static function b2b_purchase_confirmed($purchase) {
+        self::b2b_send($purchase->userid, 'b2b_purchased', self::b2b_plan_bag($purchase), 0,
+            '/local/academy/b2b_dashboard.php');
+    }
+
+    /** Tell the B2B admin a user is waiting for approval (US-B2B-1-4 manual path). */
+    public static function b2b_membership_pending($membership) {
+        $a = self::b2b_plan_bag($membership);
+        $a->user = self::user_name($membership->userid);
+        self::b2b_send($membership->b2b_admin_id, 'b2b_pending', $a, 0, '/local/academy/b2b_dashboard.php');
+    }
+
+    /** Tell the invited user they were approved (US-B2B-1-5). */
+    public static function b2b_membership_approved($membership) {
+        self::b2b_send($membership->userid, 'b2b_approved', self::b2b_plan_bag($membership), $membership->approved_by);
+    }
+
+    /** Tell the invited user their request was rejected (US-B2B-1-6). */
+    public static function b2b_membership_rejected($membership) {
+        $a = self::b2b_plan_bag($membership);
+        $a->reason = isset($membership->reject_reason) ? trim((string)$membership->reject_reason) : '';
+        self::b2b_send($membership->userid, 'b2b_rejected', $a, $membership->b2b_admin_id);
+    }
+
+    /** Tell the user they were removed from the B2B subscription (US-B2B-1-7). */
+    public static function b2b_member_removed($membership) {
+        self::b2b_send($membership->userid, 'b2b_removed', self::b2b_plan_bag($membership), $membership->removed_by);
+    }
+
+    /** Full name for a user id (empty string if missing). */
+    protected static function user_name($userid) {
+        global $DB;
+        $u = $DB->get_record('user', array('id' => $userid), 'id, firstname, lastname');
+        return $u ? fullname($u) : '';
+    }
+
     /**
      * Notify every platform admin (manageplatform capability) about a lesson event.
      * Used for teacher-absence reports (US-LS-3-4).

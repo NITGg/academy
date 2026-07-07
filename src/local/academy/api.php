@@ -39,6 +39,25 @@ function academy_report_filters() {
     return $f;
 }
 
+/**
+ * Decode the JSON `seat_options` param into a clean list of ['seats','discount_percent'].
+ * The manager re-validates seats>0 and 0<=discount<=100, so we only sanitise types here.
+ */
+function academy_decode_seat_options($raw) {
+    if ($raw === '' || $raw === null) { return []; }
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) { return []; }
+    $out = [];
+    foreach ($decoded as $opt) {
+        if (!is_array($opt)) { continue; }
+        $out[] = [
+            'seats'            => (int)($opt['seats'] ?? 0),
+            'discount_percent' => (float)($opt['discount_percent'] ?? 0),
+        ];
+    }
+    return $out;
+}
+
 header('Content-Type: application/json');
 
 // Capture anything a handler might accidentally print (e.g. a mail-processor warning when SMTP is
@@ -147,6 +166,7 @@ $capmap = [
     'report_packages'        => 'local/academy:manageplatform',
     'report_student_flex'    => 'local/academy:manageplatform',
     'report_lesson_events'   => 'local/academy:manageplatform',
+    'report_user_activity'   => 'local/academy:manageplatform',
     'get_all_teachers'       => 'local/academy:manageplatform',
 ];
 if (isset($capmap[$function]) && !has_capability($capmap[$function], context_system::instance())) {
@@ -258,6 +278,8 @@ try {
                 'price'         => required_param('price', PARAM_FLOAT),
                 'duration_days' => required_param('duration_days', PARAM_INT),
                 'active'        => optional_param('active', 1, PARAM_BOOL),
+                'b2b_enabled'   => optional_param('b2b_enabled', 0, PARAM_BOOL),
+                'seat_options'  => academy_decode_seat_options(optional_param('seat_options', '', PARAM_RAW)),
             ], $userid);
             academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_created', 'local_academy'), 'data' => ['subscriptionid' => $subid]]);
             break;
@@ -279,6 +301,12 @@ try {
             }
             if (isset($_REQUEST['price'])) {
                 $data['price'] = required_param('price', PARAM_FLOAT);
+            }
+            if (isset($_REQUEST['b2b_enabled'])) {
+                $data['b2b_enabled'] = optional_param('b2b_enabled', 0, PARAM_BOOL);
+            }
+            if (isset($_REQUEST['seat_options'])) {
+                $data['seat_options'] = academy_decode_seat_options(optional_param('seat_options', '', PARAM_RAW));
             }
             subscription_manager::update_subscription($id, $data, $userid);
             academy_respond(['status' => 'success', 'message' => get_string('msg_subscription_updated', 'local_academy'), 'data' => ['id' => $id]]);
@@ -379,8 +407,10 @@ try {
             $subid     = required_param('subscriptionid', PARAM_INT);
             $method    = optional_param('method', 'online', PARAM_ALPHANUMEXT);
             $reference = optional_param('reference', '', PARAM_TEXT);
+            $subtype   = optional_param('type', 'normal', PARAM_ALPHA);
+            $seats     = optional_param('seats', 0, PARAM_INT);
             academy_respond(['status' => 'success',
-                'data' => subscription_purchase_manager::purchase_subscription($userid, $subid, $method, $reference)]);
+                'data' => subscription_purchase_manager::purchase_subscription($userid, $subid, $method, $reference, $subtype, $seats)]);
             break;
 
         case 'create_subscription_checkout':
@@ -405,6 +435,74 @@ try {
         case 'get_subscription_payment_history':
             academy_respond(['status' => 'success',
                 'data' => subscription_purchase_manager::get_payment_history($userid)]);
+            break;
+
+        // ── B2B administrator functions (self-service; ownership enforced in b2b_manager) ──
+
+        // US-B2B-1-8: the B2B subscriptions this user administers.
+        case 'get_my_b2b_subscriptions':
+            academy_respond(['status' => 'success',
+                'data' => \local_academy\b2b_manager::get_my_b2b_subscriptions($userid)]);
+            break;
+
+        // US-B2B-1-8: capacity + members + invitations for one B2B subscription.
+        case 'get_b2b_dashboard':
+            $purchaseid = required_param('purchaseid', PARAM_INT);
+            academy_respond(['status' => 'success', 'data' => [
+                'capacity'    => \local_academy\b2b_manager::capacity_stats($purchaseid, $userid),
+                'members'     => \local_academy\b2b_manager::list_members($purchaseid, $userid),
+                'invitations' => \local_academy\b2b_manager::list_invitations($purchaseid, $userid),
+            ]]);
+            break;
+
+        // US-B2B-1-2: generate an invitation link.
+        case 'b2b_generate_invite':
+            academy_require_post();
+            $purchaseid = required_param('purchaseid', PARAM_INT);
+            $expiresat  = optional_param('expires_at', 0, PARAM_INT);
+            academy_respond(['status' => 'success',
+                'data' => \local_academy\b2b_manager::generate_invitation($purchaseid, $userid, $expiresat)]);
+            break;
+
+        // US-B2B-1-2: revoke an invitation link.
+        case 'b2b_revoke_invite':
+            academy_require_post();
+            $invitationid = required_param('invitationid', PARAM_INT);
+            \local_academy\b2b_manager::revoke_invitation($invitationid, $userid);
+            academy_respond(['status' => 'success', 'data' => ['id' => $invitationid]]);
+            break;
+
+        // US-B2B-1-5: approve a pending membership.
+        case 'b2b_approve_member':
+            academy_require_post();
+            $membershipid = required_param('membershipid', PARAM_INT);
+            \local_academy\b2b_manager::approve_membership($membershipid, $userid);
+            academy_respond(['status' => 'success', 'data' => ['id' => $membershipid]]);
+            break;
+
+        // US-B2B-1-6: reject a pending membership.
+        case 'b2b_reject_member':
+            academy_require_post();
+            $membershipid = required_param('membershipid', PARAM_INT);
+            $reason = optional_param('reason', '', PARAM_TEXT);
+            \local_academy\b2b_manager::reject_membership($membershipid, $userid, $reason);
+            academy_respond(['status' => 'success', 'data' => ['id' => $membershipid]]);
+            break;
+
+        // US-B2B-1-7: remove an approved member.
+        case 'b2b_remove_member':
+            academy_require_post();
+            $membershipid = required_param('membershipid', PARAM_INT);
+            \local_academy\b2b_manager::remove_member($membershipid, $userid);
+            academy_respond(['status' => 'success', 'data' => ['id' => $membershipid]]);
+            break;
+
+        // US-B2B-1-3: join through an invitation link (called from b2b_join.php after login).
+        case 'b2b_join':
+            academy_require_post();
+            $invtoken = required_param('t', PARAM_RAW_TRIMMED);
+            academy_respond(['status' => 'success',
+                'data' => \local_academy\b2b_manager::join($invtoken, $userid)]);
             break;
 
         // ── Student functions (any authenticated user, acting as themselves) ──
@@ -459,7 +557,8 @@ try {
         case 'update_lesson_settings': // admin (manageplatform)
             $fields = ['min_booking_minutes', 'cancel_deadline_minutes', 'update_deadline_minutes',
                 'start_allowed_minutes', 'complete_allowed_minutes', 'absence_report_minutes',
-                'teacher_percent', 'platform_percent', 'lessons_courseid'];
+                'expiry_reminder_days', 'teacher_percent', 'platform_percent', 'lessons_courseid',
+                'b2b_auto_approve_invited_users', 'b2b_return_seat_after_user_removal'];
             $data = [];
             foreach ($fields as $f) {
                 if (isset($_REQUEST[$f])) { $data[$f] = required_param($f, PARAM_INT); }
@@ -770,6 +869,22 @@ try {
         case 'report_lesson_events':
             academy_respond(['status' => 'success', 'data' => report_manager::lesson_events_report(
                 required_param('lessonid', PARAM_INT))]);
+            break;
+
+        // US-B2B-1-9: per-user activity report (accepts userid or email).
+        case 'report_user_activity':
+            $targetid = optional_param('userid', 0, PARAM_INT);
+            if (!$targetid) {
+                $email = trim(optional_param('email', '', PARAM_RAW_TRIMMED));
+                if ($email !== '') {
+                    $targetid = (int)$DB->get_field('user', 'id', ['email' => $email, 'deleted' => 0]);
+                }
+            }
+            if (!$targetid) {
+                academy_respond(['status' => 'fail', 'error' => get_string('err_studentnotfound', 'local_academy')]);
+            }
+            academy_respond(['status' => 'success',
+                'data' => report_manager::user_activity_report($targetid, academy_report_filters())]);
             break;
 
         // ── Quiz API ──────────────────────────────────────────────────────────────

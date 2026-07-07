@@ -283,6 +283,121 @@ class report_manager {
         );
     }
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // US-B2B-1-9: per-user activity report
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Activity report for a single user: profile, role(s), subscriptions, B2B memberships, courses,
+     * and recent actions (subscription payments) within an optional date window.
+     *
+     * @param int $userid
+     * @param array $filters from, to (unix) — applied to the recent-actions list
+     * @return array
+     */
+    public static function user_activity_report($userid, array $filters = array()) {
+        global $DB;
+
+        $user = $DB->get_record('user',
+            array('id' => $userid),
+            'id, firstname, lastname, email, timecreated, lastaccess, currentlogin, suspended, confirmed, deleted');
+        if (!$user) {
+            throw new \moodle_exception('err_studentnotfound', 'local_academy');
+        }
+
+        // Current role(s), site-wide (distinct shortnames).
+        $roles = $DB->get_records_sql(
+            "SELECT DISTINCT r.id, r.shortname, r.name
+               FROM {role_assignments} ra
+               JOIN {role} r ON r.id = ra.roleid
+              WHERE ra.userid = :uid", array('uid' => $userid));
+        $rolelist = array();
+        foreach ($roles as $r) {
+            $rolelist[] = $r->name !== '' ? $r->name : $r->shortname;
+        }
+
+        // Subscriptions the user bought (normal + B2B), most recent first.
+        $subs = $DB->get_records_sql(
+            "SELECT sp.*, s.name AS subscription_name
+               FROM {academy_sub_purchases} sp
+               JOIN {academy_subscriptions} s ON s.id = sp.subscriptionid
+              WHERE sp.userid = :uid
+           ORDER BY sp.timecreated DESC", array('uid' => $userid));
+        $subscriptions = array();
+        foreach ($subs as $sp) {
+            $subscriptions[] = array(
+                'name'        => format_string($sp->subscription_name),
+                'type'        => isset($sp->type) ? $sp->type : 'normal',
+                'seats'       => (int)$sp->seats,
+                'price_paid'  => $sp->price_paid,
+                'status'      => subscription_purchase_manager::effective_status($sp),
+                'expires_at'  => (int)$sp->expires_at,
+            );
+        }
+
+        // B2B memberships (as a member of someone else's subscription).
+        $mems = $DB->get_records_sql(
+            "SELECT m.*, s.name AS subscription_name
+               FROM {academy_b2b_memberships} m
+               JOIN {academy_subscriptions} s ON s.id = m.subscriptionid
+              WHERE m.userid = :uid
+           ORDER BY m.timecreated DESC", array('uid' => $userid));
+        $memberships = array();
+        foreach ($mems as $m) {
+            $memberships[] = array(
+                'subscription' => format_string($m->subscription_name),
+                'status'       => $m->status,
+                'consumes_seat' => (int)$m->consumes_seat,
+                'timecreated'  => (int)$m->timecreated,
+            );
+        }
+
+        // Courses the user is enrolled in (accessed via any enrolment).
+        $courses = array();
+        foreach (enrol_get_all_users_courses($userid, true, 'id, fullname') as $c) {
+            $courses[] = array('id' => (int)$c->id, 'fullname' => format_string($c->fullname));
+        }
+
+        // Recent actions: subscription payments, date-filtered on timecreated.
+        $where = 'WHERE pay.userid = :uid';
+        $params = array('uid' => $userid);
+        if (!empty($filters['from'])) { $where .= ' AND pay.timecreated >= :from'; $params['from'] = (int)$filters['from']; }
+        if (!empty($filters['to']))   { $where .= ' AND pay.timecreated <= :to';   $params['to']   = (int)$filters['to']; }
+        $payrows = $DB->get_records_sql(
+            "SELECT pay.*, s.name AS subscription_name
+               FROM {academy_sub_payments} pay
+               JOIN {academy_subscriptions} s ON s.id = pay.subscriptionid
+                 $where
+           ORDER BY pay.timecreated DESC", $params);
+        $actions = array();
+        foreach ($payrows as $r) {
+            $actions[] = array(
+                'type'        => 'subscription_payment',
+                'detail'      => format_string($r->subscription_name),
+                'amount'      => $r->amount,
+                'status'      => $r->status,
+                'timecreated' => (int)$r->timecreated,
+            );
+        }
+
+        return array(
+            'user' => array(
+                'id'            => (int)$user->id,
+                'name'          => trim($user->firstname . ' ' . $user->lastname),
+                'email'         => $user->email,
+                'registered'    => (int)$user->timecreated,
+                'last_login'    => (int)max((int)$user->lastaccess, (int)$user->currentlogin),
+                'account_status' => $user->deleted ? 'deleted' : ($user->suspended ? 'suspended'
+                                    : ($user->confirmed ? 'active' : 'unconfirmed')),
+                'roles'         => $rolelist,
+            ),
+            'subscriptions' => $subscriptions,
+            'memberships'   => $memberships,
+            'courses'       => $courses,
+            'actions'       => $actions,
+        );
+    }
+
     // ── helpers ──
 
     private static function lesson_where(array $filters) {

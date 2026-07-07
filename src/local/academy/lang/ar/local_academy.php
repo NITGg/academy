@@ -710,3 +710,121 @@ $string['notif_lesson_reminder_body'] = 'مرحبًا {$a->studentname}،
 سيبدأ درسك "{$a->subject}" مع {$a->teachername} خلال {$a->time}.
 
 يرجى الانضمام إلى غرفة الدرس في الوقت المحدد.';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// B2B subscriptions (US-B2B-1-*), settings tabs, and user activity report.
+// ─────────────────────────────────────────────────────────────────────────────
+$string['managesettings'] = 'إعدادات المنصة';
+$string['set_tab_deadlines']        = 'مواعيد الدروس';
+$string['set_tab_financial']        = 'الإعدادات المالية';
+$string['set_tab_b2b']              = 'إعدادات اشتراك الأعمال (B2B)';
+$string['set_b2b_auto_approve']     = 'الموافقة التلقائية على المستخدمين المدعوين';
+$string['set_b2b_auto_approve_help'] = 'عند التفعيل، تتم الموافقة على المستخدم المدعو تلقائيًا إذا توفر مقعد شاغر؛ وإلا يبقى قيد الانتظار حتى يوافق عليه مدير الأعمال.';
+$string['set_b2b_return_seat']      = 'إرجاع المقعد عند إزالة مستخدم';
+$string['set_b2b_return_seat_help'] = 'عند التفعيل، تؤدي إزالة مستخدم معتمد إلى تحرير مقعده. عند التعطيل، يبقى المقعد مستهلكًا حتى انتهاء الاشتراك.';
+$string['set_enabled']              = 'مُفعّل';
+$string['set_disabled']             = 'مُعطّل';
+
+$string['err_seatspositive']    = 'يجب أن يكون عدد المقاعد أكبر من صفر';
+$string['err_discountrange']    = 'يجب أن تكون نسبة الخصم بين 0 و100';
+$string['err_b2bnotenabled']    = 'هذا الاشتراك غير متاح للشراء كاشتراك أعمال';
+$string['err_seatoptioninvalid'] = 'السعة المختارة غير متاحة لهذا الاشتراك';
+$string['err_b2bnotowner']      = 'أنت لا تدير اشتراك الأعمال هذا';
+$string['err_b2bnotactive']     = 'اشتراك الأعمال هذا غير نشط';
+$string['err_b2bexpired']       = 'انتهى اشتراك الأعمال هذا';
+$string['err_nofreeseats']      = 'لا توجد مقاعد متاحة في اشتراك الأعمال هذا';
+$string['err_invalidinvite']    = 'رابط الدعوة هذا غير صالح أو منتهٍ أو معطّل أو ملغى';
+$string['err_membershipnotfound'] = 'العضوية غير موجودة';
+$string['err_notpending']       = 'هذه العضوية ليست قيد الموافقة';
+$string['err_notapproved']      = 'هذه العضوية ليست معتمدة حاليًا';
+$string['err_b2brole_missing']  = 'دور مدير الأعمال غير مُهيأ في هذا الموقع';
+
+$string['sub_field_b2b']           = 'إتاحة الشراء كاشتراك أعمال (B2B)';
+$string['sub_seat_options']        = 'خيارات المقاعد';
+$string['sub_seat_options_help']   = 'أضف خيارًا واحدًا أو أكثر لسعة المستخدمين، لكل منها نسبة خصم خاصة. يُحسب سعر الأعمال كالتالي: (السعر العادي × المقاعد) − الخصم.';
+$string['sub_col_seats']           = 'المقاعد';
+$string['sub_col_discount']        = 'نسبة الخصم %';
+$string['sub_col_b2bprice']        = 'سعر الأعمال';
+$string['sub_seat_add']            = 'إضافة خيار مقاعد';
+$string['sub_b2b_badge']           = 'أعمال';
+$string['ui_remove']               = 'إزالة';
+
+$string['hp_b2b_business']      = 'اشتراك أعمال (B2B)';
+$string['hp_b2b_confirm_title'] = 'شراء اشتراك أعمال';
+$string['hp_b2b_confirm_body']  = 'اختر عدد المقاعد التي تحتاجها. ستتمكن من إدارة المقاعد ودعوة المستخدمين بعد الشراء.';
+$string['hp_b2b_capacity']      = 'السعة';
+$string['hp_b2b_users']         = '{n} مستخدم';
+$string['hp_b2b_base']          = 'السعر الأساسي';
+$string['hp_b2b_discount']      = 'الخصم';
+$string['hp_b2b_total']         = 'إجمالي الأعمال';
+$string['hp_b2b_success']       = 'تم شراء اشتراك الأعمال. أنت الآن مدير أعمال.';
+
+$string['messageprovider:b2bnotification'] = 'تحديثات اشتراك الأعمال (الشراء، طلبات الانضمام، الموافقات)';
+$string['notif_b2b_purchased_subject'] = 'اشتراك الأعمال الخاص بك نشط';
+$string['notif_b2b_purchased_body']    = 'أصبح اشتراك الأعمال "{$a->subscription}" بعدد {$a->seats} مقعد نشطًا. أنت الآن مدير أعمال ويمكنك دعوة المستخدمين والموافقة عليهم.';
+$string['notif_b2b_pending_subject']   = 'مستخدم بانتظار موافقتك';
+$string['notif_b2b_pending_body']      = 'طلب {$a->user} الانضمام إلى اشتراك الأعمال "{$a->subscription}". افتح لوحة الأعمال للموافقة أو الرفض.';
+$string['notif_b2b_approved_subject']  = 'تمت الموافقة على عضويتك في الأعمال';
+$string['notif_b2b_approved_body']     = 'أصبح لديك الآن وصول إلى مقررات اشتراك "{$a->subscription}".';
+$string['notif_b2b_rejected_subject']  = 'تم رفض طلب انضمامك';
+$string['notif_b2b_rejected_body']     = 'تم رفض طلبك للانضمام إلى اشتراك "{$a->subscription}". {$a->reason}';
+$string['notif_b2b_removed_subject']   = 'تمت إزالة وصولك في الأعمال';
+$string['notif_b2b_removed_body']      = 'تمت إزالة وصولك عبر اشتراك الأعمال "{$a->subscription}".';
+
+$string['b2b_dashboard_title'] = 'اشتراك الأعمال';
+$string['b2b_no_subs']         = 'أنت لا تدير أي اشتراك أعمال.';
+$string['b2b_purchased']       = 'المقاعد المشتراة';
+$string['b2b_consumed']        = 'المقاعد المستهلكة';
+$string['b2b_available']       = 'المقاعد المتاحة';
+$string['b2b_expires']         = 'ينتهي في';
+$string['b2b_pending']         = 'قيد الانتظار';
+$string['b2b_approved']        = 'معتمد';
+$string['b2b_rejected']        = 'مرفوض';
+$string['b2b_removed']         = 'مُزال';
+$string['b2b_expired']         = 'منتهٍ';
+$string['b2b_removed_returned'] = 'مُزال (أُرجع المقعد)';
+$string['b2b_removed_kept']    = 'مُزال (بقي المقعد)';
+$string['b2b_invite_heading']  = 'رابط الدعوة';
+$string['b2b_generate']        = 'إنشاء رابط';
+$string['b2b_revoke']          = 'إلغاء';
+$string['b2b_copy']            = 'نسخ';
+$string['b2b_copied']          = 'تم النسخ';
+$string['b2b_link_none']       = 'لا يوجد رابط دعوة نشط. أنشئ رابطًا لدعوة المستخدمين.';
+$string['b2b_link_active']     = 'يوجد رابط دعوة نشط.';
+$string['b2b_members']         = 'الأعضاء';
+$string['b2b_col_user']        = 'المستخدم';
+$string['b2b_col_status']      = 'الحالة';
+$string['b2b_col_seat']        = 'المقعد';
+$string['b2b_col_actions']     = 'إجراءات';
+$string['b2b_approve']         = 'موافقة';
+$string['b2b_reject']          = 'رفض';
+$string['b2b_remove']          = 'إزالة';
+$string['b2b_seat_yes']        = 'يستهلك مقعدًا';
+$string['b2b_seat_no']         = 'بدون مقعد';
+$string['b2b_none']            = 'لا يوجد أعضاء بعد.';
+$string['b2b_reason_prompt']   = 'السبب (اختياري):';
+$string['b2b_confirm_remove']  = 'إزالة هذا المستخدم من اشتراك الأعمال الخاص بك؟';
+$string['b2b_tab_all']         = 'الكل';
+$string['b2b_action_done']     = 'تم.';
+$string['b2b_never']           = 'أبدًا';
+$string['b2b_join_title']      = 'الانضمام إلى اشتراك أعمال';
+$string['b2b_join_login']      = 'يرجى تسجيل الدخول أو التسجيل للانضمام إلى اشتراك الأعمال هذا.';
+$string['b2b_join_pending']    = 'تم استلام طلب انضمامك وهو قيد موافقة مدير الأعمال.';
+$string['b2b_join_approved']   = 'تمت الموافقة عليك ولديك الآن وصول إلى مقررات الاشتراك.';
+$string['b2b_join_rejected']   = 'تم رفض طلبك السابق للانضمام إلى هذا الاشتراك.';
+$string['b2b_join_removed']    = 'تمت إزالتك من هذا الاشتراك.';
+$string['b2b_join_goto']       = 'الذهاب إلى لوحتي';
+
+$string['rp_tab_useractivity'] = 'نشاط المستخدم';
+$string['rp_f_userid']        = 'معرّف المستخدم';
+$string['rp_f_email']         = 'البريد الإلكتروني';
+$string['rp_ua_registered']   = 'تاريخ التسجيل';
+$string['rp_ua_lastlogin']    = 'آخر دخول';
+$string['rp_ua_status']       = 'الحساب';
+$string['rp_ua_roles']        = 'الأدوار';
+$string['rp_ua_subs']         = 'الاشتراكات';
+$string['rp_ua_memberships']  = 'عضويات الأعمال';
+$string['rp_ua_courses']      = 'المقررات المتاح الوصول إليها';
+$string['rp_ua_actions']      = 'الإجراءات الأخيرة';
+$string['rp_ua_none']         = 'لا يوجد.';
+$string['rp_enter_user']      = 'أدخل معرّف مستخدم أو بريدًا إلكترونيًا ثم اضغط تشغيل.';

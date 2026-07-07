@@ -25,7 +25,7 @@ class subscription_manager {
     /**
      * Create a subscription plan (US-AD-5-1).
      *
-     * @param array $data name, description, price, duration_days, active
+     * @param array $data name, description, price, duration_days, active, b2b_enabled, seat_options[]
      * @param int $userid admin performing the action
      * @return int new subscription id
      */
@@ -44,6 +44,7 @@ class subscription_manager {
         if ($duration <= 0) {
             throw new \moodle_exception('err_durationpositive', 'local_academy');
         }
+        $b2benabled = !empty($data['b2b_enabled']) ? 1 : 0;
 
         $now = time();
         $record = new \stdClass();
@@ -52,11 +53,18 @@ class subscription_manager {
         $record->price         = $price;
         $record->duration_days = $duration;
         $record->status        = !empty($data['active']) ? self::STATUS_ACTIVE : self::STATUS_INACTIVE;
+        $record->b2b_enabled   = $b2benabled;
         $record->timecreated   = $now;
         $record->timemodified  = $now;
         $record->usermodified  = $userid;
 
-        return $DB->insert_record('academy_subscriptions', $record);
+        $id = $DB->insert_record('academy_subscriptions', $record);
+
+        // Seat options only apply to a B2B-enabled plan.
+        if ($b2benabled && array_key_exists('seat_options', $data)) {
+            self::save_seat_options($id, (array)$data['seat_options']);
+        }
+        return $id;
     }
 
     /**
@@ -102,11 +110,24 @@ class subscription_manager {
         if (array_key_exists('status', $data)) {
             $update->status = self::normalize_status($data['status']);
         }
+        $b2benabled = null;
+        if (array_key_exists('b2b_enabled', $data)) {
+            $b2benabled = !empty($data['b2b_enabled']) ? 1 : 0;
+            $update->b2b_enabled = $b2benabled;
+        }
 
         $update->timemodified = time();
         $update->usermodified = $userid;
 
         $DB->update_record('academy_subscriptions', $update);
+
+        // Seat options (US-AD-5-2): replace-on-save when provided. Disabling B2B clears them.
+        $effectiveb2b = ($b2benabled === null) ? (int)$sub->b2b_enabled : $b2benabled;
+        if ($effectiveb2b && array_key_exists('seat_options', $data)) {
+            self::save_seat_options($sub->id, (array)$data['seat_options']);
+        } else if ($b2benabled === 0) {
+            $DB->delete_records('academy_sub_seat_options', array('subscriptionid' => $sub->id));
+        }
     }
 
     /** Deactivate a plan (US-AD-5-3). Existing student subscriptions are unaffected. */
@@ -132,6 +153,7 @@ class subscription_manager {
         $transaction = $DB->start_delegated_transaction();
         // Drop the plan's course-access rows first (a "specific" grant referencing this plan).
         $DB->delete_records('academy_course_access', array('subscriptionid' => $id));
+        $DB->delete_records('academy_sub_seat_options', array('subscriptionid' => $id));
         $DB->delete_records('academy_subscriptions', array('id' => $id));
         $transaction->allow_commit();
     }
@@ -168,8 +190,99 @@ class subscription_manager {
         $rows = array_values($DB->get_records('academy_subscriptions', $conditions, 'timecreated DESC'));
         foreach ($rows as $r) {
             $r->courses = self::courses_detail($r->id);
+            $r->b2b_enabled = (int)$r->b2b_enabled;
+            $r->seat_options = self::get_seat_options($r->id, (float)$r->price);
         }
         return $rows;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // B2B seat options + price (US-AD-5-1 / US-AD-5-2 / US-B2B-1-1)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * The B2B price for a seat option.
+     *
+     * @param float $base normal price
+     * @param int $seats capacity
+     * @param float $pct discount percentage (0..100)
+     * @return array ['original'=>, 'discount'=>, 'final'=>]
+     */
+    public static function b2b_price($base, $seats, $pct) {
+        $original = round((float)$base * (int)$seats, 2);
+        $discount = round($original * (float)$pct / 100, 2);
+        return array(
+            'original' => $original,
+            'discount' => $discount,
+            'final'    => round($original - $discount, 2),
+        );
+    }
+
+    /**
+     * Seat options for a plan, each with its computed B2B price.
+     *
+     * @param int $subscriptionid
+     * @param float|null $baseprice plan price (fetched if null)
+     * @return array
+     */
+    public static function get_seat_options($subscriptionid, $baseprice = null) {
+        global $DB;
+        if ($baseprice === null) {
+            $baseprice = (float)$DB->get_field('academy_subscriptions', 'price', array('id' => $subscriptionid));
+        }
+        $rows = array_values($DB->get_records('academy_sub_seat_options',
+            array('subscriptionid' => $subscriptionid), 'seats ASC'));
+        $out = array();
+        foreach ($rows as $r) {
+            $price = self::b2b_price($baseprice, $r->seats, $r->discount_percent);
+            $out[] = array(
+                'id'               => (int)$r->id,
+                'seats'            => (int)$r->seats,
+                'discount_percent' => (float)$r->discount_percent,
+                'original_price'   => $price['original'],
+                'discount_amount'  => $price['discount'],
+                'b2b_price'        => $price['final'],
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * Replace a plan's seat options (US-AD-5-1 / US-AD-5-2). Validates seats>0 and 0<=discount<=100,
+     * and de-duplicates by seat count.
+     *
+     * @param int $subscriptionid
+     * @param array $options list of ['seats'=>, 'discount_percent'=>]
+     */
+    public static function save_seat_options($subscriptionid, array $options) {
+        global $DB;
+        $now = time();
+        $transaction = $DB->start_delegated_transaction();
+        $DB->delete_records('academy_sub_seat_options', array('subscriptionid' => $subscriptionid));
+
+        $seen = array();
+        foreach ($options as $opt) {
+            $seats = (int)($opt['seats'] ?? 0);
+            $pct = (float)($opt['discount_percent'] ?? 0);
+            if ($seats <= 0) {
+                throw new \moodle_exception('err_seatspositive', 'local_academy');
+            }
+            if ($pct < 0 || $pct > 100) {
+                throw new \moodle_exception('err_discountrange', 'local_academy');
+            }
+            if (isset($seen[$seats])) {
+                continue; // ignore duplicate seat counts
+            }
+            $seen[$seats] = true;
+            $DB->insert_record('academy_sub_seat_options', (object) array(
+                'subscriptionid'   => $subscriptionid,
+                'seats'            => $seats,
+                'discount_percent' => $pct,
+                'timecreated'      => $now,
+                'timemodified'     => $now,
+            ));
+        }
+        $transaction->allow_commit();
     }
 
     // ──────────────────────────────────────────────────────────────────────────

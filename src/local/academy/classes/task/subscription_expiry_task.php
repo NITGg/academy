@@ -31,11 +31,28 @@ class subscription_expiry_task extends \core\task\scheduled_task {
         $due = $DB->get_records_select('academy_sub_purchases',
             "status = :active AND expires_at > 0 AND expires_at <= :now",
             array('active' => 'active', 'now' => $now));
+        $expiredmembers = 0;
         foreach ($due as $p) {
             $DB->set_field('academy_sub_purchases', 'status', 'expired', array('id' => $p->id));
             // Revoke reads the DB for the user's other active subs, so update status first.
             subscription_purchase_manager::revoke_course_access($p->userid, $p->subscriptionid);
             $expired++;
+
+            // A B2B parent also expires every approved member: their access ends with the parent
+            // subscription (US-B2B-1-3 "Expired" status, US-B2B-1-5 expiry rule).
+            if (isset($p->type) && $p->type === 'b2b') {
+                $members = $DB->get_records('academy_b2b_memberships',
+                    array('purchaseid' => $p->id, 'status' => 'approved'));
+                foreach ($members as $m) {
+                    $DB->update_record('academy_b2b_memberships', (object) array(
+                        'id'           => $m->id,
+                        'status'       => 'expired',
+                        'timemodified' => $now,
+                    ));
+                    subscription_purchase_manager::revoke_course_access($m->userid, $m->subscriptionid);
+                    $expiredmembers++;
+                }
+            }
         }
 
         // 2. Expiry reminders.
@@ -63,6 +80,6 @@ class subscription_expiry_task extends \core\task\scheduled_task {
             }
         }
 
-        mtrace("local_academy: expired {$expired} subscription(s), sent {$sent} expiry reminder(s).");
+        mtrace("local_academy: expired {$expired} subscription(s) ({$expiredmembers} B2B member(s)), sent {$sent} expiry reminder(s).");
     }
 }

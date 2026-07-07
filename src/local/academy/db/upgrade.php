@@ -443,5 +443,93 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026070411, 'local', 'academy');
     }
 
+    if ($oldversion < 2026070419) {
+
+        // ── B2B subscriptions (seat-based, multi-user): US-B2B-1-*. ──
+
+        // Flag a plan as B2B-purchasable.
+        $table = new xmldb_table('academy_subscriptions');
+        $field = new xmldb_field('b2b_enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'status');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // B2B snapshot columns on the purchase record (normal purchases keep the defaults).
+        $table = new xmldb_table('academy_sub_purchases');
+        $fields = array(
+            new xmldb_field('type',             XMLDB_TYPE_CHAR,   '10',    null, XMLDB_NOTNULL, null, 'normal', 'userid'),
+            new xmldb_field('seats',            XMLDB_TYPE_INTEGER, '10',    null, XMLDB_NOTNULL, null, '0',      'type'),
+            new xmldb_field('base_price',       XMLDB_TYPE_NUMBER,  '10, 2', null, XMLDB_NOTNULL, null, '0',      'seats'),
+            new xmldb_field('discount_percent', XMLDB_TYPE_NUMBER,  '5, 2',  null, XMLDB_NOTNULL, null, '0',      'base_price'),
+        );
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        // Seat-capacity options per B2B plan (10/20/50 … each with its own discount %).
+        $t = new xmldb_table('academy_sub_seat_options');
+        if (!$dbman->table_exists($t)) {
+            $t->add_field('id',              XMLDB_TYPE_INTEGER, '10',    null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $t->add_field('subscriptionid',  XMLDB_TYPE_INTEGER, '10',    null, XMLDB_NOTNULL, null, null);
+            $t->add_field('seats',           XMLDB_TYPE_INTEGER, '10',    null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('discount_percent', XMLDB_TYPE_NUMBER, '5, 2',  null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('timecreated',     XMLDB_TYPE_INTEGER, '10',    null, XMLDB_NOTNULL, null, null);
+            $t->add_field('timemodified',    XMLDB_TYPE_INTEGER, '10',    null, XMLDB_NOTNULL, null, null);
+            $t->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $t->add_key('subscriptionid_fk', XMLDB_KEY_FOREIGN, array('subscriptionid'), 'academy_subscriptions', array('id'));
+            $t->add_index('sub_seats_uk', XMLDB_INDEX_UNIQUE, array('subscriptionid', 'seats'));
+            $dbman->create_table($t);
+        }
+
+        // Invitation links (hashed token; a link never grants access directly).
+        $t = new xmldb_table('academy_b2b_invitations');
+        if (!$dbman->table_exists($t)) {
+            $t->add_field('id',           XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $t->add_field('purchaseid',   XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('b2b_admin_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('token_hash',   XMLDB_TYPE_CHAR,    '64', null, XMLDB_NOTNULL, null, null);
+            // status: active | expired | disabled | revoked
+            $t->add_field('status',       XMLDB_TYPE_CHAR,    '10', null, XMLDB_NOTNULL, null, 'active');
+            $t->add_field('expires_at',   XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0'); // 0 = never
+            $t->add_field('timecreated',  XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $t->add_key('purchaseid_fk', XMLDB_KEY_FOREIGN, array('purchaseid'), 'academy_sub_purchases', array('id'));
+            $t->add_index('token_uk', XMLDB_INDEX_UNIQUE, array('token_hash'));
+            $dbman->create_table($t);
+        }
+
+        // Membership records: one per (B2B subscription, user). consumes_seat is stored per record so
+        // historical capacity is never recomputed from the current global seat-return setting.
+        $t = new xmldb_table('academy_b2b_memberships');
+        if (!$dbman->table_exists($t)) {
+            $t->add_field('id',            XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $t->add_field('purchaseid',    XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('subscriptionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('b2b_admin_id',  XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('userid',        XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('invitationid',  XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            // status: pending | approved | rejected | removed | expired
+            $t->add_field('status',        XMLDB_TYPE_CHAR,    '10', null, XMLDB_NOTNULL, null, 'pending');
+            $t->add_field('consumes_seat', XMLDB_TYPE_INTEGER, '1',  null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('reject_reason', XMLDB_TYPE_TEXT,    null, null, null, null, null);
+            $t->add_field('approved_by',   XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('approved_at',   XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('removed_by',    XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('removed_at',    XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $t->add_field('timecreated',   XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_field('timemodified',  XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $t->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $t->add_key('purchaseid_fk', XMLDB_KEY_FOREIGN, array('purchaseid'), 'academy_sub_purchases', array('id'));
+            $t->add_index('purchase_user_uk', XMLDB_INDEX_UNIQUE, array('purchaseid', 'userid'));
+            $t->add_index('purchase_status_idx', XMLDB_INDEX_NOTUNIQUE, array('purchaseid', 'status'));
+            $dbman->create_table($t);
+        }
+
+        upgrade_plugin_savepoint(true, 2026070419, 'local', 'academy');
+    }
+
     return true;
 }

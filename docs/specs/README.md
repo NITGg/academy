@@ -20,6 +20,7 @@ docs/specs/
   student/             US-ST-*, US-PK-*
   lessons/             US-LS-*
   financial/           00-wallet-model.md + US-FN-*
+  B2B Administrator/   US-B2B-*
 ```
 
 ## ID convention
@@ -35,6 +36,7 @@ docs/specs/
 | SB | Subscriptions (student-facing) | `student/` |
 | LS | Lessons | `lessons/` |
 | FN | Financial | `financial/` (or `teacher/` for teacher-facing financial) |
+| B2B | B2B Administrator | `B2B Administrator/` |
 
 ### ID collisions — resolved
 The two teacher-facing financial stories were renamed so every ID is now unique:
@@ -53,7 +55,7 @@ The two teacher-facing financial stories were renamed so every ID is now unique:
 | US-AD-1-2 | [Update a Lesson Package](admin/US-AD-1-2-update-lesson-package.md) | Built |
 | US-AD-1-3 | [Deactivate a Lesson Package](admin/US-AD-1-3-deactivate-lesson-package.md) | Built |
 | US-AD-1-4 | [Delete an Unused Lesson Package](admin/US-AD-1-4-delete-unused-lesson-package.md) | Built |
-| US-AD-2-1 | [Update Lesson Settings](admin/US-AD-2-1-update-lesson-settings.md) | Built |
+| US-AD-2-1 | [Update Settings (3 tabs)](admin/US-AD-2-1-update-lesson-settings.md) | In progress |
 | US-AD-3-1 | [View Lessons and Attendance Reports](admin/US-AD-3-1-view-lessons-and-attendance-reports.md) | Spec |
 | US-AD-3-2 | [View Platform Earnings](admin/US-AD-3-2-view-platform-earnings.md) | Spec |
 | US-AD-3-3 | [View Package and Flex Reports](admin/US-AD-3-3-view-package-and-flex-reports.md) | Spec |
@@ -113,3 +115,16 @@ The two teacher-facing financial stories were renamed so every ID is now unique:
 | US-FN-1-5 | [Return a Flex After Revenue Distribution](financial/US-FN-1-5-return-a-flex-after-revenue-distribution.md) | Spec |
 | US-FN-2-1 | [Teacher Earnings Withdrawal](financial/US-FN-2-1-teacher-earnings-withdrawal.md) | Spec |
 | US-FN-2-2 | [Admin Process Withdrawal](financial/US-FN-2-2-admin-process-withdrawal.md) | Spec |
+
+### B2B Administrator — `B2B Administrator/`
+| ID | Title | Status |
+|----|-------|--------|
+| US-B2B-1-1 | [Purchase a B2B Subscription](B2B%20Administrator/US-B2B-1-1-purchase-a-b2b-subscription.md) | Spec |
+| US-B2B-1-2 | [Generate a B2B Invitation Link](B2B%20Administrator/US-B2B-1-2-generate-a-b2b-invitation-link.md) | Spec |
+| US-B2B-1-3 | [Join Through a B2B Invitation Link](B2B%20Administrator/US-B2B-1-3-join-through-a-b2b-invitation-link.md) | Spec |
+| US-B2B-1-4 | [Automatically Approve an Invited User](B2B%20Administrator/US-B2B-1-4-automatically-approve-invited-user.md) | Spec |
+| US-B2B-1-5 | [Approve a User Membership](B2B%20Administrator/US-B2B-1-5-approve-a-user-membership.md) | Spec |
+| US-B2B-1-6 | [Reject a User Membership](B2B%20Administrator/US-B2B-1-6-reject-a-user-membership.md) | Spec |
+| US-B2B-1-7 | [Remove an Approved User](B2B%20Administrator/US-B2B-1-7-remove-an-approved-user.md) | Spec |
+| US-B2B-1-8 | [View B2B Subscription Capacity](B2B%20Administrator/US-B2B-1-8-view-b2b-subscription-capacity.md) | Spec |
+| US-B2B-1-9 | [View User Activity Report](B2B%20Administrator/US-B2B-1-9-view-user-activity-report.md) | Spec |

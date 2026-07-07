@@ -33,15 +33,18 @@ class subscription_purchase_manager {
     }
 
     /**
-     * US-SB-1-2: purchase a subscription (payment assumed successful).
+     * US-SB-1-2 / US-B2B-1-1: purchase a subscription (payment assumed successful).
      *
      * @param int $userid
      * @param int $subscriptionid
      * @param string $method payment method label (e.g. online, card)
      * @param string $reference optional external payment reference
+     * @param string $type 'normal' | 'b2b'
+     * @param int $seats purchased capacity (B2B only; must match a seat option)
      * @return array purchase + payment summary
      */
-    public static function purchase_subscription($userid, $subscriptionid, $method = 'online', $reference = '') {
+    public static function purchase_subscription($userid, $subscriptionid, $method = 'online', $reference = '',
+            $type = 'normal', $seats = 0) {
         global $DB;
 
         $sub = $DB->get_record('academy_subscriptions', array('id' => $subscriptionid));
@@ -51,26 +54,56 @@ class subscription_purchase_manager {
         if ($sub->status !== subscription_manager::STATUS_ACTIVE) {
             throw new \moodle_exception('err_subnotavailable', 'local_academy');
         }
-        // Rule: a student may hold only one active subscription at a time.
-        if (self::get_active_subscription($userid)) {
-            throw new \moodle_exception('err_alreadyhassubscription', 'local_academy');
+
+        $isb2b = ($type === 'b2b');
+        $requestedseats = (int)$seats;
+
+        // Defaults for a normal purchase.
+        $basePrice = (float)$sub->price;
+        $discountPct = 0;
+        $pricePaid = (float)$sub->price;
+        $seats = 0;
+
+        if ($isb2b) {
+            if (empty($sub->b2b_enabled)) {
+                throw new \moodle_exception('err_b2bnotenabled', 'local_academy');
+            }
+            $seats = $requestedseats;
+            $option = $DB->get_record('academy_sub_seat_options',
+                array('subscriptionid' => $sub->id, 'seats' => $seats));
+            if (!$option) {
+                throw new \moodle_exception('err_seatoptioninvalid', 'local_academy');
+            }
+            $price = subscription_manager::b2b_price($basePrice, $seats, $option->discount_percent);
+            $discountPct = (float)$option->discount_percent;
+            $pricePaid = $price['final'];
+        } else {
+            // Rule: a user may hold only one active NORMAL subscription at a time (B2B is separate).
+            $existing = self::get_active_subscription($userid);
+            if ($existing && (!isset($existing->type) || $existing->type === 'normal')) {
+                throw new \moodle_exception('err_alreadyhassubscription', 'local_academy');
+            }
         }
 
         $now = time();
         $expiresat = $now + ((int)$sub->duration_days * DAYSECS);
         $transaction = $DB->start_delegated_transaction();
 
-        // 1. Create the purchase (snapshot of plan terms).
+        // 1. Create the purchase (snapshot of plan terms; B2B stores capacity + price breakdown).
         $purchase = new \stdClass();
-        $purchase->subscriptionid = $sub->id;
-        $purchase->userid         = $userid;
-        $purchase->price_paid     = $sub->price;
-        $purchase->duration_days  = (int)$sub->duration_days;
-        $purchase->status         = 'active';
-        $purchase->source         = ($method === 'admin_assigned') ? 'admin_assigned' : 'online';
-        $purchase->timeactivated  = $now;
-        $purchase->expires_at     = $expiresat;
-        $purchase->timecreated    = $now;
+        $purchase->subscriptionid   = $sub->id;
+        $purchase->userid           = $userid;
+        $purchase->type             = $isb2b ? 'b2b' : 'normal';
+        $purchase->seats            = $seats;
+        $purchase->base_price       = $basePrice;
+        $purchase->discount_percent = $discountPct;
+        $purchase->price_paid       = $pricePaid;
+        $purchase->duration_days    = (int)$sub->duration_days;
+        $purchase->status           = 'active';
+        $purchase->source           = ($method === 'admin_assigned') ? 'admin_assigned' : 'online';
+        $purchase->timeactivated    = $now;
+        $purchase->expires_at       = $expiresat;
+        $purchase->timecreated      = $now;
         $purchase->id = $DB->insert_record('academy_sub_purchases', $purchase);
 
         // 2. Record the payment (assumed successful — no gateway). Full price = platform revenue.
@@ -78,7 +111,7 @@ class subscription_purchase_manager {
         $payment->userid         = $userid;
         $payment->purchaseid     = $purchase->id;
         $payment->subscriptionid = $sub->id;
-        $payment->amount         = $sub->price;
+        $payment->amount         = $pricePaid;
         $payment->method         = $method;
         $payment->reference      = $reference;
         $payment->transaction_no = self::generate_txn();
@@ -86,19 +119,52 @@ class subscription_purchase_manager {
         $payment->timecreated    = $now;
         $payment->id = $DB->insert_record('academy_sub_payments', $payment);
 
-        // 3. (Removed) Auto-enrolment is now done on-demand per course when the student clicks "Enroll".
+        // 3. Normal: on-demand per-course enrolment (student clicks "Enroll").
+        //    B2B: the buyer becomes B2B Administrator and gets their own access via a separate grant
+        //    (no seat consumed — capacity is for invited users, US-B2B-1-1).
+        if ($isb2b) {
+            self::assign_b2b_admin_role($userid);
+            self::grant_course_access($userid, $sub->id, $expiresat);
+        }
 
         $transaction->allow_commit();
+
+        if ($isb2b) {
+            // Best-effort confirmation (never let a notification failure roll back a paid purchase).
+            if (method_exists('\local_academy\notification_manager', 'b2b_purchase_confirmed')) {
+                try {
+                    notification_manager::b2b_purchase_confirmed($purchase);
+                } catch (\Throwable $e) {
+                    debugging('b2b_purchase_confirmed failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+                }
+            }
+        }
 
         return array(
             'purchaseid'     => (int)$purchase->id,
             'paymentid'      => (int)$payment->id,
             'transaction_no' => $payment->transaction_no,
+            'type'           => $purchase->type,
+            'seats'          => (int)$seats,
+            'price_paid'     => $pricePaid,
             'status'         => 'active',
             'timeactivated'  => (int)$now,
             'expires_at'     => (int)$expiresat,
             'courses'        => self::course_list($sub->id),
         );
+    }
+
+    /**
+     * Assign the site's existing B2B Administrator role at system context (US-B2B-1-1).
+     * The role is created via the Moodle role UI (shortname b2b_administrator); if it is missing we
+     * skip silently rather than block a paid purchase.
+     */
+    public static function assign_b2b_admin_role($userid) {
+        global $DB;
+        $roleid = $DB->get_field('role', 'id', array('shortname' => 'b2b_administrator'));
+        if ($roleid) {
+            role_assign($roleid, $userid, \context_system::instance()->id);
+        }
     }
 
     /** US-SB-2-1: the student's subscriptions, active first. */
@@ -382,6 +448,9 @@ class subscription_purchase_manager {
             'price'         => $s->price,
             'duration_days' => (int)$s->duration_days,
             'status'        => $s->status,
+            'b2b_enabled'   => (int)($s->b2b_enabled ?? 0),
+            'seat_options'  => isset($s->seat_options) ? $s->seat_options
+                                : subscription_manager::get_seat_options($s->id, (float)$s->price),
             'courses'       => self::course_list($s->id),
         );
     }
