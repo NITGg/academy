@@ -6,6 +6,25 @@
 
 ---
 
+## 0. ROOT CAUSE (the real bug behind "it subscribed as normal")
+
+The `type` parameter on both subscription endpoints was read with **`PARAM_ALPHA`**, which allows
+letters only. The value **`"b2b"` contains a digit**, so `PARAM_ALPHA` silently sanitised it to
+**`"bb"`**. Downstream, `$isb2b = ("bb" === "b2b")` was always **false**, so:
+
+- Every "Business (B2B)" purchase was processed as a **normal** subscription (no B2B role assigned,
+  no `type='b2b'` purchase row, no seats recorded).
+- The B2B button therefore never showed an owned state, and clicking it again threw
+  **"لديك بالفعل اشتراك نشط"** (`err_alreadyhassubscription`) via the normal-path guard.
+- The B2B **dashboard nav link never appeared**, because it keys off an active `type='b2b'` purchase.
+
+**Fix:** use **`PARAM_ALPHANUM`** for `type` in `api.php` (both `purchase_subscription` and
+`create_subscription_checkout`), so `"b2b"` survives intact. This bug pre-existed this session (it was
+in the original `purchase_subscription` endpoint), so any earlier "B2B" test purchases are actually
+**normal** rows in `academy_sub_purchases` — clean those up (see §9) so they don't block re-testing.
+
+---
+
 ## 1. Why this session happened
 
 A previous session shipped the B2B (seat-based, multi-user) subscription feature, but the
@@ -160,6 +179,25 @@ if the DB upgrade hasn't run or the cache is stale).
 4. The **normal** subscription cards are **not** marked "Subscribed" just because you bought B2B.
 5. Owning a B2B sub does **not** block buying a normal subscription, and vice-versa.
 6. Check both **EN** and **AR** (`?alang=ar`) — the new "Manage business plan" label is localized.
+
+---
+
+## 9. Data cleanup after the PARAM_ALPHA bug
+
+Because of the root-cause bug (§0), earlier "B2B" test purchases were written as **normal**
+subscriptions (`type='normal'`, `seats=0`) and left the buyer with an active normal subscription that
+blocks re-testing. Identify and remove them before re-testing:
+
+```sql
+-- Inspect recent purchases (look for ones that should have been B2B but show type='normal')
+SELECT id, userid, subscriptionid, type, seats, price_paid, status, timecreated
+FROM mdl_academy_sub_purchases
+ORDER BY id DESC LIMIT 20;
+```
+
+For each bogus row, either cancel it via the admin "User subscriptions" screen, or in the DB set
+`status='cancelled'` (and remove the matching `mdl_academy_sub_payments` row if you want a clean
+ledger). No `b2b_administrator` role was assigned for these, so there is no role to unwind.
 
 ---
 

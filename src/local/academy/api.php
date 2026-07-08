@@ -407,7 +407,9 @@ try {
             $subid     = required_param('subscriptionid', PARAM_INT);
             $method    = optional_param('method', 'online', PARAM_ALPHANUMEXT);
             $reference = optional_param('reference', '', PARAM_TEXT);
-            $subtype   = optional_param('type', 'normal', PARAM_ALPHA);
+            // PARAM_ALPHANUM (not PARAM_ALPHA): the value "b2b" contains a digit; PARAM_ALPHA would
+            // strip it to "bb" and the purchase would silently be treated as a normal subscription.
+            $subtype   = optional_param('type', 'normal', PARAM_ALPHANUM);
             $seats     = optional_param('seats', 0, PARAM_INT);
             academy_respond(['status' => 'success',
                 'data' => subscription_purchase_manager::purchase_subscription($userid, $subid, $method, $reference, $subtype, $seats)]);
@@ -416,7 +418,8 @@ try {
         case 'create_subscription_checkout':
             academy_require_post();
             $subid   = required_param('subscriptionid', PARAM_INT);
-            $subtype = optional_param('type', 'normal', PARAM_ALPHA);
+            // PARAM_ALPHANUM (not PARAM_ALPHA): "b2b" has a digit that PARAM_ALPHA would strip to "bb".
+            $subtype = optional_param('type', 'normal', PARAM_ALPHANUM);
             $seats   = optional_param('seats', 0, PARAM_INT);
             $lang    = optional_param('alang', current_language(), PARAM_LANG);
             require_once($CFG->dirroot . '/local/payments/classes/manager.php');
