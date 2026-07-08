@@ -226,7 +226,7 @@ echo $OUTPUT->header();
     </div>
     <!-- <span class='arrow alert alert-danger'></span> -->
     <form action="signup.php" name="registration" method="post">
-        <input type="text" hidden value="<?php echo $_GET['id'];?>" name='id'>
+        <input type="text" hidden value="<?php echo isset($_GET['id']) ? (int)$_GET['id'] : (isset($_POST['id']) ? (int)$_POST['id'] : 14); ?>" name='id'>
         <div class="row">
             <div class="form-group col-6">
                 <label for=""><?php echo get_string('FirstName', 'theme_edumy'); ?></label>
