@@ -119,12 +119,14 @@ class subscription_purchase_manager {
         $payment->timecreated    = $now;
         $payment->id = $DB->insert_record('academy_sub_payments', $payment);
 
-        // 3. Normal: on-demand per-course enrolment (student clicks "Enroll").
-        //    B2B: the buyer becomes B2B Administrator and gets their own access via a separate grant
-        //    (no seat consumed — capacity is for invited users, US-B2B-1-1).
+        // 3. Enrolment is on-demand for EVERY subscription type: the student (or a B2B admin/member)
+        //    is enrolled into a course only when they click "Enroll" (see local_payments/buy.php).
+        //    The B2B buyer still becomes B2B Administrator so they can manage seats/invitations
+        //    (US-B2B-1-1); their own course access is then granted on demand like any subscriber
+        //    (no seat consumed). Because coverage is resolved live, any course later added to the plan
+        //    becomes available to existing subscribers automatically.
         if ($isb2b) {
             self::assign_b2b_admin_role($userid);
-            self::grant_course_access($userid, $sub->id, $expiresat);
         }
 
         $transaction->allow_commit();
@@ -358,6 +360,74 @@ class subscription_purchase_manager {
         return null;
     }
 
+    /**
+     * Every source through which a user currently has active subscription access: their own active,
+     * unexpired purchases (normal or B2B) AND any approved, unexpired B2B membership. Enrolment is
+     * on-demand, so these sources decide what a user is eligible to enrol into — resolved live, which
+     * is why courses added to a plan after purchase become available to existing subscribers at once.
+     *
+     * @param int $userid
+     * @return \stdClass[] list of {subscriptionid, expires_at}
+     */
+    public static function get_active_access_sources($userid) {
+        global $DB;
+        $now = time();
+        $sources = array();
+
+        // The user's own purchases (normal + B2B administrator).
+        $purchases = $DB->get_records('academy_sub_purchases',
+            array('userid' => $userid, 'status' => 'active'));
+        foreach ($purchases as $p) {
+            if ((int)$p->expires_at > 0 && $now > (int)$p->expires_at) {
+                continue; // effectively expired
+            }
+            $sources[] = (object) array(
+                'subscriptionid' => (int)$p->subscriptionid,
+                'expires_at'     => (int)$p->expires_at,
+            );
+        }
+
+        // Approved B2B memberships — access ends at the parent subscription's expiry.
+        $sql = "SELECT m.id, m.subscriptionid, p.expires_at, p.status AS parentstatus
+                  FROM {academy_b2b_memberships} m
+                  JOIN {academy_sub_purchases} p ON p.id = m.purchaseid
+                 WHERE m.userid = :uid AND m.status = :approved";
+        $rows = $DB->get_records_sql($sql,
+            array('uid' => $userid, 'approved' => b2b_manager::M_APPROVED));
+        foreach ($rows as $r) {
+            if ($r->parentstatus !== 'active') {
+                continue; // parent cancelled/expired
+            }
+            if ((int)$r->expires_at > 0 && $now > (int)$r->expires_at) {
+                continue;
+            }
+            $sources[] = (object) array(
+                'subscriptionid' => (int)$r->subscriptionid,
+                'expires_at'     => (int)$r->expires_at,
+            );
+        }
+        return $sources;
+    }
+
+    /**
+     * The subscription access (if any) that lets a user enrol into $courseid on demand. Returns the
+     * covering source so the caller can enrol until that source's expiry, or null when no active
+     * subscription of theirs unlocks the course.
+     *
+     * @param int $userid
+     * @param int $courseid
+     * @return \stdClass|null {subscriptionid, expires_at}
+     */
+    public static function subscription_access_for_course($userid, $courseid) {
+        $courseid = (int)$courseid;
+        foreach (self::get_active_access_sources($userid) as $src) {
+            if (in_array($courseid, subscription_manager::courses_for_subscription($src->subscriptionid), true)) {
+                return $src;
+            }
+        }
+        return null;
+    }
+
     /** Compute the real status of a purchase at read time (expired if past expiry). */
     public static function effective_status($purchase) {
         if ($purchase->status === 'active' && (int)$purchase->expires_at > 0 && time() > (int)$purchase->expires_at) {
@@ -395,26 +465,17 @@ class subscription_purchase_manager {
      * of theirs also grants the course.
      */
     public static function revoke_course_access($userid, $subscriptionid) {
-        global $DB;
-
         $courseids = subscription_manager::courses_for_subscription($subscriptionid);
         if (empty($courseids)) {
             return;
         }
 
-        // Courses still granted by the student's OTHER active, non-expired subscriptions.
+        // Courses still granted by the user's OTHER currently-active access — own active purchases plus
+        // approved, unexpired B2B memberships. Callers mark the ending purchase/membership non-active
+        // before calling us, so it is naturally excluded from these sources.
         $stillgranted = array();
-        $others = $DB->get_records('academy_sub_purchases',
-            array('userid' => $userid, 'status' => 'active'));
-        $now = time();
-        foreach ($others as $o) {
-            if ((int)$o->subscriptionid === (int)$subscriptionid) {
-                continue;
-            }
-            if ((int)$o->expires_at > 0 && $now > (int)$o->expires_at) {
-                continue; // effectively expired
-            }
-            foreach (subscription_manager::courses_for_subscription($o->subscriptionid) as $cid) {
+        foreach (self::get_active_access_sources($userid) as $src) {
+            foreach (subscription_manager::courses_for_subscription($src->subscriptionid) as $cid) {
                 $stillgranted[$cid] = true;
             }
         }

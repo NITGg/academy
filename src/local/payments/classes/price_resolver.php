@@ -125,17 +125,12 @@ class price_resolver {
      * hasn't created real Moodle enrolment yet — see buy.php's action=enroll handler).
      */
     public static function is_covered_by_active_subscription(int $courseid, int $userid): bool {
-        if ($userid <= 0
-            || !class_exists('\local_academy\subscription_purchase_manager')
-            || !class_exists('\local_academy\subscription_manager')) {
+        if ($userid <= 0 || !class_exists('\local_academy\subscription_purchase_manager')) {
             return false;
         }
-        $activesub = \local_academy\subscription_purchase_manager::get_active_subscription($userid);
-        if (!$activesub) {
-            return false;
-        }
-        $covered_courses = \local_academy\subscription_manager::courses_for_subscription($activesub->subscriptionid);
-        return in_array($courseid, $covered_courses);
+        // Covers a normal subscriber, a B2B administrator and an approved B2B member alike — access is
+        // resolved live, so a course newly added to any of their plans is picked up immediately.
+        return \local_academy\subscription_purchase_manager::subscription_access_for_course($userid, $courseid) !== null;
     }
 
     /**

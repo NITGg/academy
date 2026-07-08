@@ -291,9 +291,10 @@ class b2b_manager {
             'approved_at'   => $now,
             'timemodified'  => $now,
         ));
-        // Grant the same course access a normal subscriber would get, ending at the parent expiry.
-        subscription_purchase_manager::grant_course_access($m->userid, $purchase->subscriptionid,
-            (int)$purchase->expires_at);
+        // Course access is on-demand, exactly like a normal subscriber: the approved member is enrolled
+        // into a course only when they click "Enroll" (see local_payments/buy.php). Approval grants
+        // eligibility for the plan's courses, so any course later added to the plan becomes available
+        // to them automatically — no re-provisioning needed.
 
         $m->status = self::M_APPROVED;
         $m->approved_by = (int)$approverid;

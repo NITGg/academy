@@ -19,23 +19,19 @@ if (is_enrolled($context, $USER->id, '', true)) {
 
 $action = optional_param('action', '', PARAM_ALPHA);
 
-// Check for active subscription coverage.
+// Check for active subscription coverage — a normal subscription, a B2B admin's own purchase, or an
+// approved B2B membership. Enrolment is on-demand for all of them (student clicks "Enroll").
 $can_enroll_via_sub = false;
-$activesub = null;
-if (class_exists('\local_academy\subscription_purchase_manager') && class_exists('\local_academy\subscription_manager')) {
-    $activesub = \local_academy\subscription_purchase_manager::get_active_subscription($USER->id);
-    if ($activesub) {
-        $covered_courses = \local_academy\subscription_manager::courses_for_subscription($activesub->subscriptionid);
-        if (in_array($courseid, $covered_courses)) {
-            $can_enroll_via_sub = true;
-        }
-    }
+$subaccess = null;
+if (class_exists('\local_academy\subscription_purchase_manager')) {
+    $subaccess = \local_academy\subscription_purchase_manager::subscription_access_for_course($USER->id, $courseid);
+    $can_enroll_via_sub = ($subaccess !== null);
 }
 
 // Handle enroll action
 if ($can_enroll_via_sub && $action === 'enroll') {
     require_sesskey();
-    \local_academy\subscription_purchase_manager::grant_single_course_access($courseid, $USER->id, $activesub->expires_at);
+    \local_academy\subscription_purchase_manager::grant_single_course_access($courseid, $USER->id, $subaccess->expires_at);
     redirect(new moodle_url('/course/view.php', ['id' => $courseid]));
 }
 
