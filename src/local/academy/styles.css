@@ -1,47 +1,54 @@
 /*
- * Academy shared design system.
+ * Academy shared design system — bold, modern, cohesive.
  *
  * Moodle aggregates every plugin's styles.css into the page CSS, so this file loads on all pages.
- * It has two jobs:
- *   1. Declare a single set of design tokens (:root variables) — the platform's visual identity.
- *   2. Re-skin the various per-page class names the plugin already ships (st-*, ml-*, w-*, wd-*,
- *      rp-*, category-card, academy-modal, course-chip, tab bars, badges, tables, modals) so that
- *      pages built at different times share one look — without editing their business logic.
+ * Two jobs:
+ *   1. Declare one set of design tokens (:root variables) — the platform's visual identity.
+ *   2. Restyle both the plugin's own prefixed classes (st-*, ml-*, w-*, wd-*, rp-*, badges, tabs,
+ *      modals, pagers, pickers) AND the Bootstrap primitives the pages use (.btn, .card,
+ *      .form-control, .table, .alert, headings) so every page shares one vivid look.
  *
- * The re-skin selectors are scoped under `body[class*="local-academy"]`. Moodle gives our
- * front-facing pages the body class `path-local-academy` and our admin pages `path-admin-local-academy`;
- * both contain the substring "local-academy". Because `body[class*="local-academy"] .st-card` has
- * higher specificity (0,2,0) than a page's inline `.st-card` (0,1,0), the shared values win over the
- * older hardcoded ones regardless of source order — no per-page style edits required.
+ * Scope discipline:
+ *   - Prefixed plugin classes are scoped under body[class*="local-academy"] (front pages get body
+ *     class path-local-academy, admin pages path-admin-local-academy — both match).
+ *   - Broad element/Bootstrap selectors are additionally scoped to #region-main / [role="main"] so
+ *     they transform the plugin's CONTENT area without touching the theme's navbar/footer chrome.
  */
 
 :root {
-    /* Brand / primary */
-    --acad-primary: #0f6cbf;          /* unified accent (tabs, links, focus) */
-    --acad-primary-strong: #0a4f8f;
-    --acad-primary-soft: #eaf3ff;
-    --acad-primary-border: #b6d4fe;
-    --acad-brand: #a435f0;            /* marketing accent (subscription cards) */
+    /* Brand — vivid violet→indigo, cohesive with the existing subscription-card purple (#a435f0). */
+    --acad-primary: #6d28d9;
+    --acad-primary-2: #8b5cf6;
+    --acad-primary-strong: #5b21b6;
+    --acad-primary-soft: #f3efff;
+    --acad-primary-border: #d8ccff;
+    --acad-brand: #a435f0;
     --acad-brand-strong: #8710d8;
 
+    /* Signature gradients */
+    --acad-grad: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 55%, #a435f0 100%);
+    --acad-grad-soft: linear-gradient(135deg, #f5f0ff 0%, #eef2ff 100%);
+    --acad-grad-header: linear-gradient(120deg, #4c1d95 0%, #6d28d9 45%, #9333ea 100%);
+
     /* Neutrals */
-    --acad-text: #1c1d1f;
-    --acad-muted: #6a6f73;
-    --acad-border: #e5e7eb;
-    --acad-border-strong: #dee2e6;
+    --acad-text: #1e1b2e;
+    --acad-muted: #6b7280;
+    --acad-border: #e9e7f3;
+    --acad-border-strong: #d9d6ea;
     --acad-surface: #ffffff;
-    --acad-surface-2: #f8f9fa;
+    --acad-surface-2: #f7f6fc;
 
     /* Shape */
-    --acad-radius-sm: 0.4rem;
-    --acad-radius: 0.6rem;
-    --acad-radius-lg: 1rem;
+    --acad-radius-sm: 0.5rem;
+    --acad-radius: 0.85rem;
+    --acad-radius-lg: 1.25rem;
     --acad-pill: 999px;
 
-    /* Elevation */
-    --acad-shadow-sm: 0 1px 3px rgba(0, 0, 0, .06);
-    --acad-shadow: 0 4px 12px rgba(0, 0, 0, .08);
-    --acad-shadow-lg: 0 16px 32px rgba(0, 0, 0, .14);
+    /* Elevation — softer, more colourful shadows */
+    --acad-shadow-sm: 0 1px 2px rgba(45, 27, 105, .06), 0 2px 6px rgba(45, 27, 105, .05);
+    --acad-shadow: 0 6px 18px rgba(76, 29, 149, .10);
+    --acad-shadow-lg: 0 24px 50px rgba(76, 29, 149, .22);
+    --acad-glow: 0 10px 26px rgba(109, 40, 217, .28);
 
     /* Spacing scale */
     --acad-gap-xs: 0.25rem;
@@ -49,37 +56,76 @@
     --acad-gap: 1rem;
     --acad-gap-lg: 1.5rem;
 
-    /* Status palette (shared by lessons, packages, payments, withdrawals, subscriptions) */
-    --acad-st-pending-bg: #fff3cd;  --acad-st-pending-fg: #856404;
-    --acad-st-info-bg: #cce5ff;     --acad-st-info-fg: #004085;
-    --acad-st-success-bg: #d4edda;  --acad-st-success-fg: #155724;
-    --acad-st-progress-bg: #d1ecf1; --acad-st-progress-fg: #0c5460;
-    --acad-st-neutral-bg: #e2e3e5;  --acad-st-neutral-fg: #383d41;
-    --acad-st-danger-bg: #f8d7da;   --acad-st-danger-fg: #721c24;
+    /* Status palette */
+    --acad-st-pending-bg: #fef3c7;  --acad-st-pending-fg: #92600a;
+    --acad-st-info-bg: #dbeafe;     --acad-st-info-fg: #1e40af;
+    --acad-st-success-bg: #d1fae5;  --acad-st-success-fg: #065f46;
+    --acad-st-progress-bg: #cffafe; --acad-st-progress-fg: #0e7490;
+    --acad-st-neutral-bg: #e5e7eb;  --acad-st-neutral-fg: #374151;
+    --acad-st-danger-bg: #fee2e2;   --acad-st-danger-fg: #991b1b;
 
-    --acad-transition: .16s ease;
+    --acad-transition: .18s cubic-bezier(.4, 0, .2, 1);
 }
 
 /* ============================================================================
- * 1. Cards  (list cards + form/stat cards)
+ * 0. Content-area canvas + page heading (the big first-impression change)
+ * ==========================================================================*/
+body[class*="local-academy"] #region-main,
+body[class*="local-academy"] [role="main"] {
+    --acad-scope: 1;
+}
+
+/* Turn $OUTPUT->heading() into a bold gradient banner. */
+body[class*="local-academy"] #region-main > h2:first-of-type,
+body[class*="local-academy"] #region-main .page-context-header h1,
+body[class*="local-academy"] [role="main"] > .box.py-3 h2,
+body[class*="local-academy"] #region-main h2.main-heading {
+    position: relative;
+    font-weight: 800;
+    letter-spacing: -.01em;
+    color: var(--acad-text);
+    padding-bottom: .55rem;
+    margin-bottom: 1.35rem;
+}
+body[class*="local-academy"] #region-main > h2:first-of-type::after,
+body[class*="local-academy"] #region-main h2.main-heading::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 72px;
+    height: 4px;
+    border-radius: var(--acad-pill);
+    background: var(--acad-grad);
+}
+
+/* ============================================================================
+ * 1. Cards — plugin list/stat cards + Bootstrap .card
  * ==========================================================================*/
 body[class*="local-academy"] .st-card,
-body[class*="local-academy"] .ml-card {
+body[class*="local-academy"] .ml-card,
+body[class*="local-academy"] #region-main .card,
+body[class*="local-academy"] [role="main"] .card {
     border: 1px solid var(--acad-border);
     border-radius: var(--acad-radius);
     background: var(--acad-surface);
     box-shadow: var(--acad-shadow-sm);
-    padding: 1rem 1.1rem;
-    margin-bottom: 0.75rem;
-    transition: transform var(--acad-transition), box-shadow var(--acad-transition);
+    transition: transform var(--acad-transition), box-shadow var(--acad-transition), border-color var(--acad-transition);
 }
+body[class*="local-academy"] .st-card { padding: 1.1rem 1.2rem; margin-bottom: 0.85rem; }
 body[class*="local-academy"] .st-card:hover,
-body[class*="local-academy"] .ml-card:hover {
+body[class*="local-academy"] .ml-card:hover,
+body[class*="local-academy"] #region-main .card:hover {
     box-shadow: var(--acad-shadow);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    border-color: var(--acad-primary-border);
+}
+body[class*="local-academy"] #region-main .card-title {
+    font-weight: 700;
+    color: var(--acad-text);
 }
 
-/* Stat / summary cards */
+/* Stat / summary cards — gradient wash + colour accent. */
 body[class*="local-academy"] .w-card,
 body[class*="local-academy"] .wd-card,
 body[class*="local-academy"] .b2b-stat,
@@ -88,20 +134,43 @@ body[class*="local-academy"] .rp-chip {
     border-radius: var(--acad-radius);
     background: var(--acad-surface);
     box-shadow: var(--acad-shadow-sm);
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--acad-transition), box-shadow var(--acad-transition);
+}
+body[class*="local-academy"] .w-card::before,
+body[class*="local-academy"] .wd-card::before,
+body[class*="local-academy"] .b2b-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--acad-grad);
+}
+body[class*="local-academy"] .w-card:hover,
+body[class*="local-academy"] .wd-card:hover,
+body[class*="local-academy"] .b2b-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--acad-shadow);
 }
 body[class*="local-academy"] .w-card.primary {
-    background: var(--acad-primary-soft);
+    background: var(--acad-grad-soft);
     border-color: var(--acad-primary-border);
 }
 body[class*="local-academy"] .w-card .w-label,
 body[class*="local-academy"] .wd-card .l,
 body[class*="local-academy"] .b2b-stat .l {
     color: var(--acad-muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-size: .74rem;
+    font-weight: 700;
 }
 body[class*="local-academy"] .w-card .w-value,
 body[class*="local-academy"] .wd-card .v,
 body[class*="local-academy"] .b2b-stat .n {
     color: var(--acad-text);
+    font-weight: 800;
 }
 
 /* ============================================================================
@@ -110,7 +179,7 @@ body[class*="local-academy"] .b2b-stat .n {
 body[class*="local-academy"] .st-title,
 body[class*="local-academy"] .ml-subject {
     color: var(--acad-text);
-    font-weight: 600;
+    font-weight: 700;
 }
 body[class*="local-academy"] .st-meta,
 body[class*="local-academy"] .ml-meta {
@@ -118,65 +187,167 @@ body[class*="local-academy"] .ml-meta {
 }
 
 /* ============================================================================
- * 3. Tables
+ * 3. Buttons — gradient primary, crisp variants (scoped to content area)
+ * ==========================================================================*/
+body[class*="local-academy"] #region-main .btn,
+body[class*="local-academy"] [role="main"] .btn {
+    border-radius: var(--acad-radius-sm);
+    font-weight: 600;
+    letter-spacing: .01em;
+    padding: .45rem 1.05rem;
+    transition: transform var(--acad-transition), box-shadow var(--acad-transition), background var(--acad-transition), border-color var(--acad-transition);
+}
+body[class*="local-academy"] #region-main .btn:active { transform: translateY(1px); }
+body[class*="local-academy"] #region-main .btn-primary,
+body[class*="local-academy"] [role="main"] .btn-primary {
+    background: var(--acad-grad);
+    border: none;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(109, 40, 217, .28);
+}
+body[class*="local-academy"] #region-main .btn-primary:hover,
+body[class*="local-academy"] #region-main .btn-primary:focus {
+    box-shadow: var(--acad-glow);
+    transform: translateY(-1px);
+    color: #fff;
+}
+body[class*="local-academy"] #region-main .btn-secondary,
+body[class*="local-academy"] #region-main .btn-outline-secondary {
+    background: #fff;
+    border: 1px solid var(--acad-border-strong);
+    color: var(--acad-text);
+}
+body[class*="local-academy"] #region-main .btn-secondary:hover,
+body[class*="local-academy"] #region-main .btn-outline-secondary:hover {
+    border-color: var(--acad-primary);
+    color: var(--acad-primary);
+    background: var(--acad-primary-soft);
+}
+body[class*="local-academy"] #region-main .btn-outline-primary {
+    border: 1px solid var(--acad-primary);
+    color: var(--acad-primary);
+    background: #fff;
+}
+body[class*="local-academy"] #region-main .btn-outline-primary:hover {
+    background: var(--acad-primary);
+    color: #fff;
+}
+body[class*="local-academy"] #region-main .btn-success { background: #059669; border: none; }
+body[class*="local-academy"] #region-main .btn-warning { background: #d97706; border: none; color: #fff; }
+body[class*="local-academy"] #region-main .btn-danger  { background: #dc2626; border: none; }
+body[class*="local-academy"] #region-main .btn-link    { color: var(--acad-primary); font-weight: 600; }
+
+/* ============================================================================
+ * 4. Form controls — rounded, brand focus ring
+ * ==========================================================================*/
+body[class*="local-academy"] #region-main .form-control,
+body[class*="local-academy"] #region-main select.form-control,
+body[class*="local-academy"] [role="main"] .form-control {
+    border-radius: var(--acad-radius-sm);
+    border: 1px solid var(--acad-border-strong);
+    transition: border-color var(--acad-transition), box-shadow var(--acad-transition);
+}
+body[class*="local-academy"] #region-main .form-control:focus {
+    border-color: var(--acad-primary);
+    box-shadow: 0 0 0 .2rem rgba(109, 40, 217, .18);
+}
+body[class*="local-academy"] #region-main label { font-weight: 600; color: var(--acad-text); }
+
+/* ============================================================================
+ * 5. Alerts
+ * ==========================================================================*/
+body[class*="local-academy"] #region-main .alert {
+    border: none;
+    border-radius: var(--acad-radius-sm);
+    border-inline-start: 4px solid transparent;
+    box-shadow: var(--acad-shadow-sm);
+}
+body[class*="local-academy"] #region-main .alert-success { background: var(--acad-st-success-bg); color: var(--acad-st-success-fg); border-inline-start-color: #059669; }
+body[class*="local-academy"] #region-main .alert-danger  { background: var(--acad-st-danger-bg);  color: var(--acad-st-danger-fg);  border-inline-start-color: #dc2626; }
+body[class*="local-academy"] #region-main .alert-info,
+body[class*="local-academy"] #region-main .alert-primary { background: var(--acad-primary-soft); color: var(--acad-primary-strong); border-inline-start-color: var(--acad-primary); }
+body[class*="local-academy"] #region-main .alert-warning { background: var(--acad-st-pending-bg); color: var(--acad-st-pending-fg); border-inline-start-color: #d97706; }
+
+/* ============================================================================
+ * 6. Tables — tinted gradient header, rounded shell, row hover
  * ==========================================================================*/
 body[class*="local-academy"] table.st-table,
 body[class*="local-academy"] table.w-table,
 body[class*="local-academy"] table.wd-table,
-body[class*="local-academy"] table.rp-table {
+body[class*="local-academy"] table.rp-table,
+body[class*="local-academy"] #region-main table.table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     margin-top: 0.5rem;
+    background: var(--acad-surface);
+    border: 1px solid var(--acad-border);
+    border-radius: var(--acad-radius);
+    overflow: hidden;
+    box-shadow: var(--acad-shadow-sm);
 }
 body[class*="local-academy"] table.st-table th,
 body[class*="local-academy"] table.w-table th,
 body[class*="local-academy"] table.wd-table th,
-body[class*="local-academy"] table.rp-table th {
+body[class*="local-academy"] table.rp-table th,
+body[class*="local-academy"] #region-main table.table th {
     text-align: start;
-    font-size: 0.78rem;
-    font-weight: 700;
+    font-size: 0.76rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: .02em;
-    color: var(--acad-muted);
-    background: var(--acad-surface-2);
-    border-bottom: 2px solid var(--acad-border);
-    padding: 0.55rem 0.6rem;
+    letter-spacing: .04em;
+    color: var(--acad-primary-strong);
+    background: var(--acad-grad-soft);
+    border: none;
+    border-bottom: 2px solid var(--acad-primary-border);
+    padding: 0.7rem 0.75rem;
 }
 body[class*="local-academy"] table.st-table td,
 body[class*="local-academy"] table.w-table td,
 body[class*="local-academy"] table.wd-table td,
-body[class*="local-academy"] table.rp-table td {
+body[class*="local-academy"] table.rp-table td,
+body[class*="local-academy"] #region-main table.table td {
     text-align: start;
+    border: none;
     border-bottom: 1px solid var(--acad-border);
-    padding: 0.55rem 0.6rem;
+    padding: 0.65rem 0.75rem;
     font-size: 0.9rem;
     color: var(--acad-text);
-    vertical-align: top;
+    vertical-align: middle;
+}
+body[class*="local-academy"] table.st-table tbody tr,
+body[class*="local-academy"] table.w-table tbody tr,
+body[class*="local-academy"] table.wd-table tbody tr,
+body[class*="local-academy"] table.rp-table tbody tr,
+body[class*="local-academy"] #region-main table.table tbody tr {
+    transition: background var(--acad-transition);
 }
 body[class*="local-academy"] table.st-table tbody tr:hover,
 body[class*="local-academy"] table.w-table tbody tr:hover,
 body[class*="local-academy"] table.wd-table tbody tr:hover,
-body[class*="local-academy"] table.rp-table tbody tr:hover {
-    background: var(--acad-surface-2);
+body[class*="local-academy"] table.rp-table tbody tr:hover,
+body[class*="local-academy"] #region-main table.table tbody tr:hover {
+    background: var(--acad-primary-soft);
 }
 
 /* ============================================================================
- * 4. Status badges  (unified pill + one colour per status, everywhere)
+ * 7. Status badges — bold pills, one colour per status everywhere
  * ==========================================================================*/
 body[class*="local-academy"] .st-badge,
 body[class*="local-academy"] .ml-badge,
 body[class*="local-academy"] .w-badge,
 body[class*="local-academy"] .wd-badge,
-body[class*="local-academy"] .rp-badge {
+body[class*="local-academy"] .rp-badge,
+body[class*="local-academy"] #region-main .badge {
     display: inline-block;
-    padding: 0.15rem 0.6rem;
+    padding: 0.22rem 0.7rem;
     border-radius: var(--acad-pill);
-    font-size: 0.78rem;
-    font-weight: 600;
+    font-size: 0.75rem;
+    font-weight: 700;
     line-height: 1.5;
     white-space: nowrap;
+    letter-spacing: .01em;
 }
-/* Status colour map — a single source of truth for every page. */
 body[class*="local-academy"] .s-pending      { background: var(--acad-st-pending-bg);  color: var(--acad-st-pending-fg); }
 body[class*="local-academy"] .s-waiting_student,
 body[class*="local-academy"] .s-waiting_teacher,
@@ -200,16 +371,16 @@ body[class*="local-academy"] .s-payment_failed,
 body[class*="local-academy"] .s-reversed     { background: var(--acad-st-danger-bg);   color: var(--acad-st-danger-fg); }
 
 /* ============================================================================
- * 5. Tab bars  (unify the two accent colours #0d6efd / #0f6cbf -> --acad-primary)
+ * 8. Tab bars — animated brand underline
  * ==========================================================================*/
 body[class*="local-academy"] #st-tabs,
 body[class*="local-academy"] #rp-tabs,
 body[class*="local-academy"] #b2b-tabs,
 body[class*="local-academy"] #set-tabs {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.35rem;
     border-bottom: 2px solid var(--acad-border);
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
     flex-wrap: wrap;
 }
 body[class*="local-academy"] .st-tab,
@@ -218,19 +389,21 @@ body[class*="local-academy"] #b2b-tabs button,
 body[class*="local-academy"] #set-tabs button {
     border: none;
     background: none;
-    padding: 0.5rem 1rem;
-    font-weight: 600;
+    padding: 0.6rem 1.1rem;
+    font-weight: 700;
     color: var(--acad-muted);
     cursor: pointer;
     border-bottom: 3px solid transparent;
     margin-bottom: -2px;
-    transition: color var(--acad-transition), border-color var(--acad-transition);
+    border-radius: var(--acad-radius-sm) var(--acad-radius-sm) 0 0;
+    transition: color var(--acad-transition), border-color var(--acad-transition), background var(--acad-transition);
 }
 body[class*="local-academy"] .st-tab:hover,
 body[class*="local-academy"] #rp-tabs button:hover,
 body[class*="local-academy"] #b2b-tabs button:hover,
 body[class*="local-academy"] #set-tabs button:hover {
     color: var(--acad-primary);
+    background: var(--acad-primary-soft);
 }
 body[class*="local-academy"] .st-tab.active,
 body[class*="local-academy"] #rp-tabs button.active,
@@ -241,7 +414,7 @@ body[class*="local-academy"] #set-tabs button.active {
 }
 
 /* ============================================================================
- * 6. Modals  (unified surface / radius / elevation)
+ * 9. Modals
  * ==========================================================================*/
 body[class*="local-academy"] .st-modal,
 body[class*="local-academy"] .ml-modal,
@@ -251,38 +424,42 @@ body[class*="local-academy"] .academy-modal {
     background: var(--acad-surface);
     border-radius: var(--acad-radius-lg);
     box-shadow: var(--acad-shadow-lg);
-    padding: 1.4rem;
+    padding: 1.5rem;
+    border-top: 5px solid transparent;
+    border-image: var(--acad-grad) 1;
 }
 body[class*="local-academy"] .st-modal-bg,
 body[class*="local-academy"] .ml-modal-bg,
 body[class*="local-academy"] .w-modal-bg,
 body[class*="local-academy"] .wd-modal-bg,
 body[class*="local-academy"] .academy-modal-backdrop {
-    background: rgba(28, 29, 36, .55);
+    background: rgba(30, 27, 46, .6);
+    backdrop-filter: blur(2px);
 }
 
 /* ============================================================================
- * 7. Chips / subject tags
+ * 10. Chips / subject tags
  * ==========================================================================*/
 body[class*="local-academy"] .st-chip {
-    background: var(--acad-surface-2);
-    border: 1px solid var(--acad-border);
+    background: var(--acad-primary-soft);
+    border: 1px solid var(--acad-primary-border);
     border-radius: var(--acad-pill);
-    color: var(--acad-text);
+    color: var(--acad-primary-strong);
+    font-weight: 600;
 }
 
 /* ============================================================================
- * 8. Empty states
+ * 11. Empty states
  * ==========================================================================*/
 body[class*="local-academy"] .st-empty,
 body[class*="local-academy"] .ml-empty {
     color: var(--acad-muted);
-    padding: 2.5rem 1rem;
+    padding: 2.75rem 1rem;
     text-align: center;
 }
 
 /* ============================================================================
- * 9. Reusable pagination bar  (rendered by AcademyUI.pager in ui.js)
+ * 12. Reusable pagination bar (AcademyUI.paginate)
  * ==========================================================================*/
 .acad-pager {
     display: flex;
@@ -290,64 +467,57 @@ body[class*="local-academy"] .ml-empty {
     justify-content: center;
     gap: 0.35rem;
     flex-wrap: wrap;
-    margin-top: 0.85rem;
+    margin-top: 1rem;
 }
 .acad-pager__info {
     color: var(--acad-muted);
     font-size: 0.82rem;
+    font-weight: 600;
     margin-inline-end: auto;
 }
 .acad-pager button {
-    min-width: 2.1rem;
-    height: 2.1rem;
-    padding: 0 0.55rem;
+    min-width: 2.2rem;
+    height: 2.2rem;
+    padding: 0 0.6rem;
     border: 1px solid var(--acad-border-strong);
     background: var(--acad-surface);
     color: var(--acad-text);
     border-radius: var(--acad-radius-sm);
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    transition: background var(--acad-transition), border-color var(--acad-transition), color var(--acad-transition);
+    transition: background var(--acad-transition), border-color var(--acad-transition), color var(--acad-transition), transform var(--acad-transition);
 }
 .acad-pager button:hover:not(:disabled):not(.is-active) {
     border-color: var(--acad-primary);
     color: var(--acad-primary);
+    transform: translateY(-1px);
 }
 .acad-pager button.is-active {
-    background: var(--acad-primary);
-    border-color: var(--acad-primary);
+    background: var(--acad-grad);
+    border-color: transparent;
     color: #fff;
     cursor: default;
+    box-shadow: 0 4px 12px rgba(109, 40, 217, .3);
 }
-.acad-pager button:disabled {
-    opacity: .5;
-    cursor: not-allowed;
-}
-.acad-pager__ellipsis {
-    color: var(--acad-muted);
-    padding: 0 0.2rem;
-    align-self: center;
-}
+.acad-pager button:disabled { opacity: .45; cursor: not-allowed; }
+.acad-pager__ellipsis { color: var(--acad-muted); padding: 0 0.2rem; align-self: center; }
 
 /* ============================================================================
- * 9b. Reusable user picker  (AcademyUI.userPicker in ui.js) — replaces id inputs
+ * 13. Reusable user/lesson picker (AcademyUI.userPicker / picker)
  * ==========================================================================*/
-.acad-picker {
-    position: relative;
-    max-width: 340px;
-}
+.acad-picker { position: relative; max-width: 340px; }
 .acad-picker__menu {
     position: absolute;
     z-index: 1000;
-    top: calc(100% + 2px);
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
     max-height: 260px;
     overflow-y: auto;
     background: var(--acad-surface);
-    border: 1px solid var(--acad-border-strong);
-    border-radius: var(--acad-radius-sm);
+    border: 1px solid var(--acad-primary-border);
+    border-radius: var(--acad-radius);
     box-shadow: var(--acad-shadow);
 }
 .acad-picker__opt {
@@ -358,47 +528,49 @@ body[class*="local-academy"] .ml-empty {
     text-align: start;
     border: none;
     background: none;
-    padding: 0.5rem 0.7rem;
+    padding: 0.55rem 0.75rem;
     cursor: pointer;
     border-bottom: 1px solid var(--acad-border);
 }
 .acad-picker__opt:last-child { border-bottom: none; }
 .acad-picker__opt:hover,
 .acad-picker__opt.is-active { background: var(--acad-primary-soft); }
-.acad-picker__name { color: var(--acad-text); font-weight: 600; font-size: 0.9rem; }
+.acad-picker__name { color: var(--acad-text); font-weight: 700; font-size: 0.9rem; }
 .acad-picker__email { color: var(--acad-muted); font-size: 0.78rem; }
-.acad-picker__msg { padding: 0.6rem 0.7rem; color: var(--acad-muted); font-size: 0.85rem; }
+.acad-picker__msg { padding: 0.65rem 0.75rem; color: var(--acad-muted); font-size: 0.85rem; }
 .acad-picker__chip {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.4rem 0.55rem 0.4rem 0.75rem;
+    padding: 0.45rem 0.6rem 0.45rem 0.8rem;
     border: 1px solid var(--acad-primary-border);
-    background: var(--acad-primary-soft);
+    background: var(--acad-grad-soft);
     border-radius: var(--acad-radius-sm);
 }
 .acad-picker__chiptext { display: flex; flex-direction: column; line-height: 1.25; }
-.acad-picker__chiptext strong { color: var(--acad-text); font-size: 0.9rem; }
+.acad-picker__chiptext strong { color: var(--acad-primary-strong); font-size: 0.9rem; }
 .acad-picker__clear {
     margin-inline-start: auto;
     border: none;
     background: none;
     color: var(--acad-muted);
-    font-size: 1.25rem;
+    font-size: 1.3rem;
     line-height: 1;
     cursor: pointer;
     padding: 0 0.25rem;
+    transition: color var(--acad-transition);
 }
 .acad-picker__clear:hover { color: var(--acad-st-danger-fg); }
 
 /* ============================================================================
- * 10. Small responsive niceties
+ * 14. Responsive niceties
  * ==========================================================================*/
 @media (max-width: 576px) {
     body[class*="local-academy"] table.st-table,
     body[class*="local-academy"] table.w-table,
     body[class*="local-academy"] table.wd-table,
-    body[class*="local-academy"] table.rp-table {
+    body[class*="local-academy"] table.rp-table,
+    body[class*="local-academy"] #region-main table.table {
         display: block;
         overflow-x: auto;
         white-space: nowrap;
