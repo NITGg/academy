@@ -531,5 +531,18 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026070419, 'local', 'academy');
     }
 
+    if ($oldversion < 2026070420) {
+
+        // Store the raw invite token (owner-only) alongside its hash, so an existing active link can
+        // be re-displayed with a copy button instead of only being shown once at generation.
+        $table = new xmldb_table('academy_b2b_invitations');
+        $field = new xmldb_field('token', XMLDB_TYPE_CHAR, '64', null, null, null, null, 'token_hash');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026070420, 'local', 'academy');
+    }
+
     return true;
 }

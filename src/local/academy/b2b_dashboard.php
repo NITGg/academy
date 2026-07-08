@@ -81,6 +81,14 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 .b2b-modal-ok.danger:hover{background:#c82333}
 .b2b-modal-ok.warn{background:#e07c00}
 .b2b-modal-ok.warn:hover{background:#c26b00}
+
+/* Existing invitation link — viewable + one-click copy. */
+.b2b-invite-box{display:flex;align-items:center;gap:.5rem;background:#faf5ff;border:1px solid #ecdcfb;border-radius:.5rem;padding:.45rem .55rem;margin-bottom:.6rem}
+.b2b-invite-box code{flex:1;min-width:0;word-break:break-all;font-size:.85rem;color:#4b2e83;background:none;padding:0}
+.b2b-copy-btn{flex-shrink:0;border:1px solid #d1c4e9;background:#fff;border-radius:.4rem;padding:.32rem .55rem;cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;font-size:.8rem;font-weight:600;color:#6a1b9a}
+.b2b-copy-btn:hover{background:#f3e9fb}
+.b2b-copy-btn svg{width:15px;height:15px;fill:currentColor}
+.b2b-copy-btn.copied{color:#1f9d55;border-color:#b7e4c7;background:#eafaf0}
 </style>
 <div id="b2b-app">
     <div id="b2b-msg" class="alert" style="display:none"></div>
@@ -164,15 +172,36 @@ echo html_writer::script(<<<'JS'
             '<div class="b2b-stat"><div class="n">' + esc(fmtDate(c.expires_at)) + '</div><div class="l">' + esc(str('b2b_expires')) + '</div></div>';
     }
 
+    var COPY_ICON = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16 1H4a2 2 0 00-2 2v14h2V3h12V1zm3 4H8a2 2 0 00-2 2v14a2 2 0 002 2h11a2 2 0 002-2V7a2 2 0 00-2-2zm0 16H8V7h11v14z"/></svg>';
+    // The link box shown for an active invitation (also reused right after generating a fresh link).
+    function inviteBox(url, id){
+        return '<div class="b2b-invite-box">' +
+                   '<code id="b2b-invite-link">' + esc(url) + '</code>' +
+                   '<button type="button" class="b2b-copy-btn" data-b2bact="copy" data-url="' + esc(url) + '">' + COPY_ICON + '<span>' + esc(str('b2b_copy')) + '</span></button>' +
+               '</div>' +
+               '<button class="btn btn-outline-secondary btn-sm" data-b2bact="revoke-invite" data-id="' + id + '">' + esc(str('b2b_revoke')) + '</button>';
+    }
+    function fallbackCopy(text){
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        try { document.execCommand('copy'); } catch(e){}
+        document.body.removeChild(ta);
+    }
+
     function renderInvites(invites){
         var active = (invites || []).filter(function(i){ return i.status === 'active'; })[0];
         var area = $('b2b-invite-area');
         if (!active){ area.innerHTML = '<span class="text-muted">' + esc(str('b2b_link_none')) + '</span>'; return; }
-        // The raw token is shown only once (on generation) — we store just its hash. For an existing
-        // active link we confirm it exists and offer revoke; "Generate" mints a fresh, shareable link.
-        area.innerHTML =
-            '<span class="text-muted">' + esc(str('b2b_link_active')) + '</span> ' +
-            '<button class="btn btn-outline-secondary btn-sm ml-2" data-b2bact="revoke-invite" data-id="' + active.id + '">' + esc(str('b2b_revoke')) + '</button>';
+        if (active.url){
+            // Existing active link — show it with a copy button + revoke.
+            area.innerHTML = inviteBox(active.url, active.id);
+        } else {
+            // Link created before raw tokens were stored (pre-upgrade): can't re-display it, only revoke.
+            area.innerHTML =
+                '<span class="text-muted">' + esc(str('b2b_link_active')) + '</span> ' +
+                '<button class="btn btn-outline-secondary btn-sm ml-2" data-b2bact="revoke-invite" data-id="' + active.id + '">' + esc(str('b2b_revoke')) + '</button>';
+        }
     }
 
     function renderMembers(members){
@@ -321,16 +350,24 @@ echo html_writer::script(<<<'JS'
                 if (!ok){ return; }
                 api('b2b_revoke_invite', {invitationid: id}, 'POST').then(function(){ msg(str('b2b_action_done'),'success'); loadDashboard(); }).catch(function(e){ msg(e.message,'danger'); });
             });
+        } else if (act === 'copy'){
+            var url = btn.getAttribute('data-url') || '';
+            function flash(){
+                btn.classList.add('copied');
+                var s = btn.querySelector('span'); if (s){ s.textContent = str('b2b_copied'); }
+                setTimeout(function(){ btn.classList.remove('copied'); var s2 = btn.querySelector('span'); if (s2){ s2.textContent = str('b2b_copy'); } }, 1600);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText){
+                navigator.clipboard.writeText(url).then(flash).catch(function(){ fallbackCopy(url); flash(); });
+            } else { fallbackCopy(url); flash(); }
         }
     });
 
     $('b2b-generate').addEventListener('click', function(){
         if (!CURRENT){ return; }
         api('b2b_generate_invite', {purchaseid: CURRENT}, 'POST').then(function(d){
-            // Show the freshly generated link immediately (the list endpoint never returns raw tokens).
-            $('b2b-invite-area').innerHTML =
-                '<div id="b2b-invite-link">' + esc(d.url) + '</div>' +
-                '<button class="btn btn-outline-secondary btn-sm mt-2" data-b2bact="revoke-invite" data-id="' + d.id + '">' + esc(str('b2b_revoke')) + '</button>';
+            // Show the freshly generated link immediately with the same view/copy box.
+            $('b2b-invite-area').innerHTML = inviteBox(d.url, d.id);
             msg(str('b2b_action_done'), 'success');
         }).catch(function(e){ msg(e.message, 'danger'); });
     });

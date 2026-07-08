@@ -91,6 +91,7 @@ class b2b_manager {
         $rec->purchaseid   = $purchase->id;
         $rec->b2b_admin_id = $adminid;
         $rec->token_hash   = hash('sha256', $token);
+        $rec->token        = $token; // owner-only, so an active link can be re-displayed + copied
         $rec->status       = self::I_ACTIVE;
         $rec->expires_at   = (int)$expiresat;
         $rec->timecreated  = $now;
@@ -106,7 +107,10 @@ class b2b_manager {
         );
     }
 
-    /** List a subscription's invitations (never returns the raw token, only metadata). */
+    /**
+     * List a subscription's invitations. The shareable URL is returned ONLY for a still-active link
+     * (from the owner-stored raw token) so the owner can view/copy it; other links expose metadata only.
+     */
     public static function list_invitations($purchaseid, $adminid) {
         global $DB;
         self::require_owned_purchase($purchaseid, $adminid);
@@ -114,12 +118,18 @@ class b2b_manager {
             array('purchaseid' => $purchaseid), 'timecreated DESC'));
         $out = array();
         foreach ($rows as $r) {
-            $out[] = array(
+            $status = self::effective_invite_status($r);
+            $entry = array(
                 'id'          => (int)$r->id,
-                'status'      => self::effective_invite_status($r),
+                'status'      => $status,
                 'expires_at'  => (int)$r->expires_at,
                 'timecreated' => (int)$r->timecreated,
             );
+            if ($status === self::I_ACTIVE && !empty($r->token)) {
+                $entry['url'] = (new \moodle_url('/local/academy/b2b_join.php',
+                    array('t' => $r->token)))->out(false);
+            }
+            $out[] = $entry;
         }
         return $out;
     }
