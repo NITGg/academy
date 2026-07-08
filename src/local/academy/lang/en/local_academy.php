@@ -851,6 +851,9 @@ $string['b2b_never']           = 'Never';
 // Join page.
 $string['b2b_join_title']      = 'Join a B2B subscription';
 $string['b2b_join_login']      = 'Please log in or register to join this B2B subscription.';
+$string['b2b_join_guest_intro'] = 'You have been invited to join a B2B subscription. Log in with your existing account, or create a new account to continue.';
+$string['b2b_join_loginbtn']   = 'Log in';
+$string['b2b_join_registerbtn'] = 'Create new account';
 $string['b2b_join_pending']    = 'Your request to join has been received and is pending approval by the B2B administrator.';
 $string['b2b_join_approved']   = 'You have been approved and now have access to the subscription courses.';
 $string['b2b_join_rejected']   = 'Your previous request to join this subscription was rejected.';
