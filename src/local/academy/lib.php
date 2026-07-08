@@ -160,56 +160,60 @@ function local_academy_available_subscriptions_section() {
     $desc    = get_string('availsubs_desc', 'local_academy');
 
     // Scoped CSS (la-subs-* prefix keeps it away from the theme + student.php's st-* styles).
+    // Restyled to the "PM Lounge" homepage design (Figma): purple #6c22a6 brand, Cairo typography,
+    // #f2f3fa section panel, square call-to-action buttons. Class names are unchanged so the card
+    // rendering / purchase JS below is untouched — this is a visual-only refresh.
     $css = <<<CSS
-.la-subs{max-width:1280px;margin:3rem auto;padding:0 1rem}
-.la-subs-head{margin-bottom:1.5rem}
-.la-subs-title{font-size:1.7rem;font-weight:800;color:#1c1d1f;margin:0 0 .3rem}
-.la-subs-sub{color:#6a6f73;margin:0;font-size:1.02rem}
-.la-subs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;align-items:stretch}
-.la-subs-card{display:flex;flex-direction:column;height:100%;background:#fff;border:1px solid #e5e7eb;border-radius:1rem;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:transform .18s ease,box-shadow .18s ease}
-.la-subs-card:hover{transform:translateY(-6px);box-shadow:0 16px 32px rgba(0,0,0,.16)}
-.la-subs-banner{position:relative;height:190px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden}
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+.la-subs{--pm:#6c22a6;--pm-d:#57187f;--pm-bg:#f2f3fa;--pm-ink:#1c1d1f;--pm-muted:#707070;max-width:1280px;margin:3.5rem auto;padding:2.75rem 1.75rem;background:var(--pm-bg);border-radius:14px;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-subs-head{margin-bottom:1.75rem}
+.la-subs-title{font-family:'Cairo',sans-serif;font-size:1.65rem;font-weight:800;color:var(--pm-ink);margin:0 0 .35rem}
+.la-subs-sub{color:var(--pm);margin:0;font-size:1.05rem;font-weight:700}
+.la-subs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.75rem;align-items:stretch}
+.la-subs-card{display:flex;flex-direction:column;height:100%;background:#fff;border:1px solid #e8e6ef;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(108,34,166,.07);transition:transform .18s ease,box-shadow .18s ease}
+.la-subs-card:hover{transform:translateY(-6px);box-shadow:0 18px 36px rgba(108,34,166,.20)}
+.la-subs-banner{position:relative;height:180px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden;background:linear-gradient(135deg,var(--pm),#9d4edd)}
 .la-subs-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.22),transparent 55%)}
 .la-subs-banner svg{width:52px;height:52px;opacity:.95;fill:#fff;position:relative;z-index:1}
 .la-subs-badges{align-self:flex-start;position:relative;z-index:1;display:flex;gap:.4rem;flex-wrap:wrap}
-.la-subs-daysbadge{background:rgba(255,255,255,.95);color:#1c1d1f;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
+.la-subs-daysbadge{background:rgba(255,255,255,.95);color:var(--pm);font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
 .la-subs-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
-.la-subs-name{font-weight:700;font-size:1.2rem;color:#1c1d1f;margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
+.la-subs-name{font-family:'Cairo',sans-serif;font-weight:700;font-size:1.15rem;color:var(--pm-ink);margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
 .la-subs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
-.la-subs-card--active{border-color:#a435f0;box-shadow:0 0 0 2px rgba(164,53,240,.28)}
+.la-subs-card--active{border-color:var(--pm);box-shadow:0 0 0 2px rgba(108,34,166,.28)}
 .la-subs-activebadge{background:#1f9d55;color:#fff;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
 .la-subs-dates{font-size:.86rem;color:#3c3c3c;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
 .la-subs-dates-row{display:flex;justify-content:space-between;margin-top:.3rem}
-.la-subs-dates-row b{color:#1c1d1f}
+.la-subs-dates-row b{color:var(--pm-ink)}
 .la-subs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-top:.5rem}
-.la-subs-price{font-size:1.5rem;font-weight:800;color:#1c1d1f}
+.la-subs-price{font-size:1.5rem;font-weight:800;color:var(--pm-ink)}
 .la-subs-price small{font-size:.8rem;font-weight:600;color:#6a6f73}
-.la-subs-btn{background:#a435f0;border:none;color:#fff;font-weight:700;font-size:.95rem;padding:.7rem 1.4rem;border-radius:.5rem;cursor:pointer;transition:background .15s ease,transform .1s ease}
-.la-subs-btn:hover{background:#8710d8}
+.la-subs-btn{background:var(--pm);border:none;color:#fff;font-family:'Cairo',sans-serif;font-weight:700;font-size:.95rem;padding:.7rem 1.5rem;border-radius:4px;cursor:pointer;transition:background .15s ease,transform .1s ease}
+.la-subs-btn:hover{background:var(--pm-d)}
 .la-subs-btn:active{transform:scale(.97)}
 .la-subs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
 .la-subs-headnote{display:none;align-items:center;gap:.4rem;margin-top:.6rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
 .la-subs-headnote svg{width:15px;height:15px;flex-shrink:0;fill:#c07f00}
 /* Confirmation dialog (replaces the native window.confirm). */
-.la-subs-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease}
+.la-subs-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
 .la-subs-modal-bg.open{display:flex;opacity:1}
-.la-subs-modal{background:#fff;border-radius:1rem;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
+.la-subs-modal{background:#fff;border-radius:12px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
 .la-subs-modal-bg.open .la-subs-modal{transform:none}
 .la-subs-modal-head{display:flex;align-items:center;gap:.7rem;padding:1.25rem 1.4rem 0}
-.la-subs-modal-head svg{width:34px;height:34px;fill:#a435f0;flex-shrink:0}
+.la-subs-modal-head svg{width:34px;height:34px;fill:#6c22a6;flex-shrink:0}
 .la-subs-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#1c1d1f}
 .la-subs-modal-body{padding:.9rem 1.4rem 0;color:#3c3c3c;font-size:.95rem;line-height:1.5}
-.la-subs-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:#faf5ff;border:1px solid #ecdcfb;border-radius:.6rem}
+.la-subs-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:#f5eefc;border:1px solid #e4d3f5;border-radius:8px}
 .la-subs-modal-plan .name{font-weight:700;color:#1c1d1f;margin-bottom:.35rem}
 .la-subs-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#4b4b4b;margin-top:.2rem}
 .la-subs-modal-row b{color:#1c1d1f}
 .la-subs-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#6a6f73;margin-top:.2rem}
 .la-subs-modal-secure svg{width:14px;height:14px;fill:#1f9d55}
 .la-subs-modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:1.2rem 1.4rem 1.3rem}
-.la-subs-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:.5rem;cursor:pointer}
+.la-subs-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:4px;cursor:pointer}
 .la-subs-modal-cancel:hover{background:#f6f7f8}
-.la-subs-modal-ok{background:#a435f0;border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:.5rem;cursor:pointer}
-.la-subs-modal-ok:hover{background:#8710d8}
+.la-subs-modal-ok{background:#6c22a6;border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:4px;cursor:pointer}
+.la-subs-modal-ok:hover{background:#57187f}
 CSS;
 
     $section = html_writer::tag('style', $css) .
@@ -603,57 +607,60 @@ function local_academy_available_packages_section() {
     $desc    = get_string('availpkgs_desc', 'local_academy');
 
     // Scoped CSS (la-pkgs-* prefix keeps it away from la-subs-* and student.php's st-* styles).
+    // Same "PM Lounge" (Figma) refresh as the subscriptions section: purple #6c22a6 brand, Cairo
+    // typography, #f2f3fa panel. Class names are unchanged so the purchase JS below is untouched.
     $css = <<<CSS
-.la-pkgs{max-width:1280px;margin:3rem auto;padding:0 1rem}
-.la-pkgs-head{margin-bottom:1.5rem}
-.la-pkgs-title{font-size:1.7rem;font-weight:800;color:#1c1d1f;margin:0 0 .3rem}
-.la-pkgs-sub{color:#6a6f73;margin:0;font-size:1.02rem}
-.la-pkgs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;align-items:stretch}
-.la-pkgs-card{display:flex;flex-direction:column;height:100%;background:#fff;border:1px solid #e5e7eb;border-radius:1rem;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:transform .18s ease,box-shadow .18s ease}
-.la-pkgs-card:hover{transform:translateY(-6px);box-shadow:0 16px 32px rgba(0,0,0,.16)}
-.la-pkgs-banner{position:relative;height:190px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden}
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+.la-pkgs{--pm:#6c22a6;--pm-d:#57187f;--pm-bg:#f2f3fa;--pm-ink:#1c1d1f;--pm-muted:#707070;max-width:1280px;margin:3.5rem auto;padding:2.75rem 1.75rem;background:var(--pm-bg);border-radius:14px;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-pkgs-head{margin-bottom:1.75rem}
+.la-pkgs-title{font-family:'Cairo',sans-serif;font-size:1.65rem;font-weight:800;color:var(--pm-ink);margin:0 0 .35rem}
+.la-pkgs-sub{color:var(--pm);margin:0;font-size:1.05rem;font-weight:700}
+.la-pkgs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.75rem;align-items:stretch}
+.la-pkgs-card{display:flex;flex-direction:column;height:100%;background:#fff;border:1px solid #e8e6ef;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(108,34,166,.07);transition:transform .18s ease,box-shadow .18s ease}
+.la-pkgs-card:hover{transform:translateY(-6px);box-shadow:0 18px 36px rgba(108,34,166,.20)}
+.la-pkgs-banner{position:relative;height:180px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden;background:linear-gradient(135deg,var(--pm),#9d4edd)}
 .la-pkgs-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.22),transparent 55%)}
 .la-pkgs-banner svg{width:52px;height:52px;opacity:.95;fill:#fff;position:relative;z-index:1}
 .la-pkgs-badges{align-self:flex-start;position:relative;z-index:1;display:flex;gap:.4rem;flex-wrap:wrap}
-.la-pkgs-flexbadge{background:rgba(255,255,255,.95);color:#1c1d1f;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
+.la-pkgs-flexbadge{background:rgba(255,255,255,.95);color:var(--pm);font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
 .la-pkgs-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
-.la-pkgs-name{font-weight:700;font-size:1.2rem;color:#1c1d1f;margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
+.la-pkgs-name{font-family:'Cairo',sans-serif;font-weight:700;font-size:1.15rem;color:var(--pm-ink);margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
 .la-pkgs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
-.la-pkgs-card--active{border-color:#0d6efd;box-shadow:0 0 0 2px rgba(13,110,253,.28)}
+.la-pkgs-card--active{border-color:var(--pm);box-shadow:0 0 0 2px rgba(108,34,166,.28)}
 .la-pkgs-activebadge{background:#1f9d55;color:#fff;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
 .la-pkgs-meta{font-size:.86rem;color:#3c3c3c;margin-top:auto;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
 .la-pkgs-dates{font-size:.86rem;color:#3c3c3c;margin-top:auto;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
 .la-pkgs-dates-row{display:flex;justify-content:space-between;margin-top:.3rem}
-.la-pkgs-dates-row b{color:#1c1d1f}
+.la-pkgs-dates-row b{color:var(--pm-ink)}
 .la-pkgs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-top:.5rem}
-.la-pkgs-price{font-size:1.5rem;font-weight:800;color:#1c1d1f}
+.la-pkgs-price{font-size:1.5rem;font-weight:800;color:var(--pm-ink)}
 .la-pkgs-price small{font-size:.8rem;font-weight:600;color:#6a6f73}
-.la-pkgs-btn{background:#0d6efd;border:none;color:#fff;font-weight:700;font-size:.95rem;padding:.7rem 1.4rem;border-radius:.5rem;cursor:pointer;transition:background .15s ease,transform .1s ease}
-.la-pkgs-btn:hover{background:#0b5ed7}
+.la-pkgs-btn{background:var(--pm);border:none;color:#fff;font-family:'Cairo',sans-serif;font-weight:700;font-size:.95rem;padding:.7rem 1.5rem;border-radius:4px;cursor:pointer;transition:background .15s ease,transform .1s ease}
+.la-pkgs-btn:hover{background:var(--pm-d)}
 .la-pkgs-btn:active{transform:scale(.97)}
 .la-pkgs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
 .la-pkgs-headnote{display:none;align-items:center;gap:.4rem;margin-top:.6rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
 .la-pkgs-headnote svg{width:15px;height:15px;flex-shrink:0;fill:#c07f00}
 /* Confirmation dialog (replaces the native window.confirm). */
-.la-pkgs-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease}
+.la-pkgs-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
 .la-pkgs-modal-bg.open{display:flex;opacity:1}
-.la-pkgs-modal{background:#fff;border-radius:1rem;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
+.la-pkgs-modal{background:#fff;border-radius:12px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
 .la-pkgs-modal-bg.open .la-pkgs-modal{transform:none}
 .la-pkgs-modal-head{display:flex;align-items:center;gap:.7rem;padding:1.25rem 1.4rem 0}
-.la-pkgs-modal-head svg{width:34px;height:34px;fill:#0d6efd;flex-shrink:0}
+.la-pkgs-modal-head svg{width:34px;height:34px;fill:#6c22a6;flex-shrink:0}
 .la-pkgs-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#1c1d1f}
 .la-pkgs-modal-body{padding:.9rem 1.4rem 0;color:#3c3c3c;font-size:.95rem;line-height:1.5}
-.la-pkgs-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:#f0f7ff;border:1px solid #cce5ff;border-radius:.6rem}
+.la-pkgs-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:#f5eefc;border:1px solid #e4d3f5;border-radius:8px}
 .la-pkgs-modal-plan .name{font-weight:700;color:#1c1d1f;margin-bottom:.35rem}
 .la-pkgs-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#4b4b4b;margin-top:.2rem}
 .la-pkgs-modal-row b{color:#1c1d1f}
 .la-pkgs-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#6a6f73;margin-top:.2rem}
 .la-pkgs-modal-secure svg{width:14px;height:14px;fill:#1f9d55}
 .la-pkgs-modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:1.2rem 1.4rem 1.3rem}
-.la-pkgs-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:.5rem;cursor:pointer}
+.la-pkgs-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:4px;cursor:pointer}
 .la-pkgs-modal-cancel:hover{background:#f6f7f8}
-.la-pkgs-modal-ok{background:#0d6efd;border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:.5rem;cursor:pointer}
-.la-pkgs-modal-ok:hover{background:#0b5ed7}
+.la-pkgs-modal-ok{background:#6c22a6;border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:4px;cursor:pointer}
+.la-pkgs-modal-ok:hover{background:#57187f}
 CSS;
 
     $section = html_writer::tag('style', $css) .
@@ -905,6 +912,151 @@ JS;
 }
 
 /**
+ * Front-page "Comments from our distinguished customers" testimonials block (Figma "PM Lounge"
+ * design). Static, localizable marketing content — no purchase logic — rendered after the course
+ * cards. Returns HTML to echo before the footer.
+ *
+ * @return string
+ */
+function local_academy_home_testimonials_section() {
+    $heading = get_string('hp_testi_heading', 'local_academy');
+    $courselink = (string) new moodle_url('/', array(), 'la-subs');
+
+    $css = <<<CSS
+.la-testi{--pm:#6c22a6;max-width:1280px;margin:3.5rem auto;padding:0 1.75rem;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-testi-title{font-family:'Cairo',sans-serif;font-size:1.55rem;font-weight:800;color:#1c1d1f;margin:0 0 1.75rem}
+.la-testi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem}
+.la-testi-card{position:relative;background:#f2f3fa;border-radius:10px;padding:2.4rem 1.6rem 1.5rem;display:flex;flex-direction:column}
+.la-testi-quote{position:absolute;top:.4rem;left:1.4rem;font-size:3rem;line-height:1;color:#1c1d1f;font-weight:800}
+.la-testi-text{color:#1c1d1f;font-size:1rem;line-height:1.55;margin:0 0 1.2rem;text-align:justify;flex:1}
+.la-testi-user{display:flex;align-items:center;gap:.7rem;margin-bottom:.35rem}
+.la-testi-av{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.95rem;background:linear-gradient(135deg,var(--pm),#9d4edd)}
+.la-testi-name{font-weight:700;color:#1c1d1f;font-size:.95rem}
+.la-testi-stars{display:flex;gap:2px;margin:.15rem 0 1rem}
+.la-testi-stars svg{width:16px;height:16px;fill:#f5a623}
+.la-testi-course{display:flex;align-items:center;gap:.5rem;padding-top:1rem;border-top:1px solid #e2e2ee;color:var(--pm);font-weight:700;font-size:.9rem;text-decoration:none;line-height:1.3}
+.la-testi-course:hover{color:#57187f;text-decoration:none}
+.la-testi-course svg{width:20px;height:20px;fill:var(--pm);flex-shrink:0}
+CSS;
+
+    $star = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>';
+    $badge = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V5l-8-3zm-1 13-3-3 1.4-1.4L11 12.2l4.6-4.6L17 9l-6 6z"/></svg>';
+
+    $cards = '';
+    for ($i = 1; $i <= 3; $i++) {
+        $quote = get_string('hp_testi' . $i . '_quote', 'local_academy');
+        $name  = get_string('hp_testi' . $i . '_name', 'local_academy');
+        $course = get_string('hp_testi' . $i . '_course', 'local_academy');
+        $initial = core_text::strtoupper(core_text::substr(trim($name), 0, 1));
+        $cards .=
+            '<div class="la-testi-card">' .
+                '<span class="la-testi-quote">&ldquo;</span>' .
+                html_writer::tag('p', s($quote), array('class' => 'la-testi-text')) .
+                '<div class="la-testi-user">' .
+                    html_writer::tag('span', s($initial), array('class' => 'la-testi-av')) .
+                    html_writer::tag('span', s($name), array('class' => 'la-testi-name')) .
+                '</div>' .
+                '<div class="la-testi-stars">' . str_repeat($star, 5) . '</div>' .
+                html_writer::link($courselink, $badge . html_writer::tag('span', s($course)),
+                    array('class' => 'la-testi-course')) .
+            '</div>';
+    }
+
+    return html_writer::tag('style', $css) .
+        '<section class="la-testi">' .
+            html_writer::tag('h3', s($heading), array('class' => 'la-testi-title')) .
+            '<div class="la-testi-grid">' . $cards . '</div>' .
+        '</section>';
+}
+
+/**
+ * Front-page "Articles" block (Figma "PM Lounge" design). Static, localizable marketing content
+ * linking out to the site blog. Returns HTML to echo before the footer.
+ *
+ * @return string
+ */
+function local_academy_home_articles_section() {
+    $heading  = get_string('hp_arts_heading', 'local_academy');
+    $title    = get_string('hp_arts_title', 'local_academy');
+    $body     = get_string('hp_arts_body', 'local_academy');
+    $readmore = get_string('hp_arts_readmore', 'local_academy');
+    $readall  = get_string('hp_arts_readall', 'local_academy');
+    $bloglink = (string) new moodle_url('/blog/index.php');
+
+    $css = <<<CSS
+.la-arts{--pm:#6c22a6;background:#f2f3fa;padding:3rem 0;margin:3.5rem 0;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-arts-in{max-width:1280px;margin:0 auto;padding:0 1.75rem}
+.la-arts-heading{font-family:'Cairo',sans-serif;font-size:1.55rem;font-weight:800;color:#1c1d1f;margin:0 0 1.5rem}
+.la-arts-card{display:flex;gap:2rem;align-items:stretch;flex-wrap:wrap}
+.la-arts-text{flex:1 1 420px;min-width:280px}
+.la-arts-title{font-family:'Cairo',sans-serif;font-size:1.2rem;font-weight:700;color:#1c1d1f;margin:0 0 1rem;line-height:1.35}
+.la-arts-body{color:#3c3c3c;font-size:1rem;line-height:1.6;text-align:justify;margin:0 0 1.4rem}
+.la-arts-btn{display:inline-block;background:var(--pm);color:#fff;font-weight:700;font-size:.95rem;padding:.65rem 1.6rem;border-radius:4px;text-decoration:none}
+.la-arts-btn:hover{background:#57187f;color:#fff;text-decoration:none}
+.la-arts-img{flex:0 0 335px;max-width:100%;min-height:300px;border-radius:10px;background:linear-gradient(135deg,var(--pm),#9d4edd);display:flex;align-items:center;justify-content:center}
+.la-arts-img svg{width:88px;height:88px;fill:rgba(255,255,255,.85)}
+.la-arts-more{display:block;text-align:center;margin-top:2rem;color:var(--pm);font-weight:700;font-size:1rem;text-decoration:none}
+.la-arts-more:hover{color:#57187f;text-decoration:none}
+@media (max-width:768px){.la-arts-img{flex-basis:100%;min-height:200px}}
+CSS;
+
+    $doc = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>';
+
+    return html_writer::tag('style', $css) .
+        '<section class="la-arts"><div class="la-arts-in">' .
+            html_writer::tag('h3', s($heading), array('class' => 'la-arts-heading')) .
+            '<div class="la-arts-card">' .
+                '<div class="la-arts-text">' .
+                    html_writer::tag('h4', s($title), array('class' => 'la-arts-title')) .
+                    html_writer::tag('p', s($body), array('class' => 'la-arts-body')) .
+                    html_writer::link($bloglink, s($readmore), array('class' => 'la-arts-btn')) .
+                '</div>' .
+                '<div class="la-arts-img">' . $doc . '</div>' .
+            '</div>' .
+            html_writer::link($bloglink, s($readall) . '  &rsaquo;', array('class' => 'la-arts-more')) .
+        '</div></section>';
+}
+
+/**
+ * Front-page "PMlounge Business" call-to-action block (Figma "PM Lounge" design). Static,
+ * localizable marketing content pointing visitors at the (business) subscription cards. Returns
+ * HTML to echo before the footer.
+ *
+ * @return string
+ */
+function local_academy_home_business_section() {
+    $title = get_string('hp_biz_title', 'local_academy');
+    $body  = get_string('hp_biz_body', 'local_academy');
+    $join  = get_string('hp_biz_join', 'local_academy');
+    $link  = (string) new moodle_url('/', array(), 'la-subs');
+
+    $css = <<<CSS
+.la-biz{--pm:#6c22a6;max-width:1280px;margin:3.5rem auto;padding:0 1.75rem;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-biz-in{display:flex;gap:2.5rem;align-items:center;flex-wrap:wrap}
+.la-biz-img{flex:0 0 480px;max-width:100%;min-height:340px;border-radius:10px;background:linear-gradient(135deg,var(--pm),#9d4edd);display:flex;align-items:center;justify-content:center}
+.la-biz-img svg{width:110px;height:110px;fill:rgba(255,255,255,.85)}
+.la-biz-text{flex:1 1 380px;min-width:280px}
+.la-biz-title{font-family:'Cairo',sans-serif;font-size:1.55rem;font-weight:800;color:#1c1d1f;margin:0 0 1.1rem}
+.la-biz-body{color:#1c1d1f;font-size:1.05rem;line-height:1.6;text-align:justify;margin:0 0 1.6rem}
+.la-biz-btn{display:inline-block;background:var(--pm);color:#fff;font-weight:700;font-size:1rem;padding:.75rem 1.9rem;border-radius:4px;text-decoration:none}
+.la-biz-btn:hover{background:#57187f;color:#fff;text-decoration:none}
+@media (max-width:768px){.la-biz-img{flex-basis:100%;min-height:220px}}
+CSS;
+
+    $team = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>';
+
+    return html_writer::tag('style', $css) .
+        '<section class="la-biz"><div class="la-biz-in">' .
+            '<div class="la-biz-img">' . $team . '</div>' .
+            '<div class="la-biz-text">' .
+                html_writer::tag('h3', s($title), array('class' => 'la-biz-title')) .
+                html_writer::tag('p', s($body), array('class' => 'la-biz-body')) .
+                html_writer::link($link, s($join), array('class' => 'la-biz-btn')) .
+            '</div>' .
+        '</div></section>';
+}
+
+/**
  * True if the current user manages the Academy Flex platform (site admin or the 'manager' role
  * that holds the plugin's manage capabilities). The student-facing front-page purchase sections
  * ("Available subscriptions" / "Available packages") are not shown to them.
@@ -946,6 +1098,16 @@ function local_academy_before_footer() {
                 $output .= local_academy_available_packages_section();
             } catch (\Throwable $e) {
                 debugging('academy packages section failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            }
+            // Static "PM Lounge" marketing sections (testimonials, articles, business CTA) that
+            // complete the homepage design below the course cards. Purely presentational — a
+            // failure here must never take the front page down.
+            try {
+                $output .= local_academy_home_testimonials_section();
+                $output .= local_academy_home_articles_section();
+                $output .= local_academy_home_business_section();
+            } catch (\Throwable $e) {
+                debugging('academy homepage sections failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
             }
         }
     }
