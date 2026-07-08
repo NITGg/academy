@@ -30,6 +30,9 @@ $PAGE->set_pagelayout('standard');
 $PAGE->set_title(get_string('mylessons', 'local_academy'));
 $PAGE->set_heading(get_string('mylessons', 'local_academy'));
 
+// Shared UI helpers (AcademyUI.paginate) — inhead so it is ready before the page's inline script runs.
+$PAGE->requires->js(new moodle_url('/local/academy/ui.js'), true);
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('mylessons', 'local_academy'));
 // Localised strings: server-rendered HTML reads $STR['key']; the JS reads window.ACADEMY_STR.
@@ -48,7 +51,7 @@ $STR = local_academy_string_map(array(
     'la_suggested_time', 'la_pick_valid_time', 'la_newtime_title', 'la_newtime_label',
     'lc_confirmed', 'lc_requested', 'lc_duration', 'lc_reject_reason', 'lc_cancel_reason',
     'lc_you', 'lc_resched_moved',
-    'wd_reason_required_field', 'err_reasonrequired', 'err_sessionexpired', 'err_requestfailed',
+    'wd_reason_required_field', 'err_reasonrequired', 'err_sessionexpired', 'err_requestfailed', 'ui_pager_info',
 ));
 echo html_writer::script('window.ACADEMY_ML = ' . json_encode(array(
     'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
@@ -103,6 +106,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     <button id="ml-refresh" class="btn btn-outline-secondary"><?php echo $STR['ui_refresh']; ?></button>
   </div>
   <div id="ml-list"></div>
+  <div id="ml-list-pager" class="acad-pager"></div>
 </div>
 
 <div class="ml-modal-bg" id="ml-modal-bg">
@@ -258,9 +262,10 @@ echo html_writer::script(<<<'JS'
   function load(){
     var status=$('ml-filter').value;
     apiGet('get_my_lessons',{role:'teacher',status:status}).then(function(rows){
-      var list=$('ml-list');list.innerHTML='';
-      if(!rows.length){list.appendChild(el('div',{class:'ml-empty'},str('ml_no_lessons')));return;}
-      rows.forEach(function(l){list.appendChild(card(l));});
+      var list=$('ml-list'),pg=$('ml-list-pager');
+      if(!rows.length){list.innerHTML='';pg.innerHTML='';list.appendChild(el('div',{class:'ml-empty'},str('ml_no_lessons')));return;}
+      AcademyUI.paginate({rows:rows,pageSize:8,pagerEl:pg,labels:{info:str('ui_pager_info')},
+        render:function(items){list.innerHTML='';items.forEach(function(l){list.appendChild(card(l));});}});
     }).catch(function(e){msg(e.message,'danger');});
   }
 

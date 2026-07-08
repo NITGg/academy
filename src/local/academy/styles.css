@@ -1,0 +1,351 @@
+/*
+ * Academy shared design system.
+ *
+ * Moodle aggregates every plugin's styles.css into the page CSS, so this file loads on all pages.
+ * It has two jobs:
+ *   1. Declare a single set of design tokens (:root variables) — the platform's visual identity.
+ *   2. Re-skin the various per-page class names the plugin already ships (st-*, ml-*, w-*, wd-*,
+ *      rp-*, category-card, academy-modal, course-chip, tab bars, badges, tables, modals) so that
+ *      pages built at different times share one look — without editing their business logic.
+ *
+ * The re-skin selectors are scoped under `body[class*="local-academy"]`. Moodle gives our
+ * front-facing pages the body class `path-local-academy` and our admin pages `path-admin-local-academy`;
+ * both contain the substring "local-academy". Because `body[class*="local-academy"] .st-card` has
+ * higher specificity (0,2,0) than a page's inline `.st-card` (0,1,0), the shared values win over the
+ * older hardcoded ones regardless of source order — no per-page style edits required.
+ */
+
+:root {
+    /* Brand / primary */
+    --acad-primary: #0f6cbf;          /* unified accent (tabs, links, focus) */
+    --acad-primary-strong: #0a4f8f;
+    --acad-primary-soft: #eaf3ff;
+    --acad-primary-border: #b6d4fe;
+    --acad-brand: #a435f0;            /* marketing accent (subscription cards) */
+    --acad-brand-strong: #8710d8;
+
+    /* Neutrals */
+    --acad-text: #1c1d1f;
+    --acad-muted: #6a6f73;
+    --acad-border: #e5e7eb;
+    --acad-border-strong: #dee2e6;
+    --acad-surface: #ffffff;
+    --acad-surface-2: #f8f9fa;
+
+    /* Shape */
+    --acad-radius-sm: 0.4rem;
+    --acad-radius: 0.6rem;
+    --acad-radius-lg: 1rem;
+    --acad-pill: 999px;
+
+    /* Elevation */
+    --acad-shadow-sm: 0 1px 3px rgba(0, 0, 0, .06);
+    --acad-shadow: 0 4px 12px rgba(0, 0, 0, .08);
+    --acad-shadow-lg: 0 16px 32px rgba(0, 0, 0, .14);
+
+    /* Spacing scale */
+    --acad-gap-xs: 0.25rem;
+    --acad-gap-sm: 0.5rem;
+    --acad-gap: 1rem;
+    --acad-gap-lg: 1.5rem;
+
+    /* Status palette (shared by lessons, packages, payments, withdrawals, subscriptions) */
+    --acad-st-pending-bg: #fff3cd;  --acad-st-pending-fg: #856404;
+    --acad-st-info-bg: #cce5ff;     --acad-st-info-fg: #004085;
+    --acad-st-success-bg: #d4edda;  --acad-st-success-fg: #155724;
+    --acad-st-progress-bg: #d1ecf1; --acad-st-progress-fg: #0c5460;
+    --acad-st-neutral-bg: #e2e3e5;  --acad-st-neutral-fg: #383d41;
+    --acad-st-danger-bg: #f8d7da;   --acad-st-danger-fg: #721c24;
+
+    --acad-transition: .16s ease;
+}
+
+/* ============================================================================
+ * 1. Cards  (list cards + form/stat cards)
+ * ==========================================================================*/
+body[class*="local-academy"] .st-card,
+body[class*="local-academy"] .ml-card {
+    border: 1px solid var(--acad-border);
+    border-radius: var(--acad-radius);
+    background: var(--acad-surface);
+    box-shadow: var(--acad-shadow-sm);
+    padding: 1rem 1.1rem;
+    margin-bottom: 0.75rem;
+    transition: transform var(--acad-transition), box-shadow var(--acad-transition);
+}
+body[class*="local-academy"] .st-card:hover,
+body[class*="local-academy"] .ml-card:hover {
+    box-shadow: var(--acad-shadow);
+    transform: translateY(-2px);
+}
+
+/* Stat / summary cards */
+body[class*="local-academy"] .w-card,
+body[class*="local-academy"] .wd-card,
+body[class*="local-academy"] .b2b-stat,
+body[class*="local-academy"] .rp-chip {
+    border: 1px solid var(--acad-border);
+    border-radius: var(--acad-radius);
+    background: var(--acad-surface);
+    box-shadow: var(--acad-shadow-sm);
+}
+body[class*="local-academy"] .w-card.primary {
+    background: var(--acad-primary-soft);
+    border-color: var(--acad-primary-border);
+}
+body[class*="local-academy"] .w-card .w-label,
+body[class*="local-academy"] .wd-card .l,
+body[class*="local-academy"] .b2b-stat .l {
+    color: var(--acad-muted);
+}
+body[class*="local-academy"] .w-card .w-value,
+body[class*="local-academy"] .wd-card .v,
+body[class*="local-academy"] .b2b-stat .n {
+    color: var(--acad-text);
+}
+
+/* ============================================================================
+ * 2. Titles / meta text
+ * ==========================================================================*/
+body[class*="local-academy"] .st-title,
+body[class*="local-academy"] .ml-subject {
+    color: var(--acad-text);
+    font-weight: 600;
+}
+body[class*="local-academy"] .st-meta,
+body[class*="local-academy"] .ml-meta {
+    color: var(--acad-muted);
+}
+
+/* ============================================================================
+ * 3. Tables
+ * ==========================================================================*/
+body[class*="local-academy"] table.st-table,
+body[class*="local-academy"] table.w-table,
+body[class*="local-academy"] table.wd-table,
+body[class*="local-academy"] table.rp-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+}
+body[class*="local-academy"] table.st-table th,
+body[class*="local-academy"] table.w-table th,
+body[class*="local-academy"] table.wd-table th,
+body[class*="local-academy"] table.rp-table th {
+    text-align: start;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    color: var(--acad-muted);
+    background: var(--acad-surface-2);
+    border-bottom: 2px solid var(--acad-border);
+    padding: 0.55rem 0.6rem;
+}
+body[class*="local-academy"] table.st-table td,
+body[class*="local-academy"] table.w-table td,
+body[class*="local-academy"] table.wd-table td,
+body[class*="local-academy"] table.rp-table td {
+    text-align: start;
+    border-bottom: 1px solid var(--acad-border);
+    padding: 0.55rem 0.6rem;
+    font-size: 0.9rem;
+    color: var(--acad-text);
+    vertical-align: top;
+}
+body[class*="local-academy"] table.st-table tbody tr:hover,
+body[class*="local-academy"] table.w-table tbody tr:hover,
+body[class*="local-academy"] table.wd-table tbody tr:hover,
+body[class*="local-academy"] table.rp-table tbody tr:hover {
+    background: var(--acad-surface-2);
+}
+
+/* ============================================================================
+ * 4. Status badges  (unified pill + one colour per status, everywhere)
+ * ==========================================================================*/
+body[class*="local-academy"] .st-badge,
+body[class*="local-academy"] .ml-badge,
+body[class*="local-academy"] .w-badge,
+body[class*="local-academy"] .wd-badge,
+body[class*="local-academy"] .rp-badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--acad-pill);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+/* Status colour map — a single source of truth for every page. */
+body[class*="local-academy"] .s-pending      { background: var(--acad-st-pending-bg);  color: var(--acad-st-pending-fg); }
+body[class*="local-academy"] .s-waiting_student,
+body[class*="local-academy"] .s-waiting_teacher,
+body[class*="local-academy"] .s-approved     { background: var(--acad-st-info-bg);     color: var(--acad-st-info-fg); }
+body[class*="local-academy"] .s-confirmed,
+body[class*="local-academy"] .s-active,
+body[class*="local-academy"] .s-completed_ok,
+body[class*="local-academy"] .s-success,
+body[class*="local-academy"] .s-paid         { background: var(--acad-st-success-bg);  color: var(--acad-st-success-fg); }
+body[class*="local-academy"] .s-in_progress  { background: var(--acad-st-progress-bg); color: var(--acad-st-progress-fg); }
+body[class*="local-academy"] .s-completed,
+body[class*="local-academy"] .s-fully_used,
+body[class*="local-academy"] .s-expired      { background: var(--acad-st-neutral-bg);  color: var(--acad-st-neutral-fg); }
+body[class*="local-academy"] .s-student_absent,
+body[class*="local-academy"] .s-teacher_absent,
+body[class*="local-academy"] .s-rejected,
+body[class*="local-academy"] .s-cancelled,
+body[class*="local-academy"] .s-cancelled_teacher,
+body[class*="local-academy"] .s-failed,
+body[class*="local-academy"] .s-payment_failed,
+body[class*="local-academy"] .s-reversed     { background: var(--acad-st-danger-bg);   color: var(--acad-st-danger-fg); }
+
+/* ============================================================================
+ * 5. Tab bars  (unify the two accent colours #0d6efd / #0f6cbf -> --acad-primary)
+ * ==========================================================================*/
+body[class*="local-academy"] #st-tabs,
+body[class*="local-academy"] #rp-tabs,
+body[class*="local-academy"] #b2b-tabs,
+body[class*="local-academy"] #set-tabs {
+    display: flex;
+    gap: 0.4rem;
+    border-bottom: 2px solid var(--acad-border);
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+body[class*="local-academy"] .st-tab,
+body[class*="local-academy"] #rp-tabs button,
+body[class*="local-academy"] #b2b-tabs button,
+body[class*="local-academy"] #set-tabs button {
+    border: none;
+    background: none;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    color: var(--acad-muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: color var(--acad-transition), border-color var(--acad-transition);
+}
+body[class*="local-academy"] .st-tab:hover,
+body[class*="local-academy"] #rp-tabs button:hover,
+body[class*="local-academy"] #b2b-tabs button:hover,
+body[class*="local-academy"] #set-tabs button:hover {
+    color: var(--acad-primary);
+}
+body[class*="local-academy"] .st-tab.active,
+body[class*="local-academy"] #rp-tabs button.active,
+body[class*="local-academy"] #b2b-tabs button.active,
+body[class*="local-academy"] #set-tabs button.active {
+    color: var(--acad-primary);
+    border-bottom-color: var(--acad-primary);
+}
+
+/* ============================================================================
+ * 6. Modals  (unified surface / radius / elevation)
+ * ==========================================================================*/
+body[class*="local-academy"] .st-modal,
+body[class*="local-academy"] .ml-modal,
+body[class*="local-academy"] .w-modal,
+body[class*="local-academy"] .wd-modal,
+body[class*="local-academy"] .academy-modal {
+    background: var(--acad-surface);
+    border-radius: var(--acad-radius-lg);
+    box-shadow: var(--acad-shadow-lg);
+    padding: 1.4rem;
+}
+body[class*="local-academy"] .st-modal-bg,
+body[class*="local-academy"] .ml-modal-bg,
+body[class*="local-academy"] .w-modal-bg,
+body[class*="local-academy"] .wd-modal-bg,
+body[class*="local-academy"] .academy-modal-backdrop {
+    background: rgba(28, 29, 36, .55);
+}
+
+/* ============================================================================
+ * 7. Chips / subject tags
+ * ==========================================================================*/
+body[class*="local-academy"] .st-chip {
+    background: var(--acad-surface-2);
+    border: 1px solid var(--acad-border);
+    border-radius: var(--acad-pill);
+    color: var(--acad-text);
+}
+
+/* ============================================================================
+ * 8. Empty states
+ * ==========================================================================*/
+body[class*="local-academy"] .st-empty,
+body[class*="local-academy"] .ml-empty {
+    color: var(--acad-muted);
+    padding: 2.5rem 1rem;
+    text-align: center;
+}
+
+/* ============================================================================
+ * 9. Reusable pagination bar  (rendered by AcademyUI.pager in ui.js)
+ * ==========================================================================*/
+.acad-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    margin-top: 0.85rem;
+}
+.acad-pager__info {
+    color: var(--acad-muted);
+    font-size: 0.82rem;
+    margin-inline-end: auto;
+}
+.acad-pager button {
+    min-width: 2.1rem;
+    height: 2.1rem;
+    padding: 0 0.55rem;
+    border: 1px solid var(--acad-border-strong);
+    background: var(--acad-surface);
+    color: var(--acad-text);
+    border-radius: var(--acad-radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--acad-transition), border-color var(--acad-transition), color var(--acad-transition);
+}
+.acad-pager button:hover:not(:disabled):not(.is-active) {
+    border-color: var(--acad-primary);
+    color: var(--acad-primary);
+}
+.acad-pager button.is-active {
+    background: var(--acad-primary);
+    border-color: var(--acad-primary);
+    color: #fff;
+    cursor: default;
+}
+.acad-pager button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+.acad-pager__ellipsis {
+    color: var(--acad-muted);
+    padding: 0 0.2rem;
+    align-self: center;
+}
+
+/* ============================================================================
+ * 10. Small responsive niceties
+ * ==========================================================================*/
+@media (max-width: 576px) {
+    body[class*="local-academy"] table.st-table,
+    body[class*="local-academy"] table.w-table,
+    body[class*="local-academy"] table.wd-table,
+    body[class*="local-academy"] table.rp-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    .acad-pager__info {
+        margin-inline-end: 0;
+        width: 100%;
+        text-align: center;
+        margin-bottom: 0.35rem;
+    }
+}

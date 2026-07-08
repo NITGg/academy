@@ -69,6 +69,7 @@ $string['ui_active']       = 'نشط';
 $string['ui_never']        = 'أبدًا';
 $string['ui_optional']     = '(اختياري)';
 $string['ui_currency_egp'] = 'ج.م';
+$string['ui_pager_info']   = 'عرض {from}–{to} من {total}';
 
 // ── manage_packages.php — package CRUD ──
 $string['pkg_new']              = 'باقة جديدة';

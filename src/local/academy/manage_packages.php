@@ -21,6 +21,9 @@ $token = $tokenobj->token;
 $PAGE->set_title(get_string('managepackages', 'local_academy'));
 $PAGE->set_heading(get_string('managepackages', 'local_academy'));
 
+// Shared UI helpers (AcademyUI.paginate) — inhead so it is ready before the page's inline script runs.
+$PAGE->requires->js(new moodle_url('/local/academy/ui.js'), true);
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managepackages', 'local_academy'));
 
@@ -42,7 +45,7 @@ $STR = local_academy_string_map(array(
     'pkg_unassign_confirm', 'pkg_unassign_paid',
     'msg_package_created', 'msg_package_updated', 'msg_package_activated',
     'msg_package_deactivated', 'msg_package_deleted', 'msg_package_unassigned',
-    'err_requestfailed', 'err_sessionexpired',
+    'err_requestfailed', 'err_sessionexpired', 'ui_pager_info',
 ));
 
 // Pass config + localised strings to JS.
@@ -74,6 +77,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         </thead>
         <tbody><tr><td colspan="7"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
     </table>
+    <div id="pkg-table-pager" class="acad-pager"></div>
 
     <!-- Create / edit form (hidden by default) -->
     <div id="pkg-form-card" class="card" style="display:none; max-width:560px;">
@@ -135,6 +139,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         </thead>
         <tbody><tr><td colspan="7"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
     </table>
+    <div id="users-table-pager" class="acad-pager"></div>
 
     <!-- ── Unassign confirmation modal ── -->
     <div id="unassign-modal-backdrop" class="academy-modal-backdrop" style="display:none;">

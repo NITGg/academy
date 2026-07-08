@@ -18,6 +18,9 @@ $token = external_generate_token_for_current_user($service)->token;
 $PAGE->set_title(get_string('reports', 'local_academy'));
 $PAGE->set_heading(get_string('reports', 'local_academy'));
 
+// Shared UI helpers (AcademyUI.paginate) — inhead so it is ready before the page's inline script runs.
+$PAGE->requires->js(new moodle_url('/local/academy/ui.js'), true);
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('reports', 'local_academy'));
 // Localised strings: server-rendered HTML reads $STR['key']; the JS reads window.ACADEMY_STR.
@@ -47,7 +50,7 @@ $STR = local_academy_string_map(array(
     'rp_act_teacher_absent_reported', 'rp_act_request_cancelled', 'rp_act_cancelled_by_student',
     'rp_act_cancelled_by_teacher', 'rp_act_time_update_requested', 'rp_act_time_update_accepted',
     'rp_act_time_update_rejected',
-    'err_sessionexpired', 'err_requestfailed',
+    'err_sessionexpired', 'err_requestfailed', 'ui_pager_info',
 ));
 echo html_writer::script('window.ACADEMY_RP = ' . json_encode(array(
     'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
@@ -83,7 +86,7 @@ table.rp-table th,table.rp-table td{border-bottom:1px solid #eee;padding:.4rem .
   </div>
   <div id="rp-filters"></div>
   <div id="rp-summary"></div>
-  <div id="rp-generic" style="overflow-x:auto"><table class="rp-table"><thead id="rp-head"></thead><tbody id="rp-body"></tbody></table></div>
+  <div id="rp-generic"><div style="overflow-x:auto"><table class="rp-table"><thead id="rp-head"></thead><tbody id="rp-body"></tbody></table></div><div id="rp-body-pager" class="acad-pager"></div></div>
   <div id="rp-useractivity" style="display:none"></div>
   <div id="rp-timeline" style="display:none;margin-top:1rem;border:1px solid #dee2e6;border-radius:.5rem;padding:.75rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
@@ -186,12 +189,15 @@ echo html_writer::script(<<<'JS'
     var tl=(current==='lessons'); // lessons rows get an action-timeline button
     $('rp-head').innerHTML='<tr>'+cols.map(function(c){return '<th>'+esc(c[1])+'</th>';}).join('')+(tl?'<th>'+esc(str('rp_c_timeline'))+'</th>':'')+'</tr>';
     var rows=rowsOf(d);
-    if(!rows.length){$('rp-body').innerHTML='<tr><td colspan="'+(cols.length+(tl?1:0))+'" class="text-muted">'+esc(str('rp_no_data'))+'</td></tr>';return;}
-    $('rp-body').innerHTML=rows.map(function(r){
+    var pg=$('rp-body-pager');
+    if(!rows.length){$('rp-body').innerHTML='<tr><td colspan="'+(cols.length+(tl?1:0))+'" class="text-muted">'+esc(str('rp_no_data'))+'</td></tr>';if(pg){pg.innerHTML='';}return;}
+    function rowHtml(r){
       var tds=cols.map(function(c){var v=r[c[0]];if(c[2]){v=c[2](v);}return '<td>'+esc(v)+'</td>';}).join('');
       if(tl){tds+='<td><button type="button" class="btn btn-sm btn-outline-secondary rp-tl" data-id="'+r.id+'">'+esc(str('rp_c_timeline'))+'</button></td>';}
       return '<tr>'+tds+'</tr>';
-    }).join('');
+    }
+    AcademyUI.paginate({rows:rows,pageSize:15,pagerEl:pg,labels:{info:str('ui_pager_info')},
+      render:function(items){$('rp-body').innerHTML=items.map(rowHtml).join('');}});
   }
 
   function showTimeline(id){

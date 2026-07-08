@@ -31,6 +31,9 @@ $PAGE->set_pagelayout('standard');
 $PAGE->set_title(get_string('mywallet', 'local_academy'));
 $PAGE->set_heading(get_string('mywallet', 'local_academy'));
 
+// Shared UI helpers (AcademyUI.paginate) — inhead so it is ready before the page's inline script runs.
+$PAGE->requires->js(new moodle_url('/local/academy/ui.js'), true);
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('mywallet', 'local_academy'));
 // Localised strings: server-rendered HTML reads $STR['key']; the JS reads window.ACADEMY_STR.
@@ -42,7 +45,7 @@ $STR = local_academy_string_map(array(
     'w_total_withdrawn', 'w_no_withdrawals', 'w_no_earnings', 'w_ref', 'w_requested', 'w_share',
     'wstat_pending', 'wstat_approved', 'wstat_paid', 'wstat_rejected', 'wstat_active', 'wstat_reversed',
     'st_col_date', 'st_col_amount', 'st_col_method', 'st_col_status', 'st_col_lesson',
-    'ap_method_bank', 'ap_method_wallet', 'err_sessionexpired', 'err_requestfailed',
+    'ap_method_bank', 'ap_method_wallet', 'err_sessionexpired', 'err_requestfailed', 'ui_pager_info',
 ));
 echo html_writer::script('window.ACADEMY_W = ' . json_encode(array(
     'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
@@ -80,12 +83,14 @@ table.w-table th,table.w-table td{border-bottom:1px solid #eee;padding:.45rem .5
     <h5><?php echo $STR['w_withdrawals_heading']; ?> <a id="w-exp-wd" class="btn btn-sm btn-outline-secondary" target="_blank" style="float:right"><?php echo $STR['ui_export_csv']; ?></a></h5>
     <table class="w-table"><thead><tr><th><?php echo $STR['st_col_date']; ?></th><th><?php echo $STR['st_col_amount']; ?></th><th><?php echo $STR['st_col_method']; ?></th><th><?php echo $STR['st_col_status']; ?></th><th><?php echo $STR['w_col_noteref']; ?></th></tr></thead>
       <tbody id="w-withdrawals"></tbody></table>
+    <div id="w-withdrawals-pager" class="acad-pager"></div>
   </div>
 
   <div class="w-section">
     <h5><?php echo $STR['w_earnings_heading']; ?> <a id="w-exp-earn" class="btn btn-sm btn-outline-secondary" target="_blank" style="float:right"><?php echo $STR['ui_export_csv']; ?></a></h5>
     <table class="w-table"><thead><tr><th><?php echo $STR['st_col_date']; ?></th><th><?php echo $STR['st_col_lesson']; ?></th><th><?php echo $STR['w_col_student']; ?></th><th><?php echo $STR['w_col_lessondate']; ?></th><th><?php echo $STR['w_col_flexvalue']; ?></th><th><?php echo $STR['w_col_yourshare']; ?></th><th><?php echo $STR['st_col_status']; ?></th></tr></thead>
       <tbody id="w-earnings"></tbody></table>
+    <div id="w-earnings-pager" class="acad-pager"></div>
   </div>
 </div>
 
@@ -124,6 +129,14 @@ echo html_writer::script(<<<'JS'
   // Withdrawal + earning status → localised label.
   function wstat(s){return str('wstat_'+s)!=='wstat_'+s?str('wstat_'+s):s;}
 
+  var PAGE_SIZE=10;
+  function tablePager(tbodyId,pagerId,rows,rowHtmlFn,colspan,emptyMsg){
+    var tb=$(tbodyId),pg=$(pagerId);
+    if(!rows||!rows.length){tb.innerHTML='<tr><td colspan="'+colspan+'" class="text-muted">'+esc(emptyMsg)+'</td></tr>';if(pg){pg.innerHTML='';}return;}
+    AcademyUI.paginate({rows:rows,pageSize:PAGE_SIZE,pagerEl:pg,labels:{info:str('ui_pager_info')},
+      render:function(items){tb.innerHTML=items.map(rowHtmlFn).join('');}});
+  }
+
   function apiGet(fn){var base={function:fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}return fetch(CFG.endpoint+'?'+new URLSearchParams(base)).then(parse);}
   function apiPost(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}var b=new URLSearchParams(Object.assign(base,p));return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b.toString()}).then(parse);}
 
@@ -136,22 +149,18 @@ echo html_writer::script(<<<'JS'
       card(str('w_pending_withdrawals'), money(w.pending_withdrawals)) +
       card(str('w_total_withdrawn'), money(w.total_withdrawn));
 
-    var wb=$('w-withdrawals'); wb.innerHTML='';
-    if(!w.withdrawals.length){wb.innerHTML='<tr><td colspan="5" class="text-muted">'+esc(str('w_no_withdrawals'))+'</td></tr>';}
-    w.withdrawals.forEach(function(x){
+    tablePager('w-withdrawals','w-withdrawals-pager',w.withdrawals,function(x){
       var note = x.status==='rejected' ? esc(x.reason||'') : (x.status==='paid' ? strf('w_ref',esc(x.reference||'—')) : '');
-      wb.innerHTML += '<tr><td>'+fmt(x.timecreated)+'</td><td>'+money(x.amount)+'</td><td>'+esc(x.method)+'</td>'+
+      return '<tr><td>'+fmt(x.timecreated)+'</td><td>'+money(x.amount)+'</td><td>'+esc(x.method)+'</td>'+
         '<td><span class="w-badge s-'+x.status+'">'+esc(wstat(x.status))+'</span></td><td>'+note+'</td></tr>';
-    });
+    },5,str('w_no_withdrawals'));
 
-    var eb=$('w-earnings'); eb.innerHTML='';
-    if(!w.earnings.length){eb.innerHTML='<tr><td colspan="7" class="text-muted">'+esc(str('w_no_earnings'))+'</td></tr>';}
-    w.earnings.forEach(function(x){
-      eb.innerHTML += '<tr><td>'+fmt(x.timecreated)+'</td><td>#'+x.lessonid+'</td><td>'+esc(x.student_name||'')+'</td>'+
+    tablePager('w-earnings','w-earnings-pager',w.earnings,function(x){
+      return '<tr><td>'+fmt(x.timecreated)+'</td><td>#'+x.lessonid+'</td><td>'+esc(x.student_name||'')+'</td>'+
         '<td>'+fmt(x.lesson_time)+'</td><td>'+money(x.flex_value)+'</td>'+
         '<td>'+strf('w_share',{amount:money(x.teacher_amount),percent:x.teacher_percent})+'</td>'+
         '<td><span class="w-badge s-'+x.status+'">'+esc(wstat(x.status))+'</span></td></tr>';
-    });
+    },7,str('w_no_earnings'));
   }
 
   function load(){apiGet('get_teacher_wallet').then(render).catch(function(e){msg(e.message,'danger');});}

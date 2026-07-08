@@ -23,6 +23,9 @@ $PAGE->set_pagelayout('standard');
 $PAGE->set_title(get_string('studenthub', 'local_academy'));
 $PAGE->set_heading(get_string('studenthub', 'local_academy'));
 
+// Shared UI helpers (AcademyUI.paginate) — inhead so it is ready before the page's inline script runs.
+$PAGE->requires->js(new moodle_url('/local/academy/ui.js'), true);
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('studenthub', 'local_academy'));
 
@@ -34,7 +37,7 @@ $STR = local_academy_string_map(array(
     // Flex banner.
     'st_available_flex', 'st_book_up_to', 'st_no_active_pkg',
     // Shared UI + modal.
-    'ui_cancel', 'ui_confirm', 'ui_search', 'ui_refresh', 'ui_never', 'ui_currency_egp',
+    'ui_cancel', 'ui_confirm', 'ui_search', 'ui_refresh', 'ui_never', 'ui_currency_egp', 'ui_pager_info',
     // Packages tab — section headings + table headers.
     'availpkgs_heading', 'mypackages', 'st_payment_history', 'st_flex_history',
     'st_col_package', 'st_col_flexusedtot', 'st_col_status', 'st_col_activated', 'st_col_expires',
@@ -168,6 +171,7 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
       <button id="st-teacher-refresh" class="btn btn-outline-secondary"><?php echo $STR['ui_search']; ?></button>
     </div>
     <div id="st-teachers" class="st-grid"></div>
+    <div id="st-teachers-pager" class="acad-pager"></div>
   </div>
 
   <!-- ── Tab 2: My lessons ── -->
@@ -191,12 +195,14 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
       <button id="st-lessons-refresh" class="btn btn-outline-secondary"><?php echo $STR['ui_refresh']; ?></button>
     </div>
     <div id="st-lessons"></div>
+    <div id="st-lessons-pager" class="acad-pager"></div>
   </div>
 
   <!-- ── Tab 3: Packages & Flex ── -->
   <div class="st-panel" id="panel-packages">
     <h5><?php echo $STR['availpkgs_heading']; ?></h5>
     <div id="st-available" class="st-grid"></div>
+    <div id="st-available-pager" class="acad-pager"></div>
 
     <div class="st-section">
       <h5><?php echo $STR['mypackages']; ?></h5>
@@ -204,6 +210,7 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
         <thead><tr><th><?php echo $STR['st_col_package']; ?></th><th><?php echo $STR['st_col_flexusedtot']; ?></th><th><?php echo $STR['st_col_status']; ?></th><th><?php echo $STR['st_col_activated']; ?></th><th><?php echo $STR['st_col_expires']; ?></th></tr></thead>
         <tbody id="st-mypackages"></tbody>
       </table>
+      <div id="st-mypackages-pager" class="acad-pager"></div>
     </div>
 
     <div class="st-section">
@@ -212,6 +219,7 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
         <thead><tr><th><?php echo $STR['st_col_date']; ?></th><th><?php echo $STR['st_col_package']; ?></th><th><?php echo $STR['st_col_amount']; ?></th><th><?php echo $STR['st_col_method']; ?></th><th><?php echo $STR['st_col_transaction']; ?></th><th><?php echo $STR['st_col_status']; ?></th></tr></thead>
         <tbody id="st-payments"></tbody>
       </table>
+      <div id="st-payments-pager" class="acad-pager"></div>
     </div>
 
     <div class="st-section">
@@ -220,6 +228,7 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
         <thead><tr><th><?php echo $STR['st_col_date']; ?></th><th><?php echo $STR['st_col_type']; ?></th><th><?php echo $STR['st_col_change']; ?></th><th><?php echo $STR['st_col_balance']; ?></th><th><?php echo $STR['st_col_lesson']; ?></th><th><?php echo $STR['st_col_note']; ?></th></tr></thead>
         <tbody id="st-flexhistory"></tbody>
       </table>
+      <div id="st-flexhistory-pager" class="acad-pager"></div>
     </div>
   </div>
 
@@ -227,6 +236,7 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
   <div class="st-panel" id="panel-subavailable">
     <h5><?php echo $STR['sub_available_heading']; ?></h5>
     <div id="st-subavailable" class="st-grid"></div>
+    <div id="st-subavailable-pager" class="acad-pager"></div>
   </div>
 
   <!-- ── Tab 5: My subscriptions ── -->
@@ -236,6 +246,7 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
       <thead><tr><th><?php echo $STR['sub_col_subscription']; ?></th><th><?php echo $STR['st_col_status']; ?></th><th><?php echo $STR['st_col_activated']; ?></th><th><?php echo $STR['st_col_expires']; ?></th><th><?php echo $STR['sub_col_daysleft']; ?></th><th><?php echo $STR['sub_col_courses']; ?></th></tr></thead>
       <tbody id="st-mysubs"></tbody>
     </table>
+    <div id="st-mysubs-pager" class="acad-pager"></div>
 
     <div class="st-section">
       <h5><?php echo $STR['sub_payments_heading']; ?></h5>
@@ -243,6 +254,7 @@ table.st-table th,table.st-table td{border-bottom:1px solid #eee;padding:.45rem 
         <thead><tr><th><?php echo $STR['st_col_date']; ?></th><th><?php echo $STR['sub_col_subscription']; ?></th><th><?php echo $STR['st_col_amount']; ?></th><th><?php echo $STR['st_col_method']; ?></th><th><?php echo $STR['st_col_transaction']; ?></th><th><?php echo $STR['st_col_status']; ?></th></tr></thead>
         <tbody id="st-subpayments"></tbody>
       </table>
+      <div id="st-subpayments-pager" class="acad-pager"></div>
     </div>
   </div>
 </div>
@@ -274,6 +286,24 @@ echo html_writer::script(<<<'JS'
   function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function fmt(ts){if(!ts){return '—';}var d=new Date(ts*1000);return d.toLocaleString();}
   function money(n){return Number(n||0).toFixed(2);}
+
+  // ── Shared client-side pagination (AcademyUI.paginate from ui.js) ──
+  var PAGE_SIZE=8;
+  function pagerLabels(){return {info:str('ui_pager_info')};}
+  // Paginate a card grid: renders cardFn(row) into #boxId, controls in #pagerId.
+  function gridPager(boxId,pagerId,rows,cardFn,emptyMsg){
+    var box=$(boxId),pg=$(pagerId);
+    if(!rows||!rows.length){box.innerHTML='';if(pg){pg.innerHTML='';}box.appendChild(el('div',{class:'st-empty'},emptyMsg));return;}
+    AcademyUI.paginate({rows:rows,pageSize:PAGE_SIZE,pagerEl:pg,labels:pagerLabels(),
+      render:function(items){box.innerHTML='';items.forEach(function(r){box.appendChild(cardFn(r));});}});
+  }
+  // Paginate a table body: rowHtmlFn(row) -> <tr> string, controls in #pagerId.
+  function tablePager(tbodyId,pagerId,rows,rowHtmlFn,colspan,emptyMsg){
+    var tb=$(tbodyId),pg=$(pagerId);
+    if(!rows||!rows.length){tb.innerHTML='<tr><td colspan="'+colspan+'" class="text-muted">'+esc(emptyMsg)+'</td></tr>';if(pg){pg.innerHTML='';}return;}
+    AcademyUI.paginate({rows:rows,pageSize:PAGE_SIZE,pagerEl:pg,labels:pagerLabels(),
+      render:function(items){tb.innerHTML=items.map(rowHtmlFn).join('');}});
+  }
 
   function apiGet(fn,params){
     var base={function:fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}
@@ -490,9 +520,7 @@ echo html_writer::script(<<<'JS'
   function loadTeachers(){
     var subject=$('st-teacher-search').value.trim();
     apiGet('browse_teachers',subject?{subject:subject}:null).then(function(rows){
-      var box=$('st-teachers');box.innerHTML='';
-      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},str('st_no_teachers')));return;}
-      rows.forEach(function(t){box.appendChild(teacherCard(t));});
+      gridPager('st-teachers','st-teachers-pager',rows,teacherCard,str('st_no_teachers'));
     }).catch(function(e){msg(e.message,'danger');});
   }
 
@@ -586,9 +614,7 @@ echo html_writer::script(<<<'JS'
   function loadLessons(){
     var status=$('st-filter').value;
     apiGet('get_my_lessons',{role:'student',status:status}).then(function(rows){
-      var list=$('st-lessons');list.innerHTML='';
-      if(!rows.length){list.appendChild(el('div',{class:'st-empty'},str('st_no_lessons')));return;}
-      rows.forEach(function(l){list.appendChild(lessonCard(l));});
+      gridPager('st-lessons','st-lessons-pager',rows,lessonCard,str('st_no_lessons'));
     }).catch(function(e){msg(e.message,'danger');});
   }
 
@@ -632,41 +658,33 @@ echo html_writer::script(<<<'JS'
       var rows=results[0], myrows=results[1];
       var hasActive=myrows.some(function(p){return p.status==='active';});
 
-      var box=$('st-available');box.innerHTML='';
-      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},str('st_pkg_none_available')));}
-      else{rows.forEach(function(p){box.appendChild(packageCard(p,hasActive));});}
+      gridPager('st-available','st-available-pager',rows,function(p){return packageCard(p,hasActive);},str('st_pkg_none_available'));
 
-      var tb=$('st-mypackages');tb.innerHTML='';
-      if(!myrows.length){tb.innerHTML='<tr><td colspan="5" class="text-muted">'+esc(str('st_pkg_none'))+'</td></tr>';return;}
-      myrows.forEach(function(p){
-        tb.innerHTML+='<tr><td>'+esc(p.name)+'</td>'+
+      tablePager('st-mypackages','st-mypackages-pager',myrows,function(p){
+        return '<tr><td>'+esc(p.name)+'</td>'+
           '<td>'+strf('st_flex_left',{remaining:esc(p.remaining_flex),used:esc(p.used_flex),total:esc(p.total_flex)})+'</td>'+
           '<td><span class="st-badge s-'+p.status+'">'+esc(PKG_STATUS[p.status]||p.status)+'</span></td>'+
           '<td>'+fmt(p.timeactivated)+'</td>'+
           '<td>'+(Number(p.expires_at)>0?fmt(p.expires_at):esc(str('ui_never')))+'</td></tr>';
-      });
+      },5,str('st_pkg_none'));
     }).catch(function(e){msg(e.message,'danger');});
 
     apiGet('get_payment_history').then(function(rows){
-      var tb=$('st-payments');tb.innerHTML='';
-      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">'+esc(str('st_pay_none'))+'</td></tr>';return;}
-      rows.forEach(function(x){
-        tb.innerHTML+='<tr><td>'+fmt(x.timecreated)+'</td><td>'+esc(x.name)+'</td><td>'+money(x.amount)+'</td>'+
+      tablePager('st-payments','st-payments-pager',rows,function(x){
+        return '<tr><td>'+fmt(x.timecreated)+'</td><td>'+esc(x.name)+'</td><td>'+money(x.amount)+'</td>'+
           '<td>'+esc(x.method)+'</td><td>'+esc(x.transaction_no)+'</td>'+
           '<td><span class="st-badge s-'+x.status+'">'+esc(PAY_STATUS[x.status]||x.status)+'</span></td></tr>';
-      });
+      },6,str('st_pay_none'));
     }).catch(function(e){msg(e.message,'danger');});
 
     apiGet('get_flex_history').then(function(rows){
-      var tb=$('st-flexhistory');tb.innerHTML='';
-      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">'+esc(str('st_flex_none'))+'</td></tr>';return;}
-      rows.forEach(function(x){
+      tablePager('st-flexhistory','st-flexhistory-pager',rows,function(x){
         var sign=x.amount>0?('+'+x.amount):String(x.amount);
-        tb.innerHTML+='<tr><td>'+fmt(x.timecreated)+'</td>'+
+        return '<tr><td>'+fmt(x.timecreated)+'</td>'+
           '<td><span class="st-badge s-'+(x.type==='consume'?'rejected':(x.type==='reserve'?'pending':'active'))+'">'+esc(FLEX_TYPE[x.type]||x.type)+'</span></td>'+
           '<td>'+sign+'</td><td>'+x.balance_after+'</td>'+
           '<td>'+(x.lessonid?('#'+x.lessonid):'—')+'</td><td>'+esc(x.reason)+'</td></tr>';
-      });
+      },6,str('st_flex_none'));
     }).catch(function(e){msg(e.message,'danger');});
   }
 
@@ -715,31 +733,25 @@ echo html_writer::script(<<<'JS'
       var rows=results[0], myrows=results[1];
       var hasActive=myrows.some(function(s){return s.status==='active';});
 
-      var box=$('st-subavailable');box.innerHTML='';
-      if(!rows.length){box.appendChild(el('div',{class:'st-empty'},str('sub_none_available')));}
-      else{rows.forEach(function(s){box.appendChild(subCard(s,hasActive));});}
+      gridPager('st-subavailable','st-subavailable-pager',rows,function(s){return subCard(s,hasActive);},str('sub_none_available'));
 
-      var tb=$('st-mysubs');tb.innerHTML='';
-      if(!myrows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">'+esc(str('sub_none_mine'))+'</td></tr>';return;}
-      myrows.forEach(function(s){
+      tablePager('st-mysubs','st-mysubs-pager',myrows,function(s){
         var courses=(s.courses||[]).map(function(c){return esc(c.fullname);}).join(', ')||'—';
-        tb.innerHTML+='<tr><td>'+esc(s.name)+'</td>'+
+        return '<tr><td>'+esc(s.name)+'</td>'+
           '<td><span class="st-badge s-'+s.status+'">'+(SUB_STATUS[s.status]||s.status)+'</span></td>'+
           '<td>'+fmt(s.timeactivated)+'</td>'+
           '<td>'+(Number(s.expires_at)>0?fmt(s.expires_at):'—')+'</td>'+
           '<td>'+(s.status==='active'?s.remaining_days:'—')+'</td>'+
           '<td>'+courses+'</td></tr>';
-      });
+      },6,str('sub_none_mine'));
     }).catch(function(e){msg(e.message,'danger');});
 
     apiGet('get_subscription_payment_history').then(function(rows){
-      var tb=$('st-subpayments');tb.innerHTML='';
-      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">'+esc(str('sub_no_payments'))+'</td></tr>';return;}
-      rows.forEach(function(x){
-        tb.innerHTML+='<tr><td>'+fmt(x.timecreated)+'</td><td>'+esc(x.name)+'</td><td>'+money(x.amount)+'</td>'+
+      tablePager('st-subpayments','st-subpayments-pager',rows,function(x){
+        return '<tr><td>'+fmt(x.timecreated)+'</td><td>'+esc(x.name)+'</td><td>'+money(x.amount)+'</td>'+
           '<td>'+esc(x.method)+'</td><td>'+esc(x.transaction_no)+'</td>'+
           '<td><span class="st-badge s-'+x.status+'">'+(PAY_STATUS[x.status]||x.status)+'</span></td></tr>';
-      });
+      },6,str('sub_no_payments'));
     }).catch(function(e){msg(e.message,'danger');});
   }
 

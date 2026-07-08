@@ -23,6 +23,9 @@ $PAGE->set_pagelayout('standard');
 $PAGE->set_title(get_string('b2b_dashboard_title', 'local_academy'));
 $PAGE->set_heading(get_string('b2b_dashboard_title', 'local_academy'));
 
+// Shared UI helpers (AcademyUI.paginate) — inhead so it is ready before the page's inline script runs.
+$PAGE->requires->js(new moodle_url('/local/academy/ui.js'), true);
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('b2b_dashboard_title', 'local_academy'));
 
@@ -35,7 +38,7 @@ $STR = local_academy_string_map(array(
     'b2b_reason_prompt', 'b2b_confirm_remove', 'b2b_confirm_remove_title',
     'b2b_confirm_reject_title', 'b2b_confirm_reject_body',
     'b2b_confirm_revoke_title', 'b2b_confirm_revoke_body',
-    'b2b_tab_all', 'b2b_action_done', 'b2b_never', 'ui_loading', 'ui_cancel',
+    'b2b_tab_all', 'b2b_action_done', 'b2b_never', 'ui_loading', 'ui_cancel', 'ui_pager_info',
     'err_sessionexpired', 'err_requestfailed',
 ));
 echo html_writer::script('window.ACADEMY_B2B = ' . json_encode(array(
@@ -127,6 +130,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             </thead>
             <tbody></tbody>
         </table>
+        <div id="b2b-members-pager" class="acad-pager"></div>
     </div>
 
     <div id="b2b-empty" style="display:none;" class="alert alert-info"><?php echo $STR['b2b_no_subs']; ?></div>
@@ -204,28 +208,28 @@ echo html_writer::script(<<<'JS'
         }
     }
 
+    function memberRowHtml(m){
+        var seat = m.consumes_seat ? str('b2b_seat_yes') : str('b2b_seat_no');
+        var actions = '';
+        if (m.status === 'pending'){
+            actions = '<button class="btn btn-sm btn-success" data-b2bact="approve" data-id="' + m.id + '">' + esc(str('b2b_approve')) + '</button> ' +
+                      '<button class="btn btn-sm btn-danger" data-b2bact="reject" data-id="' + m.id + '" data-name="' + esc(m.user_fullname) + '">' + esc(str('b2b_reject')) + '</button>';
+        } else if (m.status === 'approved'){
+            actions = '<button class="btn btn-sm btn-warning" data-b2bact="remove" data-id="' + m.id + '" data-name="' + esc(m.user_fullname) + '">' + esc(str('b2b_remove')) + '</button>';
+        }
+        return '<tr>' +
+            '<td>' + esc(m.user_fullname) + '<br><small class="text-muted">' + esc(m.user_email) + '</small></td>' +
+            '<td>' + esc(statusLabel(m.status)) + '</td>' +
+            '<td>' + esc(seat) + '</td>' +
+            '<td>' + actions + '</td></tr>';
+    }
     function renderMembers(members){
         var tbody = $('b2b-members-table').querySelector('tbody');
+        var pg = $('b2b-members-pager');
         var rows = (members || []).filter(function(m){ return !FILTER || m.status === FILTER; });
-        if (!rows.length){ tbody.innerHTML = '<tr><td colspan="4">' + esc(str('b2b_none')) + '</td></tr>'; return; }
-        tbody.innerHTML = '';
-        rows.forEach(function(m){
-            var seat = m.consumes_seat ? str('b2b_seat_yes') : str('b2b_seat_no');
-            var actions = '';
-            if (m.status === 'pending'){
-                actions = '<button class="btn btn-sm btn-success" data-b2bact="approve" data-id="' + m.id + '">' + esc(str('b2b_approve')) + '</button> ' +
-                          '<button class="btn btn-sm btn-danger" data-b2bact="reject" data-id="' + m.id + '" data-name="' + esc(m.user_fullname) + '">' + esc(str('b2b_reject')) + '</button>';
-            } else if (m.status === 'approved'){
-                actions = '<button class="btn btn-sm btn-warning" data-b2bact="remove" data-id="' + m.id + '" data-name="' + esc(m.user_fullname) + '">' + esc(str('b2b_remove')) + '</button>';
-            }
-            var tr = document.createElement('tr');
-            tr.innerHTML =
-                '<td>' + esc(m.user_fullname) + '<br><small class="text-muted">' + esc(m.user_email) + '</small></td>' +
-                '<td>' + esc(statusLabel(m.status)) + '</td>' +
-                '<td>' + esc(seat) + '</td>' +
-                '<td>' + actions + '</td>';
-            tbody.appendChild(tr);
-        });
+        if (!rows.length){ tbody.innerHTML = '<tr><td colspan="4">' + esc(str('b2b_none')) + '</td></tr>'; pg.innerHTML = ''; return; }
+        AcademyUI.paginate({rows: rows, pageSize: 10, pagerEl: pg, labels: {info: str('ui_pager_info')},
+            render: function(items){ tbody.innerHTML = items.map(memberRowHtml).join(''); }});
     }
 
     function loadDashboard(){

@@ -290,6 +290,7 @@ $string['ui_active']       = 'Active';
 $string['ui_never']        = 'Never';
 $string['ui_optional']     = '(optional)';
 $string['ui_currency_egp'] = 'EGP';
+$string['ui_pager_info']   = 'Showing {from}–{to} of {total}';
 
 // manage_packages.php — package CRUD.
 $string['pkg_new']              = 'New package';
