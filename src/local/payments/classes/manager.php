@@ -386,7 +386,7 @@ class manager {
         }
 
         $currency = 'EGP';
-        
+
         $country = country_detector::detect($userid, $app_country);
         $provider = self::get_provider($country, $currency);
         $provider_record = $DB->get_record('local_payments_providers', ['name' => $provider->get_name()]);

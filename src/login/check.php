@@ -80,7 +80,7 @@ function get_all_courses($user, $teacher, $lang = '')
     } elseif ($lang == "en") {
         $lang = "and c.lang='en'";
     }
-    $data_courses = $DB->get_records_sql("SELECT  c.id AS courseId,c.visible as visible, c.fullname as courseName,c.category as catId,cat.name as catName ,cinfo.value as year
+    $data_courses = $DB->get_records_sql("SELECT  c.id AS courseid,c.visible as visible, c.fullname as courseName,c.category as catId,cat.name as catName ,cinfo.value as year
    FROM   mdl_course c
    LEFT OUTER JOIN mdl_customfield_data cinfo ON c.id=cinfo.instanceid
     LEFT OUTER JOIN mdl_course_categories  cat   ON c.category=cat.id 
@@ -103,6 +103,11 @@ function get_all_courses($user, $teacher, $lang = '')
 function enrol_student($id, $userid, $roleid, $enrolmethod = 'manual')
 {
     global $DB;
+    // Nothing to enrol into (e.g. the student's year matches no course for this teacher).
+    // Guard against get_record(..., MUST_EXIST) throwing "record not found in table course".
+    if (empty($id) || !is_numeric($id)) {
+        return 'false';
+    }
     $user = $DB->get_record('user', array('id' => $userid, 'deleted' => 0), '*', MUST_EXIST);
     $studentRole = $DB->get_field('role', 'id', array('shortname' => 'student'));
     $isStudent = $DB->record_exists('role_assignments', ['userid' => $user->id, 'roleid' => $studentRole]);
