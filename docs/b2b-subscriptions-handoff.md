@@ -118,6 +118,19 @@ button.
 
 ---
 
+## 6b. Re-join behaviour for the invitation link
+
+`b2b_manager::join()` used to be fully idempotent — a **removed** user reopening the link just saw
+"You were removed from this subscription." Now:
+- **approved / pending / rejected** members: no duplicate is created; `join()` returns the current
+  status plus `existing => true`, and `b2b_join.php` shows an **"already a member / already pending"**
+  message (`b2b_join_already_approved` / `b2b_join_already_pending`, EN+AR; rejected keeps its message).
+- **removed / expired** members: the existing membership row is **reset to pending** (a fresh request;
+  `(purchaseid,userid)` is unique so it can't be a new row), the admin is notified, and auto-approve
+  applies if enabled + a seat is free.
+
+---
+
 ## 7. DEPLOY / RUN (required — nothing is live)
 
 ```bash

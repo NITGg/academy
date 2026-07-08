@@ -57,11 +57,20 @@ if (!$valid) {
 // Create (or fetch) the membership for the logged-in user. Idempotent — reopening won't duplicate.
 try {
     $result = \local_academy\b2b_manager::join($token, $USER->id);
-    $statuskey = 'b2b_join_' . $result['status']; // b2b_join_pending | b2b_join_approved | ...
-    $notifytype = ($result['status'] === \local_academy\b2b_manager::M_APPROVED) ? 'success' : 'info';
-    $text = get_string(get_string_manager()->string_exists($statuskey, 'local_academy')
-        ? $statuskey : 'b2b_join_pending', 'local_academy');
-    echo $OUTPUT->notification($text, $notifytype);
+    $status = $result['status'];
+    // When the membership already existed (approved/pending/rejected), prefer an "already …" message
+    // so the user is told they are already in / already waiting. Removed users get a fresh request.
+    $sm = get_string_manager();
+    $statuskey = (!empty($result['existing']) ? 'b2b_join_already_' : 'b2b_join_') . $status;
+    if (!$sm->string_exists($statuskey, 'local_academy')) {
+        $statuskey = 'b2b_join_' . $status;
+    }
+    if (!$sm->string_exists($statuskey, 'local_academy')) {
+        $statuskey = 'b2b_join_pending';
+    }
+    $notifytype = ($status === \local_academy\b2b_manager::M_APPROVED) ? 'success'
+        : (($status === \local_academy\b2b_manager::M_REJECTED) ? 'warning' : 'info');
+    echo $OUTPUT->notification(get_string($statuskey, 'local_academy'), $notifytype);
     echo html_writer::div(
         html_writer::link(new moodle_url('/local/academy/student.php'),
             get_string('b2b_join_goto', 'local_academy'), array('class' => 'btn btn-primary')),

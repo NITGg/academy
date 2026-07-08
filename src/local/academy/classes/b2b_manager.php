@@ -202,28 +202,50 @@ class b2b_manager {
             throw new \moodle_exception('err_b2bnotowner', 'local_academy');
         }
 
+        $now = time();
         $existing = $DB->get_record('academy_b2b_memberships',
             array('purchaseid' => $purchase->id, 'userid' => $userid));
-        if ($existing) {
-            return array('membershipid' => (int)$existing->id, 'status' => $existing->status);
-        }
 
-        $now = time();
-        $m = new \stdClass();
-        $m->purchaseid     = $purchase->id;
-        $m->subscriptionid = $purchase->subscriptionid;
-        $m->b2b_admin_id   = $purchase->userid;
-        $m->userid         = $userid;
-        $m->invitationid   = (int)$inv->id;
-        $m->status         = self::M_PENDING;
-        $m->consumes_seat  = 0;
-        $m->approved_by    = 0;
-        $m->approved_at    = 0;
-        $m->removed_by     = 0;
-        $m->removed_at     = 0;
-        $m->timecreated    = $now;
-        $m->timemodified   = $now;
-        $m->id = $DB->insert_record('academy_b2b_memberships', $m);
+        if ($existing) {
+            // Already an active member or awaiting a decision → just report it, don't duplicate.
+            // 'existing' lets the join page say "you are ALREADY a member / already pending".
+            if (in_array($existing->status, array(self::M_APPROVED, self::M_PENDING, self::M_REJECTED), true)) {
+                return array(
+                    'membershipid' => (int)$existing->id,
+                    'status'       => $existing->status,
+                    'existing'     => true,
+                );
+            }
+            // Removed or expired → allow a fresh request. (purchaseid,userid) is unique, so reset the
+            // same row back to pending instead of inserting a duplicate.
+            $m = $existing;
+            $m->status        = self::M_PENDING;
+            $m->consumes_seat = 0;
+            $m->invitationid  = (int)$inv->id;
+            $m->reject_reason = null;
+            $m->approved_by   = 0;
+            $m->approved_at   = 0;
+            $m->removed_by    = 0;
+            $m->removed_at    = 0;
+            $m->timemodified  = $now;
+            $DB->update_record('academy_b2b_memberships', $m);
+        } else {
+            $m = new \stdClass();
+            $m->purchaseid     = $purchase->id;
+            $m->subscriptionid = $purchase->subscriptionid;
+            $m->b2b_admin_id   = $purchase->userid;
+            $m->userid         = $userid;
+            $m->invitationid   = (int)$inv->id;
+            $m->status         = self::M_PENDING;
+            $m->consumes_seat  = 0;
+            $m->approved_by    = 0;
+            $m->approved_at    = 0;
+            $m->removed_by     = 0;
+            $m->removed_at     = 0;
+            $m->timecreated    = $now;
+            $m->timemodified   = $now;
+            $m->id = $DB->insert_record('academy_b2b_memberships', $m);
+        }
 
         // Auto-approval (US-B2B-1-4): only when enabled, the parent is usable, and a seat is free.
         $autoapprove = (int)settings_manager::get('b2b_auto_approve_invited_users') === 1;
