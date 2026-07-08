@@ -306,6 +306,9 @@ class subscription_manager {
             throw new \moodle_exception('err_coursenotfound', 'local_academy');
         }
 
+        // Which subscriptions grant this course BEFORE the change, to detect ones that lose it.
+        $oldsubs = self::subscriptions_granting_course($courseid);
+
         $now = time();
         $transaction = $DB->start_delegated_transaction();
         $DB->delete_records('academy_course_access', array('courseid' => $courseid));
@@ -336,7 +339,43 @@ class subscription_manager {
         }
         $transaction->allow_commit();
 
+        // Unenrol holders of any subscription that no longer grants this course (after commit).
+        $newsubs = self::subscriptions_granting_course($courseid);
+        foreach (array_diff($oldsubs, $newsubs) as $sid) {
+            subscription_purchase_manager::revoke_removed_courses($sid, array($courseid));
+        }
+
         return self::get_course_access($courseid);
+    }
+
+    /**
+     * The subscription plan ids that grant access to a course, expanding the "all subscriptions"
+     * sentinel to every existing plan. Used to detect which plans lose a course when its access rule
+     * changes, so their holders can be unenrolled.
+     *
+     * @param int $courseid
+     * @return int[] plan ids
+     */
+    private static function subscriptions_granting_course($courseid) {
+        global $DB;
+        $rows = $DB->get_records('academy_course_access',
+            array('courseid' => $courseid), '', 'DISTINCT subscriptionid');
+        $ids = array();
+        $hasall = false;
+        foreach ($rows as $r) {
+            $sid = (int)$r->subscriptionid;
+            if ($sid === self::ALL_SUBSCRIPTIONS) {
+                $hasall = true;
+            } else {
+                $ids[$sid] = true;
+            }
+        }
+        if ($hasall) {
+            foreach ($DB->get_records('academy_subscriptions', array(), '', 'id') as $s) {
+                $ids[(int)$s->id] = true;
+            }
+        }
+        return array_keys($ids);
     }
 
     /**
@@ -351,11 +390,17 @@ class subscription_manager {
         global $DB;
         self::get_subscription($subscriptionid); // validate
 
+        // Snapshot the courses this subscription currently grants, so we can unenrol its holders from
+        // any course the admin removes below (US-AD-6-1).
+        $oldcourseids = array_map('intval', array_keys(
+            $DB->get_records('academy_course_access',
+                array('subscriptionid' => $subscriptionid), '', 'DISTINCT courseid')));
+
         $now = time();
         $transaction = $DB->start_delegated_transaction();
-        
+
         $DB->delete_records('academy_course_access', array('subscriptionid' => $subscriptionid));
-        
+
         $seen = array();
         foreach ($courseids as $cid) {
             $cid = (int)$cid;
@@ -373,8 +418,14 @@ class subscription_manager {
                 'usermodified'   => $userid,
             ));
         }
-        
+
         $transaction->allow_commit();
+
+        // Unenrol holders from any course this subscription no longer grants (after commit — enrolment
+        // changes run their own transactions/events).
+        $removed = array_values(array_diff($oldcourseids, array_keys($seen)));
+        subscription_purchase_manager::revoke_removed_courses($subscriptionid, $removed);
+
         return self::courses_detail($subscriptionid);
     }
 

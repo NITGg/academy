@@ -487,6 +487,87 @@ class subscription_purchase_manager {
         }
     }
 
+    /**
+     * Unenrol the holders of a subscription from courses it no longer grants — used when an admin
+     * removes a course from a plan (US-AD-6-1). A holder keeps a course when another active subscription
+     * of theirs still grants it. MUST be called AFTER the course-access map has been updated and OUTSIDE
+     * any surrounding DB transaction (enrolment changes fire their own events/transactions).
+     *
+     * @param int $subscriptionid the plan the course(s) were removed from
+     * @param int[] $courseids the removed course ids
+     */
+    public static function revoke_removed_courses($subscriptionid, array $courseids) {
+        $courseids = array_values(array_unique(array_map('intval', $courseids)));
+        if (empty($courseids)) {
+            return;
+        }
+        foreach (self::subscription_holder_userids($subscriptionid) as $userid) {
+            // Courses still granted to this user by any of their active access sources (post-removal).
+            $stillgranted = array();
+            foreach (self::get_active_access_sources($userid) as $src) {
+                foreach (subscription_manager::courses_for_subscription($src->subscriptionid) as $cid) {
+                    $stillgranted[$cid] = true;
+                }
+            }
+            foreach ($courseids as $courseid) {
+                if (isset($stillgranted[$courseid])) {
+                    continue;
+                }
+                // Never strip access the user paid for directly — that is a separate entitlement from
+                // the subscription we are pruning.
+                if (self::has_direct_course_purchase($userid, $courseid)) {
+                    continue;
+                }
+                self::unenrol($courseid, $userid);
+            }
+        }
+    }
+
+    /** Whether the user bought this course outright via local_payments (paid access we must not revoke). */
+    private static function has_direct_course_purchase($userid, $courseid) {
+        if (!class_exists('\local_payments\price_resolver')) {
+            return false;
+        }
+        try {
+            return \local_payments\price_resolver::is_purchased((int)$courseid, (int)$userid);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /** Userids that currently hold a subscription plan: active/unexpired purchasers + approved members. */
+    private static function subscription_holder_userids($subscriptionid) {
+        global $DB;
+        $now = time();
+        $ids = array();
+
+        $purchases = $DB->get_records('academy_sub_purchases',
+            array('subscriptionid' => $subscriptionid, 'status' => 'active'));
+        foreach ($purchases as $p) {
+            if ((int)$p->expires_at > 0 && $now > (int)$p->expires_at) {
+                continue;
+            }
+            $ids[(int)$p->userid] = true;
+        }
+
+        $sql = "SELECT m.id, m.userid, p.expires_at, p.status AS parentstatus
+                  FROM {academy_b2b_memberships} m
+                  JOIN {academy_sub_purchases} p ON p.id = m.purchaseid
+                 WHERE m.subscriptionid = :sid AND m.status = :approved";
+        $rows = $DB->get_records_sql($sql,
+            array('sid' => $subscriptionid, 'approved' => b2b_manager::M_APPROVED));
+        foreach ($rows as $r) {
+            if ($r->parentstatus !== 'active') {
+                continue;
+            }
+            if ((int)$r->expires_at > 0 && $now > (int)$r->expires_at) {
+                continue;
+            }
+            $ids[(int)$r->userid] = true;
+        }
+        return array_keys($ids);
+    }
+
     // ── enrolment plumbing ──
 
     /** The student archetype role id (falls back to the 'student' shortname). */
