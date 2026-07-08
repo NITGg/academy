@@ -52,6 +52,10 @@ class subscription_expiry_task extends \core\task\scheduled_task {
                     subscription_purchase_manager::revoke_course_access($m->userid, $m->subscriptionid);
                     $expiredmembers++;
                 }
+
+                // Drop the B2B Administrator role now this subscription is expired — unless the buyer
+                // still owns another active B2B subscription. (Status was set to expired above.)
+                subscription_purchase_manager::unassign_b2b_admin_role_if_unused($p->userid);
             }
         }
 

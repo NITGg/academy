@@ -167,6 +167,28 @@ class subscription_purchase_manager {
         }
     }
 
+    /**
+     * Remove the B2B Administrator system role from a user — but only if they no longer hold ANY
+     * active (non-expired) B2B subscription (a buyer may own several). Call this after a B2B purchase
+     * has been flipped to expired/cancelled, so the just-ended purchase is not counted.
+     * The implicit "Authenticated user" role is untouched (Moodle cannot remove it).
+     */
+    public static function unassign_b2b_admin_role_if_unused($userid) {
+        global $DB;
+        $now = time();
+        $others = $DB->get_records('academy_sub_purchases',
+            array('userid' => $userid, 'type' => 'b2b', 'status' => 'active'));
+        foreach ($others as $o) {
+            if ((int)$o->expires_at === 0 || $now <= (int)$o->expires_at) {
+                return; // still administering an active B2B subscription — keep the role
+            }
+        }
+        $roleid = $DB->get_field('role', 'id', array('shortname' => 'b2b_administrator'));
+        if ($roleid) {
+            role_unassign($roleid, $userid, \context_system::instance()->id);
+        }
+    }
+
     /** US-SB-2-1: the student's subscriptions, active first. */
     public static function get_my_subscriptions($userid) {
         global $DB;
@@ -254,6 +276,22 @@ class subscription_purchase_manager {
 
         // Revoke access
         self::revoke_course_access($purchase->userid, $purchase->subscriptionid);
+
+        // A cancelled B2B parent also ends every approved member and drops the admin role — unless the
+        // buyer still owns another active B2B subscription. (Status was set to cancelled above.)
+        if (isset($purchase->type) && $purchase->type === 'b2b') {
+            $members = $DB->get_records('academy_b2b_memberships',
+                array('purchaseid' => $purchase->id, 'status' => 'approved'));
+            foreach ($members as $m) {
+                $DB->update_record('academy_b2b_memberships', (object) array(
+                    'id'           => $m->id,
+                    'status'       => 'expired',
+                    'timemodified' => $now,
+                ));
+                self::revoke_course_access($m->userid, $m->subscriptionid);
+            }
+            self::unassign_b2b_admin_role_if_unused($purchase->userid);
+        }
 
         // Refund if requested
         if ($refund) {
