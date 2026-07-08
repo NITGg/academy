@@ -134,4 +134,146 @@
 
     w.AcademyUI = w.AcademyUI || {};
     w.AcademyUI.paginate = paginate;
+
+    function pickerEsc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+    }
+
+    /*
+     * Reusable search-and-pick combobox — replaces raw numeric-id inputs on the admin pages.
+     *
+     * Renders a search box into `mount`; as the admin types (debounced) it calls `search(query)` and
+     * shows a dropdown of items. Choosing one collapses the box into a removable chip and stores it.
+     * `primary`/`secondary` map an item to its two display lines; `idOf` maps it to the stored id.
+     *
+     * Usage:
+     *   var p = AcademyUI.picker({
+     *       mount: el, placeholder: '…',
+     *       search: function (q) { return apiGet('search_users', { query: q }); }, // -> Promise<items>
+     *       primary: function (u) { return u.fullname; },
+     *       secondary: function (u) { return u.email; },
+     *       onChange: function (item) { ... },  // optional; item is null when cleared
+     *       labels: { searching: '…', none: 'No matches', hint: 'Type 2+ characters' }
+     *   });
+     *   p.value(); // selected id as string, or '' if none
+     */
+    function picker(opts) {
+        var labels = Object.assign({ searching: 'Searching…', none: 'No matches', hint: 'Type 2 or more characters' }, opts.labels || {});
+        var primary = opts.primary || function (x) { return x.fullname; };
+        var secondary = opts.secondary || function (x) { return x.email || ''; };
+        var idOf = opts.idOf || function (x) { return x.id; };
+
+        var root = document.createElement('div');
+        root.className = 'acad-picker';
+        root.innerHTML =
+            '<input type="text" class="form-control acad-picker__input" autocomplete="off" placeholder="' +
+                (opts.placeholder ? String(opts.placeholder).replace(/"/g, '&quot;') : '') + '">' +
+            '<div class="acad-picker__menu" hidden></div>' +
+            '<div class="acad-picker__chip" hidden></div>';
+        opts.mount.appendChild(root);
+
+        var input = root.querySelector('.acad-picker__input');
+        var menu = root.querySelector('.acad-picker__menu');
+        var chip = root.querySelector('.acad-picker__chip');
+        var selected = null, activeIdx = -1, items = [], timer = null, seq = 0;
+
+        function closeMenu() { menu.hidden = true; menu.innerHTML = ''; items = []; activeIdx = -1; }
+        function showMessage(text) { menu.hidden = false; menu.innerHTML = '<div class="acad-picker__msg">' + pickerEsc(text) + '</div>'; items = []; activeIdx = -1; }
+
+        function renderMenu(list) {
+            items = list || [];
+            if (!items.length) { showMessage(labels.none); return; }
+            menu.innerHTML = items.map(function (it, i) {
+                return '<button type="button" class="acad-picker__opt" data-i="' + i + '">' +
+                    '<span class="acad-picker__name">' + pickerEsc(primary(it)) + '</span>' +
+                    '<span class="acad-picker__email">' + pickerEsc(secondary(it)) + '</span></button>';
+            }).join('');
+            menu.hidden = false;
+            activeIdx = -1;
+        }
+
+        function choose(it) {
+            selected = it;
+            input.hidden = true;
+            closeMenu();
+            chip.hidden = false;
+            chip.innerHTML = '<span class="acad-picker__chiptext"><strong>' + pickerEsc(primary(it)) + '</strong>' +
+                '<span class="acad-picker__email">' + pickerEsc(secondary(it)) + '</span></span>' +
+                '<button type="button" class="acad-picker__clear" aria-label="Clear">&times;</button>';
+            if (opts.onChange) { opts.onChange(it); }
+        }
+
+        function clear() {
+            selected = null;
+            chip.hidden = true;
+            chip.innerHTML = '';
+            input.hidden = false;
+            input.value = '';
+            closeMenu();
+            input.focus();
+            if (opts.onChange) { opts.onChange(null); }
+        }
+
+        function runSearch() {
+            var q = input.value.trim();
+            if (q.length < 2) { showMessage(labels.hint); return; }
+            showMessage(labels.searching);
+            var mine = ++seq;
+            Promise.resolve(opts.search(q)).then(function (list) {
+                if (mine !== seq) { return; } // a newer keystroke superseded this response
+                renderMenu(list);
+            }).catch(function () { if (mine === seq) { closeMenu(); } });
+        }
+
+        function setActive(idx) {
+            var opts2 = menu.querySelectorAll('.acad-picker__opt');
+            if (!opts2.length) { return; }
+            activeIdx = (idx + opts2.length) % opts2.length;
+            opts2.forEach(function (o, i) { o.classList.toggle('is-active', i === activeIdx); });
+            opts2[activeIdx].scrollIntoView({ block: 'nearest' });
+        }
+
+        input.addEventListener('input', function () {
+            clearTimeout(timer);
+            timer = setTimeout(runSearch, 250);
+        });
+        input.addEventListener('keydown', function (ev) {
+            if (menu.hidden) { return; }
+            if (ev.key === 'ArrowDown') { ev.preventDefault(); setActive(activeIdx + 1); }
+            else if (ev.key === 'ArrowUp') { ev.preventDefault(); setActive(activeIdx - 1); }
+            else if (ev.key === 'Enter') {
+                if (activeIdx >= 0 && items[activeIdx]) { ev.preventDefault(); choose(items[activeIdx]); }
+            } else if (ev.key === 'Escape') { closeMenu(); }
+        });
+        menu.addEventListener('click', function (ev) {
+            var b = ev.target.closest('.acad-picker__opt');
+            if (b) { choose(items[parseInt(b.getAttribute('data-i'), 10)]); }
+        });
+        chip.addEventListener('click', function (ev) {
+            if (ev.target.closest('.acad-picker__clear')) { clear(); }
+        });
+        document.addEventListener('click', function (ev) {
+            if (!root.contains(ev.target)) { closeMenu(); }
+        });
+
+        return {
+            value: function () { return selected ? String(idOf(selected)) : ''; },
+            item: function () { return selected; },
+            user: function () { return selected; }, // backwards-compatible alias
+            clear: clear
+        };
+    }
+
+    // Thin wrapper: pick a user (primary = full name, secondary = email).
+    function userPicker(opts) {
+        return picker(Object.assign({}, opts, {
+            primary: function (u) { return u.fullname; },
+            secondary: function (u) { return u.email || ''; }
+        }));
+    }
+
+    w.AcademyUI.picker = picker;
+    w.AcademyUI.userPicker = userPicker;
 })(window);

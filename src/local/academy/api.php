@@ -157,6 +157,7 @@ $capmap = [
     'get_all_user_subscriptions'=> 'local/academy:managesubscriptions',
     'update_lesson_settings' => 'local/academy:manageplatform',
     'reverse_flex'           => 'local/academy:manageplatform',
+    'list_reversible_lessons' => 'local/academy:manageplatform',
     'list_withdrawals'       => 'local/academy:manageplatform',
     'process_withdrawal'     => 'local/academy:manageplatform',
     'get_platform_wallet'    => 'local/academy:manageplatform',
@@ -168,6 +169,7 @@ $capmap = [
     'report_lesson_events'   => 'local/academy:manageplatform',
     'report_user_activity'   => 'local/academy:manageplatform',
     'get_all_teachers'       => 'local/academy:manageplatform',
+    'search_users'           => 'local/academy:manageplatform',
 ];
 if (isset($capmap[$function]) && !has_capability($capmap[$function], context_system::instance())) {
     academy_respond(['status' => 'fail', 'error' => get_string('err_permissiondenied', 'local_academy')]);
@@ -592,6 +594,15 @@ try {
             academy_respond(['status' => 'success', 'data' => teacher_manager::get_all_teachers($filters)]);
             break;
 
+        // Admin user picker (assign_package / reports / withdrawals): search accounts by name/email.
+        case 'search_users':
+            academy_respond(['status' => 'success', 'data' => local_academy_search_users(
+                optional_param('query', '', PARAM_TEXT),
+                optional_param('role', 'any', PARAM_ALPHA),
+                optional_param('limit', 20, PARAM_INT)
+            )]);
+            break;
+
         // Any authenticated user — used to populate year/grade filter dropdowns.
         case 'get_years':
             academy_respond(['status' => 'success', 'data' => teacher_manager::get_years()]);
@@ -807,6 +818,14 @@ try {
                 required_param('lessonid', PARAM_INT),
                 $userid,
                 required_param('reason', PARAM_TEXT)
+            )]);
+            break;
+
+        // Admin picker: lessons whose Flex can still be reversed (have an active earning).
+        case 'list_reversible_lessons':
+            academy_respond(['status' => 'success', 'data' => finance_manager::list_reversible_lessons(
+                optional_param('query', '', PARAM_TEXT),
+                optional_param('limit', 50, PARAM_INT)
             )]);
             break;
 

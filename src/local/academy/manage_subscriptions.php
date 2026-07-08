@@ -20,6 +20,9 @@ $token = external_generate_token_for_current_user($service)->token;
 $PAGE->set_title(get_string('managesubscriptions', 'local_academy'));
 $PAGE->set_heading(get_string('managesubscriptions', 'local_academy'));
 
+// Shared UI helpers (AcademyUI.paginate) — inhead so it is ready before the page's inline script runs.
+$PAGE->requires->js(new moodle_url('/local/academy/ui.js'), true);
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managesubscriptions', 'local_academy'));
 
@@ -39,7 +42,8 @@ $STR = local_academy_string_map(array(
     'sub_no_usersubs', 'sub_unsub_confirm', 'sub_unsub_success', 'pkg_unassign_paid',
     'sstat_active', 'sstat_expired', 'sstat_cancelled', 'sstat_pending', 'sstat_payment_failed',
     'sub_field_b2b', 'sub_seat_options', 'sub_seat_options_help', 'sub_col_seats', 'sub_col_discount',
-    'sub_col_b2bprice', 'sub_seat_add', 'ui_remove', 'sub_b2b_badge',
+    'sub_col_b2bprice', 'sub_seat_add', 'ui_remove', 'sub_b2b_badge', 'ui_pager_info',
+    'ui_search', 'sub_courses_search', 'sub_selectall', 'sub_clear',
     'err_sessionexpired', 'err_requestfailed',
 ));
 echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
@@ -68,6 +72,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         </thead>
         <tbody><tr><td colspan="7"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
     </table>
+    <div id="sub-table-pager" class="acad-pager"></div>
 
     <div id="sub-form-card" class="card" style="display:none; max-width:560px;">
         <div class="card-body">
@@ -131,24 +136,49 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     <p class="text-muted"><?php echo $STR['sub_courseavail_desc']; ?></p>
 
     <style>
+        /* Course-availability toolbar: subscription picker + course search + bulk actions. */
+        .ca-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 0.75rem;
+            padding: 1rem 1.1rem;
+            margin-bottom: 1.25rem;
+            background: var(--acad-surface-2, #f8f9fa);
+            border: 1px solid var(--acad-border, #e5e7eb);
+            border-radius: var(--acad-radius, 0.6rem);
+        }
+        .ca-toolbar .ca-field { display: flex; flex-direction: column; gap: 0.25rem; }
+        .ca-toolbar .ca-field label { margin: 0; font-size: 0.8rem; font-weight: 600; color: var(--acad-muted, #6a6f73); }
+        .ca-toolbar #target-subscription { min-width: 240px; }
+        .ca-toolbar .ca-search { flex: 1 1 220px; }
+        .ca-toolbar .ca-search input { width: 100%; }
+        .ca-toolbar .ca-actions { display: flex; gap: 0.4rem; margin-inline-start: auto; align-items: center; flex-wrap: wrap; }
         .course-chip {
             display: inline-flex;
             align-items: center;
-            background: #f1f3f5;
-            border: 1px solid #dee2e6;
-            border-radius: 20px;
+            background: var(--acad-surface-2, #f1f3f5);
+            border: 1px solid var(--acad-border, #dee2e6);
+            border-radius: var(--acad-pill, 20px);
             padding: 8px 16px;
             margin: 6px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all var(--acad-transition, 0.16s ease);
             font-size: 0.95rem;
-            color: #495057;
+            color: var(--acad-text, #495057);
             user-select: none;
         }
         .course-chip:hover {
-            background: #e9ecef;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            background: var(--acad-primary-soft, #e9ecef);
+            border-color: var(--acad-primary-border, #dee2e6);
+            box-shadow: var(--acad-shadow-sm, 0 2px 4px rgba(0,0,0,0.08));
             transform: translateY(-1px);
+        }
+        .course-chip:has(input:checked) {
+            background: var(--acad-primary-soft, #eaf3ff);
+            border-color: var(--acad-primary, #0f6cbf);
+            color: var(--acad-primary-strong, #0a4f8f);
+            font-weight: 600;
         }
         .course-chip input[type="checkbox"] {
             margin-right: 10px;
@@ -157,30 +187,43 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             height: 1.1rem;
         }
         .category-card {
-            border: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border-radius: 12px;
+            border: 1px solid var(--acad-border, #e5e7eb);
+            box-shadow: var(--acad-shadow-sm, 0 4px 6px rgba(0,0,0,0.05));
+            border-radius: var(--acad-radius-lg, 12px);
             overflow: hidden;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform var(--acad-transition, 0.2s ease), box-shadow var(--acad-transition, 0.2s ease);
             margin-bottom: 1.5rem !important;
-            background: #fff;
+            background: var(--acad-surface, #fff);
         }
         .category-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+            box-shadow: var(--acad-shadow, 0 8px 15px rgba(0,0,0,0.08));
         }
         .category-card .card-header {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-bottom: 1px solid #dee2e6;
-            font-size: 1.15rem;
-            color: #212529;
-            padding: 1rem 1.25rem;
+            background: var(--acad-surface-2, #f8f9fa);
+            border-bottom: 1px solid var(--acad-border, #dee2e6);
+            font-size: 1.05rem;
+            color: var(--acad-text, #212529);
+            padding: 0.9rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .category-card .cat-count {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--acad-muted, #6a6f73);
+            background: var(--acad-surface, #fff);
+            border: 1px solid var(--acad-border, #e5e7eb);
+            border-radius: var(--acad-pill, 999px);
+            padding: 0.1rem 0.6rem;
         }
         .category-card .card-body {
             padding: 1.25rem;
             display: flex;
             flex-wrap: wrap;
         }
+        .category-card.ca-empty { display: none; }
         .academy-modal-backdrop {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -211,12 +254,22 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     </style>
 
     <div id="course-selector-area" style="display:none;">
-        <div class="mb-3">
-            <label for="target-subscription"><?php echo $STR['sub_target']; ?></label>
-            <select id="target-subscription" class="form-control" style="max-width: 300px; display: inline-block;">
-                <option value=""><?php echo $STR['sub_select_placeholder']; ?></option>
-            </select>
-            <button id="save-course-selection" class="btn btn-primary ml-2"><?php echo $STR['sub_save_courses']; ?></button>
+        <div class="ca-toolbar">
+            <div class="ca-field">
+                <label for="target-subscription"><?php echo $STR['sub_target']; ?></label>
+                <select id="target-subscription" class="form-control">
+                    <option value=""><?php echo $STR['sub_select_placeholder']; ?></option>
+                </select>
+            </div>
+            <div class="ca-field ca-search">
+                <label for="course-search">&nbsp;</label>
+                <input type="search" id="course-search" class="form-control" placeholder="<?php echo s($STR['sub_courses_search']); ?>">
+            </div>
+            <div class="ca-actions">
+                <button id="courses-select-all" type="button" class="btn btn-outline-secondary btn-sm"><?php echo $STR['sub_selectall']; ?></button>
+                <button id="courses-clear" type="button" class="btn btn-outline-secondary btn-sm"><?php echo $STR['sub_clear']; ?></button>
+                <button id="save-course-selection" class="btn btn-primary"><?php echo $STR['sub_save_courses']; ?></button>
+            </div>
         </div>
         <div id="categories-container" class="mb-4"></div>
     </div>
@@ -238,6 +291,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         </thead>
         <tbody><tr><td colspan="6"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
     </table>
+    <div id="users-table-pager" class="acad-pager"></div>
 
     <!-- ── Unsubscribe confirmation modal ── -->
     <div id="unsub-modal-backdrop" class="academy-modal-backdrop" style="display:none;">
@@ -267,6 +321,11 @@ echo html_writer::script(<<<'JS'
     function strf(k,params){var s=str(k);if(params==null){return s;}if(typeof params!=='object'){return s.replace(/\{\$a\}/g,params);}return s.replace(/\{\$a->(\w+)\}/g,function(m,name){return (name in params)?params[name]:m;});}
     function sstat(s){return str('sstat_'+s)!=='sstat_'+s?str('sstat_'+s):(s==='inactive'?str('sub_inactive'):(s==='active'?str('ui_active'):s));}
     function $(id) { return document.getElementById(id); }
+
+    // ── Shared client-side pagination (AcademyUI.paginate from ui.js) ──
+    var PAGE_SIZE = 10;
+    var subPager = null, usersPager = null;
+    function pagerLabels() { return { info: str('ui_pager_info') }; }
 
     function msg(text, type) {
         var el = $('sub-message');
@@ -357,6 +416,33 @@ echo html_writer::script(<<<'JS'
 
     var ALL_SUBS = []; // cache for the course-access checkboxes
 
+    // Render one page of subscription-plan rows (keeps tr._sub for the click handler).
+    function renderSubRows(items) {
+        var tbody = $('sub-table').querySelector('tbody');
+        tbody.innerHTML = '';
+        items.forEach(function (s) {
+            var tr = document.createElement('tr');
+            var toggle = s.status === 'active'
+                ? '<button class="btn btn-sm btn-warning" data-act="deactivate" data-id="' + s.id + '">' + esc(str('ui_deactivate')) + '</button>'
+                : '<button class="btn btn-sm btn-success" data-act="activate" data-id="' + s.id + '">' + esc(str('ui_activate')) + '</button>';
+            var b2bbadge = s.b2b_enabled ? ' <span class="badge badge-info">' + esc(str('sub_b2b_badge')) + '</span>' : '';
+            tr.innerHTML =
+                '<td>' + esc(s.id) + '</td>' +
+                '<td>' + esc(displayName(s.name)) + b2bbadge + '</td>' +
+                '<td>' + esc(s.price) + '</td>' +
+                '<td>' + esc(s.duration_days) + '</td>' +
+                '<td>' + courseNames(s) + '</td>' +
+                '<td>' + esc(sstat(s.status)) + '</td>' +
+                '<td>' +
+                    '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="' + s.id + '">' + esc(str('ui_edit')) + '</button> ' +
+                    toggle + ' ' +
+                    '<button class="btn btn-sm btn-danger" data-act="delete" data-id="' + s.id + '">' + esc(str('ui_delete')) + '</button>' +
+                '</td>';
+            tr._sub = s;
+            tbody.appendChild(tr);
+        });
+    }
+
     function loadSubs() {
         var tbody = $('sub-table').querySelector('tbody');
         tbody.innerHTML = '<tr><td colspan="7">' + esc(str('ui_loading')) + '</td></tr>';
@@ -364,31 +450,18 @@ echo html_writer::script(<<<'JS'
             ALL_SUBS = rows;
             if (!rows.length) {
                 tbody.innerHTML = '<tr><td colspan="7">' + esc(str('sub_none_admin')) + '</td></tr>';
+                $('sub-table-pager').innerHTML = '';
                 populateSubscriptionDropdown();
                 return;
             }
-            tbody.innerHTML = '';
-            rows.forEach(function (s) {
-                var tr = document.createElement('tr');
-                var toggle = s.status === 'active'
-                    ? '<button class="btn btn-sm btn-warning" data-act="deactivate" data-id="' + s.id + '">' + esc(str('ui_deactivate')) + '</button>'
-                    : '<button class="btn btn-sm btn-success" data-act="activate" data-id="' + s.id + '">' + esc(str('ui_activate')) + '</button>';
-                var b2bbadge = s.b2b_enabled ? ' <span class="badge badge-info">' + esc(str('sub_b2b_badge')) + '</span>' : '';
-                tr.innerHTML =
-                    '<td>' + esc(s.id) + '</td>' +
-                    '<td>' + esc(displayName(s.name)) + b2bbadge + '</td>' +
-                    '<td>' + esc(s.price) + '</td>' +
-                    '<td>' + esc(s.duration_days) + '</td>' +
-                    '<td>' + courseNames(s) + '</td>' +
-                    '<td>' + esc(sstat(s.status)) + '</td>' +
-                    '<td>' +
-                        '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="' + s.id + '">' + esc(str('ui_edit')) + '</button> ' +
-                        toggle + ' ' +
-                        '<button class="btn btn-sm btn-danger" data-act="delete" data-id="' + s.id + '">' + esc(str('ui_delete')) + '</button>' +
-                    '</td>';
-                tr._sub = s;
-                tbody.appendChild(tr);
-            });
+            if (subPager) {
+                subPager.setRows(rows);
+            } else {
+                subPager = AcademyUI.paginate({
+                    rows: rows, pageSize: PAGE_SIZE, pagerEl: $('sub-table-pager'),
+                    labels: pagerLabels(), render: renderSubRows
+                });
+            }
             populateSubscriptionDropdown();
         }).catch(function (e) { msg(e.message, 'danger'); });
     }
@@ -525,10 +598,11 @@ echo html_writer::script(<<<'JS'
             var html = '';
             categories.forEach(function(cat) {
                 html += '<div class="card category-card">';
-                html += '<div class="card-header"><strong>' + esc(cat.name) + '</strong></div>';
+                html += '<div class="card-header"><strong>' + esc(cat.name) + '</strong>' +
+                    '<span class="cat-count">' + cat.courses.length + '</span></div>';
                 html += '<div class="card-body">';
                 cat.courses.forEach(function(c) {
-                    html += '<label class="course-chip">' +
+                    html += '<label class="course-chip" data-course-name="' + esc(String(c.fullname).toLowerCase()) + '">' +
                         '<input type="checkbox" class="course-checkbox" id="cb-course-' + c.id + '" value="' + c.id + '">' +
                         esc(c.fullname) + '</label>';
                 });
@@ -536,7 +610,22 @@ echo html_writer::script(<<<'JS'
             });
             container.innerHTML = html;
             $('course-selector-area').style.display = 'block';
+            filterCourses();
         }).catch(function(e) { msg(e.message, 'danger'); });
+    }
+
+    // Filter course chips by the search box; hide categories left with no visible chips.
+    function filterCourses() {
+        var q = ($('course-search').value || '').trim().toLowerCase();
+        document.querySelectorAll('#categories-container .category-card').forEach(function(card) {
+            var visible = 0;
+            card.querySelectorAll('.course-chip').forEach(function(chip) {
+                var match = !q || (chip.getAttribute('data-course-name') || '').indexOf(q) !== -1;
+                chip.style.display = match ? '' : 'none';
+                if (match) { visible++; }
+            });
+            card.classList.toggle('ca-empty', visible === 0);
+        });
     }
 
     function populateSubscriptionDropdown() {
@@ -569,6 +658,18 @@ echo html_writer::script(<<<'JS'
     }
 
     $('target-subscription').addEventListener('change', applySubscriptionCourseSelection);
+    $('course-search').addEventListener('input', filterCourses);
+    // Select-all / clear act only on the currently visible (filtered) chips.
+    $('courses-select-all').addEventListener('click', function() {
+        document.querySelectorAll('.course-chip').forEach(function(chip) {
+            if (chip.style.display !== 'none') { chip.querySelector('.course-checkbox').checked = true; }
+        });
+    });
+    $('courses-clear').addEventListener('click', function() {
+        document.querySelectorAll('.course-chip').forEach(function(chip) {
+            if (chip.style.display !== 'none') { chip.querySelector('.course-checkbox').checked = false; }
+        });
+    });
 
     $('save-course-selection').addEventListener('click', function() {
         var subId = $('target-subscription').value;
@@ -590,29 +691,46 @@ echo html_writer::script(<<<'JS'
     });
 
     // ── User Subscriptions (New UI) ──
+    // Render one page of user-subscription rows (keeps tr._row for the unsubscribe handler).
+    function renderUserRows(items) {
+        var tbody = $('users-table').querySelector('tbody');
+        tbody.innerHTML = '';
+        items.forEach(function(r) {
+            var tr = document.createElement('tr');
+            var toggle = '';
+            if (r.status === 'active') {
+                toggle = '<button class="btn btn-sm btn-danger btn-unsubscribe" data-id="' + r.id + '">' + esc(str('sub_unsubscribe')) + '</button>';
+            }
+            var expires = r.expires_at > 0 ? new Date(r.expires_at * 1000).toLocaleString() : str('ui_never');
+            tr.innerHTML =
+                '<td>' + esc(r.user_fullname) + ' <br><small class="text-muted">' + esc(r.user_email) + '</small></td>' +
+                '<td>' + esc(displayName(r.name)) + '</td>' +
+                '<td>' + esc(r.price_paid) + '</td>' +
+                '<td>' + esc(sstat(r.status)) + '</td>' +
+                '<td>' + esc(expires) + '</td>' +
+                '<td>' + toggle + '</td>';
+            tr._row = r;
+            tbody.appendChild(tr);
+        });
+    }
+
     function loadUsers() {
         var tbody = $('users-table').querySelector('tbody');
         tbody.innerHTML = '<tr><td colspan="6">' + esc(str('ui_loading')) + '</td></tr>';
         api('get_all_user_subscriptions').then(function(rows) {
-            if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6">' + esc(str('sub_no_usersubs')) + '</td></tr>'; return; }
-            tbody.innerHTML = '';
-            rows.forEach(function(r) {
-                var tr = document.createElement('tr');
-                var toggle = '';
-                if (r.status === 'active') {
-                    toggle = '<button class="btn btn-sm btn-danger btn-unsubscribe" data-id="' + r.id + '">' + esc(str('sub_unsubscribe')) + '</button>';
-                }
-                var expires = r.expires_at > 0 ? new Date(r.expires_at * 1000).toLocaleString() : str('ui_never');
-                tr.innerHTML =
-                    '<td>' + esc(r.user_fullname) + ' <br><small class="text-muted">' + esc(r.user_email) + '</small></td>' +
-                    '<td>' + esc(displayName(r.name)) + '</td>' +
-                    '<td>' + esc(r.price_paid) + '</td>' +
-                    '<td>' + esc(sstat(r.status)) + '</td>' +
-                    '<td>' + esc(expires) + '</td>' +
-                    '<td>' + toggle + '</td>';
-                tr._row = r;
-                tbody.appendChild(tr);
-            });
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="6">' + esc(str('sub_no_usersubs')) + '</td></tr>';
+                $('users-table-pager').innerHTML = '';
+                return;
+            }
+            if (usersPager) {
+                usersPager.setRows(rows);
+            } else {
+                usersPager = AcademyUI.paginate({
+                    rows: rows, pageSize: PAGE_SIZE, pagerEl: $('users-table-pager'),
+                    labels: pagerLabels(), render: renderUserRows
+                });
+            }
         }).catch(function(e) { msg(e.message, 'danger'); });
     }
 

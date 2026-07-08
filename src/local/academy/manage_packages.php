@@ -197,6 +197,11 @@ echo html_writer::script(<<<'JS'
 
     function $(id) { return document.getElementById(id); }
 
+    // ── Shared client-side pagination (AcademyUI.paginate from ui.js) ──
+    var PAGE_SIZE = 10;
+    var pkgPager = null, usersPager = null;
+    function pagerLabels() { return { info: str('ui_pager_info') }; }
+
     // Localised string lookup; falls back to the key so a missing string is visible, not blank.
     function str(k) { return (k in STR) ? STR[k] : k; }
     // Like str() but fills Moodle {$a} / {$a->name} placeholders from a params object.
@@ -300,32 +305,49 @@ echo html_writer::script(<<<'JS'
         return [v.en, v.ar].filter(function (x) { return x; }).join(' / ') || value || '';
     }
 
+    // Render one page of package rows (keeps tr._pkg for the click-delegation handler).
+    function renderPkgRows(items) {
+        var tbody = $('pkg-table').querySelector('tbody');
+        tbody.innerHTML = '';
+        items.forEach(function (p) {
+            var tr = document.createElement('tr');
+            var toggle = p.status === 'active'
+                ? '<button class="btn btn-sm btn-warning" data-act="deactivate" data-id="' + p.id + '">' + esc(str('ui_deactivate')) + '</button>'
+                : '<button class="btn btn-sm btn-success" data-act="activate" data-id="' + p.id + '">' + esc(str('ui_activate')) + '</button>';
+            tr.innerHTML =
+                '<td>' + esc(p.id) + '</td>' +
+                '<td>' + esc(displayName(p.name)) + '</td>' +
+                '<td>' + esc(p.flex_count) + '</td>' +
+                '<td>' + esc(p.price) + '</td>' +
+                '<td>' + esc(p.expiration_days) + '</td>' +
+                '<td>' + esc(p.status) + '</td>' +
+                '<td>' +
+                    '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="' + p.id + '">' + esc(str('ui_edit')) + '</button> ' +
+                    toggle + ' ' +
+                    '<button class="btn btn-sm btn-danger" data-act="delete" data-id="' + p.id + '">' + esc(str('ui_delete')) + '</button>' +
+                '</td>';
+            tr._pkg = p;
+            tbody.appendChild(tr);
+        });
+    }
+
     function loadPackages() {
         var tbody = $('pkg-table').querySelector('tbody');
         tbody.innerHTML = '<tr><td colspan="7">' + esc(str('ui_loading')) + '</td></tr>';
         api('get_packages').then(function (rows) {
-            if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7">' + esc(str('pkg_none')) + '</td></tr>'; return; }
-            tbody.innerHTML = '';
-            rows.forEach(function (p) {
-                var tr = document.createElement('tr');
-                var toggle = p.status === 'active'
-                    ? '<button class="btn btn-sm btn-warning" data-act="deactivate" data-id="' + p.id + '">' + esc(str('ui_deactivate')) + '</button>'
-                    : '<button class="btn btn-sm btn-success" data-act="activate" data-id="' + p.id + '">' + esc(str('ui_activate')) + '</button>';
-                tr.innerHTML =
-                    '<td>' + esc(p.id) + '</td>' +
-                    '<td>' + esc(displayName(p.name)) + '</td>' +
-                    '<td>' + esc(p.flex_count) + '</td>' +
-                    '<td>' + esc(p.price) + '</td>' +
-                    '<td>' + esc(p.expiration_days) + '</td>' +
-                    '<td>' + esc(p.status) + '</td>' +
-                    '<td>' +
-                        '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="' + p.id + '">' + esc(str('ui_edit')) + '</button> ' +
-                        toggle + ' ' +
-                        '<button class="btn btn-sm btn-danger" data-act="delete" data-id="' + p.id + '">' + esc(str('ui_delete')) + '</button>' +
-                    '</td>';
-                tr._pkg = p;
-                tbody.appendChild(tr);
-            });
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="7">' + esc(str('pkg_none')) + '</td></tr>';
+                $('pkg-table-pager').innerHTML = '';
+                return;
+            }
+            if (pkgPager) {
+                pkgPager.setRows(rows);
+            } else {
+                pkgPager = AcademyUI.paginate({
+                    rows: rows, pageSize: PAGE_SIZE, pagerEl: $('pkg-table-pager'),
+                    labels: pagerLabels(), render: renderPkgRows
+                });
+            }
         }).catch(function (e) { msg(e.message, 'danger'); });
     }
 
@@ -396,30 +418,47 @@ echo html_writer::script(<<<'JS'
     $('pkg-cancel').addEventListener('click', hideForm);
 
     // ── User Packages ──
+    // Render one page of user-package rows (keeps tr._row for the unassign handler).
+    function renderUserRows(items) {
+        var tbody = $('users-table').querySelector('tbody');
+        tbody.innerHTML = '';
+        items.forEach(function(r) {
+            var tr = document.createElement('tr');
+            var toggle = '';
+            if (r.status === 'active') {
+                toggle = '<button class="btn btn-sm btn-danger btn-unassign" data-id="' + r.id + '">' + esc(str('pkg_unassign')) + '</button>';
+            }
+            var expires = r.expires_at > 0 ? new Date(r.expires_at * 1000).toLocaleString() : str('ui_never');
+            tr.innerHTML =
+                '<td>' + esc(r.user_fullname) + ' <br><small class="text-muted">' + esc(r.user_email) + '</small></td>' +
+                '<td>' + esc(r.name) + '</td>' +
+                '<td>' + esc(r.remaining_flex) + ' / ' + esc(r.total_flex) + '</td>' +
+                '<td>' + esc(r.price_paid) + '</td>' +
+                '<td>' + esc(r.status) + '</td>' +
+                '<td>' + expires + '</td>' +
+                '<td>' + toggle + '</td>';
+            tr._row = r;
+            tbody.appendChild(tr);
+        });
+    }
+
     function loadUsers() {
         var tbody = $('users-table').querySelector('tbody');
         tbody.innerHTML = '<tr><td colspan="7">' + esc(str('ui_loading')) + '</td></tr>';
         api('get_all_user_packages').then(function(rows) {
-            if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7">' + esc(str('pkg_users_none')) + '</td></tr>'; return; }
-            tbody.innerHTML = '';
-            rows.forEach(function(r) {
-                var tr = document.createElement('tr');
-                var toggle = '';
-                if (r.status === 'active') {
-                    toggle = '<button class="btn btn-sm btn-danger btn-unassign" data-id="' + r.id + '">' + esc(str('pkg_unassign')) + '</button>';
-                }
-                var expires = r.expires_at > 0 ? new Date(r.expires_at * 1000).toLocaleString() : str('ui_never');
-                tr.innerHTML =
-                    '<td>' + esc(r.user_fullname) + ' <br><small class="text-muted">' + esc(r.user_email) + '</small></td>' +
-                    '<td>' + esc(r.name) + '</td>' +
-                    '<td>' + esc(r.remaining_flex) + ' / ' + esc(r.total_flex) + '</td>' +
-                    '<td>' + esc(r.price_paid) + '</td>' +
-                    '<td>' + esc(r.status) + '</td>' +
-                    '<td>' + expires + '</td>' +
-                    '<td>' + toggle + '</td>';
-                tr._row = r;
-                tbody.appendChild(tr);
-            });
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="7">' + esc(str('pkg_users_none')) + '</td></tr>';
+                $('users-table-pager').innerHTML = '';
+                return;
+            }
+            if (usersPager) {
+                usersPager.setRows(rows);
+            } else {
+                usersPager = AcademyUI.paginate({
+                    rows: rows, pageSize: PAGE_SIZE, pagerEl: $('users-table-pager'),
+                    labels: pagerLabels(), render: renderUserRows
+                });
+            }
         }).catch(function(e) { msg(e.message, 'danger'); });
     }
 

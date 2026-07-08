@@ -1071,3 +1071,60 @@ function local_academy_string_map(array $keys) {
     }
     return $map;
 }
+
+/**
+ * Search real user accounts by name or email, for the admin "pick a user" widgets
+ * (assign_package, reports, withdrawals) that replaced raw numeric-id inputs.
+ *
+ * Read-only. Callers must already have gated on an admin capability (the api.php dispatcher does this
+ * via $capmap before invoking search_users). Never returns deleted/guest/site accounts.
+ *
+ * @param string $query  free-text fragment matched against full name and email (min 2 chars)
+ * @param string $role   'teacher' to restrict to accounts holding a teacher role; anything else = any user
+ * @param int    $limit  maximum rows to return (clamped to 1..50)
+ * @return array<int, array{id:int, fullname:string, email:string}>
+ */
+function local_academy_search_users($query, $role = 'any', $limit = 20) {
+    global $DB, $CFG;
+
+    $query = trim((string)$query);
+    if (\core_text::strlen($query) < 2) {
+        return array();
+    }
+    $limit = max(1, min(50, (int)$limit));
+
+    $namefields = implode(', ', array_map(function ($f) { return 'u.' . $f; }, \core_user\fields::get_name_fields()));
+    $fullname = $DB->sql_fullname('u.firstname', 'u.lastname');
+
+    $where  = array('u.deleted = 0', 'u.suspended = 0', 'u.confirmed = 1', 'u.id <> :guestid');
+    $params = array('guestid' => (int)$CFG->siteguest);
+
+    // Free-text match on the concatenated full name or the email.
+    $like = '%' . $DB->sql_like_escape($query) . '%';
+    $where[] = '(' . $DB->sql_like($fullname, ':q1', false) . ' OR ' . $DB->sql_like('u.email', ':q2', false) . ')';
+    $params['q1'] = $like;
+    $params['q2'] = $like;
+
+    if ($role === 'teacher') {
+        $where[] = "EXISTS (SELECT 1 FROM {role_assignments} ra
+                              JOIN {role} r ON r.id = ra.roleid
+                                           AND r.archetype IN ('teacher', 'editingteacher')
+                             WHERE ra.userid = u.id)";
+    }
+
+    $sql = "SELECT u.id, u.email, $namefields
+              FROM {user} u
+             WHERE " . implode(' AND ', $where) . "
+          ORDER BY u.firstname, u.lastname";
+
+    $records = $DB->get_records_sql($sql, $params, 0, $limit);
+    $out = array();
+    foreach ($records as $u) {
+        $out[] = array(
+            'id'       => (int)$u->id,
+            'fullname' => fullname($u),
+            'email'    => $u->email,
+        );
+    }
+    return $out;
+}

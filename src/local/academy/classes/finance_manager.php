@@ -137,6 +137,58 @@ class finance_manager {
         );
     }
 
+    /**
+     * List lessons whose Flex can still be reversed — i.e. they have an ACTIVE (not-yet-reversed)
+     * earning. Powers the admin "Return Flex" picker (replaces typing a raw lesson id).
+     *
+     * @param string $query optional free-text filter on subject / student name / teacher name
+     * @param int    $limit max rows (clamped 1..100)
+     * @return array<int, array{id:int, subject:string, student_name:string, teacher_name:string, lesson_time:int, flex_value:float}>
+     */
+    public static function list_reversible_lessons($query = '', $limit = 50) {
+        global $DB;
+
+        $limit = max(1, min(100, (int)$limit));
+        $where  = array('e.status = :active');
+        $params = array('active' => self::EARNING_ACTIVE);
+
+        $query = trim((string)$query);
+        if ($query !== '') {
+            $like = '%' . $DB->sql_like_escape($query) . '%';
+            $namestudent = $DB->sql_fullname('s.firstname', 's.lastname');
+            $nameteacher = $DB->sql_fullname('t.firstname', 't.lastname');
+            $where[] = '(' . $DB->sql_like('l.subject', ':q1', false) .
+                       ' OR ' . $DB->sql_like($namestudent, ':q2', false) .
+                       ' OR ' . $DB->sql_like($nameteacher, ':q3', false) . ')';
+            $params['q1'] = $like;
+            $params['q2'] = $like;
+            $params['q3'] = $like;
+        }
+
+        $sql = "SELECT l.id, l.subject, l.confirmed_time, e.flex_value,
+                       s.firstname AS sfn, s.lastname AS sln, t.firstname AS tfn, t.lastname AS tln
+                  FROM {academy_earnings} e
+                  JOIN {academy_lessons} l ON l.id = e.lessonid
+             LEFT JOIN {user} s ON s.id = l.studentid
+             LEFT JOIN {user} t ON t.id = l.teacherid
+                 WHERE " . implode(' AND ', $where) . "
+              ORDER BY l.confirmed_time DESC, l.id DESC";
+        $rows = $DB->get_records_sql($sql, $params, 0, $limit);
+
+        $out = array();
+        foreach ($rows as $r) {
+            $out[] = array(
+                'id'           => (int)$r->id,
+                'subject'      => $r->subject,
+                'student_name' => trim($r->sfn . ' ' . $r->sln),
+                'teacher_name' => trim($r->tfn . ' ' . $r->tln),
+                'lesson_time'  => (int)$r->confirmed_time,
+                'flex_value'   => (float)$r->flex_value,
+            );
+        }
+        return $out;
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     // Teacher wallet
     // ──────────────────────────────────────────────────────────────────────────

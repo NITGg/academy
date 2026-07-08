@@ -18,6 +18,9 @@ $token = external_generate_token_for_current_user($service)->token;
 $PAGE->set_title(get_string('assignpackage', 'local_academy'));
 $PAGE->set_heading(get_string('assignpackage', 'local_academy'));
 
+// Shared UI helpers (AcademyUI.userPicker) — inhead so it is ready before the page's inline script runs.
+$PAGE->requires->js(new moodle_url('/local/academy/ui.js'), true);
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('assignpackage', 'local_academy'));
 
@@ -27,6 +30,7 @@ $STR = local_academy_string_map(array(
     'ap_amount_label', 'ap_amount_placeholder', 'ap_method_label', 'ap_method_offline',
     'ap_method_bank', 'ap_method_wallet', 'ap_reference_label', 'ap_reference_placeholder',
     'ap_note_label', 'ap_submit', 'ap_pkg_option', 'ap_no_packages', 'ap_enter_student', 'ap_assigned',
+    'ui_picker_student_ph', 'ui_picker_searching', 'ui_picker_none', 'ui_picker_hint',
     'err_sessionexpired', 'err_requestfailed',
 ));
 echo html_writer::script('window.ACADEMY_AP = ' . json_encode(array(
@@ -44,7 +48,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
   <div id="ap-msg" class="alert" style="display:none"></div>
   <div class="card"><div class="card-body">
     <div class="form-group"><label for="ap-student"><?php echo $STR['ap_student_label']; ?></label>
-      <input class="form-control" id="ap-student" type="number" min="1" placeholder="<?php echo s($STR['ap_student_placeholder']); ?>">
+      <div id="ap-student"></div>
       <small class="text-muted"><?php echo $STR['ap_student_help']; ?></small></div>
     <div class="form-group"><label for="ap-package"><?php echo $STR['ap_package_label']; ?></label>
       <select class="form-control" id="ap-package"></select></div>
@@ -77,6 +81,14 @@ echo html_writer::script(<<<'JS'
   function apiGet(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}return fetch(CFG.endpoint+'?'+new URLSearchParams(Object.assign(base,p||{}))).then(parse);}
   function apiPost(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}var b=new URLSearchParams(Object.assign(base,p));return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b.toString()}).then(parse);}
 
+  // Searchable student picker (replaces the old numeric user-id input).
+  var studentPicker = AcademyUI.userPicker({
+    mount: $('ap-student'),
+    placeholder: str('ui_picker_student_ph'),
+    labels: { searching: str('ui_picker_searching'), none: str('ui_picker_none'), hint: str('ui_picker_hint') },
+    search: function (q) { return apiGet('search_users', { query: q, role: 'any' }); }
+  });
+
   // Populate active packages.
   apiGet('get_packages',{status:'active'}).then(function(rows){
     var sel=$('ap-package');
@@ -85,7 +97,7 @@ echo html_writer::script(<<<'JS'
   }).catch(function(e){msg(e.message,'danger');});
 
   $('ap-submit').onclick=function(){
-    var sid=$('ap-student').value;
+    var sid=studentPicker.value();
     if(!sid){msg(str('ap_enter_student'),'danger');return;}
     apiPost('assign_package',{studentid:sid,packageid:$('ap-package').value,amount:$('ap-amount').value||'0',
       method:$('ap-method').value,reference:$('ap-reference').value,note:$('ap-note').value})

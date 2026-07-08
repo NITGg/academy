@@ -291,6 +291,13 @@ $string['ui_never']        = 'Never';
 $string['ui_optional']     = '(optional)';
 $string['ui_currency_egp'] = 'EGP';
 $string['ui_pager_info']   = 'Showing {from}–{to} of {total}';
+$string['ui_picker_placeholder'] = 'Search by name or email…';
+$string['ui_picker_searching']   = 'Searching…';
+$string['ui_picker_none']        = 'No matches found';
+$string['ui_picker_hint']        = 'Type 2 or more characters';
+$string['ui_picker_teacher_ph']  = 'Search teacher by name or email…';
+$string['ui_picker_student_ph']  = 'Search student by name or email…';
+$string['ui_picker_lesson_ph']   = 'Search lesson by subject, student or teacher…';
 
 // manage_packages.php — package CRUD.
 $string['pkg_new']              = 'New package';
@@ -546,8 +553,8 @@ $string['set_disabled']             = 'Disabled';
 // ─────────────────────────────────────────────────────────────────────────────
 // UI strings — assign_package.php (admin: assign package to student).
 // ─────────────────────────────────────────────────────────────────────────────
-$string['ap_student_label']       = 'Student user ID';
-$string['ap_student_help']        = 'The numeric Moodle user id of the student.';
+$string['ap_student_label']       = 'Student';
+$string['ap_student_help']        = 'Search for the student by name or email and select them.';
 $string['ap_student_placeholder'] = 'e.g. 4770';
 $string['ap_package_label']       = 'Package';
 $string['ap_amount_label']        = 'Amount paid (offline)';
@@ -562,7 +569,7 @@ $string['ap_note_label']          = 'Note (optional)';
 $string['ap_submit']              = 'Assign package';
 $string['ap_pkg_option']          = '{$a->name} — {$a->flex} Flex / {$a->price}';
 $string['ap_no_packages']         = 'No active packages exist. Create one first.';
-$string['ap_enter_student']       = 'Enter a student user id.';
+$string['ap_enter_student']       = 'Search and select a student.';
 $string['ap_assigned']            = 'Assigned “{$a->name}” ({$a->flex} Flex) to {$a->student}.';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -629,7 +636,7 @@ $string['wd_col_teacher']        = 'Teacher';
 $string['wd_col_methodaccount']  = 'Method / account';
 $string['wd_reversal_title']     = 'Reverse a completed lesson\'s Flex (US-FN-1-5)';
 $string['wd_reversal_help']      = 'Returns one consumed Flex to the student and reverses the teacher/platform earning. A reason is required.';
-$string['wd_lesson_id']          = 'Lesson ID';
+$string['wd_lesson_id']          = 'Lesson';
 $string['wd_reason']             = 'Reason';
 $string['wd_return_flex']        = 'Return Flex';
 $string['wd_updated']            = 'Updated.';
@@ -646,7 +653,7 @@ $string['wd_card_undistributed'] = 'Undistributed (unused Flex)';
 $string['wd_card_teachers']      = 'Teachers\' money (unpaid)';
 $string['wd_card_platform']      = 'Platform earnings';
 $string['wd_none']               = 'No withdrawal requests.';
-$string['wd_enter_lesson']       = 'Enter a lesson ID.';
+$string['wd_enter_lesson']       = 'Search and select a lesson.';
 $string['wd_flex_returned']      = 'Flex returned and earning reversed.';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -872,6 +879,9 @@ $string['sub_courseavail_desc']    = 'Choose courses and append them to a specif
 $string['sub_target']              = 'Target Subscription:';
 $string['sub_select_placeholder']  = 'Select a subscription...';
 $string['sub_save_courses']        = 'Save courses to subscription';
+$string['sub_courses_search']      = 'Search courses…';
+$string['sub_selectall']           = 'Select all';
+$string['sub_clear']               = 'Clear';
 $string['sub_usersubs_heading']    = 'User Subscriptions';
 $string['sub_usersubs_desc']       = 'Manage active and expired user subscriptions.';
 $string['sub_unsub_title']         = 'Unsubscribe user';
@@ -895,6 +905,8 @@ $string['sub_unsub_success']       = 'User unsubscribed successfully.';
 
 $string['set_lesson_start_reminder'] = 'Lesson start reminder (minutes)';
 $string['set_lesson_start_reminder_help'] = 'Notify the student this many minutes before their lesson starts (0 to disable).';
+$string['set_reminder_add']        = 'Add';
+$string['set_reminder_placeholder'] = 'Mins (e.g. 15)';
 $string['notif_lesson_reminder_subject'] = 'Your lesson starts soon!';
 $string['notif_lesson_reminder_body'] = 'Hi {$a->studentname},
 

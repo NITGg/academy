@@ -48,12 +48,14 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
 <style>
 #tp-app{max-width:720px}
+#tp-app > .card{border:1px solid var(--acad-border,#e5e7eb);border-radius:var(--acad-radius,.6rem);box-shadow:var(--acad-shadow-sm,0 1px 3px rgba(0,0,0,.06))}
 #tp-app .tp-row{display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem}
 #tp-app .tp-row .form-control{margin:0}
 #tp-app .tp-day{max-width:140px}
 #tp-app .tp-time{max-width:130px}
 #tp-app .tp-remove{flex:0 0 auto}
-#tp-app .tp-sectionhead{display:flex;justify-content:space-between;align-items:center;margin:1.25rem 0 .5rem}
+#tp-app .tp-sectionhead{display:flex;justify-content:space-between;align-items:center;margin:1.5rem 0 .75rem;padding-bottom:.4rem;border-bottom:2px solid var(--acad-border,#e5e7eb)}
+#tp-app .tp-sectionhead h5{font-weight:600;color:var(--acad-text,#1c1d1f)}
 </style>
 <div id="tp-app">
   <div id="tp-msg" class="alert" style="display:none"></div>

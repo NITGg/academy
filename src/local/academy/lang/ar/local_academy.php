@@ -70,6 +70,13 @@ $string['ui_never']        = 'أبدًا';
 $string['ui_optional']     = '(اختياري)';
 $string['ui_currency_egp'] = 'ج.م';
 $string['ui_pager_info']   = 'عرض {from}–{to} من {total}';
+$string['ui_picker_placeholder'] = 'ابحث بالاسم أو البريد الإلكتروني…';
+$string['ui_picker_searching']   = 'جارٍ البحث…';
+$string['ui_picker_none']        = 'لا توجد نتائج';
+$string['ui_picker_hint']        = 'اكتب حرفين على الأقل';
+$string['ui_picker_teacher_ph']  = 'ابحث عن معلم بالاسم أو البريد…';
+$string['ui_picker_student_ph']  = 'ابحث عن طالب بالاسم أو البريد…';
+$string['ui_picker_lesson_ph']   = 'ابحث عن درس بالمادة أو الطالب أو المعلم…';
 
 // ── manage_packages.php — package CRUD ──
 $string['pkg_new']              = 'باقة جديدة';
@@ -307,8 +314,8 @@ $string['set_save']                 = 'حفظ التغييرات';
 $string['set_saved']                = 'تم الحفظ.';
 
 // ── assign_package.php (admin: assign package to student) ──
-$string['ap_student_label']       = 'معرّف المستخدم (الطالب)';
-$string['ap_student_help']        = 'معرّف مستخدم Moodle الرقمي للطالب.';
+$string['ap_student_label']       = 'الطالب';
+$string['ap_student_help']        = 'ابحث عن الطالب بالاسم أو البريد الإلكتروني ثم اختره.';
 $string['ap_student_placeholder'] = 'مثال: 4770';
 $string['ap_package_label']       = 'الباقة';
 $string['ap_amount_label']        = 'المبلغ المدفوع (خارج المنصة)';
@@ -323,7 +330,7 @@ $string['ap_note_label']          = 'ملاحظة (اختياري)';
 $string['ap_submit']              = 'تعيين الباقة';
 $string['ap_pkg_option']          = '{$a->name} — {$a->flex} فلكس / {$a->price}';
 $string['ap_no_packages']         = 'لا توجد باقات نشطة. أنشئ واحدة أولًا.';
-$string['ap_enter_student']       = 'أدخل معرّف مستخدم الطالب.';
+$string['ap_enter_student']       = 'ابحث عن طالب واختره.';
 $string['ap_assigned']            = 'تم تعيين "{$a->name}" ({$a->flex} فلكس) إلى {$a->student}.';
 
 // ── teacher_profile.php (teacher's own profile editor) ──
@@ -384,7 +391,7 @@ $string['wd_col_teacher']        = 'المعلّم';
 $string['wd_col_methodaccount']  = 'الطريقة / الحساب';
 $string['wd_reversal_title']     = 'عكس فلكس درس مكتمل (US-FN-1-5)';
 $string['wd_reversal_help']      = 'يعيد فلكس واحدًا مستهلكًا إلى الطالب ويعكس أرباح المعلّم/المنصة. السبب مطلوب.';
-$string['wd_lesson_id']          = 'معرّف الدرس';
+$string['wd_lesson_id']          = 'الدرس';
 $string['wd_reason']             = 'السبب';
 $string['wd_return_flex']        = 'إعادة الفلكس';
 $string['wd_updated']            = 'تم التحديث.';
@@ -401,7 +408,7 @@ $string['wd_card_undistributed'] = 'غير موزّع (فلكس غير مستخ�
 $string['wd_card_teachers']      = 'أموال المعلّمين (غير مدفوعة)';
 $string['wd_card_platform']      = 'أرباح المنصة';
 $string['wd_none']               = 'لا توجد طلبات سحب.';
-$string['wd_enter_lesson']       = 'أدخل معرّف الدرس.';
+$string['wd_enter_lesson']       = 'ابحث عن درس واختره.';
 $string['wd_flex_returned']      = 'تمت إعادة الفلكس وعكس الأرباح.';
 
 // ── manage_reports.php (admin reports, 4 tabs) ──
@@ -541,6 +548,9 @@ $string['sub_courseavail_desc']    = 'اختر المقررات وأضِفها �
 $string['sub_target']              = 'الاشتراك المستهدف:';
 $string['sub_select_placeholder']  = 'اختر اشتراكًا...';
 $string['sub_save_courses']        = 'حفظ المقررات في الاشتراك';
+$string['sub_courses_search']      = 'ابحث عن المقررات…';
+$string['sub_selectall']           = 'تحديد الكل';
+$string['sub_clear']               = 'إلغاء التحديد';
 $string['sub_usersubs_heading']    = 'اشتراكات المستخدمين';
 $string['sub_usersubs_desc']       = 'إدارة اشتراكات المستخدمين النشطة والمنتهية.';
 $string['sub_unsub_title']         = 'إلغاء اشتراك المستخدم';
@@ -705,6 +715,8 @@ $string['notif_subscription_expiring_body']    = 'ينتهي اشتراك "{$a->
 // US: تذكير ببدء الدرس.
 $string['set_lesson_start_reminder'] = 'تذكير ببدء الدرس (بالدقائق)';
 $string['set_lesson_start_reminder_help'] = 'أشعر الطالب قبل هذا العدد من الدقائق من بدء درسه (0 للتعطيل).';
+$string['set_reminder_add']        = 'إضافة';
+$string['set_reminder_placeholder'] = 'دقائق (مثال: 15)';
 $string['notif_lesson_reminder_subject'] = 'درسك سيبدأ قريبًا!';
 $string['notif_lesson_reminder_body'] = 'مرحبًا {$a->studentname}،
 

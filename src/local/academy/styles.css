@@ -331,6 +331,67 @@ body[class*="local-academy"] .ml-empty {
 }
 
 /* ============================================================================
+ * 9b. Reusable user picker  (AcademyUI.userPicker in ui.js) — replaces id inputs
+ * ==========================================================================*/
+.acad-picker {
+    position: relative;
+    max-width: 340px;
+}
+.acad-picker__menu {
+    position: absolute;
+    z-index: 1000;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    max-height: 260px;
+    overflow-y: auto;
+    background: var(--acad-surface);
+    border: 1px solid var(--acad-border-strong);
+    border-radius: var(--acad-radius-sm);
+    box-shadow: var(--acad-shadow);
+}
+.acad-picker__opt {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    width: 100%;
+    text-align: start;
+    border: none;
+    background: none;
+    padding: 0.5rem 0.7rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--acad-border);
+}
+.acad-picker__opt:last-child { border-bottom: none; }
+.acad-picker__opt:hover,
+.acad-picker__opt.is-active { background: var(--acad-primary-soft); }
+.acad-picker__name { color: var(--acad-text); font-weight: 600; font-size: 0.9rem; }
+.acad-picker__email { color: var(--acad-muted); font-size: 0.78rem; }
+.acad-picker__msg { padding: 0.6rem 0.7rem; color: var(--acad-muted); font-size: 0.85rem; }
+.acad-picker__chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.55rem 0.4rem 0.75rem;
+    border: 1px solid var(--acad-primary-border);
+    background: var(--acad-primary-soft);
+    border-radius: var(--acad-radius-sm);
+}
+.acad-picker__chiptext { display: flex; flex-direction: column; line-height: 1.25; }
+.acad-picker__chiptext strong { color: var(--acad-text); font-size: 0.9rem; }
+.acad-picker__clear {
+    margin-inline-start: auto;
+    border: none;
+    background: none;
+    color: var(--acad-muted);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.25rem;
+}
+.acad-picker__clear:hover { color: var(--acad-st-danger-fg); }
+
+/* ============================================================================
  * 10. Small responsive niceties
  * ==========================================================================*/
 @media (max-width: 576px) {

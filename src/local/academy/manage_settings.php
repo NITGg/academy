@@ -29,6 +29,7 @@ $STR = local_academy_string_map(array(
     'set_expiry_reminder', 'set_expiry_reminder_help',
     'set_teacher_percent', 'set_platform_percent', 'set_percent_help', 'set_save', 'set_saved',
     'set_tab_deadlines', 'set_tab_financial', 'set_tab_b2b',
+    'set_reminder_add', 'set_reminder_placeholder',
     'set_b2b_auto_approve', 'set_b2b_auto_approve_help', 'set_b2b_return_seat', 'set_b2b_return_seat_help',
     'set_enabled', 'set_disabled',
     'err_sessionexpired', 'err_requestfailed',
@@ -67,9 +68,9 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         <label><?php echo $STR['set_lesson_start_reminder']; ?></label>
         <div id="reminder-tags" style="margin-bottom:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
         <div class="input-group" style="max-width:200px; margin-bottom:0.25rem;">
-          <input class="form-control" id="reminder-add-input" type="number" min="1" placeholder="Mins (e.g. 15)">
+          <input class="form-control" id="reminder-add-input" type="number" min="1" placeholder="<?php echo s($STR['set_reminder_placeholder']); ?>">
           <div class="input-group-append">
-            <button class="btn btn-outline-secondary" type="button" id="reminder-add-btn">Add</button>
+            <button class="btn btn-outline-secondary" type="button" id="reminder-add-btn"><?php echo $STR['set_reminder_add']; ?></button>
           </div>
         </div>
         <input type="hidden" id="s-lesson_start_reminder_minutes">

@@ -18,6 +18,9 @@ $token = external_generate_token_for_current_user($service)->token;
 $PAGE->set_title(get_string('managewithdrawals', 'local_academy'));
 $PAGE->set_heading(get_string('managewithdrawals', 'local_academy'));
 
+// Shared UI helpers (AcademyUI.picker) — inhead so it is ready before the page's inline script runs.
+$PAGE->requires->js(new moodle_url('/local/academy/ui.js'), true);
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managewithdrawals', 'local_academy'));
 // Localised strings: server-rendered HTML reads $STR['key']; the JS reads window.ACADEMY_STR.
@@ -30,6 +33,7 @@ $STR = local_academy_string_map(array(
     'wd_reject_title', 'wd_reason_required_field', 'wd_markpaid_title', 'wd_payref_optional',
     'wd_reason_required', 'wd_card_current', 'wd_card_undistributed', 'wd_card_teachers',
     'wd_card_platform', 'wd_none', 'wd_enter_lesson', 'wd_flex_returned', 'w_ref', 'err_reasonrequired',
+    'ui_picker_lesson_ph', 'ui_picker_searching', 'ui_picker_none', 'ui_picker_hint', 'ui_currency_egp',
     'err_sessionexpired', 'err_requestfailed',
 ));
 echo html_writer::script('window.ACADEMY_WD = ' . json_encode(array(
@@ -83,7 +87,7 @@ table.wd-table th,table.wd-table td{border-bottom:1px solid #eee;padding:.45rem 
   <div class="wd-reversal">
     <h6><?php echo $STR['wd_reversal_title']; ?></h6>
     <p class="text-muted" style="font-size:.88rem"><?php echo $STR['wd_reversal_help']; ?></p>
-    <div class="form-group"><label for="wd-rev-lesson"><?php echo $STR['wd_lesson_id']; ?></label><input class="form-control" id="wd-rev-lesson" type="number" min="1" style="max-width:200px"></div>
+    <div class="form-group"><label for="wd-rev-lesson"><?php echo $STR['wd_lesson_id']; ?></label><div id="wd-rev-lesson"></div></div>
     <div class="form-group"><label for="wd-rev-reason"><?php echo $STR['wd_reason']; ?></label><input class="form-control" id="wd-rev-reason"></div>
     <button id="wd-rev-btn" class="btn btn-warning"><?php echo $STR['wd_return_flex']; ?></button>
   </div>
@@ -179,13 +183,23 @@ echo html_writer::script(<<<'JS'
     }).catch(function(e){msg(e.message,'danger');});
   }
 
+  // Searchable lesson picker for the Flex reversal (replaces the old numeric lesson-id input).
+  var lessonPicker=AcademyUI.picker({
+    mount:$('wd-rev-lesson'),
+    placeholder:str('ui_picker_lesson_ph'),
+    labels:{searching:str('ui_picker_searching'),none:str('ui_picker_none'),hint:str('ui_picker_hint')},
+    search:function(q){return apiGet('list_reversible_lessons',{query:q});},
+    primary:function(l){return '#'+l.id+' — '+(l.subject||'');},
+    secondary:function(l){return [l.student_name,l.teacher_name,fmt(l.lesson_time),money(l.flex_value)+' '+str('ui_currency_egp')].filter(function(x){return x;}).join(' • ');}
+  });
+
   $('wd-filter').onchange=load;
   $('wd-refresh').onclick=load;
   $('wd-rev-btn').onclick=function(){
-    var lid=$('wd-rev-lesson').value, reason=$('wd-rev-reason').value;
+    var lid=lessonPicker.value(), reason=$('wd-rev-reason').value;
     if(!lid){msg(str('wd_enter_lesson'),'danger');return;}
     if(!reason.trim()){msg(str('err_reasonrequired'),'danger');return;}
-    apiPost('reverse_flex',{lessonid:lid,reason:reason}).then(function(){msg(str('wd_flex_returned'),'success');$('wd-rev-lesson').value='';$('wd-rev-reason').value='';load();}).catch(function(e){msg(e.message,'danger');});
+    apiPost('reverse_flex',{lessonid:lid,reason:reason}).then(function(){msg(str('wd_flex_returned'),'success');lessonPicker.clear();$('wd-rev-reason').value='';load();}).catch(function(e){msg(e.message,'danger');});
   };
 
   load();

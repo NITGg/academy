@@ -38,6 +38,8 @@ $STR = local_academy_string_map(array(
     'rp_timeline_title', 'rp_close', 'rp_tl_num', 'rp_tl_action', 'rp_tl_by', 'rp_tl_role',
     'rp_tl_time', 'rp_tl_title_full', 'rp_tl_joinedroom', 'rp_tl_started', 'rp_tl_ended', 'rp_tl_none',
     'rp_no_data', 'rp_enter_student', 'rp_enter_student_run',
+    'ui_picker_placeholder', 'ui_picker_searching', 'ui_picker_none', 'ui_picker_hint',
+    'ui_picker_teacher_ph', 'ui_picker_student_ph',
     'rp_sum_total', 'rp_sum_completed', 'rp_sum_student_absent', 'rp_sum_teacher_absent',
     'rp_sum_attendance_rate', 'rp_sum_total_platform_earnings', 'rp_sum_total_teacher_earnings',
     'rp_sum_total_consumed_value', 'rp_sum_completed_lessons', 'rp_sum_total_purchases',
@@ -68,6 +70,8 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 #rp-filters{display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.75rem}
 #rp-filters .fg{display:flex;flex-direction:column;font-size:.82rem;color:#6c757d}
 #rp-filters .form-control{max-width:180px}
+#rp-filters .acad-picker{max-width:260px}
+#rp-filters .acad-picker__input{max-width:100%}
 #rp-summary{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.75rem}
 .rp-chip{border:1px solid #dee2e6;border-radius:.5rem;padding:.4rem .7rem;font-size:.85rem}
 .rp-chip b{display:block;font-size:1.1rem}
@@ -113,24 +117,44 @@ echo html_writer::script(<<<'JS'
   function apiGet(fn,p){var base={function:fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}return fetch(CFG.endpoint+'?'+new URLSearchParams(Object.assign(base,p||{}))).then(parse);}
 
   var current='lessons';
+  // Filter tuples: [name, label, inputType, pickerRole?]. When pickerRole is present the field is
+  // rendered as a searchable user picker (AcademyUI.userPicker) instead of a raw numeric-id input.
   var FILTERS={
-    lessons:[['status',str('rp_f_status'),'text'],['teacherid',str('rp_f_teacherid'),'number'],['studentid',str('rp_f_studentid'),'number'],['from',str('rp_f_from'),'number'],['to',str('rp_f_to'),'number']],
-    platform_earnings:[['status',str('rp_f_earnstatus'),'text'],['teacherid',str('rp_f_teacherid'),'number'],['from',str('rp_f_from'),'number'],['to',str('rp_f_to'),'number']],
-    packages:[['source',str('rp_f_source'),'text'],['studentid',str('rp_f_studentid'),'number'],['from',str('rp_f_from'),'number'],['to',str('rp_f_to'),'number']],
-    student_flex:[['studentid',str('rp_f_studentid_req'),'number']],
-    user_activity:[['userid',str('rp_f_userid'),'number'],['email',str('rp_f_email'),'text'],['from',str('rp_f_from'),'number'],['to',str('rp_f_to'),'number']]
+    lessons:[['status',str('rp_f_status'),'text'],['teacherid',str('rp_f_teacherid'),'number','teacher'],['studentid',str('rp_f_studentid'),'number','student'],['from',str('rp_f_from'),'number'],['to',str('rp_f_to'),'number']],
+    platform_earnings:[['status',str('rp_f_earnstatus'),'text'],['teacherid',str('rp_f_teacherid'),'number','teacher'],['from',str('rp_f_from'),'number'],['to',str('rp_f_to'),'number']],
+    packages:[['source',str('rp_f_source'),'text'],['studentid',str('rp_f_studentid'),'number','student'],['from',str('rp_f_from'),'number'],['to',str('rp_f_to'),'number']],
+    student_flex:[['studentid',str('rp_f_studentid_req'),'number','student']],
+    user_activity:[['userid',str('rp_f_userid'),'number','user'],['email',str('rp_f_email'),'text'],['from',str('rp_f_from'),'number'],['to',str('rp_f_to'),'number']]
   };
+  var PICKERS={}; // name -> AcademyUI.userPicker instance for the current tab's filters
+  function pickerPlaceholder(role){return role==='teacher'?str('ui_picker_teacher_ph'):(role==='student'?str('ui_picker_student_ph'):str('ui_picker_placeholder'));}
+  function pickerApiRole(role){return role==='teacher'?'teacher':'any';}
   var FN={lessons:'report_lessons',platform_earnings:'report_platform_earnings',packages:'report_packages',student_flex:'report_student_flex',user_activity:'report_user_activity'};
   var EXPORTTYPE={lessons:'lessons',platform_earnings:'platform_earnings',packages:'packages',student_flex:'student_flex'};
 
   function readFilters(){
-    var p={};(FILTERS[current]||[]).forEach(function(f){var v=$('f-'+f[0]).value;if(v!==''){p[f[0]]=v;}});return p;
+    var p={};(FILTERS[current]||[]).forEach(function(f){
+      var v = PICKERS[f[0]] ? PICKERS[f[0]].value() : $('f-'+f[0]).value;
+      if(v!==''){p[f[0]]=v;}
+    });return p;
   }
   function renderFilters(){
-    var box=$('rp-filters');box.innerHTML='';
+    var box=$('rp-filters');box.innerHTML='';PICKERS={};
     (FILTERS[current]||[]).forEach(function(f){
       var fg=document.createElement('div');fg.className='fg';
       fg.innerHTML='<label>'+f[1]+'</label>';
+      var role=f[3];
+      if(role){
+        // Searchable user picker instead of a numeric-id text field.
+        var mount=document.createElement('div');fg.appendChild(mount);box.appendChild(fg);
+        PICKERS[f[0]]=AcademyUI.userPicker({
+          mount:mount,placeholder:pickerPlaceholder(role),
+          labels:{searching:str('ui_picker_searching'),none:str('ui_picker_none'),hint:str('ui_picker_hint')},
+          search:function(q){return apiGet('search_users',{query:q,role:pickerApiRole(role)});},
+          onChange:function(){updateExportLink();}
+        });
+        return;
+      }
       var inp=document.createElement('input');inp.className='form-control';inp.id='f-'+f[0];inp.type=f[2];
       fg.appendChild(inp);box.appendChild(fg);
     });
@@ -253,11 +277,11 @@ echo html_writer::script(<<<'JS'
   function load(){
     msg('');
     if(current==='student_flex'){
-      var sid=$('f-studentid').value;
+      var sid=PICKERS['studentid']?PICKERS['studentid'].value():'';
       if(!sid){msg(str('rp_enter_student'),'info');$('rp-body').innerHTML='';$('rp-head').innerHTML='';$('rp-summary').innerHTML='';return;}
     }
     if(current==='user_activity'){
-      var uid=$('f-userid').value, em=$('f-email').value;
+      var uid=PICKERS['userid']?PICKERS['userid'].value():'', em=$('f-email').value;
       if(!uid && !em){msg(str('rp_enter_user'),'info');$('rp-useractivity').innerHTML='';return;}
       apiGet(FN[current],readFilters()).then(renderUserActivity).catch(function(e){msg(e.message,'danger');});
       return;
