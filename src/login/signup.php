@@ -477,11 +477,19 @@ if (isset($_POST['email'])) {
         if ($result == "success") {
             $user = $DB->get_record('user', array('username' => $email));
             complete_user_login($user);
+            // Honour a pending B2B invitation link (set as wantsurl by b2b_join.php) so a newly
+            // registered invitee is returned to the invite page and their membership is created.
+            // Every other registration keeps the default landing page.
+            $signupgoto = $CFG->wwwroot . "/?id=14&lang=ar";
+            if (!empty($SESSION->wantsurl) && strpos($SESSION->wantsurl, '/local/academy/b2b_join.php') !== false) {
+                $signupgoto = $SESSION->wantsurl;
+            }
+            unset($SESSION->wantsurl);
             echo "
                     
             <script type='text/javascript'> 
             $( document ).ready(function() {
-                window.location.replace('" . $CFG->wwwroot . "/?id=14&lang=ar');       
+                window.location.replace(" . json_encode($signupgoto) . ");       
                  });
         </script>";
         } else {

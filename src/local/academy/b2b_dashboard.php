@@ -32,7 +32,10 @@ $STR = local_academy_string_map(array(
     'b2b_invite_heading', 'b2b_generate', 'b2b_revoke', 'b2b_copy', 'b2b_copied', 'b2b_link_none', 'b2b_link_active',
     'b2b_members', 'b2b_col_user', 'b2b_col_status', 'b2b_col_seat', 'b2b_col_actions',
     'b2b_approve', 'b2b_reject', 'b2b_remove', 'b2b_seat_yes', 'b2b_seat_no', 'b2b_none',
-    'b2b_reason_prompt', 'b2b_confirm_remove', 'b2b_tab_all', 'b2b_action_done', 'b2b_never', 'ui_loading',
+    'b2b_reason_prompt', 'b2b_confirm_remove', 'b2b_confirm_remove_title',
+    'b2b_confirm_reject_title', 'b2b_confirm_reject_body',
+    'b2b_confirm_revoke_title', 'b2b_confirm_revoke_body',
+    'b2b_tab_all', 'b2b_action_done', 'b2b_never', 'ui_loading', 'ui_cancel',
     'err_sessionexpired', 'err_requestfailed',
 ));
 echo html_writer::script('window.ACADEMY_B2B = ' . json_encode(array(
@@ -51,6 +54,33 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 .b2b-stat .n { font-size:1.6rem; font-weight:800; color:#1c1d1f; }
 .b2b-stat .l { font-size:.85rem; color:#6a6f73; }
 #b2b-invite-link { word-break:break-all; background:#faf5ff; border:1px solid #ecdcfb; border-radius:.4rem; padding:.5rem .7rem; }
+
+/* Confirm/reject/revoke dialogs — replace the native window.confirm()/prompt() ugliness. */
+.b2b-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease}
+.b2b-modal-bg.open{display:flex;opacity:1}
+.b2b-modal{background:#fff;border-radius:1rem;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
+.b2b-modal-bg.open .b2b-modal{transform:none}
+.b2b-modal-head{display:flex;align-items:center;gap:.7rem;padding:1.25rem 1.4rem 0}
+.b2b-modal-icon{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.b2b-modal-icon svg{width:22px;height:22px}
+.b2b-modal-icon.danger{background:#fdecec}
+.b2b-modal-icon.danger svg{fill:#dc3545}
+.b2b-modal-icon.warn{background:#fff4e5}
+.b2b-modal-icon.warn svg{fill:#e07c00}
+.b2b-modal-head h4{margin:0;font-size:1.15rem;font-weight:800;color:#1c1d1f}
+.b2b-modal-body{padding:.9rem 1.4rem 0;color:#3c3c3c;font-size:.95rem;line-height:1.5}
+.b2b-modal-body p{margin:0}
+.b2b-modal-body label{display:block;font-size:.82rem;color:#6a6f73;margin-top:.9rem;margin-bottom:.3rem}
+.b2b-modal-body textarea{width:100%;box-sizing:border-box;border:1px solid #d1d7dc;border-radius:.5rem;padding:.55rem .7rem;font-size:.9rem;resize:vertical;min-height:70px;font-family:inherit}
+.b2b-modal-body textarea:focus{outline:none;border-color:#0f6cbf;box-shadow:0 0 0 3px rgba(15,108,191,.15)}
+.b2b-modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:1.2rem 1.4rem 1.3rem}
+.b2b-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:.5rem;cursor:pointer}
+.b2b-modal-cancel:hover{background:#f6f7f8}
+.b2b-modal-ok{border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:.5rem;cursor:pointer}
+.b2b-modal-ok.danger{background:#dc3545}
+.b2b-modal-ok.danger:hover{background:#c82333}
+.b2b-modal-ok.warn{background:#e07c00}
+.b2b-modal-ok.warn:hover{background:#c26b00}
 </style>
 <div id="b2b-app">
     <div id="b2b-msg" class="alert" style="display:none"></div>
@@ -155,9 +185,9 @@ echo html_writer::script(<<<'JS'
             var actions = '';
             if (m.status === 'pending'){
                 actions = '<button class="btn btn-sm btn-success" data-b2bact="approve" data-id="' + m.id + '">' + esc(str('b2b_approve')) + '</button> ' +
-                          '<button class="btn btn-sm btn-danger" data-b2bact="reject" data-id="' + m.id + '">' + esc(str('b2b_reject')) + '</button>';
+                          '<button class="btn btn-sm btn-danger" data-b2bact="reject" data-id="' + m.id + '" data-name="' + esc(m.user_fullname) + '">' + esc(str('b2b_reject')) + '</button>';
             } else if (m.status === 'approved'){
-                actions = '<button class="btn btn-sm btn-warning" data-b2bact="remove" data-id="' + m.id + '">' + esc(str('b2b_remove')) + '</button>';
+                actions = '<button class="btn btn-sm btn-warning" data-b2bact="remove" data-id="' + m.id + '" data-name="' + esc(m.user_fullname) + '">' + esc(str('b2b_remove')) + '</button>';
             }
             var tr = document.createElement('tr');
             tr.innerHTML =
@@ -180,6 +210,73 @@ echo html_writer::script(<<<'JS'
         }).catch(function(e){ msg(e.message, 'danger'); });
     }
 
+    // ── Cool confirm/reject dialogs (replace window.confirm()/window.prompt()) ──
+    var MODAL_ICONS = {
+        warn: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>',
+        trash: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 7h12l-1 14H7L6 7zm3-4h6l1 2h4v2H2V5h4l1-2z"/></svg>',
+        link: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12a5 5 0 015-5h3v2h-3a3 3 0 000 6h3v2h-3a5 5 0 01-5-5zm7-1h4v2h-4v-2zm3-4h3a5 5 0 010 10h-3v-2h3a3 3 0 000-6h-3V7z"/></svg>'
+    };
+    function openModal(html){
+        var bg = document.createElement('div');
+        bg.className = 'b2b-modal-bg';
+        bg.innerHTML = html;
+        document.body.appendChild(bg);
+        void bg.offsetWidth;
+        bg.classList.add('open');
+        return bg;
+    }
+    function closeModal(bg, cb){
+        bg.classList.remove('open');
+        setTimeout(function(){ if (bg.parentNode){ bg.parentNode.removeChild(bg); } cb(); }, 180);
+    }
+    // Simple yes/no confirmation. tone: 'danger' | 'warn'.
+    function confirmAction(opts){
+        return new Promise(function(resolve){
+            var bg = openModal(
+                '<div class="b2b-modal" role="dialog" aria-modal="true">' +
+                    '<div class="b2b-modal-head"><span class="b2b-modal-icon ' + opts.tone + '">' + MODAL_ICONS[opts.icon] + '</span><h4>' + esc(opts.title) + '</h4></div>' +
+                    '<div class="b2b-modal-body"><p>' + opts.body + '</p></div>' +
+                    '<div class="b2b-modal-foot">' +
+                        '<button type="button" class="b2b-modal-cancel">' + esc(str('ui_cancel')) + '</button>' +
+                        '<button type="button" class="b2b-modal-ok ' + opts.tone + '">' + esc(opts.okLabel) + '</button>' +
+                    '</div>' +
+                '</div>'
+            );
+            function onKey(e){ if (e.key === 'Escape'){ finish(false); } }
+            document.addEventListener('keydown', onKey);
+            function finish(v){ document.removeEventListener('keydown', onKey); closeModal(bg, function(){ resolve(v); }); }
+            bg.querySelector('.b2b-modal-cancel').onclick = function(){ finish(false); };
+            bg.querySelector('.b2b-modal-ok').onclick = function(){ finish(true); };
+            bg.onclick = function(e){ if (e.target === bg){ finish(false); } };
+        });
+    }
+    // Reject with an optional reason textarea. Resolves the reason string, or null if cancelled.
+    function promptReject(name){
+        return new Promise(function(resolve){
+            var bg = openModal(
+                '<div class="b2b-modal" role="dialog" aria-modal="true">' +
+                    '<div class="b2b-modal-head"><span class="b2b-modal-icon warn">' + MODAL_ICONS.warn + '</span><h4>' + esc(str('b2b_confirm_reject_title')) + '</h4></div>' +
+                    '<div class="b2b-modal-body"><p>' + str('b2b_confirm_reject_body').replace('{name}', esc(name)) + '</p>' +
+                        '<label>' + esc(str('b2b_reason_prompt')) + '</label>' +
+                        '<textarea class="b2b-modal-reason"></textarea>' +
+                    '</div>' +
+                    '<div class="b2b-modal-foot">' +
+                        '<button type="button" class="b2b-modal-cancel">' + esc(str('ui_cancel')) + '</button>' +
+                        '<button type="button" class="b2b-modal-ok warn">' + esc(str('b2b_reject')) + '</button>' +
+                    '</div>' +
+                '</div>'
+            );
+            var ta = bg.querySelector('.b2b-modal-reason');
+            setTimeout(function(){ ta.focus(); }, 60);
+            function onKey(e){ if (e.key === 'Escape'){ finish(null); } }
+            document.addEventListener('keydown', onKey);
+            function finish(v){ document.removeEventListener('keydown', onKey); closeModal(bg, function(){ resolve(v); }); }
+            bg.querySelector('.b2b-modal-cancel').onclick = function(){ finish(null); };
+            bg.querySelector('.b2b-modal-ok').onclick = function(){ finish(ta.value); };
+            bg.onclick = function(e){ if (e.target === bg){ finish(null); } };
+        });
+    }
+
     // Tabs
     Array.prototype.forEach.call(document.querySelectorAll('#b2b-tabs button'), function(b){
         b.onclick = function(){
@@ -196,17 +293,34 @@ echo html_writer::script(<<<'JS'
         if (!btn){ return; }
         var act = btn.getAttribute('data-b2bact');
         var id = btn.getAttribute('data-id');
+        var name = btn.getAttribute('data-name') || '';
         if (act === 'approve'){
             api('b2b_approve_member', {membershipid: id}, 'POST').then(function(){ msg(str('b2b_action_done'),'success'); loadDashboard(); }).catch(function(e){ msg(e.message,'danger'); });
         } else if (act === 'reject'){
-            var reason = window.prompt(str('b2b_reason_prompt'), '');
-            if (reason === null){ return; }
-            api('b2b_reject_member', {membershipid: id, reason: reason}, 'POST').then(function(){ msg(str('b2b_action_done'),'success'); loadDashboard(); }).catch(function(e){ msg(e.message,'danger'); });
+            promptReject(name).then(function(reason){
+                if (reason === null){ return; }
+                api('b2b_reject_member', {membershipid: id, reason: reason}, 'POST').then(function(){ msg(str('b2b_action_done'),'success'); loadDashboard(); }).catch(function(e){ msg(e.message,'danger'); });
+            });
         } else if (act === 'remove'){
-            if (!window.confirm(str('b2b_confirm_remove'))){ return; }
-            api('b2b_remove_member', {membershipid: id}, 'POST').then(function(){ msg(str('b2b_action_done'),'success'); loadDashboard(); }).catch(function(e){ msg(e.message,'danger'); });
+            confirmAction({
+                icon: 'trash', tone: 'danger',
+                title: str('b2b_confirm_remove_title'),
+                body: str('b2b_confirm_remove').replace('{name}', esc(name)),
+                okLabel: str('b2b_remove')
+            }).then(function(ok){
+                if (!ok){ return; }
+                api('b2b_remove_member', {membershipid: id}, 'POST').then(function(){ msg(str('b2b_action_done'),'success'); loadDashboard(); }).catch(function(e){ msg(e.message,'danger'); });
+            });
         } else if (act === 'revoke-invite'){
-            api('b2b_revoke_invite', {invitationid: id}, 'POST').then(function(){ msg(str('b2b_action_done'),'success'); loadDashboard(); }).catch(function(e){ msg(e.message,'danger'); });
+            confirmAction({
+                icon: 'link', tone: 'danger',
+                title: str('b2b_confirm_revoke_title'),
+                body: esc(str('b2b_confirm_revoke_body')),
+                okLabel: str('b2b_revoke')
+            }).then(function(ok){
+                if (!ok){ return; }
+                api('b2b_revoke_invite', {invitationid: id}, 'POST').then(function(){ msg(str('b2b_action_done'),'success'); loadDashboard(); }).catch(function(e){ msg(e.message,'danger'); });
+            });
         }
     });
 
