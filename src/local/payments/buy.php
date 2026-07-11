@@ -73,6 +73,26 @@ try {
 
     echo $OUTPUT->render_from_template('local_payments/course_page_price', $templatedata);
 
+    // Automatic offer banner (US-US-OF-1-2): if this course has an active offer, show it clearly so
+    // the student sees the discounted price they will be charged at checkout. Only when purchasable.
+    if (!$is_purchased && class_exists('\local_academy\discount_manager')) {
+        $offer = \local_academy\discount_manager::offer_summary('course', $courseid, (float) $pricing->price);
+        if ($offer) {
+            $cur = s($pricing->currency);
+            echo '<div class="alert" style="max-width:340px;margin-top:1rem;border:1px solid #f5b7c0;'
+               . 'background:#fdecef;border-radius:8px;padding:.75rem 1rem;color:#8a1024">'
+               . '<div style="font-weight:700;display:flex;align-items:center;gap:.4rem">'
+               . '<span style="font-size:1.1rem">🏷️</span>' . s($offer['name']) . '</div>'
+               . '<div style="margin-top:.35rem">'
+               . s(get_string('hp_discount', 'local_academy')) . ': <b>-' . number_format($offer['discount'], 2) . ' ' . $cur . '</b>'
+               . '</div>'
+               . '<div style="margin-top:.15rem">'
+               . '<span style="text-decoration:line-through;color:#a06">' . number_format($offer['original'], 2) . ' ' . $cur . '</span> '
+               . '<b style="font-size:1.15rem;color:#8a1024">' . number_format($offer['final'], 2) . ' ' . $cur . '</b>'
+               . '</div></div>';
+        }
+    }
+
     // Coupon entry (US-US-CP-1-2). Submitting sends the code to checkout.php, which applies it (and
     // any automatic offer) to the charged amount. Only shown when the course is still purchasable.
     if (!$is_purchased) {

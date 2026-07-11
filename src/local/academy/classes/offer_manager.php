@@ -224,7 +224,11 @@ class offer_manager {
         }
         return array(
             'id'             => (int)$record->id,
+            // 'name' is localised (the {mlang} filter resolves to the current language) for display;
+            // 'name_raw' keeps the stored {mlang en}…{mlang}{mlang ar}…{mlang} so the admin edit form
+            // can populate both language boxes (US-AD-8-1 localised offer name).
             'name'           => format_string($record->name),
+            'name_raw'       => $record->name,
             'discount_type'  => $record->discount_type,
             'discount_value' => (float)$record->discount_value,
             'startdate'      => (int)$record->startdate,

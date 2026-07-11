@@ -34,6 +34,7 @@ $STR = local_academy_string_map(array(
     'cpn_scope_all', 'cpn_scope_specific', 'cpn_scope_required',
     'ofr_new', 'ofr_none', 'ofr_col_name', 'ofr_field_name', 'ofr_created', 'ofr_updated',
     'ofr_activated', 'ofr_deactivated', 'ofr_deleted', 'ofr_confirm_delete', 'ofr_edit_titled',
+    'pkg_field_name_en', 'pkg_field_name_ar',
     'err_sessionexpired', 'err_requestfailed',
 ));
 echo html_writer::script('window.ACADEMY_CFG = ' . json_encode(array(
@@ -72,8 +73,12 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <h4 id="ofr-form-title" class="card-title"><?php echo $STR['ofr_new']; ?></h4>
             <input type="hidden" id="o-id">
             <div class="form-group">
-                <label for="o-name"><?php echo $STR['ofr_field_name']; ?></label>
-                <input type="text" class="form-control" id="o-name">
+                <label for="o-name-en"><?php echo $STR['pkg_field_name_en']; ?></label>
+                <input type="text" class="form-control" id="o-name-en" dir="ltr">
+            </div>
+            <div class="form-group">
+                <label for="o-name-ar"><?php echo $STR['pkg_field_name_ar']; ?></label>
+                <input type="text" class="form-control" id="o-name-ar" dir="rtl">
             </div>
             <div class="form-row">
                 <div class="form-group col-md-6">
@@ -175,6 +180,38 @@ echo html_writer::script(<<<'JS'
         });
     }
 
+    // ── Multilang helpers (same one-field {mlang} approach as manage_subscriptions.php) ──
+    // The offer name is stored in one field as {mlang en}…{mlang}{mlang ar}…{mlang}; the admin edits
+    // two clean boxes (EN / AR) that map to it. name_raw carries the stored value for editing.
+    function parseMultilang(value){
+        var out = { en:'', ar:'' }, raw = String(value == null ? '' : value), m, found = false;
+        var re2 = /\{\s*mlang\s+([a-zA-Z0-9_-]+)\s*\}([\s\S]*?)\{\s*mlang\s*\}/g;
+        while ((m = re2.exec(raw)) !== null){
+            found = true;
+            var c = m[1].toLowerCase();
+            if (c.indexOf('ar') === 0){ out.ar = m[2].trim(); } else if (c.indexOf('en') === 0){ out.en = m[2].trim(); }
+        }
+        if (found){ return out; }
+        var re1 = /<span[^>]*\blang\s*=\s*"([a-zA-Z0-9_-]+)"[^>]*>([\s\S]*?)<\/span>/g;
+        while ((m = re1.exec(raw)) !== null){
+            found = true;
+            var c1 = m[1].toLowerCase();
+            if (c1.indexOf('ar') === 0){ out.ar = m[2].trim(); } else if (c1.indexOf('en') === 0){ out.en = m[2].trim(); }
+        }
+        if (!found){ out.en = raw; }
+        return out;
+    }
+    function buildMultilang(en, ar){
+        en = String(en == null ? '' : en).trim();
+        ar = String(ar == null ? '' : ar).trim();
+        if (en && ar){ return '{mlang en}' + en + '{mlang}{mlang ar}' + ar + '{mlang}'; }
+        return en || ar;
+    }
+    function displayName(value){
+        var v = parseMultilang(value);
+        return [v.en, v.ar].filter(function(x){ return x; }).join(' / ') || value || '';
+    }
+
     function toInput(ts){
         if (!ts){ return ''; }
         var d = new Date(ts * 1000), p = function(n){ return (n<10?'0':'')+n; };
@@ -198,7 +235,7 @@ echo html_writer::script(<<<'JS'
                 ? '<button class="btn btn-sm btn-warning" data-act="deactivate" data-id="'+o.id+'">'+esc(str('ui_deactivate'))+'</button>'
                 : '<button class="btn btn-sm btn-success" data-act="activate" data-id="'+o.id+'">'+esc(str('ui_activate'))+'</button>';
             tr.innerHTML =
-                '<td>'+esc(o.name)+'</td>'+
+                '<td>'+esc(displayName(o.name_raw || o.name))+'</td>'+
                 '<td>'+esc(dtype(o.discount_type))+'</td>'+
                 '<td>'+esc(valueLabel(o))+'</td>'+
                 '<td>'+scopeLabel(o)+'</td>'+
@@ -311,9 +348,11 @@ echo html_writer::script(<<<'JS'
     }
 
     function showForm(o){
-        $('ofr-form-title').textContent = o ? strf('ofr_edit_titled', o.name) : str('ofr_new');
+        var nm = parseMultilang(o ? (o.name_raw || o.name) : '');
+        $('ofr-form-title').textContent = o ? strf('ofr_edit_titled', displayName(o.name_raw || o.name)) : str('ofr_new');
         $('o-id').value    = o ? o.id : '';
-        $('o-name').value  = o ? o.name : '';
+        $('o-name-en').value = nm.en;
+        $('o-name-ar').value = nm.ar;
         $('o-dtype').value = o ? o.discount_type : 'percent';
         $('o-value').value = o ? o.discount_value : '';
         $('o-start').value = toInput(o ? o.startdate : 0);
@@ -329,7 +368,7 @@ echo html_writer::script(<<<'JS'
         if (!items.length){ msg(str('cpn_scope_required'), 'danger'); return; }
         var id = $('o-id').value;
         var params = {
-            name: $('o-name').value,
+            name: buildMultilang($('o-name-en').value, $('o-name-ar').value),
             discount_type: $('o-dtype').value,
             discount_value: $('o-value').value || 0,
             startdate: fromInput($('o-start').value),

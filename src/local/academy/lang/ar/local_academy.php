@@ -991,3 +991,22 @@ $string['err_couponhasusages']     = 'تم استخدام هذا الكوبون 
 $string['err_offernamerequired']   = 'اسم العرض مطلوب.';
 $string['err_offernotfound']       = 'العرض غير موجود.';
 $string['err_offerhasusages']      = 'تم استخدام هذا العرض ويمكن تعطيله فقط.';
+
+// إدارة الكورسات (المشتريات الفردية للكورسات + إلغاء الشراء).
+$string['managecourses']      = 'إدارة الكورسات';
+$string['mc_heading']         = 'مشتريات الكورسات';
+$string['mc_desc']            = 'المستخدمون الذين اشتروا كورساً منفرداً. استخدم «إلغاء الشراء» لإلغاء تسجيل المستخدم وإلغاء عملية الشراء.';
+$string['mc_col_course']      = 'الكورس';
+$string['mc_col_purchased']   = 'تاريخ الشراء';
+$string['mc_none']            = 'لا توجد مشتريات كورسات بعد.';
+$string['mc_status_enrolled'] = 'مُسجَّل';
+$string['mc_status_norole']   = 'لا يوجد وصول';
+$string['mc_unbuy']           = 'إلغاء الشراء';
+$string['mc_unbuy_title']     = 'إلغاء شراء الكورس';
+$string['mc_unbuy_confirm']   = 'إلغاء تسجيل <b>{$a->user}</b> من <b>{$a->course}</b> وإلغاء عملية الشراء؟';
+$string['mc_unbuy_refund']    = 'وضع علامة على العملية كمستردة';
+$string['mc_unbuy_success']   = 'تم إلغاء شراء الكورس.';
+$string['mc_revoked']         = 'تم إلغاء شراء الكورس.';
+$string['mc_course_deleted']  = '(كورس محذوف)';
+$string['mc_txn_notfound']    = 'عملية الشراء غير موجودة.';
+$string['mc_not_active']      = 'هذه العملية غير نشطة ولا يمكن إلغاؤها.';

@@ -633,6 +633,8 @@ class subscription_purchase_manager {
             'seat_options'  => isset($s->seat_options) ? $s->seat_options
                                 : subscription_manager::get_seat_options($s->id, (float)$s->price),
             'courses'       => self::course_list($s->id),
+            // Automatic offer badge for the front-page card (US-US-OF-1-1). Null when none applies.
+            'offer'         => discount_manager::offer_summary(discount_manager::TYPE_SUBSCRIPTION, $s->id, (float)$s->price),
         );
     }
 

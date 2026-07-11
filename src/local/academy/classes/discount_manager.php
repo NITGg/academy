@@ -192,6 +192,39 @@ class discount_manager {
     }
 
     /**
+     * A compact, display-ready summary of the automatic offer on an item (US-US-OF-1-1), for the
+     * front-page cards, course boxes and buy page. Returns null when no active offer applies.
+     *
+     * @param string $itemtype course | package | subscription
+     * @param int $itemid
+     * @param float|null $base base price (resolved if null)
+     * @param int|null $now
+     * @return array|null {name, discount_type, discount_value, discount, original, final, label}
+     */
+    public static function offer_summary($itemtype, $itemid, $base = null, $now = null) {
+        $itemtype = self::normalize_item_type($itemtype);
+        $base = $base !== null ? (float)$base : self::price_of($itemtype, $itemid);
+        $base = round(max(0.0, $base), 2);
+        $offer = self::best_offer($itemtype, $itemid, $base, $now);
+        if (!$offer || $offer->discount <= 0) {
+            return null;
+        }
+        // Short badge label: "-25%" for a percentage, "-50 <cur>" handled by the caller for fixed.
+        $label = $offer->discount_type === self::DISCOUNT_PERCENT
+            ? '-' . rtrim(rtrim(number_format((float)$offer->discount_value, 2), '0'), '.') . '%'
+            : '';
+        return array(
+            'name'           => format_string($offer->name),
+            'discount_type'  => $offer->discount_type,
+            'discount_value' => (float)$offer->discount_value,
+            'discount'       => round($offer->discount, 2),
+            'original'       => $base,
+            'final'          => round(max(0.0, $base - $offer->discount), 2),
+            'label'          => $label,
+        );
+    }
+
+    /**
      * Validate a coupon code for an item + user, or throw a moodle_exception describing why it is not
      * usable (so the student sees a clear message when they apply it).
      *

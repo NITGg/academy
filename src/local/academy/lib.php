@@ -197,6 +197,9 @@ function local_academy_available_subscriptions_section() {
 .la-subs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
 .la-subs-card--active{border-color:var(--pm);box-shadow:0 0 0 2px rgba(108,34,166,.28)}
 .la-subs-activebadge{background:#1f9d55;color:#fff;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
+.la-subs-offerbadge{display:inline-flex;align-items:center;gap:.25rem;background:#e8153b;color:#fff;font-weight:800;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;box-shadow:0 2px 6px rgba(232,21,59,.35)}
+.la-subs-offerbadge svg{width:13px;height:13px;fill:#fff}
+.la-subs-price-old{font-size:1rem;font-weight:600;color:#9aa0a6;text-decoration:line-through;margin-inline-end:.35rem}
 .la-subs-dates{font-size:.86rem;color:#3c3c3c;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
 .la-subs-dates-row{display:flex;justify-content:space-between;margin-top:.3rem}
 .la-subs-dates-row b{color:var(--pm-ink)}
@@ -504,6 +507,14 @@ require([], function() {
         });
     }
 
+    var TAG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21.41 11.58l-9-9A2 2 0 0011 2H4a2 2 0 00-2 2v7a2 2 0 00.59 1.42l9 9a2 2 0 002.82 0l7-7a2 2 0 000-2.84zM6.5 8A1.5 1.5 0 118 6.5 1.5 1.5 0 016.5 8z"/></svg>';
+    // Short label for an offer badge: "-25%" for a percentage, "-<amount> EGP" for a fixed discount.
+    function offerBadge(offer) {
+        if (!offer) { return ''; }
+        var text = offer.label || ('-' + money(offer.discount) + ' ' + T.egp);
+        return '<span class="la-subs-offerbadge">' + TAG + esc(text) + '</span>';
+    }
+
     function subCard(s, hasActive, idx, activeSub) {
         var isActive = !!(activeSub && Number(activeSub.subscriptionid) === Number(s.id));
         var card = el('div', {class: 'la-subs-card' + (isActive ? ' la-subs-card--active' : '')});
@@ -511,6 +522,7 @@ require([], function() {
         banner.innerHTML = CAP +
             '<span class="la-subs-badges">' +
                 '<span class="la-subs-daysbadge">' + esc(num(T.days, s.duration_days)) + '</span>' +
+                (s.offer ? offerBadge(s.offer) : '') +
                 (isActive ? '<span class="la-subs-activebadge">' + esc(T.active) + '</span>' : '') +
             '</span>';
         card.appendChild(banner);
@@ -528,7 +540,11 @@ require([], function() {
         }
 
         var foot = el('div', {class: 'la-subs-foot'});
-        foot.appendChild(el('div', {class: 'la-subs-price'}, esc(money(s.price)) + ' <small>EGP</small>'));
+        // When an automatic offer applies, strike the original price and show the discounted one.
+        var priceHtml = s.offer
+            ? '<span class="la-subs-price-old">' + esc(money(s.offer.original)) + '</span>' + esc(money(s.offer.final)) + ' <small>EGP</small>'
+            : esc(money(s.price)) + ' <small>EGP</small>';
+        foot.appendChild(el('div', {class: 'la-subs-price'}, priceHtml));
         var btn = el('button', {type: 'button', class: 'la-subs-btn'});
         if (!CFG.token) {
             // Guest/visitor — no account to buy with yet, send them to log in first.
@@ -666,6 +682,9 @@ function local_academy_available_packages_section() {
 .la-pkgs-banner svg{width:52px;height:52px;opacity:.95;fill:#fff;position:relative;z-index:1}
 .la-pkgs-badges{align-self:flex-start;position:relative;z-index:1;display:flex;gap:.4rem;flex-wrap:wrap}
 .la-pkgs-flexbadge{background:rgba(255,255,255,.95);color:var(--pm);font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
+.la-pkgs-offerbadge{display:inline-flex;align-items:center;gap:.25rem;background:#e8153b;color:#fff;font-weight:800;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;box-shadow:0 2px 6px rgba(232,21,59,.35)}
+.la-pkgs-offerbadge svg{width:13px;height:13px;fill:#fff}
+.la-pkgs-price-old{font-size:1rem;font-weight:600;color:#9aa0a6;text-decoration:line-through;margin-inline-end:.35rem}
 .la-pkgs-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
 .la-pkgs-name{font-family:'Cairo',sans-serif;font-weight:700;font-size:1.15rem;color:var(--pm-ink);margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
 .la-pkgs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
@@ -816,6 +835,7 @@ require([], function() {
         'linear-gradient(135deg,#7f00ff,#e100ff)'
     ];
     var BOLT = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.72 10.6 10.85 7.08 13 3.5h1l-1 7h4.5c.5 0 .5.33.36.61-.13.28-.08.19-.11.24C15.09 15.34 13 18.85 11 21z"/></svg>';
+    var TAG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21.41 11.58l-9-9A2 2 0 0011 2H4a2 2 0 00-2 2v7a2 2 0 00.59 1.42l9 9a2 2 0 002.82 0l7-7a2 2 0 000-2.84zM6.5 8A1.5 1.5 0 118 6.5 1.5 1.5 0 016.5 8z"/></svg>';
     var INFO = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
 
     function confirmBuyPackage(p) {
@@ -901,6 +921,7 @@ require([], function() {
         banner.innerHTML = BOLT +
             '<span class="la-pkgs-badges">' +
                 '<span class="la-pkgs-flexbadge">' + esc(num(T.flex, p.flex_count)) + '</span>' +
+                (p.offer ? '<span class="la-pkgs-offerbadge">' + TAG + esc(p.offer.label || ('-' + money(p.offer.discount) + ' ' + T.egp)) + '</span>' : '') +
                 (isActive ? '<span class="la-pkgs-activebadge">' + esc(T.active) + '</span>' : '') +
             '</span>';
         card.appendChild(banner);
@@ -925,7 +946,10 @@ require([], function() {
         }
 
         var foot = el('div', {class: 'la-pkgs-foot'});
-        foot.appendChild(el('div', {class: 'la-pkgs-price'}, esc(money(p.price)) + ' <small>EGP</small>'));
+        var pkgPriceHtml = p.offer
+            ? '<span class="la-pkgs-price-old">' + esc(money(p.offer.original)) + '</span>' + esc(money(p.offer.final)) + ' <small>EGP</small>'
+            : esc(money(p.price)) + ' <small>EGP</small>';
+        foot.appendChild(el('div', {class: 'la-pkgs-price'}, pkgPriceHtml));
         var btn = el('button', {type: 'button', class: 'la-pkgs-btn'});
         if (!CFG.token) {
             // Guest/visitor — no account to buy with yet, send them to log in first.

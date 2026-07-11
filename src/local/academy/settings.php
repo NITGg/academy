@@ -15,6 +15,13 @@ if ($hassiteconfig) {
         new moodle_url('/local/academy/manage_subscriptions.php')
     ));
 
+    // Manage single-course purchases (see who bought which course; "unbuy" to unenrol).
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_academy_managecourses',
+        get_string('managecourses', 'local_academy'),
+        new moodle_url('/local/academy/manage_courses.php')
+    ));
+
     $ADMIN->add('localplugins', new admin_externalpage(
         'local_academy_managecoupons',
         get_string('managecoupons', 'local_academy'),

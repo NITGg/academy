@@ -15,6 +15,7 @@ use local_academy\subscription_purchase_manager;
 use local_academy\coupon_manager;
 use local_academy\offer_manager;
 use local_academy\discount_manager;
+use local_academy\course_purchase_manager;
 use local_academy\settings_manager;
 use local_academy\teacher_manager;
 use local_academy\lesson_manager;
@@ -191,6 +192,10 @@ $capmap = [
     'delete_offer'           => 'local/academy:manageoffers',
     'get_offers'             => 'local/academy:manageoffers',
     'get_offer'              => 'local/academy:manageoffers',
+    // Manage Courses (admin: list who bought which course + "unbuy"). Reuses the subscriptions
+    // capability so no new capability/DB migration is needed — it is the same academy-admin role.
+    'get_all_course_purchases' => 'local/academy:managesubscriptions',
+    'revoke_course_purchase'   => 'local/academy:managesubscriptions',
     'update_lesson_settings' => 'local/academy:manageplatform',
     'reverse_flex'           => 'local/academy:manageplatform',
     'list_reversible_lessons' => 'local/academy:manageplatform',
@@ -1156,6 +1161,22 @@ try {
         case 'get_offer':
             $id = required_param('id', PARAM_INT);
             academy_respond(['status' => 'success', 'data' => offer_manager::get_offer($id)]);
+            break;
+
+        // ── Manage Courses (admin) ──
+        // List every user's paid single-course purchase (a completed local_payments transaction with
+        // item_type=course), so the admin can see who bought what and revoke it.
+        case 'get_all_course_purchases':
+            academy_respond(['status' => 'success', 'data' => course_purchase_manager::get_all_course_purchases()]);
+            break;
+
+        // "Unbuy" a course: unenrol the buyer and mark the transaction cancelled (or refunded).
+        case 'revoke_course_purchase':
+            academy_require_post();
+            $transactionid = required_param('transactionid', PARAM_INT);
+            $refund = optional_param('refund', 0, PARAM_BOOL);
+            course_purchase_manager::revoke_course_purchase($transactionid, $refund, $userid);
+            academy_respond(['status' => 'success', 'message' => get_string('mc_revoked', 'local_academy'), 'data' => ['id' => $transactionid]]);
             break;
 
         // Admin scope picker (coupons + offers): the selectable courses / packages / subscriptions.

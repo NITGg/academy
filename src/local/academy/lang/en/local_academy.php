@@ -1063,3 +1063,22 @@ $string['err_offernamerequired']   = 'An offer name is required.';
 $string['err_offernotfound']       = 'Offer not found.';
 $string['err_offerhasusages']      = 'This offer has been used and can only be deactivated.';
 
+// Manage Courses (admin: single-course purchases + "unbuy").
+$string['managecourses']      = 'Manage courses';
+$string['mc_heading']         = 'Course purchases';
+$string['mc_desc']            = 'Users who bought a single course. Use "Unbuy" to unenrol a user and revoke the purchase.';
+$string['mc_col_course']      = 'Course';
+$string['mc_col_purchased']   = 'Purchased';
+$string['mc_none']            = 'No course purchases yet.';
+$string['mc_status_enrolled'] = 'Enrolled';
+$string['mc_status_norole']   = 'No access';
+$string['mc_unbuy']           = 'Unbuy';
+$string['mc_unbuy_title']     = 'Revoke course purchase';
+$string['mc_unbuy_confirm']   = 'Unenrol <b>{$a->user}</b> from <b>{$a->course}</b> and revoke this purchase?';
+$string['mc_unbuy_refund']    = 'Mark this purchase as refunded';
+$string['mc_unbuy_success']   = 'The course purchase was revoked.';
+$string['mc_revoked']         = 'The course purchase was revoked.';
+$string['mc_course_deleted']  = '(deleted course)';
+$string['mc_txn_notfound']    = 'Purchase not found.';
+$string['mc_not_active']      = 'This purchase is not active and cannot be revoked.';
+

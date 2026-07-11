@@ -22,6 +22,8 @@ class purchase_manager {
             if (isset($p->description)) {
                 $p->description = format_string($p->description);
             }
+            // Automatic offer badge for the front-page card (US-US-OF-1-1). Null when none applies.
+            $p->offer = discount_manager::offer_summary(discount_manager::TYPE_PACKAGE, $p->id, (float)$p->price);
         }
         return $packages;
     }
