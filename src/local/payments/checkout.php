@@ -3,6 +3,8 @@ require_once(__DIR__ . '/../../config.php');
 
 $courseid = required_param('courseid', PARAM_INT);
 $lang = optional_param('lang', current_language() === 'ar' ? 'ar' : 'en', PARAM_ALPHA);
+// Optional Academy coupon code (US-US-CP-1-2). Offers auto-apply regardless of this.
+$coupon = optional_param('coupon_code', '', PARAM_TEXT);
 
 $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
 $context = context_course::instance($courseid);
@@ -24,7 +26,7 @@ $PAGE->set_title(get_string('buycourse', 'local_payments'));
 $PAGE->set_pagelayout('standard');
 
 try {
-    $result = \local_payments\manager::create_checkout($courseid, $USER->id, null, $lang);
+    $result = \local_payments\manager::create_checkout($courseid, $USER->id, null, $lang, $coupon);
     redirect(new moodle_url($result->checkout_url));
 } catch (\Exception $e) {
     echo $OUTPUT->header();

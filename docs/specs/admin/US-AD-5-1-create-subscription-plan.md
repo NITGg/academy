@@ -9,16 +9,27 @@ As an admin, I want to create a subscription plan, so that users can purchase it
 2. 🔧 Select "Create Subscription"
 3. 🔧 Enter the name, normal price, and number of days
 4. 🔧 Add an optional description
-5. 🔧 Choose whether B2B purchase is available
-6. 🔧 If B2B is available, add one or more **seat options** (e.g. 10, 20, 50 seats)
-7. 🔧 Define a separate **discount percentage** for each seat option
-8. ⚙️ Calculate the B2B price for each seat option
-9. 🔧 Activate the subscription
-10. ⚙️ Display the subscription to users
+
+### Offer settings (optional)
+5. 🔧 Enable Offer
+6. 🔧 Select the discount type (percentage / fixed)
+7. 🔧 Enter the discount value
+8. 🔧 Set the offer start date and end date
+
+### B2B settings
+9. 🔧 Choose whether B2B purchase is available
+10. 🔧 If B2B is enabled, add seat options (e.g. 10, 20, 50 seats)
+11. 🔧 Define a separate discount percentage for each seat option
+12. ⚙️ Calculate the B2B price for each seat option
+
+### Activation
+13. 🔧 Activate the subscription
+14. ⚙️ Calculate the final displayed prices
+15. ⚙️ Display the subscription to users
 
 ## B2B price calculation
 ```
-Original price = Normal price × Number of seats
+Original price  = Normal price × Number of seats
 Discount amount = Original price × Discount % ÷ 100
 B2B price       = Original price − Discount amount
 ```
@@ -27,13 +38,25 @@ Original = 100 × 10 = 1,000 · Discount = 1,000 × 10% = 100 · **B2B price = 9
 Each seat option has its own discount (e.g. 10 seats → 10%, 20 seats → 20%, 50 seats → 30%).
 
 ## Notes
-- The normal price must be ≥ 0. The number of days must be > 0.
-- Each seat option: number of seats must be > 0; discount % must be between 0 and 100.
-- Each seat option has its own discount percentage.
-- Only active subscriptions are available for purchase.
-- A **Normal** purchase keeps the buyer's role.
-- A successful **B2B** purchase changes the buyer's role to **B2B Administrator** — only after
-  successful payment and activation.
+- The normal price must be ≥ 0.
+- The number of days must be > 0.
+- The number of seats must be > 0.
+- The discount percentage must be between 0% and 100%.
+- Each seat option has its own discount.
+
+### Offer rules
+- The offer is optional.
+- Only one offer per subscription.
+- The offer applies only to normal purchase.
+- The offer does **not** apply to B2B pricing.
+- The offer is active only between its start and end date.
+- The final price cannot be less than zero.
+
+### General rules
+- Only active subscriptions are available.
+- A normal purchase keeps the user's role.
+- A B2B purchase changes the role to **B2B Administrator**.
+- Role changes only after successful payment.
 
 ## Related
 Seat options / B2B settings are edited in [US-AD-5-2](US-AD-5-2-update-subscription-plan.md). B2B

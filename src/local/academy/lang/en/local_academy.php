@@ -933,3 +933,133 @@ Your lesson "{$a->subject}" with {$a->teachername} is starting in {$a->time}.
 
 Please join the lesson room on time.';
 
+// ── Coupons + Offers (Phase 1: US-AD-7-*, US-AD-8-*, US-US-CP-*, US-US-OF-*) ──
+
+// Capabilities + admin page titles.
+$string['academy:managecoupons'] = 'Manage discount coupons';
+$string['academy:manageoffers']  = 'Manage automatic offers';
+$string['managecoupons'] = 'Manage coupons';
+$string['manageoffers']  = 'Manage offers';
+$string['mycoupons_title'] = 'Coupons & Offers';
+
+// Scope "all of a type" labels (discount_manager::item_label).
+$string['scope_all_course']       = 'All courses';
+$string['scope_all_package']      = 'All packages';
+$string['scope_all_subscription'] = 'All subscriptions';
+
+// Coupon admin UI.
+$string['cpn_new']         = 'Create coupon';
+$string['cpn_none']        = 'No coupons yet.';
+$string['cpn_col_code']    = 'Code';
+$string['cpn_col_type']    = 'Type';
+$string['cpn_col_value']   = 'Value';
+$string['cpn_col_scope']   = 'Applies to';
+$string['cpn_col_usage']   = 'Usage';
+$string['cpn_col_dates']   = 'Valid';
+$string['cpn_col_max']     = 'Max discount';
+$string['cpn_field_code']  = 'Coupon code';
+$string['cpn_field_dtype'] = 'Discount type';
+$string['cpn_field_value'] = 'Discount value';
+$string['cpn_field_max']   = 'Max discount amount';
+$string['cpn_field_utype'] = 'Usage type';
+$string['cpn_field_limit'] = 'Usage limit';
+$string['cpn_field_start'] = 'Start date';
+$string['cpn_field_end']   = 'End date';
+$string['cpn_field_scope'] = 'Applicable items';
+$string['cpn_type_percent'] = 'Percentage';
+$string['cpn_type_fixed']   = 'Fixed';
+$string['cpn_usage_once']     = 'One-time';
+$string['cpn_usage_multiple'] = 'Multiple use';
+$string['cpn_scope_courses']       = 'Courses';
+$string['cpn_scope_packages']      = 'Packages';
+$string['cpn_scope_subscriptions'] = 'Subscriptions';
+$string['cpn_scope_all']      = 'All';
+$string['cpn_scope_specific'] = 'Selected';
+$string['cpn_created']     = 'Coupon created';
+$string['cpn_updated']     = 'Coupon updated';
+$string['cpn_activated']   = 'Coupon activated';
+$string['cpn_deactivated'] = 'Coupon deactivated';
+$string['cpn_deleted']     = 'Coupon deleted';
+$string['cpn_confirm_delete'] = 'Delete this coupon? This cannot be undone.';
+$string['cpn_edit_titled']    = 'Edit coupon {$a}';
+$string['cpn_scope_required'] = 'Select at least one applicable item.';
+$string['cpn_unlimited']      = 'Unlimited';
+$string['cpn_used_count']     = 'Used {$a}';
+
+// Coupon student UI.
+$string['cpn_avail_heading'] = 'Available coupons';
+$string['cpn_avail_desc']    = 'Coupon codes you can enter at checkout.';
+$string['cpn_none_avail']    = 'No coupons available right now.';
+$string['cpn_hist_heading']  = 'My coupon usage';
+$string['cpn_hist_desc']     = 'Coupons you have redeemed.';
+$string['cpn_no_history']    = 'You have not used any coupons yet.';
+$string['cpn_have_code']     = 'Have a coupon code?';
+$string['cpn_code']          = 'Coupon code';
+$string['cpn_apply_buy']     = 'Apply & buy';
+
+// Shared usage-history columns.
+$string['usg_col_item']     = 'Item';
+$string['usg_col_original'] = 'Original';
+$string['usg_col_discount'] = 'Discount';
+$string['usg_col_final']    = 'Paid';
+$string['usg_col_date']     = 'Date';
+
+// Offer admin UI.
+$string['ofr_new']        = 'Create offer';
+$string['ofr_none']       = 'No offers yet.';
+$string['ofr_col_name']   = 'Name';
+$string['ofr_field_name'] = 'Offer name';
+$string['ofr_created']     = 'Offer created';
+$string['ofr_updated']     = 'Offer updated';
+$string['ofr_activated']   = 'Offer activated';
+$string['ofr_deactivated'] = 'Offer deactivated';
+$string['ofr_deleted']     = 'Offer deleted';
+$string['ofr_confirm_delete'] = 'Delete this offer? This cannot be undone.';
+$string['ofr_edit_titled']    = 'Edit offer {$a}';
+
+// Offer student UI.
+$string['ofr_avail_heading'] = 'Available offers';
+$string['ofr_avail_desc']    = 'Discounts applied automatically at checkout.';
+$string['ofr_none_avail']    = 'No active offers right now.';
+$string['ofr_hist_heading']  = 'My offer history';
+$string['ofr_hist_desc']     = 'Offers applied to your purchases.';
+$string['ofr_no_history']    = 'No offers have been applied to your purchases yet.';
+
+// Front-page checkout modal (coupon entry).
+$string['hp_coupon']   = 'Coupon';
+$string['hp_apply']    = 'Apply';
+$string['hp_discount'] = 'Discount';
+
+// API success messages.
+$string['msg_coupon_created']     = 'Coupon created';
+$string['msg_coupon_updated']     = 'Coupon updated';
+$string['msg_coupon_activated']   = 'Coupon activated';
+$string['msg_coupon_deactivated'] = 'Coupon deactivated';
+$string['msg_coupon_deleted']     = 'Coupon deleted';
+$string['msg_offer_created']      = 'Offer created';
+$string['msg_offer_updated']      = 'Offer updated';
+$string['msg_offer_activated']    = 'Offer activated';
+$string['msg_offer_deactivated']  = 'Offer deactivated';
+$string['msg_offer_deleted']      = 'Offer deleted';
+
+// Validation / errors.
+$string['err_itemtype']            = 'Invalid item type.';
+$string['err_discounttype']        = 'Discount type must be percentage or fixed.';
+$string['err_discountvalue']       = 'Discount value cannot be negative.';
+$string['err_discountpercent']     = 'A percentage discount must be between 0 and 100.';
+$string['err_maxdiscount']         = 'Max discount cannot be negative.';
+$string['err_daterange']           = 'The end date must be after the start date.';
+$string['err_usagetype']           = 'Usage type must be one-time or multiple.';
+$string['err_couponcoderequired']  = 'A coupon code is required.';
+$string['err_couponcodetaken']     = 'That coupon code is already in use.';
+$string['err_couponnotfound']      = 'Coupon not found.';
+$string['err_couponinactive']      = 'This coupon is not active.';
+$string['err_couponnotstarted']    = 'This coupon is not valid yet.';
+$string['err_couponexpired']       = 'This coupon has expired.';
+$string['err_couponnotapplicable'] = 'This coupon does not apply to this item.';
+$string['err_couponusedup']        = 'This coupon has reached its usage limit.';
+$string['err_couponhasusages']     = 'This coupon has been used and can only be deactivated.';
+$string['err_offernamerequired']   = 'An offer name is required.';
+$string['err_offernotfound']       = 'Offer not found.';
+$string['err_offerhasusages']      = 'This offer has been used and can only be deactivated.';
+

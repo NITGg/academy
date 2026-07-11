@@ -544,5 +544,120 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026070420, 'local', 'academy');
     }
 
+    if ($oldversion < 2026071100) {
+
+        // Coupons + Offers (Phase 1: US-AD-7-*, US-AD-8-*, US-US-CP-*, US-US-OF-*).
+        // Six new tables. Created from their xmldb definitions so existing installs get them too;
+        // fresh installs get the same tables from install.xml.
+
+        // academy_coupons — coupon definitions.
+        $table = new xmldb_table('academy_coupons');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('code', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('discount_type', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'percent');
+            $table->add_field('discount_value', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('max_discount', XMLDB_TYPE_NUMBER, '10, 2', null, null, null, null);
+            $table->add_field('usage_type', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'multiple');
+            $table->add_field('usage_limit', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('startdate', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('enddate', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'active');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $table->add_index('code_uk', XMLDB_INDEX_UNIQUE, array('code'));
+            $table->add_index('status_idx', XMLDB_INDEX_NOTUNIQUE, array('status'));
+            $dbman->create_table($table);
+        }
+
+        // academy_coupon_items — applicable types + scope.
+        $table = new xmldb_table('academy_coupon_items');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('couponid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('item_type', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('item_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $table->add_index('coupon_type_item_idx', XMLDB_INDEX_NOTUNIQUE, array('couponid', 'item_type', 'item_id'));
+            $table->add_index('type_item_idx', XMLDB_INDEX_NOTUNIQUE, array('item_type', 'item_id'));
+            $dbman->create_table($table);
+        }
+
+        // academy_coupon_usages — redemption records.
+        $table = new xmldb_table('academy_coupon_usages');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('couponid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('transactionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('item_type', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('item_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('original_amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('discount_amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('final_amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $table->add_index('coupon_user_idx', XMLDB_INDEX_NOTUNIQUE, array('couponid', 'userid'));
+            $table->add_index('userid_idx', XMLDB_INDEX_NOTUNIQUE, array('userid'));
+            $table->add_index('transactionid_idx', XMLDB_INDEX_NOTUNIQUE, array('transactionid'));
+            $dbman->create_table($table);
+        }
+
+        // academy_offers — automatic offer definitions.
+        $table = new xmldb_table('academy_offers');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('discount_type', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'percent');
+            $table->add_field('discount_value', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('startdate', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('enddate', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'active');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $table->add_index('status_idx', XMLDB_INDEX_NOTUNIQUE, array('status'));
+            $dbman->create_table($table);
+        }
+
+        // academy_offer_items — applicable types + scope.
+        $table = new xmldb_table('academy_offer_items');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('offerid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('item_type', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('item_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $table->add_index('offer_type_item_idx', XMLDB_INDEX_NOTUNIQUE, array('offerid', 'item_type', 'item_id'));
+            $table->add_index('type_item_idx', XMLDB_INDEX_NOTUNIQUE, array('item_type', 'item_id'));
+            $dbman->create_table($table);
+        }
+
+        // academy_offer_usages — application records.
+        $table = new xmldb_table('academy_offer_usages');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('offerid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('transactionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('item_type', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('item_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('original_amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('discount_amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('final_amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $table->add_index('offer_user_idx', XMLDB_INDEX_NOTUNIQUE, array('offerid', 'userid'));
+            $table->add_index('userid_idx', XMLDB_INDEX_NOTUNIQUE, array('userid'));
+            $table->add_index('transactionid_idx', XMLDB_INDEX_NOTUNIQUE, array('transactionid'));
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026071100, 'local', 'academy');
+    }
+
     return true;
 }

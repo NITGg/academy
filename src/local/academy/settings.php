@@ -16,6 +16,18 @@ if ($hassiteconfig) {
     ));
 
     $ADMIN->add('localplugins', new admin_externalpage(
+        'local_academy_managecoupons',
+        get_string('managecoupons', 'local_academy'),
+        new moodle_url('/local/academy/manage_coupons.php')
+    ));
+
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_academy_manageoffers',
+        get_string('manageoffers', 'local_academy'),
+        new moodle_url('/local/academy/manage_offers.php')
+    ));
+
+    $ADMIN->add('localplugins', new admin_externalpage(
         'local_academy_managesettings',
         get_string('managesettings', 'local_academy'),
         new moodle_url('/local/academy/manage_settings.php')

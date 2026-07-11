@@ -12,6 +12,9 @@ use local_academy\package_manager;
 use local_academy\purchase_manager;
 use local_academy\subscription_manager;
 use local_academy\subscription_purchase_manager;
+use local_academy\coupon_manager;
+use local_academy\offer_manager;
+use local_academy\discount_manager;
 use local_academy\settings_manager;
 use local_academy\teacher_manager;
 use local_academy\lesson_manager;
@@ -53,6 +56,25 @@ function academy_decode_seat_options($raw) {
         $out[] = [
             'seats'            => (int)($opt['seats'] ?? 0),
             'discount_percent' => (float)($opt['discount_percent'] ?? 0),
+        ];
+    }
+    return $out;
+}
+
+/**
+ * Decode the JSON `items` param (coupon/offer applicable-types + scope) into a clean list of
+ * ['item_type','item_id']. The manager re-validates the item type, so we only sanitise here.
+ */
+function academy_decode_scope_items($raw) {
+    if ($raw === '' || $raw === null) { return []; }
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) { return []; }
+    $out = [];
+    foreach ($decoded as $it) {
+        if (!is_array($it)) { continue; }
+        $out[] = [
+            'item_type' => (string)($it['item_type'] ?? ''),
+            'item_id'   => (int)($it['item_id'] ?? 0),
         ];
     }
     return $out;
@@ -155,6 +177,20 @@ $capmap = [
     'get_course_access'        => 'local/academy:managesubscriptions',
     'get_categories_with_courses'=> 'local/academy:managesubscriptions',
     'get_all_user_subscriptions'=> 'local/academy:managesubscriptions',
+    'create_coupon'          => 'local/academy:managecoupons',
+    'update_coupon'          => 'local/academy:managecoupons',
+    'activate_coupon'        => 'local/academy:managecoupons',
+    'deactivate_coupon'      => 'local/academy:managecoupons',
+    'delete_coupon'          => 'local/academy:managecoupons',
+    'get_coupons'            => 'local/academy:managecoupons',
+    'get_coupon'             => 'local/academy:managecoupons',
+    'create_offer'           => 'local/academy:manageoffers',
+    'update_offer'           => 'local/academy:manageoffers',
+    'activate_offer'         => 'local/academy:manageoffers',
+    'deactivate_offer'       => 'local/academy:manageoffers',
+    'delete_offer'           => 'local/academy:manageoffers',
+    'get_offers'             => 'local/academy:manageoffers',
+    'get_offer'              => 'local/academy:manageoffers',
     'update_lesson_settings' => 'local/academy:manageplatform',
     'reverse_flex'           => 'local/academy:manageplatform',
     'list_reversible_lessons' => 'local/academy:manageplatform',
@@ -424,10 +460,11 @@ try {
             $subtype = optional_param('type', 'normal', PARAM_ALPHANUM);
             $seats   = optional_param('seats', 0, PARAM_INT);
             $lang    = optional_param('alang', current_language(), PARAM_LANG);
+            $coupon  = optional_param('coupon_code', '', PARAM_TEXT);
             require_once($CFG->dirroot . '/local/payments/classes/manager.php');
             try {
                 $checkout = \local_payments\manager::create_subscription_checkout(
-                    $subid, $userid, null, $lang, $subtype, $seats);
+                    $subid, $userid, null, $lang, $subtype, $seats, $coupon);
                 academy_respond(['status' => 'success', 'data' => $checkout]);
             } catch (\Exception $e) {
                 academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
@@ -539,9 +576,11 @@ try {
                 academy_respond(['status' => 'fail', 'error' => get_string('err_postrequired', 'local_academy')]);
             }
             $packageid = required_param('packageid', PARAM_INT);
+            $coupon    = optional_param('coupon_code', '', PARAM_TEXT);
+            $lang      = optional_param('alang', current_language(), PARAM_LANG);
             require_once($CFG->dirroot . '/local/payments/classes/manager.php');
             try {
-                $checkout = \local_payments\manager::create_package_checkout($packageid, $userid);
+                $checkout = \local_payments\manager::create_package_checkout($packageid, $userid, null, $lang, $coupon);
                 academy_respond(['status' => 'success', 'data' => $checkout]);
             } catch (\Exception $e) {
                 academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
@@ -980,6 +1019,203 @@ try {
         case 'get_my_quiz_attempts':
             $quizid = required_param('quizid', PARAM_INT);
             academy_respond(['status' => 'success', 'data' => quiz_manager::get_my_attempts($quizid, $userid)]);
+            break;
+
+        // ── Coupons: admin CRUD (US-AD-7-*, managecoupons) ──
+
+        // US-AD-7-1
+        case 'create_coupon':
+            academy_require_post();
+            $couponid = coupon_manager::create_coupon([
+                'code'           => required_param('code', PARAM_TEXT),
+                'discount_type'  => required_param('discount_type', PARAM_ALPHA),
+                'discount_value' => required_param('discount_value', PARAM_FLOAT),
+                'max_discount'   => (isset($_REQUEST['max_discount']) && $_REQUEST['max_discount'] !== '')
+                                        ? required_param('max_discount', PARAM_FLOAT) : null,
+                'usage_type'     => optional_param('usage_type', 'multiple', PARAM_ALPHA),
+                'usage_limit'    => optional_param('usage_limit', 0, PARAM_INT),
+                'startdate'      => optional_param('startdate', 0, PARAM_INT),
+                'enddate'        => optional_param('enddate', 0, PARAM_INT),
+                'active'         => optional_param('active', 1, PARAM_BOOL),
+                'items'          => academy_decode_scope_items(optional_param('items', '', PARAM_RAW)),
+            ], $userid);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_coupon_created', 'local_academy'), 'data' => ['couponid' => $couponid]]);
+            break;
+
+        // US-AD-7-2
+        case 'update_coupon':
+            academy_require_post();
+            $id = required_param('id', PARAM_INT);
+            $data = [];
+            if (isset($_REQUEST['code']))          { $data['code'] = required_param('code', PARAM_TEXT); }
+            if (isset($_REQUEST['discount_type']))  { $data['discount_type'] = required_param('discount_type', PARAM_ALPHA); }
+            if (isset($_REQUEST['discount_value'])) { $data['discount_value'] = required_param('discount_value', PARAM_FLOAT); }
+            if (isset($_REQUEST['max_discount']))   { $data['max_discount'] = ($_REQUEST['max_discount'] === '') ? null : required_param('max_discount', PARAM_FLOAT); }
+            if (isset($_REQUEST['usage_type']))     { $data['usage_type'] = required_param('usage_type', PARAM_ALPHA); }
+            if (isset($_REQUEST['usage_limit']))    { $data['usage_limit'] = required_param('usage_limit', PARAM_INT); }
+            if (isset($_REQUEST['startdate']))      { $data['startdate'] = required_param('startdate', PARAM_INT); }
+            if (isset($_REQUEST['enddate']))        { $data['enddate'] = required_param('enddate', PARAM_INT); }
+            if (isset($_REQUEST['status']))         { $data['status'] = required_param('status', PARAM_ALPHA); }
+            if (isset($_REQUEST['items']))          { $data['items'] = academy_decode_scope_items(required_param('items', PARAM_RAW)); }
+            coupon_manager::update_coupon($id, $data, $userid);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_coupon_updated', 'local_academy'), 'data' => ['id' => $id]]);
+            break;
+
+        // US-AD-7-3
+        case 'activate_coupon':
+            academy_require_post();
+            $id = required_param('id', PARAM_INT);
+            coupon_manager::activate_coupon($id, $userid);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_coupon_activated', 'local_academy'), 'data' => ['id' => $id, 'status' => 'active']]);
+            break;
+
+        case 'deactivate_coupon':
+            academy_require_post();
+            $id = required_param('id', PARAM_INT);
+            coupon_manager::deactivate_coupon($id, $userid);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_coupon_deactivated', 'local_academy'), 'data' => ['id' => $id, 'status' => 'inactive']]);
+            break;
+
+        case 'delete_coupon':
+            academy_require_post();
+            $id = required_param('id', PARAM_INT);
+            coupon_manager::delete_coupon($id);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_coupon_deleted', 'local_academy'), 'data' => ['id' => $id, 'deleted' => true]]);
+            break;
+
+        case 'get_coupons':
+            $status = optional_param('status', '', PARAM_ALPHA);
+            academy_respond(['status' => 'success', 'data' => coupon_manager::get_coupons($status)]);
+            break;
+
+        case 'get_coupon':
+            $id = required_param('id', PARAM_INT);
+            academy_respond(['status' => 'success', 'data' => coupon_manager::get_coupon($id)]);
+            break;
+
+        // ── Offers: admin CRUD (US-AD-8-*, manageoffers) ──
+
+        // US-AD-8-1
+        case 'create_offer':
+            academy_require_post();
+            $offerid = offer_manager::create_offer([
+                'name'           => required_param('name', PARAM_TEXT),
+                'discount_type'  => required_param('discount_type', PARAM_ALPHA),
+                'discount_value' => required_param('discount_value', PARAM_FLOAT),
+                'startdate'      => optional_param('startdate', 0, PARAM_INT),
+                'enddate'        => optional_param('enddate', 0, PARAM_INT),
+                'active'         => optional_param('active', 1, PARAM_BOOL),
+                'items'          => academy_decode_scope_items(optional_param('items', '', PARAM_RAW)),
+            ], $userid);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_offer_created', 'local_academy'), 'data' => ['offerid' => $offerid]]);
+            break;
+
+        // US-AD-8-2
+        case 'update_offer':
+            academy_require_post();
+            $id = required_param('id', PARAM_INT);
+            $data = [];
+            if (isset($_REQUEST['name']))           { $data['name'] = required_param('name', PARAM_TEXT); }
+            if (isset($_REQUEST['discount_type']))  { $data['discount_type'] = required_param('discount_type', PARAM_ALPHA); }
+            if (isset($_REQUEST['discount_value'])) { $data['discount_value'] = required_param('discount_value', PARAM_FLOAT); }
+            if (isset($_REQUEST['startdate']))      { $data['startdate'] = required_param('startdate', PARAM_INT); }
+            if (isset($_REQUEST['enddate']))        { $data['enddate'] = required_param('enddate', PARAM_INT); }
+            if (isset($_REQUEST['status']))         { $data['status'] = required_param('status', PARAM_ALPHA); }
+            if (isset($_REQUEST['items']))          { $data['items'] = academy_decode_scope_items(required_param('items', PARAM_RAW)); }
+            offer_manager::update_offer($id, $data, $userid);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_offer_updated', 'local_academy'), 'data' => ['id' => $id]]);
+            break;
+
+        // US-AD-8-3
+        case 'activate_offer':
+            academy_require_post();
+            $id = required_param('id', PARAM_INT);
+            offer_manager::activate_offer($id, $userid);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_offer_activated', 'local_academy'), 'data' => ['id' => $id, 'status' => 'active']]);
+            break;
+
+        case 'deactivate_offer':
+            academy_require_post();
+            $id = required_param('id', PARAM_INT);
+            offer_manager::deactivate_offer($id, $userid);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_offer_deactivated', 'local_academy'), 'data' => ['id' => $id, 'status' => 'inactive']]);
+            break;
+
+        case 'delete_offer':
+            academy_require_post();
+            $id = required_param('id', PARAM_INT);
+            offer_manager::delete_offer($id);
+            academy_respond(['status' => 'success', 'message' => get_string('msg_offer_deleted', 'local_academy'), 'data' => ['id' => $id, 'deleted' => true]]);
+            break;
+
+        case 'get_offers':
+            $status = optional_param('status', '', PARAM_ALPHA);
+            academy_respond(['status' => 'success', 'data' => offer_manager::get_offers($status)]);
+            break;
+
+        case 'get_offer':
+            $id = required_param('id', PARAM_INT);
+            academy_respond(['status' => 'success', 'data' => offer_manager::get_offer($id)]);
+            break;
+
+        // Admin scope picker (coupons + offers): the selectable courses / packages / subscriptions.
+        // Accessible to either promotions capability.
+        case 'get_discount_targets':
+            if (!has_capability('local/academy:managecoupons', context_system::instance())
+                    && !has_capability('local/academy:manageoffers', context_system::instance())) {
+                academy_respond(['status' => 'fail', 'error' => get_string('err_permissiondenied', 'local_academy')]);
+            }
+            $packages = array_map(function($p) {
+                return ['id' => (int)$p->id, 'name' => format_string($p->name)];
+            }, array_values($DB->get_records('academy_packages', null, 'name ASC', 'id, name')));
+            $subs = array_map(function($s) {
+                return ['id' => (int)$s->id, 'name' => format_string($s->name)];
+            }, array_values($DB->get_records('academy_subscriptions', null, 'name ASC', 'id, name')));
+            academy_respond(['status' => 'success', 'data' => [
+                'categories'    => subscription_manager::get_categories_with_courses(),
+                'packages'      => $packages,
+                'subscriptions' => $subs,
+            ]]);
+            break;
+
+        // ── Coupons + Offers: student reads (token only) ──
+
+        // US-US-CP-1-1
+        case 'get_available_coupons':
+            academy_respond(['status' => 'success', 'data' => coupon_manager::get_available_coupons()]);
+            break;
+
+        // US-US-CP-1-3
+        case 'get_my_coupon_usages':
+            academy_respond(['status' => 'success', 'data' => coupon_manager::get_my_usages($userid)]);
+            break;
+
+        // US-US-OF-1-1
+        case 'get_available_offers':
+            academy_respond(['status' => 'success', 'data' => offer_manager::get_available_offers()]);
+            break;
+
+        // US-US-OF-1-3
+        case 'get_my_offer_usages':
+            academy_respond(['status' => 'success', 'data' => offer_manager::get_my_usages($userid)]);
+            break;
+
+        // US-US-CP-1-2: preview the discounted price for the checkout modal. Applies the automatic
+        // offer always; a coupon code on top when supplied. If the code is invalid, still return the
+        // offer-only price plus a coupon_error so the modal can show both.
+        case 'preview_discount':
+            $itemtype = required_param('item_type', PARAM_ALPHA);
+            $itemid   = required_param('item_id', PARAM_INT);
+            $code     = optional_param('coupon_code', '', PARAM_TEXT);
+            try {
+                $resolved = discount_manager::resolve($itemtype, $itemid, $userid, $code);
+                academy_respond(['status' => 'success', 'data' => $resolved]);
+            } catch (\moodle_exception $e) {
+                // Invalid coupon — recompute without it so the offer price still shows.
+                $resolved = discount_manager::resolve($itemtype, $itemid, $userid, '');
+                $resolved['coupon_error'] = $e->getMessage();
+                academy_respond(['status' => 'success', 'data' => $resolved]);
+            }
             break;
 
         default:

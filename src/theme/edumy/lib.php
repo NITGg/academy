@@ -164,6 +164,16 @@ function theme_edumy_update_settings_images($settingname) {
 function theme_edumy_process_css($css, $theme) {
     global $CFG;
 
+    // ── PM Lounge (Figma) rebrand ────────────────────────────────────────────────────────────────
+    // The whole theme keys its accent off a handful of brand-colour settings (nav buttons, hero
+    // slider, footer, links). Force them to the PM Lounge purple identity here — the theme's own
+    // token pipeline below then paints every chrome element consistently. To restore the
+    // admin-configured palette, delete or comment out this block.
+    $theme->settings->color_primary           = '#6c22a6';
+    $theme->settings->color_primary_alternate = '#57187f';
+    $theme->settings->color_gradient_start    = '#6c22a6';
+    $theme->settings->color_gradient_end      = '#9d4edd';
+
     $tag = '[[cocoon:edumy]]';
     $css = str_replace($tag, $CFG->wwwroot . '/theme/edumy', $css);
 

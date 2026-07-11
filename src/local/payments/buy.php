@@ -72,6 +72,22 @@ try {
     ];
 
     echo $OUTPUT->render_from_template('local_payments/course_page_price', $templatedata);
+
+    // Coupon entry (US-US-CP-1-2). Submitting sends the code to checkout.php, which applies it (and
+    // any automatic offer) to the charged amount. Only shown when the course is still purchasable.
+    if (!$is_purchased) {
+        $checkouturl = (new moodle_url('/local/payments/checkout.php'))->out(false);
+        echo '<form method="get" action="' . s($checkouturl) . '" class="mt-3" style="max-width:340px">'
+           . '<input type="hidden" name="courseid" value="' . (int) $courseid . '">'
+           . '<label for="academy-coupon-code" class="font-weight-bold">'
+           . s(get_string('cpn_have_code', 'local_academy')) . '</label>'
+           . '<div style="display:flex;gap:.5rem">'
+           . '<input type="text" id="academy-coupon-code" name="coupon_code" class="form-control" '
+           . 'placeholder="' . s(get_string('cpn_code', 'local_academy')) . '">'
+           . '<button type="submit" class="btn btn-outline-primary">'
+           . s(get_string('cpn_apply_buy', 'local_academy')) . '</button>'
+           . '</div></form>';
+    }
 } catch (\moodle_exception $e) {
     echo $OUTPUT->notification(get_string('nopricefound', 'local_payments'), 'info');
     echo $OUTPUT->continue_button(new moodle_url('/'));

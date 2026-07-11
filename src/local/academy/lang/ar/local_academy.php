@@ -871,3 +871,123 @@ $string['rp_ua_courses']      = 'المقررات المتاح الوصول إل
 $string['rp_ua_actions']      = 'الإجراءات الأخيرة';
 $string['rp_ua_none']         = 'لا يوجد.';
 $string['rp_enter_user']      = 'أدخل معرّف مستخدم أو بريدًا إلكترونيًا ثم اضغط تشغيل.';
+
+// ── الكوبونات والعروض (المرحلة 1) ──
+
+$string['academy:managecoupons'] = 'إدارة كوبونات الخصم';
+$string['academy:manageoffers']  = 'إدارة العروض التلقائية';
+$string['managecoupons'] = 'إدارة الكوبونات';
+$string['manageoffers']  = 'إدارة العروض';
+$string['mycoupons_title'] = 'الكوبونات والعروض';
+
+$string['scope_all_course']       = 'كل المقررات';
+$string['scope_all_package']      = 'كل الباقات';
+$string['scope_all_subscription'] = 'كل الاشتراكات';
+
+$string['cpn_new']         = 'إنشاء كوبون';
+$string['cpn_none']        = 'لا توجد كوبونات بعد.';
+$string['cpn_col_code']    = 'الرمز';
+$string['cpn_col_type']    = 'النوع';
+$string['cpn_col_value']   = 'القيمة';
+$string['cpn_col_scope']   = 'يُطبّق على';
+$string['cpn_col_usage']   = 'الاستخدام';
+$string['cpn_col_dates']   = 'الصلاحية';
+$string['cpn_col_max']     = 'أقصى خصم';
+$string['cpn_field_code']  = 'رمز الكوبون';
+$string['cpn_field_dtype'] = 'نوع الخصم';
+$string['cpn_field_value'] = 'قيمة الخصم';
+$string['cpn_field_max']   = 'أقصى مبلغ خصم';
+$string['cpn_field_utype'] = 'نوع الاستخدام';
+$string['cpn_field_limit'] = 'حد الاستخدام';
+$string['cpn_field_start'] = 'تاريخ البدء';
+$string['cpn_field_end']   = 'تاريخ الانتهاء';
+$string['cpn_field_scope'] = 'العناصر المطبّق عليها';
+$string['cpn_type_percent'] = 'نسبة مئوية';
+$string['cpn_type_fixed']   = 'مبلغ ثابت';
+$string['cpn_usage_once']     = 'مرة واحدة';
+$string['cpn_usage_multiple'] = 'استخدام متعدد';
+$string['cpn_scope_courses']       = 'المقررات';
+$string['cpn_scope_packages']      = 'الباقات';
+$string['cpn_scope_subscriptions'] = 'الاشتراكات';
+$string['cpn_scope_all']      = 'الكل';
+$string['cpn_scope_specific'] = 'محدّد';
+$string['cpn_created']     = 'تم إنشاء الكوبون';
+$string['cpn_updated']     = 'تم تحديث الكوبون';
+$string['cpn_activated']   = 'تم تفعيل الكوبون';
+$string['cpn_deactivated'] = 'تم تعطيل الكوبون';
+$string['cpn_deleted']     = 'تم حذف الكوبون';
+$string['cpn_confirm_delete'] = 'حذف هذا الكوبون؟ لا يمكن التراجع.';
+$string['cpn_edit_titled']    = 'تعديل الكوبون {$a}';
+$string['cpn_scope_required'] = 'اختر عنصرًا واحدًا على الأقل.';
+$string['cpn_unlimited']      = 'غير محدود';
+$string['cpn_used_count']     = 'مُستخدم {$a}';
+
+$string['cpn_avail_heading'] = 'الكوبونات المتاحة';
+$string['cpn_avail_desc']    = 'رموز الكوبونات التي يمكنك إدخالها عند الدفع.';
+$string['cpn_none_avail']    = 'لا توجد كوبونات متاحة حاليًا.';
+$string['cpn_hist_heading']  = 'استخدامي للكوبونات';
+$string['cpn_hist_desc']     = 'الكوبونات التي استخدمتها.';
+$string['cpn_no_history']    = 'لم تستخدم أي كوبونات بعد.';
+$string['cpn_have_code']     = 'لديك رمز كوبون؟';
+$string['cpn_code']          = 'رمز الكوبون';
+$string['cpn_apply_buy']     = 'تطبيق والشراء';
+
+$string['usg_col_item']     = 'العنصر';
+$string['usg_col_original'] = 'السعر الأصلي';
+$string['usg_col_discount'] = 'الخصم';
+$string['usg_col_final']    = 'المدفوع';
+$string['usg_col_date']     = 'التاريخ';
+
+$string['ofr_new']        = 'إنشاء عرض';
+$string['ofr_none']       = 'لا توجد عروض بعد.';
+$string['ofr_col_name']   = 'الاسم';
+$string['ofr_field_name'] = 'اسم العرض';
+$string['ofr_created']     = 'تم إنشاء العرض';
+$string['ofr_updated']     = 'تم تحديث العرض';
+$string['ofr_activated']   = 'تم تفعيل العرض';
+$string['ofr_deactivated'] = 'تم تعطيل العرض';
+$string['ofr_deleted']     = 'تم حذف العرض';
+$string['ofr_confirm_delete'] = 'حذف هذا العرض؟ لا يمكن التراجع.';
+$string['ofr_edit_titled']    = 'تعديل العرض {$a}';
+
+$string['ofr_avail_heading'] = 'العروض المتاحة';
+$string['ofr_avail_desc']    = 'خصومات تُطبَّق تلقائيًا عند الدفع.';
+$string['ofr_none_avail']    = 'لا توجد عروض فعّالة حاليًا.';
+$string['ofr_hist_heading']  = 'سجل عروضي';
+$string['ofr_hist_desc']     = 'العروض المطبّقة على مشترياتك.';
+$string['ofr_no_history']    = 'لم تُطبَّق أي عروض على مشترياتك بعد.';
+
+$string['hp_coupon']   = 'كوبون';
+$string['hp_apply']    = 'تطبيق';
+$string['hp_discount'] = 'الخصم';
+
+$string['msg_coupon_created']     = 'تم إنشاء الكوبون';
+$string['msg_coupon_updated']     = 'تم تحديث الكوبون';
+$string['msg_coupon_activated']   = 'تم تفعيل الكوبون';
+$string['msg_coupon_deactivated'] = 'تم تعطيل الكوبون';
+$string['msg_coupon_deleted']     = 'تم حذف الكوبون';
+$string['msg_offer_created']      = 'تم إنشاء العرض';
+$string['msg_offer_updated']      = 'تم تحديث العرض';
+$string['msg_offer_activated']    = 'تم تفعيل العرض';
+$string['msg_offer_deactivated']  = 'تم تعطيل العرض';
+$string['msg_offer_deleted']      = 'تم حذف العرض';
+
+$string['err_itemtype']            = 'نوع عنصر غير صالح.';
+$string['err_discounttype']        = 'نوع الخصم يجب أن يكون نسبة أو مبلغًا ثابتًا.';
+$string['err_discountvalue']       = 'قيمة الخصم لا يمكن أن تكون سالبة.';
+$string['err_discountpercent']     = 'النسبة المئوية للخصم يجب أن تكون بين 0 و100.';
+$string['err_maxdiscount']         = 'أقصى خصم لا يمكن أن يكون سالبًا.';
+$string['err_daterange']           = 'يجب أن يكون تاريخ الانتهاء بعد تاريخ البدء.';
+$string['err_usagetype']           = 'نوع الاستخدام يجب أن يكون مرة واحدة أو متعددًا.';
+$string['err_couponcoderequired']  = 'رمز الكوبون مطلوب.';
+$string['err_couponcodetaken']     = 'رمز الكوبون مستخدم بالفعل.';
+$string['err_couponnotfound']      = 'الكوبون غير موجود.';
+$string['err_couponinactive']      = 'هذا الكوبون غير مفعّل.';
+$string['err_couponnotstarted']    = 'هذا الكوبون غير صالح بعد.';
+$string['err_couponexpired']       = 'انتهت صلاحية هذا الكوبون.';
+$string['err_couponnotapplicable'] = 'هذا الكوبون لا ينطبق على هذا العنصر.';
+$string['err_couponusedup']        = 'وصل هذا الكوبون إلى حد الاستخدام.';
+$string['err_couponhasusages']     = 'تم استخدام هذا الكوبون ويمكن تعطيله فقط.';
+$string['err_offernamerequired']   = 'اسم العرض مطلوب.';
+$string['err_offernotfound']       = 'العرض غير موجود.';
+$string['err_offerhasusages']      = 'تم استخدام هذا العرض ويمكن تعطيله فقط.';

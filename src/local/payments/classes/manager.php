@@ -85,7 +85,7 @@ class manager {
      * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
      */
     public static function create_checkout(int $courseid, ?int $userid = null, ?string $app_country = null,
-            string $display_lang = 'en'): object {
+            string $display_lang = 'en', string $coupon_code = ''): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
@@ -128,6 +128,10 @@ class manager {
             throw new \moodle_exception('alreadyenrolled', 'local_payments');
         }
 
+        // Apply Academy coupon/offer to the effective price (US-US-CP-1-2 / US-US-OF-1-2).
+        $disc = self::apply_academy_discount('course', $courseid, $userid, (float) $pricing->price, $coupon_code);
+        $charged = $disc['amount'];
+
         // Select provider.
         $provider = self::get_provider($pricing->country, $pricing->currency);
         $provider_record = $DB->get_record('local_payments_providers', ['name' => $provider->get_name()]);
@@ -147,7 +151,7 @@ class manager {
             'price_id' => $pricing->price_id,
             'order_id' => $order_id,
             'idempotency_key' => $idempotency_key,
-            'amount' => $pricing->price,
+            'amount' => $charged,
             'original_amount' => $pricing->original_price,
             'currency' => $pricing->currency,
             'status' => status_machine::PENDING,
@@ -160,6 +164,9 @@ class manager {
             'metadata' => json_encode([
                 'pricing' => $pricing,
                 'course_name' => $DB->get_field('course', 'fullname', ['id' => $courseid]),
+                'item_type' => 'course',
+                'item_id' => $courseid,
+                'discount' => $disc['discount'],
             ]),
             'expires_at' => $expires_at,
             'timecreated' => time(),
@@ -179,7 +186,7 @@ class manager {
         // Initialize payment with provider.
         $request = new payment_request([
             'order_id' => $order_id,
-            'amount' => $pricing->price,
+            'amount' => $charged,
             'currency' => $pricing->currency,
             'description' => get_string('paymentfor', 'local_payments',
                 $DB->get_field('course', 'fullname', ['id' => $courseid])),
@@ -237,7 +244,7 @@ class manager {
      * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
      */
     public static function create_package_checkout(int $packageid, ?int $userid = null, ?string $app_country = null,
-            string $display_lang = 'en'): object {
+            string $display_lang = 'en', string $coupon_code = ''): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
@@ -248,7 +255,11 @@ class manager {
             throw new \moodle_exception('err_alreadyhaspackage', 'local_academy');
         }
 
-        $currency = 'EGP'; 
+        // Apply Academy coupon/offer to the package price (US-US-CP-1-2 / US-US-OF-1-2).
+        $disc = self::apply_academy_discount('package', $packageid, $userid, (float) $package->price, $coupon_code);
+        $charged = $disc['amount'];
+
+        $currency = 'EGP';
         
         $country = country_detector::detect($userid, $app_country);
         $provider = self::get_provider($country, $currency);
@@ -267,7 +278,7 @@ class manager {
             'price_id' => null,
             'order_id' => $order_id,
             'idempotency_key' => $idempotency_key,
-            'amount' => $package->price,
+            'amount' => $charged,
             'original_amount' => $package->price,
             'currency' => $currency,
             'status' => status_machine::PENDING,
@@ -281,6 +292,7 @@ class manager {
                 'item_type' => 'package',
                 'item_id' => $packageid,
                 'package_name' => $package->name,
+                'discount' => $disc['discount'],
             ]),
             'expires_at' => $expires_at,
             'timecreated' => time(),
@@ -296,7 +308,7 @@ class manager {
 
         $request = new payment_request([
             'order_id' => $order_id,
-            'amount' => $package->price,
+            'amount' => $charged,
             'currency' => $currency,
             'description' => 'Package: ' . $package->name,
             'userid' => $userid,
@@ -352,7 +364,7 @@ class manager {
      * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
      */
     public static function create_subscription_checkout(int $subscriptionid, ?int $userid = null, ?string $app_country = null,
-            string $display_lang = 'en', string $type = 'normal', int $seats = 0): object {
+            string $display_lang = 'en', string $type = 'normal', int $seats = 0, string $coupon_code = ''): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
@@ -385,6 +397,15 @@ class manager {
             }
         }
 
+        // Apply Academy coupon/offer — normal purchase only. Offers/coupons do NOT apply to B2B
+        // pricing (US-AD-5-1 offer rules); B2B keeps its seat-option discount as computed above.
+        $originalamount = $amount; // base before any coupon/offer (B2B final, or normal plan price)
+        $disc = ['amount' => $amount, 'discount' => null];
+        if (!$isb2b) {
+            $disc = self::apply_academy_discount('subscription', $subscriptionid, $userid, (float) $sub->price, $coupon_code);
+            $amount = $disc['amount'];
+        }
+
         $currency = 'EGP';
 
         $country = country_detector::detect($userid, $app_country);
@@ -405,7 +426,7 @@ class manager {
             'order_id' => $order_id,
             'idempotency_key' => $idempotency_key,
             'amount' => $amount,
-            'original_amount' => $amount,
+            'original_amount' => $originalamount,
             'currency' => $currency,
             'status' => status_machine::PENDING,
             'customer_email' => $user->email,
@@ -420,6 +441,7 @@ class manager {
                 'subscription_name' => $sub->name,
                 'sub_type' => $isb2b ? 'b2b' : 'normal',
                 'seats' => $b2bseats,
+                'discount' => $disc['discount'],
             ]),
             'expires_at' => $expires_at,
             'timecreated' => time(),
@@ -477,6 +499,72 @@ class manager {
             'provider' => $provider->get_name(),
             'transaction_id' => $transaction_id,
         ];
+    }
+
+    /**
+     * Apply the Academy coupon/offer discount to a checkout amount.
+     *
+     * Delegates to {@see \local_academy\discount_manager}. Returns the charged amount and a compact
+     * discount descriptor to store in the transaction metadata (so usage can be recorded on success).
+     * An invalid coupon code throws — the caller surfaces it to the buyer.
+     *
+     * @param string $item_type course | package | subscription
+     * @param int $item_id
+     * @param int $userid
+     * @param float $base base price before coupon/offer
+     * @param string $coupon_code
+     * @return array {amount: float, discount: array|null}
+     */
+    private static function apply_academy_discount(string $item_type, int $item_id, int $userid,
+            float $base, string $coupon_code): array {
+        if (!class_exists('\local_academy\discount_manager')) {
+            return ['amount' => $base, 'discount' => null];
+        }
+        $resolved = \local_academy\discount_manager::resolve($item_type, $item_id, $userid, $coupon_code, $base);
+        return [
+            'amount' => (float) $resolved['final'],
+            'discount' => [
+                'coupon_id'       => $resolved['coupon_id'],
+                'offer_id'        => $resolved['offer_id'],
+                'coupon_code'     => $resolved['coupon_code'],
+                'coupon_discount' => $resolved['coupon_discount'],
+                'offer_discount'  => $resolved['offer_discount'],
+                'original'        => $resolved['original'],
+                'final'           => $resolved['final'],
+            ],
+        ];
+    }
+
+    /**
+     * Record coupon/offer usage for a completed transaction, reading the discount descriptor stored
+     * in its metadata. Idempotent (record_usage skips a transaction already logged).
+     *
+     * @param \stdClass $transaction
+     * @param object $meta decoded transaction metadata
+     */
+    private static function record_academy_discount(\stdClass $transaction, $meta): void {
+        if (!class_exists('\local_academy\discount_manager') || empty($meta->discount)) {
+            return;
+        }
+        $d = $meta->discount;
+        $item_type = $meta->item_type ?? 'course';
+        $item_id = ($item_type === 'course') ? (int) $transaction->courseid : (int) ($meta->item_id ?? 0);
+        $resolved = [
+            'original'        => (float) ($d->original ?? $transaction->original_amount),
+            'offer_id'        => (int) ($d->offer_id ?? 0),
+            'offer_discount'  => (float) ($d->offer_discount ?? 0),
+            'coupon_id'       => (int) ($d->coupon_id ?? 0),
+            'coupon_code'     => (string) ($d->coupon_code ?? ''),
+            'coupon_discount' => (float) ($d->coupon_discount ?? 0),
+            'final'           => (float) ($d->final ?? $transaction->amount),
+        ];
+        try {
+            \local_academy\discount_manager::record_usage($resolved, (int) $transaction->userid,
+                (int) $transaction->id, $item_type, $item_id);
+        } catch (\Exception $e) {
+            self::log_entry($transaction->provider_id, $transaction->id, 'warning',
+                'Discount usage recording failed: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -673,6 +761,9 @@ class manager {
                 'Fulfillment failed: ' . $e->getMessage());
         }
 
+        // Record coupon/offer usage now the purchase is fulfilled (idempotent).
+        self::record_academy_discount($transaction, $meta);
+
         // Generate invoice.
         try {
             invoice_generator::create((int) $transaction->id);
@@ -837,6 +928,9 @@ class manager {
                     self::log_entry($transaction->provider_id, $transaction->id, 'error',
                         'Fulfillment failed: ' . $e->getMessage());
                 }
+
+                // Record coupon/offer usage now the purchase is fulfilled (idempotent).
+                self::record_academy_discount($transaction, $meta);
 
                 invoice_generator::create((int) $transaction->id);
                 

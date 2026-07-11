@@ -51,8 +51,8 @@ The two teacher-facing financial stories were renamed so every ID is now unique:
 ### Admin — `admin/`
 | ID | Title | Status |
 |----|-------|--------|
-| US-AD-1-1 | [Create a Lesson Package](admin/US-AD-1-1-create-lesson-package.md) | Built |
-| US-AD-1-2 | [Update a Lesson Package](admin/US-AD-1-2-update-lesson-package.md) | Built |
+| US-AD-1-1 | [Create a Lesson Package](admin/US-AD-1-1-create-lesson-package.md) | In progress |
+| US-AD-1-2 | [Update a Lesson Package](admin/US-AD-1-2-update-lesson-package.md) | In progress |
 | US-AD-1-3 | [Deactivate a Lesson Package](admin/US-AD-1-3-deactivate-lesson-package.md) | Built |
 | US-AD-1-4 | [Delete an Unused Lesson Package](admin/US-AD-1-4-delete-unused-lesson-package.md) | Built |
 | US-AD-2-1 | [Update Settings (3 tabs)](admin/US-AD-2-1-update-lesson-settings.md) | In progress |
@@ -66,6 +66,18 @@ The two teacher-facing financial stories were renamed so every ID is now unique:
 | US-AD-5-3 | [Deactivate a Subscription Plan](admin/US-AD-5-3-deactivate-subscription-plan.md) | In progress |
 | US-AD-5-4 | [Delete an Unused Subscription Plan](admin/US-AD-5-4-delete-unused-subscription-plan.md) | In progress |
 | US-AD-6-1 | [Set Course Subscription Availability](admin/US-AD-6-1-set-course-subscription-availability.md) | In progress |
+| US-AD-7-1 | [Create a Coupon](admin/US-AD-7-1-create-coupon.md) | Spec |
+| US-AD-7-2 | [Update a Coupon](admin/US-AD-7-2-update-coupon.md) | Spec |
+| US-AD-7-3 | [Deactivate or Delete a Coupon](admin/US-AD-7-3-deactivate-or-delete-coupon.md) | Spec |
+| US-AD-8-1 | [Create an Offer](admin/US-AD-8-1-create-offer.md) | Spec |
+| US-AD-8-2 | [Update an Offer](admin/US-AD-8-2-update-offer.md) | Spec |
+| US-AD-8-3 | [Deactivate or Delete an Offer](admin/US-AD-8-3-deactivate-or-delete-offer.md) | Spec |
+| US-AD-9-1 | [Create a Program](admin/US-AD-9-1-create-program.md) | Spec |
+| US-AD-9-2 | [Update a Program](admin/US-AD-9-2-update-program.md) | Spec |
+| US-AD-9-3 | [Deactivate or Delete a Program](admin/US-AD-9-3-deactivate-or-delete-program.md) | Spec |
+| US-AD-10-1 | [Assign Certificate to Course](admin/US-AD-10-1-assign-certificate-to-course.md) | Spec |
+| US-AD-10-2 | [Assign Certificate to Program](admin/US-AD-10-2-assign-certificate-to-program.md) | Spec |
+| US-AD-10-3 | [Remove Certificate from Course](admin/US-AD-10-3-remove-certificate-from-course.md) | Spec |
 
 ### Teacher — `teacher/`
 | ID | Title | Status |
@@ -87,6 +99,13 @@ The two teacher-facing financial stories were renamed so every ID is now unique:
 | US-SB-1-1 | [View Available Subscriptions](student/US-SB-1-1-view-available-subscriptions.md) | In progress |
 | US-SB-1-2 | [Purchase a Subscription](student/US-SB-1-2-purchase-a-subscription.md) | In progress |
 | US-SB-2-1 | [View My Subscriptions and Payment History](student/US-SB-2-1-view-my-subscriptions-and-payment-history.md) | In progress |
+| US-US-CP-1-1 | [View Available Coupons](student/US-US-CP-1-1-view-available-coupons.md) | Spec |
+| US-US-CP-1-2 | [Apply a Coupon](student/US-US-CP-1-2-apply-a-coupon.md) | Spec |
+| US-US-CP-1-3 | [View My Coupons and Usage History](student/US-US-CP-1-3-view-my-coupons-and-usage-history.md) | Spec |
+| US-US-OF-1-1 | [View Available Offers](student/US-US-OF-1-1-view-available-offers.md) | Spec |
+| US-US-OF-1-2 | [Apply Offer Automatically](student/US-US-OF-1-2-apply-offer-automatically.md) | Spec |
+| US-US-OF-1-3 | [View My Offer Usage History](student/US-US-OF-1-3-view-my-offer-usage-history.md) | Spec |
+| US-US-10-1 | [View & Download My Certificates](student/US-US-10-1-view-and-download-my-certificates.md) | Spec |
 
 ### Lessons — `lessons/`
 | ID | Title | Status |

@@ -53,6 +53,21 @@ function local_academy_extend_navigation_user_settings($navigation, $user, $cont
         $navigation->add_node($studentnode);
     }
 
+    // Coupons & Offers (US-US-CP-*, US-US-OF-*) — available to every logged-in user.
+    $couponsnode = navigation_node::create(
+        get_string('mycoupons_title', 'local_academy'),
+        new moodle_url('/local/academy/coupons.php'),
+        navigation_node::TYPE_SETTING,
+        null,
+        'local_academy_coupons',
+        new pix_icon('i/tags', '')
+    );
+    if ($useraccountstud) {
+        $useraccountstud->add_node($couponsnode);
+    } else {
+        $navigation->add_node($couponsnode);
+    }
+
     // B2B subscription dashboard — only for users who own an active B2B subscription (US-B2B-1-8).
     // Guarded: the `type` column is added by the plugin upgrade; before it runs this must not error.
     global $DB;
@@ -254,6 +269,9 @@ CSS;
         'proceed'         => get_string('hp_proceed', 'local_academy'),
         'redirecting'     => get_string('hp_redirecting', 'local_academy'),
         'active'          => get_string('hp_active', 'local_academy'),
+        'coupon'          => get_string('hp_coupon', 'local_academy'),
+        'apply'           => get_string('hp_apply', 'local_academy'),
+        'discount'        => get_string('hp_discount', 'local_academy'),
         'login_to_subscribe' => get_string('hp_login_to_subscribe', 'local_academy'),
         'start_date'      => get_string('hp_start_date', 'local_academy'),
         'end_date'        => get_string('hp_end_date', 'local_academy'),
@@ -349,7 +367,11 @@ require([], function() {
                         '<div class="la-subs-modal-plan">' +
                             '<div class="name">' + esc(s.name) + '</div>' +
                             '<div class="la-subs-modal-row"><span>' + esc(T.duration) + '</span><b>' + esc(num(T.days, s.duration_days)) + '</b></div>' +
-                            '<div class="la-subs-modal-row"><span>' + esc(T.total) + '</span><b>' + esc(money(s.price)) + ' ' + esc(T.egp) + '</b></div>' +
+                            '<div class="la-subs-modal-row"><span>' + esc(T.total) + '</span><b class="la-subs-orig">' + esc(money(s.price)) + ' ' + esc(T.egp) + '</b></div>' +
+                            '<div class="la-subs-modal-row"><span>' + esc(T.coupon) + '</span><span style="display:flex;gap:.3rem"><input type="text" class="la-subs-coupon" style="max-width:110px;border:1px solid #d1d7dc;border-radius:4px;padding:.15rem .4rem"><button type="button" class="la-subs-apply" style="border:1px solid #6c22a6;background:#fff;color:#6c22a6;border-radius:4px;padding:.15rem .6rem;cursor:pointer">' + esc(T.apply) + '</button></span></div>' +
+                            '<div class="la-subs-coupon-msg" style="color:#c0392b;font-size:.8rem;margin:.2rem 0"></div>' +
+                            '<div class="la-subs-modal-row"><span>' + esc(T.discount) + '</span><b class="la-subs-disc">0.00 ' + esc(T.egp) + '</b></div>' +
+                            '<div class="la-subs-modal-row"><span>' + esc(T.total) + '</span><b class="la-subs-final">' + esc(money(s.price)) + ' ' + esc(T.egp) + '</b></div>' +
                         '</div>' +
                         '<div class="la-subs-modal-secure">' + LOCK + '<span>' + esc(T.secure) + '</span></div>' +
                     '</div>' +
@@ -369,20 +391,41 @@ require([], function() {
                 setTimeout(function() { if (bg.parentNode) { bg.parentNode.removeChild(bg); } }, 180);
                 resolve(result);
             }
-            function onKey(e) { if (e.key === 'Escape') { close(false); } }
+            function onKey(e) { if (e.key === 'Escape') { close(null); } }
             document.addEventListener('keydown', onKey);
-            bg.querySelector('.la-subs-modal-cancel').onclick = function() { close(false); };
-            bg.querySelector('.la-subs-modal-ok').onclick = function() { close(true); };
-            bg.onclick = function(e) { if (e.target === bg) { close(false); } };
+
+            // Live discount preview: automatic offer on open, coupon on Apply
+            // (US-US-OF-1-2 / US-US-CP-1-2).
+            var couponInput = bg.querySelector('.la-subs-coupon');
+            var discEl = bg.querySelector('.la-subs-disc');
+            var finalEl = bg.querySelector('.la-subs-final');
+            var origEl = bg.querySelector('.la-subs-orig');
+            var cmsg = bg.querySelector('.la-subs-coupon-msg');
+            function preview(code) {
+                apiGet('preview_discount', {item_type: 'subscription', item_id: s.id, coupon_code: code || ''})
+                    .then(function(d) {
+                        discEl.textContent = (d.discount > 0 ? '-' + money(d.discount) : '0.00') + ' ' + T.egp;
+                        finalEl.textContent = money(d.final) + ' ' + T.egp;
+                        origEl.style.textDecoration = d.discount > 0 ? 'line-through' : 'none';
+                        cmsg.textContent = d.coupon_error ? d.coupon_error : '';
+                    }).catch(function() {});
+            }
+            bg.querySelector('.la-subs-apply').onclick = function() { preview(couponInput.value.trim()); };
+            couponInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); preview(couponInput.value.trim()); } });
+            preview('');
+
+            bg.querySelector('.la-subs-modal-cancel').onclick = function() { close(null); };
+            bg.querySelector('.la-subs-modal-ok').onclick = function() { close(couponInput.value.trim()); };
+            bg.onclick = function(e) { if (e.target === bg) { close(null); } };
         });
     }
 
     function subscribe(s, btn) {
-        confirmSubscribe(s).then(function(ok) {
-            if (!ok) { return; }
+        confirmSubscribe(s).then(function(code) {
+            if (code === null) { return; }
             var orig = btn.textContent;
             btn.disabled = true; btn.textContent = T.redirecting;
-            apiPost('create_subscription_checkout', {subscriptionid: s.id})
+            apiPost('create_subscription_checkout', {subscriptionid: s.id, coupon_code: code})
                 .then(function(d) { window.location.href = d.checkout_url; })
                 .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
         });
@@ -700,6 +743,9 @@ CSS;
         'proceed'         => get_string('hp_proceed', 'local_academy'),
         'redirecting'     => get_string('hp_redirecting', 'local_academy'),
         'active'          => get_string('hp_active', 'local_academy'),
+        'coupon'          => get_string('hp_coupon', 'local_academy'),
+        'apply'           => get_string('hp_apply', 'local_academy'),
+        'discount'        => get_string('hp_discount', 'local_academy'),
         'flex_used_total' => get_string('hp_flex_used_total', 'local_academy'),
         'activated'       => get_string('hp_activated', 'local_academy'),
         'expires'         => get_string('hp_expires', 'local_academy'),
@@ -785,7 +831,11 @@ require([], function() {
                         '<div class="la-pkgs-modal-plan">' +
                             '<div class="name">' + esc(p.name) + '</div>' +
                             '<div class="la-pkgs-modal-row"><span>' + esc(T.flex_count) + '</span><b>' + esc(num(T.flex, p.flex_count)) + '</b></div>' +
-                            '<div class="la-pkgs-modal-row"><span>' + esc(T.total) + '</span><b>' + esc(money(p.price)) + ' ' + esc(T.egp) + '</b></div>' +
+                            '<div class="la-pkgs-modal-row"><span>' + esc(T.total) + '</span><b class="la-pkgs-orig">' + esc(money(p.price)) + ' ' + esc(T.egp) + '</b></div>' +
+                            '<div class="la-pkgs-modal-row"><span>' + esc(T.coupon) + '</span><span style="display:flex;gap:.3rem"><input type="text" class="la-pkgs-coupon" style="max-width:110px;border:1px solid #d1d7dc;border-radius:4px;padding:.15rem .4rem"><button type="button" class="la-pkgs-apply" style="border:1px solid #6c22a6;background:#fff;color:#6c22a6;border-radius:4px;padding:.15rem .6rem;cursor:pointer">' + esc(T.apply) + '</button></span></div>' +
+                            '<div class="la-pkgs-coupon-msg" style="color:#c0392b;font-size:.8rem;margin:.2rem 0"></div>' +
+                            '<div class="la-pkgs-modal-row"><span>' + esc(T.discount) + '</span><b class="la-pkgs-disc">0.00 ' + esc(T.egp) + '</b></div>' +
+                            '<div class="la-pkgs-modal-row"><span>' + esc(T.total) + '</span><b class="la-pkgs-final">' + esc(money(p.price)) + ' ' + esc(T.egp) + '</b></div>' +
                         '</div>' +
                         '<div class="la-pkgs-modal-secure">' + LOCK + '<span>' + esc(T.secure) + '</span></div>' +
                     '</div>' +
@@ -804,20 +854,41 @@ require([], function() {
                 setTimeout(function() { if (bg.parentNode) { bg.parentNode.removeChild(bg); } }, 180);
                 resolve(result);
             }
-            function onKey(e) { if (e.key === 'Escape') { close(false); } }
+            function onKey(e) { if (e.key === 'Escape') { close(null); } }
             document.addEventListener('keydown', onKey);
-            bg.querySelector('.la-pkgs-modal-cancel').onclick = function() { close(false); };
-            bg.querySelector('.la-pkgs-modal-ok').onclick = function() { close(true); };
-            bg.onclick = function(e) { if (e.target === bg) { close(false); } };
+
+            // Live discount preview: automatic offer on open, coupon on Apply
+            // (US-US-OF-1-2 / US-US-CP-1-2).
+            var couponInput = bg.querySelector('.la-pkgs-coupon');
+            var discEl = bg.querySelector('.la-pkgs-disc');
+            var finalEl = bg.querySelector('.la-pkgs-final');
+            var origEl = bg.querySelector('.la-pkgs-orig');
+            var cmsg = bg.querySelector('.la-pkgs-coupon-msg');
+            function preview(code) {
+                apiGet('preview_discount', {item_type: 'package', item_id: p.id, coupon_code: code || ''})
+                    .then(function(d) {
+                        discEl.textContent = (d.discount > 0 ? '-' + money(d.discount) : '0.00') + ' ' + T.egp;
+                        finalEl.textContent = money(d.final) + ' ' + T.egp;
+                        origEl.style.textDecoration = d.discount > 0 ? 'line-through' : 'none';
+                        cmsg.textContent = d.coupon_error ? d.coupon_error : '';
+                    }).catch(function() {});
+            }
+            bg.querySelector('.la-pkgs-apply').onclick = function() { preview(couponInput.value.trim()); };
+            couponInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); preview(couponInput.value.trim()); } });
+            preview('');
+
+            bg.querySelector('.la-pkgs-modal-cancel').onclick = function() { close(null); };
+            bg.querySelector('.la-pkgs-modal-ok').onclick = function() { close(couponInput.value.trim()); };
+            bg.onclick = function(e) { if (e.target === bg) { close(null); } };
         });
     }
 
     function subscribe(p, btn) {
-        confirmBuyPackage(p).then(function(ok) {
-            if (!ok) { return; }
+        confirmBuyPackage(p).then(function(code) {
+            if (code === null) { return; }
             var orig = btn.textContent;
             btn.disabled = true; btn.textContent = T.redirecting;
-            apiPost('create_package_checkout', {packageid: p.id})
+            apiPost('create_package_checkout', {packageid: p.id, coupon_code: code})
                 .then(function(d) { window.location.href = d.checkout_url; })
                 .catch(function(e) { showMsg(e.message, 'danger'); btn.disabled = false; btn.textContent = orig; });
         });
