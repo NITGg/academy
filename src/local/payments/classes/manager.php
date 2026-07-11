@@ -526,6 +526,7 @@ class manager {
             'discount' => [
                 'coupon_id'       => $resolved['coupon_id'],
                 'offer_id'        => $resolved['offer_id'],
+                'offers'          => $resolved['offers'] ?? [], // every applied offer (offers stack)
                 'coupon_code'     => $resolved['coupon_code'],
                 'coupon_discount' => $resolved['coupon_discount'],
                 'offer_discount'  => $resolved['offer_discount'],
@@ -551,6 +552,7 @@ class manager {
         $item_id = ($item_type === 'course') ? (int) $transaction->courseid : (int) ($meta->item_id ?? 0);
         $resolved = [
             'original'        => (float) ($d->original ?? $transaction->original_amount),
+            'offers'          => isset($d->offers) ? (array) $d->offers : [], // stacked offers list
             'offer_id'        => (int) ($d->offer_id ?? 0),
             'offer_discount'  => (float) ($d->offer_discount ?? 0),
             'coupon_id'       => (int) ($d->coupon_id ?? 0),

@@ -373,8 +373,8 @@ require([], function() {
                             '<div class="la-subs-modal-row"><span>' + esc(T.total) + '</span><b class="la-subs-orig">' + esc(money(s.price)) + ' ' + esc(T.egp) + '</b></div>' +
                             '<div class="la-subs-modal-row"><span>' + esc(T.coupon) + '</span><span style="display:flex;gap:.3rem"><input type="text" class="la-subs-coupon" style="max-width:110px;border:1px solid #d1d7dc;border-radius:4px;padding:.15rem .4rem"><button type="button" class="la-subs-apply" style="border:1px solid #6c22a6;background:#fff;color:#6c22a6;border-radius:4px;padding:.15rem .6rem;cursor:pointer">' + esc(T.apply) + '</button></span></div>' +
                             '<div class="la-subs-coupon-msg" style="color:#c0392b;font-size:.8rem;margin:.2rem 0"></div>' +
-                            '<div class="la-subs-modal-row"><span>' + esc(T.discount) + '</span><b class="la-subs-disc">0.00 ' + esc(T.egp) + '</b></div>' +
-                            '<div class="la-subs-modal-row"><span>' + esc(T.total) + '</span><b class="la-subs-final">' + esc(money(s.price)) + ' ' + esc(T.egp) + '</b></div>' +
+                            '<div class="la-subs-modal-row"><span>' + esc(T.discount) + '</span><b class="la-subs-disc" style="color:#1f9d55">0.00 ' + esc(T.egp) + '</b></div>' +
+                            '<div class="la-subs-modal-row" style="border-top:1px solid #e4d3f5;margin-top:.35rem;padding-top:.45rem"><span style="font-weight:700">' + esc(T.total) + '</span><b class="la-subs-final" style="color:#6c22a6;font-size:1.2rem">' + esc(money(s.price)) + ' ' + esc(T.egp) + '</b></div>' +
                         '</div>' +
                         '<div class="la-subs-modal-secure">' + LOCK + '<span>' + esc(T.secure) + '</span></div>' +
                     '</div>' +
@@ -415,6 +415,13 @@ require([], function() {
             }
             bg.querySelector('.la-subs-apply').onclick = function() { preview(couponInput.value.trim()); };
             couponInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); preview(couponInput.value.trim()); } });
+            // Live-update the price as the coupon is typed (debounced), so the student sees the final
+            // amount before proceeding — no need to click Apply first.
+            var subDeb;
+            couponInput.addEventListener('input', function() {
+                clearTimeout(subDeb);
+                subDeb = setTimeout(function() { preview(couponInput.value.trim()); }, 450);
+            });
             preview('');
 
             bg.querySelector('.la-subs-modal-cancel').onclick = function() { close(null); };
@@ -854,8 +861,8 @@ require([], function() {
                             '<div class="la-pkgs-modal-row"><span>' + esc(T.total) + '</span><b class="la-pkgs-orig">' + esc(money(p.price)) + ' ' + esc(T.egp) + '</b></div>' +
                             '<div class="la-pkgs-modal-row"><span>' + esc(T.coupon) + '</span><span style="display:flex;gap:.3rem"><input type="text" class="la-pkgs-coupon" style="max-width:110px;border:1px solid #d1d7dc;border-radius:4px;padding:.15rem .4rem"><button type="button" class="la-pkgs-apply" style="border:1px solid #6c22a6;background:#fff;color:#6c22a6;border-radius:4px;padding:.15rem .6rem;cursor:pointer">' + esc(T.apply) + '</button></span></div>' +
                             '<div class="la-pkgs-coupon-msg" style="color:#c0392b;font-size:.8rem;margin:.2rem 0"></div>' +
-                            '<div class="la-pkgs-modal-row"><span>' + esc(T.discount) + '</span><b class="la-pkgs-disc">0.00 ' + esc(T.egp) + '</b></div>' +
-                            '<div class="la-pkgs-modal-row"><span>' + esc(T.total) + '</span><b class="la-pkgs-final">' + esc(money(p.price)) + ' ' + esc(T.egp) + '</b></div>' +
+                            '<div class="la-pkgs-modal-row"><span>' + esc(T.discount) + '</span><b class="la-pkgs-disc" style="color:#1f9d55">0.00 ' + esc(T.egp) + '</b></div>' +
+                            '<div class="la-pkgs-modal-row" style="border-top:1px solid #e4d3f5;margin-top:.35rem;padding-top:.45rem"><span style="font-weight:700">' + esc(T.total) + '</span><b class="la-pkgs-final" style="color:#6c22a6;font-size:1.2rem">' + esc(money(p.price)) + ' ' + esc(T.egp) + '</b></div>' +
                         '</div>' +
                         '<div class="la-pkgs-modal-secure">' + LOCK + '<span>' + esc(T.secure) + '</span></div>' +
                     '</div>' +
@@ -895,6 +902,13 @@ require([], function() {
             }
             bg.querySelector('.la-pkgs-apply').onclick = function() { preview(couponInput.value.trim()); };
             couponInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); preview(couponInput.value.trim()); } });
+            // Live-update the price as the coupon is typed (debounced), so the student sees the final
+            // amount before proceeding — no need to click Apply first.
+            var pkgDeb;
+            couponInput.addEventListener('input', function() {
+                clearTimeout(pkgDeb);
+                pkgDeb = setTimeout(function() { preview(couponInput.value.trim()); }, 450);
+            });
             preview('');
 
             bg.querySelector('.la-pkgs-modal-cancel').onclick = function() { close(null); };

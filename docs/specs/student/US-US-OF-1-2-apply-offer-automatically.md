@@ -19,5 +19,5 @@ As a user, I want to get the offer automatically during checkout, so that I rece
 
 ## Notes
 - The offer is applied automatically.
-- If multiple offers exist, only one is applied (system rule).
+- If several offers apply to the same item, their discounts **stack** (are summed); the final price is clamped so it never goes below zero.
 - The offer works for multi-course targeting (only selected courses get the discount).

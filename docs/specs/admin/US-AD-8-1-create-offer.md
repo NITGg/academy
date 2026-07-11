@@ -21,7 +21,7 @@ As an admin, I want to create an offer, so that users can get automatic discount
 
 ## Notes
 - The offer does not require a code.
-- Only one active offer can apply per item.
+- Multiple active offers on the same item **stack**: their discounts are summed on the base price (e.g. two 30% offers give 60% off). The combined discount is clamped so the final price never goes below zero.
 - The offer is applied automatically during its valid period.
 - An offer can target one or multiple items.
 - An offer is valid only between its start and end date.

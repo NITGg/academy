@@ -34,6 +34,7 @@ $STR = local_academy_string_map(array(
     'cpn_scope_all', 'cpn_scope_specific', 'cpn_scope_required',
     'ofr_new', 'ofr_none', 'ofr_col_name', 'ofr_field_name', 'ofr_created', 'ofr_updated',
     'ofr_activated', 'ofr_deactivated', 'ofr_deleted', 'ofr_confirm_delete', 'ofr_edit_titled',
+    'ofr_delete_title', 'ui_delete',
     'pkg_field_name_en', 'pkg_field_name_ar',
     'err_sessionexpired', 'err_requestfailed',
 ));
@@ -138,7 +139,36 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <button id="ofr-cancel" class="btn btn-link"><?php echo $STR['ui_cancel']; ?></button>
         </div>
     </div>
+
+    <!-- ── Delete confirmation modal (replaces window.confirm) ── -->
+    <div id="ofr-confirm-backdrop" class="academy-modal-backdrop" style="display:none;">
+        <div class="academy-modal">
+            <div class="academy-modal-icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 7h12l-1 14H7L6 7zm3-3h6l1 2H8l1-2zM4 6h16v1H4V6z"/></svg>
+            </div>
+            <h5 class="academy-modal-title" id="ofr-confirm-title"></h5>
+            <p id="ofr-confirm-text" class="academy-modal-text"></p>
+            <div class="academy-modal-actions">
+                <button id="ofr-confirm-cancel" class="btn btn-light"><?php echo $STR['ui_cancel']; ?></button>
+                <button id="ofr-confirm-ok" class="btn btn-danger"><?php echo $STR['ui_delete']; ?></button>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+    .academy-modal-backdrop { position: fixed; inset: 0; background: rgba(28,29,36,.55); display: flex;
+        align-items: center; justify-content: center; z-index: 1055; padding: 1rem; }
+    .academy-modal { background: #fff; border-radius: 12px; padding: 1.75rem 1.5rem 1.4rem; max-width: 420px;
+        width: 100%; box-shadow: 0 24px 60px rgba(0,0,0,.28); text-align: center; }
+    .academy-modal-icon { width: 54px; height: 54px; margin: 0 auto .9rem; border-radius: 50%;
+        background: #fdecef; display: flex; align-items: center; justify-content: center; }
+    .academy-modal-icon svg { width: 28px; height: 28px; fill: #e8153b; }
+    .academy-modal-title { font-weight: 700; font-size: 1.15rem; margin: 0 0 .4rem; color: #1c1d1f; }
+    .academy-modal-text { color: #5a5f66; font-size: .95rem; margin: 0 0 .5rem; line-height: 1.5; }
+    .academy-modal-actions { display: flex; justify-content: center; gap: .6rem; margin-top: 1.35rem; }
+    .academy-modal-actions .btn { min-width: 108px; }
+</style>
 <?php
 
 echo html_writer::script(<<<'JS'
@@ -347,6 +377,26 @@ echo html_writer::script(<<<'JS'
         return items;
     }
 
+    // ── Reusable confirmation modal (replaces the browser's window.confirm) ──
+    var confirmCb = null;
+    function openConfirm(title, text, onOk){
+        confirmCb = onOk;
+        $('ofr-confirm-title').textContent = title;
+        $('ofr-confirm-text').textContent = text;
+        $('ofr-confirm-backdrop').style.display = 'flex';
+    }
+    function closeConfirm(){ confirmCb = null; $('ofr-confirm-backdrop').style.display = 'none'; }
+    $('ofr-confirm-cancel').addEventListener('click', closeConfirm);
+    $('ofr-confirm-backdrop').addEventListener('click', function(ev){ if (ev.target === this){ closeConfirm(); } });
+    document.addEventListener('keydown', function(ev){
+        if (ev.key === 'Escape' && $('ofr-confirm-backdrop').style.display !== 'none'){ closeConfirm(); }
+    });
+    $('ofr-confirm-ok').addEventListener('click', function(){
+        var cb = confirmCb;
+        closeConfirm();
+        if (cb){ cb(); }
+    });
+
     function showForm(o){
         var nm = parseMultilang(o ? (o.name_raw || o.name) : '');
         $('ofr-form-title').textContent = o ? strf('ofr_edit_titled', displayName(o.name_raw || o.name)) : str('ofr_new');
@@ -400,8 +450,9 @@ echo html_writer::script(<<<'JS'
         } else if (act === 'deactivate'){
             api('deactivate_offer', { id:id }, 'POST').then(function(){ msg(str('ofr_deactivated'),'success'); load(); }).catch(function(e){ msg(e.message,'danger'); });
         } else if (act === 'delete'){
-            if (!confirm(str('ofr_confirm_delete'))){ return; }
-            api('delete_offer', { id:id }, 'POST').then(function(){ msg(str('ofr_deleted'),'success'); load(); }).catch(function(e){ msg(e.message,'danger'); });
+            openConfirm(str('ofr_delete_title'), str('ofr_confirm_delete'), function(){
+                api('delete_offer', { id:id }, 'POST').then(function(){ msg(str('ofr_deleted'),'success'); load(); }).catch(function(e){ msg(e.message,'danger'); });
+            });
         }
     });
 

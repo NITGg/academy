@@ -323,7 +323,8 @@ class coupon_manager {
         if ($max < 0) {
             throw new \moodle_exception('err_maxdiscount', 'local_academy');
         }
-        return $max;
+        // 0 means "no maximum" (same convention as usage_limit); store null so the cap is skipped.
+        return $max > 0 ? $max : null;
     }
 
     /** Validate a start/end window (end must not precede start when both set). */

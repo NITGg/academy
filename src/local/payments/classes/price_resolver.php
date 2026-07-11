@@ -204,19 +204,55 @@ class price_resolver {
             ];
         }
 
-        return [
+        return array_merge([
             'is_enrolled' => false,
             'is_free' => false,
             'is_purchased' => false,
             'can_renew' => $can_renew,
+            'buy_url' => $buy_url,
+            'course_url' => $course_url,
+        ], self::display_fields($pricing, $courseid));
+    }
+
+    /**
+     * Build the price display fields (price / sale_price / original_price / currency /
+     * is_sale_active / discount_pct) for the course card + course page templates, folding in any
+     * active local_academy automatic offer (US-US-OF-1-2) so the discounted price the student will
+     * actually be charged is shown — not the pre-offer price.
+     *
+     * The offer applies to $pricing->price, the same base local_payments\manager charges at
+     * checkout, so the displayed "was → now" matches the real charge. When a local_payments sale is
+     * already active, the offer stacks on the sale price and the struck original stays the true
+     * pre-everything price.
+     *
+     * @param object $pricing result of {@see self::resolve()}
+     * @param int $courseid
+     * @return array template fields (adds a non-empty offer_name when an offer applies)
+     */
+    public static function display_fields(object $pricing, int $courseid): array {
+        $fields = [
             'price' => number_format((float) $pricing->price, 2),
             'sale_price' => $pricing->sale_price !== null ? number_format((float) $pricing->sale_price, 2) : '',
             'original_price' => number_format((float) $pricing->original_price, 2),
             'currency' => $pricing->currency,
             'is_sale_active' => (bool) $pricing->is_sale_active,
             'discount_pct' => (int) $pricing->discount_pct,
-            'buy_url' => $buy_url,
-            'course_url' => $course_url,
+            'offer_name' => '',
         ];
+
+        if (class_exists('\local_academy\discount_manager')) {
+            $offer = \local_academy\discount_manager::offer_summary('course', $courseid, (float) $pricing->price);
+            if ($offer) {
+                $original = (float) $pricing->original_price;
+                $final = (float) $offer['final'];
+                $fields['is_sale_active'] = true;
+                $fields['original_price'] = number_format($original, 2);
+                $fields['sale_price'] = number_format($final, 2);
+                $fields['discount_pct'] = $original > 0 ? (int) round((($original - $final) / $original) * 100) : 0;
+                $fields['offer_name'] = $offer['name'];
+            }
+        }
+
+        return $fields;
     }
 }

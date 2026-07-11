@@ -56,41 +56,25 @@ try {
     $pricing = \local_payments\price_resolver::resolve($courseid, $USER->id);
     $is_purchased = \local_payments\price_resolver::is_purchased($courseid, $USER->id);
 
-    $templatedata = [
+    // Price display fields fold in any active local_academy offer, so the discounted price the
+    // student will actually be charged is shown (US-US-OF-1-2) — not the pre-offer price.
+    $templatedata = array_merge([
         'courseid'       => $courseid,
         'is_enrolled'    => false,
         'is_purchased'   => $is_purchased,
-        'price'          => number_format((float) $pricing->price, 2),
-        'sale_price'     => $pricing->sale_price !== null ? number_format((float) $pricing->sale_price, 2) : '',
-        'original_price' => number_format((float) $pricing->original_price, 2),
-        'currency'       => $pricing->currency,
-        'is_sale_active' => (bool) $pricing->is_sale_active,
-        'discount_pct'   => (int) $pricing->discount_pct,
         'buy_url'        => (new moodle_url('/local/payments/checkout.php', ['courseid' => $courseid]))->out(false),
         'can_enroll_via_sub' => $can_enroll_via_sub,
         'enroll_url'     => (new moodle_url('/local/payments/buy.php', ['courseid' => $courseid, 'action' => 'enroll', 'sesskey' => sesskey()]))->out(false),
-    ];
+    ], \local_payments\price_resolver::display_fields($pricing, $courseid));
 
     echo $OUTPUT->render_from_template('local_payments/course_page_price', $templatedata);
 
-    // Automatic offer banner (US-US-OF-1-2): if this course has an active offer, show it clearly so
-    // the student sees the discounted price they will be charged at checkout. Only when purchasable.
-    if (!$is_purchased && class_exists('\local_academy\discount_manager')) {
-        $offer = \local_academy\discount_manager::offer_summary('course', $courseid, (float) $pricing->price);
-        if ($offer) {
-            $cur = s($pricing->currency);
-            echo '<div class="alert" style="max-width:340px;margin-top:1rem;border:1px solid #f5b7c0;'
-               . 'background:#fdecef;border-radius:8px;padding:.75rem 1rem;color:#8a1024">'
-               . '<div style="font-weight:700;display:flex;align-items:center;gap:.4rem">'
-               . '<span style="font-size:1.1rem">🏷️</span>' . s($offer['name']) . '</div>'
-               . '<div style="margin-top:.35rem">'
-               . s(get_string('hp_discount', 'local_academy')) . ': <b>-' . number_format($offer['discount'], 2) . ' ' . $cur . '</b>'
-               . '</div>'
-               . '<div style="margin-top:.15rem">'
-               . '<span style="text-decoration:line-through;color:#a06">' . number_format($offer['original'], 2) . ' ' . $cur . '</span> '
-               . '<b style="font-size:1.15rem;color:#8a1024">' . number_format($offer['final'], 2) . ' ' . $cur . '</b>'
-               . '</div></div>';
-        }
+    // The price row above already shows the offer-discounted "was → now" price (via display_fields).
+    // Add a compact tag with the offer's name so the student knows why the price dropped.
+    if (!$is_purchased && !empty($templatedata['offer_name'])) {
+        echo '<div style="max-width:340px;margin-top:.6rem;display:inline-flex;align-items:center;gap:.4rem;'
+           . 'background:#fdecef;border:1px solid #f5b7c0;color:#8a1024;border-radius:1rem;'
+           . 'padding:.3rem .8rem;font-weight:700;font-size:.9rem">🏷️ ' . s($templatedata['offer_name']) . '</div>';
     }
 
     // Coupon entry (US-US-CP-1-2). Submitting sends the code to checkout.php, which applies it (and

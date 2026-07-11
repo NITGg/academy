@@ -661,22 +661,6 @@ class course_renderer extends \core_course_renderer {
           }
       }
       $ccn_course_meta = !empty($ccn_course_contacts) ? $ccn_course_contacts : $category;
-
-      // Automatic offer badge (local_academy US-US-OF-1-1): show a discount ribbon on courses that
-      // have an active offer. Rendered inside .tc_content so it appears with or without a thumbnail.
-      $offerbadge = '';
-      if (class_exists('\local_academy\discount_manager')) {
-          $academyoffer = \local_academy\discount_manager::offer_summary('course', $course->id);
-          if ($academyoffer) {
-              $offerlabel = $academyoffer['label'] !== ''
-                  ? $academyoffer['label']
-                  : ('-' . number_format($academyoffer['discount'], 2));
-              $offerbadge = '<span class="ccn-academy-offer" style="display:inline-flex;align-items:center;gap:.25rem;'
-                  . 'background:#e8153b;color:#fff;font-weight:700;font-size:.78rem;padding:.2rem .6rem;'
-                  . 'border-radius:1rem;margin-bottom:.4rem">&#127991; ' . s($offerlabel) . '</span>';
-          }
-      }
-
       $contenttext = '';
       if((
         isset($PAGE->theme->settings->coursecat_enrolments)
@@ -734,7 +718,7 @@ class course_renderer extends \core_course_renderer {
 									</div>
 									<div class="details">
 										<div class="tc_content">
-											'.$offerbadge.'<p>'.$ccn_course_meta.'</p>
+											<p>'.$ccn_course_meta.'</p>
 											'.$ccnCourse->ccnRender->title.'
 											<p>'.$coursesummary.'</p>';
                       $contenttext .= $ccnCourse->ccnRender->starRating;
@@ -771,7 +755,7 @@ class course_renderer extends \core_course_renderer {
               $contenttext .='
                 <div class="details">
                           <div class="tc_content">
-                            '.$offerbadge.'<p>'.$ccn_course_meta.'</p>
+                            <p>'.$ccn_course_meta.'</p>
                             '.$ccnCourse->ccnRender->title.'
                             <p>'. $coursesummary .'</p>';
                             $contenttext .= $ccnCourse->ccnRender->starRating;

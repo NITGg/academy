@@ -56,7 +56,7 @@ final class discount_manager_test extends \advanced_testcase {
         $this->assertEquals(180.0, $r['final']);
     }
 
-    public function test_resolve_offer_picks_biggest(): void {
+    public function test_resolve_offers_stack(): void {
         $this->resetAfterTest();
         $pkgid = $this->make_package(200);
         offer_manager::create_offer(['name' => 'A', 'discount_type' => 'percent', 'discount_value' => 10,
@@ -65,8 +65,54 @@ final class discount_manager_test extends \advanced_testcase {
             'active' => 1, 'items' => [['item_type' => 'package', 'item_id' => $pkgid]]], 2);
 
         $r = discount_manager::resolve('package', $pkgid, 3);
-        $this->assertEquals(60.0, $r['offer_discount']); // B wins
-        $this->assertEquals(140.0, $r['final']);
+        $this->assertEquals(80.0, $r['offer_discount']); // offers STACK: 20 (10% of 200) + 60
+        $this->assertEquals(120.0, $r['final']);
+        $this->assertCount(2, $r['offers']);
+    }
+
+    public function test_resolve_two_percent_offers_sum(): void {
+        // The reported scenario: two percentage offers should combine (30% + 30% = 60% off).
+        $this->resetAfterTest();
+        $pkgid = $this->make_package(1000);
+        offer_manager::create_offer(['name' => 'Thirty A', 'discount_type' => 'percent', 'discount_value' => 30,
+            'active' => 1, 'items' => [['item_type' => 'package', 'item_id' => 0]]], 2);
+        offer_manager::create_offer(['name' => 'Thirty B', 'discount_type' => 'percent', 'discount_value' => 30,
+            'active' => 1, 'items' => [['item_type' => 'package', 'item_id' => 0]]], 2);
+
+        $r = discount_manager::resolve('package', $pkgid, 3);
+        $this->assertEquals(600.0, $r['offer_discount']); // 300 + 300
+        $this->assertEquals(400.0, $r['final']);
+
+        $summary = discount_manager::offer_summary('package', $pkgid, 1000);
+        $this->assertEquals(600.0, $summary['discount']);
+        $this->assertEquals('-60%', $summary['label']);
+    }
+
+    public function test_stacked_offers_clamp_to_base(): void {
+        $this->resetAfterTest();
+        $pkgid = $this->make_package(100);
+        offer_manager::create_offer(['name' => 'Seventy', 'discount_type' => 'percent', 'discount_value' => 70,
+            'active' => 1, 'items' => [['item_type' => 'package', 'item_id' => 0]]], 2);
+        offer_manager::create_offer(['name' => 'Sixty', 'discount_type' => 'percent', 'discount_value' => 60,
+            'active' => 1, 'items' => [['item_type' => 'package', 'item_id' => 0]]], 2);
+
+        $r = discount_manager::resolve('package', $pkgid, 3);
+        $this->assertEquals(100.0, $r['offer_discount']); // 70 + 60 = 130 clamped to 100
+        $this->assertEquals(0.0, $r['final']);
+    }
+
+    public function test_record_usage_records_every_stacked_offer(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $pkgid = $this->make_package(200);
+        offer_manager::create_offer(['name' => 'A', 'discount_type' => 'percent', 'discount_value' => 10,
+            'active' => 1, 'items' => [['item_type' => 'package', 'item_id' => 0]]], 2);
+        offer_manager::create_offer(['name' => 'B', 'discount_type' => 'percent', 'discount_value' => 20,
+            'active' => 1, 'items' => [['item_type' => 'package', 'item_id' => 0]]], 2);
+
+        $r = discount_manager::resolve('package', $pkgid, 3);
+        discount_manager::record_usage($r, 3, 888, 'package', $pkgid);
+        $this->assertEquals(2, $DB->count_records('academy_offer_usages', ['transactionid' => 888]));
     }
 
     public function test_resolve_coupon_stacks_on_offer(): void {

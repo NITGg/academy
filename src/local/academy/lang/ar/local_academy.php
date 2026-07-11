@@ -991,6 +991,7 @@ $string['err_couponhasusages']     = 'تم استخدام هذا الكوبون 
 $string['err_offernamerequired']   = 'اسم العرض مطلوب.';
 $string['err_offernotfound']       = 'العرض غير موجود.';
 $string['err_offerhasusages']      = 'تم استخدام هذا العرض ويمكن تعطيله فقط.';
+$string['ofr_delete_title']        = 'حذف العرض';
 
 // إدارة الكورسات (المشتريات الفردية للكورسات + إلغاء الشراء).
 $string['managecourses']      = 'إدارة الكورسات';

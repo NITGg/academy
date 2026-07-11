@@ -1062,6 +1062,7 @@ $string['err_couponhasusages']     = 'This coupon has been used and can only be 
 $string['err_offernamerequired']   = 'An offer name is required.';
 $string['err_offernotfound']       = 'Offer not found.';
 $string['err_offerhasusages']      = 'This offer has been used and can only be deactivated.';
+$string['ofr_delete_title']        = 'Delete offer';
 
 // Manage Courses (admin: single-course purchases + "unbuy").
 $string['managecourses']      = 'Manage courses';

@@ -9,8 +9,9 @@ defined('MOODLE_INTERNAL') || die();
  * The three checkout paths in local_payments (course / package / subscription) call
  * {@see self::resolve()} to compute the charged price, and {@see self::record_usage()} on payment
  * success to log the redemption. Interaction rule (specs are silent, documented here + in the spec
- * Notes): an automatic OFFER applies first to the base price; a COUPON code, if supplied and valid,
- * stacks on the offer-adjusted price. The final price is clamped to >= 0.
+ * Notes): automatic OFFERS STACK — every matching offer's discount is summed on the base price; then
+ * a COUPON code, if supplied and valid, stacks on the offer-adjusted price. The final price is
+ * clamped to >= 0.
  *
  * See docs/specs/admin/US-AD-7-*, US-AD-8-* and docs/specs/student/US-US-CP-*, US-US-OF-*.
  */
@@ -96,7 +97,9 @@ class discount_manager {
         } else {
             $amount = $value;
         }
-        if ($max !== null && $max !== '' && (float)$max >= 0) {
+        // A max of 0 (or unset) means "no cap" — same convention as usage_limit. Only a positive max
+        // actually limits the discount; treating 0 as a 0-cap would silently zero out the coupon.
+        if ($max !== null && $max !== '' && (float)$max > 0) {
             $amount = min($amount, (float)$max);
         }
         $amount = min($amount, $base); // final price can never go below zero
@@ -192,8 +195,67 @@ class discount_manager {
     }
 
     /**
-     * A compact, display-ready summary of the automatic offer on an item (US-US-OF-1-1), for the
-     * front-page cards, course boxes and buy page. Returns null when no active offer applies.
+     * All active, in-window offers that apply to an item, each with its discount computed on the base
+     * price. Offers STACK — the caller sums these discounts (an admin can layer several offers on the
+     * same item and they combine).
+     *
+     * @param string $itemtype
+     * @param int $itemid
+     * @param float $base base price
+     * @param int|null $now
+     * @return object[] each {id, name, discount_type, discount_value, discount}
+     */
+    public static function matching_offers($itemtype, $itemid, $base, $now = null) {
+        global $DB;
+        $now = $now ?? time();
+        $offers = $DB->get_records('academy_offers', array('status' => 'active'));
+        $out = array();
+        foreach ($offers as $offer) {
+            if ($offer->startdate > 0 && $now < $offer->startdate) { continue; }
+            if ($offer->enddate > 0 && $now > $offer->enddate) { continue; }
+            $items = $DB->get_records('academy_offer_items', array('offerid' => $offer->id));
+            if (!self::scope_matches($items, $itemtype, $itemid)) { continue; }
+            $discount = self::discount_amount($offer->discount_type, $offer->discount_value, null, $base);
+            if ($discount <= 0) { continue; }
+            $out[] = (object) array(
+                'id'             => (int)$offer->id,
+                'name'           => $offer->name,
+                'discount_type'  => $offer->discount_type,
+                'discount_value' => (float)$offer->discount_value,
+                'discount'       => $discount,
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * The combined (stacked) automatic-offer discount for an item: the sum of every matching offer's
+     * discount, clamped so it never exceeds the base price (final stays >= 0). Each offer's discount is
+     * computed independently on the base, then summed (additive), so two 30% offers give 60% off.
+     *
+     * @param string $itemtype
+     * @param int $itemid
+     * @param float $base
+     * @param int|null $now
+     * @return array {offers: array of {id, name, discount}, total: float}
+     */
+    public static function offers_discount($itemtype, $itemid, $base, $now = null) {
+        $base = round(max(0.0, (float)$base), 2);
+        $matching = self::matching_offers($itemtype, $itemid, $base, $now);
+        $offers = array();
+        $total = 0.0;
+        foreach ($matching as $o) {
+            $offers[] = array('id' => (int)$o->id, 'name' => $o->name, 'discount' => round((float)$o->discount, 2));
+            $total += (float)$o->discount;
+        }
+        $total = min(round($total, 2), $base); // combined discount can't drive the price below zero
+        return array('offers' => $offers, 'total' => $total);
+    }
+
+    /**
+     * A compact, display-ready summary of the automatic offer(s) on an item (US-US-OF-1-1), for the
+     * front-page cards, course boxes and buy page. Offers stack, so this reflects the combined
+     * discount of every matching offer. Returns null when no active offer applies.
      *
      * @param string $itemtype course | package | subscription
      * @param int $itemid
@@ -205,22 +267,23 @@ class discount_manager {
         $itemtype = self::normalize_item_type($itemtype);
         $base = $base !== null ? (float)$base : self::price_of($itemtype, $itemid);
         $base = round(max(0.0, $base), 2);
-        $offer = self::best_offer($itemtype, $itemid, $base, $now);
-        if (!$offer || $offer->discount <= 0) {
+        $od = self::offers_discount($itemtype, $itemid, $base, $now);
+        if ($od['total'] <= 0) {
             return null;
         }
-        // Short badge label: "-25%" for a percentage, "-50 <cur>" handled by the caller for fixed.
-        $label = $offer->discount_type === self::DISCOUNT_PERCENT
-            ? '-' . rtrim(rtrim(number_format((float)$offer->discount_value, 2), '0'), '.') . '%'
-            : '';
+        $total = $od['total'];
+        // Combine the applied offer names, and show the combined effective discount as a "-NN%" badge.
+        $names = array();
+        foreach ($od['offers'] as $o) { $names[] = format_string($o['name']); }
+        $pct = $base > 0 ? round($total / $base * 100) : 0;
         return array(
-            'name'           => format_string($offer->name),
-            'discount_type'  => $offer->discount_type,
-            'discount_value' => (float)$offer->discount_value,
-            'discount'       => round($offer->discount, 2),
+            'name'           => implode(' + ', $names),
+            'discount_type'  => self::DISCOUNT_PERCENT,
+            'discount_value' => $pct,
+            'discount'       => round($total, 2),
             'original'       => $base,
-            'final'          => round(max(0.0, $base - $offer->discount), 2),
-            'label'          => $label,
+            'final'          => round(max(0.0, $base - $total), 2),
+            'label'          => '-' . rtrim(rtrim(number_format($pct, 2), '0'), '.') . '%',
         );
     }
 
@@ -295,9 +358,10 @@ class discount_manager {
 
         $result = array(
             'original'        => $base,
-            'offer_id'        => 0,
+            'offers'          => array(), // every applied offer [{id, name, discount}] (offers stack)
+            'offer_id'        => 0,       // first applied offer id (kept for back-compat)
             'offer_name'      => '',
-            'offer_discount'  => 0.0,
+            'offer_discount'  => 0.0,     // combined offer discount
             'coupon_id'       => 0,
             'coupon_code'     => '',
             'coupon_discount' => 0.0,
@@ -305,14 +369,17 @@ class discount_manager {
             'final'           => $base,
         );
 
-        // Automatic offer.
-        $offer = self::best_offer($itemtype, $itemid, $base, $now);
+        // Automatic offers — they STACK: sum every matching offer's discount (clamped >= 0).
+        $od = self::offers_discount($itemtype, $itemid, $base, $now);
         $running = $base;
-        if ($offer && $offer->discount > 0) {
-            $result['offer_id']       = $offer->id;
-            $result['offer_name']     = $offer->name;
-            $result['offer_discount'] = $offer->discount;
-            $running = round($running - $offer->discount, 2);
+        if ($od['total'] > 0) {
+            $result['offers']         = $od['offers'];
+            $result['offer_discount'] = $od['total'];
+            $result['offer_id']       = $od['offers'][0]['id'];
+            $names = array();
+            foreach ($od['offers'] as $o) { $names[] = format_string($o['name']); }
+            $result['offer_name']     = implode(', ', $names);
+            $running = round($running - $od['total'], 2);
         }
 
         // Coupon on top (only when a code was supplied; invalid codes bubble up as an exception).
@@ -347,22 +414,31 @@ class discount_manager {
         $now = time();
         $transactionid = (int)$transactionid;
 
-        if (!empty($resolved['offer_id']) && $resolved['offer_discount'] > 0) {
+        // Offers STACK: record a usage row for every applied offer. Back-compat: transaction metadata
+        // created before stacking carried a single offer_id/offer_discount instead of an offers[] list.
+        $offers = (isset($resolved['offers']) && is_array($resolved['offers'])) ? $resolved['offers'] : array();
+        if (empty($offers) && !empty($resolved['offer_id']) && $resolved['offer_discount'] > 0) {
+            $offers = array(array('id' => $resolved['offer_id'], 'discount' => $resolved['offer_discount']));
+        }
+        foreach ($offers as $off) {
+            $off = (array)$off; // metadata decoded from JSON gives stdClass entries
+            $oid = (int)($off['id'] ?? 0);
+            $odisc = round((float)($off['discount'] ?? 0), 2);
+            if ($oid <= 0 || $odisc <= 0) { continue; }
             $exists = $transactionid > 0 && $DB->record_exists('academy_offer_usages',
-                array('offerid' => $resolved['offer_id'], 'transactionid' => $transactionid));
-            if (!$exists) {
-                $DB->insert_record('academy_offer_usages', (object) array(
-                    'offerid'         => $resolved['offer_id'],
-                    'userid'          => $userid,
-                    'transactionid'   => $transactionid,
-                    'item_type'       => $itemtype,
-                    'item_id'         => (int)$itemid,
-                    'original_amount' => $resolved['original'],
-                    'discount_amount' => $resolved['offer_discount'],
-                    'final_amount'    => round($resolved['original'] - $resolved['offer_discount'], 2),
-                    'timecreated'     => $now,
-                ));
-            }
+                array('offerid' => $oid, 'transactionid' => $transactionid));
+            if ($exists) { continue; }
+            $DB->insert_record('academy_offer_usages', (object) array(
+                'offerid'         => $oid,
+                'userid'          => $userid,
+                'transactionid'   => $transactionid,
+                'item_type'       => $itemtype,
+                'item_id'         => (int)$itemid,
+                'original_amount' => $resolved['original'],
+                'discount_amount' => $odisc,
+                'final_amount'    => round((float)$resolved['original'] - $odisc, 2),
+                'timecreated'     => $now,
+            ));
         }
 
         if (!empty($resolved['coupon_id']) && $resolved['coupon_discount'] > 0) {
