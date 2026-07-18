@@ -32,6 +32,8 @@ student `hmprep02-001/123456`. Admin-only functions require the `local/academy:m
 | 2 | Meeting "wait for teacher" (mobile) | `meeting-teacher-presence-mobile.md` | (in Lessons + Flex) |
 | 3 | Financial (earnings, withdrawals) | `financial-guide.md` | `Academy_Financial.postman_collection.json` |
 | 4 | Reports, assign, export | `reports-export-guide.md` | `Academy_Reports.postman_collection.json` |
+| 5 | **Coupons & offers (all 3 purchase flows)** | `coupons-offers-mobile-guide.md` | (in Subscriptions / Packages) |
+| 5 | Coupons & offers — API changelog | `coupons-offers-api-changes.md` | — |
 
 Import all five collections into Postman. Each has an **Auth** folder — run the relevant Login first
 (it saves the token into a collection variable), then send any request.

@@ -350,7 +350,8 @@ value=54,59
       "sale_ends_at": 1751385600,
       "is_free": false,
       "is_purchased": false,
-      "is_enrolled": false
+      "is_enrolled": false,
+      "offer_name": "Flash Sale"
     }
   ]
 }
@@ -359,11 +360,16 @@ value=54,59
 | Field | Description |
 |---|---|
 | `image_url` | Course cover image URL, empty string if no image uploaded |
-| `price` | Effective price — use this as the displayed/charged amount |
+| `price` | Effective price before any automatic offer — same base `local_payments\manager` charges at checkout |
+| `sale_price` | Discounted price, inclusive of any stacked automatic offer(s), when `is_sale_active` is `true` |
+| `discount_percentage` | Recalculated against `original_price` when an offer is folded in |
+| `offer_name` | Name(s) of active `local_academy` automatic offer(s) applied (e.g. `"Flash Sale + Summer Discount"`), empty string if none |
 | `is_free` | `true` if the course has no active pricing rule (open access) |
 | `is_purchased` | User already has a completed payment for this course |
 | `is_enrolled` | User is already enrolled |
 | `sale_ends_at` | Unix timestamp of sale end, `0` if no active sale |
+
+Note: `offer_name` reflects automatic offers only (stacked, no user action). Coupon codes are separate — entered manually at checkout — see [Coupons & Offers — Mobile Developer Guide](api/coupons-offers-mobile-guide.md).
 
 ---
 

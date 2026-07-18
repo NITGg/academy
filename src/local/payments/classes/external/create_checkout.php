@@ -13,16 +13,24 @@ class create_checkout extends \external_api {
             'courseid' => new \external_value(PARAM_INT, 'Course ID'),
             'country' => new \external_value(PARAM_ALPHA, 'Country code from app', VALUE_DEFAULT, ''),
             'lang' => new \external_value(PARAM_ALPHA, 'Display language (en/ar)', VALUE_DEFAULT, 'en'),
+            'coupon_code' => new \external_value(
+                PARAM_TEXT,
+                'Academy coupon code to apply on top of any automatic offer. Empty = offers only.',
+                VALUE_DEFAULT,
+                ''
+            ),
         ]);
     }
 
-    public static function execute(int $courseid, string $country = '', string $lang = 'en'): array {
+    public static function execute(int $courseid, string $country = '', string $lang = 'en',
+            string $coupon_code = ''): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'courseid' => $courseid,
             'country' => $country,
             'lang' => $lang,
+            'coupon_code' => $coupon_code,
         ]);
 
         // Validate against the SYSTEM context, not the course context: the buyer is by
@@ -33,11 +41,15 @@ class create_checkout extends \external_api {
         self::validate_context(\context_system::instance());
         require_capability('local/payments:purchasecourse', $context);
 
+        // The coupon is passed straight through to the manager, which applies it alongside any
+        // automatic offer (US-US-CP-1-2 / US-US-OF-1-2) — the same call the web checkout.php makes.
+        // An invalid/expired/exhausted code throws a moodle_exception describing why.
         $result = \local_payments\manager::create_checkout(
             $params['courseid'],
             $USER->id,
             !empty($params['country']) ? $params['country'] : null,
-            $params['lang']
+            $params['lang'],
+            $params['coupon_code']
         );
 
         return [

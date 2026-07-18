@@ -80,6 +80,7 @@ class get_courses_with_pricing extends \external_api {
                 'is_free'             => true,
                 'is_purchased'        => $is_purchased,
                 'is_enrolled'         => $is_enrolled,
+                'offer_name'          => '',
             ];
 
             if (\local_payments\price_resolver::has_pricing($courseid)) {
@@ -94,6 +95,25 @@ class get_courses_with_pricing extends \external_api {
                     $pricing['is_sale_active']      = $resolved->is_sale_active;
                     $pricing['sale_ends_at']        = (int) ($resolved->sale_ends_at ?? 0);
                     $pricing['is_free']             = false;
+
+                    // Fold in any active local_academy automatic offer (US-US-OF-1-2) so the
+                    // catalog shows the same discounted price the student will actually be
+                    // charged at checkout — mirrors price_resolver::display_fields().
+                    if (class_exists('\local_academy\discount_manager')) {
+                        $offer = \local_academy\discount_manager::offer_summary(
+                            'course', $courseid, (float) $resolved->price
+                        );
+                        if ($offer) {
+                            $original = (float) $resolved->original_price;
+                            $final    = (float) $offer['final'];
+                            $pricing['is_sale_active']      = true;
+                            $pricing['sale_price']          = $final;
+                            $pricing['discount_percentage'] = $original > 0
+                                ? (int) round((($original - $final) / $original) * 100)
+                                : 0;
+                            $pricing['offer_name'] = $offer['name'];
+                        }
+                    }
                 } catch (\moodle_exception $e) {
                     // No pricing rule for this country — treat as free.
                 }
@@ -200,6 +220,7 @@ class get_courses_with_pricing extends \external_api {
             'is_free'             => new \external_value(PARAM_BOOL,  'true if no active pricing rule — open access'),
             'is_purchased'        => new \external_value(PARAM_BOOL,  'current user has a completed purchase'),
             'is_enrolled'         => new \external_value(PARAM_BOOL,  'current user is enrolled in the course'),
+            'offer_name'          => new \external_value(PARAM_RAW,   'name(s) of active automatic offer(s) applied, or empty string'),
         ];
 
         return new \external_single_structure([
