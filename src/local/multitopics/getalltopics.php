@@ -33,6 +33,7 @@ if (!empty($_parsed['host'])) {
 unset($_wwwroot, $_parsed, $_host, $_is_https);
 
 require(__DIR__ . '/../../config.php');
+require_once($CFG->libdir . '/completionlib.php');
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -169,6 +170,9 @@ foreach ($jitsi_cms as $jcm) {
 // ── 4. Course sections and activities ─────────────────────────────────────
 $modinfo = get_fast_modinfo($course, $USER->id);
 
+// Completion tracking for this course (points 1, 3, 4, 5, 7).
+$completioninfo = new completion_info($course);
+
 // Map section number → section info.
 $sections = $modinfo->get_section_info_all();
 
@@ -202,14 +206,20 @@ $excalidraw_app = get_config('local_academysessions', 'excalidraw_app') ?: 'http
 // Build activity list for each section.
 function build_activities(array $cms, object $modinfo, string $wstoken, string $wwwroot,
                            string $demo_url, string $demo_key, string $excalidraw_app,
-                           object $DB, object $USER): array {
+                           object $DB, object $USER, object $course, $completioninfo): array {
     global $CFG;
     $result = [];
     foreach ($cms as $cmid) {
         $cm = $modinfo->get_cm($cmid);
-        if (!$cm->uservisible) {
+
+        // Point 6 — Restricted activities.
+        // Show a restricted activity greyed-out when the user can't access it but there
+        // is a restriction reason to display. Hide it only when there is nothing to show
+        // (teacher-hidden / stealth activities with no availability message).
+        if (!$cm->uservisible && empty($cm->availableinfo)) {
             continue;
         }
+        $islocked = !$cm->uservisible;
 
         $url      = $wwwroot . '/mod/' . $cm->modname . '/view.php?id=' . $cm->id;
         $modicon  = $wwwroot . '/theme/image.php/' . (isset($CFG->theme) ? $CFG->theme : 'boost')
@@ -222,12 +232,47 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
             'sectionnum'  => (string)$cm->sectionnum,
             'visible'     => (bool)$cm->visible,
             'uservisible' => (bool)$cm->uservisible,
+            // Point 6 — restriction message (empty when the activity is fully available).
+            'locked'           => $islocked,
+            'availabilityinfo' => $islocked
+                ? \core_availability\info::format_info($cm->availableinfo, $course) : '',
             'url'         => $url,
             'tags'        => [],
             'modicon'     => $modicon,
             'resourcetype'=> '',
             'fileurl'     => '',
         ];
+
+        // ── Completion status for this activity (points 1, 3, 7) ────────────
+        $act['completion']         = (int)$cm->completion;         // 0 none · 1 manual · 2 auto
+        $act['completionexpected'] = (int)$cm->completionexpected; // unix ts, 0 when not set (point 7)
+        if ($completioninfo->is_enabled($cm) != COMPLETION_DISABLED) {
+            $cd = \core_completion\cm_completion_details::get_instance($cm, $USER->id);
+            $act['hascompletion']   = true;
+            $act['isautomatic']     = $cd->is_automatic();          // true → auto (point 3), false → manual (point 2)
+            $act['completionstate'] = $cd->get_overall_completion(); // 0 incomplete·1 complete·2 pass·3 fail (point 1)
+            $rules = [];
+            foreach ($cd->get_details() as $rulename => $rv) {       // automatic-completion rules (point 3)
+                $rules[] = [
+                    'rulename'    => $rulename,
+                    'status'      => (int)$rv->status,               // 1 met · 0 not met
+                    'description' => (string)$rv->description,
+                ];
+            }
+            $act['completiondetails'] = $rules;
+        } else {
+            $act['hascompletion']     = false;
+            $act['isautomatic']       = false;
+            $act['completionstate']   = 0;
+            $act['completiondetails'] = [];
+        }
+
+        // Do not expose file URLs / meeting tokens for a locked activity — the student
+        // cannot open it. Return the metadata + restriction message only.
+        if ($islocked) {
+            $result[] = $act;
+            continue;
+        }
 
         // ── Resource: get file URL and type ─────────────────────────────────
         if ($cm->modname === 'resource') {
@@ -401,36 +446,48 @@ foreach ($sections as $snum => $sinfo) {
     if ($snum === 0) {
         continue; // Skip section 0 (general).
     }
-    if (!$sinfo->uservisible) {
+    // Point 6 — restricted sections: keep them when there is a restriction message to
+    // show; hide only when there is nothing to display.
+    if (!$sinfo->uservisible && empty($sinfo->availableinfo)) {
         continue;
     }
+    $section_locked  = !$sinfo->uservisible;
+    $section_availinfo = $section_locked
+        ? \core_availability\info::format_info($sinfo->availableinfo, $course) : '';
 
     $section_name = format_string($sinfo->name ?: get_section_name($course, $sinfo));
     $cms_in_sec   = $modinfo->sections[$snum] ?? [];
     $activities   = build_activities($cms_in_sec, $modinfo, $wstoken, $wwwroot,
-                                     $demo_url, $demo_key, $excalidraw_app, $DB, $USER);
+                                     $demo_url, $demo_key, $excalidraw_app, $DB, $USER,
+                                     $course, $completioninfo);
 
     $parent_snum = $section_parent[$snum] ?? 0;
 
     if ($parent_snum === 0) {
         // Top-level section.
         $parents_map[$snum] = [
-            'id'         => (string)$sinfo->id,
-            'sectionnum' => $snum,
-            'name'       => $section_name,
-            'parent'     => true,
-            'activities' => $activities,
-            'topics'     => [],
+            'id'               => (string)$sinfo->id,
+            'sectionnum'       => $snum,
+            'name'             => $section_name,
+            'parent'           => true,
+            'uservisible'      => (bool)$sinfo->uservisible,
+            'locked'           => $section_locked,
+            'availabilityinfo' => $section_availinfo,
+            'activities'       => $activities,
+            'topics'           => [],
         ];
     } else {
         // Child section — belongs under $parent_snum.
         $topics_map[$snum] = [
             'parent_snum' => $parent_snum,
             'entry'       => [
-                'id'         => (string)$sinfo->id,
-                'sectionnum' => $snum,
-                'name'       => $section_name,
-                'activities' => $activities,
+                'id'               => (string)$sinfo->id,
+                'sectionnum'       => $snum,
+                'name'             => $section_name,
+                'uservisible'      => (bool)$sinfo->uservisible,
+                'locked'           => $section_locked,
+                'availabilityinfo' => $section_availinfo,
+                'activities'       => $activities,
             ],
         ];
     }
@@ -447,16 +504,41 @@ foreach ($topics_map as $snum => $tdata) {
     }
 }
 
-// ── 6. Build response ──────────────────────────────────────────────────────
+// ── 6. Course-level completion (points 4 and 5) ────────────────────────────
+$completion_enabled = (bool)$completioninfo->is_enabled();
+// Course progress percentage (0..100) — null when completion is off or no trackable activities.
+$course_progress    = \core_completion\progress::get_course_progress_percentage($course, $USER->id);
+$course_completed   = $completion_enabled ? (bool)$completioninfo->is_course_complete($USER->id) : null;
+
+// Course completion criteria breakdown (point 5).
+$completion_criteria = [];
+if ($completion_enabled) {
+    foreach ($completioninfo->get_completions($USER->id) as $completion) {
+        $crit = $completion->get_criteria();
+        $completion_criteria[] = [
+            'type'          => (int)$crit->criteriatype,   // e.g. 4 activity · 6 date · 8 grade · 1 self
+            'title'         => format_string($crit->get_title()),
+            'complete'      => (bool)$completion->is_complete(),
+            'timecompleted' => (int)($completion->timecompleted ?? 0),
+        ];
+    }
+}
+
+// ── 7. Build response ──────────────────────────────────────────────────────
 $response = [
-    'courseid'     => (int)$course->id,
-    'fullname'     => format_string($course->fullname),
-    'shortname'    => $course->shortname,
-    'format'       => $course->format,
-    'isavailable'  => $course_available,
-    'status'       => $course_status,
-    'other_fields' => $other_fields,
-    'parents'      => array_values($parents_map),
+    'courseid'            => (int)$course->id,
+    'fullname'            => format_string($course->fullname),
+    'shortname'           => $course->shortname,
+    'format'              => $course->format,
+    'isavailable'         => $course_available,
+    'status'              => $course_status,
+    // Course completion (points 4 and 5).
+    'completion_enabled'  => $completion_enabled,
+    'progress'            => $course_progress,      // 0..100 or null
+    'course_completed'    => $course_completed,     // true / false / null
+    'completion_criteria' => $completion_criteria,
+    'other_fields'        => $other_fields,
+    'parents'             => array_values($parents_map),
 ];
 
 echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
