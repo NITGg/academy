@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/academy/db" VERSION="2026071100" COMMENT="Academy Flex platform tables">
+<XMLDB PATH="local/academy/db" VERSION="2026071901" COMMENT="Academy Flex platform tables">
   <TABLES>
     <TABLE NAME="academy_packages" COMMENT="Lesson (Flex) packages defined by admins">
       <FIELDS>
@@ -579,6 +579,30 @@
         <INDEX NAME="offer_user_idx" UNIQUE="false" FIELDS="offerid, userid"/>
         <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
         <INDEX NAME="transactionid_idx" UNIQUE="false" FIELDS="transactionid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="academy_certificates" COMMENT="TEMPORARY eligibility wrapper (NOT a certificate system): holds only Academy-specific eligibility config until a real certificate provider exists. No templates/PDF/verification/downloads. A course may have many; id is the abstract certificate_id the engine evaluates; externalref is the real Custom Certificate activity cmid (source of truth) once linked.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="course the rules evaluate against"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="admin-facing label only; superseded by the linked activity once externalref is set"/>
+        <FIELD NAME="type" TYPE="char" LENGTH="30" NOTNULL="true" DEFAULT="completion" SEQUENCE="false" COMMENT="admin-facing label only (completion|attendance|excellence|custom); not a certificate taxonomy"/>
+        <FIELD NAME="externalref" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="cmid of the real Custom Certificate activity this eligibility governs (source of truth); 0 = not yet linked"/>
+        <FIELD NAME="operator" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="and" SEQUENCE="false" COMMENT="and = all rules pass | or = any rule passes"/>
+        <FIELD NAME="rules" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON list of [{type, config}]"/>
+        <FIELD NAME="enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="courseid_fk" TYPE="foreign" FIELDS="courseid" REFTABLE="course" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="courseid_ix" UNIQUE="false" FIELDS="courseid"/>
+        <INDEX NAME="externalref_ix" UNIQUE="false" FIELDS="externalref"/>
       </INDEXES>
     </TABLE>
   </TABLES>

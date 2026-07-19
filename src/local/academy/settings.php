@@ -57,4 +57,11 @@ if ($hassiteconfig) {
         get_string('reports', 'local_academy'),
         new moodle_url('/local/academy/manage_reports.php')
     ));
+
+    // Certificate eligibility rules (plugin-agnostic: decides WHO is eligible for a certificate).
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_academy_certeligibility',
+        get_string('certeligibility', 'local_academy'),
+        new moodle_url('/local/academy/certificate_eligibility.php')
+    ));
 }

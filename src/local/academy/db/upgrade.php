@@ -659,5 +659,86 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026071100, 'local', 'academy');
     }
 
+    if ($oldversion < 2026071900) {
+
+        // academy_cert_rulesets — plugin-agnostic certificate eligibility rules per course.
+        $table = new xmldb_table('academy_cert_rulesets');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, '');
+            $table->add_field('operator', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'and');
+            $table->add_field('rules', XMLDB_TYPE_TEXT, null, null, null, null, null);
+            $table->add_field('enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $table->add_key('courseid_fk', XMLDB_KEY_FOREIGN, array('courseid'), 'course', array('id'));
+            $table->add_index('courseid_uix', XMLDB_INDEX_UNIQUE, array('courseid'));
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026071900, 'local', 'academy');
+    }
+
+    if ($oldversion < 2026071901) {
+
+        // Domain correction: eligibility rules belong to a CERTIFICATE, not a course. A course may
+        // have many certificates (Completion, Attendance, Excellence, ...), each with its own rules.
+        // academy_cert_rulesets (one-per-course) becomes academy_certificates (many-per-course).
+        $old = new xmldb_table('academy_cert_rulesets');
+        $new = new xmldb_table('academy_certificates');
+        if ($dbman->table_exists($old) && !$dbman->table_exists($new)) {
+            $dbman->rename_table($old, 'academy_certificates');
+        }
+
+        $table = new xmldb_table('academy_certificates');
+        if (!$dbman->table_exists($table)) {
+            // Fresh install path (no earlier ruleset table existed).
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, '');
+            $table->add_field('type', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL, null, 'completion');
+            $table->add_field('externalref', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('operator', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'and');
+            $table->add_field('rules', XMLDB_TYPE_TEXT, null, null, null, null, null);
+            $table->add_field('enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $table->add_key('courseid_fk', XMLDB_KEY_FOREIGN, array('courseid'), 'course', array('id'));
+            $table->add_index('courseid_ix', XMLDB_INDEX_NOTUNIQUE, array('courseid'));
+            $table->add_index('externalref_ix', XMLDB_INDEX_NOTUNIQUE, array('externalref'));
+            $dbman->create_table($table);
+        } else {
+            // Renamed-from-ruleset path: add the new certificate columns.
+            $field = new xmldb_field('type', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL, null, 'completion', 'name');
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+            $field = new xmldb_field('externalref', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'type');
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+            // Many certificates per course now — drop the unique(courseid) index, add a plain one.
+            $uix = new xmldb_index('courseid_uix', XMLDB_INDEX_UNIQUE, array('courseid'));
+            if ($dbman->index_exists($table, $uix)) {
+                $dbman->drop_index($table, $uix);
+            }
+            $ix = new xmldb_index('courseid_ix', XMLDB_INDEX_NOTUNIQUE, array('courseid'));
+            if (!$dbman->index_exists($table, $ix)) {
+                $dbman->add_index($table, $ix);
+            }
+            $ix = new xmldb_index('externalref_ix', XMLDB_INDEX_NOTUNIQUE, array('externalref'));
+            if (!$dbman->index_exists($table, $ix)) {
+                $dbman->add_index($table, $ix);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026071901, 'local', 'academy');
+    }
+
     return true;
 }

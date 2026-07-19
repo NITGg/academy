@@ -23,6 +23,8 @@ use local_academy\flex_manager;
 use local_academy\finance_manager;
 use local_academy\report_manager;
 use local_academy\quiz_manager;
+use local_academy\cert\eligibility_manager;
+use local_academy\cert\rule_registry;
 
 /** Reject non-POST for state-changing actions. */
 function academy_require_post() {
@@ -211,6 +213,11 @@ $capmap = [
     'report_user_activity'   => 'local/academy:manageplatform',
     'get_all_teachers'       => 'local/academy:manageplatform',
     'search_users'           => 'local/academy:manageplatform',
+    // Certificate eligibility (admin config). Reuses the platform capability (same academy-admin
+    // role) — no new capability/DB migration needed. The student reads below need only a token.
+    'get_certificates'       => 'local/academy:manageplatform',
+    'save_certificate'       => 'local/academy:manageplatform',
+    'delete_certificate'     => 'local/academy:manageplatform',
 ];
 if (isset($capmap[$function]) && !has_capability($capmap[$function], context_system::instance())) {
     academy_respond(['status' => 'fail', 'error' => get_string('err_permissiondenied', 'local_academy')]);
@@ -1237,6 +1244,95 @@ try {
                 $resolved['coupon_error'] = $e->getMessage();
                 academy_respond(['status' => 'success', 'data' => $resolved]);
             }
+            break;
+
+        // ── Certificate eligibility ──────────────────────────────────────────────
+
+        // Student: am I eligible for a specific certificate? Returns the overall flag plus a per-rule
+        // breakdown (actual vs required) so the app can explain why. Plugin-agnostic — it does not
+        // touch any certificate plugin. Admins may pass ?userid= to check another student.
+        case 'check_certificate_eligibility':
+            $certificateid = required_param('certificateid', PARAM_INT);
+            $targetuserid = $userid;
+            $requested = optional_param('userid', 0, PARAM_INT);
+            if ($requested && $requested !== $userid) {
+                if (!has_capability('local/academy:manageplatform', context_system::instance())) {
+                    academy_respond(['status' => 'fail', 'error' => get_string('err_permissiondenied', 'local_academy')]);
+                }
+                $targetuserid = $requested;
+            }
+            academy_respond(['status' => 'success', 'data' => eligibility_manager::get_report($targetuserid, $certificateid)]);
+            break;
+
+        // Student: eligibility for every certificate in a course (a course can have several).
+        case 'list_certificate_eligibility':
+            $courseid = required_param('courseid', PARAM_INT);
+            $targetuserid = $userid;
+            $requested = optional_param('userid', 0, PARAM_INT);
+            if ($requested && $requested !== $userid) {
+                if (!has_capability('local/academy:manageplatform', context_system::instance())) {
+                    academy_respond(['status' => 'fail', 'error' => get_string('err_permissiondenied', 'local_academy')]);
+                }
+                $targetuserid = $requested;
+            }
+            academy_respond(['status' => 'success', 'data' => [
+                'courseid'     => $courseid,
+                'certificates' => eligibility_manager::get_course_certificate_reports($targetuserid, $courseid),
+            ]]);
+            break;
+
+        // Admin: list a course's certificates (raw) + the rule catalogue + course activities (UI).
+        case 'get_certificates':
+            $courseid = required_param('courseid', PARAM_INT);
+            $certs = [];
+            foreach (eligibility_manager::get_course_certificates($courseid) as $c) {
+                $ruleset = eligibility_manager::decode_ruleset($c);
+                $certs[] = [
+                    'id'          => (int)$c->id,
+                    'courseid'    => (int)$c->courseid,
+                    'name'        => $c->name,
+                    'type'        => $c->type,
+                    'externalref' => (int)$c->externalref,
+                    'enabled'     => (bool)$c->enabled,
+                    'operator'    => $ruleset['operator'],
+                    'rules'       => $ruleset['rules'],
+                ];
+            }
+            academy_respond(['status' => 'success', 'data' => [
+                'courseid'     => $courseid,
+                'certificates' => $certs,
+                'catalogue'    => rule_registry::catalogue(),
+                'activities'   => eligibility_manager::get_course_activities($courseid),
+            ]]);
+            break;
+
+        // Admin: create/update a certificate + its rules. `rules` is a JSON list of {type, config}.
+        case 'save_certificate':
+            academy_require_post();
+            $rawrules = optional_param('rules', '[]', PARAM_RAW);
+            $rules = json_decode($rawrules, true);
+            if (!is_array($rules)) {
+                academy_respond(['status' => 'fail', 'error' => get_string('err_certrulesinvalid', 'local_academy')]);
+            }
+            $id = eligibility_manager::save_certificate([
+                'id'          => optional_param('id', 0, PARAM_INT),
+                'courseid'    => required_param('courseid', PARAM_INT),
+                'name'        => optional_param('name', '', PARAM_TEXT),
+                'type'        => optional_param('type', 'completion', PARAM_ALPHA),
+                'externalref' => optional_param('externalref', 0, PARAM_INT),
+                'operator'    => optional_param('operator', 'and', PARAM_ALPHA),
+                'enabled'     => optional_param('enabled', 1, PARAM_BOOL),
+                'rules'       => $rules,
+            ], $userid);
+            academy_respond(['status' => 'success', 'message' => get_string('cert_saved', 'local_academy'),
+                'data' => ['certificateid' => $id]]);
+            break;
+
+        // Admin: delete a certificate and its rules.
+        case 'delete_certificate':
+            academy_require_post();
+            eligibility_manager::delete_certificate(required_param('id', PARAM_INT));
+            academy_respond(['status' => 'success', 'message' => get_string('cert_deleted', 'local_academy')]);
             break;
 
         default:
