@@ -90,7 +90,6 @@ $string['noinvoices_filtered'] = 'لا توجد فواتير مطابقة لهذ
 $string['filter_invoicenumber'] = 'رقم الفاتورة';
 $string['filter_invoicenumber_placeholder'] = 'مثال: INV-2026-0000001';
 $string['filter_item'] = 'العنصر';
-$string['filter_item_placeholder'] = 'ابحث باسم العنصر';
 $string['filter_amount_min'] = 'المبلغ من';
 $string['filter_amount_max'] = 'المبلغ إلى';
 $string['filter_date_from'] = 'التاريخ من';

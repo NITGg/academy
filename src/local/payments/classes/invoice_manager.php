@@ -12,7 +12,7 @@ class invoice_manager {
     /**
      * A page of the user's invoices, newest first.
      *
-     * @param array $filters optional: invoicenumber, item, type, status, amountmin,
+     * @param array $filters optional: invoicenumber, item, type, amountmin,
      *                        amountmax, datefrom, dateto (see build_filter_sql())
      * @return array{rows: array, total: int}
      */
@@ -36,6 +36,23 @@ class invoice_manager {
     }
 
     /**
+     * Distinct item names across the user's invoices, for the item-filter dropdown.
+     *
+     * @return string[] sorted, non-empty item names
+     */
+    public static function get_user_items(int $userid): array {
+        global $DB;
+
+        return $DB->get_fieldset_sql(
+            "SELECT DISTINCT item_name
+               FROM {local_payments_invoices}
+              WHERE userid = :userid AND item_name IS NOT NULL AND item_name <> ''
+           ORDER BY item_name ASC",
+            ['userid' => $userid]
+        );
+    }
+
+    /**
      * Build a WHERE fragment + params from the invoices-page filter inputs.
      *
      * @return array{0: string, 1: array} [$where, $params] — $where is '' when no filter is set.
@@ -51,18 +68,14 @@ class invoice_manager {
             $params['invoicenumber'] = '%' . $DB->sql_like_escape(trim($filters['invoicenumber'])) . '%';
         }
         if (!empty($filters['item'])) {
-            $clauses[] = $DB->sql_like('item_name', ':itemname', false);
-            $params['itemname'] = '%' . $DB->sql_like_escape(trim($filters['item'])) . '%';
+            $clauses[] = 'item_name = :itemname';
+            $params['itemname'] = $filters['item'];
         }
         if (!empty($filters['type']) && in_array($filters['type'],
                 [invoice_generator::SOURCE_COURSE, invoice_generator::SOURCE_PACKAGE,
                  invoice_generator::SOURCE_SUBSCRIPTION], true)) {
             $clauses[] = 'source_type = :sourcetype';
             $params['sourcetype'] = $filters['type'];
-        }
-        if (!empty($filters['status']) && in_array($filters['status'], ['issued', 'void', 'draft'], true)) {
-            $clauses[] = 'status = :invstatus';
-            $params['invstatus'] = $filters['status'];
         }
         if (isset($filters['amountmin']) && $filters['amountmin'] !== '' && is_numeric($filters['amountmin'])) {
             $clauses[] = 'amount >= :amountmin';

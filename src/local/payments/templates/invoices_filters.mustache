@@ -2,12 +2,12 @@
     Filter bar for the student invoices list.
     Context:
     * action: form GET target url
-    * invoicenumber, item, amountmin, amountmax, datefrom, dateto: current filter values
-    * type_options, status_options: [{ value, label, selected }]
+    * invoicenumber, amountmin, amountmax, datefrom, dateto: current filter values
+    * type_options, item_options: [{ value, label, selected }]
     * has_filters: whether any filter is currently active
     * clear_url: url with no filter params
 }}
-<form method="get" action="{{action}}" class="local-payments-invoice-filters card mb-3">
+<form method="get" action="{{action}}" id="lpf-filter-form" class="local-payments-invoice-filters card mb-3">
     <div class="card-body">
         <div class="form-row align-items-end">
             <div class="form-group col-md-2 mb-2">
@@ -18,9 +18,11 @@
             </div>
             <div class="form-group col-md-2 mb-2">
                 <label for="lpf-item">{{#str}}filter_item, local_payments{{/str}}</label>
-                <input type="text" class="form-control form-control-sm" id="lpf-item"
-                       name="item" value="{{item}}"
-                       placeholder="{{#str}}filter_item_placeholder, local_payments{{/str}}">
+                <select class="form-control form-control-sm" id="lpf-item" name="item">
+                    {{#item_options}}
+                    <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                    {{/item_options}}
+                </select>
             </div>
             <div class="form-group col-md-2 mb-2">
                 <label for="lpf-type">{{#str}}invoice_type, local_payments{{/str}}</label>
@@ -28,14 +30,6 @@
                     {{#type_options}}
                     <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
                     {{/type_options}}
-                </select>
-            </div>
-            <div class="form-group col-md-2 mb-2">
-                <label for="lpf-status">{{#str}}status, local_payments{{/str}}</label>
-                <select class="form-control form-control-sm" id="lpf-status" name="status">
-                    {{#status_options}}
-                    <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
-                    {{/status_options}}
                 </select>
             </div>
             <div class="form-group col-md-2 mb-2">
@@ -59,7 +53,7 @@
                        id="lpf-dateto" name="dateto" value="{{dateto}}">
             </div>
             <div class="form-group col-md-2 mb-2 d-flex" style="gap:.5rem">
-                <button type="submit" class="btn btn-sm btn-primary">
+                <button type="submit" class="btn btn-sm btn-primary" id="lpf-apply-btn" disabled>
                     {{#str}}filter_apply, local_payments{{/str}}
                 </button>
                 {{#has_filters}}
@@ -71,3 +65,30 @@
         </div>
     </div>
 </form>
+<script>
+(function() {
+    var form = document.getElementById('lpf-filter-form');
+    var btn = document.getElementById('lpf-apply-btn');
+    if (!form || !btn) {
+        return;
+    }
+    var fields = form.querySelectorAll('input, select');
+    var initial = {};
+    fields.forEach(function(f) {
+        initial[f.name] = f.value;
+    });
+    function checkChanged() {
+        var changed = false;
+        fields.forEach(function(f) {
+            if (f.value !== initial[f.name]) {
+                changed = true;
+            }
+        });
+        btn.disabled = !changed;
+    }
+    fields.forEach(function(f) {
+        f.addEventListener('input', checkChanged);
+        f.addEventListener('change', checkChanged);
+    });
+})();
+</script>

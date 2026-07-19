@@ -20,7 +20,6 @@ $filters = [
     'invoicenumber' => optional_param('invoicenumber', '', PARAM_RAW_TRIMMED),
     'item'          => optional_param('item', '', PARAM_RAW_TRIMMED),
     'type'          => optional_param('type', '', PARAM_ALPHA),
-    'status'        => optional_param('status', '', PARAM_ALPHA),
     'amountmin'     => optional_param('amountmin', '', PARAM_RAW_TRIMMED),
     'amountmax'     => optional_param('amountmax', '', PARAM_RAW_TRIMMED),
     'datefrom'      => optional_param('datefrom', '', PARAM_RAW_TRIMMED),
@@ -90,26 +89,20 @@ foreach ([
     $typeoptions[] = ['value' => $value, 'label' => $label, 'selected' => ($filters['type'] === $value)];
 }
 
-$statusoptions = [];
-foreach ([
-    '' => get_string('all'),
-    'issued' => get_string('invstatus_issued', 'local_payments'),
-    'void' => get_string('invstatus_void', 'local_payments'),
-    'draft' => get_string('invstatus_draft', 'local_payments'),
-] as $value => $label) {
-    $statusoptions[] = ['value' => $value, 'label' => $label, 'selected' => ($filters['status'] === $value)];
+$itemoptions = [['value' => '', 'label' => get_string('all'), 'selected' => ($filters['item'] === '')]];
+foreach (invoice_manager::get_user_items((int) $USER->id) as $itemname) {
+    $itemoptions[] = ['value' => $itemname, 'label' => $itemname, 'selected' => ($filters['item'] === $itemname)];
 }
 
 $filtercontext = [
     'action'          => $baseurl->out(false),
     'invoicenumber'   => $filters['invoicenumber'],
-    'item'            => $filters['item'],
     'amountmin'       => $filters['amountmin'],
     'amountmax'       => $filters['amountmax'],
     'datefrom'        => $filters['datefrom'],
     'dateto'          => $filters['dateto'],
     'type_options'    => $typeoptions,
-    'status_options'  => $statusoptions,
+    'item_options'    => $itemoptions,
     'has_filters'     => $hasfilters,
     'clear_url'       => $baseurl->out(false),
 ];

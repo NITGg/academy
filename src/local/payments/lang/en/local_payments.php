@@ -93,7 +93,6 @@ $string['noinvoices_filtered'] = 'No invoices match these filters.';
 $string['filter_invoicenumber'] = 'Invoice number';
 $string['filter_invoicenumber_placeholder'] = 'e.g. INV-2026-0000001';
 $string['filter_item'] = 'Item';
-$string['filter_item_placeholder'] = 'Search by item name';
 $string['filter_amount_min'] = 'Amount from';
 $string['filter_amount_max'] = 'Amount to';
 $string['filter_date_from'] = 'Date from';
