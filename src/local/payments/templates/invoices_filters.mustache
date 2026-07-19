@@ -1,0 +1,73 @@
+{{!
+    Filter bar for the student invoices list.
+    Context:
+    * action: form GET target url
+    * invoicenumber, item, amountmin, amountmax, datefrom, dateto: current filter values
+    * type_options, status_options: [{ value, label, selected }]
+    * has_filters: whether any filter is currently active
+    * clear_url: url with no filter params
+}}
+<form method="get" action="{{action}}" class="local-payments-invoice-filters card mb-3">
+    <div class="card-body">
+        <div class="form-row align-items-end">
+            <div class="form-group col-md-2 mb-2">
+                <label for="lpf-invoicenumber">{{#str}}filter_invoicenumber, local_payments{{/str}}</label>
+                <input type="text" class="form-control form-control-sm" id="lpf-invoicenumber"
+                       name="invoicenumber" value="{{invoicenumber}}"
+                       placeholder="{{#str}}filter_invoicenumber_placeholder, local_payments{{/str}}">
+            </div>
+            <div class="form-group col-md-2 mb-2">
+                <label for="lpf-item">{{#str}}filter_item, local_payments{{/str}}</label>
+                <input type="text" class="form-control form-control-sm" id="lpf-item"
+                       name="item" value="{{item}}"
+                       placeholder="{{#str}}filter_item_placeholder, local_payments{{/str}}">
+            </div>
+            <div class="form-group col-md-2 mb-2">
+                <label for="lpf-type">{{#str}}invoice_type, local_payments{{/str}}</label>
+                <select class="form-control form-control-sm" id="lpf-type" name="type">
+                    {{#type_options}}
+                    <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                    {{/type_options}}
+                </select>
+            </div>
+            <div class="form-group col-md-2 mb-2">
+                <label for="lpf-status">{{#str}}status, local_payments{{/str}}</label>
+                <select class="form-control form-control-sm" id="lpf-status" name="status">
+                    {{#status_options}}
+                    <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                    {{/status_options}}
+                </select>
+            </div>
+            <div class="form-group col-md-2 mb-2">
+                <label for="lpf-amountmin">{{#str}}filter_amount_min, local_payments{{/str}}</label>
+                <input type="number" step="0.01" min="0" class="form-control form-control-sm"
+                       id="lpf-amountmin" name="amountmin" value="{{amountmin}}">
+            </div>
+            <div class="form-group col-md-2 mb-2">
+                <label for="lpf-amountmax">{{#str}}filter_amount_max, local_payments{{/str}}</label>
+                <input type="number" step="0.01" min="0" class="form-control form-control-sm"
+                       id="lpf-amountmax" name="amountmax" value="{{amountmax}}">
+            </div>
+            <div class="form-group col-md-2 mb-2">
+                <label for="lpf-datefrom">{{#str}}filter_date_from, local_payments{{/str}}</label>
+                <input type="date" class="form-control form-control-sm"
+                       id="lpf-datefrom" name="datefrom" value="{{datefrom}}">
+            </div>
+            <div class="form-group col-md-2 mb-2">
+                <label for="lpf-dateto">{{#str}}filter_date_to, local_payments{{/str}}</label>
+                <input type="date" class="form-control form-control-sm"
+                       id="lpf-dateto" name="dateto" value="{{dateto}}">
+            </div>
+            <div class="form-group col-md-2 mb-2 d-flex" style="gap:.5rem">
+                <button type="submit" class="btn btn-sm btn-primary">
+                    {{#str}}filter_apply, local_payments{{/str}}
+                </button>
+                {{#has_filters}}
+                <a class="btn btn-sm btn-outline-secondary" href="{{clear_url}}">
+                    {{#str}}filter_clear, local_payments{{/str}}
+                </a>
+                {{/has_filters}}
+            </div>
+        </div>
+    </div>
+</form>

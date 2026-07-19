@@ -6,6 +6,7 @@
 require_once(__DIR__ . '/../../config.php');
 
 use local_payments\invoice_manager;
+use local_payments\invoice_generator;
 
 require_login();
 
@@ -14,8 +15,23 @@ $download = optional_param('download', '', PARAM_ALPHA); // 'pdf' to download.
 $page     = optional_param('page', 0, PARAM_INT);
 $perpage  = 20;
 
+// Filters for the list view.
+$filters = [
+    'invoicenumber' => optional_param('invoicenumber', '', PARAM_RAW_TRIMMED),
+    'item'          => optional_param('item', '', PARAM_RAW_TRIMMED),
+    'type'          => optional_param('type', '', PARAM_ALPHA),
+    'status'        => optional_param('status', '', PARAM_ALPHA),
+    'amountmin'     => optional_param('amountmin', '', PARAM_RAW_TRIMMED),
+    'amountmax'     => optional_param('amountmax', '', PARAM_RAW_TRIMMED),
+    'datefrom'      => optional_param('datefrom', '', PARAM_RAW_TRIMMED),
+    'dateto'        => optional_param('dateto', '', PARAM_RAW_TRIMMED),
+];
+$hasfilters = (bool) array_filter($filters, fn($v) => $v !== '');
+
 $context = context_system::instance();
 $baseurl = new moodle_url('/local/payments/invoices.php');
+// Preserve active filters across pagination / detail links.
+$listurl = new moodle_url($baseurl, array_filter($filters, fn($v) => $v !== ''));
 
 $PAGE->set_url($baseurl);
 $PAGE->set_context($context);
@@ -39,12 +55,12 @@ if ($id) {
         // stream_pdf() exits.
     }
 
-    $PAGE->navbar->add(get_string('myinvoices', 'local_payments'), $baseurl);
+    $PAGE->navbar->add(get_string('myinvoices', 'local_payments'), $listurl);
     $PAGE->navbar->add($invoice->invoice_number);
 
     $data = invoice_manager::detail_context($invoice, $owner);
     $data['pdf_url'] = (new moodle_url($baseurl, ['id' => $invoice->id, 'download' => 'pdf']))->out(false);
-    $data['back_url'] = $baseurl->out(false);
+    $data['back_url'] = $listurl->out(false);
 
     echo $OUTPUT->header();
     echo $OUTPUT->render_from_template('local_payments/invoice_detail', $data);
@@ -53,26 +69,65 @@ if ($id) {
 }
 
 // ── List ────────────────────────────────────────────────────────────────────
-$result = invoice_manager::get_user_invoices((int) $USER->id, $page, $perpage);
+$result = invoice_manager::get_user_invoices((int) $USER->id, $page, $perpage, $filters);
 
-// Attach detail/PDF urls to each row.
+// Attach detail/PDF urls to each row (carrying the active filters along).
 foreach ($result['rows'] as &$row) {
-    $row['view_url'] = (new moodle_url($baseurl, ['id' => $row['id']]))->out(false);
-    $row['pdf_url'] = (new moodle_url($baseurl, ['id' => $row['id'], 'download' => 'pdf']))->out(false);
+    $row['view_url'] = (new moodle_url($listurl, ['id' => $row['id']]))->out(false);
+    $row['pdf_url'] = (new moodle_url($listurl, ['id' => $row['id'], 'download' => 'pdf']))->out(false);
 }
 unset($row);
+
+// Filter form context: option lists with a precomputed 'selected' flag per option
+// (mustache has no equality helper, so this is resolved here).
+$typeoptions = [];
+foreach ([
+    '' => get_string('all'),
+    invoice_generator::SOURCE_COURSE => get_string('invoice_item_course', 'local_payments'),
+    invoice_generator::SOURCE_PACKAGE => get_string('invoice_item_package', 'local_payments'),
+    invoice_generator::SOURCE_SUBSCRIPTION => get_string('invoice_item_subscription', 'local_payments'),
+] as $value => $label) {
+    $typeoptions[] = ['value' => $value, 'label' => $label, 'selected' => ($filters['type'] === $value)];
+}
+
+$statusoptions = [];
+foreach ([
+    '' => get_string('all'),
+    'issued' => get_string('invstatus_issued', 'local_payments'),
+    'void' => get_string('invstatus_void', 'local_payments'),
+    'draft' => get_string('invstatus_draft', 'local_payments'),
+] as $value => $label) {
+    $statusoptions[] = ['value' => $value, 'label' => $label, 'selected' => ($filters['status'] === $value)];
+}
+
+$filtercontext = [
+    'action'          => $baseurl->out(false),
+    'invoicenumber'   => $filters['invoicenumber'],
+    'item'            => $filters['item'],
+    'amountmin'       => $filters['amountmin'],
+    'amountmax'       => $filters['amountmax'],
+    'datefrom'        => $filters['datefrom'],
+    'dateto'          => $filters['dateto'],
+    'type_options'    => $typeoptions,
+    'status_options'  => $statusoptions,
+    'has_filters'     => $hasfilters,
+    'clear_url'       => $baseurl->out(false),
+];
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('myinvoices', 'local_payments'));
 
+echo $OUTPUT->render_from_template('local_payments/invoices_filters', $filtercontext);
+
 if (empty($result['rows'])) {
-    echo $OUTPUT->notification(get_string('noinvoices', 'local_payments'), 'info');
+    echo $OUTPUT->notification(get_string(
+        $hasfilters ? 'noinvoices_filtered' : 'noinvoices', 'local_payments'), 'info');
 } else {
     echo $OUTPUT->render_from_template('local_payments/invoices_list', [
         'invoices'     => array_values($result['rows']),
         'has_invoices' => true,
     ]);
-    echo $OUTPUT->paging_bar($result['total'], $page, $perpage, $baseurl);
+    echo $OUTPUT->paging_bar($result['total'], $page, $perpage, $listurl);
 }
 
 echo $OUTPUT->footer();

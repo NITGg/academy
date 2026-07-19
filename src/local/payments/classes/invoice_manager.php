@@ -12,13 +12,20 @@ class invoice_manager {
     /**
      * A page of the user's invoices, newest first.
      *
+     * @param array $filters optional: invoicenumber, item, type, status, amountmin,
+     *                        amountmax, datefrom, dateto (see build_filter_sql())
      * @return array{rows: array, total: int}
      */
-    public static function get_user_invoices(int $userid, int $page = 0, int $perpage = 20): array {
+    public static function get_user_invoices(int $userid, int $page = 0, int $perpage = 20,
+            array $filters = []): array {
         global $DB;
 
-        $total = $DB->count_records('local_payments_invoices', ['userid' => $userid]);
-        $records = $DB->get_records('local_payments_invoices', ['userid' => $userid],
+        [$filterwhere, $params] = self::build_filter_sql($filters);
+        $where = 'userid = :userid' . ($filterwhere !== '' ? ' AND ' . $filterwhere : '');
+        $params['userid'] = $userid;
+
+        $total = $DB->count_records_select('local_payments_invoices', $where, $params);
+        $records = $DB->get_records_select('local_payments_invoices', $where, $params,
             'timecreated DESC, id DESC', '*', $page * $perpage, $perpage);
 
         $rows = [];
@@ -26,6 +33,61 @@ class invoice_manager {
             $rows[] = self::format_row($rec);
         }
         return ['rows' => $rows, 'total' => $total];
+    }
+
+    /**
+     * Build a WHERE fragment + params from the invoices-page filter inputs.
+     *
+     * @return array{0: string, 1: array} [$where, $params] — $where is '' when no filter is set.
+     */
+    private static function build_filter_sql(array $filters): array {
+        global $DB;
+
+        $clauses = [];
+        $params = [];
+
+        if (!empty($filters['invoicenumber'])) {
+            $clauses[] = $DB->sql_like('invoice_number', ':invoicenumber', false);
+            $params['invoicenumber'] = '%' . $DB->sql_like_escape(trim($filters['invoicenumber'])) . '%';
+        }
+        if (!empty($filters['item'])) {
+            $clauses[] = $DB->sql_like('item_name', ':itemname', false);
+            $params['itemname'] = '%' . $DB->sql_like_escape(trim($filters['item'])) . '%';
+        }
+        if (!empty($filters['type']) && in_array($filters['type'],
+                [invoice_generator::SOURCE_COURSE, invoice_generator::SOURCE_PACKAGE,
+                 invoice_generator::SOURCE_SUBSCRIPTION], true)) {
+            $clauses[] = 'source_type = :sourcetype';
+            $params['sourcetype'] = $filters['type'];
+        }
+        if (!empty($filters['status']) && in_array($filters['status'], ['issued', 'void', 'draft'], true)) {
+            $clauses[] = 'status = :invstatus';
+            $params['invstatus'] = $filters['status'];
+        }
+        if (isset($filters['amountmin']) && $filters['amountmin'] !== '' && is_numeric($filters['amountmin'])) {
+            $clauses[] = 'amount >= :amountmin';
+            $params['amountmin'] = (float) $filters['amountmin'];
+        }
+        if (isset($filters['amountmax']) && $filters['amountmax'] !== '' && is_numeric($filters['amountmax'])) {
+            $clauses[] = 'amount <= :amountmax';
+            $params['amountmax'] = (float) $filters['amountmax'];
+        }
+        if (!empty($filters['datefrom'])) {
+            $ts = strtotime($filters['datefrom'] . ' 00:00:00');
+            if ($ts !== false) {
+                $clauses[] = 'timecreated >= :datefrom';
+                $params['datefrom'] = $ts;
+            }
+        }
+        if (!empty($filters['dateto'])) {
+            $ts = strtotime($filters['dateto'] . ' 23:59:59');
+            if ($ts !== false) {
+                $clauses[] = 'timecreated <= :dateto';
+                $params['dateto'] = $ts;
+            }
+        }
+
+        return [implode(' AND ', $clauses), $params];
     }
 
     /**
