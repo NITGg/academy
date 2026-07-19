@@ -5,6 +5,32 @@ function local_payments_extend_navigation(global_navigation $navigation) {
     // Navigation hooks will be added as needed.
 }
 
+/**
+ * Add an "Invoices" link to the user's preferences (settings) menu, next to the
+ * other student entries. Shown only on the user's own preferences page.
+ */
+function local_payments_extend_navigation_user_settings($navigation, $user, $context, $course, $coursecontext) {
+    global $USER;
+    if (empty($USER->id) || $USER->id != $user->id) {
+        return; // only on your own preferences page
+    }
+
+    $node = navigation_node::create(
+        get_string('myinvoices', 'local_payments'),
+        new moodle_url('/local/payments/invoices.php'),
+        navigation_node::TYPE_SETTING,
+        null,
+        'local_payments_invoices',
+        new pix_icon('i/report', '')
+    );
+    $useraccount = $navigation->find('useraccount', navigation_node::TYPE_CONTAINER);
+    if ($useraccount) {
+        $useraccount->add_node($node);
+    } else {
+        $navigation->add_node($node);
+    }
+}
+
 function local_payments_extend_navigation_course(\navigation_node $navigation, \stdClass $course, \context_course $context) {
     if (has_capability('local/payments:managecoursepricing', $context)) {
         $url = new \moodle_url('/local/payments/course_pricing.php', ['courseid' => $course->id]);

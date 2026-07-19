@@ -47,6 +47,42 @@ if ($hassiteconfig) {
         1
     ));
 
+    // Invoice / seller details (shown on the student invoice page and PDF).
+    $settings->add(new admin_setting_heading('local_payments/invoice_heading',
+        get_string('invoice_settings', 'local_payments'), ''));
+
+    $settings->add(new admin_setting_configtext(
+        'local_payments/invoice_seller_name',
+        get_string('invoice_seller_name', 'local_payments'),
+        get_string('invoice_seller_name_desc', 'local_payments'),
+        '',
+        PARAM_TEXT
+    ));
+
+    $settings->add(new admin_setting_configtextarea(
+        'local_payments/invoice_seller_details',
+        get_string('invoice_seller_details', 'local_payments'),
+        get_string('invoice_seller_details_desc', 'local_payments'),
+        '',
+        PARAM_TEXT
+    ));
+
+    $settings->add(new admin_setting_configtext(
+        'local_payments/invoice_seller_taxid',
+        get_string('invoice_seller_taxid', 'local_payments'),
+        get_string('invoice_seller_taxid_desc', 'local_payments'),
+        '',
+        PARAM_TEXT
+    ));
+
+    $settings->add(new admin_setting_configtextarea(
+        'local_payments/invoice_footer',
+        get_string('invoice_footer', 'local_payments'),
+        get_string('invoice_footer_desc', 'local_payments'),
+        '',
+        PARAM_TEXT
+    ));
+
     $ADMIN->add('local_payments_category', $settings);
 
     // Provider management link.

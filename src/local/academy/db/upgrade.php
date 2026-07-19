@@ -675,7 +675,9 @@ function xmldb_local_academy_upgrade($oldversion) {
             $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
             $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
             $table->add_key('courseid_fk', XMLDB_KEY_FOREIGN, array('courseid'), 'course', array('id'));
-            $table->add_index('courseid_uix', XMLDB_INDEX_UNIQUE, array('courseid'));
+            // NB: the courseid foreign key already indexes courseid; a separate index on the same
+            // single column collides in Moodle's xmldb. (A unique index would also be wrong — the
+            // model allows many certificates per course, see the 2026071901 step below.)
             $dbman->create_table($table);
         }
 

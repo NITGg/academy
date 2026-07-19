@@ -766,12 +766,16 @@ class manager {
         // Record coupon/offer usage now the purchase is fulfilled (idempotent).
         self::record_academy_discount($transaction, $meta);
 
-        // Generate invoice.
-        try {
-            invoice_generator::create((int) $transaction->id);
-        } catch (\Exception $e) {
-            self::log_entry($transaction->provider_id, $transaction->id, 'warning',
-                'Invoice generation failed: ' . $e->getMessage());
+        // Generate invoice. Package/subscription invoices are issued inside their
+        // purchase managers (which also covers direct, non-gateway purchases), so here
+        // we only issue the course invoice keyed to this transaction.
+        if ($item_type === 'course') {
+            try {
+                invoice_generator::create(invoice_generator::SOURCE_COURSE, (int) $transaction->id);
+            } catch (\Exception $e) {
+                self::log_entry($transaction->provider_id, $transaction->id, 'warning',
+                    'Invoice generation failed: ' . $e->getMessage());
+            }
         }
 
         if ($item_type === 'course') {
@@ -934,9 +938,9 @@ class manager {
                 // Record coupon/offer usage now the purchase is fulfilled (idempotent).
                 self::record_academy_discount($transaction, $meta);
 
-                invoice_generator::create((int) $transaction->id);
-                
+                // Course invoice only; package/subscription invoices are issued by their managers.
                 if ($item_type === 'course') {
+                    invoice_generator::create(invoice_generator::SOURCE_COURSE, (int) $transaction->id);
                     self::send_confirmation($transaction);
                 }
             } else {

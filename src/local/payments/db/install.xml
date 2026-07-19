@@ -181,13 +181,18 @@
     <!-- ================================================================== -->
     <!-- Invoices -->
     <!-- ================================================================== -->
-    <TABLE NAME="local_payments_invoices" COMMENT="Payment invoices">
+    <TABLE NAME="local_payments_invoices" COMMENT="Payment invoices (course, package or subscription purchases)">
       <FIELDS>
         <FIELD NAME="id"              TYPE="int"    LENGTH="10"  NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="transaction_id"  TYPE="int"    LENGTH="10"  NOTNULL="true"/>
+        <FIELD NAME="source_type"     TYPE="char"   LENGTH="20"  NOTNULL="true" DEFAULT="course" COMMENT="course | package | subscription"/>
+        <FIELD NAME="source_id"       TYPE="int"    LENGTH="10"  NOTNULL="true" DEFAULT="0" COMMENT="course:txn id, package:academy_package_purchases id, subscription:academy_sub_purchases id"/>
+        <FIELD NAME="transaction_id"  TYPE="int"    LENGTH="10"  NOTNULL="false" COMMENT="linked gateway transaction when one exists (NULL for direct/admin purchases)"/>
         <FIELD NAME="userid"          TYPE="int"    LENGTH="10"  NOTNULL="true"/>
         <FIELD NAME="invoice_number"  TYPE="char"   LENGTH="50"  NOTNULL="true"/>
-        <FIELD NAME="amount"          TYPE="number" LENGTH="10"  DECIMALS="2" NOTNULL="true"/>
+        <FIELD NAME="item_name"       TYPE="char"   LENGTH="255" NOTNULL="false" COMMENT="snapshot of the purchased item's name"/>
+        <FIELD NAME="subtotal"        TYPE="number" LENGTH="10"  DECIMALS="2" NOTNULL="false" COMMENT="price before discount"/>
+        <FIELD NAME="discount"        TYPE="number" LENGTH="10"  DECIMALS="2" NOTNULL="false" COMMENT="discount amount applied"/>
+        <FIELD NAME="amount"          TYPE="number" LENGTH="10"  DECIMALS="2" NOTNULL="true" COMMENT="final amount charged"/>
         <FIELD NAME="currency"        TYPE="char"   LENGTH="3"   NOTNULL="true"/>
         <FIELD NAME="status"          TYPE="char"   LENGTH="20"  NOTNULL="true" DEFAULT="issued" COMMENT="draft, issued, void"/>
         <FIELD NAME="pdf_path"        TYPE="char"   LENGTH="500" NOTNULL="false"/>
@@ -195,12 +200,13 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="fk_transaction_id" TYPE="foreign" FIELDS="transaction_id" REFTABLE="local_payments_transactions" REFFIELDS="id"/>
         <KEY NAME="fk_userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="idx_invoice_number" UNIQUE="true" FIELDS="invoice_number"/>
         <INDEX NAME="idx_userid" UNIQUE="false" FIELDS="userid"/>
+        <INDEX NAME="idx_source" UNIQUE="true" FIELDS="source_type, source_id"/>
+        <INDEX NAME="idx_transaction_id" UNIQUE="false" FIELDS="transaction_id"/>
       </INDEXES>
     </TABLE>
 

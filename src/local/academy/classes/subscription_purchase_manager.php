@@ -131,6 +131,10 @@ class subscription_purchase_manager {
 
         $transaction->allow_commit();
 
+        // Issue an invoice for the completed purchase (best-effort; idempotent, so the
+        // gateway fulfilment path calling us does not create a second invoice).
+        self::issue_invoice($purchase->id);
+
         if ($isb2b) {
             // Best-effort confirmation (never let a notification failure roll back a paid purchase).
             if (method_exists('\local_academy\notification_manager', 'b2b_purchase_confirmed')) {
@@ -657,5 +661,21 @@ class subscription_purchase_manager {
     /** Generate a unique-ish transaction number. */
     private static function generate_txn() {
         return 'SUB' . strtoupper(substr(md5(uniqid('', true)), 0, 14));
+    }
+
+    /**
+     * Best-effort invoice issuance via local_payments for a subscription purchase.
+     * Idempotent and non-fatal — a failure here must never roll back a paid purchase.
+     */
+    private static function issue_invoice($purchaseid) {
+        if (!class_exists('\local_payments\invoice_generator')) {
+            return;
+        }
+        try {
+            \local_payments\invoice_generator::create(
+                \local_payments\invoice_generator::SOURCE_SUBSCRIPTION, (int)$purchaseid);
+        } catch (\Throwable $e) {
+            debugging('Subscription invoice generation failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 }

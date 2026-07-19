@@ -83,6 +83,40 @@ $string['paymentmethod'] = 'طريقة الدفع';
 $string['invoice'] = 'الفاتورة';
 $string['date'] = 'التاريخ';
 
+// Invoices (student-facing page).
+$string['myinvoices'] = 'الفواتير';
+$string['noinvoices'] = 'لا توجد لديك فواتير حتى الآن.';
+$string['actions'] = 'إجراءات';
+$string['back'] = 'رجوع';
+$string['invoice_number'] = 'رقم الفاتورة';
+$string['invoice_type'] = 'النوع';
+$string['invoice_item'] = 'العنصر';
+$string['invoice_view'] = 'عرض';
+$string['invoice_downloadpdf'] = 'تحميل PDF';
+$string['invoice_from'] = 'من';
+$string['invoice_billedto'] = 'صادرة إلى';
+$string['invoice_subtotal'] = 'المجموع الفرعي';
+$string['invoice_discount'] = 'الخصم';
+$string['invoice_total'] = 'الإجمالي';
+$string['invoice_taxid'] = 'الرقم الضريبي';
+$string['invoice_item_course'] = 'دورة';
+$string['invoice_item_package'] = 'باقة';
+$string['invoice_item_subscription'] = 'اشتراك';
+$string['invstatus_issued'] = 'صادرة';
+$string['invstatus_void'] = 'ملغاة';
+$string['invstatus_draft'] = 'مسودة';
+
+// Invoice settings.
+$string['invoice_settings'] = 'بيانات الفاتورة';
+$string['invoice_seller_name'] = 'اسم البائع';
+$string['invoice_seller_name_desc'] = 'اسم الجهة الظاهر على الفواتير. يُستخدم اسم الموقع عند تركه فارغًا.';
+$string['invoice_seller_details'] = 'بيانات البائع';
+$string['invoice_seller_details_desc'] = 'العنوان / بيانات التواصل الظاهرة على الفواتير (سطر لكل بند).';
+$string['invoice_seller_taxid'] = 'الرقم الضريبي للبائع';
+$string['invoice_seller_taxid_desc'] = 'رقم التسجيل الضريبي الظاهر على الفواتير.';
+$string['invoice_footer'] = 'تذييل الفاتورة';
+$string['invoice_footer_desc'] = 'ملاحظة اختيارية تظهر أسفل كل فاتورة.';
+
 // Reports.
 $string['total_revenue'] = 'إجمالي الإيرادات';
 $string['total_transactions'] = 'إجمالي المعاملات';

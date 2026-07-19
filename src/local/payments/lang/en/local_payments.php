@@ -86,6 +86,40 @@ $string['paymentmethod'] = 'Payment Method';
 $string['invoice'] = 'Invoice';
 $string['date'] = 'Date';
 
+// Invoices (student-facing page).
+$string['myinvoices'] = 'Invoices';
+$string['noinvoices'] = 'You have no invoices yet.';
+$string['actions'] = 'Actions';
+$string['back'] = 'Back';
+$string['invoice_number'] = 'Invoice number';
+$string['invoice_type'] = 'Type';
+$string['invoice_item'] = 'Item';
+$string['invoice_view'] = 'View';
+$string['invoice_downloadpdf'] = 'Download PDF';
+$string['invoice_from'] = 'From';
+$string['invoice_billedto'] = 'Billed to';
+$string['invoice_subtotal'] = 'Subtotal';
+$string['invoice_discount'] = 'Discount';
+$string['invoice_total'] = 'Total';
+$string['invoice_taxid'] = 'Tax ID';
+$string['invoice_item_course'] = 'Course';
+$string['invoice_item_package'] = 'Package';
+$string['invoice_item_subscription'] = 'Subscription';
+$string['invstatus_issued'] = 'Issued';
+$string['invstatus_void'] = 'Void';
+$string['invstatus_draft'] = 'Draft';
+
+// Invoice settings.
+$string['invoice_settings'] = 'Invoice details';
+$string['invoice_seller_name'] = 'Seller name';
+$string['invoice_seller_name_desc'] = 'Business name shown on invoices. Defaults to the site name when empty.';
+$string['invoice_seller_details'] = 'Seller details';
+$string['invoice_seller_details_desc'] = 'Address / contact details shown on invoices (one per line).';
+$string['invoice_seller_taxid'] = 'Seller tax ID';
+$string['invoice_seller_taxid_desc'] = 'Tax / VAT registration number shown on invoices.';
+$string['invoice_footer'] = 'Invoice footer';
+$string['invoice_footer_desc'] = 'Optional note shown at the bottom of every invoice.';
+
 // Reports.
 $string['total_revenue'] = 'Total Revenue';
 $string['total_transactions'] = 'Total Transactions';
