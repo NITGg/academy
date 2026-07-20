@@ -36,14 +36,13 @@ $STR = local_academy_string_map(array(
     'st_status', 'lf_all', 'ui_refresh', 'ui_cancel', 'ui_confirm',
     'st_col_date', 'st_col_amount', 'st_col_status', 'pkg_col_actions',
     'wstat_pending', 'wstat_approved', 'wstat_paid', 'wstat_rejected',
-    'wd_col_teacher', 'wd_col_methodaccount', 'wd_reversal_title', 'wd_reversal_help', 'wd_lesson_id',
-    'wd_reason', 'wd_return_flex', 'wd_updated', 'wd_approve', 'wd_reject', 'wd_markpaid',
+    'wd_col_teacher', 'wd_col_methodaccount',
+    'wd_updated', 'wd_approve', 'wd_reject', 'wd_markpaid',
     'wd_reject_title', 'wd_reason_required_field', 'wd_markpaid_title', 'wd_payref_optional',
     'wd_reason_required', 'wd_card_current', 'wd_card_undistributed', 'wd_card_teachers',
-    'wd_card_platform', 'wd_none', 'wd_enter_lesson', 'wd_flex_returned', 'w_ref', 'err_reasonrequired',
+    'wd_card_platform', 'wd_none', 'w_ref',
     'wd_withdrawals_title',
-    'ui_picker_lesson_ph', 'ui_picker_searching', 'ui_picker_none', 'ui_picker_hint', 'ui_currency_egp',
-    'err_sessionexpired', 'err_requestfailed',
+    'err_sessionexpired', 'err_requestfailed', 'ui_pager_info',
     // Financial Reports.
     'fr_tab_overview', 'fr_tab_packages', 'fr_tab_subscriptions', 'fr_tab_courses',
     'fr_tab_coupons', 'fr_tab_offers',
@@ -104,8 +103,6 @@ table.wd-table td.num,table.wd-table th.num{text-align:right;white-space:nowrap}
 .fr-types{display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem;font-size:.86rem;color:#495057}
 .fr-types > div{flex:1 1 320px}
 .wd-actions{display:flex;gap:.3rem;flex-wrap:wrap}
-.wd-reversal{margin-top:1.5rem;border:1px solid #ffe082;background:#fff8e1;border-radius:.5rem;padding:1rem;max-width:560px}
-.wd-reversal .form-group{margin-bottom:.6rem}
 .wd-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:1050}
 .wd-modal{background:#fff;border-radius:.5rem;padding:1.25rem;max-width:420px;width:90%}
 .wd-modal .form-group{margin-bottom:.75rem}
@@ -182,15 +179,9 @@ table.wd-table td.num,table.wd-table th.num{text-align:right;white-space:nowrap}
         <tbody id="wd-rows"></tbody>
       </table>
       </div>
+      <div id="wd-rows-pager" class="acad-pager"></div>
     </div>
 
-    <div class="wd-reversal">
-      <h6><?php echo $STR['wd_reversal_title']; ?></h6>
-      <p class="text-muted" style="font-size:.88rem"><?php echo $STR['wd_reversal_help']; ?></p>
-      <div class="form-group"><label for="wd-rev-lesson"><?php echo $STR['wd_lesson_id']; ?></label><div id="wd-rev-lesson"></div></div>
-      <div class="form-group"><label for="wd-rev-reason"><?php echo $STR['wd_reason']; ?></label><input class="form-control" id="wd-rev-reason"></div>
-      <button id="wd-rev-btn" class="btn btn-warning"><?php echo $STR['wd_return_flex']; ?></button>
-    </div>
   </div>
 
   <!-- Tabs 2-5: one summary card row + one table each -->
@@ -266,22 +257,37 @@ echo html_writer::script(<<<'JS'
     }).join('');
   }
 
+  var PAGE_SIZE=10;
+
   /**
-   * Render a table from a column spec.
-   * cols: [{key, label, num:bool, get:fn(row)->string, raw:fn(row)->string for CSV}]
+   * The pager bar that belongs to a table, created lazily just after it.
+   *
+   * Anchored outside the .fr-scroll wrapper: inside it, the bar would sit in the horizontally
+   * scrolling area and slide out of view on the wide tables that need paging most.
+   */
+  function pagerFor(mount){
+    var id=mount+'-pager', el=$(id);
+    if(!el){
+      el=document.createElement('div');
+      el.id=id; el.className='acad-pager';
+      var anchor=$(mount);
+      if(anchor.parentNode.classList.contains('fr-scroll')){anchor=anchor.parentNode;}
+      anchor.parentNode.insertBefore(el,anchor.nextSibling);
+    }
+    return el;
+  }
+
+  /**
+   * Render a paginated table from a column spec.
+   * cols: [{key, label, num:bool, money:bool, get:fn(row)->html}]
    * total: optional object keyed like a row, rendered as a footer.
+   *
+   * The footer totals and the CSV export always cover the WHOLE result set, not just the visible
+   * page — a "Total" row that only added up 10 of 40 rows would be actively misleading.
    */
   function table(mount,cols,rows,total){
     var el=$(mount);
     var head='<thead><tr>'+cols.map(function(c){return '<th'+(c.num?' class="num"':'')+'>'+esc(c.label)+'</th>';}).join('')+'</tr></thead>';
-    var body;
-    if(!rows.length){
-      body='<tbody><tr><td colspan="'+cols.length+'" class="text-muted">'+esc(str('fr_norows'))+'</td></tr></tbody>';
-    } else {
-      body='<tbody>'+rows.map(function(r){
-        return '<tr>'+cols.map(function(c){return '<td'+(c.num?' class="num"':'')+'>'+(c.get?c.get(r):esc(r[c.key]))+'</td>';}).join('')+'</tr>';
-      }).join('')+'</tbody>';
-    }
     var foot='';
     if(total&&rows.length){
       foot='<tfoot><tr>'+cols.map(function(c,i){
@@ -290,8 +296,27 @@ echo html_writer::script(<<<'JS'
         return '<td'+(c.num?' class="num"':'')+'>'+(v==null?'':esc(c.money?money(v):v))+'</td>';
       }).join('')+'</tr></tfoot>';
     }
-    el.innerHTML=head+body+foot;
-    // Stash the plain data so "Export CSV" can serialise the visible tab.
+    el.innerHTML=head+'<tbody></tbody>'+foot;
+    var tb=el.querySelector('tbody');
+    var pagerEl=pagerFor(mount);
+    pagerEl.innerHTML='';
+
+    function renderPage(pageRows){
+      if(!pageRows.length){
+        tb.innerHTML='<tr><td colspan="'+cols.length+'" class="text-muted">'+esc(str('fr_norows'))+'</td></tr>';
+        return;
+      }
+      tb.innerHTML=pageRows.map(function(r){
+        return '<tr>'+cols.map(function(c){return '<td'+(c.num?' class="num"':'')+'>'+(c.get?c.get(r):esc(r[c.key]))+'</td>';}).join('')+'</tr>';
+      }).join('');
+    }
+
+    // Always paginate: the helper drops the page buttons when everything fits on one page but keeps
+    // the "Showing 1–n of n" line, which the other admin pages show too.
+    AcademyUI.paginate({rows:rows,pageSize:PAGE_SIZE,pagerEl:pagerEl,
+      labels:{info:str('ui_pager_info')},render:renderPage});
+
+    // Stash the full data so "Export CSV" serialises every row, not just the page on screen.
     el._cols=cols; el._rows=rows;
   }
 
@@ -516,31 +541,29 @@ echo html_writer::script(<<<'JS'
     return box;
   }
 
+  // Built row by row rather than through table(): each row carries live action buttons, which the
+  // string-based renderer cannot produce.
   function loadWithdrawals(){
     apiGet('list_withdrawals',{status:$('wd-filter').value}).then(function(rows){
-      var tb=$('wd-rows');tb.innerHTML='';
-      if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">'+esc(str('wd_none'))+'</td></tr>';return;}
-      rows.forEach(function(w){
-        var tr=document.createElement('tr');
-        var note=w.status==='rejected'?('<br><small>'+esc(w.reason||'')+'</small>'):(w.status==='paid'&&w.reference?('<br><small>'+strf('w_ref',esc(w.reference))+'</small>'):'');
-        tr.innerHTML='<td>'+fmt(w.timecreated)+'</td><td>'+esc(w.teacher_name||('#'+w.teacherid))+'<br><small>'+esc(w.teacher_email||'')+'</small></td>'+
-          '<td class="num">'+money(w.amount)+'</td><td>'+esc(w.method)+'<br><small>'+esc(w.account||'')+'</small></td>'+
-          '<td>'+statusBadge(w.status)+note+'</td>';
-        var td=document.createElement('td');td.appendChild(actionButtons(w));tr.appendChild(td);
-        tb.appendChild(tr);
-      });
+      var tb=$('wd-rows'), pagerEl=$('wd-rows-pager');
+      pagerEl.innerHTML='';
+      function renderPage(pageRows){
+        tb.innerHTML='';
+        if(!pageRows.length){tb.innerHTML='<tr><td colspan="6" class="text-muted">'+esc(str('wd_none'))+'</td></tr>';return;}
+        pageRows.forEach(function(w){
+          var tr=document.createElement('tr');
+          var note=w.status==='rejected'?('<br><small>'+esc(w.reason||'')+'</small>'):(w.status==='paid'&&w.reference?('<br><small>'+strf('w_ref',esc(w.reference))+'</small>'):'');
+          tr.innerHTML='<td>'+fmt(w.timecreated)+'</td><td>'+esc(w.teacher_name||('#'+w.teacherid))+'<br><small>'+esc(w.teacher_email||'')+'</small></td>'+
+            '<td class="num">'+money(w.amount)+'</td><td>'+esc(w.method)+'<br><small>'+esc(w.account||'')+'</small></td>'+
+            '<td>'+statusBadge(w.status)+note+'</td>';
+          var td=document.createElement('td');td.appendChild(actionButtons(w));tr.appendChild(td);
+          tb.appendChild(tr);
+        });
+      }
+      AcademyUI.paginate({rows:rows,pageSize:PAGE_SIZE,pagerEl:pagerEl,
+        labels:{info:str('ui_pager_info')},render:renderPage});
     }).catch(function(e){msg(e.message,'danger');});
   }
-
-  // Searchable lesson picker for the Flex reversal (replaces the old numeric lesson-id input).
-  var lessonPicker=AcademyUI.picker({
-    mount:$('wd-rev-lesson'),
-    placeholder:str('ui_picker_lesson_ph'),
-    labels:{searching:str('ui_picker_searching'),none:str('ui_picker_none'),hint:str('ui_picker_hint')},
-    search:function(q){return apiGet('list_reversible_lessons',{query:q});},
-    primary:function(l){return '#'+l.id+' — '+(l.subject||'');},
-    secondary:function(l){return [l.student_name,l.teacher_name,fmt(l.lesson_time),money(l.flex_value)+' '+str('ui_currency_egp')].filter(function(x){return x;}).join(' • ');}
-  });
 
   // ── Tabs ──────────────────────────────────────────────────────────────────
   var LOADERS={
@@ -595,12 +618,6 @@ echo html_writer::script(<<<'JS'
 
   $('wd-filter').onchange=loadWithdrawals;
   $('wd-refresh').onclick=loadWithdrawals;
-  $('wd-rev-btn').onclick=function(){
-    var lid=lessonPicker.value(), reason=$('wd-rev-reason').value;
-    if(!lid){msg(str('wd_enter_lesson'),'danger');return;}
-    if(!reason.trim()){msg(str('err_reasonrequired'),'danger');return;}
-    apiPost('reverse_flex',{lessonid:lid,reason:reason}).then(function(){msg(str('wd_flex_returned'),'success');lessonPicker.clear();$('wd-rev-reason').value='';loadWithdrawals();loadOverview();}).catch(function(e){msg(e.message,'danger');});
-  };
 
   loaded.overview=true;
   LOADERS.overview();

@@ -46,7 +46,16 @@ $STR = local_academy_string_map(array(
     'msg_package_created', 'msg_package_updated', 'msg_package_activated',
     'msg_package_deactivated', 'msg_package_deleted', 'msg_package_unassigned',
     'err_requestfailed', 'err_sessionexpired', 'ui_pager_info',
+    // Flex reversal (US-FN-1-5), moved here from the Financial Reports page.
+    'wd_reversal_title', 'wd_reversal_help', 'wd_lesson_id', 'wd_reason', 'wd_return_flex',
+    'wd_enter_lesson', 'wd_flex_returned', 'err_reasonrequired', 'ui_currency_egp',
+    'ui_picker_lesson_ph', 'ui_picker_searching', 'ui_picker_none', 'ui_picker_hint',
 ));
+
+// Reversing a lesson's Flex is a platform-money action, so it is gated on manageplatform — a user
+// with only managepackages can reach this page but must not see the section (the API would reject
+// them anyway; hiding it avoids offering an action that cannot succeed).
+$canreverseflex = has_capability('local/academy:manageplatform', context_system::instance());
 
 // Pass config + localised strings to JS.
 echo html_writer::script('window.ACADEMY_PKG = ' . json_encode(array(
@@ -55,6 +64,7 @@ echo html_writer::script('window.ACADEMY_PKG = ' . json_encode(array(
     'lang'     => optional_param('lang', current_language(), PARAM_LANG),
 )) . ';');
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
+echo html_writer::script('window.ACADEMY_CAN_REVERSE_FLEX = ' . ($canreverseflex ? 'true' : 'false') . ';');
 
 // Page markup.
 ?>
@@ -141,6 +151,23 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     </table>
     <div id="users-table-pager" class="acad-pager"></div>
 
+    <!-- ── Flex reversal (US-FN-1-5) — returns one consumed Flex and reverses the earning ── -->
+    <?php if ($canreverseflex) { ?>
+    <div class="pkg-reversal">
+        <h5><?php echo $STR['wd_reversal_title']; ?></h5>
+        <p class="text-muted" style="font-size:.88rem"><?php echo $STR['wd_reversal_help']; ?></p>
+        <div class="form-group">
+            <label for="pkg-rev-lesson"><?php echo $STR['wd_lesson_id']; ?></label>
+            <div id="pkg-rev-lesson"></div>
+        </div>
+        <div class="form-group">
+            <label for="pkg-rev-reason"><?php echo $STR['wd_reason']; ?></label>
+            <input class="form-control" id="pkg-rev-reason">
+        </div>
+        <button id="pkg-rev-btn" class="btn btn-warning"><?php echo $STR['wd_return_flex']; ?></button>
+    </div>
+    <?php } ?>
+
     <!-- ── Unassign confirmation modal ── -->
     <div id="unassign-modal-backdrop" class="academy-modal-backdrop" style="display:none;">
         <div class="academy-modal">
@@ -160,6 +187,16 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     </div>
 </div>
 <style>
+    /* Flex reversal (US-FN-1-5) — warning tint marks it as a corrective, money-moving action. */
+    .pkg-reversal {
+        margin-top: 2rem;
+        border: 1px solid #ffe082;
+        background: #fff8e1;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        max-width: 560px;
+    }
+    .pkg-reversal .form-group { margin-bottom: 0.6rem; }
     .academy-modal-backdrop {
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
@@ -510,6 +547,44 @@ echo html_writer::script(<<<'JS'
     });
 
     $('refresh-users').addEventListener('click', loadUsers);
+
+    // ── Flex reversal (US-FN-1-5) ──────────────────────────────────────────────
+    // Returns one consumed Flex to the student and reverses the teacher/platform earning. Rendered
+    // only for admins holding manageplatform, so the whole block is guarded on that flag.
+    if (window.ACADEMY_CAN_REVERSE_FLEX) {
+        var lessonPicker = AcademyUI.picker({
+            mount: $('pkg-rev-lesson'),
+            placeholder: str('ui_picker_lesson_ph'),
+            labels: {
+                searching: str('ui_picker_searching'),
+                none: str('ui_picker_none'),
+                hint: str('ui_picker_hint')
+            },
+            search: function (q) { return api('list_reversible_lessons', { query: q }); },
+            primary: function (l) { return '#' + l.id + ' — ' + (l.subject || ''); },
+            secondary: function (l) {
+                return [
+                    l.student_name,
+                    l.teacher_name,
+                    l.lesson_time ? new Date(l.lesson_time * 1000).toLocaleString() : '',
+                    Number(l.flex_value || 0).toFixed(2) + ' ' + str('ui_currency_egp')
+                ].filter(function (x) { return x; }).join(' • ');
+            }
+        });
+
+        $('pkg-rev-btn').addEventListener('click', function () {
+            var lessonid = lessonPicker.value();
+            var reason = $('pkg-rev-reason').value;
+            if (!lessonid) { msg(str('wd_enter_lesson'), 'danger'); return; }
+            if (!reason.trim()) { msg(str('err_reasonrequired'), 'danger'); return; }
+            api('reverse_flex', { lessonid: lessonid, reason: reason }, 'POST').then(function () {
+                msg(str('wd_flex_returned'), 'success');
+                lessonPicker.clear();
+                $('pkg-rev-reason').value = '';
+                loadUsers(); // The student's remaining/consumed Flex counts just changed.
+            }).catch(function (e) { msg(e.message, 'danger'); });
+        });
+    }
 
     loadPackages();
     loadUsers();

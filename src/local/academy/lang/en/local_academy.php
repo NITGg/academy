@@ -748,7 +748,7 @@ $string['fr_sub_normal_rev']    = 'Normal revenue';
 $string['fr_sub_b2b_sales']     = 'B2B sales';
 $string['fr_sub_b2b_rev']       = 'B2B revenue';
 $string['fr_sub_normal_help']   = 'One student buys access for themselves. Revenue is the price they paid.';
-$string['fr_sub_b2b_help']      = 'An organisation buys a number of seats at a bulk discount, then invites members to fill them. One sale covers many users, so judge it by revenue per seat rather than per sale.';
+$string['fr_sub_b2b_help']      = 'Same as a normal subscription, except the buyer is an organisation purchasing a number of seats instead of one user (a bulk discount may apply based on seat count). Revenue is simply the price actually paid — the "per seat" column is an extra figure for comparing unit price across purchases with different seat counts.';
 // Courses tab.
 $string['fr_c_course']          = 'Course';
 $string['fr_c_buyers']          = 'Buyers';
