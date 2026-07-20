@@ -747,8 +747,7 @@ $string['notif_lesson_reminder_body'] = 'مرحبًا {$a->studentname}،
 // B2B subscriptions (US-B2B-1-*), settings tabs, and user activity report.
 // ─────────────────────────────────────────────────────────────────────────────
 $string['managesettings'] = 'إعدادات المنصة';
-$string['set_tab_deadlines']        = 'مواعيد الدروس';
-$string['set_tab_financial']        = 'الإعدادات المالية';
+$string['set_tab_lesson']           = 'إعدادات الدروس';
 $string['set_tab_b2b']              = 'إعدادات اشتراك الأعمال (B2B)';
 $string['set_b2b_auto_approve']     = 'الموافقة التلقائية على المستخدمين المدعوين';
 $string['set_b2b_auto_approve_help'] = 'عند التفعيل، تتم الموافقة على المستخدم المدعو تلقائيًا إذا توفر مقعد شاغر؛ وإلا يبقى قيد الانتظار حتى يوافق عليه مدير الأعمال.';

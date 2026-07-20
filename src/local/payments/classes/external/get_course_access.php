@@ -29,6 +29,12 @@ class get_course_access extends \external_api {
         $is_enrolled = \local_payments\enrollment_handler::is_enrolled($USER->id, $params['courseid']);
         $is_purchased = \local_payments\price_resolver::is_purchased($params['courseid'], $USER->id);
 
+        // Distinguish a lapsed subscription/package ("renew") from a registered-but-not-yet-started
+        // allocation such as an enrol_programs scheduled start ("scheduled") — see enrollment_handler.
+        $enrol_state = $is_enrolled
+            ? ['state' => 'active', 'starts_at' => 0]
+            : \local_payments\enrollment_handler::enrolment_state($USER->id, $params['courseid']);
+
         $payment_status = '';
         $order_id = '';
         if ($is_purchased) {
@@ -56,6 +62,9 @@ class get_course_access extends \external_api {
             'courseid' => $params['courseid'],
             'is_enrolled' => $is_enrolled,
             'is_purchased' => $is_purchased,
+            'can_renew' => $enrol_state['state'] === 'expired',
+            'is_scheduled' => $enrol_state['state'] === 'scheduled',
+            'scheduled_starts_at' => $enrol_state['starts_at'],
             'payment_status' => $payment_status,
             'order_id' => $order_id,
             'has_pending_payment' => $has_pending,
@@ -68,6 +77,9 @@ class get_course_access extends \external_api {
             'courseid' => new \external_value(PARAM_INT, 'Course ID'),
             'is_enrolled' => new \external_value(PARAM_BOOL, 'Enrolled'),
             'is_purchased' => new \external_value(PARAM_BOOL, 'Purchased'),
+            'can_renew' => new \external_value(PARAM_BOOL, 'User has a lapsed enrolment (expired subscription/package) — show "renew"'),
+            'is_scheduled' => new \external_value(PARAM_BOOL, 'User is registered but access has not started yet — do not show "renew" or a buy button'),
+            'scheduled_starts_at' => new \external_value(PARAM_INT, 'Unix timestamp access starts at, when is_scheduled is true; 0 if unknown'),
             'payment_status' => new \external_value(PARAM_TEXT, 'Payment status'),
             'order_id' => new \external_value(PARAM_TEXT, 'Order ID'),
             'has_pending_payment' => new \external_value(PARAM_BOOL, 'Has pending payment'),

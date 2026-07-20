@@ -17,6 +17,35 @@ if (is_enrolled($context, $USER->id, '', true)) {
     redirect(new moodle_url('/course/view.php', ['id' => $courseid]));
 }
 
+// Registered but not yet active — could be a lapsed subscription (renew) or a
+// scheduled/future start such as an enrol_programs allocation (wait, don't pay
+// again). See local_payments\enrollment_handler::enrolment_state().
+$enrol_state = \local_payments\enrollment_handler::enrolment_state($USER->id, $courseid);
+
+// A scheduled enrolment already grants a spot — showing the purchase flow would
+// wrongly suggest the student needs to buy again. Show a "starts soon" page instead.
+if ($enrol_state['state'] === 'scheduled') {
+    $PAGE->set_url(new moodle_url('/local/payments/buy.php', ['courseid' => $courseid]));
+    $PAGE->set_context($context);
+    $PAGE->set_title($course->fullname);
+    $PAGE->set_heading($course->fullname);
+    $PAGE->set_pagelayout('standard');
+
+    echo $OUTPUT->header();
+    $label = $enrol_state['starts_at'] > 0
+        ? get_string('access_starts_on', 'local_payments',
+            userdate($enrol_state['starts_at'], get_string('strftimedatetime', 'langconfig')))
+        : get_string('access_starts_soon', 'local_payments');
+    echo $OUTPUT->box(
+        \html_writer::tag('i', '', ['class' => 'fa fa-clock', 'style' => 'font-size:2.4rem;color:#2563eb']) .
+        \html_writer::tag('h5', $label, ['class' => 'mt-2']),
+        'generalbox mb-3 text-center'
+    );
+    echo $OUTPUT->continue_button(new moodle_url('/'));
+    echo $OUTPUT->footer();
+    exit;
+}
+
 $action = optional_param('action', '', PARAM_ALPHA);
 
 // Check for active subscription coverage — a normal subscription, a B2B admin's own purchase, or an
@@ -62,6 +91,7 @@ try {
         'courseid'       => $courseid,
         'is_enrolled'    => false,
         'is_purchased'   => $is_purchased,
+        'can_renew'      => $enrol_state['state'] === 'expired',
         'buy_url'        => (new moodle_url('/local/payments/checkout.php', ['courseid' => $courseid]))->out(false),
         'can_enroll_via_sub' => $can_enroll_via_sub,
         'enroll_url'     => (new moodle_url('/local/payments/buy.php', ['courseid' => $courseid, 'action' => 'enroll', 'sesskey' => sesskey()]))->out(false),

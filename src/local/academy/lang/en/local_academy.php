@@ -559,8 +559,7 @@ $string['set_percent_help']         = 'Teacher % + Platform % must total 100.';
 $string['set_save']                 = 'Save changes';
 $string['set_saved']                = 'Saved.';
 // Settings tabs (US-AD-2-1).
-$string['set_tab_deadlines']        = 'Lesson Deadlines';
-$string['set_tab_financial']        = 'Financial Settings';
+$string['set_tab_lesson']           = 'Lesson settings';
 $string['set_tab_b2b']              = 'B2B Subscription Settings';
 $string['set_b2b_auto_approve']     = 'Automatically approve invited users';
 $string['set_b2b_auto_approve_help'] = 'When enabled, an invited user is approved automatically if the B2B subscription has an available seat; otherwise they stay pending until the B2B administrator approves them.';

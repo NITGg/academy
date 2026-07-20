@@ -1,8 +1,14 @@
 {{!
     Course page price display with full details.
-    Context: {price, sale_price, original_price, currency, is_sale_active, discount_pct, is_purchased, is_enrolled, is_free, courseid, country, course_url, buy_url}
+    Context: {price, sale_price, original_price, currency, is_sale_active, discount_pct, is_purchased, is_enrolled, is_free, can_renew, courseid, country, course_url, buy_url}
 }}
 <div class="local-payments-course-price lp-page-card">
+    {{#can_renew}}
+        <div class="lp-card-status lp-card-status--renew mb-3">
+            <i class="fa fa-exclamation-circle"></i>
+            <span>{{#str}}renew_subscription, local_payments{{/str}}</span>
+        </div>
+    {{/can_renew}}
     {{#is_enrolled}}
         <div class="lp-page-status lp-page-status--enrolled">
             <i class="fa fa-check-circle"></i>

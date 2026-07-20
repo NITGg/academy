@@ -1,5 +1,5 @@
 <?php
-// Admin UI for platform settings (US-AD-2-1). Three tabs: Lesson Deadlines, Financial, B2B.
+// Admin UI for platform settings (US-AD-2-1). Two tabs: Lesson settings (deadlines + financial), B2B.
 // Uses the local_academy API from the browser.
 
 require('../../config.php');
@@ -28,7 +28,7 @@ $STR = local_academy_string_map(array(
     'set_complete_allowed', 'set_absence_report', 'set_lesson_start_reminder', 'set_lesson_start_reminder_help',
     'set_expiry_reminder', 'set_expiry_reminder_help',
     'set_teacher_percent', 'set_platform_percent', 'set_percent_help', 'set_save', 'set_saved',
-    'set_tab_deadlines', 'set_tab_financial', 'set_tab_b2b',
+    'set_tab_lesson', 'set_tab_b2b',
     'set_reminder_add', 'set_reminder_placeholder',
     'set_b2b_auto_approve', 'set_b2b_auto_approve_help', 'set_b2b_return_seat', 'set_b2b_return_seat_help',
     'set_enabled', 'set_disabled',
@@ -50,14 +50,13 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 </style>
 <div id="set-msg" class="alert" style="display:none"></div>
 <div id="set-tabs">
-  <button data-tab="deadlines" class="active"><?php echo $STR['set_tab_deadlines']; ?></button>
-  <button data-tab="financial"><?php echo $STR['set_tab_financial']; ?></button>
+  <button data-tab="lesson" class="active"><?php echo $STR['set_tab_lesson']; ?></button>
   <button data-tab="b2b"><?php echo $STR['set_tab_b2b']; ?></button>
 </div>
 <div class="card" style="max-width:560px;">
   <div class="card-body">
 
-    <div class="set-pane active" data-pane="deadlines">
+    <div class="set-pane active" data-pane="lesson">
       <div class="form-group"><label><?php echo $STR['set_min_booking']; ?></label><input class="form-control" id="s-min_booking_minutes" type="number" min="0"></div>
       <div class="form-group"><label><?php echo $STR['set_cancel_deadline']; ?></label><input class="form-control" id="s-cancel_deadline_minutes" type="number" min="0"></div>
       <div class="form-group"><label><?php echo $STR['set_update_deadline']; ?></label><input class="form-control" id="s-update_deadline_minutes" type="number" min="0"></div>
@@ -77,9 +76,6 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         <small class="text-muted"><?php echo $STR['set_lesson_start_reminder_help']; ?></small>
       </div>
       <div class="form-group"><label><?php echo $STR['set_expiry_reminder']; ?></label><input class="form-control" id="s-expiry_reminder_days" type="number" min="0"><small class="text-muted"><?php echo $STR['set_expiry_reminder_help']; ?></small></div>
-    </div>
-
-    <div class="set-pane" data-pane="financial">
       <div class="form-group"><label><?php echo $STR['set_teacher_percent']; ?></label><input class="form-control" id="s-teacher_percent" type="number" min="0" max="100"></div>
       <div class="form-group"><label><?php echo $STR['set_platform_percent']; ?></label><input class="form-control" id="s-platform_percent" type="number" min="0" max="100"></div>
       <small class="text-muted"><?php echo $STR['set_percent_help']; ?></small>

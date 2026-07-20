@@ -68,6 +68,13 @@ class get_courses_with_pricing extends \external_api {
             $is_purchased = \local_payments\price_resolver::is_purchased($courseid, $USER->id);
             $is_enrolled  = \local_payments\enrollment_handler::is_enrolled($USER->id, $courseid);
 
+            // Classify why access isn't active yet: a lapsed subscription/package
+            // ("renew") vs. a registered-but-not-started allocation such as an
+            // enrol_programs scheduled start ("scheduled"). See enrollment_handler.
+            $enrol_state = $is_enrolled
+                ? ['state' => 'active', 'starts_at' => 0]
+                : \local_payments\enrollment_handler::enrolment_state($USER->id, $courseid);
+
             $pricing = [
                 'pricing_country'     => '',
                 'currency'            => '',
@@ -80,6 +87,9 @@ class get_courses_with_pricing extends \external_api {
                 'is_free'             => true,
                 'is_purchased'        => $is_purchased,
                 'is_enrolled'         => $is_enrolled,
+                'can_renew'           => $enrol_state['state'] === 'expired',
+                'is_scheduled'        => $enrol_state['state'] === 'scheduled',
+                'scheduled_starts_at' => $enrol_state['starts_at'],
                 'offer_name'          => '',
             ];
 
@@ -220,6 +230,9 @@ class get_courses_with_pricing extends \external_api {
             'is_free'             => new \external_value(PARAM_BOOL,  'true if no active pricing rule — open access'),
             'is_purchased'        => new \external_value(PARAM_BOOL,  'current user has a completed purchase'),
             'is_enrolled'         => new \external_value(PARAM_BOOL,  'current user is enrolled in the course'),
+            'can_renew'           => new \external_value(PARAM_BOOL,  'user has a lapsed enrolment (expired subscription/package) — show "renew"'),
+            'is_scheduled'        => new \external_value(PARAM_BOOL,  'user is registered but access has not started yet (e.g. a program allocation with a future start date) — do not show "renew" or a buy button'),
+            'scheduled_starts_at' => new \external_value(PARAM_INT,   'unix timestamp access starts at, when is_scheduled is true; 0 if unknown'),
             'offer_name'          => new \external_value(PARAM_RAW,   'name(s) of active automatic offer(s) applied, or empty string'),
         ];
 

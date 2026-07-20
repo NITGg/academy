@@ -123,13 +123,19 @@ Examples:
   "sale_ends_at":        1725148800,
   "is_free":             false,     // true → no pricing rule → open/free course
   "is_purchased":        false,     // this user already completed a purchase
-  "is_enrolled":         false      // this user has ACTIVE access right now
+  "is_enrolled":         false,     // this user has ACTIVE access right now
+  "can_renew":           false,     // lapsed subscription/package — show "renew" (see §4)
+  "is_scheduled":        false,     // registered, access starts later — see §4
+  "scheduled_starts_at": 0          // unix ts, only meaningful when is_scheduled is true
 }
 ```
 
 > `is_enrolled` reflects **active** access only. A student whose subscription/package has
-> lapsed comes back as `is_enrolled: false` even though the course still lives in their
-> "My courses" list — that is the "renew" case (see §4).
+> lapsed, or who registered for a future‑dated allocation (e.g. a `program` course they can't
+> start until a scheduled date), comes back as `is_enrolled: false` even though the course
+> still lives in their "My courses" list. `can_renew` / `is_scheduled` tell you which of those
+> two it is — see [`renew-vs-scheduled-enrolment-mobile-guide.md`](renew-vs-scheduled-enrolment-mobile-guide.md)
+> for the full breakdown.
 
 Use `overviewfiles[0].fileurl` for the card image (append `?token=<wstoken>` or use the
 `pluginfile`‑with‑token pattern to load protected files).
@@ -149,15 +155,19 @@ same decision tree `price_resolver::card_context()` uses on the web.
 | 4 | `is_sale_active == true` | `-{discount_percentage}%`, strike `original_price`, show `sale_price` | **Buy now** → checkout |
 | 5 | otherwise (paid, no sale) | `price currency` | **Buy now** → checkout |
 
-**Renew hint (lapsed access).** On the web, a course that is still in the student's
-"My courses" but whose enrolment has expired shows a small **"Renew your subscription"**
-note above the price. The catalogue endpoint reports such a course as
-`is_enrolled: false` + `is_purchased: false` and it will fall into rows 4/5 above. To
-reproduce the exact hint, cross‑reference the student's enrolled‑courses list
-(`core_enrol_get_users_courses`) with `is_enrolled`: a course that appears there but returns
-`is_enrolled: false` is a **renew** case — render a "Renew your subscription" note and point
-the button at the normal checkout / subscription flow. (This mainly affects the "My courses"
-screen, not the catalogue.)
+**Renew hint (lapsed access) / Scheduled hint (registered, not started yet).** Check these
+*before* rows 4/5 above, since a course in either state also comes back as
+`is_enrolled: false` + `is_purchased: false`:
+
+- `can_renew == true` → show **"Renew your subscription"** and point at the normal
+  checkout/subscription flow.
+- `is_scheduled == true` → show **"Access starts on `scheduled_starts_at`"** (or "starts
+  soon" if `scheduled_starts_at` is 0). Do **not** show a buy/renew button — the student is
+  already registered (e.g. a `program`‑plugin allocation scheduled for a future date); they
+  just need to wait.
+
+Full details, including the web‑page (`buy.php`) equivalents and the server‑side logic, are in
+[`renew-vs-scheduled-enrolment-mobile-guide.md`](renew-vs-scheduled-enrolment-mobile-guide.md).
 
 **Subscription coverage.** If the student holds an active subscription that includes a course
 they are not yet enrolled in, the web shows an **Enroll** button (free enrolment, no payment).
