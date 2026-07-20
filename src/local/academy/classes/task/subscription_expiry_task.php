@@ -12,7 +12,7 @@ use local_academy\subscription_purchase_manager;
  *
  *  1. Expire subscriptions whose `expires_at` has passed: flip active → expired and unenrol the
  *     student from any course no other active subscription of theirs still grants.
- *  2. Remind students whose subscription is within the admin-configured `expiry_reminder_days`
+ *  2. Remind students whose subscription is within the admin-configured `sub_expiry_reminder_days`
  *     window (once per purchase, tracked by `expiry_notified`).
  */
 class subscription_expiry_task extends \core\task\scheduled_task {
@@ -61,7 +61,7 @@ class subscription_expiry_task extends \core\task\scheduled_task {
 
         // 2. Expiry reminders.
         $sent = 0;
-        $days = (int) settings_manager::get('expiry_reminder_days');
+        $days = (int) settings_manager::get('sub_expiry_reminder_days');
         if ($days > 0) {
             $windowend = $now + ($days * DAYSECS);
             $sql = "SELECT sp.*, s.name AS subscription_name

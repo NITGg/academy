@@ -1,5 +1,5 @@
 <?php
-// Admin UI for platform settings (US-AD-2-1). Two tabs: Lesson settings (deadlines + financial), B2B.
+// Admin UI for platform settings (US-AD-2-1). Two tabs: Package settings (deadlines + financial), Subscription settings.
 // Uses the local_academy API from the browser.
 
 require('../../config.php');
@@ -27,6 +27,7 @@ $STR = local_academy_string_map(array(
     'set_min_booking', 'set_cancel_deadline', 'set_update_deadline', 'set_start_allowed',
     'set_complete_allowed', 'set_absence_report', 'set_lesson_start_reminder', 'set_lesson_start_reminder_help',
     'set_expiry_reminder', 'set_expiry_reminder_help',
+    'set_sub_expiry_reminder', 'set_sub_expiry_reminder_help',
     'set_teacher_percent', 'set_platform_percent', 'set_percent_help', 'set_save', 'set_saved',
     'set_tab_lesson', 'set_tab_b2b',
     'set_reminder_add', 'set_reminder_placeholder',
@@ -82,6 +83,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     </div>
 
     <div class="set-pane" data-pane="b2b">
+      <div class="form-group"><label><?php echo $STR['set_sub_expiry_reminder']; ?></label><input class="form-control" id="s-sub_expiry_reminder_days" type="number" min="0"><small class="text-muted"><?php echo $STR['set_sub_expiry_reminder_help']; ?></small></div>
       <div class="form-group">
         <label><?php echo $STR['set_b2b_auto_approve']; ?></label>
         <select class="form-control" id="s-b2b_auto_approve_invited_users">
@@ -113,6 +115,7 @@ echo html_writer::script(<<<'JS'
   var KEYS = ['min_booking_minutes','cancel_deadline_minutes','update_deadline_minutes',
     'start_allowed_minutes','complete_allowed_minutes','absence_report_minutes','lesson_start_reminder_minutes','expiry_reminder_days',
     'teacher_percent','platform_percent',
+    'sub_expiry_reminder_days',
     'b2b_auto_approve_invited_users','b2b_return_seat_after_user_removal'];
   function $(id){return document.getElementById(id);}
   function msg(t,k){var e=$('set-msg');e.textContent=t;e.className='alert alert-'+(k||'info');e.style.display='block';if(k==='success'){setTimeout(function(){e.style.display='none';},3000);}}

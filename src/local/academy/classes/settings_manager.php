@@ -21,8 +21,9 @@ class settings_manager {
         'teacher_percent'         => 40,   // teacher share of a consumed Flex
         'platform_percent'        => 60,   // platform share of a consumed Flex
         'lessons_courseid'        => 54,   // course that hosts the per-lesson Jitsi meeting rooms (hardcoded for now)
-        // B2B subscription settings (US-AD-2-1 tab 3).
-        'b2b_auto_approve_invited_users'   => 0, // 1 = auto-approve invited users when a seat is free
+        // Subscription settings (US-AD-2-1 tab 2).
+        'sub_expiry_reminder_days' => 3,   // notify a student this many days before a subscription expires (0 = off)
+        'b2b_auto_approve_invited_users'   => 0,// 1 = auto-approve invited users when a seat is free
         'b2b_return_seat_after_user_removal' => 1, // 1 = removing an approved user frees their seat
     );
 

@@ -633,6 +633,7 @@ try {
             $fields = ['min_booking_minutes', 'cancel_deadline_minutes', 'update_deadline_minutes',
                 'start_allowed_minutes', 'complete_allowed_minutes', 'absence_report_minutes',
                 'expiry_reminder_days', 'teacher_percent', 'platform_percent', 'lessons_courseid',
+                'sub_expiry_reminder_days',
                 'b2b_auto_approve_invited_users', 'b2b_return_seat_after_user_removal'];
             $data = [];
             foreach ($fields as $f) {

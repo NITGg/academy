@@ -597,8 +597,10 @@ $string['set_percent_help']         = 'Teacher % + Platform % must total 100.';
 $string['set_save']                 = 'Save changes';
 $string['set_saved']                = 'Saved.';
 // Settings tabs (US-AD-2-1).
-$string['set_tab_lesson']           = 'Lesson settings';
-$string['set_tab_b2b']              = 'B2B Subscription Settings';
+$string['set_tab_lesson']           = 'Package settings';
+$string['set_tab_b2b']              = 'Subscription settings';
+$string['set_sub_expiry_reminder']      = 'Subscription expiry reminder (days before)';
+$string['set_sub_expiry_reminder_help'] = 'Notify the student this many days before their subscription expires. 0 disables the reminder.';
 $string['set_b2b_auto_approve']     = 'Automatically approve invited users';
 $string['set_b2b_auto_approve_help'] = 'When enabled, an invited user is approved automatically if the B2B subscription has an available seat; otherwise they stay pending until the B2B administrator approves them.';
 $string['set_b2b_return_seat']      = 'Return seat when a user is removed';

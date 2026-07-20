@@ -50,9 +50,8 @@ try {
     $result = \local_payments\manager::verify_callback($order_id);
 
     if ($result->success) {
-        // Packages and subscriptions are not tied to a single course, so there
-        // is no course page to land on. Send the student straight to the home
-        // dashboard with a success notice instead of the generic success page.
+        // Packages and subscriptions are not tied to a single page to land on. Send the student
+        // straight to the home dashboard with a success notice instead of the generic success page.
         $item_type = $result->item_type ?? 'course';
         if ($item_type === 'package' || $item_type === 'subscription') {
             redirect(
@@ -66,13 +65,31 @@ try {
         $PAGE->set_title(get_string('payment_success', 'local_payments'));
         echo $OUTPUT->header();
 
-        $course = $DB->get_record('course', ['id' => $result->courseid], 'id, fullname');
+        if ($item_type === 'program') {
+            $programid = (int) ($result->itemid ?? 0);
+            $programname = $DB->get_field('enrol_programs_programs', 'fullname', ['id' => $programid]);
+            $itemlabel = get_string('program', 'local_payments');
+            $itemname = $programname ? format_string($programname) : '';
+            // The plugin's own "my program" page — not /course/view.php, a program has no single
+            // course of its own.
+            $itemurl = (new moodle_url('/enrol/programs/my/program.php', ['id' => $programid]))->out(false);
+            $buttontext = get_string('gotoprogram', 'local_payments');
+        } else {
+            $course = $DB->get_record('course', ['id' => $result->courseid], 'id, fullname');
+            $itemlabel = get_string('course', 'local_payments');
+            $itemname = $course->fullname ?? '';
+            $itemurl = (new moodle_url('/course/view.php', ['id' => $result->courseid]))->out(false);
+            $buttontext = get_string('gotocourse', 'local_payments');
+        }
+
         $templatedata = [
-            'success'      => true,
-            'course_name'  => $course->fullname ?? '',
-            'course_url'   => (new moodle_url('/course/view.php', ['id' => $result->courseid]))->out(false),
-            'order_id'     => $order_id,
-            'history_url'  => (new moodle_url('/local/payments/history.php'))->out(false),
+            'success'          => true,
+            'item_label'       => $itemlabel,
+            'item_name'        => $itemname,
+            'item_url'         => $itemurl,
+            'item_button_text' => $buttontext,
+            'order_id'         => $order_id,
+            'history_url'      => (new moodle_url('/local/payments/history.php'))->out(false),
         ];
         echo $OUTPUT->render_from_template('local_payments/payment_success', $templatedata);
     } else {

@@ -5,11 +5,13 @@ defined('MOODLE_INTERNAL') || die();
 
 /**
  * Issues invoices for completed purchases of any type: a course (paid via the
- * gateway), a package, or a subscription. One invoice per purchase, identified by
- * (source_type, source_id):
+ * gateway), a package, a subscription, or a program. One invoice per purchase,
+ * identified by (source_type, source_id):
  *   - course        → source_id = local_payments_transactions.id
  *   - package       → source_id = academy_package_purchases.id
  *   - subscription  → source_id = academy_sub_purchases.id
+ *   - program       → source_id = local_payments_transactions.id (enrol_programs has no
+ *                      purchase table of its own — the transaction row is the record)
  *
  * The generator is idempotent, so it is safe to call from both the gateway
  * fulfilment path and the direct (no-gateway) purchase managers.
@@ -19,11 +21,12 @@ class invoice_generator {
     const SOURCE_COURSE = 'course';
     const SOURCE_PACKAGE = 'package';
     const SOURCE_SUBSCRIPTION = 'subscription';
+    const SOURCE_PROGRAM = 'program';
 
     /**
      * Create (or return the existing) invoice for a purchase.
      *
-     * @param string $source_type course|package|subscription
+     * @param string $source_type course|package|subscription|program
      * @param int $source_id transaction / purchase id per source_type
      * @return int|null Invoice id, or null when the purchase could not be resolved.
      */
@@ -46,6 +49,9 @@ class invoice_generator {
                 break;
             case self::SOURCE_SUBSCRIPTION:
                 $data = self::resolve_subscription($source_id);
+                break;
+            case self::SOURCE_PROGRAM:
+                $data = self::resolve_program($source_id);
                 break;
             default:
                 return null;
@@ -100,6 +106,43 @@ class invoice_generator {
             'transaction_id' => (int) $txn->id,
             'userid'         => (int) $txn->userid,
             'item_name'      => $coursename ?: get_string('invoice_item_course', 'local_payments'),
+            'subtotal'       => $subtotal,
+            'discount'       => $discount ?: null,
+            'amount'         => (float) $txn->amount,
+            'currency'       => $txn->currency,
+        ];
+    }
+
+    /**
+     * Resolve invoice data for a program purchase.
+     *
+     * Unlike package/subscription, enrol_programs keeps no purchase record of its own — the
+     * gateway transaction IS the record, exactly like a course purchase.
+     */
+    private static function resolve_program(int $transaction_id): ?object {
+        global $DB;
+
+        $txn = $DB->get_record('local_payments_transactions', ['id' => $transaction_id]);
+        if (!$txn) {
+            return null;
+        }
+
+        $meta = json_decode($txn->metadata ?? '{}');
+        $programid = (int) ($meta->item_id ?? 0);
+        // Prefer the live program name; fall back to the name snapshotted at checkout time so the
+        // invoice still reads correctly even if the program was later renamed or archived.
+        $name = $programid ? $DB->get_field('enrol_programs_programs', 'fullname', ['id' => $programid]) : null;
+        if (!$name) {
+            $name = $meta->program_name ?? null;
+        }
+
+        $subtotal = ($txn->original_amount !== null) ? (float) $txn->original_amount : (float) $txn->amount;
+        $discount = max(0, round($subtotal - (float) $txn->amount, 2));
+
+        return (object) [
+            'transaction_id' => (int) $txn->id,
+            'userid'         => (int) $txn->userid,
+            'item_name'      => $name ? format_string($name) : get_string('invoice_item_program', 'local_payments'),
             'subtotal'       => $subtotal,
             'discount'       => $discount ?: null,
             'amount'         => (float) $txn->amount,

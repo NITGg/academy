@@ -903,12 +903,14 @@ class manager {
         // Record coupon/offer usage now the purchase is fulfilled (idempotent).
         self::record_academy_discount($transaction, $meta);
 
-        // Generate invoice. Package/subscription invoices are issued inside their
-        // purchase managers (which also covers direct, non-gateway purchases), so here
-        // we only issue the course invoice keyed to this transaction.
-        if ($item_type === 'course') {
+        // Generate invoice. Package/subscription invoices are issued inside their purchase
+        // managers (which also covers direct, non-gateway purchases). Course and program have no
+        // purchase manager of their own — the transaction row is the record — so both are issued
+        // here, keyed to this transaction.
+        if ($item_type === 'course' || $item_type === 'program') {
             try {
-                invoice_generator::create(invoice_generator::SOURCE_COURSE, (int) $transaction->id);
+                $source = $item_type === 'course' ? invoice_generator::SOURCE_COURSE : invoice_generator::SOURCE_PROGRAM;
+                invoice_generator::create($source, (int) $transaction->id);
             } catch (\Exception $e) {
                 self::log_entry($transaction->provider_id, $transaction->id, 'warning',
                     'Invoice generation failed: ' . $e->getMessage());
@@ -995,6 +997,7 @@ class manager {
                 'success' => true,
                 'status' => $transaction->status,
                 'courseid' => (int) $transaction->courseid,
+                'itemid' => (int) ($meta->item_id ?? 0),
                 'item_type' => $item_type,
                 'enrolled' => $item_type === 'course' ? enrollment_handler::is_enrolled((int) $transaction->userid, (int) $transaction->courseid) : false,
             ];
@@ -1006,6 +1009,7 @@ class manager {
                 'success' => false,
                 'status' => $transaction->status,
                 'courseid' => (int) $transaction->courseid,
+                'itemid' => (int) ($meta->item_id ?? 0),
                 'item_type' => $item_type,
                 'enrolled' => false,
             ];
@@ -1021,6 +1025,7 @@ class manager {
                     'success' => false,
                     'status' => 'amount_mismatch',
                     'courseid' => (int) $transaction->courseid,
+                    'itemid' => (int) ($meta->item_id ?? 0),
                     'item_type' => $item_type,
                     'enrolled' => false,
                 ];
@@ -1058,6 +1063,17 @@ class manager {
                             (int) ($meta->seats ?? 0)
                         );
                         self::audit_log($transaction->id, $transaction->userid, 'subscription_purchased', '', (string) $meta->item_id);
+                    } else if ($item_type === 'program') {
+                        // Same fulfilment as the webhook path — see manager.php's webhook handler.
+                        // This branch matters because the browser redirect (this function) is the
+                        // fallback fulfilment route when the webhook has not landed yet: without
+                        // it, a program purchase could complete payment but never allocate the
+                        // student, and no invoice would ever be issued for it.
+                        \local_academy\program_purchase_manager::allocate_buyer(
+                            (int) $transaction->userid,
+                            (int) $meta->item_id
+                        );
+                        self::audit_log($transaction->id, $transaction->userid, 'program_allocated', '', (string) $meta->item_id);
                     } else {
                         $enrolled = enrollment_handler::enrol_user((int) $transaction->userid, (int) $transaction->courseid);
                         if ($enrolled) {
@@ -1075,10 +1091,13 @@ class manager {
                 // Record coupon/offer usage now the purchase is fulfilled (idempotent).
                 self::record_academy_discount($transaction, $meta);
 
-                // Course invoice only; package/subscription invoices are issued by their managers.
+                // Course and program invoices are issued here (they have no purchase-manager of
+                // their own); package/subscription invoices are issued by their managers.
                 if ($item_type === 'course') {
                     invoice_generator::create(invoice_generator::SOURCE_COURSE, (int) $transaction->id);
                     self::send_confirmation($transaction);
+                } else if ($item_type === 'program') {
+                    invoice_generator::create(invoice_generator::SOURCE_PROGRAM, (int) $transaction->id);
                 }
             } else {
                 $enrolled = $item_type === 'course' ? enrollment_handler::is_enrolled((int) $transaction->userid, (int) $transaction->courseid) : false;
@@ -1088,6 +1107,7 @@ class manager {
                 'success' => true,
                 'status' => status_machine::COMPLETED,
                 'courseid' => (int) $transaction->courseid,
+                'itemid' => (int) ($meta->item_id ?? 0),
                 'item_type' => $item_type,
                 'enrolled' => $enrolled,
             ];
@@ -1097,6 +1117,7 @@ class manager {
             'success' => false,
             'status' => $transaction->status,
             'courseid' => (int) $transaction->courseid,
+            'itemid' => (int) ($meta->item_id ?? 0),
             'item_type' => $item_type,
             'enrolled' => false,
         ];
