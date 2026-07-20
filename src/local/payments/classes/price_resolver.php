@@ -165,53 +165,66 @@ class price_resolver {
         // The course keeps showing in "My courses" after a subscription/package lapses (the
         // enrolment record survives but is expired). Flag that so the card can invite the
         // student to renew instead of silently looking like a fresh, never-enrolled course.
-        $can_renew = !$is_enrolled && $userid > 0
-            && enrollment_handler::has_expired_enrolment($userid, $courseid);
+        // A scheduled enrolment (e.g. an enrol_programs allocation with a future start date)
+        // is a different, non-renewal state — surface an "access starts soon" hint instead.
+        $enrol_state = ($userid > 0 && !$is_enrolled)
+            ? enrollment_handler::enrolment_state($userid, $courseid)
+            : ['state' => 'none', 'starts_at' => 0];
+        $can_renew    = $enrol_state['state'] === 'expired';
+        $is_scheduled = $enrol_state['state'] === 'scheduled';
+        $scheduled_label = '';
+        if ($is_scheduled) {
+            $scheduled_label = $enrol_state['starts_at'] > 0
+                ? get_string('access_starts_on', 'local_payments',
+                    userdate($enrol_state['starts_at'], get_string('strftimedate', 'langconfig')))
+                : get_string('access_starts_soon', 'local_payments');
+        }
+        $status_fields = [
+            'can_renew'       => $can_renew,
+            'is_scheduled'    => $is_scheduled,
+            'scheduled_label' => $scheduled_label,
+        ];
 
         if ($is_enrolled || !self::has_pricing($courseid)) {
-            return [
+            return array_merge([
                 'is_enrolled' => $is_enrolled,
                 'is_free' => !self::has_pricing($courseid),
                 'is_purchased' => false,
-                'can_renew' => $can_renew,
                 'course_url' => $course_url,
-            ];
+            ], $status_fields);
         }
 
         $buy_url = (new \moodle_url('/local/payments/buy.php', ['courseid' => $courseid]))->out(false);
         $is_purchased = $userid > 0 ? self::is_purchased($courseid, $userid) : false;
 
         if ($is_purchased) {
-            return [
+            return array_merge([
                 'is_enrolled' => false,
                 'is_free' => false,
                 'is_purchased' => true,
-                'can_renew' => $can_renew,
                 'course_url' => $course_url,
                 'buy_url' => $buy_url,
-            ];
+            ], $status_fields);
         }
 
         try {
             $pricing = self::resolve($courseid, $userid > 0 ? $userid : null);
         } catch (\moodle_exception $e) {
-            return [
+            return array_merge([
                 'is_enrolled' => false,
                 'is_free' => true,
                 'is_purchased' => false,
-                'can_renew' => $can_renew,
                 'course_url' => $course_url,
-            ];
+            ], $status_fields);
         }
 
         return array_merge([
             'is_enrolled' => false,
             'is_free' => false,
             'is_purchased' => false,
-            'can_renew' => $can_renew,
             'buy_url' => $buy_url,
             'course_url' => $course_url,
-        ], self::display_fields($pricing, $courseid));
+        ], $status_fields, self::display_fields($pricing, $courseid));
     }
 
     /**

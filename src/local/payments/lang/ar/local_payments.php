@@ -52,6 +52,9 @@ $string['error_one_default'] = 'مسموح بسعر افتراضي واحد فق
 
 // Course display.
 $string['enrolled'] = 'مسجل';
+$string['renew_subscription'] = 'جدّد اشتراكك';
+$string['access_starts_on'] = 'يبدأ الوصول في {$a}';
+$string['access_starts_soon'] = 'سيبدأ الوصول قريبًا';
 $string['purchased'] = 'تم الشراء';
 $string['sale'] = 'تخفيض';
 $string['buynow'] = 'اشترك';

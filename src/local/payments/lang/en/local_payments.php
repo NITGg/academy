@@ -64,6 +64,8 @@ $string['secure_checkout'] = 'Secure checkout powered by trusted payment provide
 $string['covered_by_subscription'] = 'Covered by your subscription';
 $string['enroll'] = 'Enroll';
 $string['renew_subscription'] = 'Renew your subscription';
+$string['access_starts_on'] = 'Access starts on {$a}';
+$string['access_starts_soon'] = 'Access starts soon';
 
 // Payment flow.
 $string['paymentfor'] = 'Payment for: {$a}';

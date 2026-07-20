@@ -286,6 +286,15 @@
     margin-bottom: 0.5rem;
 }
 
+/* Scheduled hint — enrolment registered but access starts later (e.g. a program
+   allocation with a future start date). Not a renewal — a "coming up" state. */
+.lp-card-status--scheduled {
+    background: #eaf1fb;
+    color: #2563eb;
+    border: 1px solid rgba(37, 99, 235, 0.16);
+    margin-bottom: 0.5rem;
+}
+
 /* ------------------------------------------------------------------ */
 /* Full course-page card (buy.php)                                   */
 /* ------------------------------------------------------------------ */
@@ -397,6 +406,13 @@
     background: rgba(255, 193, 94, 0.22);
     border-color: rgba(255, 193, 94, 0.42);
     color: #ffd89b;
+    backdrop-filter: blur(2px);
+}
+
+.lp-context-dark-footer .lp-card-status--scheduled {
+    background: rgba(147, 197, 253, 0.20);
+    border-color: rgba(147, 197, 253, 0.40);
+    color: #bfdbfe;
     backdrop-filter: blur(2px);
 }
 
