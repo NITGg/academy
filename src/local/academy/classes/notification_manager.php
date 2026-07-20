@@ -232,6 +232,68 @@ class notification_manager {
         }
     }
 
+    /**
+     * Remind a student that their access to a paid program is about to expire.
+     *
+     * Sent by {@see \local_academy\task\program_expiry_reminder_task} when an enrol_programs
+     * allocation's `timeend` falls within the admin-configured `program_expiry_reminder_days`
+     * window. Delivered on the `expirynotification` provider (web bell + mobile
+     * `get_notifications` pull + email), same as the package/subscription reminders. Best-effort.
+     *
+     * @param object $allocation enrol_programs_allocations record joined with `program_name`
+     * @param int    $daysleft   whole days remaining until timeend (shown to the student)
+     */
+    public static function program_expiry_reminder($allocation, $daysleft) {
+        global $DB, $CFG;
+        try {
+            $recipient = $DB->get_record('user', array('id' => $allocation->userid, 'deleted' => 0, 'suspended' => 0));
+            if (!$recipient) {
+                return;
+            }
+
+            // Render in the student's language (see lesson_event): this runs from cron, where
+            // current_language() is the site default, not the recipient's preference.
+            $reciplang = !empty($recipient->lang) ? $recipient->lang : $CFG->lang;
+            $prevforcelang = force_current_language($reciplang);
+            try {
+                $a = (object) array(
+                    'program' => isset($allocation->program_name) ? format_string($allocation->program_name) : '',
+                    'days'    => (int)$daysleft,
+                    'date'    => (int)$allocation->timeend > 0
+                        ? userdate((int)$allocation->timeend, get_string('strftimedate', 'langconfig')) : '',
+                );
+
+                $url = new \moodle_url('/local/academy/student.php');
+
+                $message = new \core\message\message();
+                $message->component         = 'local_academy';
+                $message->name              = 'expirynotification';
+                $message->userfrom          = \core_user::get_noreply_user();
+                $message->userto            = $recipient;
+                $message->subject           = get_string('notif_program_expiring_subject', 'local_academy', $a);
+                $message->fullmessage       = get_string('notif_program_expiring_body', 'local_academy', $a);
+                $message->fullmessageformat = FORMAT_PLAIN;
+                $message->fullmessagehtml   = '<p>' . s($message->fullmessage) . '</p>';
+                $message->smallmessage      = $message->subject;
+                $message->notification      = 1;
+                $message->contexturl        = $url->out(false);
+                $message->contexturlname    = get_string('myprograms', 'local_academy');
+
+                // See lesson_event: buffer to swallow any warning the mail processor prints.
+                ob_start();
+                try {
+                    message_send($message);
+                } finally {
+                    ob_end_clean();
+                }
+            } finally {
+                force_current_language($prevforcelang);
+            }
+        } catch (\Throwable $e) {
+            debugging('academy program expiry reminder failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     // B2B subscription notifications (US-B2B-1-*)
     // ──────────────────────────────────────────────────────────────────────────

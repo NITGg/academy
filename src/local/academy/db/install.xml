@@ -623,5 +623,19 @@
         <INDEX NAME="programid_uix" UNIQUE="true" FIELDS="programid"/>
       </INDEXES>
     </TABLE>
+
+    <TABLE NAME="academy_program_notif" COMMENT="Tracks which enrol_programs allocations were already sent a program-expiry reminder. Kept here rather than a column on enrol_programs_allocations so the third-party plugin's own tables stay untouched.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="allocationid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="enrol_programs_allocations.id (no FK — the plugin may be uninstalled)"/>
+        <FIELD NAME="timenotified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="allocationid_uix" UNIQUE="true" FIELDS="allocationid"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

@@ -13,6 +13,7 @@ $string['mypackages'] = 'باقاتي';
 $string['availpkgs_heading'] = 'الباقات المتاحة';
 $string['subscriptionhub'] = 'الاشتراكات';
 $string['mysubscriptions'] = 'اشتراكاتي';
+$string['myprograms'] = 'برامجي';
 $string['availsubs_heading'] = 'الاشتراكات المتاحة';
 
 // ── Error messages surfaced in API JSON ──
@@ -53,7 +54,12 @@ $string['prg_bypass_badge']   = 'التسجيل المجاني ما زال مف�
 $string['prg_bypass_warning'] = 'يوجد {$a} برنامج مدفوع ما زال يسمح بالتسجيل الذاتي المجاني. يستطيع الطلاب الانضمام إليها بدون دفع مباشرةً من رابط كتالوج البرامج — تحديد السعر وحده لا يغلق هذا المسار. استخدم زر «إغلاق التسجيل المجاني» لكل برنامج منها.';
 $string['prg_close_free']     = 'إغلاق التسجيل المجاني';
 $string['prg_closed_free']    = 'تم إغلاق التسجيل المجاني.';
+$string['prg_needsopen_badge'] = 'لا يوجد مسار تسجيل مفتوح';
+$string['prg_open_free']      = 'تشغيل التسجيل المجاني';
+$string['prg_opened_free']    = 'تم تشغيل التسجيل المجاني.';
 $string['prg_none']           = 'لا توجد برامج.';
+$string['prg_tab_programs']   = 'البرامج';
+$string['prg_tab_settings']   = 'إعدادات البرامج';
 // الكتالوج (واجهة الطالب).
 $string['prg_buy']            = 'اشترِ هذا البرنامج';
 $string['prg_price_label']    = 'السعر';
@@ -843,6 +849,7 @@ $string['err_coursenotfound']      = 'المقرر غير موجود';
 // ── Scheduled task names ──
 $string['task_expiry_reminder']      = 'إرسال تذكيرات انتهاء الباقات للطلاب';
 $string['task_subscription_expiry']  = 'إنهاء الاشتراكات وإرسال تذكيرات الانتهاء';
+$string['task_program_expiry_reminder'] = 'إرسال تذكيرات انتهاء البرامج للطلاب';
 
 // ── Lesson-lifecycle notifications (in-app + email) ──
 $string['messageprovider:lessonnotification'] = 'تحديثات الدروس (الطلبات والردود والتذكيرات)';
@@ -886,6 +893,8 @@ $string['notif_package_expiring_subject'] = 'تنتهي باقتك خلال {$a-
 $string['notif_package_expiring_body']    = 'تنتهي باقة "{$a->package}" في {$a->date} (باقٍ {$a->days} يوم). لا يزال لديك {$a->flex} فلكس — احجز درسًا قبل انتهائها حتى لا تفقدها.';
 $string['notif_subscription_expiring_subject'] = 'ينتهي اشتراكك خلال {$a->days} يوم';
 $string['notif_subscription_expiring_body']    = 'ينتهي اشتراك "{$a->subscription}" في {$a->date} (باقٍ {$a->days} يوم). جدّده للحفاظ على وصولك إلى مقرراتك.';
+$string['notif_program_expiring_subject'] = 'ينتهي برنامجك خلال {$a->days} يوم';
+$string['notif_program_expiring_body']    = 'ينتهي وصولك لبرنامج "{$a->program}" في {$a->date} (باقٍ {$a->days} يوم).';
 // US: تذكير ببدء الدرس.
 $string['set_lesson_start_reminder'] = 'تذكير ببدء الدرس (بالدقائق)';
 $string['set_lesson_start_reminder_help'] = 'أشعر الطالب قبل هذا العدد من الدقائق من بدء درسه (0 للتعطيل).';
@@ -906,6 +915,8 @@ $string['set_tab_lesson']           = 'إعدادات الباقات';
 $string['set_tab_b2b']              = 'إعدادات الاشتراكات';
 $string['set_sub_expiry_reminder']      = 'تذكير انتهاء الاشتراك (أيام قبل الانتهاء)';
 $string['set_sub_expiry_reminder_help'] = 'إشعار الطالب قبل انتهاء اشتراكه بهذا العدد من الأيام. القيمة 0 تعطّل التذكير.';
+$string['set_program_expiry_reminder']      = 'تذكير انتهاء البرنامج (أيام قبل الانتهاء)';
+$string['set_program_expiry_reminder_help'] = 'إشعار الطالب قبل انتهاء وصوله للبرنامج بهذا العدد من الأيام. القيمة 0 تعطّل التذكير.';
 $string['set_b2b_auto_approve']     = 'الموافقة التلقائية على المستخدمين المدعوين';
 $string['set_b2b_auto_approve_help'] = 'عند التفعيل، تتم الموافقة على المستخدم المدعو تلقائيًا إذا توفر مقعد شاغر؛ وإلا يبقى قيد الانتظار حتى يوافق عليه مدير الأعمال.';
 $string['set_b2b_return_seat']      = 'إرجاع المقعد عند إزالة مستخدم';

@@ -23,4 +23,13 @@ $tasks = array(
         'month'     => '*',
         'dayofweek' => '*',
     ),
+    array(
+        'classname' => 'local_academy\task\program_expiry_reminder_task',
+        'blocking'  => 0,
+        'minute'    => '10',
+        'hour'      => '8',
+        'day'       => '*',
+        'month'     => '*',
+        'dayofweek' => '*',
+    ),
 );

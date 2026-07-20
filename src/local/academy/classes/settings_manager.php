@@ -25,6 +25,8 @@ class settings_manager {
         'sub_expiry_reminder_days' => 3,   // notify a student this many days before a subscription expires (0 = off)
         'b2b_auto_approve_invited_users'   => 0,// 1 = auto-approve invited users when a seat is free
         'b2b_return_seat_after_user_removal' => 1, // 1 = removing an approved user frees their seat
+        // Program settings (manage_programs.php).
+        'program_expiry_reminder_days' => 3, // notify a student this many days before their program access (timeend) expires (0 = off)
     );
 
     /** Return all settings (defaults applied). */

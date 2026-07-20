@@ -764,5 +764,22 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026072000, 'local', 'academy');
     }
 
+    if ($oldversion < 2026072001) {
+        // Tracks which enrol_programs allocations already got a program-expiry reminder. Held here,
+        // not as a column on enrol_programs_allocations, so the third-party plugin's tables stay
+        // untouched (same reasoning as academy_program_prices above).
+        $table = new xmldb_table('academy_program_notif');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('allocationid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('timenotified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $table->add_index('allocationid_uix', XMLDB_INDEX_UNIQUE, array('allocationid'));
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026072001, 'local', 'academy');
+    }
+
     return true;
 }

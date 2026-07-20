@@ -231,6 +231,7 @@ $capmap = [
     'list_program_prices'    => 'local/academy:manageplatform',
     'set_program_price'      => 'local/academy:manageplatform',
     'disable_program_free_signup' => 'local/academy:manageplatform',
+    'enable_program_free_signup' => 'local/academy:manageplatform',
     'get_certificates'       => 'local/academy:manageplatform',
     'save_certificate'       => 'local/academy:manageplatform',
     'delete_certificate'     => 'local/academy:manageplatform',
@@ -635,7 +636,8 @@ try {
                 'start_allowed_minutes', 'complete_allowed_minutes', 'absence_report_minutes',
                 'expiry_reminder_days', 'teacher_percent', 'platform_percent', 'lessons_courseid',
                 'sub_expiry_reminder_days',
-                'b2b_auto_approve_invited_users', 'b2b_return_seat_after_user_removal'];
+                'b2b_auto_approve_invited_users', 'b2b_return_seat_after_user_removal',
+                'program_expiry_reminder_days'];
             $data = [];
             foreach ($fields as $f) {
                 if (isset($_REQUEST[$f])) { $data[$f] = required_param($f, PARAM_INT); }
@@ -963,6 +965,14 @@ try {
             academy_require_post();
             program_purchase_manager::disable_free_signup(required_param('programid', PARAM_INT));
             academy_respond(['status' => 'success', 'data' => ['closed' => true]]);
+            break;
+
+        // Admin: open the plugin's free self-signup path on a free program (the only way in,
+        // since paid buyers are allocated ourselves and a free program gets no source automatically).
+        case 'enable_program_free_signup':
+            academy_require_post();
+            program_purchase_manager::enable_free_signup(required_param('programid', PARAM_INT));
+            academy_respond(['status' => 'success', 'data' => ['opened' => true]]);
             break;
 
         // Student: price + whether they already own this program (drives the catalogue button).

@@ -42,7 +42,11 @@ $STR = local_academy_string_map(array(
     'prg_col_actions', 'prg_free', 'prg_paid', 'prg_archived', 'prg_notpublic',
     'prg_saved', 'prg_makefree_hint',
     'prg_bypass_warning', 'prg_bypass_badge', 'prg_close_free', 'prg_closed_free',
+    'prg_needsopen_badge', 'prg_open_free', 'prg_opened_free',
     'prg_none', 'err_sessionexpired', 'err_requestfailed',
+    // Page tabs + program settings (mirrors the settings tab on manage_packages.php / manage_subscriptions.php).
+    'prg_tab_programs', 'prg_tab_settings',
+    'set_program_expiry_reminder', 'set_program_expiry_reminder_help', 'set_save', 'set_saved',
 ));
 echo html_writer::script('window.ACADEMY_PRG = ' . json_encode(array(
     'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
@@ -61,14 +65,41 @@ table.prg-table td.num,table.prg-table th.num{text-align:right;white-space:nowra
 .b-free{background:#e9ecef;color:#495057}.b-paid{background:#d4edda;color:#155724}
 .b-warn{background:#f8d7da;color:#721c24}.b-muted{background:#f1f3f5;color:#868e96}
 .prg-warn{border:1px solid #f5c2c7;background:#f8d7da;color:#58151c;border-radius:.5rem;padding:.75rem 1rem;margin-bottom:1rem;font-size:.9rem}
+/* Page-level tabs: Programs / Program settings (mirrors manage_packages.php / manage_subscriptions.php). */
+#prg-tabs{display:flex;gap:.25rem;border-bottom:1px solid #dee2e6;margin-bottom:1rem;flex-wrap:wrap}
+#prg-tabs button{border:none;background:none;padding:.5rem .9rem;border-bottom:3px solid transparent;cursor:pointer}
+#prg-tabs button.active{border-bottom-color:#0f6cbf;font-weight:600;color:#0f6cbf}
+.prg-pane{display:none}
+.prg-pane.active{display:block}
 </style>
 <div id="prg-app">
+  <div id="prg-tabs">
+    <button data-tab="programs" class="active"><?php echo $STR['prg_tab_programs']; ?></button>
+    <button data-tab="settings"><?php echo $STR['prg_tab_settings']; ?></button>
+  </div>
+
+  <div class="prg-pane active" data-pane="programs">
   <div id="prg-msg" class="alert" style="display:none"></div>
   <p class="text-muted"><?php echo $STR['prg_intro']; ?></p>
   <div id="prg-bypass-warning" class="prg-warn" style="display:none"></div>
   <button id="prg-refresh" class="btn btn-outline-secondary mb-2"><?php echo $STR['ui_refresh']; ?></button>
   <table class="prg-table" id="prg-table"></table>
   <div id="prg-table-pager" class="acad-pager"></div>
+  </div><!-- /pane programs -->
+
+  <div class="prg-pane" data-pane="settings">
+  <div id="prg-set-msg" class="alert" style="display:none"></div>
+  <div class="card" style="max-width:560px;">
+    <div class="card-body">
+      <div class="form-group">
+        <label for="s-program_expiry_reminder_days"><?php echo $STR['set_program_expiry_reminder']; ?></label>
+        <input class="form-control" id="s-program_expiry_reminder_days" type="number" min="0">
+        <small class="text-muted"><?php echo $STR['set_program_expiry_reminder_help']; ?></small>
+      </div>
+      <button id="prg-set-save" class="btn btn-primary"><?php echo $STR['set_save']; ?></button>
+    </div>
+  </div>
+  </div><!-- /pane settings -->
 </div>
 <?php
 echo html_writer::script(<<<'JS'
@@ -94,6 +125,8 @@ echo html_writer::script(<<<'JS'
       : '<span class="prg-badge b-free">'+esc(str('prg_free'))+'</span>';
     // A paid program whose free signup path is still open can be taken without paying.
     if(r.bypassable){out += ' <span class="prg-badge b-warn">'+esc(str('prg_bypass_badge'))+'</span>';}
+    // A free program with no signup path open has no way in at all — worth flagging just as loudly.
+    if(r.needsopen){out += ' <span class="prg-badge b-warn">'+esc(str('prg_needsopen_badge'))+'</span>';}
     if(!r.public){out += ' <span class="prg-badge b-muted">'+esc(str('prg_notpublic'))+'</span>';}
     return out;
   }
@@ -137,6 +170,18 @@ echo html_writer::script(<<<'JS'
         };
         td.appendChild(close);
       }
+      // Symmetric case: a free program with no signup path open — nobody can join it at all.
+      if(r.needsopen){
+        var open = document.createElement('button');
+        open.className = 'btn btn-sm btn-success ml-1';
+        open.textContent = str('prg_open_free');
+        open.onclick = function(){
+          apiPost('enable_program_free_signup',{programid:r.id}).then(function(){
+            msg(str('prg_opened_free'),'success'); load();
+          }).catch(function(e){msg(e.message,'danger');});
+        };
+        td.appendChild(open);
+      }
       tr.appendChild(td);
       tb.appendChild(tr);
     });
@@ -170,4 +215,51 @@ echo html_writer::script(<<<'JS'
 })();
 JS
 );
+
+// ── Page-level tab switching (Programs / Program settings) ──
+echo html_writer::script(<<<'JS'
+(function () {
+    var tabs = document.querySelectorAll('#prg-tabs button');
+    Array.prototype.forEach.call(tabs, function (b) {
+        b.onclick = function () {
+            Array.prototype.forEach.call(tabs, function (x) { x.classList.remove('active'); });
+            b.classList.add('active');
+            var tab = b.getAttribute('data-tab');
+            Array.prototype.forEach.call(document.querySelectorAll('.prg-pane'), function (p) {
+                p.classList.toggle('active', p.getAttribute('data-pane') === tab);
+            });
+        };
+    });
+})();
+JS
+);
+
+// ── "Program settings" tab ──
+echo html_writer::script(<<<'JS'
+(function () {
+  var CFG = window.ACADEMY_PRG;
+  var STR = window.ACADEMY_STR || {};
+  function str(k){return (k in STR)?STR[k]:k;}
+  function $(id){return document.getElementById(id);}
+  function msg(t,k){var e=$('prg-set-msg');e.textContent=t;e.className='alert alert-'+(k||'info');e.style.display='block';if(k==='success'){setTimeout(function(){e.style.display='none';},3000);}}
+  function api(func,params){var qs=new URLSearchParams({function:func,token:CFG.token});if(CFG.lang){qs.append('alang',CFG.lang);}Object.keys(params||{}).forEach(function(k){qs.append(k,params[k]);});
+    return fetch(CFG.endpoint+'?'+qs.toString()).then(function(r){return r.text();}).then(function(t){var j;try{j=JSON.parse(t);}catch(e){throw new Error(str('err_sessionexpired'));}if(j.status!=='success'){throw new Error(j.error||str('err_requestfailed'));}return j.data;});}
+
+  function load(){
+    api('get_lesson_settings',{}).then(function(d){
+      $('s-program_expiry_reminder_days').value = d.program_expiry_reminder_days;
+    }).catch(function(e){msg(e.message,'danger');});
+  }
+  function save(){
+    api('update_lesson_settings',{program_expiry_reminder_days:$('s-program_expiry_reminder_days').value}).then(function(d){
+      $('s-program_expiry_reminder_days').value = d.program_expiry_reminder_days;
+      msg(str('set_saved'),'success');
+    }).catch(function(e){msg(e.message,'danger');});
+  }
+  $('prg-set-save').addEventListener('click', save);
+  load();
+})();
+JS
+);
+
 echo $OUTPUT->footer();

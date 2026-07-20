@@ -172,7 +172,12 @@ $string['prg_bypass_badge']   = 'Free signup still open';
 $string['prg_bypass_warning'] = '{$a} paid program(s) still allow free self-signup. Students can join those without paying, straight from the program catalogue link — setting a price does not close that path. Use "Close free signup" on each one.';
 $string['prg_close_free']     = 'Close free signup';
 $string['prg_closed_free']    = 'Free signup closed.';
+$string['prg_needsopen_badge'] = 'No signup path open';
+$string['prg_open_free']      = 'Open free signup';
+$string['prg_opened_free']    = 'Free signup opened.';
 $string['prg_none']           = 'No programs found.';
+$string['prg_tab_programs']   = 'Programs';
+$string['prg_tab_settings']   = 'Program settings';
 // Catalogue (student-facing).
 $string['prg_buy']            = 'Buy this program';
 $string['prg_price_label']    = 'Price';
@@ -315,6 +320,12 @@ $string['task_expiry_reminder'] = 'Send package-expiry reminders to students';
 $string['task_subscription_expiry'] = 'Expire subscriptions and send expiry reminders';
 $string['notif_subscription_expiring_subject'] = 'Your subscription expires in {$a->days} day(s)';
 $string['notif_subscription_expiring_body']    = 'Your "{$a->subscription}" subscription expires on {$a->date} ({$a->days} day(s) left). Renew it to keep access to your courses.';
+
+// Program expiry reminder (sent by the daily program_expiry_reminder task).
+$string['myprograms'] = 'My programs';
+$string['task_program_expiry_reminder'] = 'Send program-expiry reminders to students';
+$string['notif_program_expiring_subject'] = 'Your program expires in {$a->days} day(s)';
+$string['notif_program_expiring_body']    = 'Your access to the "{$a->program}" program expires on {$a->date} ({$a->days} day(s) left).';
 
 // ── B2B subscription notifications (US-B2B-1-*) ──
 $string['messageprovider:b2bnotification'] = 'B2B subscription updates (purchase, join requests, approvals)';
@@ -607,6 +618,8 @@ $string['set_tab_lesson']           = 'Package settings';
 $string['set_tab_b2b']              = 'Subscription settings';
 $string['set_sub_expiry_reminder']      = 'Subscription expiry reminder (days before)';
 $string['set_sub_expiry_reminder_help'] = 'Notify the student this many days before their subscription expires. 0 disables the reminder.';
+$string['set_program_expiry_reminder']      = 'Program expiry reminder (days before)';
+$string['set_program_expiry_reminder_help'] = 'Notify the student this many days before their program access expires. 0 disables the reminder.';
 $string['set_b2b_auto_approve']     = 'Automatically approve invited users';
 $string['set_b2b_auto_approve_help'] = 'When enabled, an invited user is approved automatically if the B2B subscription has an available seat; otherwise they stay pending until the B2B administrator approves them.';
 $string['set_b2b_return_seat']      = 'Return seat when a user is removed';

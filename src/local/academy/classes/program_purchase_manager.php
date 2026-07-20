@@ -137,6 +137,7 @@ class program_purchase_manager {
         $out = array();
         foreach ($rows as $r) {
             $paid = $r->enabled && (float)$r->price > 0;
+            $hasfree = self::has_free_signup((int)$r->id);
             $out[] = array(
                 'id'          => (int)$r->id,
                 'fullname'    => format_string($r->fullname),
@@ -147,12 +148,32 @@ class program_purchase_manager {
                 'currency'    => $r->currency ?: 'EGP',
                 'paid'        => $paid ? 1 : 0,
                 'sales'       => $sales[(int)$r->id] ?? 0,
-                // Surfaced so the admin screen can warn loudly: a paid program with self-signup
-                // still enabled can be taken for free straight from the plugin's own URL.
-                'bypassable'  => ($paid && self::is_bypassable((int)$r->id)) ? 1 : 0,
+                // Paid + self-signup on: the admin screen warns loudly — a student can take the
+                // program for free straight from the plugin's own URL, bypassing the price.
+                'bypassable'  => ($paid && $hasfree) ? 1 : 0,
+                // Free + self-signup off: the ONLY way in is closed. The admin screen offers to
+                // turn it back on rather than leaving a "free" program nobody can actually join.
+                'needsopen'   => (!$paid && !$hasfree) ? 1 : 0,
             );
         }
         return $out;
+    }
+
+    /**
+     * Does this program currently have the plugin's free self-signup source enabled?
+     *
+     * Same underlying fact ("Allocation sources → Self allocation" is on, in the plugin's own
+     * management UI) but the fact means opposite things depending on price: on a paid program it is
+     * a bypass (a free path that undercuts the price we are charging); on a free program it is the
+     * *only* way a student can join at all, since we never enable it ourselves automatically.
+     */
+    public static function has_free_signup($programid) {
+        global $DB;
+        if (!self::available()) {
+            return false;
+        }
+        return $DB->record_exists('enrol_programs_sources',
+            array('programid' => (int)$programid, 'type' => self::SOURCE_SELF));
     }
 
     /**
@@ -163,12 +184,7 @@ class program_purchase_manager {
      * would not close it — the source itself has to go.
      */
     public static function is_bypassable($programid) {
-        global $DB;
-        if (!self::available()) {
-            return false;
-        }
-        return $DB->record_exists('enrol_programs_sources',
-            array('programid' => (int)$programid, 'type' => self::SOURCE_SELF));
+        return self::is_paid($programid) && self::has_free_signup($programid);
     }
 
     /** Turn off the plugin's free self-signup source for a program (refuses if it has allocations). */
@@ -190,6 +206,25 @@ class program_purchase_manager {
             'programid' => (int)$programid,
             'type'      => self::SOURCE_SELF,
             'enable'    => 0,
+        ));
+        return true;
+    }
+
+    /**
+     * Turn on the plugin's free self-signup source for a program — open to anyone, no key, no seat
+     * cap (allowsignup=1, key=null, maxusers=null; see selfallocation::encode_datajson()).
+     *
+     * A free program with no allocation source enabled has no way for a student to join at all —
+     * we only ever allocate paid buyers ourselves, through the 'manual' source. Making a program
+     * free (price = 0) does not do this automatically; the admin turns it on deliberately, exactly
+     * as they deliberately turn it off when making a program paid.
+     */
+    public static function enable_free_signup($programid) {
+        self::require_available();
+        \enrol_programs\local\source\selfallocation::update_source((object)array(
+            'programid' => (int)$programid,
+            'type'      => self::SOURCE_SELF,
+            'enable'    => 1,
         ));
         return true;
     }
