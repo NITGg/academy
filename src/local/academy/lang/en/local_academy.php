@@ -86,6 +86,9 @@ $string['hp_biz_title']       = 'PMlounge Business';
 $string['hp_biz_body']        = 'Join PMLounge, our groundbreaking educational platform, and be part of a dynamic community dedicated to igniting a passion for learning, fostering innovation, and shaping the future of education.';
 $string['hp_biz_join']        = 'Join us';
 $string['mywallet'] = 'My earnings';
+// manage_withdrawals.php is now the Financial Reports page (withdrawals live in its first tab).
+// The old key is kept because it still names the withdrawals section inside that page.
+$string['financialreports']  = 'Financial Reports';
 $string['managewithdrawals'] = 'Teacher withdrawals';
 $string['assignpackage'] = 'Assign package to student';
 $string['reports'] = 'Flex platform reports';
@@ -673,6 +676,81 @@ $string['wd_card_platform']      = 'Platform earnings';
 $string['wd_none']               = 'No withdrawal requests.';
 $string['wd_enter_lesson']       = 'Search and select a lesson.';
 $string['wd_flex_returned']      = 'Flex returned and earning reversed.';
+$string['wd_withdrawals_title']  = 'Teacher withdrawal requests';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — Financial Reports (manage_withdrawals.php, 5 tabs).
+// ─────────────────────────────────────────────────────────────────────────────
+// Tabs.
+$string['fr_tab_overview']      = 'Overview';
+$string['fr_tab_packages']      = 'Packages';
+$string['fr_tab_subscriptions'] = 'Subscriptions';
+$string['fr_tab_coupons']       = 'Coupons';
+$string['fr_tab_offers']        = 'Offers';
+// Date filter.
+$string['fr_from']              = 'From';
+$string['fr_to']                = 'To';
+$string['fr_apply']             = 'Apply';
+$string['fr_clear']             = 'Clear';
+$string['fr_alldates']          = 'All time';
+$string['fr_range']             = 'Showing {$a}';
+$string['fr_export']            = 'Export CSV';
+$string['fr_norows']            = 'No data for this period.';
+$string['fr_total']             = 'Total';
+// Overview sections.
+$string['fr_sec_wallet']        = 'Platform current money';
+$string['fr_sec_wallet_help']   = 'Live balances — not affected by the date filter.';
+$string['fr_sec_revenue']       = 'Revenue collected';
+$string['fr_sec_discounts']     = 'Discounts given';
+$string['fr_sec_payouts']       = 'Teacher payouts';
+$string['fr_sec_volume']        = 'Volume';
+$string['fr_sec_monthly']       = 'Revenue by month';
+$string['fr_rev_packages']      = 'From packages';
+$string['fr_rev_subscriptions'] = 'From subscriptions';
+$string['fr_rev_total']         = 'Total revenue';
+$string['fr_disc_coupons']      = 'Via coupons';
+$string['fr_disc_offers']       = 'Via offers';
+$string['fr_disc_total']        = 'Total discount';
+$string['fr_disc_gross']        = 'Gross before discount';
+$string['fr_vol_packages']      = 'Package purchases';
+$string['fr_vol_subscriptions'] = 'Subscription purchases';
+$string['fr_vol_coupons']       = 'Coupon redemptions';
+$string['fr_vol_offers']        = 'Offers applied';
+$string['fr_c_month']           = 'Month';
+// Shared columns.
+$string['fr_c_name']            = 'Name';
+$string['fr_c_price']           = 'List price';
+$string['fr_c_status']          = 'Status';
+$string['fr_c_sales']           = 'Sales';
+$string['fr_c_revenue']         = 'Revenue';
+$string['fr_c_avgprice']        = 'Avg. price';
+// Packages tab.
+$string['fr_c_online']          = 'Online';
+$string['fr_c_assigned']        = 'Assigned';
+$string['fr_c_flexsold']        = 'Flex sold';
+$string['fr_c_flexconsumed']    = 'Flex used';
+$string['fr_c_flexunused']      = 'Flex unused';
+$string['fr_c_unusedvalue']     = 'Unused value';
+$string['fr_unusedvalue_help']  = 'Money already collected for Flex the students have not used yet (a liability).';
+// Subscriptions tab.
+$string['fr_c_duration']        = 'Duration (days)';
+$string['fr_c_normal']          = 'Normal';
+$string['fr_c_b2b']             = 'B2B';
+$string['fr_c_seats']           = 'Seats sold';
+$string['fr_c_activesubs']      = 'Active';
+$string['fr_c_b2bdiscount']     = 'B2B discount';
+// Coupons / offers tabs.
+$string['fr_c_code']            = 'Code';
+$string['fr_c_discount']        = 'Discount';
+$string['fr_c_uses']            = 'Uses';
+$string['fr_c_uniqueusers']     = 'Unique users';
+$string['fr_c_original']        = 'Original total';
+$string['fr_c_discounted']      = 'Discount given';
+$string['fr_c_final']           = 'Charged total';
+$string['fr_c_avgdiscount']     = 'Avg. discount';
+$string['fr_c_window']          = 'Valid';
+$string['fr_c_items']           = 'Applied to';
+$string['fr_never']             = 'No limit';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UI strings — manage_reports.php (admin reports, 4 tabs).

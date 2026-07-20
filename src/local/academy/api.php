@@ -21,6 +21,7 @@ use local_academy\teacher_manager;
 use local_academy\lesson_manager;
 use local_academy\flex_manager;
 use local_academy\finance_manager;
+use local_academy\finance_report_manager;
 use local_academy\report_manager;
 use local_academy\quiz_manager;
 use local_academy\cert\eligibility_manager;
@@ -204,6 +205,12 @@ $capmap = [
     'list_withdrawals'       => 'local/academy:manageplatform',
     'process_withdrawal'     => 'local/academy:manageplatform',
     'get_platform_wallet'    => 'local/academy:manageplatform',
+    // Financial Reports page (manage_withdrawals.php) — read-only money views across all areas.
+    'finance_overview'       => 'local/academy:manageplatform',
+    'finance_packages'       => 'local/academy:manageplatform',
+    'finance_subscriptions'  => 'local/academy:manageplatform',
+    'finance_coupons'        => 'local/academy:manageplatform',
+    'finance_offers'         => 'local/academy:manageplatform',
     'assign_package'         => 'local/academy:manageplatform',
     'report_lessons'         => 'local/academy:manageplatform',
     'report_platform_earnings' => 'local/academy:manageplatform',
@@ -903,6 +910,34 @@ try {
         // Admin platform wallet overview (manageplatform).
         case 'get_platform_wallet':
             academy_respond(['status' => 'success', 'data' => finance_manager::get_platform_wallet()]);
+            break;
+
+        // ── Financial Reports page: read-only money views, one per tab (manageplatform) ──
+        // All accept the same `from`/`to` unix date window via academy_report_filters().
+
+        case 'finance_overview':
+            academy_respond(['status' => 'success',
+                'data' => finance_report_manager::overview(academy_report_filters())]);
+            break;
+
+        case 'finance_packages':
+            academy_respond(['status' => 'success',
+                'data' => finance_report_manager::packages_report(academy_report_filters())]);
+            break;
+
+        case 'finance_subscriptions':
+            academy_respond(['status' => 'success',
+                'data' => finance_report_manager::subscriptions_report(academy_report_filters())]);
+            break;
+
+        case 'finance_coupons':
+            academy_respond(['status' => 'success',
+                'data' => finance_report_manager::coupons_report(academy_report_filters())]);
+            break;
+
+        case 'finance_offers':
+            academy_respond(['status' => 'success',
+                'data' => finance_report_manager::offers_report(academy_report_filters())]);
             break;
 
         // ── Admin reports + assign (Phase 4, manageplatform) ──

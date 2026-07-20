@@ -410,6 +410,79 @@ $string['wd_card_platform']      = 'أرباح المنصة';
 $string['wd_none']               = 'لا توجد طلبات سحب.';
 $string['wd_enter_lesson']       = 'ابحث عن درس واختره.';
 $string['wd_flex_returned']      = 'تمت إعادة الفلكس وعكس الأرباح.';
+$string['wd_withdrawals_title']  = 'طلبات سحب المعلّمين';
+
+// ── التقارير المالية (manage_withdrawals.php، 5 تبويبات) ──
+// التبويبات.
+$string['fr_tab_overview']      = 'نظرة عامة';
+$string['fr_tab_packages']      = 'الباقات';
+$string['fr_tab_subscriptions'] = 'الاشتراكات';
+$string['fr_tab_coupons']       = 'الكوبونات';
+$string['fr_tab_offers']        = 'العروض';
+// فلتر التاريخ.
+$string['fr_from']              = 'من';
+$string['fr_to']                = 'إلى';
+$string['fr_apply']             = 'تطبيق';
+$string['fr_clear']             = 'مسح';
+$string['fr_alldates']          = 'كل الفترات';
+$string['fr_range']             = 'عرض {$a}';
+$string['fr_export']            = 'تصدير CSV';
+$string['fr_norows']            = 'لا توجد بيانات لهذه الفترة.';
+$string['fr_total']             = 'الإجمالي';
+// أقسام النظرة العامة.
+$string['fr_sec_wallet']        = 'الرصيد الحالي للمنصة';
+$string['fr_sec_wallet_help']   = 'أرصدة لحظية — لا تتأثر بفلتر التاريخ.';
+$string['fr_sec_revenue']       = 'الإيرادات المحصّلة';
+$string['fr_sec_discounts']     = 'الخصومات الممنوحة';
+$string['fr_sec_payouts']       = 'مدفوعات المعلّمين';
+$string['fr_sec_volume']        = 'حجم العمليات';
+$string['fr_sec_monthly']       = 'الإيرادات شهريًا';
+$string['fr_rev_packages']      = 'من الباقات';
+$string['fr_rev_subscriptions'] = 'من الاشتراكات';
+$string['fr_rev_total']         = 'إجمالي الإيرادات';
+$string['fr_disc_coupons']      = 'عبر الكوبونات';
+$string['fr_disc_offers']       = 'عبر العروض';
+$string['fr_disc_total']        = 'إجمالي الخصم';
+$string['fr_disc_gross']        = 'الإجمالي قبل الخصم';
+$string['fr_vol_packages']      = 'مشتريات الباقات';
+$string['fr_vol_subscriptions'] = 'مشتريات الاشتراكات';
+$string['fr_vol_coupons']       = 'استخدامات الكوبونات';
+$string['fr_vol_offers']        = 'العروض المطبَّقة';
+$string['fr_c_month']           = 'الشهر';
+// أعمدة مشتركة.
+$string['fr_c_name']            = 'الاسم';
+$string['fr_c_price']           = 'السعر المعلن';
+$string['fr_c_status']          = 'الحالة';
+$string['fr_c_sales']           = 'المبيعات';
+$string['fr_c_revenue']         = 'الإيراد';
+$string['fr_c_avgprice']        = 'متوسط السعر';
+// تبويب الباقات.
+$string['fr_c_online']          = 'إلكتروني';
+$string['fr_c_assigned']        = 'معيَّن';
+$string['fr_c_flexsold']        = 'فلكس مباع';
+$string['fr_c_flexconsumed']    = 'فلكس مستهلك';
+$string['fr_c_flexunused']      = 'فلكس غير مستخدم';
+$string['fr_c_unusedvalue']     = 'قيمة غير مستخدمة';
+$string['fr_unusedvalue_help']  = 'أموال محصّلة مقابل فلكس لم يستخدمه الطلاب بعد (التزام على المنصة).';
+// تبويب الاشتراكات.
+$string['fr_c_duration']        = 'المدة (أيام)';
+$string['fr_c_normal']          = 'عادي';
+$string['fr_c_b2b']             = 'أعمال';
+$string['fr_c_seats']           = 'المقاعد المباعة';
+$string['fr_c_activesubs']      = 'نشط';
+$string['fr_c_b2bdiscount']     = 'خصم الأعمال';
+// تبويبا الكوبونات والعروض.
+$string['fr_c_code']            = 'الكود';
+$string['fr_c_discount']        = 'الخصم';
+$string['fr_c_uses']            = 'مرات الاستخدام';
+$string['fr_c_uniqueusers']     = 'مستخدمون فريدون';
+$string['fr_c_original']        = 'الإجمالي الأصلي';
+$string['fr_c_discounted']      = 'الخصم الممنوح';
+$string['fr_c_final']           = 'الإجمالي المحصّل';
+$string['fr_c_avgdiscount']     = 'متوسط الخصم';
+$string['fr_c_window']          = 'الصلاحية';
+$string['fr_c_items']           = 'يُطبَّق على';
+$string['fr_never']             = 'بلا حد';
 
 // ── manage_reports.php (admin reports, 4 tabs) ──
 // Tabs.
@@ -578,6 +651,7 @@ $string['academy:managepackages']      = 'إدارة باقات الدروس (ف
 $string['academy:managesubscriptions'] = 'إدارة اشتراكات المقررات';
 $string['managesubscriptions'] = 'إدارة الاشتراكات';
 $string['managesettings']      = 'إعدادات الدروس';
+$string['financialreports']    = 'التقارير المالية';
 $string['managewithdrawals']   = 'عمليات سحب المعلّمين';
 $string['assignpackage']       = 'تعيين باقة لطالب';
 $string['reports']             = 'تقارير منصة فلكس';

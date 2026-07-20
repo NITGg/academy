@@ -40,9 +40,11 @@ if ($hassiteconfig) {
         new moodle_url('/local/academy/manage_settings.php')
     ));
 
+    // Financial Reports: platform money overview + per-area revenue, and teacher withdrawals.
+    // The URL keeps its original name so existing bookmarks/links stay valid.
     $ADMIN->add('localplugins', new admin_externalpage(
         'local_academy_managewithdrawals',
-        get_string('managewithdrawals', 'local_academy'),
+        get_string('financialreports', 'local_academy'),
         new moodle_url('/local/academy/manage_withdrawals.php')
     ));
 
