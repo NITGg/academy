@@ -45,14 +45,14 @@ $STR = local_academy_string_map(array(
     'err_sessionexpired', 'err_requestfailed', 'ui_pager_info',
     // Financial Reports.
     'fr_tab_overview', 'fr_tab_packages', 'fr_tab_subscriptions', 'fr_tab_courses',
-    'fr_tab_coupons', 'fr_tab_offers',
+    'fr_tab_programs', 'fr_tab_coupons', 'fr_tab_offers',
     'fr_from', 'fr_to', 'fr_apply', 'fr_clear', 'fr_alldates', 'fr_export', 'fr_norows', 'fr_total',
     'fr_sec_wallet', 'fr_sec_wallet_help', 'fr_sec_revenue', 'fr_sec_discounts', 'fr_sec_payouts',
     'fr_sec_volume', 'fr_sec_monthly',
-    'fr_rev_packages', 'fr_rev_subscriptions', 'fr_rev_courses', 'fr_rev_total',
+    'fr_rev_packages', 'fr_rev_subscriptions', 'fr_rev_courses', 'fr_rev_programs', 'fr_rev_total',
     'fr_disc_coupons', 'fr_disc_offers', 'fr_disc_total', 'fr_disc_gross',
-    'fr_vol_packages', 'fr_vol_subscriptions', 'fr_vol_courses', 'fr_vol_coupons', 'fr_vol_offers',
-    'fr_c_month',
+    'fr_vol_packages', 'fr_vol_subscriptions', 'fr_vol_courses', 'fr_vol_programs',
+    'fr_vol_coupons', 'fr_vol_offers', 'fr_c_month', 'fr_c_program',
     'fr_c_name', 'fr_c_price', 'fr_c_status', 'fr_c_sales', 'fr_c_revenue', 'fr_c_avgprice',
     'fr_c_online', 'fr_c_assigned', 'fr_c_flexsold', 'fr_c_flexconsumed', 'fr_c_flexunused',
     'fr_c_unusedvalue', 'fr_unusedvalue_help',
@@ -115,9 +115,10 @@ table.wd-table td.num,table.wd-table th.num{text-align:right;white-space:nowrap}
 
   <div id="fr-tabs">
     <button data-tab="overview" class="active"><?php echo $STR['fr_tab_overview']; ?></button>
+    <button data-tab="courses"><?php echo $STR['fr_tab_courses']; ?></button>
+    <button data-tab="programs"><?php echo $STR['fr_tab_programs']; ?></button>
     <button data-tab="packages"><?php echo $STR['fr_tab_packages']; ?></button>
     <button data-tab="subscriptions"><?php echo $STR['fr_tab_subscriptions']; ?></button>
-    <button data-tab="courses"><?php echo $STR['fr_tab_courses']; ?></button>
     <button data-tab="coupons"><?php echo $STR['fr_tab_coupons']; ?></button>
     <button data-tab="offers"><?php echo $STR['fr_tab_offers']; ?></button>
   </div>
@@ -184,7 +185,17 @@ table.wd-table td.num,table.wd-table th.num{text-align:right;white-space:nowrap}
 
   </div>
 
-  <!-- Tabs 2-5: one summary card row + one table each -->
+  <!-- Tabs 2-6: one summary card row + one table each. Pane order follows the tab-button order. -->
+  <div class="fr-pane" data-pane="courses">
+    <div class="fr-cards" id="fr-courses-cards" style="margin-bottom:1rem"></div>
+    <div class="fr-help" style="margin-bottom:.5rem"><?php echo $STR['fr_netrevenue_help']; ?></div>
+    <div class="fr-scroll"><table class="wd-table" id="fr-courses-table"></table></div>
+  </div>
+  <div class="fr-pane" data-pane="programs">
+    <div class="fr-cards" id="fr-programs-cards" style="margin-bottom:1rem"></div>
+    <div class="fr-help" style="margin-bottom:.5rem"><?php echo $STR['fr_netrevenue_help']; ?></div>
+    <div class="fr-scroll"><table class="wd-table" id="fr-programs-table"></table></div>
+  </div>
   <div class="fr-pane" data-pane="packages">
     <div class="fr-cards" id="fr-packages-cards" style="margin-bottom:1rem"></div>
     <div class="fr-scroll"><table class="wd-table" id="fr-packages-table"></table></div>
@@ -198,11 +209,6 @@ table.wd-table td.num,table.wd-table th.num{text-align:right;white-space:nowrap}
     </div>
     <div class="fr-cards" id="fr-subscriptions-cards" style="margin-bottom:1rem"></div>
     <div class="fr-scroll"><table class="wd-table" id="fr-subscriptions-table"></table></div>
-  </div>
-  <div class="fr-pane" data-pane="courses">
-    <div class="fr-cards" id="fr-courses-cards" style="margin-bottom:1rem"></div>
-    <div class="fr-help" style="margin-bottom:.5rem"><?php echo $STR['fr_netrevenue_help']; ?></div>
-    <div class="fr-scroll"><table class="wd-table" id="fr-courses-table"></table></div>
   </div>
   <div class="fr-pane" data-pane="coupons">
     <div class="fr-cards" id="fr-coupons-cards" style="margin-bottom:1rem"></div>
@@ -348,7 +354,8 @@ echo html_writer::script(<<<'JS'
         {label:str('fr_rev_total'),value:money(d.revenue.total),accent:true},
         {label:str('fr_rev_packages'),value:money(d.revenue.packages)},
         {label:str('fr_rev_subscriptions'),value:money(d.revenue.subscriptions)},
-        {label:str('fr_rev_courses'),value:money(d.revenue.courses)}
+        {label:str('fr_rev_courses'),value:money(d.revenue.courses)},
+        {label:str('fr_rev_programs'),value:money(d.revenue.programs)}
       ]);
       cards('fr-discounts',[
         {label:str('fr_disc_total'),value:money(d.discounts.total)},
@@ -360,6 +367,7 @@ echo html_writer::script(<<<'JS'
         {label:str('fr_vol_packages'),value:d.volume.package_purchases},
         {label:str('fr_vol_subscriptions'),value:d.volume.subscription_purchases},
         {label:str('fr_vol_courses'),value:d.volume.course_purchases},
+        {label:str('fr_vol_programs'),value:d.volume.program_purchases},
         {label:str('fr_vol_coupons'),value:d.volume.coupon_redemptions},
         {label:str('fr_vol_offers'),value:d.volume.offer_applications}
       ]);
@@ -374,12 +382,14 @@ echo html_writer::script(<<<'JS'
         {key:'packages',label:str('fr_rev_packages'),num:true,money:true,get:function(r){return money(r.packages);}},
         {key:'subscriptions',label:str('fr_rev_subscriptions'),num:true,money:true,get:function(r){return money(r.subscriptions);}},
         {key:'courses',label:str('fr_rev_courses'),num:true,money:true,get:function(r){return money(r.courses);}},
+        {key:'programs',label:str('fr_rev_programs'),num:true,money:true,get:function(r){return money(r.programs);}},
         {key:'total',label:str('fr_rev_total'),num:true,money:true,get:function(r){
           return money(r.total)+' <span class="fr-bar" style="width:'+Math.round(r.total/max*90)+'px"></span>';}}
       ],d.monthly,{
         packages:d.monthly.reduce(function(s,r){return s+r.packages;},0),
         subscriptions:d.monthly.reduce(function(s,r){return s+r.subscriptions;},0),
         courses:d.monthly.reduce(function(s,r){return s+r.courses;},0),
+        programs:d.monthly.reduce(function(s,r){return s+r.programs;},0),
         total:d.monthly.reduce(function(s,r){return s+r.total;},0)
       });
     }).catch(function(e){msg(e.message,'danger');});
@@ -458,6 +468,35 @@ echo html_writer::script(<<<'JS'
       table('fr-courses-table',[
         {key:'name',label:str('fr_c_course'),get:function(r){
           return esc(r.name)+(r.deleted?' <span class="wd-badge s-inactive">'+esc(str('fr_course_deleted'))+'</span>':'');}},
+        {key:'sales',label:str('fr_c_sales'),num:true},
+        {key:'unique_buyers',label:str('fr_c_buyers'),num:true},
+        {key:'revenue',label:str('fr_c_revenue'),num:true,money:true,get:function(r){return money(r.revenue);}},
+        {key:'avg_price',label:str('fr_c_avgprice'),num:true,get:function(r){return money(r.avg_price);}},
+        {key:'original_total',label:str('fr_c_original'),num:true,money:true,get:function(r){return money(r.original_total);}},
+        {key:'discount_total',label:str('fr_c_discounted'),num:true,money:true,get:function(r){return money(r.discount_total);}},
+        {key:'refunded_amount',label:str('fr_c_refunded'),num:true,money:true,get:function(r){
+          return money(r.refunded_amount)+(r.refunded_count?' ('+r.refunded_count+')':'');}},
+        {key:'revoked_count',label:str('fr_c_revoked'),num:true},
+        {key:'failed_count',label:str('fr_c_failed'),num:true},
+        {key:'net_revenue',label:str('fr_c_netrevenue'),num:true,money:true,get:function(r){return money(r.net_revenue);}}
+      ],d.rows,s);
+    }).catch(function(e){msg(e.message,'danger');});
+  }
+
+  function loadPrograms(){
+    apiGet('finance_programs',dateFilters()).then(function(d){
+      var s=d.summary;
+      cards('fr-programs-cards',[
+        {label:str('fr_c_netrevenue'),value:money(s.net_revenue),accent:true},
+        {label:str('fr_c_revenue'),value:money(s.revenue)},
+        {label:str('fr_c_sales'),value:s.sales},
+        {label:str('fr_c_discounted'),value:money(s.discount_total)},
+        {label:str('fr_c_refunded'),value:money(s.refunded_amount)}
+      ]);
+      table('fr-programs-table',[
+        {key:'name',label:str('fr_c_program'),get:function(r){
+          return esc(r.name)+(r.deleted?' <span class="wd-badge s-inactive">'+esc(str('fr_course_deleted'))+'</span>':'');}},
+        {key:'price',label:str('fr_c_price'),num:true,get:function(r){return money(r.price);}},
         {key:'sales',label:str('fr_c_sales'),num:true},
         {key:'unique_buyers',label:str('fr_c_buyers'),num:true},
         {key:'revenue',label:str('fr_c_revenue'),num:true,money:true,get:function(r){return money(r.revenue);}},
@@ -571,12 +610,13 @@ echo html_writer::script(<<<'JS'
     packages:loadPackages,
     subscriptions:loadSubscriptions,
     courses:loadCourses,
+    programs:loadPrograms,
     coupons:function(){loadDiscounts('coupons');},
     offers:function(){loadDiscounts('offers');}
   };
   var EXPORT_TABLES={overview:'fr-monthly',packages:'fr-packages-table',
     subscriptions:'fr-subscriptions-table',courses:'fr-courses-table',
-    coupons:'fr-coupons-table',offers:'fr-offers-table'};
+    programs:'fr-programs-table',coupons:'fr-coupons-table',offers:'fr-offers-table'};
   var current='overview';
   var loaded={}; // Tabs fetch on first view, so opening the page costs one request, not five.
 

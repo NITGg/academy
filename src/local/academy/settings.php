@@ -22,6 +22,13 @@ if ($hassiteconfig) {
         new moodle_url('/local/academy/manage_courses.php')
     ));
 
+    // Paid programs: price the enrol_programs plugin's programs (the plugin itself is untouched).
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_academy_manageprograms',
+        get_string('manageprograms', 'local_academy'),
+        new moodle_url('/local/academy/manage_programs.php')
+    ));
+
     $ADMIN->add('localplugins', new admin_externalpage(
         'local_academy_managecoupons',
         get_string('managecoupons', 'local_academy'),

@@ -21,6 +21,7 @@ class discount_manager {
     const TYPE_COURSE       = 'course';
     const TYPE_PACKAGE      = 'package';
     const TYPE_SUBSCRIPTION = 'subscription';
+    const TYPE_PROGRAM      = 'program';
 
     /** Discount value kinds. */
     const DISCOUNT_PERCENT = 'percent';
@@ -28,7 +29,7 @@ class discount_manager {
 
     /** @return string[] the valid item types. */
     public static function item_types() {
-        return array(self::TYPE_COURSE, self::TYPE_PACKAGE, self::TYPE_SUBSCRIPTION);
+        return array(self::TYPE_COURSE, self::TYPE_PACKAGE, self::TYPE_SUBSCRIPTION, self::TYPE_PROGRAM);
     }
 
     /** Validate an item type or throw. */
@@ -69,6 +70,11 @@ class discount_manager {
         }
         if ($itemtype === self::TYPE_SUBSCRIPTION) {
             return (float)$DB->get_field('academy_subscriptions', 'price', array('id' => $itemid));
+        }
+        if ($itemtype === self::TYPE_PROGRAM) {
+            // Program prices live in local_academy, not in the third-party enrol_programs plugin.
+            $price = program_purchase_manager::get_price($itemid);
+            return $price ? (float)$price->price : 0.0;
         }
         // Course price comes from the payments plugin's per-course pricing rules.
         require_once($CFG->dirroot . '/local/payments/classes/price_resolver.php');

@@ -605,5 +605,23 @@
         <INDEX NAME="externalref_ix" UNIQUE="false" FIELDS="externalref"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="academy_program_prices" COMMENT="Price attached to an enrol_programs program. Kept here rather than in the third-party plugin so its files stay untouched and survive plugin updates. A program with no row here (or enabled=0) stays free and keeps the plugin's own signup behaviour.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="programid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="enrol_programs_programs.id (no FK — the plugin may be uninstalled)"/>
+        <FIELD NAME="price" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="currency" TYPE="char" LENGTH="3" NOTNULL="true" DEFAULT="EGP" SEQUENCE="false"/>
+        <FIELD NAME="enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="0 = price ignored, program behaves as free"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="programid_uix" UNIQUE="true" FIELDS="programid"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

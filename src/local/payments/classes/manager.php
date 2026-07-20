@@ -353,6 +353,135 @@ class manager {
     }
 
     /**
+     * Create a checkout for a paid program (enrol_programs).
+     *
+     * Mirrors create_package_checkout(); the program price lives in local_academy rather than in
+     * the third-party plugin, so it is read through program_purchase_manager.
+     *
+     * @param int $programid enrol_programs_programs.id
+     * @param int|null $userid
+     * @param string|null $app_country
+     * @param string $display_lang
+     * @param string $coupon_code
+     * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
+     */
+    public static function create_program_checkout(int $programid, ?int $userid = null, ?string $app_country = null,
+            string $display_lang = 'en', string $coupon_code = ''): object {
+        global $DB, $USER, $CFG;
+
+        $userid = $userid ?? $USER->id;
+        $user = $DB->get_record('user', ['id' => $userid], 'id, email, firstname, lastname, country', MUST_EXIST);
+
+        $price = \local_academy\program_purchase_manager::get_price($programid);
+        if (!$price) {
+            throw new \moodle_exception('err_programnotpaid', 'local_academy');
+        }
+        if (\local_academy\program_purchase_manager::has_allocation($userid, $programid)) {
+            throw new \moodle_exception('err_programalreadyowned', 'local_academy');
+        }
+        $program = $DB->get_record('enrol_programs_programs', ['id' => $programid], '*', MUST_EXIST);
+        if ($program->archived) {
+            throw new \moodle_exception('err_programarchived', 'local_academy');
+        }
+
+        $disc = self::apply_academy_discount('program', $programid, $userid, (float) $price->price, $coupon_code);
+        $charged = $disc['amount'];
+
+        $currency = $price->currency ?: 'EGP';
+
+        $country = country_detector::detect($userid, $app_country);
+        $provider = self::get_provider($country, $currency);
+        $provider_record = $DB->get_record('local_payments_providers', ['name' => $provider->get_name()]);
+
+        $order_id = self::generate_order_id();
+        // Offset keeps the key distinct from package (+1000000) and course id spaces.
+        $idempotency_key = self::generate_idempotency_key($userid, $programid + 3000000);
+
+        $ttl = (int) get_config('local_payments', 'payment_ttl') ?: 1800;
+        $expires_at = time() + $ttl;
+
+        $transaction = (object) [
+            'userid' => $userid,
+            'courseid' => 0,
+            'provider_id' => $provider_record->id,
+            'price_id' => null,
+            'order_id' => $order_id,
+            'idempotency_key' => $idempotency_key,
+            'amount' => $charged,
+            'original_amount' => $price->price,
+            'currency' => $currency,
+            'status' => status_machine::PENDING,
+            'customer_email' => $user->email,
+            'customer_reference' => (string) $userid,
+            'display_lang' => $display_lang,
+            'country' => $country,
+            'ip_address' => getremoteaddr(),
+            'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500),
+            'metadata' => json_encode([
+                'item_type' => 'program',
+                'item_id' => $programid,
+                'program_name' => $program->fullname,
+                'discount' => $disc['discount'],
+            ]),
+            'expires_at' => $expires_at,
+            'timecreated' => time(),
+            'timemodified' => time(),
+        ];
+
+        $transaction_id = $DB->insert_record('local_payments_transactions', $transaction);
+        self::audit_log($transaction_id, $userid, 'payment_created', '', status_machine::PENDING);
+
+        $webhook_url = $CFG->wwwroot . '/local/payments/webhook.php?provider=' . $provider->get_name();
+        $success_url = $CFG->wwwroot . '/local/payments/callback.php?order_id=' . urlencode($order_id);
+        $failure_url = $CFG->wwwroot . '/local/payments/callback.php?order_id=' . urlencode($order_id) . '&status=failed';
+
+        $request = new payment_request([
+            'order_id' => $order_id,
+            'amount' => $charged,
+            'currency' => $currency,
+            'description' => 'Program: ' . $program->fullname,
+            'userid' => $userid,
+            'courseid' => 0,
+            'customer_email' => $user->email,
+            'customer_reference' => (string) $userid,
+            'display_lang' => $display_lang,
+            'webhook_url' => $webhook_url,
+            'success_url' => $success_url,
+            'failure_url' => $failure_url,
+            'metadata' => ['transaction_id' => $transaction_id],
+            'transaction_id' => $transaction_id,
+        ]);
+
+        $response = $provider->initialize_payment($request);
+
+        if (!$response->success) {
+            $DB->update_record('local_payments_transactions', (object) [
+                'id' => $transaction_id,
+                'status' => status_machine::FAILED,
+                'reject_reason' => substr($response->error_message, 0, 255),
+                'timemodified' => time(),
+            ]);
+            self::audit_log($transaction_id, $userid, 'status_changed', status_machine::PENDING, status_machine::FAILED);
+            throw new \moodle_exception('paymentinitiationfailed', 'local_payments', '', $response->error_message);
+        }
+
+        $DB->update_record('local_payments_transactions', (object) [
+            'id' => $transaction_id,
+            'provider_session_id' => $response->provider_session_id,
+            'checkout_url' => $response->checkout_url,
+            'timemodified' => time(),
+        ]);
+
+        return (object) [
+            'order_id' => $order_id,
+            'checkout_url' => $response->checkout_url,
+            'expires_at' => $expires_at,
+            'provider' => $provider->get_name(),
+            'transaction_id' => $transaction_id,
+        ];
+    }
+
+    /**
      * Create a subscription checkout.
      *
      * @param int $subscriptionid
@@ -749,6 +878,14 @@ class manager {
                     (int) ($meta->seats ?? 0)
                 );
                 self::audit_log($transaction->id, $transaction->userid, 'subscription_purchased', '', (string) $meta->item_id);
+            } else if ($item_type === 'program') {
+                // Allocates through enrol_programs' own manual source; safe to repeat if a webhook
+                // is delivered more than once (the plugin returns the existing allocation).
+                \local_academy\program_purchase_manager::allocate_buyer(
+                    (int) $transaction->userid,
+                    (int) $meta->item_id
+                );
+                self::audit_log($transaction->id, $transaction->userid, 'program_allocated', '', (string) $meta->item_id);
             } else {
                 $enrolled = enrollment_handler::enrol_user((int) $transaction->userid, (int) $transaction->courseid);
                 if ($enrolled) {

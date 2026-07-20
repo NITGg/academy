@@ -89,6 +89,7 @@ $string['mywallet'] = 'My earnings';
 // manage_withdrawals.php is now the Financial Reports page (withdrawals live in its first tab).
 // The old key is kept because it still names the withdrawals section inside that page.
 $string['financialreports']  = 'Financial Reports';
+$string['manageprograms']    = 'Program prices';
 $string['managewithdrawals'] = 'Teacher withdrawals';
 $string['assignpackage'] = 'Assign package to student';
 $string['reports'] = 'Flex platform reports';
@@ -143,6 +144,40 @@ $string['err_withdrawalstate']     = 'This action is not allowed for the withdra
 
 // Reports / assign (Phase 4).
 $string['err_studentnotfound']     = 'Student not found';
+// Paid programs (enrol_programs integration).
+$string['err_programsunavailable'] = 'The Programs plugin is not installed';
+$string['err_programnotfound']     = 'Program not found';
+$string['err_programarchived']     = 'This program is archived';
+$string['err_invalidprice']        = 'Price cannot be negative';
+$string['err_programsourceinuse']  = 'Students are already signed up through free self-signup, so it cannot be switched off. Remove those allocations first.';
+$string['err_programnotpaid']      = 'This program has no price set';
+$string['err_programalreadyowned'] = 'You already have access to this program';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI strings — manage_programs.php (program pricing) and the catalogue Buy button.
+// ─────────────────────────────────────────────────────────────────────────────
+$string['prg_intro']          = 'Set a price to make a program paid. Leave the price at 0 to keep it free — free programs behave exactly as they do now.';
+$string['prg_col_program']    = 'Program';
+$string['prg_col_price']      = 'Price';
+$string['prg_col_status']     = 'Status';
+$string['prg_col_sales']      = 'Sales';
+$string['prg_col_actions']    = 'Actions';
+$string['prg_free']           = 'Free';
+$string['prg_paid']           = 'Paid';
+$string['prg_archived']       = 'Archived';
+$string['prg_notpublic']      = 'Not public';
+$string['prg_saved']          = 'Price saved.';
+$string['prg_makefree_hint']  = 'Set the price to 0 to make the program free again.';
+$string['prg_bypass_badge']   = 'Free signup still open';
+$string['prg_bypass_warning'] = '{$a} paid program(s) still allow free self-signup. Students can join those without paying, straight from the program catalogue link — setting a price does not close that path. Use "Close free signup" on each one.';
+$string['prg_close_free']     = 'Close free signup';
+$string['prg_closed_free']    = 'Free signup closed.';
+$string['prg_none']           = 'No programs found.';
+// Catalogue (student-facing).
+$string['prg_buy']            = 'Buy this program';
+$string['prg_price_label']    = 'Price';
+$string['prg_owned']          = 'You already have this program';
+$string['prg_login_to_buy']   = 'Log in to buy';
 $string['err_studenthaspackage']   = 'This student already has an active package';
 
 // API-level system messages (moved out of api.php so they localise via ?lang=).
@@ -686,6 +721,7 @@ $string['fr_tab_overview']      = 'Overview';
 $string['fr_tab_packages']      = 'Packages';
 $string['fr_tab_subscriptions'] = 'Subscriptions';
 $string['fr_tab_courses']       = 'Courses';
+$string['fr_tab_programs']      = 'Programs';
 $string['fr_tab_coupons']       = 'Coupons';
 $string['fr_tab_offers']        = 'Offers';
 // Date filter.
@@ -709,6 +745,7 @@ $string['fr_sec_monthly']       = 'Revenue by month';
 $string['fr_rev_packages']      = 'From packages';
 $string['fr_rev_subscriptions'] = 'From subscriptions';
 $string['fr_rev_courses']       = 'From courses';
+$string['fr_rev_programs']      = 'From programs';
 $string['fr_rev_total']         = 'Total revenue';
 $string['fr_disc_coupons']      = 'Via coupons';
 $string['fr_disc_offers']       = 'Via offers';
@@ -717,6 +754,7 @@ $string['fr_disc_gross']        = 'Gross before discount';
 $string['fr_vol_packages']      = 'Package purchases';
 $string['fr_vol_subscriptions'] = 'Subscription purchases';
 $string['fr_vol_courses']       = 'Course purchases';
+$string['fr_vol_programs']      = 'Program purchases';
 $string['fr_vol_coupons']       = 'Coupon redemptions';
 $string['fr_vol_offers']        = 'Offers applied';
 $string['fr_c_month']           = 'Month';
@@ -751,6 +789,7 @@ $string['fr_sub_normal_help']   = 'One student buys access for themselves. Reven
 $string['fr_sub_b2b_help']      = 'Same as a normal subscription, except the buyer is an organisation purchasing a number of seats instead of one user (a bulk discount may apply based on seat count). Revenue is simply the price actually paid — the "per seat" column is an extra figure for comparing unit price across purchases with different seat counts.';
 // Courses tab.
 $string['fr_c_course']          = 'Course';
+$string['fr_c_program']         = 'Program';
 $string['fr_c_buyers']          = 'Buyers';
 $string['fr_c_netrevenue']      = 'Net revenue';
 $string['fr_c_refunded']        = 'Refunded';

@@ -742,5 +742,27 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026071901, 'local', 'academy');
     }
 
+    if ($oldversion < 2026072000) {
+        // Paid programs: price for an enrol_programs program. Held here, not in the third-party
+        // plugin, so its files stay untouched and a plugin update cannot wipe the pricing.
+        $table = new xmldb_table('academy_program_prices');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('programid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('price', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('currency', XMLDB_TYPE_CHAR, '3', null, XMLDB_NOTNULL, null, 'EGP');
+            $table->add_field('enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            // One price per program — the unique index is what makes "set price" safely idempotent.
+            $table->add_index('programid_uix', XMLDB_INDEX_UNIQUE, array('programid'));
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026072000, 'local', 'academy');
+    }
+
     return true;
 }

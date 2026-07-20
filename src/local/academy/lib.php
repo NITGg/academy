@@ -1186,6 +1186,167 @@ function local_academy_is_platform_manager() {
  * buy buttons lead to the login page rather than checkout. Each section renders itself only when at
  * least one plan is available and hides silently otherwise.
  */
+/**
+ * Price + Buy button for paid programs, injected into the enrol_programs catalogue pages.
+ *
+ * The catalogue markup belongs to a third-party plugin we deliberately do not edit, so this hooks
+ * onto the anchor it already renders: <div class="programbox" data-programid="N">. Free programs
+ * (no price row) render nothing at all and keep the plugin's own signup button untouched.
+ *
+ * @return string HTML/JS to append, or '' when this is not a catalogue page
+ */
+function local_academy_program_catalogue_pricing() {
+    global $PAGE, $USER, $CFG, $DB;
+
+    // Catalogue index (list) and the single-program page. Nothing else.
+    $pagetypes = array(
+        'enrol-programs-catalogue-index',
+        'enrol-programs-catalogue-program',
+    );
+    if (!in_array($PAGE->pagetype, $pagetypes, true)) {
+        return '';
+    }
+    if (!\local_academy\program_purchase_manager::available()) {
+        return '';
+    }
+
+    // Prices for every paid program, so the JS can decorate whatever is on the page in one pass.
+    $prices = array();
+    foreach ($DB->get_records('academy_program_prices', array('enabled' => 1)) as $row) {
+        if ((float)$row->price > 0) {
+            $prices[(int)$row->programid] = array(
+                'price'    => (float)$row->price,
+                'currency' => $row->currency,
+            );
+        }
+    }
+    if (!$prices) {
+        return ''; // No paid programs — nothing to change anywhere.
+    }
+
+    // Which of them this user already owns (owned programs show a note, not a Buy button).
+    $owned = array();
+    $loggedin = isloggedin() && !isguestuser();
+    if ($loggedin && $DB->get_manager()->table_exists('enrol_programs_allocations')) {
+        list($insql, $inparams) = $DB->get_in_or_equal(array_keys($prices), SQL_PARAMS_NAMED);
+        $inparams['userid'] = $USER->id;
+        $rows = $DB->get_records_select('enrol_programs_allocations',
+            "userid = :userid AND programid $insql", $inparams, '', 'id, programid');
+        foreach ($rows as $r) {
+            $owned[(int)$r->programid] = true;
+        }
+    }
+
+    // Anonymous visitors get a "log in to buy" link — there is no web-service token for them.
+    $token = '';
+    if ($loggedin) {
+        try {
+            require_once($CFG->dirroot . '/webservice/lib.php');
+            require_once($CFG->libdir . '/externallib.php');
+            $service = $DB->get_record('external_services',
+                array('shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE), '*', IGNORE_MISSING);
+            if ($service) {
+                $token = external_generate_token_for_current_user($service)->token;
+            }
+        } catch (\Throwable $e) {
+            $token = ''; // Fall back to the login prompt rather than breaking the catalogue.
+        }
+    }
+
+    $cfg = json_encode(array(
+        'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
+        'token'    => $token,
+        'lang'     => current_language(),
+        'loginurl' => (new moodle_url('/login/index.php'))->out(false),
+        'prices'   => $prices,
+        'owned'    => array_keys($owned),
+        'str'      => local_academy_string_map(array(
+            'prg_buy', 'prg_price_label', 'prg_owned', 'prg_login_to_buy',
+            'ui_currency_egp', 'err_requestfailed', 'err_sessionexpired',
+        )),
+    ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+    $out = '<style>
+.academy-prg-price{margin:.75rem 0;padding:.75rem 1rem;border:1px solid #dee2e6;border-radius:.5rem;background:#f8f9fa}
+.academy-prg-price .amount{font-size:1.35rem;font-weight:700;color:#0f6cbf}
+.academy-prg-price .label{color:#6c757d;font-size:.82rem}
+.academy-prg-price .owned{color:#155724;font-weight:600}
+.academy-prg-buy{margin-top:.5rem}
+</style>';
+
+    $out .= html_writer::script(<<<JS
+(function () {
+  var CFG = {$cfg};
+  var STR = CFG.str || {};
+  function str(k){return (k in STR)?STR[k]:k;}
+  function money(n){return Number(n||0).toFixed(2);}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+  var owned = {};
+  (CFG.owned || []).forEach(function(id){ owned[id] = true; });
+
+  // The plugin renders <div class="programbox" data-programid="N"> on both catalogue pages.
+  Array.prototype.forEach.call(document.querySelectorAll('.programbox[data-programid]'), function (box) {
+    var id = parseInt(box.getAttribute('data-programid'), 10);
+    var info = CFG.prices[id];
+    if (!info) { return; }   // Free program — leave the plugin's own UI alone.
+    if (box.querySelector('.academy-prg-price')) { return; } // Already decorated.
+
+    var panel = document.createElement('div');
+    panel.className = 'academy-prg-price';
+    panel.innerHTML = '<div class="label">' + esc(str('prg_price_label')) + '</div>' +
+      '<div class="amount">' + money(info.price) + ' ' + esc(info.currency || str('ui_currency_egp')) + '</div>';
+
+    if (owned[id]) {
+      var note = document.createElement('div');
+      note.className = 'owned';
+      note.textContent = str('prg_owned');
+      panel.appendChild(note);
+    } else if (!CFG.token) {
+      var login = document.createElement('a');
+      login.className = 'btn btn-primary academy-prg-buy';
+      login.href = CFG.loginurl;
+      login.textContent = str('prg_login_to_buy');
+      panel.appendChild(login);
+    } else {
+      var btn = document.createElement('button');
+      btn.className = 'btn btn-primary academy-prg-buy';
+      btn.type = 'button';
+      btn.textContent = str('prg_buy');
+      btn.onclick = function () {
+        btn.disabled = true;
+        var body = new URLSearchParams({
+          'function': 'create_program_checkout', token: CFG.token, programid: id, alang: CFG.lang
+        });
+        fetch(CFG.endpoint, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: body.toString()
+        }).then(function (r) { return r.text(); }).then(function (t) {
+          var j;
+          try { j = JSON.parse(t); } catch (e) { throw new Error(str('err_sessionexpired')); }
+          if (j.status !== 'success') { throw new Error(j.error || str('err_requestfailed')); }
+          window.location.href = j.data.checkout_url;
+        }).catch(function (e) {
+          btn.disabled = false;
+          var err = document.createElement('div');
+          err.className = 'text-danger mt-2';
+          err.textContent = e.message;
+          panel.appendChild(err);
+        });
+      };
+      panel.appendChild(btn);
+    }
+
+    box.appendChild(panel);
+  });
+})();
+JS
+    );
+
+    return $out;
+}
+
 function local_academy_before_footer() {
     global $PAGE, $USER, $COURSE, $DB, $CFG;
     $output = '';
@@ -1218,6 +1379,16 @@ function local_academy_before_footer() {
             } catch (\Throwable $e) {
                 debugging('academy homepage sections failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
             }
+        }
+    }
+
+    // 1b. Paid programs: price + Buy button on the enrol_programs catalogue. Injected from here so
+    // the third-party plugin's own files stay untouched and survive its updates.
+    if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
+        try {
+            $output .= local_academy_program_catalogue_pricing();
+        } catch (\Throwable $e) {
+            debugging('academy program pricing injection failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
     }
 

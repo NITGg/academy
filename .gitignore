@@ -28,6 +28,12 @@ jitsi/web/nginx/
 # Jibri runtime
 jitsi/recordings/
 
+# Third-party Open LMS plugins — already installed on the server outside git.
+# Cloned locally only so the code can be read and tested; committing them would make
+# `git pull` on the server fail against the existing untracked files.
+src/local/openlms/
+src/enrol/programs/
+
 # Local binaries
 mkcert.exe
 ngrok.exe

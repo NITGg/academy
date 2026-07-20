@@ -27,6 +27,38 @@ $string['err_haspurchases']  = 'هذه الباقة لديها سجلات شرا
 $string['err_packagenotavailable'] = 'هذه الباقة غير متاحة للشراء';
 $string['err_alreadyhaspackage']   = 'لديك بالفعل باقة نشطة';
 $string['err_studentnotfound']     = 'الطالب غير موجود';
+// البرامج المدفوعة (تكامل enrol_programs).
+$string['err_programsunavailable'] = 'إضافة البرامج غير مثبّتة';
+$string['err_programnotfound']     = 'البرنامج غير موجود';
+$string['err_programarchived']     = 'هذا البرنامج مؤرشف';
+$string['err_invalidprice']        = 'السعر لا يمكن أن يكون بالسالب';
+$string['err_programsourceinuse']  = 'يوجد طلاب مسجّلون بالفعل عبر التسجيل الذاتي المجاني، فلا يمكن إيقافه. احذف هذه التسجيلات أولًا.';
+$string['err_programnotpaid']      = 'هذا البرنامج ليس له سعر محدد';
+$string['err_programalreadyowned'] = 'لديك بالفعل حق الوصول لهذا البرنامج';
+
+// ── أسعار البرامج (manage_programs.php) وزرار الشراء في الكتالوج ──
+$string['prg_intro']          = 'حدّد سعرًا لتجعل البرنامج مدفوعًا. اترك السعر صفرًا ليظل مجانيًا — البرامج المجانية تعمل تمامًا كما هي الآن.';
+$string['prg_col_program']    = 'البرنامج';
+$string['prg_col_price']      = 'السعر';
+$string['prg_col_status']     = 'الحالة';
+$string['prg_col_sales']      = 'المبيعات';
+$string['prg_col_actions']    = 'إجراءات';
+$string['prg_free']           = 'مجاني';
+$string['prg_paid']           = 'مدفوع';
+$string['prg_archived']       = 'مؤرشف';
+$string['prg_notpublic']      = 'غير معلن';
+$string['prg_saved']          = 'تم حفظ السعر.';
+$string['prg_makefree_hint']  = 'اجعل السعر صفرًا ليعود البرنامج مجانيًا.';
+$string['prg_bypass_badge']   = 'التسجيل المجاني ما زال مفتوحًا';
+$string['prg_bypass_warning'] = 'يوجد {$a} برنامج مدفوع ما زال يسمح بالتسجيل الذاتي المجاني. يستطيع الطلاب الانضمام إليها بدون دفع مباشرةً من رابط كتالوج البرامج — تحديد السعر وحده لا يغلق هذا المسار. استخدم زر «إغلاق التسجيل المجاني» لكل برنامج منها.';
+$string['prg_close_free']     = 'إغلاق التسجيل المجاني';
+$string['prg_closed_free']    = 'تم إغلاق التسجيل المجاني.';
+$string['prg_none']           = 'لا توجد برامج.';
+// الكتالوج (واجهة الطالب).
+$string['prg_buy']            = 'اشترِ هذا البرنامج';
+$string['prg_price_label']    = 'السعر';
+$string['prg_owned']          = 'لديك هذا البرنامج بالفعل';
+$string['prg_login_to_buy']   = 'سجّل الدخول للشراء';
 $string['err_studenthaspackage']   = 'هذا الطالب لديه بالفعل باقة نشطة';
 
 // ── API-level system messages ──
@@ -418,6 +450,7 @@ $string['fr_tab_overview']      = 'نظرة عامة';
 $string['fr_tab_packages']      = 'الباقات';
 $string['fr_tab_subscriptions'] = 'الاشتراكات';
 $string['fr_tab_courses']       = 'المقررات';
+$string['fr_tab_programs']      = 'البرامج';
 $string['fr_tab_coupons']       = 'الكوبونات';
 $string['fr_tab_offers']        = 'العروض';
 // فلتر التاريخ.
@@ -441,6 +474,7 @@ $string['fr_sec_monthly']       = 'الإيرادات شهريًا';
 $string['fr_rev_packages']      = 'من الباقات';
 $string['fr_rev_subscriptions'] = 'من الاشتراكات';
 $string['fr_rev_courses']       = 'من المقررات';
+$string['fr_rev_programs']      = 'من البرامج';
 $string['fr_rev_total']         = 'إجمالي الإيرادات';
 $string['fr_disc_coupons']      = 'عبر الكوبونات';
 $string['fr_disc_offers']       = 'عبر العروض';
@@ -449,6 +483,7 @@ $string['fr_disc_gross']        = 'الإجمالي قبل الخصم';
 $string['fr_vol_packages']      = 'مشتريات الباقات';
 $string['fr_vol_subscriptions'] = 'مشتريات الاشتراكات';
 $string['fr_vol_courses']       = 'مشتريات المقررات';
+$string['fr_vol_programs']      = 'مشتريات البرامج';
 $string['fr_vol_coupons']       = 'استخدامات الكوبونات';
 $string['fr_vol_offers']        = 'العروض المطبَّقة';
 $string['fr_c_month']           = 'الشهر';
@@ -483,6 +518,7 @@ $string['fr_sub_normal_help']   = 'اشتراك عادي: طالب واحد يش
 $string['fr_sub_b2b_help']      = 'اشتراك أعمال: نفس فكرة الاشتراك العادي، لكن المشتري جهة تشتري عددًا من المقاعد بدل مستخدم واحد (وقد يُطبَّق خصم كمّي حسب عدد المقاعد). الإيراد هو نفس السعر الذي دُفع فعليًا — عمود "لكل مقعد" رقم إضافي فقط لمن يريد مقارنة سعر الوحدة بين عمليات بأعداد مقاعد مختلفة.';
 // تبويب المقررات.
 $string['fr_c_course']          = 'المقرر';
+$string['fr_c_program']         = 'البرنامج';
 $string['fr_c_buyers']          = 'المشترون';
 $string['fr_c_netrevenue']      = 'صافي الإيراد';
 $string['fr_c_refunded']        = 'مستردّ';
@@ -671,6 +707,7 @@ $string['academy:managesubscriptions'] = 'إدارة اشتراكات المقر
 $string['managesubscriptions'] = 'إدارة الاشتراكات';
 $string['managesettings']      = 'إعدادات الدروس';
 $string['financialreports']    = 'التقارير المالية';
+$string['manageprograms']      = 'أسعار البرامج';
 $string['managewithdrawals']   = 'عمليات سحب المعلّمين';
 $string['assignpackage']       = 'تعيين باقة لطالب';
 $string['reports']             = 'تقارير منصة فلكس';

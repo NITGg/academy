@@ -22,6 +22,7 @@ use local_academy\lesson_manager;
 use local_academy\flex_manager;
 use local_academy\finance_manager;
 use local_academy\finance_report_manager;
+use local_academy\program_purchase_manager;
 use local_academy\report_manager;
 use local_academy\quiz_manager;
 use local_academy\cert\eligibility_manager;
@@ -210,6 +211,7 @@ $capmap = [
     'finance_packages'       => 'local/academy:manageplatform',
     'finance_subscriptions'  => 'local/academy:manageplatform',
     'finance_courses'        => 'local/academy:manageplatform',
+    'finance_programs'       => 'local/academy:manageplatform',
     'finance_coupons'        => 'local/academy:manageplatform',
     'finance_offers'         => 'local/academy:manageplatform',
     'assign_package'         => 'local/academy:manageplatform',
@@ -223,6 +225,11 @@ $capmap = [
     'search_users'           => 'local/academy:manageplatform',
     // Certificate eligibility (admin config). Reuses the platform capability (same academy-admin
     // role) — no new capability/DB migration needed. The student reads below need only a token.
+    // Paid programs (enrol_programs). Admin pricing reuses the platform capability; the student
+    // reads/checkout below need only a valid token.
+    'list_program_prices'    => 'local/academy:manageplatform',
+    'set_program_price'      => 'local/academy:manageplatform',
+    'disable_program_free_signup' => 'local/academy:manageplatform',
     'get_certificates'       => 'local/academy:manageplatform',
     'save_certificate'       => 'local/academy:manageplatform',
     'delete_certificate'     => 'local/academy:manageplatform',
@@ -931,9 +938,62 @@ try {
                 'data' => finance_report_manager::subscriptions_report(academy_report_filters())]);
             break;
 
+        // ── Paid programs (enrol_programs integration) ────────────────────────────
+
+        // Admin: every program with its price, sales count, and free-signup bypass warning.
+        case 'list_program_prices':
+            academy_respond(['status' => 'success', 'data' => program_purchase_manager::list_programs()]);
+            break;
+
+        // Admin: set a program's price. A price of 0 makes the program free again.
+        case 'set_program_price':
+            academy_require_post();
+            academy_respond(['status' => 'success', 'data' => program_purchase_manager::set_price(
+                required_param('programid', PARAM_INT),
+                required_param('price', PARAM_FLOAT),
+                optional_param('currency', 'EGP', PARAM_ALPHA),
+                $userid
+            )]);
+            break;
+
+        // Admin: close the plugin's free self-signup path on a paid program.
+        case 'disable_program_free_signup':
+            academy_require_post();
+            program_purchase_manager::disable_free_signup(required_param('programid', PARAM_INT));
+            academy_respond(['status' => 'success', 'data' => ['closed' => true]]);
+            break;
+
+        // Student: price + whether they already own this program (drives the catalogue button).
+        case 'get_program_state':
+            academy_respond(['status' => 'success', 'data' => program_purchase_manager::get_student_state(
+                $userid, required_param('programid', PARAM_INT))]);
+            break;
+
+        // Student: start a Kashier checkout for a paid program.
+        case 'create_program_checkout':
+            academy_require_post();
+            try {
+                $checkout = \local_payments\manager::create_program_checkout(
+                    required_param('programid', PARAM_INT),
+                    $userid,
+                    null,
+                    optional_param('alang', current_language(), PARAM_LANG),
+                    optional_param('coupon_code', '', PARAM_RAW_TRIMMED)
+                );
+                academy_respond(['status' => 'success', 'data' => $checkout]);
+            } catch (Exception $e) {
+                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+            }
+            break;
+
         case 'finance_courses':
             academy_respond(['status' => 'success',
                 'data' => finance_report_manager::courses_report(academy_report_filters())]);
+            break;
+
+        case 'finance_programs':
+            academy_respond(['status' => 'success',
+                'data' => finance_report_manager::programs_report(academy_report_filters())]);
             break;
 
         case 'finance_coupons':
@@ -1240,10 +1300,21 @@ try {
             $subs = array_map(function($s) {
                 return ['id' => (int)$s->id, 'name' => format_string($s->name)];
             }, array_values($DB->get_records('academy_subscriptions', null, 'name ASC', 'id, name')));
+            // Programs are only offered as discount targets once the plugin is installed and the
+            // program actually has a price — discounting a free program is meaningless.
+            $programs = [];
+            if (program_purchase_manager::available()) {
+                foreach (program_purchase_manager::list_programs() as $prg) {
+                    if ($prg['paid']) {
+                        $programs[] = ['id' => $prg['id'], 'name' => $prg['fullname']];
+                    }
+                }
+            }
             academy_respond(['status' => 'success', 'data' => [
                 'categories'    => subscription_manager::get_categories_with_courses(),
                 'packages'      => $packages,
                 'subscriptions' => $subs,
+                'programs'      => $programs,
             ]]);
             break;
 

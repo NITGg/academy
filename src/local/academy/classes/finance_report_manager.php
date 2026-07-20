@@ -85,6 +85,15 @@ class finance_report_manager {
                 $coursecount++;
             }
         }
+        // Paid programs (enrol_programs) — also local_payments transactions, not a plugin table.
+        $programrevenue = 0.0;
+        $programcount   = 0;
+        foreach (self::program_transactions($filters) as $t) {
+            if ($t->status === 'completed') {
+                $programrevenue += (float)$t->amount;
+                $programcount++;
+            }
+        }
 
         // Discounts given away — gross revenue would have been this much higher.
         $coupondiscount = self::sum('academy_coupon_usages', 'discount_amount', '1=1', array(), $filters);
@@ -104,7 +113,8 @@ class finance_report_manager {
             'packages'      => round($packagerevenue, 2),
             'subscriptions' => round($subrevenue, 2),
             'courses'       => round($courserevenue, 2),
-            'total'         => round($packagerevenue + $subrevenue + $courserevenue, 2),
+            'programs'      => round($programrevenue, 2),
+            'total'         => round($packagerevenue + $subrevenue + $courserevenue + $programrevenue, 2),
         );
         $discounts = array(
             'coupons' => round($coupondiscount, 2),
@@ -123,6 +133,7 @@ class finance_report_manager {
                 'package_purchases'      => self::count('academy_package_purchases', '1=1', array(), $filters),
                 'subscription_purchases' => self::count('academy_sub_purchases', '1=1', array(), $filters),
                 'course_purchases'       => $coursecount,
+                'program_purchases'      => $programcount,
                 'coupon_redemptions'     => self::count('academy_coupon_usages', '1=1', array(), $filters),
                 'offer_applications'     => self::count('academy_offer_usages', '1=1', array(), $filters),
             ),
@@ -148,7 +159,7 @@ class finance_report_manager {
         }
 
         $buckets = array();
-        $blank = array('packages' => 0.0, 'subscriptions' => 0.0, 'courses' => 0.0);
+        $blank = array('packages' => 0.0, 'subscriptions' => 0.0, 'courses' => 0.0, 'programs' => 0.0);
         $add = function ($month, $key, $amount) use (&$buckets, $blank) {
             if (!isset($buckets[$month])) {
                 $buckets[$month] = array_merge(array('month' => $month), $blank);
@@ -173,6 +184,11 @@ class finance_report_manager {
                 $add(date('Y-m', (int)$t->timecreated), 'courses', (float)$t->amount);
             }
         }
+        foreach (self::program_transactions($filters) as $t) {
+            if ($t->status === 'completed') {
+                $add(date('Y-m', (int)$t->timecreated), 'programs', (float)$t->amount);
+            }
+        }
 
         ksort($buckets);
         $out = array();
@@ -180,7 +196,8 @@ class finance_report_manager {
             $b['packages']      = round($b['packages'], 2);
             $b['subscriptions'] = round($b['subscriptions'], 2);
             $b['courses']       = round($b['courses'], 2);
-            $b['total']         = round($b['packages'] + $b['subscriptions'] + $b['courses'], 2);
+            $b['programs']      = round($b['programs'], 2);
+            $b['total']         = round($b['packages'] + $b['subscriptions'] + $b['courses'] + $b['programs'], 2);
             $out[] = $b;
         }
         return $out;
@@ -517,7 +534,155 @@ class finance_report_manager {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Tabs 5 & 6: coupons and offers
+    // Tab 5: programs (enrol_programs)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Paid-program transactions in the window, whatever their status.
+     *
+     * Like course sales, program sales are local_payments transactions rather than rows in a plugin
+     * table — identified by metadata item_type = 'program'. Decoded in PHP rather than matched with
+     * a LIKE, because '%"item_id":3%' would also match item_id 30.
+     *
+     * @param array $filters from, to (unix)
+     */
+    private static function program_transactions(array $filters) {
+        global $DB;
+
+        if (!$DB->get_manager()->table_exists('local_payments_transactions')) {
+            return array();
+        }
+
+        list($wsql, $wparams) = self::window($filters, 't.timecreated');
+        $wparams['meta'] = '%"item_type":"program"%';
+        $sql = "SELECT t.id, t.userid, t.amount, t.original_amount, t.currency, t.status,
+                       t.metadata, t.timecreated
+                  FROM {local_payments_transactions} t
+                 WHERE " . $DB->sql_like('t.metadata', ':meta') . " $wsql
+              ORDER BY t.timecreated DESC";
+        $rows = $DB->get_records_sql($sql, $wparams);
+
+        $out = array();
+        foreach ($rows as $r) {
+            $meta = json_decode((string)$r->metadata);
+            if (!isset($meta->item_type) || $meta->item_type !== 'program' || empty($meta->item_id)) {
+                continue;
+            }
+            $r->programid = (int)$meta->item_id;
+            $r->program_name = isset($meta->program_name) ? $meta->program_name : '';
+            $out[] = $r;
+        }
+        return $out;
+    }
+
+    /**
+     * One row per paid program: units sold, revenue, discount, refunds, and current price.
+     *
+     * @param array $filters from, to (unix, on transaction time)
+     */
+    public static function programs_report(array $filters = array()) {
+        global $DB;
+
+        $hasplugin = $DB->get_manager()->table_exists('enrol_programs_programs');
+        $names = $hasplugin
+            ? $DB->get_records_menu('enrol_programs_programs', null, '', 'id, fullname')
+            : array();
+        $prices = $DB->get_manager()->table_exists('academy_program_prices')
+            ? $DB->get_records('academy_program_prices', null, '', 'programid, price, currency, enabled')
+            : array();
+
+        $completed = 'completed';
+        $refunded  = 'refunded';
+        $cancelled = 'cancelled';
+
+        $programs = array();
+        $buyers = array();
+        foreach (self::program_transactions($filters) as $t) {
+            $pid = $t->programid;
+            if (!isset($programs[$pid])) {
+                // Prefer the live program name; fall back to the snapshot in the transaction so a
+                // deleted program still reports its historical revenue.
+                $name = isset($names[$pid]) ? format_string($names[$pid])
+                    : ($t->program_name !== '' ? format_string($t->program_name)
+                        : get_string('fr_course_deleted', 'local_academy'));
+                $price = null;
+                foreach ($prices as $pr) {
+                    if ((int)$pr->programid === $pid) {
+                        $price = $pr;
+                    }
+                }
+                $programs[$pid] = array(
+                    'id'              => $pid,
+                    'name'            => $name,
+                    'deleted'         => isset($names[$pid]) ? 0 : 1,
+                    'price'           => $price ? (float)$price->price : 0.0,
+                    'active'          => ($price && $price->enabled) ? 1 : 0,
+                    'currency'        => $t->currency,
+                    'sales'           => 0,
+                    'unique_buyers'   => 0,
+                    'revenue'         => 0.0,
+                    'original_total'  => 0.0,
+                    'discount_total'  => 0.0,
+                    'refunded_count'  => 0,
+                    'refunded_amount' => 0.0,
+                    'revoked_count'   => 0,
+                    'failed_count'    => 0,
+                );
+                $buyers[$pid] = array();
+            }
+            $p = &$programs[$pid];
+            $amount   = (float)$t->amount;
+            $original = $t->original_amount !== null ? (float)$t->original_amount : $amount;
+
+            if ($t->status === $completed) {
+                $p['sales']++;
+                $p['revenue']        += $amount;
+                $p['original_total'] += $original;
+                $p['discount_total'] += max(0, $original - $amount);
+                $buyers[$pid][(int)$t->userid] = true;
+            } else if ($t->status === $refunded) {
+                $p['refunded_count']++;
+                $p['refunded_amount'] += $amount;
+            } else if ($t->status === $cancelled) {
+                $p['revoked_count']++;
+            } else {
+                $p['failed_count']++;
+            }
+            unset($p);
+        }
+
+        $summary = array('programs' => 0, 'sales' => 0, 'revenue' => 0.0, 'original_total' => 0.0,
+            'discount_total' => 0.0, 'refunded_amount' => 0.0, 'net_revenue' => 0.0);
+        $out = array();
+        foreach ($programs as $p) {
+            $p['unique_buyers']   = count($buyers[$p['id']]);
+            $p['revenue']         = round($p['revenue'], 2);
+            $p['original_total']  = round($p['original_total'], 2);
+            $p['discount_total']  = round($p['discount_total'], 2);
+            $p['refunded_amount'] = round($p['refunded_amount'], 2);
+            $p['net_revenue']     = round($p['revenue'] - $p['refunded_amount'], 2);
+            $p['avg_price']       = $p['sales'] ? round($p['revenue'] / $p['sales'], 2) : 0.0;
+            $out[] = $p;
+            $summary['programs']++;
+            $summary['sales']           += $p['sales'];
+            $summary['revenue']         += $p['revenue'];
+            $summary['original_total']  += $p['original_total'];
+            $summary['discount_total']  += $p['discount_total'];
+            $summary['refunded_amount'] += $p['refunded_amount'];
+            $summary['net_revenue']     += $p['net_revenue'];
+        }
+        usort($out, function ($a, $b) {
+            return $b['revenue'] <=> $a['revenue'];
+        });
+        foreach (array('revenue', 'original_total', 'discount_total', 'refunded_amount', 'net_revenue') as $k) {
+            $summary[$k] = round($summary[$k], 2);
+        }
+
+        return array('rows' => $out, 'summary' => $summary);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Tabs 6 & 7: coupons and offers
     // ──────────────────────────────────────────────────────────────────────────
 
     /** @param array $filters from, to (unix, on redemption time) */
