@@ -133,6 +133,11 @@ $string['pkg_none']             = 'لا توجد باقات بعد.';
 $string['pkg_confirm_delete']   = 'حذف هذه الباقة؟ لا يمكن التراجع عن ذلك.';
 
 // ── manage_packages.php — user packages + unassign ──
+// تبويبات صفحة إدارة الباقات (تضم الآن إعدادات الباقات وتعيين الباقة والتقارير).
+$string['pkg_tab_packages']       = 'الباقات';
+$string['pkg_tab_assign']         = 'تعيين باقة';
+$string['pkg_tab_settings']       = 'إعدادات الباقات';
+$string['pkg_tab_reports']        = 'تقارير فلكس';
 $string['pkg_userpackages']       = 'باقات المستخدمين';
 $string['pkg_userpackages_desc']  = 'إدارة باقات المستخدمين النشطة والمنتهية.';
 $string['pkg_col_user']           = 'المستخدم';
@@ -489,11 +494,14 @@ $string['fr_vol_offers']        = 'العروض المطبَّقة';
 $string['fr_c_month']           = 'الشهر';
 // أعمدة مشتركة.
 $string['fr_c_name']            = 'الاسم';
-$string['fr_c_price']           = 'السعر المعلن';
+$string['fr_c_price']           = 'السعر الحالي';
 $string['fr_c_status']          = 'الحالة';
 $string['fr_c_sales']           = 'المبيعات';
 $string['fr_c_revenue']         = 'الإيراد';
 $string['fr_c_avgprice']        = 'متوسط السعر';
+$string['fr_c_soldprice']       = 'السعر وقت البيع';
+$string['fr_c_pricechanged']    = 'تغيّر السعر';
+$string['fr_pricechanged_help'] = 'لم تتم كل هذه المبيعات بالسعر الحالي. الإيراد والمتوسطات محسوبة بالسعر الذي دفعه كل مشترٍ فعليًا.';
 // تبويب الباقات.
 $string['fr_c_online']          = 'إلكتروني';
 $string['fr_c_assigned']        = 'معيَّن';
@@ -666,6 +674,9 @@ $string['ml_the_student']             = 'الطالب';
 $string['ml_no_lessons']              = 'لا توجد دروس لعرضها.';
 
 // ── manage_subscriptions.php (admin subscription plans + user subs) ──
+// تبويبات صفحة إدارة الاشتراكات (تضم الآن إعدادات الاشتراكات).
+$string['sub_tab_plans']           = 'الاشتراكات';
+$string['sub_tab_settings']        = 'إعدادات الاشتراكات';
 $string['sub_plans_heading']       = 'خطط الاشتراك';
 $string['sub_new']                 = 'اشتراك جديد';
 $string['sub_col_days']            = 'الأيام';
@@ -707,7 +718,7 @@ $string['academy:managesubscriptions'] = 'إدارة اشتراكات المقر
 $string['managesubscriptions'] = 'إدارة الاشتراكات';
 $string['managesettings']      = 'إعدادات الدروس';
 $string['financialreports']    = 'التقارير المالية';
-$string['manageprograms']      = 'أسعار البرامج';
+$string['manageprograms']      = 'إدارة البرامج';
 $string['managewithdrawals']   = 'عمليات سحب المعلّمين';
 $string['assignpackage']       = 'تعيين باقة لطالب';
 $string['reports']             = 'تقارير منصة فلكس';

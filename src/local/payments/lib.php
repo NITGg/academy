@@ -6,8 +6,13 @@ function local_payments_extend_navigation(global_navigation $navigation) {
 }
 
 /**
- * Add an "Invoices" link to the user's preferences (settings) menu, next to the
- * other student entries. Shown only on the user's own preferences page.
+ * Add "Invoices" and "Payment history" links to the user's preferences (settings) menu, next to
+ * the other student entries. Shown only on the user's own preferences page.
+ *
+ * history.php previously had no menu entry anywhere — reachable only by typing the URL directly,
+ * or via the "View Payment History" button shown after a checkout. It is added here next to
+ * Invoices since the two pages answer different questions (issued invoices vs. every payment
+ * attempt including pending/failed/refunded) and a student should be able to find either.
  */
 function local_payments_extend_navigation_user_settings($navigation, $user, $context, $course, $coursecontext) {
     global $USER;
@@ -15,20 +20,26 @@ function local_payments_extend_navigation_user_settings($navigation, $user, $con
         return; // only on your own preferences page
     }
 
-    $node = navigation_node::create(
+    $useraccount = $navigation->find('useraccount', navigation_node::TYPE_CONTAINER);
+    $target = $useraccount ?: $navigation;
+
+    $target->add_node(navigation_node::create(
         get_string('myinvoices', 'local_payments'),
         new moodle_url('/local/payments/invoices.php'),
         navigation_node::TYPE_SETTING,
         null,
         'local_payments_invoices',
         new pix_icon('i/report', '')
-    );
-    $useraccount = $navigation->find('useraccount', navigation_node::TYPE_CONTAINER);
-    if ($useraccount) {
-        $useraccount->add_node($node);
-    } else {
-        $navigation->add_node($node);
-    }
+    ));
+
+    $target->add_node(navigation_node::create(
+        get_string('paymenthistory', 'local_payments'),
+        new moodle_url('/local/payments/history.php'),
+        navigation_node::TYPE_SETTING,
+        null,
+        'local_payments_history',
+        new pix_icon('i/log', '')
+    ));
 }
 
 function local_payments_extend_navigation_course(\navigation_node $navigation, \stdClass $course, \context_course $context) {

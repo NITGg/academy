@@ -54,6 +54,7 @@ $STR = local_academy_string_map(array(
     'fr_vol_packages', 'fr_vol_subscriptions', 'fr_vol_courses', 'fr_vol_programs',
     'fr_vol_coupons', 'fr_vol_offers', 'fr_c_month', 'fr_c_program',
     'fr_c_name', 'fr_c_price', 'fr_c_status', 'fr_c_sales', 'fr_c_revenue', 'fr_c_avgprice',
+    'fr_c_soldprice', 'fr_c_pricechanged', 'fr_pricechanged_help',
     'fr_c_online', 'fr_c_assigned', 'fr_c_flexsold', 'fr_c_flexconsumed', 'fr_c_flexunused',
     'fr_c_unusedvalue', 'fr_unusedvalue_help',
     'fr_c_duration', 'fr_c_normal', 'fr_c_b2b', 'fr_c_seats', 'fr_c_activesubs', 'fr_c_b2bdiscount',
@@ -100,6 +101,8 @@ table.wd-table td.num,table.wd-table th.num{text-align:right;white-space:nowrap}
 .s-paid{background:#d4edda;color:#155724}.s-rejected{background:#f8d7da;color:#721c24}
 .s-active{background:#d4edda;color:#155724}.s-inactive{background:#e9ecef;color:#495057}
 .s-normal{background:#e3f0fb;color:#0f5a9c}.s-b2b{background:#efe3fb;color:#5b2d90}
+/* Carries a title tooltip explaining the current-vs-historical price mismatch. */
+.s-warn{background:#fff3cd;color:#856404;cursor:help}
 .fr-types{display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem;font-size:.86rem;color:#495057}
 .fr-types > div{flex:1 1 320px}
 .wd-actions{display:flex;gap:.3rem;flex-wrap:wrap}
@@ -327,6 +330,26 @@ echo html_writer::script(<<<'JS'
   }
 
   function statusBadge(s){return '<span class="wd-badge s-'+esc(s)+'">'+esc(wstat(s))+'</span>';}
+
+  /**
+   * The current list price, flagged when the sales beside it were not all made at that price.
+   *
+   * Prices get edited mid-life, and every other money column in the row is historical: revenue and
+   * averages come from what each buyer actually paid. Without the flag a row reading "price 300,
+   * avg 450" looks like a bug rather than the price history it is.
+   */
+  function currentPrice(r){
+    return money(r.price)+(r.price_changed
+      ? ' <span class="wd-badge s-warn" title="'+esc(str('fr_pricechanged_help'))+'">'
+        +esc(str('fr_c_pricechanged'))+'</span>' : '');
+  }
+
+  /** The spread actually charged: a single price, or "min – max" when it moved. */
+  function soldPrice(r){
+    if(r.price_min==null){return '—';} // No sales in this window — nothing was charged.
+    return r.price_min===r.price_max ? money(r.price_min)
+      : money(r.price_min)+' – '+money(r.price_max);
+  }
   function dateOnly(ts){return ts?new Date(ts*1000).toLocaleDateString():'—';}
   function windowLabel(r){
     if(!r.startdate&&!r.enddate){return str('fr_never');}
@@ -408,7 +431,8 @@ echo html_writer::script(<<<'JS'
       ]);
       table('fr-packages-table',[
         {key:'name',label:str('fr_c_name'),get:function(r){return esc(r.name);}},
-        {key:'price',label:str('fr_c_price'),num:true,get:function(r){return money(r.price);}},
+        {key:'price',label:str('fr_c_price'),num:true,get:currentPrice},
+        {key:'price_min',label:str('fr_c_soldprice'),num:true,get:soldPrice},
         {key:'status',label:str('fr_c_status'),get:function(r){return statusBadge(r.status);}},
         {key:'sales',label:str('fr_c_sales'),num:true},
         {key:'online',label:str('fr_c_online'),num:true},
@@ -437,7 +461,9 @@ echo html_writer::script(<<<'JS'
       ]);
       table('fr-subscriptions-table',[
         {key:'name',label:str('fr_c_name'),get:function(r){return esc(r.name);}},
-        {key:'price',label:str('fr_c_price'),num:true,get:function(r){return money(r.price);}},
+        {key:'price',label:str('fr_c_price'),num:true,get:currentPrice},
+        // B2B rows contribute their per-seat base price here, not the multi-seat total.
+        {key:'price_min',label:str('fr_c_soldprice'),num:true,get:soldPrice},
         {key:'duration_days',label:str('fr_c_duration'),num:true},
         {key:'status',label:str('fr_c_status'),get:function(r){
           // Whether the plan may be sold as B2B at all — explains a 0 in the B2B columns.
@@ -468,6 +494,8 @@ echo html_writer::script(<<<'JS'
       table('fr-courses-table',[
         {key:'name',label:str('fr_c_course'),get:function(r){
           return esc(r.name)+(r.deleted?' <span class="wd-badge s-inactive">'+esc(str('fr_course_deleted'))+'</span>':'');}},
+        // Courses carry no plugin-side list price, so only the sold range is shown.
+        {key:'price_min',label:str('fr_c_soldprice'),num:true,get:soldPrice},
         {key:'sales',label:str('fr_c_sales'),num:true},
         {key:'unique_buyers',label:str('fr_c_buyers'),num:true},
         {key:'revenue',label:str('fr_c_revenue'),num:true,money:true,get:function(r){return money(r.revenue);}},
@@ -496,7 +524,8 @@ echo html_writer::script(<<<'JS'
       table('fr-programs-table',[
         {key:'name',label:str('fr_c_program'),get:function(r){
           return esc(r.name)+(r.deleted?' <span class="wd-badge s-inactive">'+esc(str('fr_course_deleted'))+'</span>':'');}},
-        {key:'price',label:str('fr_c_price'),num:true,get:function(r){return money(r.price);}},
+        {key:'price',label:str('fr_c_price'),num:true,get:currentPrice},
+        {key:'price_min',label:str('fr_c_soldprice'),num:true,get:soldPrice},
         {key:'sales',label:str('fr_c_sales'),num:true},
         {key:'unique_buyers',label:str('fr_c_buyers'),num:true},
         {key:'revenue',label:str('fr_c_revenue'),num:true,money:true,get:function(r){return money(r.revenue);}},
@@ -646,7 +675,12 @@ echo html_writer::script(<<<'JS'
     el._rows.forEach(function(r){
       lines.push(el._cols.map(function(c){
         // Prefer the raw value; getters return HTML (badges, bars) that would break the CSV.
-        return cell(c.key==='window'?windowLabel(r):(c.key==='items'?itemsLabel(r):r[c.key]));
+        // The exceptions are getters that emit plain text a raw column cannot express: a range
+        // needs both ends, and price_min alone would read as the only price ever charged.
+        if(c.key==='window'){return cell(windowLabel(r));}
+        if(c.key==='items'){return cell(itemsLabel(r));}
+        if(c.key==='price_min'){return cell(soldPrice(r));}
+        return cell(r[c.key]);
       }).join(','));
     });
     var blob=new Blob(["﻿"+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});

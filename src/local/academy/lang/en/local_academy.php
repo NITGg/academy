@@ -89,7 +89,7 @@ $string['mywallet'] = 'My earnings';
 // manage_withdrawals.php is now the Financial Reports page (withdrawals live in its first tab).
 // The old key is kept because it still names the withdrawals section inside that page.
 $string['financialreports']  = 'Financial Reports';
-$string['manageprograms']    = 'Program prices';
+$string['manageprograms']    = 'Manage Program';
 $string['managewithdrawals'] = 'Teacher withdrawals';
 $string['assignpackage'] = 'Assign package to student';
 $string['reports'] = 'Flex platform reports';
@@ -379,6 +379,12 @@ $string['pkg_none']             = 'No packages yet.';
 $string['pkg_confirm_delete']   = 'Delete this package? This cannot be undone.';
 
 // manage_packages.php — user packages + unassign.
+// Tabs on manage_packages.php — the page now also hosts what used to be the standalone
+// "Admin settings" (package half), "Assign package to student" and "Flex platform reports" pages.
+$string['pkg_tab_packages']       = 'Packages';
+$string['pkg_tab_assign']         = 'Assign package';
+$string['pkg_tab_settings']       = 'Package settings';
+$string['pkg_tab_reports']        = 'Flex reports';
 $string['pkg_userpackages']       = 'User Packages';
 $string['pkg_userpackages_desc']  = 'Manage active and expired user packages.';
 $string['pkg_col_user']           = 'User';
@@ -762,11 +768,14 @@ $string['fr_vol_offers']        = 'Offers applied';
 $string['fr_c_month']           = 'Month';
 // Shared columns.
 $string['fr_c_name']            = 'Name';
-$string['fr_c_price']           = 'List price';
+$string['fr_c_price']           = 'Current price';
 $string['fr_c_status']          = 'Status';
 $string['fr_c_sales']           = 'Sales';
 $string['fr_c_revenue']         = 'Revenue';
 $string['fr_c_avgprice']        = 'Avg. price';
+$string['fr_c_soldprice']       = 'Price when sold';
+$string['fr_c_pricechanged']    = 'Price changed';
+$string['fr_pricechanged_help'] = 'These sales were not all made at the current list price. Revenue and averages use the price each buyer actually paid.';
 // Packages tab.
 $string['fr_c_online']          = 'Online';
 $string['fr_c_assigned']        = 'Assigned';
@@ -959,6 +968,10 @@ $string['ml_no_lessons']              = 'No lessons to show.';
 // ─────────────────────────────────────────────────────────────────────────────
 // UI strings — manage_subscriptions.php (admin subscription plans + user subs).
 // ─────────────────────────────────────────────────────────────────────────────
+// Tabs on manage_subscriptions.php — the page now also hosts the subscription half of the
+// old standalone "Admin settings" page.
+$string['sub_tab_plans']           = 'Subscriptions';
+$string['sub_tab_settings']        = 'Subscription settings';
 $string['sub_plans_heading']       = 'Subscription plans';
 $string['sub_new']                 = 'New subscription';
 $string['sub_col_days']            = 'Days';

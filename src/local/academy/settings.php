@@ -3,6 +3,9 @@ defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
     // Adds: Site administration → Plugins → Local plugins → Manage lesson packages.
+    // This page now also hosts, as tabs, what used to be three standalone entries: the package half
+    // of "Admin settings", "Assign package to student" and "Flex platform reports". The subscription
+    // half of "Admin settings" moved to the Manage subscriptions page below.
     $ADMIN->add('localplugins', new admin_externalpage(
         'local_academy_managepackages',
         get_string('managepackages', 'local_academy'),
@@ -41,30 +44,12 @@ if ($hassiteconfig) {
         new moodle_url('/local/academy/manage_offers.php')
     ));
 
-    $ADMIN->add('localplugins', new admin_externalpage(
-        'local_academy_managesettings',
-        get_string('managesettings', 'local_academy'),
-        new moodle_url('/local/academy/manage_settings.php')
-    ));
-
     // Financial Reports: platform money overview + per-area revenue, and teacher withdrawals.
     // The URL keeps its original name so existing bookmarks/links stay valid.
     $ADMIN->add('localplugins', new admin_externalpage(
         'local_academy_managewithdrawals',
         get_string('financialreports', 'local_academy'),
         new moodle_url('/local/academy/manage_withdrawals.php')
-    ));
-
-    $ADMIN->add('localplugins', new admin_externalpage(
-        'local_academy_assignpackage',
-        get_string('assignpackage', 'local_academy'),
-        new moodle_url('/local/academy/assign_package.php')
-    ));
-
-    $ADMIN->add('localplugins', new admin_externalpage(
-        'local_academy_reports',
-        get_string('reports', 'local_academy'),
-        new moodle_url('/local/academy/manage_reports.php')
     ));
 
     // Certificate eligibility rules (plugin-agnostic: decides WHO is eligible for a certificate).

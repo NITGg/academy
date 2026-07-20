@@ -56,6 +56,49 @@ class finance_report_manager {
         return (int)$DB->count_records_select($table, "$where $wsql", array_merge($params, $wparams));
     }
 
+    /**
+     * Widen a row's observed sold-price range with one more unit price.
+     *
+     * Every report row carries a *current* list price next to *historical* revenue figures. When an
+     * admin edits a price after some sales have happened the two stop agreeing, and without this the
+     * table gives no hint why: the list price says 300 while the average says 450, both correct.
+     * Tracking the min/max actually charged lets the UI show the spread and flag the mismatch.
+     *
+     * The price passed here must be a per-unit list price as it stood at the moment of sale — not a
+     * post-discount total, and not a multi-seat total — otherwise the range compares apples to pears.
+     *
+     * @param array $row    report row, modified in place
+     * @param float $price  unit price charged for this one sale
+     */
+    private static function track_price(array &$row, $price) {
+        $price = (float)$price;
+        $row['price_min'] = $row['price_min'] === null ? $price : min($row['price_min'], $price);
+        $row['price_max'] = $row['price_max'] === null ? $price : max($row['price_max'], $price);
+    }
+
+    /**
+     * Finalise the price-history fields of a report row.
+     *
+     * Sets 'price_changed' when the sales in this window were not all made at the row's current list
+     * price — either they differ from each other, or they all agree but the list price has since
+     * moved. Rounding to 2dp before comparing keeps float noise from raising a false flag.
+     *
+     * @param array $row       report row, modified in place
+     * @param bool  $hasprice  false for rows with no current list price to compare against (courses)
+     */
+    private static function finish_price(array &$row, $hasprice = true) {
+        if ($row['price_min'] === null) {
+            // No sales in the window: nothing historical to disagree with.
+            $row['price_min'] = $row['price_max'] = null;
+            $row['price_changed'] = 0;
+            return;
+        }
+        $row['price_min'] = round($row['price_min'], 2);
+        $row['price_max'] = round($row['price_max'], 2);
+        $row['price_changed'] = ($row['price_min'] !== $row['price_max']
+            || ($hasprice && round((float)$row['price'], 2) !== $row['price_min'])) ? 1 : 0;
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     // Tab 1: overview — where the platform's money currently is
     // ──────────────────────────────────────────────────────────────────────────
@@ -248,6 +291,9 @@ class finance_report_manager {
                     'flex_consumed'  => 0,
                     'flex_unused'    => 0,
                     'unused_value'   => 0.0,
+                    // Range actually charged, so a mid-life price edit is visible — see track_price().
+                    'price_min'      => null,
+                    'price_max'      => null,
                 );
             }
             if (empty($r->purchaseid)) {
@@ -257,6 +303,7 @@ class finance_report_manager {
             $p['sales']++;
             $p[$r->source === 'admin_assigned' ? 'assigned' : 'online']++;
             $p['revenue']       += (float)$r->price_paid;
+            self::track_price($p, $r->price_paid);
             $p['flex_sold']     += (int)$r->bought_flex;
             $p['flex_consumed'] += (int)$r->consumed_flex;
             $unused = (int)$r->remaining_flex + (int)$r->reserved_flex;
@@ -275,6 +322,7 @@ class finance_report_manager {
             $p['revenue']      = round($p['revenue'], 2);
             $p['unused_value'] = round($p['unused_value'], 2);
             $p['avg_price']    = $p['sales'] ? round($p['revenue'] / $p['sales'], 2) : 0.0;
+            self::finish_price($p);
             $out[] = $p;
             $summary['packages']++;
             $summary['sales']         += $p['sales'];
@@ -336,6 +384,9 @@ class finance_report_manager {
                     'cancelled'      => 0,
                     'revenue'        => 0.0,
                     'b2b_discount'   => 0.0,
+                    // Range actually charged, so a mid-life price edit is visible — see track_price().
+                    'price_min'      => null,
+                    'price_max'      => null,
                 );
             }
             if (empty($r->purchaseid)) {
@@ -351,9 +402,15 @@ class finance_report_manager {
                 // What the seat-option discount cost us, relative to seats × base price.
                 $list = (float)$r->base_price * max(1, (int)$r->seats);
                 $p['b2b_discount'] += max(0, $list - (float)$r->price_paid);
+                // base_price is the per-seat list price as it stood at checkout; price_paid is the
+                // whole multi-seat, post-discount total and would blow the range out of scale.
+                if ($r->base_price !== null) {
+                    self::track_price($p, $r->base_price);
+                }
             } else {
                 $p['normal']++;
                 $p['normal_revenue'] += (float)$r->price_paid;
+                self::track_price($p, $r->price_paid);
             }
             if (isset($p[$r->pstatus])) {
                 $p[$r->pstatus]++;
@@ -376,6 +433,7 @@ class finance_report_manager {
             // Average per seat is the meaningful B2B unit price — per *sale* would hide the fact
             // that one B2B purchase covers many users.
             $p['b2b_per_seat']   = $p['seats_sold'] ? round($p['b2b_revenue'] / $p['seats_sold'], 2) : 0.0;
+            self::finish_price($p);
             $out[] = $p;
             $summary['plans']++;
             $summary['sales']          += $p['sales'];
@@ -477,6 +535,10 @@ class finance_report_manager {
                     'refunded_amount' => 0.0,
                     'revoked_count'   => 0,
                     'failed_count'    => 0,
+                    // Courses have no plugin-side list price to show, but the range still answers
+                    // "was this always sold at the same price?" — see track_price().
+                    'price_min'       => null,
+                    'price_max'       => null,
                 );
                 $buyers[$cid] = array();
             }
@@ -489,6 +551,9 @@ class finance_report_manager {
                 $c['revenue']        += $amount;
                 $c['original_total'] += $original;
                 $c['discount_total'] += max(0, $original - $amount);
+                // original_amount, not amount: the pre-discount figure is the course's list price at
+                // the moment of sale, which is what a later price edit would change.
+                self::track_price($c, $original);
                 $buyers[$cid][(int)$t->userid] = true;
             } else if ($t->status === $refunded) {
                 $c['refunded_count']++;
@@ -513,6 +578,7 @@ class finance_report_manager {
             // Net = what we actually kept after giving refunds back.
             $c['net_revenue']     = round($c['revenue'] - $c['refunded_amount'], 2);
             $c['avg_price']       = $c['sales'] ? round($c['revenue'] / $c['sales'], 2) : 0.0;
+            self::finish_price($c, false); // No current list price on this tab to compare against.
             $out[] = $c;
             $summary['courses']++;
             $summary['sales']           += $c['sales'];
@@ -627,6 +693,9 @@ class finance_report_manager {
                     'refunded_amount' => 0.0,
                     'revoked_count'   => 0,
                     'failed_count'    => 0,
+                    // Range actually charged, so a mid-life price edit is visible — see track_price().
+                    'price_min'       => null,
+                    'price_max'       => null,
                 );
                 $buyers[$pid] = array();
             }
@@ -639,6 +708,7 @@ class finance_report_manager {
                 $p['revenue']        += $amount;
                 $p['original_total'] += $original;
                 $p['discount_total'] += max(0, $original - $amount);
+                self::track_price($p, $original); // Pre-discount list price at sale time.
                 $buyers[$pid][(int)$t->userid] = true;
             } else if ($t->status === $refunded) {
                 $p['refunded_count']++;
@@ -662,6 +732,9 @@ class finance_report_manager {
             $p['refunded_amount'] = round($p['refunded_amount'], 2);
             $p['net_revenue']     = round($p['revenue'] - $p['refunded_amount'], 2);
             $p['avg_price']       = $p['sales'] ? round($p['revenue'] / $p['sales'], 2) : 0.0;
+            // A program whose price row was deleted reports 0.0, which is an absent price rather than
+            // a free program — comparing the sold range against it would flag every such row.
+            self::finish_price($p, $p['price'] > 0);
             $out[] = $p;
             $summary['programs']++;
             $summary['sales']           += $p['sales'];

@@ -45,15 +45,45 @@ $STR = local_academy_string_map(array(
     'sub_col_b2bprice', 'sub_seat_add', 'ui_remove', 'sub_b2b_badge', 'ui_pager_info',
     'ui_search', 'sub_courses_search', 'sub_selectall', 'sub_clear',
     'err_sessionexpired', 'err_requestfailed',
+    // Page tabs + the subscription half of the old standalone "Admin settings" page.
+    'sub_tab_plans', 'sub_tab_settings',
+    'set_sub_expiry_reminder', 'set_sub_expiry_reminder_help',
+    'set_b2b_auto_approve', 'set_b2b_auto_approve_help', 'set_b2b_return_seat', 'set_b2b_return_seat_help',
+    'set_enabled', 'set_disabled', 'set_save', 'set_saved',
 ));
+
+// The settings are platform-wide money/policy switches, so the tab is gated on manageplatform — a
+// user with only managesubscriptions can reach this page but must not see it (the API would reject
+// them anyway; hiding it avoids offering an action that cannot succeed).
+$canplatform = has_capability('local/academy:manageplatform', context_system::instance());
+
 echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
     'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
     'token'    => $token,
     'lang'     => optional_param('lang', current_language(), PARAM_LANG),
 )) . ';');
+// The settings block below was merged in from manage_settings.php and keeps reading its original
+// config global, so alias it.
+echo html_writer::script('window.ACADEMY_SET = window.ACADEMY_SUB;');
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
+<style>
+/* Page-level tabs: Subscriptions / Subscription settings. */
+#sub-tabs { display:flex; gap:.25rem; border-bottom:1px solid #dee2e6; margin-bottom:1rem; flex-wrap:wrap; }
+#sub-tabs button { border:none; background:none; padding:.5rem .9rem; border-bottom:3px solid transparent; cursor:pointer; }
+#sub-tabs button.active { border-bottom-color:#0f6cbf; font-weight:600; color:#0f6cbf; }
+.sub-pane { display:none; }
+.sub-pane.active { display:block; }
+</style>
 <div id="academy-sub-app">
+    <div id="sub-tabs">
+        <button data-tab="plans" class="active"><?php echo $STR['sub_tab_plans']; ?></button>
+        <?php if ($canplatform) { ?>
+        <button data-tab="settings"><?php echo $STR['sub_tab_settings']; ?></button>
+        <?php } ?>
+    </div>
+
+    <div class="sub-pane active" data-pane="plans">
     <div id="sub-message" class="alert" style="display:none"></div>
 
     <!-- ── Subscription plans (US-AD-5-*) ── -->
@@ -292,6 +322,36 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         <tbody><tr><td colspan="6"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
     </table>
     <div id="users-table-pager" class="acad-pager"></div>
+    </div><!-- /pane plans -->
+
+    <?php if ($canplatform) { ?>
+    <!-- ── Subscription settings (US-AD-2-1) — the subscription half of the old Admin settings page ── -->
+    <div class="sub-pane" data-pane="settings">
+      <div id="set-msg" class="alert" style="display:none"></div>
+      <div class="card" style="max-width:560px;">
+        <div class="card-body">
+          <div class="form-group"><label><?php echo $STR['set_sub_expiry_reminder']; ?></label><input class="form-control" id="s-sub_expiry_reminder_days" type="number" min="0"><small class="text-muted"><?php echo $STR['set_sub_expiry_reminder_help']; ?></small></div>
+          <div class="form-group">
+            <label><?php echo $STR['set_b2b_auto_approve']; ?></label>
+            <select class="form-control" id="s-b2b_auto_approve_invited_users">
+              <option value="0"><?php echo $STR['set_disabled']; ?></option>
+              <option value="1"><?php echo $STR['set_enabled']; ?></option>
+            </select>
+            <small class="text-muted"><?php echo $STR['set_b2b_auto_approve_help']; ?></small>
+          </div>
+          <div class="form-group">
+            <label><?php echo $STR['set_b2b_return_seat']; ?></label>
+            <select class="form-control" id="s-b2b_return_seat_after_user_removal">
+              <option value="0"><?php echo $STR['set_disabled']; ?></option>
+              <option value="1"><?php echo $STR['set_enabled']; ?></option>
+            </select>
+            <small class="text-muted"><?php echo $STR['set_b2b_return_seat_help']; ?></small>
+          </div>
+          <button id="set-save" class="btn btn-primary"><?php echo $STR['set_save']; ?></button>
+        </div>
+      </div>
+    </div><!-- /pane settings -->
+    <?php } ?>
 
     <!-- ── Unsubscribe confirmation modal ── -->
     <div id="unsub-modal-backdrop" class="academy-modal-backdrop" style="display:none;">
@@ -788,5 +848,50 @@ echo html_writer::script(<<<'JS'
 })();
 JS
 );
+
+// ── Page-level tab switching ───────────────────────────────────────────────────
+echo html_writer::script(<<<'JS'
+(function () {
+    var tabs = document.querySelectorAll('#sub-tabs button');
+    Array.prototype.forEach.call(tabs, function (b) {
+        b.onclick = function () {
+            Array.prototype.forEach.call(tabs, function (x) { x.classList.remove('active'); });
+            b.classList.add('active');
+            var tab = b.getAttribute('data-tab');
+            Array.prototype.forEach.call(document.querySelectorAll('.sub-pane'), function (p) {
+                p.classList.toggle('active', p.getAttribute('data-pane') === tab);
+            });
+        };
+    });
+})();
+JS
+);
+
+// ── "Subscription settings" tab (was the Subscription settings tab of manage_settings.php) ──
+if ($canplatform) {
+echo html_writer::script(<<<'JS'
+(function () {
+  var CFG = window.ACADEMY_SET;
+  var STR = window.ACADEMY_STR || {};
+  function str(k){return (k in STR)?STR[k]:k;}
+  // Only the subscription half of the settings — the package keys live on manage_packages.php.
+  // update_lesson_settings only writes the fields it is sent.
+  var KEYS = ['sub_expiry_reminder_days','b2b_auto_approve_invited_users','b2b_return_seat_after_user_removal'];
+  function $(id){return document.getElementById(id);}
+  function msg(t,k){var e=$('set-msg');e.textContent=t;e.className='alert alert-'+(k||'info');e.style.display='block';if(k==='success'){setTimeout(function(){e.style.display='none';},3000);}}
+  function api(func,params){var qs=new URLSearchParams({function:func,token:CFG.token});if(CFG.lang){qs.append('alang',CFG.lang);}Object.keys(params||{}).forEach(function(k){qs.append(k,params[k]);});
+    return fetch(CFG.endpoint+'?'+qs.toString()).then(function(r){return r.text();}).then(function(t){var j;try{j=JSON.parse(t);}catch(e){throw new Error(str('err_sessionexpired'));}if(j.status!=='success'){throw new Error(j.error||str('err_requestfailed'));}return j.data;});}
+
+  function setVal(k, v){ var el=$('s-'+k); if(el){ el.value = v; } }
+  function getVal(k){ var el=$('s-'+k); return el ? el.value : ''; }
+
+  function load(){api('get_lesson_settings',{}).then(function(d){KEYS.forEach(function(k){setVal(k, d[k]);});}).catch(function(e){msg(e.message,'danger');});}
+  function save(){var p={};KEYS.forEach(function(k){p[k]=getVal(k);});api('update_lesson_settings',p).then(function(d){KEYS.forEach(function(k){setVal(k, d[k]);});msg(str('set_saved'),'success');}).catch(function(e){msg(e.message,'danger');});}
+  $('set-save').addEventListener('click',save);
+  load();
+})();
+JS
+);
+}
 
 echo $OUTPUT->footer();
