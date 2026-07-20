@@ -64,16 +64,20 @@ class finance_report_manager {
      * table gives no hint why: the list price says 300 while the average says 450, both correct.
      * Tracking the min/max actually charged lets the UI show the spread and flag the mismatch.
      *
+     * A bare min–max range would say "sold between 10 and 20" without saying how many went at each,
+     * so what accumulates here is a tally keyed by price: the UI renders it as "20 x 2, 10 x 1".
+     *
      * The price passed here must be a per-unit list price as it stood at the moment of sale — not a
-     * post-discount total, and not a multi-seat total — otherwise the range compares apples to pears.
+     * post-discount total, and not a multi-seat total — otherwise the tally compares apples to pears.
      *
      * @param array $row    report row, modified in place
      * @param float $price  unit price charged for this one sale
      */
     private static function track_price(array &$row, $price) {
-        $price = (float)$price;
-        $row['price_min'] = $row['price_min'] === null ? $price : min($row['price_min'], $price);
-        $row['price_max'] = $row['price_max'] === null ? $price : max($row['price_max'], $price);
+        // Keyed by the 2dp string form: 300.0 and 300.004 are the same price to an admin, and float
+        // keys would silently truncate to int in PHP arrays anyway.
+        $key = number_format((float)$price, 2, '.', '');
+        $row['price_counts'][$key] = ($row['price_counts'][$key] ?? 0) + 1;
     }
 
     /**
@@ -81,21 +85,34 @@ class finance_report_manager {
      *
      * Sets 'price_changed' when the sales in this window were not all made at the row's current list
      * price — either they differ from each other, or they all agree but the list price has since
-     * moved. Rounding to 2dp before comparing keeps float noise from raising a false flag.
+     * moved.
      *
      * @param array $row       report row, modified in place
      * @param bool  $hasprice  false for rows with no current list price to compare against (courses)
      */
     private static function finish_price(array &$row, $hasprice = true) {
-        if ($row['price_min'] === null) {
+        $counts = $row['price_counts'];
+        unset($row['price_counts']); // Internal accumulator — the row ships the derived fields only.
+
+        if (!$counts) {
             // No sales in the window: nothing historical to disagree with.
+            $row['price_breakdown'] = array();
             $row['price_min'] = $row['price_max'] = null;
             $row['price_changed'] = 0;
             return;
         }
-        $row['price_min'] = round($row['price_min'], 2);
-        $row['price_max'] = round($row['price_max'], 2);
-        $row['price_changed'] = ($row['price_min'] !== $row['price_max']
+        $prices = array_map('floatval', array_keys($counts));
+        $row['price_min'] = min($prices);
+        $row['price_max'] = max($prices);
+
+        // Most-sold price first: that is the row's "real" price, and it should lead the cell.
+        arsort($counts);
+        $row['price_breakdown'] = array();
+        foreach ($counts as $price => $count) {
+            $row['price_breakdown'][] = array('price' => (float)$price, 'count' => (int)$count);
+        }
+
+        $row['price_changed'] = (count($counts) > 1
             || ($hasprice && round((float)$row['price'], 2) !== $row['price_min'])) ? 1 : 0;
     }
 
@@ -292,8 +309,7 @@ class finance_report_manager {
                     'flex_unused'    => 0,
                     'unused_value'   => 0.0,
                     // Range actually charged, so a mid-life price edit is visible — see track_price().
-                    'price_min'      => null,
-                    'price_max'      => null,
+                    'price_counts'   => array(),
                 );
             }
             if (empty($r->purchaseid)) {
@@ -385,8 +401,7 @@ class finance_report_manager {
                     'revenue'        => 0.0,
                     'b2b_discount'   => 0.0,
                     // Range actually charged, so a mid-life price edit is visible — see track_price().
-                    'price_min'      => null,
-                    'price_max'      => null,
+                    'price_counts'   => array(),
                 );
             }
             if (empty($r->purchaseid)) {
@@ -537,8 +552,7 @@ class finance_report_manager {
                     'failed_count'    => 0,
                     // Courses have no plugin-side list price to show, but the range still answers
                     // "was this always sold at the same price?" — see track_price().
-                    'price_min'       => null,
-                    'price_max'       => null,
+                    'price_counts'    => array(),
                 );
                 $buyers[$cid] = array();
             }
@@ -694,8 +708,7 @@ class finance_report_manager {
                     'revoked_count'   => 0,
                     'failed_count'    => 0,
                     // Range actually charged, so a mid-life price edit is visible — see track_price().
-                    'price_min'       => null,
-                    'price_max'       => null,
+                    'price_counts'    => array(),
                 );
                 $buyers[$pid] = array();
             }
@@ -752,6 +765,200 @@ class finance_report_manager {
         }
 
         return array('rows' => $out, 'summary' => $summary);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Drill-down: the individual sales behind one report row
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Coupon and offer usages recorded against one item, for attaching to individual sales.
+     *
+     * Returns two lookups because the two product families identify a sale differently: course and
+     * program sales have a local_payments transaction id, which matches a usage exactly; package and
+     * subscription sales have no transaction id on the purchase row, so those fall back to matching
+     * by buyer and are resolved on time proximity by the caller.
+     *
+     * @param string $itemtype discount_manager::TYPE_* value
+     * @param int    $itemid
+     * @return array [usages keyed by transactionid, usages grouped by userid]
+     */
+    private static function discount_usages($itemtype, $itemid) {
+        global $DB;
+
+        $bytxn = array();
+        $byuser = array();
+        $sources = array(
+            'coupon' => array('academy_coupon_usages', 'academy_coupons', 'couponid', 'code'),
+            'offer'  => array('academy_offer_usages', 'academy_offers', 'offerid', 'name'),
+        );
+        foreach ($sources as $kind => $def) {
+            list($usetable, $deftable, $fk, $labelfield) = $def;
+            $sql = "SELECT u.id, u.userid, u.transactionid, u.discount_amount, u.timecreated,
+                           d.$labelfield AS label
+                      FROM {" . $usetable . "} u
+                      JOIN {" . $deftable . "} d ON d.id = u.$fk
+                     WHERE u.item_type = :itype AND u.item_id = :iid";
+            $rows = $DB->get_records_sql($sql, array('itype' => $itemtype, 'iid' => $itemid));
+            foreach ($rows as $r) {
+                $use = array(
+                    'kind'            => $kind,
+                    // Coupon codes are literal identifiers; offer names can be multilang.
+                    'label'           => $kind === 'offer' ? format_string($r->label) : $r->label,
+                    'discount_amount' => round((float)$r->discount_amount, 2),
+                    'timecreated'     => (int)$r->timecreated,
+                );
+                if ((int)$r->transactionid > 0) {
+                    $bytxn[(int)$r->transactionid] = $use;
+                }
+                $byuser[(int)$r->userid][] = $use;
+            }
+        }
+        return array($bytxn, $byuser);
+    }
+
+    /**
+     * Pull the usage a buyer's purchase most likely used, removing it from the pool.
+     *
+     * Package and subscription purchases carry no link to the discount they were bought with, so the
+     * best available evidence is that both rows are written by the same checkout and therefore share
+     * a timestamp. The match is consumed so a buyer's second purchase cannot claim the same coupon,
+     * and anything more than a minute apart is rejected rather than guessed at.
+     *
+     * @param array $pool   $byuser bucket for this buyer, modified in place
+     * @param int   $when   purchase timecreated
+     * @return array|null the usage, or null when nothing matches closely enough
+     */
+    private static function claim_usage(array &$pool, $when) {
+        $besti = null;
+        $bestgap = 60; // Same-checkout writes land within seconds; a minute is already generous.
+        foreach ($pool as $i => $use) {
+            $gap = abs($use['timecreated'] - $when);
+            if ($gap <= $bestgap) {
+                $bestgap = $gap;
+                $besti = $i;
+            }
+        }
+        if ($besti === null) {
+            return null;
+        }
+        $use = $pool[$besti];
+        unset($pool[$besti]);
+        return $use;
+    }
+
+    /** Display name for a buyer, falling back gracefully for deleted accounts. */
+    private static function buyer_names(array $userids) {
+        global $DB;
+        if (!$userids) {
+            return array();
+        }
+        list($insql, $params) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+        $fields = 'id, ' . implode(', ', \core_user\fields::get_name_fields());
+        $users = $DB->get_records_select('user', "id $insql", $params, '', $fields);
+        $out = array();
+        foreach ($userids as $uid) {
+            $out[$uid] = isset($users[$uid])
+                ? fullname($users[$uid])
+                : get_string('fr_buyer_deleted', 'local_academy');
+        }
+        return $out;
+    }
+
+    /**
+     * Every individual sale behind one row of a report tab.
+     *
+     * The aggregate rows answer "how much did this earn?"; this answers "which sale was at which
+     * price?" — the question a changed price makes unanswerable from totals alone. Each record keeps
+     * the list price as it stood at that moment separate from what the buyer actually handed over,
+     * so a gap between them can be attributed to a discount rather than mistaken for a price edit.
+     *
+     * @param string $kind    package | subscription | course | program
+     * @param int    $itemid
+     * @param array  $filters from, to (unix, on sale time) — same window as the parent tab
+     * @return array list of sale records, newest first
+     */
+    public static function purchases_report($kind, $itemid, array $filters = array()) {
+        global $DB;
+
+        $itemid = (int)$itemid;
+        if (!in_array($kind, array('package', 'subscription', 'course', 'program'), true)) {
+            throw new \moodle_exception('err_itemtype', 'local_academy');
+        }
+        list($bytxn, $byuser) = self::discount_usages($kind, $itemid);
+
+        $out = array();
+        if ($kind === 'package' || $kind === 'subscription') {
+            $table  = $kind === 'package' ? 'academy_package_purchases' : 'academy_sub_purchases';
+            $fk     = $kind === 'package' ? 'packageid' : 'subscriptionid';
+            list($wsql, $wparams) = self::window($filters, 'timecreated');
+            $rows = $DB->get_records_select($table, "$fk = :iid $wsql",
+                array_merge(array('iid' => $itemid), $wparams), 'timecreated DESC');
+            foreach ($rows as $r) {
+                // price_paid on these tables is the *list* price snapshotted at checkout — coupons
+                // are recorded separately — so the discount has to be subtracted to get the net.
+                $list = (float)$r->price_paid;
+                $seats = $kind === 'subscription' ? max(1, (int)$r->seats) : 1;
+                if ($kind === 'subscription' && $r->type === 'b2b') {
+                    // price_paid is the whole seat block; base_price is the comparable unit price.
+                    $list = (float)$r->base_price;
+                }
+                $use = isset($byuser[(int)$r->userid])
+                    ? self::claim_usage($byuser[(int)$r->userid], (int)$r->timecreated) : null;
+                $out[] = array(
+                    'id'          => (int)$r->id,
+                    'userid'      => (int)$r->userid,
+                    'timecreated' => (int)$r->timecreated,
+                    'list_price'  => round($list, 2),
+                    'paid'        => round((float)$r->price_paid - ($use ? $use['discount_amount'] : 0), 2),
+                    'discount'    => $use ? $use['discount_amount'] : 0.0,
+                    'discount_label' => $use ? $use['label'] : '',
+                    'discount_kind'  => $use ? $use['kind'] : '',
+                    'status'      => $r->status,
+                    'source'      => $r->source,
+                    'seats'       => $kind === 'subscription' ? (int)$r->seats : 0,
+                    'type'        => $kind === 'subscription' ? $r->type : 'normal',
+                );
+            }
+        } else {
+            // Course and program sales are local_payments transactions; reuse the tab's own reader
+            // so the drill-down can never disagree with the totals above it.
+            $transactions = $kind === 'course'
+                ? self::course_transactions($filters) : self::program_transactions($filters);
+            foreach ($transactions as $t) {
+                $tid = $kind === 'course' ? (int)$t->courseid : (int)$t->programid;
+                if ($tid !== $itemid) {
+                    continue;
+                }
+                $amount = (float)$t->amount;
+                $original = $t->original_amount !== null ? (float)$t->original_amount : $amount;
+                $use = $bytxn[(int)$t->id] ?? null;
+                $out[] = array(
+                    'id'          => (int)$t->id,
+                    'userid'      => (int)$t->userid,
+                    'timecreated' => (int)$t->timecreated,
+                    'list_price'  => round($original, 2),
+                    'paid'        => round($amount, 2),
+                    // The transaction knows the gap; the usage row only names what caused it.
+                    'discount'    => round(max(0, $original - $amount), 2),
+                    'discount_label' => $use ? $use['label'] : '',
+                    'discount_kind'  => $use ? $use['kind'] : '',
+                    'status'      => $t->status,
+                    'source'      => 'online',
+                    'seats'       => 0,
+                    'type'        => 'normal',
+                );
+            }
+        }
+
+        // One query for all the names rather than one per row.
+        $names = self::buyer_names(array_values(array_unique(array_column($out, 'userid'))));
+        foreach ($out as &$r) {
+            $r['buyer'] = $names[$r['userid']] ?? '';
+        }
+        unset($r);
+
+        return array('rows' => $out);
     }
 
     // ──────────────────────────────────────────────────────────────────────────

@@ -212,6 +212,7 @@ $capmap = [
     'finance_subscriptions'  => 'local/academy:manageplatform',
     'finance_courses'        => 'local/academy:manageplatform',
     'finance_programs'       => 'local/academy:manageplatform',
+    'finance_purchases'      => 'local/academy:manageplatform',
     'finance_coupons'        => 'local/academy:manageplatform',
     'finance_offers'         => 'local/academy:manageplatform',
     'assign_package'         => 'local/academy:manageplatform',
@@ -995,6 +996,15 @@ try {
         case 'finance_programs':
             academy_respond(['status' => 'success',
                 'data' => finance_report_manager::programs_report(academy_report_filters())]);
+            break;
+
+        // Drill-down for one row of any of the four product tabs: the individual sales behind it.
+        case 'finance_purchases':
+            academy_respond(['status' => 'success',
+                'data' => finance_report_manager::purchases_report(
+                    required_param('kind', PARAM_ALPHA),
+                    required_param('itemid', PARAM_INT),
+                    academy_report_filters())]);
             break;
 
         case 'finance_coupons':

@@ -55,6 +55,9 @@ $STR = local_academy_string_map(array(
     'fr_vol_coupons', 'fr_vol_offers', 'fr_c_month', 'fr_c_program',
     'fr_c_name', 'fr_c_price', 'fr_c_status', 'fr_c_sales', 'fr_c_revenue', 'fr_c_avgprice',
     'fr_c_soldprice', 'fr_c_pricechanged', 'fr_pricechanged_help',
+    'fr_d_show', 'fr_d_hide', 'fr_d_date', 'fr_d_buyer', 'fr_d_listprice', 'fr_d_paid',
+    'fr_d_discount', 'fr_d_source', 'fr_d_source_online', 'fr_d_source_assigned', 'fr_d_seats',
+    'fr_d_none', 'fr_d_loading',
     'fr_c_online', 'fr_c_assigned', 'fr_c_flexsold', 'fr_c_flexconsumed', 'fr_c_flexunused',
     'fr_c_unusedvalue', 'fr_unusedvalue_help',
     'fr_c_duration', 'fr_c_normal', 'fr_c_b2b', 'fr_c_seats', 'fr_c_activesubs', 'fr_c_b2bdiscount',
@@ -103,6 +106,13 @@ table.wd-table td.num,table.wd-table th.num{text-align:right;white-space:nowrap}
 .s-normal{background:#e3f0fb;color:#0f5a9c}.s-b2b{background:#efe3fb;color:#5b2d90}
 /* Carries a title tooltip explaining the current-vs-historical price mismatch. */
 .s-warn{background:#fff3cd;color:#856404;cursor:help}
+.fr-toggle{border:none;background:none;cursor:pointer;color:#0f6cbf;font-size:1rem;line-height:1;padding:0 .25rem}
+.fr-detail > td{background:#f8f9fa;padding:.5rem .75rem}
+.fr-detail-box{max-width:100%;overflow-x:auto}
+/* Sits inside a row of the outer table, so it must not inherit its full-width borders. */
+.fr-detail-table{background:#fff;border:1px solid #e9ecef;border-radius:.25rem}
+.fr-detail-table th{font-size:.8rem;color:#6c757d;font-weight:600}
+.fr-detail-table td,.fr-detail-table th{padding:.35rem .5rem}
 .fr-types{display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem;font-size:.86rem;color:#495057}
 .fr-types > div{flex:1 1 320px}
 .wd-actions{display:flex;gap:.3rem;flex-wrap:wrap}
@@ -294,8 +304,17 @@ echo html_writer::script(<<<'JS'
    * The footer totals and the CSV export always cover the WHOLE result set, not just the visible
    * page — a "Total" row that only added up 10 of 40 rows would be actively misleading.
    */
-  function table(mount,cols,rows,total){
+  function table(mount,cols,rows,total,detailKind){
     var el=$(mount);
+    // The expander owns a column of its own rather than riding along inside the name cell: it keeps
+    // the caret in a fixed place across tabs whose first column differs, and leaves the name
+    // clickable-free so a long product name still wraps normally.
+    if(detailKind){
+      cols=[{key:'_toggle',label:'',get:function(r){
+        return '<button type="button" class="fr-toggle" data-id="'+esc(r.id)+'" '+
+          'aria-expanded="false" title="'+esc(str('fr_d_show'))+'">&#9656;</button>';
+      }}].concat(cols);
+    }
     var head='<thead><tr>'+cols.map(function(c){return '<th'+(c.num?' class="num"':'')+'>'+esc(c.label)+'</th>';}).join('')+'</tr></thead>';
     var foot='';
     if(total&&rows.length){
@@ -318,6 +337,16 @@ echo html_writer::script(<<<'JS'
       tb.innerHTML=pageRows.map(function(r){
         return '<tr>'+cols.map(function(c){return '<td'+(c.num?' class="num"':'')+'>'+(c.get?c.get(r):esc(r[c.key]))+'</td>';}).join('')+'</tr>';
       }).join('');
+      // Re-rendering a page drops any open detail rows with it, so nothing to clean up here.
+    }
+
+    if(detailKind){
+      // Delegated: renderPage() replaces the whole tbody on every page change, which would strip
+      // handlers bound to individual buttons.
+      tb.onclick=function(ev){
+        var btn=ev.target.closest?ev.target.closest('.fr-toggle'):null;
+        if(btn&&tb.contains(btn)){toggleDetail(btn,detailKind,cols.length);}
+      };
     }
 
     // Always paginate: the helper drops the page buttons when everything fits on one page but keeps
@@ -330,6 +359,68 @@ echo html_writer::script(<<<'JS'
   }
 
   function statusBadge(s){return '<span class="wd-badge s-'+esc(s)+'">'+esc(wstat(s))+'</span>';}
+  function dateTime(ts){return ts?new Date(ts*1000).toLocaleString():'—';}
+
+  /**
+   * Expand or collapse the individual sales behind one aggregate row.
+   *
+   * The detail is fetched on demand and then kept: these tabs can list dozens of products, and
+   * loading every product's sales up front would multiply the page's payload for rows the admin
+   * will never open. Once fetched it stays in the DOM, so re-opening the same row is instant.
+   */
+  function toggleDetail(btn,kind,colspan){
+    var tr=btn.closest('tr'), open=btn.getAttribute('aria-expanded')==='true';
+    if(open){
+      if(tr.nextSibling&&tr.nextSibling.classList&&tr.nextSibling.classList.contains('fr-detail')){
+        tr.nextSibling.style.display='none';
+      }
+      btn.setAttribute('aria-expanded','false');
+      btn.title=str('fr_d_show'); btn.innerHTML='&#9656;';
+      return;
+    }
+    btn.setAttribute('aria-expanded','true');
+    btn.title=str('fr_d_hide'); btn.innerHTML='&#9662;';
+
+    var next=tr.nextSibling;
+    if(next&&next.classList&&next.classList.contains('fr-detail')){next.style.display='';return;}
+
+    var det=document.createElement('tr');
+    det.className='fr-detail';
+    det.innerHTML='<td colspan="'+colspan+'"><div class="fr-detail-box">'+esc(str('fr_d_loading'))+'</div></td>';
+    tr.parentNode.insertBefore(det,tr.nextSibling);
+
+    var params=dateFilters();
+    params.kind=kind; params.itemid=btn.getAttribute('data-id');
+    apiGet('finance_purchases',params).then(function(d){
+      det.querySelector('.fr-detail-box').innerHTML=detailTable(d.rows,kind);
+    }).catch(function(e){
+      det.querySelector('.fr-detail-box').innerHTML='<span class="text-danger">'+esc(e.message)+'</span>';
+    });
+  }
+
+  /** The sub-table of individual sales rendered inside an expanded row. */
+  function detailTable(rows,kind){
+    if(!rows.length){return '<span class="text-muted">'+esc(str('fr_d_none'))+'</span>';}
+    var head=[str('fr_d_date'),str('fr_d_buyer'),str('fr_d_listprice'),str('fr_d_paid'),
+      str('fr_d_discount'),str('st_col_status'),str('fr_d_source')];
+    return '<table class="wd-table fr-detail-table"><thead><tr>'+
+      head.map(function(h,i){return '<th'+(i>=2&&i<=4?' class="num"':'')+'>'+esc(h)+'</th>';}).join('')+
+      '</tr></thead><tbody>'+rows.map(function(r){
+        // A B2B row's list price is per seat, so the seat count has to travel with it or the paid
+        // total looks like it bears no relation to the price beside it.
+        var seats=r.seats>0?' <small class="text-muted">('+esc(str('fr_d_seats').replace('{$a}',r.seats))+')</small>':'';
+        var disc=r.discount>0
+          ? money(r.discount)+(r.discount_label?' <small class="text-muted">'+esc(r.discount_label)+'</small>':'')
+          : '—';
+        return '<tr><td>'+esc(dateTime(r.timecreated))+'</td>'+
+          '<td>'+esc(r.buyer)+'</td>'+
+          '<td class="num">'+money(r.list_price)+seats+'</td>'+
+          '<td class="num">'+money(r.paid)+'</td>'+
+          '<td class="num">'+disc+'</td>'+
+          '<td>'+statusBadge(r.status)+'</td>'+
+          '<td>'+esc(str(r.source==='admin_assigned'?'fr_d_source_assigned':'fr_d_source_online'))+'</td></tr>';
+      }).join('')+'</tbody></table>';
+  }
 
   /**
    * The current list price, flagged when the sales beside it were not all made at that price.
@@ -344,11 +435,16 @@ echo html_writer::script(<<<'JS'
         +esc(str('fr_c_pricechanged'))+'</span>' : '');
   }
 
-  /** The spread actually charged: a single price, or "min – max" when it moved. */
+  /**
+   * What was charged, and how often: "1000 x 7", or "500 x 2، 400 x 1" once the price moved.
+   *
+   * A bare min–max range ("400 – 500") leaves the admin unable to tell whether one sale or nine
+   * went at the old price, which is usually the actual question, so the counts are always shown.
+   */
   function soldPrice(r){
-    if(r.price_min==null){return '—';} // No sales in this window — nothing was charged.
-    return r.price_min===r.price_max ? money(r.price_min)
-      : money(r.price_min)+' – '+money(r.price_max);
+    var b=r.price_breakdown||[];
+    if(!b.length){return '—';} // No sales in this window — nothing was charged.
+    return b.map(function(p){return money(p.price)+' &times; '+p.count;}).join('<br>');
   }
   function dateOnly(ts){return ts?new Date(ts*1000).toLocaleDateString():'—';}
   function windowLabel(r){
@@ -443,7 +539,7 @@ echo html_writer::script(<<<'JS'
         {key:'flex_consumed',label:str('fr_c_flexconsumed'),num:true},
         {key:'flex_unused',label:str('fr_c_flexunused'),num:true},
         {key:'unused_value',label:str('fr_c_unusedvalue'),num:true,money:true,get:function(r){return money(r.unused_value);}}
-      ],d.rows,s);
+      ],d.rows,s,'package');
     }).catch(function(e){msg(e.message,'danger');});
   }
 
@@ -477,7 +573,7 @@ echo html_writer::script(<<<'JS'
         {key:'b2b_discount',label:str('fr_c_b2bdiscount'),num:true,money:true,get:function(r){return money(r.b2b_discount);}},
         {key:'active',label:str('fr_c_activesubs'),num:true},
         {key:'revenue',label:str('fr_c_revenue'),num:true,money:true,get:function(r){return money(r.revenue);}}
-      ],d.rows,s);
+      ],d.rows,s,'subscription');
     }).catch(function(e){msg(e.message,'danger');});
   }
 
@@ -507,7 +603,7 @@ echo html_writer::script(<<<'JS'
         {key:'revoked_count',label:str('fr_c_revoked'),num:true},
         {key:'failed_count',label:str('fr_c_failed'),num:true},
         {key:'net_revenue',label:str('fr_c_netrevenue'),num:true,money:true,get:function(r){return money(r.net_revenue);}}
-      ],d.rows,s);
+      ],d.rows,s,'course');
     }).catch(function(e){msg(e.message,'danger');});
   }
 
@@ -537,7 +633,7 @@ echo html_writer::script(<<<'JS'
         {key:'revoked_count',label:str('fr_c_revoked'),num:true},
         {key:'failed_count',label:str('fr_c_failed'),num:true},
         {key:'net_revenue',label:str('fr_c_netrevenue'),num:true,money:true,get:function(r){return money(r.net_revenue);}}
-      ],d.rows,s);
+      ],d.rows,s,'program');
     }).catch(function(e){msg(e.message,'danger');});
   }
 
@@ -671,15 +767,20 @@ echo html_writer::script(<<<'JS'
     var el=$(EXPORT_TABLES[current]);
     if(!el||!el._cols||!el._rows||!el._rows.length){msg(str('fr_norows'),'info');return;}
     function cell(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
-    var lines=[el._cols.map(function(c){return cell(c.label);}).join(',')];
+    // The expander column is pure UI — an empty header and empty cells in every exported file.
+    var xcols=el._cols.filter(function(c){return c.key!=='_toggle';});
+    var lines=[xcols.map(function(c){return cell(c.label);}).join(',')];
     el._rows.forEach(function(r){
-      lines.push(el._cols.map(function(c){
+      lines.push(xcols.map(function(c){
         // Prefer the raw value; getters return HTML (badges, bars) that would break the CSV.
         // The exceptions are getters that emit plain text a raw column cannot express: a range
         // needs both ends, and price_min alone would read as the only price ever charged.
         if(c.key==='window'){return cell(windowLabel(r));}
         if(c.key==='items'){return cell(itemsLabel(r));}
-        if(c.key==='price_min'){return cell(soldPrice(r));}
+        if(c.key==='price_min'){
+          return cell((r.price_breakdown||[]).map(function(p){
+            return p.price+' x '+p.count;}).join(' | ')||'');
+        }
         return cell(r[c.key]);
       }).join(','));
     });
