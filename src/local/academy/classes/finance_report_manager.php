@@ -75,6 +75,16 @@ class finance_report_manager {
         // Revenue actually collected, by source (successful payments only).
         $packagerevenue = self::sum('academy_payments', 'amount', "status = 'success'", array(), $filters);
         $subrevenue     = self::sum('academy_sub_payments', 'amount', "status = 'success'", array(), $filters);
+        // Single-course sales live in local_payments, not in a plugin table — see course_transactions().
+        $coursetx       = self::course_transactions($filters);
+        $courserevenue  = 0.0;
+        $coursecount    = 0;
+        foreach ($coursetx as $t) {
+            if ($t->status === \local_payments\status_machine::COMPLETED) {
+                $courserevenue += (float)$t->amount;
+                $coursecount++;
+            }
+        }
 
         // Discounts given away — gross revenue would have been this much higher.
         $coupondiscount = self::sum('academy_coupon_usages', 'discount_amount', '1=1', array(), $filters);
@@ -93,7 +103,8 @@ class finance_report_manager {
         $revenue = array(
             'packages'      => round($packagerevenue, 2),
             'subscriptions' => round($subrevenue, 2),
-            'total'         => round($packagerevenue + $subrevenue, 2),
+            'courses'       => round($courserevenue, 2),
+            'total'         => round($packagerevenue + $subrevenue + $courserevenue, 2),
         );
         $discounts = array(
             'coupons' => round($coupondiscount, 2),
@@ -111,6 +122,7 @@ class finance_report_manager {
             'volume'    => array(
                 'package_purchases'      => self::count('academy_package_purchases', '1=1', array(), $filters),
                 'subscription_purchases' => self::count('academy_sub_purchases', '1=1', array(), $filters),
+                'course_purchases'       => $coursecount,
                 'coupon_redemptions'     => self::count('academy_coupon_usages', '1=1', array(), $filters),
                 'offer_applications'     => self::count('academy_offer_usages', '1=1', array(), $filters),
             ),
@@ -119,12 +131,13 @@ class finance_report_manager {
     }
 
     /**
-     * Revenue per calendar month, packages vs subscriptions.
+     * Revenue per calendar month, split packages / subscriptions / courses.
      *
      * Bucketing is done in PHP rather than SQL date functions so the query stays portable across
      * the DB engines Moodle supports. Volumes here are small (one row per successful payment).
      *
-     * @return array list of ['month' => 'YYYY-MM', 'packages', 'subscriptions', 'total'] oldest first
+     * @return array list of ['month' => 'YYYY-MM', 'packages', 'subscriptions', 'courses', 'total']
+     *               oldest first
      */
     private static function monthly_revenue(array $filters) {
         global $DB;
@@ -135,6 +148,14 @@ class finance_report_manager {
         }
 
         $buckets = array();
+        $blank = array('packages' => 0.0, 'subscriptions' => 0.0, 'courses' => 0.0);
+        $add = function ($month, $key, $amount) use (&$buckets, $blank) {
+            if (!isset($buckets[$month])) {
+                $buckets[$month] = array_merge(array('month' => $month), $blank);
+            }
+            $buckets[$month][$key] += $amount;
+        };
+
         $sources = array(
             'packages'      => 'academy_payments',
             'subscriptions' => 'academy_sub_payments',
@@ -144,11 +165,12 @@ class finance_report_manager {
             $rows = $DB->get_records_sql(
                 "SELECT id, amount, timecreated FROM {" . $table . "} WHERE status = 'success' $wsql", $wparams);
             foreach ($rows as $r) {
-                $month = date('Y-m', (int)$r->timecreated);
-                if (!isset($buckets[$month])) {
-                    $buckets[$month] = array('month' => $month, 'packages' => 0.0, 'subscriptions' => 0.0);
-                }
-                $buckets[$month][$key] += (float)$r->amount;
+                $add(date('Y-m', (int)$r->timecreated), $key, (float)$r->amount);
+            }
+        }
+        foreach (self::course_transactions($filters) as $t) {
+            if ($t->status === \local_payments\status_machine::COMPLETED) {
+                $add(date('Y-m', (int)$t->timecreated), 'courses', (float)$t->amount);
             }
         }
 
@@ -157,7 +179,8 @@ class finance_report_manager {
         foreach ($buckets as $b) {
             $b['packages']      = round($b['packages'], 2);
             $b['subscriptions'] = round($b['subscriptions'], 2);
-            $b['total']         = round($b['packages'] + $b['subscriptions'], 2);
+            $b['courses']       = round($b['courses'], 2);
+            $b['total']         = round($b['packages'] + $b['subscriptions'] + $b['courses'], 2);
             $out[] = $b;
         }
         return $out;
@@ -193,7 +216,10 @@ class finance_report_manager {
             if (!isset($packages[$r->id])) {
                 $packages[$r->id] = array(
                     'id'             => (int)$r->id,
-                    'name'           => $r->name,
+                    // format_string() resolves {mlang} to the requested language (api.php sets
+                    // $SESSION->forcelang from ?alang before dispatch). Without it the raw
+                    // "{mlang en}...{mlang}{mlang ar}...{mlang}" markup leaks into the table.
+                    'name'           => format_string($r->name),
                     'price'          => (float)$r->price,
                     'flex_count'     => (int)$r->flex_count,
                     'status'         => $r->status,
@@ -273,20 +299,26 @@ class finance_report_manager {
             if (!isset($plans[$r->id])) {
                 $plans[$r->id] = array(
                     'id'            => (int)$r->id,
-                    'name'          => $r->name,
+                    'name'          => format_string($r->name), // Resolves {mlang}; see packages_report().
                     'price'         => (float)$r->price,
                     'duration_days' => (int)$r->duration_days,
                     'status'        => $r->status,
                     'b2b_enabled'   => (int)$r->b2b_enabled,
-                    'sales'         => 0,
-                    'normal'        => 0,
-                    'b2b'           => 0,
-                    'seats_sold'    => 0,
-                    'active'        => 0,
-                    'expired'       => 0,
-                    'cancelled'     => 0,
-                    'revenue'       => 0.0,
-                    'b2b_discount'  => 0.0,
+                    'sales'          => 0,
+                    // The two purchase types are reported side by side rather than merged: a
+                    // "normal" sale is one student buying access for themselves, while a "b2b" sale
+                    // is an organisation buying N seats its members later claim. Mixing their counts
+                    // and revenue makes both meaningless, so each keeps its own set of figures.
+                    'normal'         => 0,
+                    'normal_revenue' => 0.0,
+                    'b2b'            => 0,
+                    'b2b_revenue'    => 0.0,
+                    'seats_sold'     => 0,
+                    'active'         => 0,
+                    'expired'        => 0,
+                    'cancelled'      => 0,
+                    'revenue'        => 0.0,
+                    'b2b_discount'   => 0.0,
                 );
             }
             if (empty($r->purchaseid)) {
@@ -297,12 +329,14 @@ class finance_report_manager {
             $p['revenue'] += (float)$r->price_paid;
             if ($r->type === 'b2b') {
                 $p['b2b']++;
-                $p['seats_sold'] += (int)$r->seats;
+                $p['b2b_revenue'] += (float)$r->price_paid;
+                $p['seats_sold']  += (int)$r->seats;
                 // What the seat-option discount cost us, relative to seats × base price.
                 $list = (float)$r->base_price * max(1, (int)$r->seats);
                 $p['b2b_discount'] += max(0, $list - (float)$r->price_paid);
             } else {
                 $p['normal']++;
+                $p['normal_revenue'] += (float)$r->price_paid;
             }
             if (isset($p[$r->pstatus])) {
                 $p[$r->pstatus]++;
@@ -312,28 +346,178 @@ class finance_report_manager {
         $rs->close();
 
         $summary = array('plans' => 0, 'sales' => 0, 'revenue' => 0.0,
+            'normal' => 0, 'normal_revenue' => 0.0,
+            'b2b' => 0, 'b2b_revenue' => 0.0,
             'seats_sold' => 0, 'active' => 0, 'b2b_discount' => 0.0);
         $out = array();
         foreach ($plans as $p) {
-            $p['revenue']      = round($p['revenue'], 2);
-            $p['b2b_discount'] = round($p['b2b_discount'], 2);
-            $p['avg_price']    = $p['sales'] ? round($p['revenue'] / $p['sales'], 2) : 0.0;
+            $p['revenue']        = round($p['revenue'], 2);
+            $p['normal_revenue'] = round($p['normal_revenue'], 2);
+            $p['b2b_revenue']    = round($p['b2b_revenue'], 2);
+            $p['b2b_discount']   = round($p['b2b_discount'], 2);
+            $p['avg_price']      = $p['sales'] ? round($p['revenue'] / $p['sales'], 2) : 0.0;
+            // Average per seat is the meaningful B2B unit price — per *sale* would hide the fact
+            // that one B2B purchase covers many users.
+            $p['b2b_per_seat']   = $p['seats_sold'] ? round($p['b2b_revenue'] / $p['seats_sold'], 2) : 0.0;
             $out[] = $p;
             $summary['plans']++;
-            $summary['sales']        += $p['sales'];
-            $summary['revenue']      += $p['revenue'];
-            $summary['seats_sold']   += $p['seats_sold'];
-            $summary['active']       += $p['active'];
-            $summary['b2b_discount'] += $p['b2b_discount'];
+            $summary['sales']          += $p['sales'];
+            $summary['revenue']        += $p['revenue'];
+            $summary['normal']         += $p['normal'];
+            $summary['normal_revenue'] += $p['normal_revenue'];
+            $summary['b2b']            += $p['b2b'];
+            $summary['b2b_revenue']    += $p['b2b_revenue'];
+            $summary['seats_sold']     += $p['seats_sold'];
+            $summary['active']         += $p['active'];
+            $summary['b2b_discount']   += $p['b2b_discount'];
         }
-        $summary['revenue']      = round($summary['revenue'], 2);
-        $summary['b2b_discount'] = round($summary['b2b_discount'], 2);
+        foreach (array('revenue', 'normal_revenue', 'b2b_revenue', 'b2b_discount') as $k) {
+            $summary[$k] = round($summary[$k], 2);
+        }
 
         return array('rows' => $out, 'summary' => $summary);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Tabs 4 & 5: coupons and offers
+    // Tab 4: individual courses
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Single-course purchase transactions in the window, whatever their status.
+     *
+     * Course sales have no plugin table — they are local_payments transactions carrying a courseid,
+     * so this mirrors course_purchase_manager::get_all_course_purchases(): filter on courseid, then
+     * confirm item_type from the JSON metadata (a package/subscription checkout can also carry a
+     * course id, and counting those would double-count revenue already in academy_payments).
+     *
+     * @param array $filters from, to (unix)
+     * @return array list of transaction records (id, userid, courseid, amount, original_amount,
+     *               status, timecreated) plus course_fullname
+     */
+    private static function course_transactions(array $filters) {
+        global $DB;
+
+        // The plugin is a hard dependency of the course-purchase flow, but guard anyway so the rest
+        // of the Financial Reports page still works on an install without it.
+        if (!class_exists('\local_payments\status_machine')) {
+            return array();
+        }
+
+        list($wsql, $wparams) = self::window($filters, 't.timecreated');
+        $sql = "SELECT t.id, t.userid, t.courseid, t.amount, t.original_amount, t.currency,
+                       t.status, t.metadata, t.timecreated, c.fullname AS course_fullname
+                  FROM {local_payments_transactions} t
+             LEFT JOIN {course} c ON c.id = t.courseid
+                 WHERE t.courseid > 0 $wsql
+              ORDER BY t.timecreated DESC";
+        $rows = $DB->get_records_sql($sql, $wparams);
+
+        $out = array();
+        foreach ($rows as $r) {
+            $meta = json_decode((string)$r->metadata);
+            $itemtype = isset($meta->item_type) ? $meta->item_type : 'course';
+            if ($itemtype !== 'course') {
+                continue;
+            }
+            $out[] = $r;
+        }
+        return $out;
+    }
+
+    /**
+     * One row per course that has ever been sold: units, revenue, discount, and refunds/revocations.
+     *
+     * Only 'completed' transactions count as revenue. Refunded and cancelled ones are reported
+     * separately so an admin can see money that came in and then went back out (a revoked purchase
+     * via manage_courses.php lands here as cancelled).
+     *
+     * @param array $filters from, to (unix, on transaction time)
+     */
+    public static function courses_report(array $filters = array()) {
+        $transactions = self::course_transactions($filters);
+        $completed = \local_payments\status_machine::COMPLETED;
+        $refunded  = \local_payments\status_machine::REFUNDED;
+        $cancelled = \local_payments\status_machine::CANCELLED;
+
+        $courses = array();
+        $buyers = array(); // courseid => set of userids, for unique-buyer counts.
+        foreach ($transactions as $t) {
+            $cid = (int)$t->courseid;
+            if (!isset($courses[$cid])) {
+                $courses[$cid] = array(
+                    'id'              => $cid,
+                    'name'            => $t->course_fullname !== null
+                        ? format_string($t->course_fullname)
+                        : get_string('mc_course_deleted', 'local_academy'),
+                    'deleted'         => $t->course_fullname === null ? 1 : 0,
+                    'currency'        => $t->currency,
+                    'sales'           => 0,
+                    'unique_buyers'   => 0,
+                    'revenue'         => 0.0,
+                    'original_total'  => 0.0,
+                    'discount_total'  => 0.0,
+                    'refunded_count'  => 0,
+                    'refunded_amount' => 0.0,
+                    'revoked_count'   => 0,
+                    'failed_count'    => 0,
+                );
+                $buyers[$cid] = array();
+            }
+            $c = &$courses[$cid];
+            $amount   = (float)$t->amount;
+            $original = $t->original_amount !== null ? (float)$t->original_amount : $amount;
+
+            if ($t->status === $completed) {
+                $c['sales']++;
+                $c['revenue']        += $amount;
+                $c['original_total'] += $original;
+                $c['discount_total'] += max(0, $original - $amount);
+                $buyers[$cid][(int)$t->userid] = true;
+            } else if ($t->status === $refunded) {
+                $c['refunded_count']++;
+                $c['refunded_amount'] += $amount;
+            } else if ($t->status === $cancelled) {
+                $c['revoked_count']++;
+            } else {
+                $c['failed_count']++; // pending / failed / expired / voided — never granted access.
+            }
+            unset($c);
+        }
+
+        $summary = array('courses' => 0, 'sales' => 0, 'revenue' => 0.0, 'original_total' => 0.0,
+            'discount_total' => 0.0, 'refunded_amount' => 0.0, 'net_revenue' => 0.0);
+        $out = array();
+        foreach ($courses as $c) {
+            $c['unique_buyers']   = count($buyers[$c['id']]);
+            $c['revenue']         = round($c['revenue'], 2);
+            $c['original_total']  = round($c['original_total'], 2);
+            $c['discount_total']  = round($c['discount_total'], 2);
+            $c['refunded_amount'] = round($c['refunded_amount'], 2);
+            // Net = what we actually kept after giving refunds back.
+            $c['net_revenue']     = round($c['revenue'] - $c['refunded_amount'], 2);
+            $c['avg_price']       = $c['sales'] ? round($c['revenue'] / $c['sales'], 2) : 0.0;
+            $out[] = $c;
+            $summary['courses']++;
+            $summary['sales']           += $c['sales'];
+            $summary['revenue']         += $c['revenue'];
+            $summary['original_total']  += $c['original_total'];
+            $summary['discount_total']  += $c['discount_total'];
+            $summary['refunded_amount'] += $c['refunded_amount'];
+            $summary['net_revenue']     += $c['net_revenue'];
+        }
+        // Best sellers first — that is the question this tab is usually opened to answer.
+        usort($out, function ($a, $b) {
+            return $b['revenue'] <=> $a['revenue'];
+        });
+        foreach (array('revenue', 'original_total', 'discount_total', 'refunded_amount', 'net_revenue') as $k) {
+            $summary[$k] = round($summary[$k], 2);
+        }
+
+        return array('rows' => $out, 'summary' => $summary);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Tabs 5 & 6: coupons and offers
     // ──────────────────────────────────────────────────────────────────────────
 
     /** @param array $filters from, to (unix, on redemption time) */
@@ -377,7 +561,9 @@ class finance_report_manager {
             if (!isset($defs[$r->id])) {
                 $defs[$r->id] = array(
                     'id'             => (int)$r->id,
-                    'label'          => $r->label,
+                    // Offer names can be multilang; coupon codes are literal identifiers and must
+                    // stay byte-exact, so only the offer side goes through format_string().
+                    'label'          => $kind === 'offer' ? format_string($r->label) : $r->label,
                     'discount_type'  => $r->discount_type,
                     'discount_value' => (float)$r->discount_value,
                     'startdate'      => (int)$r->startdate,

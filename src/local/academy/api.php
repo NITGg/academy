@@ -209,6 +209,7 @@ $capmap = [
     'finance_overview'       => 'local/academy:manageplatform',
     'finance_packages'       => 'local/academy:manageplatform',
     'finance_subscriptions'  => 'local/academy:manageplatform',
+    'finance_courses'        => 'local/academy:manageplatform',
     'finance_coupons'        => 'local/academy:manageplatform',
     'finance_offers'         => 'local/academy:manageplatform',
     'assign_package'         => 'local/academy:manageplatform',
@@ -928,6 +929,11 @@ try {
         case 'finance_subscriptions':
             academy_respond(['status' => 'success',
                 'data' => finance_report_manager::subscriptions_report(academy_report_filters())]);
+            break;
+
+        case 'finance_courses':
+            academy_respond(['status' => 'success',
+                'data' => finance_report_manager::courses_report(academy_report_filters())]);
             break;
 
         case 'finance_coupons':

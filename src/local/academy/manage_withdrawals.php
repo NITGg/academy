@@ -45,17 +45,23 @@ $STR = local_academy_string_map(array(
     'ui_picker_lesson_ph', 'ui_picker_searching', 'ui_picker_none', 'ui_picker_hint', 'ui_currency_egp',
     'err_sessionexpired', 'err_requestfailed',
     // Financial Reports.
-    'fr_tab_overview', 'fr_tab_packages', 'fr_tab_subscriptions', 'fr_tab_coupons', 'fr_tab_offers',
+    'fr_tab_overview', 'fr_tab_packages', 'fr_tab_subscriptions', 'fr_tab_courses',
+    'fr_tab_coupons', 'fr_tab_offers',
     'fr_from', 'fr_to', 'fr_apply', 'fr_clear', 'fr_alldates', 'fr_export', 'fr_norows', 'fr_total',
     'fr_sec_wallet', 'fr_sec_wallet_help', 'fr_sec_revenue', 'fr_sec_discounts', 'fr_sec_payouts',
     'fr_sec_volume', 'fr_sec_monthly',
-    'fr_rev_packages', 'fr_rev_subscriptions', 'fr_rev_total',
+    'fr_rev_packages', 'fr_rev_subscriptions', 'fr_rev_courses', 'fr_rev_total',
     'fr_disc_coupons', 'fr_disc_offers', 'fr_disc_total', 'fr_disc_gross',
-    'fr_vol_packages', 'fr_vol_subscriptions', 'fr_vol_coupons', 'fr_vol_offers', 'fr_c_month',
+    'fr_vol_packages', 'fr_vol_subscriptions', 'fr_vol_courses', 'fr_vol_coupons', 'fr_vol_offers',
+    'fr_c_month',
     'fr_c_name', 'fr_c_price', 'fr_c_status', 'fr_c_sales', 'fr_c_revenue', 'fr_c_avgprice',
     'fr_c_online', 'fr_c_assigned', 'fr_c_flexsold', 'fr_c_flexconsumed', 'fr_c_flexunused',
     'fr_c_unusedvalue', 'fr_unusedvalue_help',
     'fr_c_duration', 'fr_c_normal', 'fr_c_b2b', 'fr_c_seats', 'fr_c_activesubs', 'fr_c_b2bdiscount',
+    'fr_c_perseat', 'fr_sub_normal_sales', 'fr_sub_normal_rev', 'fr_sub_b2b_sales', 'fr_sub_b2b_rev',
+    'fr_sub_normal_help', 'fr_sub_b2b_help',
+    'fr_c_course', 'fr_c_buyers', 'fr_c_netrevenue', 'fr_c_refunded', 'fr_c_revoked', 'fr_c_failed',
+    'fr_course_deleted', 'fr_netrevenue_help',
     'fr_c_code', 'fr_c_discount', 'fr_c_uses', 'fr_c_uniqueusers', 'fr_c_original', 'fr_c_discounted',
     'fr_c_final', 'fr_c_avgdiscount', 'fr_c_window', 'fr_c_items', 'fr_never',
 ));
@@ -94,6 +100,9 @@ table.wd-table td.num,table.wd-table th.num{text-align:right;white-space:nowrap}
 .s-pending{background:#fff3cd;color:#856404}.s-approved{background:#cce5ff;color:#004085}
 .s-paid{background:#d4edda;color:#155724}.s-rejected{background:#f8d7da;color:#721c24}
 .s-active{background:#d4edda;color:#155724}.s-inactive{background:#e9ecef;color:#495057}
+.s-normal{background:#e3f0fb;color:#0f5a9c}.s-b2b{background:#efe3fb;color:#5b2d90}
+.fr-types{display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem;font-size:.86rem;color:#495057}
+.fr-types > div{flex:1 1 320px}
 .wd-actions{display:flex;gap:.3rem;flex-wrap:wrap}
 .wd-reversal{margin-top:1.5rem;border:1px solid #ffe082;background:#fff8e1;border-radius:.5rem;padding:1rem;max-width:560px}
 .wd-reversal .form-group{margin-bottom:.6rem}
@@ -111,6 +120,7 @@ table.wd-table td.num,table.wd-table th.num{text-align:right;white-space:nowrap}
     <button data-tab="overview" class="active"><?php echo $STR['fr_tab_overview']; ?></button>
     <button data-tab="packages"><?php echo $STR['fr_tab_packages']; ?></button>
     <button data-tab="subscriptions"><?php echo $STR['fr_tab_subscriptions']; ?></button>
+    <button data-tab="courses"><?php echo $STR['fr_tab_courses']; ?></button>
     <button data-tab="coupons"><?php echo $STR['fr_tab_coupons']; ?></button>
     <button data-tab="offers"><?php echo $STR['fr_tab_offers']; ?></button>
   </div>
@@ -189,8 +199,19 @@ table.wd-table td.num,table.wd-table th.num{text-align:right;white-space:nowrap}
     <div class="fr-scroll"><table class="wd-table" id="fr-packages-table"></table></div>
   </div>
   <div class="fr-pane" data-pane="subscriptions">
+    <div class="fr-types">
+      <div><span class="wd-badge s-normal"><?php echo $STR['fr_c_normal']; ?></span>
+        <?php echo $STR['fr_sub_normal_help']; ?></div>
+      <div><span class="wd-badge s-b2b"><?php echo $STR['fr_c_b2b']; ?></span>
+        <?php echo $STR['fr_sub_b2b_help']; ?></div>
+    </div>
     <div class="fr-cards" id="fr-subscriptions-cards" style="margin-bottom:1rem"></div>
     <div class="fr-scroll"><table class="wd-table" id="fr-subscriptions-table"></table></div>
+  </div>
+  <div class="fr-pane" data-pane="courses">
+    <div class="fr-cards" id="fr-courses-cards" style="margin-bottom:1rem"></div>
+    <div class="fr-help" style="margin-bottom:.5rem"><?php echo $STR['fr_netrevenue_help']; ?></div>
+    <div class="fr-scroll"><table class="wd-table" id="fr-courses-table"></table></div>
   </div>
   <div class="fr-pane" data-pane="coupons">
     <div class="fr-cards" id="fr-coupons-cards" style="margin-bottom:1rem"></div>
@@ -301,7 +322,8 @@ echo html_writer::script(<<<'JS'
       cards('fr-revenue',[
         {label:str('fr_rev_total'),value:money(d.revenue.total),accent:true},
         {label:str('fr_rev_packages'),value:money(d.revenue.packages)},
-        {label:str('fr_rev_subscriptions'),value:money(d.revenue.subscriptions)}
+        {label:str('fr_rev_subscriptions'),value:money(d.revenue.subscriptions)},
+        {label:str('fr_rev_courses'),value:money(d.revenue.courses)}
       ]);
       cards('fr-discounts',[
         {label:str('fr_disc_total'),value:money(d.discounts.total)},
@@ -312,6 +334,7 @@ echo html_writer::script(<<<'JS'
       cards('fr-volume',[
         {label:str('fr_vol_packages'),value:d.volume.package_purchases},
         {label:str('fr_vol_subscriptions'),value:d.volume.subscription_purchases},
+        {label:str('fr_vol_courses'),value:d.volume.course_purchases},
         {label:str('fr_vol_coupons'),value:d.volume.coupon_redemptions},
         {label:str('fr_vol_offers'),value:d.volume.offer_applications}
       ]);
@@ -325,11 +348,13 @@ echo html_writer::script(<<<'JS'
         {key:'month',label:str('fr_c_month')},
         {key:'packages',label:str('fr_rev_packages'),num:true,money:true,get:function(r){return money(r.packages);}},
         {key:'subscriptions',label:str('fr_rev_subscriptions'),num:true,money:true,get:function(r){return money(r.subscriptions);}},
+        {key:'courses',label:str('fr_rev_courses'),num:true,money:true,get:function(r){return money(r.courses);}},
         {key:'total',label:str('fr_rev_total'),num:true,money:true,get:function(r){
           return money(r.total)+' <span class="fr-bar" style="width:'+Math.round(r.total/max*90)+'px"></span>';}}
       ],d.monthly,{
         packages:d.monthly.reduce(function(s,r){return s+r.packages;},0),
         subscriptions:d.monthly.reduce(function(s,r){return s+r.subscriptions;},0),
+        courses:d.monthly.reduce(function(s,r){return s+r.courses;},0),
         total:d.monthly.reduce(function(s,r){return s+r.total;},0)
       });
     }).catch(function(e){msg(e.message,'danger');});
@@ -366,9 +391,11 @@ echo html_writer::script(<<<'JS'
   function loadSubscriptions(){
     apiGet('finance_subscriptions',dateFilters()).then(function(d){
       var s=d.summary;
+      // Normal and B2B are two different products; the cards keep their money apart.
       cards('fr-subscriptions-cards',[
         {label:str('fr_c_revenue'),value:money(s.revenue),accent:true},
-        {label:str('fr_c_sales'),value:s.sales},
+        {label:str('fr_sub_normal_rev'),value:money(s.normal_revenue)+' ('+s.normal+')'},
+        {label:str('fr_sub_b2b_rev'),value:money(s.b2b_revenue)+' ('+s.b2b+')'},
         {label:str('fr_c_seats'),value:s.seats_sold},
         {label:str('fr_c_activesubs'),value:s.active},
         {label:str('fr_c_b2bdiscount'),value:money(s.b2b_discount)}
@@ -377,15 +404,46 @@ echo html_writer::script(<<<'JS'
         {key:'name',label:str('fr_c_name'),get:function(r){return esc(r.name);}},
         {key:'price',label:str('fr_c_price'),num:true,get:function(r){return money(r.price);}},
         {key:'duration_days',label:str('fr_c_duration'),num:true},
-        {key:'status',label:str('fr_c_status'),get:function(r){return statusBadge(r.status);}},
-        {key:'sales',label:str('fr_c_sales'),num:true},
-        {key:'normal',label:str('fr_c_normal'),num:true},
-        {key:'b2b',label:str('fr_c_b2b'),num:true},
+        {key:'status',label:str('fr_c_status'),get:function(r){
+          // Whether the plan may be sold as B2B at all — explains a 0 in the B2B columns.
+          return statusBadge(r.status)+(r.b2b_enabled?' <span class="wd-badge s-b2b">'+esc(str('fr_c_b2b'))+'</span>':'');}},
+        {key:'normal',label:str('fr_sub_normal_sales'),num:true},
+        {key:'normal_revenue',label:str('fr_sub_normal_rev'),num:true,money:true,get:function(r){return money(r.normal_revenue);}},
+        {key:'b2b',label:str('fr_sub_b2b_sales'),num:true},
         {key:'seats_sold',label:str('fr_c_seats'),num:true},
+        {key:'b2b_revenue',label:str('fr_sub_b2b_rev'),num:true,money:true,get:function(r){return money(r.b2b_revenue);}},
+        {key:'b2b_per_seat',label:str('fr_c_perseat'),num:true,get:function(r){return money(r.b2b_per_seat);}},
+        {key:'b2b_discount',label:str('fr_c_b2bdiscount'),num:true,money:true,get:function(r){return money(r.b2b_discount);}},
         {key:'active',label:str('fr_c_activesubs'),num:true},
+        {key:'revenue',label:str('fr_c_revenue'),num:true,money:true,get:function(r){return money(r.revenue);}}
+      ],d.rows,s);
+    }).catch(function(e){msg(e.message,'danger');});
+  }
+
+  function loadCourses(){
+    apiGet('finance_courses',dateFilters()).then(function(d){
+      var s=d.summary;
+      cards('fr-courses-cards',[
+        {label:str('fr_c_netrevenue'),value:money(s.net_revenue),accent:true},
+        {label:str('fr_c_revenue'),value:money(s.revenue)},
+        {label:str('fr_c_sales'),value:s.sales},
+        {label:str('fr_c_discounted'),value:money(s.discount_total)},
+        {label:str('fr_c_refunded'),value:money(s.refunded_amount)}
+      ]);
+      table('fr-courses-table',[
+        {key:'name',label:str('fr_c_course'),get:function(r){
+          return esc(r.name)+(r.deleted?' <span class="wd-badge s-inactive">'+esc(str('fr_course_deleted'))+'</span>':'');}},
+        {key:'sales',label:str('fr_c_sales'),num:true},
+        {key:'unique_buyers',label:str('fr_c_buyers'),num:true},
         {key:'revenue',label:str('fr_c_revenue'),num:true,money:true,get:function(r){return money(r.revenue);}},
         {key:'avg_price',label:str('fr_c_avgprice'),num:true,get:function(r){return money(r.avg_price);}},
-        {key:'b2b_discount',label:str('fr_c_b2bdiscount'),num:true,money:true,get:function(r){return money(r.b2b_discount);}}
+        {key:'original_total',label:str('fr_c_original'),num:true,money:true,get:function(r){return money(r.original_total);}},
+        {key:'discount_total',label:str('fr_c_discounted'),num:true,money:true,get:function(r){return money(r.discount_total);}},
+        {key:'refunded_amount',label:str('fr_c_refunded'),num:true,money:true,get:function(r){
+          return money(r.refunded_amount)+(r.refunded_count?' ('+r.refunded_count+')':'');}},
+        {key:'revoked_count',label:str('fr_c_revoked'),num:true},
+        {key:'failed_count',label:str('fr_c_failed'),num:true},
+        {key:'net_revenue',label:str('fr_c_netrevenue'),num:true,money:true,get:function(r){return money(r.net_revenue);}}
       ],d.rows,s);
     }).catch(function(e){msg(e.message,'danger');});
   }
@@ -489,11 +547,13 @@ echo html_writer::script(<<<'JS'
     overview:function(){loadOverview();loadWithdrawals();},
     packages:loadPackages,
     subscriptions:loadSubscriptions,
+    courses:loadCourses,
     coupons:function(){loadDiscounts('coupons');},
     offers:function(){loadDiscounts('offers');}
   };
   var EXPORT_TABLES={overview:'fr-monthly',packages:'fr-packages-table',
-    subscriptions:'fr-subscriptions-table',coupons:'fr-coupons-table',offers:'fr-offers-table'};
+    subscriptions:'fr-subscriptions-table',courses:'fr-courses-table',
+    coupons:'fr-coupons-table',offers:'fr-offers-table'};
   var current='overview';
   var loaded={}; // Tabs fetch on first view, so opening the page costs one request, not five.
 
