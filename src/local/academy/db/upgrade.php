@@ -787,16 +787,13 @@ function xmldb_local_academy_upgrade($oldversion) {
         // engine passes the matching scope id to the rules.
         $table = new xmldb_table('academy_certificates');
 
+        // courseid stays as-is (NOTNULL, no default): a program-scoped certificate simply stores 0,
+        // and save_certificate() always writes courseid explicitly, so no default is needed. We do
+        // NOT alter courseid here — it carries an index (mdl_acadcert_cou_ix), and Moodle refuses to
+        // modify an indexed column (ddldependencyerror).
         $field = new xmldb_field('programid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'courseid');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
-        }
-
-        // courseid is now 0 for program-scoped certificates, so it can no longer carry a NOTNULL
-        // default-less value; give it a default of 0 to match install.xml.
-        $courseid = new xmldb_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'id');
-        if ($dbman->field_exists($table, $courseid)) {
-            $dbman->change_field_default($table, $courseid);
         }
 
         $index = new xmldb_index('programid_ix', XMLDB_INDEX_NOTUNIQUE, array('programid'));
