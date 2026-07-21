@@ -233,6 +233,7 @@ $capmap = [
     'disable_program_free_signup' => 'local/academy:manageplatform',
     'enable_program_free_signup' => 'local/academy:manageplatform',
     'get_certificates'       => 'local/academy:manageplatform',
+    'list_programs_for_cert' => 'local/academy:manageplatform',
     'save_certificate'       => 'local/academy:manageplatform',
     'delete_certificate'     => 'local/academy:manageplatform',
 ];
@@ -1414,15 +1415,44 @@ try {
             ]]);
             break;
 
-        // Admin: list a course's certificates (raw) + the rule catalogue + course activities (UI).
+        // Student: eligibility for every certificate on a program (a program can have several).
+        case 'list_program_certificate_eligibility':
+            $programid = required_param('programid', PARAM_INT);
+            $targetuserid = $userid;
+            $requested = optional_param('userid', 0, PARAM_INT);
+            if ($requested && $requested !== $userid) {
+                if (!has_capability('local/academy:manageplatform', context_system::instance())) {
+                    academy_respond(['status' => 'fail', 'error' => get_string('err_permissiondenied', 'local_academy')]);
+                }
+                $targetuserid = $requested;
+            }
+            academy_respond(['status' => 'success', 'data' => [
+                'programid'    => $programid,
+                'certificates' => eligibility_manager::get_program_certificate_reports($targetuserid, $programid),
+            ]]);
+            break;
+
+        // Admin: list a course's OR a program's certificates (raw) + the scope's rule catalogue.
+        // scope defaults to 'course' (existing behaviour). For scope='program' pass programid; the
+        // response carries no course activities (program rules need none).
         case 'get_certificates':
-            $courseid = required_param('courseid', PARAM_INT);
+            $scope = optional_param('scope', 'course', PARAM_ALPHA);
+            if ($scope === 'program') {
+                $programid = required_param('programid', PARAM_INT);
+                $records = eligibility_manager::get_program_certificates($programid);
+            } else {
+                $scope = 'course';
+                $courseid = required_param('courseid', PARAM_INT);
+                $records = eligibility_manager::get_course_certificates($courseid);
+            }
             $certs = [];
-            foreach (eligibility_manager::get_course_certificates($courseid) as $c) {
+            foreach ($records as $c) {
                 $ruleset = eligibility_manager::decode_ruleset($c);
                 $certs[] = [
                     'id'          => (int)$c->id,
                     'courseid'    => (int)$c->courseid,
+                    'programid'   => (int)($c->programid ?? 0),
+                    'scope'       => eligibility_manager::cert_scope($c),
                     'name'        => $c->name,
                     'type'        => $c->type,
                     'externalref' => (int)$c->externalref,
@@ -1431,11 +1461,24 @@ try {
                     'rules'       => $ruleset['rules'],
                 ];
             }
-            academy_respond(['status' => 'success', 'data' => [
-                'courseid'     => $courseid,
+            $data = [
+                'scope'        => $scope,
                 'certificates' => $certs,
-                'catalogue'    => rule_registry::catalogue(),
-                'activities'   => eligibility_manager::get_course_activities($courseid),
+                'catalogue'    => rule_registry::catalogue($scope),
+            ];
+            if ($scope === 'program') {
+                $data['programid'] = $programid;
+            } else {
+                $data['courseid']   = $courseid;
+                $data['activities'] = eligibility_manager::get_course_activities($courseid);
+            }
+            academy_respond(['status' => 'success', 'data' => $data]);
+            break;
+
+        // Admin: programs available to attach a certificate to (id + name), for the scope picker.
+        case 'list_programs_for_cert':
+            academy_respond(['status' => 'success', 'data' => [
+                'programs' => program_purchase_manager::list_programs(),
             ]]);
             break;
 
@@ -1449,7 +1492,8 @@ try {
             }
             $id = eligibility_manager::save_certificate([
                 'id'          => optional_param('id', 0, PARAM_INT),
-                'courseid'    => required_param('courseid', PARAM_INT),
+                'courseid'    => optional_param('courseid', 0, PARAM_INT),
+                'programid'   => optional_param('programid', 0, PARAM_INT),
                 'name'        => optional_param('name', '', PARAM_TEXT),
                 'type'        => optional_param('type', 'completion', PARAM_ALPHA),
                 'externalref' => optional_param('externalref', 0, PARAM_INT),

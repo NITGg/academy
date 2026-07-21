@@ -32,6 +32,7 @@ $STR = local_academy_string_map(array(
     'cert_rule', 'cert_pick', 'cert_note', 'cert_new', 'cert_none', 'cert_name', 'cert_type',
     'cert_type_completion', 'cert_type_attendance', 'cert_type_excellence', 'cert_type_custom',
     'cert_externalref', 'cert_externalref_help', 'cert_confirm_delete',
+    'cert_scope', 'cert_scope_course', 'cert_scope_program', 'cert_program', 'cert_pickprogram',
     'err_sessionexpired', 'err_requestfailed',
 ));
 
@@ -47,9 +48,22 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     <div id="cert-message" class="alert" style="display:none;"></div>
 
     <div class="form-row align-items-end mb-3">
-        <div class="form-group col-md-6">
+        <div class="form-group col-md-3">
+            <label for="cert-scope"><?php echo $STR['cert_scope']; ?></label>
+            <select class="form-control" id="cert-scope">
+                <option value="course"><?php echo $STR['cert_scope_course']; ?></option>
+                <option value="program"><?php echo $STR['cert_scope_program']; ?></option>
+            </select>
+        </div>
+        <div class="form-group col-md-6" id="cert-course-wrap">
             <label for="cert-courseid"><?php echo $STR['cert_course']; ?></label>
             <input type="number" min="1" class="form-control" id="cert-courseid" placeholder="e.g. 12">
+        </div>
+        <div class="form-group col-md-6" id="cert-program-wrap" style="display:none;">
+            <label for="cert-programid"><?php echo $STR['cert_program']; ?></label>
+            <select class="form-control" id="cert-programid">
+                <option value=""><?php echo $STR['cert_pickprogram']; ?></option>
+            </select>
         </div>
         <div class="form-group col-md-3">
             <button id="cert-load" class="btn btn-secondary"><?php echo $STR['cert_load']; ?></button>
@@ -83,7 +97,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="c-externalref-wrap">
                 <label for="c-externalref"><?php echo $STR['cert_externalref']; ?></label>
                 <input type="number" min="0" class="form-control" id="c-externalref" value="0">
                 <small class="form-text text-muted"><?php echo $STR['cert_externalref_help']; ?></small>
@@ -122,6 +136,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 (function () {
     var CFG = window.ACADEMY_CFG, STR = window.ACADEMY_STR;
     var catalogue = [], activities = {quizzes: [], assigns: []}, certs = [];
+    var programsLoaded = false;
 
     var $ = function (id) { return document.getElementById(id); };
 
@@ -132,7 +147,10 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         m.style.display = 'block';
     }
     function clearMsg() { $('cert-message').style.display = 'none'; }
+    function scope() { return $('cert-scope').value === 'program' ? 'program' : 'course'; }
     function courseId() { return parseInt($('cert-courseid').value, 10) || 0; }
+    function programId() { return parseInt($('cert-programid').value, 10) || 0; }
+    function scopeId() { return scope() === 'program' ? programId() : courseId(); }
 
     function api(fn, params, method) {
         var url = CFG.endpoint + '?function=' + fn + '&token=' + encodeURIComponent(CFG.token)
@@ -288,8 +306,10 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 
     function load() {
         clearMsg();
-        if (!courseId()) { msg(STR.cert_course, 'warning'); return; }
-        api('get_certificates', {courseid: courseId()}).then(function (data) {
+        if (!scopeId()) { msg(scope() === 'program' ? STR.cert_program : STR.cert_course, 'warning'); return; }
+        var params = scope() === 'program' ? {scope: 'program', programid: programId()}
+                                           : {scope: 'course', courseid: courseId()};
+        api('get_certificates', params).then(function (data) {
             catalogue = data.catalogue || [];
             activities = data.activities || {quizzes: [], assigns: []};
             certs = data.certificates || [];
@@ -299,19 +319,45 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         }).catch(function (e) { msg(e.message, 'danger'); });
     }
 
+    // Fetch the program list once, the first time the admin switches to program scope.
+    function loadPrograms() {
+        if (programsLoaded) { return; }
+        api('list_programs_for_cert', {}).then(function (data) {
+            var sel = $('cert-programid');
+            (data.programs || []).forEach(function (p) {
+                var o = document.createElement('option');
+                o.value = p.id; o.textContent = p.fullname + ' (#' + p.id + ')';
+                sel.appendChild(o);
+            });
+            programsLoaded = true;
+        }).catch(function (e) { msg(e.message, 'danger'); });
+    }
+
+    function applyScope() {
+        var isProgram = scope() === 'program';
+        $('cert-course-wrap').style.display = isProgram ? 'none' : '';
+        $('cert-program-wrap').style.display = isProgram ? '' : 'none';
+        $('c-externalref-wrap').style.display = isProgram ? 'none' : '';
+        if (isProgram) { loadPrograms(); }
+        // Scope changed — the loaded list/editor no longer matches; hide until reloaded.
+        $('cert-list-wrap').style.display = 'none';
+        $('cert-editor').style.display = 'none';
+    }
+
     function save() {
         clearMsg();
-        if (!courseId()) { return; }
+        if (!scopeId()) { return; }
         var payload = {
             id: $('c-id').value || 0,
-            courseid: courseId(),
             name: $('c-name').value,
             type: $('c-type').value,
-            externalref: parseInt($('c-externalref').value, 10) || 0,
+            externalref: scope() === 'program' ? 0 : (parseInt($('c-externalref').value, 10) || 0),
             operator: $('c-op-or').checked ? 'or' : 'and',
             enabled: $('c-enabled').checked ? 1 : 0,
             rules: JSON.stringify(collectRules())
         };
+        if (scope() === 'program') { payload.programid = programId(); }
+        else { payload.courseid = courseId(); }
         api('save_certificate', payload, 'POST').then(function () {
             msg(STR.cert_saved, 'success');
             load();
@@ -326,6 +372,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         }).catch(function (e) { msg(e.message, 'danger'); });
     }
 
+    $('cert-scope').addEventListener('change', applyScope);
     $('cert-load').addEventListener('click', load);
     $('cert-new').addEventListener('click', function () { openEditor(null); });
     $('c-add').addEventListener('click', function () { addRuleRow(null); });

@@ -12,21 +12,31 @@ defined('MOODLE_INTERNAL') || die();
  */
 class rule_registry {
 
+    /** A rule that evaluates against a single course (2nd engine arg = courseid). */
+    const SCOPE_COURSE = 'course';
+    /** A rule that evaluates against an enrol_programs program (2nd engine arg = programid). */
+    const SCOPE_PROGRAM = 'program';
+
     /** @var array<string,string> runtime-registered type => classname (tests / other plugins). */
     private static $extra = [];
 
     /**
-     * Built-in rule types. Add a new built-in rule by adding one line here.
+     * Built-in rule types mapped to [classname, scope]. Add a new built-in rule by adding one line
+     * here. The scope tells the engine/UI whether a rule evaluates against a course or a program;
+     * a certificate may only carry rules of its own scope (see {@see eligibility_manager}).
      *
-     * @return array<string,string> type => fully-qualified classname
+     * @return array<string,array{0:string,1:string}> type => [classname, scope]
      */
     private static function builtin(): array {
         return [
-            'course_progress'  => rule\course_progress_rule::class,
-            'attendance'       => rule\attendance_rule::class,
-            'quiz_passed'      => rule\quiz_passed_rule::class,
-            'assign_completed' => rule\assign_completed_rule::class,
-            'course_completed' => rule\course_completed_rule::class,
+            'course_progress'           => [rule\course_progress_rule::class, self::SCOPE_COURSE],
+            'attendance'                => [rule\attendance_rule::class, self::SCOPE_COURSE],
+            'quiz_passed'               => [rule\quiz_passed_rule::class, self::SCOPE_COURSE],
+            'assign_completed'          => [rule\assign_completed_rule::class, self::SCOPE_COURSE],
+            'course_completed'          => [rule\course_completed_rule::class, self::SCOPE_COURSE],
+            'program_completed'         => [rule\program_completed_rule::class, self::SCOPE_PROGRAM],
+            'program_progress'          => [rule\program_progress_rule::class, self::SCOPE_PROGRAM],
+            'program_courses_completed' => [rule\program_courses_completed_rule::class, self::SCOPE_PROGRAM],
         ];
     }
 
@@ -35,9 +45,10 @@ class rule_registry {
      *
      * @param string $type
      * @param string $classname a class implementing {@see rule_interface}
+     * @param string $scope self::SCOPE_COURSE (default) or self::SCOPE_PROGRAM
      */
-    public static function register(string $type, string $classname): void {
-        self::$extra[$type] = $classname;
+    public static function register(string $type, string $classname, string $scope = self::SCOPE_COURSE): void {
+        self::$extra[$type] = [$classname, $scope];
     }
 
     /**
@@ -48,7 +59,7 @@ class rule_registry {
     }
 
     /**
-     * @return array<string,string> the full type => classname map (built-ins + runtime).
+     * @return array<string,array{0:string,1:string}> the full type => [classname, scope] map.
      */
     private static function map(): array {
         return self::$extra + self::builtin();
@@ -64,6 +75,21 @@ class rule_registry {
     }
 
     /**
+     * The scope a rule type evaluates against.
+     *
+     * @param string $type
+     * @return string self::SCOPE_COURSE or self::SCOPE_PROGRAM
+     * @throws \moodle_exception if the type is unknown.
+     */
+    public static function scope_of(string $type): string {
+        $map = self::map();
+        if (!isset($map[$type])) {
+            throw new \moodle_exception('err_certruleunknown', 'local_academy', '', $type);
+        }
+        return $map[$type][1];
+    }
+
+    /**
      * Instantiate a rule by type.
      *
      * @param string $type
@@ -75,7 +101,8 @@ class rule_registry {
         if (!isset($map[$type])) {
             throw new \moodle_exception('err_certruleunknown', 'local_academy', '', $type);
         }
-        return new $map[$type]();
+        $classname = $map[$type][0];
+        return new $classname();
     }
 
     /**
@@ -92,16 +119,22 @@ class rule_registry {
     }
 
     /**
-     * Compact catalogue of rule types for the admin UI: type, label and config schema.
+     * Compact catalogue of rule types for the admin UI: type, label, scope and config schema.
      *
-     * @return array list of ['type' => .., 'label' => .., 'fields' => [..]]
+     * @param string|null $scope optionally restrict to one scope (SCOPE_COURSE / SCOPE_PROGRAM)
+     * @return array list of ['type' => .., 'label' => .., 'scope' => .., 'fields' => [..]]
      */
-    public static function catalogue(): array {
+    public static function catalogue(?string $scope = null): array {
         $out = [];
         foreach (self::all() as $type => $rule) {
+            $rulescope = self::scope_of($type);
+            if ($scope !== null && $rulescope !== $scope) {
+                continue;
+            }
             $out[] = [
                 'type'   => $type,
                 'label'  => $rule->get_label(),
+                'scope'  => $rulescope,
                 'fields' => $rule->get_config_schema(),
             ];
         }

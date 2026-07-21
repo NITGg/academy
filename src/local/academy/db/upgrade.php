@@ -781,5 +781,31 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026072001, 'local', 'academy');
     }
 
+    if ($oldversion < 2026072002) {
+        // Program certificates: a certificate can now be scoped to an enrol_programs program
+        // (programid) instead of a course. Exactly one of courseid/programid is set; the eligibility
+        // engine passes the matching scope id to the rules.
+        $table = new xmldb_table('academy_certificates');
+
+        $field = new xmldb_field('programid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'courseid');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // courseid is now 0 for program-scoped certificates, so it can no longer carry a NOTNULL
+        // default-less value; give it a default of 0 to match install.xml.
+        $courseid = new xmldb_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'id');
+        if ($dbman->field_exists($table, $courseid)) {
+            $dbman->change_field_default($table, $courseid);
+        }
+
+        $index = new xmldb_index('programid_ix', XMLDB_INDEX_NOTUNIQUE, array('programid'));
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        upgrade_plugin_savepoint(true, 2026072002, 'local', 'academy');
+    }
+
     return true;
 }

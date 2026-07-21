@@ -228,4 +228,128 @@ final class cert_eligibility_test extends \advanced_testcase {
         $this->assertFalse($rule->evaluate($user->id, $course->id, ['threshold' => 70]));
         $this->assertEquals(50.0, $rule->measure($user->id, $course->id, ['threshold' => 70])['actual']);
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Program-scoped rules + certificates
+    // ──────────────────────────────────────────────────────────────────────────
+
+    public function test_program_progress_and_courses_completed_rules(): void {
+        global $CFG;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $CFG->enablecompletion = true;
+
+        $gen = $this->getDataGenerator();
+        /** @var \enrol_programs_generator $pgen */
+        $pgen = $gen->get_plugin_generator('enrol_programs');
+
+        $c1 = $gen->create_course(['enablecompletion' => 1]);
+        $c2 = $gen->create_course(['enablecompletion' => 1]);
+        $user = $gen->create_user();
+        $gen->enrol_user($user->id, $c1->id);
+        $gen->enrol_user($user->id, $c2->id);
+
+        $program = $pgen->create_program(['fullname' => 'Prog A']);
+        $pgen->create_program_item(['programid' => $program->id, 'courseid' => $c1->id]);
+        $pgen->create_program_item(['programid' => $program->id, 'courseid' => $c2->id]);
+        $pgen->create_program_allocation(['programid' => $program->id, 'userid' => $user->id]);
+
+        $progress = new cert\rule\program_progress_rule();
+        $coursesdone = new cert\rule\program_courses_completed_rule();
+
+        // Nothing complete yet → 0% and not all courses done.
+        $this->assertEquals(0.0, $progress->measure($user->id, $program->id, ['threshold' => 50])['actual']);
+        $this->assertFalse($coursesdone->evaluate($user->id, $program->id, []));
+
+        // Complete one of two courses → 50%.
+        (new \completion_completion(['course' => $c1->id, 'userid' => $user->id]))->mark_complete();
+
+        $this->assertTrue($progress->evaluate($user->id, $program->id, ['threshold' => 50]));
+        $this->assertFalse($progress->evaluate($user->id, $program->id, ['threshold' => 90]));
+        $this->assertEquals(50.0, $progress->measure($user->id, $program->id, ['threshold' => 90])['actual']);
+        $this->assertFalse($coursesdone->evaluate($user->id, $program->id, []));
+
+        // Complete the second → 100% and all courses done.
+        (new \completion_completion(['course' => $c2->id, 'userid' => $user->id]))->mark_complete();
+
+        $this->assertEquals(100.0, $progress->measure($user->id, $program->id, ['threshold' => 90])['actual']);
+        $this->assertTrue($coursesdone->evaluate($user->id, $program->id, []));
+        $m = $coursesdone->measure($user->id, $program->id, []);
+        $this->assertEquals(2, $m['actual']);
+        $this->assertEquals(2, $m['required']);
+    }
+
+    public function test_program_completed_rule(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $gen = $this->getDataGenerator();
+        /** @var \enrol_programs_generator $pgen */
+        $pgen = $gen->get_plugin_generator('enrol_programs');
+        $user = $gen->create_user();
+        $program = $pgen->create_program(['fullname' => 'Prog B']);
+        $alloc = $pgen->create_program_allocation(['programid' => $program->id, 'userid' => $user->id]);
+
+        $rule = new cert\rule\program_completed_rule();
+
+        // Not completed → false (reset deterministically in case allocation flow set anything).
+        $DB->set_field('enrol_programs_allocations', 'timecompleted', null, ['id' => $alloc->id]);
+        $this->assertFalse($rule->evaluate($user->id, $program->id, []));
+
+        // Program allocation marked complete → true.
+        $DB->set_field('enrol_programs_allocations', 'timecompleted', time(), ['id' => $alloc->id]);
+        $this->assertTrue($rule->evaluate($user->id, $program->id, []));
+        $this->assertEquals(1, $rule->measure($user->id, $program->id, [])['actual']);
+    }
+
+    public function test_save_program_certificate_reports_scope(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $gen = $this->getDataGenerator();
+        /** @var \enrol_programs_generator $pgen */
+        $pgen = $gen->get_plugin_generator('enrol_programs');
+        $user = $gen->create_user();
+        $program = $pgen->create_program(['fullname' => 'Prog C']);
+
+        $id = eligibility_manager::save_certificate([
+            'programid' => $program->id, 'name' => 'Program Completion', 'type' => 'completion',
+            'operator' => 'and', 'enabled' => true,
+            'rules' => [['type' => 'program_completed', 'config' => []]],
+        ], 2);
+        $this->assertGreaterThan(0, $id);
+
+        $reports = eligibility_manager::get_program_certificate_reports($user->id, $program->id);
+        $this->assertCount(1, $reports);
+        $this->assertSame('program', $reports[0]['scope']);
+        $this->assertSame((int)$program->id, $reports[0]['programid']);
+        // Program certs never appear in a course listing.
+        $this->assertCount(0, eligibility_manager::get_course_certificates((int)$program->id));
+    }
+
+    public function test_save_certificate_rejects_scope_mismatch(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        /** @var \enrol_programs_generator $pgen */
+        $pgen = $this->getDataGenerator()->get_plugin_generator('enrol_programs');
+        $program = $pgen->create_program(['fullname' => 'Prog D']);
+
+        $this->expectException(\moodle_exception::class);
+        // A program cert may not carry a course-scoped rule.
+        eligibility_manager::save_certificate([
+            'programid' => $program->id, 'name' => 'X', 'operator' => 'and', 'enabled' => true,
+            'rules' => [['type' => 'course_completed', 'config' => []]],
+        ], 2);
+    }
+
+    public function test_save_certificate_requires_exactly_one_scope(): void {
+        $this->resetAfterTest();
+        $this->expectException(\moodle_exception::class);
+        // Neither courseid nor programid set → ambiguous scope, rejected.
+        eligibility_manager::save_certificate([
+            'name' => 'X', 'operator' => 'and', 'enabled' => true,
+            'rules' => [['type' => 'course_completed', 'config' => []]],
+        ], 2);
+    }
 }

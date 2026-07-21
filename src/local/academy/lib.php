@@ -1642,13 +1642,16 @@ function local_academy_program_catalogue_pricing() {
         return '';
     }
 
-    // Prices for every paid program, so the JS can decorate whatever is on the page in one pass.
+    // Prices + offer data for every paid program, so the JS can decorate whatever is on the page.
     $prices = array();
     foreach ($DB->get_records('academy_program_prices', array('enabled' => 1)) as $row) {
         if ((float)$row->price > 0) {
+            $offer = \local_academy\discount_manager::offer_summary(
+                \local_academy\discount_manager::TYPE_PROGRAM, (int)$row->programid, (float)$row->price);
             $prices[(int)$row->programid] = array(
                 'price'    => (float)$row->price,
                 'currency' => $row->currency,
+                'offer'    => $offer,
             );
         }
     }
@@ -1718,8 +1721,11 @@ function local_academy_program_catalogue_pricing() {
 @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap");
 .academy-prg-price{margin:.75rem 0;padding:.75rem 1rem;border:1px solid #dee2e6;border-radius:.5rem;background:#f8f9fa}
 .academy-prg-price .amount{font-size:1.35rem;font-weight:700;color:#0f6cbf}
+.academy-prg-price .amount-old{font-size:1rem;font-weight:600;color:#9aa0a6;text-decoration:line-through;margin-inline-end:.35rem}
 .academy-prg-price .label{color:#6c757d;font-size:.82rem}
 .academy-prg-price .owned{color:#155724;font-weight:600}
+.academy-prg-price .offerbadge{display:inline-flex;align-items:center;gap:.25rem;background:#e8153b;color:#fff;font-weight:800;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;box-shadow:0 2px 6px rgba(232,21,59,.35);margin-bottom:.3rem}
+.academy-prg-price .offerbadge svg{width:13px;height:13px;fill:#fff}
 .academy-prg-buy{margin-top:.5rem}
 .la-cat-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif}
 .la-cat-modal-bg.open{display:flex;opacity:1}
@@ -1830,8 +1836,16 @@ function local_academy_program_catalogue_pricing() {
 
     var panel = document.createElement('div');
     panel.className = 'academy-prg-price';
-    panel.innerHTML = '<div class="label">' + esc(str('prg_price_label')) + '</div>' +
-      '<div class="amount">' + money(info.price) + ' ' + esc(info.currency || str('ui_currency_egp')) + '</div>';
+    var TAG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21.41 11.58l-9-9A2 2 0 0011 2H4a2 2 0 00-2 2v7a2 2 0 00.59 1.42l9 9a2 2 0 002.82 0l7-7a2 2 0 000-2.84zM6.5 8A1.5 1.5 0 118 6.5 1.5 1.5 0 016.5 8z"/></svg>';
+    if (info.offer) {
+      panel.innerHTML = '<div class="offerbadge">' + TAG + esc(info.offer.label) + '</div>' +
+        '<div class="label">' + esc(str('prg_price_label')) + '</div>' +
+        '<span class="amount-old">' + money(info.offer.original) + '</span>' +
+        '<span class="amount">' + money(info.offer.final) + ' ' + esc(info.currency || str('ui_currency_egp')) + '</span>';
+    } else {
+      panel.innerHTML = '<div class="label">' + esc(str('prg_price_label')) + '</div>' +
+        '<div class="amount">' + money(info.price) + ' ' + esc(info.currency || str('ui_currency_egp')) + '</div>';
+    }
 
     if (owned[id]) {
       var note = document.createElement('div');

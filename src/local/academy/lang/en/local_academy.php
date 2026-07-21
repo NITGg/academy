@@ -1287,11 +1287,11 @@ $string['mc_not_active']      = 'This purchase is not active and cannot be revok
 
 // Certificate eligibility (plugin-agnostic: decides who is eligible for each certificate).
 $string['certeligibility']              = 'Certificate eligibility';
-$string['cert_desc']                    = 'Define the eligibility rules that decide whether a student qualifies for each certificate in a course. A course can have several (e.g. Completion, Attendance, Excellence). This is an eligibility wrapper only — it does not create certificates: rendering, PDF, verification and downloads stay with the certificate plugin. Once a Custom Certificate activity exists, link it below so it remains the single source of truth.';
+$string['cert_desc']                    = 'Define the eligibility rules that decide whether a student qualifies for each certificate on a course or a program. A course or program can have several (e.g. Completion, Attendance, Excellence). This is an eligibility wrapper only — it does not create certificates: rendering, PDF, verification and downloads stay with the certificate plugin. For a course, once a Custom Certificate activity exists you can link it below so it remains the single source of truth; a program spans many courses and has no single activity, so program certificates are eligibility-only.';
 $string['cert_course']                  = 'Course ID';
 $string['cert_load']                    = 'Load';
 $string['cert_new']                     = '+ New certificate';
-$string['cert_none']                    = 'No certificates yet for this course.';
+$string['cert_none']                    = 'No certificates yet.';
 $string['cert_name']                    = 'Certificate name';
 $string['cert_type']                    = 'Type';
 $string['cert_type_completion']         = 'Completion';
@@ -1317,12 +1317,23 @@ $string['cert_rule_attendance']         = 'Attendance ≥ threshold %';
 $string['cert_rule_quiz_passed']        = 'Quiz passed';
 $string['cert_rule_assign_completed']   = 'Assignment completed';
 $string['cert_rule_course_completed']   = 'Course completed';
+$string['cert_rule_program_completed']  = 'Program completed';
+$string['cert_rule_program_progress']   = 'Program progress ≥ threshold %';
+$string['cert_rule_program_courses_completed'] = 'All program courses completed';
 $string['cert_rule_threshold_percent']  = 'Threshold (%)';
 $string['cert_rule_quiz']               = 'Quiz';
 $string['cert_rule_assign']             = 'Assignment';
 $string['cert_unit_points']             = 'points';
+$string['cert_scope']                   = 'Scope';
+$string['cert_scope_course']            = 'Course';
+$string['cert_scope_program']           = 'Program';
+$string['cert_program']                 = 'Program';
+$string['cert_pickprogram']             = '— choose a program —';
 $string['err_certnotfound']             = 'Certificate not found.';
 $string['err_certcoursenotfound']       = 'Course not found.';
+$string['err_certprogramnotfound']      = 'Program not found.';
+$string['err_certscopeinvalid']         = 'A certificate must be scoped to exactly one course or one program.';
+$string['err_certscopemismatch']        = 'Rule {$a} does not belong to this certificate\'s scope.';
 $string['err_certruleunknown']          = 'Unknown certificate rule type: {$a}';
 $string['err_certrulesinvalid']         = 'The rules payload is not valid JSON.';
 
