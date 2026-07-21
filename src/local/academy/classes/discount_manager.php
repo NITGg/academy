@@ -204,8 +204,7 @@ class discount_manager {
 
     /**
      * All active, in-window offers that apply to an item, each with its discount computed on the base
-     * price. Offers STACK — the caller sums these discounts (an admin can layer several offers on the
-     * same item and they combine).
+     * price. Only used internally — {@see offers_discount()} picks the single best one.
      *
      * @param string $itemtype
      * @param int $itemid
@@ -237,9 +236,8 @@ class discount_manager {
     }
 
     /**
-     * The combined (stacked) automatic-offer discount for an item: the sum of every matching offer's
-     * discount, clamped so it never exceeds the base price (final stays >= 0). Each offer's discount is
-     * computed independently on the base, then summed (additive), so two 30% offers give 60% off.
+     * The best automatic-offer discount for an item. Only the single offer giving the highest
+     * discount is applied — offers do NOT stack.
      *
      * @param string $itemtype
      * @param int $itemid
@@ -249,23 +247,23 @@ class discount_manager {
      */
     public static function offers_discount($itemtype, $itemid, $base, $now = null) {
         $base = round(max(0.0, (float)$base), 2);
-        $matching = self::matching_offers($itemtype, $itemid, $base, $now);
-        $offers = array();
-        $total = 0.0;
-        foreach ($matching as $o) {
-            $offers[] = array('id' => (int)$o->id, 'name' => $o->name, 'discount' => round((float)$o->discount, 2));
-            $total += (float)$o->discount;
+        $best = self::best_offer($itemtype, $itemid, $base, $now);
+        if (!$best || $best->discount <= 0) {
+            return array('offers' => array(), 'total' => 0.0);
         }
-        $total = min(round($total, 2), $base); // combined discount can't drive the price below zero
-        return array('offers' => $offers, 'total' => $total);
+        $total = min(round((float)$best->discount, 2), $base);
+        return array(
+            'offers' => array(array('id' => (int)$best->id, 'name' => $best->name, 'discount' => $total)),
+            'total'  => $total,
+        );
     }
 
     /**
-     * A compact, display-ready summary of the automatic offer(s) on an item (US-US-OF-1-1), for the
-     * front-page cards, course boxes and buy page. Offers stack, so this reflects the combined
-     * discount of every matching offer. Returns null when no active offer applies.
+     * A compact, display-ready summary of the best automatic offer on an item (US-US-OF-1-1), for
+     * the front-page cards, course boxes and buy page. Only the single best offer is applied.
+     * Returns null when no active offer applies.
      *
-     * @param string $itemtype course | package | subscription
+     * @param string $itemtype course | package | subscription | program
      * @param int $itemid
      * @param float|null $base base price (resolved if null)
      * @param int|null $now
@@ -280,12 +278,9 @@ class discount_manager {
             return null;
         }
         $total = $od['total'];
-        // Combine the applied offer names, and show the combined effective discount as a "-NN%" badge.
-        $names = array();
-        foreach ($od['offers'] as $o) { $names[] = format_string($o['name']); }
         $pct = $base > 0 ? round($total / $base * 100) : 0;
         return array(
-            'name'           => implode(' + ', $names),
+            'name'           => format_string($od['offers'][0]['name']),
             'discount_type'  => self::DISCOUNT_PERCENT,
             'discount_value' => $pct,
             'discount'       => round($total, 2),
@@ -366,10 +361,10 @@ class discount_manager {
 
         $result = array(
             'original'        => $base,
-            'offers'          => array(), // every applied offer [{id, name, discount}] (offers stack)
-            'offer_id'        => 0,       // first applied offer id (kept for back-compat)
+            'offers'          => array(), // the single best offer [{id, name, discount}]
+            'offer_id'        => 0,
             'offer_name'      => '',
-            'offer_discount'  => 0.0,     // combined offer discount
+            'offer_discount'  => 0.0,
             'coupon_id'       => 0,
             'coupon_code'     => '',
             'coupon_discount' => 0.0,
@@ -377,16 +372,14 @@ class discount_manager {
             'final'           => $base,
         );
 
-        // Automatic offers — they STACK: sum every matching offer's discount (clamped >= 0).
+        // Best automatic offer only — offers do NOT stack.
         $od = self::offers_discount($itemtype, $itemid, $base, $now);
         $running = $base;
         if ($od['total'] > 0) {
             $result['offers']         = $od['offers'];
             $result['offer_discount'] = $od['total'];
             $result['offer_id']       = $od['offers'][0]['id'];
-            $names = array();
-            foreach ($od['offers'] as $o) { $names[] = format_string($o['name']); }
-            $result['offer_name']     = implode(', ', $names);
+            $result['offer_name']     = format_string($od['offers'][0]['name']);
             $running = round($running - $od['total'], 2);
         }
 
