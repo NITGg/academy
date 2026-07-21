@@ -186,10 +186,17 @@ class eligibility_manager {
      * @param \stdClass $cert
      */
     private static function sync_scope(int $userid, \stdClass $cert): void {
-        if (self::cert_scope($cert) === self::SCOPE_PROGRAM) {
-            completion_sync::sync_program($userid, (int)$cert->programid);
-        } else {
-            completion_sync::sync_course($userid, (int)$cert->courseid);
+        // Refreshing is an optimisation, never a precondition: if it fails for any reason the
+        // certificate must still be reported from the flags already stored. Callers render a student
+        // -facing card from this, and a broken refresh must not make that card disappear.
+        try {
+            if (self::cert_scope($cert) === self::SCOPE_PROGRAM) {
+                completion_sync::sync_program($userid, (int)$cert->programid);
+            } else {
+                completion_sync::sync_course($userid, (int)$cert->courseid);
+            }
+        } catch (\Throwable $e) {
+            debugging('local_academy: completion sync skipped: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
     }
 
