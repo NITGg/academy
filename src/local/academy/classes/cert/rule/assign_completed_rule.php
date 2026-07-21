@@ -33,6 +33,31 @@ class assign_completed_rule implements rule_interface {
         ]];
     }
 
+    public function describe(int $courseid, array $config): string {
+        $name = $this->assign_name($courseid, (int)($config['cmid'] ?? 0));
+        // Module deleted or never picked — naming nothing is worse than the generic label.
+        return $name === '' ? '' : get_string('cert_req_assign_completed', 'local_academy', $name);
+    }
+
+    /**
+     * The assignment's display name, or '' when the module is gone or unset.
+     *
+     * @param int $courseid
+     * @param int $cmid course module id
+     * @return string
+     */
+    private function assign_name(int $courseid, int $cmid): string {
+        if ($cmid <= 0) {
+            return '';
+        }
+        try {
+            $cms = get_fast_modinfo($courseid)->get_cms();
+        } catch (\Throwable $e) {
+            return '';
+        }
+        return isset($cms[$cmid]) ? format_string($cms[$cmid]->name) : '';
+    }
+
     public function evaluate(int $userid, int $courseid, array $config): bool {
         return $this->completed($userid, $courseid, (int)($config['cmid'] ?? 0));
     }

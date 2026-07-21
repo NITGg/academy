@@ -37,6 +37,11 @@ class program_progress_rule implements rule_interface {
         ]];
     }
 
+    public function describe(int $programid, array $config): string {
+        return get_string('cert_req_program_progress', 'local_academy',
+            format_float((float)($config['threshold'] ?? 0), 0));
+    }
+
     public function evaluate(int $userid, int $programid, array $config): bool {
         $threshold = (float)($config['threshold'] ?? 0);
         return $this->progress($userid, $programid) >= $threshold;

@@ -1328,6 +1328,19 @@ $string['cert_rule_threshold_percent']  = 'Threshold (%)';
 $string['cert_rule_quiz']               = 'Quiz';
 $string['cert_rule_assign']             = 'Assignment';
 $string['cert_unit_points']             = 'points';
+// The same rules stated as a concrete instruction to the student, with the admin's configuration
+// filled in. The cert_rule_* strings above name the rule type for the admin picker; these tell a
+// student what they actually have to do.
+$string['cert_req_course_progress']     = 'Complete at least {$a->percent}% of "{$a->course}"';
+$string['cert_req_attendance']          = 'Attend at least {$a}% of your live sessions in this course';
+$string['cert_req_quiz_passed']         = 'Pass the quiz "{$a}"';
+$string['cert_req_quiz_passed_grade']   = 'Score at least {$a->grade} on the quiz "{$a->quiz}"';
+$string['cert_req_assign_completed']    = 'Complete the assignment "{$a}"';
+$string['cert_req_course_completed']    = 'Complete the course "{$a}"';
+$string['cert_req_program_completed']   = 'Complete the whole program';
+$string['cert_req_program_progress']    = 'Complete at least {$a}% of the program\'s courses';
+$string['cert_req_program_courses_completed'] = 'Complete all {$a} courses in this program';
+$string['cert_req_program_courses_completed_any'] = 'Complete every course in this program';
 $string['cert_scope']                   = 'Scope';
 $string['cert_scope_course']            = 'Course';
 $string['cert_scope_program']           = 'Program';

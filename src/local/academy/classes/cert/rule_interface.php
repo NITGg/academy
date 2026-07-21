@@ -53,6 +53,20 @@ interface rule_interface {
     public function evaluate(int $userid, int $courseid, array $config): bool;
 
     /**
+     * The requirement stated concretely, for the student.
+     *
+     * {@see get_label()} names the rule TYPE ("Program progress ≥ threshold %") — useful to an admin
+     * picking a rule from a list, useless to a student who needs to know *what to actually do*. This
+     * returns the same rule with its configuration and scope filled in ("Complete at least 90% of the
+     * program's courses"), so the certificate card can tell them.
+     *
+     * @param int $scopeid courseid for course-scoped rules, programid for program-scoped ones
+     * @param array $config rule-specific settings (keys per {@see get_config_schema()})
+     * @return string translated sentence; '' to fall back to the label
+     */
+    public function describe(int $scopeid, array $config): string;
+
+    /**
      * Actual vs required measurement, for "why eligible / not eligible" reporting.
      *
      * @param int $userid

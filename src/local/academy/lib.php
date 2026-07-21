@@ -1569,9 +1569,17 @@ function local_academy_program_certificates_section() {
                     s((string)$res['actual']) . ' / ' . s((string)$required) . ($unit !== '' ? ' ' . s($unit) : ''),
                     array('class' => 'la-cert-detail'));
             }
+            // Lead with the requirement in plain language ("Complete at least 90% of the program's
+            // courses"). The rule-type label ("Program progress ≥ threshold %") is admin wording and
+            // tells a student nothing, so it is only the fallback when a rule cannot describe itself.
+            $requirement = trim((string)($res['description'] ?? ''));
+            if ($requirement === '') {
+                $requirement = (string)($res['label'] ?? '');
+            }
+
             $rules .= '<li class="la-cert-rule">' .
                 html_writer::tag('span', $mark, array('class' => 'la-cert-mark ' . $markclass)) .
-                html_writer::tag('span', s((string)($res['label'] ?? '')), array('class' => 'la-cert-rule-label')) .
+                html_writer::tag('span', s($requirement), array('class' => 'la-cert-rule-label')) .
                 $detail .
             '</li>';
         }

@@ -34,6 +34,28 @@ class quiz_passed_rule implements rule_interface {
         ]];
     }
 
+    public function describe(int $courseid, array $config): string {
+        global $DB;
+
+        $quizid = (int)($config['quizid'] ?? 0);
+        $name = $quizid > 0 ? $DB->get_field('quiz', 'name', ['id' => $quizid], IGNORE_MISSING) : false;
+        if ($name === false || trim((string)$name) === '') {
+            return ''; // Quiz deleted or never picked — 'Pass the quiz ""' helps nobody; use the label.
+        }
+        $a = new \stdClass();
+        $a->quiz = format_string($name);
+
+        // The pass mark lives on the grade item, not the quiz — and it is the number the student
+        // actually has to beat, so name it when it is set. Passing 0 for userid: we want the item's
+        // gradepass, not anyone's grade.
+        list(, $gradepass) = $this->grade(0, $courseid, $quizid);
+        if ($gradepass > 0) {
+            $a->grade = format_float($gradepass, 2, true, true);
+            return get_string('cert_req_quiz_passed_grade', 'local_academy', $a);
+        }
+        return get_string('cert_req_quiz_passed', 'local_academy', $a->quiz);
+    }
+
     public function evaluate(int $userid, int $courseid, array $config): bool {
         list($grade, $gradepass) = $this->grade($userid, $courseid, (int)($config['quizid'] ?? 0));
         return $gradepass > 0 && $grade !== null && $grade >= $gradepass;
@@ -56,9 +78,13 @@ class quiz_passed_rule implements rule_interface {
      * @return array [?float finalgrade, float gradepass]
      */
     private function grade(int $userid, int $courseid, int $quizid): array {
+        global $CFG;
         if ($quizid <= 0) {
             return [null, 0.0];
         }
+        // Not autoloaded — a web page usually has it already, but CLI (scheduled tasks) and the
+        // student card do not, and the call would fatal with "undefined function".
+        require_once($CFG->libdir . '/gradelib.php');
         $grades = grade_get_grades($courseid, 'mod', 'quiz', $quizid, $userid);
         if (empty($grades->items[0])) {
             return [null, 0.0];

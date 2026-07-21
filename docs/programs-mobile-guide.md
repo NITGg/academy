@@ -23,7 +23,7 @@ checkout as everything else.
 ## 1. Conventions
 
 Same dispatcher, auth, and envelope as the rest of the Academy API — see
-[`README.md`](README.md) for the base URL and how to get a token.
+[`api/README.md`](api/README.md) for the base URL and how to get a token.
 
 ```
 GET|POST  {WWWROOT}/local/academy/api.php?function=NAME&token=TOKEN
@@ -226,7 +226,7 @@ not allowed to see. Show a generic "This program is not available" and pop back 
 ## 5. Buying a paid program
 
 Identical to the package / subscription flow — see
-[`../packages-subscriptions-kashier-mobile-guide.md`](../packages-subscriptions-kashier-mobile-guide.md)
+[`packages-subscriptions-kashier-mobile-guide.md`](packages-subscriptions-kashier-mobile-guide.md)
 for the full Kashier walkthrough, WebView handling, and edge cases. Only the create call differs:
 
 ```
@@ -269,7 +269,7 @@ GET api.php?function=preview_discount&item_type=program&item_id=3&coupon_code=SU
 ```
 
 Same endpoint and response shape as packages and subscriptions; see
-[`coupons-offers-mobile-guide.md`](coupons-offers-mobile-guide.md).
+[`api/coupons-offers-mobile-guide.md`](api/coupons-offers-mobile-guide.md).
 
 ### Errors worth handling by name
 
@@ -294,8 +294,19 @@ for — the web does this on `my/program.php`.
 GET api.php?function=list_program_certificate_eligibility&programid=3&token=TOKEN
 ```
 
-See [`certificate-eligibility.md`](certificate-eligibility.md) for the response shape. Only call it
-when `owned == 1`; an empty `certificates` array means the program has none — render nothing.
+See [`api/certificate-eligibility.md`](api/certificate-eligibility.md) for the response shape. Only
+call it when `owned == 1`; an empty `certificates` array means the program has none — render nothing.
+
+Each certificate carries `eligible`, `operator` (`and` = must meet every requirement, `or` = any one
+of them), and a `results` list — one entry per requirement. For each entry render:
+
+- `passed` → a ✓ / ✗ marker
+- **`description`** → what the student must do, e.g. *"Complete at least 90% of the program's
+  courses"*. Fall back to `label` only when `description` is `''`. **Do not show `label` by
+  default** — it is the rule *type* ("Program progress ≥ threshold %"), admin wording that leaves
+  the student none the wiser.
+- `actual` / `required` / `unit` → progress, shown when `unit` is non-empty or `required > 1`
+  (e.g. `72 / 90 %`, `2 / 3`). A plain yes/no requirement has no useful number; the marker says it.
 
 ---
 

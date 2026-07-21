@@ -31,6 +31,15 @@ class program_courses_completed_rule implements rule_interface {
         return [];
     }
 
+    public function describe(int $programid, array $config): string {
+        // Name the actual number of courses — "all 12 courses" is a requirement, "all courses" is a
+        // slogan. Falls back to the vaguer wording only when the program has no courses yet.
+        $total = count(program_scope::course_ids($programid));
+        return $total > 0
+            ? get_string('cert_req_program_courses_completed', 'local_academy', $total)
+            : get_string('cert_req_program_courses_completed_any', 'local_academy');
+    }
+
     public function evaluate(int $userid, int $programid, array $config): bool {
         $courseids = program_scope::course_ids($programid);
         $total = count($courseids);

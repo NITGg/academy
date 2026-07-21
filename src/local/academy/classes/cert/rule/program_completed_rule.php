@@ -30,6 +30,10 @@ class program_completed_rule implements rule_interface {
         return [];
     }
 
+    public function describe(int $programid, array $config): string {
+        return get_string('cert_req_program_completed', 'local_academy');
+    }
+
     public function evaluate(int $userid, int $programid, array $config): bool {
         return program_scope::is_program_completed($userid, $programid);
     }

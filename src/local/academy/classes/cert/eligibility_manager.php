@@ -104,6 +104,7 @@ class eligibility_manager {
                     'required' => null,
                     'unit'     => '',
                     'label'    => $type,
+                    'description' => '',
                     'error'    => 'unknown_rule',
                 ];
                 $passes[] = false;
@@ -120,6 +121,20 @@ class eligibility_manager {
                 $m = ['actual' => null, 'required' => null, 'unit' => '', 'label' => $rule->get_label()];
             }
 
+            // The plain-language requirement. Guarded separately from evaluate/measure so a rule that
+            // cannot name its target (deleted quiz, program with no courses) still reports its
+            // result — the student sees the generic label instead of losing the row entirely.
+            // method_exists keeps a rule registered by another plugin, written against the older
+            // interface, working rather than fataling.
+            $description = '';
+            if (method_exists($rule, 'describe')) {
+                try {
+                    $description = (string)$rule->describe($scopeid, $config);
+                } catch (\Throwable $e) {
+                    $description = '';
+                }
+            }
+
             $results[] = [
                 'type'     => $type,
                 'passed'   => (bool)$passed,
@@ -127,6 +142,8 @@ class eligibility_manager {
                 'required' => $m['required'] ?? null,
                 'unit'     => $m['unit'] ?? '',
                 'label'    => $m['label'] ?? $rule->get_label(),
+                // What the student must do, config filled in. '' → fall back to `label`.
+                'description' => $description,
             ];
             $passes[] = (bool)$passed;
         }

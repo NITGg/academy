@@ -39,6 +39,11 @@ class attendance_rule implements rule_interface {
         ]];
     }
 
+    public function describe(int $courseid, array $config): string {
+        return get_string('cert_req_attendance', 'local_academy',
+            format_float((float)($config['threshold'] ?? 0), 0));
+    }
+
     public function evaluate(int $userid, int $courseid, array $config): bool {
         $threshold = (float)($config['threshold'] ?? 0);
         return $this->attendance($userid, $courseid) >= $threshold;

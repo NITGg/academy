@@ -65,8 +65,8 @@ A **certificate** carries its self-contained ruleset (root operator + a flat lis
 The evaluation engine never changes. To add a rule:
 
 1. Add a class under `local/academy/classes/cert/rule/` implementing
-   `local_academy\cert\rule_interface` (`get_type`, `get_label`, `get_config_schema`, `evaluate`,
-   `measure`).
+   `local_academy\cert\rule_interface` (`get_type`, `get_label`, `get_config_schema`, `describe`,
+   `evaluate`, `measure`).
 2. Register it in `local_academy\cert\rule_registry::builtin()` (one line).
 
 Other plugins/tests can register rules at runtime without editing any file:
@@ -99,7 +99,15 @@ eligibility_manager::evaluate_adhoc($userid, $courseid, $rulesetArray): array;
 [
   'eligible'      => bool,
   'operator'      => 'and'|'or',
-  'results'       => [ ['type'=>'course_progress','passed'=>true,'actual'=>92.5,'required'=>90,'unit'=>'%','label'=>'…'], … ],
+  'results'       => [ [
+      'type'        => 'course_progress',
+      'passed'      => true,
+      'actual'      => 92.5,
+      'required'    => 90,
+      'unit'        => '%',
+      'label'       => 'Course progress ≥ threshold %',        // rule TYPE — admin wording
+      'description' => 'Complete at least 90% of "HTML & CSS"', // the requirement — show this
+  ], … ],
   'certificateid' => int,
   'courseid'      => int,
   'name'          => string,
@@ -108,6 +116,12 @@ eligibility_manager::evaluate_adhoc($userid, $courseid, $rulesetArray): array;
   'enabled'       => bool,
 ]
 ```
+
+**`label` vs `description`.** `label` names the rule *type* and is what the admin picker shows; it
+contains placeholders like "≥ threshold %" and means nothing to a student. `description` is the same
+rule with the admin's configuration and scope filled in — the actual instruction ("Complete at least
+90% of the program's courses"). **Student-facing UI must show `description`**, falling back to
+`label` only when it is `''` (a rule that could not name its target, e.g. a deleted quiz).
 
 ## HTTP API (`/local/academy/api.php?function=…&token=…`)
 

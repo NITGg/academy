@@ -24,6 +24,7 @@ class cert_fixed_rule implements rule_interface {
         // If a config 'pass' is given, use it; else the static default.
         return array_key_exists('pass', $config) ? ((int)$config['pass'] === 1) : self::$result;
     }
+    public function describe(int $scopeid, array $config): string { return 'Fixed requirement'; }
     public function measure(int $userid, int $courseid, array $config): array {
         return ['actual' => 1, 'required' => 1, 'unit' => '', 'label' => 'Fixed'];
     }

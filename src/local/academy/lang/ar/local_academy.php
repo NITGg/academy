@@ -1247,6 +1247,18 @@ $string['cert_rule_threshold_percent']  = 'النسبة المطلوبة (%)';
 $string['cert_rule_quiz']               = 'الاختبار';
 $string['cert_rule_assign']             = 'الواجب';
 $string['cert_unit_points']             = 'نقطة';
+// نفس الشروط لكن مصاغة كتعليمات واضحة للطالب، مع إدراج إعدادات المشرف. سلاسل cert_rule_* أعلاه
+// تسمّي نوع الشرط للمشرف؛ هذه تخبر الطالب بما عليه فعله فعلياً.
+$string['cert_req_course_progress']     = 'أكمِل {$a->percent}% على الأقل من كورس «{$a->course}»';
+$string['cert_req_attendance']          = 'احضر {$a}% على الأقل من الجلسات المباشرة في هذا الكورس';
+$string['cert_req_quiz_passed']         = 'اجتَز اختبار «{$a}»';
+$string['cert_req_quiz_passed_grade']   = 'احصل على {$a->grade} على الأقل في اختبار «{$a->quiz}»';
+$string['cert_req_assign_completed']    = 'أكمِل واجب «{$a}»';
+$string['cert_req_course_completed']    = 'أكمِل كورس «{$a}»';
+$string['cert_req_program_completed']   = 'أكمِل البرنامج بالكامل';
+$string['cert_req_program_progress']    = 'أكمِل {$a}% على الأقل من كورسات البرنامج';
+$string['cert_req_program_courses_completed'] = 'أكمِل كورسات البرنامج الـ {$a} جميعها';
+$string['cert_req_program_courses_completed_any'] = 'أكمِل كل كورسات هذا البرنامج';
 $string['cert_scope']                   = 'النطاق';
 $string['cert_scope_course']            = 'كورس';
 $string['cert_scope_program']           = 'برنامج';

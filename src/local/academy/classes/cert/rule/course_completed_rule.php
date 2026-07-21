@@ -27,6 +27,13 @@ class course_completed_rule implements rule_interface {
         return [];
     }
 
+    public function describe(int $courseid, array $config): string {
+        global $DB;
+        $name = $DB->get_field('course', 'fullname', ['id' => $courseid], IGNORE_MISSING);
+        // Course gone — fall back to the generic label rather than naming an empty course.
+        return $name === false ? '' : get_string('cert_req_course_completed', 'local_academy', format_string($name));
+    }
+
     public function evaluate(int $userid, int $courseid, array $config): bool {
         return $this->complete($userid, $courseid);
     }

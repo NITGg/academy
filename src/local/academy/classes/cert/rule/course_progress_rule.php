@@ -35,6 +35,28 @@ class course_progress_rule implements rule_interface {
         ]];
     }
 
+    public function describe(int $courseid, array $config): string {
+        $a = new \stdClass();
+        $a->course = self::course_name($courseid);
+        if ($a->course === '') {
+            return ''; // Course gone — fall back to the generic label.
+        }
+        $a->percent = format_float((float)($config['threshold'] ?? 0), 0);
+        return get_string('cert_req_course_progress', 'local_academy', $a);
+    }
+
+    /**
+     * A course's display name, or '' when it is gone.
+     *
+     * @param int $courseid
+     * @return string
+     */
+    private static function course_name(int $courseid): string {
+        global $DB;
+        $name = $DB->get_field('course', 'fullname', ['id' => $courseid], IGNORE_MISSING);
+        return $name === false ? '' : format_string($name);
+    }
+
     public function evaluate(int $userid, int $courseid, array $config): bool {
         $threshold = (float)($config['threshold'] ?? 0);
         return $this->progress($userid, $courseid) >= $threshold;
