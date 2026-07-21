@@ -30,17 +30,6 @@ class completion_sync {
     private static $synced = [];
 
     /**
-     * TEMPORARY diagnostic: report what the sync saw and decided, so a stuck certificate can be
-     * traced from the page itself. Only speaks when developer debugging is on. Remove once the
-     * program/certificate flow is confirmed working.
-     *
-     * @param string $msg
-     */
-    private static function trace(string $msg): void {
-        debugging('ACADEMY-SYNC: ' . $msg, DEBUG_DEVELOPER);
-    }
-
-    /**
      * Bring a program's completion state up to date for one student.
      *
      * Recalculates each of the program's courses first (a program can only complete once its courses
@@ -55,7 +44,6 @@ class completion_sync {
         }
 
         $courseids = program_scope::course_ids($programid);
-        self::trace("program={$programid} user={$userid} courses=[" . implode(',', $courseids) . ']');
         foreach ($courseids as $courseid) {
             self::sync_course($userid, $courseid);
         }
@@ -67,8 +55,6 @@ class completion_sync {
             // Re-derives item completions and, when the top item is satisfied, stamps
             // {enrol_programs_allocations}.timecompleted — the flag program_completed_rule reads.
             \enrol_programs\local\allocation::fix_user_enrolments($programid, $userid);
-            self::trace('fix_user_enrolments done; allocation completed='
-                . (program_scope::is_program_completed($userid, $programid) ? 'YES' : 'NO'));
         } catch (\Throwable $e) {
             debugging('local_academy: program completion sync failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
@@ -102,25 +88,21 @@ class completion_sync {
             }
             $info = new \completion_info($course);
             if (!$info->is_enabled()) {
-                self::trace("course={$courseid} SKIP: completion not enabled on this course");
                 return;
             }
             // Already complete: nothing to recalculate, but still clear the aggregation flag — a
             // course completed while cron was down keeps reaggregate set, and enrol_programs ignores
             // such a course entirely, so the program would never complete.
             if ($info->is_course_complete($userid)) {
-                $cleared = self::clear_reaggregate($userid, $courseid);
-                self::trace("course={$courseid} already complete; reaggregate cleared=" . ($cleared ? 'YES' : 'was already 0'));
+                self::clear_reaggregate($userid, $courseid);
                 return;
             }
 
             $completions = $info->get_completions($userid);
             if (!$completions) {
-                // A course with no criteria can never complete; say so rather than looking broken.
-                self::trace("course={$courseid} SKIP: course has NO completion criteria configured");
+                // A course with no criteria can never complete.
                 return;
             }
-            self::trace("course={$courseid} criteria=" . count($completions));
 
             // Step 1 — record any criterion the student has met but that no cron has stored yet.
             foreach ($completions as $completion) {
@@ -154,7 +136,6 @@ class completion_sync {
                     $timecompleted = max($timecompleted, (int)$completion->timecompleted);
                 }
                 $type = (int)$completion->get_criteria()->criteriatype;
-                self::trace("course={$courseid} criterion type={$type} complete=" . ($iscomplete ? 'YES' : 'NO'));
                 if ($type == COMPLETION_CRITERIA_TYPE_ACTIVITY) {
                     completion_cron_aggregate($activity, $iscomplete, $activitystatus);
                 } else if ($type == COMPLETION_CRITERIA_TYPE_COURSE) {
@@ -178,14 +159,9 @@ class completion_sync {
             }
 
             // Step 3 — stamp {course_completions}.timecompleted, the flag the course rules read.
-            self::trace("course={$courseid} aggregation overall=" . var_export($overallstatus, true)
-                . ' activity=' . var_export($activitystatus, true)
-                . ' prereq=' . var_export($prerequisitestatus, true)
-                . ' role=' . var_export($rolestatus, true));
             if ($overallstatus) {
                 $ccompletion = new \completion_completion(['course' => $courseid, 'userid' => $userid]);
                 $ccompletion->mark_complete($timecompleted ?: null);
-                self::trace("course={$courseid} MARKED COMPLETE");
             }
 
             // Step 4 — clear the "needs aggregating" flag, as the core task does in its own final step.

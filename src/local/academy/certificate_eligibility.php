@@ -33,6 +33,7 @@ $STR = local_academy_string_map(array(
     'cert_rule', 'cert_pick', 'cert_note', 'cert_new', 'cert_none', 'cert_name', 'cert_type',
     'cert_type_completion', 'cert_type_attendance', 'cert_type_excellence', 'cert_type_custom',
     'cert_confirm_delete', 'cert_programs_heading', 'cert_manage', 'cert_back', 'cert_prog_certs',
+    'cert_link_activity', 'cert_link_none', 'cert_link_help', 'cert_link_unavailable',
     'err_sessionexpired', 'err_requestfailed',
 ));
 
@@ -91,6 +92,14 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 <div class="form-row col-md-6" id="c-rule-fields"></div>
             </div>
 
+            <!-- The real certificate: a mod_customcert activity. Eligible students are enrolled into
+                 its host course automatically so the download link works. -->
+            <div class="form-group">
+                <label for="c-externalref"><?php echo $STR['cert_link_activity']; ?></label>
+                <select class="form-control" id="c-externalref"></select>
+                <small class="form-text text-muted"><?php echo $STR['cert_link_help']; ?></small>
+            </div>
+
             <div class="form-check mb-3">
                 <input type="checkbox" class="form-check-input" id="c-enabled" checked>
                 <label class="form-check-label" for="c-enabled"><?php echo $STR['cert_enabled']; ?></label>
@@ -106,7 +115,8 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 <script>
 (function () {
     var CFG = window.ACADEMY_CFG, STR = window.ACADEMY_STR;
-    var catalogue = [], certs = [], programs = [];
+    var catalogue = [], certs = [], programs = [], certActivities = [];
+    var certActivitiesAvailable = true; // false when mod_customcert is not installed
     var currentProgram = null; // {id, fullname}
 
     var $ = function (id) { return document.getElementById(id); };
@@ -270,6 +280,44 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     }
 
     // ── Editor ──
+    // The customcert activity this certificate points at. Loaded once: the list is site-wide and does
+    // not depend on the selected program.
+    function loadCertActivities() {
+        return api('list_cert_activities', {}).then(function (data) {
+            certActivities = data.activities || [];
+            certActivitiesAvailable = data.available !== false;
+        }).catch(function () {
+            // A failure here must not block editing eligibility rules — the picker just stays empty.
+            certActivities = [];
+        });
+    }
+
+    function buildActivitySelect(selected) {
+        var sel = $('c-externalref');
+        sel.innerHTML = '';
+        var none = document.createElement('option');
+        none.value = '0';
+        none.textContent = certActivitiesAvailable ? STR.cert_link_none : STR.cert_link_unavailable;
+        sel.appendChild(none);
+        certActivities.forEach(function (a) {
+            var o = document.createElement('option');
+            o.value = a.cmid;
+            o.textContent = a.name + ' — ' + a.coursename;
+            sel.appendChild(o);
+        });
+        sel.value = String(selected || 0);
+        // A link to an activity that has since been deleted would silently reset to "none"; keep the
+        // stored id visible so the admin sees something is wrong rather than losing it on save.
+        if (sel.value !== String(selected || 0)) {
+            var missing = document.createElement('option');
+            missing.value = selected;
+            missing.textContent = '#' + selected + ' (?)';
+            sel.appendChild(missing);
+            sel.value = String(selected);
+        }
+        sel.disabled = !certActivitiesAvailable;
+    }
+
     function buildRuleTypeSelect() {
         var sel = $('c-rule-type');
         sel.innerHTML = '';
@@ -287,6 +335,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         $('c-name').value = cert ? (cert.name || '') : '';
         $('c-type').value = cert ? cert.type : 'completion';
         $('c-enabled').checked = cert ? !!cert.enabled : true;
+        buildActivitySelect(cert ? (cert.externalref || 0) : 0);
 
         var rule = cert && cert.rules && cert.rules[0] ? cert.rules[0] : null;
         if (rule && rule.type) { $('c-rule-type').value = rule.type; }
@@ -304,6 +353,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             programid: currentProgram.id,
             name: $('c-name').value,
             type: $('c-type').value,
+            externalref: parseInt($('c-externalref').value, 10) || 0,
             operator: 'and', // single rule — operator is irrelevant but the API expects the field.
             enabled: $('c-enabled').checked ? 1 : 0,
             rules: JSON.stringify([collectRule()])
@@ -328,6 +378,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     $('c-save').addEventListener('click', save);
     $('c-cancel').addEventListener('click', function () { $('cert-editor').style.display = 'none'; });
 
+    loadCertActivities();
     loadPrograms();
 })();
 </script>

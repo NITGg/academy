@@ -1460,9 +1460,11 @@ function local_academy_my_programs_section() {
  * every ENABLED certificate defined for that program plus whether they are eligible and — per rule —
  * what is required versus what they have achieved.
  *
- * Injected from local_academy so the third-party plugin's files stay untouched. It is eligibility
- * information only: there is no program-level certificate activity, so nothing is issued/downloaded
- * here — the card tells the student whether (and how close to) they qualify.
+ * Injected from local_academy so the third-party plugin's files stay untouched. Eligibility itself is
+ * still decided here and nothing is issued: when a certificate is linked to a Custom Certificate
+ * activity (externalref) and the student qualifies, the card grants them access to that activity's
+ * host course and links to it — mod_customcert remains the only thing that generates a certificate.
+ * See {@see \local_academy\cert\customcert_link}. An unlinked certificate shows progress only.
  *
  * Rendered server-side (we already have $USER and the program id); a small script relocates it into
  * the page's main region so it sits with the rest of the program content rather than at page end.
@@ -1527,6 +1529,19 @@ function local_academy_program_certificates_section() {
             ? get_string('cert_student_any', 'local_academy')
             : get_string('cert_student_all', 'local_academy');
 
+        // The real certificate lives in a customcert activity inside a host course. An eligible
+        // student is enrolled there on the spot (best-effort) so the link below actually opens.
+        $action = '';
+        $externalref = (int)($r['externalref'] ?? 0);
+        if ($eligible && $externalref > 0) {
+            $url = \local_academy\cert\customcert_link::view_url($externalref);
+            if ($url && \local_academy\cert\customcert_link::grant_access((int)$USER->id, $externalref)) {
+                $action = html_writer::link($url,
+                    s(get_string('cert_student_download', 'local_academy')),
+                    array('class' => 'la-cert-dl', 'target' => '_blank', 'rel' => 'noopener'));
+            }
+        }
+
         $cards .= '<div class="la-cert-card">' .
             '<div class="la-cert-card-head">' .
                 html_writer::tag('span', s((string)($r['name'] ?? '')), array('class' => 'la-cert-name')) .
@@ -1537,6 +1552,7 @@ function local_academy_program_certificates_section() {
             ($eligible
                 ? html_writer::tag('p', get_string('cert_student_eligible_note', 'local_academy'), array('class' => 'la-cert-note la-cert-note--ok'))
                 : html_writer::tag('p', get_string('cert_student_pending_note', 'local_academy'), array('class' => 'la-cert-note'))) .
+            $action .
         '</div>';
     }
 
@@ -1562,6 +1578,8 @@ function local_academy_program_certificates_section() {
 .la-cert-detail{color:#6a6f73;font-weight:700;white-space:nowrap}
 .la-cert-note{font-size:.85rem;color:#6a6f73;margin:.8rem 0 0}
 .la-cert-note--ok{color:#1f7a43;font-weight:700}
+.la-cert-dl{display:inline-flex;align-items:center;justify-content:center;width:100%;margin-top:.9rem;padding:.6rem 1rem;border-radius:8px;background:var(--pm);color:#fff;font-weight:700;font-size:.92rem;text-decoration:none}
+.la-cert-dl:hover{background:#57187f;color:#fff;text-decoration:none}
 CSS;
 
     $icon = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 15-4-4 1.41-1.41L10 13.17l6.59-6.58L18 8l-8 8z"/></svg>';

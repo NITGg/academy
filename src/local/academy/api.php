@@ -27,6 +27,7 @@ use local_academy\report_manager;
 use local_academy\quiz_manager;
 use local_academy\cert\eligibility_manager;
 use local_academy\cert\rule_registry;
+use local_academy\cert\customcert_link;
 
 /** Reject non-POST for state-changing actions. */
 function academy_require_post() {
@@ -234,6 +235,7 @@ $capmap = [
     'enable_program_free_signup' => 'local/academy:manageplatform',
     'get_certificates'       => 'local/academy:manageplatform',
     'list_programs_for_cert' => 'local/academy:manageplatform',
+    'list_cert_activities'   => 'local/academy:manageplatform',
     'save_certificate'       => 'local/academy:manageplatform',
     'delete_certificate'     => 'local/academy:manageplatform',
 ];
@@ -1479,6 +1481,15 @@ try {
         case 'list_programs_for_cert':
             academy_respond(['status' => 'success', 'data' => [
                 'programs' => program_purchase_manager::list_programs(),
+            ]]);
+            break;
+
+        // Admin: the Custom Certificate activities a certificate can be linked to, for the picker.
+        // Empty when mod_customcert is not installed — the admin then simply has nothing to link.
+        case 'list_cert_activities':
+            academy_respond(['status' => 'success', 'data' => [
+                'available'  => customcert_link::available(),
+                'activities' => customcert_link::list_activities(),
             ]]);
             break;
 
