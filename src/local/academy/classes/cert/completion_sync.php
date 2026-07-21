@@ -105,9 +105,12 @@ class completion_sync {
                 self::trace("course={$courseid} SKIP: completion not enabled on this course");
                 return;
             }
-            // Already complete: the flag our rules read is current, nothing to recalculate.
+            // Already complete: nothing to recalculate, but still clear the aggregation flag — a
+            // course completed while cron was down keeps reaggregate set, and enrol_programs ignores
+            // such a course entirely, so the program would never complete.
             if ($info->is_course_complete($userid)) {
-                self::trace("course={$courseid} already complete");
+                $cleared = self::clear_reaggregate($userid, $courseid);
+                self::trace("course={$courseid} already complete; reaggregate cleared=" . ($cleared ? 'YES' : 'was already 0'));
                 return;
             }
 
@@ -185,16 +188,35 @@ class completion_sync {
                 self::trace("course={$courseid} MARKED COMPLETE");
             }
 
-            // Step 4 — clear the "needs aggregating" flag, which the core task does as its own final
-            // step and mark_complete() never touches. This is not bookkeeping: enrol_programs only
-            // counts a course towards a program when {course_completions}.reaggregate = 0, so leaving
-            // it set makes the program ignore a course we just completed.
-            $DB->set_field_select('course_completions', 'reaggregate', 0,
-                'course = :course AND userid = :userid AND reaggregate > 0',
-                ['course' => $courseid, 'userid' => $userid]);
+            // Step 4 — clear the "needs aggregating" flag, as the core task does in its own final step.
+            self::clear_reaggregate($userid, $courseid);
         } catch (\Throwable $e) {
             debugging('local_academy: course completion sync failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
+    }
+
+    /**
+     * Clear a course completion's "needs aggregating" flag for one student.
+     *
+     * The core completion task clears this as a separate final step, and mark_complete() never
+     * touches it — so a course completed while cron was down keeps it set. That matters beyond
+     * bookkeeping: enrol_programs only counts a course towards a program when
+     * {course_completions}.reaggregate = 0, so a stale flag makes the program ignore a course the
+     * student has genuinely finished.
+     *
+     * @param int $userid
+     * @param int $courseid
+     * @return bool true when a stale flag was actually cleared
+     */
+    private static function clear_reaggregate(int $userid, int $courseid): bool {
+        global $DB;
+        $select = 'course = :course AND userid = :userid AND reaggregate > 0';
+        $params = ['course' => $courseid, 'userid' => $userid];
+        if (!$DB->record_exists_select('course_completions', $select, $params)) {
+            return false;
+        }
+        $DB->set_field_select('course_completions', 'reaggregate', 0, $select, $params);
+        return true;
     }
 
     /**
