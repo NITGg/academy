@@ -1043,6 +1043,9 @@ function local_academy_programs_css() {
 .la-prg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.75rem;align-items:stretch}
 .la-prg-card{display:flex;flex-direction:column;height:100%;background:#fff;border:1px solid #e8e6ef;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(108,34,166,.07);transition:transform .18s ease,box-shadow .18s ease}
 .la-prg-card:hover{transform:translateY(-6px);box-shadow:0 18px 36px rgba(108,34,166,.20)}
+.la-prg-card--clickable{cursor:pointer}
+.la-prg-card--clickable:focus-visible{outline:3px solid var(--pm);outline-offset:2px}
+.la-prg-card--clickable .la-prg-name{color:var(--pm)}
 .la-prg-banner{position:relative;height:160px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden}
 .la-prg-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.22),transparent 55%)}
 .la-prg-banner svg{width:48px;height:48px;opacity:.95;fill:#fff;position:relative;z-index:1}
@@ -1093,6 +1096,46 @@ function local_academy_programs_css() {
 CSS;
 
     return html_writer::tag('style', $css);
+}
+
+/**
+ * Makes program cards carrying data-href open that page, emitted once per request.
+ *
+ * The whole card is the target, so a visitor can tap anywhere on it to read the program details
+ * before deciding to buy — not only the footer button. Clicks that land on the footer's own link or
+ * button are left alone: those already have their own destination (Buy opens the checkout modal).
+ *
+ * @return string a <script> tag the first time it is called, '' afterwards
+ */
+function local_academy_programs_card_js() {
+    static $done = false;
+    if ($done) {
+        return '';
+    }
+    $done = true;
+
+    $js = <<<JS
+(function () {
+  function open(card, ev) {
+    // The footer button/link handles itself — don't hijack it.
+    if (ev.target.closest('a,button')) { return; }
+    var href = card.getAttribute('data-href');
+    if (href) { window.location.href = href; }
+  }
+  document.addEventListener('click', function (ev) {
+    var card = ev.target.closest('.la-prg-card--clickable');
+    if (card) { open(card, ev); }
+  });
+  // role="link" elements are expected to activate on Enter.
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter') { return; }
+    var card = ev.target.closest && ev.target.closest('.la-prg-card--clickable');
+    if (card) { ev.preventDefault(); open(card, ev); }
+  });
+})();
+JS;
+
+    return html_writer::tag('script', $js);
 }
 
 /**
@@ -1224,10 +1267,18 @@ function local_academy_available_programs_section() {
                     'data-price'     => $p['price']));
         }
 
-        $cards .= local_academy_program_card($badges, $p['name'], $p['description'], '', $price, $action, $i);
+        // Whole card opens the details page, so a visitor can read up before buying. Owners get
+        // their own program page; guests get the login page, same destination as their button.
+        if ($p['owned']) {
+            $cardhref = (string) new moodle_url('/enrol/programs/my/program.php', array('id' => $p['id']));
+        } else {
+            $cardhref = $loggedin ? $programurl : $loginurl;
+        }
+
+        $cards .= local_academy_program_card($badges, $p['name'], $p['description'], '', $price, $action, $i, $cardhref);
     }
 
-    $out = local_academy_programs_css() .
+    $out = local_academy_programs_css() . local_academy_programs_card_js() .
         '<section id="la-prg-available" class="la-prg">' .
             '<div class="la-prg-head">' .
                 html_writer::tag('h3', s(get_string('hp_prg_heading', 'local_academy')), array('class' => 'la-prg-title')) .
@@ -1435,14 +1486,14 @@ function local_academy_my_programs_section() {
                 : $row(get_string('hp_prg_ends', 'local_academy'), $p['timeend'])) .
         '</div>';
 
-        $action = html_writer::link(
-            (string) new moodle_url('/enrol/programs/my/program.php', array('id' => $p['id'])),
+        $programurl = (string) new moodle_url('/enrol/programs/my/program.php', array('id' => $p['id']));
+        $action = html_writer::link($programurl,
             s(get_string('hp_prg_open', 'local_academy')), array('class' => 'la-prg-btn'));
 
-        $cards .= local_academy_program_card($badges, $p['name'], $p['description'], $meta, '', $action, $i);
+        $cards .= local_academy_program_card($badges, $p['name'], $p['description'], $meta, '', $action, $i, $programurl);
     }
 
-    return local_academy_programs_css() .
+    return local_academy_programs_css() . local_academy_programs_card_js() .
         '<section id="la-prg-mine" class="la-prg">' .
             '<div class="la-prg-head">' .
                 html_writer::tag('h3', s(get_string('hp_myprg_heading', 'local_academy')), array('class' => 'la-prg-title')) .

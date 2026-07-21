@@ -978,6 +978,31 @@ try {
             academy_respond(['status' => 'success', 'data' => ['opened' => true]]);
             break;
 
+        // Student: the programs catalogue — everything this user may see, with price/offer/owned
+        // state. Same list, same order, as the front-page "Programs" section.
+        case 'get_catalogue_programs':
+            academy_respond(['status' => 'success',
+                'data' => program_purchase_manager::get_catalogue_programs($userid)]);
+            break;
+
+        // Student: the programs this user is allocated to, with their dates and completion state.
+        case 'get_my_programs':
+            academy_respond(['status' => 'success',
+                'data' => program_purchase_manager::get_my_programs($userid)]);
+            break;
+
+        // Student: one program's full detail screen — description, curriculum tree, price/offer,
+        // and (when owned) the allocation dates plus per-item completion.
+        case 'get_program_details':
+            try {
+                academy_respond(['status' => 'success',
+                    'data' => program_purchase_manager::get_program_details(
+                        $userid, required_param('programid', PARAM_INT))]);
+            } catch (Exception $e) {
+                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+            }
+            break;
+
         // Student: price + whether they already own this program (drives the catalogue button).
         case 'get_program_state':
             academy_respond(['status' => 'success', 'data' => program_purchase_manager::get_student_state(

@@ -34,6 +34,7 @@ student `hmprep02-001/123456`. Admin-only functions require the `local/academy:m
 | 4 | Reports, assign, export | `reports-export-guide.md` | `Academy_Reports.postman_collection.json` |
 | 5 | **Coupons & offers (all 3 purchase flows)** | `coupons-offers-mobile-guide.md` | (in Subscriptions / Packages) |
 | 5 | Coupons & offers — API changelog | `coupons-offers-api-changes.md` | — |
+| 5 | **Programs (البرامج / برامجي / details)** | `programs-mobile-guide.md` | — |
 
 Import all five collections into Postman. Each has an **Auth** folder — run the relevant Login first
 (it saves the token into a collection variable), then send any request.

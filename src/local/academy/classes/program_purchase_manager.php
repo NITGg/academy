@@ -419,6 +419,157 @@ class program_purchase_manager {
     }
 
     /**
+     * Everything one program's detail screen needs, in a single call.
+     *
+     * Serves both audiences the web has two pages for: a shopper deciding whether to buy
+     * (/enrol/programs/catalogue/program.php) and an owner tracking progress
+     * (/enrol/programs/my/program.php). Which one the caller is showing is decided by 'owned' —
+     * when it is 1 the response also carries 'allocation' and per-item completion dates.
+     *
+     * Visibility matches the plugin's own catalogue rule, so this cannot leak a program the user
+     * would not be allowed to open on the web.
+     *
+     * @param int $userid 0 for guests (public programs only, never owned)
+     * @param int $programid
+     * @return array
+     * @throws \moodle_exception when the program is missing, archived, or not visible to this user
+     */
+    public static function get_program_details($userid, $programid) {
+        global $DB;
+        self::require_available();
+
+        $userid = (int)$userid;
+        $programid = (int)$programid;
+
+        $program = $DB->get_record('enrol_programs_programs', array('id' => $programid));
+        if (!$program || $program->archived) {
+            throw new \moodle_exception('err_programnotfound', 'local_academy');
+        }
+
+        $allocation = $userid
+            ? $DB->get_record('enrol_programs_allocations',
+                array('programid' => $programid, 'userid' => $userid, 'archived' => 0))
+            : false;
+
+        // A guest (userid 0) may only see public programs; is_program_visible() falls back to $USER
+        // when given null, so pass the id explicitly.
+        if (!$allocation && !\enrol_programs\local\catalogue::is_program_visible($program, $userid)) {
+            throw new \moodle_exception('err_programnotfound', 'local_academy');
+        }
+
+        $price = self::get_price($programid);
+        $paid = $price !== null;
+        $context = \context::instance_by_id((int)$program->contextid, IGNORE_MISSING)
+            ?: \context_system::instance();
+
+        $out = array(
+            'id'          => (int)$program->id,
+            'name'        => format_string($program->fullname),
+            // Card-sized plain text, same string the list endpoints return.
+            'description' => self::plain_description($program),
+            // Full formatted description for the detail screen. Render as HTML.
+            'description_html' => format_text(
+                file_rewrite_pluginfile_urls($program->description, 'pluginfile.php', $context->id,
+                    'enrol_programs', 'description', $program->id),
+                $program->descriptionformat, array('context' => $context)),
+            'image'       => self::image_url($program, $context),
+            'free'        => $paid ? 0 : 1,
+            'price'       => $paid ? (float)$price->price : 0.0,
+            'currency'    => $paid ? ($price->currency ?: 'EGP') : 'EGP',
+            'offer'       => $paid
+                ? discount_manager::offer_summary(discount_manager::TYPE_PROGRAM, $programid, (float)$price->price)
+                : null,
+            'owned'       => $allocation ? 1 : 0,
+            'joinable'    => (!$paid && !$allocation && self::has_free_signup($programid)) ? 1 : 0,
+            'allocation'  => null,
+        );
+
+        if ($allocation) {
+            $out['allocation'] = array(
+                'timeallocated' => (int)$allocation->timeallocated,
+                'timestart'     => (int)$allocation->timestart,
+                'timedue'       => (int)$allocation->timedue,
+                'timeend'       => (int)$allocation->timeend,
+                'timecompleted' => (int)$allocation->timecompleted,
+                'completed'     => $allocation->timecompleted ? 1 : 0,
+            );
+        }
+
+        $out['content'] = self::content_tree($programid, $allocation ? (int)$allocation->id : 0);
+        return $out;
+    }
+
+    /**
+     * A program's presentation image as an absolute URL, or '' when it has none.
+     *
+     * @param \stdClass $program
+     * @param \context  $context
+     * @return string
+     */
+    private static function image_url($program, $context) {
+        global $CFG;
+        $presentation = (array)json_decode((string)$program->presentationjson);
+        if (empty($presentation['image'])) {
+            return '';
+        }
+        return (string) \moodle_url::make_file_url("$CFG->wwwroot/pluginfile.php",
+            '/' . $context->id . '/enrol_programs/image/' . $program->id . '/' . $presentation['image'], false);
+    }
+
+    /**
+     * The program's curriculum as a nested tree of sets and courses.
+     *
+     * Built from the plugin's own content model rather than the tables directly, so the ordering and
+     * the set completion rules ("all", "at least N of…") match what the web page shows. Passing an
+     * allocation id adds the student's completion date to each item; passing 0 leaves them null,
+     * which is what a shopper who does not own the program yet should see.
+     *
+     * @param int $programid
+     * @param int $allocationid 0 when the user has no allocation
+     * @return array top-level children; each node has a 'children' array of the same shape
+     */
+    private static function content_tree($programid, $allocationid) {
+        global $DB;
+
+        $top = \enrol_programs\local\program::load_content($programid);
+
+        // One query for the whole tree instead of one per item.
+        $completions = $allocationid
+            ? $DB->get_records('enrol_programs_completions', array('allocationid' => $allocationid),
+                '', 'itemid, timecompleted')
+            : array();
+
+        $build = function($item) use (&$build, $completions) {
+            $itemid = (int)$item->get_id();
+            $iscourse = $item instanceof \enrol_programs\local\content\course;
+
+            $node = array(
+                'itemid'        => $itemid,
+                'type'          => $iscourse ? 'course' : 'set',
+                'name'          => $item->get_fullname(),
+                'courseid'      => $iscourse ? (int)$item->get_courseid() : 0,
+                // Human-readable completion rule for a set ('' for a course).
+                'sequencetype'  => $item instanceof \enrol_programs\local\content\set
+                    ? $item->get_sequencetype_info() : '',
+                'timecompleted' => isset($completions[$itemid]) ? (int)$completions[$itemid]->timecompleted : 0,
+                'completed'     => isset($completions[$itemid]) ? 1 : 0,
+                'children'      => array(),
+            );
+            foreach ($item->get_children() as $child) {
+                $node['children'][] = $build($child);
+            }
+            return $node;
+        };
+
+        // The top node is the program itself — return its children, not the wrapper.
+        $out = array();
+        foreach ($top->get_children() as $child) {
+            $out[] = $build($child);
+        }
+        return $out;
+    }
+
+    /**
      * A program's description as short plain text, safe to drop into a card.
      *
      * @param \stdClass $r row carrying description/descriptionformat/contextid
