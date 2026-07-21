@@ -1287,7 +1287,11 @@ $string['mc_not_active']      = 'This purchase is not active and cannot be revok
 
 // Certificate eligibility (plugin-agnostic: decides who is eligible for each certificate).
 $string['certeligibility']              = 'Certificate eligibility';
-$string['cert_desc']                    = 'Define the eligibility rules that decide whether a student qualifies for each certificate on a course or a program. A course or program can have several (e.g. Completion, Attendance, Excellence). This is an eligibility wrapper only — it does not create certificates: rendering, PDF, verification and downloads stay with the certificate plugin. For a course, once a Custom Certificate activity exists you can link it below so it remains the single source of truth; a program spans many courses and has no single activity, so program certificates are eligibility-only.';
+$string['cert_desc']                    = 'Define certificate eligibility for programs. Pick a program to see its certificates, then create, edit or delete them. Each certificate has a single eligibility rule that decides whether a student qualifies. Course certificates are handled separately (the Custom Certificate activity inside the course). This is eligibility information only — no certificate is issued or downloaded here.';
+$string['cert_programs_heading']        = 'Programs';
+$string['cert_manage']                  = 'Manage certificates';
+$string['cert_back']                    = 'Back to programs';
+$string['cert_prog_certs']              = 'Certificates — {$a}';
 $string['cert_course']                  = 'Course ID';
 $string['cert_load']                    = 'Load';
 $string['cert_new']                     = '+ New certificate';
@@ -1311,7 +1315,7 @@ $string['cert_deleted']                 = 'Certificate deleted.';
 $string['cert_confirm_delete']          = 'Delete this certificate and its rules?';
 $string['cert_rule']                    = 'Rule';
 $string['cert_pick']                    = '— choose —';
-$string['cert_note']                    = 'A student must satisfy the rules above (per the chosen operator) before this certificate is considered available. A certificate with no rules, or a disabled one, means no one is eligible.';
+$string['cert_note']                    = 'A student must satisfy the rule above before this certificate is considered available. A disabled certificate means no one is eligible.';
 $string['cert_rule_course_progress']    = 'Course progress ≥ threshold %';
 $string['cert_rule_attendance']         = 'Attendance ≥ threshold %';
 $string['cert_rule_quiz_passed']        = 'Quiz passed';
@@ -1329,6 +1333,14 @@ $string['cert_scope_course']            = 'Course';
 $string['cert_scope_program']           = 'Program';
 $string['cert_program']                 = 'Program';
 $string['cert_pickprogram']             = '— choose a program —';
+// Student-facing card on the program page.
+$string['cert_student_title']           = 'Program certificates';
+$string['cert_student_eligible']        = 'Eligible';
+$string['cert_student_not_eligible']    = 'In progress';
+$string['cert_student_all']             = 'You must meet all of the requirements below.';
+$string['cert_student_any']             = 'You must meet at least one of the requirements below.';
+$string['cert_student_eligible_note']   = 'You have met the requirements for this certificate.';
+$string['cert_student_pending_note']    = 'Complete the remaining requirements to qualify for this certificate.';
 $string['err_certnotfound']             = 'Certificate not found.';
 $string['err_certcoursenotfound']       = 'Course not found.';
 $string['err_certprogramnotfound']      = 'Program not found.';

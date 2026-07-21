@@ -1453,6 +1453,142 @@ function local_academy_my_programs_section() {
 }
 
 /**
+ * Student certificate card injected into the enrol_programs "my program" page
+ * (/enrol/programs/my/program.php). Shows the logged-in student, for the program they are viewing,
+ * every ENABLED certificate defined for that program plus whether they are eligible and — per rule —
+ * what is required versus what they have achieved.
+ *
+ * Injected from local_academy so the third-party plugin's files stay untouched. It is eligibility
+ * information only: there is no program-level certificate activity, so nothing is issued/downloaded
+ * here — the card tells the student whether (and how close to) they qualify.
+ *
+ * Rendered server-side (we already have $USER and the program id); a small script relocates it into
+ * the page's main region so it sits with the rest of the program content rather than at page end.
+ *
+ * @return string HTML to echo before the footer, '' when there is nothing to show
+ */
+function local_academy_program_certificates_section() {
+    global $USER;
+
+    if (!isloggedin() || isguestuser()) {
+        return '';
+    }
+    $programid = optional_param('id', 0, PARAM_INT);
+    if ($programid <= 0) {
+        return '';
+    }
+
+    $reports = \local_academy\cert\eligibility_manager::get_program_certificate_reports((int)$USER->id, $programid);
+    // Only advertise enabled certificates — a disabled one is not offered to students.
+    $reports = array_values(array_filter($reports, function ($r) {
+        return !empty($r['enabled']);
+    }));
+    if (!$reports) {
+        return '';
+    }
+
+    $cards = '';
+    foreach ($reports as $r) {
+        $eligible = !empty($r['eligible']);
+        $statusclass = $eligible ? 'la-cert-status--ok' : 'la-cert-status--pending';
+        $statuslabel = $eligible
+            ? get_string('cert_student_eligible', 'local_academy')
+            : get_string('cert_student_not_eligible', 'local_academy');
+
+        // One row per rule: its label, a passed/failed marker, and achieved-vs-required when the rule
+        // reports a measurable value (e.g. progress %). Boolean rules just show the marker.
+        $rules = '';
+        foreach (($r['results'] ?? array()) as $res) {
+            $passed = !empty($res['passed']);
+            $mark = $passed ? '✓' : '✗';
+            $markclass = $passed ? 'la-cert-mark--ok' : 'la-cert-mark--no';
+            $unit = (string)($res['unit'] ?? '');
+            $required = $res['required'] ?? null;
+            $detail = '';
+            // Show "achieved / required [unit]" when the rule exposes a meaningful count to compare:
+            // a unit (e.g. progress %) or a required total above one (e.g. 2 / 3 courses). A plain
+            // yes/no rule (required 1, no unit) needs no number — the marker already says it.
+            $showdetail = $unit !== '' || (is_numeric($required) && (float)$required > 1);
+            if ($required !== null && $required !== '' && $showdetail) {
+                $detail = html_writer::tag('span',
+                    s((string)$res['actual']) . ' / ' . s((string)$required) . ($unit !== '' ? ' ' . s($unit) : ''),
+                    array('class' => 'la-cert-detail'));
+            }
+            $rules .= '<li class="la-cert-rule">' .
+                html_writer::tag('span', $mark, array('class' => 'la-cert-mark ' . $markclass)) .
+                html_writer::tag('span', s((string)($res['label'] ?? '')), array('class' => 'la-cert-rule-label')) .
+                $detail .
+            '</li>';
+        }
+
+        $operatornote = ($r['operator'] ?? 'and') === 'or'
+            ? get_string('cert_student_any', 'local_academy')
+            : get_string('cert_student_all', 'local_academy');
+
+        $cards .= '<div class="la-cert-card">' .
+            '<div class="la-cert-card-head">' .
+                html_writer::tag('span', s((string)($r['name'] ?? '')), array('class' => 'la-cert-name')) .
+                html_writer::tag('span', $statuslabel, array('class' => 'la-cert-status ' . $statusclass)) .
+            '</div>' .
+            html_writer::tag('p', $operatornote, array('class' => 'la-cert-op')) .
+            '<ul class="la-cert-rules">' . $rules . '</ul>' .
+            ($eligible
+                ? html_writer::tag('p', get_string('cert_student_eligible_note', 'local_academy'), array('class' => 'la-cert-note la-cert-note--ok'))
+                : html_writer::tag('p', get_string('cert_student_pending_note', 'local_academy'), array('class' => 'la-cert-note'))) .
+        '</div>';
+    }
+
+    $css = <<<CSS
+.la-cert{--pm:#6c22a6;max-width:1280px;margin:2rem auto;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-cert-title{font-size:1.35rem;font-weight:800;color:#1c1d1f;margin:0 0 1.1rem;display:flex;align-items:center;gap:.5rem}
+.la-cert-title svg{width:26px;height:26px;fill:var(--pm)}
+.la-cert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.25rem}
+.la-cert-card{background:#fff;border:1px solid #e8e6ef;border-radius:10px;padding:1.1rem 1.2rem;box-shadow:0 4px 14px rgba(108,34,166,.07)}
+.la-cert-card-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.4rem}
+.la-cert-name{font-weight:700;font-size:1.05rem;color:#1c1d1f}
+.la-cert-status{font-size:.78rem;font-weight:800;padding:.25rem .65rem;border-radius:1rem;white-space:nowrap}
+.la-cert-status--ok{background:#1f9d55;color:#fff}
+.la-cert-status--pending{background:#f1f3f5;color:#6a6f73}
+.la-cert-op{font-size:.82rem;color:#6a6f73;margin:0 0 .7rem}
+.la-cert-rules{list-style:none;margin:0;padding:0}
+.la-cert-rule{display:flex;align-items:center;gap:.55rem;padding:.4rem 0;border-top:1px solid #f4f4f6;font-size:.92rem}
+.la-cert-rule:first-child{border-top:none}
+.la-cert-mark{width:1.3rem;height:1.3rem;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-size:.8rem;font-weight:800;color:#fff}
+.la-cert-mark--ok{background:#1f9d55}
+.la-cert-mark--no{background:#c0392b}
+.la-cert-rule-label{color:#1c1d1f;flex:1}
+.la-cert-detail{color:#6a6f73;font-weight:700;white-space:nowrap}
+.la-cert-note{font-size:.85rem;color:#6a6f73;margin:.8rem 0 0}
+.la-cert-note--ok{color:#1f7a43;font-weight:700}
+CSS;
+
+    $icon = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 15-4-4 1.41-1.41L10 13.17l6.59-6.58L18 8l-8 8z"/></svg>';
+
+    $html = html_writer::tag('style', $css) .
+        '<section id="la-cert" class="la-cert">' .
+            html_writer::tag('h3',
+                $icon . s(get_string('cert_student_title', 'local_academy')),
+                array('class' => 'la-cert-title')) .
+            '<div class="la-cert-grid">' . $cards . '</div>' .
+        '</section>';
+
+    // Move the section up into the page's main content region (before_footer output otherwise lands
+    // at the very bottom of the page, below all program content).
+    $html .= <<<'JS'
+<script>
+(function () {
+    var sec = document.getElementById('la-cert');
+    if (!sec) { return; }
+    var main = document.getElementById('region-main') || document.querySelector('[role="main"]');
+    if (main) { main.appendChild(sec); }
+})();
+</script>
+JS;
+
+    return $html;
+}
+
+/**
  * Front-page "Comments from our distinguished customers" testimonials block (Figma "PM Lounge"
  * design). Static, localizable marketing content — no purchase logic — rendered after the course
  * cards. Returns HTML to echo before the footer.
@@ -1941,6 +2077,17 @@ function local_academy_before_footer() {
             $output .= local_academy_program_catalogue_pricing();
         } catch (\Throwable $e) {
             debugging('academy program pricing injection failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+    }
+
+    // 1c. Program certificates: on the student's own program page, show which certificates the
+    // program offers and whether they qualify. Eligibility info only (nothing is issued here).
+    if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)
+            && $PAGE->pagetype === 'enrol-programs-my-program') {
+        try {
+            $output .= local_academy_program_certificates_section();
+        } catch (\Throwable $e) {
+            debugging('academy program certificates section failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
     }
 
