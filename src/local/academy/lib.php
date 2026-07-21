@@ -1070,6 +1070,26 @@ function local_academy_programs_css() {
 .la-prg-err{color:#c0392b;font-size:.85rem;margin-top:.5rem}
 .la-prg-all{display:inline-block;margin-top:1.75rem;color:var(--pm);font-weight:700;text-decoration:none}
 .la-prg-all:hover{color:var(--pm-d);text-decoration:underline}
+/* Confirmation dialog (same pattern as la-pkgs / la-subs modals). */
+.la-prg-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-prg-modal-bg.open{display:flex;opacity:1}
+.la-prg-modal{background:#fff;border-radius:12px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
+.la-prg-modal-bg.open .la-prg-modal{transform:none}
+.la-prg-modal-head{display:flex;align-items:center;gap:.7rem;padding:1.25rem 1.4rem 0}
+.la-prg-modal-head svg{width:34px;height:34px;fill:#6c22a6;flex-shrink:0}
+.la-prg-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#1c1d1f}
+.la-prg-modal-body{padding:.9rem 1.4rem 0;color:#3c3c3c;font-size:.95rem;line-height:1.5}
+.la-prg-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:#f5eefc;border:1px solid #e4d3f5;border-radius:8px}
+.la-prg-modal-plan .name{font-weight:700;color:#1c1d1f;margin-bottom:.35rem}
+.la-prg-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#4b4b4b;margin-top:.2rem}
+.la-prg-modal-row b{color:#1c1d1f}
+.la-prg-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#6a6f73;margin-top:.2rem}
+.la-prg-modal-secure svg{width:14px;height:14px;fill:#1f9d55}
+.la-prg-modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:1.2rem 1.4rem 1.3rem}
+.la-prg-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:4px;cursor:pointer}
+.la-prg-modal-cancel:hover{background:#f6f7f8}
+.la-prg-modal-ok{background:#6c22a6;border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:4px;cursor:pointer}
+.la-prg-modal-ok:hover{background:#57187f}
 CSS;
 
     return html_writer::tag('style', $css);
@@ -1196,7 +1216,10 @@ function local_academy_available_programs_section() {
                 array('class' => 'la-prg-btn'));
         } else {
             $action = html_writer::tag('button', s(get_string('prg_buy', 'local_academy')),
-                array('type' => 'button', 'class' => 'la-prg-btn la-prg-buy', 'data-programid' => $p['id']));
+                array('type' => 'button', 'class' => 'la-prg-btn la-prg-buy',
+                    'data-programid' => $p['id'],
+                    'data-name'      => $p['name'],
+                    'data-price'     => $p['price']));
         }
 
         $cards .= local_academy_program_card($badges, $p['name'], $p['description'], '', $price, $action, $i);
@@ -1215,43 +1238,150 @@ function local_academy_available_programs_section() {
         '</section>';
 
     if ($token) {
+        $str = array(
+            'sess_expired'    => get_string('err_sessionexpired', 'local_academy'),
+            'req_failed'      => get_string('err_requestfailed', 'local_academy'),
+            'confirm_title'   => get_string('hp_prg_confirm_title', 'local_academy'),
+            'confirm_body'    => get_string('hp_prg_confirm_body', 'local_academy'),
+            'total'           => get_string('hp_total', 'local_academy'),
+            'egp'             => get_string('hp_egp', 'local_academy'),
+            'coupon'          => get_string('hp_coupon', 'local_academy'),
+            'apply'           => get_string('hp_apply', 'local_academy'),
+            'discount'        => get_string('hp_discount', 'local_academy'),
+            'secure'          => get_string('hp_secure', 'local_academy'),
+            'cancel'          => get_string('hp_cancel', 'local_academy'),
+            'proceed'         => get_string('hp_proceed', 'local_academy'),
+            'redirecting'     => get_string('hp_prg_redirecting', 'local_academy'),
+        );
         $cfg = json_encode(array(
             'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
             'token'    => $token,
             'lang'     => current_language(),
-            'str'      => local_academy_string_map(array('err_requestfailed', 'err_sessionexpired')),
         ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $strjson = json_encode($str, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         $out .= html_writer::script(<<<JS
 (function () {
   var CFG = {$cfg};
-  var STR = CFG.str || {};
+  var T = {$strjson};
+
+  function el(tag, attrs, html) {
+    var e = document.createElement(tag);
+    for (var k in (attrs || {})) { e.setAttribute(k, attrs[k]); }
+    if (html != null) { e.innerHTML = html; }
+    return e;
+  }
+  function esc(v) {
+    return (v == null ? '' : String(v)).replace(/[&<>"]/g, function(c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+  function money(n) { return Number(n || 0).toFixed(2); }
+  function parse(r) {
+    return r.text().then(function(t) {
+      var j;
+      try { j = JSON.parse(t); } catch (e) { throw new Error(T.sess_expired); }
+      if (j.status !== 'success') { throw new Error(j.error || T.req_failed); }
+      return j.data;
+    });
+  }
+  function apiGet(fn, params) {
+    var base = {'function': fn, token: CFG.token}; if (CFG.lang) { base.alang = CFG.lang; }
+    var q = new URLSearchParams(Object.assign(base, params || {}));
+    return fetch(CFG.endpoint + '?' + q.toString()).then(parse);
+  }
+  function apiPost(fn, params) {
+    var base = {'function': fn, token: CFG.token}; if (CFG.lang) { base.alang = CFG.lang; }
+    var body = new URLSearchParams(Object.assign(base, params || {}));
+    return fetch(CFG.endpoint, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: body.toString()
+    }).then(parse);
+  }
+
+  function confirmBuyProgram(p) {
+    return new Promise(function(resolve) {
+      var LOCK = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1a5 5 0 00-5 5v3H6a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2v-9a2 2 0 00-2-2h-1V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 016 0v3z"/></svg>';
+      var CAP = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>';
+      var bg = el('div', {'class': 'la-prg-modal-bg'});
+      bg.innerHTML =
+        '<div class="la-prg-modal" role="dialog" aria-modal="true">' +
+          '<div class="la-prg-modal-head">' + CAP + '<h4>' + esc(T.confirm_title) + '</h4></div>' +
+          '<div class="la-prg-modal-body">' +
+            '<p>' + esc(T.confirm_body) + '</p>' +
+            '<div class="la-prg-modal-plan">' +
+              '<div class="name">' + esc(p.name) + '</div>' +
+              '<div class="la-prg-modal-row"><span>' + esc(T.total) + '</span><b class="la-prg-orig">' + esc(money(p.price)) + ' ' + esc(T.egp) + '</b></div>' +
+              '<div class="la-prg-modal-row"><span>' + esc(T.coupon) + '</span><span style="display:flex;gap:.3rem"><input type="text" class="la-prg-coupon" style="max-width:110px;border:1px solid #d1d7dc;border-radius:4px;padding:.15rem .4rem"><button type="button" class="la-prg-apply" style="border:1px solid #6c22a6;background:#fff;color:#6c22a6;border-radius:4px;padding:.15rem .6rem;cursor:pointer">' + esc(T.apply) + '</button></span></div>' +
+              '<div class="la-prg-coupon-msg" style="color:#c0392b;font-size:.8rem;margin:.2rem 0"></div>' +
+              '<div class="la-prg-modal-row"><span>' + esc(T.discount) + '</span><b class="la-prg-disc" style="color:#1f9d55">0.00 ' + esc(T.egp) + '</b></div>' +
+              '<div class="la-prg-modal-row" style="border-top:1px solid #e4d3f5;margin-top:.35rem;padding-top:.45rem"><span style="font-weight:700">' + esc(T.total) + '</span><b class="la-prg-final" style="color:#6c22a6;font-size:1.2rem">' + esc(money(p.price)) + ' ' + esc(T.egp) + '</b></div>' +
+            '</div>' +
+            '<div class="la-prg-modal-secure">' + LOCK + '<span>' + esc(T.secure) + '</span></div>' +
+          '</div>' +
+          '<div class="la-prg-modal-foot">' +
+            '<button type="button" class="la-prg-modal-cancel">' + esc(T.cancel) + '</button>' +
+            '<button type="button" class="la-prg-modal-ok">' + esc(T.proceed) + '</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(bg);
+      void bg.offsetWidth;
+      bg.classList.add('open');
+
+      function close(result) {
+        bg.classList.remove('open');
+        document.removeEventListener('keydown', onKey);
+        setTimeout(function() { if (bg.parentNode) { bg.parentNode.removeChild(bg); } }, 180);
+        resolve(result);
+      }
+      function onKey(e) { if (e.key === 'Escape') { close(null); } }
+      document.addEventListener('keydown', onKey);
+
+      var couponInput = bg.querySelector('.la-prg-coupon');
+      var discEl = bg.querySelector('.la-prg-disc');
+      var finalEl = bg.querySelector('.la-prg-final');
+      var origEl = bg.querySelector('.la-prg-orig');
+      var cmsg = bg.querySelector('.la-prg-coupon-msg');
+      function preview(code) {
+        apiGet('preview_discount', {item_type: 'program', item_id: p.id, coupon_code: code || ''})
+          .then(function(d) {
+            discEl.textContent = (d.discount > 0 ? '-' + money(d.discount) : '0.00') + ' ' + T.egp;
+            finalEl.textContent = money(d.final) + ' ' + T.egp;
+            origEl.style.textDecoration = d.discount > 0 ? 'line-through' : 'none';
+            cmsg.textContent = d.coupon_error ? d.coupon_error : '';
+          }).catch(function() {});
+      }
+      bg.querySelector('.la-prg-apply').onclick = function() { preview(couponInput.value.trim()); };
+      couponInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); preview(couponInput.value.trim()); } });
+      var prgDeb;
+      couponInput.addEventListener('input', function() {
+        clearTimeout(prgDeb);
+        prgDeb = setTimeout(function() { preview(couponInput.value.trim()); }, 450);
+      });
+      preview('');
+
+      bg.querySelector('.la-prg-modal-cancel').onclick = function() { close(null); };
+      bg.querySelector('.la-prg-modal-ok').onclick = function() { close(couponInput.value.trim()); };
+      bg.onclick = function(e) { if (e.target === bg) { close(null); } };
+    });
+  }
+
   Array.prototype.forEach.call(document.querySelectorAll('#la-prg-available .la-prg-buy'), function (btn) {
     btn.addEventListener('click', function () {
-      var label = btn.textContent;
-      btn.disabled = true;
-      var body = new URLSearchParams({
-        'function': 'create_program_checkout', token: CFG.token,
-        programid: btn.getAttribute('data-programid'), alang: CFG.lang
-      });
-      fetch(CFG.endpoint, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: body.toString()
-      }).then(function (r) { return r.text(); }).then(function (t) {
-        var j;
-        try { j = JSON.parse(t); } catch (e) { throw new Error(STR.err_sessionexpired); }
-        if (j.status !== 'success') { throw new Error(j.error || STR.err_requestfailed); }
-        window.location.href = j.data.checkout_url;
-      }).catch(function (e) {
-        btn.disabled = false; btn.textContent = label;
-        var err = btn.parentNode.parentNode.querySelector('.la-prg-err');
-        if (!err) {
-          err = document.createElement('div');
-          err.className = 'la-prg-err';
-          btn.parentNode.parentNode.appendChild(err);
-        }
-        err.textContent = e.message;
+      var p = { id: btn.getAttribute('data-programid'), name: btn.getAttribute('data-name'), price: btn.getAttribute('data-price') };
+      confirmBuyProgram(p).then(function(code) {
+        if (code === null) { return; }
+        var orig = btn.textContent;
+        btn.disabled = true; btn.textContent = T.redirecting;
+        apiPost('create_program_checkout', {programid: p.id, coupon_code: code})
+          .then(function(d) { window.location.href = d.checkout_url; })
+          .catch(function(e) {
+            btn.disabled = false; btn.textContent = orig;
+            var err = btn.parentNode.parentNode.querySelector('.la-prg-err');
+            if (!err) { err = document.createElement('div'); err.className = 'la-prg-err'; btn.parentNode.parentNode.appendChild(err); }
+            err.textContent = e.message;
+          });
       });
     });
   });
@@ -1555,6 +1685,21 @@ function local_academy_program_catalogue_pricing() {
         }
     }
 
+    $str = array(
+        'sess_expired'    => get_string('err_sessionexpired', 'local_academy'),
+        'req_failed'      => get_string('err_requestfailed', 'local_academy'),
+        'confirm_title'   => get_string('hp_prg_confirm_title', 'local_academy'),
+        'confirm_body'    => get_string('hp_prg_confirm_body', 'local_academy'),
+        'total'           => get_string('hp_total', 'local_academy'),
+        'egp'             => get_string('hp_egp', 'local_academy'),
+        'coupon'          => get_string('hp_coupon', 'local_academy'),
+        'apply'           => get_string('hp_apply', 'local_academy'),
+        'discount'        => get_string('hp_discount', 'local_academy'),
+        'secure'          => get_string('hp_secure', 'local_academy'),
+        'cancel'          => get_string('hp_cancel', 'local_academy'),
+        'proceed'         => get_string('hp_proceed', 'local_academy'),
+        'redirecting'     => get_string('hp_prg_redirecting', 'local_academy'),
+    );
     $cfg = json_encode(array(
         'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
         'token'    => $token,
@@ -1564,35 +1709,124 @@ function local_academy_program_catalogue_pricing() {
         'owned'    => array_keys($owned),
         'str'      => local_academy_string_map(array(
             'prg_buy', 'prg_price_label', 'prg_owned', 'prg_login_to_buy',
-            'ui_currency_egp', 'err_requestfailed', 'err_sessionexpired',
+            'ui_currency_egp',
         )),
     ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $strjson = json_encode($str, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
     $out = '<style>
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap");
 .academy-prg-price{margin:.75rem 0;padding:.75rem 1rem;border:1px solid #dee2e6;border-radius:.5rem;background:#f8f9fa}
 .academy-prg-price .amount{font-size:1.35rem;font-weight:700;color:#0f6cbf}
 .academy-prg-price .label{color:#6c757d;font-size:.82rem}
 .academy-prg-price .owned{color:#155724;font-weight:600}
 .academy-prg-buy{margin-top:.5rem}
+.la-cat-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif}
+.la-cat-modal-bg.open{display:flex;opacity:1}
+.la-cat-modal{background:#fff;border-radius:12px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
+.la-cat-modal-bg.open .la-cat-modal{transform:none}
+.la-cat-modal-head{display:flex;align-items:center;gap:.7rem;padding:1.25rem 1.4rem 0}
+.la-cat-modal-head svg{width:34px;height:34px;fill:#6c22a6;flex-shrink:0}
+.la-cat-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#1c1d1f}
+.la-cat-modal-body{padding:.9rem 1.4rem 0;color:#3c3c3c;font-size:.95rem;line-height:1.5}
+.la-cat-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:#f5eefc;border:1px solid #e4d3f5;border-radius:8px}
+.la-cat-modal-plan .name{font-weight:700;color:#1c1d1f;margin-bottom:.35rem}
+.la-cat-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#4b4b4b;margin-top:.2rem}
+.la-cat-modal-row b{color:#1c1d1f}
+.la-cat-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#6a6f73;margin-top:.2rem}
+.la-cat-modal-secure svg{width:14px;height:14px;fill:#1f9d55}
+.la-cat-modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:1.2rem 1.4rem 1.3rem}
+.la-cat-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:4px;cursor:pointer}
+.la-cat-modal-cancel:hover{background:#f6f7f8}
+.la-cat-modal-ok{background:#6c22a6;border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:4px;cursor:pointer}
+.la-cat-modal-ok:hover{background:#57187f}
 </style>';
 
     $out .= html_writer::script(<<<JS
 (function () {
   var CFG = {$cfg};
+  var T = {$strjson};
   var STR = CFG.str || {};
   function str(k){return (k in STR)?STR[k]:k;}
   function money(n){return Number(n||0).toFixed(2);}
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function el(tag, attrs, html) { var e = document.createElement(tag); for (var k in (attrs||{})){e.setAttribute(k,attrs[k]);} if(html!=null){e.innerHTML=html;} return e; }
+  function parse(r) {
+    return r.text().then(function(t) {
+      var j; try{j=JSON.parse(t);}catch(e){throw new Error(T.sess_expired);}
+      if(j.status!=='success'){throw new Error(j.error||T.req_failed);} return j.data;
+    });
+  }
+  function apiGet(fn,params){var base={'function':fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}var q=new URLSearchParams(Object.assign(base,params||{}));return fetch(CFG.endpoint+'?'+q.toString()).then(parse);}
+  function apiPost(fn,params){var base={'function':fn,token:CFG.token};if(CFG.lang){base.alang=CFG.lang;}var body=new URLSearchParams(Object.assign(base,params||{}));return fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()}).then(parse);}
+
+  function confirmBuy(p) {
+    return new Promise(function(resolve) {
+      var LOCK='<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1a5 5 0 00-5 5v3H6a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2v-9a2 2 0 00-2-2h-1V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 016 0v3z"/></svg>';
+      var CAP='<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>';
+      var bg=el('div',{'class':'la-cat-modal-bg'});
+      bg.innerHTML=
+        '<div class="la-cat-modal" role="dialog" aria-modal="true">'+
+          '<div class="la-cat-modal-head">'+CAP+'<h4>'+esc(T.confirm_title)+'</h4></div>'+
+          '<div class="la-cat-modal-body">'+
+            '<p>'+esc(T.confirm_body)+'</p>'+
+            '<div class="la-cat-modal-plan">'+
+              '<div class="name">'+esc(p.name)+'</div>'+
+              '<div class="la-cat-modal-row"><span>'+esc(T.total)+'</span><b class="la-cat-orig">'+esc(money(p.price))+' '+esc(T.egp)+'</b></div>'+
+              '<div class="la-cat-modal-row"><span>'+esc(T.coupon)+'</span><span style="display:flex;gap:.3rem"><input type="text" class="la-cat-coupon" style="max-width:110px;border:1px solid #d1d7dc;border-radius:4px;padding:.15rem .4rem"><button type="button" class="la-cat-apply" style="border:1px solid #6c22a6;background:#fff;color:#6c22a6;border-radius:4px;padding:.15rem .6rem;cursor:pointer">'+esc(T.apply)+'</button></span></div>'+
+              '<div class="la-cat-coupon-msg" style="color:#c0392b;font-size:.8rem;margin:.2rem 0"></div>'+
+              '<div class="la-cat-modal-row"><span>'+esc(T.discount)+'</span><b class="la-cat-disc" style="color:#1f9d55">0.00 '+esc(T.egp)+'</b></div>'+
+              '<div class="la-cat-modal-row" style="border-top:1px solid #e4d3f5;margin-top:.35rem;padding-top:.45rem"><span style="font-weight:700">'+esc(T.total)+'</span><b class="la-cat-final" style="color:#6c22a6;font-size:1.2rem">'+esc(money(p.price))+' '+esc(T.egp)+'</b></div>'+
+            '</div>'+
+            '<div class="la-cat-modal-secure">'+LOCK+'<span>'+esc(T.secure)+'</span></div>'+
+          '</div>'+
+          '<div class="la-cat-modal-foot">'+
+            '<button type="button" class="la-cat-modal-cancel">'+esc(T.cancel)+'</button>'+
+            '<button type="button" class="la-cat-modal-ok">'+esc(T.proceed)+'</button>'+
+          '</div>'+
+        '</div>';
+      document.body.appendChild(bg);
+      void bg.offsetWidth;
+      bg.classList.add('open');
+
+      function close(result){bg.classList.remove('open');document.removeEventListener('keydown',onKey);setTimeout(function(){if(bg.parentNode){bg.parentNode.removeChild(bg);}},180);resolve(result);}
+      function onKey(e){if(e.key==='Escape'){close(null);}}
+      document.addEventListener('keydown',onKey);
+
+      var couponInput=bg.querySelector('.la-cat-coupon');
+      var discEl=bg.querySelector('.la-cat-disc');
+      var finalEl=bg.querySelector('.la-cat-final');
+      var origEl=bg.querySelector('.la-cat-orig');
+      var cmsg=bg.querySelector('.la-cat-coupon-msg');
+      function preview(code){
+        apiGet('preview_discount',{item_type:'program',item_id:p.id,coupon_code:code||''})
+          .then(function(d){
+            discEl.textContent=(d.discount>0?'-'+money(d.discount):'0.00')+' '+T.egp;
+            finalEl.textContent=money(d.final)+' '+T.egp;
+            origEl.style.textDecoration=d.discount>0?'line-through':'none';
+            cmsg.textContent=d.coupon_error?d.coupon_error:'';
+          }).catch(function(){});
+      }
+      bg.querySelector('.la-cat-apply').onclick=function(){preview(couponInput.value.trim());};
+      couponInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();preview(couponInput.value.trim());}});
+      var catDeb;
+      couponInput.addEventListener('input',function(){clearTimeout(catDeb);catDeb=setTimeout(function(){preview(couponInput.value.trim());},450);});
+      preview('');
+
+      bg.querySelector('.la-cat-modal-cancel').onclick=function(){close(null);};
+      bg.querySelector('.la-cat-modal-ok').onclick=function(){close(couponInput.value.trim());};
+      bg.onclick=function(e){if(e.target===bg){close(null);}};
+    });
+  }
 
   var owned = {};
   (CFG.owned || []).forEach(function(id){ owned[id] = true; });
 
-  // The plugin renders <div class="programbox" data-programid="N"> on both catalogue pages.
   Array.prototype.forEach.call(document.querySelectorAll('.programbox[data-programid]'), function (box) {
     var id = parseInt(box.getAttribute('data-programid'), 10);
     var info = CFG.prices[id];
-    if (!info) { return; }   // Free program — leave the plugin's own UI alone.
-    if (box.querySelector('.academy-prg-price')) { return; } // Already decorated.
+    if (!info) { return; }
+    if (box.querySelector('.academy-prg-price')) { return; }
 
     var panel = document.createElement('div');
     panel.className = 'academy-prg-price';
@@ -1611,30 +1845,24 @@ function local_academy_program_catalogue_pricing() {
       login.textContent = str('prg_login_to_buy');
       panel.appendChild(login);
     } else {
+      var pname = box.querySelector('.program-name,.programname,h3,h4');
       var btn = document.createElement('button');
       btn.className = 'btn btn-primary academy-prg-buy';
       btn.type = 'button';
       btn.textContent = str('prg_buy');
       btn.onclick = function () {
-        btn.disabled = true;
-        var body = new URLSearchParams({
-          'function': 'create_program_checkout', token: CFG.token, programid: id, alang: CFG.lang
-        });
-        fetch(CFG.endpoint, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-          body: body.toString()
-        }).then(function (r) { return r.text(); }).then(function (t) {
-          var j;
-          try { j = JSON.parse(t); } catch (e) { throw new Error(str('err_sessionexpired')); }
-          if (j.status !== 'success') { throw new Error(j.error || str('err_requestfailed')); }
-          window.location.href = j.data.checkout_url;
-        }).catch(function (e) {
-          btn.disabled = false;
-          var err = document.createElement('div');
-          err.className = 'text-danger mt-2';
-          err.textContent = e.message;
-          panel.appendChild(err);
+        confirmBuy({id:id, name: pname ? pname.textContent.trim() : '#'+id, price: info.price}).then(function(code){
+          if (code===null) { return; }
+          var orig=btn.textContent;
+          btn.disabled=true; btn.textContent=T.redirecting;
+          apiPost('create_program_checkout',{programid:id,coupon_code:code})
+            .then(function(d){window.location.href=d.checkout_url;})
+            .catch(function(e){
+              btn.disabled=false; btn.textContent=orig;
+              var err=panel.querySelector('.text-danger');
+              if(!err){err=document.createElement('div');err.className='text-danger mt-2';panel.appendChild(err);}
+              err.textContent=e.message;
+            });
         });
       };
       panel.appendChild(btn);

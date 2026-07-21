@@ -69,7 +69,7 @@ $string['prg_login_to_buy']   = 'سجّل الدخول للشراء';
 $string['hp_prg_heading']     = 'البرامج';
 $string['hp_prg_desc']        = 'مسارات تعليمية متكاملة تأخذك من البداية حتى الشهادة.';
 $string['hp_myprg_heading']   = 'برامجي';
-$string['hp_myprg_desc']      = 'البرامج التي انضممت إليها — أكمل من حيث توقّفت.';
+$string['hp_myprg_desc']      = 'البرامج التي انضممت إليها';
 $string['hp_prg_free']        = 'مجاني';
 $string['hp_prg_paid']        = 'مدفوع';
 $string['hp_prg_enrolled']    = 'مسجَّل';
@@ -84,6 +84,10 @@ $string['hp_prg_ends']        = 'ينتهي';
 $string['hp_prg_notset']      = 'غير محدد';
 $string['hp_prg_all']         = 'تصفّح كتالوج البرامج كاملًا ←';
 $string['hp_myprg_all']       = 'عرض كل برامجي ←';
+// نافذة تأكيد شراء البرنامج.
+$string['hp_prg_confirm_title'] = 'شراء البرنامج';
+$string['hp_prg_confirm_body']  = 'راجع التفاصيل أدناه ثم أكّد عملية الشراء.';
+$string['hp_prg_redirecting']   = 'جارٍ التوجيه إلى الدفع…';
 $string['err_studenthaspackage']   = 'هذا الطالب لديه بالفعل باقة نشطة';
 
 // ── API-level system messages ──
@@ -1069,6 +1073,7 @@ $string['mycoupons_title'] = 'الكوبونات والعروض';
 $string['scope_all_course']       = 'كل المقررات';
 $string['scope_all_package']      = 'كل الباقات';
 $string['scope_all_subscription'] = 'كل الاشتراكات';
+$string['scope_all_program']      = 'كل البرامج';
 
 $string['cpn_new']         = 'إنشاء كوبون';
 $string['cpn_none']        = 'لا توجد كوبونات بعد.';
@@ -1095,6 +1100,7 @@ $string['cpn_usage_multiple'] = 'استخدام متعدد';
 $string['cpn_scope_courses']       = 'المقررات';
 $string['cpn_scope_packages']      = 'الباقات';
 $string['cpn_scope_subscriptions'] = 'الاشتراكات';
+$string['cpn_scope_programs']      = 'البرامج';
 $string['cpn_scope_all']      = 'الكل';
 $string['cpn_scope_specific'] = 'محدّد';
 $string['cpn_created']     = 'تم إنشاء الكوبون';

@@ -154,6 +154,8 @@ class discount_manager {
         }
         if ($itemtype === self::TYPE_PACKAGE) {
             $name = $DB->get_field('academy_packages', 'name', array('id' => $itemid));
+        } else if ($itemtype === self::TYPE_PROGRAM) {
+            $name = $DB->get_field('enrol_programs_programs', 'fullname', array('id' => $itemid));
         } else {
             $name = $DB->get_field('academy_subscriptions', 'name', array('id' => $itemid));
         }

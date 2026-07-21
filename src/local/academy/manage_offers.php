@@ -30,7 +30,7 @@ $STR = local_academy_string_map(array(
     'pkg_col_status', 'pkg_col_actions', 'sub_inactive',
     'cpn_col_type', 'cpn_col_value', 'cpn_col_scope', 'cpn_col_dates', 'cpn_field_dtype',
     'cpn_field_value', 'cpn_field_start', 'cpn_field_end', 'cpn_field_scope', 'cpn_type_percent',
-    'cpn_type_fixed', 'cpn_scope_courses', 'cpn_scope_packages', 'cpn_scope_subscriptions',
+    'cpn_type_fixed', 'cpn_scope_courses', 'cpn_scope_packages', 'cpn_scope_subscriptions', 'cpn_scope_programs',
     'cpn_scope_all', 'cpn_scope_specific', 'cpn_scope_required',
     'ofr_new', 'ofr_none', 'ofr_col_name', 'ofr_field_name', 'ofr_created', 'ofr_updated',
     'ofr_activated', 'ofr_deactivated', 'ofr_deleted', 'ofr_confirm_delete', 'ofr_edit_titled',
@@ -112,6 +112,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                     'course'       => $STR['cpn_scope_courses'],
                     'package'      => $STR['cpn_scope_packages'],
                     'subscription' => $STR['cpn_scope_subscriptions'],
+                    'program'      => $STR['cpn_scope_programs'],
                 );
                 foreach ($scopetypes as $t => $label) {
                     echo '<div class="scope-block mb-2" data-type="' . $t . '">';
@@ -303,6 +304,7 @@ echo html_writer::script(<<<'JS'
         if (!TARGETS){ return []; }
         if (type === 'package'){ return TARGETS.packages || []; }
         if (type === 'subscription'){ return TARGETS.subscriptions || []; }
+        if (type === 'program'){ return TARGETS.programs || []; }
         var courses = [];
         (TARGETS.categories || []).forEach(function(cat){
             (cat.courses || []).forEach(function(co){ courses.push({ id:co.id, name:co.fullname }); });

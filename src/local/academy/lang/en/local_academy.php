@@ -202,6 +202,10 @@ $string['hp_prg_ends']        = 'Ends';
 $string['hp_prg_notset']      = 'Not set';
 $string['hp_prg_all']         = 'Browse the full program catalogue →';
 $string['hp_myprg_all']       = 'See all my programs →';
+// Program purchase confirmation modal (same pattern as packages/subscriptions).
+$string['hp_prg_confirm_title'] = 'Buy program';
+$string['hp_prg_confirm_body']  = 'Review the details below, then confirm your purchase.';
+$string['hp_prg_redirecting']   = 'Redirecting to payment…';
 $string['err_studenthaspackage']   = 'This student already has an active package';
 
 // API-level system messages (moved out of api.php so they localise via ?lang=).
@@ -1142,6 +1146,7 @@ $string['mycoupons_title'] = 'Coupons & Offers';
 $string['scope_all_course']       = 'All courses';
 $string['scope_all_package']      = 'All packages';
 $string['scope_all_subscription'] = 'All subscriptions';
+$string['scope_all_program']      = 'All programs';
 
 // Coupon admin UI.
 $string['cpn_new']         = 'Create coupon';
@@ -1169,6 +1174,7 @@ $string['cpn_usage_multiple'] = 'Multiple use';
 $string['cpn_scope_courses']       = 'Courses';
 $string['cpn_scope_packages']      = 'Packages';
 $string['cpn_scope_subscriptions'] = 'Subscriptions';
+$string['cpn_scope_programs']      = 'Programs';
 $string['cpn_scope_all']      = 'All';
 $string['cpn_scope_specific'] = 'Selected';
 $string['cpn_created']     = 'Coupon created';
