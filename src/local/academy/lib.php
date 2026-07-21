@@ -1021,6 +1021,308 @@ JS;
 }
 
 /**
+ * Shared CSS for the two front-page program sections, emitted once per request.
+ *
+ * Both sections use the same la-prg-* card styling (same "PM Lounge" look as the packages and
+ * subscriptions sections above them), so whichever renders first carries the <style> tag.
+ *
+ * @return string a <style> tag the first time it is called, '' afterwards
+ */
+function local_academy_programs_css() {
+    static $done = false;
+    if ($done) {
+        return '';
+    }
+    $done = true;
+
+    $css = <<<CSS
+.la-prg{--pm:#6c22a6;--pm-d:#57187f;--pm-bg:#f2f3fa;--pm-ink:#1c1d1f;max-width:1280px;margin:3.5rem auto;padding:2.75rem 1.75rem;background:var(--pm-bg);border-radius:14px;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-prg-head{margin-bottom:1.75rem}
+.la-prg-title{font-family:'Cairo',sans-serif;font-size:1.65rem;font-weight:800;color:var(--pm-ink);margin:0 0 .35rem}
+.la-prg-sub{color:var(--pm);margin:0;font-size:1.05rem;font-weight:700}
+.la-prg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.75rem;align-items:stretch}
+.la-prg-card{display:flex;flex-direction:column;height:100%;background:#fff;border:1px solid #e8e6ef;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(108,34,166,.07);transition:transform .18s ease,box-shadow .18s ease}
+.la-prg-card:hover{transform:translateY(-6px);box-shadow:0 18px 36px rgba(108,34,166,.20)}
+.la-prg-banner{position:relative;height:160px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden}
+.la-prg-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.22),transparent 55%)}
+.la-prg-banner svg{width:48px;height:48px;opacity:.95;fill:#fff;position:relative;z-index:1}
+.la-prg-badges{align-self:flex-start;position:relative;z-index:1;display:flex;gap:.4rem;flex-wrap:wrap}
+.la-prg-badge{background:rgba(255,255,255,.95);color:var(--pm);font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
+.la-prg-badge--free{background:#1f9d55;color:#fff}
+.la-prg-badge--owned{background:#0f6cbf;color:#fff}
+.la-prg-badge--done{background:#1f9d55;color:#fff}
+.la-prg-badge--offer{display:inline-flex;align-items:center;gap:.25rem;background:#e8153b;color:#fff;font-weight:800}
+.la-prg-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
+.la-prg-name{font-family:'Cairo',sans-serif;font-weight:700;font-size:1.15rem;color:var(--pm-ink);margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
+.la-prg-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.la-prg-dates{font-size:.86rem;color:#3c3c3c;margin-top:auto;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
+.la-prg-dates-row{display:flex;justify-content:space-between;margin-top:.3rem}
+.la-prg-dates-row b{color:var(--pm-ink)}
+.la-prg-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-top:.5rem}
+.la-prg-price{font-size:1.5rem;font-weight:800;color:var(--pm-ink)}
+.la-prg-price small{font-size:.8rem;font-weight:600;color:#6a6f73}
+.la-prg-price-old{font-size:1rem;font-weight:600;color:#9aa0a6;text-decoration:line-through;margin-inline-end:.35rem}
+.la-prg-price--free{color:#1f9d55}
+.la-prg-btn{display:inline-block;background:var(--pm);border:none;color:#fff;font-family:'Cairo',sans-serif;font-weight:700;font-size:.95rem;padding:.7rem 1.5rem;border-radius:4px;cursor:pointer;text-decoration:none;transition:background .15s ease,transform .1s ease}
+.la-prg-btn:hover{background:var(--pm-d);color:#fff;text-decoration:none}
+.la-prg-btn:active{transform:scale(.97)}
+.la-prg-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
+.la-prg-err{color:#c0392b;font-size:.85rem;margin-top:.5rem}
+.la-prg-all{display:inline-block;margin-top:1.75rem;color:var(--pm);font-weight:700;text-decoration:none}
+.la-prg-all:hover{color:var(--pm-d);text-decoration:underline}
+CSS;
+
+    return html_writer::tag('style', $css);
+}
+
+/**
+ * One program card, shared by both front-page program sections.
+ *
+ * @param array  $badges  ready-made badge HTML pieces
+ * @param string $name    program name (unescaped)
+ * @param string $desc    short plain-text description
+ * @param string $meta    optional block above the footer (dates, etc.)
+ * @param string $price   footer price HTML ('' for none)
+ * @param string $action  footer button/link HTML
+ * @param int    $idx     card index, picks the banner gradient
+ * @return string
+ */
+function local_academy_program_card($badges, $name, $desc, $meta, $price, $action, $idx) {
+    $grads = array(
+        'linear-gradient(135deg,#6c22a6,#9d4edd)',
+        'linear-gradient(135deg,#0d6efd,#00d4ff)',
+        'linear-gradient(135deg,#fc4a1a,#f7b733)',
+        'linear-gradient(135deg,#00b09b,#96c93d)',
+        'linear-gradient(135deg,#f857a6,#ff5858)',
+        'linear-gradient(135deg,#0f2027,#2c5364)',
+    );
+    $icon = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>';
+
+    return '<div class="la-prg-card">' .
+        '<div class="la-prg-banner" style="background:' . $grads[$idx % count($grads)] . '">' .
+            $icon .
+            '<span class="la-prg-badges">' . $badges . '</span>' .
+        '</div>' .
+        '<div class="la-prg-body">' .
+            html_writer::div(s($name), 'la-prg-name') .
+            ($desc !== '' ? html_writer::div(s($desc), 'la-prg-desc') : '') .
+            $meta .
+            '<div class="la-prg-foot">' . $price . $action . '</div>' .
+        '</div>' .
+    '</div>';
+}
+
+/**
+ * Front-page "Programs" section: every program this visitor may see in the enrol_programs catalogue,
+ * as cards showing whether it is free or paid.
+ *
+ * Rendered server-side (unlike the packages/subscriptions sections, which fetch over the API) because
+ * everything shown is already known at page build time. Only the Buy button needs the API, and it
+ * reuses the same create_program_checkout call as the catalogue injection above.
+ *
+ * Guests see the same cards; their buttons lead to the login page instead of checkout.
+ *
+ * @return string HTML to echo before the footer, '' when there is nothing to show
+ */
+function local_academy_available_programs_section() {
+    global $CFG, $DB, $USER;
+
+    if (!\local_academy\program_purchase_manager::available()) {
+        return '';
+    }
+    $loggedin = isloggedin() && !isguestuser();
+    $rows = \local_academy\program_purchase_manager::get_catalogue_programs($loggedin ? (int)$USER->id : 0);
+    if (!$rows) {
+        return '';
+    }
+
+    // Only needed for the Buy button; without it a paid card falls back to the login link.
+    $token = '';
+    if ($loggedin) {
+        try {
+            require_once($CFG->dirroot . '/webservice/lib.php');
+            require_once($CFG->libdir . '/externallib.php');
+            $service = $DB->get_record('external_services',
+                array('shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE), '*', IGNORE_MISSING);
+            if ($service) {
+                $token = external_generate_token_for_current_user($service)->token;
+            }
+        } catch (\Throwable $e) {
+            $token = '';
+        }
+    }
+
+    $loginurl = (string) new moodle_url('/login/index.php');
+    $tag = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:13px;height:13px;fill:#fff"><path d="M21.41 11.58l-9-9A2 2 0 0011 2H4a2 2 0 00-2 2v7a2 2 0 00.59 1.42l9 9a2 2 0 002.82 0l7-7a2 2 0 000-2.84zM6.5 8A1.5 1.5 0 118 6.5 1.5 1.5 0 016.5 8z"/></svg>';
+
+    $cards = '';
+    foreach (array_values($rows) as $i => $p) {
+        $programurl = (string) new moodle_url('/enrol/programs/catalogue/program.php', array('id' => $p['id']));
+
+        $badges = html_writer::span(
+            s(get_string($p['free'] ? 'hp_prg_free' : 'hp_prg_paid', 'local_academy')),
+            'la-prg-badge' . ($p['free'] ? ' la-prg-badge--free' : ''));
+        if (!empty($p['offer'])) {
+            $badges .= html_writer::span($tag . s($p['offer']['label']), 'la-prg-badge la-prg-badge--offer');
+        }
+        if ($p['owned']) {
+            $badges .= html_writer::span(s(get_string('hp_prg_enrolled', 'local_academy')),
+                'la-prg-badge la-prg-badge--owned');
+        }
+
+        if ($p['free']) {
+            $price = html_writer::div(s(get_string('hp_prg_free', 'local_academy')), 'la-prg-price la-prg-price--free');
+        } else if (!empty($p['offer'])) {
+            $price = html_writer::div(
+                html_writer::span(format_float($p['offer']['original'], 2), 'la-prg-price-old') .
+                format_float($p['offer']['final'], 2) . ' <small>' . s($p['currency']) . '</small>',
+                'la-prg-price');
+        } else {
+            $price = html_writer::div(
+                format_float($p['price'], 2) . ' <small>' . s($p['currency']) . '</small>', 'la-prg-price');
+        }
+
+        if ($p['owned']) {
+            // Already allocated — send them to their own program page, not back to checkout.
+            $action = html_writer::link(
+                (string) new moodle_url('/enrol/programs/my/program.php', array('id' => $p['id'])),
+                s(get_string('hp_prg_open', 'local_academy')), array('class' => 'la-prg-btn'));
+        } else if ($p['free']) {
+            $action = html_writer::link($loggedin ? $programurl : $loginurl,
+                s(get_string($p['joinable'] ? 'hp_prg_join' : 'hp_prg_view', 'local_academy')),
+                array('class' => 'la-prg-btn'));
+        } else if (!$token) {
+            $action = html_writer::link($loginurl, s(get_string('hp_login_to_buy', 'local_academy')),
+                array('class' => 'la-prg-btn'));
+        } else {
+            $action = html_writer::tag('button', s(get_string('prg_buy', 'local_academy')),
+                array('type' => 'button', 'class' => 'la-prg-btn la-prg-buy', 'data-programid' => $p['id']));
+        }
+
+        $cards .= local_academy_program_card($badges, $p['name'], $p['description'], '', $price, $action, $i);
+    }
+
+    $out = local_academy_programs_css() .
+        '<section id="la-prg-available" class="la-prg">' .
+            '<div class="la-prg-head">' .
+                html_writer::tag('h3', s(get_string('hp_prg_heading', 'local_academy')), array('class' => 'la-prg-title')) .
+                html_writer::tag('p', s(get_string('hp_prg_desc', 'local_academy')), array('class' => 'la-prg-sub')) .
+            '</div>' .
+            '<div class="la-prg-grid">' . $cards . '</div>' .
+            ($loggedin ? html_writer::link(
+                (string) new moodle_url('/enrol/programs/catalogue/index.php'),
+                s(get_string('hp_prg_all', 'local_academy')), array('class' => 'la-prg-all')) : '') .
+        '</section>';
+
+    if ($token) {
+        $cfg = json_encode(array(
+            'endpoint' => $CFG->wwwroot . '/local/academy/api.php',
+            'token'    => $token,
+            'lang'     => current_language(),
+            'str'      => local_academy_string_map(array('err_requestfailed', 'err_sessionexpired')),
+        ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        $out .= html_writer::script(<<<JS
+(function () {
+  var CFG = {$cfg};
+  var STR = CFG.str || {};
+  Array.prototype.forEach.call(document.querySelectorAll('#la-prg-available .la-prg-buy'), function (btn) {
+    btn.addEventListener('click', function () {
+      var label = btn.textContent;
+      btn.disabled = true;
+      var body = new URLSearchParams({
+        'function': 'create_program_checkout', token: CFG.token,
+        programid: btn.getAttribute('data-programid'), alang: CFG.lang
+      });
+      fetch(CFG.endpoint, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: body.toString()
+      }).then(function (r) { return r.text(); }).then(function (t) {
+        var j;
+        try { j = JSON.parse(t); } catch (e) { throw new Error(STR.err_sessionexpired); }
+        if (j.status !== 'success') { throw new Error(j.error || STR.err_requestfailed); }
+        window.location.href = j.data.checkout_url;
+      }).catch(function (e) {
+        btn.disabled = false; btn.textContent = label;
+        var err = btn.parentNode.parentNode.querySelector('.la-prg-err');
+        if (!err) {
+          err = document.createElement('div');
+          err.className = 'la-prg-err';
+          btn.parentNode.parentNode.appendChild(err);
+        }
+        err.textContent = e.message;
+      });
+    });
+  });
+})();
+JS
+        );
+    }
+
+    return $out;
+}
+
+/**
+ * Front-page "My programs" section: the programs the logged-in user is allocated to (bought, was
+ * assigned, or signed up for free), with their dates and completion state.
+ *
+ * Hidden entirely for guests and for users with no programs.
+ *
+ * @return string HTML to echo before the footer, '' when there is nothing to show
+ */
+function local_academy_my_programs_section() {
+    global $USER;
+
+    if (!isloggedin() || isguestuser() || !\local_academy\program_purchase_manager::available()) {
+        return '';
+    }
+    $rows = \local_academy\program_purchase_manager::get_my_programs((int)$USER->id);
+    if (!$rows) {
+        return '';
+    }
+
+    $dateformat = get_string('strftimedatefullshort');
+    $notset = get_string('hp_prg_notset', 'local_academy');
+
+    $cards = '';
+    foreach ($rows as $i => $p) {
+        $badges = html_writer::span(
+            s(get_string($p['completed'] ? 'hp_prg_completed' : 'hp_prg_inprogress', 'local_academy')),
+            'la-prg-badge' . ($p['completed'] ? ' la-prg-badge--done' : ''));
+
+        $row = function($label, $ts) use ($dateformat, $notset) {
+            return '<div class="la-prg-dates-row"><span>' . s($label) . '</span><b>' .
+                s($ts ? userdate($ts, $dateformat) : $notset) . '</b></div>';
+        };
+        $meta = '<div class="la-prg-dates">' .
+            $row(get_string('hp_prg_started', 'local_academy'), $p['timestart']) .
+            $row(get_string('hp_prg_due', 'local_academy'), $p['timedue']) .
+            ($p['completed']
+                ? $row(get_string('hp_prg_completed', 'local_academy'), $p['timecompleted'])
+                : $row(get_string('hp_prg_ends', 'local_academy'), $p['timeend'])) .
+        '</div>';
+
+        $action = html_writer::link(
+            (string) new moodle_url('/enrol/programs/my/program.php', array('id' => $p['id'])),
+            s(get_string('hp_prg_open', 'local_academy')), array('class' => 'la-prg-btn'));
+
+        $cards .= local_academy_program_card($badges, $p['name'], $p['description'], $meta, '', $action, $i);
+    }
+
+    return local_academy_programs_css() .
+        '<section id="la-prg-mine" class="la-prg">' .
+            '<div class="la-prg-head">' .
+                html_writer::tag('h3', s(get_string('hp_myprg_heading', 'local_academy')), array('class' => 'la-prg-title')) .
+                html_writer::tag('p', s(get_string('hp_myprg_desc', 'local_academy')), array('class' => 'la-prg-sub')) .
+            '</div>' .
+            '<div class="la-prg-grid">' . $cards . '</div>' .
+            html_writer::link((string) new moodle_url('/enrol/programs/my/index.php'),
+                s(get_string('hp_myprg_all', 'local_academy')), array('class' => 'la-prg-all')) .
+        '</section>';
+}
+
+/**
  * Front-page "Comments from our distinguished customers" testimonials block (Figma "PM Lounge"
  * design). Static, localizable marketing content — no purchase logic — rendered after the course
  * cards. Returns HTML to echo before the footer.
@@ -1368,6 +1670,14 @@ function local_academy_before_footer() {
                 $output .= local_academy_available_packages_section();
             } catch (\Throwable $e) {
                 debugging('academy packages section failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            }
+            // Programs (enrol_programs), directly after the packages cards: what is on offer, then
+            // what this user already has. Both no-op when the programs plugin is absent.
+            try {
+                $output .= local_academy_available_programs_section();
+                $output .= local_academy_my_programs_section();
+            } catch (\Throwable $e) {
+                debugging('academy programs sections failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
             }
             // Static "PM Lounge" marketing sections (testimonials, articles, business CTA) that
             // complete the homepage design below the course cards. Purely presentational — a

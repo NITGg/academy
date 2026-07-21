@@ -65,6 +65,25 @@ $string['prg_buy']            = 'اشترِ هذا البرنامج';
 $string['prg_price_label']    = 'السعر';
 $string['prg_owned']          = 'لديك هذا البرنامج بالفعل';
 $string['prg_login_to_buy']   = 'سجّل الدخول للشراء';
+// بطاقات البرامج في الصفحة الرئيسية (قسم «البرامج» وقسم «برامجي»).
+$string['hp_prg_heading']     = 'البرامج';
+$string['hp_prg_desc']        = 'مسارات تعليمية متكاملة تأخذك من البداية حتى الشهادة.';
+$string['hp_myprg_heading']   = 'برامجي';
+$string['hp_myprg_desc']      = 'البرامج التي انضممت إليها — أكمل من حيث توقّفت.';
+$string['hp_prg_free']        = 'مجاني';
+$string['hp_prg_paid']        = 'مدفوع';
+$string['hp_prg_enrolled']    = 'مسجَّل';
+$string['hp_prg_join']        = 'انضم مجانًا';
+$string['hp_prg_view']        = 'عرض البرنامج';
+$string['hp_prg_open']        = 'افتح البرنامج';
+$string['hp_prg_completed']   = 'مكتمل';
+$string['hp_prg_inprogress']  = 'قيد التقدّم';
+$string['hp_prg_started']     = 'يبدأ';
+$string['hp_prg_due']         = 'موعد الإنجاز';
+$string['hp_prg_ends']        = 'ينتهي';
+$string['hp_prg_notset']      = 'غير محدد';
+$string['hp_prg_all']         = 'تصفّح كتالوج البرامج كاملًا ←';
+$string['hp_myprg_all']       = 'عرض كل برامجي ←';
 $string['err_studenthaspackage']   = 'هذا الطالب لديه بالفعل باقة نشطة';
 
 // ── API-level system messages ──

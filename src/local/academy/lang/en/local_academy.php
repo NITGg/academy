@@ -183,6 +183,25 @@ $string['prg_buy']            = 'Buy this program';
 $string['prg_price_label']    = 'Price';
 $string['prg_owned']          = 'You already have this program';
 $string['prg_login_to_buy']   = 'Log in to buy';
+// Front-page program cards ("Programs" and "My programs" sections).
+$string['hp_prg_heading']     = 'Programs';
+$string['hp_prg_desc']        = 'Structured learning paths that take you from start to certificate.';
+$string['hp_myprg_heading']   = 'My programs';
+$string['hp_myprg_desc']      = 'The programs you have joined — pick up where you left off.';
+$string['hp_prg_free']        = 'Free';
+$string['hp_prg_paid']        = 'Paid';
+$string['hp_prg_enrolled']    = 'Enrolled';
+$string['hp_prg_join']        = 'Join for free';
+$string['hp_prg_view']        = 'View program';
+$string['hp_prg_open']        = 'Open program';
+$string['hp_prg_completed']   = 'Completed';
+$string['hp_prg_inprogress']  = 'In progress';
+$string['hp_prg_started']     = 'Starts';
+$string['hp_prg_due']         = 'Due';
+$string['hp_prg_ends']        = 'Ends';
+$string['hp_prg_notset']      = 'Not set';
+$string['hp_prg_all']         = 'Browse the full program catalogue →';
+$string['hp_myprg_all']       = 'See all my programs →';
 $string['err_studenthaspackage']   = 'This student already has an active package';
 
 // API-level system messages (moved out of api.php so they localise via ?lang=).

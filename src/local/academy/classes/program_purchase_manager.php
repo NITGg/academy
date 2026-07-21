@@ -324,6 +324,117 @@ class program_purchase_manager {
     }
 
     /**
+     * Programs this user may see in the catalogue, with their price/free state.
+     *
+     * Visibility mirrors enrol_programs' own catalogue rule (see catalogue::get_programs_sql()):
+     * a program shows when it is not archived AND (it is public, OR the user is already allocated,
+     * OR the user is in one of its cohorts). Passing 0 gives the guest/visitor view — public only.
+     *
+     * @param int $userid 0 for guests
+     * @return array list of program rows for the front-page cards
+     */
+    public static function get_catalogue_programs($userid = 0) {
+        global $DB;
+        if (!self::available()) {
+            return array();
+        }
+        $userid = (int)$userid;
+
+        $sql = "SELECT p.id, p.fullname, p.description, p.descriptionformat, p.contextid,
+                       pr.price, pr.currency, pr.enabled,
+                       pa.id AS allocationid
+                  FROM {enrol_programs_programs} p
+             LEFT JOIN {academy_program_prices} pr ON pr.programid = p.id
+             LEFT JOIN {enrol_programs_allocations} pa
+                       ON pa.programid = p.id AND pa.userid = :userid1 AND pa.archived = 0
+                 WHERE p.archived = 0
+                       AND (p.public = 1 OR pa.id IS NOT NULL OR EXISTS (
+                            SELECT cm.id
+                              FROM {cohort_members} cm
+                              JOIN {enrol_programs_cohorts} pc ON pc.cohortid = cm.cohortid
+                             WHERE cm.userid = :userid2 AND pc.programid = p.id))
+              ORDER BY p.fullname ASC";
+        $rows = $DB->get_records_sql($sql, array('userid1' => $userid, 'userid2' => $userid));
+
+        $out = array();
+        foreach ($rows as $r) {
+            $paid = $r->enabled && (float)$r->price > 0;
+            $out[] = array(
+                'id'          => (int)$r->id,
+                'name'        => format_string($r->fullname),
+                'description' => self::plain_description($r),
+                'free'        => $paid ? 0 : 1,
+                'price'       => $paid ? (float)$r->price : 0.0,
+                'currency'    => $r->currency ?: 'EGP',
+                // Automatic offer badge, same as packages/subscriptions (US-US-OF-1-1).
+                'offer'       => $paid
+                    ? discount_manager::offer_summary(discount_manager::TYPE_PROGRAM, (int)$r->id, (float)$r->price)
+                    : null,
+                'owned'       => $r->allocationid ? 1 : 0,
+                // A free program is only joinable when the plugin's self-signup source is on; with
+                // it off there is no way in, so the card links to the catalogue instead of promising
+                // a signup that does not exist.
+                'joinable'    => (!$paid && self::has_free_signup((int)$r->id)) ? 1 : 0,
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * The programs this user is allocated to, for the front-page "My programs" cards.
+     *
+     * @param int $userid
+     * @return array
+     */
+    public static function get_my_programs($userid) {
+        global $DB;
+        if (!self::available()) {
+            return array();
+        }
+
+        $sql = "SELECT pa.id AS allocationid, pa.timeallocated, pa.timestart, pa.timedue,
+                       pa.timeend, pa.timecompleted, pa.archived,
+                       p.id, p.fullname, p.description, p.descriptionformat, p.contextid
+                  FROM {enrol_programs_allocations} pa
+                  JOIN {enrol_programs_programs} p ON p.id = pa.programid
+                 WHERE pa.userid = :userid AND pa.archived = 0 AND p.archived = 0
+              ORDER BY pa.timeallocated DESC";
+        $rows = $DB->get_records_sql($sql, array('userid' => (int)$userid));
+
+        $out = array();
+        foreach ($rows as $r) {
+            $out[] = array(
+                'id'            => (int)$r->id,
+                'name'          => format_string($r->fullname),
+                'description'   => self::plain_description($r),
+                'timeallocated' => (int)$r->timeallocated,
+                'timestart'     => (int)$r->timestart,
+                'timedue'       => (int)$r->timedue,
+                'timeend'       => (int)$r->timeend,
+                'timecompleted' => (int)$r->timecompleted,
+                'completed'     => $r->timecompleted ? 1 : 0,
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * A program's description as short plain text, safe to drop into a card.
+     *
+     * @param \stdClass $r row carrying description/descriptionformat/contextid
+     * @return string
+     */
+    private static function plain_description($r) {
+        if (trim((string)$r->description) === '') {
+            return '';
+        }
+        $context = \context::instance_by_id((int)$r->contextid, IGNORE_MISSING);
+        $html = format_text($r->description, $r->descriptionformat,
+            array('context' => $context ?: \context_system::instance()));
+        return shorten_text(trim(html_to_text($html, 0, false)), 180);
+    }
+
+    /**
      * Completed program sales, counted per program in one pass.
      *
      * Deliberately not a LIKE on the JSON: '%"item_id":3%' also matches "item_id":30, which would
