@@ -1105,9 +1105,10 @@ CSS;
  * @param string $price   footer price HTML ('' for none)
  * @param string $action  footer button/link HTML
  * @param int    $idx     card index, picks the banner gradient
+ * @param string $href    optional details-page URL; makes the whole card clickable
  * @return string
  */
-function local_academy_program_card($badges, $name, $desc, $meta, $price, $action, $idx) {
+function local_academy_program_card($badges, $name, $desc, $meta, $price, $action, $idx, $href = '') {
     $grads = array(
         'linear-gradient(135deg,#6c22a6,#9d4edd)',
         'linear-gradient(135deg,#0d6efd,#00d4ff)',
@@ -1118,7 +1119,8 @@ function local_academy_program_card($badges, $name, $desc, $meta, $price, $actio
     );
     $icon = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>';
 
-    return '<div class="la-prg-card">' .
+    $cardattrs = $href !== '' ? ' data-href="' . s($href) . '" tabindex="0" role="link"' : '';
+    return '<div class="la-prg-card' . ($href !== '' ? ' la-prg-card--clickable' : '') . '"' . $cardattrs . '>' .
         '<div class="la-prg-banner" style="background:' . $grads[$idx % count($grads)] . '">' .
             $icon .
             '<span class="la-prg-badges">' . $badges . '</span>' .

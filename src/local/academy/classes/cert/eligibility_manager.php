@@ -171,7 +171,26 @@ class eligibility_manager {
         if (!$cert || empty($cert->enabled)) {
             return false;
         }
+        self::sync_scope($userid, $cert);
         return self::evaluate_ruleset($userid, self::scope_id($cert), self::decode_ruleset($cert))['eligible'];
+    }
+
+    /**
+     * Refresh the completion flags this certificate's rules read, before evaluating them.
+     *
+     * The rules are pure readers of Moodle's stored completion state, and that state is only written
+     * by cron. Without this, a student who has genuinely finished everything stays "not eligible"
+     * until the next cron run — and indefinitely if cron is stopped. See {@see completion_sync}.
+     *
+     * @param int $userid
+     * @param \stdClass $cert
+     */
+    private static function sync_scope(int $userid, \stdClass $cert): void {
+        if (self::cert_scope($cert) === self::SCOPE_PROGRAM) {
+            completion_sync::sync_program($userid, (int)$cert->programid);
+        } else {
+            completion_sync::sync_course($userid, (int)$cert->courseid);
+        }
     }
 
     /**
@@ -187,6 +206,7 @@ class eligibility_manager {
         if (!$cert) {
             throw new \moodle_exception('err_certnotfound', 'local_academy');
         }
+        self::sync_scope($userid, $cert);
         $out = self::evaluate_ruleset($userid, self::scope_id($cert), self::decode_ruleset($cert));
         $out['certificateid'] = (int)$cert->id;
         $out['courseid']      = (int)$cert->courseid;
