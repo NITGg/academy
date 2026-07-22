@@ -1026,6 +1026,24 @@ try {
             }
             break;
 
+        // Student: self-enrol into a FREE program (the "Join" button). Paid programs must go through
+        // create_program_checkout instead — this refuses a priced program.
+        case 'join_program':
+            academy_require_post();
+            try {
+                $allocation = program_purchase_manager::join_free_program(
+                    $userid, required_param('programid', PARAM_INT));
+                academy_respond(['status' => 'success', 'data' => [
+                    'programid'     => (int)$allocation->programid,
+                    'allocationid'  => (int)$allocation->id,
+                    'timeallocated' => (int)$allocation->timeallocated,
+                    'owned'         => 1,
+                ]]);
+            } catch (Exception $e) {
+                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+            }
+            break;
+
         case 'finance_courses':
             academy_respond(['status' => 'success',
                 'data' => finance_report_manager::courses_report(academy_report_filters())]);
@@ -1453,10 +1471,58 @@ try {
                 }
                 $targetuserid = $requested;
             }
+            $certreports = eligibility_manager::get_program_certificate_reports($targetuserid, $programid);
+            // Flag which certificates the student can actually open now: eligible AND linked to a real
+            // customcert activity. We also enrol them into the certificate's host course here (best-
+            // effort, idempotent) so the later open_certificate call resolves instead of hitting an
+            // access-denied page. We do NOT build a URL here — the openable page needs a browser
+            // session, so the app fetches a fresh self-authenticating link from open_certificate at
+            // the moment the user taps Open (see the mobile guide).
+            foreach ($certreports as &$rep) {
+                $cmid = (int)($rep['externalref'] ?? 0);
+                $rep['openable'] = (!empty($rep['eligible']) && $cmid > 0 && customcert_link::view_url($cmid))
+                    ? true : false;
+                if ($rep['openable']) {
+                    customcert_link::grant_access($targetuserid, $cmid);
+                }
+            }
+            unset($rep);
             academy_respond(['status' => 'success', 'data' => [
                 'programid'    => $programid,
-                'certificates' => eligibility_manager::get_program_certificate_reports($targetuserid, $programid),
+                'certificates' => $certreports,
             ]]);
+            break;
+
+        // Student: get a fresh, self-authenticating URL that opens a certificate the user is eligible
+        // for. Call it the moment the user taps "Open certificate" — the URL is single-use and expires
+        // in ~2 minutes. Open the returned `url` in a plain WebView: it logs the user in and lands on
+        // /mod/customcert/view.php. Refuses (fail) when the user is not eligible or the certificate is
+        // not linked to a real activity.
+        case 'open_certificate':
+            academy_require_post();
+            try {
+                $certificateid = required_param('certificateid', PARAM_INT);
+                $report = eligibility_manager::get_report($userid, $certificateid);
+                if (empty($report['eligible'])) {
+                    academy_respond(['status' => 'fail',
+                        'error' => get_string('err_certnoteligible', 'local_academy')]);
+                }
+                $cmid = (int)($report['externalref'] ?? 0);
+                if ($cmid <= 0 || !customcert_link::view_url($cmid)) {
+                    academy_respond(['status' => 'fail',
+                        'error' => get_string('err_certnotlinked', 'local_academy')]);
+                }
+                // Enrol into the host course first, then mint the one-time login link to it.
+                customcert_link::grant_access($userid, $cmid);
+                $url = customcert_link::mint_autologin_url($userid, $cmid);
+                if (!$url) {
+                    academy_respond(['status' => 'fail',
+                        'error' => get_string('err_certnotlinked', 'local_academy')]);
+                }
+                academy_respond(['status' => 'success', 'data' => ['url' => $url->out(false)]]);
+            } catch (Exception $e) {
+                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+            }
             break;
 
         // Admin: list a course's OR a program's certificates (raw) + the scope's rule catalogue.

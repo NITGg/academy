@@ -113,6 +113,40 @@ class customcert_link {
         return new \moodle_url('/mod/customcert/view.php', ['id' => $cmid]);
     }
 
+    /** Script name for the one-time auto-login keys this class mints. */
+    const AUTOLOGIN_SCRIPT = 'local_academy/autologin';
+
+    /** How long a freshly minted auto-login key stays valid — it is meant to be opened at once. */
+    const AUTOLOGIN_TTL = 120;
+
+    /**
+     * A ready-to-open, self-authenticating URL for a linked certificate activity.
+     *
+     * The mobile app authenticates with a web-service token, but /mod/customcert/view.php is a normal
+     * web page that needs a logged-in browser session — a token alone lands on the login page. This
+     * mints a single, short-lived, IP-restricted key (the same core primitive tool_mobile's autologin
+     * uses) bound to THIS cmid, and returns {@see /local/academy/autologin.php}. Opening that URL in a
+     * plain WebView logs the user in and drops them straight on the certificate — no token handling,
+     * no cooldown, no extra round-trip in the app.
+     *
+     * Mint it only for a user who is eligible and already granted access (call {@see grant_access}
+     * first) — this method does not re-check either.
+     *
+     * @param int $userid
+     * @param int $cmid the linked customcert activity
+     * @return \moodle_url|null null when the activity does not exist
+     */
+    public static function mint_autologin_url(int $userid, int $cmid): ?\moodle_url {
+        if ($userid <= 0 || !self::get_activity($cmid)) {
+            return null;
+        }
+        // Bind the key to this cmid (its instance) and to the caller's IP, and expire it fast: it is
+        // handed back to be opened immediately. validate_user_key() enforces all three on redemption.
+        $key = \create_user_key(self::AUTOLOGIN_SCRIPT, $userid, (string)$cmid,
+            \getremoteaddr(), time() + self::AUTOLOGIN_TTL);
+        return new \moodle_url('/local/academy/autologin.php', ['key' => $key, 'cmid' => $cmid]);
+    }
+
     /**
      * Make sure an eligible student can reach the linked certificate activity, by enrolling them into
      * the course that hosts it.

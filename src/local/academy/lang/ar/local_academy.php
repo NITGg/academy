@@ -36,6 +36,8 @@ $string['err_invalidprice']        = 'السعر لا يمكن أن يكون ب�
 $string['err_programsourceinuse']  = 'يوجد طلاب مسجّلون بالفعل عبر التسجيل الذاتي المجاني، فلا يمكن إيقافه. احذف هذه التسجيلات أولًا.';
 $string['err_programnotpaid']      = 'هذا البرنامج ليس له سعر محدد';
 $string['err_programalreadyowned'] = 'لديك بالفعل حق الوصول لهذا البرنامج';
+$string['err_programnotfree']      = 'هذا البرنامج مدفوع — استخدم الدفع لشرائه';
+$string['err_programnotjoinable']  = 'هذا البرنامج غير متاح للتسجيل الذاتي';
 
 // ── أسعار البرامج (manage_programs.php) وزرار الشراء في الكتالوج ──
 $string['prg_intro']          = 'حدّد سعرًا لتجعل البرنامج مدفوعًا. اترك السعر صفرًا ليظل مجانيًا — البرامج المجانية تعمل تمامًا كما هي الآن.';
@@ -1283,6 +1285,8 @@ $string['cert_link_none']               = '— غير مرتبطة (أهلية �
 $string['cert_link_unavailable']        = '— لا توجد أنشطة Custom Certificate متاحة —';
 $string['cert_link_help']               = 'نشاط Custom Certificate الذي يُصدر هذه الشهادة. البرنامج ليس له كورس خاص به، لذا أنشئ كورساً مستضيفاً يحتوي على نشاط لكل برنامج. الطلاب الذين يصبحون مؤهلين يتم تسجيلهم في ذلك الكورس تلقائياً حتى يتمكنوا من فتح الشهادة وتحميلها.';
 $string['err_certnotfound']             = 'الشهادة غير موجودة.';
+$string['err_certnoteligible']          = 'لم تستوفِ متطلبات هذه الشهادة بعد.';
+$string['err_certnotlinked']            = 'هذه الشهادة غير متاحة للفتح بعد.';
 $string['err_certcoursenotfound']       = 'الكورس غير موجود.';
 $string['err_certprogramnotfound']      = 'البرنامج غير موجود.';
 $string['err_certscopeinvalid']         = 'يجب أن تكون الشهادة ضمن نطاق كورس واحد أو برنامج واحد فقط.';

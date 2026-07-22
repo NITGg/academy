@@ -152,6 +152,8 @@ $string['err_invalidprice']        = 'Price cannot be negative';
 $string['err_programsourceinuse']  = 'Students are already signed up through free self-signup, so it cannot be switched off. Remove those allocations first.';
 $string['err_programnotpaid']      = 'This program has no price set';
 $string['err_programalreadyowned'] = 'You already have access to this program';
+$string['err_programnotfree']      = 'This program is paid — use checkout to buy it';
+$string['err_programnotjoinable']  = 'This program is not open for self-enrolment';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UI strings — manage_programs.php (program pricing) and the catalogue Buy button.
@@ -1365,6 +1367,8 @@ $string['cert_link_none']               = '— not linked (eligibility only) —
 $string['cert_link_unavailable']        = '— no Custom Certificate activities available —';
 $string['cert_link_help']               = 'The Custom Certificate activity that issues this certificate. A program has no course of its own, so create a host course holding one activity per program. Students who become eligible are enrolled into that course automatically so they can open and download it.';
 $string['err_certnotfound']             = 'Certificate not found.';
+$string['err_certnoteligible']          = 'You have not met the requirements for this certificate yet.';
+$string['err_certnotlinked']            = 'This certificate is not available to open yet.';
 $string['err_certcoursenotfound']       = 'Course not found.';
 $string['err_certprogramnotfound']      = 'Program not found.';
 $string['err_certscopeinvalid']         = 'A certificate must be scoped to exactly one course or one program.';

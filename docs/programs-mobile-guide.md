@@ -83,8 +83,8 @@ Read `owned` → `free` → `offer` in that order. This is exactly what the web 
 | `owned == 1` | "Enrolled" | — | **Open** | Details screen |
 | `free == 1` and `joinable == 1` | "Free" | Free | **Join** | Details screen |
 | `free == 1` and `joinable == 0` | "Free" | Free | **View** | Details screen |
-| `free == 0`, `offer != null` | "Paid" + `offer.label` | `offer.original` struck through, then `offer.final` | **Buy** | Checkout (§5) |
-| `free == 0`, no offer | "Paid" | `price` + `currency` | **Buy** | Checkout (§5) |
+| `free == 0`, `offer != null` | "Paid" + `offer.label` | `offer.original` struck through, then `offer.final` | **Buy** | Checkout (§6) |
+| `free == 0`, no offer | "Paid" | `price` + `currency` | **Buy** | Checkout (§6) |
 
 **The whole card must be tappable, not just the button.** Tapping anywhere on the card opens the
 details screen so the user can decide before buying; only the Buy button goes straight to checkout.
@@ -202,8 +202,8 @@ A **set** is a grouping with a completion rule (show `sequencetype` as a subtitl
 **When `owned == 0`** (shopper) — this is the "decide whether to buy" view:
 
 - Price block: `offer.original` struck through + `offer.final` when `offer != null`, else `price`.
-- Primary button: **Buy** → checkout (§5). For a free program: **Join** when `joinable == 1`,
-  otherwise no button at all.
+- Primary button: **Buy** → checkout (§6). For a free program: **Join** → `join_program` (§5) when
+  `joinable == 1`, otherwise no button at all (label it **View**, never a Join that will fail).
 - The `content` tree is the selling point — show it in full, but **do not link the courses**. The
   user cannot open them yet. `timecompleted` / `completed` are always `0` here; hide those columns.
 
@@ -233,7 +233,59 @@ not allowed to see. Show a generic "This program is not available" and pop back 
 
 ---
 
-## 5. Buying a paid program
+## 5. Joining a free program (the Join button)
+
+When a program is **free** and **joinable** (`free == 1 && joinable == 1`), the details-screen primary
+button is **Join**, and this is the call behind it — the free counterpart of §6's checkout. There is
+**no payment, no WebView, no `local_payments_verify_payment` step**: one POST allocates the user
+straight away.
+
+```
+POST api.php?function=join_program&token=TOKEN
+     programid=1
+```
+
+```jsonc
+{
+  "status": "success",
+  "data": {
+    "programid":     1,
+    "allocationid":  57,
+    "timeallocated": 1751000000,
+    "owned":         1            // always 1 on success — the user now owns the program
+  }
+}
+```
+
+On success the user **owns** the program. Do exactly what a completed purchase does: re-fetch
+`get_program_details` (or `get_my_programs`) and switch the screen to the **owner** view — no restart,
+no second confirmation.
+
+**Idempotent.** If the user is already allocated (double-tap, a stale card, an admin added them), the
+call still returns `success` with their existing `allocationid` — treat it as a normal join, not an
+error.
+
+### Errors worth handling by name
+
+| `error` | Meaning | Do |
+|---------|---------|----|
+| `Program not found` | gone, archived, or not visible | Back to list, refresh |
+| `This program is paid — use checkout to buy it` | `join_program` on a priced program | Bug in the app — use the Buy path (§6), not Join |
+| `This program is not open for self-enrolment` | `joinable` was `0`, or the admin closed self-signup meanwhile | Re-fetch details; show the program as **View**-only, hide the Join button |
+
+`This program is not open for self-enrolment` is the same state the catalogue reports as
+`joinable == 0`. If you only ever show the **Join** button when `joinable == 1`, a user should hit it
+only when self-signup was closed between loading the card and tapping Join — so on this error just
+re-fetch and the button will correctly become **View**.
+
+> **Why there is a separate call at all.** A free program is *not* auto-joined just because it is free
+> — a student only becomes a member when they deliberately enrol, exactly like the web's **Enrol**
+> button. `join_program` is that deliberate step; without it a "free" program can be browsed but never
+> entered, which is the bug this fixes.
+
+---
+
+## 6. Buying a paid program
 
 Identical to the package / subscription flow — see
 [`packages-subscriptions-kashier-mobile-guide.md`](packages-subscriptions-kashier-mobile-guide.md)
@@ -295,7 +347,7 @@ caused it (someone else allocated the user, price changed, program archived) is 
 
 ---
 
-## 6. Certificates on the details screen (optional)
+## 7. Certificates on the details screen (optional)
 
 If the program has certificates configured, the owner view can show which ones the student qualifies
 for — the web does this on `my/program.php`.
@@ -313,7 +365,8 @@ information is useful. The endpoint does not require ownership. The web does the
 pages.
 
 Each certificate carries `eligible`, `operator` (`and` = must meet every requirement, `or` = any one
-of them), and a `results` list — one entry per requirement. For each entry render:
+of them), a `results` list — one entry per requirement — and **`openable`** (see below). For
+each requirement entry render:
 
 - **`description`** → what the student must do, e.g. *"Complete at least 90% of the program's
   courses"*. Fall back to `label` only when `description` is `''`. **Do not show `label` by
@@ -329,17 +382,82 @@ accurate, but it looks like rejection rather than an invitation. Show the certif
 "Included" badge and a line like *"Join this program to start working towards this certificate."*
 Never link to the certificate itself for a non-owner.
 
+### Opening the certificate — `openable` + `open_certificate`
+
+A certificate lives on a Moodle **web** page (`/mod/customcert/view.php`) that needs a logged-in
+browser session — your API **token alone cannot authenticate it**, so opening that URL directly in a
+WebView just lands on the Moodle login page. The backend solves this for you with a two-step flow, so
+the app needs **no token handling and no auto-login code of its own**:
+
+**Step 1 — the list tells you which certificates can be opened.** Each certificate report carries
+`openable`:
+
+```jsonc
+{
+  "certificateid": 12,
+  "name": "Full Stack Diploma — Certificate of Completion",
+  "eligible": true,
+  "operator": "and",
+  "externalref": 2042,   // the linked customcert cmid (info only — you don't need it)
+  "openable": true,      // ← show an "Open certificate" button only when this is true
+  "results": [ … ]
+}
+```
+
+`openable` is `true` only when the student is **eligible** *and* the certificate is linked to a real
+activity. When it is `false`, show no open button — just the requirements. (On the same call the
+server has already enrolled an eligible student into the certificate's host course, so step 2 will
+resolve instead of hitting an access-denied page.)
+
+**Step 2 — mint a self-authenticating link at the moment of the tap.** When the user taps **"Open
+certificate" / "عرض الشهادة"**, call:
+
+```
+POST api.php?function=open_certificate&token=TOKEN
+     certificateid=12
+```
+
+```jsonc
+{
+  "status": "success",
+  "data": {
+    "url": "https://…/local/academy/autologin.php?key=ab12…&cmid=2042"
+  }
+}
+```
+
+Open `data.url` in a **plain WebView** — nothing else. That URL logs the user in with a **single-use,
+~2-minute, IP-locked key** and redirects straight to the certificate page, where mod_customcert's own
+download / verify controls take over. Do **not** cache it, prepend a token, or try to render the
+certificate yourself.
+
+- **Mint it on the tap, not ahead of time.** The link is single-use and expires in ~2 minutes, so
+  request it when the user actually taps Open — never store it from an earlier screen.
+- **Errors** (`status: "fail"`): `You have not met the requirements for this certificate yet.`
+  (`eligible` flipped to false since the list was loaded — re-fetch the list) or `This certificate is
+  not available to open yet.` (no linked activity — `openable` should have been false; hide the
+  button).
+
+> **Why a second call instead of a URL in the list?** The link must be fresh (single-use, short-lived)
+> to be safe, and a URL baked into the list would already be stale or spent by the time the user taps.
+> Minting it on demand keeps every open working on the first try.
+
+- **`externalref`** is the raw customcert `cmid`. You never need it — `open_certificate` handles the
+  mapping. `externalref == 0` means no activity is linked yet, so `openable` is always `false` there.
+
 ---
 
-## 7. Build order
+## 8. Build order
 
 1. **البرامج** — `get_catalogue_programs`, cards per the §2 state machine, whole card tappable.
 2. **Details screen** — `get_program_details`, both branches of `owned`.
 3. **برامجي** — `get_my_programs`, reusing the same card widget with dates instead of price.
-4. **Buy** — `create_program_checkout` + the shared Kashier WebView you already have.
-5. Certificates panel, if the site uses them.
+4. **Join** — `join_program` for free programs (one POST, no payment), then switch to the owner view.
+5. **Buy** — `create_program_checkout` + the shared Kashier WebView you already have.
+6. Certificates panel, if the site uses them — show **Open certificate** when `openable`, and fetch
+   the link from `open_certificate` on tap.
 
-Steps 1–3 are read-only and need no payment plumbing, so they can ship on their own.
+Steps 1–4 are read-only-plus-join and need no payment plumbing, so they can ship before Buy.
 
 ---
 
@@ -350,6 +468,8 @@ Steps 1–3 are read-only and need no payment plumbing, so they can ship on thei
 | `get_catalogue_programs` | GET | — | البرامج list |
 | `get_my_programs` | GET | — | برامجي list |
 | `get_program_details` | GET | `programid` | Details screen (both views) |
+| `join_program` | POST | `programid` | Self-enrol into a **free** program (the Join button) |
 | `create_program_checkout` | POST | `programid`, `coupon_code?`, `alang?` | Start a purchase |
 | `preview_discount` | GET | `item_type=program`, `item_id`, `coupon_code?` | Price preview |
-| `list_program_certificate_eligibility` | GET | `programid` | Certificates panel |
+| `list_program_certificate_eligibility` | GET | `programid` | Certificates panel (each cert has `openable`) |
+| `open_certificate` | POST | `certificateid` | Fresh single-use auto-login URL that opens the certificate |

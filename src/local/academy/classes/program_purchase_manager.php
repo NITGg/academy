@@ -293,6 +293,70 @@ class program_purchase_manager {
             array('programid' => $programid, 'userid' => $userid), '*', MUST_EXIST);
     }
 
+    /**
+     * Self-enrol the acting user into a FREE program — the mobile "Join" button.
+     *
+     * This is the counterpart to allocate_buyer(): that one is for paid programs after payment and
+     * goes through the 'manual' source; this one is for free programs and drives the plugin's own
+     * 'selfallocation' source — the exact same path the web catalogue's Enrol button uses, so the
+     * program's allocation window, notifications and course enrolments all fire the way they do on
+     * the web. A paid program must NEVER come through here; it has to be bought.
+     *
+     * @param int $userid the acting user — must be the token user (signup() allocates $USER)
+     * @param int $programid
+     * @return \stdClass the allocation record
+     * @throws \moodle_exception missing/archived program, a paid program, or self-signup not open
+     */
+    public static function join_free_program($userid, $programid) {
+        global $DB, $USER;
+        self::require_available();
+
+        $userid = (int)$userid;
+        $programid = (int)$programid;
+
+        // The plugin's signup() self-allocates $USER, so this endpoint can only join the caller.
+        if ($userid !== (int)$USER->id) {
+            throw new \moodle_exception('err_permissiondenied', 'local_academy');
+        }
+
+        $program = $DB->get_record('enrol_programs_programs', array('id' => $programid));
+        if (!$program || $program->archived) {
+            throw new \moodle_exception('err_programnotfound', 'local_academy');
+        }
+
+        // Free only. A priced program must be bought through create_program_checkout(), never
+        // self-allocated for free.
+        if (self::is_paid($programid)) {
+            throw new \moodle_exception('err_programnotfree', 'local_academy');
+        }
+
+        // Idempotent, exactly like allocate_buyer(): already in → hand back the existing allocation
+        // so the app can just switch to the owner view instead of erroring.
+        $existing = $DB->get_record('enrol_programs_allocations',
+            array('programid' => $programid, 'userid' => $userid));
+        if ($existing) {
+            return $existing;
+        }
+
+        // The only free way in is the plugin's selfallocation source. If the admin never turned it
+        // on (joinable == 0 in the catalogue) there is genuinely no way to join — say so cleanly.
+        $source = $DB->get_record('enrol_programs_sources',
+            array('programid' => $programid, 'type' => self::SOURCE_SELF));
+        if (!$source) {
+            throw new \moodle_exception('err_programnotjoinable', 'local_academy');
+        }
+
+        // Let the plugin have the final say (visibility, signup toggle, max-users cap, allocation
+        // window). Its $failurereason is admin-facing HTML, so we surface a clean student message.
+        $failurereason = null;
+        if (!\enrol_programs\local\source\selfallocation::can_user_request(
+                $program, $source, $userid, $failurereason)) {
+            throw new \moodle_exception('err_programnotjoinable', 'local_academy');
+        }
+
+        return \enrol_programs\local\source\selfallocation::signup($programid, (int)$source->id);
+    }
+
     /** Has this user already got this program? */
     public static function has_allocation($userid, $programid) {
         global $DB;

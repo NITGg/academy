@@ -1082,10 +1082,10 @@ html body[class*="ccn_footer_style"] .ccn_footer_surround a:focus-visible {
  * silently rewritten. If the client would rather have these values fixed at
  * source, the same mapping can be applied to the block content instead.
  *
- * CONTRAST NOTE: the page canvas behind these blocks is a near-white doodle
- * image (custom_css `#page-site-index`). Anything sitting directly on it —
- * section headings, standalone icons — must stay DARK; gold on that canvas is
- * about 2.6:1 and fails. Gold is therefore used only inside the navy cards.
+ * CONTRAST NOTE: the page canvas (section F below) is navy, matching the
+ * client's fully-dark mockup. Anything sitting directly on it — section
+ * headings, standalone icons — must therefore be LIGHT/gold; the inverse of
+ * when this canvas was still white (navy text on navy canvas is invisible).
  * ==========================================================================*/
 
 /* --- A. "About" flip cards (Vision / Target / Message) -------------------*/
@@ -1127,15 +1127,16 @@ html body .tc_footer {
     background: linear-gradient(180deg, var(--xt-navy) 0%, rgba(10, 22, 40, 0) 100%);
 }
 
-/* --- E. Section headings and icons on the light canvas -------------------*/
-/* Kept dark on purpose — see the CONTRAST NOTE above. Moved from the theme's
- * mid-blue #154372 to the identity navy so they belong to the new palette
- * without becoming unreadable. */
+/* --- E. Section headings and icons on the navy canvas ---------------------*/
+/* Flipped from navy to gold-light: the page canvas (section F) is now navy
+ * to match the client's fully-dark mockup, so dark text here would disappear
+ * into it. Was the theme's mid-blue #154372 → identity navy → now gold, each
+ * step chasing the canvas it actually has to sit on. */
 html body .main-title h2,
 html body .main-title h3,
 html body .main-title p,
 html body .wrapper_vx i {
-    color: var(--xt-navy);
+    color: var(--xt-gold-light);
 }
 
 /* The four section headings carry `style="color:#154372"` on the ELEMENT
@@ -1145,13 +1146,72 @@ html body .wrapper_vx i {
  * here. This is the single place in the redesign that needs it, and it is
  * kept to these exact selectors.
  *
- * Purely a palette alignment, NOT a legibility fix: #154372 already scores
- * 10.11:1 on the light canvas (the new navy is 18.13:1). Deleting the inline
- * `color` from the block content in the database would remove the need for
- * `!important` entirely — worth doing if these blocks are edited anyway. */
+ * Originally a palette-only swap (#154372 already scored 10.11:1 on the old
+ * light canvas) — now that the canvas is navy this IS a legibility fix, same
+ * as section E above. Deleting the inline `color` from the block content in
+ * the database would remove the need for `!important` entirely — worth doing
+ * if these blocks are edited anyway. */
 html body .main-title[style] h2[style],
 html body .main-title[style],
 html body .block_cocoon_course_categories .text-center h2[style],
 html body .block_cocoon_course_categories .text-center p[style] {
-    color: var(--xt-navy) !important;
+    color: var(--xt-gold-light) !important;
+}
+
+/* --- F. Front-page canvas doodle pattern ----------------------------------
+ * `theme_edumy | custom_css` paints `background.png` (a repeating doodle-icon
+ * tile: atoms, flasks, planes — dark navy strokes at ~15% alpha, transparent
+ * elsewhere) directly on `#page-site-index`, which IS the <body> element on
+ * the front page, not a section wrapper. Confirmed by sampling the live PNG:
+ * stroke pixels are rgba(13,40,67,.15), page pixels are fully transparent.
+ *
+ * That low alpha is why it reads as a whisper on white — and why it would
+ * all but vanish on our navy canvas (dark-on-navy at 15% opacity is close to
+ * imperceptible). Because body IS #page-site-index, a `filter` placed on the
+ * selector that already carries the background-image would invert the WHOLE
+ * page, not just the pattern — so the pattern is moved to an isolated
+ * ::before layer first, then only that layer is inverted.
+ *
+ * invert(1) turns the stroke colour rgb(13,40,67) into rgb(242,215,188) —
+ * co-incidentally close to this file's own --xt-gold-pale (245,215,142) — so
+ * composited over navy at the source's native 15% alpha it settles as a
+ * quiet warm-gold whisper, matching the original's subtlety rather than
+ * introducing a loud new texture.
+ *
+ * background-color here is the actual page canvas (matching the client's
+ * fully-dark mockup, chosen over keeping a light canvas — see the project
+ * memory for that decision). Set on `body`, not `html`: Moodle/browsers
+ * propagate the BODY element's background to paint the viewport canvas only
+ * when `html` has none, which is the case here — confirmed live (canvas
+ * renders navy, the ::before pattern layer stays visible on top of it, nav
+ * and content render unaffected). */
+html body#page-site-index {
+    background-color: var(--xt-navy);
+    background-image: none;
+}
+html body#page-site-index::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image: url("https://academy2022.nitg-eg.com/services_imgs/background.png");
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    filter: invert(1);
+}
+
+/* --- G. Accessibility fallout from the navy canvas ------------------------
+ * "Skip to content" links (one per Cocoon block: "Skip [Cocoon] Services",
+ * "Skip [Cocoon] Gallery Slider", etc.) are invisible until keyboard-focused,
+ * so they were never part of any visual review — a page-wide contrast sweep
+ * after the canvas went navy is what caught them. Their inherited colour
+ * (a plain #6c22a6 purple, unrelated to any of this file's tokens) was fine
+ * at ~6.5:1 on the old white canvas; on navy it drops to 2.09:1, a real
+ * failure for elements a keyboard user specifically relies on. Scoped to the
+ * front page only — other pages kept their white canvas and the original
+ * colour is still fine there. */
+html body#page-site-index a.sr-only-focusable {
+    color: var(--xt-gold-light);
+    background-color: var(--xt-navy);
 }
