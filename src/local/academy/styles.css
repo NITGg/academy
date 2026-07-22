@@ -65,6 +65,36 @@
     --acad-st-danger-bg: #fee2e2;   --acad-st-danger-fg: #991b1b;
 
     --acad-transition: .18s cubic-bezier(.4, 0, .2, 1);
+
+    /* ------------------------------------------------------------------------
+     * X-Trade identity (client design, July 2026) — navy + gold, dark.
+     *
+     * This is the palette the whole platform is migrating to, rolled out one
+     * region at a time. Only the navbar consumes it so far; the --acad-* tokens
+     * above still drive every page body until each is converted in turn. Values
+     * are taken verbatim from the client's design file, so do not "improve"
+     * them here — change the design source, then mirror it.
+     * ----------------------------------------------------------------------*/
+    --xt-navy: #0a1628;
+    --xt-navy-deep: #080f1d;
+    --xt-blue: #0d2149;
+    --xt-royal: #1a3a6b;
+    --xt-gold: #c9922a;
+    --xt-gold-light: #e8b84b;
+    --xt-gold-pale: #f5d78e;
+    --xt-teal: #00a99d;
+    --xt-muted: #8a9ab5;
+
+    /* Derived surfaces — alpha variants of the above, kept as tokens so the
+     * navbar never hardcodes an rgba() the next region would have to guess. */
+    --xt-footer: #040c18;
+    --xt-nav-bg: rgba(10, 22, 40, .95);
+    --xt-border: rgba(201, 146, 42, .2);
+    --xt-border-strong: rgba(201, 146, 42, .45);
+    --xt-gold-wash: rgba(201, 146, 42, .12);
+    --xt-grad-gold: linear-gradient(135deg, var(--xt-gold), var(--xt-gold-light));
+    --xt-glow-gold: 0 4px 15px rgba(201, 146, 42, .3);
+    --xt-glow-gold-lg: 0 8px 25px rgba(201, 146, 42, .5);
 }
 
 /* ============================================================================
@@ -581,4 +611,422 @@ body[class*="local-academy"] .ml-empty {
         text-align: center;
         margin-bottom: 0.35rem;
     }
+}
+
+/* ============================================================================
+ * 15. Navbar — X-Trade navy/gold identity
+ *
+ * The navbar belongs to the vendor theme (edumy, ccn_header_1.mustache, chosen
+ * by theme_edumy|headertype=1). That theme is never edited, so the look is
+ * recoloured from here instead. Two constraints shape every selector below:
+ *
+ *   1. ORDER. Moodle emits plugin styles.css BEFORE the theme's sheets
+ *      (lib/outputlib.php get_css_files: plugins → parents → theme), so on a
+ *      specificity tie cocoon.css wins. Every rule is therefore prefixed with
+ *      `html body`, which adds two element selectors and outranks the theme's
+ *      equivalent chain without needing !important.
+ *   2. STATES. The theme paints the bar three different ways — transparent at
+ *      rest, solid WHITE once `.stricky-fixed` is added on scroll, and a
+ *      settings-driven gradient on `.dashbord_pages`. All three are collapsed
+ *      to navy here, otherwise the bar flashes white mid-scroll.
+ *
+ * Deliberately unchanged: markup, links, and the user/notification menus. This
+ * step recolours only — see the --xt-* tokens at the top of this file.
+ * ==========================================================================*/
+
+/* --- A. The bar itself ---------------------------------------------------*/
+html body header.header-nav.menu_style_home_one {
+    background-color: var(--xt-nav-bg);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--xt-border);
+}
+
+/* Scrolled state. The theme turns this white (#ffffff) with a black shadow;
+ * keep it navy and deepen the shadow so the bar still lifts off the page. */
+html body header.header-nav.menu_style_home_one.stricky-fixed {
+    background-color: var(--xt-navy);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .45);
+}
+
+/* Dashboard/inner pages paint a gradient from the theme's colour settings.
+ * background-image must be cleared too — background-color alone loses to it. */
+html body header.header-nav.menu_style_home_one.dashbord_pages,
+html body header.header-nav.menu_style_home_one.dashbord_pages.stricky-fixed {
+    background-image: none;
+    background-color: var(--xt-navy);
+}
+
+/* Dashboard pages are a separate battle. On `.ccn_context_dashboard` the theme
+ * paints an explicitly WHITE bar with black links and a black wordmark (see
+ * cocoon.css ~15523), guarded by `:not(.ccnDarkMode)`. That selector carries
+ * six classes — a plain `html body` prefix is not enough to outrank it, so the
+ * overrides below mirror its full chain (the `:not()` included, which also
+ * counts toward specificity) and add the two element selectors on top.
+ * Without these the bar renders navy with unreadable black text on every
+ * dashboard page. */
+html body.ccn_context_dashboard.ccn_dashboard_header_white:not(.ccnDarkMode) header.header-nav.menu_style_home_one.dashbord_pages {
+    background-image: none;
+    background-color: var(--xt-navy);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .45);
+}
+html body.ccn_context_dashboard.ccn_dashboard_header_white:not(.ccnDarkMode) header.header-nav.menu_style_home_one .ace-responsive-menu li a,
+html body.ccn_context_dashboard.ccn_dashboard_header_white:not(.ccnDarkMode) header.header-nav.menu_style_home_one.dashbord_pages ul li a {
+    color: var(--xt-muted);
+}
+html body.ccn_context_dashboard.ccn_dashboard_header_white:not(.ccnDarkMode) header.header-nav.menu_style_home_one .ace-responsive-menu li a:hover,
+html body.ccn_context_dashboard.ccn_dashboard_header_white:not(.ccnDarkMode) header.header-nav.menu_style_home_one.dashbord_pages ul li a:hover {
+    color: var(--xt-gold-light);
+}
+html body.ccn_context_dashboard.ccn_dashboard_header_white:not(.ccnDarkMode) header.header-nav.menu_style_home_one.dashbord_pages a.navbar_brand span {
+    color: var(--xt-gold-light);
+}
+
+/* The theme's own dark mode paints its own (bluer) dark bar. Align it to navy
+ * so toggling dark mode does not shift the brand colour. */
+html body.ccnDarkMode.ccn_context_dashboard header.header-nav.menu_style_home_one.dashbord_pages {
+    background-image: none;
+    background-color: var(--xt-navy);
+}
+html body.ccnDarkMode header.header-nav .header_user_notif li .dropdown .notification_icon {
+    background-color: var(--xt-gold-wash);
+}
+
+/* --- B. Logo -------------------------------------------------------------*/
+/* The theme swaps logo1 (light artwork) for logo2 (dark artwork) on scroll,
+ * because its scrolled bar is white. Ours stays navy, so keep the light one in
+ * both states — otherwise the logo disappears into the background. */
+html body header.header-nav.menu_style_home_one.stricky-fixed a.navbar_brand .logo1 {
+    display: inline-block;
+}
+html body header.header-nav.menu_style_home_one.stricky-fixed a.navbar_brand .logo2 {
+    display: none;
+}
+
+html body header.header-nav.menu_style_home_one a.navbar_brand span,
+html body header.header-nav.menu_style_home_one.stricky-fixed a.navbar_brand span,
+html body header.header-nav.menu_style_home_one.dashbord_pages.stricky-fixed a.navbar_brand span {
+    color: var(--xt-gold-light);
+}
+
+/* Divider rule to the side of the logo: white-on-white in the theme's scrolled
+ * state, gold here so it reads against navy. */
+html body header.header-nav.menu_style_home_one a.navbar_brand:before,
+html body header.header-nav.menu_style_home_one.stricky-fixed a.navbar_brand:before {
+    background-color: var(--xt-border);
+}
+
+/* --- C. Menu links -------------------------------------------------------*/
+/* Muted at rest, gold on hover — matching the design's nav-link treatment.
+ * The `.stricky-fixed` selector repeats the chain because the theme forces
+ * #0a0a0a there for its white bar. */
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li a,
+html body header.header-nav.menu_style_home_one.stricky-fixed .ace-responsive-menu li a,
+html body header.header-nav.menu_style_home_one.dashbord_pages.stricky-fixed .ace-responsive-menu li a {
+    color: var(--xt-muted);
+    transition: color var(--acad-transition);
+}
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li a:hover,
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li a:focus,
+html body header.header-nav.menu_style_home_one.stricky-fixed .ace-responsive-menu li a:hover,
+html body header.header-nav.menu_style_home_one.stricky-fixed .ace-responsive-menu li a:focus {
+    color: var(--xt-gold-light);
+}
+
+/* Active item keeps gold rather than inheriting the muted colour. */
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li a.active,
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li a.active span,
+html body header.header-nav.menu_style_home_one.stricky-fixed .ace-responsive-menu li a.active span {
+    color: var(--xt-gold-light);
+}
+
+/* Dropdown submenus — the theme leaves these white.
+ *
+ * This is the path Moodle's own language menu takes: core injects it into
+ * `output.custom_menu`, the theme renders each node as a plain nested <ul>, and
+ * ace-responsive-menu.js:28 adds `.sub-menu` to it on init. The bare `ul`
+ * selector is listed too so the panel is not briefly white before that JS runs
+ * (and stays correct if it fails). Nothing here renders on this dev site — only
+ * one language pack is installed, so core omits the menu entirely — but it does
+ * render in production, where both ar and en exist. */
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li ul.sub-menu,
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li ul {
+    background-color: var(--xt-blue);
+    border: 1px solid var(--xt-border);
+    border-radius: 10px;
+}
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li ul.sub-menu li a,
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li ul li a {
+    color: var(--xt-muted);
+}
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li ul.sub-menu li a:hover,
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li ul li a:hover {
+    background-color: var(--xt-gold-wash);
+    color: var(--xt-gold-light);
+}
+
+/* Each row inside the panel carries its OWN white background (cocoon.css:
+ * `.ace-responsive-menu li ul.sub-menu li { background-color: #ffffff }`).
+ * Colouring only the <ul> leaves white rows with muted text at 2.85:1. */
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li ul.sub-menu li {
+    background-color: transparent;
+}
+
+/* The caret joining the panel to the bar is a white square rotated 45deg in a
+ * :before. Left alone it shows as a white notch against the navy panel. */
+html body header.header-nav.menu_style_home_one .ace-responsive-menu li ul.sub-menu:before {
+    background-color: var(--xt-blue);
+}
+
+/* Mobile: below 992px the same <ul> becomes the slide-out drawer and the theme
+ * paints it #262626 (responsive.css:1543). Match the bar instead. */
+@media (max-width: 991px) {
+    html body header.header-nav.menu_style_home_one .ace-responsive-menu,
+    html body header.header-nav.menu_style_home_one .ace-responsive-menu > li {
+        background-color: var(--xt-navy);
+    }
+}
+
+/* --- D. Login / Register call to action ----------------------------------*/
+/* The design's primary button: gold gradient, navy label, lifting on hover. */
+html body header.header-nav.menu_style_home_one .sign_up_btn li.list_s a.btn.flaticon-user,
+html body header.header-nav.menu_style_home_one.stricky-fixed .sign_up_btn li.list_s a.btn.flaticon-user {
+    background: var(--xt-grad-gold);
+    color: var(--xt-navy);
+    border-radius: 6px;
+    padding: 0 1.35rem;
+    font-weight: 700;
+    box-shadow: var(--xt-glow-gold);
+    transition: transform var(--acad-transition), box-shadow var(--acad-transition);
+}
+html body header.header-nav.menu_style_home_one .sign_up_btn li.list_s a.btn.flaticon-user:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--xt-glow-gold-lg);
+    color: var(--xt-navy);
+}
+/* The icon is a font glyph in a :before — inherit the navy label colour. */
+html body header.header-nav.menu_style_home_one .sign_up_btn li.list_s a.btn.flaticon-user:before,
+html body header.header-nav.menu_style_home_one .sign_up_btn li.list_s a.btn.flaticon-user span {
+    color: inherit;
+}
+
+/* Separator between the buttons: #dadada in the theme's white bar. */
+html body header.header-nav.menu_style_home_one.stricky-fixed .sign_up_btn li.list_s {
+    border-right-color: var(--xt-border);
+}
+
+/* Search trigger sits in the same cluster. */
+html body header.header-nav.menu_style_home_one #search-button i,
+html body header.header-nav.menu_style_home_one.stricky-fixed #search-button i {
+    color: var(--xt-gold-light);
+}
+
+/* --- E. Signed-in cluster (bell, dark-mode, navigation, avatar) ----------*/
+/* Circular icon buttons are filled with the theme's accent colour setting. */
+html body header.header-nav .header_user_notif li .dropdown .notification_icon {
+    background-color: var(--xt-gold-wash);
+    border: 1px solid var(--xt-border);
+    color: var(--xt-gold-light);
+    transition: background-color var(--acad-transition), border-color var(--acad-transition);
+}
+html body header.header-nav .header_user_notif li .dropdown .notification_icon:hover {
+    background-color: rgba(201, 146, 42, .22);
+    border-color: var(--xt-border-strong);
+}
+html body header.header-nav .header_user_notif li .dropdown .notification_icon .icon,
+html body header.header-nav .header_user_notif li .dropdown .notification_icon span {
+    color: var(--xt-gold-light);
+}
+
+/* Avatar gets a gold ring so it reads as interactive against the navy. */
+html body header.header-nav .header_user_notif .ccn-profile-menu img.rounded-circle {
+    border: 2px solid var(--xt-border-strong);
+}
+
+/* Panels hanging off the bar (notifications, profile, navigation drawer). */
+html body header.header-nav .header_user_notif .dropdown-menu,
+html body header.header-nav .header_user_notif .notification_dropdown_content {
+    background-color: var(--xt-blue);
+    border: 1px solid var(--xt-border);
+    color: var(--xt-muted);
+}
+html body header.header-nav .header_user_notif .dropdown-menu .user_set_header {
+    border-bottom: 1px solid var(--xt-border);
+}
+html body header.header-nav .header_user_notif .dropdown-menu .user_set_header p,
+html body header.header-nav .header_user_notif .so_heading p {
+    color: #ffffff;
+}
+html body header.header-nav .header_user_notif .dropdown-menu .user_set_header .address {
+    color: var(--xt-muted);
+}
+/* Items inside those panels. The theme sets `color: #0a0a0a` with a four-class
+ * chain (cocoon.css ~9153) intended for its white panel; darkening the panel to
+ * navy without winning this rule leaves black text on navy — unreadable. The
+ * full theme chain is mirrored below so the override actually outranks it, and
+ * the #dedede separators are re-tinted to gold for the same reason.
+ * Covers both dropdowns: the profile menu and the navigation drawer, which
+ * render into the same .user_setting_content container. */
+html body header.header-nav .header_user_notif li.user_setting .dropdown-menu .user_setting_content a,
+html body header.header-nav .header_user_notif li.user_setting .dropdown-menu .user_setting_content .no-action,
+html body header.header-nav .header_user_notif li .dropdown-menu .user_setting_content a,
+html body header.header-nav.menu_style_home_one.dashbord_pages.stricky-fixed .user_setting_content a {
+    color: var(--xt-muted);
+    border-bottom-color: var(--xt-border);
+}
+html body header.header-nav .header_user_notif li.user_setting .dropdown-menu .user_setting_content a span,
+html body header.header-nav .header_user_notif li .dropdown-menu .user_setting_content a span {
+    color: inherit;
+}
+html body header.header-nav .header_user_notif li.user_setting .dropdown-menu .user_setting_content a:hover,
+html body header.header-nav .header_user_notif li.user_setting .dropdown-menu .user_setting_content .no-action:hover,
+html body header.header-nav .header_user_notif li .dropdown-menu .user_setting_content a:hover,
+html body header.header-nav .header_user_notif li.user_setting .dropdown-menu .user_setting_content a:hover span {
+    color: var(--xt-gold-light);
+    background-color: var(--xt-gold-wash);
+}
+
+/* The navigation drawer renders theme_boost/flat_navigation inside the same
+ * panel; its list-group items carry their own Bootstrap colours. */
+html body header.header-nav .header_user_notif .user_setting_content .list-group-item,
+html body header.header-nav .header_user_notif .so_content .list-group-item {
+    background-color: transparent;
+    border-color: var(--xt-border);
+    color: var(--xt-muted);
+}
+html body header.header-nav .header_user_notif .user_setting_content .list-group-item:hover,
+html body header.header-nav .header_user_notif .so_content .list-group-item:hover {
+    background-color: var(--xt-gold-wash);
+    color: var(--xt-gold-light);
+}
+
+/* --- F. Mobile toggle ----------------------------------------------------*/
+/* The hamburger is three bars; the theme colours them for a light bar. */
+html body header.header-nav .menu-toggle #menu-btn .icon-bar {
+    background-color: var(--xt-gold-light);
+}
+html body header.header-nav .menu-toggle {
+    background-color: transparent;
+}
+
+/* --- G. Keyboard focus ---------------------------------------------------*/
+/* The theme ships no visible focus state anywhere in the bar, which makes
+ * keyboard navigation invisible. Added here rather than left to the design. */
+html body header.header-nav a:focus-visible,
+html body header.header-nav button:focus-visible {
+    outline: 2px solid var(--xt-gold-light);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* Honour reduced-motion for the hover lift on the CTA. */
+@media (prefers-reduced-motion: reduce) {
+    html body header.header-nav.menu_style_home_one .sign_up_btn li.list_s a.btn.flaticon-user,
+    html body header.header-nav.menu_style_home_one .sign_up_btn li.list_s a.btn.flaticon-user:hover {
+        transition: none;
+        transform: none;
+    }
+}
+
+/* ============================================================================
+ * 16. Footer — X-Trade navy/gold identity
+ *
+ * Same vendor-theme situation as the navbar (see section 15 for why every rule
+ * carries an `html body` prefix). Specifics for this region:
+ *
+ *   - The visible background is NOT on the <section>s. `ccn_footer_8.mustache`
+ *     wraps everything in `.ccn_footer_surround`, and the theme paints that with
+ *     a gradient built from its own colour settings — currently #B31F61 (pink)
+ *     to #0E2647. The sections themselves are `background: transparent`, so
+ *     recolouring them does nothing; the surround is the real target.
+ *   - The theme forces `color: #fff` on essentially every text node in the
+ *     footer through one long selector list (cocoon.css ~5225). Each type of
+ *     text has to be won back individually.
+ *
+ * Scoped with `body[class*="ccn_footer_style"]` rather than the literal
+ * `.ccn_footer_style_8` so the colours survive an admin switching footer
+ * layouts — the theme's own rules are keyed the same way per style.
+ * ==========================================================================*/
+
+/* --- A. The surround -----------------------------------------------------*/
+html body[class*="ccn_footer_style"] .ccn_footer_surround {
+    background-image: none;
+    background-color: var(--xt-footer);
+    border-top: 1px solid var(--xt-border);
+}
+
+/* Divider between the widget row and the copyright strip. */
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_middle_area {
+    border-top: 1px solid var(--xt-border);
+}
+
+/* --- B. Column headings --------------------------------------------------*/
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_contact_widget h4,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_company_widget h4,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_program_widget h4,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_support_widget h4,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_apps_widget h4 {
+    color: var(--xt-gold-light);
+}
+
+/* Site name beside the footer logo — the design treats this as the wordmark. */
+html body[class*="ccn_footer_style"] .ccn_footer_surround .logo-widget span {
+    color: var(--xt-gold-light);
+}
+
+/* --- C. Body copy and links ----------------------------------------------*/
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_contact_widget p,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_company_widget p,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_program_widget p,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_support_widget p,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_apps_widget p,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_contact_widget a,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_company_widget a,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_program_widget a,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_support_widget a,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_apps_widget a,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_menu_widget ul li a,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_menu_widget a,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .copyright-widget p {
+    color: var(--xt-muted);
+    transition: color var(--acad-transition);
+}
+
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_contact_widget li:hover a,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_company_widget li:hover a,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_program_widget li:hover a,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_support_widget li:hover a,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_menu_widget ul li a:hover,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_menu_widget a:hover,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_social_widget a:hover {
+    color: var(--xt-gold-light);
+}
+
+/* --- D. Social + app buttons ---------------------------------------------*/
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_social_widget a {
+    color: var(--xt-muted);
+    transition: color var(--acad-transition);
+}
+
+/* The theme tints these with flat white alpha, which reads grey on navy. */
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_apps_widget .app_grid .apple_btn,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_apps_widget .app_grid .play_store_btn {
+    background-color: var(--xt-gold-wash);
+    border: 1px solid var(--xt-border);
+}
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_apps_widget .app_grid .apple_btn:hover,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_apps_widget .app_grid .play_store_btn:hover {
+    background-color: rgba(201, 146, 42, .22);
+    border-color: var(--xt-border-strong);
+}
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_apps_widget .app_grid .apple_btn span,
+html body[class*="ccn_footer_style"] .ccn_footer_surround .footer_apps_widget .app_grid .play_store_btn span {
+    color: var(--xt-gold-light);
+}
+
+/* --- E. Keyboard focus ---------------------------------------------------*/
+html body[class*="ccn_footer_style"] .ccn_footer_surround a:focus-visible {
+    outline: 2px solid var(--xt-gold-light);
+    outline-offset: 3px;
+    border-radius: 4px;
 }
