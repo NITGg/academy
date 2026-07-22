@@ -469,7 +469,7 @@ class program_purchase_manager {
             'description' => self::plain_description($program),
             // Full formatted description for the detail screen. Render as HTML.
             'description_html' => format_text(
-                file_rewrite_pluginfile_urls($program->description, 'pluginfile.php', $context->id,
+                \file_rewrite_pluginfile_urls($program->description, 'pluginfile.php', $context->id,
                     'enrol_programs', 'description', $program->id),
                 $program->descriptionformat, array('context' => $context)),
             'image'       => self::image_url($program, $context),
