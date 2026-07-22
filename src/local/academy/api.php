@@ -1480,11 +1480,24 @@ try {
             // the moment the user taps Open (see the mobile guide).
             foreach ($certreports as &$rep) {
                 $cmid = (int)($rep['externalref'] ?? 0);
-                $rep['openable'] = (!empty($rep['eligible']) && $cmid > 0 && customcert_link::view_url($cmid))
-                    ? true : false;
-                if ($rep['openable']) {
+                $linked = ($cmid > 0 && customcert_link::view_url($cmid));
+                // open_state tells the app EXACTLY why a certificate can or cannot be opened, so it
+                // never shows an Open button that would error:
+                //   'open'        — requirements met AND a real certificate is linked → show Open.
+                //   'locked'      — requirements NOT met yet → show progress from `results`, no button.
+                //   'unavailable' — eligible, but the admin has not linked a real activity yet → hide.
+                if (empty($rep['eligible'])) {
+                    $rep['open_state'] = 'locked';
+                } else if (!$linked) {
+                    $rep['open_state'] = 'unavailable';
+                } else {
+                    $rep['open_state'] = 'open';
+                    // Enrol the eligible student into the host course now, so the later
+                    // open_certificate call resolves instead of hitting an access-denied page.
                     customcert_link::grant_access($targetuserid, $cmid);
                 }
+                // Convenience boolean the Open button can bind to directly (true only when 'open').
+                $rep['openable'] = ($rep['open_state'] === 'open');
             }
             unset($rep);
             academy_respond(['status' => 'success', 'data' => [

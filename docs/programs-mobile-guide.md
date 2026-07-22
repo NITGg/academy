@@ -365,7 +365,7 @@ information is useful. The endpoint does not require ownership. The web does the
 pages.
 
 Each certificate carries `eligible`, `operator` (`and` = must meet every requirement, `or` = any one
-of them), a `results` list — one entry per requirement — and **`openable`** (see below). For
+of them), a `results` list — one entry per requirement — and **`open_state`** (see below). For
 each requirement entry render:
 
 - **`description`** → what the student must do, e.g. *"Complete at least 90% of the program's
@@ -382,32 +382,47 @@ accurate, but it looks like rejection rather than an invitation. Show the certif
 "Included" badge and a line like *"Join this program to start working towards this certificate."*
 Never link to the certificate itself for a non-owner.
 
-### Opening the certificate — `openable` + `open_certificate`
+### Opening the certificate — `open_state` + `open_certificate`
 
 A certificate lives on a Moodle **web** page (`/mod/customcert/view.php`) that needs a logged-in
 browser session — your API **token alone cannot authenticate it**, so opening that URL directly in a
 WebView just lands on the Moodle login page. The backend solves this for you with a two-step flow, so
 the app needs **no token handling and no auto-login code of its own**:
 
-**Step 1 — the list tells you which certificates can be opened.** Each certificate report carries
-`openable`:
+**Step 1 — the list tells you the exact state of every certificate.** Each report carries
+`open_state` (and a convenience boolean `openable`):
 
 ```jsonc
 {
   "certificateid": 12,
   "name": "Full Stack Diploma — Certificate of Completion",
-  "eligible": true,
+  "eligible": false,
   "operator": "and",
-  "externalref": 2042,   // the linked customcert cmid (info only — you don't need it)
-  "openable": true,      // ← show an "Open certificate" button only when this is true
-  "results": [ … ]
+  "externalref": 2042,       // the linked customcert cmid (info only — you don't need it)
+  "open_state": "locked",    // ← drive the UI off THIS, see the table below
+  "openable": false,         // shorthand for open_state == "open"
+  "results": [ … ]           // per-requirement breakdown (what's still missing)
 }
 ```
 
-`openable` is `true` only when the student is **eligible** *and* the certificate is linked to a real
-activity. When it is `false`, show no open button — just the requirements. (On the same call the
-server has already enrolled an eligible student into the certificate's host course, so step 2 will
-resolve instead of hitting an access-denied page.)
+**Drive the certificate UI entirely off `open_state` — never off `externalref`.** This is what keeps
+a student from ever tapping into a certificate that then errors:
+
+| `open_state` | Meaning | What the app shows |
+|--------------|---------|--------------------|
+| `"open"` | Requirements met **and** a real certificate is linked | **Open certificate** button → step 2 |
+| `"locked"` | **Requirements not met yet** | A **locked / disabled** state — show the progress from `results` (*"2 of 3 requirements met"*), **no open button** |
+| `"unavailable"` | Eligible, but the admin has not linked a real activity yet | Hide the certificate, or show a neutral *"Coming soon"* — no button |
+
+So when the program's requirements are not finished, `open_state` is **`"locked"`** and `openable`
+is **`false`** — render it as locked with its remaining requirements, and the Open button is simply
+not there. The student can never reach an error page. (When `open_state == "open"`, the server has
+already enrolled the student into the certificate's host course on this same call, so step 2 resolves
+cleanly.)
+
+> **Defence in depth:** even if a stale screen somehow shows an Open button for a `"locked"`
+> certificate, `open_certificate` (step 2) **refuses** with a clear message (see below) — it never
+> returns a URL for a student who has not met the requirements. There is no path to a raw error page.
 
 **Step 2 — mint a self-authenticating link at the moment of the tap.** When the user taps **"Open
 certificate" / "عرض الشهادة"**, call:
@@ -434,16 +449,16 @@ certificate yourself.
 - **Mint it on the tap, not ahead of time.** The link is single-use and expires in ~2 minutes, so
   request it when the user actually taps Open — never store it from an earlier screen.
 - **Errors** (`status: "fail"`): `You have not met the requirements for this certificate yet.`
-  (`eligible` flipped to false since the list was loaded — re-fetch the list) or `This certificate is
-  not available to open yet.` (no linked activity — `openable` should have been false; hide the
-  button).
+  (`open_state` was `"locked"` / flipped to locked since the list was loaded — re-fetch and show it
+  locked) or `This certificate is not available to open yet.` (`open_state` was `"unavailable"` — no
+  linked activity; hide the button).
 
 > **Why a second call instead of a URL in the list?** The link must be fresh (single-use, short-lived)
 > to be safe, and a URL baked into the list would already be stale or spent by the time the user taps.
 > Minting it on demand keeps every open working on the first try.
 
 - **`externalref`** is the raw customcert `cmid`. You never need it — `open_certificate` handles the
-  mapping. `externalref == 0` means no activity is linked yet, so `openable` is always `false` there.
+  mapping. `externalref == 0` means no activity is linked yet, so `open_state` is `"unavailable"`.
 
 ---
 
@@ -454,8 +469,8 @@ certificate yourself.
 3. **برامجي** — `get_my_programs`, reusing the same card widget with dates instead of price.
 4. **Join** — `join_program` for free programs (one POST, no payment), then switch to the owner view.
 5. **Buy** — `create_program_checkout` + the shared Kashier WebView you already have.
-6. Certificates panel, if the site uses them — show **Open certificate** when `openable`, and fetch
-   the link from `open_certificate` on tap.
+6. Certificates panel, if the site uses them — render each cert by `open_state` (`open` → button,
+   `locked` → progress, `unavailable` → hide), and fetch the link from `open_certificate` on tap.
 
 Steps 1–4 are read-only-plus-join and need no payment plumbing, so they can ship before Buy.
 
@@ -471,5 +486,5 @@ Steps 1–4 are read-only-plus-join and need no payment plumbing, so they can sh
 | `join_program` | POST | `programid` | Self-enrol into a **free** program (the Join button) |
 | `create_program_checkout` | POST | `programid`, `coupon_code?`, `alang?` | Start a purchase |
 | `preview_discount` | GET | `item_type=program`, `item_id`, `coupon_code?` | Price preview |
-| `list_program_certificate_eligibility` | GET | `programid` | Certificates panel (each cert has `openable`) |
+| `list_program_certificate_eligibility` | GET | `programid` | Certificates panel (each cert has `open_state`) |
 | `open_certificate` | POST | `certificateid` | Fresh single-use auto-login URL that opens the certificate |
