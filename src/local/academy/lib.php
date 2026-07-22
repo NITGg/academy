@@ -180,58 +180,58 @@ function local_academy_available_subscriptions_section() {
     // rendering / purchase JS below is untouched — this is a visual-only refresh.
     $css = <<<CSS
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
-.la-subs{--pm:#6c22a6;--pm-d:#57187f;--pm-bg:#f2f3fa;--pm-ink:#1c1d1f;--pm-muted:#707070;max-width:1280px;margin:3.5rem auto;padding:2.75rem 1.75rem;background:var(--pm-bg);border-radius:14px;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-subs{--pm:#c9922a;--pm-d:#e8b84b;--pm-bg:#080f1d;--pm-ink:#ffffff;--pm-muted:#8a9ab5;--pm-surface:#0d2149;--pm-border:rgba(201,146,42,.2);--pm-line:rgba(201,146,42,.14);--pm-navy:#0a1628;max-width:1280px;margin:3.5rem auto;padding:2.75rem 1.75rem;background:var(--pm-bg);border:1px solid var(--pm-border);border-radius:14px;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
 .la-subs-head{margin-bottom:1.75rem}
 .la-subs-title{font-family:'Cairo',sans-serif;font-size:1.65rem;font-weight:800;color:var(--pm-ink);margin:0 0 .35rem}
-.la-subs-sub{color:var(--pm);margin:0;font-size:1.05rem;font-weight:700}
+.la-subs-sub{color:var(--pm-d);margin:0;font-size:1.05rem;font-weight:700}
 .la-subs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.75rem;align-items:stretch}
-.la-subs-card{display:flex;flex-direction:column;height:100%;background:#fff;border:1px solid #e8e6ef;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(108,34,166,.07);transition:transform .18s ease,box-shadow .18s ease}
-.la-subs-card:hover{transform:translateY(-6px);box-shadow:0 18px 36px rgba(108,34,166,.20)}
-.la-subs-banner{position:relative;height:180px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden;background:linear-gradient(135deg,var(--pm),#9d4edd)}
-.la-subs-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.22),transparent 55%)}
-.la-subs-banner svg{width:52px;height:52px;opacity:.95;fill:#fff;position:relative;z-index:1}
+.la-subs-card{display:flex;flex-direction:column;height:100%;background:var(--pm-surface);border:1px solid var(--pm-border);border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .18s ease,box-shadow .18s ease}
+.la-subs-card:hover{transform:translateY(-6px);border-color:rgba(201,146,42,.45);box-shadow:0 18px 36px rgba(0,0,0,.4)}
+.la-subs-banner{position:relative;height:180px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:var(--pm-d);overflow:hidden;background:linear-gradient(135deg,#1a3a6b,var(--pm-navy))}
+.la-subs-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(201,146,42,.18),transparent 55%)}
+.la-subs-banner svg{width:52px;height:52px;opacity:.95;fill:var(--pm-d);position:relative;z-index:1}
 .la-subs-badges{align-self:flex-start;position:relative;z-index:1;display:flex;gap:.4rem;flex-wrap:wrap}
-.la-subs-daysbadge{background:rgba(255,255,255,.95);color:var(--pm);font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
+.la-subs-daysbadge{background:rgba(201,146,42,.15);border:1px solid var(--pm-border);color:var(--pm-d);font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
 .la-subs-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
 .la-subs-name{font-family:'Cairo',sans-serif;font-weight:700;font-size:1.15rem;color:var(--pm-ink);margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
-.la-subs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
-.la-subs-card--active{border-color:var(--pm);box-shadow:0 0 0 2px rgba(108,34,166,.28)}
-.la-subs-activebadge{background:#1f9d55;color:#fff;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
-.la-subs-offerbadge{display:inline-flex;align-items:center;gap:.25rem;background:#e8153b;color:#fff;font-weight:800;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;box-shadow:0 2px 6px rgba(232,21,59,.35)}
+.la-subs-desc{color:var(--pm-muted);font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
+.la-subs-card--active{border-color:var(--pm);box-shadow:0 0 0 2px rgba(201,146,42,.35)}
+.la-subs-activebadge{background:#00a99d;color:#04121f;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
+.la-subs-offerbadge{display:inline-flex;align-items:center;gap:.25rem;background:#c0392b;color:#fff;font-weight:800;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .la-subs-offerbadge svg{width:13px;height:13px;fill:#fff}
-.la-subs-price-old{font-size:1rem;font-weight:600;color:#9aa0a6;text-decoration:line-through;margin-inline-end:.35rem}
-.la-subs-dates{font-size:.86rem;color:#3c3c3c;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
+.la-subs-price-old{font-size:1rem;font-weight:600;color:#6b7c96;text-decoration:line-through;margin-inline-end:.35rem}
+.la-subs-dates{font-size:.86rem;color:var(--pm-muted);margin-bottom:1rem;padding-top:.9rem;border-top:1px solid var(--pm-line)}
 .la-subs-dates-row{display:flex;justify-content:space-between;margin-top:.3rem}
 .la-subs-dates-row b{color:var(--pm-ink)}
 .la-subs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-top:.5rem}
-.la-subs-price{font-size:1.5rem;font-weight:800;color:var(--pm-ink)}
-.la-subs-price small{font-size:.8rem;font-weight:600;color:#6a6f73}
-.la-subs-btn{background:var(--pm);border:none;color:#fff;font-family:'Cairo',sans-serif;font-weight:700;font-size:.95rem;padding:.7rem 1.5rem;border-radius:4px;cursor:pointer;transition:background .15s ease,transform .1s ease}
-.la-subs-btn:hover{background:var(--pm-d)}
+.la-subs-price{font-size:1.5rem;font-weight:800;color:var(--pm-d)}
+.la-subs-price small{font-size:.8rem;font-weight:600;color:var(--pm-muted)}
+.la-subs-btn{background:linear-gradient(135deg,var(--pm),var(--pm-d));border:none;color:var(--pm-navy);font-family:'Cairo',sans-serif;font-weight:700;font-size:.95rem;padding:.7rem 1.5rem;border-radius:4px;cursor:pointer;transition:box-shadow .15s ease,transform .1s ease}
+.la-subs-btn:hover{box-shadow:0 8px 25px rgba(201,146,42,.45)}
 .la-subs-btn:active{transform:scale(.97)}
-.la-subs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
-.la-subs-headnote{display:none;align-items:center;gap:.4rem;margin-top:.6rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
-.la-subs-headnote svg{width:15px;height:15px;flex-shrink:0;fill:#c07f00}
+.la-subs-btn[disabled]{background:rgba(255,255,255,.09);color:var(--pm-muted);cursor:not-allowed;box-shadow:none}
+.la-subs-headnote{display:none;align-items:center;gap:.4rem;margin-top:.6rem;color:var(--pm-d);font-size:.85rem;line-height:1.4}
+.la-subs-headnote svg{width:15px;height:15px;flex-shrink:0;fill:var(--pm-d)}
 /* Confirmation dialog (replaces the native window.confirm). */
 .la-subs-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
 .la-subs-modal-bg.open{display:flex;opacity:1}
-.la-subs-modal{background:#fff;border-radius:12px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
+.la-subs-modal{background:var(--pm-surface,#0d2149);border:1px solid rgba(201,146,42,.45);border-radius:12px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
 .la-subs-modal-bg.open .la-subs-modal{transform:none}
 .la-subs-modal-head{display:flex;align-items:center;gap:.7rem;padding:1.25rem 1.4rem 0}
-.la-subs-modal-head svg{width:34px;height:34px;fill:#6c22a6;flex-shrink:0}
-.la-subs-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#1c1d1f}
-.la-subs-modal-body{padding:.9rem 1.4rem 0;color:#3c3c3c;font-size:.95rem;line-height:1.5}
-.la-subs-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:#f5eefc;border:1px solid #e4d3f5;border-radius:8px}
-.la-subs-modal-plan .name{font-weight:700;color:#1c1d1f;margin-bottom:.35rem}
-.la-subs-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#4b4b4b;margin-top:.2rem}
-.la-subs-modal-row b{color:#1c1d1f}
-.la-subs-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#6a6f73;margin-top:.2rem}
-.la-subs-modal-secure svg{width:14px;height:14px;fill:#1f9d55}
+.la-subs-modal-head svg{width:34px;height:34px;fill:#e8b84b;flex-shrink:0}
+.la-subs-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#ffffff}
+.la-subs-modal-body{padding:.9rem 1.4rem 0;color:#8a9ab5;font-size:.95rem;line-height:1.5}
+.la-subs-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:rgba(201,146,42,.1);border:1px solid rgba(201,146,42,.2);border-radius:8px}
+.la-subs-modal-plan .name{font-weight:700;color:#ffffff;margin-bottom:.35rem}
+.la-subs-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#8a9ab5;margin-top:.2rem}
+.la-subs-modal-row b{color:#ffffff}
+.la-subs-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#8a9ab5;margin-top:.2rem}
+.la-subs-modal-secure svg{width:14px;height:14px;fill:#00a99d}
 .la-subs-modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:1.2rem 1.4rem 1.3rem}
-.la-subs-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:4px;cursor:pointer}
-.la-subs-modal-cancel:hover{background:#f6f7f8}
-.la-subs-modal-ok{background:#6c22a6;border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:4px;cursor:pointer}
-.la-subs-modal-ok:hover{background:#57187f}
+.la-subs-modal-cancel{background:transparent;border:1px solid rgba(201,146,42,.45);color:#8a9ab5;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:4px;cursor:pointer}
+.la-subs-modal-cancel:hover{background:rgba(201,146,42,.12);color:#e8b84b}
+.la-subs-modal-ok{background:linear-gradient(135deg,#c9922a,#e8b84b);border:none;color:#0a1628;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:4px;cursor:pointer}
+.la-subs-modal-ok:hover{box-shadow:0 8px 25px rgba(201,146,42,.45)}
 CSS;
 
     $section = html_writer::tag('style', $css) .
@@ -345,13 +345,15 @@ require([], function() {
         }).then(parse);
     }
 
+    // Dark jewel-toned gradients — replaces the old rainbow set, which clashed against the
+    // X-Trade navy/gold identity. Kept as six so cards still read as visually distinct.
     var GRADS = [
-        'linear-gradient(135deg,#6a11cb,#2575fc)',
-        'linear-gradient(135deg,#ff512f,#dd2476)',
-        'linear-gradient(135deg,#11998e,#38ef7d)',
-        'linear-gradient(135deg,#f7971e,#ffd200)',
-        'linear-gradient(135deg,#8e2de2,#4a00e0)',
-        'linear-gradient(135deg,#1a2980,#26d0ce)'
+        'linear-gradient(135deg,#1a3a6b,#0a1628)',
+        'linear-gradient(135deg,#0d2149,#1a3a6b)',
+        'linear-gradient(135deg,#004d47,#00201d)',
+        'linear-gradient(135deg,#5c1a24,#2c0a10)',
+        'linear-gradient(135deg,#3a2a0a,#1a1206)',
+        'linear-gradient(135deg,#1c2b45,#0a1628)'
     ];
     var CAP = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 1 8l11 5 9-4.09V17h2V8L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>';
     var INFO = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
@@ -569,7 +571,7 @@ require([], function() {
 
         // Business (B2B) purchase: shown when the plan is B2B-enabled and has seat options.
         if (s.b2b_enabled && s.seat_options && s.seat_options.length) {
-            var b2bBtn = el('button', {type: 'button', class: 'la-subs-btn', style: 'width:100%;margin-top:.6rem;background:#1c1d1f'});
+            var b2bBtn = el('button', {type: 'button', class: 'la-subs-btn', style: 'width:100%;margin-top:.6rem;background:transparent;border:1px solid rgba(201,146,42,.45);color:#e8b84b'});
             b2bBtn.textContent = T.b2b_business;
             if (!CFG.token) {
                 b2bBtn.onclick = function() { window.location.href = CFG.loginurl; };
@@ -677,59 +679,59 @@ function local_academy_available_packages_section() {
     // typography, #f2f3fa panel. Class names are unchanged so the purchase JS below is untouched.
     $css = <<<CSS
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
-.la-pkgs{--pm:#6c22a6;--pm-d:#57187f;--pm-bg:#f2f3fa;--pm-ink:#1c1d1f;--pm-muted:#707070;max-width:1280px;margin:3.5rem auto;padding:2.75rem 1.75rem;background:var(--pm-bg);border-radius:14px;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-pkgs{--pm:#c9922a;--pm-d:#e8b84b;--pm-bg:#080f1d;--pm-ink:#ffffff;--pm-muted:#8a9ab5;--pm-surface:#0d2149;--pm-border:rgba(201,146,42,.2);--pm-line:rgba(201,146,42,.14);--pm-navy:#0a1628;max-width:1280px;margin:3.5rem auto;padding:2.75rem 1.75rem;background:var(--pm-bg);border:1px solid var(--pm-border);border-radius:14px;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
 .la-pkgs-head{margin-bottom:1.75rem}
 .la-pkgs-title{font-family:'Cairo',sans-serif;font-size:1.65rem;font-weight:800;color:var(--pm-ink);margin:0 0 .35rem}
-.la-pkgs-sub{color:var(--pm);margin:0;font-size:1.05rem;font-weight:700}
+.la-pkgs-sub{color:var(--pm-d);margin:0;font-size:1.05rem;font-weight:700}
 .la-pkgs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.75rem;align-items:stretch}
-.la-pkgs-card{display:flex;flex-direction:column;height:100%;background:#fff;border:1px solid #e8e6ef;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(108,34,166,.07);transition:transform .18s ease,box-shadow .18s ease}
-.la-pkgs-card:hover{transform:translateY(-6px);box-shadow:0 18px 36px rgba(108,34,166,.20)}
-.la-pkgs-banner{position:relative;height:180px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden;background:linear-gradient(135deg,var(--pm),#9d4edd)}
-.la-pkgs-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.22),transparent 55%)}
-.la-pkgs-banner svg{width:52px;height:52px;opacity:.95;fill:#fff;position:relative;z-index:1}
+.la-pkgs-card{display:flex;flex-direction:column;height:100%;background:var(--pm-surface);border:1px solid var(--pm-border);border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .18s ease,box-shadow .18s ease}
+.la-pkgs-card:hover{transform:translateY(-6px);border-color:rgba(201,146,42,.45);box-shadow:0 18px 36px rgba(0,0,0,.4)}
+.la-pkgs-banner{position:relative;height:180px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:var(--pm-d);overflow:hidden;background:linear-gradient(135deg,#1a3a6b,var(--pm-navy))}
+.la-pkgs-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(201,146,42,.18),transparent 55%)}
+.la-pkgs-banner svg{width:52px;height:52px;opacity:.95;fill:var(--pm-d);position:relative;z-index:1}
 .la-pkgs-badges{align-self:flex-start;position:relative;z-index:1;display:flex;gap:.4rem;flex-wrap:wrap}
-.la-pkgs-flexbadge{background:rgba(255,255,255,.95);color:var(--pm);font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
-.la-pkgs-offerbadge{display:inline-flex;align-items:center;gap:.25rem;background:#e8153b;color:#fff;font-weight:800;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;box-shadow:0 2px 6px rgba(232,21,59,.35)}
+.la-pkgs-flexbadge{background:rgba(201,146,42,.15);border:1px solid var(--pm-border);color:var(--pm-d);font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
+.la-pkgs-offerbadge{display:inline-flex;align-items:center;gap:.25rem;background:#c0392b;color:#fff;font-weight:800;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .la-pkgs-offerbadge svg{width:13px;height:13px;fill:#fff}
-.la-pkgs-price-old{font-size:1rem;font-weight:600;color:#9aa0a6;text-decoration:line-through;margin-inline-end:.35rem}
+.la-pkgs-price-old{font-size:1rem;font-weight:600;color:#6b7c96;text-decoration:line-through;margin-inline-end:.35rem}
 .la-pkgs-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
 .la-pkgs-name{font-family:'Cairo',sans-serif;font-weight:700;font-size:1.15rem;color:var(--pm-ink);margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
-.la-pkgs-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
-.la-pkgs-card--active{border-color:var(--pm);box-shadow:0 0 0 2px rgba(108,34,166,.28)}
-.la-pkgs-activebadge{background:#1f9d55;color:#fff;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
-.la-pkgs-meta{font-size:.86rem;color:#3c3c3c;margin-top:auto;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
-.la-pkgs-dates{font-size:.86rem;color:#3c3c3c;margin-top:auto;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
+.la-pkgs-desc{color:var(--pm-muted);font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.1em}
+.la-pkgs-card--active{border-color:var(--pm);box-shadow:0 0 0 2px rgba(201,146,42,.35)}
+.la-pkgs-activebadge{background:#00a99d;color:#04121f;font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
+.la-pkgs-meta{font-size:.86rem;color:var(--pm-muted);margin-top:auto;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid var(--pm-line)}
+.la-pkgs-dates{font-size:.86rem;color:var(--pm-muted);margin-top:auto;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid var(--pm-line)}
 .la-pkgs-dates-row{display:flex;justify-content:space-between;margin-top:.3rem}
 .la-pkgs-dates-row b{color:var(--pm-ink)}
 .la-pkgs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-top:.5rem}
-.la-pkgs-price{font-size:1.5rem;font-weight:800;color:var(--pm-ink)}
-.la-pkgs-price small{font-size:.8rem;font-weight:600;color:#6a6f73}
-.la-pkgs-btn{background:var(--pm);border:none;color:#fff;font-family:'Cairo',sans-serif;font-weight:700;font-size:.95rem;padding:.7rem 1.5rem;border-radius:4px;cursor:pointer;transition:background .15s ease,transform .1s ease}
-.la-pkgs-btn:hover{background:var(--pm-d)}
+.la-pkgs-price{font-size:1.5rem;font-weight:800;color:var(--pm-d)}
+.la-pkgs-price small{font-size:.8rem;font-weight:600;color:var(--pm-muted)}
+.la-pkgs-btn{background:linear-gradient(135deg,var(--pm),var(--pm-d));border:none;color:var(--pm-navy);font-family:'Cairo',sans-serif;font-weight:700;font-size:.95rem;padding:.7rem 1.5rem;border-radius:4px;cursor:pointer;transition:box-shadow .15s ease,transform .1s ease}
+.la-pkgs-btn:hover{box-shadow:0 8px 25px rgba(201,146,42,.45)}
 .la-pkgs-btn:active{transform:scale(.97)}
-.la-pkgs-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
-.la-pkgs-headnote{display:none;align-items:center;gap:.4rem;margin-top:.6rem;color:#8a5a00;font-size:.85rem;line-height:1.4}
-.la-pkgs-headnote svg{width:15px;height:15px;flex-shrink:0;fill:#c07f00}
+.la-pkgs-btn[disabled]{background:rgba(255,255,255,.09);color:var(--pm-muted);cursor:not-allowed;box-shadow:none}
+.la-pkgs-headnote{display:none;align-items:center;gap:.4rem;margin-top:.6rem;color:var(--pm-d);font-size:.85rem;line-height:1.4}
+.la-pkgs-headnote svg{width:15px;height:15px;flex-shrink:0;fill:var(--pm-d)}
 /* Confirmation dialog (replaces the native window.confirm). */
 .la-pkgs-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
 .la-pkgs-modal-bg.open{display:flex;opacity:1}
-.la-pkgs-modal{background:#fff;border-radius:12px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
+.la-pkgs-modal{background:var(--pm-surface,#0d2149);border:1px solid rgba(201,146,42,.45);border-radius:12px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
 .la-pkgs-modal-bg.open .la-pkgs-modal{transform:none}
 .la-pkgs-modal-head{display:flex;align-items:center;gap:.7rem;padding:1.25rem 1.4rem 0}
-.la-pkgs-modal-head svg{width:34px;height:34px;fill:#6c22a6;flex-shrink:0}
-.la-pkgs-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#1c1d1f}
-.la-pkgs-modal-body{padding:.9rem 1.4rem 0;color:#3c3c3c;font-size:.95rem;line-height:1.5}
-.la-pkgs-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:#f5eefc;border:1px solid #e4d3f5;border-radius:8px}
-.la-pkgs-modal-plan .name{font-weight:700;color:#1c1d1f;margin-bottom:.35rem}
-.la-pkgs-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#4b4b4b;margin-top:.2rem}
-.la-pkgs-modal-row b{color:#1c1d1f}
-.la-pkgs-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#6a6f73;margin-top:.2rem}
-.la-pkgs-modal-secure svg{width:14px;height:14px;fill:#1f9d55}
+.la-pkgs-modal-head svg{width:34px;height:34px;fill:#e8b84b;flex-shrink:0}
+.la-pkgs-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#ffffff}
+.la-pkgs-modal-body{padding:.9rem 1.4rem 0;color:#8a9ab5;font-size:.95rem;line-height:1.5}
+.la-pkgs-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:rgba(201,146,42,.1);border:1px solid rgba(201,146,42,.2);border-radius:8px}
+.la-pkgs-modal-plan .name{font-weight:700;color:#ffffff;margin-bottom:.35rem}
+.la-pkgs-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#8a9ab5;margin-top:.2rem}
+.la-pkgs-modal-row b{color:#ffffff}
+.la-pkgs-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#8a9ab5;margin-top:.2rem}
+.la-pkgs-modal-secure svg{width:14px;height:14px;fill:#00a99d}
 .la-pkgs-modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:1.2rem 1.4rem 1.3rem}
-.la-pkgs-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:4px;cursor:pointer}
-.la-pkgs-modal-cancel:hover{background:#f6f7f8}
-.la-pkgs-modal-ok{background:#6c22a6;border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:4px;cursor:pointer}
-.la-pkgs-modal-ok:hover{background:#57187f}
+.la-pkgs-modal-cancel{background:transparent;border:1px solid rgba(201,146,42,.45);color:#8a9ab5;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:4px;cursor:pointer}
+.la-pkgs-modal-cancel:hover{background:rgba(201,146,42,.12);color:#e8b84b}
+.la-pkgs-modal-ok{background:linear-gradient(135deg,#c9922a,#e8b84b);border:none;color:#0a1628;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:4px;cursor:pointer}
+.la-pkgs-modal-ok:hover{box-shadow:0 8px 25px rgba(201,146,42,.45)}
 CSS;
 
     $section = html_writer::tag('style', $css) .
@@ -833,13 +835,15 @@ require([], function() {
         }).then(parse);
     }
 
+    // Dark jewel-toned gradients — replaces the old rainbow set, which clashed against the
+    // X-Trade navy/gold identity. Kept as six so cards still read as visually distinct.
     var GRADS = [
-        'linear-gradient(135deg,#0d6efd,#00d4ff)',
-        'linear-gradient(135deg,#fc4a1a,#f7b733)',
-        'linear-gradient(135deg,#0f2027,#2c5364)',
-        'linear-gradient(135deg,#f857a6,#ff5858)',
-        'linear-gradient(135deg,#00b09b,#96c93d)',
-        'linear-gradient(135deg,#7f00ff,#e100ff)'
+        'linear-gradient(135deg,#1a3a6b,#0a1628)',
+        'linear-gradient(135deg,#0d2149,#1a3a6b)',
+        'linear-gradient(135deg,#004d47,#00201d)',
+        'linear-gradient(135deg,#5c1a24,#2c0a10)',
+        'linear-gradient(135deg,#3a2a0a,#1a1206)',
+        'linear-gradient(135deg,#1c2b45,#0a1628)'
     ];
     var BOLT = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.72 10.6 10.85 7.08 13 3.5h1l-1 7h4.5c.5 0 .5.33.36.61-.13.28-.08.19-.11.24C15.09 15.34 13 18.85 11 21z"/></svg>';
     var TAG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21.41 11.58l-9-9A2 2 0 0011 2H4a2 2 0 00-2 2v7a2 2 0 00.59 1.42l9 9a2 2 0 002.82 0l7-7a2 2 0 000-2.84zM6.5 8A1.5 1.5 0 118 6.5 1.5 1.5 0 016.5 8z"/></svg>';
@@ -1036,63 +1040,63 @@ function local_academy_programs_css() {
     $done = true;
 
     $css = <<<CSS
-.la-prg{--pm:#6c22a6;--pm-d:#57187f;--pm-bg:#f2f3fa;--pm-ink:#1c1d1f;max-width:1280px;margin:3.5rem auto;padding:2.75rem 1.75rem;background:var(--pm-bg);border-radius:14px;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-prg{--pm:#c9922a;--pm-d:#e8b84b;--pm-bg:#080f1d;--pm-ink:#ffffff;--pm-muted:#8a9ab5;--pm-surface:#0d2149;--pm-border:rgba(201,146,42,.2);--pm-line:rgba(201,146,42,.14);--pm-navy:#0a1628;max-width:1280px;margin:3.5rem auto;padding:2.75rem 1.75rem;background:var(--pm-bg);border:1px solid var(--pm-border);border-radius:14px;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
 .la-prg-head{margin-bottom:1.75rem}
 .la-prg-title{font-family:'Cairo',sans-serif;font-size:1.65rem;font-weight:800;color:var(--pm-ink);margin:0 0 .35rem}
-.la-prg-sub{color:var(--pm);margin:0;font-size:1.05rem;font-weight:700}
+.la-prg-sub{color:var(--pm-d);margin:0;font-size:1.05rem;font-weight:700}
 .la-prg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.75rem;align-items:stretch}
-.la-prg-card{display:flex;flex-direction:column;height:100%;background:#fff;border:1px solid #e8e6ef;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(108,34,166,.07);transition:transform .18s ease,box-shadow .18s ease}
-.la-prg-card:hover{transform:translateY(-6px);box-shadow:0 18px 36px rgba(108,34,166,.20)}
+.la-prg-card{display:flex;flex-direction:column;height:100%;background:var(--pm-surface);border:1px solid var(--pm-border);border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .18s ease,box-shadow .18s ease}
+.la-prg-card:hover{transform:translateY(-6px);border-color:rgba(201,146,42,.45);box-shadow:0 18px 36px rgba(0,0,0,.4)}
 .la-prg-card--clickable{cursor:pointer}
-.la-prg-card--clickable:focus-visible{outline:3px solid var(--pm);outline-offset:2px}
-.la-prg-card--clickable .la-prg-name{color:var(--pm)}
-.la-prg-banner{position:relative;height:160px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:#fff;overflow:hidden}
-.la-prg-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.22),transparent 55%)}
-.la-prg-banner svg{width:48px;height:48px;opacity:.95;fill:#fff;position:relative;z-index:1}
+.la-prg-card--clickable:focus-visible{outline:3px solid var(--pm-d);outline-offset:2px}
+.la-prg-card--clickable .la-prg-name{color:var(--pm-d)}
+.la-prg-banner{position:relative;height:160px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem;color:var(--pm-d);overflow:hidden}
+.la-prg-banner::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(201,146,42,.18),transparent 55%)}
+.la-prg-banner svg{width:48px;height:48px;opacity:.95;fill:var(--pm-d);position:relative;z-index:1}
 .la-prg-badges{align-self:flex-start;position:relative;z-index:1;display:flex;gap:.4rem;flex-wrap:wrap}
-.la-prg-badge{background:rgba(255,255,255,.95);color:var(--pm);font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
-.la-prg-badge--free{background:#1f9d55;color:#fff}
-.la-prg-badge--owned{background:#0f6cbf;color:#fff}
-.la-prg-badge--done{background:#1f9d55;color:#fff}
-.la-prg-badge--offer{display:inline-flex;align-items:center;gap:.25rem;background:#e8153b;color:#fff;font-weight:800}
+.la-prg-badge{background:rgba(201,146,42,.15);border:1px solid var(--pm-border);color:var(--pm-d);font-weight:700;font-size:.8rem;padding:.3rem .7rem;border-radius:1rem}
+.la-prg-badge--free{background:#00a99d;color:#04121f}
+.la-prg-badge--owned{background:#1a3a6b;color:#e8b84b;border:1px solid rgba(201,146,42,.35)}
+.la-prg-badge--done{background:#00a99d;color:#04121f}
+.la-prg-badge--offer{display:inline-flex;align-items:center;gap:.25rem;background:#c0392b;color:#fff;font-weight:800}
 .la-prg-body{padding:1.25rem 1.25rem 1.5rem;display:flex;flex-direction:column;flex:1}
 .la-prg-name{font-family:'Cairo',sans-serif;font-weight:700;font-size:1.15rem;color:var(--pm-ink);margin:0 0 .5rem;line-height:1.35;min-height:2.7em}
-.la-prg-desc{color:#6a6f73;font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.la-prg-dates{font-size:.86rem;color:#3c3c3c;margin-top:auto;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid #f1f1f1}
+.la-prg-desc{color:var(--pm-muted);font-size:.92rem;margin:0 0 .9rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.la-prg-dates{font-size:.86rem;color:var(--pm-muted);margin-top:auto;margin-bottom:1rem;padding-top:.9rem;border-top:1px solid var(--pm-line)}
 .la-prg-dates-row{display:flex;justify-content:space-between;margin-top:.3rem}
 .la-prg-dates-row b{color:var(--pm-ink)}
 .la-prg-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-top:.5rem}
-.la-prg-price{font-size:1.5rem;font-weight:800;color:var(--pm-ink)}
-.la-prg-price small{font-size:.8rem;font-weight:600;color:#6a6f73}
-.la-prg-price-old{font-size:1rem;font-weight:600;color:#9aa0a6;text-decoration:line-through;margin-inline-end:.35rem}
-.la-prg-price--free{color:#1f9d55}
-.la-prg-btn{display:inline-block;background:var(--pm);border:none;color:#fff;font-family:'Cairo',sans-serif;font-weight:700;font-size:.95rem;padding:.7rem 1.5rem;border-radius:4px;cursor:pointer;text-decoration:none;transition:background .15s ease,transform .1s ease}
-.la-prg-btn:hover{background:var(--pm-d);color:#fff;text-decoration:none}
+.la-prg-price{font-size:1.5rem;font-weight:800;color:var(--pm-d)}
+.la-prg-price small{font-size:.8rem;font-weight:600;color:var(--pm-muted)}
+.la-prg-price-old{font-size:1rem;font-weight:600;color:#6b7c96;text-decoration:line-through;margin-inline-end:.35rem}
+.la-prg-price--free{color:#00a99d}
+.la-prg-btn{display:inline-block;background:linear-gradient(135deg,var(--pm),var(--pm-d));border:none;color:var(--pm-navy);font-family:'Cairo',sans-serif;font-weight:700;font-size:.95rem;padding:.7rem 1.5rem;border-radius:4px;cursor:pointer;text-decoration:none;transition:box-shadow .15s ease,transform .1s ease}
+.la-prg-btn:hover{box-shadow:0 8px 25px rgba(201,146,42,.45);color:var(--pm-navy);text-decoration:none}
 .la-prg-btn:active{transform:scale(.97)}
-.la-prg-btn[disabled]{background:#d1d7dc;color:#6a6f73;cursor:not-allowed}
-.la-prg-err{color:#c0392b;font-size:.85rem;margin-top:.5rem}
-.la-prg-all{display:inline-block;margin-top:1.75rem;color:var(--pm);font-weight:700;text-decoration:none}
-.la-prg-all:hover{color:var(--pm-d);text-decoration:underline}
+.la-prg-btn[disabled]{background:rgba(255,255,255,.09);color:var(--pm-muted);cursor:not-allowed}
+.la-prg-err{color:#e57368;font-size:.85rem;margin-top:.5rem}
+.la-prg-all{display:inline-block;margin-top:1.75rem;color:var(--pm-d);font-weight:700;text-decoration:none}
+.la-prg-all:hover{color:var(--pm);text-decoration:underline}
 /* Confirmation dialog (same pattern as la-pkgs / la-subs modals). */
 .la-prg-modal-bg{position:fixed;inset:0;background:rgba(28,29,36,.55);display:none;align-items:center;justify-content:center;z-index:10000;padding:1rem;opacity:0;transition:opacity .18s ease;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
 .la-prg-modal-bg.open{display:flex;opacity:1}
-.la-prg-modal{background:#fff;border-radius:12px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
+.la-prg-modal{background:var(--pm-surface,#0d2149);border:1px solid rgba(201,146,42,.45);border-radius:12px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .18s ease}
 .la-prg-modal-bg.open .la-prg-modal{transform:none}
 .la-prg-modal-head{display:flex;align-items:center;gap:.7rem;padding:1.25rem 1.4rem 0}
-.la-prg-modal-head svg{width:34px;height:34px;fill:#6c22a6;flex-shrink:0}
-.la-prg-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#1c1d1f}
-.la-prg-modal-body{padding:.9rem 1.4rem 0;color:#3c3c3c;font-size:.95rem;line-height:1.5}
-.la-prg-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:#f5eefc;border:1px solid #e4d3f5;border-radius:8px}
-.la-prg-modal-plan .name{font-weight:700;color:#1c1d1f;margin-bottom:.35rem}
-.la-prg-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#4b4b4b;margin-top:.2rem}
-.la-prg-modal-row b{color:#1c1d1f}
-.la-prg-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#6a6f73;margin-top:.2rem}
-.la-prg-modal-secure svg{width:14px;height:14px;fill:#1f9d55}
+.la-prg-modal-head svg{width:34px;height:34px;fill:#e8b84b;flex-shrink:0}
+.la-prg-modal-head h4{margin:0;font-size:1.2rem;font-weight:800;color:#ffffff}
+.la-prg-modal-body{padding:.9rem 1.4rem 0;color:#8a9ab5;font-size:.95rem;line-height:1.5}
+.la-prg-modal-plan{margin:.9rem 0;padding:.9rem 1rem;background:rgba(201,146,42,.1);border:1px solid rgba(201,146,42,.2);border-radius:8px}
+.la-prg-modal-plan .name{font-weight:700;color:#ffffff;margin-bottom:.35rem}
+.la-prg-modal-row{display:flex;justify-content:space-between;font-size:.9rem;color:#8a9ab5;margin-top:.2rem}
+.la-prg-modal-row b{color:#ffffff}
+.la-prg-modal-secure{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#8a9ab5;margin-top:.2rem}
+.la-prg-modal-secure svg{width:14px;height:14px;fill:#00a99d}
 .la-prg-modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:1.2rem 1.4rem 1.3rem}
-.la-prg-modal-cancel{background:#fff;border:1px solid #d1d7dc;color:#3c3c3c;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:4px;cursor:pointer}
-.la-prg-modal-cancel:hover{background:#f6f7f8}
-.la-prg-modal-ok{background:#6c22a6;border:none;color:#fff;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:4px;cursor:pointer}
-.la-prg-modal-ok:hover{background:#57187f}
+.la-prg-modal-cancel{background:transparent;border:1px solid rgba(201,146,42,.45);color:#8a9ab5;font-weight:600;font-size:.92rem;padding:.6rem 1.1rem;border-radius:4px;cursor:pointer}
+.la-prg-modal-cancel:hover{background:rgba(201,146,42,.12);color:#e8b84b}
+.la-prg-modal-ok{background:linear-gradient(135deg,#c9922a,#e8b84b);border:none;color:#0a1628;font-weight:700;font-size:.92rem;padding:.6rem 1.3rem;border-radius:4px;cursor:pointer}
+.la-prg-modal-ok:hover{box-shadow:0 8px 25px rgba(201,146,42,.45)}
 CSS;
 
     return html_writer::tag('style', $css);
@@ -1152,13 +1156,16 @@ JS;
  * @return string
  */
 function local_academy_program_card($badges, $name, $desc, $meta, $price, $action, $idx, $href = '') {
+    // Six dark, jewel-toned gradients so program cards stay visually distinct without
+    // reintroducing the old rainbow palette, which clashed hard against the X-Trade
+    // navy/gold identity. Each keeps enough contrast for the white/gold icon on top.
     $grads = array(
-        'linear-gradient(135deg,#6c22a6,#9d4edd)',
-        'linear-gradient(135deg,#0d6efd,#00d4ff)',
-        'linear-gradient(135deg,#fc4a1a,#f7b733)',
-        'linear-gradient(135deg,#00b09b,#96c93d)',
-        'linear-gradient(135deg,#f857a6,#ff5858)',
-        'linear-gradient(135deg,#0f2027,#2c5364)',
+        'linear-gradient(135deg,#1a3a6b,#0a1628)',
+        'linear-gradient(135deg,#0d2149,#1a3a6b)',
+        'linear-gradient(135deg,#004d47,#00201d)',
+        'linear-gradient(135deg,#5c1a24,#2c0a10)',
+        'linear-gradient(135deg,#3a2a0a,#1a1206)',
+        'linear-gradient(135deg,#1c2b45,#0a1628)',
     );
     $icon = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>';
 
@@ -1506,10 +1513,20 @@ function local_academy_my_programs_section() {
 }
 
 /**
- * Student certificate card injected into the enrol_programs "my program" page
- * (/enrol/programs/my/program.php). Shows the logged-in student, for the program they are viewing,
- * every ENABLED certificate defined for that program plus whether they are eligible and — per rule —
- * what is required versus what they have achieved.
+ * Certificate card injected into the enrol_programs program pages. Shows every ENABLED certificate
+ * the program offers and, per rule, what it takes to earn it.
+ *
+ * Two modes, because the plugin has two program pages and the visitor's relationship to the program
+ * differs on each:
+ *
+ *  - OWNER (/enrol/programs/my/program.php, $preview = false) — the student is allocated. Shows
+ *    live eligibility: a status badge, a ✓/✗ per rule with achieved-vs-required, and, once they
+ *    qualify, a link to the certificate itself.
+ *  - PREVIEW (/enrol/programs/catalogue/program.php, $preview = true) — the student is deciding
+ *    whether to buy, or has bought nothing yet. The certificate is part of what they are being
+ *    offered, so the requirements must be visible BEFORE purchase. Shows the same requirements as a
+ *    plain checklist, with no pass/fail marks (they have not started — marking every line ✗ would be
+ *    accurate but reads as rejection) and no link to the certificate.
  *
  * Injected from local_academy so the third-party plugin's files stay untouched. Eligibility itself is
  * still decided here and nothing is issued: when a certificate is linked to a Custom Certificate
@@ -1517,12 +1534,16 @@ function local_academy_my_programs_section() {
  * host course and links to it — mod_customcert remains the only thing that generates a certificate.
  * See {@see \local_academy\cert\customcert_link}. An unlinked certificate shows progress only.
  *
+ * Preview mode never calls grant_access(): enrolling a non-buyer into the certificate's host course
+ * would hand out access the student has not paid for.
+ *
  * Rendered server-side (we already have $USER and the program id); a small script relocates it into
  * the page's main region so it sits with the rest of the program content rather than at page end.
  *
+ * @param bool $preview true on the catalogue page (requirements only, nothing granted)
  * @return string HTML to echo before the footer, '' when there is nothing to show
  */
-function local_academy_program_certificates_section() {
+function local_academy_program_certificates_section($preview = false) {
     global $USER;
 
     if (!isloggedin() || isguestuser()) {
@@ -1544,7 +1565,9 @@ function local_academy_program_certificates_section() {
 
     $cards = '';
     foreach ($reports as $r) {
-        $eligible = !empty($r['eligible']);
+        // In preview the student has not started, so eligibility is noise — the card answers "what
+        // will this take?", not "how am I doing?".
+        $eligible = !$preview && !empty($r['eligible']);
         $statusclass = $eligible ? 'la-cert-status--ok' : 'la-cert-status--pending';
         $statuslabel = $eligible
             ? get_string('cert_student_eligible', 'local_academy')
@@ -1555,15 +1578,17 @@ function local_academy_program_certificates_section() {
         $rules = '';
         foreach (($r['results'] ?? array()) as $res) {
             $passed = !empty($res['passed']);
-            $mark = $passed ? '✓' : '✗';
-            $markclass = $passed ? 'la-cert-mark--ok' : 'la-cert-mark--no';
+            // Preview: a neutral bullet. Achieved-vs-required is progress reporting, which a student
+            // who has not joined yet has none of — "0 / 90 %" on every line is discouraging noise.
+            $mark = $preview ? '•' : ($passed ? '✓' : '✗');
+            $markclass = $preview ? 'la-cert-mark--todo' : ($passed ? 'la-cert-mark--ok' : 'la-cert-mark--no');
             $unit = (string)($res['unit'] ?? '');
             $required = $res['required'] ?? null;
             $detail = '';
             // Show "achieved / required [unit]" when the rule exposes a meaningful count to compare:
             // a unit (e.g. progress %) or a required total above one (e.g. 2 / 3 courses). A plain
             // yes/no rule (required 1, no unit) needs no number — the marker already says it.
-            $showdetail = $unit !== '' || (is_numeric($required) && (float)$required > 1);
+            $showdetail = !$preview && ($unit !== '' || (is_numeric($required) && (float)$required > 1));
             if ($required !== null && $required !== '' && $showdetail) {
                 $detail = html_writer::tag('span',
                     s((string)$res['actual']) . ' / ' . s((string)$required) . ($unit !== '' ? ' ' . s($unit) : ''),
@@ -1590,6 +1615,8 @@ function local_academy_program_certificates_section() {
 
         // The real certificate lives in a customcert activity inside a host course. An eligible
         // student is enrolled there on the spot (best-effort) so the link below actually opens.
+        // Never in preview — $eligible is forced false there, so grant_access() cannot run for a
+        // student who has not joined the program.
         $action = '';
         $externalref = (int)($r['externalref'] ?? 0);
         if ($eligible && $externalref > 0) {
@@ -1601,16 +1628,32 @@ function local_academy_program_certificates_section() {
             }
         }
 
+        // Preview badge says what the certificate IS ("Included with this program"), not how the
+        // student is doing — there is nothing to be doing yet.
+        $badge = $preview
+            ? html_writer::tag('span', s(get_string('cert_student_included', 'local_academy')),
+                array('class' => 'la-cert-status la-cert-status--included'))
+            : html_writer::tag('span', $statuslabel, array('class' => 'la-cert-status ' . $statusclass));
+
+        if ($preview) {
+            $note = get_string('cert_student_preview_note', 'local_academy');
+            $noteclass = 'la-cert-note';
+        } else if ($eligible) {
+            $note = get_string('cert_student_eligible_note', 'local_academy');
+            $noteclass = 'la-cert-note la-cert-note--ok';
+        } else {
+            $note = get_string('cert_student_pending_note', 'local_academy');
+            $noteclass = 'la-cert-note';
+        }
+
         $cards .= '<div class="la-cert-card">' .
             '<div class="la-cert-card-head">' .
                 html_writer::tag('span', s((string)($r['name'] ?? '')), array('class' => 'la-cert-name')) .
-                html_writer::tag('span', $statuslabel, array('class' => 'la-cert-status ' . $statusclass)) .
+                $badge .
             '</div>' .
             html_writer::tag('p', $operatornote, array('class' => 'la-cert-op')) .
             '<ul class="la-cert-rules">' . $rules . '</ul>' .
-            ($eligible
-                ? html_writer::tag('p', get_string('cert_student_eligible_note', 'local_academy'), array('class' => 'la-cert-note la-cert-note--ok'))
-                : html_writer::tag('p', get_string('cert_student_pending_note', 'local_academy'), array('class' => 'la-cert-note'))) .
+            html_writer::tag('p', $note, array('class' => $noteclass)) .
             $action .
         '</div>';
     }
@@ -1619,6 +1662,7 @@ function local_academy_program_certificates_section() {
 .la-cert{--pm:#6c22a6;max-width:1280px;margin:2rem auto;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
 .la-cert-title{font-size:1.35rem;font-weight:800;color:#1c1d1f;margin:0 0 1.1rem;display:flex;align-items:center;gap:.5rem}
 .la-cert-title svg{width:26px;height:26px;fill:var(--pm)}
+.la-cert-intro{color:#6a6f73;font-size:.95rem;margin:-.6rem 0 1.1rem}
 .la-cert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.25rem}
 .la-cert-card{background:#fff;border:1px solid #e8e6ef;border-radius:10px;padding:1.1rem 1.2rem;box-shadow:0 4px 14px rgba(108,34,166,.07)}
 .la-cert-card-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.4rem}
@@ -1633,6 +1677,8 @@ function local_academy_program_certificates_section() {
 .la-cert-mark{width:1.3rem;height:1.3rem;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-size:.8rem;font-weight:800;color:#fff}
 .la-cert-mark--ok{background:#1f9d55}
 .la-cert-mark--no{background:#c0392b}
+.la-cert-mark--todo{background:#e8e6ef;color:#6c22a6}
+.la-cert-status--included{background:#f5eefc;color:#6c22a6}
 .la-cert-rule-label{color:#1c1d1f;flex:1}
 .la-cert-detail{color:#6a6f73;font-weight:700;white-space:nowrap}
 .la-cert-note{font-size:.85rem;color:#6a6f73;margin:.8rem 0 0}
@@ -1643,11 +1689,17 @@ CSS;
 
     $icon = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 15-4-4 1.41-1.41L10 13.17l6.59-6.58L18 8l-8 8z"/></svg>';
 
+    $title = $preview
+        ? get_string('cert_student_preview_title', 'local_academy')
+        : get_string('cert_student_title', 'local_academy');
+
     $html = html_writer::tag('style', $css) .
         '<section id="la-cert" class="la-cert">' .
-            html_writer::tag('h3',
-                $icon . s(get_string('cert_student_title', 'local_academy')),
-                array('class' => 'la-cert-title')) .
+            html_writer::tag('h3', $icon . s($title), array('class' => 'la-cert-title')) .
+            ($preview
+                ? html_writer::tag('p', s(get_string('cert_student_preview_intro', 'local_academy')),
+                    array('class' => 'la-cert-intro'))
+                : '') .
             '<div class="la-cert-grid">' . $cards . '</div>' .
         '</section>';
 
@@ -1679,20 +1731,20 @@ function local_academy_home_testimonials_section() {
     $courselink = (string) new moodle_url('/', array(), 'la-subs');
 
     $css = <<<CSS
-.la-testi{--pm:#6c22a6;max-width:1280px;margin:3.5rem auto;padding:0 1.75rem;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
-.la-testi-title{font-family:'Cairo',sans-serif;font-size:1.55rem;font-weight:800;color:#1c1d1f;margin:0 0 1.75rem}
+.la-testi{--pm:#c9922a;--pm-d:#e8b84b;max-width:1280px;margin:3.5rem auto;padding:2.75rem 1.75rem;background:#080f1d;border:1px solid rgba(201,146,42,.2);border-radius:14px;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-testi-title{font-family:'Cairo',sans-serif;font-size:1.55rem;font-weight:800;color:#ffffff;margin:0 0 1.75rem}
 .la-testi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem}
-.la-testi-card{position:relative;background:#f2f3fa;border-radius:10px;padding:2.4rem 1.6rem 1.5rem;display:flex;flex-direction:column}
-.la-testi-quote{position:absolute;top:.4rem;left:1.4rem;font-size:3rem;line-height:1;color:#1c1d1f;font-weight:800}
-.la-testi-text{color:#1c1d1f;font-size:1rem;line-height:1.55;margin:0 0 1.2rem;text-align:justify;flex:1}
+.la-testi-card{position:relative;background:#0d2149;border:1px solid rgba(201,146,42,.2);border-radius:10px;padding:2.4rem 1.6rem 1.5rem;display:flex;flex-direction:column}
+.la-testi-quote{position:absolute;top:.4rem;left:1.4rem;font-size:3rem;line-height:1;color:#e8b84b;font-weight:800}
+.la-testi-text{color:#8a9ab5;font-size:1rem;line-height:1.55;margin:0 0 1.2rem;text-align:justify;flex:1}
 .la-testi-user{display:flex;align-items:center;gap:.7rem;margin-bottom:.35rem}
-.la-testi-av{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.95rem;background:linear-gradient(135deg,var(--pm),#9d4edd)}
-.la-testi-name{font-weight:700;color:#1c1d1f;font-size:.95rem}
+.la-testi-av{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#0a1628;font-weight:700;font-size:.95rem;background:linear-gradient(135deg,var(--pm),var(--pm-d))}
+.la-testi-name{font-weight:700;color:#ffffff;font-size:.95rem}
 .la-testi-stars{display:flex;gap:2px;margin:.15rem 0 1rem}
-.la-testi-stars svg{width:16px;height:16px;fill:#f5a623}
-.la-testi-course{display:flex;align-items:center;gap:.5rem;padding-top:1rem;border-top:1px solid #e2e2ee;color:var(--pm);font-weight:700;font-size:.9rem;text-decoration:none;line-height:1.3}
-.la-testi-course:hover{color:#57187f;text-decoration:none}
-.la-testi-course svg{width:20px;height:20px;fill:var(--pm);flex-shrink:0}
+.la-testi-stars svg{width:16px;height:16px;fill:#e8b84b}
+.la-testi-course{display:flex;align-items:center;gap:.5rem;padding-top:1rem;border-top:1px solid rgba(201,146,42,.2);color:var(--pm-d);font-weight:700;font-size:.9rem;text-decoration:none;line-height:1.3}
+.la-testi-course:hover{color:var(--pm);text-decoration:none}
+.la-testi-course svg{width:20px;height:20px;fill:var(--pm-d);flex-shrink:0}
 CSS;
 
     $star = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>';
@@ -1740,19 +1792,19 @@ function local_academy_home_articles_section() {
     $bloglink = (string) new moodle_url('/blog/index.php');
 
     $css = <<<CSS
-.la-arts{--pm:#6c22a6;background:#f2f3fa;padding:3rem 0;margin:3.5rem 0;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-arts{--pm:#c9922a;--pm-d:#e8b84b;background:#080f1d;border-top:1px solid rgba(201,146,42,.2);border-bottom:1px solid rgba(201,146,42,.2);padding:3rem 0;margin:3.5rem 0;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
 .la-arts-in{max-width:1280px;margin:0 auto;padding:0 1.75rem}
-.la-arts-heading{font-family:'Cairo',sans-serif;font-size:1.55rem;font-weight:800;color:#1c1d1f;margin:0 0 1.5rem}
+.la-arts-heading{font-family:'Cairo',sans-serif;font-size:1.55rem;font-weight:800;color:#ffffff;margin:0 0 1.5rem}
 .la-arts-card{display:flex;gap:2rem;align-items:stretch;flex-wrap:wrap}
 .la-arts-text{flex:1 1 420px;min-width:280px}
-.la-arts-title{font-family:'Cairo',sans-serif;font-size:1.2rem;font-weight:700;color:#1c1d1f;margin:0 0 1rem;line-height:1.35}
-.la-arts-body{color:#3c3c3c;font-size:1rem;line-height:1.6;text-align:justify;margin:0 0 1.4rem}
-.la-arts-btn{display:inline-block;background:var(--pm);color:#fff;font-weight:700;font-size:.95rem;padding:.65rem 1.6rem;border-radius:4px;text-decoration:none}
-.la-arts-btn:hover{background:#57187f;color:#fff;text-decoration:none}
-.la-arts-img{flex:0 0 335px;max-width:100%;min-height:300px;border-radius:10px;background:linear-gradient(135deg,var(--pm),#9d4edd);display:flex;align-items:center;justify-content:center}
-.la-arts-img svg{width:88px;height:88px;fill:rgba(255,255,255,.85)}
-.la-arts-more{display:block;text-align:center;margin-top:2rem;color:var(--pm);font-weight:700;font-size:1rem;text-decoration:none}
-.la-arts-more:hover{color:#57187f;text-decoration:none}
+.la-arts-title{font-family:'Cairo',sans-serif;font-size:1.2rem;font-weight:700;color:#ffffff;margin:0 0 1rem;line-height:1.35}
+.la-arts-body{color:#8a9ab5;font-size:1rem;line-height:1.6;text-align:justify;margin:0 0 1.4rem}
+.la-arts-btn{display:inline-block;background:linear-gradient(135deg,var(--pm),var(--pm-d));color:#0a1628;font-weight:700;font-size:.95rem;padding:.65rem 1.6rem;border-radius:4px;text-decoration:none}
+.la-arts-btn:hover{box-shadow:0 8px 25px rgba(201,146,42,.45);color:#0a1628;text-decoration:none}
+.la-arts-img{flex:0 0 335px;max-width:100%;min-height:300px;border-radius:10px;border:1px solid rgba(201,146,42,.2);background:linear-gradient(135deg,#1a3a6b,#0a1628);display:flex;align-items:center;justify-content:center}
+.la-arts-img svg{width:88px;height:88px;fill:rgba(232,184,75,.85)}
+.la-arts-more{display:block;text-align:center;margin-top:2rem;color:var(--pm-d);font-weight:700;font-size:1rem;text-decoration:none}
+.la-arts-more:hover{color:var(--pm);text-decoration:none}
 @media (max-width:768px){.la-arts-img{flex-basis:100%;min-height:200px}}
 CSS;
 
@@ -1787,15 +1839,15 @@ function local_academy_home_business_section() {
     $link  = (string) new moodle_url('/', array(), 'la-subs');
 
     $css = <<<CSS
-.la-biz{--pm:#6c22a6;max-width:1280px;margin:3.5rem auto;padding:0 1.75rem;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
+.la-biz{--pm:#c9922a;--pm-d:#e8b84b;max-width:1280px;margin:3.5rem auto;padding:2.75rem 1.75rem;background:#080f1d;border:1px solid rgba(201,146,42,.2);border-radius:14px;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif}
 .la-biz-in{display:flex;gap:2.5rem;align-items:center;flex-wrap:wrap}
-.la-biz-img{flex:0 0 480px;max-width:100%;min-height:340px;border-radius:10px;background:linear-gradient(135deg,var(--pm),#9d4edd);display:flex;align-items:center;justify-content:center}
-.la-biz-img svg{width:110px;height:110px;fill:rgba(255,255,255,.85)}
+.la-biz-img{flex:0 0 480px;max-width:100%;min-height:340px;border-radius:10px;border:1px solid rgba(201,146,42,.2);background:linear-gradient(135deg,#1a3a6b,#0a1628);display:flex;align-items:center;justify-content:center}
+.la-biz-img svg{width:110px;height:110px;fill:rgba(232,184,75,.85)}
 .la-biz-text{flex:1 1 380px;min-width:280px}
-.la-biz-title{font-family:'Cairo',sans-serif;font-size:1.55rem;font-weight:800;color:#1c1d1f;margin:0 0 1.1rem}
-.la-biz-body{color:#1c1d1f;font-size:1.05rem;line-height:1.6;text-align:justify;margin:0 0 1.6rem}
-.la-biz-btn{display:inline-block;background:var(--pm);color:#fff;font-weight:700;font-size:1rem;padding:.75rem 1.9rem;border-radius:4px;text-decoration:none}
-.la-biz-btn:hover{background:#57187f;color:#fff;text-decoration:none}
+.la-biz-title{font-family:'Cairo',sans-serif;font-size:1.55rem;font-weight:800;color:#ffffff;margin:0 0 1.1rem}
+.la-biz-body{color:#8a9ab5;font-size:1.05rem;line-height:1.6;text-align:justify;margin:0 0 1.6rem}
+.la-biz-btn{display:inline-block;background:linear-gradient(135deg,var(--pm),var(--pm-d));color:#0a1628;font-weight:700;font-size:1rem;padding:.75rem 1.9rem;border-radius:4px;text-decoration:none}
+.la-biz-btn:hover{box-shadow:0 8px 25px rgba(201,146,42,.45);color:#0a1628;text-decoration:none}
 @media (max-width:768px){.la-biz-img{flex-basis:100%;min-height:220px}}
 CSS;
 
@@ -2159,12 +2211,16 @@ function local_academy_before_footer() {
         }
     }
 
-    // 1c. Program certificates: on the student's own program page, show which certificates the
-    // program offers and whether they qualify. Eligibility info only (nothing is issued here).
+    // 1c. Program certificates. Eligibility info only — nothing is ever issued here.
+    //   - my-program (owner): live progress towards each certificate.
+    //   - catalogue-program (shopper): the same requirements as a preview, so a student can see what
+    //     the program's certificates demand BEFORE buying it. Without this the certificates are
+    //     invisible until after purchase, which is exactly when the information stops being useful.
     if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)
-            && $PAGE->pagetype === 'enrol-programs-my-program') {
+            && in_array($PAGE->pagetype, array('enrol-programs-my-program', 'enrol-programs-catalogue-program'), true)) {
         try {
-            $output .= local_academy_program_certificates_section();
+            $output .= local_academy_program_certificates_section(
+                $PAGE->pagetype === 'enrol-programs-catalogue-program');
         } catch (\Throwable $e) {
             debugging('academy program certificates section failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }

@@ -1273,6 +1273,11 @@ $string['cert_student_any']             = 'يجب أن تحقق شرطاً وا�
 $string['cert_student_eligible_note']   = 'لقد استوفيت شروط الحصول على هذه الشهادة.';
 $string['cert_student_pending_note']    = 'أكمِل الشروط المتبقية لتصبح مؤهلاً لهذه الشهادة.';
 $string['cert_student_download']        = 'استلام الشهادة';
+// معاينة نفس البطاقة في صفحة الكتالوج، لطالب لم ينضم إلى البرنامج بعد.
+$string['cert_student_preview_title']   = 'شهادات يمكنك الحصول عليها';
+$string['cert_student_preview_intro']   = 'يمنح هذا البرنامج الشهادات التالية. وهذه متطلبات كل منها.';
+$string['cert_student_included']        = 'ضمن البرنامج';
+$string['cert_student_preview_note']    = 'انضم إلى هذا البرنامج لتبدأ العمل على هذه الشهادة.';
 $string['cert_link_activity']           = 'نشاط الشهادة';
 $string['cert_link_none']               = '— غير مرتبطة (أهلية فقط) —';
 $string['cert_link_unavailable']        = '— لا توجد أنشطة Custom Certificate متاحة —';

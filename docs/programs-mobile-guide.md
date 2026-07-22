@@ -294,19 +294,30 @@ for — the web does this on `my/program.php`.
 GET api.php?function=list_program_certificate_eligibility&programid=3&token=TOKEN
 ```
 
-See [`api/certificate-eligibility.md`](api/certificate-eligibility.md) for the response shape. Only
-call it when `owned == 1`; an empty `certificates` array means the program has none — render nothing.
+See [`api/certificate-eligibility.md`](api/certificate-eligibility.md) for the response shape. An
+empty `certificates` array means the program has none — render nothing.
+
+**Call it in both views, not just for owners.** A certificate is part of what the program is selling,
+so a shopper needs to see it and its requirements *before* deciding to buy — that is exactly when the
+information is useful. The endpoint does not require ownership. The web does the same on both program
+pages.
 
 Each certificate carries `eligible`, `operator` (`and` = must meet every requirement, `or` = any one
 of them), and a `results` list — one entry per requirement. For each entry render:
 
-- `passed` → a ✓ / ✗ marker
 - **`description`** → what the student must do, e.g. *"Complete at least 90% of the program's
   courses"*. Fall back to `label` only when `description` is `''`. **Do not show `label` by
   default** — it is the rule *type* ("Program progress ≥ threshold %"), admin wording that leaves
-  the student none the wiser.
-- `actual` / `required` / `unit` → progress, shown when `unit` is non-empty or `required > 1`
-  (e.g. `72 / 90 %`, `2 / 3`). A plain yes/no requirement has no useful number; the marker says it.
+  the student none the wiser. Shown in **both** views; it is the whole point of the card.
+- `passed` → a ✓ / ✗ marker. **Owner view only.**
+- `actual` / `required` / `unit` → progress, e.g. `72 / 90 %`, `2 / 3`. **Owner view only**, and only
+  when `unit` is non-empty or `required > 1`; a plain yes/no requirement has no useful number.
+
+In the **shopper view** drop the marks and the numbers entirely and render the requirements as a
+neutral bulleted checklist: the student has not started, so every line would read ✗ `0 / 90 %` —
+accurate, but it looks like rejection rather than an invitation. Show the certificate name with an
+"Included" badge and a line like *"Join this program to start working towards this certificate."*
+Never link to the certificate itself for a non-owner.
 
 ---
 

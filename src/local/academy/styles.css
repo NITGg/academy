@@ -854,8 +854,16 @@ html body header.header-nav .header_user_notif .dropdown-menu .user_set_header {
     border-bottom: 1px solid var(--xt-border);
 }
 html body header.header-nav .header_user_notif .dropdown-menu .user_set_header p,
-html body header.header-nav .header_user_notif .so_heading p {
+html body header.header-nav .header_user_notif .dropdown-menu .so_heading p {
     color: #ffffff;
+}
+/* Same `.so_heading` mix-up as the caret above: the bell/message popovers use this
+ * class too, on a white body that was never recoloured. Unscoped, the rule above would
+ * print their "Notifications"/"Messages" heading in white-on-white — invisible. Restore
+ * the dark colour the theme uses elsewhere inside this same white panel
+ * (cocoon-mdl.css: `.popover-region-container a { color: #0a0a0a }`). */
+html body header.header-nav .header_user_notif li.user_notif .popover-region-container .so_heading p {
+    color: #0a0a0a;
 }
 html body header.header-nav .header_user_notif .dropdown-menu .user_set_header .address {
     color: var(--xt-muted);
@@ -884,6 +892,33 @@ html body header.header-nav .header_user_notif li .dropdown-menu .user_setting_c
 html body header.header-nav .header_user_notif li.user_setting .dropdown-menu .user_setting_content a:hover span {
     color: var(--xt-gold-light);
     background-color: var(--xt-gold-wash);
+}
+
+/* The little diamond joining each panel to the bar is a 37px square rotated
+ * 45deg in a :before, painted #ffffff for the theme's white panels.
+ *
+ * IMPORTANT: `.so_heading` is not unique to the navy "Navigation" panel. The
+ * theme's OWN override of core/popover_region.mustache (used for the bell
+ * notification popover and the message popover) reuses the exact same
+ * `.so_heading` class on its header — see theme/edumy/templates/core/popover_region.mustache
+ * `<div class="--popover-region-header-container so_heading">`. Those two
+ * popovers render core Moodle content and were never recoloured (still a
+ * white `.popover-region-container` body), so their caret must stay white —
+ * scoping strictly to `.dropdown-menu .so_heading` (present only on the real
+ * "Navigation" panel, not on `.popover-region-container`) keeps the two apart
+ * without relying on selector order. An earlier, broader version of this rule
+ * matched both and painted the bell/message caret navy over a white box —
+ * reported by the client from a screenshot of the live notification popover. */
+html body header.header-nav .header_user_notif li.user_setting .dropdown-menu.notification_dropdown_content.show:before,
+html body header.header-nav .header_user_notif li.user_setting .dropdown-menu.show:before,
+html body header.header-nav .header_user_notif .dropdown-menu .so_heading:before {
+    background-color: var(--xt-blue);
+}
+
+/* Bell/message popovers: explicit white, matching their untouched white body
+ * (belt-and-braces alongside the `.dropdown-menu` scoping above). */
+html body header.header-nav .header_user_notif li.user_notif .popover-region-container .so_heading:before {
+    background-color: #ffffff;
 }
 
 /* The navigation drawer renders theme_boost/flat_navigation inside the same
@@ -1029,4 +1064,94 @@ html body[class*="ccn_footer_style"] .ccn_footer_surround a:focus-visible {
     outline: 2px solid var(--xt-gold-light);
     outline-offset: 3px;
     border-radius: 4px;
+}
+
+/* ============================================================================
+ * 17. Front-page theme blocks — X-Trade navy/gold identity
+ *
+ * These are the vendor theme's "cocoon" blocks (About / Teachers / Levels /
+ * Courses). Unlike the navbar and footer, their colours are NOT in the theme's
+ * stylesheets — they are hardcoded inside <style> tags that live in DATABASE
+ * content: partly the `theme_edumy | custom_css` setting, partly the HTML body
+ * of individual block instances. Both are emitted inline in the page <body>,
+ * i.e. AFTER this file, so order is against us here as well; the `html body`
+ * prefix supplies the extra specificity that wins regardless.
+ *
+ * Recoloured from here rather than by editing the database so the change is
+ * version-controlled and reversible, and so nobody's admin-entered content is
+ * silently rewritten. If the client would rather have these values fixed at
+ * source, the same mapping can be applied to the block content instead.
+ *
+ * CONTRAST NOTE: the page canvas behind these blocks is a near-white doodle
+ * image (custom_css `#page-site-index`). Anything sitting directly on it —
+ * section headings, standalone icons — must stay DARK; gold on that canvas is
+ * about 2.6:1 and fails. Gold is therefore used only inside the navy cards.
+ * ==========================================================================*/
+
+/* --- A. "About" flip cards (Vision / Target / Message) -------------------*/
+/* Block content: `background-image: linear-gradient(#0E2647, #B21F60)`. */
+html body .flip-card-front,
+html body .flip-card-back {
+    background-image: linear-gradient(160deg, var(--xt-royal), var(--xt-navy));
+    border: 1px solid var(--xt-border);
+}
+
+/* --- B. "Levels" category pill -------------------------------------------*/
+/* Block content: `background-color: #B31F61; color: #ffffff`. Sits on the
+ * light canvas, so it becomes a navy pill with a gold label. */
+html body .category_name_box {
+    background-color: var(--xt-navy);
+    border: 1px solid var(--xt-border-strong);
+    color: var(--xt-gold-light);
+}
+
+/* --- C. "Teachers" carousel ----------------------------------------------*/
+/* Block content: `.carousel .card { background: #154372 }`. */
+html body .carousel .card {
+    background: var(--xt-blue);
+    border: 1px solid var(--xt-border);
+}
+html body .carousel .card h2,
+html body .carousel .card span {
+    color: var(--xt-gold-light);
+}
+
+/* --- D. "Courses" cards --------------------------------------------------*/
+/* custom_css: `.top_courses { background-color: #0F5784 }` and a
+ * `.tc_footer` gradient that fades the same blue into transparent. */
+html body .top_courses,
+html body .top_courses .details {
+    background-color: var(--xt-blue);
+}
+html body .tc_footer {
+    background: linear-gradient(180deg, var(--xt-navy) 0%, rgba(10, 22, 40, 0) 100%);
+}
+
+/* --- E. Section headings and icons on the light canvas -------------------*/
+/* Kept dark on purpose — see the CONTRAST NOTE above. Moved from the theme's
+ * mid-blue #154372 to the identity navy so they belong to the new palette
+ * without becoming unreadable. */
+html body .main-title h2,
+html body .main-title h3,
+html body .main-title p,
+html body .wrapper_vx i {
+    color: var(--xt-navy);
+}
+
+/* The four section headings carry `style="color:#154372"` on the ELEMENT
+ * ("هيئة التدريس بالأكاديمية", "المراحل التعليمية" and its lead paragraph).
+ * An element's inline declaration outranks every normal stylesheet rule no
+ * matter how specific, so `!important` is the only way to reach them from
+ * here. This is the single place in the redesign that needs it, and it is
+ * kept to these exact selectors.
+ *
+ * Purely a palette alignment, NOT a legibility fix: #154372 already scores
+ * 10.11:1 on the light canvas (the new navy is 18.13:1). Deleting the inline
+ * `color` from the block content in the database would remove the need for
+ * `!important` entirely — worth doing if these blocks are edited anyway. */
+html body .main-title[style] h2[style],
+html body .main-title[style],
+html body .block_cocoon_course_categories .text-center h2[style],
+html body .block_cocoon_course_categories .text-center p[style] {
+    color: var(--xt-navy) !important;
 }

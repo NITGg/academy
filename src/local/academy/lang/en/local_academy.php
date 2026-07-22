@@ -1355,6 +1355,11 @@ $string['cert_student_any']             = 'You must meet at least one of the req
 $string['cert_student_eligible_note']   = 'You have met the requirements for this certificate.';
 $string['cert_student_pending_note']    = 'Complete the remaining requirements to qualify for this certificate.';
 $string['cert_student_download']        = 'Get your certificate';
+// Preview of the same card on the catalogue page, for a student who has not joined the program yet.
+$string['cert_student_preview_title']   = 'Certificates you can earn';
+$string['cert_student_preview_intro']   = 'This program awards the certificates below. Here is what each one requires.';
+$string['cert_student_included']        = 'Included';
+$string['cert_student_preview_note']    = 'Join this program to start working towards this certificate.';
 $string['cert_link_activity']           = 'Certificate activity';
 $string['cert_link_none']               = '— not linked (eligibility only) —';
 $string['cert_link_unavailable']        = '— no Custom Certificate activities available —';
