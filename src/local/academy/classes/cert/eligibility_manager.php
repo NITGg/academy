@@ -463,7 +463,11 @@ class eligibility_manager {
             $config = [];
             foreach ($rule->get_config_schema() as $field) {
                 $key = $field['name'];
-                if (array_key_exists($key, $incoming)) {
+                // A blank field ('') is "not provided", not "zero" — otherwise an admin who leaves the
+                // threshold empty silently stores 0, and a "progress ≥ 0%" rule then passes for
+                // everyone. Fall back to the field's default (e.g. 90%) instead.
+                $provided = array_key_exists($key, $incoming) && $incoming[$key] !== '';
+                if ($provided) {
                     $config[$key] = ($field['type'] === 'number')
                         ? (float)$incoming[$key]
                         : (int)$incoming[$key];

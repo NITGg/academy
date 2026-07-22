@@ -59,6 +59,12 @@ class course_progress_rule implements rule_interface {
 
     public function evaluate(int $userid, int $courseid, array $config): bool {
         $threshold = (float)($config['threshold'] ?? 0);
+        // A non-positive threshold is a misconfiguration (an unset/blank field saved as 0), never a
+        // real requirement — "award at 0% progress" would hand the certificate to every student,
+        // completed or not. Fail safe: we never award on a misconfiguration.
+        if ($threshold <= 0) {
+            return false;
+        }
         return $this->progress($userid, $courseid) >= $threshold;
     }
 
