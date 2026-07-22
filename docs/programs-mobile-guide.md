@@ -221,6 +221,16 @@ A **set** is a grouping with a completion rule (show `sequencetype` as a subtitl
 *not visible to you*. This is deliberate — it does not leak the existence of a program the user is
 not allowed to see. Show a generic "This program is not available" and pop back to the list.
 
+> **Non-JSON responses are a *different* failure — do not treat them as "not available."** Every
+> endpoint in this guide is contracted to return the `{status, …}` JSON envelope. If a response does
+> **not** parse as JSON (an HTTP 5xx, or a Moodle HTML error page instead of a body), that is a
+> **server error, not a program-state error**. Distinguish the two: on a real `{"status":"fail"}`
+> show "This program is not available" and go back; on a parse failure / non-2xx show a transient
+> **"Something went wrong, try again"** with a retry, and log the raw body so it reaches the backend.
+> Collapsing both into the same "غير متاح" message is what hid the `file_rewrite_pluginfile_urls`
+> fatal on program 1 for a full debugging cycle — the screen said "unavailable" when the server was
+> actually 500-ing. This rule applies to **all** endpoints below, not just this one.
+
 ---
 
 ## 5. Buying a paid program

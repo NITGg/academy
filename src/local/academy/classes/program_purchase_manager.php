@@ -435,8 +435,12 @@ class program_purchase_manager {
      * @throws \moodle_exception when the program is missing, archived, or not visible to this user
      */
     public static function get_program_details($userid, $programid) {
-        global $DB;
+        global $DB, $CFG;
         self::require_available();
+        // file_rewrite_pluginfile_urls() lives in lib/filelib.php, which is NOT auto-loaded on the
+        // API request path — pull it in explicitly or the call below fatals with
+        // "Call to undefined function file_rewrite_pluginfile_urls()".
+        require_once($CFG->dirroot . '/lib/filelib.php');
 
         $userid = (int)$userid;
         $programid = (int)$programid;
