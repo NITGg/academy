@@ -16,27 +16,37 @@
  */
 
 :root {
-    /* Brand — vivid violet→indigo, cohesive with the existing subscription-card purple (#a435f0). */
-    --acad-primary: #6d28d9;
-    --acad-primary-2: #8b5cf6;
-    --acad-primary-strong: #5b21b6;
-    --acad-primary-soft: #f3efff;
-    --acad-primary-border: #d8ccff;
-    --acad-brand: #a435f0;
-    --acad-brand-strong: #8710d8;
+    /* Brand — retired violet→indigo, migrated to the X-Trade navy/gold identity
+     * (tokens defined in the --xt-* block below). Kept as its own --acad-*
+     * namespace rather than replaced site-wide by --xt-*: ~150 rules across
+     * this shared content-area system (section 0 onward — cards, buttons,
+     * tables, badges, tabs, modals, pagination, pickers), plus two pages'
+     * own inline <style> blocks (manage_subscriptions.php, teacher_profile.php),
+     * already reference these names. Repointing what they RESOLVE TO converts
+     * every one of those in a single place instead of editing each rule. */
+    --acad-primary: var(--xt-gold);
+    --acad-primary-2: var(--xt-gold-light);
+    --acad-primary-strong: var(--xt-gold-light);
+    --acad-primary-soft: rgba(201, 146, 42, .12);
+    --acad-primary-border: var(--xt-border-strong);
+    --acad-brand: var(--xt-gold-light);
+    --acad-brand-strong: var(--xt-gold);
 
     /* Signature gradients */
-    --acad-grad: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 55%, #a435f0 100%);
-    --acad-grad-soft: linear-gradient(135deg, #f5f0ff 0%, #eef2ff 100%);
-    --acad-grad-header: linear-gradient(120deg, #4c1d95 0%, #6d28d9 45%, #9333ea 100%);
+    --acad-grad: var(--xt-grad-gold);
+    --acad-grad-soft: linear-gradient(135deg, rgba(201, 146, 42, .12) 0%, rgba(201, 146, 42, .04) 100%);
+    --acad-grad-header: linear-gradient(120deg, var(--xt-royal) 0%, var(--xt-navy) 100%);
 
-    /* Neutrals */
-    --acad-text: #1e1b2e;
-    --acad-muted: #6b7280;
-    --acad-border: #e9e7f3;
-    --acad-border-strong: #d9d6ea;
-    --acad-surface: #ffffff;
-    --acad-surface-2: #f7f6fc;
+    /* Neutrals — flipped for a dark surface: was near-black text (#1e1b2e) on
+     * white cards (#ffffff); now light text on navy cards. --acad-muted
+     * reuses --xt-muted, already calibrated for navy (6.36:1+, see the navbar
+     * section) rather than picking a new grey that needs re-verifying. */
+    --acad-text: #ffffff;
+    --acad-muted: var(--xt-muted);
+    --acad-border: var(--xt-border);
+    --acad-border-strong: var(--xt-border-strong);
+    --acad-surface: var(--xt-blue);
+    --acad-surface-2: var(--xt-navy);
 
     /* Shape */
     --acad-radius-sm: 0.5rem;
@@ -44,11 +54,13 @@
     --acad-radius-lg: 1.25rem;
     --acad-pill: 999px;
 
-    /* Elevation — softer, more colourful shadows */
-    --acad-shadow-sm: 0 1px 2px rgba(45, 27, 105, .06), 0 2px 6px rgba(45, 27, 105, .05);
-    --acad-shadow: 0 6px 18px rgba(76, 29, 149, .10);
-    --acad-shadow-lg: 0 24px 50px rgba(76, 29, 149, .22);
-    --acad-glow: 0 10px 26px rgba(109, 40, 217, .28);
+    /* Elevation — was purple-tinted for white cards; plain dark shadows read
+     * better on an already-dark surface, so only --acad-glow (used for
+     * hover/active emphasis, not passive elevation) keeps a colour, now gold. */
+    --acad-shadow-sm: 0 1px 2px rgba(0, 0, 0, .25), 0 2px 6px rgba(0, 0, 0, .18);
+    --acad-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+    --acad-shadow-lg: 0 24px 50px rgba(0, 0, 0, .55);
+    --acad-glow: var(--xt-glow-gold-lg);
 
     /* Spacing scale */
     --acad-gap-xs: 0.25rem;
@@ -56,7 +68,11 @@
     --acad-gap: 1rem;
     --acad-gap-lg: 1.5rem;
 
-    /* Status palette */
+    /* Status palette — intentionally UNTOUCHED. These are semantic traffic-
+     * light pairs (pale chip background + dark chip text), self-contained
+     * regardless of what surface they sit on, and not part of the brand
+     * identity — a yellow "pending" pill reads the same next to a purple
+     * brand or a gold one. Recolouring them was never part of this migration. */
     --acad-st-pending-bg: #fef3c7;  --acad-st-pending-fg: #92600a;
     --acad-st-info-bg: #dbeafe;     --acad-st-info-fg: #1e40af;
     --acad-st-success-bg: #d1fae5;  --acad-st-success-fg: #065f46;
@@ -100,6 +116,21 @@
 /* ============================================================================
  * 0. Content-area canvas + page heading (the big first-impression change)
  * ==========================================================================*/
+/* The page canvas itself. The theme sets `body{background-color:#ffffff}`
+ * globally and `#region-main{background:none !important}`, so region-main is
+ * transparent and simply shows whatever colour is on body through it — the
+ * same mechanism used for the front page (`#page-site-index`), generalised
+ * here to every local_academy page. This has to happen BEFORE the token
+ * remap below is trusted anywhere: --acad-text is now white (for the navy
+ * cards/tables), and white text directly on the theme's default white body
+ * — a bare toolbar button, a loose label, the $OUTPUT->heading() below — is
+ * invisible until the body itself is dark too. Confirmed live: an
+ * .btn-outline-secondary sitting outside any card rendered as a blank box
+ * with unreadable text before this rule was added. */
+html body[class*="local-academy"] {
+    background-color: var(--xt-navy);
+}
+
 body[class*="local-academy"] #region-main,
 body[class*="local-academy"] [role="main"] {
     --acad-scope: 1;
@@ -232,18 +263,23 @@ body[class*="local-academy"] #region-main .btn-primary,
 body[class*="local-academy"] [role="main"] .btn-primary {
     background: var(--acad-grad);
     border: none;
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(109, 40, 217, .28);
+    /* Navy, not white: verified white-on-gold is 2.75:1 (fails), navy-on-gold
+     * is 6.59:1 — same reasoning as the navbar's gold CTA button. */
+    color: var(--xt-navy);
+    box-shadow: 0 4px 12px rgba(201, 146, 42, .35);
 }
 body[class*="local-academy"] #region-main .btn-primary:hover,
 body[class*="local-academy"] #region-main .btn-primary:focus {
     box-shadow: var(--acad-glow);
     transform: translateY(-1px);
-    color: #fff;
+    color: var(--xt-navy);
 }
 body[class*="local-academy"] #region-main .btn-secondary,
 body[class*="local-academy"] #region-main .btn-outline-secondary {
-    background: #fff;
+    /* Was a filled white button; transparent reads correctly as a secondary/
+     * outline action against the now-dark surface (and is more honest for
+     * .btn-outline-secondary, which was never meant to be filled). */
+    background: transparent;
     border: 1px solid var(--acad-border-strong);
     color: var(--acad-text);
 }
@@ -256,11 +292,11 @@ body[class*="local-academy"] #region-main .btn-outline-secondary:hover {
 body[class*="local-academy"] #region-main .btn-outline-primary {
     border: 1px solid var(--acad-primary);
     color: var(--acad-primary);
-    background: #fff;
+    background: transparent;
 }
 body[class*="local-academy"] #region-main .btn-outline-primary:hover {
     background: var(--acad-primary);
-    color: #fff;
+    color: var(--xt-navy);
 }
 body[class*="local-academy"] #region-main .btn-success { background: #059669; border: none; }
 body[class*="local-academy"] #region-main .btn-warning { background: #d97706; border: none; color: #fff; }
@@ -279,7 +315,7 @@ body[class*="local-academy"] [role="main"] .form-control {
 }
 body[class*="local-academy"] #region-main .form-control:focus {
     border-color: var(--acad-primary);
-    box-shadow: 0 0 0 .2rem rgba(109, 40, 217, .18);
+    box-shadow: 0 0 0 .2rem rgba(201, 146, 42, .25);
 }
 body[class*="local-academy"] #region-main label { font-weight: 600; color: var(--acad-text); }
 
@@ -463,7 +499,7 @@ body[class*="local-academy"] .ml-modal-bg,
 body[class*="local-academy"] .w-modal-bg,
 body[class*="local-academy"] .wd-modal-bg,
 body[class*="local-academy"] .academy-modal-backdrop {
-    background: rgba(30, 27, 46, .6);
+    background: rgba(4, 12, 24, .7);
     backdrop-filter: blur(2px);
 }
 
@@ -526,9 +562,9 @@ body[class*="local-academy"] .ml-empty {
 .acad-pager button.is-active {
     background: var(--acad-grad);
     border-color: transparent;
-    color: #fff;
+    color: var(--xt-navy);
     cursor: default;
-    box-shadow: 0 4px 12px rgba(109, 40, 217, .3);
+    box-shadow: 0 4px 12px rgba(201, 146, 42, .35);
 }
 .acad-pager button:disabled { opacity: .45; cursor: not-allowed; }
 .acad-pager__ellipsis { color: var(--acad-muted); padding: 0 0.2rem; align-self: center; }

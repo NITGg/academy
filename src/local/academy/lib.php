@@ -2188,16 +2188,6 @@ function local_academy_before_footer() {
             } catch (\Throwable $e) {
                 debugging('academy programs sections failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
             }
-            // Static "PM Lounge" marketing sections (testimonials, articles, business CTA) that
-            // complete the homepage design below the course cards. Purely presentational — a
-            // failure here must never take the front page down.
-            try {
-                $output .= local_academy_home_testimonials_section();
-                $output .= local_academy_home_articles_section();
-                $output .= local_academy_home_business_section();
-            } catch (\Throwable $e) {
-                debugging('academy homepage sections failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
-            }
         }
     }
 
