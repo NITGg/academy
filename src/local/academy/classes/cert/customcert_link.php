@@ -113,6 +113,41 @@ class customcert_link {
         return new \moodle_url('/mod/customcert/view.php', ['id' => $cmid]);
     }
 
+    /**
+     * Will the linked certificate activity's page actually render for this user *right now*?
+     *
+     * Program-level eligibility (our ruleset) is not the whole story: the customcert activity can
+     * carry its OWN "Restrict access" conditions — most commonly "activity X must be marked complete"
+     * — and its view page enforces them live. Course/program completion is latched (un-completing one
+     * activity does not un-complete the course), so our program_completed rule can still say "done"
+     * while the activity's finer condition has flipped back to false and the page would block.
+     *
+     * This asks core the exact question the page asks: is the module available and visible to the
+     * user, evaluating its access conditions against LIVE completion. Call it before advertising a
+     * certificate as openable so we never hand out a link to a page that will refuse to render.
+     *
+     * Enrolment matters (the check includes course access), so call {@see grant_access} first.
+     *
+     * @param int $userid
+     * @param int $cmid the linked customcert activity
+     * @return bool true only when the activity's own restrictions are all satisfied for this user
+     */
+    public static function is_available_to(int $userid, int $cmid): bool {
+        if ($userid <= 0 || !self::get_activity($cmid)) {
+            return false;
+        }
+        try {
+            // $checkcourse = true so enrolment/course access is part of the answer, exactly like the
+            // view page (which require_login()s into the host course before showing the certificate).
+            return \core_availability\info_module::is_user_visible($cmid, $userid, true);
+        } catch (\Throwable $e) {
+            // Fail safe: if we cannot confirm the activity is reachable, do NOT advertise it as open.
+            debugging('local_academy: customcert availability check failed: ' . $e->getMessage(),
+                DEBUG_DEVELOPER);
+            return false;
+        }
+    }
+
     /** Script name for the one-time auto-login keys this class mints. */
     const AUTOLOGIN_SCRIPT = 'local_academy/autologin';
 

@@ -1483,21 +1483,32 @@ try {
                 $linked = ($cmid > 0 && customcert_link::view_url($cmid));
                 // open_state tells the app EXACTLY why a certificate can or cannot be opened, so it
                 // never shows an Open button that would error:
-                //   'open'        — requirements met AND a real certificate is linked → show Open.
-                //   'locked'      — requirements NOT met yet → show progress from `results`, no button.
+                //   'open'        — our rules pass, a real certificate is linked, AND that activity's
+                //                   own access conditions are satisfied → show Open.
+                //   'locked'      — our rules are not met yet, OR the linked certificate activity's own
+                //                   "Restrict access" (e.g. a required lesson) is not satisfied → show
+                //                   progress from `results`, no button.
                 //   'unavailable' — eligible, but the admin has not linked a real activity yet → hide.
                 if (empty($rep['eligible'])) {
                     $rep['open_state'] = 'locked';
                 } else if (!$linked) {
                     $rep['open_state'] = 'unavailable';
                 } else {
-                    $rep['open_state'] = 'open';
-                    // Enrol the eligible student into the host course now, so the later
-                    // open_certificate call resolves instead of hitting an access-denied page.
+                    // Enrol the eligible student into the host course, THEN confirm the activity will
+                    // actually render for them. The customcert can enforce a finer, live condition than
+                    // our (latched) program rule — if a required activity was un-completed, its page
+                    // blocks, so we must report 'locked' and not advertise an Open button.
                     customcert_link::grant_access($targetuserid, $cmid);
+                    $rep['open_state'] = customcert_link::is_available_to($targetuserid, $cmid)
+                        ? 'open' : 'locked';
                 }
                 // Convenience boolean the Open button can bind to directly (true only when 'open').
                 $rep['openable'] = ($rep['open_state'] === 'open');
+                // When our ruleset says eligible but the linked activity's own restriction is blocking,
+                // flag it so the app can show a precise message ("finish the required activity") instead
+                // of a generic "requirements not met". `eligible`/`results` stay truthful to our rules.
+                $rep['activity_restricted'] =
+                    (!empty($rep['eligible']) && $linked && $rep['open_state'] === 'locked');
             }
             unset($rep);
             academy_respond(['status' => 'success', 'data' => [
@@ -1525,8 +1536,15 @@ try {
                     academy_respond(['status' => 'fail',
                         'error' => get_string('err_certnotlinked', 'local_academy')]);
                 }
-                // Enrol into the host course first, then mint the one-time login link to it.
+                // Enrol into the host course first, then confirm the certificate activity will actually
+                // render — the customcert can carry its own "Restrict access" condition (e.g. a required
+                // lesson complete) that is stricter than our program rule. Refuse cleanly rather than
+                // mint a link to a page that would then block the student.
                 customcert_link::grant_access($userid, $cmid);
+                if (!customcert_link::is_available_to($userid, $cmid)) {
+                    academy_respond(['status' => 'fail',
+                        'error' => get_string('err_certactivityrestricted', 'local_academy')]);
+                }
                 $url = customcert_link::mint_autologin_url($userid, $cmid);
                 if (!$url) {
                     academy_respond(['status' => 'fail',

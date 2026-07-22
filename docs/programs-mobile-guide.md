@@ -396,33 +396,44 @@ the app needs **no token handling and no auto-login code of its own**:
 {
   "certificateid": 12,
   "name": "Full Stack Diploma — Certificate of Completion",
-  "eligible": false,
+  "eligible": true,             // our program ruleset (results below) — may be true even when locked
   "operator": "and",
-  "externalref": 2042,       // the linked customcert cmid (info only — you don't need it)
-  "open_state": "locked",    // ← drive the UI off THIS, see the table below
-  "openable": false,         // shorthand for open_state == "open"
-  "results": [ … ]           // per-requirement breakdown (what's still missing)
+  "externalref": 2042,          // the linked customcert cmid (info only — you don't need it)
+  "open_state": "locked",       // ← drive the UI off THIS, see the table below
+  "openable": false,            // shorthand for open_state == "open"
+  "activity_restricted": true,  // locked because the certificate's OWN required activity isn't done
+  "results": [ … ]              // per-requirement breakdown of our program rules
 }
 ```
 
-**Drive the certificate UI entirely off `open_state` — never off `externalref`.** This is what keeps
-a student from ever tapping into a certificate that then errors:
+**Drive the certificate UI entirely off `open_state` — never off `externalref`, and never off
+`eligible` alone.** `open_state` is the single field that truthfully predicts whether the certificate
+page will actually open. This is what keeps a student from ever tapping into a certificate that then
+errors:
 
 | `open_state` | Meaning | What the app shows |
 |--------------|---------|--------------------|
-| `"open"` | Requirements met **and** a real certificate is linked | **Open certificate** button → step 2 |
-| `"locked"` | **Requirements not met yet** | A **locked / disabled** state — show the progress from `results` (*"2 of 3 requirements met"*), **no open button** |
+| `"open"` | Our rules pass, a real certificate is linked, **and** the activity's own access conditions are satisfied | **Open certificate** button → step 2 |
+| `"locked"` | Our rules are not met yet, **or** the certificate activity's own restriction (e.g. a required lesson) is not satisfied | A **locked / disabled** state — no open button (see `activity_restricted` for which message) |
 | `"unavailable"` | Eligible, but the admin has not linked a real activity yet | Hide the certificate, or show a neutral *"Coming soon"* — no button |
 
-So when the program's requirements are not finished, `open_state` is **`"locked"`** and `openable`
-is **`false`** — render it as locked with its remaining requirements, and the Open button is simply
-not there. The student can never reach an error page. (When `open_state == "open"`, the server has
-already enrolled the student into the certificate's host course on this same call, so step 2 resolves
-cleanly.)
+**Why `open_state` can be `"locked"` while `eligible` is `true`.** `eligible` / `results` report only
+*our* program ruleset (e.g. "program completed"). The linked certificate activity can enforce its
+**own** finer "Restrict access" condition — most often *"a specific lesson must be complete"*. Program
+completion is **latched** (un-completing one lesson does not un-complete the whole program), so our
+rule can still read "done" while that lesson's condition has flipped back to false and the real
+certificate page would block. `open_state` checks the activity's live condition too, so it correctly
+says `"locked"`. Use the `activity_restricted` flag to pick the message:
 
-> **Defence in depth:** even if a stale screen somehow shows an Open button for a `"locked"`
-> certificate, `open_certificate` (step 2) **refuses** with a clear message (see below) — it never
-> returns a URL for a student who has not met the requirements. There is no path to a raw error page.
+- `activity_restricted == true` → *"You un-completed / haven't finished a required activity — complete
+  it to unlock the certificate."* (Our program rules pass; a specific activity is what's blocking.)
+- `activity_restricted == false` (plain `locked`) → *"Complete the requirements"* + progress from
+  `results`.
+
+> **Defence in depth:** even if a stale screen shows an Open button for a `"locked"` certificate,
+> `open_certificate` (step 2) **refuses** with a clear message — it re-checks both our rules *and* the
+> activity's own restriction before minting a link, and never returns a URL to a page that would
+> block. There is no path to a raw error page.
 
 **Step 2 — mint a self-authenticating link at the moment of the tap.** When the user taps **"Open
 certificate" / "عرض الشهادة"**, call:
@@ -448,10 +459,14 @@ certificate yourself.
 
 - **Mint it on the tap, not ahead of time.** The link is single-use and expires in ~2 minutes, so
   request it when the user actually taps Open — never store it from an earlier screen.
-- **Errors** (`status: "fail"`): `You have not met the requirements for this certificate yet.`
-  (`open_state` was `"locked"` / flipped to locked since the list was loaded — re-fetch and show it
-  locked) or `This certificate is not available to open yet.` (`open_state` was `"unavailable"` — no
-  linked activity; hide the button).
+- **Errors** (`status: "fail"`, always a real localized message — never a `[[placeholder]]`):
+  - `You have not met the requirements for this certificate yet.` — our program rules aren't met
+    (`open_state` flipped to `"locked"`); re-fetch and show it locked.
+  - `Finish all the required activities in the program before opening this certificate.` — our rules
+    pass but the certificate activity's own restriction blocks (`activity_restricted`); tell the
+    student to complete that activity.
+  - `This certificate is not available to open yet.` — no linked activity (`open_state` was
+    `"unavailable"`); hide the button.
 
 > **Why a second call instead of a URL in the list?** The link must be fresh (single-use, short-lived)
 > to be safe, and a URL baked into the list would already be stale or spent by the time the user taps.

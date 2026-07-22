@@ -1369,6 +1369,7 @@ $string['cert_link_help']               = 'The Custom Certificate activity that 
 $string['err_certnotfound']             = 'Certificate not found.';
 $string['err_certnoteligible']          = 'You have not met the requirements for this certificate yet.';
 $string['err_certnotlinked']            = 'This certificate is not available to open yet.';
+$string['err_certactivityrestricted']   = 'Finish all the required activities in the program before opening this certificate.';
 $string['err_certcoursenotfound']       = 'Course not found.';
 $string['err_certprogramnotfound']      = 'Program not found.';
 $string['err_certscopeinvalid']         = 'A certificate must be scoped to exactly one course or one program.';

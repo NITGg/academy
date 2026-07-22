@@ -1287,6 +1287,7 @@ $string['cert_link_help']               = 'نشاط Custom Certificate الذي 
 $string['err_certnotfound']             = 'الشهادة غير موجودة.';
 $string['err_certnoteligible']          = 'لم تستوفِ متطلبات هذه الشهادة بعد.';
 $string['err_certnotlinked']            = 'هذه الشهادة غير متاحة للفتح بعد.';
+$string['err_certactivityrestricted']   = 'أكمِل جميع الأنشطة المطلوبة في البرنامج قبل فتح هذه الشهادة.';
 $string['err_certcoursenotfound']       = 'الكورس غير موجود.';
 $string['err_certprogramnotfound']      = 'البرنامج غير موجود.';
 $string['err_certscopeinvalid']         = 'يجب أن تكون الشهادة ضمن نطاق كورس واحد أو برنامج واحد فقط.';
