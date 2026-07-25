@@ -1,0 +1,96 @@
+{
+  "app": {
+    "name": "Excellence Academy",
+    "tagline": "Learn with the best teachers"
+  },
+  "nav": {
+    "home": "Home",
+    "courses": "My Courses",
+    "teachers": "Teachers",
+    "calendar": "Calendar",
+    "lessons": "My Lessons",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "packages": "Packages",
+    "subscriptions": "Subscriptions",
+    "programs": "Programs",
+    "payments": "Payment History",
+    "profile": "Profile",
+    "more": "More"
+  },
+  "auth": {
+    "login": "Sign In",
+    "register": "Create Account",
+    "logout": "Sign Out",
+    "email": "Email",
+    "emailPlaceholder": "example@gmail.com",
+    "password": "Password",
+    "loginWithGoogle": "Continue with Google",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "forgotPassword": "Forgot password?",
+    "terms": "By signing in you agree to our",
+    "termsLink": "Terms & Privacy Policy",
+    "allRights": "All rights reserved. © 2026 N.I.T"
+  },
+  "common": {
+    "search": "Search...",
+    "searchCourse": "Search for a course...",
+    "all": "All",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "back": "Back",
+    "close": "Close",
+    "viewAll": "View All",
+    "viewContent": "View Content",
+    "buy": "Buy",
+    "apply": "Apply",
+    "couponCode": "Coupon Code",
+    "noResults": "No results found",
+    "categories": "Categories",
+    "academicYear": "Academic Year",
+    "courses": "Courses",
+    "originalPrice": "Original Price",
+    "total": "Total",
+    "free": "Free",
+    "egp": "EGP",
+    "days": "days",
+    "hours": "hours",
+    "minutes": "minutes"
+  },
+  "lessons": {
+    "myLessons": "My Lessons",
+    "completed": "Completed",
+    "rejected": "Rejected",
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "cancelled": "Cancelled",
+    "teacher": "Teacher",
+    "requestLesson": "Request Lesson",
+    "cancelLesson": "Cancel Lesson"
+  },
+  "packages": {
+    "title": "Packages",
+    "myPackages": "My Packages",
+    "available": "Available Packages",
+    "paymentHistory": "Payment History",
+    "buy": "Buy Package",
+    "flex": "Flex Session",
+    "activePackage": "You already have an active package"
+  },
+  "calendar": {
+    "title": "Calendar"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read"
+  },
+  "messages": {
+    "title": "Messages",
+    "typeMessage": "Type a message..."
+  }
+}

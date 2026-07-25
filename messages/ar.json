@@ -1,0 +1,96 @@
+{
+  "app": {
+    "name": "أكاديمية التميز",
+    "tagline": "تعلم مع أفضل المدرسين"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "courses": "دوراتي",
+    "teachers": "المدرسون",
+    "calendar": "التقويم",
+    "lessons": "حصصي",
+    "messages": "الرسائل",
+    "notifications": "الإشعارات",
+    "packages": "الباقات",
+    "subscriptions": "الاشتراكات",
+    "programs": "البرامج",
+    "payments": "سجل الدفع",
+    "profile": "الملف الشخصي",
+    "more": "المزيد"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "logout": "تسجيل الخروج",
+    "email": "البريد الإلكتروني",
+    "emailPlaceholder": "example@gmail.com",
+    "password": "كلمة المرور",
+    "loginWithGoogle": "تسجيل الدخول بحساب جوجل",
+    "noAccount": "ليس لديك حساب؟",
+    "haveAccount": "لديك حساب بالفعل؟",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "terms": "بتسجيل الدخول أنت توافق على",
+    "termsLink": "الشروط وسياسة الخصوصية",
+    "allRights": "جميع الحقوق محفوظة. © 2026 الشركة الوطنية N.I.T"
+  },
+  "common": {
+    "search": "ابحث...",
+    "searchCourse": "ابحث عن كورس...",
+    "all": "الكل",
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ ما",
+    "retry": "إعادة المحاولة",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "close": "إغلاق",
+    "viewAll": "عرض الكل",
+    "viewContent": "عرض المحتوى",
+    "buy": "شراء",
+    "apply": "تطبيق",
+    "couponCode": "رمز الكوبون",
+    "noResults": "لا توجد نتائج",
+    "categories": "التصنيفات",
+    "academicYear": "العام الدراسي",
+    "courses": "الكورسات",
+    "originalPrice": "السعر الأصلي",
+    "total": "الإجمالي",
+    "free": "مجاني",
+    "egp": "جنيه",
+    "days": "يوم",
+    "hours": "ساعة",
+    "minutes": "دقيقة"
+  },
+  "lessons": {
+    "myLessons": "حصصي",
+    "completed": "مكتملة",
+    "rejected": "مرفوضة",
+    "pending": "قيد الانتظار",
+    "confirmed": "مؤكدة",
+    "cancelled": "ملغاة",
+    "teacher": "المدرس",
+    "requestLesson": "طلب حصة",
+    "cancelLesson": "إلغاء الحصة"
+  },
+  "packages": {
+    "title": "الباقات",
+    "myPackages": "باقاتي",
+    "available": "الباقات المتاحة",
+    "paymentHistory": "سجل الدفع",
+    "buy": "شراء الباقة",
+    "flex": "حصة مرنة",
+    "activePackage": "لديك بالفعل باقة نشطة"
+  },
+  "calendar": {
+    "title": "التقويم"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "markAllRead": "تحديد الكل كمقروء"
+  },
+  "messages": {
+    "title": "الرسائل",
+    "typeMessage": "اكتب رسالة..."
+  }
+}
