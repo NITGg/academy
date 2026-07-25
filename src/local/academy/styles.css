@@ -1252,6 +1252,182 @@ html body#page-site-index a.sr-only-focusable {
     background-color: var(--xt-navy);
 }
 
+/* --- H. Hide the old banner image block on the front page ------------------*/
+html body#page-site-index .block_cocoon_custom_html .top_gif {
+    display: none;
+}
+
+/* --- I. Hero section — X-Trade identity ------------------------------------
+ * Injected by local_academy_hero_section() via before_footer, then moved to
+ * the top of #block-region-fullwidth-top by inline JS. Mirrors the X-Trade
+ * landing page hero: badge → title → subtitle → stats → CTA buttons. */
+
+.xt-hero {
+    min-height: 90vh;
+    background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(26, 58, 107, .8) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 80% 80%, rgba(201, 146, 42, .15) 0%, transparent 60%),
+        linear-gradient(180deg, var(--xt-navy) 0%, #0d1e3d 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 120px 5% 80px;
+    position: relative;
+    overflow: hidden;
+}
+.xt-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(201, 146, 42, .06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201, 146, 42, .06) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: xt-grid-shift 20s linear infinite;
+}
+@keyframes xt-grid-shift {
+    0%   { transform: translateY(0); }
+    100% { transform: translateY(60px); }
+}
+
+.xt-hero__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--xt-gold-wash);
+    border: 1px solid rgba(201, 146, 42, .3);
+    border-radius: 50px;
+    padding: .4rem 1.2rem;
+    font-size: .85rem;
+    color: var(--xt-gold-light);
+    font-weight: 600;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 1;
+    animation: xt-fade-down .8s ease;
+}
+.xt-hero__badge::before {
+    content: '●';
+    color: var(--xt-teal);
+    animation: xt-pulse 2s infinite;
+}
+@keyframes xt-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: .3; }
+}
+
+.xt-hero__title {
+    font-family: 'Tajawal', 'Cairo', sans-serif;
+    font-size: clamp(2.4rem, 6vw, 4.5rem);
+    font-weight: 800;
+    line-height: 1.15;
+    color: #ffffff;
+    position: relative;
+    z-index: 1;
+    animation: xt-fade-up .9s ease .1s both;
+}
+.xt-hero__gold { color: var(--xt-gold-light); }
+.xt-hero__teal { color: var(--xt-teal); }
+
+.xt-hero__sub {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    color: var(--xt-muted);
+    max-width: 680px;
+    margin: 1.5rem auto;
+    line-height: 1.8;
+    position: relative;
+    z-index: 1;
+    animation: xt-fade-up .9s ease .25s both;
+}
+
+.xt-hero__stats {
+    display: flex;
+    gap: 3rem;
+    margin: 2.5rem 0;
+    position: relative;
+    z-index: 1;
+    animation: xt-fade-up .9s ease .4s both;
+}
+.xt-hero__stat { text-align: center; }
+.xt-hero__stat-num {
+    font-family: 'Tajawal', 'Cairo', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--xt-gold-light);
+    display: block;
+}
+.xt-hero__stat-label {
+    font-size: .8rem;
+    color: var(--xt-muted);
+    font-weight: 500;
+}
+
+.xt-hero__btns {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    animation: xt-fade-up .9s ease .55s both;
+}
+.xt-hero__btn-primary {
+    background: var(--xt-grad-gold);
+    color: var(--xt-navy);
+    padding: 1rem 2.5rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: all .3s;
+    box-shadow: 0 8px 30px rgba(201, 146, 42, .4);
+    border: none;
+    cursor: pointer;
+}
+.xt-hero__btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(201, 146, 42, .5);
+    color: var(--xt-navy);
+    text-decoration: none;
+}
+.xt-hero__btn-outline {
+    background: transparent;
+    border: 1px solid rgba(201, 146, 42, .4);
+    color: var(--xt-gold-light);
+    padding: 1rem 2.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: all .3s;
+    cursor: pointer;
+}
+.xt-hero__btn-outline:hover {
+    background: rgba(201, 146, 42, .1);
+    border-color: var(--xt-gold-light);
+    color: var(--xt-gold-light);
+    text-decoration: none;
+}
+
+@keyframes xt-fade-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes xt-fade-down {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+    .xt-hero { padding: 100px 5% 60px; min-height: 80vh; }
+    .xt-hero__stats { gap: 1.5rem; }
+    .xt-hero__btn-primary,
+    .xt-hero__btn-outline { padding: .8rem 1.8rem; font-size: .9rem; }
+}
+
+
 /* ============================================================================
  * 18. Global dark identity — all student-facing pages
  *

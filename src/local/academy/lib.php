@@ -2158,9 +2158,203 @@ JS
     return $out;
 }
 
+function local_academy_hero_section() {
+    $loginurl = new moodle_url('/login/index.php');
+    $signupurl = new moodle_url('/login/signup.php');
+
+    return <<<HTML
+<div id="xt-hero" class="xt-hero">
+    <div class="xt-hero__badge">منصة تعليم التجارة الدولية الأولى عربياً</div>
+    <h1 class="xt-hero__title">
+        <span class="xt-hero__gold">156 برنامجًا تدريبيًا</span><br>
+        <span>دبلومات وشهادات</span> <span class="xt-hero__teal">احترافية</span>
+    </h1>
+    <p class="xt-hero__sub">منصة X-Trade تجمع أحدث الدبلومات في سلاسل التوريد، المشتريات، اللوجستيات، المستودعات، الاستيراد والتصدير، الشحن، النقل، والملاحة – مصنفة حسب التخصص والمستوى.</p>
+    <div class="xt-hero__stats">
+        <div class="xt-hero__stat"><span class="xt-hero__stat-num">156</span><span class="xt-hero__stat-label">دورة ودبلوم</span></div>
+        <div class="xt-hero__stat"><span class="xt-hero__stat-num">9</span><span class="xt-hero__stat-label">تخصص رئيسي</span></div>
+        <div class="xt-hero__stat"><span class="xt-hero__stat-num">4</span><span class="xt-hero__stat-label">مستويات تعليمية</span></div>
+    </div>
+    <div class="xt-hero__btns">
+        <a href="#la-subs" class="xt-hero__btn-primary">استكشف التخصصات</a>
+        <a href="{$signupurl}" class="xt-hero__btn-outline">خطط مرنة</a>
+    </div>
+</div>
+HTML;
+}
+
 function local_academy_before_footer() {
     global $PAGE, $USER, $COURSE, $DB, $CFG;
     $output = '';
+
+    // 0. Dynamic stats for front-page HTML blocks: any element with data-xt-stat="courses|categories|programs"
+    // gets its textContent replaced with the live count from the database.
+    if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
+        if ($PAGE->pagetype === 'site-index') {
+            $coursecount    = $DB->count_records_select('course_categories', 'parent != 0 AND visible = 1');
+            $topcategories = $DB->count_records_select('course_categories', 'parent = 0 AND visible = 1');
+            $programcount  = 0;
+            if ($DB->get_manager()->table_exists('enrol_programs_programs')) {
+                $programcount = $DB->count_records('enrol_programs_programs', ['archived' => 0]);
+            }
+            $courseindexurl = (string) new moodle_url('/course/index.php');
+
+            $stats = json_encode([
+                'courses'    => (int) $coursecount,
+                'categories' => (int) $topcategories,
+                'programs'   => (int) $programcount,
+            ]);
+            $links = json_encode([
+                'course_index' => $courseindexurl,
+                'packages'     => '#la-pkgs',
+            ]);
+            $PAGE->requires->js_amd_inline("
+                require([], function() {
+                    var S = {$stats};
+                    var L = {$links};
+                    document.querySelectorAll('[data-xt-stat]').forEach(function(el) {
+                        var k = el.getAttribute('data-xt-stat');
+                        if (S[k] !== undefined) { el.textContent = S[k]; }
+                    });
+                    document.querySelectorAll('[data-xt-link]').forEach(function(el) {
+                        var k = el.getAttribute('data-xt-link');
+                        if (L[k]) { el.setAttribute('href', L[k]); }
+                    });
+                });
+            ");
+
+            // Specialties data for Block2: top-level categories → subcategories (levels) → courses.
+            $cats = $DB->get_records('course_categories', ['parent' => 0, 'visible' => 1], 'sortorder ASC', 'id, name');
+            $specialties = [];
+            foreach ($cats as $cat) {
+                $levels = [];
+                $totalcourses = 0;
+
+                // Courses directly in the top-level category (no sublevel).
+                $direct = $DB->get_records_select('course',
+                    'category = :catid AND visible = 1 AND id != :siteid',
+                    ['catid' => $cat->id, 'siteid' => SITEID],
+                    'sortorder ASC', 'id, fullname, summary');
+                if ($direct) {
+                    $list = [];
+                    foreach ($direct as $c) {
+                        $list[] = [
+                            'id'   => (int) $c->id,
+                            'name' => format_string($c->fullname),
+                            'desc' => shorten_text(strip_tags(format_text($c->summary)), 120),
+                            'url'  => (string) new moodle_url('/course/view.php', ['id' => $c->id]),
+                        ];
+                    }
+                    $levels[] = ['name' => '', 'courses' => $list];
+                    $totalcourses += count($list);
+                }
+
+                // Subcategories as levels.
+                $subcats = $DB->get_records('course_categories', ['parent' => $cat->id, 'visible' => 1], 'sortorder ASC', 'id, name');
+                foreach ($subcats as $sub) {
+                    $courses = $DB->get_records_select('course',
+                        'category = :catid AND visible = 1 AND id != :siteid',
+                        ['catid' => $sub->id, 'siteid' => SITEID],
+                        'sortorder ASC', 'id, fullname, summary');
+                    if (!$courses) {
+                        continue;
+                    }
+                    $list = [];
+                    foreach ($courses as $c) {
+                        $list[] = [
+                            'id'   => (int) $c->id,
+                            'name' => format_string($c->fullname),
+                            'desc' => shorten_text(strip_tags(format_text($c->summary)), 120),
+                            'url'  => (string) new moodle_url('/course/view.php', ['id' => $c->id]),
+                        ];
+                    }
+                    $levels[] = ['name' => format_string($sub->name), 'courses' => $list];
+                    $totalcourses += count($list);
+                }
+
+                if ($totalcourses) {
+                    $specialties[] = [
+                        'id'     => (int) $cat->id,
+                        'name'   => format_string($cat->name),
+                        'url'    => (string) new moodle_url('/course/index.php', ['categoryid' => $cat->id]),
+                        'count'  => $totalcourses,
+                        'levels' => $levels,
+                    ];
+                }
+            }
+            $specjson = json_encode($specialties, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $PAGE->requires->js_amd_inline("
+                require([], function() {
+                    var SPECS = {$specjson};
+                    var box = document.getElementById('xt-specialties');
+                    if (!box || !SPECS.length) return;
+
+                    function esc(v) {
+                        return String(v||'').replace(/[&<>\"]/g, function(c) {
+                            return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c];
+                        });
+                    }
+
+                    var FILTER_BASE = 'background-color:rgba(10,22,40,0.7);border:1px solid rgba(201,146,42,0.2);border-radius:40px;padding:8px 18px;font-size:13px;font-weight:600;color:#8A9AB5;cursor:pointer;display:inline-block;transition:all .18s;font-family:inherit';
+                    var FILTER_ACTIVE = 'background:linear-gradient(135deg,#C9922A,#E8B84B);color:#0A1628;border-radius:40px;padding:8px 18px;font-size:13px;font-weight:bold;cursor:pointer;display:inline-block;border:none;font-family:inherit';
+
+                    // Filter bar.
+                    var h = '<div style=\"display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin-bottom:40px;padding-bottom:15px;border-bottom:1px solid rgba(201,146,42,0.2)\">';
+                    h += '<span class=\"xf\" data-cat=\"all\" style=\"' + FILTER_ACTIVE + '\">كل التخصصات</span>';
+                    SPECS.forEach(function(s) {
+                        h += '<span class=\"xf\" data-cat=\"' + s.id + '\" style=\"' + FILTER_BASE + '\">' + esc(s.name) + '</span>';
+                    });
+                    h += '</div>';
+
+                    // Specialty sections.
+                    SPECS.forEach(function(s) {
+                        h += '<div class=\"xs\" data-spec=\"' + s.id + '\" style=\"margin-bottom:40px\">';
+                        h += '<h3 style=\"font-size:24px;font-weight:800;color:#E8B84B;margin:0 0 15px;border-right:4px solid #C9922A;padding-right:12px\">' + esc(s.name) + '</h3>';
+
+                        s.levels.forEach(function(lv) {
+                            h += '<div style=\"background-color:rgba(255,255,255,0.02);border-radius:16px;padding:20px;border:1px solid rgba(201,146,42,0.1);margin-top:15px\">';
+                            if (lv.name) {
+                                h += '<div style=\"display:inline-flex;align-items:center;gap:8px;font-weight:bold;font-size:15px;margin-bottom:20px;background-color:rgba(201,146,42,0.15);padding:5px 15px;border-radius:40px;color:#E8B84B\">' + esc(lv.name) + ' (' + lv.courses.length + ' دورات)</div>';
+                            }
+                            h += '<div style=\"display:flex;flex-wrap:wrap;gap:20px\">';
+                            lv.courses.forEach(function(c) {
+                                h += '<div style=\"flex:1 1 280px;min-width:260px;background:linear-gradient(145deg,#0D2149,#0A1628);border:1px solid rgba(201,146,42,0.2);border-radius:12px;padding:20px;display:flex;flex-direction:column;justify-content:space-between;transition:border-color .18s,transform .15s\">';
+                                h += '<div>';
+                                h += '<h4 style=\"font-size:16px;font-weight:bold;margin:0 0 10px;color:#FFFFFF;line-height:1.4\">' + esc(c.name) + '</h4>';
+                                if (c.desc) {
+                                    h += '<p style=\"font-size:13px;color:#8A9AB5;line-height:1.6;margin:0 0 15px\">' + esc(c.desc) + '</p>';
+                                }
+                                h += '</div>';
+                                h += '<div>';
+                                h += '<div style=\"display:flex;gap:10px;font-size:11px;color:#00A99D;margin-bottom:15px;flex-wrap:wrap\"><span>📘 دبلوم مهني</span><span>🎓 شهادة معتمدة</span><span>⏱️ وصول فوري</span></div>';
+                                h += '<a href=\"' + esc(c.url) + '\" style=\"display:block;text-align:center;background-color:transparent;border:1px solid #C9922A;color:#E8B84B;padding:8px 15px;border-radius:6px;font-weight:bold;font-size:13px;cursor:pointer;width:100%;text-decoration:none;box-sizing:border-box\">📋 تفاصيل</a>';
+                                h += '</div></div>';
+                            });
+                            h += '</div></div>';
+                        });
+
+                        h += '<a href=\"' + esc(s.url) + '\" style=\"display:inline-block;margin-top:15px;color:#E8B84B;font-weight:700;font-size:14px;text-decoration:none\">عرض كل دورات ' + esc(s.name) + ' ←</a>';
+                        h += '</div>';
+                    });
+
+                    box.innerHTML = h;
+
+                    // Filter logic.
+                    var filters = box.querySelectorAll('.xf');
+                    filters.forEach(function(btn) {
+                        btn.addEventListener('click', function() {
+                            filters.forEach(function(b) { b.style.cssText = FILTER_BASE; });
+                            btn.style.cssText = FILTER_ACTIVE;
+                            var cat = btn.getAttribute('data-cat');
+                            box.querySelectorAll('.xs').forEach(function(sec) {
+                                sec.style.display = (cat === 'all' || sec.getAttribute('data-spec') === cat) ? '' : 'none';
+                            });
+                        });
+                    });
+                });
+            ");
+        }
+    }
 
     // 1. Front page "Available subscriptions" cards, followed by "Available packages" cards.
     // Shown to everyone (including guests/visitors not logged in) so they can browse what's on
