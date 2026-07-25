@@ -1251,3 +1251,408 @@ html body#page-site-index a.sr-only-focusable {
     color: var(--xt-gold-light);
     background-color: var(--xt-navy);
 }
+
+/* ============================================================================
+ * 18. Global dark identity — all student-facing pages
+ *
+ * Sections 0–14 dark-themed local_academy's own pages; sections 15–17 handled
+ * navbar, footer, and front-page blocks. This section closes the remaining
+ * gap: Moodle-core pages (login, signup, user profile) and third-party
+ * plugin pages (local_payments invoices/history) still showed a white
+ * content area sandwiched between two navy bars.
+ *
+ * Scoped to `ccn_context_frontend` — the class the theme adds to every
+ * student-facing page via columns2.php / login.php (confirmed in the
+ * theme's layout files). Dashboard-context pages (admin panels) are
+ * handled in sub-section L below.
+ *
+ * The `html body` prefix is still required for specificity: the theme loads
+ * AFTER this file, so on a tie the theme wins.
+ * ==========================================================================*/
+
+/* --- A. Dark canvas — all frontend pages ----------------------------------*/
+html body.ccn_context_frontend {
+    background-color: var(--xt-navy);
+}
+
+/* --- B. Headings — override theme's global h1-h6 { color: #0a0a0a } -------*/
+html body.ccn_context_frontend h1,
+html body.ccn_context_frontend h2,
+html body.ccn_context_frontend h3,
+html body.ccn_context_frontend h4,
+html body.ccn_context_frontend h5,
+html body.ccn_context_frontend h6,
+html body.ccn_context_frontend .h1,
+html body.ccn_context_frontend .h2,
+html body.ccn_context_frontend .h3,
+html body.ccn_context_frontend .h4 {
+    color: #ffffff;
+}
+html body.ccn_context_frontend h1 a,
+html body.ccn_context_frontend h2 a,
+html body.ccn_context_frontend h3 a,
+html body.ccn_context_frontend h4 a,
+html body.ccn_context_frontend h5 a,
+html body.ccn_context_frontend h6 a {
+    color: var(--xt-gold-light);
+}
+
+/* ID-scoped heading overrides: the theme's custom_css DB setting uses
+ * `#content h3 { color: var(--brand) }` — the ID selector outranks all
+ * class-based rules, so these need an ID qualifier too. */
+html body.ccn_context_frontend #content h1,
+html body.ccn_context_frontend #content h2,
+html body.ccn_context_frontend #content h3,
+html body.ccn_context_frontend #content h4,
+html body.ccn_context_frontend #content h5 {
+    color: #ffffff;
+}
+
+/* --- C. Body text and labels -----------------------------------------------*/
+html body.ccn_context_frontend #region-main,
+html body.ccn_context_frontend #ccn-main-region {
+    color: rgba(255, 255, 255, .85);
+}
+html body.ccn_context_frontend label,
+html body.ccn_context_frontend .form-check-label {
+    color: rgba(255, 255, 255, .85);
+}
+
+/* --- D. Links in content area ---------------------------------------------*/
+html body.ccn_context_frontend #region-main a:not(.btn):not(.nav-link):not([class*="lp-"]),
+html body.ccn_context_frontend #ccn-main-region a:not(.btn):not(.nav-link):not([class*="lp-"]) {
+    color: var(--xt-gold-light);
+}
+html body.ccn_context_frontend #region-main a:not(.btn):not(.nav-link):not([class*="lp-"]):hover,
+html body.ccn_context_frontend #ccn-main-region a:not(.btn):not(.nav-link):not([class*="lp-"]):hover {
+    color: var(--xt-gold-pale);
+}
+
+/* --- E. Inner page breadcrumb banner (the hero between navbar & content) ---*/
+html body .inner_page_breadcrumb::before {
+    background-image: linear-gradient(135deg, var(--xt-navy) 0%, var(--xt-blue) 100%);
+}
+
+/* --- F. Form controls on dark backgrounds ----------------------------------*/
+html body.ccn_context_frontend .form-control {
+    background-color: var(--xt-blue);
+    border-color: var(--xt-border-strong);
+    color: #ffffff;
+}
+html body.ccn_context_frontend .form-control::placeholder {
+    color: var(--xt-muted);
+}
+html body.ccn_context_frontend .form-control:focus {
+    border-color: var(--xt-gold);
+    box-shadow: 0 0 0 .2rem rgba(201, 146, 42, .25);
+    background-color: var(--xt-blue);
+    color: #ffffff;
+}
+html body.ccn_context_frontend select.form-control,
+html body.ccn_context_frontend .custom-select {
+    background-color: var(--xt-blue);
+    border-color: var(--xt-border-strong);
+    color: #ffffff;
+}
+
+/* --- G. Tables -------------------------------------------------------------*/
+html body.ccn_context_frontend .table {
+    color: rgba(255, 255, 255, .85);
+}
+html body.ccn_context_frontend .table th,
+html body.ccn_context_frontend .table td {
+    border-color: var(--xt-border);
+}
+html body.ccn_context_frontend .table thead th {
+    background-color: var(--xt-blue);
+    color: var(--xt-gold-light);
+    border-bottom-color: var(--xt-border-strong);
+}
+html body.ccn_context_frontend .table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(13, 33, 73, .3);
+}
+
+/* --- H. Bootstrap cards / content containers --------------------------------*/
+html body.ccn_context_frontend .card {
+    background-color: var(--xt-blue);
+    border-color: var(--xt-border);
+    color: rgba(255, 255, 255, .85);
+}
+html body.ccn_context_frontend .card-header {
+    background-color: rgba(10, 22, 40, .5);
+    border-bottom-color: var(--xt-border);
+    color: #ffffff;
+}
+html body.ccn_context_frontend .list-group-item {
+    background-color: var(--xt-blue);
+    border-color: var(--xt-border);
+    color: rgba(255, 255, 255, .85);
+}
+html body.ccn_context_frontend .bg-white,
+html body.ccn_context_frontend .bg-light {
+    background-color: var(--xt-blue) !important;
+    color: rgba(255, 255, 255, .85);
+}
+
+/* --- I. Pagination ---------------------------------------------------------*/
+html body.ccn_context_frontend .page-link {
+    background-color: var(--xt-blue);
+    border-color: var(--xt-border);
+    color: var(--xt-gold-light);
+}
+html body.ccn_context_frontend .page-item.active .page-link {
+    background: var(--xt-grad-gold);
+    border-color: var(--xt-gold);
+    color: var(--xt-navy);
+}
+html body.ccn_context_frontend .page-item.disabled .page-link {
+    background-color: rgba(13, 33, 73, .3);
+    border-color: var(--xt-border);
+    color: var(--xt-muted);
+}
+
+/* --- J. Login page ---------------------------------------------------------
+ *
+ * IMPORTANT: the theme's custom_css DB setting injects an inline <style>
+ * block on the login page that uses `var(--brand)` and `!important` on
+ * several rules. Normal specificity cannot beat `!important`, so the
+ * overrides here use `!important` too — the higher specificity then wins
+ * among equal-importance declarations.
+ * -----------------------------------------------------------------------*/
+html body.path-login .our-log,
+html body.path-login .our-log.bgc-fa {
+    background: var(--xt-navy) !important;
+}
+html body.path-login .login_form.inner_page {
+    background: var(--xt-blue) !important;
+    border: 1px solid var(--xt-border) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .4) !important;
+    padding: 2.5rem 2.5rem 1.5rem !important;
+}
+html body.path-login .login_form .heading h3 {
+    color: #ffffff !important;
+}
+html body.path-login .login_form .heading p,
+html body.path-login .login_form.inner_page .heading p {
+    color: var(--xt-muted) !important;
+}
+html body.path-login .login_form.inner_page .heading p a,
+html body.path-login .login_form .heading a {
+    color: var(--xt-gold-light) !important;
+}
+html body.path-login .login_form .form-control {
+    background-color: var(--xt-navy) !important;
+    border-color: var(--xt-border-strong) !important;
+    color: #ffffff !important;
+}
+html body.path-login .login_form .form-control:focus {
+    border-color: var(--xt-gold) !important;
+    box-shadow: 0 0 0 .2rem rgba(201, 146, 42, .25) !important;
+}
+html body.path-login .login_form .form-check-label {
+    color: rgba(255, 255, 255, .85) !important;
+}
+html body.path-login .login_form .btn-log,
+html body.path-login .login_form .btn-log.btn-thm2,
+html body.path-login #loginbtn {
+    background: var(--xt-grad-gold) !important;
+    background-color: var(--xt-gold) !important;
+    border-color: var(--xt-gold) !important;
+    color: var(--xt-navy) !important;
+    font-weight: 700;
+}
+html body.path-login .login_form .btn-log:hover,
+html body.path-login .login_form .btn-log.btn-thm2:hover,
+html body.path-login #loginbtn:hover {
+    filter: brightness(1.1);
+    background: var(--xt-grad-gold) !important;
+    color: var(--xt-navy) !important;
+}
+html body.path-login .login_form .btn-fpswd {
+    color: var(--xt-gold-light) !important;
+}
+html body.path-login .login_form .divide .lf_divider {
+    background-color: var(--xt-blue) !important;
+    color: var(--xt-muted) !important;
+}
+html body.path-login .login_page_logo span {
+    color: var(--xt-gold-light) !important;
+}
+html body.path-login .login_form a {
+    color: var(--xt-gold-light) !important;
+}
+html body.path-login #signup {
+    border-top-color: var(--xt-border) !important;
+}
+html body.path-login #signup p {
+    color: var(--xt-muted) !important;
+}
+html body.path-login #signup .btn {
+    border-color: var(--xt-gold) !important;
+    color: var(--xt-gold-light) !important;
+    background: transparent !important;
+}
+html body.path-login #signup .btn:hover {
+    background: var(--xt-gold) !important;
+    color: var(--xt-navy) !important;
+}
+html body.path-login .mt-2 {
+    color: var(--xt-muted) !important;
+}
+
+/* Signup page */
+html body.path-login .sign_up_form .heading h3,
+html body.path-login .sign_up_form .heading p {
+    color: #ffffff !important;
+}
+html body.path-login .sign_up_form .form-control {
+    background-color: var(--xt-navy) !important;
+    border-color: var(--xt-border-strong) !important;
+    color: #ffffff !important;
+}
+
+/* --- K. User profile page --------------------------------------------------*/
+html body.path-user .userprofile .profile_tree section {
+    background-color: var(--xt-blue);
+    border: 1px solid var(--xt-border);
+    border-radius: var(--acad-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+html body.path-user .userprofile .profile_tree section h3,
+html body.path-user .userprofile .profile_tree section h4 {
+    color: var(--xt-gold-light);
+}
+html body.path-user .userprofile .profile_tree dt {
+    color: var(--xt-muted);
+}
+html body.path-user .userprofile .profile_tree dd {
+    color: rgba(255, 255, 255, .85);
+}
+
+/* --- L. Dashboard context — admin/manage pages ----------------------------*/
+html body.ccn_context_dashboard .our-dashbord {
+    background-color: var(--xt-navy);
+}
+
+html body.ccn_context_dashboard .breadcrumb_widgets {
+    background-color: var(--xt-blue);
+    border: 1px solid var(--xt-border);
+}
+html body.ccn_context_dashboard .breadcrumb_widgets .title {
+    color: #ffffff;
+}
+html body.ccn_context_dashboard .breadcrumb_widgets .breadcrumb .breadcrumb-item,
+html body.ccn_context_dashboard .breadcrumb_widgets .breadcrumb .breadcrumb-item a {
+    color: var(--xt-muted);
+}
+
+html body.ccn_context_dashboard .dashboard_sidebar::before {
+    background-color: var(--xt-navy-deep);
+}
+html body.ccn_context_dashboard .dashboard_sidebar .dashbord_nav_list a {
+    color: var(--xt-muted);
+}
+html body.ccn_context_dashboard .dashboard_sidebar .dashbord_nav_list a:hover,
+html body.ccn_context_dashboard .dashboard_sidebar .dashbord_nav_list a.active {
+    color: var(--xt-gold-light);
+}
+html body.ccn_context_dashboard .dashboard_sidebar .user_board .user_profile .media-body h4 {
+    color: #ffffff;
+}
+html body.ccn_context_dashboard .dashboard_main_content h1,
+html body.ccn_context_dashboard .dashboard_main_content h2,
+html body.ccn_context_dashboard .dashboard_main_content h3,
+html body.ccn_context_dashboard .dashboard_main_content h4,
+html body.ccn_context_dashboard .dashboard_main_content h5 {
+    color: #ffffff;
+}
+html body.ccn_context_dashboard .dashboard_main_content {
+    color: rgba(255, 255, 255, .85);
+}
+html body.ccn_context_dashboard .dashboard_main_content label {
+    color: rgba(255, 255, 255, .85);
+}
+
+html body.ccn_context_dashboard .dashboard_main_content .form-control {
+    background-color: var(--xt-blue);
+    border-color: var(--xt-border-strong);
+    color: #ffffff;
+}
+html body.ccn_context_dashboard .dashboard_main_content .form-control:focus {
+    border-color: var(--xt-gold);
+    box-shadow: 0 0 0 .2rem rgba(201, 146, 42, .25);
+}
+html body.ccn_context_dashboard .dashboard_main_content .table {
+    color: rgba(255, 255, 255, .85);
+}
+html body.ccn_context_dashboard .dashboard_main_content .table th,
+html body.ccn_context_dashboard .dashboard_main_content .table td {
+    border-color: var(--xt-border);
+}
+html body.ccn_context_dashboard .dashboard_main_content .table thead th {
+    background-color: var(--xt-blue);
+    color: var(--xt-gold-light);
+}
+html body.ccn_context_dashboard .dashboard_main_content .card {
+    background-color: var(--xt-blue);
+    border-color: var(--xt-border);
+    color: rgba(255, 255, 255, .85);
+}
+html body.ccn_context_dashboard .dashboard_main_content a:not(.btn) {
+    color: var(--xt-gold-light);
+}
+
+/* --- M. Accessibility — skip-to-content links on all dark pages -----------*/
+html body.ccn_context_frontend a.sr-only-focusable {
+    color: var(--xt-gold-light);
+    background-color: var(--xt-navy);
+}
+html body.ccn_context_frontend a:focus-visible,
+html body.ccn_context_frontend button:focus-visible {
+    outline-color: var(--xt-gold-light);
+}
+
+/* --- N. Secondary navigation (Moodle 4.x) ---------------------------------*/
+html body.ccn_context_frontend .secondary-navigation .moremenu .nav-link {
+    color: var(--xt-muted);
+}
+html body.ccn_context_frontend .secondary-navigation .moremenu .nav-link.active {
+    color: var(--xt-gold-light);
+    border-bottom-color: var(--xt-gold);
+}
+
+/* --- O. Moodle notifications/alerts — keep semantic tints but ensure
+ *        text stays readable on their own backgrounds. These float above
+ *        the dark canvas, so DON'T darken them — darken only their border. */
+html body.ccn_context_frontend .alert {
+    border-color: var(--xt-border);
+}
+
+/* --- P. Badges — Bootstrap status badges keep their semantic colours,
+ *        just ensure generic .badge-secondary / .badge-light read well. */
+html body.ccn_context_frontend .badge-secondary {
+    background-color: var(--xt-blue);
+    color: var(--xt-muted);
+}
+html body.ccn_context_frontend .badge-light {
+    background-color: var(--xt-blue);
+    color: rgba(255, 255, 255, .85);
+}
+
+/* --- Q. Dropdown menus in content area (not in the navbar) -----------------*/
+html body.ccn_context_frontend #region-main .dropdown-menu,
+html body.ccn_context_frontend #ccn-main-region .dropdown-menu {
+    background-color: var(--xt-blue);
+    border-color: var(--xt-border);
+}
+html body.ccn_context_frontend #region-main .dropdown-item,
+html body.ccn_context_frontend #ccn-main-region .dropdown-item {
+    color: rgba(255, 255, 255, .85);
+}
+html body.ccn_context_frontend #region-main .dropdown-item:hover,
+html body.ccn_context_frontend #ccn-main-region .dropdown-item:hover {
+    background-color: var(--xt-gold-wash);
+    color: var(--xt-gold-light);
+}
