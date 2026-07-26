@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cairo, Baloo_Bhaijaan_2 } from "next/font/google";
 import { getLocale, getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -35,18 +36,7 @@ export default async function RootLayout({
   const messages = await getMessages();
   const dir = locale === "ar" ? "rtl" : "ltr";
 
-  return (
-    <html
-      lang={locale}
-      dir={dir}
-      className={`${cairo.variable} ${balooBhaijaan.variable} h-full`}
-      suppressHydrationWarning
-    >
-      <head>
-        {/* Inline script: read stored theme before first paint to avoid FOUC */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
+  const themeInitScript = `
 (function(){try{
   var s=localStorage.getItem('ea-theme');
   if(s){var v=JSON.parse(s).state?.variant;
@@ -56,8 +46,20 @@ export default async function RootLayout({
     if(r==='dark')document.documentElement.classList.add('dark');
   }
 }catch(e){}})();
-            `.trim(),
-          }}
+  `.trim();
+
+  return (
+    <html
+      lang={locale}
+      dir={dir}
+      className={`${cairo.variable} ${balooBhaijaan.variable} h-full`}
+      suppressHydrationWarning
+    >
+      <head>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
         />
       </head>
       <body className="min-h-full font-sans antialiased bg-background text-foreground">
