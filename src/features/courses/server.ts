@@ -4,6 +4,31 @@ import { callMoodleRest } from "@/lib/moodle-server";
 import { parseMlang } from "@/lib/mlang";
 import type { Course, CourseCategory } from "./types";
 
+export interface EnrolledCourse {
+  id: number;
+  fullname: string;
+  shortname?: string;
+  categoryid?: number;
+  progress?: number | null;
+  completed?: boolean;
+  overviewfiles?: Array<{ fileurl: string; mimetype?: string }>;
+  startdate?: number;
+  enddate?: number;
+}
+
+export async function getMyCourses(wstoken: string, userid: number): Promise<EnrolledCourse[]> {
+  try {
+    const raw = await callMoodleRest<EnrolledCourse[]>({
+      functionName: "core_enrol_get_users_courses",
+      token: wstoken,
+      params: { userid },
+    });
+    return Array.isArray(raw) ? raw.filter((c) => c.id !== 1) : [];
+  } catch {
+    return [];
+  }
+}
+
 interface MoodleCoursesResponse {
   courses?: Course[];
 }

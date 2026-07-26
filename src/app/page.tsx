@@ -1,7 +1,8 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { getHomeDashboardData } from "@/services/home.service";
+import Image from "next/image";
 import Link from "next/link";
-import { User, BookOpen, Layers, CreditCard, Award } from "lucide-react";
+import { User, BookOpen, Video, Layers, CreditCard } from "lucide-react";
 
 export default async function HomePage() {
   const data = await getHomeDashboardData();
@@ -17,156 +18,216 @@ export default async function HomePage() {
           </p>
         </div>
 
-        {/* 1. الكورسات (Courses) */}
+        {/* Quick action banners */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/lessons"
+            className="flex items-center justify-between rounded-2xl border-2 border-primary/20 bg-primary/5 px-5 py-4 transition hover:bg-primary/10"
+          >
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+              <Video className="size-5 text-primary" />
+            </div>
+            <div className="text-end">
+              <p className="text-[13px] font-bold text-foreground">حصصي</p>
+              <p className="text-[11px] text-muted-foreground">احجز أو تابع دروسك</p>
+            </div>
+          </Link>
+          <Link
+            href="/courses"
+            className="flex items-center justify-between rounded-2xl border-2 border-primary/20 bg-primary/5 px-5 py-4 transition hover:bg-primary/10"
+          >
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+              <BookOpen className="size-5 text-primary" />
+            </div>
+            <div className="text-end">
+              <p className="text-[13px] font-bold text-foreground">الكورسات</p>
+              <p className="text-[11px] text-muted-foreground">تصفح وابدأ التعلم</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* ── الكورسات ─────────────────────────────────────────────────────── */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">الكورسات</h2>
-            <Link
-              href="/courses"
-              className="text-sm font-semibold text-primary hover:underline"
-            >
+            <Link href="/courses" className="text-sm font-semibold text-primary hover:underline">
               عرض الكل
             </Link>
+            <h2 className="text-xl font-bold">الكورسات</h2>
           </div>
+
           {data.courses.length === 0 ? (
             <p className="text-sm text-muted-foreground">لا توجد كورسات متاحة</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {data.courses.slice(0, 6).map((course) => (
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
+              {data.courses.slice(0, 10).map((course) => (
                 <div
                   key={course.id}
-                  className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:shadow-md"
+                  className="w-[200px] shrink-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
                 >
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-primary">{course.fullname}</h3>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {course.shortname}
-                    </p>
+                  {/* Cover image */}
+                  <div className="relative h-[120px] w-full bg-muted">
+                    {course.courseimage ? (
+                      <Image
+                        src={course.courseimage}
+                        alt={course.fullname}
+                        fill
+                        sizes="200px"
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <BookOpen className="size-10 text-muted-foreground/20" />
+                      </div>
+                    )}
                   </div>
-                  <Link
-                    href={`/courses/${course.id}`}
-                    className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground transition hover:opacity-90"
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    عرض المحتوى
-                  </Link>
+
+                  <div className="p-3">
+                    <h3 className="text-small font-bold text-primary line-clamp-2 text-end">
+                      {course.fullname}
+                    </h3>
+                    <Link
+                      href={`/courses/${course.id}`}
+                      className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-[12px] font-semibold text-primary-foreground transition hover:opacity-90"
+                    >
+                      <BookOpen className="size-3.5" />
+                      عرض المحتوى
+                    </Link>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </section>
 
-        {/* 2. هيئة التدريس (Teachers) */}
+        {/* ── هيئة التدريس ─────────────────────────────────────────────────── */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">هيئة التدريس</h2>
-            <Link
-              href="/teachers"
-              className="text-sm font-semibold text-primary hover:underline"
-            >
+            <Link href="/teachers" className="text-sm font-semibold text-primary hover:underline">
               عرض الكل
             </Link>
+            <h2 className="text-xl font-bold">هيئة التدريس</h2>
           </div>
+
           {data.teachers.length === 0 ? (
             <p className="text-sm text-muted-foreground">لا يوجد مدرسون حالياً</p>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
-              {data.teachers.map((teacher) => (
-                <div
-                  key={teacher.userId}
-                  className="flex min-w-[120px] flex-col items-center space-y-2 rounded-2xl border border-border bg-card p-4 text-center shadow-sm"
+            <div className="flex gap-5 overflow-x-auto pb-2 scrollbar-none">
+              {data.teachers.slice(0, 15).map((teacher) => (
+                <Link
+                  key={teacher.userid}
+                  href="/teachers"
+                  className="flex min-w-[80px] flex-col items-center gap-2"
                 >
-                  {teacher.photoUrl ? (
-                    <img
-                      src={teacher.photoUrl}
-                      alt={teacher.fullName}
-                      className="h-16 w-16 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <User className="h-8 w-8" />
-                    </div>
-                  )}
-                  <p className="text-xs font-bold line-clamp-1">
-                    {teacher.fullName}
+                  {/* Avatar circle */}
+                  <div className="relative size-[72px] overflow-hidden rounded-full border-2 border-primary/15 bg-primary/10">
+                    {teacher.photourl ? (
+                      <Image
+                        src={teacher.photourl.replace("/webservice/pluginfile.php", "/pluginfile.php")}
+                        alt={teacher.fullname}
+                        fill
+                        sizes="72px"
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <User className="size-8 text-primary/50" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Name */}
+                  <p className="w-[84px] text-center text-[11px] font-bold leading-tight text-foreground line-clamp-2">
+                    {teacher.fullname}
                   </p>
-                </div>
+
+                  {/* First subject */}
+                  {teacher.subjects?.[0] && (
+                    <p className="text-[10px] text-muted-foreground text-center line-clamp-1 w-[84px]">
+                      {teacher.subjects[0].subject}
+                    </p>
+                  )}
+                </Link>
               ))}
             </div>
           )}
         </section>
 
-        {/* 3. البرامج (Programs) */}
+        {/* ── البرامج ──────────────────────────────────────────────────────── */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">البرامج</h2>
-            <Link
-              href="/programs"
-              className="text-sm font-semibold text-primary hover:underline"
-            >
+            <Link href="/programs" className="text-sm font-semibold text-primary hover:underline">
               عرض الكل
             </Link>
+            <h2 className="text-xl font-bold">البرامج</h2>
           </div>
+
           {data.programs.length === 0 ? (
             <p className="text-sm text-muted-foreground">لا توجد برامج متاحة</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {data.programs.map((program) => (
                 <div
                   key={program.id}
                   className="flex items-center justify-between rounded-2xl border border-border bg-card p-5 shadow-sm"
                 >
-                  <div>
-                    <span className="inline-block rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
-                      {program.owned ? "ملتحق" : "برنامج"}
-                    </span>
-                    <h3 className="mt-2 font-bold">{program.name}</h3>
-                  </div>
                   <Link
-                    href={`/programs/${program.id}`}
+                    href={`/programs`}
                     className="text-xs font-bold text-primary hover:underline"
                   >
                     فتح
                   </Link>
+                  <div className="text-end">
+                    {program.owned ? (
+                      <span className="inline-block rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600">
+                        ملتحق
+                      </span>
+                    ) : (
+                      <span className="inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
+                        برنامج
+                      </span>
+                    )}
+                    <h3 className="mt-1.5 font-bold leading-snug">{program.name}</h3>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </section>
 
-        {/* 4. الباقات (Packages) */}
+        {/* ── الباقات ──────────────────────────────────────────────────────── */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">الباقات</h2>
-            <Link
-              href="/packages"
-              className="text-sm font-semibold text-primary hover:underline"
-            >
+            <Link href="/packages" className="text-sm font-semibold text-primary hover:underline">
               عرض الكل
             </Link>
+            <h2 className="text-xl font-bold">الباقات</h2>
           </div>
+
           {data.packages.length === 0 ? (
             <p className="text-sm text-muted-foreground">لا توجد باقات متاحة</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {data.packages.map((pkg) => (
                 <div
                   key={pkg.id}
                   className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-sm"
                 >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-primary">{pkg.name}</h3>
-                    <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary whitespace-nowrap">
                       {pkg.flexCount} حصة
                     </span>
+                    <h3 className="font-bold text-end">{pkg.name}</h3>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {pkg.description || "تمثل كل حصة درساً مرناً واحداً."}
+                  <p className="text-xs text-muted-foreground text-end">
+                    {pkg.description || "تمثل كل حصة مرنة درساً واحداً."}
                   </p>
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <span className="text-sm font-extrabold">
-                      {pkg.price} جنيه
-                    </span>
+                  <div className="flex items-center justify-between border-t pt-2">
+                    <Link href="/packages" className="text-xs font-semibold text-primary hover:underline">
+                      اشترك
+                    </Link>
+                    <span className="text-sm font-extrabold">{pkg.price} جنيه</span>
                   </div>
                 </div>
               ))}
@@ -174,38 +235,35 @@ export default async function HomePage() {
           )}
         </section>
 
-        {/* 5. الاشتراكات (Subscriptions) */}
+        {/* ── الاشتراكات ───────────────────────────────────────────────────── */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">الاشتراكات</h2>
-            <Link
-              href="/subscriptions"
-              className="text-sm font-semibold text-primary hover:underline"
-            >
+            <Link href="/subscriptions" className="text-sm font-semibold text-primary hover:underline">
               عرض الكل
             </Link>
+            <h2 className="text-xl font-bold">الاشتراكات</h2>
           </div>
+
           {data.subscriptions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              لا توجد اشتراكات متاحة
-            </p>
+            <p className="text-sm text-muted-foreground">لا توجد اشتراكات متاحة</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {data.subscriptions.map((sub) => (
                 <div
                   key={sub.id}
                   className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-sm"
                 >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold">{sub.name}</h3>
-                    <span className="rounded-lg bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-600">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="rounded-lg bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-600 whitespace-nowrap">
                       {sub.durationDays} يوم
                     </span>
+                    <h3 className="font-bold text-end">{sub.name}</h3>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <span className="text-sm font-extrabold">
-                      {sub.price} جنيه
-                    </span>
+                  <div className="flex items-center justify-between border-t pt-2">
+                    <Link href="/subscriptions" className="text-xs font-semibold text-primary hover:underline">
+                      اشترك
+                    </Link>
+                    <span className="text-sm font-extrabold">{sub.price} جنيه</span>
                   </div>
                 </div>
               ))}
