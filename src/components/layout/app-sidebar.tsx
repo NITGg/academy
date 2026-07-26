@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { useLocaleStore } from "@/store/useLocaleStore";
+import { useThemeStore, type ThemeVariant } from "@/store/useThemeStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
 import {
   Home,
@@ -22,6 +24,10 @@ import {
   ChevronLeft,
   Globe,
   LogOut,
+  Sun,
+  Moon,
+  Monitor,
+  Baby,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -46,11 +52,20 @@ interface AppSidebarProps {
   className?: string;
 }
 
+const themeOptions: { value: ThemeVariant; icon: typeof Sun; labelAr: string; labelEn: string }[] = [
+  { value: "system", icon: Monitor, labelAr: "النظام", labelEn: "System" },
+  { value: "light", icon: Sun, labelAr: "فاتح", labelEn: "Light" },
+  { value: "dark", icon: Moon, labelAr: "داكن", labelEn: "Dark" },
+  { value: "kids", icon: Baby, labelAr: "الأطفال", labelEn: "Kids" },
+];
+
 export function AppSidebar({ className }: AppSidebarProps) {
   const t = useTranslations("nav");
   const pathname = usePathname();
   const locale = useLocale();
   const { setLocale } = useLocaleStore();
+  const { variant, setTheme } = useThemeStore();
+  const logout = useAuthStore((state) => state.logout);
   const isRtl = locale === "ar";
   const Chevron = isRtl ? ChevronLeft : ChevronRight;
 
@@ -68,14 +83,11 @@ export function AppSidebar({ className }: AppSidebarProps) {
       <div className="flex h-[var(--header-height)] items-center gap-3 border-b border-sidebar-border px-5">
         <div className="flex size-9 items-center justify-center rounded-xl bg-primary">
           <Image
-            src="/assets/logo.svg"
-            alt="EA Logo"
+            src="/assets/logoW.svg"
+            alt="EA"
             width={24}
             height={24}
-            className="text-white"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
+            priority
           />
         </div>
         <span className="text-body-strong text-sidebar-foreground leading-tight">
@@ -148,7 +160,32 @@ export function AppSidebar({ className }: AppSidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-sidebar-border p-3 space-y-1">
+      <div className="border-t border-sidebar-border p-3 space-y-2">
+        {/* Theme switcher */}
+        <div className="px-3 py-2">
+          <span className="text-small font-medium text-muted-foreground">
+            {isRtl ? "السمة" : "Theme"}
+          </span>
+          <div className="mt-1.5 flex gap-1">
+            {themeOptions.map(({ value, icon: Icon, labelAr, labelEn }) => (
+              <button
+                key={value}
+                onClick={() => setTheme(value)}
+                className={cn(
+                  "flex flex-1 flex-col items-center gap-1 rounded-lg py-1.5 text-[11px] font-medium transition-colors",
+                  variant === value
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                )}
+                title={isRtl ? labelAr : labelEn}
+              >
+                <Icon className="size-4" />
+                <span className="truncate">{isRtl ? labelAr : labelEn}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Language toggle */}
         <button
           onClick={() => setLocale(isRtl ? "en" : "ar")}
@@ -172,8 +209,11 @@ export function AppSidebar({ className }: AppSidebarProps) {
           <span>{t("profile")}</span>
         </Link>
 
-        {/* Logout — wired in Phase 1 */}
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-caption font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
+        {/* Logout */}
+        <button
+          onClick={() => logout()}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-caption font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+        >
           <LogOut className="size-5 shrink-0" />
           <span>{locale === "ar" ? "تسجيل الخروج" : "Sign Out"}</span>
         </button>

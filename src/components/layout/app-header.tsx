@@ -3,7 +3,10 @@
 import { useTranslations, useLocale } from "next-intl";
 import { Bell, MessageCircle, Search, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import Link from "next/link";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
   onMenuClick?: () => void;
@@ -30,13 +33,11 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
       <div className="flex items-center gap-2 lg:hidden">
         <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
           <Image
-            src="/assets/logo.svg"
+            src="/assets/logoW.svg"
             alt="EA"
             width={18}
             height={18}
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
+            priority
           />
         </div>
       </div>
@@ -61,20 +62,23 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
         </Button>
 
         {/* Messages */}
-        <Button variant="ghost" size="icon" aria-label={t("nav.messages")} asChild>
-          <a href="/messages">
-            <MessageCircle className="size-5" />
-          </a>
-        </Button>
+        <Link
+          href="/messages"
+          aria-label={t("nav.messages")}
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+        >
+          <MessageCircle className="size-5" />
+        </Link>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" aria-label={t("nav.notifications")} className="relative" asChild>
-          <a href="/notifications">
-            <Bell className="size-5" />
-            {/* Unread badge — driven by data in Phase 4 */}
-            <span className="absolute end-1.5 top-1.5 size-2 rounded-full bg-destructive ring-2 ring-background" />
-          </a>
-        </Button>
+        <Link
+          href="/notifications"
+          aria-label={t("nav.notifications")}
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative")}
+        >
+          <Bell className="size-5" />
+          <span className="absolute end-1.5 top-1.5 size-2 rounded-full bg-destructive ring-2 ring-background" />
+        </Link>
 
         {/* User avatar — placeholder until auth is wired */}
         <button

@@ -1,21 +1,54 @@
 "use client";
 
 import { create } from "zustand";
-import type { AuthSession, User } from "@/types";
+import { authService } from "@/services/auth.service";
+import type { User } from "@/types";
+
+interface SessionResponse {
+  authenticated: boolean;
+  user: User | null;
+}
 
 interface AuthState {
-  session: AuthSession | null;
   user: User | null;
   isAuthenticated: boolean;
-  setSession: (session: AuthSession) => void;
-  clearSession: () => void;
+  isLoading: boolean;
+  setUser: (user: User | null) => void;
+  checkSession: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()((set) => ({
-  session: null,
   user: null,
   isAuthenticated: false,
-  setSession: (session) =>
-    set({ session, user: session.user, isAuthenticated: true }),
-  clearSession: () => set({ session: null, user: null, isAuthenticated: false }),
+  isLoading: true,
+
+  setUser: (user) => set({ user, isAuthenticated: !!user, isLoading: false }),
+
+  checkSession: async () => {
+    try {
+      set({ isLoading: true });
+      const { data } = await authService.getSession();
+      const sessionData = data as unknown as SessionResponse;
+
+      if (sessionData.authenticated && sessionData.user) {
+        set({ user: sessionData.user, isAuthenticated: true, isLoading: false });
+      } else {
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      }
+    } catch {
+      set({ user: null, isAuthenticated: false, isLoading: false });
+    }
+  },
+
+  logout: async () => {
+    try {
+      await authService.logout();
+    } finally {
+      set({ user: null, isAuthenticated: false, isLoading: false });
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+    }
+  },
 }));

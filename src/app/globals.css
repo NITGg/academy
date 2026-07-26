@@ -192,6 +192,75 @@
   --chart-5: oklch(0.637 0.237  25.331);
 }
 
+/* ── Kids mode (Child Mode) ──────────────────────────────────────────────────
+   Always light-brightness. Swaps palette, font, and radii.
+   Gated by [data-theme="kids"] on <html>, set by useThemeStore.
+   Motion tokens and shadows reuse Light values — Kids mode doesn't override them.
+────────────────────────────────────────────────────────────────────────────── */
+[data-theme="kids"] {
+  /* Switch to playful font */
+  --font-sans: var(--font-baloo);
+  --font-heading: var(--font-baloo);
+
+  /* Vivid violet primary — #6C5CE7 */
+  --primary:            oklch(0.530 0.230 295.000);
+  --primary-foreground: oklch(1 0 0);
+
+  /* Warm off-white page bg — #FFF7F2 */
+  --background: oklch(0.992 0.010 50.000);
+  --foreground: oklch(0.145 0.026 254.848);
+
+  /* Pure white card surface */
+  --card:            oklch(1 0 0);
+  --card-foreground: oklch(0.145 0.026 254.848);
+  --popover:         oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0.026 254.848);
+
+  /* Soft violet-tinted border — #F0E6FF */
+  --border: oklch(0.950 0.030 300.000);
+  --input:  oklch(0.950 0.030 300.000);
+  --ring:   oklch(0.530 0.230 295.000);
+
+  /* Muted surface */
+  --secondary:            oklch(0.975 0.015 300.000);
+  --secondary-foreground: oklch(0.145 0.026 254.848);
+  --muted:            oklch(0.975 0.015 300.000);
+  --muted-foreground: oklch(0.554 0.046 257.417);
+
+  /* Kids radius — 1.375rem = 22px (button), giving xl≈28px (card) */
+  --radius: 1.375rem;
+
+  /* Sidebar — white, violet borders */
+  --sidebar:                    oklch(1 0 0);
+  --sidebar-foreground:         oklch(0.145 0.026 254.848);
+  --sidebar-primary:            oklch(0.530 0.230 295.000);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent:             oklch(0.975 0.015 300.000);
+  --sidebar-accent-foreground:  oklch(0.145 0.026 254.848);
+  --sidebar-border:             oklch(0.950 0.030 300.000);
+  --sidebar-ring:               oklch(0.530 0.230 295.000);
+
+  /* Rotating accent palette (5 colors, by index % 5) */
+  --kids-accent-1: oklch(0.704 0.140 182.500); /* teal    #14B8A6 */
+  --kids-accent-2: oklch(0.756 0.173  53.000); /* orange  #FB923C */
+  --kids-accent-3: oklch(0.656 0.241 354.300); /* pink    #EC4899 */
+  --kids-accent-4: oklch(0.876 0.178  91.600); /* yellow  #FACC15 */
+  --kids-accent-5: oklch(0.530 0.230 295.000); /* violet  #6C5CE7 */
+}
+
+/* ── Motion tokens ───────────────────────────────────────────────────────────
+   Shared across Light / Dark / Kids. Source: AppMotion / motion.dart
+────────────────────────────────────────────────────────────────────────────── */
+:root {
+  --motion-fast:   150ms;
+  --motion-medium: 250ms;
+  --motion-slow:   350ms;
+  /* emphasized ≈ easeOutCubic */
+  --ease-emphasized: cubic-bezier(0.215, 0.610, 0.355, 1.000);
+  /* standard ≈ easeInOutCubic */
+  --ease-standard:   cubic-bezier(0.645, 0.045, 0.355, 1.000);
+}
+
 /* ── Base ────────────────────────────────────────────────────────────────── */
 @layer base {
   * {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cairo } from "next/font/google";
+import { Cairo, Baloo_Bhaijaan_2 } from "next/font/google";
 import { getLocale, getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
@@ -10,6 +10,14 @@ const cairo = Cairo({
   variable: "--font-cairo",
   display: "swap",
   weight: ["300", "400", "500", "600", "700", "800"],
+});
+
+// Kids mode font — playful, bubbly, covers Latin + Arabic
+const balooBhaijaan = Baloo_Bhaijaan_2({
+  subsets: ["arabic", "latin"],
+  variable: "--font-baloo",
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -31,9 +39,27 @@ export default async function RootLayout({
     <html
       lang={locale}
       dir={dir}
-      className={`${cairo.variable} h-full`}
+      className={`${cairo.variable} ${balooBhaijaan.variable} h-full`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Inline script: read stored theme before first paint to avoid FOUC */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function(){try{
+  var s=localStorage.getItem('ea-theme');
+  if(s){var v=JSON.parse(s).state?.variant;
+    var r=v==='dark'?'dark':v==='kids'?'kids':v==='system'?
+      (window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):'light';
+    document.documentElement.setAttribute('data-theme',r);
+    if(r==='dark')document.documentElement.classList.add('dark');
+  }
+}catch(e){}})();
+            `.trim(),
+          }}
+        />
+      </head>
       <body className="min-h-full font-sans antialiased bg-background text-foreground">
         <NextIntlClientProvider messages={messages} locale={locale}>
           <Providers>{children}</Providers>
