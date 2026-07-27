@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Users } from "lucide-react";
 import { getTeachers } from "@/features/teachers/server";
-import { TeacherCard } from "@/features/teachers/components/TeacherCard";
 import { TeacherSearch } from "@/features/teachers/components/TeacherSearch";
+import { PaginatedTeacherList } from "@/features/teachers/components/PaginatedTeacherList";
 
 export const metadata: Metadata = { title: "المدرسون" };
 
@@ -43,17 +42,7 @@ export default async function TeachersPage({
             : "لا يوجد مدرسون حالياً."}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {teachers.map((teacher) => (
-            <Link
-              key={teacher.userid}
-              href={`/teachers/${teacher.userid}`}
-              className="block transition-transform hover:-translate-y-0.5"
-            >
-              <TeacherCard teacher={teacher} locale={locale} />
-            </Link>
-          ))}
-        </div>
+        <PaginatedTeacherList teachers={teachers} locale={locale} pageSize={12} />
       )}
     </div>
   );

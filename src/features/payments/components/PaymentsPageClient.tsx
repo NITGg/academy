@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { Receipt, Calendar, CreditCard, ChevronLeft, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PaymentHistoryItem } from "../types";
+import { Pagination } from "@/components/ui/Pagination";
 
 function formatDate(ts: number): string {
   if (!ts) return "—";
@@ -31,23 +32,31 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-const FILTERS = [
+interface FilterItem {
+  id: string;
+  label: string;
+  statuses: string[] | null;
+}
+
+const FILTERS: FilterItem[] = [
   { id: "all", label: "الكل", statuses: null },
   { id: "paid", label: "مكتمل", statuses: ["paid", "completed"] },
   { id: "pending", label: "معلق", statuses: ["pending"] },
   { id: "failed", label: "فشل", statuses: ["failed"] },
   { id: "refunded", label: "مسترد", statuses: ["refunded"] },
-] as const;
+];
 
-type FilterId = (typeof FILTERS)[number]["id"];
+type FilterId = string;
 
 interface PaymentsPageClientProps {
   payments: PaymentHistoryItem[];
+  pageSize?: number;
 }
 
-export function PaymentsPageClient({ payments }: PaymentsPageClientProps) {
+export function PaymentsPageClient({ payments, pageSize = 10 }: PaymentsPageClientProps) {
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filtered = useMemo(() => {
     const filter = FILTERS.find((f) => f.id === activeFilter);
@@ -70,6 +79,24 @@ export function PaymentsPageClient({ payments }: PaymentsPageClientProps) {
     return list;
   }, [payments, activeFilter, search]);
 
+  const handleFilterChange = (id: FilterId) => {
+    setActiveFilter(id);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setCurrentPage(1);
+  };
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const currentPayments = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <div className="space-y-4">
       {/* Search */}
@@ -78,7 +105,7 @@ export function PaymentsPageClient({ payments }: PaymentsPageClientProps) {
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="ابحث برقم الفاتورة أو الدورة"
           className="w-full rounded-xl border border-border bg-card px-4 py-2.5 ps-10 text-small text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
@@ -91,7 +118,7 @@ export function PaymentsPageClient({ payments }: PaymentsPageClientProps) {
           return (
             <button
               key={f.id}
-              onClick={() => setActiveFilter(f.id)}
+              onClick={() => handleFilterChange(f.id)}
               className={cn(
                 "shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-colors",
                 isActive
@@ -112,49 +139,59 @@ export function PaymentsPageClient({ payments }: PaymentsPageClientProps) {
           <p className="text-caption">لا توجد معاملات</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((item) => {
-            const ref = item.invoice_number ?? item.order_id;
-            const amount = `${item.currency} ${Number(item.amount).toFixed(2)}`;
+        <div className="space-y-4">
+          <div className="space-y-2">
+            {currentPayments.map((item) => {
+              const ref = item.invoice_number ?? item.order_id;
+              const amount = `${item.currency} ${Number(item.amount).toFixed(2)}`;
 
-            return (
-              <div
-                key={item.transaction_id}
-                className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm"
-              >
-                {/* Chevron — placeholder for detail navigation */}
-                <ChevronLeft className="size-4 shrink-0 text-muted-foreground/40" />
+              return (
+                <div
+                  key={item.transaction_id}
+                  className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm"
+                >
+                  {/* Chevron — placeholder for detail navigation */}
+                  <ChevronLeft className="size-4 shrink-0 text-muted-foreground/40" />
 
-                {/* Card body */}
-                <div className="min-w-0 flex-1">
-                  {/* Row 1: reference number (start/right in RTL), status badge (end/left in RTL) */}
-                  <div className="flex items-center justify-between gap-2">
-                    <StatusBadge status={item.status} />
-                    <span className="truncate text-[12px] font-bold text-foreground">{ref}</span>
-                  </div>
-
-                  {/* Course name if available */}
-                  {item.course_name && (
-                    <p className="mt-0.5 truncate text-end text-[11px] text-muted-foreground">
-                      {item.course_name}
-                    </p>
-                  )}
-
-                  {/* Row 2: date (end/left), amount (start/right) */}
-                  <div className="mt-1.5 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <Calendar className="size-3.5 shrink-0" />
-                      <span>{formatDate(item.timecreated)}</span>
+                  {/* Card body */}
+                  <div className="min-w-0 flex-1">
+                    {/* Row 1: reference number (start/right in RTL), status badge (end/left in RTL) */}
+                    <div className="flex items-center justify-between gap-2">
+                      <StatusBadge status={item.status} />
+                      <span className="truncate text-[12px] font-bold text-foreground">{ref}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[13px] font-bold text-primary">{amount}</span>
-                      <CreditCard className="size-3.5 text-muted-foreground/60" />
+
+                    {/* Course name if available */}
+                    {item.course_name && (
+                      <p className="mt-0.5 truncate text-end text-[11px] text-muted-foreground">
+                        {item.course_name}
+                      </p>
+                    )}
+
+                    {/* Row 2: date (end/left), amount (start/right) */}
+                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Calendar className="size-3.5 shrink-0" />
+                        <span>{formatDate(item.timecreated)}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[13px] font-bold text-primary">{amount}</span>
+                        <CreditCard className="size-3.5 text-muted-foreground/60" />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filtered.length}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+          />
         </div>
       )}
     </div>

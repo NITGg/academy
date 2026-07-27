@@ -43,13 +43,13 @@ function DayCell({ day, locale }: { day: CalendarDay; locale: string }) {
               className={`flex items-center gap-1 rounded px-1 py-0.5 ${
                 ev.url ? "cursor-pointer hover:opacity-80" : ""
               }`}
-              title={parseMlang(ev.name, locale)}
+              title={parseMlang(ev.name, locale as "ar" | "en")}
             >
               <span
                 className={`size-1.5 shrink-0 rounded-full ${EVENT_COLORS[ev.eventtype] ?? "bg-muted-foreground"}`}
               />
               <span className="truncate text-[9px] font-medium text-foreground/80">
-                {parseMlang(ev.name, locale)}
+                {parseMlang(ev.name, locale as "ar" | "en")}
               </span>
             </div>
           ))}

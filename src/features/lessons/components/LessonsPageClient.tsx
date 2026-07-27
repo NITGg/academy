@@ -5,6 +5,7 @@ import { Video, Clock, MinusCircle, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Lesson, FlexTx } from "../types";
 import { LessonCard } from "./LessonCard";
+import { Pagination } from "@/components/ui/Pagination";
 
 function formatDateTime(ts: number): string {
   if (!ts) return "—";
@@ -18,7 +19,9 @@ function formatDateTime(ts: number): string {
 
 // ── Lessons tab ──────────────────────────────────────────────────────────────
 
-function LessonsTab({ lessons }: { lessons: Lesson[] }) {
+function LessonsTab({ lessons, pageSize = 8 }: { lessons: Lesson[]; pageSize?: number }) {
+  const [currentPage, setCurrentPage] = useState(1);
+
   if (lessons.length === 0) {
     return (
       <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border text-muted-foreground">
@@ -28,11 +31,28 @@ function LessonsTab({ lessons }: { lessons: Lesson[] }) {
     );
   }
 
+  const totalPages = Math.ceil(lessons.length / pageSize);
+  const currentLessons = lessons.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <div className="space-y-3">
-      {lessons.map((lesson) => (
-        <LessonCard key={lesson.id} lesson={lesson} />
-      ))}
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {currentLessons.map((lesson) => (
+          <LessonCard key={lesson.id} lesson={lesson} />
+        ))}
+      </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={lessons.length}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
 }
@@ -66,7 +86,9 @@ const FLEX_TYPE_MAP: Record<string, { label: string; icon: React.ReactNode; amou
   },
 };
 
-function FlexHistoryTab({ history }: { history: FlexTx[] }) {
+function FlexHistoryTab({ history, pageSize = 10 }: { history: FlexTx[]; pageSize?: number }) {
+  const [currentPage, setCurrentPage] = useState(1);
+
   if (history.length === 0) {
     return (
       <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border text-muted-foreground">
@@ -76,41 +98,58 @@ function FlexHistoryTab({ history }: { history: FlexTx[] }) {
     );
   }
 
+  const totalPages = Math.ceil(history.length / pageSize);
+  const currentHistory = history.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <div className="space-y-2">
-      {history.map((tx) => {
-        const t = FLEX_TYPE_MAP[tx.type] ?? {
-          label: tx.type,
-          icon: <Coins className="size-4" />,
-          amountClass: "text-foreground",
-          iconClass: "bg-muted text-muted-foreground",
-        };
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {currentHistory.map((tx) => {
+          const t = FLEX_TYPE_MAP[tx.type] ?? {
+            label: tx.type,
+            icon: <Coins className="size-4" />,
+            amountClass: "text-foreground",
+            iconClass: "bg-muted text-muted-foreground",
+          };
 
-        return (
-          <div key={tx.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
-            {/* Type icon */}
-            <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", t.iconClass)}>
-              {t.icon}
-            </div>
+          return (
+            <div key={tx.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
+              {/* Type icon */}
+              <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", t.iconClass)}>
+                {t.icon}
+              </div>
 
-            {/* Info */}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] text-muted-foreground">الرصيد: {tx.balance}</span>
-                <div className="flex items-center gap-1.5">
-                  <span className={cn("text-caption font-bold", t.amountClass)}>{t.label}</span>
+              {/* Info */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-muted-foreground">الرصيد: {tx.balance}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn("text-caption font-bold", t.amountClass)}>{t.label}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2 mt-0.5 text-[11px] text-muted-foreground">
+                  <span>{formatDateTime(tx.timecreated)}</span>
+                  <span className={cn("font-bold", t.amountClass)}>
+                    {tx.amount > 0 ? `+${tx.amount}` : tx.amount}
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center justify-between gap-2 mt-0.5 text-[11px] text-muted-foreground">
-                <span>{formatDateTime(tx.timecreated)}</span>
-                <span className={cn("font-bold", t.amountClass)}>
-                  {tx.amount > 0 ? `+${tx.amount}` : tx.amount}
-                </span>
-              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={history.length}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
 }

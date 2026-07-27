@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { BookOpen, CheckCircle2 } from "lucide-react";
-import { getLocale } from "next-intl/server";
+import { useLocale } from "next-intl";
 import { parseMlang } from "@/lib/mlang";
 import type { EnrolledCourse } from "../server";
 
@@ -13,8 +13,8 @@ function moodlePublicUrl(url: string): string {
   return url.replace("/webservice/pluginfile.php", "/pluginfile.php");
 }
 
-export async function MyCourseCard({ course }: MyCourseCardProps) {
-  const locale = await getLocale();
+export function MyCourseCard({ course }: MyCourseCardProps) {
+  const locale = useLocale();
   const lang = locale === "ar" ? "ar" : "en";
 
   const fullname = parseMlang(course.fullname ?? "", lang);

@@ -19,7 +19,7 @@ export interface CourseDetailData {
   contents: CourseSection[];
 }
 
-function normalizeActivity(a: RawActivity, lang: string): CourseModule {
+function normalizeActivity(a: RawActivity, lang: "ar" | "en"): CourseModule {
   return {
     id: parseInt(a.id, 10),
     name: parseMlang(a.name ?? "", lang),
@@ -35,7 +35,7 @@ function normalizeActivity(a: RawActivity, lang: string): CourseModule {
   };
 }
 
-function normalizeTopics(raw: RawCourseTopics, lang: string): CourseSection[] {
+function normalizeTopics(raw: RawCourseTopics, lang: "ar" | "en"): CourseSection[] {
   const sections: CourseSection[] = [];
 
   for (const parent of raw.parents ?? []) {

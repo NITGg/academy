@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { BookOpen, Users } from "lucide-react";
-import { getLocale } from "next-intl/server";
+import { useLocale } from "next-intl";
 import { parseMlang } from "@/lib/mlang";
 import type { Course } from "../types";
 
@@ -9,8 +9,8 @@ interface CourseCardProps {
   course: Course;
 }
 
-export async function CourseCard({ course }: CourseCardProps) {
-  const locale = await getLocale();
+export function CourseCard({ course }: CourseCardProps) {
+  const locale = useLocale();
   const lang = locale === "ar" ? "ar" : "en";
 
   const fullname = parseMlang(course.fullname ?? "", lang);

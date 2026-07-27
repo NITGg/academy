@@ -5,6 +5,7 @@ import { GraduationCap, Play, CheckCircle2, Flag, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CatalogueProgram, MyProgram } from "../types";
+import { Pagination } from "@/components/ui/Pagination";
 
 function formatDate(ts: number): string {
   if (!ts) return "غير محدد";
@@ -16,7 +17,9 @@ function formatDate(ts: number): string {
 
 // ── My Programs tab ──────────────────────────────────────────────────────────
 
-function MyProgramsTab({ programs }: { programs: MyProgram[] }) {
+function MyProgramsTab({ programs, pageSize = 6 }: { programs: MyProgram[]; pageSize?: number }) {
+  const [currentPage, setCurrentPage] = useState(1);
+
   if (programs.length === 0) {
     return (
       <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border text-muted-foreground">
@@ -26,63 +29,82 @@ function MyProgramsTab({ programs }: { programs: MyProgram[] }) {
     );
   }
 
+  const totalPages = Math.ceil(programs.length / pageSize);
+  const currentPrograms = programs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <div className="space-y-3">
-      {programs.map((prog) => {
-        const isCompleted = prog.completed === 1 || prog.timecompleted > 0;
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {currentPrograms.map((prog) => {
+          const isCompleted = prog.completed === 1 || prog.timecompleted > 0;
 
-        return (
-          <div key={prog.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <span
-                className={cn(
-                  "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
-                  isCompleted
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                    : "bg-muted text-muted-foreground"
-                )}
-              >
-                {isCompleted ? "مكتمل" : "قيد التقدم"}
-              </span>
-              <span className="text-caption font-bold text-foreground">{prog.name}</span>
-            </div>
-
-            <div className="space-y-1.5 text-[11px] text-muted-foreground">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-1.5">
-                  <Play className="size-3.5 shrink-0" />
-                  <span>بدأ: {formatDate(prog.timestart)}</span>
-                </div>
+          return (
+            <div key={prog.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                    isCompleted
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {isCompleted ? "مكتمل" : "قيد التقدم"}
+                </span>
+                <span className="text-caption font-bold text-foreground">{prog.name}</span>
               </div>
 
-              {isCompleted ? (
-                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle2 className="size-3.5 shrink-0" />
-                  <span>اكتمل: {formatDate(prog.timecompleted)}</span>
+              <div className="space-y-1.5 text-[11px] text-muted-foreground">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <Play className="size-3.5 shrink-0" />
+                    <span>بدأ: {formatDate(prog.timestart)}</span>
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="size-3.5 shrink-0" />
-                    <span>الاستحقاق: {prog.timedue > 0 ? formatDate(prog.timedue) : "غير محدد"}</span>
+
+                {isCompleted ? (
+                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="size-3.5 shrink-0" />
+                    <span>اكتمل: {formatDate(prog.timecompleted)}</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Flag className="size-3.5 shrink-0" />
-                    <span>ينتهي: {prog.timeend > 0 ? formatDate(prog.timeend) : "غير محدد"}</span>
-                  </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="size-3.5 shrink-0" />
+                      <span>الاستحقاق: {prog.timedue > 0 ? formatDate(prog.timedue) : "غير محدد"}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Flag className="size-3.5 shrink-0" />
+                      <span>ينتهي: {prog.timeend > 0 ? formatDate(prog.timeend) : "غير محدد"}</span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={programs.length}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
 }
 
 // ── Catalogue Programs tab ───────────────────────────────────────────────────
 
-function CatalogueProgramsTab({ programs }: { programs: CatalogueProgram[] }) {
+function CatalogueProgramsTab({ programs, pageSize = 6 }: { programs: CatalogueProgram[]; pageSize?: number }) {
+  const [currentPage, setCurrentPage] = useState(1);
+
   if (programs.length === 0) {
     return (
       <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border text-muted-foreground">
@@ -92,22 +114,39 @@ function CatalogueProgramsTab({ programs }: { programs: CatalogueProgram[] }) {
     );
   }
 
-  return (
-    <div className="space-y-3">
-      {programs.map((prog) => (
-        <div key={prog.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-              {prog.owned ? "مشترك" : prog.joinable ? "فلتحق" : "متاح"}
-            </span>
-            <span className="text-caption font-bold text-foreground">{prog.name}</span>
-          </div>
+  const totalPages = Math.ceil(programs.length / pageSize);
+  const currentPrograms = programs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-          <Button variant="default" size="lg" className="w-full rounded-xl">
-            فتح
-          </Button>
-        </div>
-      ))}
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {currentPrograms.map((prog) => (
+          <div key={prog.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                {prog.owned ? "مشترك" : prog.joinable ? "فلتحق" : "متاح"}
+              </span>
+              <span className="text-caption font-bold text-foreground">{prog.name}</span>
+            </div>
+
+            <Button variant="default" size="lg" className="w-full rounded-xl">
+              فتح
+            </Button>
+          </div>
+        ))}
+      </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={programs.length}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
 }

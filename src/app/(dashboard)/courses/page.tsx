@@ -3,9 +3,8 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { getSessionFromCookie } from "@/lib/session";
 import { getCoursesPageData, getMyCourses } from "@/features/courses/server";
-import { CourseCard } from "@/features/courses/components/CourseCard";
-import { MyCourseCard } from "@/features/courses/components/MyCourseCard";
 import { CategoryFilter } from "@/features/courses/components/CategoryFilter";
+import { PaginatedCourses, PaginatedMyCourses } from "@/features/courses/components/PaginatedCourseList";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "الكورسات" };
@@ -95,11 +94,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
               </Link>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {myCourses.map((course) => (
-                <MyCourseCard key={course.id} course={course} />
-              ))}
-            </div>
+            <PaginatedMyCourses courses={myCourses} pageSize={12} />
           )}
         </>
       )}
@@ -123,11 +118,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {courses.map((course) => (
-                <CourseCard key={course.id} course={course} />
-              ))}
-            </div>
+            <PaginatedCourses courses={courses} pageSize={12} />
           )}
         </>
       )}
