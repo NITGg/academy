@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { GraduationCap, Play, CheckCircle2, Flag, Calendar } from "lucide-react";
+import Link from "next/link";
+import { GraduationCap, Play, CheckCircle2, Flag, Calendar, Loader2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CatalogueProgram, MyProgram } from "../types";
 import { Pagination } from "@/components/ui/Pagination";
+import { startProgramCheckout, joinFreeProgram } from "../actions";
 
 function formatDate(ts: number): string {
   if (!ts) return "غير محدد";
@@ -39,56 +41,71 @@ function MyProgramsTab({ programs, pageSize = 6 }: { programs: MyProgram[]; page
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         {currentPrograms.map((prog) => {
           const isCompleted = prog.completed === 1 || prog.timecompleted > 0;
 
           return (
-            <div key={prog.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <span
-                  className={cn(
-                    "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
-                    isCompleted
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {isCompleted ? "مكتمل" : "قيد التقدم"}
-                </span>
-                <span className="text-caption font-bold text-foreground">{prog.name}</span>
-              </div>
-
-              <div className="space-y-1.5 text-[11px] text-muted-foreground">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <Play className="size-3.5 shrink-0" />
-                    <span>بدأ: {formatDate(prog.timestart)}</span>
-                  </div>
+            <div
+              key={prog.id}
+              className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between gap-4 transition hover:border-primary/50"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className={cn(
+                      "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+                      isCompleted
+                        ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : "bg-primary/10 text-primary"
+                    )}
+                  >
+                    {isCompleted ? "مكتمل" : "قيد التقدم"}
+                  </span>
+                  <span className="text-small font-bold text-foreground">{prog.name}</span>
                 </div>
 
-                {isCompleted ? (
-                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle2 className="size-3.5 shrink-0" />
-                    <span>اكتمل: {formatDate(prog.timecompleted)}</span>
+                <div className="space-y-1.5 text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <Play className="size-3.5 shrink-0 text-primary" />
+                      <span>بدأ: {formatDate(prog.timestart)}</span>
+                    </div>
                   </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="size-3.5 shrink-0" />
-                      <span>الاستحقاق: {prog.timedue > 0 ? formatDate(prog.timedue) : "غير محدد"}</span>
+
+                  {isCompleted ? (
+                    <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <CheckCircle2 className="size-3.5 shrink-0" />
+                      <span>اكتمل: {formatDate(prog.timecompleted)}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Flag className="size-3.5 shrink-0" />
-                      <span>ينتهي: {prog.timeend > 0 ? formatDate(prog.timeend) : "غير محدد"}</span>
+                  ) : (
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px]">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="size-3 shrink-0 text-amber-500" />
+                        <span>الاستحقاق: {prog.timedue > 0 ? formatDate(prog.timedue) : "غير محدد"}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Flag className="size-3 shrink-0 text-rose-500" />
+                        <span>ينتهي: {prog.timeend > 0 ? formatDate(prog.timeend) : "غير محدد"}</span>
+                      </div>
                     </div>
-                  </>
-                )}
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-3 flex justify-end">
+                <Link
+                  href={`/programs/${prog.id}`}
+                  className="w-full text-center rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90"
+                >
+                  تصفح التفاصيل والمحتوى
+                </Link>
               </div>
             </div>
           );
         })}
       </div>
+
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
@@ -102,8 +119,18 @@ function MyProgramsTab({ programs, pageSize = 6 }: { programs: MyProgram[]; page
 
 // ── Catalogue Programs tab ───────────────────────────────────────────────────
 
-function CatalogueProgramsTab({ programs, pageSize = 6 }: { programs: CatalogueProgram[]; pageSize?: number }) {
+function CatalogueProgramsTab({
+  programs,
+  isLoggedIn,
+  pageSize = 6,
+}: {
+  programs: CatalogueProgram[];
+  isLoggedIn: boolean;
+  pageSize?: number;
+}) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   if (programs.length === 0) {
     return (
@@ -122,24 +149,134 @@ function CatalogueProgramsTab({ programs, pageSize = 6 }: { programs: CatalogueP
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  async function handleProgramBuyOrJoin(prog: CatalogueProgram) {
+    if (!isLoggedIn) {
+      window.location.href = "/login";
+      return;
+    }
+    setLoadingId(`prog-${prog.id}`);
+    setActionError(null);
+
+    if (prog.free === 1 && prog.joinable === 1) {
+      const res = await joinFreeProgram(prog.id);
+      setLoadingId(null);
+      if (res.success) {
+        window.location.reload();
+      } else {
+        setActionError(res.error || "تعذّر الانضمام للبرنامج");
+      }
+    } else {
+      const res = await startProgramCheckout(prog.id);
+      setLoadingId(null);
+      if (res.needsAuth) {
+        window.location.href = "/login";
+      } else if (res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+      } else {
+        setActionError(res.error || "تعذّر بدء عملية الدفع للبرنامج");
+      }
+    }
+  }
+
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
+      {actionError && (
+        <div className="rounded-2xl bg-destructive/10 p-3 text-xs font-semibold text-destructive">
+          {actionError}
+        </div>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {currentPrograms.map((prog) => (
-          <div key={prog.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                {prog.owned ? "مشترك" : prog.joinable ? "فلتحق" : "متاح"}
-              </span>
-              <span className="text-caption font-bold text-foreground">{prog.name}</span>
+          <div
+            key={prog.id}
+            className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between gap-4 transition hover:border-primary/50 hover:shadow-md"
+          >
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {prog.owned ? (
+                    <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600">
+                      ملتحق
+                    </span>
+                  ) : prog.free === 1 ? (
+                    <span className="rounded-full bg-blue-500/10 px-2.5 py-0.5 text-[10px] font-bold text-blue-600">
+                      مجاني
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
+                      برنامج مدفوع
+                    </span>
+                  )}
+
+                  {prog.offer && !prog.owned && (
+                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
+                      {prog.offer.label}
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="font-bold text-end text-foreground text-small line-clamp-1">{prog.name}</h3>
+              </div>
+
+              {prog.description && (
+                <p className="text-xs text-muted-foreground text-end line-clamp-2">{prog.description}</p>
+              )}
             </div>
 
-            <Button variant="default" size="lg" className="w-full rounded-xl">
-              فتح
-            </Button>
+            <div className="space-y-3 border-t border-border pt-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">السعر:</span>
+                <div>
+                  {prog.free === 1 ? (
+                    <span className="font-bold text-emerald-600">مجاناً</span>
+                  ) : prog.offer ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-muted-foreground line-through">
+                        {prog.offer.original} {prog.currency || "EGP"}
+                      </span>
+                      <span className="font-extrabold text-foreground">
+                        {prog.offer.final} {prog.currency || "EGP"}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="font-extrabold text-foreground">
+                      {prog.price} {prog.currency || "EGP"}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/programs/${prog.id}`}
+                  className="flex-1 text-center rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90"
+                >
+                  تصفح
+                </Link>
+
+                {!prog.owned && (
+                  <button
+                    type="button"
+                    onClick={() => handleProgramBuyOrJoin(prog)}
+                    disabled={loadingId === `prog-${prog.id}`}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-2 text-xs font-bold text-primary transition hover:bg-primary/10 disabled:opacity-50"
+                  >
+                    {loadingId === `prog-${prog.id}` ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : prog.free === 1 ? (
+                      "انضمام"
+                    ) : (
+                      "اشترك الآن"
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         ))}
       </div>
+
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
@@ -163,10 +300,11 @@ type Tab = (typeof TABS)[number]["id"];
 interface ProgramsPageClientProps {
   myPrograms: MyProgram[];
   cataloguePrograms: CatalogueProgram[];
+  isLoggedIn?: boolean;
 }
 
-export function ProgramsPageClient({ myPrograms, cataloguePrograms }: ProgramsPageClientProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("mine");
+export function ProgramsPageClient({ myPrograms, cataloguePrograms, isLoggedIn = true }: ProgramsPageClientProps) {
+  const [activeTab, setActiveTab] = useState<Tab>(myPrograms.length > 0 ? "mine" : "catalogue");
 
   return (
     <div className="space-y-4">
@@ -190,7 +328,9 @@ export function ProgramsPageClient({ myPrograms, cataloguePrograms }: ProgramsPa
 
       {/* Tab content */}
       {activeTab === "mine" && <MyProgramsTab programs={myPrograms} />}
-      {activeTab === "catalogue" && <CatalogueProgramsTab programs={cataloguePrograms} />}
+      {activeTab === "catalogue" && (
+        <CatalogueProgramsTab programs={cataloguePrograms} isLoggedIn={isLoggedIn} />
+      )}
     </div>
   );
 }

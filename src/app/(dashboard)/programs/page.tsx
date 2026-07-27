@@ -21,7 +21,11 @@ export default async function ProgramsPage() {
         <h1 className="text-h1 font-bold">البرامج</h1>
       </div>
 
-      <ProgramsPageClient myPrograms={myPrograms} cataloguePrograms={cataloguePrograms} />
+      <ProgramsPageClient
+        myPrograms={myPrograms}
+        cataloguePrograms={cataloguePrograms}
+        isLoggedIn={Boolean(session?.wstoken)}
+      />
     </div>
   );
 }

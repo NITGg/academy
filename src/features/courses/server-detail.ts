@@ -2,20 +2,30 @@ import "server-only";
 import { getLocale } from "next-intl/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { callMoodleRest } from "@/lib/moodle-server";
+import { enrichCoursesWithPricing } from "./server";
+import { getMySubscriptions } from "@/features/subscriptions/server";
 import { parseMlang } from "@/lib/mlang";
 import { MOODLE_BASE_URL } from "@/config/constants";
 import type {
   Course,
   CourseSection,
-  CoursePrice,
   CourseModule,
   RawCourseTopics,
   RawActivity,
 } from "./types";
 
+export interface CourseAccess {
+  isFree: boolean;
+  isEnrolled: boolean;
+  isPurchased: boolean;
+  hasPendingPayment: boolean;
+  /** True when one of the user's active subscriptions unlocks this course (free on-demand enrol). */
+  coveredBySubscription: boolean;
+}
+
 export interface CourseDetailData {
   course: Course;
-  pricing: CoursePrice | null;
+  access: CourseAccess;
   contents: CourseSection[];
 }
 
@@ -81,22 +91,32 @@ export async function getCourseDetail(courseId: number): Promise<CourseDetailDat
   const lang = locale === "ar" ? "ar" : "en";
 
   const session = await getSessionFromCookie();
-  const token = session?.wstoken ?? process.env.MOODLE_ADMIN_TOKEN;
-  if (!token) throw new Error("No token available");
+  const adminToken = process.env.MOODLE_ADMIN_TOKEN;
+  const userToken = session?.wstoken;
+  if (!userToken && !adminToken) throw new Error("No token available");
+  // Course metadata + content structure are not user-specific — admin token is fine
+  // and lets non-enrolled users preview the outline. Pricing/access below use the
+  // STUDENT token so enrolment/purchase reflect the actual viewer (same as the cards).
+  const fetchToken = adminToken ?? userToken!;
 
-  // Fetch course metadata, pricing, and content tree in parallel
-  const [coursesResult, pricingResult, topicsResult] = await Promise.allSettled([
+  // Fetch course metadata, per-user access, and content tree in parallel
+  const [coursesResult, accessResult, topicsResult] = await Promise.allSettled([
     callMoodleRest<{ courses: Course[] } | Course[]>({
       functionName: "core_course_get_courses_by_field",
-      token,
+      token: fetchToken,
       params: { field: "id", value: courseId },
     }),
-    // local_payments_get_course_price — use admin token, country defaults to EG
-    session
-      ? callMoodleRest<CoursePrice>({
-          functionName: "local_payments_get_course_price",
-          token: process.env.MOODLE_ADMIN_TOKEN ?? token,
-          params: { courseid: courseId, country: "EG" },
+    // Authoritative per-user access (pending-payment flag) — student token only
+    userToken
+      ? callMoodleRest<{
+          is_enrolled: boolean;
+          is_purchased: boolean;
+          has_pending_payment: boolean;
+          is_free: boolean;
+        }>({
+          functionName: "local_payments_get_course_access",
+          token: userToken,
+          params: { courseid: courseId },
         })
       : Promise.resolve(null),
     // getalltopics.php — primary content tree source
@@ -104,7 +124,7 @@ export async function getCourseDetail(courseId: number): Promise<CourseDetailDat
       `${MOODLE_BASE_URL}/local/multitopics/getalltopics.php?` +
         new URLSearchParams({
           courseid: String(courseId),
-          wstoken: token,
+          wstoken: fetchToken,
           lang,
         }),
       { cache: "no-store" }
@@ -122,23 +142,35 @@ export async function getCourseDetail(courseId: number): Promise<CourseDetailDat
 
   if (!rawCourses[0]) throw new Error("Course not found");
 
-  const course = { ...rawCourses[0] };
+  let course: Course = { ...rawCourses[0] };
   course.fullname = parseMlang(course.fullname ?? "", lang);
   if (course.shortname) course.shortname = parseMlang(course.shortname, lang);
   if (course.categoryname) course.categoryname = parseMlang(course.categoryname, lang);
 
-  // ── Pricing / access ────────────────────────────────────────────────────────
-  const pricing =
-    pricingResult.status === "fulfilled" && pricingResult.value
-      ? (pricingResult.value as CoursePrice)
-      : null;
+  // ── Pricing / access — SAME code path as the catalog cards, STUDENT token ─────
+  [course] = await enrichCoursesWithPricing([course], userToken);
 
-  // Sync enrollment status onto the course object from pricing data
-  if (pricing) {
-    course.isFree = pricing.is_free ?? pricing.price === 0;
-    course.isEnrolled = pricing.is_enrolled ?? course.isEnrolled;
-    if (!course.isFree && pricing.price != null) {
-      course.price = pricing.sale_price ?? pricing.price;
+  const rawAccess =
+    accessResult.status === "fulfilled" && accessResult.value ? accessResult.value : null;
+
+  const access: CourseAccess = {
+    isFree: course.isFree ?? rawAccess?.is_free ?? !course.price,
+    isEnrolled: course.isEnrolled ?? rawAccess?.is_enrolled ?? false,
+    isPurchased: course.isPurchased ?? rawAccess?.is_purchased ?? false,
+    hasPendingPayment: rawAccess?.has_pending_payment ?? false,
+    coveredBySubscription: false,
+  };
+
+  // Only relevant for a paid course the viewer hasn't accessed yet: is it unlocked by one of
+  // their active subscriptions (normal or B2B)? If so we offer a free on-demand enrol instead of buy.
+  if (userToken && !access.isEnrolled && !access.isPurchased && !access.isFree) {
+    try {
+      const subs = await getMySubscriptions(userToken);
+      access.coveredBySubscription = subs.some(
+        (s) => s.status === "active" && (s.courses ?? []).some((c) => c.id === courseId),
+      );
+    } catch {
+      // best-effort — leave coveredBySubscription false
     }
   }
 
@@ -154,7 +186,7 @@ export async function getCourseDetail(courseId: number): Promise<CourseDetailDat
     // Fallback: core_course_get_contents
     const fallbackResult = await callMoodleRest<CourseSection[]>({
       functionName: "core_course_get_contents",
-      token,
+      token: fetchToken,
       params: { courseid: courseId },
     }).catch(() => [] as CourseSection[]);
 
@@ -169,5 +201,5 @@ export async function getCourseDetail(courseId: number): Promise<CourseDetailDat
       }));
   }
 
-  return { course, pricing, contents };
+  return { course, access, contents };
 }

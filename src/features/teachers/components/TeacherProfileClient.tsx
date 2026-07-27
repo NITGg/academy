@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import type { Teacher, TeacherHour } from "@/features/teachers/types";
 import { bookLessonAction } from "@/features/teachers/actions";
-import { User, Star, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { sendInstantMessageAction } from "@/features/messages/actions";
+import { User, Star, ChevronRight, ChevronLeft, Check, MessageSquare, Loader2, X } from "lucide-react";
 
 // RTL grid: rightmost column = Saturday (index 0)
 const DAYS_AR = ["س", "ح", "ن", "ث", "ر", "خ", "ج"]; // Sat Sun Mon Tue Wed Thu Fri
@@ -96,10 +98,13 @@ function isDaySelectable(
 export function TeacherProfileClient({
   teacher,
   minBookingMinutes = 60,
+  currentUserId,
 }: {
   teacher: Teacher;
   minBookingMinutes?: number;
+  currentUserId?: number;
 }) {
+  const router = useRouter();
   const [selectedSubject, setSelectedSubject] = useState(
     teacher.subjects?.[0]?.subject ?? "",
   );
@@ -115,6 +120,32 @@ export function TeacherProfileClient({
     type: "success" | "error";
     text: string;
   } | null>(null);
+
+  // Message Modal State
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [directMessageText, setDirectMessageText] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+
+  const handleSendMessageToTeacher = async () => {
+    if (!directMessageText.trim()) return;
+    setSendingMessage(true);
+    setChatError(null);
+
+    const res = await sendInstantMessageAction(
+      teacher.userid,
+      directMessageText.trim(),
+    );
+
+    setSendingMessage(false);
+
+    if (res.ok && res.conversationid) {
+      setShowMessageModal(false);
+      router.push(`/messages?convid=${res.conversationid}`);
+    } else {
+      setChatError(res.error || "تعذّر إرسال الرسالة");
+    }
+  };
 
   // Column offset for Saturday-first grid:
   // JS getDay(): 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
@@ -244,7 +275,83 @@ export function TeacherProfileClient({
             </span>
           )}
         </div>
+
+        {/* Message Button */}
+        {currentUserId !== teacher.userid && (
+          <button
+            type="button"
+            onClick={() => setShowMessageModal(true)}
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground shadow-sm transition hover:opacity-90"
+          >
+            <MessageSquare className="size-4" />
+            مراسلة المدرس
+          </button>
+        )}
       </div>
+
+      {/* ── Direct Message Modal ── */}
+      {showMessageModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl border border-border space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground">
+                مراسلة {teacher.fullname}
+              </h3>
+              <button
+                onClick={() => setShowMessageModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            {chatError && (
+              <div className="rounded-xl bg-destructive/10 p-3 text-xs text-destructive font-medium">
+                {chatError}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-foreground">
+                الرسالة
+              </label>
+              <textarea
+                rows={4}
+                value={directMessageText}
+                onChange={(e) => setDirectMessageText(e.target.value)}
+                placeholder="اكتب رسالتك للمدرس هنا..."
+                className="w-full rounded-xl border border-border bg-background p-3 text-small text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                dir="rtl"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowMessageModal(false)}
+                className="rounded-xl px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={handleSendMessageToTeacher}
+                disabled={sendingMessage || !directMessageText.trim()}
+                className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+              >
+                {sendingMessage ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    جاري الإرسال...
+                  </>
+                ) : (
+                  "إرسال"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Bio ── */}
       {teacher.bio && (

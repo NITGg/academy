@@ -29,6 +29,76 @@ export async function getMyCourses(wstoken: string, userid: number): Promise<Enr
   }
 }
 
+/** Raw item shape from local_payments_get_courses_with_pricing. */
+interface RawPricedCourse {
+  id: number;
+  currency?: string;
+  price?: number;
+  original_price?: number;
+  sale_price?: number;
+  discount_percentage?: number;
+  is_sale_active?: boolean;
+  is_free?: boolean;
+  is_purchased?: boolean;
+  is_enrolled?: boolean;
+  offer_name?: string;
+}
+
+/**
+ * Merge country-resolved pricing, offers, and access flags onto a set of courses
+ * in one bulk call. Uses the user's token when available so is_enrolled /
+ * is_purchased reflect the current user; falls back to the admin token for guests.
+ * Best-effort — on failure the courses are returned unchanged.
+ */
+export async function enrichCoursesWithPricing<T extends Course>(
+  courses: T[],
+  wstoken?: string,
+): Promise<T[]> {
+  if (courses.length === 0) return courses;
+  const token = wstoken ?? process.env.MOODLE_ADMIN_TOKEN;
+  if (!token) return courses;
+  // Without a user token the endpoint runs as admin — its is_enrolled/is_purchased
+  // would reflect the admin, not the (guest) viewer. Pricing/is_free are course-level
+  // and still correct; we force per-user access flags to false for guests.
+  const isGuest = !wstoken;
+
+  try {
+    const res = await callMoodleRest<{ courses?: RawPricedCourse[] } | RawPricedCourse[]>({
+      functionName: "local_payments_get_courses_with_pricing",
+      token,
+      params: {
+        field: "ids",
+        value: courses.map((c) => c.id).join(","),
+        country: "EG",
+      },
+    });
+
+    const list: RawPricedCourse[] = Array.isArray(res) ? res : res?.courses ?? [];
+    const byId = new Map<number, RawPricedCourse>(list.map((p) => [Number(p.id), p]));
+
+    return courses.map((course) => {
+      const p = byId.get(course.id);
+      if (!p) return course;
+      const isFree = p.is_free ?? p.price === 0;
+      const effective = p.is_sale_active && p.sale_price != null ? p.sale_price : p.price;
+      return {
+        ...course,
+        currency: p.currency ?? course.currency,
+        price: effective ?? course.price,
+        originalPrice: p.original_price ?? course.originalPrice,
+        discountPercentage: p.discount_percentage ?? course.discountPercentage,
+        isSaleActive: p.is_sale_active ?? course.isSaleActive,
+        offerName: p.offer_name || course.offerName,
+        isFree,
+        isEnrolled: isGuest ? false : (p.is_enrolled ?? course.isEnrolled),
+        isPurchased: isGuest ? false : (p.is_purchased ?? course.isPurchased),
+      };
+    });
+  } catch {
+    return courses;
+  }
+}
+
 interface MoodleCoursesResponse {
   courses?: Course[];
 }
@@ -41,6 +111,7 @@ export interface CoursesPageData {
 export async function getCoursesPageData(opts?: {
   categoryId?: string;
   search?: string;
+  wstoken?: string;
 }): Promise<CoursesPageData> {
   const token = process.env.MOODLE_ADMIN_TOKEN;
   if (!token) throw new Error("Admin token not configured");
@@ -103,6 +174,9 @@ export async function getCoursesPageData(opts?: {
         c.shortname?.toLowerCase().includes(q)
     );
   }
+
+  // Merge pricing/offers/access flags onto the visible courses
+  courses = await enrichCoursesWithPricing(courses, opts?.wstoken);
 
   return { categories, courses };
 }

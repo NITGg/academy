@@ -10,10 +10,13 @@ import type { EnrolledCourse } from "../server";
 interface PaginatedCoursesProps {
   courses: Course[];
   pageSize?: number;
+  /** Ids of courses unlocked by the user's active subscriptions (free on-demand enrol). */
+  coveredCourseIds?: number[];
 }
 
-export function PaginatedCourses({ courses, pageSize = 12 }: PaginatedCoursesProps) {
+export function PaginatedCourses({ courses, pageSize = 12, coveredCourseIds = [] }: PaginatedCoursesProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const coveredSet = new Set(coveredCourseIds);
 
   const totalPages = Math.ceil(courses.length / pageSize);
   const currentCourses = courses.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -27,7 +30,11 @@ export function PaginatedCourses({ courses, pageSize = 12 }: PaginatedCoursesPro
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {currentCourses.map((course) => (
-          <CourseCard key={course.id} course={course} />
+          <CourseCard
+            key={course.id}
+            course={course}
+            coveredBySubscription={coveredSet.has(course.id)}
+          />
         ))}
       </div>
       <Pagination

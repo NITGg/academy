@@ -1,35 +1,37 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Users, ArrowRight, ArrowLeft, Tag } from "lucide-react";
+import { Users, ArrowRight, ArrowLeft, Tag, BadgeCheck } from "lucide-react";
 import { getLocale } from "next-intl/server";
-import type { Course, CoursePrice } from "../types";
+import type { Course } from "../types";
+import type { CourseAccess } from "../server-detail";
 import { EnrollButton } from "./EnrollButton";
+import { CourseBuyButton } from "./CourseBuyButton";
+import { SubscriptionEnrollButton } from "./SubscriptionEnrollButton";
 
 interface CourseHeroProps {
   course: Course;
-  pricing: CoursePrice | null;
+  access: CourseAccess;
 }
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").replace(/&[a-z]+;/gi, " ").trim();
 }
 
-export async function CourseHero({ course, pricing }: CourseHeroProps) {
+export async function CourseHero({ course, access }: CourseHeroProps) {
   const locale = await getLocale();
   const isRtl = locale === "ar";
   const BackArrow = isRtl ? ArrowRight : ArrowLeft;
 
-  const isFree = pricing
-    ? (pricing.is_free ?? pricing.price === 0)
-    : (course.isFree ?? !course.price);
-  const isEnrolled = pricing?.is_enrolled ?? course.isEnrolled ?? false;
-  const isPurchased = pricing?.is_purchased ?? false;
-  const hasPendingPayment = false; // would come from local_payments_get_course_access
+  // Read the SAME enriched course fields the catalog card uses, so the two agree.
+  const isFree = access.isFree;
+  const isEnrolled = access.isEnrolled;
+  const isPurchased = access.isPurchased;
+  const hasPendingPayment = access.hasPendingPayment;
 
-  const displayPrice = pricing
-    ? (pricing.sale_price ?? pricing.price)
-    : course.price;
-  const currency = pricing?.currency ?? (isRtl ? "جنيه" : "EGP");
+  const displayPrice = course.price;
+  const originalPrice = course.originalPrice;
+  const hasDiscount = !isFree && originalPrice != null && originalPrice > (displayPrice ?? 0);
+  const currency = course.currency ?? (isRtl ? "جنيه" : "EGP");
 
   const priceLabel = isFree
     ? locale === "ar" ? "مجاني" : "Free"
@@ -88,6 +90,12 @@ export async function CourseHero({ course, pricing }: CourseHeroProps) {
                 {locale === "ar" ? "مسجّل" : "Enrolled"}
               </span>
             )}
+            {!isEnrolled && !isPurchased && access.coveredBySubscription && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600">
+                <BadgeCheck className="size-3.5" />
+                {locale === "ar" ? "مشمول باشتراكك" : "Included in your subscription"}
+              </span>
+            )}
           </div>
 
           {/* Title */}
@@ -122,28 +130,45 @@ export async function CourseHero({ course, pricing }: CourseHeroProps) {
           {/* CTA */}
           {!isEnrolled && !isPurchased && (
             <div className="pt-2">
-              <EnrollButton
-                courseId={course.id}
-                isFree={isFree}
-                price={displayPrice}
-                currency={currency}
-                hasPendingPayment={hasPendingPayment}
-                locale={locale}
-              />
+              {isFree ? (
+                <EnrollButton
+                  courseId={course.id}
+                  isFree
+                  price={displayPrice}
+                  currency={currency}
+                  hasPendingPayment={hasPendingPayment}
+                  locale={locale}
+                />
+              ) : access.coveredBySubscription ? (
+                <SubscriptionEnrollButton courseId={course.id} locale={locale} />
+              ) : (
+                <CourseBuyButton
+                  courseId={course.id}
+                  courseName={course.fullname}
+                  price={displayPrice ?? 0}
+                  originalPrice={hasDiscount ? originalPrice : undefined}
+                  currency={currency}
+                  label={
+                    locale === "ar"
+                      ? `اشترِ مقابل ${displayPrice} ${currency}`
+                      : `Buy for ${displayPrice} ${currency}`
+                  }
+                />
+              )}
             </div>
           )}
 
-          {(isEnrolled || isPurchased) && (
+          {/* {(isEnrolled || isPurchased) && (
             <div className="pt-2">
-              <Link
-                href={`/courses/${course.id}/learn`}
+              <a
+                href="#course-content"
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
               >
                 <BookOpen className="size-4" />
                 {locale === "ar" ? "ابدأ التعلم" : "Start Learning"}
-              </Link>
+              </a>
             </div>
-          )}
+          )} */}
         </div>
       </div>
     </div>

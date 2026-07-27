@@ -31,12 +31,15 @@ export default async function CourseDetailPage({ params }: Props) {
     notFound();
   }
 
-  const { course, pricing, contents } = data;
+  const { course, access, contents } = data;
+  const isEnrolled = access.isEnrolled || access.isPurchased;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 pb-10">
-      <CourseHero course={course} pricing={pricing} />
-      <ContentTree sections={contents} />
+      <CourseHero course={course} access={access} />
+      <div id="course-content" className="scroll-mt-20">
+        <ContentTree sections={contents} isEnrolled={isEnrolled} />
+      </div>
     </div>
   );
 }

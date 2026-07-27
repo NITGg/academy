@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getSessionFromCookie } from "@/lib/session";
 import { getTeacher, getLessonSettings } from "@/features/teachers/server";
 import { TeacherProfileClient } from "@/features/teachers/components/TeacherProfileClient";
 
@@ -12,7 +13,8 @@ export default async function TeacherProfilePage({ params }: Props) {
 
   if (isNaN(teacherId)) notFound();
 
-  const [teacher, settings] = await Promise.all([
+  const [session, teacher, settings] = await Promise.all([
+    getSessionFromCookie(),
     getTeacher(teacherId),
     getLessonSettings(),
   ]);
@@ -24,7 +26,9 @@ export default async function TeacherProfilePage({ params }: Props) {
       <TeacherProfileClient
         teacher={teacher}
         minBookingMinutes={settings.min_booking_minutes}
+        currentUserId={session?.user.id}
       />
     </div>
   );
 }
+

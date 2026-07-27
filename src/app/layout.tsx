@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Cairo, Baloo_Bhaijaan_2 } from "next/font/google";
 import { getLocale, getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
-import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -56,9 +55,8 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <Script
+        <script
           id="theme-init"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
         />
       </head>

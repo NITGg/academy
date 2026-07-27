@@ -3,6 +3,7 @@
 import { getLocale } from "next-intl/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { callAcademyApi } from "@/lib/moodle-server";
+import { getRefererUrl } from "@/lib/referer";
 
 export interface CheckoutResult {
   checkoutUrl?: string;
@@ -17,11 +18,12 @@ export async function startPackageCheckout(packageId: number): Promise<CheckoutR
 
   const locale = await getLocale();
   const lang = locale === "ar" ? "ar" : "en";
+  const returnUrl = await getRefererUrl();
 
   try {
     const result = await callAcademyApi<{ checkout_url: string }>(
       "create_package_checkout",
-      { packageid: packageId },
+      { packageid: packageId, ...(returnUrl ? { return_url: returnUrl } : {}) },
       session.wstoken,
       lang,
     );

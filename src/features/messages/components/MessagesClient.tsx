@@ -2,12 +2,14 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import Image from "next/image";
-import { MessageCircle, Send, ArrowRight, Loader2 } from "lucide-react";
+import { MessageCircle, Send, ArrowRight, Loader2, Plus, Search, X, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Conversation, ChatMessage, ConversationMember } from "../types";
+import type { Teacher } from "@/features/teachers/types";
 import {
   fetchThreadAction,
   sendMessageAction,
+  sendInstantMessageAction,
   markConversationReadAction,
 } from "../actions";
 
@@ -94,7 +96,8 @@ function ConversationList({
           conv.members.find((m) => m.id !== currentUserId) ?? conv.members[0];
         const displayName = conv.name || other?.fullname || "محادثة";
         const avatar = conv.imageurl || other?.profileimageurl;
-        const lastMsg = conv.messages[conv.messages.length - 1];
+        const sortedMsgs = (conv.messages ?? []).slice().sort((a, b) => a.timecreated - b.timecreated || a.id - b.id);
+        const lastMsg = sortedMsgs[sortedMsgs.length - 1];
         const preview = lastMsg ? stripHtml(lastMsg.text) : "";
         const hasUnread = (conv.unreadcount ?? 0) > 0;
         const isActive = conv.id === activeId;
@@ -164,9 +167,13 @@ function ChatThread({
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const sortedMessages = [...messages].sort(
+    (a, b) => a.timecreated - b.timecreated || a.id - b.id
+  );
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [sortedMessages.length]);
 
   if (isLoading) {
     return (
@@ -176,7 +183,7 @@ function ChatThread({
     );
   }
 
-  if (messages.length === 0) {
+  if (sortedMessages.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center text-muted-foreground">
         <p className="text-caption">لا توجد رسائل بعد</p>
@@ -188,7 +195,7 @@ function ChatThread({
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-      {messages.map((msg) => {
+      {sortedMessages.map((msg) => {
         const isMine = msg.useridfrom === currentUserId;
         const sender = memberMap[msg.useridfrom];
         const text = stripHtml(msg.text);
@@ -280,19 +287,193 @@ function MessageInput({
   );
 }
 
+// ── NewChatModal ──────────────────────────────────────────────────────────────
+
+function NewChatModal({
+  isOpen,
+  onClose,
+  teachers,
+  currentUserId,
+  onStartChat,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  teachers: Teacher[];
+  currentUserId: number;
+  onStartChat: (teacher: Teacher, text: string) => Promise<void>;
+}) {
+  const [search, setSearch] = useState("");
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [initialText, setInitialText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const filteredTeachers = teachers.filter((t) => {
+    if (t.userid === currentUserId) return false;
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    const nameMatch = t.fullname.toLowerCase().includes(q);
+    const subjectMatch = t.subjects?.some((s) => s.subject.toLowerCase().includes(q));
+    return nameMatch || subjectMatch;
+  });
+
+  async function handleSend() {
+    if (!selectedTeacher || !initialText.trim()) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await onStartChat(selectedTeacher, initialText.trim());
+      setSelectedTeacher(null);
+      setInitialText("");
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "تعذّر بدء المحادثة");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl border border-border space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <h3 className="text-base font-bold text-foreground">محادثة جديدة مع مدرس</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="size-5" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="rounded-xl bg-destructive/10 p-3 text-xs text-destructive font-medium">
+            {error}
+          </div>
+        )}
+
+        {!selectedTeacher ? (
+          <>
+            {/* Search input */}
+            <div className="relative">
+              <Search className="absolute start-3 top-2.5 size-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="ابحث عن مدرس بالاسم أو المادة..."
+                className="w-full rounded-xl border border-border bg-background ps-9 pe-3 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary"
+                dir="rtl"
+              />
+            </div>
+
+            {/* Teachers list */}
+            <div className="max-h-64 overflow-y-auto divide-y divide-border rounded-xl border border-border">
+              {filteredTeachers.length === 0 ? (
+                <div className="p-4 text-center text-xs text-muted-foreground">
+                  لا يوجد مدرسين مطابقين للبحث
+                </div>
+              ) : (
+                filteredTeachers.map((t) => (
+                  <button
+                    key={t.userid}
+                    onClick={() => setSelectedTeacher(t)}
+                    className="w-full flex items-center gap-3 p-3 text-start transition-colors hover:bg-muted/40"
+                  >
+                    <div className="relative size-9 shrink-0 overflow-hidden rounded-full bg-muted border border-border">
+                      {t.photourl ? (
+                        <Image src={t.photourl} alt={t.fullname} fill sizes="36px" className="object-cover" />
+                      ) : (
+                        <User className="size-5 m-auto text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-foreground truncate">{t.fullname}</p>
+                      {t.headline && (
+                        <p className="text-[10px] text-muted-foreground truncate">{t.headline}</p>
+                      )}
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-xl bg-muted/30 p-3">
+              <div className="flex items-center gap-3">
+                <Avatar src={selectedTeacher.photourl} name={selectedTeacher.fullname} size="sm" />
+                <div>
+                  <p className="text-xs font-bold">{selectedTeacher.fullname}</p>
+                  <p className="text-[10px] text-muted-foreground">{selectedTeacher.headline || "مدرس"}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedTeacher(null)}
+                className="text-xs text-primary font-medium hover:underline"
+              >
+                تغيير
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-foreground">الرسالة الأولى</label>
+              <textarea
+                rows={3}
+                value={initialText}
+                onChange={(e) => setInitialText(e.target.value)}
+                placeholder="اكتب رسالتك للبدء..."
+                className="w-full rounded-xl border border-border bg-background p-3 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
+                dir="rtl"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setSelectedTeacher(null)}
+                className="rounded-xl px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted"
+              >
+                رجوع
+              </button>
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={submitting || !initialText.trim()}
+                className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    جاري الإرسال...
+                  </>
+                ) : (
+                  "إرسال الرسالة"
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface MessagesClientProps {
   conversations: Conversation[];
   currentUserId: number;
+  initialConvid?: number;
+  teachers?: Teacher[];
 }
 
 export function MessagesClient({
   conversations: initialConversations,
   currentUserId,
+  initialConvid,
+  teachers = [],
 }: MessagesClientProps) {
-  const [conversations, setConversations] =
-    useState<Conversation[]>(initialConversations);
+  const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [activeConv, setActiveConv] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [members, setMembers] = useState<ConversationMember[]>([]);
@@ -300,6 +481,7 @@ export function MessagesClient({
   const [sending, startSendTransition] = useTransition();
   // mobile: show thread panel over list
   const [mobileShowThread, setMobileShowThread] = useState(false);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
 
   function openConversation(conv: Conversation) {
     setActiveConv(conv);
@@ -318,6 +500,36 @@ export function MessagesClient({
     });
   }
 
+  // Support deep linking to a specific conversation id
+  useEffect(() => {
+    if (!initialConvid) return;
+    const existing = conversations.find((c) => c.id === initialConvid);
+    if (existing) {
+      openConversation(existing);
+    } else {
+      startThreadTransition(async () => {
+        const thread = await fetchThreadAction(initialConvid);
+        if (thread) {
+          const other = thread.members.find((m) => m.id !== currentUserId) ?? thread.members[0];
+          const newConv: Conversation = {
+            id: thread.id,
+            type: 1,
+            name: other?.fullname || "محادثة",
+            imageurl: other?.profileimageurl,
+            unreadcount: 0,
+            members: thread.members,
+            messages: thread.messages,
+          };
+          setConversations((prev) => [newConv, ...prev.filter((c) => c.id !== newConv.id)]);
+          setActiveConv(newConv);
+          setMessages(thread.messages);
+          setMembers(thread.members);
+          setMobileShowThread(true);
+        }
+      });
+    }
+  }, [initialConvid]);
+
   function handleSend(text: string) {
     if (!activeConv) return;
     startSendTransition(async () => {
@@ -331,6 +543,34 @@ export function MessagesClient({
         }
       }
     });
+  }
+
+  async function handleStartNewChat(teacher: Teacher, text: string) {
+    const res = await sendInstantMessageAction(teacher.userid, text);
+    if (!res.ok || !res.conversationid) {
+      throw new Error(res.error || "تعذّر إرسال الرسالة");
+    }
+
+    const convid = res.conversationid;
+    const thread = await fetchThreadAction(convid);
+    if (thread) {
+      const other = thread.members.find((m) => m.id !== currentUserId) ?? thread.members[0];
+      const newConv: Conversation = {
+        id: thread.id,
+        type: 1,
+        name: teacher.fullname || other?.fullname || "محادثة",
+        imageurl: teacher.photourl || other?.profileimageurl,
+        unreadcount: 0,
+        members: thread.members,
+        messages: thread.messages,
+      };
+
+      setConversations((prev) => [newConv, ...prev.filter((c) => c.id !== convid)]);
+      setActiveConv(newConv);
+      setMessages(thread.messages);
+      setMembers(thread.members);
+      setMobileShowThread(true);
+    }
   }
 
   const totalUnread = conversations.reduce(
@@ -349,15 +589,34 @@ export function MessagesClient({
   return (
     <div className="flex flex-col gap-0">
       {/* Page header */}
-      <div className="flex items-center gap-3 mb-4">
-        <MessageCircle className="size-6 text-primary" />
-        <h1 className="text-h1 font-bold">الرسائل</h1>
-        {totalUnread > 0 && (
-          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-            {totalUnread}
-          </span>
-        )}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <MessageCircle className="size-6 text-primary" />
+          <h1 className="text-h1 font-bold">الرسائل</h1>
+          {totalUnread > 0 && (
+            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+              {totalUnread}
+            </span>
+          )}
+        </div>
+
+        <button
+          onClick={() => setShowNewChatModal(true)}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground shadow-sm transition hover:opacity-90"
+        >
+          <Plus className="size-4" />
+          محادثة جديدة
+        </button>
       </div>
+
+      {/* New Chat Modal */}
+      <NewChatModal
+        isOpen={showNewChatModal}
+        onClose={() => setShowNewChatModal(false)}
+        teachers={teachers}
+        currentUserId={currentUserId}
+        onStartChat={handleStartNewChat}
+      />
 
       {/* Split pane */}
       <div className="flex h-[calc(100svh-11rem)] overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -369,7 +628,7 @@ export function MessagesClient({
             mobileShowThread ? "hidden md:flex" : "flex"
           )}
         >
-          <div className="px-4 py-3 border-b border-border">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <p className="text-small font-bold text-foreground">المحادثات</p>
           </div>
           <ConversationList
@@ -437,3 +696,4 @@ export function MessagesClient({
     </div>
   );
 }
+

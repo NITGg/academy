@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { getSessionFromCookie } from "@/lib/session";
 import { getCoursesPageData, getMyCourses } from "@/features/courses/server";
+import { getMySubscriptions } from "@/features/subscriptions/server";
 import { CategoryFilter } from "@/features/courses/components/CategoryFilter";
 import { PaginatedCourses, PaginatedMyCourses } from "@/features/courses/components/PaginatedCourseList";
 import { cn } from "@/lib/utils";
@@ -21,14 +22,22 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
   const session = await getSessionFromCookie();
 
   // Fetch in parallel — only load what's needed for the active tab
-  const [{ categories, courses }, myCourses] = await Promise.all([
+  const [{ categories, courses }, myCourses, mySubscriptions] = await Promise.all([
     isMy
       ? Promise.resolve({ categories: [], courses: [] })
-      : getCoursesPageData({ categoryId, search }),
+      : getCoursesPageData({ categoryId, search, wstoken: session?.wstoken }),
     isMy && session
       ? getMyCourses(session.wstoken, session.user.id)
       : Promise.resolve([]),
+    !isMy && session
+      ? getMySubscriptions(session.wstoken)
+      : Promise.resolve([]),
   ]);
+
+  // Courses unlocked by any active subscription (normal or B2B) → free on-demand enrol.
+  const coveredCourseIds = mySubscriptions
+    .filter((s) => s.status === "active")
+    .flatMap((s) => (s.courses ?? []).map((c) => c.id));
 
   return (
     <div className="space-y-6">
@@ -118,7 +127,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
               </p>
             </div>
           ) : (
-            <PaginatedCourses courses={courses} pageSize={12} />
+            <PaginatedCourses courses={courses} pageSize={12} coveredCourseIds={coveredCourseIds} />
           )}
         </>
       )}

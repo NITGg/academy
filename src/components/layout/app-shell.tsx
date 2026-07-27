@@ -2,6 +2,7 @@
 
 import { AppHeader } from "./app-header";
 import { MessageCircle } from "lucide-react";
+import { PaymentResultToast } from "./PaymentResultToast";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -10,6 +11,9 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   return (
     <div className="relative flex h-screen flex-col overflow-hidden bg-background">
+      {/* Surfaces a toast when returning from the payment gateway (?payment=success|failed) */}
+      <PaymentResultToast />
+
       {/* Sticky header + navbar combined */}
       <AppHeader />
 

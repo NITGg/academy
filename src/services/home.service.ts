@@ -1,36 +1,24 @@
 import { callMoodleRest, callAcademyApi } from "@/lib/moodle-server";
+import { getSessionFromCookie } from "@/lib/session";
+import { enrichCoursesWithPricing, getMyCourses, type EnrolledCourse } from "@/features/courses/server";
 import type { Course } from "@/features/courses/types";
 import type { Teacher } from "@/features/teachers/types";
+import type { CatalogueProgram, MyProgram } from "@/features/programs/types";
+import type { AvailablePackage, MyPackage } from "@/features/packages/types";
+import type { AvailableSubscription, MySubscription } from "@/features/subscriptions/types";
 
-export interface Program {
-  id: number;
-  name: string;
-  owned?: boolean;
-}
-
-export interface Package {
-  id: number;
-  name: string;
-  description?: string;
-  flexCount: number;
-  flex_count?: number;
-  price: number;
-}
-
-export interface Subscription {
-  id: number;
-  name: string;
-  durationDays: number;
-  duration_days?: number;
-  price: number;
-}
+import { getTeachers } from "@/features/teachers/server";
 
 export interface HomeDashboardData {
   courses: Course[];
+  myCourses: EnrolledCourse[];
   teachers: Teacher[];
-  programs: Program[];
-  packages: Package[];
-  subscriptions: Subscription[];
+  programs: CatalogueProgram[];
+  packages: AvailablePackage[];
+  subscriptions: AvailableSubscription[];
+  myPackages: MyPackage[];
+  mySubscriptions: MySubscription[];
+  myPrograms: MyProgram[];
 }
 
 function moodlePublicUrl(url?: string): string | undefined {
@@ -38,26 +26,50 @@ function moodlePublicUrl(url?: string): string | undefined {
   return url.replace("/webservice/pluginfile.php", "/pluginfile.php");
 }
 
-export async function getHomeDashboardData(): Promise<HomeDashboardData> {
+export async function getHomeDashboardData(userWstoken?: string): Promise<HomeDashboardData> {
   const adminToken = process.env.MOODLE_ADMIN_TOKEN;
   if (!adminToken) throw new Error("Admin token not configured");
 
-  const [coursesRes, teachersRes, programsRes, packagesRes, subscriptionsRes] =
-    await Promise.allSettled([
-      callMoodleRest<{ courses?: Course[] } | Course[]>({
-        functionName: "core_course_get_courses_by_field",
-        token: adminToken,
-      }),
-      callAcademyApi<{ total: number; teachers: Teacher[] }>(
-        "get_all_teachers",
-        { page: 1, perpage: 20 },
-      ),
-      callAcademyApi<Program[]>("get_catalogue_programs"),
-      callAcademyApi<Package[]>("get_available_packages"),
-      callAcademyApi<Subscription[]>("get_available_subscriptions"),
-    ]);
+  const session = await getSessionFromCookie();
 
-  // Courses — map overviewfiles → courseimage
+  const [
+    coursesRes,
+    teachersRes,
+    programsRes,
+    packagesRes,
+    subscriptionsRes,
+    myPackagesRes,
+    mySubscriptionsRes,
+    myProgramsRes,
+    myCoursesRes,
+  ] = await Promise.allSettled([
+    callMoodleRest<{ courses?: Course[] } | Course[]>({
+      functionName: "core_course_get_courses_by_field",
+      token: adminToken,
+    }),
+    getTeachers({ page: 0 }),
+    callAcademyApi<CatalogueProgram[]>(
+      "get_catalogue_programs",
+      {},
+      userWstoken ?? adminToken,
+    ),
+    callAcademyApi<AvailablePackage[]>("get_available_packages"),
+    callAcademyApi<AvailableSubscription[]>("get_available_subscriptions"),
+    userWstoken
+      ? callAcademyApi<MyPackage[]>("get_my_packages", {}, userWstoken)
+      : Promise.resolve([]),
+    userWstoken
+      ? callAcademyApi<MySubscription[]>("get_my_subscriptions", {}, userWstoken)
+      : Promise.resolve([]),
+    userWstoken
+      ? callAcademyApi<MyProgram[]>("get_my_programs", {}, userWstoken)
+      : Promise.resolve([]),
+    session?.wstoken && session.user?.id
+      ? getMyCourses(session.wstoken, session.user.id)
+      : Promise.resolve([] as EnrolledCourse[]),
+  ]);
+
+  // Courses — map overviewfiles → courseimage, then enrich with pricing/offers/access
   let courses: Course[] = [];
   if (coursesRes.status === "fulfilled") {
     const raw = coursesRes.value as any;
@@ -70,9 +82,13 @@ export async function getHomeDashboardData(): Promise<HomeDashboardData> {
           c.courseimage ||
           moodlePublicUrl(c.overviewfiles?.[0]?.fileurl),
       }));
+    courses = await enrichCoursesWithPricing(courses, session?.wstoken);
   }
 
-  // Teachers — API returns snake_case; use the Teacher type from features/teachers/types
+  const myCourses =
+    myCoursesRes.status === "fulfilled" ? (myCoursesRes.value as EnrolledCourse[]) : [];
+
+  // Teachers
   let teachers: Teacher[] = [];
   if (teachersRes.status === "fulfilled" && teachersRes.value) {
     const val = teachersRes.value as any;
@@ -82,35 +98,32 @@ export async function getHomeDashboardData(): Promise<HomeDashboardData> {
     teachers = list;
   }
 
-  // Helper for array responses wrapped in { status, data: [...] }
+  // Helper for array responses wrapped in { status, data: [...] } or direct array
   function extractList<T>(res: PromiseSettledResult<any>): T[] {
     if (res.status !== "fulfilled" || !res.value) return [];
     const v = res.value;
     if (Array.isArray(v)) return v;
+    if (v && Array.isArray(v.data)) return v.data;
     return [];
   }
 
-  const rawPackages = extractList<any>(packagesRes);
-  const packages: Package[] = rawPackages.map((p) => ({
-    ...p,
-    id: Number(p.id),
-    flexCount: Number(p.flex_count ?? p.flexCount ?? 0),
-    price: Number(p.price),
-  }));
+  const packages = extractList<AvailablePackage>(packagesRes);
+  const subscriptions = extractList<AvailableSubscription>(subscriptionsRes);
+  const programs = extractList<CatalogueProgram>(programsRes);
+  const myPackages = extractList<MyPackage>(myPackagesRes);
+  const mySubscriptions = extractList<MySubscription>(mySubscriptionsRes);
+  const myPrograms = extractList<MyProgram>(myProgramsRes);
 
-  const rawSubs = extractList<any>(subscriptionsRes);
-  const subscriptions: Subscription[] = rawSubs.map((s) => ({
-    ...s,
-    id: Number(s.id),
-    durationDays: Number(s.duration_days ?? s.durationDays ?? 0),
-    price: Number(s.price),
-  }));
-
-  const rawPrograms = extractList<any>(programsRes);
-  const programs: Program[] = rawPrograms.map((p) => ({
-    ...p,
-    id: Number(p.id),
-  }));
-
-  return { courses, teachers, programs, packages, subscriptions };
+  return {
+    courses,
+    myCourses,
+    teachers,
+    programs,
+    packages,
+    subscriptions,
+    myPackages,
+    mySubscriptions,
+    myPrograms,
+  };
 }
+

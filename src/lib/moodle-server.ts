@@ -53,7 +53,10 @@ export async function callMoodleRest<T = unknown>({
 
   const data = await response.json();
 
-  if (data.exception || data.errorcode) {
+  // Some Moodle WS functions (e.g. enrol_manual_enrol_users) return `null` on success.
+  // Guard against null before probing exception/errorcode, otherwise a successful call
+  // throws "Cannot read properties of null (reading 'exception')".
+  if (data && (data.exception || data.errorcode)) {
     throw new Error(data.message ?? data.exception ?? "Moodle API exception");
   }
 

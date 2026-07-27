@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { AvailablePackage, MyPackage, PackagePaymentRecord } from "../types";
 import { Pagination } from "@/components/ui/Pagination";
+import { startPackageCheckout } from "../actions";
 
 function formatDate(ts: number): string {
   if (!ts) return "غير محدد";
@@ -122,13 +123,36 @@ function MyPackagesTab({ packages, pageSize = 6 }: { packages: MyPackage[]; page
 function AvailablePackagesTab({
   packages,
   hasActivePackage,
+  activePackage,
   pageSize = 6,
 }: {
   packages: AvailablePackage[];
   hasActivePackage: boolean;
+  activePackage?: MyPackage | null;
   pageSize?: number;
 }) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function handleBuy(pkgId: number) {
+    setLoadingId(pkgId);
+    setActionError(null);
+    try {
+      const res = await startPackageCheckout(pkgId);
+      if (res.needsAuth) {
+        window.location.href = "/login";
+      } else if (res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+      } else {
+        setActionError(res.error || "تعذّر بدء عملية الدفع");
+      }
+    } catch {
+      setActionError("حدث خطأ غير متوقع");
+    } finally {
+      setLoadingId(null);
+    }
+  }
 
   if (packages.length === 0) {
     return (
@@ -149,53 +173,80 @@ function AvailablePackagesTab({
 
   return (
     <div className="space-y-4">
+      {actionError && (
+        <p className="rounded-xl bg-destructive/10 p-3 text-xs font-semibold text-destructive text-center">
+          {actionError}
+        </p>
+      )}
       <div className="space-y-3">
-        {currentPackages.map((pkg) => (
-          <div key={pkg.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                {Number(pkg.flex_count)} حصة
-              </span>
-              <span className="text-caption font-bold text-foreground">{pkg.name}</span>
-            </div>
+        {currentPackages.map((pkg) => {
+          const isThisPackageActive =
+            Boolean(activePackage) &&
+            (Number(activePackage?.packageid) === Number(pkg.id) ||
+              Number(activePackage?.id) === Number(pkg.id) ||
+              activePackage?.name === pkg.name);
 
-            {pkg.description && (
-              <p className="text-small text-muted-foreground leading-relaxed text-right">
-                {pkg.description}
-              </p>
-            )}
-
-            <div className="flex items-center justify-between text-small">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Clock className="size-3.5" />
-                <span>{pkg.expiration_days} يوم</span>
+          return (
+            <div key={pkg.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                    {Number(pkg.flex_count)} حصة
+                  </span>
+                  {isThisPackageActive && (
+                    <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600">
+                      باقة نشطة
+                    </span>
+                  )}
+                </div>
+                <span className="text-caption font-bold text-foreground">{pkg.name}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Tag className="size-3.5 text-muted-foreground" />
-                <span className="font-bold text-foreground">
-                  {pkg.offer
-                    ? `${Number(pkg.offer.final).toFixed(2)} جنيه`
-                    : `${Number(pkg.price).toFixed(2)} جنيه`}
-                </span>
+
+              {pkg.description && (
+                <p className="text-small text-muted-foreground leading-relaxed text-right">
+                  {pkg.description}
+                </p>
+              )}
+
+              <div className="flex items-center justify-between text-small">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Clock className="size-3.5" />
+                  <span>{pkg.expiration_days} يوم</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Tag className="size-3.5 text-muted-foreground" />
+                  <span className="font-bold text-foreground">
+                    {pkg.offer
+                      ? `${Number(pkg.offer.final).toFixed(2)} جنيه`
+                      : `${Number(pkg.price).toFixed(2)} جنيه`}
+                  </span>
+                </div>
               </div>
+
+              <Button
+                variant="default"
+                size="lg"
+                disabled={hasActivePackage || loadingId === pkg.id}
+                onClick={() => handleBuy(pkg.id)}
+                className="w-full rounded-xl"
+              >
+                {loadingId === pkg.id
+                  ? "جاري التحويل..."
+                  : isThisPackageActive
+                  ? "باقة مفعلة"
+                  : hasActivePackage
+                  ? "لديك باقة مفعلة"
+                  : "شراء الباقة"}
+              </Button>
+
+              {hasActivePackage && (
+                <p className="text-center text-[11px] text-muted-foreground">
+                  لديك بالفعل باقة نشطة
+                </p>
+              )}
             </div>
-
-            <Button
-              variant="default"
-              size="lg"
-              disabled={hasActivePackage}
-              className="w-full rounded-xl"
-            >
-              شراء الباقة
-            </Button>
-
-            {hasActivePackage && (
-              <p className="text-center text-[11px] text-muted-foreground">
-                لديك بالفعل باقة نشطة
-              </p>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
       <Pagination
         currentPage={currentPage}
@@ -292,7 +343,10 @@ export function PackagesPageClient({
   paymentHistory,
 }: PackagesPageClientProps) {
   const [activeTab, setActiveTab] = useState<Tab>("mine");
-  const hasActivePackage = myPackages.some((p) => p.status === "active");
+  const activePackage = myPackages.find(
+    (p) => p.status === "active" || (p.remaining_flex ?? 0) > 0
+  );
+  const hasActivePackage = Boolean(activePackage);
 
   return (
     <div className="space-y-4">
@@ -317,7 +371,11 @@ export function PackagesPageClient({
       {/* Tab content */}
       {activeTab === "mine" && <MyPackagesTab packages={myPackages} />}
       {activeTab === "available" && (
-        <AvailablePackagesTab packages={availablePackages} hasActivePackage={hasActivePackage} />
+        <AvailablePackagesTab
+          packages={availablePackages}
+          hasActivePackage={hasActivePackage}
+          activePackage={activePackage}
+        />
       )}
       {activeTab === "history" && <PaymentHistoryTab records={paymentHistory} />}
     </div>

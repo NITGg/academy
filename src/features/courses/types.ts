@@ -23,9 +23,16 @@ export interface Course {
   enrolledusercount?: number;
   teacherName?: string;
   teacherImage?: string;
-  price?: number;
+  // ── Pricing / offer / access (from local_payments_get_courses_with_pricing) ──
+  price?: number;            // effective price to charge (sale_price if on sale, else price)
+  originalPrice?: number;    // list price, for strike-through when discounted
+  discountPercentage?: number;
+  isSaleActive?: boolean;
+  offerName?: string;        // combined offer name(s) — subtitle/tooltip
+  currency?: string;
   isFree?: boolean;
   isEnrolled?: boolean;
+  isPurchased?: boolean;
   offer?: Offer;
 }
 

@@ -28,12 +28,18 @@ export async function getConversationMessages(
   convid: number,
 ): Promise<ConversationThread | null> {
   try {
-    return await callMoodleRest<ConversationThread>({
+    const res = await callMoodleRest<ConversationThread>({
       functionName: "core_message_get_conversation_messages",
       token: wstoken,
       params: { currentuserid, convid, newest: 1, limitnum: 100 },
     });
+    if (!res) return null;
+    return {
+      ...res,
+      messages: (res.messages ?? []).slice().sort((a, b) => a.timecreated - b.timecreated || a.id - b.id),
+    };
   } catch {
     return null;
   }
 }
+

@@ -1,7 +1,12 @@
 import "server-only";
 import { getLocale } from "next-intl/server";
 import { callAcademyApi } from "@/lib/moodle-server";
-import type { AvailableSubscription, MySubscription, SubscriptionPaymentRecord } from "./types";
+import type {
+  AvailableSubscription,
+  MySubscription,
+  SubscriptionPaymentRecord,
+  B2BSubscription,
+} from "./types";
 
 export async function getAvailableSubscriptions(): Promise<AvailableSubscription[]> {
   const locale = await getLocale();
@@ -30,6 +35,17 @@ export async function getSubscriptionPaymentHistory(wstoken: string): Promise<Su
   const lang = locale === "ar" ? "ar" : "en";
   try {
     return await callAcademyApi<SubscriptionPaymentRecord[]>("get_subscription_payment_history", {}, wstoken, lang);
+  } catch {
+    return [];
+  }
+}
+
+/** The B2B subscriptions the current user administers (for the B2B management tab). */
+export async function getMyB2bSubscriptions(wstoken: string): Promise<B2BSubscription[]> {
+  const locale = await getLocale();
+  const lang = locale === "ar" ? "ar" : "en";
+  try {
+    return await callAcademyApi<B2BSubscription[]>("get_my_b2b_subscriptions", {}, wstoken, lang);
   } catch {
     return [];
   }

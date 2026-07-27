@@ -2,10 +2,16 @@
 
 import { useState } from "react";
 import { CreditCard, Calendar, Tag, CheckCircle2, Receipt, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { AvailableSubscription, MySubscription, SubscriptionPaymentRecord } from "../types";
+import type {
+  MySubscription,
+  SubscriptionPaymentRecord,
+  AvailableSubscription,
+  B2BSubscription,
+} from "../types";
 import { Pagination } from "@/components/ui/Pagination";
+import { SubscriptionCatalog } from "./SubscriptionCatalog";
+import { B2bManageTab } from "./B2bManageTab";
 
 function formatDate(ts: number): string {
   if (!ts) return "غير محدد";
@@ -113,95 +119,6 @@ function MySubscriptionsTab({ subscriptions, pageSize = 6 }: { subscriptions: My
   );
 }
 
-// ── Available Subscriptions tab ──────────────────────────────────────────────
-
-function AvailableSubscriptionsTab({
-  subscriptions,
-  hasActiveSubscription,
-  pageSize = 6,
-}: {
-  subscriptions: AvailableSubscription[];
-  hasActiveSubscription: boolean;
-  pageSize?: number;
-}) {
-  const [currentPage, setCurrentPage] = useState(1);
-
-  if (subscriptions.length === 0) {
-    return (
-      <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border text-muted-foreground">
-        <CreditCard className="size-8 opacity-30" />
-        <p className="text-caption">لا توجد اشتراكات متاحة حالياً</p>
-      </div>
-    );
-  }
-
-  const totalPages = Math.ceil(subscriptions.length / pageSize);
-  const currentSubscriptions = subscriptions.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="space-y-3">
-        {currentSubscriptions.map((sub) => (
-          <div key={sub.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                {sub.duration_days} يوم
-              </span>
-              <span className="text-caption font-bold text-foreground">{sub.name}</span>
-            </div>
-
-            {sub.description && (
-              <p className="text-small text-muted-foreground leading-relaxed text-right">
-                {sub.description}
-              </p>
-            )}
-
-            <div className="flex items-center justify-between text-small">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Clock className="size-3.5" />
-                <span>{sub.duration_days} يوم</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Tag className="size-3.5 text-muted-foreground" />
-                <span className="font-bold text-foreground">
-                  {Number(sub.price).toFixed(2)} جنيه
-                </span>
-              </div>
-            </div>
-
-            <Button
-              variant="default"
-              size="lg"
-              disabled={hasActiveSubscription}
-              className="w-full rounded-xl"
-            >
-              اشترك
-            </Button>
-
-            {hasActiveSubscription && (
-              <p className="text-center text-[11px] text-muted-foreground">
-                لديك بالفعل اشتراك نشط
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalItems={subscriptions.length}
-        pageSize={pageSize}
-        onPageChange={handlePageChange}
-      />
-    </div>
-  );
-}
-
 // ── Payment History tab ──────────────────────────────────────────────────────
 
 function PaymentHistoryTab({ records, pageSize = 8 }: { records: SubscriptionPaymentRecord[]; pageSize?: number }) {
@@ -266,41 +183,65 @@ function PaymentHistoryTab({ records, pageSize = 8 }: { records: SubscriptionPay
 
 // ── Page root ────────────────────────────────────────────────────────────────
 
-const TABS = [
-  { id: "mine", label: "اشتراكاتي" },
-  { id: "available", label: "الاشتراكات المتاحة" },
-  { id: "history", label: "سجل الدفع" },
-] as const;
-
-type Tab = (typeof TABS)[number]["id"];
+type Tab = "mine" | "available" | "b2b" | "history";
 
 interface SubscriptionsPageClientProps {
   mySubscriptions: MySubscription[];
   availableSubscriptions: AvailableSubscription[];
   paymentHistory: SubscriptionPaymentRecord[];
+  myB2bSubscriptions: B2BSubscription[];
+  isLoggedIn: boolean;
+  initialTab?: Tab;
 }
 
 export function SubscriptionsPageClient({
   mySubscriptions,
   availableSubscriptions,
   paymentHistory,
+  myB2bSubscriptions,
+  isLoggedIn,
+  initialTab,
 }: SubscriptionsPageClientProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("mine");
+  const hasB2b = myB2bSubscriptions.length > 0;
+  const [activeTab, setActiveTab] = useState<Tab>(
+    initialTab === "b2b" && !hasB2b ? "available" : (initialTab ?? "mine"),
+  );
+  // When a card's "manage B2B" button is clicked, remember which plan to open.
+  const [manageSubId, setManageSubId] = useState<number | undefined>(undefined);
+
   const hasActiveSubscription = mySubscriptions.some((s) => s.status === "active");
+
+  // Set of subscription plan ids the user administers as an (active) B2B admin.
+  const ownedB2bSubIds = new Set(
+    myB2bSubscriptions.filter((s) => s.status === "active").map((s) => s.subscriptionid),
+  );
+
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "mine", label: "اشتراكاتي" },
+    { id: "available", label: "الاشتراكات المتاحة" },
+    ...(hasB2b ? [{ id: "b2b" as Tab, label: "إدارة اشتراك B2B" }] : []),
+    { id: "history", label: "سجل الدفع" },
+  ];
+
+  const handleManageB2b = (subscriptionId: number) => {
+    setManageSubId(subscriptionId);
+    setActiveTab("b2b");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="space-y-4">
       {/* Tabs */}
-      <div className="flex border-b border-border">
-        {TABS.map((tab) => (
+      <div className="flex overflow-x-auto border-b border-border scrollbar-none">
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex-1 py-2.5 text-small font-medium transition-colors",
+              "flex-1 whitespace-nowrap px-3 py-2.5 text-small font-medium transition-colors",
               activeTab === tab.id
                 ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             {tab.label}
@@ -311,10 +252,16 @@ export function SubscriptionsPageClient({
       {/* Tab content */}
       {activeTab === "mine" && <MySubscriptionsTab subscriptions={mySubscriptions} />}
       {activeTab === "available" && (
-        <AvailableSubscriptionsTab
+        <SubscriptionCatalog
           subscriptions={availableSubscriptions}
+          isLoggedIn={isLoggedIn}
           hasActiveSubscription={hasActiveSubscription}
+          ownedB2bSubIds={ownedB2bSubIds}
+          onManageB2b={handleManageB2b}
         />
+      )}
+      {activeTab === "b2b" && hasB2b && (
+        <B2bManageTab subscriptions={myB2bSubscriptions} initialSubscriptionId={manageSubId} />
       )}
       {activeTab === "history" && <PaymentHistoryTab records={paymentHistory} />}
     </div>
