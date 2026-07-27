@@ -1,6 +1,6 @@
 import "server-only";
 import { callMoodleRest } from "@/lib/moodle-server";
-import type { Conversation } from "./types";
+import type { Conversation, ConversationThread } from "./types";
 
 interface ConversationsResponse {
   conversations: Conversation[];
@@ -19,5 +19,21 @@ export async function getConversations(
     return data?.conversations ?? [];
   } catch {
     return [];
+  }
+}
+
+export async function getConversationMessages(
+  wstoken: string,
+  currentuserid: number,
+  convid: number,
+): Promise<ConversationThread | null> {
+  try {
+    return await callMoodleRest<ConversationThread>({
+      functionName: "core_message_get_conversation_messages",
+      token: wstoken,
+      params: { currentuserid, convid, newest: 1, limitnum: 100 },
+    });
+  } catch {
+    return null;
   }
 }

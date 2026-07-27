@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Users } from "lucide-react";
 import { getTeachers } from "@/features/teachers/server";
 import { TeacherCard } from "@/features/teachers/components/TeacherCard";
@@ -10,7 +11,9 @@ interface TeachersPageProps {
   searchParams: Promise<{ search?: string }>;
 }
 
-export default async function TeachersPage({ searchParams }: TeachersPageProps) {
+export default async function TeachersPage({
+  searchParams,
+}: TeachersPageProps) {
   const params = await searchParams;
   const search = params.search?.trim() ?? "";
   const locale = "ar";
@@ -34,7 +37,7 @@ export default async function TeachersPage({ searchParams }: TeachersPageProps) 
       </div>
 
       {teachers.length === 0 ? (
-        <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground text-caption">
+        <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-border bg-card text-caption text-muted-foreground">
           {search
             ? `لا يوجد مدرسون يطابقون "${search}"`
             : "لا يوجد مدرسون حالياً."}
@@ -42,7 +45,13 @@ export default async function TeachersPage({ searchParams }: TeachersPageProps) 
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {teachers.map((teacher) => (
-            <TeacherCard key={teacher.userid} teacher={teacher} locale={locale} />
+            <Link
+              key={teacher.userid}
+              href={`/teachers/${teacher.userid}`}
+              className="block transition-transform hover:-translate-y-0.5"
+            >
+              <TeacherCard teacher={teacher} locale={locale} />
+            </Link>
           ))}
         </div>
       )}

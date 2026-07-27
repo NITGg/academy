@@ -22,3 +22,9 @@ export interface Conversation {
   members: ConversationMember[];
   messages: ChatMessage[];
 }
+
+export interface ConversationThread {
+  id: number;
+  members: ConversationMember[];
+  messages: ChatMessage[];
+}

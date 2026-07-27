@@ -1,4 +1,5 @@
 import type { Offer } from "@/types/api";
+import type { JitsiSession } from "@/features/lessons/types";
 
 export interface CourseCategory {
   id: number;
@@ -86,7 +87,7 @@ export interface RawActivity {
   fileurl?: string;
   locked?: boolean;
   availabilityinfo?: string;
-  jitsi_session?: unknown;
+  jitsi_session?: JitsiSession | null;
 }
 
 export interface RawTopicSection {
