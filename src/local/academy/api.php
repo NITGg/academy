@@ -493,10 +493,12 @@ try {
             $seats   = optional_param('seats', 0, PARAM_INT);
             $lang    = optional_param('alang', current_language(), PARAM_LANG);
             $coupon  = optional_param('coupon_code', '', PARAM_TEXT);
+            // Exact page the checkout was launched from; callback.php validates it before redirecting.
+            $returnurl = optional_param('return_url', '', PARAM_RAW_TRIMMED);
             require_once($CFG->dirroot . '/local/payments/classes/manager.php');
             try {
                 $checkout = \local_payments\manager::create_subscription_checkout(
-                    $subid, $userid, null, $lang, $subtype, $seats, $coupon);
+                    $subid, $userid, null, $lang, $subtype, $seats, $coupon, $returnurl);
                 academy_respond(['status' => 'success', 'data' => $checkout]);
             } catch (\Exception $e) {
                 academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
@@ -610,9 +612,10 @@ try {
             $packageid = required_param('packageid', PARAM_INT);
             $coupon    = optional_param('coupon_code', '', PARAM_TEXT);
             $lang      = optional_param('alang', current_language(), PARAM_LANG);
+            $returnurl = optional_param('return_url', '', PARAM_RAW_TRIMMED);
             require_once($CFG->dirroot . '/local/payments/classes/manager.php');
             try {
-                $checkout = \local_payments\manager::create_package_checkout($packageid, $userid, null, $lang, $coupon);
+                $checkout = \local_payments\manager::create_package_checkout($packageid, $userid, null, $lang, $coupon, $returnurl);
                 academy_respond(['status' => 'success', 'data' => $checkout]);
             } catch (\Exception $e) {
                 academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
@@ -1018,7 +1021,8 @@ try {
                     $userid,
                     null,
                     optional_param('alang', current_language(), PARAM_LANG),
-                    optional_param('coupon_code', '', PARAM_RAW_TRIMMED)
+                    optional_param('coupon_code', '', PARAM_RAW_TRIMMED),
+                    optional_param('return_url', '', PARAM_RAW_TRIMMED)
                 );
                 academy_respond(['status' => 'success', 'data' => $checkout]);
             } catch (Exception $e) {

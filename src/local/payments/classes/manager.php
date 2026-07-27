@@ -85,7 +85,7 @@ class manager {
      * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
      */
     public static function create_checkout(int $courseid, ?int $userid = null, ?string $app_country = null,
-            string $display_lang = 'en', string $coupon_code = ''): object {
+            string $display_lang = 'en', string $coupon_code = '', string $return_url = ''): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
@@ -167,6 +167,7 @@ class manager {
                 'item_type' => 'course',
                 'item_id' => $courseid,
                 'discount' => $disc['discount'],
+                'return_url' => $return_url,
             ]),
             'expires_at' => $expires_at,
             'timecreated' => time(),
@@ -244,7 +245,7 @@ class manager {
      * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
      */
     public static function create_package_checkout(int $packageid, ?int $userid = null, ?string $app_country = null,
-            string $display_lang = 'en', string $coupon_code = ''): object {
+            string $display_lang = 'en', string $coupon_code = '', string $return_url = ''): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
@@ -293,6 +294,7 @@ class manager {
                 'item_id' => $packageid,
                 'package_name' => $package->name,
                 'discount' => $disc['discount'],
+                'return_url' => $return_url,
             ]),
             'expires_at' => $expires_at,
             'timecreated' => time(),
@@ -366,7 +368,7 @@ class manager {
      * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
      */
     public static function create_program_checkout(int $programid, ?int $userid = null, ?string $app_country = null,
-            string $display_lang = 'en', string $coupon_code = ''): object {
+            string $display_lang = 'en', string $coupon_code = '', string $return_url = ''): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
@@ -422,6 +424,7 @@ class manager {
                 'item_id' => $programid,
                 'program_name' => $program->fullname,
                 'discount' => $disc['discount'],
+                'return_url' => $return_url,
             ]),
             'expires_at' => $expires_at,
             'timecreated' => time(),
@@ -493,7 +496,7 @@ class manager {
      * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
      */
     public static function create_subscription_checkout(int $subscriptionid, ?int $userid = null, ?string $app_country = null,
-            string $display_lang = 'en', string $type = 'normal', int $seats = 0, string $coupon_code = ''): object {
+            string $display_lang = 'en', string $type = 'normal', int $seats = 0, string $coupon_code = '', string $return_url = ''): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
@@ -571,6 +574,7 @@ class manager {
                 'sub_type' => $isb2b ? 'b2b' : 'normal',
                 'seats' => $b2bseats,
                 'discount' => $disc['discount'],
+                'return_url' => $return_url,
             ]),
             'expires_at' => $expires_at,
             'timecreated' => time(),

@@ -19,11 +19,18 @@ class create_checkout extends \external_api {
                 VALUE_DEFAULT,
                 ''
             ),
+            'return_url' => new \external_value(
+                PARAM_RAW_TRIMMED,
+                'Exact front-end page the checkout was launched from; callback.php validates it against '
+                    . 'the configured frontend_url before redirecting the user back after payment.',
+                VALUE_DEFAULT,
+                ''
+            ),
         ]);
     }
 
     public static function execute(int $courseid, string $country = '', string $lang = 'en',
-            string $coupon_code = ''): array {
+            string $coupon_code = '', string $return_url = ''): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
@@ -31,6 +38,7 @@ class create_checkout extends \external_api {
             'country' => $country,
             'lang' => $lang,
             'coupon_code' => $coupon_code,
+            'return_url' => $return_url,
         ]);
 
         // Validate against the SYSTEM context, not the course context: the buyer is by
@@ -49,7 +57,8 @@ class create_checkout extends \external_api {
             $USER->id,
             !empty($params['country']) ? $params['country'] : null,
             $params['lang'],
-            $params['coupon_code']
+            $params['coupon_code'],
+            $params['return_url']
         );
 
         return [

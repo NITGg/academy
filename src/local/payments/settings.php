@@ -47,6 +47,18 @@ if ($hassiteconfig) {
         1
     ));
 
+    // Where to send the student after a payment. When set to the front-end origin, the payment
+    // callback redirects back to the matching page on that site instead of the Moodle result page.
+    // PARAM_RAW_TRIMMED (not PARAM_URL): PARAM_URL can strip a localhost:PORT dev URL to empty.
+    // This is an admin-only, trusted value used as the redirect base.
+    $settings->add(new admin_setting_configtext(
+        'local_payments/frontend_url',
+        get_string('frontend_url', 'local_payments'),
+        get_string('frontend_url_desc', 'local_payments'),
+        '',
+        PARAM_RAW_TRIMMED
+    ));
+
     // Invoice / seller details (shown on the student invoice page and PDF).
     $settings->add(new admin_setting_heading('local_payments/invoice_heading',
         get_string('invoice_settings', 'local_payments'), ''));

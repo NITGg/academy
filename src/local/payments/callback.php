@@ -7,6 +7,69 @@ $kashier_status = strtoupper(optional_param('paymentStatus', '', PARAM_ALPHANUME
 
 require_login();
 
+// Optional front-end site: when configured, we send the student back to the matching page on the
+// front-end after the payment is processed, instead of showing the Moodle result pages. This keeps
+// the user on their own domain (the site that launched the checkout).
+$frontendurl = trim((string) get_config('local_payments', 'frontend_url'));
+
+/** Map an item to its front-end landing path and return the absolute URL (with a payment status flag). */
+function local_payments_frontend_landing($frontendbase, $item_type, $itemid, $status) {
+    $base = rtrim($frontendbase, '/');
+    switch ($item_type) {
+        case 'course':       $path = '/courses/' . (int) $itemid; break;
+        case 'program':      $path = '/programs/' . (int) $itemid; break;
+        case 'subscription': $path = '/subscriptions'; break;
+        case 'package':      $path = '/packages'; break;
+        default:             $path = '/'; break;
+    }
+    return $base . $path . '?payment=' . $status;
+}
+
+/** Resolve [item_type, item_id] for a transaction row (courseid column, else metadata). */
+function local_payments_txn_item($transaction) {
+    if (!$transaction) {
+        return ['', 0];
+    }
+    if (!empty($transaction->courseid)) {
+        return ['course', (int) $transaction->courseid];
+    }
+    $meta = json_decode($transaction->metadata ?? '', true);
+    if (is_array($meta)) {
+        return [$meta['item_type'] ?? '', (int) ($meta['item_id'] ?? 0)];
+    }
+    return ['', 0];
+}
+
+/** True when $url lives on the same origin (scheme + host + port) as $base. Open-redirect guard. */
+function local_payments_url_on_site($url, $base) {
+    $u = parse_url($url);
+    $b = parse_url(rtrim($base, '/'));
+    if (empty($u['host']) || empty($b['host']) || strcasecmp($u['host'], $b['host']) !== 0) {
+        return false;
+    }
+    if (!empty($u['scheme']) && !empty($b['scheme']) && strcasecmp($u['scheme'], $b['scheme']) !== 0) {
+        return false;
+    }
+    return (($u['port'] ?? null) === ($b['port'] ?? null));
+}
+
+/**
+ * Where to send the student after payment: the exact page the checkout was launched from
+ * (transaction metadata `return_url`) when it belongs to the configured front-end site, otherwise
+ * the item-type landing page. A `payment=success|failed` flag is always added.
+ */
+function local_payments_return_target($frontendbase, $transaction, $item_type, $itemid, $status) {
+    if ($transaction && !empty($transaction->metadata)) {
+        $meta = json_decode($transaction->metadata, true);
+        $returnurl = (is_array($meta) && !empty($meta['return_url'])) ? (string) $meta['return_url'] : '';
+        if ($returnurl !== '' && local_payments_url_on_site($returnurl, $frontendbase)) {
+            // moodle_url safely preserves any existing query and overwrites the payment flag.
+            return (new moodle_url($returnurl, ['payment' => $status]))->out(false);
+        }
+    }
+    return local_payments_frontend_landing($frontendbase, $item_type, $itemid, $status);
+}
+
 $PAGE->set_url(new moodle_url('/local/payments/callback.php', ['order_id' => $order_id]));
 $PAGE->set_context(context_system::instance());
 $PAGE->set_pagelayout('standard');
@@ -24,6 +87,12 @@ if ($kashier_status === 'FAILED') {
             'reject_reason' => 'Payment failed at provider (redirect)',
             'timemodified'  => time(),
         ]);
+    }
+
+    // Front-end site configured → bounce back to the originating page with a failure flag.
+    if ($frontendurl !== '') {
+        list($itype, $iid) = local_payments_txn_item($transaction);
+        redirect(local_payments_return_target($frontendurl, $transaction, $itype, $iid, 'failed'));
     }
 
     $PAGE->set_title(get_string('payment_failure', 'local_payments'));
@@ -50,9 +119,20 @@ try {
     $result = \local_payments\manager::verify_callback($order_id);
 
     if ($result->success) {
+        $item_type = $result->item_type ?? 'course';
+
+        // Front-end site configured → send the student back to the exact page they launched the
+        // checkout from (transaction return_url), falling back to the item's landing page.
+        if ($frontendurl !== '') {
+            $iid = ($item_type === 'course')
+                ? (int) $result->courseid
+                : (int) ($result->itemid ?? 0);
+            $txn = $DB->get_record('local_payments_transactions', ['order_id' => $order_id]);
+            redirect(local_payments_return_target($frontendurl, $txn, $item_type, $iid, 'success'));
+        }
+
         // Packages and subscriptions are not tied to a single page to land on. Send the student
         // straight to the home dashboard with a success notice instead of the generic success page.
-        $item_type = $result->item_type ?? 'course';
         if ($item_type === 'package' || $item_type === 'subscription') {
             redirect(
                 new moodle_url('/'),
@@ -93,10 +173,17 @@ try {
         ];
         echo $OUTPUT->render_from_template('local_payments/payment_success', $templatedata);
     } else {
+        $transaction = $DB->get_record('local_payments_transactions', ['order_id' => $order_id]);
+
+        // Front-end site configured → bounce back to the originating page with a failure flag.
+        if ($frontendurl !== '') {
+            list($itype, $iid) = local_payments_txn_item($transaction);
+            redirect(local_payments_return_target($frontendurl, $transaction, $itype, $iid, 'failed'));
+        }
+
         $PAGE->set_title(get_string('payment_failure', 'local_payments'));
         echo $OUTPUT->header();
 
-        $transaction = $DB->get_record('local_payments_transactions', ['order_id' => $order_id]);
         $templatedata = [
             'success'     => false,
             'status'      => $result->status,
