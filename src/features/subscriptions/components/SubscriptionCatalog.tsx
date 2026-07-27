@@ -6,6 +6,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { cn } from "@/lib/utils";
 import { startSubscriptionCheckout } from "../actions";
 import type { AvailableSubscription } from "../types";
+import { BuySubscriptionModal } from "./BuySubscriptionModal";
 
 interface SubscriptionCatalogProps {
   subscriptions: AvailableSubscription[];
@@ -36,33 +37,10 @@ export function SubscriptionCatalog({
 }: SubscriptionCatalogProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSub, setSelectedSub] = useState<AvailableSubscription | null>(null);
-  const [b2bSub, setB2bSub] = useState<AvailableSubscription | null>(null);
-  const [selectedSeats, setSelectedSeats] = useState<number>(10);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  async function handleSubscriptionBuy(
-    subId: number,
-    type: "normal" | "b2b" = "normal",
-    seats?: number,
-  ) {
-    if (!isLoggedIn) {
-      window.location.assign("/login");
-      return;
-    }
-    setLoadingId(`sub-${subId}-${type}`);
-    setActionError(null);
-    const res = await startSubscriptionCheckout({ subscriptionId: subId, type, seats });
-    setLoadingId(null);
-
-    if (res.needsAuth) {
-      window.location.assign("/login");
-    } else if (res.checkoutUrl) {
-      window.location.assign(res.checkoutUrl);
-    } else {
-      setActionError(res.error || "تعذّر بدء عملية الدفع للاشتراك");
-    }
-  }
+  const [buyModalConfig, setBuyModalConfig] = useState<{
+    subscription: AvailableSubscription;
+    type: "normal" | "b2b";
+  } | null>(null);
 
   if (subscriptions.length === 0) {
     return (
@@ -86,14 +64,6 @@ export function SubscriptionCatalog({
 
   return (
     <div className="space-y-4">
-      {actionError && (
-        <div className="flex items-center justify-between rounded-2xl bg-destructive/10 p-4 text-xs font-semibold text-destructive">
-          <span>{actionError}</span>
-          <button onClick={() => setActionError(null)}>
-            <X className="size-4" />
-          </button>
-        </div>
-      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {currentSubscriptions.map((sub) => {
@@ -156,22 +126,20 @@ export function SubscriptionCatalog({
                 {/* Normal Subscription Button */}
                 <button
                   type="button"
-                  disabled={isUserSubActive || loadingId === `sub-${sub.id}-normal`}
-                  onClick={() => handleSubscriptionBuy(sub.id, "normal")}
+                  disabled={isUserSubActive}
+                  onClick={() => {
+                    if (!isLoggedIn) {
+                      window.location.assign("/login");
+                      return;
+                    }
+                    setBuyModalConfig({ subscription: sub, type: "normal" });
+                  }}
                   className={cn(
-                    "flex items-center justify-center gap-1 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50",
+                    "flex items-center justify-center gap-1 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50 cursor-pointer",
                     showB2bButton ? "flex-1" : "w-full",
                   )}
                 >
-                  {loadingId === `sub-${sub.id}-normal` ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : isThisSubActive ? (
-                    "مشترك"
-                  ) : isUserSubActive ? (
-                    "لديك اشتراك"
-                  ) : (
-                    "اشتراك فردي"
-                  )}
+                  {isThisSubActive ? "مشترك" : isUserSubActive ? "لديك اشتراك" : "اشتراك فردي"}
                 </button>
 
                 {/* B2B button — only for plans that allow B2B; becomes "manage" when already owned */}
@@ -179,7 +147,7 @@ export function SubscriptionCatalog({
                   <button
                     type="button"
                     onClick={() => onManageB2b(sub.id)}
-                    className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-emerald-500/40 bg-emerald-500/5 px-3 py-2 text-xs font-bold text-emerald-600 transition hover:bg-emerald-500/10"
+                    className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-emerald-500/40 bg-emerald-500/5 px-3 py-2 text-xs font-bold text-emerald-600 transition hover:bg-emerald-500/10 cursor-pointer"
                   >
                     <Settings2 className="size-3.5" />
                     إدارة اشتراك B2B
@@ -188,12 +156,13 @@ export function SubscriptionCatalog({
                   <button
                     type="button"
                     onClick={() => {
-                      setB2bSub(sub);
-                      if (sub.seat_options && sub.seat_options.length > 0) {
-                        setSelectedSeats(sub.seat_options[0].seats);
+                      if (!isLoggedIn) {
+                        window.location.assign("/login");
+                        return;
                       }
+                      setBuyModalConfig({ subscription: sub, type: "b2b" });
                     }}
-                    className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/10"
+                    className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/10 cursor-pointer"
                   >
                     <Building2 className="size-3.5" />
                     اشتراك B2B
@@ -268,22 +237,24 @@ export function SubscriptionCatalog({
             <div className="flex items-center gap-2 pt-2">
               <button
                 type="button"
-                disabled={hasActiveSubscription || loadingId === `sub-${selectedSub.id}-normal`}
-                onClick={() => handleSubscriptionBuy(selectedSub.id, "normal")}
+                disabled={hasActiveSubscription}
+                onClick={() => {
+                  const subToBuy = selectedSub;
+                  setSelectedSub(null);
+                  if (!isLoggedIn) {
+                    window.location.assign("/login");
+                    return;
+                  }
+                  setBuyModalConfig({ subscription: subToBuy, type: "normal" });
+                }}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50",
+                  "flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50 cursor-pointer",
                   ownedB2bSubIds.has(selectedSub.id) || Number(selectedSub.b2b_enabled) === 1
                     ? "flex-1"
                     : "w-full",
                 )}
               >
-                {loadingId === `sub-${selectedSub.id}-normal` ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : hasActiveSubscription ? (
-                  "لديك اشتراك نشط"
-                ) : (
-                  "اشتراك فردي"
-                )}
+                {hasActiveSubscription ? "لديك اشتراك نشط" : "اشتراك فردي"}
               </button>
 
               {ownedB2bSubIds.has(selectedSub.id) ? (
@@ -294,7 +265,7 @@ export function SubscriptionCatalog({
                     setSelectedSub(null);
                     onManageB2b(id);
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/5 px-4 py-2.5 text-xs font-bold text-emerald-600 transition hover:bg-emerald-500/10"
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/5 px-4 py-2.5 text-xs font-bold text-emerald-600 transition hover:bg-emerald-500/10 cursor-pointer"
                 >
                   <Settings2 className="size-4" />
                   إدارة اشتراك B2B
@@ -303,13 +274,15 @@ export function SubscriptionCatalog({
                 <button
                   type="button"
                   onClick={() => {
-                    setB2bSub(selectedSub);
-                    if (selectedSub.seat_options && selectedSub.seat_options.length > 0) {
-                      setSelectedSeats(selectedSub.seat_options[0].seats);
-                    }
+                    const subToBuy = selectedSub;
                     setSelectedSub(null);
+                    if (!isLoggedIn) {
+                      window.location.assign("/login");
+                      return;
+                    }
+                    setBuyModalConfig({ subscription: subToBuy, type: "b2b" });
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-xs font-bold text-primary transition hover:bg-primary/10"
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-xs font-bold text-primary transition hover:bg-primary/10 cursor-pointer"
                 >
                   <Building2 className="size-4" />
                   اشتراك B2B
@@ -320,89 +293,14 @@ export function SubscriptionCatalog({
         </div>
       )}
 
-      {/* ── B2B Seats Selection Modal ── */}
-      {b2bSub && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl border border-border space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2">
-                <Building2 className="size-5 text-primary" />
-                <h3 className="text-base font-bold text-foreground">اشتراك شركات (B2B) - {b2bSub.name}</h3>
-              </div>
-              <button onClick={() => setB2bSub(null)} className="text-muted-foreground hover:text-foreground">
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              اختر عدد المقاعد المطلوبة لشركتك أو فريقك للاستفادة من خصومات الحجم:
-            </p>
-
-            {b2bSub.seat_options && b2bSub.seat_options.length > 0 ? (
-              <div className="grid gap-2">
-                {b2bSub.seat_options.map((option) => {
-                  const isSelected = selectedSeats === option.seats;
-                  return (
-                    <button
-                      key={option.seats}
-                      type="button"
-                      onClick={() => setSelectedSeats(option.seats)}
-                      className={`flex items-center justify-between rounded-xl border p-3 text-xs transition ${
-                        isSelected
-                          ? "border-primary bg-primary/10 text-primary font-bold"
-                          : "border-border bg-background text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <UsersIcon className="size-4" />
-                        <span>{option.seats} مقعد (حساب)</span>
-                      </div>
-                      {option.discount_percent > 0 && (
-                        <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600">
-                          خصم {option.discount_percent}%
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-foreground">عدد المقاعد:</label>
-                <input
-                  type="number"
-                  min={2}
-                  max={500}
-                  value={selectedSeats}
-                  onChange={(e) => setSelectedSeats(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full rounded-xl border border-border bg-background p-2.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setB2bSub(null)}
-                className="rounded-xl px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted"
-              >
-                إلغاء
-              </button>
-              <button
-                type="button"
-                disabled={loadingId === `sub-${b2bSub.id}-b2b`}
-                onClick={() => handleSubscriptionBuy(b2bSub.id, "b2b", selectedSeats)}
-                className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
-              >
-                {loadingId === `sub-${b2bSub.id}-b2b` ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  `إتمام الدفع (${selectedSeats} مقعد)`
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* ── Buy Subscription Checkout Modal (with Coupons) ── */}
+      {buyModalConfig && (
+        <BuySubscriptionModal
+          subscription={buyModalConfig.subscription}
+          type={buyModalConfig.type}
+          open={Boolean(buyModalConfig)}
+          onClose={() => setBuyModalConfig(null)}
+        />
       )}
     </div>
   );

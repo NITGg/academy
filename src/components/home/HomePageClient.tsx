@@ -33,11 +33,20 @@ import type { Course } from "@/features/courses/types";
 import type { Teacher } from "@/features/teachers/types";
 import type { CatalogueProgram, MyProgram } from "@/features/programs/types";
 import type { AvailablePackage, MyPackage } from "@/features/packages/types";
-import type { AvailableSubscription, MySubscription } from "@/features/subscriptions/types";
+import type {
+  AvailableSubscription,
+  MySubscription,
+} from "@/features/subscriptions/types";
 import type { EnrolledCourse } from "@/features/courses/server";
 import { startPackageCheckout } from "@/features/packages/actions";
+import { BuyPackageModal } from "@/features/packages/components/BuyPackageModal";
 import { startSubscriptionCheckout } from "@/features/subscriptions/actions";
-import { startProgramCheckout, joinFreeProgram } from "@/features/programs/actions";
+import { BuySubscriptionModal } from "@/features/subscriptions/components/BuySubscriptionModal";
+import {
+  startProgramCheckout,
+  joinFreeProgram,
+} from "@/features/programs/actions";
+import { BuyProgramModal } from "@/features/programs/components/BuyProgramModal";
 import { CourseCard } from "@/features/courses/components/CourseCard";
 import { MyCourseCard } from "@/features/courses/components/MyCourseCard";
 
@@ -84,13 +93,27 @@ export function HomePageClient({
       .map((s) => s.subscriptionid),
   );
   const ownedProgramIds = new Set(
-    myPrograms.map((mp) => mp.id).concat(programs.filter((p) => p.owned === 1).map((p) => p.id)),
+    myPrograms
+      .map((mp) => mp.id)
+      .concat(programs.filter((p) => p.owned === 1).map((p) => p.id)),
   );
 
   // Modals state
-  const [selectedProgram, setSelectedProgram] = useState<CatalogueProgram | null>(null);
-  const [selectedPackage, setSelectedPackage] = useState<AvailablePackage | null>(null);
-  const [selectedSub, setSelectedSub] = useState<AvailableSubscription | null>(null);
+  const [selectedProgram, setSelectedProgram] =
+    useState<CatalogueProgram | null>(null);
+  const [buyProgramModalConfig, setBuyProgramModalConfig] =
+    useState<CatalogueProgram | null>(null);
+  const [selectedPackage, setSelectedPackage] =
+    useState<AvailablePackage | null>(null);
+  const [buyPackageModalConfig, setBuyPackageModalConfig] =
+    useState<AvailablePackage | null>(null);
+  const [selectedSub, setSelectedSub] = useState<AvailableSubscription | null>(
+    null,
+  );
+  const [buySubModalConfig, setBuySubModalConfig] = useState<{
+    subscription: AvailableSubscription;
+    type: "normal" | "b2b";
+  } | null>(null);
   const [b2bSub, setB2bSub] = useState<AvailableSubscription | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<number>(10);
 
@@ -118,7 +141,11 @@ export function HomePageClient({
     }
   }
 
-  async function handleSubscriptionBuy(subId: number, type: "normal" | "b2b" = "normal", seats?: number) {
+  async function handleSubscriptionBuy(
+    subId: number,
+    type: "normal" | "b2b" = "normal",
+    seats?: number,
+  ) {
     if (!isLoggedIn) {
       window.location.href = "/login";
       return;
@@ -201,7 +228,9 @@ export function HomePageClient({
           </div>
           <div className="text-end">
             <p className="text-[13px] font-bold text-foreground">حصصي</p>
-            <p className="text-[11px] text-muted-foreground">احجز أو تابع دروسك</p>
+            <p className="text-[11px] text-muted-foreground">
+              احجز أو تابع دروسك
+            </p>
           </div>
         </Link>
         <Link
@@ -213,7 +242,9 @@ export function HomePageClient({
           </div>
           <div className="text-end">
             <p className="text-[13px] font-bold text-foreground">الكورسات</p>
-            <p className="text-[11px] text-muted-foreground">تصفح وابدأ التعلم</p>
+            <p className="text-[11px] text-muted-foreground">
+              تصفح وابدأ التعلم
+            </p>
           </div>
         </Link>
       </div>
@@ -222,10 +253,13 @@ export function HomePageClient({
       {myCourses.length > 0 && (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <Link href="/courses?tab=my" className="text-sm font-semibold text-primary hover:underline">
+            <h2 className="text-xl font-bold text-foreground">كورساتي</h2>
+            <Link
+              href="/courses?tab=my"
+              className="text-sm font-semibold text-primary hover:underline"
+            >
               عرض الكل
             </Link>
-            <h2 className="text-xl font-bold text-foreground">كورساتي</h2>
           </div>
 
           <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
@@ -241,10 +275,13 @@ export function HomePageClient({
       {/* ── الكورسات ─────────────────────────────────────────────────────── */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <Link href="/courses" className="text-sm font-semibold text-primary hover:underline">
+          <h2 className="text-xl font-bold text-foreground">الكورسات</h2>
+          <Link
+            href="/courses"
+            className="text-sm font-semibold text-primary hover:underline"
+          >
             عرض الكل
           </Link>
-          <h2 className="text-xl font-bold text-foreground">الكورسات</h2>
         </div>
 
         {courses.length === 0 ? (
@@ -253,7 +290,10 @@ export function HomePageClient({
           <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
             {courses.slice(0, 10).map((course) => (
               <div key={course.id} className="w-[240px] shrink-0">
-                <CourseCard course={course} coveredBySubscription={coveredCourseIds.has(course.id)} />
+                <CourseCard
+                  course={course}
+                  coveredBySubscription={coveredCourseIds.has(course.id)}
+                />
               </div>
             ))}
           </div>
@@ -263,10 +303,13 @@ export function HomePageClient({
       {/* ── هيئة التدريس ─────────────────────────────────────────────────── */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <Link href="/teachers" className="text-sm font-semibold text-primary hover:underline">
+          <h2 className="text-xl font-bold text-foreground">هيئة التدريس</h2>
+          <Link
+            href="/teachers"
+            className="text-sm font-semibold text-primary hover:underline"
+          >
             عرض الكل
           </Link>
-          <h2 className="text-xl font-bold text-foreground">هيئة التدريس</h2>
         </div>
 
         {teachers.length === 0 ? (
@@ -282,7 +325,10 @@ export function HomePageClient({
                 <div className="relative size-[72px] overflow-hidden rounded-full border-2 border-primary/15 bg-primary/10">
                   {teacher.photourl ? (
                     <Image
-                      src={teacher.photourl.replace("/webservice/pluginfile.php", "/pluginfile.php")}
+                      src={teacher.photourl.replace(
+                        "/webservice/pluginfile.php",
+                        "/pluginfile.php",
+                      )}
                       alt={teacher.fullname}
                       fill
                       sizes="72px"
@@ -309,13 +355,258 @@ export function HomePageClient({
         )}
       </section>
 
+      {/* ── الباقات (Packages) ────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-foreground">الباقات</h2>
+          <Link
+            href="/packages"
+            className="text-sm font-semibold text-primary hover:underline"
+          >
+            عرض الكل
+          </Link>
+        </div>
+
+        {packages.length === 0 ? (
+          <p className="text-sm text-muted-foreground">لا توجد باقات متاحة</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {packages.map((pkg) => {
+              const isUserPackageActive = Boolean(activePackage);
+              const isThisPackageActive =
+                Boolean(activePackage) &&
+                (Number(activePackage?.packageid) === Number(pkg.id) ||
+                  Number(activePackage?.id) === Number(pkg.id) ||
+                  activePackage?.name === pkg.name);
+
+              return (
+                <div
+                  key={pkg.id}
+                  onClick={() => setSelectedPackage(pkg)}
+                  className="cursor-pointer space-y-3 rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary whitespace-nowrap">
+                        {pkg.flex_count} حصة
+                      </span>
+                      {isThisPackageActive ? (
+                        <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 whitespace-nowrap">
+                          باقة نشطة
+                        </span>
+                      ) : pkg.offer ? (
+                        <span className="rounded-lg bg-destructive/10 px-2 py-1 text-xs font-bold text-destructive whitespace-nowrap">
+                          {pkg.offer.label}
+                        </span>
+                      ) : null}
+                    </div>
+                    <h3 className="font-bold text-end text-foreground text-small">
+                      {pkg.name}
+                    </h3>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground text-end line-clamp-2">
+                    {pkg.description ||
+                      "تمثل كل حصة مرنة درساً واحداً مع أي مدرس."}
+                  </p>
+
+                  <div className="flex items-center justify-between border-t border-border pt-2">
+                    <button
+                      type="button"
+                      disabled={isUserPackageActive}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isLoggedIn) {
+                          window.location.assign("/login");
+                          return;
+                        }
+                        setBuyPackageModalConfig(pkg);
+                      }}
+                      className="rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                    >
+                      {isThisPackageActive
+                        ? "باقة مفعلة"
+                        : isUserPackageActive
+                          ? "لديك باقة مفعلة"
+                          : "اشترك"}
+                    </button>
+
+                    <div>
+                      {pkg.offer ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-muted-foreground line-through">
+                            {pkg.offer.original} جنيه
+                          </span>
+                          <span className="text-sm font-extrabold text-foreground">
+                            {pkg.offer.final} جنيه
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm font-extrabold text-foreground">
+                          {pkg.price} جنيه
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ── الاشتراكات (Subscriptions) ────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-foreground">الاشتراكات</h2>
+          <Link
+            href="/subscriptions"
+            className="text-sm font-semibold text-primary hover:underline"
+          >
+            عرض الكل
+          </Link>
+        </div>
+
+        {subscriptions.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            لا توجد اشتراكات متاحة
+          </p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {subscriptions.map((sub) => {
+              const isUserSubActive = Boolean(activeSubscription);
+              const isThisSubActive =
+                activeSubscription &&
+                (activeSubscription.subscriptionid === sub.id ||
+                  activeSubscription.id === sub.id);
+              const ownsB2b = ownedB2bSubIds.has(sub.id);
+              const b2bEnabled = Number(sub.b2b_enabled) === 1;
+              const showB2bButton = ownsB2b || b2bEnabled; // not every plan offers B2B
+
+              return (
+                <div
+                  key={sub.id}
+                  onClick={() => setSelectedSub(sub)}
+                  className="cursor-pointer space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-lg bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-600 whitespace-nowrap">
+                        {sub.duration_days} يوم
+                      </span>
+                      {isThisSubActive ? (
+                        <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 whitespace-nowrap">
+                          اشتراك نشط
+                        </span>
+                      ) : sub.offer ? (
+                        <span className="rounded-lg bg-destructive/10 px-2 py-1 text-xs font-bold text-destructive whitespace-nowrap">
+                          {sub.offer.label}
+                        </span>
+                      ) : null}
+                    </div>
+                    <h3 className="font-bold text-end text-foreground text-small">
+                      {sub.name}
+                    </h3>
+                  </div>
+
+                  {sub.description && (
+                    <p className="text-xs text-muted-foreground text-end line-clamp-2">
+                      {sub.description}
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-between border-t border-border pt-2">
+                    <span className="text-xs text-muted-foreground">
+                      السعر الفردي:
+                    </span>
+                    <div>
+                      {sub.offer ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-muted-foreground line-through">
+                            {sub.offer.original} جنيه
+                          </span>
+                          <span className="text-sm font-extrabold text-foreground">
+                            {sub.offer.final} جنيه
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm font-extrabold text-foreground">
+                          {sub.price} جنيه
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── 2 Purchase Buttons as requested ── */}
+                  <div
+                    className="flex items-center gap-2 pt-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Normal Subscription Button */}
+                    <button
+                      type="button"
+                      disabled={isUserSubActive}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isLoggedIn) {
+                          window.location.assign("/login");
+                          return;
+                        }
+                        setBuySubModalConfig({ subscription: sub, type: "normal" });
+                      }}
+                      className={cn(
+                        "flex items-center justify-center gap-1 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50 cursor-pointer",
+                        showB2bButton ? "flex-1" : "w-full",
+                      )}
+                    >
+                      {isThisSubActive ? "مشترك" : isUserSubActive ? "لديك اشتراك" : "اشتراك فردي"}
+                    </button>
+
+                    {/* B2B button — only for plans that allow B2B; "manage" when already owned */}
+                    {ownsB2b ? (
+                      <Link
+                        href="/subscriptions?tab=b2b"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-emerald-500/40 bg-emerald-500/5 px-3 py-2 text-xs font-bold text-emerald-600 transition hover:bg-emerald-500/10 cursor-pointer"
+                      >
+                        <Settings2 className="size-3.5" />
+                        إدارة اشتراك B2B
+                      </Link>
+                    ) : b2bEnabled ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isLoggedIn) {
+                            window.location.assign("/login");
+                            return;
+                          }
+                          setBuySubModalConfig({ subscription: sub, type: "b2b" });
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/10 cursor-pointer"
+                      >
+                        <Building2 className="size-3.5" />
+                        اشتراك B2B
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       {/* ── البرامج (Programs) ────────────────────────────────────────────── */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <Link href="/programs" className="text-sm font-semibold text-primary hover:underline">
+          <h2 className="text-xl font-bold text-foreground">البرامج</h2>
+          <Link
+            href="/programs"
+            className="text-sm font-semibold text-primary hover:underline"
+          >
             عرض الكل
           </Link>
-          <h2 className="text-xl font-bold text-foreground">البرامج</h2>
         </div>
 
         {programs.length === 0 ? (
@@ -369,11 +660,14 @@ export function HomePageClient({
                       <span className="text-muted-foreground">السعر:</span>
                       <div>
                         {program.free === 1 ? (
-                          <span className="font-bold text-emerald-600">مجاناً</span>
+                          <span className="font-bold text-emerald-600">
+                            مجاناً
+                          </span>
                         ) : program.offer ? (
                           <div className="flex items-center gap-1.5">
                             <span className="text-[11px] text-muted-foreground line-through">
-                              {program.offer.original} {program.currency || "EGP"}
+                              {program.offer.original}{" "}
+                              {program.currency || "EGP"}
                             </span>
                             <span className="text-xs font-extrabold text-foreground">
                               {program.offer.final} {program.currency || "EGP"}
@@ -388,252 +682,51 @@ export function HomePageClient({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Link
-                        href={`/programs/${program.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1 text-center rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground transition hover:opacity-90"
-                      >
-                        تصفح
-                      </Link>
-
-                      {!isOwned && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleProgramBuyOrJoin(program);
-                          }}
-                          disabled={loadingId === `prog-${program.id}`}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-1.5 text-xs font-bold text-primary transition hover:bg-primary/10 disabled:opacity-50"
+                      {!isOwned ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isLoggedIn) {
+                                window.location.href = "/login";
+                                return;
+                              }
+                              if (program.free === 1) {
+                                handleProgramBuyOrJoin(program);
+                              } else {
+                                setBuyProgramModalConfig(program);
+                              }
+                            }}
+                            disabled={loadingId === `prog-${program.id}`}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                          >
+                            {loadingId === `prog-${program.id}` ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : program.free === 1 ? (
+                              "انضمام"
+                            ) : (
+                              "اشترك الآن"
+                            )}
+                          </button>
+                          <Link
+                            href={`/programs/${program.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-1 text-center rounded-xl border border-border bg-background px-3.5 py-1.5 text-xs font-bold text-foreground transition hover:bg-muted"
+                          >
+                            تصفح
+                          </Link>
+                        </>
+                      ) : (
+                        <Link
+                          href={`/programs/${program.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full text-center rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground transition hover:opacity-90"
                         >
-                          {loadingId === `prog-${program.id}` ? (
-                            <Loader2 className="size-3.5 animate-spin" />
-                          ) : program.free === 1 ? (
-                            "انضمام"
-                          ) : (
-                            "اشترك الآن"
-                          )}
-                        </button>
+                          تصفح التفاصيل والمحتوى
+                        </Link>
                       )}
                     </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* ── الباقات (Packages) ────────────────────────────────────────────── */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Link href="/packages" className="text-sm font-semibold text-primary hover:underline">
-            عرض الكل
-          </Link>
-          <h2 className="text-xl font-bold text-foreground">الباقات</h2>
-        </div>
-
-        {packages.length === 0 ? (
-          <p className="text-sm text-muted-foreground">لا توجد باقات متاحة</p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {packages.map((pkg) => {
-              const isUserPackageActive = Boolean(activePackage);
-              const isThisPackageActive =
-                Boolean(activePackage) &&
-                (Number(activePackage?.packageid) === Number(pkg.id) ||
-                  Number(activePackage?.id) === Number(pkg.id) ||
-                  activePackage?.name === pkg.name);
-
-              return (
-                <div
-                  key={pkg.id}
-                  onClick={() => setSelectedPackage(pkg)}
-                  className="cursor-pointer space-y-3 rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50 hover:shadow-md"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary whitespace-nowrap">
-                        {pkg.flex_count} حصة
-                      </span>
-                      {isThisPackageActive ? (
-                        <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 whitespace-nowrap">
-                          باقة نشطة
-                        </span>
-                      ) : pkg.offer ? (
-                        <span className="rounded-lg bg-destructive/10 px-2 py-1 text-xs font-bold text-destructive whitespace-nowrap">
-                          {pkg.offer.label}
-                        </span>
-                      ) : null}
-                    </div>
-                    <h3 className="font-bold text-end text-foreground text-small">{pkg.name}</h3>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground text-end line-clamp-2">
-                    {pkg.description || "تمثل كل حصة مرنة درساً واحداً مع أي مدرس."}
-                  </p>
-
-                  <div className="flex items-center justify-between border-t border-border pt-2">
-                    <button
-                      type="button"
-                      disabled={isUserPackageActive || loadingId === `pkg-${pkg.id}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePackageBuy(pkg.id);
-                      }}
-                      className="rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
-                    >
-                      {loadingId === `pkg-${pkg.id}` ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : isThisPackageActive ? (
-                        "باقة مفعلة"
-                      ) : isUserPackageActive ? (
-                        "لديك باقة مفعلة"
-                      ) : (
-                        "اشترك"
-                      )}
-                    </button>
-
-                    <div>
-                      {pkg.offer ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] text-muted-foreground line-through">
-                            {pkg.offer.original} جنيه
-                          </span>
-                          <span className="text-sm font-extrabold text-foreground">
-                            {pkg.offer.final} جنيه
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-sm font-extrabold text-foreground">{pkg.price} جنيه</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* ── الاشتراكات (Subscriptions) ────────────────────────────────────── */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Link href="/subscriptions" className="text-sm font-semibold text-primary hover:underline">
-            عرض الكل
-          </Link>
-          <h2 className="text-xl font-bold text-foreground">الاشتراكات</h2>
-        </div>
-
-        {subscriptions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">لا توجد اشتراكات متاحة</p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {subscriptions.map((sub) => {
-              const isUserSubActive = Boolean(activeSubscription);
-              const isThisSubActive =
-                activeSubscription &&
-                (activeSubscription.subscriptionid === sub.id || activeSubscription.id === sub.id);
-              const ownsB2b = ownedB2bSubIds.has(sub.id);
-              const b2bEnabled = Number(sub.b2b_enabled) === 1;
-              const showB2bButton = ownsB2b || b2bEnabled; // not every plan offers B2B
-
-              return (
-                <div
-                  key={sub.id}
-                  onClick={() => setSelectedSub(sub)}
-                  className="cursor-pointer space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50 hover:shadow-md"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="rounded-lg bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-600 whitespace-nowrap">
-                        {sub.duration_days} يوم
-                      </span>
-                      {isThisSubActive ? (
-                        <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 whitespace-nowrap">
-                          اشتراك نشط
-                        </span>
-                      ) : sub.offer ? (
-                        <span className="rounded-lg bg-destructive/10 px-2 py-1 text-xs font-bold text-destructive whitespace-nowrap">
-                          {sub.offer.label}
-                        </span>
-                      ) : null}
-                    </div>
-                    <h3 className="font-bold text-end text-foreground text-small">{sub.name}</h3>
-                  </div>
-
-                  {sub.description && (
-                    <p className="text-xs text-muted-foreground text-end line-clamp-2">
-                      {sub.description}
-                    </p>
-                  )}
-
-                  <div className="flex items-center justify-between border-t border-border pt-2">
-                    <span className="text-xs text-muted-foreground">السعر الفردي:</span>
-                    <div>
-                      {sub.offer ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] text-muted-foreground line-through">
-                            {sub.offer.original} جنيه
-                          </span>
-                          <span className="text-sm font-extrabold text-foreground">
-                            {sub.offer.final} جنيه
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-sm font-extrabold text-foreground">{sub.price} جنيه</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* ── 2 Purchase Buttons as requested ── */}
-                  <div className="flex items-center gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
-                    {/* Normal Subscription Button */}
-                    <button
-                      type="button"
-                      disabled={isUserSubActive || loadingId === `sub-${sub.id}-normal`}
-                      onClick={() => handleSubscriptionBuy(sub.id, "normal")}
-                      className={cn(
-                        "flex items-center justify-center gap-1 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50",
-                        showB2bButton ? "flex-1" : "w-full",
-                      )}
-                    >
-                      {loadingId === `sub-${sub.id}-normal` ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : isThisSubActive ? (
-                        "مشترك"
-                      ) : isUserSubActive ? (
-                        "لديك اشتراك"
-                      ) : (
-                        "اشتراك فردي"
-                      )}
-                    </button>
-
-                    {/* B2B button — only for plans that allow B2B; "manage" when already owned */}
-                    {ownsB2b ? (
-                      <Link
-                        href="/subscriptions?tab=b2b"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-emerald-500/40 bg-emerald-500/5 px-3 py-2 text-xs font-bold text-emerald-600 transition hover:bg-emerald-500/10"
-                      >
-                        <Settings2 className="size-3.5" />
-                        إدارة اشتراك B2B
-                      </Link>
-                    ) : b2bEnabled ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setB2bSub(sub);
-                          if (sub.seat_options && sub.seat_options.length > 0) {
-                            setSelectedSeats(sub.seat_options[0].seats);
-                          }
-                        }}
-                        className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/10"
-                      >
-                        <Building2 className="size-3.5" />
-                        اشتراك B2B
-                      </button>
-                    ) : null}
                   </div>
                 </div>
               );
@@ -647,16 +740,25 @@ export function HomePageClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-lg rounded-2xl bg-card p-6 shadow-xl border border-border space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-base font-bold text-foreground">{selectedProgram.name}</h3>
-              <button onClick={() => setSelectedProgram(null)} className="text-muted-foreground hover:text-foreground">
+              <h3 className="text-base font-bold text-foreground">
+                {selectedProgram.name}
+              </h3>
+              <button
+                onClick={() => setSelectedProgram(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="size-5" />
               </button>
             </div>
 
             {selectedProgram.description && (
               <div className="space-y-1">
-                <h4 className="text-xs font-bold text-foreground">وصف البرنامج:</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">{selectedProgram.description}</p>
+                <h4 className="text-xs font-bold text-foreground">
+                  وصف البرنامج:
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {selectedProgram.description}
+                </p>
               </div>
             )}
 
@@ -667,8 +769,8 @@ export function HomePageClient({
                   {ownedProgramIds.has(selectedProgram.id)
                     ? "ملتحق بالفعل"
                     : selectedProgram.free === 1
-                    ? "برنامج مجاني"
-                    : "برنامج مدفوع"}
+                      ? "برنامج مجاني"
+                      : "برنامج مدفوع"}
                 </span>
               </div>
 
@@ -680,15 +782,18 @@ export function HomePageClient({
                   ) : selectedProgram.offer ? (
                     <div className="flex items-center gap-1.5">
                       <span className="text-muted-foreground line-through">
-                        {selectedProgram.offer.original} {selectedProgram.currency || "EGP"}
+                        {selectedProgram.offer.original}{" "}
+                        {selectedProgram.currency || "EGP"}
                       </span>
                       <span className="font-bold text-foreground">
-                        {selectedProgram.offer.final} {selectedProgram.currency || "EGP"}
+                        {selectedProgram.offer.final}{" "}
+                        {selectedProgram.currency || "EGP"}
                       </span>
                     </div>
                   ) : (
                     <span className="font-bold text-foreground">
-                      {selectedProgram.price} {selectedProgram.currency || "EGP"}
+                      {selectedProgram.price}{" "}
+                      {selectedProgram.currency || "EGP"}
                     </span>
                   )}
                 </div>
@@ -713,9 +818,21 @@ export function HomePageClient({
               ) : (
                 <button
                   type="button"
-                  onClick={() => handleProgramBuyOrJoin(selectedProgram)}
+                  onClick={() => {
+                    const prog = selectedProgram;
+                    setSelectedProgram(null);
+                    if (!isLoggedIn) {
+                      window.location.href = "/login";
+                      return;
+                    }
+                    if (prog.free === 1) {
+                      handleProgramBuyOrJoin(prog);
+                    } else {
+                      setBuyProgramModalConfig(prog);
+                    }
+                  }}
                   disabled={loadingId === `prog-${selectedProgram.id}`}
-                  className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
                 >
                   {loadingId === `prog-${selectedProgram.id}` ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -736,20 +853,31 @@ export function HomePageClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl border border-border space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-base font-bold text-foreground">{selectedPackage.name}</h3>
-              <button onClick={() => setSelectedPackage(null)} className="text-muted-foreground hover:text-foreground">
+              <h3 className="text-base font-bold text-foreground">
+                {selectedPackage.name}
+              </h3>
+              <button
+                onClick={() => setSelectedPackage(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="size-5" />
               </button>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-xl bg-primary/5 p-3">
-                <span className="text-xs font-bold text-primary">عدد الحصص المرنة:</span>
-                <span className="text-sm font-extrabold text-primary">{selectedPackage.flex_count} حصة</span>
+                <span className="text-xs font-bold text-primary">
+                  عدد الحصص المرنة:
+                </span>
+                <span className="text-sm font-extrabold text-primary">
+                  {selectedPackage.flex_count} حصة
+                </span>
               </div>
 
               {selectedPackage.description && (
-                <p className="text-xs text-muted-foreground leading-relaxed">{selectedPackage.description}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {selectedPackage.description}
+                </p>
               )}
 
               <div className="flex items-center justify-between rounded-xl bg-muted/40 p-3 text-xs">
@@ -760,10 +888,14 @@ export function HomePageClient({
                       <span className="text-muted-foreground line-through">
                         {selectedPackage.offer.original} جنيه
                       </span>
-                      <span className="font-bold text-foreground">{selectedPackage.offer.final} جنيه</span>
+                      <span className="font-bold text-foreground">
+                        {selectedPackage.offer.final} جنيه
+                      </span>
                     </div>
                   ) : (
-                    <span className="font-bold text-foreground">{selectedPackage.price} جنيه</span>
+                    <span className="font-bold text-foreground">
+                      {selectedPackage.price} جنيه
+                    </span>
                   )}
                 </div>
               </div>
@@ -779,17 +911,19 @@ export function HomePageClient({
               </button>
               <button
                 type="button"
-                disabled={Boolean(activePackage) || loadingId === `pkg-${selectedPackage.id}`}
-                onClick={() => handlePackageBuy(selectedPackage.id)}
-                className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+                disabled={Boolean(activePackage)}
+                onClick={() => {
+                  const pkgToBuy = selectedPackage;
+                  setSelectedPackage(null);
+                  if (!isLoggedIn) {
+                    window.location.assign("/login");
+                    return;
+                  }
+                  setBuyPackageModalConfig(pkgToBuy);
+                }}
+                className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
               >
-                {loadingId === `pkg-${selectedPackage.id}` ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : activePackage ? (
-                  "لديك باقة مفعلة"
-                ) : (
-                  "اشترك في الباقة"
-                )}
+                {activePackage ? "لديك باقة مفعلة" : "اشترك في الباقة"}
               </button>
             </div>
           </div>
@@ -801,28 +935,44 @@ export function HomePageClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl border border-border space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-base font-bold text-foreground">{selectedSub.name}</h3>
-              <button onClick={() => setSelectedSub(null)} className="text-muted-foreground hover:text-foreground">
+              <h3 className="text-base font-bold text-foreground">
+                {selectedSub.name}
+              </h3>
+              <button
+                onClick={() => setSelectedSub(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="size-5" />
               </button>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-xl bg-blue-500/5 p-3">
-                <span className="text-xs font-bold text-blue-600">مدة الاشتراك:</span>
-                <span className="text-sm font-extrabold text-blue-600">{selectedSub.duration_days} يوم</span>
+                <span className="text-xs font-bold text-blue-600">
+                  مدة الاشتراك:
+                </span>
+                <span className="text-sm font-extrabold text-blue-600">
+                  {selectedSub.duration_days} يوم
+                </span>
               </div>
 
               {selectedSub.description && (
-                <p className="text-xs text-muted-foreground leading-relaxed">{selectedSub.description}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {selectedSub.description}
+                </p>
               )}
 
               {selectedSub.courses && selectedSub.courses.length > 0 && (
                 <div className="space-y-1.5">
-                  <h4 className="text-xs font-bold text-foreground">الكورسات المشمولة:</h4>
+                  <h4 className="text-xs font-bold text-foreground">
+                    الكورسات المشمولة:
+                  </h4>
                   <div className="max-h-32 overflow-y-auto rounded-xl border border-border divide-y divide-border">
                     {selectedSub.courses.map((c) => (
-                      <div key={c.id} className="p-2.5 text-xs text-foreground flex items-center gap-2">
+                      <div
+                        key={c.id}
+                        className="p-2.5 text-xs text-foreground flex items-center gap-2"
+                      >
                         <Check className="size-3.5 text-emerald-500 shrink-0" />
                         <span className="truncate">{c.fullname}</span>
                       </div>
@@ -839,10 +989,14 @@ export function HomePageClient({
                       <span className="text-muted-foreground line-through">
                         {selectedSub.offer.original} جنيه
                       </span>
-                      <span className="font-bold text-foreground">{selectedSub.offer.final} جنيه</span>
+                      <span className="font-bold text-foreground">
+                        {selectedSub.offer.final} جنيه
+                      </span>
                     </div>
                   ) : (
-                    <span className="font-bold text-foreground">{selectedSub.price} جنيه</span>
+                    <span className="font-bold text-foreground">
+                      {selectedSub.price} جنيه
+                    </span>
                   )}
                 </div>
               </div>
@@ -852,28 +1006,31 @@ export function HomePageClient({
             <div className="flex items-center gap-2 pt-2">
               <button
                 type="button"
-                disabled={Boolean(activeSubscription) || loadingId === `sub-${selectedSub.id}-normal`}
-                onClick={() => handleSubscriptionBuy(selectedSub.id, "normal")}
+                disabled={Boolean(activeSubscription)}
+                onClick={() => {
+                  const subToBuy = selectedSub;
+                  setSelectedSub(null);
+                  if (!isLoggedIn) {
+                    window.location.assign("/login");
+                    return;
+                  }
+                  setBuySubModalConfig({ subscription: subToBuy, type: "normal" });
+                }}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50",
-                  ownedB2bSubIds.has(selectedSub.id) || Number(selectedSub.b2b_enabled) === 1
+                  "flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50 cursor-pointer",
+                  ownedB2bSubIds.has(selectedSub.id) ||
+                    Number(selectedSub.b2b_enabled) === 1
                     ? "flex-1"
                     : "w-full",
                 )}
               >
-                {loadingId === `sub-${selectedSub.id}-normal` ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : activeSubscription ? (
-                  "لديك اشتراك نشط"
-                ) : (
-                  "اشتراك فردي"
-                )}
+                {activeSubscription ? "لديك اشتراك نشط" : "اشتراك فردي"}
               </button>
 
               {ownedB2bSubIds.has(selectedSub.id) ? (
                 <Link
                   href="/subscriptions?tab=b2b"
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/5 px-4 py-2.5 text-xs font-bold text-emerald-600 transition hover:bg-emerald-500/10"
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/5 px-4 py-2.5 text-xs font-bold text-emerald-600 transition hover:bg-emerald-500/10 cursor-pointer"
                 >
                   <Settings2 className="size-4" />
                   إدارة اشتراك B2B
@@ -882,10 +1039,15 @@ export function HomePageClient({
                 <button
                   type="button"
                   onClick={() => {
-                    setB2bSub(selectedSub);
+                    const subToBuy = selectedSub;
                     setSelectedSub(null);
+                    if (!isLoggedIn) {
+                      window.location.assign("/login");
+                      return;
+                    }
+                    setBuySubModalConfig({ subscription: subToBuy, type: "b2b" });
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-xs font-bold text-primary transition hover:bg-primary/10"
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-xs font-bold text-primary transition hover:bg-primary/10 cursor-pointer"
                 >
                   <Building2 className="size-4" />
                   اشتراك B2B
@@ -903,15 +1065,21 @@ export function HomePageClient({
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2">
                 <Building2 className="size-5 text-primary" />
-                <h3 className="text-base font-bold text-foreground">اشتراك شركات (B2B) - {b2bSub.name}</h3>
+                <h3 className="text-base font-bold text-foreground">
+                  اشتراك شركات (B2B) - {b2bSub.name}
+                </h3>
               </div>
-              <button onClick={() => setB2bSub(null)} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setB2bSub(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="size-5" />
               </button>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              اختر عدد المقاعد المطلوبة لشركتك أو فريقك للاستفادة من خصومات الحجم:
+              اختر عدد المقاعد المطلوبة لشركتك أو فريقك للاستفادة من خصومات
+              الحجم:
             </p>
 
             {b2bSub.seat_options && b2bSub.seat_options.length > 0 ? (
@@ -944,13 +1112,17 @@ export function HomePageClient({
               </div>
             ) : (
               <div className="space-y-2">
-                <label className="text-xs font-bold text-foreground">عدد المقاعد:</label>
+                <label className="text-xs font-bold text-foreground">
+                  عدد المقاعد:
+                </label>
                 <input
                   type="number"
                   min={2}
                   max={500}
                   value={selectedSeats}
-                  onChange={(e) => setSelectedSeats(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(e) =>
+                    setSelectedSeats(Math.max(1, parseInt(e.target.value) || 1))
+                  }
                   className="w-full rounded-xl border border-border bg-background p-2.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -967,7 +1139,9 @@ export function HomePageClient({
               <button
                 type="button"
                 disabled={loadingId === `sub-${b2bSub.id}-b2b`}
-                onClick={() => handleSubscriptionBuy(b2bSub.id, "b2b", selectedSeats)}
+                onClick={() =>
+                  handleSubscriptionBuy(b2bSub.id, "b2b", selectedSeats)
+                }
                 className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
               >
                 {loadingId === `sub-${b2bSub.id}-b2b` ? (
@@ -980,14 +1154,65 @@ export function HomePageClient({
           </div>
         </div>
       )}
+
+      {/* ── Buy Package Checkout Modal (with Coupons) ── */}
+      {buyPackageModalConfig && (
+        <BuyPackageModal
+          packageId={buyPackageModalConfig.id}
+          packageName={buyPackageModalConfig.name}
+          basePrice={
+            buyPackageModalConfig.offer
+              ? Number(buyPackageModalConfig.offer.final)
+              : Number(buyPackageModalConfig.price)
+          }
+          open={Boolean(buyPackageModalConfig)}
+          onClose={() => setBuyPackageModalConfig(null)}
+        />
+      )}
+
+      {/* ── Buy Subscription Checkout Modal (with Coupons) ── */}
+      {buySubModalConfig && (
+        <BuySubscriptionModal
+          subscription={buySubModalConfig.subscription}
+          type={buySubModalConfig.type}
+          open={Boolean(buySubModalConfig)}
+          onClose={() => setBuySubModalConfig(null)}
+        />
+      )}
+
+      {/* ── Buy Program Checkout Modal (with Coupons) ── */}
+      {buyProgramModalConfig && (
+        <BuyProgramModal
+          programId={buyProgramModalConfig.id}
+          programName={buyProgramModalConfig.name}
+          basePrice={
+            buyProgramModalConfig.offer
+              ? Number(buyProgramModalConfig.offer.final)
+              : Number(buyProgramModalConfig.price)
+          }
+          currency={buyProgramModalConfig.currency || "EGP"}
+          open={Boolean(buyProgramModalConfig)}
+          onClose={() => setBuyProgramModalConfig(null)}
+        />
+      )}
     </div>
   );
 }
 
 function UsersIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+      />
     </svg>
   );
 }

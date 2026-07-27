@@ -11,6 +11,7 @@ import {
   Undo2,
   Video,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Lesson } from "../types";
@@ -102,7 +103,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-type BtnVariant = "primary" | "danger" | "outline";
+type BtnVariant = "primary" | "success" | "danger" | "outline";
 
 function ActionButton({
   label,
@@ -110,38 +111,44 @@ function ActionButton({
   variant = "outline",
   onClick,
   disabled,
+  loading,
 }: {
   label: string;
   icon?: React.ReactNode;
   variant?: BtnVariant;
   onClick: () => void;
   disabled?: boolean;
+  loading?: boolean;
 }) {
   const variants: Record<BtnVariant, string> = {
-    primary: "bg-primary text-primary-foreground hover:opacity-90",
+    primary:
+      "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/20",
+    success:
+      "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/20",
     danger:
-      "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
+      "bg-rose-50 text-rose-600 border border-rose-200/80 hover:bg-rose-100 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40",
     outline:
-      "border border-border bg-background text-foreground hover:bg-muted",
+      "border border-border/80 bg-card text-foreground hover:bg-muted hover:border-border shadow-xs",
   };
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[12px] font-semibold transition disabled:opacity-50",
+        "inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer",
         variants[variant],
       )}
     >
-      {icon}
-      {label}
+      {loading ? <Loader2 className="size-3.5 animate-spin" /> : icon}
+      <span>{label}</span>
     </button>
   );
 }
 
 export function LessonCard({ lesson }: { lesson: Lesson }) {
   const [isPending, startTransition] = useTransition();
+  const [activeAction, setActiveAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // which inline time form is open: "suggest" (counter-offer) or "update" (reschedule)
   const [timeForm, setTimeForm] = useState<null | "suggest" | "update">(null);
@@ -151,15 +158,20 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
   );
   const [loadingAvail, setLoadingAvail] = useState(false);
 
-  const run = (fn: () => Promise<LessonActionResult>, confirmMsg?: string) => {
+  const run = (actionKey: string, fn: () => Promise<LessonActionResult>, confirmMsg?: string) => {
     if (confirmMsg && !window.confirm(confirmMsg)) return;
     setError(null);
+    setActiveAction(actionKey);
     startTransition(async () => {
-      const res = await fn();
-      if (!res.success) {
-        setError(res.error ?? "حدث خطأ");
-      } else {
-        closeTimeForm();
+      try {
+        const res = await fn();
+        if (!res.success) {
+          setError(res.error ?? "حدث خطأ");
+        } else {
+          closeTimeForm();
+        }
+      } finally {
+        setActiveAction(null);
       }
     });
   };
@@ -207,18 +219,18 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
       return;
     }
     if (timeForm === "suggest") {
-      run(() =>
+      run("suggest", () =>
         studentRespondLesson(lesson.id, "suggest", {
           suggested_time: pickedUnix,
         }),
       );
     } else if (timeForm === "update") {
-      run(() => requestTimeUpdate(lesson.id, pickedUnix));
+      run("update", () => requestTimeUpdate(lesson.id, pickedUnix));
     }
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="relative size-12 shrink-0 overflow-hidden rounded-full border border-border bg-muted">
@@ -295,16 +307,16 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
             <ActionButton
               label="موافقة"
               icon={<Check className="size-3.5" />}
-              variant="primary"
-              disabled={isPending}
-              onClick={() => run(() => respondTimeUpdate(lesson.id, "accept"))}
+              variant="success"
+              loading={isPending && activeAction === "accept_proposal"}
+              onClick={() => run("accept_proposal", () => respondTimeUpdate(lesson.id, "accept"))}
             />
             <ActionButton
               label="رفض"
               icon={<X className="size-3.5" />}
-              variant="outline"
-              disabled={isPending}
-              onClick={() => run(() => respondTimeUpdate(lesson.id, "reject"))}
+              variant="danger"
+              loading={isPending && activeAction === "reject_proposal"}
+              onClick={() => run("reject_proposal", () => respondTimeUpdate(lesson.id, "reject"))}
             />
           </div>
         </div>
@@ -347,7 +359,8 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
             <ActionButton
               label="إرسال"
               variant="primary"
-              disabled={isPending || !pickedUnix}
+              loading={isPending && (activeAction === "suggest" || activeAction === "update")}
+              disabled={!pickedUnix}
               onClick={submitTime}
             />
             <ActionButton
@@ -370,7 +383,7 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
                 href={lesson.join_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground transition hover:opacity-90"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.98]"
               >
                 <Video className="size-3.5" />
                 انضمام للحصة
@@ -381,10 +394,10 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
             <ActionButton
               label="قبول الوقت"
               icon={<Check className="size-3.5" />}
-              variant="primary"
-              disabled={isPending}
+              variant="success"
+              loading={isPending && activeAction === "accept"}
               onClick={() =>
-                run(() => studentRespondLesson(lesson.id, "accept"))
+                run("accept", () => studentRespondLesson(lesson.id, "accept"))
               }
             />
           )}
@@ -404,9 +417,10 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
               label="رفض الوقت"
               icon={<X className="size-3.5" />}
               variant="danger"
-              disabled={isPending}
+              loading={isPending && activeAction === "reject"}
               onClick={() =>
                 run(
+                  "reject",
                   () => studentRespondLesson(lesson.id, "reject"),
                   "هل تريد رفض الوقت المقترح وإنهاء الطلب؟",
                 )
@@ -429,9 +443,10 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
               label="الإبلاغ عن غياب المدرس"
               icon={<UserX className="size-3.5" />}
               variant="danger"
-              disabled={isPending}
+              loading={isPending && activeAction === "report_teacher_absent"}
               onClick={() =>
                 run(
+                  "report_teacher_absent",
                   () => reportTeacherAbsent(lesson.id),
                   "هل تريد الإبلاغ عن غياب المدرس؟ سيُعاد رصيد الحصة إليك.",
                 )
@@ -444,9 +459,10 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
               label="إلغاء الحصة"
               icon={<X className="size-3.5" />}
               variant="danger"
-              disabled={isPending}
+              loading={isPending && activeAction === "cancel"}
               onClick={() =>
                 run(
+                  "cancel",
                   () => cancelConfirmedLesson(lesson.id),
                   "هل تريد إلغاء هذه الحصة المؤكدة؟",
                 )
@@ -459,9 +475,10 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
               label="سحب الطلب"
               icon={<Undo2 className="size-3.5" />}
               variant="danger"
-              disabled={isPending}
+              loading={isPending && activeAction === "withdraw"}
               onClick={() =>
                 run(
+                  "withdraw",
                   () => withdrawLessonRequest(lesson.id),
                   "هل تريد سحب هذا الطلب؟",
                 )

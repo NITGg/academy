@@ -21,7 +21,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ProgramDetails, ProgramCertificate, ProgramContentItem } from "../types";
-import { startProgramCheckout, joinFreeProgram, openProgramCertificateAction } from "../actions";
+import { joinFreeProgram, openProgramCertificateAction } from "../actions";
+import { BuyProgramModal } from "./BuyProgramModal";
 
 interface ProgramDetailsClientProps {
   program: ProgramDetails;
@@ -111,6 +112,7 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
   const [loading, setLoading] = useState(false);
   const [certLoadingId, setCertLoadingId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [buyModalOpen, setBuyModalOpen] = useState(false);
 
   const isOwned = program.owned === 1 || Boolean(program.allocation);
   const isCompleted =
@@ -121,10 +123,10 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
       window.location.href = "/login";
       return;
     }
-    setLoading(true);
     setErrorMessage(null);
 
     if (program.free === 1 && program.joinable === 1) {
+      setLoading(true);
       const res = await joinFreeProgram(program.id);
       setLoading(false);
       if (res.success) {
@@ -133,15 +135,7 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
         setErrorMessage(res.error || "تعذّر الانضمام إلى البرنامج");
       }
     } else {
-      const res = await startProgramCheckout(program.id);
-      setLoading(false);
-      if (res.needsAuth) {
-        window.location.href = "/login";
-      } else if (res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
-      } else {
-        setErrorMessage(res.error || "تعذّر بدء عملية الدفع للبرنامج");
-      }
+      setBuyModalOpen(true);
     }
   }
 
@@ -409,6 +403,17 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
             ))}
           </div>
         </div>
+      )}
+
+      {buyModalOpen && (
+        <BuyProgramModal
+          programId={program.id}
+          programName={program.name}
+          basePrice={program.offer ? Number(program.offer.final) : Number(program.price)}
+          currency={program.currency || "EGP"}
+          open={buyModalOpen}
+          onClose={() => setBuyModalOpen(false)}
+        />
       )}
     </div>
   );

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { AvailablePackage, MyPackage, PackagePaymentRecord } from "../types";
 import { Pagination } from "@/components/ui/Pagination";
-import { startPackageCheckout } from "../actions";
+import { BuyPackageModal } from "./BuyPackageModal";
 
 function formatDate(ts: number): string {
   if (!ts) return "غير محدد";
@@ -132,27 +132,7 @@ function AvailablePackagesTab({
   pageSize?: number;
 }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const [loadingId, setLoadingId] = useState<number | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  async function handleBuy(pkgId: number) {
-    setLoadingId(pkgId);
-    setActionError(null);
-    try {
-      const res = await startPackageCheckout(pkgId);
-      if (res.needsAuth) {
-        window.location.href = "/login";
-      } else if (res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
-      } else {
-        setActionError(res.error || "تعذّر بدء عملية الدفع");
-      }
-    } catch {
-      setActionError("حدث خطأ غير متوقع");
-    } finally {
-      setLoadingId(null);
-    }
-  }
+  const [selectedPkg, setSelectedPkg] = useState<AvailablePackage | null>(null);
 
   if (packages.length === 0) {
     return (
@@ -173,11 +153,6 @@ function AvailablePackagesTab({
 
   return (
     <div className="space-y-4">
-      {actionError && (
-        <p className="rounded-xl bg-destructive/10 p-3 text-xs font-semibold text-destructive text-center">
-          {actionError}
-        </p>
-      )}
       <div className="space-y-3">
         {currentPackages.map((pkg) => {
           const isThisPackageActive =
@@ -185,6 +160,8 @@ function AvailablePackagesTab({
             (Number(activePackage?.packageid) === Number(pkg.id) ||
               Number(activePackage?.id) === Number(pkg.id) ||
               activePackage?.name === pkg.name);
+
+          const displayPrice = pkg.offer ? Number(pkg.offer.final) : Number(pkg.price);
 
           return (
             <div key={pkg.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
@@ -216,9 +193,7 @@ function AvailablePackagesTab({
                 <div className="flex items-center gap-1.5">
                   <Tag className="size-3.5 text-muted-foreground" />
                   <span className="font-bold text-foreground">
-                    {pkg.offer
-                      ? `${Number(pkg.offer.final).toFixed(2)} جنيه`
-                      : `${Number(pkg.price).toFixed(2)} جنيه`}
+                    {displayPrice.toFixed(2)} جنيه
                   </span>
                 </div>
               </div>
@@ -226,13 +201,11 @@ function AvailablePackagesTab({
               <Button
                 variant="default"
                 size="lg"
-                disabled={hasActivePackage || loadingId === pkg.id}
-                onClick={() => handleBuy(pkg.id)}
-                className="w-full rounded-xl"
+                disabled={hasActivePackage}
+                onClick={() => setSelectedPkg(pkg)}
+                className="w-full rounded-xl cursor-pointer"
               >
-                {loadingId === pkg.id
-                  ? "جاري التحويل..."
-                  : isThisPackageActive
+                {isThisPackageActive
                   ? "باقة مفعلة"
                   : hasActivePackage
                   ? "لديك باقة مفعلة"
@@ -255,6 +228,16 @@ function AvailablePackagesTab({
         pageSize={pageSize}
         onPageChange={handlePageChange}
       />
+
+      {selectedPkg && (
+        <BuyPackageModal
+          packageId={selectedPkg.id}
+          packageName={selectedPkg.name}
+          basePrice={selectedPkg.offer ? Number(selectedPkg.offer.final) : Number(selectedPkg.price)}
+          open={Boolean(selectedPkg)}
+          onClose={() => setSelectedPkg(null)}
+        />
+      )}
     </div>
   );
 }

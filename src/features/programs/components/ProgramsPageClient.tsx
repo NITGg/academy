@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CatalogueProgram, MyProgram } from "../types";
 import { Pagination } from "@/components/ui/Pagination";
-import { startProgramCheckout, joinFreeProgram } from "../actions";
+import { joinFreeProgram } from "../actions";
+import { BuyProgramModal } from "./BuyProgramModal";
 
 function formatDate(ts: number): string {
   if (!ts) return "غير محدد";
@@ -131,6 +132,7 @@ function CatalogueProgramsTab({
   const [currentPage, setCurrentPage] = useState(1);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [buyProgram, setBuyProgram] = useState<CatalogueProgram | null>(null);
 
   if (programs.length === 0) {
     return (
@@ -149,7 +151,7 @@ function CatalogueProgramsTab({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  async function handleProgramBuyOrJoin(prog: CatalogueProgram) {
+  async function handleProgramJoin(prog: CatalogueProgram) {
     if (!isLoggedIn) {
       window.location.href = "/login";
       return;
@@ -157,24 +159,12 @@ function CatalogueProgramsTab({
     setLoadingId(`prog-${prog.id}`);
     setActionError(null);
 
-    if (prog.free === 1 && prog.joinable === 1) {
-      const res = await joinFreeProgram(prog.id);
-      setLoadingId(null);
-      if (res.success) {
-        window.location.reload();
-      } else {
-        setActionError(res.error || "تعذّر الانضمام للبرنامج");
-      }
+    const res = await joinFreeProgram(prog.id);
+    setLoadingId(null);
+    if (res.success) {
+      window.location.reload();
     } else {
-      const res = await startProgramCheckout(prog.id);
-      setLoadingId(null);
-      if (res.needsAuth) {
-        window.location.href = "/login";
-      } else if (res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
-      } else {
-        setActionError(res.error || "تعذّر بدء عملية الدفع للبرنامج");
-      }
+      setActionError(res.error || "تعذّر الانضمام للبرنامج");
     }
   }
 
@@ -247,29 +237,48 @@ function CatalogueProgramsTab({
                 </div>
               </div>
 
+              {/* Action Buttons: Main action ("اشترك الآن" / "انضمام") FIRST (on the right in RTL) */}
               <div className="flex items-center gap-2">
-                <Link
-                  href={`/programs/${prog.id}`}
-                  className="flex-1 text-center rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90"
-                >
-                  تصفح
-                </Link>
-
-                {!prog.owned && (
-                  <button
-                    type="button"
-                    onClick={() => handleProgramBuyOrJoin(prog)}
-                    disabled={loadingId === `prog-${prog.id}`}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-2 text-xs font-bold text-primary transition hover:bg-primary/10 disabled:opacity-50"
+                {!prog.owned ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!isLoggedIn) {
+                          window.location.href = "/login";
+                          return;
+                        }
+                        if (prog.free === 1) {
+                          handleProgramJoin(prog);
+                        } else {
+                          setBuyProgram(prog);
+                        }
+                      }}
+                      disabled={loadingId === `prog-${prog.id}`}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                    >
+                      {loadingId === `prog-${prog.id}` ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : prog.free === 1 ? (
+                        "انضمام"
+                      ) : (
+                        "اشترك الآن"
+                      )}
+                    </button>
+                    <Link
+                      href={`/programs/${prog.id}`}
+                      className="flex-1 text-center rounded-xl border border-border bg-background px-3.5 py-2 text-xs font-bold text-foreground transition hover:bg-muted"
+                    >
+                      تصفح
+                    </Link>
+                  </>
+                ) : (
+                  <Link
+                    href={`/programs/${prog.id}`}
+                    className="w-full text-center rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90"
                   >
-                    {loadingId === `prog-${prog.id}` ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : prog.free === 1 ? (
-                      "انضمام"
-                    ) : (
-                      "اشترك الآن"
-                    )}
-                  </button>
+                    تصفح التفاصيل والمحتوى
+                  </Link>
                 )}
               </div>
             </div>
@@ -284,6 +293,17 @@ function CatalogueProgramsTab({
         pageSize={pageSize}
         onPageChange={handlePageChange}
       />
+
+      {buyProgram && (
+        <BuyProgramModal
+          programId={buyProgram.id}
+          programName={buyProgram.name}
+          basePrice={buyProgram.offer ? Number(buyProgram.offer.final) : Number(buyProgram.price)}
+          currency={buyProgram.currency || "EGP"}
+          open={Boolean(buyProgram)}
+          onClose={() => setBuyProgram(null)}
+        />
+      )}
     </div>
   );
 }

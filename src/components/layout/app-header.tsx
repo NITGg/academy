@@ -45,15 +45,18 @@ const navItems = [
   { href: "/teachers", icon: Users, key: "teachers" },
   { href: "/calendar", icon: Calendar, key: "calendar" },
   { href: "/lessons", icon: Video, key: "lessons" },
-  { href: "/messages", icon: MessageCircle, key: "messages" },
-] as const;
-
-const secondaryNavItems = [
+  // { href: "/messages", icon: MessageCircle, key: "messages" },
   { href: "/packages", icon: Package, key: "packages" },
   { href: "/subscriptions", icon: CreditCard, key: "subscriptions" },
   { href: "/programs", icon: GraduationCap, key: "programs" },
   { href: "/payments", icon: Receipt, key: "payments" },
 ] as const;
+
+const secondaryNavItems: Array<{
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  key: string;
+}> = [];
 
 const themeOptions: {
   value: ThemeVariant;
@@ -158,7 +161,7 @@ export function AppHeader() {
                     "whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                     active
                       ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
                   {tNav(key)}
@@ -167,7 +170,7 @@ export function AppHeader() {
             })}
 
             {/* More dropdown (secondary nav) */}
-            <div className="relative" ref={moreRef}>
+            {/* <div className="relative" ref={moreRef}>
               <button
                 onClick={() => {
                   setMoreOpen((v) => !v);
@@ -179,7 +182,7 @@ export function AppHeader() {
                 <ChevronDown
                   className={cn(
                     "size-3 transition-transform",
-                    moreOpen && "rotate-180"
+                    moreOpen && "rotate-180",
                   )}
                 />
               </button>
@@ -195,7 +198,7 @@ export function AppHeader() {
                         "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                         isActive(href)
                           ? "bg-primary/10 text-primary"
-                          : "text-popover-foreground hover:bg-muted"
+                          : "text-popover-foreground hover:bg-muted",
                       )}
                     >
                       <Icon className="size-4 shrink-0" />
@@ -204,7 +207,7 @@ export function AppHeader() {
                   ))}
                 </div>
               )}
-            </div>
+            </div> */}
           </nav>
 
           {/* Right actions */}
@@ -272,7 +275,7 @@ export function AppHeader() {
                               "flex flex-col items-center gap-1 rounded-lg py-1.5 text-[11px] font-medium transition-colors",
                               variant === value
                                 ? "bg-primary/10 text-primary"
-                                : "text-muted-foreground hover:bg-muted"
+                                : "text-muted-foreground hover:bg-muted",
                             )}
                             title={isRtl ? labelAr : labelEn}
                           >
@@ -281,7 +284,7 @@ export function AppHeader() {
                               {isRtl ? labelAr : labelEn}
                             </span>
                           </button>
-                        )
+                        ),
                       )}
                     </div>
                   </div>
@@ -308,7 +311,7 @@ export function AppHeader() {
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-caption font-medium transition-colors",
                       isActive("/profile")
                         ? "bg-primary/10 text-primary"
-                        : "text-popover-foreground hover:bg-muted"
+                        : "text-popover-foreground hover:bg-muted",
                     )}
                   >
                     <User className="size-4 text-muted-foreground" />
@@ -352,7 +355,7 @@ export function AppHeader() {
                 ? "translate-x-0"
                 : isRtl
                   ? "translate-x-full"
-                  : "-translate-x-full"
+                  : "-translate-x-full",
             )}
           >
             {/* Drawer header */}
@@ -389,7 +392,7 @@ export function AppHeader() {
                         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-caption font-medium transition-colors",
                         isActive(href)
                           ? "bg-primary/10 text-primary"
-                          : "text-foreground hover:bg-muted"
+                          : "text-foreground hover:bg-muted",
                       )}
                     >
                       <Icon className="size-5 shrink-0" />
@@ -412,7 +415,7 @@ export function AppHeader() {
                         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-caption font-medium transition-colors",
                         isActive(href)
                           ? "bg-primary/10 text-primary"
-                          : "text-foreground hover:bg-muted"
+                          : "text-foreground hover:bg-muted",
                       )}
                     >
                       <Icon className="size-5 shrink-0" />
@@ -439,13 +442,13 @@ export function AppHeader() {
                           "flex flex-col items-center gap-1 rounded-lg py-2 text-[11px] font-medium transition-colors",
                           variant === value
                             ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-muted"
+                            : "text-muted-foreground hover:bg-muted",
                         )}
                       >
                         <Icon className="size-4" />
                         <span>{isRtl ? labelAr : labelEn}</span>
                       </button>
-                    )
+                    ),
                   )}
                 </div>
               </div>
@@ -474,7 +477,7 @@ export function AppHeader() {
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-caption font-medium transition-colors",
                       isActive("/profile")
                         ? "bg-primary/10 text-primary"
-                        : "text-foreground hover:bg-muted"
+                        : "text-foreground hover:bg-muted",
                     )}
                   >
                     <User className="size-5 shrink-0 text-muted-foreground" />

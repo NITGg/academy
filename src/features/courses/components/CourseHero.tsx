@@ -68,35 +68,43 @@ export async function CourseHero({ course, access }: CourseHeroProps) {
         )}
 
         <div className="p-6 space-y-4">
-          {/* Badges row */}
-          <div className="flex flex-wrap gap-2">
-            {course.categoryname && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                <Tag className="size-3" />
-                {course.categoryname}
-              </span>
-            )}
-            <span
-              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${
-                isFree
-                  ? "bg-emerald-500/10 text-emerald-600"
-                  : "bg-orange-500/10 text-orange-600"
-              }`}
-            >
-              {priceLabel}
-            </span>
-            {(isEnrolled || isPurchased) && (
-              <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
-                {locale === "ar" ? "مسجّل" : "Enrolled"}
-              </span>
-            )}
-            {!isEnrolled && !isPurchased && access.coveredBySubscription && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600">
-                <BadgeCheck className="size-3.5" />
-                {locale === "ar" ? "مشمول باشتراكك" : "Included in your subscription"}
-              </span>
-            )}
-          </div>
+            {/* Badges row */}
+            <div className="flex flex-wrap gap-2 items-center">
+              {course.categoryname && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  <Tag className="size-3" />
+                  {course.categoryname}
+                </span>
+              )}
+              
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-600">
+                {hasDiscount && (
+                  <span className="text-muted-foreground line-through text-[11px] font-normal">
+                    {originalPrice} {currency}
+                  </span>
+                )}
+                <span>{priceLabel}</span>
+              </div>
+
+              {(hasDiscount || course.offerName || course.discountPercentage) && !isFree && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-3 py-1 text-xs font-extrabold text-red-600 border border-red-500/20">
+                  <Tag className="size-3" />
+                  {course.offerName || (course.discountPercentage ? `خصم ${course.discountPercentage}%` : "عرض خاص")}
+                </span>
+              )}
+
+              {(isEnrolled || isPurchased) && (
+                <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
+                  {locale === "ar" ? "مسجّل" : "Enrolled"}
+                </span>
+              )}
+              {!isEnrolled && !isPurchased && access.coveredBySubscription && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600">
+                  <BadgeCheck className="size-3.5" />
+                  {locale === "ar" ? "مشمول باشتراكك" : "Included in your subscription"}
+                </span>
+              )}
+            </div>
 
           {/* Title */}
           <h1 className="text-h1 font-bold leading-snug">{course.fullname}</h1>
