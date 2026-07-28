@@ -156,6 +156,8 @@ export async function getCertificateAutologinUrl(
   if (!session?.wstoken) return { needsAuth: true };
 
   const lang = langOf(await getLocale());
+
+  // 1. Try open_activity_autologin
   try {
     const data = await callAcademyApi<{ url: string }>(
       "open_activity_autologin",
@@ -163,8 +165,26 @@ export async function getCertificateAutologinUrl(
       session.wstoken,
       lang,
     );
-    return { url: data.url };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "تعذّر فتح الشهادة" };
+    if (data?.url) return { url: data.url };
+  } catch {
+    /* try fallback */
   }
+
+  // 2. Try open_certificate
+  try {
+    const data = await callAcademyApi<{ url: string }>(
+      "open_certificate",
+      { certificateid: cmid, cmid },
+      session.wstoken,
+      lang,
+    );
+    if (data?.url) return { url: data.url };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "تعذّر فتح الشهادة";
+    return { error: msg };
+  }
+
+  return {
+    error: lang === "ar" ? "تعذّر فتح الشهادة" : "Could not open certificate",
+  };
 }

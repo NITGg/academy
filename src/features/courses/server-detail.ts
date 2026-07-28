@@ -107,16 +107,16 @@ export async function getCourseDetail(courseId: number): Promise<CourseDetailDat
   const adminToken = process.env.MOODLE_ADMIN_TOKEN;
   const userToken = session?.wstoken;
   if (!userToken && !adminToken) throw new Error("No token available");
-  // Course metadata + content structure are not user-specific — admin token is fine
-  // and lets non-enrolled users preview the outline. Pricing/access below use the
-  // STUDENT token so enrolment/purchase reflect the actual viewer (same as the cards).
-  const fetchToken = adminToken ?? userToken!;
+  // Content token MUST prefer student's userToken when logged in so Moodle returns
+  // per-user completion states (completionstate, completiondetails). Fall back to adminToken.
+  const contentToken = userToken ?? adminToken!;
+  const metadataToken = adminToken ?? userToken!;
 
   // Fetch course metadata, per-user access, and content tree in parallel
   const [coursesResult, accessResult, topicsResult] = await Promise.allSettled([
     callMoodleRest<{ courses: Course[] } | Course[]>({
       functionName: "core_course_get_courses_by_field",
-      token: fetchToken,
+      token: metadataToken,
       params: { field: "id", value: courseId },
     }),
     // Authoritative per-user access (pending-payment flag) — student token only
@@ -137,7 +137,7 @@ export async function getCourseDetail(courseId: number): Promise<CourseDetailDat
       `${MOODLE_BASE_URL}/local/multitopics/getalltopics.php?` +
         new URLSearchParams({
           courseid: String(courseId),
-          wstoken: fetchToken,
+          wstoken: contentToken,
           lang,
         }),
       { cache: "no-store" }
@@ -233,7 +233,7 @@ export async function getCourseDetail(courseId: number): Promise<CourseDetailDat
     // Fallback: core_course_get_contents
     const fallbackResult = await callMoodleRest<CourseSection[]>({
       functionName: "core_course_get_contents",
-      token: fetchToken,
+      token: contentToken,
       params: { courseid: courseId },
     }).catch(() => [] as CourseSection[]);
 

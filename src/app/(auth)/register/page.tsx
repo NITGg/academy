@@ -114,8 +114,7 @@ export default function RegisterPage() {
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                dir="ltr"
-                className="h-11 w-full rounded-xl border border-input bg-background px-4 pe-10 text-caption placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                className="h-11 w-full rounded-xl border border-input bg-background ps-4 pe-10 text-caption placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 {...register("password")}
               />
               <button
@@ -146,8 +145,7 @@ export default function RegisterPage() {
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="••••••••"
-                dir="ltr"
-                className="h-11 w-full rounded-xl border border-input bg-background px-4 pe-10 text-caption placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                className="h-11 w-full rounded-xl border border-input bg-background ps-4 pe-10 text-caption placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 {...register("confirmPassword")}
               />
               <button

@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       lastname: nameParts.slice(1).join(" "),
       email: username,
       pictureUrl: siteInfo.userpictureurl ?? "",
-      phone,
+      phone: phone || parentPhone,
       year,
       parentPhone,
     };

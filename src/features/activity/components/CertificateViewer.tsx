@@ -1,16 +1,12 @@
 "use client";
 
-import { Award, ExternalLink, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { Award, ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { getCertificateAutologinUrl } from "../actions";
 
 /**
- * Opens a certificate (customcert) activity INSIDE the site. A certificate is a real
- * Moodle web page that needs a logged-in browser session, so we fetch a fresh,
- * single-use auto-login URL on demand and load it in an iframe — no external tab.
- *
- * Requires the `open_activity_autologin` endpoint in local_academy. Until it is
- * deployed the button surfaces the backend error instead of silently failing.
+ * Opens a certificate (customcert / coursecertificate) activity INSIDE the site.
+ * Fetches an auto-login / view URL on demand and loads it inside an iframe.
  */
 export function CertificateViewer({
   cmid,
@@ -20,10 +16,10 @@ export function CertificateViewer({
   isArabic: boolean;
 }) {
   const [src, setSrc] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const open = async () => {
+  const loadCertificate = useCallback(async () => {
     setLoading(true);
     setError(null);
     const res = await getCertificateAutologinUrl(cmid);
@@ -33,10 +29,27 @@ export function CertificateViewer({
     } else {
       setError(
         res.error ??
-          (isArabic ? "تعذّر فتح الشهادة حالياً" : "Could not open the certificate"),
+          (isArabic
+            ? "تعذّر تحميل الشهادة. يرجى التأكد من استكمال جميع شروط الكورس."
+            : "Could not load certificate. Please ensure all course requirements are met."),
       );
     }
-  };
+  }, [cmid, isArabic]);
+
+  useEffect(() => {
+    void loadCertificate();
+  }, [loadCertificate]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card py-24 text-center">
+        <Loader2 className="size-8 animate-spin text-primary" />
+        <p className="text-caption text-muted-foreground font-medium">
+          {isArabic ? "جاري تحميل الشهادة..." : "Loading certificate..."}
+        </p>
+      </div>
+    );
+  }
 
   if (src) {
     return (
@@ -46,14 +59,24 @@ export function CertificateViewer({
           title={isArabic ? "الشهادة" : "Certificate"}
           className="h-[80vh] w-full rounded-xl border border-border bg-white"
         />
-        <a
-          href={src}
-          target="_self"
-          className="inline-flex items-center gap-1.5 text-small text-muted-foreground hover:text-primary transition-colors"
-        >
-          <ExternalLink className="size-3.5" />
-          {isArabic ? "فتح بملء الشاشة" : "Open full screen"}
-        </a>
+        <div className="flex items-center gap-4">
+          <a
+            href={src}
+            target="_self"
+            className="inline-flex items-center gap-1.5 text-small text-muted-foreground hover:text-primary transition-colors"
+          >
+            <ExternalLink className="size-3.5" />
+            {isArabic ? "فتح بملء الشاشة" : "Open full screen"}
+          </a>
+          <button
+            type="button"
+            onClick={loadCertificate}
+            className="inline-flex items-center gap-1 text-small text-muted-foreground hover:text-primary transition-colors"
+          >
+            <RefreshCw className="size-3.5" />
+            {isArabic ? "إعادة تحميل" : "Reload"}
+          </button>
+        </div>
       </div>
     );
   }
@@ -62,24 +85,17 @@ export function CertificateViewer({
     <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border py-14 text-center">
       <Award className="size-12 text-primary/60" />
       <p className="text-caption text-muted-foreground max-w-sm">
-        {isArabic
-          ? "شهادتك جاهزة. اضغط لفتحها داخل الموقع."
-          : "Your certificate is ready. Open it inside the site."}
+        {error}
       </p>
       <button
         type="button"
-        onClick={open}
+        onClick={loadCertificate}
         disabled={loading}
         className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60"
       >
-        {loading ? (
-          <Loader2 className="size-5 animate-spin" />
-        ) : (
-          <Award className="size-5" />
-        )}
-        {isArabic ? "فتح الشهادة" : "Open certificate"}
+        <RefreshCw className="size-4" />
+        {isArabic ? "إعادة المحاولة" : "Try again"}
       </button>
-      {error && <p className="text-caption text-red-500 max-w-sm">{error}</p>}
     </div>
   );
 }

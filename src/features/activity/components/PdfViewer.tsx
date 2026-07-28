@@ -1,12 +1,10 @@
 "use client";
 
-import { Download, FileText, Maximize2 } from "lucide-react";
+import { FileText, Maximize2 } from "lucide-react";
 import { useState } from "react";
 
 /**
- * Renders a PDF inline via the token-safe file proxy. No external tab: the file is
- * embedded in an <iframe>, with a download button (attachment) as a fallback for
- * browsers whose built-in PDF viewer is disabled.
+ * Renders a PDF inline via the token-safe file proxy. Downloads are disabled.
  */
 export function PdfViewer({
   courseId,
@@ -20,34 +18,24 @@ export function PdfViewer({
   isArabic: boolean;
 }) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
-  const src = `${basePath}/api/activity-file?courseId=${courseId}&cmid=${cmid}`;
-  const downloadHref = `${src}&download=1`;
+  const baseSrc = `${basePath}/api/activity-file?courseId=${courseId}&cmid=${cmid}`;
+  const pdfSrc = `${baseSrc}#toolbar=0&navpanes=0`;
   const [failed, setFailed] = useState(false);
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-end gap-2">
-        <a
-          href={downloadHref}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-small font-medium text-foreground hover:bg-muted/50 transition-colors"
-        >
-          <Download className="size-4" />
-          {isArabic ? "تحميل" : "Download"}
-        </a>
-      </div>
-
       {failed ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-16 text-center">
           <FileText className="size-10 text-muted-foreground/30" />
           <p className="text-caption text-muted-foreground">
             {isArabic
-              ? "تعذّر عرض الملف داخل المتصفح. استخدم زر التحميل."
-              : "Could not display the file inline. Use the download button."}
+              ? "تعذّر عرض الملف داخل المتصفح."
+              : "Could not display the file inline."}
           </p>
         </div>
       ) : (
         <object
-          data={src}
+          data={pdfSrc}
           type="application/pdf"
           className="h-[75vh] w-full rounded-xl border border-border bg-muted/30"
           onError={() => setFailed(true)}
@@ -55,7 +43,7 @@ export function PdfViewer({
         >
           {/* Fallback content if <object> can't render the PDF */}
           <iframe
-            src={src}
+            src={pdfSrc}
             title={name}
             className="h-[75vh] w-full rounded-xl border border-border"
           />
@@ -63,7 +51,7 @@ export function PdfViewer({
       )}
 
       <a
-        href={src}
+        href={baseSrc}
         target="_self"
         className="inline-flex items-center gap-1.5 text-small text-muted-foreground hover:text-primary transition-colors"
       >

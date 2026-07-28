@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Loader2, LogIn } from "lucide-react";
+import { Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 
 import { loginSchema, type LoginInput } from "@/validations/auth.schema";
 import { authService } from "@/services/auth.service";
@@ -22,6 +22,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const setUser = useAuthStore((state) => state.setUser);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const fromUrl = searchParams.get("from") || "/";
 
@@ -85,12 +86,21 @@ export default function LoginPage() {
                 {t("auth.forgotPassword")}
               </Link>
             </div>
-            <input
-              type="password"
-              placeholder="••••••••"
-              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-caption placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              {...register("password")}
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                className="h-10 w-full rounded-xl border border-input bg-background ps-4 pe-10 text-caption placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                {...register("password")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 end-0 flex items-center pe-3 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
             {errors.password && (
               <p className="text-small text-destructive">{errors.password.message}</p>
             )}

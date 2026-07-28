@@ -70,12 +70,11 @@ export async function GET(req: NextRequest) {
     if (v) headers.set(h, v);
   }
 
-  // Inline for viewers (PDF/video render in place); attachment when explicitly downloading.
-  const disposition = download ? "attachment" : "inline";
+  // Always inline for viewers; direct downloads are disabled.
   const safeName = (resolved.filename ?? "file").replace(/["\\\r\n]/g, "_");
   headers.set(
     "Content-Disposition",
-    `${disposition}; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(resolved.filename ?? "file")}`,
+    `inline; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(resolved.filename ?? "file")}`,
   );
   // Private: the response is user-scoped; never let a shared cache keep it.
   headers.set("Cache-Control", "private, no-store");

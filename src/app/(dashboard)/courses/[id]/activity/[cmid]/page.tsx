@@ -136,8 +136,13 @@ async function ActivityBody({
     );
   }
 
-  // Certificate — opened in-site via a self-authenticating iframe.
-  if (modname === "customcert") {
+  // Certificate — check all certificate module types or titles containing "شهادة" / "certificate"
+  const isCert =
+    ["customcert", "certificate", "coursecertificate", "simplecertificate", "tool_certificate"].includes(modname) ||
+    name.toLowerCase().includes("شهادة") ||
+    name.toLowerCase().includes("certificate");
+
+  if (isCert) {
     return <CertificateViewer cmid={cmid} isArabic={isArabic} />;
   }
 
@@ -153,21 +158,15 @@ async function ActivityBody({
         <VideoViewer courseId={courseId} cmid={cmid} mime={mime} isArabic={isArabic} />
       );
     }
-    // Unknown file type — offer an inline attempt + download, still no external tab.
+    // Unknown file type — inline preview unavailable, no download allowed.
     return (
       <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border py-14 text-center">
         <FileText className="size-10 text-muted-foreground/40" />
-        <p className="text-caption text-muted-foreground">
+        <p className="text-caption text-muted-foreground max-w-sm">
           {isArabic
-            ? "هذا الملف لا يمكن عرضه مباشرة. يمكنك تحميله."
-            : "This file cannot be previewed inline. You can download it."}
+            ? "هذا نوع الملفات لا يمكن عرضه مباشرة داخل الموقع."
+            : "This file type cannot be previewed inline."}
         </p>
-        <a
-          href={`/api/activity-file?courseId=${courseId}&cmid=${cmid}&download=1`}
-          className="rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          {isArabic ? "تحميل الملف" : "Download file"}
-        </a>
       </div>
     );
   }

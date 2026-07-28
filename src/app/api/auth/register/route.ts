@@ -77,6 +77,10 @@ export async function POST(request: Request) {
       "users[0][email]": username,
     };
 
+    if (parentPhone) {
+      createUserParams["users[0][phone1]"] = parentPhone;
+    }
+
     customfields.forEach((cf, idx) => {
       createUserParams[`users[0][customfields][${idx}][type]`] = cf.type;
       createUserParams[`users[0][customfields][${idx}][value]`] = cf.value;
@@ -151,7 +155,7 @@ export async function POST(request: Request) {
       lastname: nameParts.slice(1).join(" ") || lastname,
       email: username,
       pictureUrl: siteInfo.userpictureurl ?? "",
-      phone: extPhone,
+      phone: extPhone || extParentPhone || parentPhone,
       year: extYear,
       parentPhone: extParentPhone,
     };

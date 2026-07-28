@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { User, Mail, GraduationCap, Phone, Pencil, Lock } from "lucide-react";
+import { User, Mail, GraduationCap, Phone } from "lucide-react";
 import { getSessionFromCookie } from "@/lib/session";
-import { Button } from "@/components/ui/button";
+import { ProfileActions } from "@/components/profile/profile-actions";
 
 export const metadata: Metadata = { title: "الملف الشخصي" };
 
@@ -33,6 +33,7 @@ export default async function ProfilePage() {
 
   const fullname = user ? `${user.firstname} ${user.lastname}` : "—";
   const initials = user ? user.firstname.charAt(0) : "؟";
+  const displayPhone = user?.phone || user?.parentPhone || "—";
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
@@ -42,7 +43,7 @@ export default async function ProfilePage() {
           {user?.pictureUrl ? (
             <Image src={user.pictureUrl} alt={fullname} fill sizes="96px" className="object-cover" />
           ) : (
-            <span className="flex h-full w-full items-center justify-center text-3xl font-bold text-primary">
+            <span className="flex h-full w-full items-center justify-center text-3xl font-bold text-primary-foreground">
               {initials}
             </span>
           )}
@@ -70,22 +71,13 @@ export default async function ProfilePage() {
         <InfoRow
           icon={<Phone className="size-3.5" />}
           label="رقم الهاتف"
-          value={user?.phone || "—"}
+          value={displayPhone}
           valueClassName="font-bold"
         />
       </div>
 
-      {/* Action buttons */}
-      <div className="space-y-3">
-        <Button variant="default" size="lg" className="w-full rounded-xl gap-2">
-          <Pencil className="size-4" />
-          تعديل الملف الشخصي
-        </Button>
-        <Button variant="outline" size="lg" className="w-full rounded-xl gap-2">
-          <Lock className="size-4" />
-          تغيير كلمة المرور
-        </Button>
-      </div>
+      {/* Interactive Action buttons */}
+      {user && <ProfileActions user={user} />}
     </div>
   );
 }
