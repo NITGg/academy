@@ -1,6 +1,7 @@
 "use client";
 
 import { AppHeader } from "./app-header";
+import { AppFooter } from "./app-footer";
 import { MessageCircle } from "lucide-react";
 import { PaymentResultToast } from "./PaymentResultToast";
 
@@ -17,11 +18,12 @@ export function AppShell({ children }: AppShellProps) {
       {/* Sticky header + navbar combined */}
       <AppHeader />
 
-      {/* Main area — full width, no sidebar offset */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-4 py-6 lg:px-6 lg:py-8">
+      {/* Main area — full width, scrollable content with footer at bottom */}
+      <main className="flex flex-1 flex-col overflow-y-auto">
+        <div className="container mx-auto flex-1 px-4 py-6 lg:px-6 lg:py-8">
           {children}
         </div>
+        <AppFooter />
       </main>
 
       {/* WhatsApp floating button */}

@@ -92,5 +92,9 @@
   "messages": {
     "title": "Messages",
     "typeMessage": "Type a message..."
+  },
+  "footer": {
+    "description": "Excellence Academy aims to assist teachers in teaching, students in learning, and parents in following up with their children.",
+    "copyright": "All rights reserved for National Company N.I.T © 2020 - 2026"
   }
 }
