@@ -57,7 +57,9 @@ export async function callMoodleRest<T = unknown>({
   // Guard against null before probing exception/errorcode, otherwise a successful call
   // throws "Cannot read properties of null (reading 'exception')".
   if (data && (data.exception || data.errorcode)) {
-    throw new Error(data.message ?? data.exception ?? "Moodle API exception");
+    const errorDetails = data.debuginfo ? `${data.message || data.exception} (${data.debuginfo})` : (data.message ?? data.exception ?? "Moodle API exception");
+    console.error(`[Moodle REST Error - ${functionName}]:`, data);
+    throw new Error(errorDetails);
   }
 
   return data as T;

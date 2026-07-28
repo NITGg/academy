@@ -16,6 +16,9 @@ export const authService = {
   register: (data: RegisterInput) =>
     apiClient.post<AuthSession>("/auth/register", data),
 
+  getProfileFields: () =>
+    apiClient.get<{ fields: Array<{ id: number; shortname: string; name: string; options?: string[] }> }>("/auth/profile-fields"),
+
   logout: () => apiClient.post("/auth/logout"),
 
   getSession: () => apiClient.get<AuthSession>("/auth/session"),
