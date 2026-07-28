@@ -7,18 +7,20 @@ import { useRouter } from "next/navigation";
 import { BookOpen, CheckCircle2, Loader2 } from "lucide-react";
 import { useLocale } from "next-intl";
 import { parseMlang } from "@/lib/mlang";
+import { cn } from "@/lib/utils";
 import type { EnrolledCourse } from "../server";
 import { enrollPurchased } from "../actions";
 
 interface MyCourseCardProps {
   course: EnrolledCourse;
+  className?: string;
 }
 
 function moodlePublicUrl(url: string): string {
   return url.replace("/webservice/pluginfile.php", "/pluginfile.php");
 }
 
-export function MyCourseCard({ course }: MyCourseCardProps) {
+export function MyCourseCard({ course, className }: MyCourseCardProps) {
   const locale = useLocale();
   const lang = locale === "ar" ? "ar" : "en";
   const router = useRouter();
@@ -51,7 +53,10 @@ export function MyCourseCard({ course }: MyCourseCardProps) {
   return (
     <Link
       href={`/courses/${course.id}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className={cn(
+        "group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        className
+      )}
     >
       {/* Cover image */}
       <div className="relative aspect-video w-full overflow-hidden bg-muted">

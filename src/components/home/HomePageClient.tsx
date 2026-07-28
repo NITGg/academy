@@ -268,7 +268,7 @@ export function HomePageClient({
 
           <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
             {myCourses.slice(0, 10).map((course) => (
-              <div key={course.id} className="w-[240px] shrink-0">
+              <div key={course.id} className="w-[240px] shrink-0 flex flex-col">
                 <MyCourseCard course={course} />
               </div>
             ))}
@@ -293,7 +293,7 @@ export function HomePageClient({
         ) : (
           <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
             {courses.slice(0, 10).map((course) => (
-              <div key={course.id} className="w-[240px] shrink-0">
+              <div key={course.id} className="w-[240px] shrink-0 flex flex-col">
                 <CourseCard
                   course={course}
                   coveredBySubscription={coveredCourseIds.has(course.id)}
@@ -388,7 +388,7 @@ export function HomePageClient({
                   key={pkg.id}
                   onClick={() => setSelectedPackage(pkg)}
                   className={cn(
-                    "cursor-pointer space-y-3 rounded-2xl border p-5 shadow-sm transition hover:shadow-md",
+                    "cursor-pointer flex h-full flex-col justify-between gap-3 rounded-2xl border p-5 shadow-sm transition hover:shadow-md",
                     isThisPackageActive
                       ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/60"
                       : "border-border bg-card hover:border-primary/50",
@@ -495,7 +495,7 @@ export function HomePageClient({
                   key={sub.id}
                   onClick={() => setSelectedSub(sub)}
                   className={cn(
-                    "cursor-pointer space-y-4 rounded-2xl border bg-card p-5 shadow-sm transition hover:shadow-md",
+                    "cursor-pointer flex h-full flex-col justify-between gap-4 rounded-2xl border bg-card p-5 shadow-sm transition hover:shadow-md",
                     isThisSubActive
                       ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/60"
                       : "border-border hover:border-primary/50",
@@ -645,7 +645,7 @@ export function HomePageClient({
                     window.location.assign(getAppUrl(`/programs/${program.id}`));
                   }}
                   className={cn(
-                    "cursor-pointer flex flex-col justify-between rounded-2xl border p-5 shadow-sm transition hover:shadow-md",
+                    "cursor-pointer flex h-full flex-col justify-between rounded-2xl border p-5 shadow-sm transition hover:shadow-md",
                     isOwned
                       ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/60"
                       : "border-border bg-card hover:border-primary/50",

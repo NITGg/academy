@@ -1,10 +1,12 @@
 import Image from "next/image";
 import { Star, Clock, BookOpen } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Teacher } from "../types";
 
 interface TeacherCardProps {
   teacher: Teacher;
   locale: string;
+  className?: string;
 }
 
 function StarRating({ rating }: { rating: number }) {
@@ -27,12 +29,12 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-export function TeacherCard({ teacher, locale }: TeacherCardProps) {
+export function TeacherCard({ teacher, locale, className }: TeacherCardProps) {
   const isAr = locale === "ar";
   const isAvailable = teacher.available === 1;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
+    <div className={cn("flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md", className)}>
       {/* Photo + availability */}
       <div className="relative flex flex-col items-center gap-3 bg-muted/30 px-6 pt-6 pb-4">
         <div className="relative size-20 shrink-0 overflow-hidden rounded-full border-2 border-border shadow-sm">

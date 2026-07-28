@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { BookOpen, Users, ShoppingCart, Loader2, PlayCircle, BadgeCheck } from "lucide-react";
 import { useLocale } from "next-intl";
 import { parseMlang } from "@/lib/mlang";
+import { cn } from "@/lib/utils";
 import type { Course } from "../types";
 import { enrollFree, enrollViaSubscription, enrollPurchased } from "../actions";
 import { BuyCourseModal } from "./BuyCourseModal";
@@ -21,9 +22,10 @@ interface CourseCardProps {
   coveredBySubscription?: boolean;
   /** Prioritize image loading for LCP */
   priority?: boolean;
+  className?: string;
 }
 
-export function CourseCard({ course, coverageType, coveredBySubscription, priority }: CourseCardProps) {
+export function CourseCard({ course, coverageType, coveredBySubscription, priority, className }: CourseCardProps) {
   const resolvedCoverage = coverageType ?? (coveredBySubscription ? "normal_sub" : null);
   const locale = useLocale();
   const lang = locale === "ar" ? "ar" : "en";
@@ -81,7 +83,12 @@ export function CourseCard({ course, coverageType, coveredBySubscription, priori
   const canEnrollViaSub = Boolean(resolvedCoverage) && !isFree && !isEnrolled && !isPurchasedNotEnrolled;
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
+    <div
+      className={cn(
+        "group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md",
+        className
+      )}
+    >
       {/* Thumbnail → detail */}
       <Link href={`/courses/${course.id}`} className="relative block aspect-video w-full overflow-hidden bg-muted">
         {course.courseimage ? (
