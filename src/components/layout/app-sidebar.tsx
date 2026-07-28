@@ -88,6 +88,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
             width={24}
             height={24}
             priority
+            unoptimized
           />
         </div>
         <span className="text-body-strong text-sidebar-foreground leading-tight">

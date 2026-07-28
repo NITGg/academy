@@ -18,9 +18,15 @@ const nextConfig: NextConfig = {
   }),
 
   images: {
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
       {
         protocol: "https",
+        hostname: "academy2026.nitg-eg.com",
+      },
+      {
+        protocol: "http",
         hostname: "academy2026.nitg-eg.com",
       },
     ],

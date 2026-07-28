@@ -142,6 +142,7 @@ export function AppHeader() {
                 width={18}
                 height={18}
                 priority
+                unoptimized
               />
             </div>
             <span className="text-body-strong hidden sm:inline">
@@ -367,6 +368,7 @@ export function AppHeader() {
                   width={18}
                   height={18}
                   priority
+                  unoptimized
                 />
               </div>
               <span className="text-body-strong">

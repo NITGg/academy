@@ -22,6 +22,7 @@ export function AppFooter() {
                 alt="EA"
                 width={22}
                 height={22}
+                unoptimized
               />
             </div>
             <div className="flex flex-col text-start">
