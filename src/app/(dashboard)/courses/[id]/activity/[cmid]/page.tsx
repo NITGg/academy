@@ -143,7 +143,14 @@ async function ActivityBody({
     name.toLowerCase().includes("certificate");
 
   if (isCert) {
-    return <CertificateViewer cmid={cmid} isArabic={isArabic} />;
+    return (
+      <CertificateViewer
+        courseId={courseId}
+        cmid={cmid}
+        name={name}
+        isArabic={isArabic}
+      />
+    );
   }
 
   // File-backed activities (resource / resource2 / testnew / …).

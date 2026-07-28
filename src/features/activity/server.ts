@@ -1,6 +1,7 @@
 import "server-only";
 import { MOODLE_BASE_URL } from "@/config/constants";
 import { parseMlang } from "@/lib/mlang";
+import { callAcademyApi } from "@/lib/moodle-server";
 import type { RawActivity, RawCourseTopics } from "@/features/courses/types";
 import type { ActivityView } from "./types";
 
@@ -85,6 +86,113 @@ export async function resolveActivityFileUrl(
 }
 
 /**
+ * Resolves a certificate activity (customcert, coursecertificate, etc.) to a direct PDF Response stream
+ * by fetching its autologin URL server-side and appending `downloadown=1` to the Moodle view URL.
+ */
+export async function resolveCertificateResponse(
+  cmid: number,
+  userToken: string,
+  lang: "ar" | "en" = "ar",
+): Promise<Response | null> {
+  let autologinUrl: string | null = null;
+
+  try {
+    const data = await callAcademyApi<{ url: string }>(
+      "open_certificate",
+      { certificateid: cmid, cmid },
+      userToken,
+      lang,
+    );
+    if (data?.url) autologinUrl = data.url;
+  } catch {
+    /* fallback to open_activity_autologin */
+  }
+
+  if (!autologinUrl) {
+    try {
+      const data = await callAcademyApi<{ url: string }>(
+        "open_activity_autologin",
+        { cmid },
+        userToken,
+        lang,
+      );
+      if (data?.url) autologinUrl = data.url;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (!autologinUrl) return null;
+
+  try {
+    // 1. Hit autologin URL with manual redirect handling to capture MoodleSession cookie
+    const res1 = await fetch(autologinUrl, {
+      redirect: "manual",
+      cache: "no-store",
+    });
+
+    const cookieList: string[] = [];
+    if (typeof res1.headers.getSetCookie === "function") {
+      for (const sc of res1.headers.getSetCookie()) {
+        const cookie = sc.split(";")[0];
+        if (cookie) cookieList.push(cookie);
+      }
+    } else {
+      const sc = res1.headers.get("set-cookie");
+      if (sc) cookieList.push(sc.split(";")[0]);
+    }
+
+    const location = res1.headers.get("location");
+    const cookieHeader = cookieList.join("; ");
+
+    if (location) {
+      const targetUrlObj = new URL(location, autologinUrl);
+      if (
+        targetUrlObj.pathname.includes("customcert/view.php") ||
+        targetUrlObj.pathname.includes("coursecertificate/view.php") ||
+        targetUrlObj.pathname.includes("view.php")
+      ) {
+        targetUrlObj.searchParams.set("downloadown", "1");
+      }
+
+      const pdfRes = await fetch(targetUrlObj.toString(), {
+        headers: cookieHeader ? { Cookie: cookieHeader } : {},
+        cache: "no-store",
+        redirect: "follow",
+      });
+
+      if (
+        pdfRes.ok &&
+        (pdfRes.headers.get("content-type")?.includes("pdf") ||
+          pdfRes.headers.get("content-type")?.includes("octet-stream"))
+      ) {
+        return pdfRes;
+      }
+    }
+
+    // 2. Direct fallback: append downloadown=1 to autologinUrl directly
+    const directUrlObj = new URL(autologinUrl);
+    directUrlObj.searchParams.set("downloadown", "1");
+    const directRes = await fetch(directUrlObj.toString(), {
+      cache: "no-store",
+      redirect: "follow",
+    });
+
+    if (
+      directRes.ok &&
+      (directRes.headers.get("content-type")?.includes("pdf") ||
+        directRes.headers.get("content-type")?.includes("octet-stream"))
+    ) {
+      return directRes;
+    }
+  } catch {
+    /* ignore fetch errors */
+  }
+
+  return null;
+}
+
+/**
  * Resolve one activity's viewer metadata (name, modname, instance, completion, file
  * presence) for the in-site activity page. Uses the USER's token so an activity the
  * user cannot access is absent → returns null (the page then 404s / gates). Never
@@ -116,3 +224,4 @@ export async function getActivityForView(
     completiondetails: a.completiondetails ?? [],
   };
 }
+

@@ -1,68 +1,72 @@
 "use client";
 
-import { Award, ExternalLink, Loader2, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { getCertificateAutologinUrl } from "../actions";
+import { Award, Download, ExternalLink, RefreshCw } from "lucide-react";
+import { useState } from "react";
 
 /**
- * Opens a certificate (customcert / coursecertificate) activity INSIDE the site.
- * Fetches an auto-login / view URL on demand and loads it inside an iframe.
+ * Opens a certificate (customcert / coursecertificate) activity INSIDE the site
+ * cleanly as a PDF stream.
  */
 export function CertificateViewer({
+  courseId,
   cmid,
+  name,
   isArabic,
 }: {
+  courseId?: number;
   cmid: number;
+  name?: string;
   isArabic: boolean;
 }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const baseSrc = courseId
+    ? `${basePath}/api/activity-file?courseId=${courseId}&cmid=${cmid}`
+    : `${basePath}/api/activity-file?cmid=${cmid}`;
+  const pdfSrc = `${baseSrc}#toolbar=0&navpanes=0`;
+  const downloadSrc = `${baseSrc}&download=1`;
+  const [failed, setFailed] = useState(false);
 
-  const loadCertificate = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const res = await getCertificateAutologinUrl(cmid);
-    setLoading(false);
-    if (res.url) {
-      setSrc(res.url);
-    } else {
-      setError(
-        res.error ??
-          (isArabic
-            ? "تعذّر تحميل الشهادة. يرجى التأكد من استكمال جميع شروط الكورس."
-            : "Could not load certificate. Please ensure all course requirements are met."),
-      );
-    }
-  }, [cmid, isArabic]);
+  return (
+    <div className="space-y-3">
+      {failed ? (
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border py-14 text-center">
+          <Award className="size-12 text-primary/60" />
+          <p className="text-caption text-muted-foreground max-w-sm">
+            {isArabic
+              ? "تعذّر تحميل الشهادة. يرجى التأكد من استكمال جميع شروط الكورس."
+              : "Could not load certificate. Please ensure all course requirements are met."}
+          </p>
+          <button
+            type="button"
+            onClick={() => setFailed(false)}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <RefreshCw className="size-4" />
+            {isArabic ? "إعادة المحاولة" : "Try again"}
+          </button>
+        </div>
+      ) : (
+        <object
+          data={pdfSrc}
+          type="application/pdf"
+          className="h-[80vh] w-full rounded-xl border border-border bg-muted/30"
+          onError={() => setFailed(true)}
+          aria-label={name || (isArabic ? "الشهادة" : "Certificate")}
+        >
+          <iframe
+            src={pdfSrc}
+            title={name || (isArabic ? "الشهادة" : "Certificate")}
+            className="h-[80vh] w-full rounded-xl border border-border"
+          />
+        </object>
+      )}
 
-  useEffect(() => {
-    void loadCertificate();
-  }, [loadCertificate]);
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card py-24 text-center">
-        <Loader2 className="size-8 animate-spin text-primary" />
-        <p className="text-caption text-muted-foreground font-medium">
-          {isArabic ? "جاري تحميل الشهادة..." : "Loading certificate..."}
-        </p>
-      </div>
-    );
-  }
-
-  if (src) {
-    return (
-      <div className="space-y-3">
-        <iframe
-          src={src}
-          title={isArabic ? "الشهادة" : "Certificate"}
-          className="h-[80vh] w-full rounded-xl border border-border bg-white"
-        />
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
         <div className="flex items-center gap-4">
           <a
-            href={src}
-            target="_self"
+            href={baseSrc}
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-small text-muted-foreground hover:text-primary transition-colors"
           >
             <ExternalLink className="size-3.5" />
@@ -70,32 +74,24 @@ export function CertificateViewer({
           </a>
           <button
             type="button"
-            onClick={loadCertificate}
+            onClick={() => setFailed(false)}
             className="inline-flex items-center gap-1 text-small text-muted-foreground hover:text-primary transition-colors"
           >
             <RefreshCw className="size-3.5" />
             {isArabic ? "إعادة تحميل" : "Reload"}
           </button>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border py-14 text-center">
-      <Award className="size-12 text-primary/60" />
-      <p className="text-caption text-muted-foreground max-w-sm">
-        {error}
-      </p>
-      <button
-        type="button"
-        onClick={loadCertificate}
-        disabled={loading}
-        className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60"
-      >
-        <RefreshCw className="size-4" />
-        {isArabic ? "إعادة المحاولة" : "Try again"}
-      </button>
+        <a
+          href={downloadSrc}
+          download
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3.5 py-1.5 text-small font-medium text-primary hover:bg-primary/20 transition-colors"
+        >
+          <Download className="size-3.5" />
+          {isArabic ? "تنزيل الشهادة" : "Download Certificate"}
+        </a>
+      </div>
     </div>
   );
 }
+
