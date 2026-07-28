@@ -22,6 +22,20 @@ export const authService = {
   updateProfile: (data: { firstname?: string; lastname?: string; phone?: string; year?: string; parentPhone?: string }) =>
     apiClient.post<{ user: AuthSession["user"] }>("/auth/profile", data),
 
+  uploadProfileImage: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient.post<{ user: AuthSession["user"]; pictureUrl: string }>(
+      "/auth/profile-image",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+  },
+
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     apiClient.post<{ success: boolean }>("/auth/change-password", data),
 

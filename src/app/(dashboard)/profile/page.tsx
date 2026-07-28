@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { User, Mail, GraduationCap, Phone } from "lucide-react";
 import { getSessionFromCookie } from "@/lib/session";
 import { ProfileActions } from "@/components/profile/profile-actions";
+import { ProfileHeader } from "@/components/profile/profile-header";
 
 export const metadata: Metadata = { title: "الملف الشخصي" };
 
@@ -32,24 +32,12 @@ export default async function ProfilePage() {
   const user = session?.user;
 
   const fullname = user ? `${user.firstname} ${user.lastname}` : "—";
-  const initials = user ? user.firstname.charAt(0) : "؟";
   const displayPhone = user?.phone || user?.parentPhone || "—";
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
       {/* Avatar + name */}
-      <div className="flex flex-col items-center gap-3 rounded-2xl bg-primary px-6 py-8 text-primary-foreground">
-        <div className="relative size-24 overflow-hidden rounded-full border-4 border-primary-foreground/30 bg-primary-foreground/20">
-          {user?.pictureUrl ? (
-            <Image src={user.pictureUrl} alt={fullname} fill sizes="96px" className="object-cover" />
-          ) : (
-            <span className="flex h-full w-full items-center justify-center text-3xl font-bold text-primary-foreground">
-              {initials}
-            </span>
-          )}
-        </div>
-        <h1 className="text-h1 font-bold">{fullname}</h1>
-      </div>
+      {user && <ProfileHeader user={user} />}
 
       {/* Info card */}
       <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
