@@ -38,7 +38,7 @@ export default async function CourseDetailPage({ params }: Props) {
     <div className="mx-auto max-w-3xl space-y-6 pb-10">
       <CourseHero course={course} access={access} />
       <div id="course-content" className="scroll-mt-20">
-        <ContentTree sections={contents} isEnrolled={isEnrolled} />
+        <ContentTree sections={contents} courseId={courseId} isEnrolled={isEnrolled} />
       </div>
     </div>
   );

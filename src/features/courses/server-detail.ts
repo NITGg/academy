@@ -41,10 +41,20 @@ function normalizeActivity(a: RawActivity, lang: "ar" | "en"): CourseModule {
     url: a.url,
     visible: a.visible ? 1 : 0,
     uservisible: a.uservisible,
-    fileurl: a.fileurl,
+    // NOTE: `a.fileurl` embeds the Moodle token — never forward it to the client.
+    // The browser loads files through /api/activity-file (courseId + cmid); only a
+    // boolean + the MIME type cross the wire here.
+    hasFile: Boolean(a.fileurl),
     resourcetype: a.resourcetype,
     locked: a.locked,
     availabilityinfo: a.availabilityinfo,
+    // Completion (drives the "للقيام به: ..." lines and the "منجز" state/button)
+    completion: a.completion,
+    completionstate: a.completionstate,
+    hascompletion: a.hascompletion,
+    isautomatic: a.isautomatic,
+    completionexpected: a.completionexpected,
+    completiondetails: a.completiondetails,
   };
 }
 

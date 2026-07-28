@@ -19,9 +19,11 @@ interface CourseCardProps {
   coverageType?: CoverageType | null;
   /** Backward compatibility flag for subscription coverage */
   coveredBySubscription?: boolean;
+  /** Prioritize image loading for LCP */
+  priority?: boolean;
 }
 
-export function CourseCard({ course, coverageType, coveredBySubscription }: CourseCardProps) {
+export function CourseCard({ course, coverageType, coveredBySubscription, priority }: CourseCardProps) {
   const resolvedCoverage = coverageType ?? (coveredBySubscription ? "normal_sub" : null);
   const locale = useLocale();
   const lang = locale === "ar" ? "ar" : "en";

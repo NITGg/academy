@@ -48,7 +48,7 @@ export function AppFooter() {
           <div className="flex items-center gap-2.5 shrink-0">
             {/* N.I.T Link */}
             <a
-              href="https://nit.com.eg"
+              href="https://www.nitg-eg.com/ar"
               target="_blank"
               rel="noopener noreferrer"
               className="flex size-9 items-center justify-center rounded-lg bg-muted border border-border text-foreground font-extrabold text-[11px] tracking-tight shadow-xs hover:-translate-y-0.5 hover:bg-muted/80 transition-all"
@@ -60,7 +60,7 @@ export function AppFooter() {
 
             {/* Facebook */}
             <a
-              href="https://facebook.com"
+              href="https://www.facebook.com/successAcdmy"
               target="_blank"
               rel="noopener noreferrer"
               className="flex size-9 items-center justify-center rounded-lg bg-[#1877F2] text-white shadow-xs hover:-translate-y-0.5 hover:bg-[#166fe5] transition-all"
@@ -74,7 +74,7 @@ export function AppFooter() {
 
             {/* WhatsApp */}
             <a
-              href="https://wa.me/201000000000"
+              href="https://wa.me/201091568240"
               target="_blank"
               rel="noopener noreferrer"
               className="flex size-9 items-center justify-center rounded-lg bg-[#25D366] text-white shadow-xs hover:-translate-y-0.5 hover:bg-[#22c55e] transition-all"
@@ -88,7 +88,7 @@ export function AppFooter() {
 
             {/* LinkedIn */}
             <a
-              href="https://linkedin.com"
+              href="https://www.linkedin.com/company/the-national-company-for-sw-engineering-and-information-technology---nit/about/"
               target="_blank"
               rel="noopener noreferrer"
               className="flex size-9 items-center justify-center rounded-lg bg-[#0A66C2] text-white shadow-xs hover:-translate-y-0.5 hover:bg-[#09519a] transition-all"

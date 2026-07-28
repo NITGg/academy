@@ -1,6 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Users, ArrowRight, ArrowLeft, Tag, BadgeCheck, BookOpen } from "lucide-react";
+import {
+  Users,
+  ArrowRight,
+  ArrowLeft,
+  Tag,
+  BadgeCheck,
+  BookOpen,
+} from "lucide-react";
 import { getLocale } from "next-intl/server";
 import type { Course } from "../types";
 import type { CourseAccess } from "../server-detail";
@@ -14,7 +21,10 @@ interface CourseHeroProps {
 }
 
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, "").replace(/&[a-z]+;/gi, " ").trim();
+  return html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&[a-z]+;/gi, " ")
+    .trim();
 }
 
 export async function CourseHero({ course, access }: CourseHeroProps) {
@@ -30,11 +40,14 @@ export async function CourseHero({ course, access }: CourseHeroProps) {
 
   const displayPrice = course.price;
   const originalPrice = course.originalPrice;
-  const hasDiscount = !isFree && originalPrice != null && originalPrice > (displayPrice ?? 0);
+  const hasDiscount =
+    !isFree && originalPrice != null && originalPrice > (displayPrice ?? 0);
   const currency = course.currency ?? (isRtl ? "جنيه" : "EGP");
 
   const priceLabel = isFree
-    ? locale === "ar" ? "مجاني" : "Free"
+    ? locale === "ar"
+      ? "مجاني"
+      : "Free"
     : `${displayPrice} ${currency}`;
 
   const summary = course.summary ? stripHtml(course.summary) : "";
@@ -68,52 +81,62 @@ export async function CourseHero({ course, access }: CourseHeroProps) {
         )}
 
         <div className="p-6 space-y-4">
-            {/* Badges row */}
-            <div className="flex flex-wrap gap-2 items-center">
-              {course.categoryname && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                  <Tag className="size-3" />
-                  {course.categoryname}
+          {/* Badges row */}
+          <div className="flex flex-wrap gap-2 items-center">
+            {course.categoryname && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <Tag className="size-3" />
+                {course.categoryname}
+              </span>
+            )}
+
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-600">
+              {hasDiscount && (
+                <span className="text-muted-foreground line-through text-[11px] font-normal">
+                  {originalPrice} {currency}
                 </span>
               )}
-              
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-600">
-                {hasDiscount && (
-                  <span className="text-muted-foreground line-through text-[11px] font-normal">
-                    {originalPrice} {currency}
-                  </span>
-                )}
-                <span>{priceLabel}</span>
-              </div>
+              <span>{priceLabel}</span>
+            </div>
 
-              {(hasDiscount || course.offerName || course.discountPercentage) && !isFree && (
+            {(hasDiscount || course.offerName || course.discountPercentage) &&
+              !isFree && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-3 py-1 text-xs font-extrabold text-red-600 border border-red-500/20">
                   <Tag className="size-3" />
-                  {course.offerName || (course.discountPercentage ? `خصم ${course.discountPercentage}%` : "عرض خاص")}
+                  {course.offerName ||
+                    (course.discountPercentage
+                      ? `خصم ${course.discountPercentage}%`
+                      : "عرض خاص")}
                 </span>
               )}
 
-              {isEnrolled && (
-                <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
-                  {locale === "ar" ? "مسجّل" : "Enrolled"}
-                </span>
-              )}
-              {!isEnrolled && isPurchased && (
-                <span className="inline-flex items-center rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white">
-                  {locale === "ar" ? "تم الشراء" : "Purchased"}
-                </span>
-              )}
-              {!isEnrolled && !isPurchased && access.coveredBySubscription && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-purple-600 px-3 py-1 text-xs font-bold text-white">
-                  <BadgeCheck className="size-3.5" />
-                  {access.coverageType === "b2b_sub"
-                    ? (locale === "ar" ? "مشمول باشتراك مؤسستك" : "Covered by B2B subscription")
-                    : access.coverageType === "program"
-                      ? (locale === "ar" ? "مشمول ببرنامجك" : "Covered by your program")
-                      : (locale === "ar" ? "مشمول باشتراكك" : "Covered by your subscription")}
-                </span>
-              )}
-            </div>
+            {isEnrolled && (
+              <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
+                {locale === "ar" ? "مسجّل" : "Enrolled"}
+              </span>
+            )}
+            {!isEnrolled && isPurchased && (
+              <span className="inline-flex items-center rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white">
+                {locale === "ar" ? "تم الشراء" : "Purchased"}
+              </span>
+            )}
+            {!isEnrolled && !isPurchased && access.coveredBySubscription && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-purple-600 px-3 py-1 text-xs font-bold text-white">
+                <BadgeCheck className="size-3.5" />
+                {access.coverageType === "b2b_sub"
+                  ? locale === "ar"
+                    ? "مشمول باشتراك مؤسستك"
+                    : "Covered by B2B subscription"
+                  : access.coverageType === "program"
+                    ? locale === "ar"
+                      ? "مشمول ببرنامجك"
+                      : "Covered by your program"
+                    : locale === "ar"
+                      ? "مشمول باشتراكك"
+                      : "Covered by your subscription"}
+              </span>
+            )}
+          </div>
 
           {/* Title */}
           <h1 className="text-h1 font-bold leading-snug">{course.fullname}</h1>
@@ -122,7 +145,9 @@ export async function CourseHero({ course, access }: CourseHeroProps) {
           {course.teacherName && (
             <p className="text-caption text-muted-foreground">
               {locale === "ar" ? "المدرس:" : "Instructor:"}{" "}
-              <span className="font-medium text-foreground">{course.teacherName}</span>
+              <span className="font-medium text-foreground">
+                {course.teacherName}
+              </span>
             </p>
           )}
 
@@ -164,7 +189,10 @@ export async function CourseHero({ course, access }: CourseHeroProps) {
                   locale={locale}
                 />
               ) : access.coveredBySubscription ? (
-                <SubscriptionEnrollButton courseId={course.id} locale={locale} />
+                <SubscriptionEnrollButton
+                  courseId={course.id}
+                  locale={locale}
+                />
               ) : (
                 <CourseBuyButton
                   courseId={course.id}
@@ -179,18 +207,6 @@ export async function CourseHero({ course, access }: CourseHeroProps) {
                   }
                 />
               )}
-            </div>
-          )}
-
-          {isEnrolled && (
-            <div className="pt-2">
-              <a
-                href="#course-content"
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
-              >
-                <BookOpen className="size-4" />
-                {locale === "ar" ? "متابعة التعلم" : "Continue Learning"}
-              </a>
             </div>
           )}
         </div>

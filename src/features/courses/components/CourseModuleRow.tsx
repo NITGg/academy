@@ -1,5 +1,4 @@
-"use client";
-
+import Link from "next/link";
 import {
   FileText,
   ExternalLink,
@@ -11,16 +10,19 @@ import {
   Video,
   Package,
   File,
+  Award,
+  ChevronLeft,
   CheckCircle2,
   Circle,
   Lock,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { CourseModule } from "../types";
-import { markModuleViewed } from "../actions";
 
 const MOD_ICONS: Record<string, LucideIcon> = {
   resource: FileText,
+  resource2: Video,
+  testnew: FileText,
   url: ExternalLink,
   page: BookOpen,
   quiz: ClipboardList,
@@ -30,26 +32,31 @@ const MOD_ICONS: Record<string, LucideIcon> = {
   book: BookOpen,
   lesson: Video,
   scorm: Package,
+  customcert: Award,
 };
 
 export function CourseModuleRow({
   mod,
+  courseId,
   enrolled,
 }: {
   mod: CourseModule;
+  courseId: number;
   enrolled: boolean;
 }) {
   const Icon = MOD_ICONS[mod.modname] ?? File;
-  const completed = mod.completiondata?.state === 1;
-  const target = mod.fileurl || mod.url;
-  const canOpen = enrolled && Boolean(target);
+  // Completion state now comes straight from getalltopics (completionstate) with a
+  // fallback to the older completiondata shape used by the core_course_get_contents path.
+  const hasCompletion = mod.hascompletion || mod.completiondata != null;
+  const completed =
+    mod.completionstate === 1 ||
+    mod.completionstate === 2 ||
+    mod.completiondata?.state === 1;
 
-  const handleOpen = () => {
-    if (!canOpen) return;
-    // Fire the "viewed" event so completion tracks — best-effort, don't await.
-    if (mod.instance) void markModuleViewed(mod.modname, mod.instance);
-    window.open(target!, "_blank", "noopener,noreferrer");
-  };
+  // Every activity now opens INSIDE the site at its own page (the page picks the right
+  // viewer, or shows a graceful "coming soon" for types without one yet).
+  const canOpen = enrolled && mod.uservisible !== false;
+  const href = `/courses/${courseId}/activity/${mod.id}`;
 
   const base =
     "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors group w-full text-start";
@@ -57,7 +64,7 @@ export function CourseModuleRow({
   const inner = (
     <>
       {/* Completion indicator */}
-      {mod.completiondata != null ? (
+      {hasCompletion ? (
         completed ? (
           <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
         ) : (
@@ -74,20 +81,18 @@ export function CourseModuleRow({
       {!enrolled ? (
         <Lock className="size-3.5 shrink-0 text-muted-foreground/50" />
       ) : canOpen ? (
-        <ExternalLink className="size-3.5 shrink-0 text-muted-foreground/0 group-hover:text-primary transition-colors" />
+        <ChevronLeft className="size-4 shrink-0 text-muted-foreground/30 group-hover:text-primary transition-colors" />
       ) : null}
     </>
   );
 
   if (canOpen) {
     return (
-      <button type="button" onClick={handleOpen} className={`${base} hover:bg-muted/50 cursor-pointer`}>
+      <Link href={href} className={`${base} hover:bg-muted/50 cursor-pointer`}>
         {inner}
-      </button>
+      </Link>
     );
   }
 
-  return (
-    <div className={`${base} ${enrolled ? "" : "opacity-70"}`}>{inner}</div>
-  );
+  return <div className={`${base} ${enrolled ? "" : "opacity-70"}`}>{inner}</div>;
 }

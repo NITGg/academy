@@ -5,10 +5,11 @@ import { CourseModuleRow } from "./CourseModuleRow";
 
 interface ContentTreeProps {
   sections: CourseSection[];
+  courseId: number;
   isEnrolled?: boolean;
 }
 
-export async function ContentTree({ sections, isEnrolled = false }: ContentTreeProps) {
+export async function ContentTree({ sections, courseId, isEnrolled = false }: ContentTreeProps) {
   const locale = await getLocale();
 
   const visibleSections = sections.filter(
@@ -76,7 +77,12 @@ export async function ContentTree({ sections, isEnrolled = false }: ContentTreeP
 
             <div className="border-t border-border px-2 pb-2 pt-1">
               {section.modules.map((mod) => (
-                <CourseModuleRow key={mod.id} mod={mod} enrolled={isEnrolled} />
+                <CourseModuleRow
+                  key={mod.id}
+                  mod={mod}
+                  courseId={courseId}
+                  enrolled={isEnrolled}
+                />
               ))}
             </div>
           </details>

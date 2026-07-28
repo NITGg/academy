@@ -52,19 +52,48 @@ export interface CoursePrice {
   is_purchased?: boolean;
 }
 
+/** One completion rule as reported by getalltopics.php (e.g. "معاينة", "تلقي علامة"). */
+export interface CompletionRule {
+  rulename: string;
+  /** 0 = not yet met, 1 = met. */
+  status: number;
+  /** Localised, human-readable label from Moodle (already in the requested lang). */
+  description: string;
+}
+
 export interface CourseModule {
+  /** This is the course-module id (cmid) — the id used everywhere to address an activity. */
   id: number;
   name: string;
-  modname: "resource" | "assign" | "quiz" | "url" | "forum" | "page" | string;
+  modname: "resource" | "resource2" | "testnew" | "assign" | "quiz" | "url" | "forum" | "page" | "customcert" | string;
   instance?: number;
   url?: string;
   visible?: number;
   uservisible?: boolean;
-  completiondata?: {
-    state: number; // 0 = incomplete, 1 = complete
-  };
-  // Extra fields from getalltopics.php
-  fileurl?: string;
+  // ── Completion (from getalltopics.php) ──────────────────────────────────────
+  /** 0 = no tracking, 1 = manual (student marks done), 2 = automatic (rule-based). */
+  completion?: number;
+  /** 0 = incomplete, 1 = complete, 2 = complete-pass, 3 = complete-fail. */
+  completionstate?: number;
+  hascompletion?: boolean;
+  isautomatic?: boolean;
+  /** Unix ts the activity is expected to be completed by (0 = none). */
+  completionexpected?: number;
+  /** Per-rule breakdown driving the "للقيام به: ..." lines. */
+  completiondetails?: CompletionRule[];
+  /**
+   * Legacy completion shape from the core_course_get_contents fallback path
+   * (getalltopics is the primary source and uses the flat fields above instead).
+   */
+  completiondata?: { state: number };
+  // ── Content (from getalltopics.php) ─────────────────────────────────────────
+  /**
+   * Whether this activity has a downloadable/streamable file. The actual URL is
+   * NEVER sent to the client (it embeds the Moodle token) — files load through
+   * the /api/activity-file proxy, addressed by courseId + cmid.
+   */
+  hasFile?: boolean;
+  /** MIME type of the file (e.g. "application/pdf", "video/mp4"), used to pick a viewer. */
   resourcetype?: string;
   locked?: boolean;
   availabilityinfo?: string;
@@ -95,6 +124,13 @@ export interface RawActivity {
   locked?: boolean;
   availabilityinfo?: string;
   jitsi_session?: JitsiSession | null;
+  // Completion fields as emitted by getalltopics.php
+  completion?: number;
+  completionstate?: number;
+  hascompletion?: boolean;
+  isautomatic?: boolean;
+  completionexpected?: number;
+  completiondetails?: CompletionRule[];
 }
 
 export interface RawTopicSection {

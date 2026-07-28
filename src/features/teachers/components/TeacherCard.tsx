@@ -38,11 +38,12 @@ export function TeacherCard({ teacher, locale }: TeacherCardProps) {
         <div className="relative size-20 shrink-0 overflow-hidden rounded-full border-2 border-border shadow-sm">
           {teacher.photourl ? (
             <Image
-              src={teacher.photourl}
+              src={teacher.photourl.replace("/webservice/pluginfile.php", "/pluginfile.php")}
               alt={teacher.fullname}
               fill
               sizes="80px"
               className="object-cover"
+              unoptimized
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-primary/10 text-2xl font-bold text-primary">
