@@ -19,7 +19,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, getAppUrl } from "@/lib/utils";
 import type { ProgramDetails, ProgramCertificate, ProgramContentItem } from "../types";
 import { joinFreeProgram, openProgramCertificateAction } from "../actions";
 import { BuyProgramModal } from "./BuyProgramModal";
@@ -120,7 +120,7 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
 
   async function handleJoinOrBuy() {
     if (!isLoggedIn) {
-      window.location.href = "/login";
+      window.location.href = getAppUrl("/login");
       return;
     }
     setErrorMessage(null);
@@ -146,7 +146,7 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
     setCertLoadingId(null);
 
     if (res.needsAuth) {
-      window.location.href = "/login";
+      window.location.href = getAppUrl("/login");
     } else if (res.url) {
       window.open(res.url, "_blank");
     } else {

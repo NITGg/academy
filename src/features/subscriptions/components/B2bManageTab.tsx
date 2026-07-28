@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/Pagination";
-import { cn } from "@/lib/utils";
+import { cn, getAppUrl } from "@/lib/utils";
 import {
   getB2bDashboard,
   generateB2bInvite,
@@ -116,7 +116,7 @@ export function B2bManageTab({ subscriptions, initialSubscriptionId }: B2bManage
     const res = await getB2bDashboard(purchaseId);
     setLoading(false);
     if (res.needsAuth) {
-      window.location.assign("/login");
+      window.location.assign(getAppUrl("/login"));
       return;
     }
     if (res.error) {
@@ -162,7 +162,7 @@ export function B2bManageTab({ subscriptions, initialSubscriptionId }: B2bManage
     setBusy(true);
     const res = await generateB2bInvite(currentPurchaseId);
     setBusy(false);
-    if (res.needsAuth) return void window.location.assign("/login");
+    if (res.needsAuth) return void window.location.assign(getAppUrl("/login"));
     if (res.error) return void toast.error(res.error);
     toast.success("تم توليد رابط الدعوة");
     loadDashboard(currentPurchaseId);
@@ -192,7 +192,7 @@ export function B2bManageTab({ subscriptions, initialSubscriptionId }: B2bManage
     setBusy(true);
     const res = await fn();
     setBusy(false);
-    if (res.needsAuth) return void window.location.assign("/login");
+    if (res.needsAuth) return void window.location.assign(getAppUrl("/login"));
     if (res.error) return void toast.error(res.error);
     toast.success(okMsg);
     loadDashboard(currentPurchaseId);

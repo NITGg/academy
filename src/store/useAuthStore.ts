@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { authService } from "@/services/auth.service";
 import type { User } from "@/types";
+import { getAppUrl } from "@/lib/utils";
 
 interface SessionResponse {
   authenticated: boolean;
@@ -47,7 +48,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
     } finally {
       set({ user: null, isAuthenticated: false, isLoading: false });
       if (typeof window !== "undefined") {
-        window.location.href = "/login";
+        window.location.href = getAppUrl("/login");
       }
     }
   },

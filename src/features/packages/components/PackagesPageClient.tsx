@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Package, Calendar, Tag, CheckCircle2, Receipt, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, getAppUrl } from "@/lib/utils";
 import type { AvailablePackage, MyPackage, PackagePaymentRecord } from "../types";
 import { Pagination } from "@/components/ui/Pagination";
 import { BuyPackageModal } from "./BuyPackageModal";
@@ -217,7 +217,7 @@ function AvailablePackagesTab({
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!isLoggedIn) {
-                      window.location.assign("/login");
+                      window.location.assign(getAppUrl("/login"));
                       return;
                     }
                     setSelectedPkg(pkg);

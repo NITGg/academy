@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, getAppUrl } from "@/lib/utils";
 import {
   User,
   BookOpen,
@@ -142,7 +142,7 @@ export function HomePageClient({
   // Handlers
   async function handlePackageBuy(pkgId: number) {
     if (!isLoggedIn) {
-      window.location.href = "/login";
+      window.location.href = getAppUrl("/login");
       return;
     }
     setLoadingId(`pkg-${pkgId}`);
@@ -151,7 +151,7 @@ export function HomePageClient({
     setLoadingId(null);
 
     if (res.needsAuth) {
-      window.location.href = "/login";
+      window.location.href = getAppUrl("/login");
     } else if (res.checkoutUrl) {
       window.location.href = res.checkoutUrl;
     } else {
@@ -165,7 +165,7 @@ export function HomePageClient({
     seats?: number,
   ) {
     if (!isLoggedIn) {
-      window.location.href = "/login";
+      window.location.href = getAppUrl("/login");
       return;
     }
     setLoadingId(`sub-${subId}-${type}`);
@@ -178,7 +178,7 @@ export function HomePageClient({
     setLoadingId(null);
 
     if (res.needsAuth) {
-      window.location.href = "/login";
+      window.location.href = getAppUrl("/login");
     } else if (res.checkoutUrl) {
       window.location.href = res.checkoutUrl;
     } else {
@@ -188,7 +188,7 @@ export function HomePageClient({
 
   async function handleProgramBuyOrJoin(prog: CatalogueProgram) {
     if (!isLoggedIn) {
-      window.location.href = "/login";
+      window.location.href = getAppUrl("/login");
       return;
     }
     setLoadingId(`prog-${prog.id}`);
@@ -206,7 +206,7 @@ export function HomePageClient({
       const res = await startProgramCheckout(prog.id);
       setLoadingId(null);
       if (res.needsAuth) {
-        window.location.href = "/login";
+        window.location.href = getAppUrl("/login");
       } else if (res.checkoutUrl) {
         window.location.href = res.checkoutUrl;
       } else {
@@ -440,7 +440,7 @@ export function HomePageClient({
                       onClick={(e) => {
                         e.stopPropagation();
                         if (!isLoggedIn) {
-                          window.location.assign("/login");
+                          window.location.assign(getAppUrl("/login"));
                           return;
                         }
                         setBuyPackageModalConfig(pkg);
@@ -579,7 +579,7 @@ export function HomePageClient({
                       onClick={(e) => {
                         e.stopPropagation();
                         if (!isLoggedIn) {
-                          window.location.assign("/login");
+                          window.location.assign(getAppUrl("/login"));
                           return;
                         }
                         setBuySubModalConfig({ subscription: sub, type: "normal" });
@@ -610,7 +610,7 @@ export function HomePageClient({
                           e.stopPropagation();
                           if (hasActiveB2b) return;
                           if (!isLoggedIn) {
-                            window.location.assign("/login");
+                            window.location.assign(getAppUrl("/login"));
                             return;
                           }
                           setBuySubModalConfig({ subscription: sub, type: "b2b" });
@@ -656,7 +656,7 @@ export function HomePageClient({
                 <div
                   key={program.id}
                   onClick={() => {
-                    window.location.href = `/programs/${program.id}`;
+                    window.location.href = getAppUrl(`/programs/${program.id}`);
                   }}
                   className={cn(
                     "cursor-pointer flex flex-col justify-between rounded-2xl border p-5 shadow-sm transition hover:shadow-md",
@@ -731,7 +731,7 @@ export function HomePageClient({
                             onClick={(e) => {
                               e.stopPropagation();
                               if (!isLoggedIn) {
-                                window.location.href = "/login";
+                                window.location.href = getAppUrl("/login");
                                 return;
                               }
                               if (program.free === 1) {
@@ -864,7 +864,7 @@ export function HomePageClient({
                     const prog = selectedProgram;
                     setSelectedProgram(null);
                     if (!isLoggedIn) {
-                      window.location.href = "/login";
+                      window.location.href = getAppUrl("/login");
                       return;
                     }
                     if (prog.free === 1) {
@@ -958,7 +958,7 @@ export function HomePageClient({
                   const pkgToBuy = selectedPackage;
                   setSelectedPackage(null);
                   if (!isLoggedIn) {
-                    window.location.assign("/login");
+                    window.location.assign(getAppUrl("/login"));
                     return;
                   }
                   setBuyPackageModalConfig(pkgToBuy);
@@ -1053,7 +1053,7 @@ export function HomePageClient({
                   const subToBuy = selectedSub;
                   setSelectedSub(null);
                   if (!isLoggedIn) {
-                    window.location.assign("/login");
+                    window.location.assign(getAppUrl("/login"));
                     return;
                   }
                   setBuySubModalConfig({ subscription: subToBuy, type: "normal" });
@@ -1090,7 +1090,7 @@ export function HomePageClient({
                     const subToBuy = selectedSub;
                     setSelectedSub(null);
                     if (!isLoggedIn) {
-                      window.location.assign("/login");
+                      window.location.assign(getAppUrl("/login"));
                       return;
                     }
                     setBuySubModalConfig({ subscription: subToBuy, type: "b2b" });

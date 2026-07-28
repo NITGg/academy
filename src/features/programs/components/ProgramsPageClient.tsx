@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { GraduationCap, Play, CheckCircle2, Flag, Calendar, Loader2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, getAppUrl } from "@/lib/utils";
 import type { CatalogueProgram, MyProgram } from "../types";
 import { Pagination } from "@/components/ui/Pagination";
 import { joinFreeProgram } from "../actions";
@@ -153,7 +153,7 @@ function CatalogueProgramsTab({
 
   async function handleProgramJoin(prog: CatalogueProgram) {
     if (!isLoggedIn) {
-      window.location.href = "/login";
+      window.location.href = getAppUrl("/login");
       return;
     }
     setLoadingId(`prog-${prog.id}`);
@@ -250,7 +250,7 @@ function CatalogueProgramsTab({
                       type="button"
                       onClick={() => {
                         if (!isLoggedIn) {
-                          window.location.href = "/login";
+                          window.location.href = getAppUrl("/login");
                           return;
                         }
                         if (prog.free === 1) {

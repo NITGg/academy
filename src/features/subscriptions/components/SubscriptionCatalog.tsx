@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Building2, X, Loader2, Check, Settings2 } from "lucide-react";
 import { Pagination } from "@/components/ui/Pagination";
-import { cn } from "@/lib/utils";
+import { cn, getAppUrl } from "@/lib/utils";
 import { startSubscriptionCheckout } from "../actions";
 import type { AvailableSubscription, MySubscription, B2BSubscription } from "../types";
 import { BuySubscriptionModal } from "./BuySubscriptionModal";
@@ -157,7 +157,7 @@ export function SubscriptionCatalog({
                   disabled={isUserSubActive}
                   onClick={() => {
                     if (!isLoggedIn) {
-                      window.location.assign("/login");
+                      window.location.assign(getAppUrl("/login"));
                       return;
                     }
                     setBuyModalConfig({ subscription: sub, type: "normal" });
@@ -187,7 +187,7 @@ export function SubscriptionCatalog({
                     onClick={() => {
                       if (hasActiveB2b) return;
                       if (!isLoggedIn) {
-                        window.location.assign("/login");
+                        window.location.assign(getAppUrl("/login"));
                         return;
                       }
                       setBuyModalConfig({ subscription: sub, type: "b2b" });
@@ -277,7 +277,7 @@ export function SubscriptionCatalog({
                   const subToBuy = selectedSub;
                   setSelectedSub(null);
                   if (!isLoggedIn) {
-                    window.location.assign("/login");
+                    window.location.assign(getAppUrl("/login"));
                     return;
                   }
                   setBuyModalConfig({ subscription: subToBuy, type: "normal" });
@@ -318,7 +318,7 @@ export function SubscriptionCatalog({
                     const subToBuy = selectedSub;
                     setSelectedSub(null);
                     if (!isLoggedIn) {
-                      window.location.assign("/login");
+                      window.location.assign(getAppUrl("/login"));
                       return;
                     }
                     setBuyModalConfig({ subscription: subToBuy, type: "b2b" });
