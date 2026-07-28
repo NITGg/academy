@@ -36,6 +36,7 @@ import type { AvailablePackage, MyPackage } from "@/features/packages/types";
 import type {
   AvailableSubscription,
   MySubscription,
+  B2BSubscription,
 } from "@/features/subscriptions/types";
 import type { EnrolledCourse } from "@/features/courses/server";
 import { startPackageCheckout } from "@/features/packages/actions";
@@ -59,8 +60,16 @@ interface HomePageClientProps {
   subscriptions: AvailableSubscription[];
   myPackages: MyPackage[];
   mySubscriptions: MySubscription[];
+  myB2bSubscriptions?: B2BSubscription[];
   myPrograms: MyProgram[];
   isLoggedIn: boolean;
+}
+
+function getEffectivePackageStatus(pkg: MyPackage): string {
+  const now = Math.floor(Date.now() / 1000);
+  if (pkg.expires_at > 0 && pkg.expires_at < now) return "expired";
+  if (pkg.status === "active" && (pkg.remaining_flex ?? 0) <= 0) return "used";
+  return pkg.status;
 }
 
 export function HomePageClient({
@@ -72,12 +81,13 @@ export function HomePageClient({
   subscriptions,
   myPackages = [],
   mySubscriptions = [],
+  myB2bSubscriptions = [],
   myPrograms = [],
   isLoggedIn,
 }: HomePageClientProps) {
   // Active states check
   const activePackage = myPackages.find(
-    (p) => p.status === "active" || (p.remaining_flex ?? 0) > 0,
+    (p) => getEffectivePackageStatus(p) === "active",
   );
   const activeSubscription = mySubscriptions.find((s) => s.status === "active");
   // Courses unlocked by any of the user's active subscriptions (normal or B2B) → free on-demand enrol.
@@ -86,12 +96,20 @@ export function HomePageClient({
       .filter((s) => s.status === "active")
       .flatMap((s) => (s.courses ?? []).map((c) => c.id)),
   );
-  // Subscription plans the user already administers as a B2B admin (active B2B purchase).
-  const ownedB2bSubIds = new Set(
+
+  const activeNormalSubIds = new Set(
     mySubscriptions
-      .filter((s) => s.type === "b2b" && s.status === "active")
-      .map((s) => s.subscriptionid),
+      .filter((s) => s.status === "active" && s.type !== "b2b")
+      .map((s) => s.subscriptionid || s.id),
   );
+
+  const activeB2bSubIds = new Set([
+    ...myB2bSubscriptions.filter((s) => s.status === "active").map((s) => s.subscriptionid),
+    ...mySubscriptions.filter((s) => s.type === "b2b" && s.status === "active").map((s) => s.subscriptionid),
+  ]);
+
+  const hasActiveB2b = activeB2bSubIds.size > 0;
+
   const ownedProgramIds = new Set(
     myPrograms
       .map((mp) => mp.id)
@@ -383,7 +401,12 @@ export function HomePageClient({
                 <div
                   key={pkg.id}
                   onClick={() => setSelectedPackage(pkg)}
-                  className="cursor-pointer space-y-3 rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50 hover:shadow-md"
+                  className={cn(
+                    "cursor-pointer space-y-3 rounded-2xl border p-5 shadow-sm transition hover:shadow-md",
+                    isThisPackageActive
+                      ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/60"
+                      : "border-border bg-card hover:border-primary/50",
+                  )}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -475,28 +498,35 @@ export function HomePageClient({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {subscriptions.map((sub) => {
               const isUserSubActive = Boolean(activeSubscription);
-              const isThisSubActive =
-                activeSubscription &&
-                (activeSubscription.subscriptionid === sub.id ||
-                  activeSubscription.id === sub.id);
-              const ownsB2b = ownedB2bSubIds.has(sub.id);
+              const isThisNormalSubActive = activeNormalSubIds.has(sub.id);
+              const ownsB2b = activeB2bSubIds.has(sub.id);
               const b2bEnabled = Number(sub.b2b_enabled) === 1;
-              const showB2bButton = ownsB2b || b2bEnabled; // not every plan offers B2B
+              const showB2bButton = ownsB2b || b2bEnabled;
+              const isThisSubActive = isThisNormalSubActive || ownsB2b;
 
               return (
                 <div
                   key={sub.id}
                   onClick={() => setSelectedSub(sub)}
-                  className="cursor-pointer space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50 hover:shadow-md"
+                  className={cn(
+                    "cursor-pointer space-y-4 rounded-2xl border bg-card p-5 shadow-sm transition hover:shadow-md",
+                    isThisSubActive
+                      ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/60"
+                      : "border-border hover:border-primary/50",
+                  )}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="rounded-lg bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-600 whitespace-nowrap">
                         {sub.duration_days} يوم
                       </span>
-                      {isThisSubActive ? (
+                      {isThisNormalSubActive ? (
                         <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 whitespace-nowrap">
                           اشتراك نشط
+                        </span>
+                      ) : ownsB2b ? (
+                        <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 whitespace-nowrap">
+                          اشتراك B2B مملوك
                         </span>
                       ) : sub.offer ? (
                         <span className="rounded-lg bg-destructive/10 px-2 py-1 text-xs font-bold text-destructive whitespace-nowrap">
@@ -537,7 +567,7 @@ export function HomePageClient({
                     </div>
                   </div>
 
-                  {/* ── 2 Purchase Buttons as requested ── */}
+                  {/* ── 2 Purchase Buttons ── */}
                   <div
                     className="flex items-center gap-2 pt-1"
                     onClick={(e) => e.stopPropagation()}
@@ -559,7 +589,7 @@ export function HomePageClient({
                         showB2bButton ? "flex-1" : "w-full",
                       )}
                     >
-                      {isThisSubActive ? "مشترك" : isUserSubActive ? "لديك اشتراك" : "اشتراك فردي"}
+                      {isThisNormalSubActive ? "مشترك" : isUserSubActive ? "لديك اشتراك" : "اشتراك فردي"}
                     </button>
 
                     {/* B2B button — only for plans that allow B2B; "manage" when already owned */}
@@ -575,18 +605,25 @@ export function HomePageClient({
                     ) : b2bEnabled ? (
                       <button
                         type="button"
+                        disabled={hasActiveB2b}
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (hasActiveB2b) return;
                           if (!isLoggedIn) {
                             window.location.assign("/login");
                             return;
                           }
                           setBuySubModalConfig({ subscription: sub, type: "b2b" });
                         }}
-                        className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/10 cursor-pointer"
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-xs font-bold transition",
+                          hasActiveB2b
+                            ? "border-muted bg-muted/20 text-muted-foreground opacity-60 cursor-not-allowed"
+                            : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 cursor-pointer",
+                        )}
                       >
                         <Building2 className="size-3.5" />
-                        اشتراك B2B
+                        {hasActiveB2b ? "لديك اشتراك B2B" : "اشتراك B2B"}
                       </button>
                     ) : null}
                   </div>
@@ -621,7 +658,12 @@ export function HomePageClient({
                   onClick={() => {
                     window.location.href = `/programs/${program.id}`;
                   }}
-                  className="cursor-pointer flex flex-col justify-between rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50 hover:shadow-md"
+                  className={cn(
+                    "cursor-pointer flex flex-col justify-between rounded-2xl border p-5 shadow-sm transition hover:shadow-md",
+                    isOwned
+                      ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/60"
+                      : "border-border bg-card hover:border-primary/50",
+                  )}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -1018,16 +1060,20 @@ export function HomePageClient({
                 }}
                 className={cn(
                   "flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50 cursor-pointer",
-                  ownedB2bSubIds.has(selectedSub.id) ||
+                  activeB2bSubIds.has(selectedSub.id) ||
                     Number(selectedSub.b2b_enabled) === 1
                     ? "flex-1"
                     : "w-full",
                 )}
               >
-                {activeSubscription ? "لديك اشتراك نشط" : "اشتراك فردي"}
+                {activeNormalSubIds.has(selectedSub.id)
+                  ? "مشترك"
+                  : activeSubscription
+                    ? "لديك اشتراك نشط"
+                    : "اشتراك فردي"}
               </button>
 
-              {ownedB2bSubIds.has(selectedSub.id) ? (
+              {activeB2bSubIds.has(selectedSub.id) ? (
                 <Link
                   href="/subscriptions?tab=b2b"
                   className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/5 px-4 py-2.5 text-xs font-bold text-emerald-600 transition hover:bg-emerald-500/10 cursor-pointer"
@@ -1038,7 +1084,9 @@ export function HomePageClient({
               ) : Number(selectedSub.b2b_enabled) === 1 ? (
                 <button
                   type="button"
+                  disabled={hasActiveB2b}
                   onClick={() => {
+                    if (hasActiveB2b) return;
                     const subToBuy = selectedSub;
                     setSelectedSub(null);
                     if (!isLoggedIn) {
@@ -1047,10 +1095,15 @@ export function HomePageClient({
                     }
                     setBuySubModalConfig({ subscription: subToBuy, type: "b2b" });
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-xs font-bold text-primary transition hover:bg-primary/10 cursor-pointer"
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 rounded-xl border px-4 py-2.5 text-xs font-bold transition",
+                    hasActiveB2b
+                      ? "border-muted bg-muted/20 text-muted-foreground opacity-60 cursor-not-allowed"
+                      : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 cursor-pointer",
+                  )}
                 >
                   <Building2 className="size-4" />
-                  اشتراك B2B
+                  {hasActiveB2b ? "لديك اشتراك B2B" : "اشتراك B2B"}
                 </button>
               ) : null}
             </div>

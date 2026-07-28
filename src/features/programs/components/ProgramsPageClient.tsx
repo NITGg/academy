@@ -180,7 +180,12 @@ function CatalogueProgramsTab({
         {currentPrograms.map((prog) => (
           <div
             key={prog.id}
-            className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between gap-4 transition hover:border-primary/50 hover:shadow-md"
+            className={cn(
+              "rounded-2xl border p-5 shadow-sm flex flex-col justify-between gap-4 transition hover:shadow-md",
+              prog.owned
+                ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/60"
+                : "border-border bg-card hover:border-primary/50",
+            )}
           >
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-2">

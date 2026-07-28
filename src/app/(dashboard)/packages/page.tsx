@@ -26,6 +26,7 @@ export default async function PackagesPage() {
         myPackages={myPackages}
         availablePackages={availablePackages}
         paymentHistory={paymentHistory}
+        isLoggedIn={Boolean(session?.wstoken)}
       />
     </div>
   );

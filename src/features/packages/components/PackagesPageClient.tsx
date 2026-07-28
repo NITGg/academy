@@ -135,11 +135,13 @@ function AvailablePackagesTab({
   packages,
   hasActivePackage,
   activePackage,
+  isLoggedIn = true,
   pageSize = 6,
 }: {
   packages: AvailablePackage[];
   hasActivePackage: boolean;
   activePackage?: MyPackage | null;
+  isLoggedIn?: boolean;
   pageSize?: number;
 }) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -164,7 +166,7 @@ function AvailablePackagesTab({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {currentPackages.map((pkg) => {
           const isThisPackageActive =
             Boolean(activePackage) &&
@@ -172,62 +174,80 @@ function AvailablePackagesTab({
               Number(activePackage?.id) === Number(pkg.id) ||
               activePackage?.name === pkg.name);
 
-          const displayPrice = pkg.offer ? Number(pkg.offer.final) : Number(pkg.price);
-
           return (
-            <div key={pkg.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                    {Number(pkg.flex_count)} حصة
+            <div
+              key={pkg.id}
+              onClick={() => setSelectedPkg(pkg)}
+              className={cn(
+                "cursor-pointer space-y-3 rounded-2xl border p-5 shadow-sm transition hover:shadow-md",
+                isThisPackageActive
+                  ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/60"
+                  : "border-border bg-card hover:border-primary/50",
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary whitespace-nowrap">
+                    {pkg.flex_count} حصة
                   </span>
-                  {isThisPackageActive && (
-                    <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600">
+                  {isThisPackageActive ? (
+                    <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 whitespace-nowrap">
                       باقة نشطة
+                    </span>
+                  ) : pkg.offer ? (
+                    <span className="rounded-lg bg-destructive/10 px-2 py-1 text-xs font-bold text-destructive whitespace-nowrap">
+                      {pkg.offer.label}
+                    </span>
+                  ) : null}
+                </div>
+                <h3 className="font-bold text-end text-foreground text-small">
+                  {pkg.name}
+                </h3>
+              </div>
+
+              <p className="text-xs text-muted-foreground text-end line-clamp-2">
+                {pkg.description ||
+                  "تمثل كل حصة مرنة درساً واحداً مع أي مدرس."}
+              </p>
+
+              <div className="flex items-center justify-between border-t border-border pt-2">
+                <button
+                  type="button"
+                  disabled={hasActivePackage}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isLoggedIn) {
+                      window.location.assign("/login");
+                      return;
+                    }
+                    setSelectedPkg(pkg);
+                  }}
+                  className="rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                >
+                  {isThisPackageActive
+                    ? "باقة مفعلة"
+                    : hasActivePackage
+                      ? "لديك باقة مفعلة"
+                      : "اشترك"}
+                </button>
+
+                <div>
+                  {pkg.offer ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-muted-foreground line-through">
+                        {pkg.offer.original} جنيه
+                      </span>
+                      <span className="text-sm font-extrabold text-foreground">
+                        {pkg.offer.final} جنيه
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-sm font-extrabold text-foreground">
+                      {pkg.price} جنيه
                     </span>
                   )}
                 </div>
-                <span className="text-caption font-bold text-foreground">{pkg.name}</span>
               </div>
-
-              {pkg.description && (
-                <p className="text-small text-muted-foreground leading-relaxed text-right">
-                  {pkg.description}
-                </p>
-              )}
-
-              <div className="flex items-center justify-between text-small">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Clock className="size-3.5" />
-                  <span>{pkg.expiration_days} يوم</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Tag className="size-3.5 text-muted-foreground" />
-                  <span className="font-bold text-foreground">
-                    {displayPrice.toFixed(2)} جنيه
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                variant="default"
-                size="lg"
-                disabled={hasActivePackage}
-                onClick={() => setSelectedPkg(pkg)}
-                className="w-full rounded-xl cursor-pointer"
-              >
-                {isThisPackageActive
-                  ? "باقة مفعلة"
-                  : hasActivePackage
-                  ? "لديك باقة مفعلة"
-                  : "شراء الباقة"}
-              </Button>
-
-              {hasActivePackage && (
-                <p className="text-center text-[11px] text-muted-foreground">
-                  لديك بالفعل باقة نشطة
-                </p>
-              )}
             </div>
           );
         })}
@@ -329,12 +349,14 @@ interface PackagesPageClientProps {
   myPackages: MyPackage[];
   availablePackages: AvailablePackage[];
   paymentHistory: PackagePaymentRecord[];
+  isLoggedIn?: boolean;
 }
 
 export function PackagesPageClient({
   myPackages,
   availablePackages,
   paymentHistory,
+  isLoggedIn = true,
 }: PackagesPageClientProps) {
   const [activeTab, setActiveTab] = useState<Tab>("mine");
   // A package blocks new purchases only when it is genuinely usable — its
@@ -371,6 +393,7 @@ export function PackagesPageClient({
           packages={availablePackages}
           hasActivePackage={hasActivePackage}
           activePackage={activePackage}
+          isLoggedIn={isLoggedIn}
         />
       )}
       {activeTab === "history" && <PaymentHistoryTab records={paymentHistory} />}

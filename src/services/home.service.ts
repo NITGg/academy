@@ -5,7 +5,11 @@ import type { Course } from "@/features/courses/types";
 import type { Teacher } from "@/features/teachers/types";
 import type { CatalogueProgram, MyProgram } from "@/features/programs/types";
 import type { AvailablePackage, MyPackage } from "@/features/packages/types";
-import type { AvailableSubscription, MySubscription } from "@/features/subscriptions/types";
+import type {
+  AvailableSubscription,
+  MySubscription,
+  B2BSubscription,
+} from "@/features/subscriptions/types";
 
 import { getTeachers } from "@/features/teachers/server";
 
@@ -18,6 +22,7 @@ export interface HomeDashboardData {
   subscriptions: AvailableSubscription[];
   myPackages: MyPackage[];
   mySubscriptions: MySubscription[];
+  myB2bSubscriptions: B2BSubscription[];
   myPrograms: MyProgram[];
 }
 
@@ -40,6 +45,7 @@ export async function getHomeDashboardData(userWstoken?: string): Promise<HomeDa
     subscriptionsRes,
     myPackagesRes,
     mySubscriptionsRes,
+    myB2bSubscriptionsRes,
     myProgramsRes,
     myCoursesRes,
   ] = await Promise.allSettled([
@@ -60,6 +66,9 @@ export async function getHomeDashboardData(userWstoken?: string): Promise<HomeDa
       : Promise.resolve([]),
     userWstoken
       ? callAcademyApi<MySubscription[]>("get_my_subscriptions", {}, userWstoken)
+      : Promise.resolve([]),
+    userWstoken
+      ? callAcademyApi<B2BSubscription[]>("get_my_b2b_subscriptions", {}, userWstoken)
       : Promise.resolve([]),
     userWstoken
       ? callAcademyApi<MyProgram[]>("get_my_programs", {}, userWstoken)
@@ -112,6 +121,7 @@ export async function getHomeDashboardData(userWstoken?: string): Promise<HomeDa
   const programs = extractList<CatalogueProgram>(programsRes);
   const myPackages = extractList<MyPackage>(myPackagesRes);
   const mySubscriptions = extractList<MySubscription>(mySubscriptionsRes);
+  const myB2bSubscriptions = extractList<B2BSubscription>(myB2bSubscriptionsRes);
   const myPrograms = extractList<MyProgram>(myProgramsRes);
 
   return {
@@ -123,6 +133,7 @@ export async function getHomeDashboardData(userWstoken?: string): Promise<HomeDa
     subscriptions,
     myPackages,
     mySubscriptions,
+    myB2bSubscriptions,
     myPrograms,
   };
 }

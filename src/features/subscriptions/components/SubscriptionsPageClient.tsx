@@ -254,6 +254,8 @@ export function SubscriptionsPageClient({
       {activeTab === "available" && (
         <SubscriptionCatalog
           subscriptions={availableSubscriptions}
+          mySubscriptions={mySubscriptions}
+          myB2bSubscriptions={myB2bSubscriptions}
           isLoggedIn={isLoggedIn}
           hasActiveSubscription={hasActiveSubscription}
           ownedB2bSubIds={ownedB2bSubIds}

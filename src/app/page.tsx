@@ -18,6 +18,7 @@ export default async function HomePage() {
         subscriptions={data.subscriptions}
         myPackages={data.myPackages}
         mySubscriptions={data.mySubscriptions}
+        myB2bSubscriptions={data.myB2bSubscriptions}
         myPrograms={data.myPrograms}
         isLoggedIn={Boolean(session?.wstoken)}
       />
