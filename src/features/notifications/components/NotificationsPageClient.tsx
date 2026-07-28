@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Bell, CheckCheck } from "lucide-react";
 import { useLocale } from "next-intl";
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/lib/axios";
 import type { AppNotification } from "../types";
 
 interface NotificationsPageClientProps {
@@ -39,11 +40,7 @@ export function NotificationsPageClient({
   async function handleMarkAllAsRead() {
     setLoading(true);
     try {
-      await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mark_all_read" }),
-      });
+      await apiClient.post("/notifications", { action: "mark_all_read" });
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, isRead: true }))
       );
@@ -56,10 +53,9 @@ export function NotificationsPageClient({
 
   async function handleMarkAsRead(id: number) {
     try {
-      await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mark_read", notificationId: id }),
+      await apiClient.post("/notifications", {
+        action: "mark_read",
+        notificationId: id,
       });
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))

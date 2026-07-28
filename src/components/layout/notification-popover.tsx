@@ -6,6 +6,7 @@ import { Bell, CheckCheck, Loader2, ExternalLink } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/lib/axios";
 import type { AppNotification } from "@/features/notifications/types";
 
 function formatTime(ts: number): string {
@@ -30,21 +31,18 @@ export function NotificationPopover() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [fetched, setFetched] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  /* Fetch notifications on mount and whenever popover opens */
+  /* Fetch notifications on demand */
   async function fetchNotifications() {
     setLoading(true);
     try {
-      const res = await fetch("/api/notifications");
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications ?? []);
-        setUnreadCount(data.unreadCount ?? 0);
-      }
+      const res = await apiClient.get<{ notifications?: AppNotification[]; unreadCount?: number }>("/notifications");
+      setNotifications(res.data.notifications ?? []);
+      setUnreadCount(res.data.unreadCount ?? 0);
     } catch {
       // ignore error
     } finally {
@@ -54,7 +52,24 @@ export function NotificationPopover() {
   }
 
   useEffect(() => {
-    fetchNotifications();
+    let active = true;
+    apiClient
+      .get<{ notifications?: AppNotification[]; unreadCount?: number }>("/notifications")
+      .then((res) => {
+        if (!active) return;
+        setNotifications(res.data.notifications ?? []);
+        setUnreadCount(res.data.unreadCount ?? 0);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!active) return;
+        setLoading(false);
+        setFetched(true);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleToggle = () => {
@@ -80,11 +95,7 @@ export function NotificationPopover() {
 
   async function handleMarkAllAsRead() {
     try {
-      await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mark_all_read" }),
-      });
+      await apiClient.post("/notifications", { action: "mark_all_read" });
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch {
@@ -94,10 +105,9 @@ export function NotificationPopover() {
 
   async function handleMarkAsRead(id: number) {
     try {
-      await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mark_read", notificationId: id }),
+      await apiClient.post("/notifications", {
+        action: "mark_read",
+        notificationId: id,
       });
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))

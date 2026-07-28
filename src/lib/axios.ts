@@ -7,14 +7,19 @@ import axios from "axios";
 
 // Helper to determine the correct base URL
 const getBaseUrl = () => {
-  // If running in the browser, relative path "/api" works perfectly
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
+  // If running in the browser, relative path `${basePath}/api` works under subpaths
   if (typeof window !== "undefined") {
-    return "/api";
+    return `${basePath}/api`;
   }
 
   // If running on the Node server (e.g. inside Server Components during SSR)
   const host = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  return `${host}/api`;
+  if (basePath && host.endsWith(basePath)) {
+    return `${host}/api`;
+  }
+  return `${host}${basePath}/api`;
 };
 
 // Internal client — calls our own Next.js API routes, not Moodle directly.

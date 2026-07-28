@@ -19,7 +19,8 @@ export function PdfViewer({
   name: string;
   isArabic: boolean;
 }) {
-  const src = `/api/activity-file?courseId=${courseId}&cmid=${cmid}`;
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const src = `${basePath}/api/activity-file?courseId=${courseId}&cmid=${cmid}`;
   const downloadHref = `${src}&download=1`;
   const [failed, setFailed] = useState(false);
 
