@@ -236,7 +236,7 @@ export function HomePageClient({
       )}
 
       {/* Quick action banners */}
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-1">
         <Link
           href="/lessons"
           className="flex items-center justify-between rounded-2xl border-2 border-primary/20 bg-primary/5 px-5 py-4 transition hover:bg-primary/10"
@@ -248,20 +248,6 @@ export function HomePageClient({
             <p className="text-[13px] font-bold text-foreground">حصصي</p>
             <p className="text-[11px] text-muted-foreground">
               احجز أو تابع دروسك
-            </p>
-          </div>
-        </Link>
-        <Link
-          href="/courses"
-          className="flex items-center justify-between rounded-2xl border-2 border-primary/20 bg-primary/5 px-5 py-4 transition hover:bg-primary/10"
-        >
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
-            <BookOpen className="size-5 text-primary" />
-          </div>
-          <div className="text-end">
-            <p className="text-[13px] font-bold text-foreground">الكورسات</p>
-            <p className="text-[11px] text-muted-foreground">
-              تصفح وابدأ التعلم
             </p>
           </div>
         </Link>

@@ -6,6 +6,8 @@ import { useTranslations, useLocale } from "next-intl";
 import { useLocaleStore } from "@/store/useLocaleStore";
 import { useThemeStore, type ThemeVariant } from "@/store/useThemeStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import Image from "next/image";
+import logoW from "@/../public/assets/logoW.svg";
 import { cn } from "@/lib/utils";
 import {
   Home,
@@ -29,7 +31,6 @@ import {
   Monitor,
   Baby,
 } from "lucide-react";
-import Image from "next/image";
 
 const navItems = [
   { href: "/", icon: Home, key: "home" },
@@ -83,12 +84,11 @@ export function AppSidebar({ className }: AppSidebarProps) {
       <div className="flex h-[var(--header-height)] items-center gap-3 border-b border-sidebar-border px-5">
         <div className="flex size-9 items-center justify-center rounded-xl bg-primary">
           <Image
-            src="/assets/logoW.svg"
+            src={logoW}
             alt="EA"
             width={24}
             height={24}
             priority
-            unoptimized
           />
         </div>
         <span className="text-body-strong text-sidebar-foreground leading-tight">

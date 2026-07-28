@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import logoW from "@/../public/assets/logoW.svg";
 import { useTranslations, useLocale } from "next-intl";
 
 export function AppFooter() {
@@ -18,11 +19,10 @@ export function AppFooter() {
           <Link href="/" className="flex items-center gap-3 shrink-0 group">
             <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs transition-transform group-hover:scale-105">
               <Image
-                src="/assets/logoW.svg"
+                src={logoW}
                 alt="EA"
                 width={22}
                 height={22}
-                unoptimized
               />
             </div>
             <div className="flex flex-col text-start">

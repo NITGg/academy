@@ -20,12 +20,22 @@ const balooBhaijaan = Baloo_Bhaijaan_2({
   weight: ["400", "500", "600", "700", "800"],
 });
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 export const metadata: Metadata = {
   title: {
     default: "Excellence Academy | أكاديمية التميز",
     template: "%s | Excellence Academy",
   },
   description: "Learn with the best teachers — تعلم مع أفضل المدرسين",
+  icons: {
+    icon: [
+      { url: `${basePath}/assets/logo.svg`, type: "image/svg+xml" },
+      { url: `${basePath}/icon.svg`, type: "image/svg+xml" },
+    ],
+    shortcut: `${basePath}/assets/logo.svg`,
+    apple: `${basePath}/assets/logo.svg`,
+  },
 };
 
 export default async function RootLayout({

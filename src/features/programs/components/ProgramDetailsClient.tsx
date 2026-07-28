@@ -11,18 +11,19 @@ import {
   Flag,
   BookOpen,
   Award,
-  ExternalLink,
   Loader2,
   ChevronLeft,
   Lock,
   Layers,
   Sparkles,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, getAppUrl } from "@/lib/utils";
 import type { ProgramDetails, ProgramCertificate, ProgramContentItem } from "../types";
-import { joinFreeProgram, openProgramCertificateAction } from "../actions";
+import { joinFreeProgram } from "../actions";
 import { BuyProgramModal } from "./BuyProgramModal";
+import { CertificateViewer } from "@/features/activity/components/CertificateViewer";
 
 interface ProgramDetailsClientProps {
   program: ProgramDetails;
@@ -52,7 +53,7 @@ function ProgramContentTree({ items }: { items: ProgramContentItem[] }) {
             key={item.itemid}
             className={cn(
               "rounded-2xl border border-border bg-card p-4 shadow-sm transition-all",
-              isSet ? "bg-muted/20 border-primary/20" : ""
+              isSet ? "bg-muted/20 border-primary/20" : "",
             )}
           >
             <div className="flex items-center justify-between gap-3">
@@ -67,14 +68,20 @@ function ProgramContentTree({ items }: { items: ProgramContentItem[] }) {
                       "flex size-9 shrink-0 items-center justify-center rounded-xl",
                       isCompleted
                         ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        : "bg-primary/10 text-primary"
+                        : "bg-primary/10 text-primary",
                     )}
                   >
-                    {isCompleted ? <CheckCircle2 className="size-5" /> : <BookOpen className="size-5" />}
+                    {isCompleted ? (
+                      <CheckCircle2 className="size-5" />
+                    ) : (
+                      <BookOpen className="size-5" />
+                    )}
                   </div>
                 )}
                 <div>
-                  <h4 className="text-small font-bold text-foreground">{item.name}</h4>
+                  <h4 className="text-small font-bold text-foreground">
+                    {item.name}
+                  </h4>
                   {item.sequencetype && (
                     <span className="text-[11px] text-muted-foreground">
                       الترتيب: {item.sequencetype}
@@ -83,7 +90,6 @@ function ProgramContentTree({ items }: { items: ProgramContentItem[] }) {
                 </div>
               </div>
 
-              {/* Course link action */}
               {!isSet && item.courseid > 0 && (
                 <Link
                   href={`/courses/${item.courseid}`}
@@ -95,7 +101,6 @@ function ProgramContentTree({ items }: { items: ProgramContentItem[] }) {
               )}
             </div>
 
-            {/* Render child items recursively if present */}
             {item.children && item.children.length > 0 && (
               <div className="mt-3 border-t border-border/60 pt-3 space-y-2 pr-4 border-r-2 border-r-primary/20">
                 <ProgramContentTree items={item.children} />
@@ -108,15 +113,21 @@ function ProgramContentTree({ items }: { items: ProgramContentItem[] }) {
   );
 }
 
-export function ProgramDetailsClient({ program, certificates, isLoggedIn }: ProgramDetailsClientProps) {
+export function ProgramDetailsClient({
+  program,
+  certificates,
+  isLoggedIn,
+}: ProgramDetailsClientProps) {
   const [loading, setLoading] = useState(false);
-  const [certLoadingId, setCertLoadingId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [buyModalOpen, setBuyModalOpen] = useState(false);
+  const [activeCertModal, setActiveCertModal] =
+    useState<ProgramCertificate | null>(null);
 
   const isOwned = program.owned === 1 || Boolean(program.allocation);
   const isCompleted =
-    program.allocation?.completed === 1 || (program.allocation?.timecompleted ?? 0) > 0;
+    program.allocation?.completed === 1 ||
+    (program.allocation?.timecompleted ?? 0) > 0;
 
   async function handleJoinOrBuy() {
     if (!isLoggedIn) {
@@ -139,19 +150,12 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
     }
   }
 
-  async function handleOpenCertificate(certId: number) {
-    setCertLoadingId(certId);
-    setErrorMessage(null);
-    const res = await openProgramCertificateAction(certId);
-    setCertLoadingId(null);
-
-    if (res.needsAuth) {
+  function handleOpenCertificate(cert: ProgramCertificate) {
+    if (!isLoggedIn) {
       window.location.assign(getAppUrl("/login"));
-    } else if (res.url) {
-      window.open(res.url, "_blank");
-    } else {
-      setErrorMessage(res.error || "تعذّر فتح الشهادة");
+      return;
     }
+    setActiveCertModal(cert);
   }
 
   return (
@@ -209,7 +213,9 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
                 )}
               </div>
 
-              <h1 className="text-xl font-bold text-foreground md:text-2xl">{program.name}</h1>
+              <h1 className="text-xl font-bold text-foreground md:text-2xl">
+                {program.name}
+              </h1>
             </div>
           </div>
 
@@ -218,7 +224,9 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
             {!isOwned && (
               <div>
                 {program.free === 1 ? (
-                  <span className="text-lg font-bold text-emerald-600">مجاناً</span>
+                  <span className="text-lg font-bold text-emerald-600">
+                    مجاناً
+                  </span>
                 ) : program.offer ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground line-through">
@@ -240,7 +248,7 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
               <Button
                 onClick={handleJoinOrBuy}
                 disabled={loading}
-                className="w-full md:w-auto rounded-2xl px-6 py-2.5 font-bold"
+                className="w-full md:w-auto rounded-2xl px-6 py-2.5 font-bold cursor-pointer"
               >
                 {loading ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -288,7 +296,9 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
                 <Play className="size-3.5 text-primary" />
                 تاريخ البدء
               </span>
-              <p className="font-bold text-foreground">{formatDate(program.allocation.timestart)}</p>
+              <p className="font-bold text-foreground">
+                {formatDate(program.allocation.timestart)}
+              </p>
             </div>
 
             <div className="rounded-2xl bg-muted/40 p-3 space-y-1">
@@ -297,7 +307,9 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
                 تاريخ الاستحقاق
               </span>
               <p className="font-bold text-foreground">
-                {program.allocation.timedue > 0 ? formatDate(program.allocation.timedue) : "غير محدد"}
+                {program.allocation.timedue > 0
+                  ? formatDate(program.allocation.timedue)
+                  : "غير محدد"}
               </p>
             </div>
 
@@ -307,7 +319,9 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
                 تاريخ الانتهاء
               </span>
               <p className="font-bold text-foreground">
-                {program.allocation.timeend > 0 ? formatDate(program.allocation.timeend) : "غير محدد"}
+                {program.allocation.timeend > 0
+                  ? formatDate(program.allocation.timeend)
+                  : "غير محدد"}
               </p>
             </div>
 
@@ -317,7 +331,9 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
                 حالة الإكمال
               </span>
               <p className="font-bold text-foreground">
-                {isCompleted ? formatDate(program.allocation.timecompleted) : "قيد التقدم"}
+                {isCompleted
+                  ? formatDate(program.allocation.timecompleted)
+                  : "قيد التقدم"}
               </p>
             </div>
           </div>
@@ -336,7 +352,9 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
         ) : (
           <div className="flex min-h-[140px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border text-muted-foreground">
             <BookOpen className="size-6 opacity-30" />
-            <p className="text-caption">لا توجد محتويات مسجلة لهذا البرنامج حالياً</p>
+            <p className="text-caption">
+              لا توجد محتويات مسجلة لهذا البرنامج حالياً
+            </p>
           </div>
         )}
       </div>
@@ -359,15 +377,22 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
                   <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-600">
                     {cert.openable ? "متاحة الآن" : "غير مكتمل الشروط"}
                   </span>
-                  <h4 className="text-small font-bold text-foreground">{cert.name}</h4>
+                  <h4 className="text-small font-bold text-foreground">
+                    {cert.name}
+                  </h4>
                 </div>
 
                 {/* Progress requirements */}
                 {cert.results && cert.results.length > 0 && (
                   <div className="space-y-2 border-t border-border pt-3">
-                    <p className="text-xs font-semibold text-muted-foreground">متطلبات الحصول على الشهادة:</p>
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      متطلبات الحصول على الشهادة:
+                    </p>
                     {cert.results.map((res, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs">
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between text-xs"
+                      >
                         <span className="text-muted-foreground flex items-center gap-1.5">
                           {res.passed ? (
                             <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
@@ -385,19 +410,13 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
                 )}
 
                 <Button
-                  onClick={() => handleOpenCertificate(cert.certificateid)}
-                  disabled={!cert.openable || certLoadingId === cert.certificateid}
+                  onClick={() => handleOpenCertificate(cert)}
+                  disabled={!cert.openable}
                   variant={cert.openable ? "default" : "outline"}
-                  className="w-full rounded-xl gap-2 text-xs font-bold"
+                  className="w-full rounded-xl gap-2 text-xs font-bold cursor-pointer"
                 >
-                  {certLoadingId === cert.certificateid ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <>
-                      <ExternalLink className="size-3.5" />
-                      <span>فتح الشهادة</span>
-                    </>
-                  )}
+                  <Award className="size-3.5" />
+                  <span>عرض الشهادة</span>
                 </Button>
               </div>
             ))}
@@ -409,11 +428,42 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
         <BuyProgramModal
           programId={program.id}
           programName={program.name}
-          basePrice={program.offer ? Number(program.offer.final) : Number(program.price)}
+          basePrice={
+            program.offer ? Number(program.offer.final) : Number(program.price)
+          }
           currency={program.currency || "EGP"}
           open={buyModalOpen}
           onClose={() => setBuyModalOpen(false)}
         />
+      )}
+
+      {/* Program Certificate Modal */}
+      {activeCertModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-card border border-border p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Award className="size-5 text-amber-500" />
+                <span>{activeCertModal.name}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setActiveCertModal(null)}
+                className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <CertificateViewer
+              cmid={
+                activeCertModal.externalref || activeCertModal.certificateid
+              }
+              name={activeCertModal.name}
+              isArabic={true}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

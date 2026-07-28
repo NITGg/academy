@@ -96,6 +96,8 @@ export async function resolveCertificateResponse(
 ): Promise<Response | null> {
   let autologinUrl: string | null = null;
 
+  console.log("[CertResolver] Resolving cert for cmid:", cmid);
+
   try {
     const data = await callAcademyApi<{ url: string }>(
       "open_certificate",
@@ -103,9 +105,10 @@ export async function resolveCertificateResponse(
       userToken,
       lang,
     );
+    console.log("[CertResolver] open_certificate result:", data);
     if (data?.url) autologinUrl = data.url;
-  } catch {
-    /* fallback to open_activity_autologin */
+  } catch (e) {
+    console.log("[CertResolver] open_certificate failed:", e);
   }
 
   if (!autologinUrl) {
@@ -116,20 +119,28 @@ export async function resolveCertificateResponse(
         userToken,
         lang,
       );
+      console.log("[CertResolver] open_activity_autologin result:", data);
       if (data?.url) autologinUrl = data.url;
-    } catch {
-      /* ignore */
+    } catch (e) {
+      console.log("[CertResolver] open_activity_autologin failed:", e);
     }
   }
 
-  if (!autologinUrl) return null;
+  if (!autologinUrl) {
+    console.log("[CertResolver] No autologin URL obtained");
+    return null;
+  }
 
   try {
+    console.log("[CertResolver] Fetching autologin URL:", autologinUrl);
     // 1. Hit autologin URL with manual redirect handling to capture MoodleSession cookie
     const res1 = await fetch(autologinUrl, {
       redirect: "manual",
       cache: "no-store",
     });
+
+    console.log("[CertResolver] res1 status:", res1.status);
+    console.log("[CertResolver] res1 headers location:", res1.headers.get("location"));
 
     const cookieList: string[] = [];
     if (typeof res1.headers.getSetCookie === "function") {
@@ -141,6 +152,8 @@ export async function resolveCertificateResponse(
       const sc = res1.headers.get("set-cookie");
       if (sc) cookieList.push(sc.split(";")[0]);
     }
+
+    console.log("[CertResolver] Captured cookies:", cookieList);
 
     const location = res1.headers.get("location");
     const cookieHeader = cookieList.join("; ");
@@ -155,11 +168,16 @@ export async function resolveCertificateResponse(
         targetUrlObj.searchParams.set("downloadown", "1");
       }
 
+      console.log("[CertResolver] Fetching target PDF URL:", targetUrlObj.toString());
+
       const pdfRes = await fetch(targetUrlObj.toString(), {
         headers: cookieHeader ? { Cookie: cookieHeader } : {},
         cache: "no-store",
         redirect: "follow",
       });
+
+      console.log("[CertResolver] pdfRes status:", pdfRes.status);
+      console.log("[CertResolver] pdfRes content-type:", pdfRes.headers.get("content-type"));
 
       if (
         pdfRes.ok &&
@@ -173,10 +191,15 @@ export async function resolveCertificateResponse(
     // 2. Direct fallback: append downloadown=1 to autologinUrl directly
     const directUrlObj = new URL(autologinUrl);
     directUrlObj.searchParams.set("downloadown", "1");
+    console.log("[CertResolver] Fetching direct fallback URL:", directUrlObj.toString());
+
     const directRes = await fetch(directUrlObj.toString(), {
       cache: "no-store",
       redirect: "follow",
     });
+
+    console.log("[CertResolver] directRes status:", directRes.status);
+    console.log("[CertResolver] directRes content-type:", directRes.headers.get("content-type"));
 
     if (
       directRes.ok &&
@@ -185,8 +208,8 @@ export async function resolveCertificateResponse(
     ) {
       return directRes;
     }
-  } catch {
-    /* ignore fetch errors */
+  } catch (err) {
+    console.log("[CertResolver] Fetch error:", err);
   }
 
   return null;

@@ -7,6 +7,8 @@ import { useTranslations, useLocale } from "next-intl";
 import { useLocaleStore } from "@/store/useLocaleStore";
 import { useThemeStore, type ThemeVariant } from "@/store/useThemeStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import Image from "next/image";
+import logoW from "@/../public/assets/logoW.svg";
 import { cn } from "@/lib/utils";
 import {
   Home,
@@ -34,7 +36,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
-import Image from "next/image";
 import { NotificationPopover } from "./notification-popover";
 
 /* ── Nav data ─────────────────────────────────────────────────────────── */
@@ -137,12 +138,11 @@ export function AppHeader() {
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
               <Image
-                src="/assets/logoW.svg"
+                src={logoW}
                 alt="EA"
                 width={18}
                 height={18}
                 priority
-                unoptimized
               />
             </div>
             <span className="text-body-strong hidden sm:inline">
@@ -363,12 +363,11 @@ export function AppHeader() {
             <div className="flex h-[var(--header-height)] items-center gap-3 border-b border-border px-4">
               <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
                 <Image
-                  src="/assets/logoW.svg"
+                  src={logoW}
                   alt="EA"
                   width={18}
                   height={18}
                   priority
-                  unoptimized
                 />
               </div>
               <span className="text-body-strong">
