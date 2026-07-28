@@ -12,6 +12,8 @@ import {
   Video,
   AlertCircle,
   Loader2,
+  AlertTriangle,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Lesson } from "../types";
@@ -146,10 +148,119 @@ function ActionButton({
   );
 }
 
+// ── Confirm dialog ────────────────────────────────────────────────────────────
+
+type DialogTone = "danger" | "warning";
+
+interface ConfirmConfig {
+  actionKey: string;
+  fn: () => Promise<LessonActionResult>;
+  tone: DialogTone;
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  note?: string;
+  confirmLabel: string;
+}
+
+function LessonConfirmDialog({
+  config,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  config: ConfirmConfig;
+  busy: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const isDanger = config.tone === "danger";
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+      <div
+        className="w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl shadow-black/20 overflow-hidden"
+        style={{ animation: "lessonModalIn 0.18s ease both" }}
+      >
+        {/* Header stripe */}
+        <div className={cn(
+          "flex items-center gap-3 px-5 py-4",
+          isDanger ? "bg-rose-50 dark:bg-rose-950/30" : "bg-amber-50 dark:bg-amber-950/30"
+        )}>
+          <span className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-full",
+            isDanger
+              ? "bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-400"
+              : "bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400"
+          )}>
+            {config.icon}
+          </span>
+          <h3 className={cn(
+            "text-[15px] font-bold",
+            isDanger ? "text-rose-700 dark:text-rose-300" : "text-amber-700 dark:text-amber-300"
+          )}>
+            {config.title}
+          </h3>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4 space-y-3">
+          <p className="text-sm text-foreground leading-relaxed text-right">{config.body}</p>
+          {config.note && (
+            <div className={cn(
+              "flex items-start gap-2 rounded-xl px-3 py-2.5 text-[12px] leading-relaxed",
+              isDanger
+                ? "bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400"
+                : "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+            )}>
+              <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
+              <span className="text-right">{config.note}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="rounded-xl border border-border bg-background px-4 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-muted disabled:opacity-50"
+          >
+            إلغاء
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition disabled:opacity-50",
+              isDanger
+                ? "bg-rose-600 hover:bg-rose-700 shadow-sm shadow-rose-600/30"
+                : "bg-amber-500 hover:bg-amber-600 shadow-sm shadow-amber-500/30"
+            )}
+          >
+            {busy && <Loader2 className="size-3.5 animate-spin" />}
+            {config.confirmLabel}
+          </button>
+        </div>
+      </div>
+      <style>{`
+        @keyframes lessonModalIn {
+          from { opacity: 0; transform: scale(0.95) translateY(6px); }
+          to   { opacity: 1; transform: scale(1)    translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ── LessonCard ────────────────────────────────────────────────────────────────
+
 export function LessonCard({ lesson }: { lesson: Lesson }) {
   const [isPending, startTransition] = useTransition();
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<ConfirmConfig | null>(null);
   // which inline time form is open: "suggest" (counter-offer) or "update" (reschedule)
   const [timeForm, setTimeForm] = useState<null | "suggest" | "update">(null);
   const [pickedUnix, setPickedUnix] = useState<number | null>(null);
@@ -158,8 +269,8 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
   );
   const [loadingAvail, setLoadingAvail] = useState(false);
 
-  const run = (actionKey: string, fn: () => Promise<LessonActionResult>, confirmMsg?: string) => {
-    if (confirmMsg && !window.confirm(confirmMsg)) return;
+  const execute = (actionKey: string, fn: () => Promise<LessonActionResult>) => {
+    setPendingConfirm(null);
     setError(null);
     setActiveAction(actionKey);
     startTransition(async () => {
@@ -174,6 +285,16 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
         setActiveAction(null);
       }
     });
+  };
+
+  // run without confirm dialog (for simple actions that don't need one)
+  const run = (actionKey: string, fn: () => Promise<LessonActionResult>) => {
+    execute(actionKey, fn);
+  };
+
+  // run with a styled confirm dialog instead of window.confirm
+  const runWithConfirm = (config: ConfirmConfig) => {
+    setPendingConfirm(config);
   };
 
   const closeTimeForm = () => {
@@ -419,11 +540,15 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
               variant="danger"
               loading={isPending && activeAction === "reject"}
               onClick={() =>
-                run(
-                  "reject",
-                  () => studentRespondLesson(lesson.id, "reject"),
-                  "هل تريد رفض الوقت المقترح وإنهاء الطلب؟",
-                )
+                runWithConfirm({
+                  actionKey: "reject",
+                  fn: () => studentRespondLesson(lesson.id, "reject"),
+                  tone: "danger",
+                  icon: <X className="size-4" />,
+                  title: "رفض الوقت المقترح",
+                  body: "هل تريد رفض الوقت المقترح من المدرس؟ سيتم إنهاء الطلب.",
+                  confirmLabel: "رفض الوقت",
+                })
               }
             />
           )}
@@ -445,11 +570,16 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
               variant="danger"
               loading={isPending && activeAction === "report_teacher_absent"}
               onClick={() =>
-                run(
-                  "report_teacher_absent",
-                  () => reportTeacherAbsent(lesson.id),
-                  "هل تريد الإبلاغ عن غياب المدرس؟ سيُعاد رصيد الحصة إليك.",
-                )
+                runWithConfirm({
+                  actionKey: "report_teacher_absent",
+                  fn: () => reportTeacherAbsent(lesson.id),
+                  tone: "warning",
+                  icon: <UserX className="size-4" />,
+                  title: "الإبلاغ عن غياب المدرس",
+                  body: "هل تريد الإبلاغ عن غياب المدرس عن هذه الحصة؟",
+                  note: "سيُعاد رصيد الحصة إلى محفظتك تلقائياً.",
+                  confirmLabel: "إبلاغ عن الغياب",
+                })
               }
             />
           )}
@@ -461,11 +591,15 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
               variant="danger"
               loading={isPending && activeAction === "cancel"}
               onClick={() =>
-                run(
-                  "cancel",
-                  () => cancelConfirmedLesson(lesson.id),
-                  "هل تريد إلغاء هذه الحصة المؤكدة؟",
-                )
+                runWithConfirm({
+                  actionKey: "cancel",
+                  fn: () => cancelConfirmedLesson(lesson.id),
+                  tone: "danger",
+                  icon: <Trash2 className="size-4" />,
+                  title: "إلغاء الحصة المؤكدة",
+                  body: "هل تريد إلغاء هذه الحصة؟ لا يمكن التراجع عن هذا الإجراء.",
+                  confirmLabel: "إلغاء الحصة",
+                })
               }
             />
           )}
@@ -477,15 +611,29 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
               variant="danger"
               loading={isPending && activeAction === "withdraw"}
               onClick={() =>
-                run(
-                  "withdraw",
-                  () => withdrawLessonRequest(lesson.id),
-                  "هل تريد سحب هذا الطلب؟",
-                )
+                runWithConfirm({
+                  actionKey: "withdraw",
+                  fn: () => withdrawLessonRequest(lesson.id),
+                  tone: "danger",
+                  icon: <Undo2 className="size-4" />,
+                  title: "سحب الطلب",
+                  body: "هل تريد سحب هذا الطلب وإلغاء الحجز؟",
+                  confirmLabel: "سحب الطلب",
+                })
               }
             />
           )}
         </div>
+      )}
+
+      {/* Styled confirm dialog — replaces window.confirm() */}
+      {pendingConfirm && (
+        <LessonConfirmDialog
+          config={pendingConfirm}
+          busy={isPending}
+          onConfirm={() => execute(pendingConfirm.actionKey, pendingConfirm.fn)}
+          onCancel={() => setPendingConfirm(null)}
+        />
       )}
     </div>
   );

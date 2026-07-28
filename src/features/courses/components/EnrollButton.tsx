@@ -3,11 +3,12 @@
 import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen, ShoppingCart, Loader2, CheckCircle2, Clock } from "lucide-react";
-import { enrollFree, startCourseCheckout } from "../actions";
+import { enrollFree, startCourseCheckout, enrollPurchased } from "../actions";
 
 interface EnrollButtonProps {
   courseId: number;
-  isFree: boolean;
+  isFree?: boolean;
+  isPurchased?: boolean;
   price?: number;
   currency?: string;
   hasPendingPayment?: boolean;
@@ -16,7 +17,8 @@ interface EnrollButtonProps {
 
 export function EnrollButton({
   courseId,
-  isFree,
+  isFree = false,
+  isPurchased = false,
   price,
   currency = "جنيه",
   hasPendingPayment,
@@ -50,7 +52,16 @@ export function EnrollButton({
   const handleClick = () => {
     setError(null);
     startTransition(async () => {
-      if (isFree) {
+      if (isPurchased) {
+        const result = await enrollPurchased(courseId);
+        if (result.needsAuth) {
+          router.push(`/login?from=/courses/${courseId}`);
+        } else if (result.error) {
+          setError(result.error);
+        } else {
+          setEnrolled(true);
+        }
+      } else if (isFree) {
         const result = await enrollFree(courseId);
         if (result.needsAuth) {
           router.push(`/login?from=/courses/${courseId}`);
@@ -77,19 +88,23 @@ export function EnrollButton({
       <button
         onClick={handleClick}
         disabled={isPending}
-        className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
+        className={`inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition hover:opacity-90 disabled:opacity-60 ${
+          isPurchased
+            ? "bg-amber-600 hover:bg-amber-700 text-white"
+            : "bg-primary text-primary-foreground"
+        }`}
       >
         {isPending ? (
           <Loader2 className="size-4 animate-spin" />
-        ) : isFree ? (
+        ) : isPurchased || isFree ? (
           <BookOpen className="size-4" />
         ) : (
           <ShoppingCart className="size-4" />
         )}
         {isPending
-          ? (isAr ? "جارٍ..." : "Please wait...")
-          : isFree
-            ? (isAr ? "سجّل مجاناً" : "Enroll for free")
+          ? (isAr ? "جارٍ الانضمام..." : "Joining...")
+          : isPurchased || isFree
+            ? (isAr ? "انضمام للكورس" : "Join Course")
             : (isAr
                 ? `اشترِ مقابل ${price} ${currency}`
                 : `Buy for ${price} ${currency}`)}

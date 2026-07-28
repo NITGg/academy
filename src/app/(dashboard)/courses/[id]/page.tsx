@@ -32,7 +32,7 @@ export default async function CourseDetailPage({ params }: Props) {
   }
 
   const { course, access, contents } = data;
-  const isEnrolled = access.isEnrolled || access.isPurchased;
+  const isEnrolled = access.isEnrolled;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 pb-10">

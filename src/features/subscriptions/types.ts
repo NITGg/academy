@@ -53,6 +53,8 @@ export interface B2BSubscription {
   available: number;
   price_paid: string;
   status: string; // active | expired | cancelled
+  /** true only while the subscription is active; false ⇒ read-only history (no management). */
+  can_manage?: boolean;
   expires_at: number;
 }
 
@@ -70,6 +72,8 @@ export interface B2BCapacity {
   removed_kept: number;
   expires_at: number;
   status: string;
+  /** true only while the subscription is active; false ⇒ read-only history (no management). */
+  can_manage?: boolean;
 }
 
 export interface B2BMember {

@@ -5,7 +5,20 @@ import { getLocale } from "next-intl/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { callMoodleRest, callAcademyApiGet } from "@/lib/moodle-server";
 import { getMySubscriptions } from "@/features/subscriptions/server";
+import { getMyPrograms, getProgramDetails } from "@/features/programs/server";
+import type { ProgramContentItem } from "@/features/programs/types";
 import { getRefererUrl } from "@/lib/referer";
+
+function extractCourseIdsFromProgramContent(items: ProgramContentItem[]): number[] {
+  const ids: number[] = [];
+  for (const item of items) {
+    if (item.courseid) ids.push(Number(item.courseid));
+    if (item.children && Array.isArray(item.children)) {
+      ids.push(...extractCourseIdsFromProgramContent(item.children));
+    }
+  }
+  return ids;
+}
 
 export async function enrollFree(courseId: number): Promise<{ error?: string; needsAuth?: boolean }> {
   const session = await getSessionFromCookie();
@@ -55,15 +68,7 @@ export async function enrollFree(courseId: number): Promise<{ error?: string; ne
 }
 
 /**
- * Enrol the current user into a course that one of their active subscriptions covers
- * (a normal subscription, a B2B admin's own purchase, or an approved B2B membership).
- *
- * Subscription course access is granted on-demand — the buyer is eligible but not enrolled
- * until they ask for it (mirrors local/payments/buy.php). We verify coverage server-side
- * against the backend-sourced plan course list (fail-closed), then grant access via a manual
- * enrolment that ENDS at the covering subscription's expiry — the same shape as
- * subscription_purchase_manager::grant_single_course_access, so the daily expiry task can
- * later unenrol it. No backend/API change required.
+ * Enrol the current user into a course that one of their active subscriptions or programs covers.
  */
 export async function enrollViaSubscription(
   courseId: number,
@@ -74,20 +79,37 @@ export async function enrollViaSubscription(
   const adminToken = process.env.MOODLE_ADMIN_TOKEN;
   if (!adminToken) return { error: "Server configuration error" };
 
-  // Fail-closed coverage check: the course must be unlocked by one of the user's ACTIVE
-  // subscriptions. Also capture that subscription's expiry to bound the enrolment.
   let timeend = 0;
+  let isCovered = false;
+
   try {
     const subs = await getMySubscriptions(session.wstoken);
-    const covering = subs.find(
+    const coveringSub = subs.find(
       (s) => s.status === "active" && (s.courses ?? []).some((c) => c.id === courseId),
     );
-    if (!covering) {
-      return { error: "هذا الكورس غير مشمول بأي من اشتراكاتك النشطة" };
+    if (coveringSub) {
+      isCovered = true;
+      timeend = coveringSub.expires_at ?? 0;
+    } else {
+      // Check program coverage
+      const myProgs = await getMyPrograms(session.wstoken);
+      for (const prog of myProgs) {
+        const details = await getProgramDetails(prog.id, session.wstoken);
+        if (details?.content) {
+          const courseIds = extractCourseIdsFromProgramContent(details.content);
+          if (courseIds.includes(courseId)) {
+            isCovered = true;
+            break;
+          }
+        }
+      }
     }
-    timeend = covering.expires_at ?? 0;
+
+    if (!isCovered) {
+      return { error: "هذا الكورس غير مشمول بأي من اشتراكاتك أو برامجك النشطة" };
+    }
   } catch {
-    return { error: "تعذّر التحقق من الاشتراك، حاول مرة أخرى" };
+    return { error: "تعذّر التحقق من التغطية، حاول مرة أخرى" };
   }
 
   // Already enrolled → nothing to do.
@@ -122,6 +144,58 @@ export async function enrollViaSubscription(
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "تعذّر التسجيل عبر الاشتراك";
+    return { error: msg };
+  }
+
+  revalidatePath(`/courses/${courseId}`);
+  revalidatePath("/courses");
+  revalidatePath("/");
+  return {};
+}
+
+/**
+ * Complete enrolment for a course that the user has ALREADY purchased (is_purchased = true)
+ * but for which Moodle enrolment record was missing or pending.
+ */
+export async function enrollPurchased(
+  courseId: number,
+): Promise<{ error?: string; needsAuth?: boolean }> {
+  const session = await getSessionFromCookie();
+  if (!session?.wstoken) return { needsAuth: true };
+
+  const adminToken = process.env.MOODLE_ADMIN_TOKEN;
+  if (!adminToken) return { error: "Server configuration error" };
+
+  try {
+    const access = await callMoodleRest<{ is_purchased: boolean; is_enrolled: boolean }>({
+      functionName: "local_payments_get_course_access",
+      token: session.wstoken,
+      params: { courseid: courseId },
+    });
+    if (access.is_enrolled) {
+      revalidatePath(`/courses/${courseId}`);
+      revalidatePath("/courses");
+      return {};
+    }
+    if (!access.is_purchased) {
+      return { error: "لم يتم العثور على عملية شراء لهذا الكورس" };
+    }
+  } catch {
+    return { error: "تعذّر التحقق من حالة الشراء، حاول مرة أخرى" };
+  }
+
+  try {
+    await callMoodleRest({
+      functionName: "enrol_manual_enrol_users",
+      token: adminToken,
+      params: {
+        "enrolments[0][userid]": session.user.id,
+        "enrolments[0][roleid]": 5,
+        "enrolments[0][courseid]": courseId,
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "تعذّر إكمال التسجيل";
     return { error: msg };
   }
 

@@ -14,6 +14,7 @@ export interface EnrolledCourse {
   overviewfiles?: Array<{ fileurl: string; mimetype?: string }>;
   startdate?: number;
   enddate?: number;
+  isPurchasedNotEnrolled?: boolean;
 }
 
 export async function getMyCourses(wstoken: string, userid: number): Promise<EnrolledCourse[]> {

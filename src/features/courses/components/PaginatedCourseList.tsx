@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Pagination } from "@/components/ui/Pagination";
-import { CourseCard } from "./CourseCard";
+import { CourseCard, type CoverageType } from "./CourseCard";
 import { MyCourseCard } from "./MyCourseCard";
 import type { Course } from "../types";
 import type { EnrolledCourse } from "../server";
@@ -10,13 +10,12 @@ import type { EnrolledCourse } from "../server";
 interface PaginatedCoursesProps {
   courses: Course[];
   pageSize?: number;
-  /** Ids of courses unlocked by the user's active subscriptions (free on-demand enrol). */
-  coveredCourseIds?: number[];
+  /** Coverage mapping (courseId -> CoverageType) for subscription / B2B sub / program coverage. */
+  coverageMap?: Record<number, CoverageType>;
 }
 
-export function PaginatedCourses({ courses, pageSize = 12, coveredCourseIds = [] }: PaginatedCoursesProps) {
+export function PaginatedCourses({ courses, pageSize = 12, coverageMap = {} }: PaginatedCoursesProps) {
   const [currentPage, setCurrentPage] = useState(1);
-  const coveredSet = new Set(coveredCourseIds);
 
   const totalPages = Math.ceil(courses.length / pageSize);
   const currentCourses = courses.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -33,7 +32,7 @@ export function PaginatedCourses({ courses, pageSize = 12, coveredCourseIds = []
           <CourseCard
             key={course.id}
             course={course}
-            coveredBySubscription={coveredSet.has(course.id)}
+            coverageType={coverageMap[course.id]}
           />
         ))}
       </div>

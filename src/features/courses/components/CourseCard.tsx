@@ -8,16 +8,21 @@ import { BookOpen, Users, ShoppingCart, Loader2, PlayCircle, BadgeCheck } from "
 import { useLocale } from "next-intl";
 import { parseMlang } from "@/lib/mlang";
 import type { Course } from "../types";
-import { enrollFree, enrollViaSubscription } from "../actions";
+import { enrollFree, enrollViaSubscription, enrollPurchased } from "../actions";
 import { BuyCourseModal } from "./BuyCourseModal";
+
+export type CoverageType = "normal_sub" | "b2b_sub" | "program";
 
 interface CourseCardProps {
   course: Course;
-  /** True when one of the user's active subscriptions unlocks this course (on-demand enrol). */
+  /** Coverage type when unlocked by subscription or program (free on-demand enrol). */
+  coverageType?: CoverageType | null;
+  /** Backward compatibility flag for subscription coverage */
   coveredBySubscription?: boolean;
 }
 
-export function CourseCard({ course, coveredBySubscription = false }: CourseCardProps) {
+export function CourseCard({ course, coverageType, coveredBySubscription }: CourseCardProps) {
+  const resolvedCoverage = coverageType ?? (coveredBySubscription ? "normal_sub" : null);
   const locale = useLocale();
   const lang = locale === "ar" ? "ar" : "en";
   const router = useRouter();
@@ -33,7 +38,8 @@ export function CourseCard({ course, coveredBySubscription = false }: CourseCard
   const currency = course.currency ?? "جنيه";
 
   const isFree = course.isFree ?? !course.price;
-  const isEnrolled = enrolled || course.isEnrolled || course.isPurchased;
+  const isEnrolled = enrolled || course.isEnrolled;
+  const isPurchasedNotEnrolled = !isEnrolled && course.isPurchased;
   const hasDiscount =
     !isFree && course.originalPrice != null && course.originalPrice > (course.price ?? 0);
 
@@ -59,8 +65,18 @@ export function CourseCard({ course, coveredBySubscription = false }: CourseCard
     });
   };
 
-  // A paid course the user's subscription unlocks: offer free on-demand enrol instead of "buy".
-  const canEnrollViaSub = coveredBySubscription && !isFree && !isEnrolled;
+  const handleEnrollPurchased = () => {
+    setError(null);
+    startEnroll(async () => {
+      const res = await enrollPurchased(course.id);
+      if (res.needsAuth) router.push(`/login?from=/courses/${course.id}`);
+      else if (res.error) setError(res.error);
+      else setEnrolled(true);
+    });
+  };
+
+  // A paid course unlocked by subscription or program: offer free on-demand enrol instead of "buy".
+  const canEnrollViaSub = Boolean(resolvedCoverage) && !isFree && !isEnrolled && !isPurchasedNotEnrolled;
 
   return (
     <div className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
@@ -103,11 +119,22 @@ export function CourseCard({ course, coveredBySubscription = false }: CourseCard
           </span>
         )}
 
-        {/* Covered-by-subscription badge (only for a paid course the user hasn't joined yet) */}
-        {!isEnrolled && canEnrollViaSub && (
-          <span className="absolute start-2 top-2 inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+        {/* Purchased badge */}
+        {isPurchasedNotEnrolled && (
+          <span className="absolute start-2 top-2 rounded-lg bg-orange-500 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+            تم الشراء
+          </span>
+        )}
+
+        {/* Coverage badge (Normal sub / B2B sub / Program) */}
+        {!isEnrolled && !isPurchasedNotEnrolled && canEnrollViaSub && (
+          <span className="absolute start-2 top-2 inline-flex items-center gap-1 rounded-lg bg-purple-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
             <BadgeCheck className="size-3.5" />
-            مشمول باشتراكك
+            {resolvedCoverage === "b2b_sub"
+              ? "مشمول باشتراك مؤسستك"
+              : resolvedCoverage === "program"
+                ? "مشمول ببرنامجك"
+                : "مشمول باشتراكك"}
           </span>
         )}
       </Link>
@@ -162,6 +189,15 @@ export function CourseCard({ course, coveredBySubscription = false }: CourseCard
               <PlayCircle className="size-4" />
               متابعة التعلم
             </Link>
+          ) : isPurchasedNotEnrolled ? (
+            <button
+              onClick={handleEnrollPurchased}
+              disabled={enrolling}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-orange-500 py-2 text-xs font-bold text-white transition hover:bg-orange-600 disabled:opacity-60"
+            >
+              {enrolling ? <Loader2 className="size-4 animate-spin" /> : <BookOpen className="size-4" />}
+              {enrolling ? "جارٍ الانضمام..." : "انضمام للكورس"}
+            </button>
           ) : isFree ? (
             <button
               onClick={handleEnrollFree}
@@ -169,21 +205,21 @@ export function CourseCard({ course, coveredBySubscription = false }: CourseCard
               className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-2 text-xs font-bold text-white transition hover:bg-emerald-600 disabled:opacity-60"
             >
               {enrolling ? <Loader2 className="size-4 animate-spin" /> : <BookOpen className="size-4" />}
-              سجّل مجاناً
+              {enrolling ? "جارٍ الانضمام..." : "انضمام للكورس"}
             </button>
           ) : canEnrollViaSub ? (
             <button
               onClick={handleEnrollViaSubscription}
               disabled={enrolling}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-2 text-xs font-bold text-white transition hover:bg-emerald-600 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-purple-600 py-2 text-xs font-bold text-white transition hover:bg-purple-700 disabled:opacity-60"
             >
               {enrolling ? <Loader2 className="size-4 animate-spin" /> : <BadgeCheck className="size-4" />}
-              التحق عبر اشتراكك
+              {enrolling ? "جارٍ الانضمام..." : "انضمام للكورس"}
             </button>
           ) : (
             <button
               onClick={() => setModalOpen(true)}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90"
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-2 text-xs font-bold text-white transition hover:bg-blue-700"
             >
               <ShoppingCart className="size-4" />
               شراء

@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { getSessionFromCookie } from "@/lib/session";
-import { getCoursesPageData, getMyCourses } from "@/features/courses/server";
+import { getCoursesPageData, getMyCourses, type EnrolledCourse } from "@/features/courses/server";
 import { getMySubscriptions } from "@/features/subscriptions/server";
+import { getMyPrograms, getProgramDetails } from "@/features/programs/server";
 import { CategoryFilter } from "@/features/courses/components/CategoryFilter";
 import { PaginatedCourses, PaginatedMyCourses } from "@/features/courses/components/PaginatedCourseList";
+import type { CoverageType } from "@/features/courses/components/CourseCard";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "الكورسات" };
@@ -21,23 +23,65 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
 
   const session = await getSessionFromCookie();
 
-  // Fetch in parallel — only load what's needed for the active tab
-  const [{ categories, courses }, myCourses, mySubscriptions] = await Promise.all([
-    isMy
-      ? Promise.resolve({ categories: [], courses: [] })
-      : getCoursesPageData({ categoryId, search, wstoken: session?.wstoken }),
-    isMy && session
+  // Fetch in parallel
+  const [{ categories, courses }, myEnrolments, mySubscriptions, myPrograms] = await Promise.all([
+    getCoursesPageData({ categoryId, search, wstoken: session?.wstoken }),
+    session
       ? getMyCourses(session.wstoken, session.user.id)
       : Promise.resolve([]),
-    !isMy && session
+    session
       ? getMySubscriptions(session.wstoken)
+      : Promise.resolve([]),
+    session
+      ? getMyPrograms(session.wstoken)
       : Promise.resolve([]),
   ]);
 
-  // Courses unlocked by any active subscription (normal or B2B) → free on-demand enrol.
-  const coveredCourseIds = mySubscriptions
-    .filter((s) => s.status === "active")
-    .flatMap((s) => (s.courses ?? []).map((c) => c.id));
+  // My Courses tab contains strictly joined (enrolled) courses
+  const myCourses: EnrolledCourse[] = myEnrolments;
+
+  // Program details to resolve covered course IDs
+  const programDetailsList =
+    session && myPrograms.length > 0
+      ? await Promise.all(myPrograms.map((p) => getProgramDetails(p.id, session.wstoken)))
+      : [];
+
+  const coverageMap: Record<number, CoverageType> = {};
+
+  // 1. Normal active subscriptions
+  for (const s of mySubscriptions.filter((s) => s.status === "active" && s.type !== "b2b")) {
+    for (const c of s.courses ?? []) {
+      coverageMap[c.id] = "normal_sub";
+    }
+  }
+
+  // 2. B2B active subscriptions
+  for (const s of mySubscriptions.filter((s) => s.status === "active" && s.type === "b2b")) {
+    for (const c of s.courses ?? []) {
+      coverageMap[c.id] = "b2b_sub";
+    }
+  }
+
+  // 3. User's programs
+  for (const details of programDetailsList) {
+    if (details?.content) {
+      const extractIds = (items: typeof details.content): number[] => {
+        const ids: number[] = [];
+        for (const item of items) {
+          if (item.courseid) ids.push(Number(item.courseid));
+          if (item.children && Array.isArray(item.children)) {
+            ids.push(...extractIds(item.children));
+          }
+        }
+        return ids;
+      };
+      for (const id of extractIds(details.content)) {
+        if (!coverageMap[id]) {
+          coverageMap[id] = "program";
+        }
+      }
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -127,7 +171,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
               </p>
             </div>
           ) : (
-            <PaginatedCourses courses={courses} pageSize={12} coveredCourseIds={coveredCourseIds} />
+            <PaginatedCourses courses={courses} pageSize={12} coverageMap={coverageMap} />
           )}
         </>
       )}

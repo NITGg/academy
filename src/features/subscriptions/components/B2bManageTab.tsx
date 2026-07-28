@@ -199,6 +199,9 @@ export function B2bManageTab({ subscriptions, initialSubscriptionId }: B2bManage
   }
 
   const cap = dashboard?.capacity;
+  // Management (generate/revoke link, approve/reject/remove) is allowed only while the subscription
+  // is active. Expired/cancelled subscriptions are read-only history. The backend enforces this too.
+  const canManage = cap ? (cap.can_manage ?? cap.status === "active") : false;
 
   return (
     <div className="space-y-5">
@@ -214,11 +217,14 @@ export function B2bManageTab({ subscriptions, initialSubscriptionId }: B2bManage
             }}
             className="w-full max-w-md rounded-xl border border-border bg-background p-2.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
           >
-            {subscriptions.map((s) => (
-              <option key={s.purchaseid} value={s.purchaseid}>
-                {s.name} ({s.available}/{s.seats})
-              </option>
-            ))}
+            {subscriptions.map((s) => {
+              const active = s.can_manage ?? s.status === "active";
+              return (
+                <option key={s.purchaseid} value={s.purchaseid}>
+                  {s.name} ({s.available}/{s.seats}){active ? "" : " — منتهي"}
+                </option>
+              );
+            })}
           </select>
         </div>
       )}
@@ -229,6 +235,16 @@ export function B2bManageTab({ subscriptions, initialSubscriptionId }: B2bManage
         </div>
       ) : cap ? (
         <>
+          {/* Read-only history notice — shown when the subscription is expired/cancelled. */}
+          {!canManage && (
+            <div className="flex items-start gap-2.5 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
+              <AlertTriangle className="mt-0.5 size-5 shrink-0" />
+              <p className="text-xs leading-relaxed">
+                انتهى هذا الاشتراك B2B. يُعرض للاطّلاع فقط (كسجلّ) — لم يعد بإمكانك توليد روابط أو إدارة الأعضاء.
+              </p>
+            </div>
+          )}
+
           {/* Capacity stats */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <StatCard icon={<Armchair className="size-5" />} value={cap.capacity} label="إجمالي المقاعد" />
@@ -239,38 +255,73 @@ export function B2bManageTab({ subscriptions, initialSubscriptionId }: B2bManage
             <StatCard icon={<CalendarClock className="size-5" />} value={formatDate(cap.expires_at)} label="تاريخ الانتهاء" />
           </div>
 
-          {/* Invitation link */}
-          <div className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Link2 className="size-5 text-primary" />
-              <h3 className="text-sm font-bold text-foreground">رابط الدعوة</h3>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              شارك هذا الرابط لدعوة الأعضاء للانضمام لاشتراكك. الرابط لا يمنح صلاحية مباشرة — يُنشئ طلب
-              عضوية يظهر لك هنا للموافقة عليه.
-            </p>
+          {/* Invitation link — hidden entirely for read-only (expired) subscriptions:
+              an ended subscription has no shareable link, so no copy/generate/revoke at all. */}
+          {canManage && (
+            <div className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Link2 className="size-5 text-primary" />
+                <h3 className="text-sm font-bold text-foreground">رابط الدعوة</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                شارك هذا الرابط لدعوة الأعضاء للانضمام لاشتراكك. الرابط لا يمنح صلاحية مباشرة — يُنشئ طلب
+                عضوية يظهر لك هنا للموافقة عليه.
+              </p>
 
-            {shareLink ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-2">
-                  <code className="flex-1 min-w-0 truncate text-[12px] text-primary" dir="ltr">
-                    {shareLink}
-                  </code>
+              {shareLink ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-2">
+                    <code className="flex-1 min-w-0 truncate text-[12px] text-primary" dir="ltr">
+                      {shareLink}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className={cn(
+                        "flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition",
+                        copied
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20"
+                          : "border-border bg-background text-foreground hover:bg-muted",
+                      )}
+                    >
+                      {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                      {copied ? "تم النسخ" : "نسخ"}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleGenerate}
+                      disabled={busy}
+                      className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-bold text-foreground transition hover:bg-muted disabled:opacity-50"
+                    >
+                      <RefreshCw className="size-3.5" />
+                      توليد رابط جديد
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRevokeTargetId(activeInvite!.id)}
+                      disabled={busy}
+                      className="flex items-center gap-1.5 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-1.5 text-xs font-bold text-destructive transition hover:bg-destructive/10 disabled:opacity-50"
+                    >
+                      <Trash2 className="size-3.5" />
+                      إلغاء الرابط
+                    </button>
+                  </div>
+                </div>
+              ) : activeInvite ? (
+                // Active link exists but its raw token was not stored (legacy) — only allow revoke.
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted-foreground">يوجد رابط دعوة نشط (لا يمكن إعادة عرضه).</span>
                   <button
                     type="button"
-                    onClick={handleCopy}
-                    className={cn(
-                      "flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition",
-                      copied
-                        ? "border-emerald-300 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20"
-                        : "border-border bg-background text-foreground hover:bg-muted",
-                    )}
+                    onClick={() => setRevokeTargetId(activeInvite.id)}
+                    disabled={busy}
+                    className="flex items-center gap-1.5 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-1.5 text-xs font-bold text-destructive transition hover:bg-destructive/10 disabled:opacity-50"
                   >
-                    {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                    {copied ? "تم النسخ" : "نسخ"}
+                    <Trash2 className="size-3.5" />
+                    إلغاء الرابط
                   </button>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={handleGenerate}
@@ -280,52 +331,20 @@ export function B2bManageTab({ subscriptions, initialSubscriptionId }: B2bManage
                     <RefreshCw className="size-3.5" />
                     توليد رابط جديد
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setRevokeTargetId(activeInvite!.id)}
-                    disabled={busy}
-                    className="flex items-center gap-1.5 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-1.5 text-xs font-bold text-destructive transition hover:bg-destructive/10 disabled:opacity-50"
-                  >
-                    <Trash2 className="size-3.5" />
-                    إلغاء الرابط
-                  </button>
                 </div>
-              </div>
-            ) : activeInvite ? (
-              // Active link exists but its raw token was not stored (legacy) — only allow revoke.
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-muted-foreground">يوجد رابط دعوة نشط (لا يمكن إعادة عرضه).</span>
-                <button
-                  type="button"
-                  onClick={() => setRevokeTargetId(activeInvite.id)}
-                  disabled={busy}
-                  className="flex items-center gap-1.5 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-1.5 text-xs font-bold text-destructive transition hover:bg-destructive/10 disabled:opacity-50"
-                >
-                  <Trash2 className="size-3.5" />
-                  إلغاء الرابط
-                </button>
+              ) : (
                 <button
                   type="button"
                   onClick={handleGenerate}
                   disabled={busy}
-                  className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-bold text-foreground transition hover:bg-muted disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
                 >
-                  <RefreshCw className="size-3.5" />
-                  توليد رابط جديد
+                  {busy ? <Loader2 className="size-4 animate-spin" /> : <Link2 className="size-4" />}
+                  توليد رابط دعوة
                 </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={busy}
-                className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
-              >
-                {busy ? <Loader2 className="size-4 animate-spin" /> : <Link2 className="size-4" />}
-                توليد رابط دعوة
-              </button>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Members */}
           <div className="space-y-3">
@@ -384,41 +403,44 @@ export function B2bManageTab({ subscriptions, initialSubscriptionId }: B2bManage
                         )}
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-2">
-                        {m.status === "pending" && (
-                          <>
+                      {/* Member actions only while the subscription is active (read-only history otherwise). */}
+                      {canManage && (
+                        <div className="flex shrink-0 items-center gap-2">
+                          {m.status === "pending" && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => runAction(() => approveB2bMember(m.id), "تم قبول العضو")}
+                                className="rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-600 transition hover:bg-emerald-500/20 disabled:opacity-50"
+                              >
+                                قبول
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => {
+                                  setRejectReason("");
+                                  setRejectTarget(m);
+                                }}
+                                className="rounded-lg bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-600 transition hover:bg-amber-500/20 disabled:opacity-50"
+                              >
+                                رفض
+                              </button>
+                            </>
+                          )}
+                          {m.status === "approved" && (
                             <button
                               type="button"
                               disabled={busy}
-                              onClick={() => runAction(() => approveB2bMember(m.id), "تم قبول العضو")}
-                              className="rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-600 transition hover:bg-emerald-500/20 disabled:opacity-50"
+                              onClick={() => setRemoveTarget(m)}
+                              className="rounded-lg bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive transition hover:bg-destructive/20 disabled:opacity-50"
                             >
-                              قبول
+                              إزالة
                             </button>
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={() => {
-                                setRejectReason("");
-                                setRejectTarget(m);
-                              }}
-                              className="rounded-lg bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-600 transition hover:bg-amber-500/20 disabled:opacity-50"
-                            >
-                              رفض
-                            </button>
-                          </>
-                        )}
-                        {m.status === "approved" && (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => setRemoveTarget(m)}
-                            className="rounded-lg bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive transition hover:bg-destructive/20 disabled:opacity-50"
-                          >
-                            إزالة
-                          </button>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

@@ -46,8 +46,8 @@ export function SubscriptionEnrollButton({ courseId, locale }: SubscriptionEnrol
       >
         {isPending ? <Loader2 className="size-4 animate-spin" /> : <BadgeCheck className="size-4" />}
         {isPending
-          ? isAr ? "جارٍ..." : "Please wait..."
-          : isAr ? "التحق عبر اشتراكك" : "Enroll with your subscription"}
+          ? isAr ? "جارٍ الانضمام..." : "Joining..."
+          : isAr ? "انضمام للكورس" : "Join Course"}
       </button>
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>

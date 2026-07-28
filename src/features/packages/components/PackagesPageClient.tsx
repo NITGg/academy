@@ -16,11 +16,22 @@ function formatDate(ts: number): string {
   return `${d.getFullYear()}-${month}-${day}`;
 }
 
+// Derive the real state the student should see. The backend may still report a
+// package as "active" (or "cancelled") after its deadline has passed, so we
+// compute expiry from the date and fully-used from remaining sessions here.
+function getEffectiveStatus(pkg: MyPackage): string {
+  const now = Math.floor(Date.now() / 1000);
+  if (pkg.expires_at > 0 && pkg.expires_at < now) return "expired";
+  if (pkg.status === "active" && (pkg.remaining_flex ?? 0) <= 0) return "used";
+  return pkg.status;
+}
+
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
     active: { label: "نشطة", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
     expired: { label: "منتهية", className: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" },
     used: { label: "مستخدمة بالكامل", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+    cancelled: { label: "ملغاة", className: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" },
   };
   const s = map[status] ?? { label: status, className: "bg-muted text-muted-foreground" };
   return (
@@ -70,7 +81,7 @@ function MyPackagesTab({ packages, pageSize = 6 }: { packages: MyPackage[]; page
         {currentPackages.map((pkg) => (
           <div key={pkg.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <StatusBadge status={pkg.status} />
+              <StatusBadge status={getEffectiveStatus(pkg)} />
               <span className="text-caption font-bold text-foreground">{pkg.name}</span>
             </div>
 
@@ -326,9 +337,11 @@ export function PackagesPageClient({
   paymentHistory,
 }: PackagesPageClientProps) {
   const [activeTab, setActiveTab] = useState<Tab>("mine");
-  const activePackage = myPackages.find(
-    (p) => p.status === "active" || (p.remaining_flex ?? 0) > 0
-  );
+  // A package blocks new purchases only when it is genuinely usable — its
+  // effective status is "active" (not past its deadline, still has sessions).
+  // Expired packages (even with leftover sessions), used, and cancelled ones
+  // must NOT block buying.
+  const activePackage = myPackages.find((p) => getEffectiveStatus(p) === "active");
   const hasActivePackage = Boolean(activePackage);
 
   return (

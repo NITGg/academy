@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Users, ArrowRight, ArrowLeft, Tag, BadgeCheck } from "lucide-react";
+import { Users, ArrowRight, ArrowLeft, Tag, BadgeCheck, BookOpen } from "lucide-react";
 import { getLocale } from "next-intl/server";
 import type { Course } from "../types";
 import type { CourseAccess } from "../server-detail";
@@ -93,15 +93,24 @@ export async function CourseHero({ course, access }: CourseHeroProps) {
                 </span>
               )}
 
-              {(isEnrolled || isPurchased) && (
+              {isEnrolled && (
                 <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
                   {locale === "ar" ? "مسجّل" : "Enrolled"}
                 </span>
               )}
+              {!isEnrolled && isPurchased && (
+                <span className="inline-flex items-center rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white">
+                  {locale === "ar" ? "تم الشراء" : "Purchased"}
+                </span>
+              )}
               {!isEnrolled && !isPurchased && access.coveredBySubscription && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600">
+                <span className="inline-flex items-center gap-1 rounded-full bg-purple-600 px-3 py-1 text-xs font-bold text-white">
                   <BadgeCheck className="size-3.5" />
-                  {locale === "ar" ? "مشمول باشتراكك" : "Included in your subscription"}
+                  {access.coverageType === "b2b_sub"
+                    ? (locale === "ar" ? "مشمول باشتراك مؤسستك" : "Covered by B2B subscription")
+                    : access.coverageType === "program"
+                      ? (locale === "ar" ? "مشمول ببرنامجك" : "Covered by your program")
+                      : (locale === "ar" ? "مشمول باشتراكك" : "Covered by your subscription")}
                 </span>
               )}
             </div>
@@ -136,9 +145,16 @@ export async function CourseHero({ course, access }: CourseHeroProps) {
           )}
 
           {/* CTA */}
-          {!isEnrolled && !isPurchased && (
+          {!isEnrolled && (
             <div className="pt-2">
-              {isFree ? (
+              {isPurchased ? (
+                <EnrollButton
+                  courseId={course.id}
+                  isPurchased
+                  hasPendingPayment={hasPendingPayment}
+                  locale={locale}
+                />
+              ) : isFree ? (
                 <EnrollButton
                   courseId={course.id}
                   isFree
@@ -166,17 +182,17 @@ export async function CourseHero({ course, access }: CourseHeroProps) {
             </div>
           )}
 
-          {/* {(isEnrolled || isPurchased) && (
+          {isEnrolled && (
             <div className="pt-2">
               <a
                 href="#course-content"
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
               >
                 <BookOpen className="size-4" />
-                {locale === "ar" ? "ابدأ التعلم" : "Start Learning"}
+                {locale === "ar" ? "متابعة التعلم" : "Continue Learning"}
               </a>
             </div>
-          )} */}
+          )}
         </div>
       </div>
     </div>

@@ -4,8 +4,10 @@ import { getSessionFromCookie } from "@/lib/session";
 import { callMoodleRest } from "@/lib/moodle-server";
 import { enrichCoursesWithPricing } from "./server";
 import { getMySubscriptions } from "@/features/subscriptions/server";
+import { getMyPrograms, getProgramDetails } from "@/features/programs/server";
 import { parseMlang } from "@/lib/mlang";
 import { MOODLE_BASE_URL } from "@/config/constants";
+import type { CoverageType } from "./components/CourseCard";
 import type {
   Course,
   CourseSection,
@@ -19,7 +21,8 @@ export interface CourseAccess {
   isEnrolled: boolean;
   isPurchased: boolean;
   hasPendingPayment: boolean;
-  /** True when one of the user's active subscriptions unlocks this course (free on-demand enrol). */
+  coverageType: CoverageType | null;
+  /** True when subscription or program unlocks this course (free on-demand enrol). */
   coveredBySubscription: boolean;
 }
 
@@ -158,19 +161,53 @@ export async function getCourseDetail(courseId: number): Promise<CourseDetailDat
     isEnrolled: course.isEnrolled ?? rawAccess?.is_enrolled ?? false,
     isPurchased: course.isPurchased ?? rawAccess?.is_purchased ?? false,
     hasPendingPayment: rawAccess?.has_pending_payment ?? false,
+    coverageType: null,
     coveredBySubscription: false,
   };
 
   // Only relevant for a paid course the viewer hasn't accessed yet: is it unlocked by one of
-  // their active subscriptions (normal or B2B)? If so we offer a free on-demand enrol instead of buy.
+  // their active subscriptions or programs?
   if (userToken && !access.isEnrolled && !access.isPurchased && !access.isFree) {
     try {
       const subs = await getMySubscriptions(userToken);
-      access.coveredBySubscription = subs.some(
-        (s) => s.status === "active" && (s.courses ?? []).some((c) => c.id === courseId),
+      const normalSub = subs.find(
+        (s) => s.status === "active" && s.type !== "b2b" && (s.courses ?? []).some((c) => c.id === courseId)
       );
+      if (normalSub) {
+        access.coverageType = "normal_sub";
+        access.coveredBySubscription = true;
+      } else {
+        const b2bSub = subs.find(
+          (s) => s.status === "active" && s.type === "b2b" && (s.courses ?? []).some((c) => c.id === courseId)
+        );
+        if (b2bSub) {
+          access.coverageType = "b2b_sub";
+          access.coveredBySubscription = true;
+        } else {
+          // Check user programs
+          const progs = await getMyPrograms(userToken);
+          for (const p of progs) {
+            const details = await getProgramDetails(p.id, userToken);
+            if (details?.content) {
+              const extractIds = (items: typeof details.content): number[] => {
+                const ids: number[] = [];
+                for (const item of items) {
+                  if (item.courseid) ids.push(Number(item.courseid));
+                  if (item.children && Array.isArray(item.children)) ids.push(...extractIds(item.children));
+                }
+                return ids;
+              };
+              if (extractIds(details.content).includes(courseId)) {
+                access.coverageType = "program";
+                access.coveredBySubscription = true;
+                break;
+              }
+            }
+          }
+        }
+      }
     } catch {
-      // best-effort — leave coveredBySubscription false
+      // best-effort
     }
   }
 
