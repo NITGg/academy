@@ -7,17 +7,6 @@ const nextConfig: NextConfig = {
   basePath: "/nextjs-frontend-student",
   assetPrefix: "/nextjs-frontend-student",
 
-  async redirects() {
-    return [
-      {
-        source: "/",
-        destination: "/nextjs-frontend-student",
-        basePath: false,
-        permanent: false,
-      },
-    ];
-  },
-
   images: {
     remotePatterns: [
       {
