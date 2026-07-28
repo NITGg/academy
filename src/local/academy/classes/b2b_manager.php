@@ -141,7 +141,9 @@ class b2b_manager {
         if (!$inv) {
             throw new \moodle_exception('err_invalidinvite', 'local_academy');
         }
-        self::require_owned_purchase($inv->purchaseid, $adminid);
+        // Managing links is only allowed while the parent subscription is active — an expired/cancelled
+        // subscription is read-only history.
+        self::require_owned_purchase($inv->purchaseid, $adminid, true);
         $DB->update_record('academy_b2b_invitations', (object) array(
             'id'           => $inv->id,
             'status'       => self::I_REVOKED,
@@ -305,7 +307,8 @@ class b2b_manager {
     public static function reject_membership($membershipid, $adminid, $reason = '') {
         global $DB;
         $m = self::get_membership($membershipid);
-        self::require_owned_purchase($m->purchaseid, $adminid);
+        // Read-only history once the subscription is no longer active (US-B2B: manage active subs only).
+        self::require_owned_purchase($m->purchaseid, $adminid, true);
         if ($m->status !== self::M_PENDING) {
             throw new \moodle_exception('err_notpending', 'local_academy');
         }
@@ -328,7 +331,8 @@ class b2b_manager {
     public static function remove_member($membershipid, $adminid) {
         global $DB;
         $m = self::get_membership($membershipid);
-        self::require_owned_purchase($m->purchaseid, $adminid);
+        // Managing members is only allowed while the subscription is active; expired ones are history.
+        self::require_owned_purchase($m->purchaseid, $adminid, true);
         if ($m->status !== self::M_APPROVED) {
             throw new \moodle_exception('err_notapproved', 'local_academy');
         }
@@ -387,6 +391,7 @@ class b2b_manager {
             }
         }
         $consumed = self::consumed_seats($purchaseid);
+        $status = subscription_purchase_manager::effective_status($purchase);
         return array(
             'purchaseid'        => (int)$purchaseid,
             'capacity'          => (int)$purchase->seats,
@@ -399,7 +404,10 @@ class b2b_manager {
             'removed_returned'  => $removedreturned,
             'removed_kept'      => $removedkept,
             'expires_at'        => (int)$purchase->expires_at,
-            'status'            => subscription_purchase_manager::effective_status($purchase),
+            'status'            => $status,
+            // Whether management actions (generate/revoke link, approve/reject/remove) are allowed.
+            // Only while the subscription is active; otherwise the dashboard is read-only history.
+            'can_manage'        => $status === 'active',
         );
     }
 
@@ -449,6 +457,7 @@ class b2b_manager {
         $out = array();
         foreach ($rows as $r) {
             $consumed = self::consumed_seats($r->id);
+            $status = subscription_purchase_manager::effective_status($r);
             $out[] = array(
                 'purchaseid'    => (int)$r->id,
                 'subscriptionid' => (int)$r->subscriptionid,
@@ -457,7 +466,9 @@ class b2b_manager {
                 'consumed'      => $consumed,
                 'available'     => max(0, (int)$r->seats - $consumed),
                 'price_paid'    => $r->price_paid,
-                'status'        => subscription_purchase_manager::effective_status($r),
+                'status'        => $status,
+                // The frontend should render non-active subscriptions as read-only history.
+                'can_manage'    => $status === 'active',
                 'expires_at'    => (int)$r->expires_at,
             );
         }

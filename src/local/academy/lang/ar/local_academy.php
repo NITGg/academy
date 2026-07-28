@@ -1016,6 +1016,7 @@ $string['b2b_copy']            = 'نسخ';
 $string['b2b_copied']          = 'تم النسخ';
 $string['b2b_link_none']       = 'لا يوجد رابط دعوة نشط. أنشئ رابطًا لدعوة المستخدمين.';
 $string['b2b_link_active']     = 'يوجد رابط دعوة نشط.';
+$string['b2b_readonly_notice'] = 'انتهى هذا الاشتراك B2B. يُعرض للاطّلاع فقط (كسجلّ) — لم يعد بإمكانك توليد روابط أو إدارة الأعضاء.';
 $string['b2b_members']         = 'الأعضاء';
 $string['b2b_col_user']        = 'المستخدم';
 $string['b2b_col_status']      = 'الحالة';

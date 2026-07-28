@@ -33,6 +33,7 @@ $STR = local_academy_string_map(array(
     'b2b_dashboard_title', 'b2b_no_subs', 'b2b_purchased', 'b2b_consumed', 'b2b_available', 'b2b_expires',
     'b2b_pending', 'b2b_approved', 'b2b_rejected', 'b2b_removed', 'b2b_expired', 'b2b_removed_returned', 'b2b_removed_kept',
     'b2b_invite_heading', 'b2b_generate', 'b2b_revoke', 'b2b_copy', 'b2b_copied', 'b2b_link_none', 'b2b_link_active',
+    'b2b_readonly_notice',
     'b2b_members', 'b2b_col_user', 'b2b_col_status', 'b2b_col_seat', 'b2b_col_actions',
     'b2b_approve', 'b2b_reject', 'b2b_remove', 'b2b_seat_yes', 'b2b_seat_no', 'b2b_none',
     'b2b_reason_prompt', 'b2b_confirm_remove', 'b2b_confirm_remove_title',
@@ -101,9 +102,10 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     </div>
 
     <div id="b2b-body" style="display:none;">
+        <div id="b2b-readonly" class="alert alert-warning" style="display:none;"><?php echo $STR['b2b_readonly_notice']; ?></div>
         <div class="b2b-stats" id="b2b-stats"></div>
 
-        <div class="card" style="max-width:720px;">
+        <div class="card" id="b2b-invite-card" style="max-width:720px;">
             <div class="card-body">
                 <h5><?php echo $STR['b2b_invite_heading']; ?></h5>
                 <div id="b2b-invite-area"></div>
@@ -164,6 +166,7 @@ echo html_writer::script(<<<'JS'
     var CURRENT = null;   // selected purchaseid
     var FILTER = '';      // members status filter
     var DASH = null;      // last dashboard payload
+    var CAN_MANAGE = true; // false when the selected subscription is expired/cancelled → read-only history
 
     function statusLabel(s){ var k='b2b_'+s; return str(k)!==k?str(k):s; }
 
@@ -193,6 +196,8 @@ echo html_writer::script(<<<'JS'
         document.body.removeChild(ta);
     }
 
+    // Note: the whole invitation card is hidden when !CAN_MANAGE (see loadDashboard), so renderInvites
+    // only ever renders for a manageable (active) subscription.
     function renderInvites(invites){
         var active = (invites || []).filter(function(i){ return i.status === 'active'; })[0];
         var area = $('b2b-invite-area');
@@ -211,7 +216,10 @@ echo html_writer::script(<<<'JS'
     function memberRowHtml(m){
         var seat = m.consumes_seat ? str('b2b_seat_yes') : str('b2b_seat_no');
         var actions = '';
-        if (m.status === 'pending'){
+        // No member actions on a read-only (expired/cancelled) subscription — history view only.
+        if (!CAN_MANAGE){
+            // fall through with empty actions
+        } else if (m.status === 'pending'){
             actions = '<button class="btn btn-sm btn-success" data-b2bact="approve" data-id="' + m.id + '">' + esc(str('b2b_approve')) + '</button> ' +
                       '<button class="btn btn-sm btn-danger" data-b2bact="reject" data-id="' + m.id + '" data-name="' + esc(m.user_fullname) + '">' + esc(str('b2b_reject')) + '</button>';
         } else if (m.status === 'approved'){
@@ -236,7 +244,14 @@ echo html_writer::script(<<<'JS'
         if (!CURRENT){ return; }
         api('get_b2b_dashboard', {purchaseid: CURRENT}).then(function(d){
             DASH = d;
+            // The server marks non-active subscriptions read-only; fall back to the status field.
+            CAN_MANAGE = d.capacity ? (typeof d.capacity.can_manage !== 'undefined'
+                ? !!d.capacity.can_manage : d.capacity.status === 'active') : true;
             $('b2b-body').style.display = 'block';
+            $('b2b-readonly').style.display = CAN_MANAGE ? 'none' : 'block';
+            // The whole invitation card (link + copy + generate/revoke) is hidden on a read-only
+            // subscription — an ended subscription has no shareable link.
+            $('b2b-invite-card').style.display = CAN_MANAGE ? '' : 'none';
             renderStats(d.capacity);
             renderInvites(d.invitations);
             renderMembers(d.members);

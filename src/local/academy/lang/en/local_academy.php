@@ -1061,6 +1061,7 @@ $string['b2b_copy']            = 'Copy';
 $string['b2b_copied']          = 'Copied!';
 $string['b2b_link_none']       = 'No active invitation link. Generate one to invite users.';
 $string['b2b_link_active']     = 'An invitation link is active.';
+$string['b2b_readonly_notice'] = 'This B2B subscription has ended. It is shown as history — you can no longer generate links or manage members.';
 $string['b2b_members']         = 'Members';
 $string['b2b_col_user']        = 'User';
 $string['b2b_col_status']      = 'Status';
