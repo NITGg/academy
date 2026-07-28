@@ -1560,6 +1560,45 @@ try {
             }
             break;
 
+        // Student (web port): get a fresh, self-authenticating URL that opens a certificate activity
+        // INSIDE the site, addressed directly by its course-module id (cmid) — not by an
+        // {academy_certificates} record. This is for plain course-level customcert activities (e.g. a
+        // "certificate of completion" the admin dropped into a course), which the eligibility-based
+        // open_certificate cannot serve because they are not linked to an academy certificate row.
+        //
+        // Access is gated exactly by the activity's own rules: is_available_to() returns true only when
+        // the user is enrolled in the host course AND every "Restrict access" condition is satisfied, so
+        // there is no separate eligibility check to run here. The minted key is single-use, expires in
+        // ~2 minutes and is bound to this cmid. IP binding is disabled because the web server mints the
+        // key on the user's behalf while the user's own browser redeems it (a different IP).
+        //
+        // The returned `url` is meant to be loaded in an iframe / same-tab navigation on the site.
+        case 'open_activity_autologin':
+            academy_require_post();
+            try {
+                $cmid = required_param('cmid', PARAM_INT);
+                $cm   = customcert_link::get_activity($cmid);
+                if (!$cm) {
+                    academy_respond(['status' => 'fail',
+                        'error' => get_string('err_certnotlinked', 'local_academy')]);
+                }
+                // The activity's page enforces enrolment + its own restrictions live; ask the same
+                // question before minting so we never hand out a link to a page that would then block.
+                if (!customcert_link::is_available_to($userid, $cmid)) {
+                    academy_respond(['status' => 'fail',
+                        'error' => get_string('err_certactivityrestricted', 'local_academy')]);
+                }
+                $url = customcert_link::mint_autologin_url($userid, $cmid, false);
+                if (!$url) {
+                    academy_respond(['status' => 'fail',
+                        'error' => get_string('err_certnotlinked', 'local_academy')]);
+                }
+                academy_respond(['status' => 'success', 'data' => ['url' => $url->out(false)]]);
+            } catch (Exception $e) {
+                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+            }
+            break;
+
         // Admin: list a course's OR a program's certificates (raw) + the scope's rule catalogue.
         // scope defaults to 'course' (existing behaviour). For scope='program' pass programid; the
         // response carries no course activities (program rules need none).

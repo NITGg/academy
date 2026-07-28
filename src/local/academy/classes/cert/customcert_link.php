@@ -167,18 +167,25 @@ class customcert_link {
      * Mint it only for a user who is eligible and already granted access (call {@see grant_access}
      * first) — this method does not re-check either.
      *
-     * @param int $userid
-     * @param int $cmid the linked customcert activity
+     * @param int  $userid
+     * @param int  $cmid       the linked customcert activity
+     * @param bool $iprestrict bind the key to the caller's IP (true, the mobile default). Pass false
+     *                         for the web/server-side flow, where the key is minted by the web server
+     *                         on the user's behalf but redeemed from the user's browser — a different
+     *                         IP — so IP binding would always reject. Single use + the short TTL + the
+     *                         cmid binding remain in force either way.
      * @return \moodle_url|null null when the activity does not exist
      */
-    public static function mint_autologin_url(int $userid, int $cmid): ?\moodle_url {
+    public static function mint_autologin_url(int $userid, int $cmid, bool $iprestrict = true): ?\moodle_url {
         if ($userid <= 0 || !self::get_activity($cmid)) {
             return null;
         }
-        // Bind the key to this cmid (its instance) and to the caller's IP, and expire it fast: it is
-        // handed back to be opened immediately. validate_user_key() enforces all three on redemption.
+        // Bind the key to this cmid (its instance) and — for the mobile flow — to the caller's IP, and
+        // expire it fast: it is handed back to be opened immediately. validate_user_key() enforces all
+        // active constraints on redemption. A null IP tells create_user_key to skip the IP check.
+        $ip  = $iprestrict ? \getremoteaddr() : null;
         $key = \create_user_key(self::AUTOLOGIN_SCRIPT, $userid, (string)$cmid,
-            \getremoteaddr(), time() + self::AUTOLOGIN_TTL);
+            $ip, time() + self::AUTOLOGIN_TTL);
         return new \moodle_url('/local/academy/autologin.php', ['key' => $key, 'cmid' => $cmid]);
     }
 
