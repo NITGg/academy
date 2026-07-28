@@ -142,7 +142,7 @@ export function HomePageClient({
   // Handlers
   async function handlePackageBuy(pkgId: number) {
     if (!isLoggedIn) {
-      window.location.href = getAppUrl("/login");
+      window.location.assign(getAppUrl("/login"));
       return;
     }
     setLoadingId(`pkg-${pkgId}`);
@@ -151,9 +151,9 @@ export function HomePageClient({
     setLoadingId(null);
 
     if (res.needsAuth) {
-      window.location.href = getAppUrl("/login");
+      window.location.assign(getAppUrl("/login"));
     } else if (res.checkoutUrl) {
-      window.location.href = res.checkoutUrl;
+      window.location.assign(res.checkoutUrl);
     } else {
       setActionError(res.error || "تعذّر بدء عملية الدفع للباقة");
     }
@@ -165,7 +165,7 @@ export function HomePageClient({
     seats?: number,
   ) {
     if (!isLoggedIn) {
-      window.location.href = getAppUrl("/login");
+      window.location.assign(getAppUrl("/login"));
       return;
     }
     setLoadingId(`sub-${subId}-${type}`);
@@ -178,9 +178,9 @@ export function HomePageClient({
     setLoadingId(null);
 
     if (res.needsAuth) {
-      window.location.href = getAppUrl("/login");
+      window.location.assign(getAppUrl("/login"));
     } else if (res.checkoutUrl) {
-      window.location.href = res.checkoutUrl;
+      window.location.assign(res.checkoutUrl);
     } else {
       setActionError(res.error || "تعذّر بدء عملية الدفع للاشتراك");
     }
@@ -188,7 +188,7 @@ export function HomePageClient({
 
   async function handleProgramBuyOrJoin(prog: CatalogueProgram) {
     if (!isLoggedIn) {
-      window.location.href = getAppUrl("/login");
+      window.location.assign(getAppUrl("/login"));
       return;
     }
     setLoadingId(`prog-${prog.id}`);
@@ -206,9 +206,9 @@ export function HomePageClient({
       const res = await startProgramCheckout(prog.id);
       setLoadingId(null);
       if (res.needsAuth) {
-        window.location.href = getAppUrl("/login");
+        window.location.assign(getAppUrl("/login"));
       } else if (res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
+        window.location.assign(res.checkoutUrl);
       } else {
         setActionError(res.error || "تعذّر بدء عملية الدفع للبرنامج");
       }
@@ -656,7 +656,7 @@ export function HomePageClient({
                 <div
                   key={program.id}
                   onClick={() => {
-                    window.location.href = getAppUrl(`/programs/${program.id}`);
+                    window.location.assign(getAppUrl(`/programs/${program.id}`));
                   }}
                   className={cn(
                     "cursor-pointer flex flex-col justify-between rounded-2xl border p-5 shadow-sm transition hover:shadow-md",
@@ -731,7 +731,7 @@ export function HomePageClient({
                             onClick={(e) => {
                               e.stopPropagation();
                               if (!isLoggedIn) {
-                                window.location.href = getAppUrl("/login");
+                                window.location.assign(getAppUrl("/login"));
                                 return;
                               }
                               if (program.free === 1) {
@@ -864,7 +864,7 @@ export function HomePageClient({
                     const prog = selectedProgram;
                     setSelectedProgram(null);
                     if (!isLoggedIn) {
-                      window.location.href = getAppUrl("/login");
+                      window.location.assign(getAppUrl("/login"));
                       return;
                     }
                     if (prog.free === 1) {

@@ -120,7 +120,7 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
 
   async function handleJoinOrBuy() {
     if (!isLoggedIn) {
-      window.location.href = getAppUrl("/login");
+      window.location.assign(getAppUrl("/login"));
       return;
     }
     setErrorMessage(null);
@@ -146,7 +146,7 @@ export function ProgramDetailsClient({ program, certificates, isLoggedIn }: Prog
     setCertLoadingId(null);
 
     if (res.needsAuth) {
-      window.location.href = getAppUrl("/login");
+      window.location.assign(getAppUrl("/login"));
     } else if (res.url) {
       window.open(res.url, "_blank");
     } else {

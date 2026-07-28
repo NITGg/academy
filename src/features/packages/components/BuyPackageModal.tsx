@@ -33,13 +33,23 @@ export function BuyPackageModal({
   const [error, setError] = useState<string | null>(null);
   const [isPaying, startPay] = useTransition();
 
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [prevPackageId, setPrevPackageId] = useState(packageId);
+
+  if (open !== prevOpen || packageId !== prevPackageId) {
+    setPrevOpen(open);
+    setPrevPackageId(packageId);
+    if (open) {
+      setCoupon("");
+      setError(null);
+      setPreview(null);
+      setPreviewing(true);
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
-    setCoupon("");
-    setError(null);
-    setPreview(null);
     let cancelled = false;
-    setPreviewing(true);
     previewPackageDiscount(packageId, "")
       .then((res) => {
         if (cancelled) return;
@@ -79,7 +89,7 @@ export function BuyPackageModal({
       } else if (res.error) {
         setError(res.error);
       } else if (res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
+        window.location.assign(res.checkoutUrl);
       }
     });
   };

@@ -77,7 +77,7 @@ export function EnrollButton({
         } else if (result.error) {
           setError(result.error);
         } else if (result.checkoutUrl) {
-          window.location.href = result.checkoutUrl;
+          window.location.assign(result.checkoutUrl);
         }
       }
     });

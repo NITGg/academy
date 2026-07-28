@@ -33,13 +33,23 @@ export function BuyProgramModal({
   const [error, setError] = useState<string | null>(null);
   const [isPaying, startPay] = useTransition();
 
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [prevProgramId, setPrevProgramId] = useState(programId);
+
+  if (open !== prevOpen || programId !== prevProgramId) {
+    setPrevOpen(open);
+    setPrevProgramId(programId);
+    if (open) {
+      setCoupon("");
+      setError(null);
+      setPreview(null);
+      setPreviewing(true);
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
-    setCoupon("");
-    setError(null);
-    setPreview(null);
     let cancelled = false;
-    setPreviewing(true);
     previewProgramDiscount(programId, "")
       .then((res) => {
         if (cancelled) return;
@@ -79,7 +89,7 @@ export function BuyProgramModal({
       } else if (res.error) {
         setError(res.error);
       } else if (res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
+        window.location.assign(res.checkoutUrl);
       }
     });
   };

@@ -48,7 +48,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
     } finally {
       set({ user: null, isAuthenticated: false, isLoading: false });
       if (typeof window !== "undefined") {
-        window.location.href = getAppUrl("/login");
+        window.location.assign(getAppUrl("/login"));
       }
     }
   },

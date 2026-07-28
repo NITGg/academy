@@ -153,7 +153,7 @@ function CatalogueProgramsTab({
 
   async function handleProgramJoin(prog: CatalogueProgram) {
     if (!isLoggedIn) {
-      window.location.href = getAppUrl("/login");
+      window.location.assign(getAppUrl("/login"));
       return;
     }
     setLoadingId(`prog-${prog.id}`);
@@ -250,7 +250,7 @@ function CatalogueProgramsTab({
                       type="button"
                       onClick={() => {
                         if (!isLoggedIn) {
-                          window.location.href = getAppUrl("/login");
+                          window.location.assign(getAppUrl("/login"));
                           return;
                         }
                         if (prog.free === 1) {

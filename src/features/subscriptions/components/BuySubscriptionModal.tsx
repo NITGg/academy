@@ -33,19 +33,26 @@ export function BuySubscriptionModal({
   const [error, setError] = useState<string | null>(null);
   const [isPaying, startPay] = useTransition();
 
-  useEffect(() => {
-    if (open && subscription.seat_options && subscription.seat_options.length > 0) {
-      setSeats(subscription.seat_options[0].seats);
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [prevSubId, setPrevSubId] = useState(subscription.id);
+
+  if (open !== prevOpen || subscription.id !== prevSubId) {
+    setPrevOpen(open);
+    setPrevSubId(subscription.id);
+    if (open) {
+      if (subscription.seat_options && subscription.seat_options.length > 0) {
+        setSeats(subscription.seat_options[0].seats);
+      }
+      setCoupon("");
+      setError(null);
+      setPreview(null);
+      setPreviewing(true);
     }
-  }, [open, subscription]);
+  }
 
   useEffect(() => {
     if (!open) return;
-    setCoupon("");
-    setError(null);
-    setPreview(null);
     let cancelled = false;
-    setPreviewing(true);
     previewSubscriptionDiscount({ subscriptionId: subscription.id, couponCode: "" })
       .then((res) => {
         if (cancelled) return;
@@ -90,7 +97,7 @@ export function BuySubscriptionModal({
       } else if (res.error) {
         setError(res.error);
       } else if (res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
+        window.location.assign(res.checkoutUrl);
       }
     });
   };

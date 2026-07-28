@@ -36,14 +36,24 @@ export function BuyCourseModal({
   const [error, setError] = useState<string | null>(null);
   const [isPaying, startPay] = useTransition();
 
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [prevCourseId, setPrevCourseId] = useState(courseId);
+
+  if (open !== prevOpen || courseId !== prevCourseId) {
+    setPrevOpen(open);
+    setPrevCourseId(courseId);
+    if (open) {
+      setCoupon("");
+      setError(null);
+      setPreview(null);
+      setPreviewing(true);
+    }
+  }
+
   // Fetch the offer-only price when the modal opens
   useEffect(() => {
     if (!open) return;
-    setCoupon("");
-    setError(null);
-    setPreview(null);
     let cancelled = false;
-    setPreviewing(true);
     previewCourseDiscount(courseId, "")
       .then((res) => {
         if (cancelled) return;
@@ -84,7 +94,7 @@ export function BuyCourseModal({
       } else if (res.error) {
         setError(res.error);
       } else if (res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
+        window.location.assign(res.checkoutUrl);
       }
     });
   };
