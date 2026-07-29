@@ -22,6 +22,7 @@ import {
   CreditCard,
   GraduationCap,
   Receipt,
+  Ticket,
   Search,
   Menu,
   X,
@@ -50,6 +51,7 @@ const navItems = [
   { href: "/packages", icon: Package, key: "packages" },
   { href: "/subscriptions", icon: CreditCard, key: "subscriptions" },
   { href: "/programs", icon: GraduationCap, key: "programs" },
+  { href: "/coupons", icon: Ticket, key: "coupons" },
   { href: "/payments", icon: Receipt, key: "payments" },
 ] as const;
 

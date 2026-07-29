@@ -21,6 +21,7 @@ import {
   CreditCard,
   GraduationCap,
   Receipt,
+  Ticket,
   User,
   ChevronRight,
   ChevronLeft,
@@ -46,6 +47,7 @@ const secondaryNavItems = [
   { href: "/packages", icon: Package, key: "packages" },
   { href: "/subscriptions", icon: CreditCard, key: "subscriptions" },
   { href: "/programs", icon: GraduationCap, key: "programs" },
+  { href: "/coupons", icon: Ticket, key: "coupons" },
   { href: "/payments", icon: Receipt, key: "payments" },
 ] as const;
 
