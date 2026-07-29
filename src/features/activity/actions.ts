@@ -9,6 +9,7 @@ import {
   callAcademyApiGet,
   uploadFilesToDraftArea,
 } from "@/lib/moodle-server";
+import { parseMlang } from "@/lib/mlang";
 import type {
   Quiz,
   QuizAttemptStart,
@@ -17,6 +18,7 @@ import type {
   AnswerValue,
   AssignmentData,
   AssignmentSubmitResult,
+  PageData,
 } from "./types";
 
 function langOf(locale: string): "ar" | "en" {
@@ -497,3 +499,91 @@ export async function getCertificateAutologinUrl(
     error: lang === "ar" ? "تعذّر فتح الشهادة" : "Could not open certificate",
   };
 }
+
+// ── Page Activity ─────────────────────────────────────────────────────────────
+
+export async function getPageData(
+  cmid: number,
+  courseId: number,
+  instanceId?: number,
+): Promise<{ data?: PageData; error?: string; needsAuth?: boolean }> {
+  const session = await getSessionFromCookie();
+  if (!session?.wstoken) return { needsAuth: true };
+
+  const lang = langOf(await getLocale());
+
+  try {
+    const res = await callMoodleRest<{
+      pages?: Array<{
+        id: number;
+        coursemodule: number;
+        course: number;
+        name: string;
+        intro?: string;
+        content?: string;
+        contentfiles?: Array<{
+          filename: string;
+          filepath: string;
+          filesize: number;
+          fileurl: string;
+          mimetype?: string;
+          timemodified: number;
+        }>;
+        introfiles?: Array<{
+          filename: string;
+          filepath: string;
+          filesize: number;
+          fileurl: string;
+          mimetype?: string;
+          timemodified: number;
+        }>;
+        timemodified?: number;
+      }>;
+    }>({
+      functionName: "mod_page_get_pages_by_courses",
+      token: session.wstoken,
+      params: { "courseids[0]": courseId },
+    });
+
+    const pageInfo = res.pages?.find(
+      (p) => p.coursemodule === cmid || (instanceId && p.id === instanceId),
+    );
+
+    if (!pageInfo) {
+      return {
+        error:
+          lang === "ar"
+            ? "تعذّر العثور على محتوى الصفحة"
+            : "Could not find page activity content",
+      };
+    }
+
+    const content = parseMlang(pageInfo.content ?? "", lang);
+    const intro = parseMlang(pageInfo.intro ?? "", lang);
+    const name = parseMlang(pageInfo.name ?? "", lang);
+
+    return {
+      data: {
+        id: pageInfo.id,
+        cmid: pageInfo.coursemodule,
+        courseId: pageInfo.course,
+        name,
+        intro,
+        content,
+        contentfiles: pageInfo.contentfiles ?? [],
+        introfiles: pageInfo.introfiles ?? [],
+        timemodified: pageInfo.timemodified,
+      },
+    };
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : lang === "ar"
+          ? "تعذّر تحميل الصفحة"
+          : "Failed to load page content",
+    };
+  }
+}
+

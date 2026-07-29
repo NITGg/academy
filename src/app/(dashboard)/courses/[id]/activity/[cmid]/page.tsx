@@ -5,12 +5,13 @@ import { ArrowRight, FileText, Lock } from "lucide-react";
 import { getLocale } from "next-intl/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { getActivityForView } from "@/features/activity/server";
-import { getQuiz, getAssignmentData } from "@/features/activity/actions";
+import { getQuiz, getAssignmentData, getPageData } from "@/features/activity/actions";
 import { ViewTracker } from "@/features/activity/components/ViewTracker";
 import { PdfViewer } from "@/features/activity/components/PdfViewer";
 import { VideoViewer } from "@/features/activity/components/VideoViewer";
 import { QuizViewer } from "@/features/activity/components/QuizViewer";
 import { AssignmentViewer } from "@/features/activity/components/AssignmentViewer";
+import { PageViewer } from "@/features/activity/components/PageViewer";
 import { CertificateViewer } from "@/features/activity/components/CertificateViewer";
 import { CompletionPanel } from "@/features/activity/components/CompletionPanel";
 
@@ -157,6 +158,22 @@ async function ActivityBody({
         isArabic={isArabic}
       />
     );
+  }
+
+  // Page — full in-site HTML page rendering with attachments.
+  if (modname === "page") {
+    const res = await getPageData(cmid, courseId, activity.instance);
+    if (!res.data) {
+      return (
+        <ErrorBox
+          text={
+            res.error ??
+            (isArabic ? "تعذّر تحميل الصفحة" : "Could not load page content")
+          }
+        />
+      );
+    }
+    return <PageViewer page={res.data} isArabic={isArabic} />;
   }
 
   // Certificate — check all certificate module types or titles containing "شهادة" / "certificate"

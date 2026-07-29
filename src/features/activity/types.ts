@@ -141,3 +141,27 @@ export interface AssignmentSubmitResult {
   error?: string;
   needsAuth?: boolean;
 }
+
+// ── Page models ────────────────────────────────────────────────────────────────
+
+export interface PageFile {
+  filename: string;
+  filepath?: string;
+  filesize: number;
+  fileurl: string;
+  mimetype?: string;
+  timemodified?: number;
+}
+
+export interface PageData {
+  id: number;
+  cmid: number;
+  courseId: number;
+  name: string;
+  intro?: string;
+  content: string;
+  contentfiles?: PageFile[];
+  introfiles?: PageFile[];
+  timemodified?: number;
+}
+
