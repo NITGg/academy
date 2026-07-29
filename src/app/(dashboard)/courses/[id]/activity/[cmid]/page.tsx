@@ -5,13 +5,19 @@ import { ArrowRight, FileText, Lock } from "lucide-react";
 import { getLocale } from "next-intl/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { getActivityForView } from "@/features/activity/server";
-import { getQuiz, getAssignmentData, getPageData } from "@/features/activity/actions";
+import { getQuiz, getAssignmentData, getPageData, getUrlData } from "@/features/activity/actions";
 import { ViewTracker } from "@/features/activity/components/ViewTracker";
 import { PdfViewer } from "@/features/activity/components/PdfViewer";
 import { VideoViewer } from "@/features/activity/components/VideoViewer";
 import { QuizViewer } from "@/features/activity/components/QuizViewer";
 import { AssignmentViewer } from "@/features/activity/components/AssignmentViewer";
 import { PageViewer } from "@/features/activity/components/PageViewer";
+import { UrlViewer } from "@/features/activity/components/UrlViewer";
+import { JitsiActivityViewer } from "@/features/activity/components/JitsiActivityViewer";
+import { AttendanceViewer } from "@/features/activity/components/AttendanceViewer";
+import { SessionRecordingViewer } from "@/features/activity/components/SessionRecordingViewer";
+import { GoogleMeetViewer } from "@/features/activity/components/GoogleMeetViewer";
+import { ForumViewer } from "@/features/activity/components/ForumViewer";
 import { CertificateViewer } from "@/features/activity/components/CertificateViewer";
 import { CompletionPanel } from "@/features/activity/components/CompletionPanel";
 
@@ -174,6 +180,63 @@ async function ActivityBody({
       );
     }
     return <PageViewer page={res.data} isArabic={isArabic} />;
+  }
+
+  // URL (Link) — display link details, embedded player (if YouTube/Vimeo), and open button.
+  if (modname === "url") {
+    const res = await getUrlData(cmid, courseId, activity.instance);
+    if (!res.data) {
+      return (
+        <ErrorBox
+          text={
+            res.error ??
+            (isArabic ? "تعذّر تحميل الرابط" : "Could not load link activity")
+          }
+        />
+      );
+    }
+    return <UrlViewer urlData={res.data} isArabic={isArabic} />;
+  }
+
+  // Jitsi live meeting activity.
+  if (modname === "jitsi" || name.toLowerCase().includes("jitsi")) {
+    return <JitsiActivityViewer activity={activity} isArabic={isArabic} />;
+  }
+
+  // Attendance (الحضور) activity.
+  if (
+    modname === "attendance" ||
+    name.toLowerCase().includes("attendance") ||
+    name.includes("حضور")
+  ) {
+    return <AttendanceViewer activity={activity} isArabic={isArabic} />;
+  }
+
+  // Session recording activity.
+  if (
+    ["bigbluebuttonbn", "recording", "vod"].includes(modname) ||
+    name.toLowerCase().includes("recording") ||
+    name.includes("تسجيل")
+  ) {
+    return <SessionRecordingViewer activity={activity} isArabic={isArabic} />;
+  }
+
+  // Google Meet activity.
+  if (
+    ["googlemeet", "gmeet"].includes(modname) ||
+    name.toLowerCase().includes("google meet") ||
+    name.toLowerCase().includes("googlemeet")
+  ) {
+    return <GoogleMeetViewer activity={activity} isArabic={isArabic} />;
+  }
+
+  // Forum (منتدى) activity.
+  if (
+    ["forum", "hsuforum"].includes(modname) ||
+    name.toLowerCase().includes("forum") ||
+    name.includes("منتدى")
+  ) {
+    return <ForumViewer activity={activity} isArabic={isArabic} />;
   }
 
   // Certificate — check all certificate module types or titles containing "شهادة" / "certificate"

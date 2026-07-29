@@ -241,6 +241,7 @@ export async function getActivityForView(
     instance: a.instance ? parseInt(a.instance, 10) : undefined,
     mime: a.resourcetype,
     hasFile: Boolean(a.fileurl),
+    jitsiSession: a.jitsi_session ?? null,
     completion: a.completion ?? 0,
     completionstate: a.completionstate ?? 0,
     hascompletion: a.hascompletion ?? false,

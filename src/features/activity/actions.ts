@@ -19,6 +19,7 @@ import type {
   AssignmentData,
   AssignmentSubmitResult,
   PageData,
+  UrlData,
 } from "./types";
 
 function langOf(locale: string): "ar" | "en" {
@@ -424,6 +425,34 @@ export async function submitAssignment(
  * Moodle browser session (so the student can submit there). Uses only the generic
  * `open_activity_autologin` endpoint — never the certificate fallback.
  */
+export async function getActivityAutologinUrl(
+  cmid: number,
+): Promise<{ url?: string; error?: string; needsAuth?: boolean }> {
+  const session = await getSessionFromCookie();
+  if (!session?.wstoken) return { needsAuth: true };
+
+  const lang = langOf(await getLocale());
+  try {
+    const data = await callAcademyApi<{ url: string }>(
+      "open_activity_autologin",
+      { cmid },
+      session.wstoken,
+      lang,
+    );
+    if (data?.url) return { url: data.url };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : null;
+    return {
+      error:
+        msg ?? (lang === "ar" ? "تعذّر فتح النشاط" : "Could not open activity"),
+    };
+  }
+
+  return {
+    error: lang === "ar" ? "تعذّر فتح النشاط" : "Could not open activity",
+  };
+}
+
 export async function getAssignmentAutologinUrl(
   cmid: number,
 ): Promise<{ url?: string; error?: string; needsAuth?: boolean }> {
@@ -586,4 +615,73 @@ export async function getPageData(
     };
   }
 }
+
+// ── URL (Link) Activity ───────────────────────────────────────────────────────
+
+export async function getUrlData(
+  cmid: number,
+  courseId: number,
+  instanceId?: number,
+): Promise<{ data?: UrlData; error?: string; needsAuth?: boolean }> {
+  const session = await getSessionFromCookie();
+  if (!session?.wstoken) return { needsAuth: true };
+
+  const lang = langOf(await getLocale());
+
+  try {
+    const res = await callMoodleRest<{
+      urls?: Array<{
+        id: number;
+        coursemodule: number;
+        course: number;
+        name: string;
+        intro?: string;
+        externalurl: string;
+        timemodified?: number;
+      }>;
+    }>({
+      functionName: "mod_url_get_urls_by_courses",
+      token: session.wstoken,
+      params: { "courseids[0]": courseId },
+    });
+
+    const urlInfo = res.urls?.find(
+      (u) => u.coursemodule === cmid || (instanceId && u.id === instanceId),
+    );
+
+    if (!urlInfo) {
+      return {
+        error:
+          lang === "ar"
+            ? "تعذّر العثور على الرابط المطلوب"
+            : "URL activity not found",
+      };
+    }
+
+    const intro = parseMlang(urlInfo.intro ?? "", lang);
+    const name = parseMlang(urlInfo.name ?? "", lang);
+
+    return {
+      data: {
+        id: urlInfo.id,
+        cmid: urlInfo.coursemodule,
+        courseId: urlInfo.course,
+        name,
+        intro,
+        externalUrl: urlInfo.externalurl,
+        timemodified: urlInfo.timemodified,
+      },
+    };
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : lang === "ar"
+          ? "تعذّر تحميل الرابط"
+          : "Failed to load URL activity",
+    };
+  }
+}
+
 

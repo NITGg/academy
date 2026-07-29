@@ -1,4 +1,5 @@
 import type { CompletionRule } from "@/features/courses/types";
+import type { JitsiSession } from "@/features/lessons/types";
 
 /**
  * Metadata for a single activity, resolved from getalltopics.php with the current
@@ -16,6 +17,7 @@ export interface ActivityView {
   /** MIME type of the attached file, when any (e.g. "application/pdf", "video/mp4"). */
   mime?: string;
   hasFile: boolean;
+  jitsiSession?: JitsiSession | null;
   // ── Completion ──────────────────────────────────────────────────────────────
   /** 0 = no tracking, 1 = manual (student marks done), 2 = automatic (rule-based). */
   completion: number;
@@ -164,4 +166,17 @@ export interface PageData {
   introfiles?: PageFile[];
   timemodified?: number;
 }
+
+// ── URL (Link) models ──────────────────────────────────────────────────────────
+
+export interface UrlData {
+  id: number;
+  cmid: number;
+  courseId: number;
+  name: string;
+  intro?: string;
+  externalUrl: string;
+  timemodified?: number;
+}
+
 
