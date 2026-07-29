@@ -3,7 +3,7 @@
 import { getLocale } from "next-intl/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { callAcademyApi, callAcademyApiGet } from "@/lib/moodle-server";
-import { getRefererUrl } from "@/lib/referer";
+import { getReturnUrl } from "@/lib/referer";
 
 export interface CheckoutResult {
   checkoutUrl?: string;
@@ -42,7 +42,7 @@ export async function startSubscriptionCheckout(params: {
     };
     if (params.seats) payload.seats = params.seats;
     if (params.couponCode?.trim()) payload.coupon_code = params.couponCode.trim();
-    const returnUrl = await getRefererUrl();
+    const returnUrl = await getReturnUrl("/subscriptions");
     if (returnUrl) payload.return_url = returnUrl;
 
     const result = await callAcademyApi<{ checkout_url: string }>(

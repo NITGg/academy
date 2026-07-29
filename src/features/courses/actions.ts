@@ -7,7 +7,7 @@ import { callMoodleRest, callAcademyApiGet } from "@/lib/moodle-server";
 import { getMySubscriptions } from "@/features/subscriptions/server";
 import { getMyPrograms, getProgramDetails } from "@/features/programs/server";
 import type { ProgramContentItem } from "@/features/programs/types";
-import { getRefererUrl } from "@/lib/referer";
+import { getReturnUrl } from "@/lib/referer";
 
 function extractCourseIdsFromProgramContent(items: ProgramContentItem[]): number[] {
   const ids: number[] = [];
@@ -213,7 +213,7 @@ export async function startCourseCheckout(
   if (!session) return { needsAuth: true };
 
   const locale = await getLocale();
-  const returnUrl = await getRefererUrl();
+  const returnUrl = await getReturnUrl(`/courses/${courseId}`);
 
   try {
     const result = await callMoodleRest<{

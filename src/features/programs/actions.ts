@@ -3,7 +3,7 @@
 import { getLocale } from "next-intl/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { callAcademyApi, callAcademyApiGet } from "@/lib/moodle-server";
-import { getRefererUrl } from "@/lib/referer";
+import { getReturnUrl } from "@/lib/referer";
 
 export interface CheckoutResult {
   checkoutUrl?: string;
@@ -32,7 +32,7 @@ export async function startProgramCheckout(
 
   const locale = await getLocale();
   const lang = locale === "ar" ? "ar" : "en";
-  const returnUrl = await getRefererUrl();
+  const returnUrl = await getReturnUrl(`/programs/${programId}`);
 
   try {
     const result = await callAcademyApi<{ checkout_url: string }>(
