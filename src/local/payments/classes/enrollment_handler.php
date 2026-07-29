@@ -159,21 +159,46 @@ class enrollment_handler {
     }
 
     /**
-     * Unenrol a user from a course (for refund scenarios).
+     * Unenrol a user from a course (for refund / admin "unbuy" scenarios).
+     *
+     * Removes the user from EVERY manual enrolment instance in the course where they actually
+     * have an enrolment record — not just the first one found. This matters because:
+     *   - a course can carry more than one manual instance (enrol_user() creates a fresh one
+     *     when it can't find an *enabled* one), and the user may sit in one that isn't first
+     *     in the list; and
+     *   - Moodle's manual->unenrol_user() is a silent no-op when the user has no enrolment in
+     *     the instance passed to it.
+     * The old code unenrolled only the first enabled manual instance and returned true
+     * regardless, so a student enrolled elsewhere kept active access while the caller (the
+     * admin "unbuy" flow) reported success and cancelled the transaction — leaving the course
+     * still visible to the student. We now target the instances the user is really in, and only
+     * report success when we actually removed something.
+     *
+     * Manual instances only: a program allocation or other enrolment method is a separate grant
+     * and must not be clobbered by a single-course refund. enrol_get_instances(..., false)
+     * includes disabled instances so a suspended manual method can't hide a lingering record.
+     *
+     * @return bool true if at least one enrolment was removed
      */
     public static function unenrol_user(int $userid, int $courseid): bool {
+        global $DB;
+
         $enrol = enrol_get_plugin('manual');
         if (!$enrol) {
             return false;
         }
 
-        $instances = enrol_get_instances($courseid, true);
-        foreach ($instances as $instance) {
-            if ($instance->enrol === 'manual') {
-                $enrol->unenrol_user($instance, $userid);
-                return true;
+        $removed = false;
+        foreach (enrol_get_instances($courseid, false) as $instance) {
+            if ($instance->enrol !== 'manual') {
+                continue;
             }
+            if (!$DB->record_exists('user_enrolments', ['enrolid' => $instance->id, 'userid' => $userid])) {
+                continue;
+            }
+            $enrol->unenrol_user($instance, $userid);
+            $removed = true;
         }
-        return false;
+        return $removed;
     }
 }
