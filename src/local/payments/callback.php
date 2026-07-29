@@ -7,10 +7,14 @@ $kashier_status = strtoupper(optional_param('paymentStatus', '', PARAM_ALPHANUME
 
 require_login();
 
-// Optional front-end site: when configured, we send the student back to the matching page on the
-// front-end after the payment is processed, instead of showing the Moodle result pages. This keeps
-// the user on their own domain (the site that launched the checkout).
+// Front-end site: after the payment is processed we send the student back to the matching page on
+// the Next.js front-end instead of showing the Moodle result pages, so they stay on their own site.
+// The admin setting takes priority; when it's empty we fall back to the known front-end base so the
+// redirect works as soon as this file is deployed (no plugin upgrade / config step required).
 $frontendurl = trim((string) get_config('local_payments', 'frontend_url'));
+if ($frontendurl === '') {
+    $frontendurl = 'https://academy2026.nitg-eg.com/nextjs-frontend-student';
+}
 
 /** Map an item to its front-end landing path and return the absolute URL (with a payment status flag). */
 function local_payments_frontend_landing($frontendbase, $item_type, $itemid, $status) {
