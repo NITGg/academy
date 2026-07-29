@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Calendar,
   Check,
@@ -497,19 +498,15 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
       {/* Action bar (driven by lesson.actions[]) */}
       {actions.length > 0 && (
         <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-border pt-3">
-          {lesson.can_join &&
-            lesson.join_url &&
-            lesson.jitsi_session?.available && (
-              <a
-                href={lesson.join_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.98]"
-              >
-                <Video className="size-3.5" />
-                انضمام للحصة
-              </a>
-            )}
+          {lesson.can_join && lesson.jitsi_session?.available && (
+            <Link
+              href={`/lessons/${lesson.id}/room`}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.98]"
+            >
+              <Video className="size-3.5" />
+              انضمام للحصة
+            </Link>
+          )}
 
           {actions.includes("accept") && (
             <ActionButton
