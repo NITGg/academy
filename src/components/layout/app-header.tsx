@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { useLocaleStore } from "@/store/useLocaleStore";
 import { useThemeStore, type ThemeVariant } from "@/store/useThemeStore";
@@ -79,19 +79,31 @@ export function AppHeader() {
   const locale = useLocale();
   const pathname = usePathname();
 
+  const router = useRouter();
   const { setLocale } = useLocaleStore();
   const { variant, setTheme } = useThemeStore();
   const logout = useAuthStore((state) => state.logout);
 
   const isRtl = locale === "ar";
 
+  const handleSearch = (e: React.FormEvent, ref: React.RefObject<HTMLInputElement | null>) => {
+    e.preventDefault();
+    const q = ref.current?.value.trim() ?? "";
+    if (q) router.push(`/courses?search=${encodeURIComponent(q)}`);
+    setMobileSearchOpen(false);
+    setMobileOpen(false);
+  };
+
   /* Local UI state */
   const [mobileOpen, setMobileOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const moreRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -214,22 +226,27 @@ export function AppHeader() {
           {/* Right actions */}
           <div className="ms-auto flex items-center gap-1">
             {/* Search — desktop */}
-            <div className="hidden md:flex relative max-w-xs">
+            <form
+              onSubmit={(e) => handleSearch(e, searchRef)}
+              className="hidden md:flex relative max-w-xs"
+            >
               <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
+                ref={searchRef}
                 type="search"
                 placeholder={t("common.searchCourse")}
                 className="h-9 w-full rounded-lg border border-input bg-muted/50 ps-9 pe-4 text-caption text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
                 dir={isRtl ? "rtl" : "ltr"}
               />
-            </div>
+            </form>
 
-            {/* Search — mobile */}
+            {/* Search — mobile toggle */}
             <Button
               variant="ghost"
               size="icon"
               className="md:hidden"
               aria-label={t("common.search")}
+              onClick={() => setMobileSearchOpen((v) => !v)}
             >
               <Search className="size-5" />
             </Button>
@@ -337,6 +354,26 @@ export function AppHeader() {
             </div>
           </div>
         </div>
+
+        {/* Mobile search bar — slides in below the header row */}
+        {mobileSearchOpen && (
+          <form
+            onSubmit={(e) => handleSearch(e, mobileSearchRef)}
+            className="md:hidden border-t border-border px-4 py-2"
+          >
+            <div className="relative">
+              <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <input
+                ref={mobileSearchRef}
+                type="search"
+                autoFocus
+                placeholder={t("common.searchCourse")}
+                className="h-9 w-full rounded-lg border border-input bg-muted/50 ps-9 pe-4 text-caption text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+                dir={isRtl ? "rtl" : "ltr"}
+              />
+            </div>
+          </form>
+        )}
       </header>
 
       {/* ═══════════════════  Mobile Full Drawer  ═══════════════════ */}

@@ -9,7 +9,7 @@ import {
   RotateCcw,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type {
   Quiz,
   QuizQuestion,
@@ -31,6 +31,37 @@ function fmtDuration(seconds: number, isArabic: boolean): string {
   return isArabic ? `${m} دقيقة` : `${m} min`;
 }
 
+function fmtCountdown(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function useCountdown(
+  timestart: number | null,
+  timelimit: number | null,
+  onExpire: () => void,
+) {
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const onExpireRef = useRef(onExpire);
+  useEffect(() => { onExpireRef.current = onExpire; });
+
+  useEffect(() => {
+    if (!timestart || !timelimit) { setRemaining(null); return; }
+    const tick = () => {
+      const elapsed = Math.floor(Date.now() / 1000) - timestart;
+      const left = Math.max(0, timelimit - elapsed);
+      setRemaining(left);
+      if (left === 0) onExpireRef.current();
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [timestart, timelimit]);
+
+  return remaining;
+}
+
 export function QuizViewer({
   quiz,
   courseId,
@@ -50,6 +81,34 @@ export function QuizViewer({
   const [error, setError] = useState<string | null>(null);
   const [starting, startTransition] = useTransition();
   const [submitting, setSubmitting] = useState(false);
+  const [attemptTimestart, setAttemptTimestart] = useState<number | null>(null);
+  const [attemptTimelimit, setAttemptTimelimit] = useState<number | null>(null);
+  const submittingRef = useRef(false);
+
+  const autoSubmit = useCallback(async () => {
+    if (submittingRef.current || attemptId == null) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    setError(null);
+    const payload = Object.entries(answers).map(([questionid, answer]) => ({
+      questionid: Number(questionid),
+      answer,
+    }));
+    const res = await submitQuizAttempt(attemptId, payload, courseId, cmid);
+    setSubmitting(false);
+    if (res.data) {
+      setResult(res.data);
+      setPhase("result");
+    } else {
+      setError(res.error ?? (isArabic ? "تعذّر التسليم" : "Could not submit"));
+    }
+  }, [attemptId, answers, courseId, cmid, isArabic]);
+
+  const remainingSeconds = useCountdown(
+    phase === "attempt" ? attemptTimestart : null,
+    phase === "attempt" ? attemptTimelimit : null,
+    autoSubmit,
+  );
 
   // Load past attempts on the intro screen.
   useEffect(() => {
@@ -74,8 +133,11 @@ export function QuizViewer({
       const res = await startQuizAttempt(quiz.quizid);
       if (res.data) {
         setAttemptId(res.data.attemptid);
+        setAttemptTimestart(res.data.timestart);
+        setAttemptTimelimit(res.data.timelimit > 0 ? res.data.timelimit : null);
         setAnswers({});
         setResult(null);
+        submittingRef.current = false;
         setPhase("attempt");
       } else {
         setError(res.error ?? (isArabic ? "تعذّر بدء المحاولة" : "Could not start"));
@@ -92,7 +154,8 @@ export function QuizViewer({
   ).length;
 
   const submit = async () => {
-    if (attemptId == null) return;
+    if (submittingRef.current || attemptId == null) return;
+    submittingRef.current = true;
     setSubmitting(true);
     setError(null);
     const payload = Object.entries(answers).map(([questionid, answer]) => ({
@@ -105,6 +168,7 @@ export function QuizViewer({
       setResult(res.data);
       setPhase("result");
     } else {
+      submittingRef.current = false;
       setError(res.error ?? (isArabic ? "تعذّر التسليم" : "Could not submit"));
     }
   };
@@ -206,7 +270,22 @@ export function QuizViewer({
             {isArabic ? "تمت الإجابة على" : "Answered"} {answered} /{" "}
             {quiz.questions.length}
           </span>
-          <Clock className="size-4 text-muted-foreground" />
+          {remainingSeconds !== null ? (
+            <div
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-caption font-mono font-semibold ${
+                remainingSeconds <= 60
+                  ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                  : remainingSeconds <= 300
+                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                    : "text-muted-foreground"
+              }`}
+            >
+              <Clock className="size-3.5" />
+              {fmtCountdown(remainingSeconds)}
+            </div>
+          ) : (
+            <Clock className="size-4 text-muted-foreground" />
+          )}
         </div>
 
         {quiz.questions.map((q, idx) => (
