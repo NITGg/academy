@@ -1,11 +1,13 @@
 import "server-only";
 import { getLocale } from "next-intl/server";
-import { callAcademyApi, callAcademyApiGet } from "@/lib/moodle-server";
+import { callAcademyApi, callAcademyApiGet, callMoodleRest } from "@/lib/moodle-server";
 import type { Teacher, TeachersResponse, LessonSettings } from "./types";
 
 export async function getTeachers(opts?: {
   search?: string;
   page?: number;
+  categoryid?: number;
+  year?: string;
 }): Promise<{ teachers: Teacher[]; total: number }> {
   const locale = await getLocale();
   const lang = locale === "ar" ? "ar" : "en";
@@ -14,14 +16,18 @@ export async function getTeachers(opts?: {
   if (!token) return { teachers: [], total: 0 };
 
   try {
+    const params: Record<string, string | number | undefined> = {
+      page: opts?.page ?? 0,
+      perpage: 200,
+      search: opts?.search ?? "",
+      approved: 1,
+    };
+    if (opts?.categoryid) params.categoryid = opts.categoryid;
+    if (opts?.year) params.year = opts.year;
+
     const data = await callAcademyApi<TeachersResponse>(
       "get_all_teachers",
-      {
-        page: opts?.page ?? 0,
-        perpage: 200,
-        search: opts?.search ?? "",
-        approved: 1,
-      },
+      params,
       token,
       lang
     );
@@ -33,6 +39,43 @@ export async function getTeachers(opts?: {
   } catch (error) {
     console.error("Failed to fetch teachers:", error);
     return { teachers: [], total: 0 };
+  }
+}
+
+export interface TeacherCategory {
+  id: number;
+  name: string;
+}
+
+export async function getTeacherCategories(): Promise<TeacherCategory[]> {
+  const token = process.env.MOODLE_ADMIN_TOKEN;
+  if (!token) return [];
+  try {
+    const cats = await callMoodleRest<TeacherCategory[]>({
+      functionName: "core_course_get_categories",
+      useAdminToken: true,
+    });
+    return Array.isArray(cats) ? cats.filter((c) => c.id !== 0) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getAcademicYears(): Promise<string[]> {
+  try {
+    const fields = await callMoodleRest<Array<{
+      shortname: string;
+      options?: string[];
+    }>>({
+      functionName: "local_profilefields_get_profile_fields",
+      useAdminToken: true,
+    });
+    const yearField = Array.isArray(fields)
+      ? fields.find((f) => f.shortname === "year")
+      : null;
+    return yearField?.options ?? [];
+  } catch {
+    return [];
   }
 }
 

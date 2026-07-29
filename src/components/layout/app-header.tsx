@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
@@ -86,12 +86,30 @@ export function AppHeader() {
 
   const isRtl = locale === "ar";
 
-  const handleSearch = (e: React.FormEvent, ref: React.RefObject<HTMLInputElement | null>) => {
-    e.preventDefault();
-    const q = ref.current?.value.trim() ?? "";
-    if (q) router.push(`/courses?search=${encodeURIComponent(q)}`);
-    setMobileSearchOpen(false);
-    setMobileOpen(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const submitSearch = useCallback((q: string, closeMobile = false) => {
+    if (searchTimer.current) { clearTimeout(searchTimer.current); searchTimer.current = null; }
+    router.push(q.trim() ? `/courses?search=${encodeURIComponent(q.trim())}` : "/courses");
+    if (closeMobile) { setMobileSearchOpen(false); setMobileOpen(false); }
+  }, [router]);
+
+  // Search-as-you-type: navigate after a short debounce so we don't push on every keystroke.
+  // Clearing the box takes effect immediately (no wait).
+  const debouncedSearch = useCallback((q: string) => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!q.trim()) { submitSearch(""); return; }
+    searchTimer.current = setTimeout(() => submitSearch(q), 350);
+  }, [submitSearch]);
+
+  const onDesktopSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDesktopSearch(e.target.value);
+    debouncedSearch(e.target.value);
+  };
+
+  const onMobileSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMobileSearch(e.target.value);
+    debouncedSearch(e.target.value);
   };
 
   /* Local UI state */
@@ -99,11 +117,24 @@ export function AppHeader() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [desktopSearch, setDesktopSearch] = useState("");
+  const [mobileSearch, setMobileSearch] = useState("");
 
   const moreRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
-  const mobileSearchRef = useRef<HTMLInputElement>(null);
+
+  /* Clear any pending debounced search on unmount */
+  useEffect(() => {
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, []);
+
+  /* Sync desktop search value from URL when navigating to/from courses */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("search") ?? "";
+    setDesktopSearch(pathname.startsWith("/courses") ? q : "");
+  }, [pathname]);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -227,17 +258,30 @@ export function AppHeader() {
           <div className="ms-auto flex items-center gap-1">
             {/* Search — desktop */}
             <form
-              onSubmit={(e) => handleSearch(e, searchRef)}
+              onSubmit={(e) => { e.preventDefault(); submitSearch(desktopSearch); }}
               className="hidden md:flex relative max-w-xs"
             >
               <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
-                ref={searchRef}
-                type="search"
+                type="text"
+                value={desktopSearch}
+                onChange={onDesktopSearchChange}
                 placeholder={t("common.searchCourse")}
-                className="h-9 w-full rounded-lg border border-input bg-muted/50 ps-9 pe-4 text-caption text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+                className={`h-9 w-full rounded-lg border bg-muted/50 ps-9 text-caption text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all ${
+                  desktopSearch ? "pe-8 border-primary/60 ring-1 ring-primary/20" : "pe-4 border-input"
+                }`}
                 dir={isRtl ? "rtl" : "ltr"}
               />
+              {desktopSearch && (
+                <button
+                  type="button"
+                  onClick={() => { setDesktopSearch(""); if (pathname.startsWith("/courses")) router.push("/courses"); }}
+                  className="absolute end-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Clear"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
             </form>
 
             {/* Search — mobile toggle */}
@@ -358,19 +402,32 @@ export function AppHeader() {
         {/* Mobile search bar — slides in below the header row */}
         {mobileSearchOpen && (
           <form
-            onSubmit={(e) => handleSearch(e, mobileSearchRef)}
+            onSubmit={(e) => { e.preventDefault(); submitSearch(mobileSearch, true); }}
             className="md:hidden border-t border-border px-4 py-2"
           >
             <div className="relative">
               <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
-                ref={mobileSearchRef}
-                type="search"
+                type="text"
+                value={mobileSearch}
+                onChange={onMobileSearchChange}
                 autoFocus
                 placeholder={t("common.searchCourse")}
-                className="h-9 w-full rounded-lg border border-input bg-muted/50 ps-9 pe-4 text-caption text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+                className={`h-9 w-full rounded-lg border bg-muted/50 ps-9 text-caption text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all ${
+                  mobileSearch ? "pe-8 border-primary/60 ring-1 ring-primary/20" : "pe-4 border-input"
+                }`}
                 dir={isRtl ? "rtl" : "ltr"}
               />
+              {mobileSearch && (
+                <button
+                  type="button"
+                  onClick={() => { setMobileSearch(""); if (pathname.startsWith("/courses")) router.push("/courses"); }}
+                  className="absolute end-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Clear"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
             </div>
           </form>
         )}

@@ -1,21 +1,33 @@
 import type { Metadata } from "next";
 import { Users } from "lucide-react";
-import { getTeachers } from "@/features/teachers/server";
+import {
+  getTeachers,
+  getTeacherCategories,
+  getAcademicYears,
+} from "@/features/teachers/server";
 import { TeachersPageClient } from "@/features/teachers/components/TeachersPageClient";
 
 export const metadata: Metadata = { title: "المدرسون" };
 
 interface TeachersPageProps {
-  searchParams: Promise<{ search?: string }>;
+  searchParams: Promise<{
+    search?: string;
+    categoryId?: string;
+    year?: string;
+  }>;
 }
 
-export default async function TeachersPage({
-  searchParams,
-}: TeachersPageProps) {
+export default async function TeachersPage({ searchParams }: TeachersPageProps) {
   const params = await searchParams;
   const search = params.search?.trim() ?? "";
+  const categoryId = params.categoryId ? Number(params.categoryId) : undefined;
+  const year = params.year?.trim() ?? undefined;
 
-  const { teachers, total } = await getTeachers({ search });
+  const [{ teachers, total }, categories, years] = await Promise.all([
+    getTeachers({ search, categoryid: categoryId, year }),
+    getTeacherCategories(),
+    getAcademicYears(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -31,8 +43,12 @@ export default async function TeachersPage({
 
       <TeachersPageClient
         teachers={teachers}
+        categories={categories}
+        years={years}
         locale="ar"
         defaultSearch={search}
+        activeCategoryId={params.categoryId}
+        activeYear={year}
       />
     </div>
   );
