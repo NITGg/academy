@@ -157,6 +157,50 @@ export async function callAcademyApiGet<T = unknown>(
   return _callAcademy<T>(functionName, params, activeToken, lang, "GET");
 }
 
+// ── File upload (draft area) ──────────────────────────────────────────────────
+// Uploads files to the user's private draft file area via /webservice/upload.php
+// and returns the draft itemid, which is then handed to mod_assign_save_submission
+// (or any WS function expecting a draft area). All files land in the SAME draft area
+// by threading the generated itemid through subsequent uploads.
+
+export async function uploadFilesToDraftArea(
+  token: string,
+  files: File[],
+): Promise<number> {
+  let itemid = 0;
+
+  for (const file of files) {
+    const form = new FormData();
+    form.append("token", token);
+    form.append("filearea", "draft");
+    form.append("itemid", String(itemid));
+    form.append("file_1", file, file.name);
+
+    const res = await fetch(`${MOODLE_BASE_URL}/webservice/upload.php`, {
+      method: "POST",
+      body: form,
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
+    }
+
+    const data = await res.json();
+
+    // upload.php returns an array of file records on success, or an object with
+    // `error`/`errorcode` on failure.
+    if (data && (data.error || data.errorcode)) {
+      throw new Error(data.error ?? "Moodle file upload rejected");
+    }
+
+    const first = Array.isArray(data) ? data[0] : data;
+    if (first?.itemid) itemid = Number(first.itemid);
+  }
+
+  return itemid;
+}
+
 // ── Login token exchange ──────────────────────────────────────────────────────
 
 export async function fetchMoodleToken(

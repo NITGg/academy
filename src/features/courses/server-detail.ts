@@ -58,6 +58,16 @@ function normalizeActivity(a: RawActivity, lang: "ar" | "en"): CourseModule {
   };
 }
 
+/**
+ * Keep an activity when the student can open it, OR when it's restricted but Moodle
+ * gave us a reason to show ("Not available unless: You complete …"). Restricted items
+ * with a reason are rendered dimmed + locked so students see what's coming and what
+ * unlocks it. Only truly-hidden items (uservisible false AND no reason) are dropped.
+ */
+function isRenderableActivity(a: RawActivity): boolean {
+  return a.uservisible !== false || Boolean(a.availabilityinfo);
+}
+
 function normalizeTopics(raw: RawCourseTopics, lang: "ar" | "en"): CourseSection[] {
   const sections: CourseSection[] = [];
 
@@ -67,7 +77,7 @@ function normalizeTopics(raw: RawCourseTopics, lang: "ar" | "en"): CourseSection
 
     if (!hasTopics) {
       const modules = (parent.activities ?? [])
-        .filter((a) => a.uservisible !== false)
+        .filter(isRenderableActivity)
         .map((a) => normalizeActivity(a, lang));
       if (modules.length > 0) {
         sections.push({ id: parseInt(parent.id, 10), name: parentName, modules });
@@ -75,7 +85,7 @@ function normalizeTopics(raw: RawCourseTopics, lang: "ar" | "en"): CourseSection
     } else {
       // Parent acts as a heading; its direct activities go into a section of their own
       const directMods = (parent.activities ?? [])
-        .filter((a) => a.uservisible !== false)
+        .filter(isRenderableActivity)
         .map((a) => normalizeActivity(a, lang));
       if (directMods.length > 0) {
         sections.push({ id: parseInt(parent.id, 10), name: parentName, modules: directMods });
@@ -83,7 +93,7 @@ function normalizeTopics(raw: RawCourseTopics, lang: "ar" | "en"): CourseSection
       // Each topic becomes its own section
       for (const topic of parent.topics!) {
         const topicModules = (topic.activities ?? [])
-          .filter((a) => a.uservisible !== false)
+          .filter(isRenderableActivity)
           .map((a) => normalizeActivity(a, lang));
         if (topicModules.length > 0) {
           sections.push({
@@ -243,7 +253,10 @@ export async function getCourseDetail(courseId: number): Promise<CourseDetailDat
         ...section,
         name: parseMlang(section.name ?? "", lang),
         modules: (section.modules ?? [])
-          .filter((m) => m.uservisible !== false && m.visible !== 0)
+          .filter(
+            (m) =>
+              (m.uservisible !== false || Boolean(m.availabilityinfo)) && m.visible !== 0
+          )
           .map((mod) => ({ ...mod, name: parseMlang(mod.name ?? "", lang) })),
       }));
   }

@@ -58,6 +58,14 @@ export function CourseModuleRow({
   const canOpen = enrolled && mod.uservisible !== false;
   const href = `/courses/${courseId}/activity/${mod.id}`;
 
+  // Restricted (locked) activities are still shown — dimmed, non-tappable — with the
+  // reason Moodle gave ("Not available unless: You complete …") so students see what's
+  // coming and what unlocks it. availabilityinfo is ready-to-display HTML; strip tags.
+  const isRestricted = enrolled && mod.uservisible === false;
+  const restrictionReason = mod.availabilityinfo
+    ? mod.availabilityinfo.replace(/<[^>]*>/g, "").trim()
+    : "";
+
   const base =
     "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors group w-full text-start";
 
@@ -76,9 +84,16 @@ export function CourseModuleRow({
 
       <Icon className="size-4 shrink-0 text-muted-foreground" />
 
-      <span className="flex-1 text-caption text-foreground leading-snug">{mod.name}</span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-caption text-foreground leading-snug">{mod.name}</span>
+        {isRestricted && restrictionReason ? (
+          <span className="block text-[11px] text-muted-foreground/70 leading-snug mt-0.5">
+            {restrictionReason}
+          </span>
+        ) : null}
+      </span>
 
-      {!enrolled ? (
+      {!enrolled || isRestricted ? (
         <Lock className="size-3.5 shrink-0 text-muted-foreground/50" />
       ) : canOpen ? (
         <ChevronLeft className="size-4 shrink-0 text-muted-foreground/30 group-hover:text-primary transition-colors" />
@@ -94,5 +109,7 @@ export function CourseModuleRow({
     );
   }
 
-  return <div className={`${base} ${enrolled ? "" : "opacity-70"}`}>{inner}</div>;
+  return (
+    <div className={`${base} ${enrolled && !isRestricted ? "" : "opacity-70"}`}>{inner}</div>
+  );
 }

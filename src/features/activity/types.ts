@@ -99,3 +99,45 @@ export interface QuizAttemptSummary {
 
 /** One question's answer as the student submits it. */
 export type AnswerValue = number | number[];
+
+// ── Assignment models ──────────────────────────────────────────────────────────
+
+export interface AssignmentData {
+  id: number;
+  cmid: number;
+  intro: string;
+  duedate: number;
+  grade: number;
+  submissionStatus: string | null;
+  gradingStatus: string | null;
+  gradeForDisplay: string | null;
+  gradedDate: number | null;
+  /** Teacher's feedback comment (HTML), from the feedback `comments` plugin. */
+  feedbackComment: string;
+  canEdit: boolean;
+  canSubmit: boolean;
+  locked: boolean;
+  // ── Submission config ──
+  /** Student must click a "submit for grading" button (draft → submitted). */
+  submissionDrafts: boolean;
+  /** Student must accept the submission statement before submitting. */
+  requireStatement: boolean;
+  allowsOnlineText: boolean;
+  allowsFile: boolean;
+  maxFiles: number;
+  /** Max bytes per file, 0 = site default. */
+  maxBytes: number;
+  /** Comma-separated accepted extensions (e.g. ".pdf,.docx"), "" = any. */
+  acceptedTypes: string;
+  // ── Already-submitted content (for prefill / read-back) ──
+  submittedText: string;
+  submittedFiles: string[];
+}
+
+export interface AssignmentSubmitResult {
+  ok: boolean;
+  /** New submission status after saving ("submitted" | "draft"). */
+  status?: string;
+  error?: string;
+  needsAuth?: boolean;
+}

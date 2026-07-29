@@ -5,11 +5,12 @@ import { ArrowRight, FileText, Lock } from "lucide-react";
 import { getLocale } from "next-intl/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { getActivityForView } from "@/features/activity/server";
-import { getQuiz } from "@/features/activity/actions";
+import { getQuiz, getAssignmentData } from "@/features/activity/actions";
 import { ViewTracker } from "@/features/activity/components/ViewTracker";
 import { PdfViewer } from "@/features/activity/components/PdfViewer";
 import { VideoViewer } from "@/features/activity/components/VideoViewer";
 import { QuizViewer } from "@/features/activity/components/QuizViewer";
+import { AssignmentViewer } from "@/features/activity/components/AssignmentViewer";
 import { CertificateViewer } from "@/features/activity/components/CertificateViewer";
 import { CompletionPanel } from "@/features/activity/components/CompletionPanel";
 
@@ -131,6 +132,28 @@ async function ActivityBody({
         quiz={res.data}
         courseId={courseId}
         cmid={cmid}
+        isArabic={isArabic}
+      />
+    );
+  }
+
+  // Assignment — full in-site view with submission status and grade.
+  if (modname === "assign") {
+    const res = await getAssignmentData(cmid, courseId, activity.instance ?? 0);
+    if (!res.data) {
+      return (
+        <ErrorBox
+          text={
+            res.error ??
+            (isArabic ? "تعذّر تحميل الواجب" : "Could not load assignment")
+          }
+        />
+      );
+    }
+    return (
+      <AssignmentViewer
+        assignment={res.data}
+        courseId={courseId}
         isArabic={isArabic}
       />
     );
