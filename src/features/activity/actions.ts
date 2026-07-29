@@ -10,6 +10,7 @@ import {
   uploadFilesToDraftArea,
 } from "@/lib/moodle-server";
 import { parseMlang } from "@/lib/mlang";
+import { MOODLE_BASE_URL } from "@/config/constants";
 import type {
   Quiz,
   QuizAttemptStart,
@@ -20,7 +21,9 @@ import type {
   AssignmentSubmitResult,
   PageData,
   UrlData,
+  GoogleMeetData,
 } from "./types";
+import { fetchCourseTopics, findActivityByCmid } from "./server";
 
 function langOf(locale: string): "ar" | "en" {
   return locale === "ar" ? "ar" : "en";
@@ -683,5 +686,62 @@ export async function getUrlData(
     };
   }
 }
+
+// ── Google Meet Activity ─────────────────────────────────────────────────────
+
+export async function getGoogleMeetData(
+  cmid: number,
+  courseId: number,
+): Promise<{ data?: GoogleMeetData; error?: string; needsAuth?: boolean }> {
+  const session = await getSessionFromCookie();
+  if (!session?.wstoken) return { needsAuth: true };
+
+  const lang = langOf(await getLocale());
+
+  try {
+    const topics = await fetchCourseTopics(courseId, session.wstoken, lang);
+    const a = topics ? findActivityByCmid(topics, cmid) : null;
+    const name = a ? parseMlang(a.name, lang) : "Google Meet";
+    const moodleUrl = `${MOODLE_BASE_URL}/mod/googlemeet/view.php?id=${cmid}`;
+
+    let meetUrl: string | undefined = a?.fileurl || undefined;
+
+    // If meetUrl is not directly in a.fileurl, try fetching moodleUrl HTML to extract Google Meet link if present
+    if (!meetUrl || !meetUrl.includes("meet.google.com")) {
+      try {
+        const pageRes = await fetch(moodleUrl, { cache: "no-store" });
+        if (pageRes.ok) {
+          const html = await pageRes.text();
+          const match = html.match(/https:\/\/meet\.google\.com\/[a-z0-9-]+/i);
+          if (match) {
+            meetUrl = match[0];
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return {
+      data: {
+        cmid,
+        courseId,
+        name,
+        meetUrl,
+        moodleUrl,
+      },
+    };
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : lang === "ar"
+          ? "تعذّر تحميل بيانات اجتماع Google Meet"
+          : "Failed to load Google Meet activity data",
+    };
+  }
+}
+
 
 

@@ -179,4 +179,17 @@ export interface UrlData {
   timemodified?: number;
 }
 
+// ── Google Meet models ───────────────────────────────────────────────────────
+
+export interface GoogleMeetData {
+  id?: number;
+  cmid: number;
+  courseId: number;
+  name: string;
+  intro?: string;
+  meetUrl?: string;
+  moodleUrl: string;
+}
+
+
 

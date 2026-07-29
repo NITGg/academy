@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ExternalLink, Loader2, MessageSquare, MessagesSquare } from "lucide-react";
+import { MessageSquare, MessagesSquare } from "lucide-react";
 import type { ActivityView } from "../types";
-import { getActivityAutologinUrl } from "../actions";
 
 export function ForumViewer({
   activity,
@@ -12,29 +10,7 @@ export function ForumViewer({
   activity: ActivityView;
   isArabic: boolean;
 }) {
-  const { cmid, name } = activity;
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleOpenForum = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await getActivityAutologinUrl(cmid);
-      if (res.url) {
-        window.open(res.url, "_blank");
-      } else {
-        setError(
-          res.error ??
-            (isArabic ? "تعذّر فتح المنتدى" : "Could not open forum"),
-        );
-      }
-    } catch {
-      setError(isArabic ? "حدث خطأ غير متوقع" : "Unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { name } = activity;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm md:p-8 space-y-6">
@@ -60,29 +36,15 @@ export function ForumViewer({
           </h3>
           <p className="text-caption text-muted-foreground max-w-sm">
             {isArabic
-              ? "اضغط أدناه لاستعراض مواضيع النقاش وكتابة مشاركاتك واستفساراتك"
-              : "Click below to browse forum topics and post your questions and replies"}
+              ? "يمكنك المشاركة في النقاش وطرح أسئلتك والرد على مشاركات زملائك من خلال المنتدى."
+              : "You can participate in the discussion, ask questions, and reply to your classmates' posts through the forum."}
           </p>
         </div>
 
-        {error && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-caption text-red-600 dark:text-red-400">
-            {error}
-          </div>
-        )}
-
-        <button
-          onClick={handleOpenForum}
-          disabled={loading}
-          className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-3 text-small font-semibold text-white shadow-md hover:bg-amber-700 active:scale-[0.98] transition-all disabled:opacity-50"
-        >
-          {loading ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <ExternalLink className="size-4" />
-          )}
-          <span>{isArabic ? "دخول المنتدى" : "Enter Forum"}</span>
-        </button>
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-4 py-1.5 text-caption font-medium text-amber-700 dark:text-amber-300">
+          <MessagesSquare className="size-3.5" />
+          <span>{isArabic ? "منتدى النقاش" : "Discussion Forum"}</span>
+        </div>
       </div>
     </div>
   );

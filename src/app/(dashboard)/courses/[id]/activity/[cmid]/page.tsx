@@ -5,7 +5,13 @@ import { ArrowRight, FileText, Lock } from "lucide-react";
 import { getLocale } from "next-intl/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { getActivityForView } from "@/features/activity/server";
-import { getQuiz, getAssignmentData, getPageData, getUrlData } from "@/features/activity/actions";
+import {
+  getQuiz,
+  getAssignmentData,
+  getPageData,
+  getUrlData,
+  getGoogleMeetData,
+} from "@/features/activity/actions";
 import { ViewTracker } from "@/features/activity/components/ViewTracker";
 import { PdfViewer } from "@/features/activity/components/PdfViewer";
 import { VideoViewer } from "@/features/activity/components/VideoViewer";
@@ -227,7 +233,14 @@ async function ActivityBody({
     name.toLowerCase().includes("google meet") ||
     name.toLowerCase().includes("googlemeet")
   ) {
-    return <GoogleMeetViewer activity={activity} isArabic={isArabic} />;
+    const res = await getGoogleMeetData(cmid, courseId);
+    const meetData = res.data ?? {
+      cmid,
+      courseId,
+      name: activity.name,
+      moodleUrl: `${process.env.MOODLE_BASE_URL ?? "https://academy2026.nitg-eg.com"}/mod/googlemeet/view.php?id=${cmid}`,
+    };
+    return <GoogleMeetViewer meetData={meetData} isArabic={isArabic} />;
   }
 
   // Forum (منتدى) activity.

@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CalendarCheck, CheckSquare, ExternalLink, Loader2, UserCheck } from "lucide-react";
+import { CalendarCheck, UserCheck } from "lucide-react";
 import type { ActivityView } from "../types";
-import { getActivityAutologinUrl } from "../actions";
 
 export function AttendanceViewer({
   activity,
@@ -12,29 +10,7 @@ export function AttendanceViewer({
   activity: ActivityView;
   isArabic: boolean;
 }) {
-  const { cmid, name } = activity;
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleOpenAttendance = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await getActivityAutologinUrl(cmid);
-      if (res.url) {
-        window.open(res.url, "_blank");
-      } else {
-        setError(
-          res.error ??
-            (isArabic ? "تعذّر فتح سجل الحضور" : "Could not open attendance record"),
-        );
-      }
-    } catch {
-      setError(isArabic ? "حدث خطأ غير متوقع" : "Unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { name } = activity;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm md:p-8 space-y-6">
@@ -60,29 +36,15 @@ export function AttendanceViewer({
           </h3>
           <p className="text-caption text-muted-foreground max-w-sm">
             {isArabic
-              ? "اضغط أدناه لاستعراض جلسات الحضور الخاصة بك وتسجيل تواجدك"
-              : "Click below to review your attendance sessions and record your presence"}
+              ? "يتم تسجيل حضورك تلقائياً من قبل المعلم خلال الجلسات المباشرة. يمكنك مراجعة سجل حضورك هنا."
+              : "Your attendance is recorded automatically by the instructor during live sessions. You can review your attendance record here."}
           </p>
         </div>
 
-        {error && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-caption text-red-600 dark:text-red-400">
-            {error}
-          </div>
-        )}
-
-        <button
-          onClick={handleOpenAttendance}
-          disabled={loading}
-          className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-6 py-3 text-small font-semibold text-white shadow-md hover:bg-sky-700 active:scale-[0.98] transition-all disabled:opacity-50"
-        >
-          {loading ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <ExternalLink className="size-4" />
-          )}
-          <span>{isArabic ? "عرض سجل الحضور" : "View Attendance Record"}</span>
-        </button>
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/10 px-4 py-1.5 text-caption font-medium text-sky-700 dark:text-sky-300">
+          <CalendarCheck className="size-3.5" />
+          <span>{isArabic ? "يُدار بواسطة المعلم" : "Managed by instructor"}</span>
+        </div>
       </div>
     </div>
   );
