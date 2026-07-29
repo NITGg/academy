@@ -76,6 +76,17 @@ function xmldb_local_payments_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026071900, 'local', 'payments');
     }
 
+    // Point the post-payment redirect at the Next.js frontend so students land back on their own
+    // site (e.g. /courses/12?payment=success) instead of the legacy Moodle result pages. Only set
+    // it when the admin hasn't already configured a value, so a deliberate choice is never clobbered.
+    if ($oldversion < 2026072100) {
+        if (trim((string) get_config('local_payments', 'frontend_url')) === '') {
+            set_config('frontend_url', 'https://academy2026.nitg-eg.com/nextjs-frontend-student', 'local_payments');
+        }
+
+        upgrade_plugin_savepoint(true, 2026072100, 'local', 'payments');
+    }
+
     return true;
 }
 
