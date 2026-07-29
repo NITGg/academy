@@ -150,17 +150,6 @@ function EventDetailPanel({
                   {isAr ? getTypeLabel(ev.eventtype, true) : getTypeLabel(ev.eventtype, false)}
                 </span>
               </div>
-              {ev.url && (
-                <a
-                  href={ev.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-0.5 shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  title={isAr ? "فتح" : "Open"}
-                >
-                  <ExternalLink className="size-3.5" />
-                </a>
-              )}
             </div>
           );
         })}
