@@ -39,9 +39,17 @@ use local_academy\cert\customcert_link;
 
 $key  = required_param('key', PARAM_ALPHANUMEXT);   // One-time key from open_certificate.
 $cmid = required_param('cmid', PARAM_INT);          // The customcert activity the key is bound to.
+// Optional: land straight on the rendered PDF (view.php?...&downloadown=1) instead of the activity
+// page with its preview button. Only this single boolean flag is forwarded — the target path and id
+// are still built from $cmid alone, so the open-redirect guarantees above are unchanged.
+$downloadown = optional_param('downloadown', 0, PARAM_BOOL);
 
 $PAGE->set_context(context_system::instance());
-$target = new moodle_url('/mod/customcert/view.php', ['id' => $cmid]);
+$targetparams = ['id' => $cmid];
+if ($downloadown) {
+    $targetparams['downloadown'] = 1;
+}
+$target = new moodle_url('/mod/customcert/view.php', $targetparams);
 
 // Already logged in as the same user? Nothing to do — just go to the certificate. (If it is a
 // different user, refuse rather than silently swapping sessions.)
