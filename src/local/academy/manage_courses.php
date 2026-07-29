@@ -51,7 +51,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 <div id="academy-mc-app">
     <div id="mc-message" class="alert" style="display:none"></div>
 
-    <p class="text-muted"><?php echo $STR['mc_desc']; ?></p>
+    <p class="text-muted" style="background:#fff3cd;padding:8px 12px;border-radius:6px;"><?php echo $STR['mc_desc']; ?></p>
     <button id="mc-refresh" class="btn btn-secondary mb-2"><?php echo $STR['ui_refresh']; ?></button>
     <table class="table table-striped" id="mc-table">
         <thead>
