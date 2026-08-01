@@ -13,18 +13,46 @@ import type {
 
 import { getTeachers } from "@/features/teachers/server";
 
+export interface SpecialtyCourse {
+  id: number;
+  name: string;
+  desc: string;
+  url: string;
+}
+export interface SpecialtyLevel {
+  name: string;
+  courses: SpecialtyCourse[];
+}
+export interface Specialty {
+  id: number;
+  name: string;
+  url: string;
+  count: number;
+  levels: SpecialtyLevel[];
+}
+
 /**
- * A custom-HTML block from the Moodle front page (`cocoon_custom_html`), rendered headless by
- * `local_academy/api.php?function=get_frontpage_blocks`. The `html` is self-contained (inline
- * styles + server-substituted stats/links), so it renders with the same appearance as the Moodle
- * site with no theme CSS required.
+ * A section of the Moodle front page (`cocoon_custom_html` block), rendered headless by
+ * `local_academy/api.php?function=get_frontpage_blocks`.
+ *
+ * - `kind: "html"` — self-contained HTML (inline styles + server-substituted stats/links); renders
+ *   identically with no Moodle theme CSS.
+ * - `kind: "specialties"` — the curriculum block. Its stored body is a static wrapper + header with
+ *   an empty placeholder that Moodle fills with course cards client-side; we return the header
+ *   chrome (`wrapperStyle`/`wrapperDir`/`headerHtml`) plus live `specialties` DATA so the frontend
+ *   renders the cards natively (with working filtering).
  */
 export interface FrontpageBlock {
   id: number;
   title: string;
   region: string;
   weight: number;
-  html: string;
+  kind: "html" | "specialties";
+  html?: string;
+  wrapperStyle?: string;
+  wrapperDir?: string;
+  headerHtml?: string;
+  specialties?: Specialty[];
 }
 
 export interface HomeDashboardData {
