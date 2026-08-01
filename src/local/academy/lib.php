@@ -2278,6 +2278,59 @@ function local_academy_get_theme_logo_settings() {
 }
 
 /**
+ * Footer settings mirrored from the Edumy theme (Appearance → Edumy → Footer).
+ *
+ * Mirrors the theme's "Footer 8" model: up to 5 columns (each with a title + raw-HTML body,
+ * a column being "active" when its title OR body is set), plus a copyright line and a footer
+ * menu. Admin-authored {mlang} multilang tags are resolved server-side to the request language
+ * (?alang) so the headless frontend receives clean, localised HTML/text. Column bodies and the
+ * menu are rendered with noclean to preserve their inline styles.
+ *
+ * @return array
+ */
+function local_academy_get_theme_footer_settings() {
+    $ctx = context_system::instance();
+
+    $get = function($name) {
+        $val = get_config('theme_edumy', $name);
+        return $val !== false ? trim((string)$val) : '';
+    };
+    // Short strings (titles, copyright): resolve {mlang} + filters.
+    $fstring = function($val) use ($ctx) {
+        return $val === '' ? '' : format_string($val, true, ['context' => $ctx]);
+    };
+    // HTML bodies/menu: resolve {mlang} + filters, keep inline styles (noclean).
+    $ftext = function($val) use ($ctx) {
+        return $val === '' ? '' : format_text($val, FORMAT_HTML, [
+            'context' => $ctx,
+            'noclean' => true,
+            'filter'  => true,
+        ]);
+    };
+
+    $columns = [];
+    for ($i = 1; $i <= 5; $i++) {
+        $title = $get("footer_col_{$i}_title");
+        $body  = $get("footer_col_{$i}_body");
+        $columns[] = [
+            'index'  => $i,
+            'active' => ($title !== '' || $body !== ''),
+            'title'  => $fstring($title),
+            'body'   => $ftext($body),
+        ];
+    }
+
+    $footertype = $get('footertype');
+
+    return [
+        'footertype'       => $footertype !== '' ? $footertype : '1',
+        'cocoon_copyright' => $fstring($get('cocoon_copyright')),
+        'columns'          => $columns,
+        'footer_menu'      => $ftext($get('footer_menu')),
+    ];
+}
+
+/**
  * Live "specialties" data for the front-page curriculum block: every visible top-level category
  * that has courses, with its subcategories as levels and the courses inside each. This is the
  * single source of truth shared by {@see local_academy_before_footer()} (which builds the cards
