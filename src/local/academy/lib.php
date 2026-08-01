@@ -2184,27 +2184,51 @@ HTML;
 }
 
 /**
- * Brand colour tokens the admin controls from the edumy theme settings (Appearance → edumy).
- * Returned to the headless frontend so it can mirror the site's brand: when an admin changes a
- * colour in the theme, the Next.js app reflects it (applied as CSS variables). Only the brand-level
- * colours are exposed (not the many footer/header/dashboard-specific ones). Empty/unset values are
- * omitted so the frontend keeps its own defaults for those.
+ * Fetch all brand and section colour variables configured in the edumy theme settings page
+ * (Appearance → Edumy settings → Color). Empty/unset values are omitted so the frontend
+ * falls back to its built-in palette for those keys.
  *
- * @return array<string,string> e.g. ['primary' => '#0E2647', 'accent2' => '#B31F61', ...]
+ * @return array<string,string> e.g. ['primary' => '#0E2647', 'headerStyle2Top' => '#000000', ...]
  */
 function local_academy_get_theme_tokens() {
     // frontend key => edumy setting name.
     $map = [
-        'primary'          => 'color_primary',
-        'primaryAlternate' => 'color_primary_alternate',
-        'secondary'        => 'color_secondary',
-        'tertiary'         => 'color_tertiary',
-        'accent'           => 'color_accent',
-        'accent2'          => 'color_accent_2',
-        'accent3'          => 'color_accent_3',
-        'accent4'          => 'color_accent_4',
-        'gradientStart'    => 'color_gradient_start',
-        'gradientEnd'      => 'color_gradient_end',
+        // Gradients
+        'gradientStart'        => 'color_gradient_start',
+        'gradientEnd'          => 'color_gradient_end',
+
+        // Main Colors
+        'primary'              => 'color_primary',
+        'primaryAlternate'     => 'color_primary_alternate',
+        'secondary'            => 'color_secondary',
+        'tertiary'             => 'color_tertiary',
+        'accent'               => 'color_accent',
+        'accent2'              => 'color_accent_2',
+        'accent3'              => 'color_accent_3',
+        'accent4'              => 'color_accent_4',
+        'parallax'             => 'color_parallax',
+
+        // Header Styles
+        'headerStyle2Top'      => 'color_header_style_2_top',
+        'headerStyle2Bottom'   => 'color_header_style_2_bottom',
+        'headerStyle3Top'      => 'color_header_style_3_top',
+        'headerStyle4Top'      => 'color_header_style_4_top',
+        'headerStyle5'         => 'color_header_style_5',
+        'headerStyle6Top'      => 'color_header_style_6_top',
+
+        // Footer Styles
+        'footerStyle1Top'      => 'color_footer_style_1_top',
+        'footerStyle1Bottom'   => 'color_footer_style_1_bottom',
+        'footerStyle2Top'      => 'color_footer_style_2_top',
+        'footerStyle2Bottom'   => 'color_footer_style_2_bottom',
+        'footerStyle3Top'      => 'color_footer_style_3_top',
+        'footerStyle3Middle'   => 'color_footer_style_3_middle',
+        'footerStyle3Bottom'   => 'color_footer_style_3_bottom',
+        'footerStyle5Top'      => 'color_footer_style_5_top',
+        'footerStyle5Bottom'   => 'color_footer_style_5_bottom',
+        'footerStyle6All'      => 'color_footer_style_6_all',
+        'footerStyle7Top'      => 'color_footer_style_7_top',
+        'footerStyle7Bottom'   => 'color_footer_style_7_bottom',
     ];
 
     $colors = [];
