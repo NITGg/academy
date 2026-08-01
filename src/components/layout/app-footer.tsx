@@ -47,23 +47,21 @@ export function AppFooter() {
     <footer className="mt-auto border-t border-white/10 bg-[#080f1d] text-slate-300">
       {(showFooterImage || columns.length > 0) && (
         <section className="container mx-auto px-4 lg:px-6 py-10">
-          <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16 lg:flex-nowrap">
+          <div className="flex flex-col lg:flex-row items-center justify-between w-full gap-4 lg:gap-6 lg:flex-nowrap">
             {/* ── Logo column – far right in RTL, far left in LTR ── */}
             {showFooterImage && (
-              <div className="shrink-0 flex justify-center">
+              <div className="shrink-0 w-48 flex justify-start">
                 <Link
                   href="/"
-                  className="inline-flex flex-col items-center gap-3"
+                  className="inline-flex items-center justify-start w-full"
                 >
-                  <span className="flex items-center justify-center rounded-xl bg-primary p-3">
-                    <Image
-                      src={footerLogoSrc}
-                      alt={tApp("name")}
-                      width={logoWidth}
-                      height={logoHeight}
-                      className="object-contain"
-                    />
-                  </span>
+                  <Image
+                    src={footerLogoSrc}
+                    alt={tApp("name")}
+                    width={logoWidth > 40 ? logoWidth : 160}
+                    height={logoHeight > 40 ? logoHeight : 60}
+                    className="w-full h-auto max-h-20 object-contain"
+                  />
                 </Link>
               </div>
             )}
@@ -75,7 +73,9 @@ export function AppFooter() {
                 <div
                   key={col.index}
                   className={cn(
-                    isLast ? "shrink-0" : "flex-1 max-w-2xl text-center",
+                    isLast
+                      ? "shrink-0 w-52 flex justify-end"
+                      : "flex-1 w-full text-center px-4 lg:px-6",
                   )}
                 >
                   {col.title && (
