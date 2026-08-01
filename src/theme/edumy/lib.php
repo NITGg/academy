@@ -34,6 +34,7 @@ function theme_edumy_pluginfile($course, $cm, $context, $filearea, $args, $force
     if ($context->contextlevel == CONTEXT_SYSTEM && ( $filearea === 'headerlogo1' ||
                                                       $filearea === 'headerlogo2' ||
                                                       $filearea === 'headerlogo3' ||
+                                                      $filearea === 'headerlogo4' ||
                                                       $filearea === 'headerlogo_mobile' ||
                                                       $filearea === 'footerlogo1' ||
                                                       $filearea === 'heading_bg' ||
