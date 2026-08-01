@@ -145,7 +145,7 @@ if ($canforcelang) {
 
 // ── Public (no-token) functions: front-page marketing content is visible to everyone, including
 // logged-out visitors, so it must not require a web-service token. Handle it before the auth gate.
-$publicfunctions = ['get_frontpage_blocks'];
+$publicfunctions = ['get_frontpage_blocks', 'get_theme_tokens'];
 if (in_array($function, $publicfunctions, true)) {
     try {
         switch ($function) {
@@ -153,6 +153,12 @@ if (in_array($function, $publicfunctions, true)) {
                 $region = optional_param('region', '', PARAM_ALPHANUMEXT);
                 $blocks = local_academy_get_frontpage_blocks($region !== '' ? $region : null);
                 academy_respond(['status' => 'success', 'data' => ['blocks' => $blocks]]);
+                break;
+
+            // Brand colour tokens from the edumy theme — lets the headless frontend mirror the
+            // site's brand colours (public: branding is not sensitive and is shown to everyone).
+            case 'get_theme_tokens':
+                academy_respond(['status' => 'success', 'data' => ['colors' => local_academy_get_theme_tokens()]]);
                 break;
         }
     } catch (Exception $e) {

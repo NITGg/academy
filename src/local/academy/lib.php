@@ -2184,6 +2184,42 @@ HTML;
 }
 
 /**
+ * Brand colour tokens the admin controls from the edumy theme settings (Appearance → edumy).
+ * Returned to the headless frontend so it can mirror the site's brand: when an admin changes a
+ * colour in the theme, the Next.js app reflects it (applied as CSS variables). Only the brand-level
+ * colours are exposed (not the many footer/header/dashboard-specific ones). Empty/unset values are
+ * omitted so the frontend keeps its own defaults for those.
+ *
+ * @return array<string,string> e.g. ['primary' => '#0E2647', 'accent2' => '#B31F61', ...]
+ */
+function local_academy_get_theme_tokens() {
+    // frontend key => edumy setting name.
+    $map = [
+        'primary'          => 'color_primary',
+        'primaryAlternate' => 'color_primary_alternate',
+        'secondary'        => 'color_secondary',
+        'tertiary'         => 'color_tertiary',
+        'accent'           => 'color_accent',
+        'accent2'          => 'color_accent_2',
+        'accent3'          => 'color_accent_3',
+        'accent4'          => 'color_accent_4',
+        'gradientStart'    => 'color_gradient_start',
+        'gradientEnd'      => 'color_gradient_end',
+    ];
+
+    $colors = [];
+    foreach ($map as $key => $setting) {
+        $val = get_config('theme_edumy', $setting);
+        // Keep only valid #rgb / #rrggbb values; skip unset (false) or blanks.
+        if (is_string($val) && preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', trim($val))) {
+            $colors[$key] = trim($val);
+        }
+    }
+
+    return $colors;
+}
+
+/**
  * Live "specialties" data for the front-page curriculum block: every visible top-level category
  * that has courses, with its subcategories as levels and the courses inside each. This is the
  * single source of truth shared by {@see local_academy_before_footer()} (which builds the cards
