@@ -7,6 +7,7 @@
 
 require_once('../../config.php');
 require_once($CFG->dirroot . '/webservice/lib.php');
+require_once($CFG->dirroot . '/local/academy/lib.php');
 
 use local_academy\package_manager;
 use local_academy\purchase_manager;
@@ -140,6 +141,23 @@ $canforcelang = ($lang !== '' && get_string_manager()->translation_exists($lang)
 $GLOBALS['academy_prev_forcelang'] = isset($SESSION->forcelang) ? $SESSION->forcelang : null;
 if ($canforcelang) {
     $SESSION->forcelang = $lang;
+}
+
+// ── Public (no-token) functions: front-page marketing content is visible to everyone, including
+// logged-out visitors, so it must not require a web-service token. Handle it before the auth gate.
+$publicfunctions = ['get_frontpage_blocks'];
+if (in_array($function, $publicfunctions, true)) {
+    try {
+        switch ($function) {
+            case 'get_frontpage_blocks':
+                $region = optional_param('region', '', PARAM_ALPHANUMEXT);
+                $blocks = local_academy_get_frontpage_blocks($region !== '' ? $region : null);
+                academy_respond(['status' => 'success', 'data' => ['blocks' => $blocks]]);
+                break;
+        }
+    } catch (Exception $e) {
+        academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+    }
 }
 
 // ── Authenticate via web-service token (sets $USER to the token's user) ──

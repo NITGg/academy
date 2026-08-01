@@ -2183,6 +2183,176 @@ function local_academy_hero_section() {
 HTML;
 }
 
+/**
+ * Live front-page stats and links used to fill placeholders in the front-page custom-HTML blocks.
+ *
+ * Any element with data-xt-stat="courses|categories|programs" gets its text replaced with the
+ * matching count; any element with data-xt-link="course_index|packages" gets its href replaced.
+ * This is the single source of truth shared by {@see local_academy_before_footer()} (which applies
+ * it client-side via JS on the Moodle front page) and by the headless front-page blocks API
+ * ({@see local_academy_get_frontpage_blocks()}, which applies it server-side) so the Next.js
+ * frontend renders exactly the same numbers as the Moodle site.
+ *
+ * @return array{0: array<string,int>, 1: array<string,string>} [$stats, $links]
+ */
+function local_academy_frontpage_stats_links() {
+    global $DB;
+
+    $coursecount   = $DB->count_records_select('course_categories', 'parent != 0 AND visible = 1');
+    $topcategories = $DB->count_records_select('course_categories', 'parent = 0 AND visible = 1');
+    $programcount  = 0;
+    if ($DB->get_manager()->table_exists('enrol_programs_programs')) {
+        $programcount = $DB->count_records('enrol_programs_programs', ['archived' => 0]);
+    }
+
+    $stats = [
+        'courses'    => (int) $coursecount,
+        'categories' => (int) $topcategories,
+        'programs'   => (int) $programcount,
+    ];
+    $links = [
+        'course_index' => (string) new moodle_url('/course/index.php'),
+        'packages'     => '#la-pkgs',
+    ];
+
+    return [$stats, $links];
+}
+
+/**
+ * Return the visible custom-HTML blocks on the site front page (pagetype `site-index`),
+ * ordered exactly as Moodle renders them (region, then weight), with:
+ *   - multilang/pluginfile filtering applied (same as the block's own get_content()), and
+ *   - the data-xt-stat / data-xt-link placeholders substituted server-side.
+ *
+ * The stored block bodies are self-contained HTML with inline styles, so the returned `html`
+ * renders identically in a headless frontend with no Moodle theme CSS required.
+ *
+ * @param string|null $region Optional region filter (e.g. 'fullwidth-top'); null returns all.
+ * @return array<int, array{id:int,title:string,region:string,weight:int,html:string}>
+ */
+function local_academy_get_frontpage_blocks($region = null) {
+    global $DB;
+
+    // Front page (site) course context — this is where front-page blocks are parented.
+    $frontcontext = context_course::instance(SITEID);
+
+    $params = [
+        'blockname'       => 'cocoon_custom_html',
+        'pagetypepattern' => 'site-index',
+        'parentcontextid' => $frontcontext->id,
+    ];
+    $instances = $DB->get_records('block_instances', $params);
+
+    [$stats, $links] = local_academy_frontpage_stats_links();
+
+    $blocks = [];
+    foreach ($instances as $bi) {
+        // Respect an explicit "hidden" flag from block_positions on the front page, if present.
+        $pos = $DB->get_record('block_positions', [
+            'blockinstanceid' => $bi->id,
+            'contextid'       => $frontcontext->id,
+        ]);
+        if ($pos && (int) $pos->visible === 0) {
+            continue;
+        }
+
+        $blockregion = ($pos && $pos->region !== null && $pos->region !== '')
+            ? $pos->region : $bi->defaultregion;
+        $weight = ($pos && $pos->weight !== null) ? (int) $pos->weight : (int) $bi->defaultweight;
+
+        if ($region !== null && $blockregion !== $region) {
+            continue;
+        }
+
+        $config = $bi->configdata ? unserialize(base64_decode($bi->configdata)) : null;
+        $bodytext = '';
+        if ($config && !empty($config->body) && is_array($config->body) && isset($config->body['text'])) {
+            $bodytext = $config->body['text'];
+        }
+        if (trim($bodytext) === '') {
+            continue; // Skip empty blocks (e.g. spacer blocks with no real content).
+        }
+
+        // Render the body the same way block_cocoon_custom_html::get_content() does: filter
+        // multilang, rewrite @@PLUGINFILE@@ against the block's own context, keep raw HTML.
+        $blockcontext = context_block::instance($bi->id);
+        $html = format_text($bodytext, FORMAT_HTML, [
+            'filter'  => true,
+            'noclean' => true,
+            'context' => $blockcontext,
+        ]);
+        $html = local_academy_apply_frontpage_dynamics($html, $stats, $links);
+
+        $title = (isset($config->title) && $config->title !== '') ? format_string($config->title) : '';
+
+        $blocks[] = [
+            'id'     => (int) $bi->id,
+            'title'  => $title,
+            'region' => (string) $blockregion,
+            'weight' => $weight,
+            'html'   => $html,
+        ];
+    }
+
+    // Order the way Moodle stacks blocks: by region, then ascending weight.
+    usort($blocks, function ($a, $b) {
+        return [$a['region'], $a['weight']] <=> [$b['region'], $b['weight']];
+    });
+
+    return $blocks;
+}
+
+/**
+ * Replace data-xt-stat text and data-xt-link hrefs in a front-page HTML fragment, mirroring the
+ * client-side substitution in {@see local_academy_before_footer()} but done server-side so the
+ * headless frontend receives final, filled-in HTML.
+ *
+ * @param string $html  HTML fragment (may contain UTF-8 / Arabic text).
+ * @param array<string,int> $stats
+ * @param array<string,string> $links
+ * @return string
+ */
+function local_academy_apply_frontpage_dynamics($html, array $stats, array $links) {
+    if (trim($html) === '' || (strpos($html, 'data-xt-') === false)) {
+        return $html;
+    }
+
+    $doc = new DOMDocument();
+    $prev = libxml_use_internal_errors(true);
+    // Force UTF-8 and load as a fragment (no implied <html>/<body>, no doctype).
+    $doc->loadHTML(
+        '<?xml encoding="UTF-8"?><div data-ea-root="1">' . $html . '</div>',
+        LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+    );
+    libxml_clear_errors();
+    libxml_use_internal_errors($prev);
+
+    $xpath = new DOMXPath($doc);
+    foreach ($xpath->query('//*[@data-xt-stat]') as $el) {
+        $k = $el->getAttribute('data-xt-stat');
+        if (array_key_exists($k, $stats)) {
+            $el->textContent = (string) $stats[$k];
+        }
+    }
+    foreach ($xpath->query('//*[@data-xt-link]') as $el) {
+        $k = $el->getAttribute('data-xt-link');
+        if (array_key_exists($k, $links) && $links[$k] !== '') {
+            $el->setAttribute('href', $links[$k]);
+        }
+    }
+
+    // Serialise the children of our wrapper back to an HTML fragment.
+    $wrapper = $xpath->query('//div[@data-ea-root="1"]')->item(0);
+    if (!$wrapper) {
+        return $html;
+    }
+    $inner = '';
+    foreach ($wrapper->childNodes as $child) {
+        $inner .= $doc->saveHTML($child);
+    }
+    return $inner;
+}
+
 function local_academy_before_footer() {
     global $PAGE, $USER, $COURSE, $DB, $CFG;
     $output = '';
@@ -2191,23 +2361,10 @@ function local_academy_before_footer() {
     // gets its textContent replaced with the live count from the database.
     if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
         if ($PAGE->pagetype === 'site-index') {
-            $coursecount    = $DB->count_records_select('course_categories', 'parent != 0 AND visible = 1');
-            $topcategories = $DB->count_records_select('course_categories', 'parent = 0 AND visible = 1');
-            $programcount  = 0;
-            if ($DB->get_manager()->table_exists('enrol_programs_programs')) {
-                $programcount = $DB->count_records('enrol_programs_programs', ['archived' => 0]);
-            }
-            $courseindexurl = (string) new moodle_url('/course/index.php');
+            [$statsarr, $linksarr] = local_academy_frontpage_stats_links();
 
-            $stats = json_encode([
-                'courses'    => (int) $coursecount,
-                'categories' => (int) $topcategories,
-                'programs'   => (int) $programcount,
-            ]);
-            $links = json_encode([
-                'course_index' => $courseindexurl,
-                'packages'     => '#la-pkgs',
-            ]);
+            $stats = json_encode($statsarr);
+            $links = json_encode($linksarr);
             $PAGE->requires->js_amd_inline("
                 require([], function() {
                     var S = {$stats};
