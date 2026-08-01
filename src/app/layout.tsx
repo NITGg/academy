@@ -4,6 +4,7 @@ import { getLocale, getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
 import { Providers } from "./providers";
+import { getThemeTokens, themeTokensToCss } from "@/lib/theme-tokens";
 
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
@@ -45,6 +46,10 @@ export default async function RootLayout({
   const messages = await getMessages();
   const dir = locale === "ar" ? "rtl" : "ltr";
 
+  // Mirror the Moodle (edumy) brand colours: inject them as CSS vars that globals.css maps onto
+  // --primary/--accent/etc. When an admin changes a theme colour, the frontend reflects it.
+  const themeTokensCss = themeTokensToCss(await getThemeTokens());
+
   const themeInitScript = `
 (function(){try{
   var s=localStorage.getItem('ea-theme');
@@ -65,6 +70,12 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        {themeTokensCss && (
+          <style
+            id="edumy-theme-tokens"
+            dangerouslySetInnerHTML={{ __html: themeTokensCss }}
+          />
+        )}
         <script
           id="theme-init"
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
