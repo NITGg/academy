@@ -2243,6 +2243,38 @@ function local_academy_get_theme_tokens() {
 }
 
 /**
+ * Fetch Logo settings configured in Edumy theme settings page (Appearance → Edumy settings → Logo).
+ * Returned with exact Moodle setting names and resolved file URLs.
+ *
+ * @return array<string, mixed>
+ */
+function local_academy_get_theme_logo_settings() {
+    $theme = theme_config::load('edumy');
+
+    $get_file_url = function($setting, $filearea) use ($theme) {
+        $url = $theme->setting_file_url($setting, $filearea);
+        return $url ? $url->out(false) : null;
+    };
+
+    return [
+        'logotype'                  => get_config('theme_edumy', 'logotype') !== false ? (string)get_config('theme_edumy', 'logotype') : '0',
+        'logo_image'                => get_config('theme_edumy', 'logo_image') !== false ? (string)get_config('theme_edumy', 'logo_image') : '0',
+        'logo_image_width'          => get_config('theme_edumy', 'logo_image_width') !== false ? (string)get_config('theme_edumy', 'logo_image_width') : '',
+        'logo_image_height'         => get_config('theme_edumy', 'logo_image_height') !== false ? (string)get_config('theme_edumy', 'logo_image_height') : '',
+        'headerlogo1'               => $get_file_url('headerlogo1', 'headerlogo1'),
+        'headerlogo2'               => $get_file_url('headerlogo2', 'headerlogo2'),
+        'headerlogo3'               => $get_file_url('headerlogo3', 'headerlogo3'),
+        'headerlogo4'               => $get_file_url('headerlogo4', 'headerlogo4'),
+        'headerlogo_mobile'         => $get_file_url('headerlogo_mobile', 'headerlogo_mobile'),
+        'logotype_footer'           => get_config('theme_edumy', 'logotype_footer') !== false ? (string)get_config('theme_edumy', 'logotype_footer') : '0',
+        'logo_image_footer'         => get_config('theme_edumy', 'logo_image_footer') !== false ? (string)get_config('theme_edumy', 'logo_image_footer') : '0',
+        'logo_image_width_footer'   => get_config('theme_edumy', 'logo_image_width_footer') !== false ? (string)get_config('theme_edumy', 'logo_image_width_footer') : '',
+        'logo_image_height_footer'  => get_config('theme_edumy', 'logo_image_height_footer') !== false ? (string)get_config('theme_edumy', 'logo_image_height_footer') : '',
+        'footerlogo1'               => $get_file_url('footerlogo1', 'footerlogo1'),
+    ];
+}
+
+/**
  * Live "specialties" data for the front-page curriculum block: every visible top-level category
  * that has courses, with its subcategories as levels and the courses inside each. This is the
  * single source of truth shared by {@see local_academy_before_footer()} (which builds the cards

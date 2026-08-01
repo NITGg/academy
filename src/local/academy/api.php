@@ -145,7 +145,7 @@ if ($canforcelang) {
 
 // ── Public (no-token) functions: front-page marketing content is visible to everyone, including
 // logged-out visitors, so it must not require a web-service token. Handle it before the auth gate.
-$publicfunctions = ['get_frontpage_blocks', 'get_theme_tokens'];
+$publicfunctions = ['get_frontpage_blocks', 'get_theme_tokens', 'get_theme_logo_settings'];
 if (in_array($function, $publicfunctions, true)) {
     try {
         switch ($function) {
@@ -159,6 +159,11 @@ if (in_array($function, $publicfunctions, true)) {
             // site's brand colours (public: branding is not sensitive and is shown to everyone).
             case 'get_theme_tokens':
                 academy_respond(['status' => 'success', 'data' => ['colors' => local_academy_get_theme_tokens()]]);
+                break;
+
+            // Logo settings from edumy theme (public: site logos are public assets).
+            case 'get_theme_logo_settings':
+                academy_respond(['status' => 'success', 'data' => ['logo' => local_academy_get_theme_logo_settings()]]);
                 break;
         }
     } catch (Exception $e) {
