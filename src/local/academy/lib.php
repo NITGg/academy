@@ -2251,9 +2251,12 @@ function local_academy_get_theme_tokens() {
 function local_academy_get_theme_logo_settings() {
     $theme = theme_config::load('edumy');
 
+    // theme_config::setting_file_url() already returns a plain string URL (or empty),
+    // NOT a moodle_url object — so return it directly. Calling ->out() on it throws
+    // "Call to a member function out() on string".
     $get_file_url = function($setting, $filearea) use ($theme) {
         $url = $theme->setting_file_url($setting, $filearea);
-        return $url ? $url->out(false) : null;
+        return !empty($url) ? (string)$url : null;
     };
 
     return [
