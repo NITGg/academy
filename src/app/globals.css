@@ -74,18 +74,46 @@
 
 /* ── Light theme ─────────────────────────────────────────────────────────── */
 :root {
-  /* Primary — blue-600 #2563EB by default, overridden by the Moodle (edumy) brand colour when
-     provided via the injected --edumy-* vars (see lib/theme-tokens.ts + app/layout.tsx). */
-  --primary:            var(--edumy-primary, oklch(0.546 0.245 262.881));
-  --primary-foreground: oklch(0.984 0.003 247.858); /* slate-50 */
+  /* Edumy Color Tab variables (overridden dynamically via injected --edumy-* vars) */
+  --primary:             var(--edumy-primary, oklch(0.546 0.245 262.881));
+  --primary-alternate:   var(--edumy-primary-alternate, #192675);
+  --primary-foreground:  oklch(0.984 0.003 247.858); /* slate-50 */
 
-  /* Secondary — slate-100 surface (shadcn convention) */
-  --secondary:            oklch(0.968 0.007 247.896); /* slate-100 */
-  --secondary-foreground: oklch(0.145 0.026 254.848); /* slate-900 */
+  --secondary:           var(--edumy-secondary, oklch(0.968 0.007 247.896));
+  --secondary-foreground: oklch(0.145 0.026 254.848);
 
-  /* Accent — amber-500 #F59E0B */
-  --accent:            oklch(0.769 0.188 70.080);
-  --accent-foreground: oklch(0.145 0.026 254.848); /* slate-900 */
+  --tertiary:            var(--edumy-tertiary, #6c757d);
+  --accent:              var(--edumy-accent, oklch(0.769 0.188 70.080));
+  --accent-2:            var(--edumy-accent-2, #c75533);
+  --accent-3:            var(--edumy-accent-3, #192675);
+  --accent-4:            var(--edumy-accent-4, #f0d078);
+  --accent-foreground:   oklch(0.145 0.026 254.848);
+
+  --parallax:            var(--edumy-parallax, #2441e7);
+  --gradient-start:      var(--edumy-gradient-start, #ff1053);
+  --gradient-end:        var(--edumy-gradient-end, #3452ff);
+
+  /* Header Section Colors */
+  --header-style-2-top:    var(--edumy-header-style-2-top, #000000);
+  --header-style-2-bottom: var(--edumy-header-style-2-bottom, #141414);
+  --header-style-3-top:    var(--edumy-header-style-3-top, #051925);
+  --header-style-4-top:    var(--edumy-header-style-4-top, #3452ff);
+  --header-style-5:        var(--edumy-header-style-5, #ffffff);
+  --header-style-6-top:    var(--edumy-header-style-6-top, #3452ff);
+
+  /* Footer Section Colors */
+  --footer-style-1-top:    var(--edumy-footer-style-1-top, #151515);
+  --footer-style-1-bottom: var(--edumy-footer-style-1-bottom, #0a0a0a);
+  --footer-style-2-top:    var(--edumy-footer-style-2-top, #f9fafc);
+  --footer-style-2-bottom: var(--edumy-footer-style-2-bottom, #ebeef4);
+  --footer-style-3-top:    var(--edumy-footer-style-3-top, #f9fafc);
+  --footer-style-3-middle: var(--edumy-footer-style-3-middle, #ffffff);
+  --footer-style-3-bottom: var(--edumy-footer-style-3-bottom, #fafafa);
+  --footer-style-5-top:    var(--edumy-footer-style-5-top, #0d2f81);
+  --footer-style-5-bottom: var(--edumy-footer-style-5-bottom, #072670);
+  --footer-style-6-all:    var(--edumy-footer-style-6-all, #3f4449);
+  --footer-style-7-top:    var(--edumy-footer-style-7-top, #ffffff);
+  --footer-style-7-bottom: var(--edumy-footer-style-7-bottom, #ffffff);
 
   /* Backgrounds */
   --background: oklch(0.984 0.003 247.858); /* slate-50 */
