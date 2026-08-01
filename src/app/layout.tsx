@@ -38,8 +38,16 @@ export async function generateMetadata(): Promise<Metadata> {
   // Mirror the navbar logo (app-header.tsx): prefer the mobile logo, then the
   // primary/secondary header logos, so the browser-tab icon matches the brand.
   const logo = await getThemeLogoSettings();
-  const brandLogo =
+  const rawBrandLogo =
     logo.headerlogo_mobile || logo.headerlogo1 || logo.headerlogo2;
+
+  // The favicon <link> is fetched directly by the browser, so its protocol must
+  // match the page. getThemeLogoSettings normalizes protocol-relative URLs to
+  // http:, which the browser blocks as mixed content on an https page. Strip the
+  // protocol back to protocol-relative ("//host/…") so it follows the page (https
+  // in production, http on localhost). next/image handles this for the navbar,
+  // but a favicon has no such proxy.
+  const brandLogo = rawBrandLogo?.replace(/^https?:/, "");
 
   return {
     title: {
