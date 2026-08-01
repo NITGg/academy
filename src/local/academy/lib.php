@@ -2184,6 +2184,81 @@ HTML;
 }
 
 /**
+ * Live "specialties" data for the front-page curriculum block: every visible top-level category
+ * that has courses, with its subcategories as levels and the courses inside each. This is the
+ * single source of truth shared by {@see local_academy_before_footer()} (which builds the cards
+ * client-side via JS on the Moodle front page) and by the headless blocks API
+ * ({@see local_academy_get_frontpage_blocks()}, which returns it as structured data for the Next.js
+ * frontend to render natively).
+ *
+ * @return array<int, array{id:int,name:string,url:string,count:int,levels:array}>
+ */
+function local_academy_get_frontpage_specialties() {
+    global $DB;
+
+    $cats = $DB->get_records('course_categories', ['parent' => 0, 'visible' => 1], 'sortorder ASC', 'id, name');
+    $specialties = [];
+    foreach ($cats as $cat) {
+        $levels = [];
+        $totalcourses = 0;
+
+        // Courses directly in the top-level category (no sublevel).
+        $direct = $DB->get_records_select('course',
+            'category = :catid AND visible = 1 AND id != :siteid',
+            ['catid' => $cat->id, 'siteid' => SITEID],
+            'sortorder ASC', 'id, fullname, summary');
+        if ($direct) {
+            $list = [];
+            foreach ($direct as $c) {
+                $list[] = [
+                    'id'   => (int) $c->id,
+                    'name' => format_string($c->fullname),
+                    'desc' => shorten_text(strip_tags(format_text($c->summary)), 120),
+                    'url'  => (string) new moodle_url('/course/view.php', ['id' => $c->id]),
+                ];
+            }
+            $levels[] = ['name' => '', 'courses' => $list];
+            $totalcourses += count($list);
+        }
+
+        // Subcategories as levels.
+        $subcats = $DB->get_records('course_categories', ['parent' => $cat->id, 'visible' => 1], 'sortorder ASC', 'id, name');
+        foreach ($subcats as $sub) {
+            $courses = $DB->get_records_select('course',
+                'category = :catid AND visible = 1 AND id != :siteid',
+                ['catid' => $sub->id, 'siteid' => SITEID],
+                'sortorder ASC', 'id, fullname, summary');
+            if (!$courses) {
+                continue;
+            }
+            $list = [];
+            foreach ($courses as $c) {
+                $list[] = [
+                    'id'   => (int) $c->id,
+                    'name' => format_string($c->fullname),
+                    'desc' => shorten_text(strip_tags(format_text($c->summary)), 120),
+                    'url'  => (string) new moodle_url('/course/view.php', ['id' => $c->id]),
+                ];
+            }
+            $levels[] = ['name' => format_string($sub->name), 'courses' => $list];
+            $totalcourses += count($list);
+        }
+
+        if ($totalcourses) {
+            $specialties[] = [
+                'id'     => (int) $cat->id,
+                'name'   => format_string($cat->name),
+                'url'    => (string) new moodle_url('/course/index.php', ['categoryid' => $cat->id]),
+                'count'  => $totalcourses,
+                'levels' => $levels,
+            ];
+        }
+    }
+
+    return $specialties;
+}
+
+/**
  * Live front-page stats and links used to fill placeholders in the front-page custom-HTML blocks.
  *
  * Any element with data-xt-stat="courses|categories|programs" gets its text replaced with the
@@ -2285,13 +2360,33 @@ function local_academy_get_frontpage_blocks($region = null) {
 
         $title = (isset($config->title) && $config->title !== '') ? format_string($config->title) : '';
 
-        $blocks[] = [
+        $entry = [
             'id'     => (int) $bi->id,
             'title'  => $title,
             'region' => (string) $blockregion,
             'weight' => $weight,
+            'kind'   => 'html',
             'html'   => $html,
         ];
+
+        // Curriculum block: its body is a static wrapper + header with an empty
+        // <div id="xt-specialties"> placeholder that Moodle fills with course cards client-side.
+        // Return the header chrome + live specialties DATA so the frontend renders the cards
+        // natively (with working filtering) instead of receiving an empty container.
+        if (strpos($html, 'xt-specialties') !== false) {
+            $split = local_academy_split_specialties_block($html);
+            if ($split !== null) {
+                $entry['kind']         = 'specialties';
+                $entry['wrapperStyle'] = $split['wrapperstyle'];
+                $entry['wrapperDir']   = $split['wrapperdir'];
+                $entry['headerHtml']   = $split['headerhtml'];
+                $entry['specialties']  = local_academy_get_frontpage_specialties();
+                // Drop the (empty-container) html for this kind — the frontend uses the fields above.
+                unset($entry['html']);
+            }
+        }
+
+        $blocks[] = $entry;
     }
 
     // Order the way Moodle stacks blocks: by region, then ascending weight.
@@ -2353,6 +2448,51 @@ function local_academy_apply_frontpage_dynamics($html, array $stats, array $link
     return $inner;
 }
 
+/**
+ * Split a curriculum block body around its <div id="xt-specialties"> placeholder so the frontend
+ * can render the admin-authored wrapper + header, then inject natively-rendered course cards where
+ * the placeholder sits.
+ *
+ * @param string $html Rendered block HTML containing an element with id="xt-specialties".
+ * @return array{wrapperstyle:string,wrapperdir:string,headerhtml:string}|null
+ *         null when the placeholder (or its wrapper) can't be located.
+ */
+function local_academy_split_specialties_block($html) {
+    $doc = new DOMDocument();
+    $prev = libxml_use_internal_errors(true);
+    $doc->loadHTML(
+        '<?xml encoding="UTF-8"?><div data-ea-root="1">' . $html . '</div>',
+        LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+    );
+    libxml_clear_errors();
+    libxml_use_internal_errors($prev);
+
+    $xpath = new DOMXPath($doc);
+    $placeholder = $xpath->query('//*[@id="xt-specialties"]')->item(0);
+    if (!$placeholder) {
+        return null;
+    }
+    $wrapper = $placeholder->parentNode;
+    if (!($wrapper instanceof DOMElement)) {
+        return null;
+    }
+
+    // Everything inside the wrapper that comes BEFORE the placeholder is the header chrome.
+    $headerhtml = '';
+    foreach ($wrapper->childNodes as $child) {
+        if ($child->isSameNode($placeholder)) {
+            break;
+        }
+        $headerhtml .= $doc->saveHTML($child);
+    }
+
+    return [
+        'wrapperstyle' => $wrapper->getAttribute('style'),
+        'wrapperdir'   => $wrapper->getAttribute('dir'),
+        'headerhtml'   => $headerhtml,
+    ];
+}
+
 function local_academy_before_footer() {
     global $PAGE, $USER, $COURSE, $DB, $CFG;
     $output = '';
@@ -2380,65 +2520,8 @@ function local_academy_before_footer() {
                 });
             ");
 
-            // Specialties data for Block2: top-level categories → subcategories (levels) → courses.
-            $cats = $DB->get_records('course_categories', ['parent' => 0, 'visible' => 1], 'sortorder ASC', 'id, name');
-            $specialties = [];
-            foreach ($cats as $cat) {
-                $levels = [];
-                $totalcourses = 0;
-
-                // Courses directly in the top-level category (no sublevel).
-                $direct = $DB->get_records_select('course',
-                    'category = :catid AND visible = 1 AND id != :siteid',
-                    ['catid' => $cat->id, 'siteid' => SITEID],
-                    'sortorder ASC', 'id, fullname, summary');
-                if ($direct) {
-                    $list = [];
-                    foreach ($direct as $c) {
-                        $list[] = [
-                            'id'   => (int) $c->id,
-                            'name' => format_string($c->fullname),
-                            'desc' => shorten_text(strip_tags(format_text($c->summary)), 120),
-                            'url'  => (string) new moodle_url('/course/view.php', ['id' => $c->id]),
-                        ];
-                    }
-                    $levels[] = ['name' => '', 'courses' => $list];
-                    $totalcourses += count($list);
-                }
-
-                // Subcategories as levels.
-                $subcats = $DB->get_records('course_categories', ['parent' => $cat->id, 'visible' => 1], 'sortorder ASC', 'id, name');
-                foreach ($subcats as $sub) {
-                    $courses = $DB->get_records_select('course',
-                        'category = :catid AND visible = 1 AND id != :siteid',
-                        ['catid' => $sub->id, 'siteid' => SITEID],
-                        'sortorder ASC', 'id, fullname, summary');
-                    if (!$courses) {
-                        continue;
-                    }
-                    $list = [];
-                    foreach ($courses as $c) {
-                        $list[] = [
-                            'id'   => (int) $c->id,
-                            'name' => format_string($c->fullname),
-                            'desc' => shorten_text(strip_tags(format_text($c->summary)), 120),
-                            'url'  => (string) new moodle_url('/course/view.php', ['id' => $c->id]),
-                        ];
-                    }
-                    $levels[] = ['name' => format_string($sub->name), 'courses' => $list];
-                    $totalcourses += count($list);
-                }
-
-                if ($totalcourses) {
-                    $specialties[] = [
-                        'id'     => (int) $cat->id,
-                        'name'   => format_string($cat->name),
-                        'url'    => (string) new moodle_url('/course/index.php', ['categoryid' => $cat->id]),
-                        'count'  => $totalcourses,
-                        'levels' => $levels,
-                    ];
-                }
-            }
+            // Specialties data for the curriculum block (top-level categories → levels → courses).
+            $specialties = local_academy_get_frontpage_specialties();
             $specjson = json_encode($specialties, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             $PAGE->requires->js_amd_inline("
                 require([], function() {
