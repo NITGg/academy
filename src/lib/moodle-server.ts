@@ -46,8 +46,10 @@ export async function callMoodleRest<T = unknown>({
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    const cleanError = extractCleanErrorMessage(errorText);
     throw new Error(
-      `Moodle network error: ${response.status} ${response.statusText}`,
+      `Moodle network error: ${response.status} ${cleanError || response.statusText}`,
     );
   }
 
@@ -57,20 +59,69 @@ export async function callMoodleRest<T = unknown>({
   // Guard against null before probing exception/errorcode, otherwise a successful call
   // throws "Cannot read properties of null (reading 'exception')".
   if (data && (data.exception || data.errorcode)) {
-    const errorDetails = data.debuginfo ? `${data.message || data.exception} (${data.debuginfo})` : (data.message ?? data.exception ?? "Moodle API exception");
-    console.error(`[Moodle REST Error - ${functionName}]:`, data);
+    const errorDetails = data.debuginfo
+      ? `${data.message || data.exception} (${data.debuginfo})`
+      : (data.message ?? data.exception ?? "Moodle API exception");
+
+    const isTokenError =
+      data.errorcode === "invalidtoken" ||
+      data.errorcode === "accessexception" ||
+      String(data.message || "").toLowerCase().includes("invalid token") ||
+      String(data.message || "").toLowerCase().includes("token not found");
+
+    if (isTokenError) {
+      console.warn(`[Moodle REST Token Invalid - ${functionName}]: ${errorDetails}`);
+    } else {
+      console.error(`[Moodle REST Error - ${functionName}]: ${errorDetails}`);
+    }
+
     throw new Error(errorDetails);
   }
 
   return data as T;
 }
 
-// ── local_academy dispatcher (api.php) ───────────────────────────────────────
-// Endpoint: /local/academy/api.php?function=<fn>&token=<token>&alang=<ar|en>
-// Response: { status: "success"|"fail", data?: T, error?: string }
-//
-// READ endpoints (get_*) expect params as URL query params (GET).
-// WRITE endpoints (state-changing) expect params as JSON body (POST).
+function extractCleanErrorMessage(errorText: string): string {
+  if (!errorText) return "";
+
+  try {
+    const parsed = JSON.parse(errorText);
+    if (typeof parsed === "string") return parsed;
+    if (parsed && typeof parsed === "object") {
+      const msg = parsed.error || parsed.message || parsed.exception || parsed.debuginfo;
+      if (msg) return String(msg);
+    }
+  } catch {
+    // Not JSON
+  }
+
+  if (errorText.includes("<") && errorText.includes(">")) {
+    const alertMatch = errorText.match(/class=['"][^'"]*alert-danger[^'"]*['"]>([\s\S]*?)<\/div>/i);
+    if (alertMatch?.[1]) {
+      const text = alertMatch[1].replace(/<[^>]+>/g, "").trim();
+      if (text) return text;
+    }
+
+    const mainMatch = errorText.match(/id=['"]region-main['"]>([\s\S]*?)<\/div>/i);
+    if (mainMatch?.[1]) {
+      const text = mainMatch[1].replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      if (text) return text;
+    }
+
+    const cleanText = errorText
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (cleanText) {
+      return cleanText.length > 200 ? cleanText.slice(0, 200) + "..." : cleanText;
+    }
+  }
+
+  return errorText.trim().length > 200 ? errorText.trim().slice(0, 200) + "..." : errorText.trim();
+}
 
 async function _callAcademy<T>(
   functionName: string,
@@ -111,23 +162,40 @@ async function _callAcademy<T>(
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(
-      `[Academy API HTTP Error ${response.status}] Function: ${functionName}`,
-      errorText,
-    );
+    const cleanError = extractCleanErrorMessage(errorText);
+    const detailMsg = cleanError ? `: ${cleanError}` : "";
+
+    if (cleanError.toLowerCase().includes("invalid token") || cleanError.toLowerCase().includes("token not found")) {
+      console.warn(
+        `[Academy API Token Invalid ${response.status}] Function: ${functionName}${detailMsg}`,
+      );
+    } else {
+      console.error(
+        `[Academy API HTTP Error ${response.status}] Function: ${functionName}${detailMsg}`,
+      );
+    }
+
     throw new Error(
-      `Academy API HTTP error: ${response.status} ${response.statusText}`,
+      `Academy API HTTP error ${response.status}${detailMsg}`,
     );
   }
 
   const data = await response.json();
 
   if (data.status === "fail") {
-    console.error(
-      `[Moodle Rejected Request - ${functionName}]:`,
-      data.error || data,
-    );
-    throw new Error(data.error ?? "Academy API request failed");
+    const errorMsg = String(data.error ?? "Academy API request failed");
+    if (errorMsg.toLowerCase().includes("invalid token") || errorMsg.toLowerCase().includes("token not found")) {
+      console.warn(
+        `[Moodle Rejected Request - ${functionName}]:`,
+        errorMsg,
+      );
+    } else {
+      console.error(
+        `[Moodle Rejected Request - ${functionName}]:`,
+        errorMsg,
+      );
+    }
+    throw new Error(errorMsg);
   }
 
   return data.data as T;

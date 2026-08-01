@@ -71,7 +71,11 @@ export interface HomeDashboardData {
 
 function moodlePublicUrl(url?: string): string | undefined {
   if (!url) return undefined;
-  return url.replace("/webservice/pluginfile.php", "/pluginfile.php");
+  let clean = url.replace("/webservice/pluginfile.php", "/pluginfile.php");
+  if (clean.startsWith("//")) {
+    clean = `http:${clean}`;
+  }
+  return clean;
 }
 
 export async function getHomeDashboardData(userWstoken?: string): Promise<HomeDashboardData> {
@@ -106,7 +110,7 @@ export async function getHomeDashboardData(userWstoken?: string): Promise<HomeDa
     callAcademyApi<CatalogueProgram[]>(
       "get_catalogue_programs",
       {},
-      userWstoken ?? adminToken,
+      adminToken,
     ),
     callAcademyApi<AvailablePackage[]>("get_available_packages"),
     callAcademyApi<AvailableSubscription[]>("get_available_subscriptions"),

@@ -73,6 +73,7 @@ export default async function RootLayout({
         {themeTokensCss && (
           <style
             id="edumy-theme-tokens"
+            suppressHydrationWarning
             dangerouslySetInnerHTML={{ __html: themeTokensCss }}
           />
         )}

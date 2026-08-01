@@ -90,13 +90,36 @@ export function AppHeader() {
   const logoSettings = useThemeLogoStore((state) => state.logo);
 
   const isRtl = locale === "ar";
-  const headerLogoSrc = logoSettings.headerlogo1 || logoSettings.headerlogo2 || logoW;
+  const rawLogo = logoSettings.headerlogo1 || logoSettings.headerlogo2;
+  const normalizedLogo = rawLogo?.startsWith("//") ? `http:${rawLogo}` : rawLogo;
+  const headerLogoSrc = normalizedLogo || logoW;
   const showLogoImage = logoSettings.logo_image !== "1";
   const showLogoText = logoSettings.logotype !== "1";
   const logoWidth = logoSettings.logo_image_width ? Number(logoSettings.logo_image_width) : 24;
   const logoHeight = logoSettings.logo_image_height ? Number(logoSettings.logo_image_height) : 24;
 
+  /* Local UI state */
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [desktopSearch, setDesktopSearch] = useState("");
+  const [mobileSearch, setMobileSearch] = useState("");
+  const [prevPathname, setPrevPathname] = useState(pathname);
+
+  /* Sync desktop search value from URL when navigating to/from courses */
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get("search") ?? "";
+      setDesktopSearch(pathname.startsWith("/courses") ? q : "");
+    }
+  }
+
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
 
   const submitSearch = useCallback((q: string, closeMobile = false) => {
     if (searchTimer.current) { clearTimeout(searchTimer.current); searchTimer.current = null; }
@@ -122,29 +145,10 @@ export function AppHeader() {
     debouncedSearch(e.target.value);
   };
 
-  /* Local UI state */
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [userOpen, setUserOpen] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [desktopSearch, setDesktopSearch] = useState("");
-  const [mobileSearch, setMobileSearch] = useState("");
-
-  const moreRef = useRef<HTMLDivElement>(null);
-  const userRef = useRef<HTMLDivElement>(null);
-
   /* Clear any pending debounced search on unmount */
   useEffect(() => {
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, []);
-
-  /* Sync desktop search value from URL when navigating to/from courses */
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const q = params.get("search") ?? "";
-    setDesktopSearch(pathname.startsWith("/courses") ? q : "");
-  }, [pathname]);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);

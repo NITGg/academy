@@ -37,7 +37,7 @@ export async function getTeachers(opts?: {
       total: data.total ?? 0,
     };
   } catch (error) {
-    console.error("Failed to fetch teachers:", error);
+    console.warn("Failed to fetch teachers:", error);
     return { teachers: [], total: 0 };
   }
 }
@@ -94,7 +94,7 @@ export async function getTeacher(id: number): Promise<Teacher | null> {
     );
     return data.teachers?.find((t) => t.userid === id) ?? null;
   } catch (error) {
-    console.error("Failed to fetch teacher:", error);
+    console.warn("Failed to fetch teacher:", error);
     return null;
   }
 }
