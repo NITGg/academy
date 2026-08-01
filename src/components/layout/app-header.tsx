@@ -90,7 +90,7 @@ export function AppHeader() {
   const logoSettings = useThemeLogoStore((state) => state.logo);
 
   const isRtl = locale === "ar";
-  const rawLogo = logoSettings.headerlogo1 || logoSettings.headerlogo2;
+  const rawLogo = logoSettings.headerlogo_mobile || logoSettings.headerlogo1 || logoSettings.headerlogo2;
   const normalizedLogo = rawLogo?.startsWith("//") ? `http:${rawLogo}` : rawLogo;
   const headerLogoSrc = normalizedLogo || logoW;
   const showLogoImage = logoSettings.logo_image !== "1";
@@ -474,21 +474,29 @@ export function AppHeader() {
           >
             {/* Drawer header */}
             <div className="flex h-[var(--header-height)] items-center gap-3 border-b border-border px-4">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-                <Image
-                  src={logoW}
-                  alt="EA"
-                  width={18}
-                  height={18}
-                  priority
-                />
-              </div>
-              <span className="text-body-strong">
-                {isRtl ? "أكاديمية التميز" : "Excellence Academy"}
-              </span>
+              <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 shrink-0">
+                {showLogoImage && (
+                  <div className="flex items-center justify-center rounded-lg bg-primary p-1">
+                    <Image
+                      src={headerLogoSrc}
+                      alt="EA"
+                      width={logoWidth}
+                      height={logoHeight}
+                      priority
+                      className="object-contain"
+                    />
+                  </div>
+                )}
+                {showLogoText && (
+                  <span className="text-body-strong">
+                    {isRtl ? "أكاديمية التميز" : "Excellence Academy"}
+                  </span>
+                )}
+              </Link>
               <button
                 onClick={() => setMobileOpen(false)}
                 className="ms-auto p-2 rounded-lg hover:bg-muted transition-colors"
+                aria-label="Close menu"
               >
                 <X className="size-5" />
               </button>

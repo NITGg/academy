@@ -12,7 +12,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
   const checkSession = useAuthStore((state) => state.checkSession);
   const { variant, setTheme } = useThemeStore();
-  const fetchLogoSettings = useThemeLogoStore((state) => state.fetchLogoSettings);
+  const fetchLogoSettings = useThemeLogoStore(
+    (state) => state.fetchLogoSettings,
+  );
 
   // Check auth session and fetch theme logos on first mount
   useEffect(() => {
