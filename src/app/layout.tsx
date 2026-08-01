@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
 import { Providers } from "./providers";
 import { getThemeTokens, themeTokensToCss } from "@/lib/theme-tokens";
+import { getThemeLogoSettings } from "@/lib/theme-logo";
 
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
@@ -23,21 +24,34 @@ const balooBhaijaan = Baloo_Bhaijaan_2({
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
-export const metadata: Metadata = {
-  title: {
-    default: "Excellence Academy | أكاديمية التميز",
-    template: "%s | Excellence Academy",
-  },
-  description: "Learn with the best teachers — تعلم مع أفضل المدرسين",
-  icons: {
-    icon: [
-      { url: `${basePath}/assets/logo.svg`, type: "image/svg+xml" },
-      { url: `${basePath}/icon.svg`, type: "image/svg+xml" },
-    ],
-    shortcut: `${basePath}/assets/logo.svg`,
-    apple: `${basePath}/assets/logo.svg`,
-  },
+// Built-in fallback icons used when the Moodle theme provides no logo.
+const fallbackIcons: Metadata["icons"] = {
+  icon: [
+    { url: `${basePath}/assets/logo.svg`, type: "image/svg+xml" },
+    { url: `${basePath}/icon.svg`, type: "image/svg+xml" },
+  ],
+  shortcut: `${basePath}/assets/logo.svg`,
+  apple: `${basePath}/assets/logo.svg`,
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  // Mirror the navbar logo (app-header.tsx): prefer the mobile logo, then the
+  // primary/secondary header logos, so the browser-tab icon matches the brand.
+  const logo = await getThemeLogoSettings();
+  const brandLogo =
+    logo.headerlogo_mobile || logo.headerlogo1 || logo.headerlogo2;
+
+  return {
+    title: {
+      default: "Excellence Academy | أكاديمية التميز",
+      template: "%s | Excellence Academy",
+    },
+    description: "Learn with the best teachers — تعلم مع أفضل المدرسين",
+    icons: brandLogo
+      ? { icon: brandLogo, shortcut: brandLogo, apple: brandLogo }
+      : fallbackIcons,
+  };
+}
 
 export default async function RootLayout({
   children,
