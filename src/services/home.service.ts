@@ -1,4 +1,4 @@
-import { callMoodleRest, callAcademyApi } from "@/lib/moodle-server";
+import { callMoodleRest, callAcademyApi, callAcademyApiPublicGet } from "@/lib/moodle-server";
 import { getSessionFromCookie } from "@/lib/session";
 import { enrichCoursesWithPricing, getMyCourses, type EnrolledCourse } from "@/features/courses/server";
 import type { Course } from "@/features/courses/types";
@@ -13,7 +13,22 @@ import type {
 
 import { getTeachers } from "@/features/teachers/server";
 
+/**
+ * A custom-HTML block from the Moodle front page (`cocoon_custom_html`), rendered headless by
+ * `local_academy/api.php?function=get_frontpage_blocks`. The `html` is self-contained (inline
+ * styles + server-substituted stats/links), so it renders with the same appearance as the Moodle
+ * site with no theme CSS required.
+ */
+export interface FrontpageBlock {
+  id: number;
+  title: string;
+  region: string;
+  weight: number;
+  html: string;
+}
+
 export interface HomeDashboardData {
+  frontpageBlocks: FrontpageBlock[];
   courses: Course[];
   myCourses: EnrolledCourse[];
   teachers: Teacher[];
@@ -38,6 +53,7 @@ export async function getHomeDashboardData(userWstoken?: string): Promise<HomeDa
   const session = await getSessionFromCookie();
 
   const [
+    frontpageBlocksRes,
     coursesRes,
     teachersRes,
     programsRes,
@@ -49,6 +65,11 @@ export async function getHomeDashboardData(userWstoken?: string): Promise<HomeDa
     myProgramsRes,
     myCoursesRes,
   ] = await Promise.allSettled([
+    // Public marketing blocks (hero + sections). Sent WITHOUT a token on purpose — the endpoint is
+    // public, and passing a token that isn't valid on this Moodle instance triggers an HTML error.
+    callAcademyApiPublicGet<{ blocks: FrontpageBlock[] }>("get_frontpage_blocks", {
+      region: "fullwidth-top",
+    }),
     callMoodleRest<{ courses?: Course[] } | Course[]>({
       functionName: "core_course_get_courses_by_field",
       token: adminToken,
@@ -124,7 +145,13 @@ export async function getHomeDashboardData(userWstoken?: string): Promise<HomeDa
   const myB2bSubscriptions = extractList<B2BSubscription>(myB2bSubscriptionsRes);
   const myPrograms = extractList<MyProgram>(myProgramsRes);
 
+  const frontpageBlocks: FrontpageBlock[] =
+    frontpageBlocksRes.status === "fulfilled"
+      ? (frontpageBlocksRes.value?.blocks ?? [])
+      : [];
+
   return {
+    frontpageBlocks,
     courses,
     myCourses,
     teachers,

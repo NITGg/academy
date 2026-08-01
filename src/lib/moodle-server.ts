@@ -145,6 +145,41 @@ export async function callAcademyApi<T = unknown>(
   return _callAcademy<T>(functionName, body, activeToken, lang, "POST");
 }
 
+/**
+ * GET — for PUBLIC read endpoints that require no authentication (e.g. get_frontpage_blocks).
+ *
+ * These endpoints are handled by the dispatcher BEFORE the token gate, so no token must be sent:
+ * passing one triggers Moodle's global token authentication, which returns an HTML error page for a
+ * token that isn't valid on this server (e.g. a prod token hitting a local instance).
+ */
+export async function callAcademyApiPublicGet<T = unknown>(
+  functionName: string,
+  params: Record<string, unknown> = {},
+  lang: "ar" | "en" = "ar",
+): Promise<T> {
+  const url = new URL(MOODLE_ACADEMY_ENDPOINT);
+  url.searchParams.set("function", functionName);
+  url.searchParams.set("alang", lang);
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && typeof v !== "object") {
+      url.searchParams.set(k, String(v));
+    }
+  }
+
+  const response = await fetch(url.toString(), { method: "GET", cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(
+      `Academy API HTTP error: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const data = await response.json();
+  if (data.status === "fail") {
+    throw new Error(data.error ?? "Academy API request failed");
+  }
+  return data.data as T;
+}
+
 /** GET — for read endpoints (get_teacher, get_lesson_settings, etc.) */
 export async function callAcademyApiGet<T = unknown>(
   functionName: string,

@@ -50,8 +50,11 @@ import {
 import { BuyProgramModal } from "@/features/programs/components/BuyProgramModal";
 import { CourseCard } from "@/features/courses/components/CourseCard";
 import { MyCourseCard } from "@/features/courses/components/MyCourseCard";
+import { FrontpageBlocks } from "@/components/home/FrontpageBlocks";
+import type { FrontpageBlock } from "@/services/home.service";
 
 interface HomePageClientProps {
+  frontpageBlocks?: FrontpageBlock[];
   courses: Course[];
   myCourses: EnrolledCourse[];
   teachers: Teacher[];
@@ -73,6 +76,7 @@ function getEffectivePackageStatus(pkg: MyPackage): string {
 }
 
 export function HomePageClient({
+  frontpageBlocks = [],
   courses,
   myCourses = [],
   teachers,
@@ -217,6 +221,9 @@ export function HomePageClient({
 
   return (
     <div className="space-y-10 pb-10">
+      {/* Front-page marketing blocks from Moodle (hero + sections), rendered as authored in admin */}
+      <FrontpageBlocks blocks={frontpageBlocks} />
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">أكاديمية التميز</h1>

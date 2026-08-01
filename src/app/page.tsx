@@ -10,6 +10,7 @@ export default async function HomePage() {
   return (
     <AppShell>
       <HomePageClient
+        frontpageBlocks={data.frontpageBlocks}
         courses={data.courses}
         myCourses={data.myCourses}
         teachers={data.teachers}
