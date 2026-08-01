@@ -6,16 +6,19 @@ import { Toaster } from "sonner";
 import { getQueryClient } from "@/lib/react-query";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThemeStore } from "@/store/useThemeStore";
+import { useThemeLogoStore } from "@/store/useThemeLogoStore";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
   const checkSession = useAuthStore((state) => state.checkSession);
   const { variant, setTheme } = useThemeStore();
+  const fetchLogoSettings = useThemeLogoStore((state) => state.fetchLogoSettings);
 
-  // Check auth session on first mount
+  // Check auth session and fetch theme logos on first mount
   useEffect(() => {
     checkSession();
-  }, [checkSession]);
+    fetchLogoSettings();
+  }, [checkSession, fetchLogoSettings]);
 
   // Re-apply theme and listen for system preference changes
   useEffect(() => {

@@ -75,6 +75,8 @@ const themeOptions: {
 
 /* ── Component ────────────────────────────────────────────────────────── */
 
+import { useThemeLogoStore } from "@/store/useThemeLogoStore";
+
 export function AppHeader() {
   const t = useTranslations();
   const tNav = useTranslations("nav");
@@ -85,8 +87,14 @@ export function AppHeader() {
   const { setLocale } = useLocaleStore();
   const { variant, setTheme } = useThemeStore();
   const logout = useAuthStore((state) => state.logout);
+  const logoSettings = useThemeLogoStore((state) => state.logo);
 
   const isRtl = locale === "ar";
+  const headerLogoSrc = logoSettings.headerlogo1 || logoSettings.headerlogo2 || logoW;
+  const showLogoImage = logoSettings.logo_image !== "1";
+  const showLogoText = logoSettings.logotype !== "1";
+  const logoWidth = logoSettings.logo_image_width ? Number(logoSettings.logo_image_width) : 24;
+  const logoHeight = logoSettings.logo_image_height ? Number(logoSettings.logo_image_height) : 24;
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -181,18 +189,23 @@ export function AppHeader() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-              <Image
-                src={logoW}
-                alt="EA"
-                width={18}
-                height={18}
-                priority
-              />
-            </div>
-            <span className="text-body-strong hidden sm:inline">
-              {isRtl ? "أكاديمية التميز" : "Excellence Academy"}
-            </span>
+            {showLogoImage && (
+              <div className="flex items-center justify-center rounded-lg bg-primary p-1">
+                <Image
+                  src={headerLogoSrc}
+                  alt="EA"
+                  width={logoWidth}
+                  height={logoHeight}
+                  priority
+                  className="object-contain"
+                />
+              </div>
+            )}
+            {showLogoText && (
+              <span className="text-body-strong hidden sm:inline">
+                {isRtl ? "أكاديمية التميز" : "Excellence Academy"}
+              </span>
+            )}
           </Link>
 
           {/* Desktop primary nav */}

@@ -5,10 +5,19 @@ import Image from "next/image";
 import logoW from "@/../public/assets/logoW.svg";
 import { useTranslations, useLocale } from "next-intl";
 
+import { useThemeLogoStore } from "@/store/useThemeLogoStore";
+
 export function AppFooter() {
   const tApp = useTranslations("app");
   const tFooter = useTranslations("footer");
   const locale = useLocale();
+  const logoSettings = useThemeLogoStore((state) => state.logo);
+
+  const footerLogoSrc = logoSettings.footerlogo1 || logoSettings.headerlogo1 || logoW;
+  const showFooterImage = logoSettings.logo_image_footer !== "1";
+  const showFooterText = logoSettings.logotype_footer !== "1";
+  const logoWidth = logoSettings.logo_image_width_footer ? Number(logoSettings.logo_image_width_footer) : 22;
+  const logoHeight = logoSettings.logo_image_height_footer ? Number(logoSettings.logo_image_height_footer) : 22;
 
   return (
     <footer className="mt-auto border-t border-border bg-card/80 backdrop-blur-sm py-6 lg:py-8">
@@ -17,22 +26,27 @@ export function AppFooter() {
           
           {/* Logo & Brand (Right side in RTL) */}
           <Link href="/" className="flex items-center gap-3 shrink-0 group">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs transition-transform group-hover:scale-105">
-              <Image
-                src={logoW}
-                alt="EA"
-                width={22}
-                height={22}
-              />
-            </div>
-            <div className="flex flex-col text-start">
-              <span className="text-base font-bold tracking-tight text-foreground">
-                {tApp("name")}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {tApp("tagline")}
-              </span>
-            </div>
+            {showFooterImage && (
+              <div className="flex items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs p-1 transition-transform group-hover:scale-105">
+                <Image
+                  src={footerLogoSrc}
+                  alt="EA"
+                  width={logoWidth}
+                  height={logoHeight}
+                  className="object-contain"
+                />
+              </div>
+            )}
+            {showFooterText && (
+              <div className="flex flex-col text-start">
+                <span className="text-base font-bold tracking-tight text-foreground">
+                  {tApp("name")}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {tApp("tagline")}
+                </span>
+              </div>
+            )}
           </Link>
 
           {/* 2 Sentences (Middle) */}

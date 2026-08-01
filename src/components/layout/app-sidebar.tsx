@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { useLocaleStore } from "@/store/useLocaleStore";
 import { useThemeStore, type ThemeVariant } from "@/store/useThemeStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useThemeLogoStore } from "@/store/useThemeLogoStore";
 import Image from "next/image";
 import logoW from "@/../public/assets/logoW.svg";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ const secondaryNavItems = [
 
 interface AppSidebarProps {
   className?: string;
+  onClose?: () => void;
 }
 
 const themeOptions: { value: ThemeVariant; icon: typeof Sun; labelAr: string; labelEn: string }[] = [
@@ -62,15 +64,23 @@ const themeOptions: { value: ThemeVariant; icon: typeof Sun; labelAr: string; la
   { value: "kids", icon: Baby, labelAr: "الأطفال", labelEn: "Kids" },
 ];
 
-export function AppSidebar({ className }: AppSidebarProps) {
+export function AppSidebar({ className, onClose }: AppSidebarProps) {
+  const tNav = useTranslations("nav");
   const t = useTranslations("nav");
-  const pathname = usePathname();
   const locale = useLocale();
+  const pathname = usePathname();
   const { setLocale } = useLocaleStore();
   const { variant, setTheme } = useThemeStore();
   const logout = useAuthStore((state) => state.logout);
+  const logoSettings = useThemeLogoStore((state) => state.logo);
   const isRtl = locale === "ar";
   const Chevron = isRtl ? ChevronLeft : ChevronRight;
+
+  const sidebarLogoSrc = logoSettings.headerlogo_mobile || logoSettings.headerlogo1 || logoW;
+  const showSidebarImage = logoSettings.logo_image !== "1";
+  const showSidebarText = logoSettings.logotype !== "1";
+  const logoWidth = logoSettings.logo_image_width ? Number(logoSettings.logo_image_width) : 24;
+  const logoHeight = logoSettings.logo_image_height ? Number(logoSettings.logo_image_height) : 24;
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -84,18 +94,23 @@ export function AppSidebar({ className }: AppSidebarProps) {
     >
       {/* Logo */}
       <div className="flex h-[var(--header-height)] items-center gap-3 border-b border-sidebar-border px-5">
-        <div className="flex size-9 items-center justify-center rounded-xl bg-primary">
-          <Image
-            src={logoW}
-            alt="EA"
-            width={24}
-            height={24}
-            priority
-          />
-        </div>
-        <span className="text-body-strong text-sidebar-foreground leading-tight">
-          {locale === "ar" ? "أكاديمية التميز" : "Excellence Academy"}
-        </span>
+        {showSidebarImage && (
+          <div className="flex items-center justify-center rounded-xl bg-primary p-1">
+            <Image
+              src={sidebarLogoSrc}
+              alt="EA"
+              width={logoWidth}
+              height={logoHeight}
+              priority
+              className="object-contain"
+            />
+          </div>
+        )}
+        {showSidebarText && (
+          <span className="text-body-strong text-sidebar-foreground leading-tight">
+            {locale === "ar" ? "أكاديمية التميز" : "Excellence Academy"}
+          </span>
+        )}
       </div>
 
       {/* Primary nav */}
