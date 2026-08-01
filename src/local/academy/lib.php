@@ -2185,58 +2185,57 @@ HTML;
 
 /**
  * Fetch all brand and section colour variables configured in the edumy theme settings page
- * (Appearance → Edumy settings → Color). Empty/unset values are omitted so the frontend
- * falls back to its built-in palette for those keys.
+ * (Appearance → Edumy settings → Color). Returned with exact Moodle setting names.
+ * Empty/unset values are omitted so the frontend falls back to its built-in palette for those keys.
  *
- * @return array<string,string> e.g. ['primary' => '#0E2647', 'headerStyle2Top' => '#000000', ...]
+ * @return array<string,string> e.g. ['color_primary' => '#0E2647', 'color_header_style_2_top' => '#000000', ...]
  */
 function local_academy_get_theme_tokens() {
-    // frontend key => edumy setting name.
-    $map = [
+    $settings = [
         // Gradients
-        'gradientStart'        => 'color_gradient_start',
-        'gradientEnd'          => 'color_gradient_end',
+        'color_gradient_start',
+        'color_gradient_end',
 
         // Main Colors
-        'primary'              => 'color_primary',
-        'primaryAlternate'     => 'color_primary_alternate',
-        'secondary'            => 'color_secondary',
-        'tertiary'             => 'color_tertiary',
-        'accent'               => 'color_accent',
-        'accent2'              => 'color_accent_2',
-        'accent3'              => 'color_accent_3',
-        'accent4'              => 'color_accent_4',
-        'parallax'             => 'color_parallax',
+        'color_primary',
+        'color_primary_alternate',
+        'color_secondary',
+        'color_tertiary',
+        'color_accent',
+        'color_accent_2',
+        'color_accent_3',
+        'color_accent_4',
+        'color_parallax',
 
         // Header Styles
-        'headerStyle2Top'      => 'color_header_style_2_top',
-        'headerStyle2Bottom'   => 'color_header_style_2_bottom',
-        'headerStyle3Top'      => 'color_header_style_3_top',
-        'headerStyle4Top'      => 'color_header_style_4_top',
-        'headerStyle5'         => 'color_header_style_5',
-        'headerStyle6Top'      => 'color_header_style_6_top',
+        'color_header_style_2_top',
+        'color_header_style_2_bottom',
+        'color_header_style_3_top',
+        'color_header_style_4_top',
+        'color_header_style_5',
+        'color_header_style_6_top',
 
         // Footer Styles
-        'footerStyle1Top'      => 'color_footer_style_1_top',
-        'footerStyle1Bottom'   => 'color_footer_style_1_bottom',
-        'footerStyle2Top'      => 'color_footer_style_2_top',
-        'footerStyle2Bottom'   => 'color_footer_style_2_bottom',
-        'footerStyle3Top'      => 'color_footer_style_3_top',
-        'footerStyle3Middle'   => 'color_footer_style_3_middle',
-        'footerStyle3Bottom'   => 'color_footer_style_3_bottom',
-        'footerStyle5Top'      => 'color_footer_style_5_top',
-        'footerStyle5Bottom'   => 'color_footer_style_5_bottom',
-        'footerStyle6All'      => 'color_footer_style_6_all',
-        'footerStyle7Top'      => 'color_footer_style_7_top',
-        'footerStyle7Bottom'   => 'color_footer_style_7_bottom',
+        'color_footer_style_1_top',
+        'color_footer_style_1_bottom',
+        'color_footer_style_2_top',
+        'color_footer_style_2_bottom',
+        'color_footer_style_3_top',
+        'color_footer_style_3_middle',
+        'color_footer_style_3_bottom',
+        'color_footer_style_5_top',
+        'color_footer_style_5_bottom',
+        'color_footer_style_6_all',
+        'color_footer_style_7_top',
+        'color_footer_style_7_bottom',
     ];
 
     $colors = [];
-    foreach ($map as $key => $setting) {
+    foreach ($settings as $setting) {
         $val = get_config('theme_edumy', $setting);
         // Keep only valid #rgb / #rrggbb values; skip unset (false) or blanks.
         if (is_string($val) && preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', trim($val))) {
-            $colors[$key] = trim($val);
+            $colors[$setting] = trim($val);
         }
     }
 
