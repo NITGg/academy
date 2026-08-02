@@ -20,7 +20,11 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main area — full width, scrollable content with footer at bottom */}
       <main className="flex flex-1 flex-col overflow-y-auto">
-        <div className="container mx-auto flex-1 px-4 py-6 lg:px-6 lg:py-8">
+        {/* <div className="container mx-auto flex-1 px-4 py-6 lg:px-6 lg:py-8"> */}
+        <div 
+          className="container mx-auto flex-1 px-4 py-6 lg:px-6 lg:py-8"
+          style={{ backgroundColor: "var(--edumy-color-gradient-start, transparent)" }}
+        >
           {children}
         </div>
         <AppFooter />
