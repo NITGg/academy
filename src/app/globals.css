@@ -35,6 +35,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  /* --color-gradient-start: var(--gradient-start);
+  --color-gradient-end: var(--gradient-end); */
 
   /* Emerald / success — not a shadcn slot, exposed as utility */
   --color-success: var(--success);

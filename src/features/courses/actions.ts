@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { getSessionFromCookie } from "@/lib/session";
-import { callMoodleRest, callAcademyApiGet } from "@/lib/moodle-server";
+import { callMoodleRest, callAcademyApi, callAcademyApiGet } from "@/lib/moodle-server";
 import { getMySubscriptions } from "@/features/subscriptions/server";
 import { getMyPrograms, getProgramDetails } from "@/features/programs/server";
 import type { ProgramContentItem } from "@/features/programs/types";
@@ -256,24 +256,43 @@ const VIEW_FUNCTIONS: Record<string, { fn: string; param: string }> = {
 /**
  * Fire Moodle's "viewed" event for a module so on-view completion triggers.
  * Best-effort — the app renders content itself, so a failure here must not block
- * the user opening the content. Requires the module's instance id.
+ * the user opening the content.
+ *
+ * Two paths, so it works for EVERY module type (not just the handful with a
+ * per-type "view" web-service function):
+ *  1. Known type with a `mod_*_view_*` function AND an instance id → call it.
+ *     This uses only core Moodle web services, so it keeps working regardless of
+ *     the custom backend.
+ *  2. Anything else (custom `resource2` / `testnew` video modules, or a known
+ *     type missing its instance id) → fall back to the generic `local_academy`
+ *     endpoint keyed on `cmid`, which records the view for any module type.
  */
 export async function markModuleViewed(
   modname: string,
-  instance: number,
+  cmid: number,
+  instance?: number,
 ): Promise<{ ok: boolean }> {
   const session = await getSessionFromCookie();
-  if (!session?.wstoken || !instance) return { ok: false };
+  if (!session?.wstoken) return { ok: false };
 
   const entry = VIEW_FUNCTIONS[modname];
-  if (!entry) return { ok: false };
+  if (entry && instance) {
+    try {
+      await callMoodleRest({
+        functionName: entry.fn,
+        token: session.wstoken,
+        params: { [entry.param]: instance },
+      });
+      return { ok: true };
+    } catch {
+      // Fall through to the generic endpoint below.
+    }
+  }
 
+  // Generic fallback — covers module types without a per-type view WS function.
+  if (!cmid) return { ok: false };
   try {
-    await callMoodleRest({
-      functionName: entry.fn,
-      token: session.wstoken,
-      params: { [entry.param]: instance },
-    });
+    await callAcademyApi("mark_activity_viewed", { cmid }, session.wstoken);
     return { ok: true };
   } catch {
     return { ok: false };

@@ -91,7 +91,11 @@ export default async function ActivityPage({ params }: Props) {
   return (
     <div className="mx-auto max-w-3xl space-y-5 pb-12">
       {/* Fire the "viewed" event so on-view automatic completion triggers. */}
-      <ViewTracker modname={activity.modname} instance={activity.instance} />
+      <ViewTracker
+        modname={activity.modname}
+        cmid={cmid}
+        instance={activity.instance}
+      />
 
       <div className="space-y-2">
         <Link

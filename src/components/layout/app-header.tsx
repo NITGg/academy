@@ -207,6 +207,10 @@ export function AppHeader() {
   return (
     <>
       {/* ═══════════════════  Sticky Header  ═══════════════════ */}
+      {/* <header
+        className="sticky top-0 z-30 border-b border-border backdrop-blur-sm"
+        style={{ backgroundColor: "var(--edumy-color-gradient-start, var(--gradient-start))" }}
+      > */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
         {/* ── Row 1: Logo | Desktop Nav | Actions ── */}
         <div className="flex h-[var(--header-height)] items-center gap-3 px-4 lg:px-6">

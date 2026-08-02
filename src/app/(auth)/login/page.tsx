@@ -42,10 +42,18 @@ export default function LoginPage() {
       toast.success(locale === "ar" ? "تم تسجيل الدخول بنجاح" : "Logged in successfully");
       router.push(fromUrl);
     } catch (err: unknown) {
-      const errorObj = err as { response?: { data?: { error?: string } } };
-      const message =
+      const errorObj = err as { response?: { data?: { error?: string; code?: string } } };
+      let message =
         errorObj.response?.data?.error ||
         (locale === "ar" ? "فشل تسجيل الدخول. تحقق من اسم المستخدم وكلمة المرور" : "Login failed. Check credentials");
+
+      if (errorObj.response?.data?.code === "not_student") {
+        message =
+          locale === "ar"
+            ? "هذه البوابة مخصصة للطلاب فقط. لا يمكن لحسابات الإدارة تسجيل الدخول من هنا."
+            : "This portal is for students only. Administrator accounts cannot sign in here.";
+      }
+
       toast.error(message);
     } finally {
       setIsSubmitting(false);

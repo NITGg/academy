@@ -11,6 +11,8 @@ interface SiteInfo {
   username: string;
   fullname: string;
   userpictureurl: string;
+  // 1 = site administrator, 0 = regular user. Returned by core_webservice_get_site_info.
+  userissiteadmin?: boolean | number;
 }
 
 interface MoodleUser {
@@ -44,6 +46,17 @@ export async function POST(request: Request) {
       functionName: "core_webservice_get_site_info",
       token: wstoken,
     });
+
+    // Step 2b: Restrict this frontend to students only — reject site admins.
+    if (siteInfo.userissiteadmin) {
+      return NextResponse.json(
+        {
+          error: "This portal is for students only. Administrator accounts cannot sign in here.",
+          code: "not_student",
+        },
+        { status: 403 },
+      );
+    }
 
     // Step 3: Fetch extended profile — phone1 + custom fields (year, ParentPhone)
     // Uses core_user_get_users_by_field, not a custom Academy endpoint.
