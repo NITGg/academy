@@ -213,7 +213,9 @@ export async function startCourseCheckout(
   if (!session) return { needsAuth: true };
 
   const locale = await getLocale();
-  const returnUrl = await getReturnUrl(`/courses/${courseId}`);
+  // Always return to the purchased course itself — even when the checkout was started
+  // from the courses list — so a successful payment lands on the course, not `/courses`.
+  const returnUrl = await getReturnUrl(`/courses/${courseId}`, true);
 
   try {
     const result = await callMoodleRest<{

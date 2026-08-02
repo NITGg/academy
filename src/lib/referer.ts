@@ -31,8 +31,12 @@ export async function getRefererUrl(): Promise<string> {
  *
  * @param fallbackPath in-app path to land on when the referer is unavailable, e.g.
  *   `/courses/12`, `/programs/4`, `/packages`, `/subscriptions`.
+ * @param forcePath when true, always return an absolute URL built from `fallbackPath`
+ *   and ignore the referer. Use this when the checkout should land on a specific page
+ *   (e.g. the purchased course) regardless of where it was started from — buying from
+ *   the courses list must still return the user to the course itself, not `/courses`.
  */
-export async function getReturnUrl(fallbackPath: string): Promise<string> {
+export async function getReturnUrl(fallbackPath: string, forcePath = false): Promise<string> {
   let h: Awaited<ReturnType<typeof headers>> | null = null;
   try {
     h = await headers();
@@ -42,7 +46,7 @@ export async function getReturnUrl(fallbackPath: string): Promise<string> {
 
   // Primary: the page the checkout was started from (always a current-domain URL).
   const referer = h?.get("referer");
-  if (referer) return referer;
+  if (referer && !forcePath) return referer;
 
   const cleanPath = fallbackPath.startsWith("/") ? fallbackPath : `/${fallbackPath}`;
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
