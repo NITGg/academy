@@ -1722,6 +1722,30 @@ try {
             academy_respond(['status' => 'success', 'message' => get_string('cert_deleted', 'local_academy')]);
             break;
 
+        // Student (web port): record that the user has VIEWED an activity, so an
+        // "automatic on view" completion condition triggers. The headless frontend
+        // renders activity content itself (it never loads Moodle's mod/*/view.php),
+        // so on-view completion would otherwise never fire. Unlike the per-type
+        // mod_*_view_* web services, this works for ANY module type — including the
+        // custom resource2 / testnew video modules that have no view WS function —
+        // because it drives completion by cmid via completion_info::set_module_viewed().
+        // Best-effort and idempotent (a second call is a no-op once already viewed).
+        case 'mark_activity_viewed':
+            academy_require_post();
+            require_once($CFG->libdir . '/completionlib.php');
+            $cmid = required_param('cmid', PARAM_INT);
+            list($course, $cm) = get_course_and_cm_from_cmid($cmid);
+            // Only an actively enrolled user may complete an activity in this course.
+            if (!is_enrolled(context_course::instance($course->id), $userid, '', true)) {
+                academy_respond(['status' => 'fail', 'error' => get_string('err_permissiondenied', 'local_academy')]);
+            }
+            // set_module_viewed() is a no-op when the module has no "view" completion
+            // condition or completion is off for the course, so it is always safe to call.
+            $completion = new completion_info($course);
+            $completion->set_module_viewed($cm, $userid);
+            academy_respond(['status' => 'success', 'data' => ['viewed' => true]]);
+            break;
+
         default:
             academy_respond(['status' => 'fail', 'error' => get_string('err_unknownfunction', 'local_academy')]);
     }
