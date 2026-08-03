@@ -2947,15 +2947,19 @@ function local_academy_course_edit_chips() {
 
     // Style the widget to match the navy/gold form. Injected inline so it needs no
     // theme-cache purge to take effect on the edit page.
+    // The course-edit theme forces text inputs to its own colours with !important,
+    // which would paint the typing field's text the same as its background and make
+    // it invisible. Every colour/border rule below is therefore !important with a
+    // descendant selector so it reliably beats the theme's `.felement input` rules.
     $css = <<<'CSS'
-.acad-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%;min-height:42px;padding:7px 9px;border:1px solid rgba(201,146,42,0.35);border-radius:8px;background:#0D2149;box-sizing:border-box}
-.acad-chips__list{display:flex;flex-wrap:wrap;gap:6px}
-.acad-chips__chip{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#C9922A,#E8B84B);color:#0A1628;font-weight:600;font-size:13px;padding:4px 6px 4px 12px;border-radius:40px;line-height:1.5;max-width:100%}
-.acad-chips__label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px}
-.acad-chips__x{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:none;border-radius:50%;background:rgba(10,22,40,0.18);color:#0A1628;cursor:pointer;font-size:14px;line-height:1;padding:0;font-family:inherit;flex:0 0 auto}
-.acad-chips__x:hover{background:rgba(10,22,40,0.38)}
-.acad-chips__input{flex:1 1 140px;min-width:140px;border:none;outline:none;background:transparent;color:#fff;font:inherit;padding:5px 4px}
-.acad-chips__input::placeholder{color:#8A9AB5}
+.acad-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%;min-height:42px;padding:7px 9px;border:1px solid rgba(201,146,42,0.35);border-radius:8px;background:#0D2149 !important;box-sizing:border-box}
+.acad-chips .acad-chips__list{display:flex;flex-wrap:wrap;gap:6px}
+.acad-chips .acad-chips__chip{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#C9922A,#E8B84B) !important;color:#0A1628 !important;font-weight:600;font-size:13px;padding:4px 6px 4px 12px;border-radius:40px;line-height:1.5;max-width:100%}
+.acad-chips .acad-chips__label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px;color:#0A1628 !important}
+.acad-chips .acad-chips__x{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:none !important;border-radius:50%;background:rgba(10,22,40,0.18) !important;color:#0A1628 !important;cursor:pointer;font-size:14px;line-height:1;padding:0;font-family:inherit;flex:0 0 auto}
+.acad-chips .acad-chips__x:hover{background:rgba(10,22,40,0.38) !important}
+.acad-chips .acad-chips__input{flex:1 1 140px;min-width:140px;border:none !important;outline:none !important;background:transparent !important;color:#fff !important;font:inherit;padding:5px 4px !important;margin:0 !important;height:auto !important;box-shadow:none !important}
+.acad-chips .acad-chips__input::placeholder{color:#8A9AB5 !important;opacity:1}
 CSS;
 
     // The two fields to upgrade, targeted by their generated form ids. co3/co4
