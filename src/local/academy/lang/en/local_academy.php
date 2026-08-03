@@ -1378,3 +1378,7 @@ $string['err_certscopemismatch']        = 'Rule {$a} does not belong to this cer
 $string['err_certruleunknown']          = 'Unknown certificate rule type: {$a}';
 $string['err_certrulesinvalid']         = 'The rules payload is not valid JSON.';
 
+
+$string['managestyles'] = 'Manage Styles';
+$string['style_preset'] = 'Style Preset';
+

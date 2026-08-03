@@ -1295,3 +1295,5 @@ $string['err_certscopeinvalid']         = 'يجب أن تكون الشهادة �
 $string['err_certscopemismatch']        = 'القاعدة {$a} لا تنتمي إلى نطاق هذه الشهادة.';
 $string['err_certruleunknown']          = 'نوع قاعدة شهادة غير معروف: {$a}';
 $string['err_certrulesinvalid']         = 'بيانات القواعد ليست بصيغة JSON صحيحة.';
+$string['managestyles']                 = 'إدارة أنماط الأقسام';
+$string['style_preset']                 = 'شكل العرض (النمط)';

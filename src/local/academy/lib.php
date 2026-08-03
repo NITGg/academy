@@ -2397,6 +2397,7 @@ function local_academy_get_frontpage_specialties() {
                 'name'   => format_string($cat->name),
                 'url'    => (string) new moodle_url('/course/index.php', ['categoryid' => $cat->id]),
                 'count'  => $totalcourses,
+                'preset' => local_academy_get_category_preset($cat->id),
                 'levels' => $levels,
             ];
         }
@@ -2644,6 +2645,22 @@ function local_academy_before_footer() {
     global $PAGE, $USER, $COURSE, $DB, $CFG;
     $output = '';
 
+    // Category style preset: make sure the current in-course / category page carries
+    // its preset body class. local_academy_extend_navigation adds it server-side when
+    // the navigation hook fires, but that hook does not run on every theme/page (e.g.
+    // course pages in the custom theme), so add it here via JS as a reliable fallback.
+    if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
+        $pagepreset = local_academy_current_page_preset();
+        if ($pagepreset) {
+            $presetclass = 'academy-preset-' . $pagepreset;
+            $PAGE->requires->js_amd_inline("
+                require([], function() {
+                    document.body.classList.add('" . $presetclass . "');
+                });
+            ");
+        }
+    }
+
     // 0. Dynamic stats for front-page HTML blocks: any element with data-xt-stat="courses|categories|programs"
     // gets its textContent replaced with the live count from the database.
     if (!CLI_SCRIPT && !(defined('AJAX_SCRIPT') && AJAX_SCRIPT) && !(defined('WS_SERVER') && WS_SERVER)) {
@@ -2695,7 +2712,9 @@ function local_academy_before_footer() {
 
                     // Specialty sections.
                     SPECS.forEach(function(s) {
-                        h += '<div class=\"xs\" data-spec=\"' + s.id + '\" style=\"margin-bottom:40px\">';
+                        var cls = 'xs';
+                        if (s.preset) { cls += ' academy-preset-' + s.preset; }
+                        h += '<div class=\"' + cls + '\" data-spec=\"' + s.id + '\" style=\"margin-bottom:40px\">';
                         h += '<h3 style=\"font-size:24px;font-weight:800;color:#E8B84B;margin:0 0 15px;border-right:4px solid #C9922A;padding-right:12px\">' + esc(s.name) + '</h3>';
 
                         s.levels.forEach(function(lv) {
@@ -2703,18 +2722,18 @@ function local_academy_before_footer() {
                             if (lv.name) {
                                 h += '<div style=\"display:inline-flex;align-items:center;gap:8px;font-weight:bold;font-size:15px;margin-bottom:20px;background-color:rgba(201,146,42,0.15);padding:5px 15px;border-radius:40px;color:#E8B84B\">' + esc(lv.name) + ' (' + lv.courses.length + ' دورات)</div>';
                             }
-                            h += '<div style=\"display:flex;flex-wrap:wrap;gap:20px\">';
+                            h += '<div class=\"academy-courses-row\" style=\"display:flex;flex-wrap:wrap;gap:20px\">';
                             lv.courses.forEach(function(c) {
-                                h += '<div style=\"flex:1 1 280px;min-width:260px;background:linear-gradient(145deg,#0D2149,#0A1628);border:1px solid rgba(201,146,42,0.2);border-radius:12px;padding:20px;display:flex;flex-direction:column;justify-content:space-between;transition:border-color .18s,transform .15s\">';
-                                h += '<div>';
-                                h += '<h4 style=\"font-size:16px;font-weight:bold;margin:0 0 10px;color:#FFFFFF;line-height:1.4\">' + esc(c.name) + '</h4>';
+                                h += '<div class=\"academy-course-card\" style=\"flex:1 1 280px;min-width:260px;background:linear-gradient(145deg,#0D2149,#0A1628);border:1px solid rgba(201,146,42,0.2);border-radius:12px;padding:20px;display:flex;flex-direction:column;justify-content:space-between;transition:border-color .18s,transform .15s\">';
+                                h += '<div class=\"academy-card-body\">';
+                                h += '<h4 class=\"academy-card-title\" style=\"font-size:16px;font-weight:bold;margin:0 0 10px;color:#FFFFFF;line-height:1.4\">' + esc(c.name) + '</h4>';
                                 if (c.desc) {
-                                    h += '<p style=\"font-size:13px;color:#8A9AB5;line-height:1.6;margin:0 0 15px\">' + esc(c.desc) + '</p>';
+                                    h += '<p class=\"academy-card-desc\" style=\"font-size:13px;color:#8A9AB5;line-height:1.6;margin:0 0 15px\">' + esc(c.desc) + '</p>';
                                 }
                                 h += '</div>';
-                                h += '<div>';
-                                h += '<div style=\"display:flex;gap:10px;font-size:11px;color:#00A99D;margin-bottom:15px;flex-wrap:wrap\"><span>📘 دبلوم مهني</span><span>🎓 شهادة معتمدة</span><span>⏱️ وصول فوري</span></div>';
-                                h += '<a href=\"' + esc(c.url) + '\" style=\"display:block;text-align:center;background-color:transparent;border:1px solid #C9922A;color:#E8B84B;padding:8px 15px;border-radius:6px;font-weight:bold;font-size:13px;cursor:pointer;width:100%;text-decoration:none;box-sizing:border-box\">📋 تفاصيل</a>';
+                                h += '<div class=\"academy-card-foot\">';
+                                h += '<div class=\"academy-card-meta\" style=\"display:flex;gap:10px;font-size:11px;color:#00A99D;margin-bottom:15px;flex-wrap:wrap\"><span>📘 دبلوم مهني</span><span>🎓 شهادة معتمدة</span><span>⏱️ وصول فوري</span></div>';
+                                h += '<a class=\"academy-card-btn\" href=\"' + esc(c.url) + '\" style=\"display:block;text-align:center;background-color:transparent;border:1px solid #C9922A;color:#E8B84B;padding:8px 15px;border-radius:6px;font-weight:bold;font-size:13px;cursor:pointer;width:100%;text-decoration:none;box-sizing:border-box\">📋 تفاصيل</a>';
                                 h += '</div></div>';
                             });
                             h += '</div></div>';
@@ -2974,4 +2993,74 @@ function local_academy_search_users($query, $role = 'any', $limit = 20) {
         );
     }
     return $out;
+}
+
+/**
+ * Helper function to get the assigned style preset for a category.
+ * Can be used by themes or blocks to style category cards on the homepage.
+ * 
+ * @param int $categoryid
+ * @return string
+ */
+function local_academy_get_category_preset($categoryid) {
+    global $DB;
+    $dbman = $DB->get_manager();
+    if (!$dbman->table_exists('academy_cat_presets')) {
+        return '';
+    }
+    $record = $DB->get_record('academy_cat_presets', ['categoryid' => $categoryid]);
+    return ($record && !empty($record->preset_id)) ? $record->preset_id : '';
+}
+
+/**
+ * Hook to inject category style presets into the page body class.
+ *
+ * Any page that belongs to a real course (course view, its activity modules,
+ * the enrolment page, etc.) inherits the preset of the course's category, so
+ * the whole course experience follows its category's visual identity. Category
+ * listing pages inherit their own category's preset.
+ */
+function local_academy_extend_navigation(global_navigation $navigation) {
+    $preset = local_academy_current_page_preset();
+    if ($preset) {
+        global $PAGE;
+        // Nav is built before the header is printed, so we can add the class
+        // server-side (no flash). before_footer provides a JS fallback for the
+        // pages/themes where this navigation hook never fires.
+        if ($PAGE->state < 1) { // 1 = moodle_page::STATE_PRINTING_HEADER
+            $PAGE->add_body_class('academy-preset-' . $preset);
+        }
+    }
+}
+
+/**
+ * Work out the category style preset that applies to the current page.
+ *
+ * Any page that belongs to a real course inherits the preset of the course's
+ * category; category listing pages inherit their own category's preset.
+ *
+ * @return string preset id (e.g. 'style-2') or '' when none applies.
+ */
+function local_academy_current_page_preset() {
+    global $PAGE, $DB, $SITE;
+
+    // NOTE: moodle_page exposes course/category through a __get magic method and
+    // has no __isset, so empty()/isset() on $PAGE->course reports "not set" even
+    // when it is. Always read the value directly with ?? — never guard with empty().
+    $siteid = $SITE->id ?? SITEID;
+    $courseid = $PAGE->course->id ?? 0;
+    if ($courseid && $courseid != $siteid) {
+        $catid = $DB->get_field('course', 'category', ['id' => $courseid]);
+        if ($catid) {
+            $preset = local_academy_get_category_preset($catid);
+            if ($preset) {
+                return $preset;
+            }
+        }
+    }
+    $catid = $PAGE->category->id ?? 0;
+    if ($catid) {
+        return local_academy_get_category_preset($catid);
+    }
+    return '';
 }

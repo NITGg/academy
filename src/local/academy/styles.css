@@ -1832,3 +1832,247 @@ html body.ccn_context_frontend #ccn-main-region .dropdown-item:hover {
     background-color: var(--xt-gold-wash);
     color: var(--xt-gold-light);
 }
+
+/* ==========================================================================
+   Category Style Presets  —  radically different homepage layouts.
+   The preset class (.academy-preset-style-N) sits on the .xs specialty section
+   wrapper; inside it the JS-built markup exposes these hooks:
+     .academy-courses-row  → the flex row that holds the cards
+     .academy-course-card  → each course card
+     .academy-card-body    → title + description block
+     .academy-card-title / .academy-card-desc
+     .academy-card-foot    → meta + button block
+     .academy-card-meta    → the little badges line
+     .academy-card-btn     → the "تفاصيل" button
+   Cards carry heavy inline styles, so every override here needs !important.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Style 1 — Horizontal scroll rail of fixed square cards.
+   -------------------------------------------------------------------------- */
+.academy-preset-style-1 .academy-courses-row {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 18px !important;
+    padding-bottom: 14px !important;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: #C9922A rgba(255,255,255,0.06);
+}
+.academy-preset-style-1 .academy-courses-row::-webkit-scrollbar { height: 8px; }
+.academy-preset-style-1 .academy-courses-row::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.06); border-radius: 4px;
+}
+.academy-preset-style-1 .academy-courses-row::-webkit-scrollbar-thumb {
+    background: #C9922A; border-radius: 4px;
+}
+.academy-preset-style-1 .academy-course-card {
+    flex: 0 0 240px !important;
+    width: 240px !important;
+    min-width: 240px !important;
+    height: 240px !important;
+    scroll-snap-align: start;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+}
+.academy-preset-style-1 .academy-card-desc {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden !important;
+}
+.academy-preset-style-1 .academy-card-meta { display: none !important; }
+.academy-preset-style-1 .academy-card-btn {
+    padding: 7px 10px !important;
+    font-size: 12px !important;
+}
+
+/* --------------------------------------------------------------------------
+   Style 2 — Circular cards (badges/description hidden, small pill button).
+   -------------------------------------------------------------------------- */
+.academy-preset-style-2 .academy-courses-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 34px !important;
+    justify-content: center !important;
+}
+.academy-preset-style-2 .academy-course-card {
+    flex: 0 0 220px !important;
+    width: 220px !important;
+    min-width: 220px !important;
+    height: 220px !important;
+    border-radius: 50% !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 26px !important;
+    background: radial-gradient(circle at 32% 28%, #14315f, #0A1628) !important;
+    border: 2px solid rgba(201,146,42,0.35) !important;
+}
+.academy-preset-style-2 .academy-course-card:hover {
+    border-color: #E8B84B !important;
+    transform: scale(1.04);
+}
+.academy-preset-style-2 .academy-card-body {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+.academy-preset-style-2 .academy-card-desc,
+.academy-preset-style-2 .academy-card-meta { display: none !important; }
+.academy-preset-style-2 .academy-card-title {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden !important;
+    font-size: 15px !important;
+}
+.academy-preset-style-2 .academy-card-foot {
+    display: flex !important;
+    justify-content: center !important;
+    margin-top: 10px !important;
+}
+.academy-preset-style-2 .academy-card-btn {
+    width: auto !important;
+    display: inline-block !important;
+    border-radius: 40px !important;
+    padding: 6px 18px !important;
+    font-size: 12px !important;
+    background: linear-gradient(135deg,#C9922A,#E8B84B) !important;
+    color: #0A1628 !important;
+    border: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Style 3 — Full-width horizontal list rows, big solid button on the side.
+   -------------------------------------------------------------------------- */
+.academy-preset-style-3 .academy-courses-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+}
+.academy-preset-style-3 .academy-course-card {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 24px !important;
+    border-radius: 10px !important;
+    border-right: 5px solid #C9922A !important;
+    padding: 18px 22px !important;
+}
+.academy-preset-style-3 .academy-card-body { flex: 1 1 auto !important; }
+.academy-preset-style-3 .academy-card-desc {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden !important;
+    margin: 0 !important;
+}
+.academy-preset-style-3 .academy-card-foot {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 18px !important;
+    flex: 0 0 auto !important;
+}
+.academy-preset-style-3 .academy-card-meta { margin-bottom: 0 !important; }
+.academy-preset-style-3 .academy-card-btn {
+    width: auto !important;
+    white-space: nowrap !important;
+    padding: 12px 28px !important;
+    font-size: 14px !important;
+    background: linear-gradient(135deg,#C9922A,#E8B84B) !important;
+    color: #0A1628 !important;
+    border: none !important;
+}
+@media (max-width: 640px) {
+    .academy-preset-style-3 .academy-course-card {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .academy-preset-style-3 .academy-card-btn { width: 100% !important; }
+}
+
+/* ==========================================================================
+   Category Style Presets  —  COURSE PAGES.
+   A course inherits its category's preset (body class injected by
+   local_academy_extend_navigation). The homepage layouts (rail/circles/list)
+   don't map onto a single course, so here each preset instead gives the course
+   page a matching *visual identity* by re-skinning its topic sections.
+   Plugin CSS loads BEFORE the theme, so every rule is `html body...` + !important
+   to win the cascade against theme rules that come later.
+   Targets: .course-content li.section (topics), .sectionname (headings).
+   ========================================================================== */
+
+/* Style 1 — elevated, rounded, gold-bordered section cards (hover lift). */
+html body.academy-preset-style-1 .course-content li.section {
+    border: 1px solid rgba(201,146,42,0.35) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important;
+    padding: 22px 24px !important;
+    margin-bottom: 22px !important;
+    transition: transform .18s ease, border-color .18s ease !important;
+}
+html body.academy-preset-style-1 .course-content li.section:hover {
+    transform: translateY(-4px) !important;
+    border-color: #E8B84B !important;
+}
+html body.academy-preset-style-1 .course-content .sectionname,
+html body.academy-preset-style-1 #region-main h3.sectionname,
+html body.academy-preset-style-1 .course-content .sectionname a {
+    color: #C9922A !important;
+    font-weight: 800 !important;
+}
+
+/* Style 2 — dark navy sections with gold headings (matches the circles theme). */
+html body.academy-preset-style-2 .course-content li.section {
+    background: linear-gradient(145deg,#0D2149,#0A1628) !important;
+    border: 1px solid #33415e !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+    padding: 22px 24px !important;
+    margin-bottom: 18px !important;
+}
+html body.academy-preset-style-2 .course-content li.section,
+html body.academy-preset-style-2 .course-content li.section .content,
+html body.academy-preset-style-2 .course-content li.section .summarytext,
+html body.academy-preset-style-2 .course-content li.section .activityinstance,
+html body.academy-preset-style-2 .course-content li.section .instancename,
+html body.academy-preset-style-2 .course-content li.section p,
+html body.academy-preset-style-2 .course-content li.section span:not(.badge) {
+    color: #dfe6f0 !important;
+    background-color: transparent !important;
+}
+html body.academy-preset-style-2 .course-content li.section .sectionname,
+html body.academy-preset-style-2 .course-content li.section .sectionname a,
+html body.academy-preset-style-2 .course-content li.section .sectionname span,
+html body.academy-preset-style-2 #region-main h3.sectionname {
+    color: #E8B84B !important;
+    font-weight: 800 !important;
+}
+html body.academy-preset-style-2 .course-content li.section a {
+    color: #E8B84B !important;
+}
+
+/* Style 3 — flat sections with a gold side-accent bar (matches the list rows). */
+html body.academy-preset-style-3 .course-content li.section {
+    background: transparent !important;
+    border: none !important;
+    border-right: 5px solid #C9922A !important;
+    border-bottom: 1px solid rgba(201,146,42,0.15) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 12px 20px !important;
+    margin-bottom: 10px !important;
+}
+html body.academy-preset-style-3 .course-content .sectionname,
+html body.academy-preset-style-3 .course-content .sectionname a,
+html body.academy-preset-style-3 #region-main h3.sectionname {
+    color: #C9922A !important;
+    font-weight: 700 !important;
+}

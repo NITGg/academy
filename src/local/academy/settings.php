@@ -58,4 +58,10 @@ if ($hassiteconfig) {
         get_string('certeligibility', 'local_academy'),
         new moodle_url('/local/academy/certificate_eligibility.php')
     ));
+    // Manage Category Style Presets
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_academy_managestyles',
+        get_string('managestyles', 'local_academy'),
+        new moodle_url('/local/academy/manage_styles.php')
+    ));
 }
