@@ -277,3 +277,59 @@
     w.AcademyUI.picker = picker;
     w.AcademyUI.userPicker = userPicker;
 })(window);
+
+/* -------------------------------------------------------------------------- *
+ * Course-page accordion                                                       *
+ * Called from PHP via onclick="AcademyUI.toggleModule(this)" on the header   *
+ * button of each section row.                                                 *
+ * -------------------------------------------------------------------------- */
+(function (w) {
+    'use strict';
+
+    function toggleModule(btn) {
+        var row    = btn.closest('.acad-module');
+        var isOpen = row.classList.contains('acad-module--open');
+
+        if (isOpen) {
+            row.classList.remove('acad-module--open');
+            btn.setAttribute('aria-expanded', 'false');
+        } else {
+            row.classList.add('acad-module--open');
+            btn.setAttribute('aria-expanded', 'true');
+        }
+    }
+
+    w.AcademyUI = w.AcademyUI || {};
+    w.AcademyUI.toggleModule = toggleModule;
+
+    /* ---- Coursera-replica course page ------------------------------------ */
+
+    // Accordion row: header button toggles .is-open on its .acad-cr__mod wrapper.
+    function crModule(btn) {
+        var row  = btn.closest('.acad-cr__mod');
+        if (!row) { return; }
+        var open = row.classList.toggle('is-open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    // Sticky tab bar: activate the clicked tab and smooth-scroll to its anchor.
+    function crTab(btn) {
+        var bar = btn.closest('.acad-cr__tabs');
+        if (bar) {
+            bar.querySelectorAll('.acad-cr__tab').forEach(function (t) {
+                t.classList.remove('is-active');
+            });
+        }
+        btn.classList.add('is-active');
+
+        var id = btn.getAttribute('data-crtab');
+        var target = id && document.getElementById(id);
+        if (target) {
+            var top = target.getBoundingClientRect().top + window.pageYOffset - 70;
+            window.scrollTo({ top: top, behavior: 'smooth' });
+        }
+    }
+
+    w.AcademyUI.crModule = crModule;
+    w.AcademyUI.crTab = crTab;
+})(window);

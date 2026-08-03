@@ -2076,3 +2076,538 @@ html body.academy-preset-style-3 #region-main h3.sectionname {
     color: #C9922A !important;
     font-weight: 700 !important;
 }
+
+/* ============================================================================
+ * Course Page — pixel replica of the Coursera course-detail layout.
+ *
+ * Rendered by theme_edumy_format_topics_renderer on course/view.php when NOT
+ * editing. Coursera is a LIGHT theme (white canvas, Coursera-blue accent), so
+ * everything below is scoped hard to `body.path-course-view:not(.editing)` and
+ * uses its own --cr-* token set — it must NOT inherit the navy/gold --xt-*
+ * identity used by the rest of the platform. All colours, spacing and type
+ * are calibrated to the reference screenshots.
+ * ==========================================================================*/
+
+body.path-course-view:not(.editing) {
+    --cr-blue: #0056d2;
+    --cr-blue-dark: #00419e;
+    --cr-blue-wash: #f0f5ff;
+    --cr-ink: #1f1f1f;
+    --cr-ink-2: #4a4a4a;
+    --cr-muted: #6e6e6e;
+    --cr-border: #e5e5e5;
+    --cr-border-2: #d1d1d1;
+    --cr-bg: #ffffff;
+    --cr-bg-soft: #f7f9fa;
+    --cr-star: #d4820a;
+    --cr-pill: #f2f2f2;
+    --cr-check: #1f1f1f;
+    --cr-radius: 8px;
+    --cr-maxw: 1128px;
+    --cr-font: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* --- Canvas: force the whole page light, override the dark theme chrome ---- */
+body.path-course-view:not(.editing),
+body.path-course-view:not(.editing) #page,
+body.path-course-view:not(.editing) #page-content,
+body.path-course-view:not(.editing) #region-main,
+body.path-course-view:not(.editing) #region-main-box,
+body.path-course-view:not(.editing) [role="main"] {
+    background: var(--cr-bg) !important;
+    color: var(--cr-ink);
+}
+
+body.path-course-view:not(.editing) #region-main {
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* The whole custom tree uses the Coursera font + base colour. */
+body.path-course-view:not(.editing) .acad-cr,
+body.path-course-view:not(.editing) .acad-cr * {
+    font-family: var(--cr-font);
+    box-sizing: border-box;
+}
+
+body.path-course-view:not(.editing) .acad-cr {
+    color: var(--cr-ink);
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+/* Centered content column shared by every band. */
+body.path-course-view:not(.editing) .acad-cr__wrap {
+    max-width: var(--cr-maxw);
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+body.path-course-view:not(.editing) .acad-cr a {
+    color: var(--cr-blue);
+    text-decoration: none;
+}
+body.path-course-view:not(.editing) .acad-cr a:hover {
+    text-decoration: underline;
+    color: var(--cr-blue-dark);
+}
+
+/* ---- Breadcrumb ---------------------------------------------------------- */
+body.path-course-view:not(.editing) .acad-cr__crumbs {
+    font-size: 14px;
+    color: var(--cr-muted);
+    padding: 16px 0 20px;
+}
+body.path-course-view:not(.editing) .acad-cr__crumbs span { margin: 0 6px; }
+body.path-course-view:not(.editing) .acad-cr__crumbs span:first-child { margin-left: 0; }
+
+/* ---- Hero ---------------------------------------------------------------- */
+body.path-course-view:not(.editing) .acad-cr__hero {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 32px;
+    padding-bottom: 32px;
+}
+body.path-course-view:not(.editing) .acad-cr__hero-main { min-width: 0; }
+
+body.path-course-view:not(.editing) .acad-cr__provider {
+    height: 28px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: .02em;
+}
+body.path-course-view:not(.editing) .acad-cr__provider img { height: 28px; width: auto; }
+
+body.path-course-view:not(.editing) .acad-cr__title {
+    font-size: 40px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    color: var(--cr-ink);
+    margin: 0 0 16px;
+}
+
+body.path-course-view:not(.editing) .acad-cr__partof {
+    font-size: 16px;
+    color: var(--cr-ink-2);
+    margin: 0 0 18px;
+}
+
+body.path-course-view:not(.editing) .acad-cr__instructor {
+    font-size: 14px;
+    color: var(--cr-ink-2);
+    margin-bottom: 24px;
+}
+body.path-course-view:not(.editing) .acad-cr__instructor strong { font-weight: 400; color: var(--cr-muted); }
+body.path-course-view:not(.editing) .acad-cr__instructor a { font-weight: 600; }
+
+body.path-course-view:not(.editing) .acad-cr-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--cr-blue);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 12px 28px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: background .15s ease;
+}
+body.path-course-view:not(.editing) .acad-cr-btn:hover {
+    background: var(--cr-blue-dark);
+    color: #fff;
+    text-decoration: none;
+}
+body.path-course-view:not(.editing) .acad-cr-btn--block { width: 100%; }
+
+body.path-course-view:not(.editing) .acad-cr__cta-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+body.path-course-view:not(.editing) .acad-cr__starts {
+    font-size: 14px;
+    color: var(--cr-ink-2);
+    font-weight: 600;
+}
+
+body.path-course-view:not(.editing) .acad-cr__enrolled {
+    font-size: 14px;
+    color: var(--cr-ink-2);
+    margin-bottom: 6px;
+}
+body.path-course-view:not(.editing) .acad-cr__enrolled b { font-weight: 700; }
+
+body.path-course-view:not(.editing) .acad-cr__plus {
+    font-size: 13px;
+    color: var(--cr-muted);
+}
+
+/* Right hero card (financial-aid / progress ring stand-in). */
+body.path-course-view:not(.editing) .acad-cr__hero-aside {
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius);
+    padding: 20px;
+    height: fit-content;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+body.path-course-view:not(.editing) .acad-cr__ring {
+    width: 120px;
+    height: 120px;
+    margin: 4px auto 14px;
+    display: block;
+}
+body.path-course-view:not(.editing) .acad-cr__aside-note {
+    text-align: center;
+    font-size: 13px;
+    color: var(--cr-muted);
+}
+
+/* ---- Stats strip --------------------------------------------------------- */
+body.path-course-view:not(.editing) .acad-cr__stats {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0;
+    border-top: 1px solid var(--cr-border);
+    border-bottom: 1px solid var(--cr-border);
+    padding: 20px 0;
+    margin-bottom: 8px;
+}
+body.path-course-view:not(.editing) .acad-cr__stat {
+    padding: 0 20px;
+    border-right: 1px solid var(--cr-border);
+}
+body.path-course-view:not(.editing) .acad-cr__stat:last-child { border-right: none; }
+body.path-course-view:not(.editing) .acad-cr__stat-top {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--cr-ink);
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+body.path-course-view:not(.editing) .acad-cr__stat-top a { font-size: 13px; font-weight: 600; }
+body.path-course-view:not(.editing) .acad-cr__stat-sub {
+    font-size: 13px;
+    color: var(--cr-muted);
+    line-height: 1.35;
+}
+body.path-course-view:not(.editing) .acad-cr__stars { color: var(--cr-star); letter-spacing: 1px; }
+
+/* ---- Tab bar ------------------------------------------------------------- */
+body.path-course-view:not(.editing) .acad-cr__tabs {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #fff;
+    border-bottom: 1px solid var(--cr-border);
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+}
+body.path-course-view:not(.editing) .acad-cr__tab {
+    padding: 16px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--cr-ink-2);
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+}
+body.path-course-view:not(.editing) .acad-cr__tab:hover { color: var(--cr-blue); }
+body.path-course-view:not(.editing) .acad-cr__tab.is-active {
+    color: var(--cr-ink);
+    border-bottom-color: var(--cr-ink);
+}
+
+/* ---- Generic section heading --------------------------------------------- */
+body.path-course-view:not(.editing) .acad-cr__band { padding: 36px 0; }
+body.path-course-view:not(.editing) .acad-cr__h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--cr-ink);
+    margin: 0 0 20px;
+}
+
+/* ---- What you'll learn --------------------------------------------------- */
+body.path-course-view:not(.editing) .acad-cr__learn-card {
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius);
+    padding: 28px 32px;
+}
+body.path-course-view:not(.editing) .acad-cr__learn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 40px;
+}
+body.path-course-view:not(.editing) .acad-cr__learn-item {
+    display: flex;
+    gap: 12px;
+    font-size: 15px;
+    color: var(--cr-ink-2);
+    line-height: 1.5;
+}
+body.path-course-view:not(.editing) .acad-cr__check {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: var(--cr-check);
+    margin-top: 1px;
+}
+
+/* ---- Skills pills -------------------------------------------------------- */
+body.path-course-view:not(.editing) .acad-cr__skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+body.path-course-view:not(.editing) .acad-cr__pill {
+    display: inline-block;
+    background: var(--cr-pill);
+    color: var(--cr-ink);
+    font-size: 14px;
+    font-weight: 400;
+    padding: 8px 14px;
+    border-radius: 4px;
+}
+body.path-course-view:not(.editing) .acad-cr__viewall {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cr-blue);
+}
+
+/* ---- Details to know ----------------------------------------------------- */
+body.path-course-view:not(.editing) .acad-cr__details {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    border-top: 1px solid var(--cr-border);
+    padding-top: 28px;
+}
+body.path-course-view:not(.editing) .acad-cr__detail-h {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+body.path-course-view:not(.editing) .acad-cr__detail-h svg { width: 22px; height: 22px; color: var(--cr-ink-2); }
+body.path-course-view:not(.editing) .acad-cr__detail-sub { font-size: 14px; color: var(--cr-blue); }
+
+/* ---- Build expertise band (grey) ----------------------------------------- */
+body.path-course-view:not(.editing) .acad-cr__soft {
+    background: var(--cr-bg-soft);
+    border-top: 1px solid var(--cr-border);
+    border-bottom: 1px solid var(--cr-border);
+}
+body.path-course-view:not(.editing) .acad-cr__expertise-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+}
+body.path-course-view:not(.editing) .acad-cr__bullets { list-style: none; padding: 0; margin: 16px 0 0; }
+body.path-course-view:not(.editing) .acad-cr__bullets li {
+    display: flex;
+    gap: 12px;
+    font-size: 15px;
+    color: var(--cr-ink-2);
+    margin-bottom: 14px;
+}
+body.path-course-view:not(.editing) .acad-cr__bullets svg { flex-shrink: 0; width: 20px; height: 20px; color: var(--cr-blue); margin-top: 1px; }
+
+/* ==========================================================================
+ * Modules band — two columns: accordion (left) + instructor rail (right)
+ * ==========================================================================*/
+body.path-course-view:not(.editing) .acad-cr__modules-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 40px;
+    align-items: start;
+}
+body.path-course-view:not(.editing) .acad-cr__modules-main { min-width: 0; }
+
+body.path-course-view:not(.editing) .acad-cr__modules-intro {
+    font-size: 15px;
+    color: var(--cr-ink-2);
+    line-height: 1.6;
+    margin: 0 0 24px;
+}
+
+/* Accordion list */
+body.path-course-view:not(.editing) .acad-cr__acc {
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius);
+    overflow: hidden;
+}
+body.path-course-view:not(.editing) .acad-cr__mod { border-bottom: 1px solid var(--cr-border); }
+body.path-course-view:not(.editing) .acad-cr__mod:last-child { border-bottom: none; }
+
+body.path-course-view:not(.editing) .acad-cr__mod-head {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 28px;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+}
+body.path-course-view:not(.editing) .acad-cr__mod-head:hover { background: var(--cr-bg-soft); }
+body.path-course-view:not(.editing) .acad-cr__mod-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--cr-ink);
+    margin: 0 0 6px;
+}
+body.path-course-view:not(.editing) .acad-cr__mod-meta {
+    font-size: 14px;
+    color: var(--cr-muted);
+}
+body.path-course-view:not(.editing) .acad-cr__mod-toggle {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--cr-blue);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+body.path-course-view:not(.editing) .acad-cr__mod-toggle svg { width: 18px; height: 18px; transition: transform .2s ease; }
+body.path-course-view:not(.editing) .acad-cr__mod.is-open .acad-cr__mod-toggle svg { transform: rotate(180deg); }
+
+body.path-course-view:not(.editing) .acad-cr__mod-body {
+    display: none;
+    padding: 0 28px 28px;
+}
+body.path-course-view:not(.editing) .acad-cr__mod.is-open .acad-cr__mod-body { display: block; }
+
+body.path-course-view:not(.editing) .acad-cr__mod-desc {
+    font-size: 15px;
+    color: var(--cr-ink-2);
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+body.path-course-view:not(.editing) .acad-cr__included-h {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0 0 8px;
+}
+body.path-course-view:not(.editing) .acad-cr__included-sum {
+    font-size: 14px;
+    color: var(--cr-ink-2);
+    margin-bottom: 16px;
+}
+body.path-course-view:not(.editing) .acad-cr__included-sum b { font-weight: 700; }
+
+/* Activity rows inside a module */
+body.path-course-view:not(.editing) .acad-cr__act {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid #f0f0f0;
+    font-size: 14px;
+}
+body.path-course-view:not(.editing) .acad-cr__act-ico {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    opacity: .8;
+}
+body.path-course-view:not(.editing) .acad-cr__act-name { flex: 1; min-width: 0; color: var(--cr-ink); font-weight: 600; }
+body.path-course-view:not(.editing) .acad-cr__act-name a { color: var(--cr-ink); }
+body.path-course-view:not(.editing) .acad-cr__act-dur { color: var(--cr-muted); white-space: nowrap; }
+body.path-course-view:not(.editing) .acad-cr__act-locked { color: var(--cr-muted); font-size: 14px; padding: 8px 0; }
+
+/* ---- Instructor rail (right) --------------------------------------------- */
+body.path-course-view:not(.editing) .acad-cr__rail-card {
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius);
+    padding: 24px;
+    margin-bottom: 20px;
+}
+body.path-course-view:not(.editing) .acad-cr__rail-h {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 6px;
+}
+body.path-course-view:not(.editing) .acad-cr__rail-rating {
+    font-size: 13px;
+    color: var(--cr-muted);
+    margin-bottom: 18px;
+}
+body.path-course-view:not(.editing) .acad-cr__rail-rating b { color: var(--cr-ink); }
+body.path-course-view:not(.editing) .acad-cr__tutor {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid var(--cr-border);
+}
+body.path-course-view:not(.editing) .acad-cr__tutor:first-of-type { border-top: none; }
+body.path-course-view:not(.editing) .acad-cr__tutor img,
+body.path-course-view:not(.editing) .acad-cr__tutor .acad-cr__avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--cr-pill);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--cr-muted);
+}
+body.path-course-view:not(.editing) .acad-cr__tutor-name { font-weight: 700; font-size: 15px; color: var(--cr-blue); }
+body.path-course-view:not(.editing) .acad-cr__tutor-org { font-size: 13px; color: var(--cr-muted); }
+body.path-course-view:not(.editing) .acad-cr__tutor-stat { font-size: 13px; color: var(--cr-muted); margin-top: 2px; }
+
+body.path-course-view:not(.editing) .acad-cr__offered-h {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 12px;
+}
+body.path-course-view:not(.editing) .acad-cr__offered-logo {
+    height: 40px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 20px;
+}
+body.path-course-view:not(.editing) .acad-cr__offered-logo img { height: 40px; width: auto; }
+
+/* ---- Responsive ---------------------------------------------------------- */
+@media (max-width: 1024px) {
+    body.path-course-view:not(.editing) .acad-cr__hero { grid-template-columns: 1fr; }
+    body.path-course-view:not(.editing) .acad-cr__hero-aside { display: none; }
+    body.path-course-view:not(.editing) .acad-cr__modules-grid { grid-template-columns: 1fr; }
+    body.path-course-view:not(.editing) .acad-cr__stats { grid-auto-flow: row; grid-auto-columns: unset; grid-template-columns: 1fr 1fr; }
+    body.path-course-view:not(.editing) .acad-cr__stat { border-right: none; border-bottom: 1px solid var(--cr-border); padding: 12px 16px; }
+}
+@media (max-width: 640px) {
+    body.path-course-view:not(.editing) .acad-cr__title { font-size: 28px; }
+    body.path-course-view:not(.editing) .acad-cr__learn-grid,
+    body.path-course-view:not(.editing) .acad-cr__expertise-grid,
+    body.path-course-view:not(.editing) .acad-cr__details { grid-template-columns: 1fr; }
+    body.path-course-view:not(.editing) .acad-cr__stats { grid-template-columns: 1fr; }
+}

@@ -15,3 +15,4 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 require_once('renderers/blog_renderer.php');
+require_once('renderers/format_topics_renderer.php');
