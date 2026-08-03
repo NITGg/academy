@@ -25,6 +25,15 @@ class theme_edumy_format_topics_renderer extends format_topics_renderer {
     /** Placeholder for data Moodle does not have. */
     const DASH = '—';
 
+    /**
+     * Separator that joins the individual "chip" sentences inside a single
+     * short-text course custom field (co1 = "What you'll learn", co2 = "Skills
+     * you'll gain"). Deliberately obscure so a learner never types it as part of
+     * a real sentence. Kept in sync with the chips editor injected by
+     * local_academy_before_footer() on the course-edit page.
+     */
+    const CHIP_SEP = '@@|@@';
+
     public function print_multiple_section_page($course, $sections, $mods, $modnames, $modnamesused) {
         if ($this->page->user_is_editing()) {
             parent::print_multiple_section_page($course, $sections, $mods, $modnames, $modnamesused);
@@ -42,7 +51,7 @@ class theme_edumy_format_topics_renderer extends format_topics_renderer {
         echo $this->acad_hero($course, $context, $data);
         echo $this->acad_stats($data);
         echo $this->acad_tabs();
-        echo $this->acad_learn();
+        echo $this->acad_learn($data);
         echo $this->acad_skills($data);
         echo $this->acad_details($data);
         echo $this->acad_expertise($course, $context, $data);
@@ -118,7 +127,44 @@ class theme_edumy_format_topics_renderer extends format_topics_renderer {
         // Start date ("Starts Aug 3").
         $d->startlabel = $course->startdate ? 'Starts ' . userdate($course->startdate, '%b %e') : self::DASH;
 
+        // Course custom fields, keyed by shortname. co1 = What you'll learn (chips),
+        // co2 = Skills you'll gain (chips), co3 = Instructor, co4 = level. Missing or
+        // hidden fields simply won't appear in the map, so each band falls back safely.
+        $d->cf = [];
+        try {
+            $handler = \core_course\customfield\course_handler::create();
+            foreach ($handler->get_instance_data($course->id, true) as $fielddata) {
+                $sn  = $fielddata->get_field()->get('shortname');
+                $val = $fielddata->get_value();
+                $d->cf[$sn] = is_string($val) ? trim($val) : $val;
+            }
+        } catch (\Throwable $e) {
+            // Custom fields component unavailable — leave $d->cf empty, bands fall back to DASH.
+            $d->cf = [];
+        }
+
         return $d;
+    }
+
+    /**
+     * Split a chip-style custom field value ("a@@|@@b@@|@@c") into a clean list
+     * of non-empty, trimmed sentences. Returns [] when the field is empty/absent.
+     */
+    protected function acad_cf_list($shortname, $data) {
+        $raw = $data->cf[$shortname] ?? '';
+        if (!is_string($raw) || trim($raw) === '') {
+            return [];
+        }
+        $parts = array_map('trim', explode(self::CHIP_SEP, $raw));
+        return array_values(array_filter($parts, function($p) {
+            return $p !== '';
+        }));
+    }
+
+    /** Plain (non-chip) short-text custom field value, or '' when empty/absent. */
+    protected function acad_cf_text($shortname, $data) {
+        $raw = $data->cf[$shortname] ?? '';
+        return is_string($raw) ? trim($raw) : '';
     }
 
     protected function acad_teachers($context) {
@@ -167,8 +213,12 @@ class theme_edumy_format_topics_renderer extends format_topics_renderer {
         // Provider = top-level category (stands in for Coursera's "IBM" logo slot).
         $provider = !empty($data->catnames) ? $data->catnames[0] : format_string($course->shortname);
 
-        // Instructor line.
-        if (!empty($data->teachers)) {
+        // Instructor line. co3 = "Instructor" custom field wins when set; otherwise
+        // fall back to the enrolled teacher(s), then to a dash.
+        $cfinstructor = $this->acad_cf_text('co3', $data);
+        if ($cfinstructor !== '') {
+            $instr = html_writer::tag('strong', 'Instructor: ') . s($cfinstructor);
+        } else if (!empty($data->teachers)) {
             $first = fullname($data->teachers[0]);
             $more  = count($data->teachers) - 1;
             $instr = html_writer::tag('strong', 'Instructor: ')
@@ -223,12 +273,15 @@ class theme_edumy_format_topics_renderer extends format_topics_renderer {
 
     protected function acad_stats($data) {
         $stars = html_writer::tag('span', '★★★★★', ['class' => 'acad-cr__stars']);
+        // co4 = "level" custom field; fall back to a dash when unset.
+        $level = $this->acad_cf_text('co4', $data);
+        $leveltop = ($level !== '' ? s($level) : self::DASH) . ' level';
         $stats = [
             ['top' => $data->modcount . ' modules',
              'sub' => 'Gain insight into a topic and learn the fundamentals'],
             ['top' => $stars . ' ' . self::DASH,
              'sub' => self::DASH . ' reviews'],
-            ['top' => self::DASH . ' level',
+            ['top' => $leveltop,
              'sub' => 'No prior experience required'],
             ['top' => 'Flexible schedule',
              'sub' => self::DASH . ' · Learn at your own pace'],
@@ -271,15 +324,22 @@ class theme_edumy_format_topics_renderer extends format_topics_renderer {
         return html_writer::div($o, 'acad-cr__wrap');
     }
 
-    protected function acad_learn() {
-        // Moodle has no structured "learning outcomes"; show four dashed slots so
-        // the checklist matches the reference. Real copy can replace DASH later.
+    protected function acad_learn($data) {
         $check = '<svg class="acad-cr__check" viewBox="0 0 20 20" fill="none" aria-hidden="true">'
                . '<path d="M4 10l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+        // co1 = "What you'll learn" chips. Fall back to four dashed slots so the
+        // checklist still matches the reference layout when the field is empty.
+        $items = $this->acad_cf_list('co1', $data);
         $grid = '';
-        for ($i = 0; $i < 4; $i++) {
-            $grid .= html_writer::div($check . html_writer::tag('span', self::DASH), 'acad-cr__learn-item');
+        if ($items) {
+            foreach ($items as $item) {
+                $grid .= html_writer::div($check . html_writer::tag('span', s($item)), 'acad-cr__learn-item');
+            }
+        } else {
+            for ($i = 0; $i < 4; $i++) {
+                $grid .= html_writer::div($check . html_writer::tag('span', self::DASH), 'acad-cr__learn-item');
+            }
         }
 
         $inner = html_writer::tag('h2', "What you'll learn", ['class' => 'acad-cr__h2', 'id' => 'about'])
@@ -289,8 +349,15 @@ class theme_edumy_format_topics_renderer extends format_topics_renderer {
     }
 
     protected function acad_skills($data) {
+        // co2 = "Skills you'll gain" chips. Fall back to course tags, then to six
+        // dashed pills so the band always fills the reference layout.
+        $items = $this->acad_cf_list('co2', $data);
         $pills = '';
-        if (!empty($data->tags)) {
+        if ($items) {
+            foreach ($items as $item) {
+                $pills .= html_writer::tag('span', s($item), ['class' => 'acad-cr__pill']);
+            }
+        } else if (!empty($data->tags)) {
             foreach ($data->tags as $tag) {
                 $pills .= html_writer::tag('span', format_string($tag->get_display_name()), ['class' => 'acad-cr__pill']);
             }

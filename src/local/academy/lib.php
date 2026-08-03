@@ -2659,6 +2659,14 @@ function local_academy_before_footer() {
                 });
             ");
         }
+
+        // Course-edit page: upgrade the two "chip list" short-text custom fields
+        // (co1 = What you'll learn, co2 = Skills you'll gain) into a tag-style editor
+        // where each sentence becomes a removable box. Stored as one string joined
+        // by CHIP_SEP — see theme_edumy_format_topics_renderer::CHIP_SEP.
+        if ($PAGE->pagetype === 'course-edit') {
+            local_academy_course_edit_chips();
+        }
     }
 
     // 0. Dynamic stats for front-page HTML blocks: any element with data-xt-stat="courses|categories|programs"
@@ -2920,6 +2928,160 @@ JS;
 
     $PAGE->requires->js_amd_inline($js);
     return $output;
+}
+
+/**
+ * Inject the client-side "chips" editor for the two learning-outcome custom fields
+ * on the course-edit form (co1 = "What you'll learn", co2 = "Skills you'll gain").
+ *
+ * Each field is a plain short-text customfield_text input. The editor keeps that
+ * input as the real (submitted) form field but hides it, mirroring its value: the
+ * user types a sentence and presses Enter to turn it into a removable box. On
+ * submit the input carries every sentence joined by the separator "@@|@@" — the
+ * same token the course-detail renderer splits on
+ * ({@see theme_edumy_format_topics_renderer::CHIP_SEP}). No DB/schema change: the
+ * value stays one string in {customfield_data}.
+ */
+function local_academy_course_edit_chips() {
+    global $PAGE;
+
+    // Style the widget to match the navy/gold form. Injected inline so it needs no
+    // theme-cache purge to take effect on the edit page.
+    $css = <<<'CSS'
+.acad-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%;min-height:42px;padding:7px 9px;border:1px solid rgba(201,146,42,0.35);border-radius:8px;background:#0D2149;box-sizing:border-box}
+.acad-chips__list{display:flex;flex-wrap:wrap;gap:6px}
+.acad-chips__chip{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#C9922A,#E8B84B);color:#0A1628;font-weight:600;font-size:13px;padding:4px 6px 4px 12px;border-radius:40px;line-height:1.5;max-width:100%}
+.acad-chips__label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px}
+.acad-chips__x{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:none;border-radius:50%;background:rgba(10,22,40,0.18);color:#0A1628;cursor:pointer;font-size:14px;line-height:1;padding:0;font-family:inherit;flex:0 0 auto}
+.acad-chips__x:hover{background:rgba(10,22,40,0.38)}
+.acad-chips__input{flex:1 1 140px;min-width:140px;border:none;outline:none;background:transparent;color:#fff;font:inherit;padding:5px 4px}
+.acad-chips__input::placeholder{color:#8A9AB5}
+CSS;
+
+    // The two fields to upgrade, targeted by their generated form ids. co3/co4
+    // (Instructor, level) stay plain single-value inputs and are left untouched.
+    $js = <<<'JS'
+require([], function() {
+    var SEP = '@@|@@';
+    var IDS = ['id_customfield_co1', 'id_customfield_co2'];
+
+    if (!document.getElementById('acad-chips-css')) {
+        var st = document.createElement('style');
+        st.id = 'acad-chips-css';
+        st.textContent = {$this_css_placeholder};
+        document.head.appendChild(st);
+    }
+
+    function build(input) {
+        if (!input || input.getAttribute('data-acad-chips')) { return; }
+        input.setAttribute('data-acad-chips', '1');
+
+        var chips = [];
+
+        var wrap  = document.createElement('div');
+        wrap.className = 'acad-chips';
+        var list  = document.createElement('div');
+        list.className = 'acad-chips__list';
+        var typer = document.createElement('input');
+        typer.type = 'text';
+        typer.className = 'acad-chips__input';
+        typer.setAttribute('autocomplete', 'off');
+        typer.setAttribute('dir', 'auto');
+        typer.placeholder = input.getAttribute('placeholder') || '';
+        wrap.appendChild(list);
+        wrap.appendChild(typer);
+
+        // Keep the original input in the form (it is what submits) but hide it.
+        input.style.display = 'none';
+        input.parentNode.insertBefore(wrap, input.nextSibling);
+
+        function serialize() { input.value = chips.join(SEP); }
+
+        function render() {
+            list.textContent = '';
+            chips.forEach(function(text, i) {
+                var chip = document.createElement('span');
+                chip.className = 'acad-chips__chip';
+                var label = document.createElement('span');
+                label.className = 'acad-chips__label';
+                label.setAttribute('dir', 'auto');
+                label.textContent = text;
+                var x = document.createElement('button');
+                x.type = 'button';
+                x.className = 'acad-chips__x';
+                x.setAttribute('aria-label', 'Remove');
+                x.innerHTML = '&times;';
+                x.addEventListener('click', function() {
+                    chips.splice(i, 1);
+                    serialize();
+                    render();
+                    typer.focus();
+                });
+                chip.appendChild(label);
+                chip.appendChild(x);
+                list.appendChild(chip);
+            });
+        }
+
+        // A pasted/typed value may itself contain the separator → split it too.
+        function commit(raw) {
+            String(raw).split(SEP).forEach(function(part) {
+                var t = part.trim();
+                if (t !== '') { chips.push(t); }
+            });
+            serialize();
+            render();
+        }
+
+        // Seed from the existing stored value.
+        if (input.value && input.value.trim() !== '') {
+            input.value.split(SEP).forEach(function(part) {
+                var t = part.trim();
+                if (t !== '') { chips.push(t); }
+            });
+            render();
+        }
+
+        typer.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // never let Enter submit the whole course form here
+                if (typer.value.trim() !== '') { commit(typer.value); typer.value = ''; }
+            } else if (e.key === 'Backspace' && typer.value === '' && chips.length) {
+                chips.pop();
+                serialize();
+                render();
+            }
+        });
+        // Don't lose a half-typed sentence if the user clicks Save without pressing Enter.
+        typer.addEventListener('blur', function() {
+            if (typer.value.trim() !== '') { commit(typer.value); typer.value = ''; }
+        });
+        // Clicking anywhere in the box focuses the typing field.
+        wrap.addEventListener('click', function(e) {
+            if (e.target === wrap || e.target === list) { typer.focus(); }
+        });
+    }
+
+    function init() {
+        IDS.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (!el) { el = document.querySelector('[name="' + id.replace(/^id_/, '') + '"]'); }
+            build(el);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+});
+JS;
+
+    // Splice the CSS in as a JSON string literal so quotes/newlines are safe.
+    $js = str_replace('{$this_css_placeholder}', json_encode($css), $js);
+
+    $PAGE->requires->js_amd_inline($js);
 }
 
 /**
