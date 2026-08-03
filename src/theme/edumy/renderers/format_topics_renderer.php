@@ -272,21 +272,16 @@ class theme_edumy_format_topics_renderer extends format_topics_renderer {
     }
 
     protected function acad_stats($data) {
-        $stars = html_writer::tag('span', '★★★★★', ['class' => 'acad-cr__stars']);
         // co4 = "level" custom field; fall back to a dash when unset.
         $level = $this->acad_cf_text('co4', $data);
         $leveltop = ($level !== '' ? s($level) : self::DASH) . ' level';
+        // Rating, "Flexible schedule" and the "—%" liked-this-course cells are
+        // intentionally dropped — only real data (modules count + level) is shown.
         $stats = [
             ['top' => $data->modcount . ' modules',
              'sub' => 'Gain insight into a topic and learn the fundamentals'],
-            ['top' => $stars . ' ' . self::DASH,
-             'sub' => self::DASH . ' reviews'],
             ['top' => $leveltop,
              'sub' => 'No prior experience required'],
-            ['top' => 'Flexible schedule',
-             'sub' => self::DASH . ' · Learn at your own pace'],
-            ['top' => self::DASH . '%',
-             'sub' => 'Most learners liked this course'],
         ];
 
         $o = html_writer::start_div('acad-cr__stats');
