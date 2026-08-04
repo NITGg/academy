@@ -1907,11 +1907,11 @@ html body.ccn_context_frontend #ccn-main-region .dropdown-item:hover {
     justify-content: center !important;
     text-align: center !important;
     padding: 26px !important;
-    background: radial-gradient(circle at 32% 28%, #14315f, #0A1628) !important;
-    border: 2px solid rgba(201,146,42,0.35) !important;
+    background: radial-gradient(circle at 32% 28%, #5b2a86, #1f0a33) !important;
+    border: 2px solid rgba(178,102,255,0.35) !important;
 }
 .academy-preset-style-2 .academy-course-card:hover {
-    border-color: #E8B84B !important;
+    border-color: #b266ff !important;
     transform: scale(1.04);
 }
 .academy-preset-style-2 .academy-card-body {
@@ -1940,8 +1940,8 @@ html body.ccn_context_frontend #ccn-main-region .dropdown-item:hover {
     border-radius: 40px !important;
     padding: 6px 18px !important;
     font-size: 12px !important;
-    background: linear-gradient(135deg,#C9922A,#E8B84B) !important;
-    color: #0A1628 !important;
+    background: linear-gradient(135deg,#7c3aed,#b266ff) !important;
+    color: #ffffff !important;
     border: none !important;
 }
 
@@ -1962,7 +1962,7 @@ html body.ccn_context_frontend #ccn-main-region .dropdown-item:hover {
     justify-content: space-between !important;
     gap: 24px !important;
     border-radius: 10px !important;
-    border-right: 5px solid #C9922A !important;
+    border-right: 5px solid #13a89e !important;
     padding: 18px 22px !important;
 }
 .academy-preset-style-3 .academy-card-body { flex: 1 1 auto !important; }
@@ -1986,8 +1986,8 @@ html body.ccn_context_frontend #ccn-main-region .dropdown-item:hover {
     white-space: nowrap !important;
     padding: 12px 28px !important;
     font-size: 14px !important;
-    background: linear-gradient(135deg,#C9922A,#E8B84B) !important;
-    color: #0A1628 !important;
+    background: linear-gradient(135deg,#0f8a80,#2ec7bd) !important;
+    color: #062a27 !important;
     border: none !important;
 }
 @media (max-width: 640px) {

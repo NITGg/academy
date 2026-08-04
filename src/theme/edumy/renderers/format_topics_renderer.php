@@ -53,8 +53,6 @@ class theme_edumy_format_topics_renderer extends format_topics_renderer {
         echo $this->acad_tabs();
         echo $this->acad_learn($data);
         echo $this->acad_skills($data);
-        echo $this->acad_details($data);
-        echo $this->acad_expertise($course, $context, $data);
         echo $this->acad_modules($course, $modinfo, $context, $data);
         echo html_writer::end_div();
 
@@ -248,15 +246,7 @@ class theme_edumy_format_topics_renderer extends format_topics_renderer {
         $o .= html_writer::div(
             html_writer::tag('b', number_format($data->enrolled)) . ' already enrolled',
             'acad-cr__enrolled');
-        $o .= html_writer::div('Included with ' . self::DASH . ' · ' .
-            html_writer::tag('a', 'Learn more', ['href' => '#']), 'acad-cr__plus');
         $o .= html_writer::end_div(); // hero-main
-
-        // ---- Right aside (progress-ring stand-in) ----
-        $o .= html_writer::start_div('acad-cr__hero-aside');
-        $o .= $this->acad_ring();
-        $o .= html_writer::div(self::DASH, 'acad-cr__aside-note');
-        $o .= html_writer::end_div();
 
         $o .= html_writer::end_div(); // hero
         return html_writer::div($o, 'acad-cr__wrap');
@@ -278,17 +268,14 @@ class theme_edumy_format_topics_renderer extends format_topics_renderer {
         // Rating, "Flexible schedule" and the "—%" liked-this-course cells are
         // intentionally dropped — only real data (modules count + level) is shown.
         $stats = [
-            ['top' => $data->modcount . ' modules',
-             'sub' => 'Gain insight into a topic and learn the fundamentals'],
-            ['top' => $leveltop,
-             'sub' => 'No prior experience required'],
+            ['top' => $data->modcount . ' modules'],
+            ['top' => $leveltop],
         ];
 
         $o = html_writer::start_div('acad-cr__stats');
         foreach ($stats as $st) {
             $o .= html_writer::div(
-                html_writer::div($st['top'], 'acad-cr__stat-top') .
-                html_writer::div($st['sub'], 'acad-cr__stat-sub'),
+                html_writer::div($st['top'], 'acad-cr__stat-top'),
                 'acad-cr__stat'
             );
         }
@@ -560,10 +547,6 @@ class theme_edumy_format_topics_renderer extends format_topics_renderer {
 
         $instructorscard = html_writer::div(
             html_writer::tag('div', 'Instructors', ['class' => 'acad-cr__rail-h']) .
-            html_writer::div(
-                'Instructor ratings ' . html_writer::tag('b', self::DASH) . ' (' . self::DASH . ' ratings)',
-                'acad-cr__rail-rating'
-            ) .
             $tutors,
             'acad-cr__rail-card'
         );
