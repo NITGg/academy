@@ -25,8 +25,20 @@
     --nit-surface: #{$nit-surface};
     --nit-ink: #{$nit-ink};
     --nit-line: #{$nit-line};
-    // Follows the active brand ($primary is set to the resolved brand in pre_scss).
+
+    // Brand + status colours. Each follows the resolved value of its semantic
+    // SCSS variable — which the brand-colour settings (settings.php) override in
+    // pre_scss — so any component can paint from these at runtime without
+    // hard-coding a hue, e.g. `color: var(--nit-success)`.
     --nit-primary: #{$primary};
+    --nit-secondary: #{$secondary};
+    --nit-success: #{$success};
+    --nit-warning: #{$warning};
+    --nit-danger: #{$danger};
+    --nit-info: #{$info};
+
+    // Readable foreground for filled brand/status surfaces.
+    --nit-on-primary: #{$nit-on-primary};
 
     --nit-radius-md: #{$nit-radius-md};
     --nit-radius-lg: #{$nit-radius-lg};

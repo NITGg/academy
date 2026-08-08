@@ -35,14 +35,23 @@ class gallery implements renderable, templatable {
      * @return array
      */
     public function export_for_template(renderer_base $output): array {
+        // Read the live, admin-configured brand colours (settings.php). Falls
+        // back to the design-system primitive when a picker is left empty, so
+        // the swatches always mirror what the site actually renders.
+        $swatch = function (string $key, string $name, string $default): array {
+            $hex = get_config('theme_nit', $key);
+            return ['name' => $name, 'hex' => (!empty($hex) ? $hex : $default)];
+        };
+
         return [
             'swatches' => [
-                ['name' => 'Primary', 'hex' => '#2A50C8'],
-                ['name' => 'Secondary', 'hex' => '#626C7A'],
-                ['name' => 'Success', 'hex' => '#1E7A54'],
-                ['name' => 'Warning', 'hex' => '#9A6410'],
-                ['name' => 'Danger', 'hex' => '#B23A2E'],
-                ['name' => 'Ink', 'hex' => '#171B22'],
+                $swatch('brandprimary', 'Primary', '#2a50c8'),
+                $swatch('brandsecondary', 'Secondary', '#626c7a'),
+                $swatch('brandsuccess', 'Success', '#1e7a54'),
+                $swatch('brandwarning', 'Warning', '#9a6410'),
+                $swatch('branddanger', 'Danger', '#b23a2e'),
+                $swatch('brandinfo', 'Info', '#0e7c86'),
+                $swatch('inkcolour', 'Ink', '#171b22'),
             ],
             'stats' => [
                 ['label' => 'Active learners', 'value' => '1,284', 'trend' => '+12%', 'up' => true],

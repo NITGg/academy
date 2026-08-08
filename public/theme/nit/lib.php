@@ -248,6 +248,35 @@ function theme_nit_get_pre_scss($theme) {
         }
     }
 
+    // User-editable brand colours (settings.php). Each picker overrides the
+    // matching semantic/primitive SCSS variable, so Bootstrap compiles against
+    // the admin's colours and the --nit-* custom properties in _root.scss
+    // (loaded later in extra_scss, same combined stream) pick them up too. An
+    // empty setting keeps the M3 default. Placed after the M5 branding hook so
+    // an explicit admin colour wins over an SDK-resolved brand.
+    //
+    // Config key => SCSS variables it drives (without the leading $).
+    $configurable = [
+        'brandprimary'   => ['primary', 'link-color'],
+        'brandsecondary' => ['secondary'],
+        'brandsuccess'   => ['success'],
+        'brandwarning'   => ['warning'],
+        'branddanger'    => ['danger'],
+        'brandinfo'      => ['info'],
+        'surfacecolour'  => ['nit-surface', 'body-bg'],
+        'inkcolour'      => ['nit-ink', 'body-color'],
+        'linecolour'     => ['nit-line', 'border-color', 'card-border-color'],
+    ];
+    foreach ($configurable as $configkey => $targets) {
+        $value = isset($theme->settings->{$configkey}) ? $theme->settings->{$configkey} : null;
+        if (empty($value)) {
+            continue;
+        }
+        foreach ($targets as $target) {
+            $scss .= '$' . $target . ': ' . $value . ";\n";
+        }
+    }
+
     // Reserved pre-Boost overrides.
     $scss .= file_get_contents(__DIR__ . '/scss/pre.scss');
 
