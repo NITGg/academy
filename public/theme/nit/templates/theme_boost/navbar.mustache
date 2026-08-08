@@ -69,7 +69,8 @@
                 <div class="divider border-start h-75 align-self-center mx-1"></div>
             {{/output.search_box}}
 
-            {{{ output.edit_switch }}}
+            {{! NIT: the edit-mode switch was moved OUT of the bar and INTO the
+                gear/navigation dropdown below (matches the legacy clean bar). }}
 
             {{! NIT: notifications / messaging (the bell) — kept as-is. }}
             {{# output.navbar_plugin_output }}
@@ -97,6 +98,11 @@
                             {{/children}}
                         {{/haschildren}}
                     {{/mobileprimarynav}}
+
+                    {{! NIT: edit-mode toggle lives here (moved from the bar). The
+                        wrapper is `:empty` when core returns no switch — CSS then
+                        hides it, so no stray row on pages without editing. }}
+                    <div class="nit-navmenu-editswitch">{{{ output.edit_switch }}}</div>
                 </div>
             </div>
 

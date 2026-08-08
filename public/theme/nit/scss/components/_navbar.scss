@@ -22,6 +22,17 @@
 // popovers keep their own light panels and are deliberately left untouched.
 // =============================================================================
 
+// Shared "legacy sub-menu" panel look — one source of truth for every navbar
+// dropdown (language, gear-nav, profile, notifications). Lifted 1:1 from the
+// legacy edumy language panel so all four read identically.
+$nit-navpanel-bg:      #0d2149;
+$nit-navpanel-border:  rgba(201, 146, 42, 0.2); // gold-tinted, 20% alpha.
+$nit-navpanel-radius:  10px;
+$nit-navpanel-pad:     25px 20px;
+$nit-navpanel-shadow:  0 0 50px rgba(32, 32, 32, 0.15);
+$nit-navpanel-item:    #8a9ab5;                 // muted blue-grey row text.
+$nit-navpanel-divider: #dedede;                 // light row divider.
+
 .nit-navbar {
     background-color: $nit-navy-900;
     border-bottom: 1px solid $nit-navy-700;
@@ -30,13 +41,6 @@
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
     // Base foreground: everything on the bar inherits light unless overridden.
     color: $nit-on-navy;
-
-    // Exception: the notification / message popovers are light panels rendered
-    // inside the navbar. Reset their body text to dark so the light base colour
-    // above does not wash them out. (Their toggles/bells stay light — set below.)
-    .popover-region-container {
-        color: $nit-ink;
-    }
 
     // ---- Brand: compact logo + gold wordmark --------------------------------
     .nit-navbar-brand {
@@ -84,9 +88,9 @@
 
     // ---- Legacy match: hide extra items + space the right cluster -----------
     // The legacy header shows only three items on the right (bell, gear,
-    // avatar). Hide the edit-mode switch and the messages popover; the
-    // notifications bell stays.
-    .editmode-switch-form,
+    // avatar). Hide the messages popover; the notifications bell stays. The
+    // edit-mode switch is NOT hidden here any more — it was relocated into the
+    // gear/navigation dropdown (styled in `.nit-navmenu-editswitch` below).
     [data-region="popover-region-messages"] {
         display: none !important;
     }
@@ -184,23 +188,53 @@
     .langmenu {
         position: relative;
 
+        // The `.dropdown` wrapper is the positioned anchor for the absolute
+        // panel — so a CSS-hover open lands right under the button.
+        .dropdown {
+            position: relative;
+
+            // Hover bridge: an invisible strip filling the gap BELOW the button.
+            // It is a child of `.dropdown`, so hovering it keeps `.dropdown:hover`
+            // true while the cursor crosses the gap toward the panel — without it
+            // the menu closes the instant the cursor leaves the button. Absolute,
+            // so it adds no layout height (no visual shift to the bar).
+            &::after {
+                content: "";
+                position: absolute;
+                top: 100%;
+                inset-inline: 0;
+                height: 16px; // spans the 12px gap + a little overlap.
+            }
+        }
+
         .dropdown-toggle {
             border: 0;
             font-size: 1.5rem;
 
-            // Hide Bootstrap's default caret arrow on the button.
+            // Show a caret arrow on the BUTTON itself (the legacy header has a
+            // dropdown indicator next to the language label). Moodle ships an
+            // empty `<b class="caret">`; give it a CSS down-triangle.
+            .caret {
+                display: inline-block;
+                width: 0;
+                height: 0;
+                margin-inline-start: 0.5em;
+                vertical-align: middle;
+                border-inline: 0.32em solid transparent;
+                border-top: 0.36em solid currentColor;
+                border-bottom: 0;
+            }
+
+            // Hide Bootstrap's own `::after` caret so we don't get two arrows.
             &::after {
                 display: none;
             }
-
-            .caret {
-                border-top-color: currentColor;
-            }
         }
 
-        // Open dropdown on hover — !important beats Moodle's
-        // `body:not(.jsenabled)` guard so it works with JS enabled too.
-        &:hover > .dropdown-menu,
+        // Open the panel on hover. Target the `.dropdown` wrapper (the panel is
+        // its child, NOT a direct child of `.langmenu`), and use !important to
+        // beat Moodle's `body:not(.jsenabled)` display guard.
+        .dropdown:hover > .dropdown-menu,
         .dropdown-menu:hover {
             display: block !important;
         }
@@ -209,25 +243,50 @@
     // ---- Language dropdown panel ---------------------------------------------
     .langmenu .dropdown-menu {
         min-width: 12rem;
-        background-color: #0d2149;
-        border: 1px solid rgba(201, 146, 42, 0.2);
-        border-radius: 10px;
-        padding: 25px 20px;
-        box-shadow: 0 0 50px rgba(32, 32, 32, 0.15);
-        margin-top: 12px !important;
+        background-color: $nit-navpanel-bg;
+        border: 1px solid $nit-navpanel-border;
+        border-radius: $nit-navpanel-radius;
+        padding: $nit-navpanel-pad;
+        box-shadow: $nit-navpanel-shadow;
+        // Anchor the panel under the button and open it aligned to the start
+        // edge (Popper's inline styles still win on click; this drives the
+        // pure-CSS hover open).
+        position: absolute;
+        inset-inline-start: 0;
+        inset-inline-end: auto;
+        top: 100%;
+        margin-top: 12px !important; // visual gap below the button.
 
-        // Hide any arrow/caret pseudo-elements on the panel itself.
-        &::before,
+        // Hover bridge: a transparent strip filling the 12px gap so moving the
+        // cursor from the button down to the panel never leaves the hover area
+        // (without it the gap closes the menu before you reach it). This reuses
+        // `::before` — the panel has no decorative arrow to hide.
+        &::before {
+            content: "";
+            position: absolute;
+            top: -14px;
+            inset-inline: 0;
+            height: 14px;
+            background: transparent;
+        }
+
+        // No decorative arrow/caret on the panel.
         &::after {
             display: none !important;
         }
 
         .dropdown-item {
-            color: #8a9ab5;
+            color: $nit-navpanel-item;
             font-size: 1rem;
             padding: 10px 15px !important;
             text-decoration: none;
-            border-bottom: 1px solid #dedede;
+            border-bottom: 1px solid $nit-navpanel-divider;
+
+            // Drop Moodle's `fa-check` marker on the active language — the
+            // legacy panel shows no tick beside the current language.
+            &::before {
+                display: none !important;
+            }
 
             &:last-child {
                 border-bottom: 0;
@@ -242,59 +301,76 @@
             &.active,
             &[aria-current="true"] {
                 background-color: transparent;
-                color: #8a9ab5;
+                color: $nit-navpanel-item;
             }
         }
     }
 
-    // ---- Dark dropdown panels for the navbar menus --------------------------
-    // The gear nav and the user/profile menu share the dark treatment. Setting a
-    // light base colour on the panel makes titles / helper text inherit light;
-    // the notification popovers are NOT matched here, so they keep their look.
+    // ---- Gear-nav + profile dropdowns: match the language panel exactly ------
+    // Same legacy "sub-menu" look as `.langmenu .dropdown-menu` (bg, gold-tint
+    // border, radius, padding, muted #8a9ab5 rows split by #dedede dividers).
+    // These open on CLICK — Bootstrap's default toggle — so no hover rule here.
     .nit-navbar-dropdown,
     [data-region="usermenu"] .dropdown-menu {
-        background-color: $nit-navy-800;
-        border: 1px solid $nit-navy-700;
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
-        color: $nit-on-navy;
+        background-color: $nit-navpanel-bg;
+        border: 1px solid $nit-navpanel-border;
+        border-radius: $nit-navpanel-radius;
+        padding: $nit-navpanel-pad;
+        box-shadow: $nit-navpanel-shadow;
+        color: $nit-navpanel-item;
 
         .dropdown-header {
             color: $nit-gold-500;
             text-transform: uppercase;
             letter-spacing: 0.04em;
             font-size: $nit-fs-xs;
+            padding-inline: 15px;
         }
 
         .dropdown-item {
-            color: $nit-on-navy;
+            color: $nit-navpanel-item;
+            font-size: 1rem;
+            padding: 10px 15px !important;
+            border-bottom: 1px solid $nit-navpanel-divider;
+
+            // No `fa-check` tick on the active row (matches the language panel).
+            &::before {
+                display: none !important;
+            }
+
+            &:last-child {
+                border-bottom: 0;
+            }
 
             &:hover,
             &:focus {
-                background-color: $nit-navy-700;
+                background-color: transparent;
                 color: #fff;
             }
 
             &.active,
             &[aria-current="true"] {
                 background-color: transparent;
-                color: $nit-gold-500;
-                font-weight: 600;
+                color: $nit-navpanel-item;
+                font-weight: 400;
             }
         }
 
+        // Per-row borders already separate items — drop the standalone dividers
+        // so we don't get double lines.
         .dropdown-divider {
-            border-top-color: $nit-navy-700;
+            display: none;
         }
 
         // The submenu "back" button ships Bootstrap's `.text-body` (dark) — force
         // it light so it is visible, not only on hover.
         .carousel-navigation-link {
-            color: $nit-on-navy !important;
+            color: $nit-navpanel-item !important;
 
             &:hover,
             &:focus {
-                color: $nit-gold-400 !important;
-                background-color: $nit-navy-700;
+                color: #fff !important;
+                background-color: transparent;
             }
         }
 
@@ -302,7 +378,7 @@
         .text-muted,
         small,
         .small {
-            color: $nit-on-navy !important;
+            color: $nit-navpanel-item !important;
             opacity: 0.85;
         }
 
@@ -311,6 +387,114 @@
             padding-inline-start: $nit-space-5;
             font-size: $nit-fs-sm;
             opacity: 0.9;
+        }
+
+        // Relocated edit-mode toggle — styled as a panel row (label + switch).
+        // The wrapper is `:empty` on pages without editing, so it collapses away.
+        .nit-navmenu-editswitch {
+            &:empty {
+                display: none;
+            }
+
+            padding: 10px 15px;
+
+            .editmode-switch-form {
+                width: 100%;
+                margin: 0 !important;
+                justify-content: space-between;
+            }
+
+            .input-group {
+                flex-wrap: nowrap;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+            }
+
+            // "Edit mode" label reads light on navy (was inheriting dark).
+            label,
+            .form-check-label {
+                color: $nit-navpanel-item !important;
+                font-size: 1rem;
+                margin: 0;
+            }
+        }
+    }
+
+    // ---- Notifications popover: match the language panel too -----------------
+    // Different markup (not `.dropdown-item`s), so its header / body / footer are
+    // restyled by hand onto the same dark panel. Opens on CLICK (the bell).
+    .popover-region-notifications .popover-region-container {
+        background-color: $nit-navpanel-bg;
+        border: 1px solid $nit-navpanel-border;
+        border-radius: $nit-navpanel-radius;
+        box-shadow: $nit-navpanel-shadow;
+        color: $nit-navpanel-item;
+
+        // Position: Moodle pins the panel at `top: $navbar-height` (100px),
+        // which leaves it floating ~58px below the shorter bell button. Re-anchor
+        // it snug under the toggle with the same 12px gap as the other panels.
+        top: calc(100% + 12px) !important;
+        margin-top: 0 !important;
+
+        // Header: "Notifications" title + action icons (mark-all-read / gear /
+        // close), on a divider that matches the row look.
+        .popover-region-header-container {
+            border-bottom: 1px solid $nit-navpanel-divider;
+        }
+
+        .popover-region-header-text {
+            color: #fff;
+        }
+
+        // Action icons read light, gold on hover.
+        .popover-region-header-actions {
+            .btn,
+            .icon,
+            .normal-icon {
+                color: $nit-navpanel-item !important;
+            }
+
+            .btn:hover,
+            .btn:focus {
+                color: $nit-gold-400 !important;
+            }
+        }
+
+        // Body text (the "You have no notifications" empty state + any real
+        // notification rows) reads light on navy.
+        .popover-region-content,
+        .empty-message,
+        .content-item-container {
+            color: $nit-navpanel-item;
+        }
+
+        // Real notification rows: divider + light text, gold-ish on hover.
+        .all-notifications .list-group-item {
+            background-color: transparent;
+            border-bottom: 1px solid $nit-navpanel-divider;
+            color: $nit-navpanel-item;
+
+            &:hover,
+            &:focus {
+                background-color: rgba(255, 255, 255, 0.04);
+            }
+        }
+
+        // Footer "See all" link.
+        .see-all-link {
+            .popover-region-footer-container {
+                border-top: 1px solid $nit-navpanel-divider;
+            }
+
+            .popover-region-seeall-text {
+                color: $nit-gold-500;
+            }
+
+            &:hover .popover-region-seeall-text,
+            &:focus .popover-region-seeall-text {
+                color: $nit-gold-400;
+            }
         }
     }
 }
