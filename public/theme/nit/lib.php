@@ -151,6 +151,93 @@ function theme_nit_colours_all(): array {
 }
 
 /**
+ * The per-language custom-font slots.
+ *
+ * The theme hosts one uploadable font file per site language: the English font
+ * is applied when the site runs in English (`html[lang="en"]`) and the Arabic
+ * font when it runs in Arabic (`html[lang="ar"]`). Each slot is stored exactly
+ * like a Boost stored-file setting — the file lives in its own file area
+ * (itemid 0, system context) and the config `theme_nit/<setting>` holds the
+ * filename — so the standard theme plumbing (setting_file_url / setting_file_serve)
+ * serves it (see theme_nit_pluginfile()).
+ *
+ * `input` is the multipart field name on the gallery font form; `family` is the
+ * CSS font-family the compiled stylesheet exposes; `selector` scopes it to the
+ * matching site language; `fallback` is the system-font stack used until (and
+ * behind) the uploaded file.
+ *
+ * @return array<string, array{setting:string, filearea:string, input:string,
+ *         basename:string, family:string, selector:string, fallback:string,
+ *         strkey:string, samplekey:string, rtl:bool}>
+ */
+function theme_nit_font_slots(): array {
+    return [
+        'en' => [
+            'setting'   => 'fontfileen',
+            'filearea'  => 'fontfileen',
+            'input'     => 'fontfile_en',
+            'basename'  => 'font-en',
+            'family'    => 'NIT Site Font EN',
+            'selector'  => 'html[lang="en"] body',
+            'fallback'  => '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            'strkey'    => 'fonten',
+            'samplekey' => 'fontsampleen',
+            'rtl'       => false,
+        ],
+        'ar' => [
+            'setting'   => 'fontfilear',
+            'filearea'  => 'fontfilear',
+            'input'     => 'fontfile_ar',
+            'basename'  => 'font-ar',
+            'family'    => 'NIT Site Font AR',
+            'selector'  => 'html[lang="ar"] body',
+            'fallback'  => '"Segoe UI", Tahoma, "Traditional Arabic", "Noto Naskh Arabic", Arial, sans-serif',
+            'strkey'    => 'fontar',
+            'samplekey' => 'fontsamplear',
+            'rtl'       => true,
+        ],
+    ];
+}
+
+/**
+ * The @font-face + language-scoped font-family rules for the uploaded fonts.
+ *
+ * Emitted into the (cached) extra SCSS stream. Only slots that actually have a
+ * file uploaded produce output, so an untouched install keeps the default
+ * system font. The font URL is a self-hosted pluginfile URL (never external);
+ * because it is wrapped in a quoted url("…") the protocol-relative `//` is a
+ * string, not a SCSS line comment.
+ *
+ * @param theme_config $theme the theme config object (carries the settings)
+ * @return string CSS (valid SCSS)
+ */
+function theme_nit_font_scss($theme): string {
+    $css = '';
+    foreach (theme_nit_font_slots() as $slot) {
+        $url = $theme->setting_file_url($slot['setting'], $slot['filearea']);
+        if (empty($url)) {
+            continue;
+        }
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $format = ($ext === 'otf') ? 'opentype' : 'truetype';
+        $family = $slot['family'];
+
+        $css .= '@font-face {'
+            . 'font-family: "' . $family . '";'
+            . 'src: url("' . $url . '") format("' . $format . '");'
+            . 'font-weight: 100 900;'
+            . 'font-style: normal;'
+            . 'font-display: swap;'
+            . "}\n";
+        $css .= $slot['selector'] . ' {'
+            . 'font-family: "' . $family . '", ' . $slot['fallback'] . ';'
+            . "}\n";
+    }
+    return $css;
+}
+
+/**
  * Live site counters for the front-page marketing sections.
  *
  * Exposed to JavaScript as `window.NIT_STATS` by the frontpage layout, so
@@ -412,9 +499,45 @@ function theme_nit_get_extra_scss($theme) {
     $scss .= file_get_contents(__DIR__ . '/scss/foundation/_root.scss');
     $scss .= file_get_contents(__DIR__ . '/scss/foundation/_fonts.scss');
 
+    // Admin-uploaded, per-language custom fonts (edited on the gallery page).
+    $scss .= theme_nit_font_scss($theme);
+
     if (!empty($theme->settings->scss)) {
         $scss .= $theme->settings->scss;
     }
 
     return $scss;
+}
+
+/**
+ * Serve the theme's admin-uploaded font files via pluginfile.php.
+ *
+ * Mirrors theme_boost_pluginfile(): the uploaded fonts live in a system-context
+ * file area per language slot (see theme_nit_font_slots()), and the theme
+ * revision — not the itemid — busts the cache. The gallery page (site:config
+ * only) is the sole writer; this endpoint is a public, cache-able read of the
+ * self-hosted font, exactly like the site logo.
+ *
+ * @param stdClass $course
+ * @param stdClass $cm
+ * @param context $context
+ * @param string $filearea
+ * @param array $args
+ * @param bool $forcedownload
+ * @param array $options
+ * @return bool
+ */
+function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
+    $fontareas = array_map(static fn($slot) => $slot['filearea'], theme_nit_font_slots());
+
+    if ($context->contextlevel == CONTEXT_SYSTEM && in_array($filearea, $fontareas, true)) {
+        $theme = theme_config::load('nit');
+        // Theme files must be cache-able by both browsers and proxies by default.
+        if (!array_key_exists('cacheability', $options)) {
+            $options['cacheability'] = 'public';
+        }
+        return $theme->setting_file_serve($filearea, $args, $forcedownload, $options);
+    }
+
+    send_file_not_found();
 }

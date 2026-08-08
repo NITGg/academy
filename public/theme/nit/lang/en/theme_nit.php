@@ -41,6 +41,31 @@ $string['coloursreset'] = 'Colour palette reset to the defaults.';
 $string['savecolours'] = 'Save colours';
 $string['resetcolours'] = 'Reset to defaults';
 
+// Design-system gallery tabs.
+$string['tab_colours'] = 'Colours';
+$string['tab_fonts'] = 'Fonts';
+$string['tab_components'] = 'Components';
+
+// Fonts (edited on the gallery page). One self-hosted font file per site
+// language: applied when the site runs in that language.
+$string['fonts'] = 'Fonts';
+$string['fonts_desc'] = 'Upload a font file (.ttf or .otf) for each site language. The English font is applied when the site is in English (<code>html[lang="en"]</code>) and the Arabic font when the site is in Arabic (<code>html[lang="ar"]</code>). Fonts are self-hosted — no external request is ever made. Leave a slot empty to keep the current font; the built-in system font is used until you upload one.';
+$string['fonten'] = 'English font';
+$string['fontar'] = 'Arabic font';
+$string['fonten_help'] = 'Applied when the site language is English.';
+$string['fontar_help'] = 'Applied when the site language is Arabic.';
+$string['fontactive'] = 'Active';
+$string['fontnone'] = 'Using the default system font.';
+$string['fontpreview'] = 'Preview';
+$string['fontsampleen'] = 'The quick brown fox jumps over the lazy dog — 0123456789';
+$string['fontsamplear'] = 'أبجد هوّز حطّي كلمن — نصّ تجريبي ٠١٢٣٤٥٦٧٨٩';
+$string['savefonts'] = 'Save fonts';
+$string['resetfonts'] = 'Remove all fonts';
+$string['fontssaved'] = 'Fonts saved. The theme CSS has been rebuilt.';
+$string['fontsreset'] = 'Fonts removed. The site is back to the default system font.';
+$string['fontinvalidtype'] = 'The {$a} was ignored: only .ttf and .otf font files are accepted.';
+$string['fontuploaderror'] = 'The {$a} could not be uploaded. Please try again.';
+
 // Block region (inherited Boost layouts use side-pre).
 $string['region-side-pre'] = 'Right';
 

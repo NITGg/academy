@@ -60,10 +60,28 @@ class gallery implements renderable, templatable {
             $groups[] = $current;
         }
 
+        // Per-language font slots: current filename (if any) + a live preview
+        // that renders in the uploaded family the compiled CSS already exposes.
+        $fonts = [];
+        foreach (\theme_nit_font_slots() as $slot) {
+            $filename = \get_config('theme_nit', $slot['setting']);
+            $hasfont = is_string($filename) && $filename !== '';
+            $fonts[] = [
+                'input' => $slot['input'],
+                'label' => \get_string($slot['strkey'], 'theme_nit'),
+                'family' => $slot['family'],
+                'sample' => \get_string($slot['samplekey'], 'theme_nit'),
+                'rtl' => $slot['rtl'],
+                'hasfont' => $hasfont,
+                'filename' => $hasfont ? ltrim($filename, '/') : '',
+            ];
+        }
+
         return [
             'sesskey' => sesskey(),
             'actionurl' => (new \moodle_url('/theme/nit/gallery.php'))->out(false),
             'colourgroups' => $groups,
+            'fonts' => $fonts,
             'stats' => [
                 ['label' => 'Active learners', 'value' => '1,284', 'trend' => '+12%', 'up' => true],
                 ['label' => 'Course completions', 'value' => '842', 'trend' => '+5%', 'up' => true],

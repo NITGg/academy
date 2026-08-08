@@ -70,6 +70,79 @@ if (($data = data_submitted()) && confirm_sesskey()) {
         redirect($pageurl, get_string('colourssaved', 'theme_nit'), null,
             \core\output\notification::NOTIFY_SUCCESS);
     }
+
+    // -------------------------------------------------------------------------
+    // Per-language font upload / removal. Each slot (theme_nit_font_slots())
+    // stores its file exactly like a Boost stored-file setting — system context,
+    // itemid 0, config `theme_nit/<setting>` = the filename — so the standard
+    // theme plumbing serves it (theme_nit_pluginfile) and the extra SCSS emits
+    // the @font-face. Caches are purged so the CSS rebuilds with the new URL.
+    // -------------------------------------------------------------------------
+    $slots = theme_nit_font_slots();
+    $syscontext = context_system::instance();
+    $fs = get_file_storage();
+
+    if (!empty($data->resetfonts)) {
+        foreach ($slots as $slot) {
+            $fs->delete_area_files($syscontext->id, 'theme_nit', $slot['filearea']);
+            unset_config($slot['setting'], 'theme_nit');
+        }
+        theme_reset_all_caches();
+        redirect($pageurl, get_string('fontsreset', 'theme_nit'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
+    }
+
+    if (!empty($data->savefonts)) {
+        $errors = [];
+        foreach ($slots as $slot) {
+            $field = $slot['input'];
+
+            // No file chosen for this slot → keep whatever is already stored.
+            if (empty($_FILES[$field]['name']) ||
+                    ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+
+            $upload = $_FILES[$field];
+            $label = get_string($slot['strkey'], 'theme_nit');
+
+            // Guard against upload failures and non-uploaded (spoofed) paths.
+            if ($upload['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($upload['tmp_name'])) {
+                $errors[] = get_string('fontuploaderror', 'theme_nit', $label);
+                continue;
+            }
+
+            // Font files only — .ttf (truetype) or .otf (opentype).
+            $ext = strtolower(pathinfo($upload['name'], PATHINFO_EXTENSION));
+            if (!in_array($ext, ['ttf', 'otf'], true)) {
+                $errors[] = get_string('fontinvalidtype', 'theme_nit', $label);
+                continue;
+            }
+
+            // Store under a fixed, predictable filename per slot (only the
+            // extension varies), replacing any previous file in the area.
+            $filename = clean_param($slot['basename'] . '.' . $ext, PARAM_FILE);
+            $fs->delete_area_files($syscontext->id, 'theme_nit', $slot['filearea']);
+            $fs->create_file_from_pathname((object) [
+                'contextid' => $syscontext->id,
+                'component' => 'theme_nit',
+                'filearea'  => $slot['filearea'],
+                'itemid'    => 0,
+                'filepath'  => '/',
+                'filename'  => $filename,
+            ], $upload['tmp_name']);
+            set_config($slot['setting'], '/' . $filename, 'theme_nit');
+        }
+
+        theme_reset_all_caches();
+
+        if ($errors) {
+            redirect($pageurl, implode(' ', $errors), null,
+                \core\output\notification::NOTIFY_ERROR);
+        }
+        redirect($pageurl, get_string('fontssaved', 'theme_nit'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
+    }
 }
 
 $gallery = new \theme_nit\output\gallery();

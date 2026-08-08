@@ -17,12 +17,13 @@
 {{!
     @template theme_nit/gallery/showcase
 
-    NIT design-system component gallery.
+    NIT design-system component gallery, organised into tabs.
 
     Context variables required for this template:
-    * sesskey - session key for the colour-editor form
-    * actionurl - POST target for the colour-editor form
+    * sesskey - session key for the editor forms
+    * actionurl - POST target for the editor forms
     * colourgroups - array of { name, colours: [ { key, label, configname, value, default, isdefault } ] }
+    * fonts - array of { input, label, family, sample, rtl, hasfont, filename }
     * stats - array of { label, value, trend, up }
 
     Example context (json):
@@ -35,91 +36,174 @@
                   "value": "#2a50c8", "default": "#2a50c8", "isdefault": true }
             ] }
         ],
+        "fonts": [
+            { "input": "fontfile_en", "label": "English font", "family": "NIT Site Font EN",
+              "sample": "The quick brown fox", "rtl": false, "hasfont": true, "filename": "font-en.ttf" }
+        ],
         "stats": [ { "label": "Learners", "value": "1,284", "trend": "+12%", "up": true } ]
     }
 }}
 <div class="nit-gallery pb-5">
 
-    <h3 class="mt-4">Colour palette</h3>
-    <p class="text-muted">{{#str}}coloureditor_desc, theme_nit{{/str}}</p>
-    <form method="post" action="{{actionurl}}" class="nit-colour-editor mb-4">
-        <input type="hidden" name="sesskey" value="{{sesskey}}">
-        {{#colourgroups}}
-            <h4 class="h6 text-uppercase text-muted mt-4 mb-2">{{name}}</h4>
-            <div class="nit-colour-grid">
-                {{#colours}}
-                    <div class="nit-colour-row" data-nit-colour>
-                        <div class="nit-colour-meta">
-                            <label class="nit-colour-name" for="nit-colour-{{key}}">{{label}}</label>
-                            <code class="nit-colour-config">{{configname}}</code>
-                        </div>
-                        <div class="nit-colour-controls">
-                            <input type="color" id="nit-colour-{{key}}" name="colour_{{key}}" value="{{value}}"
-                                   class="nit-colour-swatch" aria-label="{{label}}">
-                            <input type="text" name="colour_{{key}}_hex" value="{{value}}"
-                                   class="form-control nit-colour-hex" aria-label="{{label}} hex value"
-                                   pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" maxlength="7">
-                            <span class="nit-colour-default">Default: {{default}}</span>
-                        </div>
+    <ul class="nav nav-tabs mt-4" id="nit-gallery-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="nit-tab-colours-btn" data-bs-toggle="tab"
+                    data-bs-target="#nit-tab-colours" type="button" role="tab"
+                    aria-controls="nit-tab-colours" aria-selected="true">
+                {{#str}}tab_colours, theme_nit{{/str}}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="nit-tab-fonts-btn" data-bs-toggle="tab"
+                    data-bs-target="#nit-tab-fonts" type="button" role="tab"
+                    aria-controls="nit-tab-fonts" aria-selected="false">
+                {{#str}}tab_fonts, theme_nit{{/str}}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="nit-tab-components-btn" data-bs-toggle="tab"
+                    data-bs-target="#nit-tab-components" type="button" role="tab"
+                    aria-controls="nit-tab-components" aria-selected="false">
+                {{#str}}tab_components, theme_nit{{/str}}
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content pt-4" id="nit-gallery-tabs-content">
+
+        {{! ---------------------------------------------------------------- }}
+        {{! Colours tab                                                      }}
+        {{! ---------------------------------------------------------------- }}
+        <div class="tab-pane fade show active" id="nit-tab-colours" role="tabpanel"
+             aria-labelledby="nit-tab-colours-btn" tabindex="0">
+            <h3>Colour palette</h3>
+            <p class="text-muted">{{#str}}coloureditor_desc, theme_nit{{/str}}</p>
+            <form method="post" action="{{actionurl}}" class="nit-colour-editor mb-4">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                {{#colourgroups}}
+                    <h4 class="h6 text-uppercase text-muted mt-4 mb-2">{{name}}</h4>
+                    <div class="nit-colour-grid">
+                        {{#colours}}
+                            <div class="nit-colour-row" data-nit-colour>
+                                <div class="nit-colour-meta">
+                                    <label class="nit-colour-name" for="nit-colour-{{key}}">{{label}}</label>
+                                    <code class="nit-colour-config">{{configname}}</code>
+                                </div>
+                                <div class="nit-colour-controls">
+                                    <input type="color" id="nit-colour-{{key}}" name="colour_{{key}}" value="{{value}}"
+                                           class="nit-colour-swatch" aria-label="{{label}}">
+                                    <input type="text" name="colour_{{key}}_hex" value="{{value}}"
+                                           class="form-control nit-colour-hex" aria-label="{{label}} hex value"
+                                           pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" maxlength="7">
+                                    <span class="nit-colour-default">Default: {{default}}</span>
+                                </div>
+                            </div>
+                        {{/colours}}
                     </div>
-                {{/colours}}
-            </div>
-        {{/colourgroups}}
-        <div class="d-flex gap-2 mt-4">
-            <button type="submit" name="savecolours" value="1" class="btn btn-primary">
-                {{#str}}savecolours, theme_nit{{/str}}
-            </button>
-            <button type="submit" name="resetcolours" value="1" class="btn btn-outline-secondary">
-                {{#str}}resetcolours, theme_nit{{/str}}
-            </button>
+                {{/colourgroups}}
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" name="savecolours" value="1" class="btn btn-primary">
+                        {{#str}}savecolours, theme_nit{{/str}}
+                    </button>
+                    <button type="submit" name="resetcolours" value="1" class="btn btn-outline-secondary">
+                        {{#str}}resetcolours, theme_nit{{/str}}
+                    </button>
+                </div>
+            </form>
         </div>
-    </form>
 
-    <h3 class="mt-4">Typography</h3>
-    <p class="display-6 mb-1">Display heading</p>
-    <p class="h4 mb-1">Section heading</p>
-    <p class="mb-1">Body text — the quick brown fox jumps over the lazy dog.</p>
-    <p class="small text-muted">Caption / muted text.</p>
+        {{! ---------------------------------------------------------------- }}
+        {{! Fonts tab                                                        }}
+        {{! ---------------------------------------------------------------- }}
+        <div class="tab-pane fade" id="nit-tab-fonts" role="tabpanel"
+             aria-labelledby="nit-tab-fonts-btn" tabindex="0">
+            <h3>{{#str}}fonts, theme_nit{{/str}}</h3>
+            <p class="text-muted">{{#str}}fonts_desc, theme_nit{{/str}}</p>
+            <form method="post" action="{{actionurl}}" enctype="multipart/form-data" class="nit-fonts-editor mb-4">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                {{#fonts}}
+                    <div class="nit-font-slot mb-4 pb-3 border-bottom">
+                        <h4 class="h6 mb-2">{{label}}</h4>
+                        {{#hasfont}}
+                            <p class="mb-2">
+                                <span class="badge text-bg-success">{{#str}}fontactive, theme_nit{{/str}}</span>
+                                <code>{{filename}}</code>
+                            </p>
+                        {{/hasfont}}
+                        {{^hasfont}}
+                            <p class="text-muted mb-2">{{#str}}fontnone, theme_nit{{/str}}</p>
+                        {{/hasfont}}
+                        <input type="file" name="{{input}}" accept=".ttf,.otf,font/ttf,font/otf"
+                               class="form-control nit-font-input" aria-label="{{label}}">
+                        <p class="nit-font-preview mt-3 mb-0 fs-4" style="font-family: '{{family}}';"
+                           {{#rtl}}dir="rtl"{{/rtl}}>{{sample}}</p>
+                    </div>
+                {{/fonts}}
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" name="savefonts" value="1" class="btn btn-primary">
+                        {{#str}}savefonts, theme_nit{{/str}}
+                    </button>
+                    <button type="submit" name="resetfonts" value="1" class="btn btn-outline-secondary">
+                        {{#str}}resetfonts, theme_nit{{/str}}
+                    </button>
+                </div>
+            </form>
+        </div>
 
-    <h3 class="mt-4">Buttons</h3>
-    <div class="d-flex flex-wrap gap-2 mb-3">
-        <button type="button" class="btn btn-primary">Primary</button>
-        <button type="button" class="btn btn-secondary">Secondary</button>
-        <button type="button" class="btn btn-success">Success</button>
-        <button type="button" class="btn btn-warning">Warning</button>
-        <button type="button" class="btn btn-danger">Danger</button>
-        <button type="button" class="btn btn-outline-primary">Outline</button>
-        <button type="button" class="btn btn-primary" disabled>Disabled</button>
-    </div>
+        {{! ---------------------------------------------------------------- }}
+        {{! Components tab                                                   }}
+        {{! ---------------------------------------------------------------- }}
+        <div class="tab-pane fade" id="nit-tab-components" role="tabpanel"
+             aria-labelledby="nit-tab-components-btn" tabindex="0">
 
-    <h3 class="mt-4">Alerts</h3>
-    <div class="alert alert-primary" role="alert">A primary alert.</div>
-    <div class="alert alert-success" role="alert">A success alert.</div>
-    <div class="alert alert-warning" role="alert">A warning alert.</div>
-    <div class="alert alert-danger" role="alert">A danger alert.</div>
+            <h3>Typography</h3>
+            <p class="display-6 mb-1">Display heading</p>
+            <p class="h4 mb-1">Section heading</p>
+            <p class="mb-1">Body text — the quick brown fox jumps over the lazy dog.</p>
+            <p class="small text-muted">Caption / muted text.</p>
 
-    <h3 class="mt-4">Badges</h3>
-    <div class="d-flex flex-wrap gap-2 mb-3">
-        <span class="badge text-bg-primary">Primary</span>
-        <span class="badge text-bg-success">Success</span>
-        <span class="badge text-bg-warning">Warning</span>
-        <span class="badge text-bg-danger">Danger</span>
-    </div>
-
-    <h3 class="mt-4">Progress</h3>
-    <div class="progress mb-3" role="progressbar" aria-label="Course progress" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">
-        <div class="progress-bar" style="width: 65%;">65%</div>
-    </div>
-
-    <h3 class="mt-4">Statistics <span class="badge text-bg-secondary align-middle">NIT component</span></h3>
-    <div class="d-flex flex-wrap gap-3">
-        {{#stats}}
-            <div class="nit-stat-tile" style="min-width: 12rem;">
-                <span class="nit-stat-tile__label">{{label}}</span>
-                <span class="nit-stat-tile__value">{{value}}</span>
-                <span class="nit-stat-tile__trend {{#up}}nit-stat-tile__trend--up{{/up}}{{^up}}nit-stat-tile__trend--down{{/up}}">{{trend}}</span>
+            <h3 class="mt-4">Buttons</h3>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button type="button" class="btn btn-primary">Primary</button>
+                <button type="button" class="btn btn-secondary">Secondary</button>
+                <button type="button" class="btn btn-success">Success</button>
+                <button type="button" class="btn btn-warning">Warning</button>
+                <button type="button" class="btn btn-danger">Danger</button>
+                <button type="button" class="btn btn-outline-primary">Outline</button>
+                <button type="button" class="btn btn-primary" disabled>Disabled</button>
             </div>
-        {{/stats}}
-    </div>
 
+            <h3 class="mt-4">Alerts</h3>
+            <div class="alert alert-primary" role="alert">A primary alert.</div>
+            <div class="alert alert-success" role="alert">A success alert.</div>
+            <div class="alert alert-warning" role="alert">A warning alert.</div>
+            <div class="alert alert-danger" role="alert">A danger alert.</div>
+
+            <h3 class="mt-4">Badges</h3>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <span class="badge text-bg-primary">Primary</span>
+                <span class="badge text-bg-success">Success</span>
+                <span class="badge text-bg-warning">Warning</span>
+                <span class="badge text-bg-danger">Danger</span>
+            </div>
+
+            <h3 class="mt-4">Progress</h3>
+            <div class="progress mb-3" role="progressbar" aria-label="Course progress" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar" style="width: 65%;">65%</div>
+            </div>
+
+            <h3 class="mt-4">Statistics <span class="badge text-bg-secondary align-middle">NIT component</span></h3>
+            <div class="d-flex flex-wrap gap-3">
+                {{#stats}}
+                    <div class="nit-stat-tile" style="min-width: 12rem;">
+                        <span class="nit-stat-tile__label">{{label}}</span>
+                        <span class="nit-stat-tile__value">{{value}}</span>
+                        <span class="nit-stat-tile__trend {{#up}}nit-stat-tile__trend--up{{/up}}{{^up}}nit-stat-tile__trend--down{{/up}}">{{trend}}</span>
+                    </div>
+                {{/stats}}
+            </div>
+
+        </div>
+
+    </div>
 </div>
