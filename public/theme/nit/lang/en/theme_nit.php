@@ -66,6 +66,10 @@ $string['fontsreset'] = 'Fonts removed. The site is back to the default system f
 $string['fontinvalidtype'] = 'The {$a} was ignored: only .ttf and .otf font files are accepted.';
 $string['fontuploaderror'] = 'The {$a} could not be uploaded. Please try again.';
 
+// Sign-up page: prompt sending existing users to the login page.
+$string['alreadyhaveaccount'] = 'Already have an account?';
+$string['logintoaccount'] = 'Log in';
+
 // Block region (inherited Boost layouts use side-pre).
 $string['region-side-pre'] = 'Right';
 

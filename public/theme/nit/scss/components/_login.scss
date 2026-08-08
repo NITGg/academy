@@ -62,3 +62,26 @@
 .login-layout-stat-value {
     color: var(--nit-accentgold, #{$nit-gold-500});
 }
+
+// Sign-up page: "Already have an account? Log in" prompt below the form.
+.signup-haveaccount {
+    padding-top: 1rem;
+    border-top: 1px solid rgba($nit-navy-900, 0.12);
+
+    .signup-haveaccount-text {
+        color: var(--nit-textsecondary, #{$nit-ink});
+    }
+
+    // The login link tracks the brand primary, matching the create-account CTA.
+    .signup-login-link {
+        color: var(--nit-primary, #{$nit-navy-900});
+        border-color: var(--nit-primary, #{$nit-navy-900});
+
+        &:hover,
+        &:focus {
+            color: var(--nit-navbartext, #fff);
+            background-color: var(--nit-primary, #{$nit-navy-900});
+            border-color: var(--nit-primary, #{$nit-navy-900});
+        }
+    }
+}
