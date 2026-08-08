@@ -62,6 +62,80 @@
 {{> theme_boost/head }}
 
 <body {{{ bodyattributes }}}>
+{{! NIT: live site counters + a global filler for front-page section blocks.
+    Any element with data-nit-stat="courses|categories|topcategories|subcategories|students"
+    is counted up to the real value — pasted section HTML needs no script of its own. }}
+<script>
+window.NIT_STATS = {{{ nitstatsjson }}};
+window.NIT_COURSES = {{{ nitcoursesjson }}};
+(function () {
+    function esc(s) {
+        var d = document.createElement('div');
+        d.textContent = (s == null ? '' : String(s));
+        return d.innerHTML;
+    }
+    // Count up every [data-nit-stat] element to its real value.
+    function fillStats() {
+        var stats = window.NIT_STATS || {};
+        Array.prototype.forEach.call(document.querySelectorAll('[data-nit-stat]'), function (el) {
+            var key = el.getAttribute('data-nit-stat');
+            if (stats[key] === undefined) { return; }
+            var target = parseInt(stats[key], 10) || 0;
+            var dur = 900, start = null;
+            function step(now) {
+                if (!start) { start = now; }
+                var p = Math.min((now - start) / dur, 1);
+                el.textContent = Math.round(target * p);
+                if (p < 1) { requestAnimationFrame(step); }
+            }
+            requestAnimationFrame(step);
+        });
+    }
+    // Clone each [data-nit-courses] container's <template> once per course,
+    // substituting {{fullname}} {{summary}} {{url}} {{image}} {{price}}.
+    function renderCourses() {
+        var data = window.NIT_COURSES || [];
+        Array.prototype.forEach.call(document.querySelectorAll('[data-nit-courses]'), function (container) {
+            // The card template may be a <template> or a hidden <div>; both are
+            // matched by [data-nit-course-card] and .innerHTML works for both.
+            var tpl = container.querySelector('[data-nit-course-card]');
+            if (!tpl) { return; }
+            var freeLabel = container.getAttribute('data-free-label') || '';
+            var limit = parseInt(container.getAttribute('data-limit'), 10) || data.length;
+            var frag = document.createDocumentFragment();
+            data.slice(0, limit).forEach(function (c) {
+                var html = tpl.innerHTML
+                    .replace(/\{\{url\}\}/g, encodeURI(c.url || '#'))
+                    .replace(/\{\{image\}\}/g, encodeURI(c.image || ''))
+                    .replace(/\{\{fullname\}\}/g, esc(c.fullname))
+                    .replace(/\{\{summary\}\}/g, esc(c.summary))
+                    .replace(/\{\{teacher\}\}/g, esc(c.teacher))
+                    .replace(/\{\{price\}\}/g, c.price ? esc(c.price) : esc(freeLabel));
+                var wrap = document.createElement('div');
+                wrap.innerHTML = html;
+                // Course image as a CSS background — no <img> token in the HTML,
+                // so the visual editor can't mangle a src. Set it here from data.
+                if (c.image) {
+                    var bg = 'url("' + String(c.image).replace(/["\\]/g, '') + '")';
+                    Array.prototype.forEach.call(wrap.querySelectorAll('[data-nit-course-image]'), function (el) {
+                        el.style.backgroundImage = bg;
+                    });
+                    // Also support an <img data-src> template, if used.
+                    Array.prototype.forEach.call(wrap.querySelectorAll('img[data-src]'), function (img) {
+                        img.setAttribute('src', img.getAttribute('data-src'));
+                        img.removeAttribute('data-src');
+                    });
+                }
+                while (wrap.firstChild) { frag.appendChild(wrap.firstChild); }
+            });
+            container.appendChild(frag);
+        });
+    }
+    function init() { fillStats(); renderCourses(); }
+    if (document.readyState !== 'loading') { init(); }
+    else { document.addEventListener('DOMContentLoaded', init); }
+})();
+</script>
 {{> core/local/toast/wrapper}}
 <div id="page-wrapper" class="d-print-block">
 

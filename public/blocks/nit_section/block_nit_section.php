@@ -80,9 +80,6 @@ class block_nit_section extends block_base {
     }
 
     public function get_content() {
-        global $CFG;
-        require_once($CFG->libdir . '/filelib.php');
-
         if ($this->content !== null) {
             return $this->content;
         }
@@ -96,22 +93,73 @@ class block_nit_section extends block_base {
         $this->content = new stdClass();
         $this->content->footer = '';
 
-        if (isset($this->config->text)) {
+        $mode = $this->config->mode ?? null;
+        if ($mode === 'html') {
+            // Raw HTML — verbatim.
+            $text = $this->config->htmltext ?? '';
+        } else if ($mode === 'visual') {
+            // Visual editor content may embed uploaded files.
+            global $CFG;
+            require_once($CFG->libdir . '/filelib.php');
             $text = file_rewrite_pluginfile_urls(
-                $this->config->text,
+                $this->config->visualtext ?? '',
                 'pluginfile.php',
                 $this->context->id,
                 'block_nit_section',
                 'content',
                 null
             );
-            $format = $this->config->format ?? FORMAT_HTML;
-            $this->content->text = format_text($text, $format, $filteropt);
         } else {
-            $this->content->text = '';
+            // Legacy single-field content (blocks created before the mode toggle).
+            $text = $this->config->text ?? '';
         }
 
+        $this->content->text = format_text($text, FORMAT_HTML, $filteropt);
         return $this->content;
+    }
+
+    /**
+     * Persist config, moving Visual-editor draft files into the block filearea.
+     *
+     * @param stdClass $data
+     * @param bool $nolongerused
+     */
+    public function instance_config_save($data, $nolongerused = false) {
+        $config = clone($data);
+        if (isset($data->visualtext) && is_array($data->visualtext)) {
+            $config->visualtext = file_save_draft_area_files(
+                $data->visualtext['itemid'],
+                $this->context->id,
+                'block_nit_section',
+                'content',
+                0,
+                ['subdirs' => true],
+                $data->visualtext['text']
+            );
+            $config->format = $data->visualtext['format'];
+        }
+        parent::instance_config_save($config, $nolongerused);
+    }
+
+    public function instance_delete() {
+        get_file_storage()->delete_area_files($this->context->id, 'block_nit_section');
+        return true;
+    }
+
+    /**
+     * Copy Visual-editor files when the block instance is duplicated.
+     *
+     * @param int $fromid
+     * @return bool
+     */
+    public function instance_copy($fromid) {
+        $fromcontext = context_block::instance($fromid);
+        $fs = get_file_storage();
+        $files = $fs->get_area_files($fromcontext->id, 'block_nit_section', 'content', 0, 'id ASC', false);
+        foreach ($files as $file) {
+            $fs->create_file_from_storedfile(['contextid' => $this->context->id], $file);
+        }
+        return true;
     }
 
     /**
@@ -165,52 +213,13 @@ class block_nit_section extends block_base {
     }
 
     /**
-     * Persist config, moving any embedded draft files into the block filearea.
+     * Whether this instance may render un-sanitised HTML (scripts included).
      *
-     * @param stdClass $data
-     * @param bool $nolongerused
-     */
-    public function instance_config_save($data, $nolongerused = false) {
-        $config = clone($data);
-        if (isset($data->text) && is_array($data->text)) {
-            $config->text = file_save_draft_area_files(
-                $data->text['itemid'],
-                $this->context->id,
-                'block_nit_section',
-                'content',
-                0,
-                ['subdirs' => true],
-                $data->text['text']
-            );
-            $config->format = $data->text['format'];
-        }
-        parent::instance_config_save($config, $nolongerused);
-    }
-
-    public function instance_delete() {
-        $fs = get_file_storage();
-        $fs->delete_area_files($this->context->id, 'block_nit_section');
-        return true;
-    }
-
-    /**
-     * Copy embedded files when the block instance is duplicated.
-     *
-     * @param int $fromid
-     * @return bool
-     */
-    public function instance_copy($fromid) {
-        $fromcontext = context_block::instance($fromid);
-        $fs = get_file_storage();
-        $files = $fs->get_area_files($fromcontext->id, 'block_nit_section', 'content', 0, 'id ASC', false);
-        foreach ($files as $file) {
-            $fs->create_file_from_storedfile(['contextid' => $this->context->id], $file);
-        }
-        return true;
-    }
-
-    /**
-     * Rich HTML (including scripts) is only trusted outside personal/user pages.
+     * Mirrors the core HTML block: trusted everywhere except personal/user
+     * pages, where injected JS could target other users. Adding the block also
+     * requires block/nit_section:addinstance, which carries RISK_XSS — so only
+     * roles explicitly granted that capability (manager/editingteacher) can
+     * author it.
      *
      * @return bool
      */
@@ -218,7 +227,6 @@ class block_nit_section extends block_base {
         if (!$context = context::instance_by_id($this->instance->parentcontextid, IGNORE_MISSING)) {
             return false;
         }
-        // No JS on public personal pages — same stance as the core HTML block.
         return $context->contextlevel != CONTEXT_USER;
     }
 }

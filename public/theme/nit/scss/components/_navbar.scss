@@ -1,0 +1,320 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+// =============================================================================
+// Navbar — the dark "navy + gold" top bar (a rebuild of the legacy edumy
+// header on Boost primitives). Markup: theme_nit/templates/theme_boost/navbar.
+//
+// Contrast rule: the field is dark, so every glyph and label on the bar (and in
+// the NIT-owned dark dropdowns) must read light. The notification / messaging
+// popovers keep their own light panels and are deliberately left untouched.
+// =============================================================================
+
+.nit-navbar {
+    background-color: $nit-navy-900;
+    border-bottom: 1px solid $nit-navy-700;
+    // Pronounced drop shadow so the bar separates from the content beneath it,
+    // even on a dark page.
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    // Base foreground: everything on the bar inherits light unless overridden.
+    color: $nit-on-navy;
+
+    // Exception: the notification / message popovers are light panels rendered
+    // inside the navbar. Reset their body text to dark so the light base colour
+    // above does not wash them out. (Their toggles/bells stay light — set below.)
+    .popover-region-container {
+        color: $nit-ink;
+    }
+
+    // ---- Brand: compact logo + gold wordmark --------------------------------
+    .nit-navbar-brand {
+        &:hover,
+        &:focus {
+            text-decoration: none;
+        }
+    }
+
+    .nit-navbar-logo {
+        height: 66px;
+        width: auto;
+    }
+
+    .nit-navbar-title {
+        color: $nit-gold-500;
+        font-weight: 700;
+        font-size: 1.75rem;
+        line-height: 1.1;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+    }
+
+    // ---- Bar-level foreground: labels, links, icons all read light ----------
+    // Includes the edit-mode switch label ("Edit mode"), the language button,
+    // the notification / message toggles, and the user-menu label.
+    #usernavigation > .nav-link,
+    .langmenu .dropdown-toggle,
+    [data-region="usermenu"] .dropdown-toggle,
+    [data-region="usermenu"] .usertext {
+        color: $nit-on-navy !important; // beat Bootstrap text utilities (!important).
+
+        &:hover,
+        &:focus {
+            color: $nit-gold-400 !important;
+        }
+    }
+
+    // Glyph colour follows the text colour.
+    .nav-link .icon,
+    .langmenu .icon {
+        color: inherit;
+    }
+
+    // ---- Legacy match: hide extra items + space the right cluster -----------
+    // The legacy header shows only three items on the right (bell, gear,
+    // avatar). Hide the edit-mode switch and the messages popover; the
+    // notifications bell stays.
+    .editmode-switch-form,
+    [data-region="popover-region-messages"] {
+        display: none !important;
+    }
+
+    // Breathing room between the round buttons.
+    #usernavigation {
+        gap: 0.6rem;
+    }
+
+    // Drop the language glyph before the text (legacy shows text only).
+    .langmenu .fa-language {
+        display: none;
+    }
+
+    // ---- Right cluster: circular icon buttons (bell + gear) -----------------
+    // Dark round buttons with a gold glyph, matching the legacy header.
+    .nit-navbar-icon,
+    .popover-region-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        // Lock a perfect square → circle. `aspect-ratio` guarantees width ==
+        // height even if flex or an inner glyph tries to stretch one side (this
+        // is what kept the bell an oval).
+        flex: 0 0 42px;
+        box-sizing: border-box;
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        max-width: 42px;
+        aspect-ratio: 1;
+        padding: 0;
+        border: 1px solid $nit-navy-700;
+        background-color: $nit-navy-800;
+        border-radius: 50%;
+        color: $nit-gold-500 !important;
+
+        &:hover,
+        &:focus {
+            background-color: $nit-navy-700;
+            color: $nit-gold-400 !important;
+        }
+
+        .fa,
+        .icon {
+            font-size: 1.05rem;
+            margin: 0;
+            color: inherit;
+        }
+    }
+
+    // Notification bell: force a perfect circle. The toggle is stretched
+    // vertically by the flex row (→ tall oval), so clamp height/width hard with
+    // !important, and remove Moodle's default arrow triangles (::before/::after)
+    // that also distort it. The count badge is pinned to the TOP-right corner.
+    .popover-region-toggle {
+        position: relative;
+        overflow: visible;
+        align-self: center;
+        width: 42px !important;
+        height: 42px !important;
+        min-height: 42px;
+        max-height: 42px;
+        border-radius: 50% !important;
+
+        &::before,
+        &::after {
+            display: none !important;
+        }
+
+        .count-container {
+            position: absolute !important;
+            inset: -4px -4px auto auto !important; // top / right / bottom / left
+        }
+    }
+
+    // ---- Avatar: circular photo with a light ring ---------------------------
+    // Scoped to the toggle button (`.userbutton`) so menu-item and header
+    // avatars inside the dropdown are not ringed.
+    [data-region="usermenu"] {
+        .dropdown-toggle {
+            padding-block: 0;
+        }
+
+        .userbutton img {
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            object-fit: cover;
+        }
+    }
+
+    // ---- Language menu (left of the brand) ----------------------------------
+    .langmenu {
+        position: relative;
+
+        .dropdown-toggle {
+            border: 0;
+            font-size: 1.5rem;
+
+            // Hide Bootstrap's default caret arrow on the button.
+            &::after {
+                display: none;
+            }
+
+            .caret {
+                border-top-color: currentColor;
+            }
+        }
+
+        // Open dropdown on hover — !important beats Moodle's
+        // `body:not(.jsenabled)` guard so it works with JS enabled too.
+        &:hover > .dropdown-menu,
+        .dropdown-menu:hover {
+            display: block !important;
+        }
+    }
+
+    // ---- Language dropdown panel ---------------------------------------------
+    .langmenu .dropdown-menu {
+        min-width: 12rem;
+        background-color: #0d2149;
+        border: 1px solid rgba(201, 146, 42, 0.2);
+        border-radius: 10px;
+        padding: 25px 20px;
+        box-shadow: 0 0 50px rgba(32, 32, 32, 0.15);
+        margin-top: 12px !important;
+
+        // Hide any arrow/caret pseudo-elements on the panel itself.
+        &::before,
+        &::after {
+            display: none !important;
+        }
+
+        .dropdown-item {
+            color: #8a9ab5;
+            font-size: 1rem;
+            padding: 10px 15px !important;
+            text-decoration: none;
+            border-bottom: 1px solid #dedede;
+
+            &:last-child {
+                border-bottom: 0;
+            }
+
+            &:hover,
+            &:focus {
+                background-color: transparent;
+                color: #fff;
+            }
+
+            &.active,
+            &[aria-current="true"] {
+                background-color: transparent;
+                color: #8a9ab5;
+            }
+        }
+    }
+
+    // ---- Dark dropdown panels for the navbar menus --------------------------
+    // The gear nav and the user/profile menu share the dark treatment. Setting a
+    // light base colour on the panel makes titles / helper text inherit light;
+    // the notification popovers are NOT matched here, so they keep their look.
+    .nit-navbar-dropdown,
+    [data-region="usermenu"] .dropdown-menu {
+        background-color: $nit-navy-800;
+        border: 1px solid $nit-navy-700;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+        color: $nit-on-navy;
+
+        .dropdown-header {
+            color: $nit-gold-500;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: $nit-fs-xs;
+        }
+
+        .dropdown-item {
+            color: $nit-on-navy;
+
+            &:hover,
+            &:focus {
+                background-color: $nit-navy-700;
+                color: #fff;
+            }
+
+            &.active,
+            &[aria-current="true"] {
+                background-color: transparent;
+                color: $nit-gold-500;
+                font-weight: 600;
+            }
+        }
+
+        .dropdown-divider {
+            border-top-color: $nit-navy-700;
+        }
+
+        // The submenu "back" button ships Bootstrap's `.text-body` (dark) — force
+        // it light so it is visible, not only on hover.
+        .carousel-navigation-link {
+            color: $nit-on-navy !important;
+
+            &:hover,
+            &:focus {
+                color: $nit-gold-400 !important;
+                background-color: $nit-navy-700;
+            }
+        }
+
+        // Any muted helper text (name / email header) reads light on navy.
+        .text-muted,
+        small,
+        .small {
+            color: $nit-on-navy !important;
+            opacity: 0.85;
+        }
+
+        // Child links (e.g. courses under "My courses") sit indented + smaller.
+        .nit-navmenu-child {
+            padding-inline-start: $nit-space-5;
+            font-size: $nit-fs-sm;
+            opacity: 0.9;
+        }
+    }
+}
+
+// RTL: the brand keeps its start-side placement automatically via Bootstrap's
+// logical `me-*` / `ms-*` utilities; the gold wordmark and gear dropdown need
+// no directional overrides.

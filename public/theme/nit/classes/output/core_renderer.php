@@ -43,4 +43,25 @@ class core_renderer extends \theme_boost\output\core_renderer {
             $viewmodel->export_for_template($this)
         );
     }
+
+    /**
+     * Render the standalone navbar language menu for every user.
+     *
+     * Core exposes the standalone language menu (primary::export_for_template)
+     * only to logged-out/guest users; once logged in, the switcher is folded
+     * into the user menu. The NIT navbar keeps a persistent language button
+     * beside the brand (matching the legacy site), so it builds the menu here
+     * regardless of login state. Returns '' when the menu should not show
+     * (language menu disabled, or a single installed language).
+     *
+     * @return string HTML, or '' when there is nothing to show
+     */
+    public function navbar_language_menu(): string {
+        $languagemenu = new \core\output\language_menu($this->page);
+        $langmenu = $languagemenu->export_for_template($this);
+        if (empty($langmenu)) {
+            return '';
+        }
+        return $this->render_from_template('theme_boost/language_menu', $langmenu);
+    }
 }

@@ -40,13 +40,37 @@ class block_nit_section_edit_form extends block_edit_form {
         $mform->setType('config_title', PARAM_TEXT);
         $mform->hideIf('config_title', 'config_showtitle', 'notchecked');
 
+        // Content mode: Visual (TinyMCE) for simple rich text, or Raw HTML for
+        // pasted markup that must survive untouched (templates, scripts, exact
+        // layout). Only the field for the chosen mode is shown.
+        $mform->addElement('select', 'config_mode', get_string('mode', 'block_nit_section'), [
+            'visual' => get_string('mode_visual', 'block_nit_section'),
+            'html' => get_string('mode_html', 'block_nit_section'),
+        ]);
+        $mform->setDefault('config_mode', 'visual');
+        $mform->addHelpButton('config_mode', 'mode', 'block_nit_section');
+
+        // Visual editor (uses the user's WYSIWYG editor, e.g. TinyMCE).
         $editoroptions = [
             'maxfiles' => EDITOR_UNLIMITED_FILES,
             'noclean' => true,
             'context' => $this->block->context,
         ];
-        $mform->addElement('editor', 'config_text', get_string('content', 'block_nit_section'), null, $editoroptions);
-        $mform->setType('config_text', PARAM_RAW);
+        $mform->addElement('editor', 'config_visualtext', get_string('content', 'block_nit_section'), null, $editoroptions);
+        $mform->setType('config_visualtext', PARAM_RAW);
+        $mform->hideIf('config_visualtext', 'config_mode', 'neq', 'visual');
+
+        // Raw HTML code area — stored and rendered verbatim.
+        $mform->addElement(
+            'textarea',
+            'config_htmltext',
+            get_string('contentraw', 'block_nit_section'),
+            ['rows' => 18, 'wrap' => 'off', 'spellcheck' => 'false',
+                'style' => 'font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;']
+        );
+        $mform->setType('config_htmltext', PARAM_RAW);
+        $mform->addHelpButton('config_htmltext', 'contentraw', 'block_nit_section');
+        $mform->hideIf('config_htmltext', 'config_mode', 'neq', 'html');
 
         // ---- Layout --------------------------------------------------------.
         $mform->addElement('header', 'layoutheader', get_string('layoutheading', 'block_nit_section'));
@@ -117,39 +141,32 @@ class block_nit_section_edit_form extends block_edit_form {
     }
 
     /**
-     * Prepare the editor draft area on load (mirrors the core HTML block).
+     * Prepare the Visual editor's draft file area on load.
      *
      * @param stdClass $defaults
      */
     public function set_data($defaults) {
-        if (!empty($this->block->config) && !empty($this->block->config->text)) {
-            $text = $this->block->config->text;
-            $draftideditor = file_get_submitted_draft_itemid('config_text');
-            $currenttext = empty($text) ? '' : $text;
-            $defaults->config_text['text'] = file_prepare_draft_area(
-                $draftideditor,
+        if (!empty($this->block->config->visualtext)) {
+            $text = $this->block->config->visualtext;
+            $draftid = file_get_submitted_draft_itemid('config_visualtext');
+            $defaults->config_visualtext['text'] = file_prepare_draft_area(
+                $draftid,
                 $this->block->context->id,
                 'block_nit_section',
                 'content',
                 0,
                 ['subdirs' => true],
-                $currenttext
+                $text
             );
-            $defaults->config_text['itemid'] = $draftideditor;
-            $defaults->config_text['format'] = $this->block->config->format ?? FORMAT_HTML;
-        } else {
-            $text = '';
-        }
+            $defaults->config_visualtext['itemid'] = $draftid;
+            $defaults->config_visualtext['format'] = $this->block->config->format ?? FORMAT_HTML;
 
-        // Avoid parent::set_data wiping the editor content.
-        if (isset($this->block->config->text)) {
-            unset($this->block->config->text);
+            unset($this->block->config->visualtext);
+            parent::set_data($defaults);
+            $this->block->config->visualtext = $text;
+            return;
         }
         parent::set_data($defaults);
-        if (!isset($this->block->config)) {
-            $this->block->config = new stdClass();
-        }
-        $this->block->config->text = $text;
     }
 
     /**

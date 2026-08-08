@@ -15,22 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the NIT theme.
+ * Serves an encrypted/unencrypted string as a file for download.
  *
- * @package    theme_nit
- * @copyright  2026 NIT
+ * @package    quizaccess_seb
+ * @author     Andrew Madden <andrewmadden@catalyst-au.net>
+ * @copyright  2019 Catalyst IT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+require_once(__DIR__ . '/../../../../config.php');
 
-$plugin->component = 'theme_nit';
-$plugin->version   = 2026080513;        // YYYYMMDDXX.
-$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline (pinned per CI matrix).
-$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
-$plugin->maturity  = MATURITY_ALPHA;    // Foundation + rendering + branding (M2–M5); pre-1.0.
-$plugin->release   = '0.3.0';
-$plugin->dependencies = [
-    'theme_boost'    => ANY_VERSION,    // NIT is a Boost child theme.
-    'local_nit_core' => 2026080402,     // Renders SDK view-models &amp; consumes the branding resolver.
-];
+$cmid = required_param('cmid', PARAM_RAW);
+
+$config = \quizaccess_seb\helper::get_seb_config_content($cmid);
+\quizaccess_seb\helper::send_seb_config_file($config);

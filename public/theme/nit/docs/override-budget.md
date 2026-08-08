@@ -33,6 +33,7 @@ are Boost-derived and carry the same re-diff cost, so they are tracked here.
 |---|---|---|---|---|
 | `layout/frontpage.php` | `theme_boost/layout/drawers.php` | P1 (Catalog/landing) | Adds 4 full-width Site-home block regions; Boost's frontpage exposes only `side-pre`. | 5.02 |
 | `templates/frontpage.mustache` | `theme_boost/templates/drawers.mustache` | P1 (Catalog/landing) | Renders the 4 full-width regions around `#page-content`. NIT additions fenced with `NIT:` comments. | 5.02 |
+| `templates/theme_boost/navbar.mustache` | `theme_boost/templates/navbar.mustache` | P1 (site-wide brand) | Rebuilds the legacy edumy header on Boost primitives: logo + site name together, language menu on the left, primary nav collapsed into a gear dropdown. Visual treatment in `scss/components/_navbar.scss`. NIT changes documented in the template's `@template` block. | 5.02 |
 
 ## Rules
 

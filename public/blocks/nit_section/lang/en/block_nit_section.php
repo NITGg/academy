@@ -30,7 +30,13 @@ $string['nit_section:addinstance'] = 'Add a new NIT Section block';
 $string['nit_section:myaddinstance'] = 'Add a new NIT Section block to the Dashboard';
 
 // Content.
+$string['mode'] = 'Content mode';
+$string['mode_help'] = 'Visual editor: write formatted text with the toolbar (good for simple content). Raw HTML: paste markup that must be kept exactly — templates, scripts, precise layout — the visual editor would strip these.';
+$string['mode_visual'] = 'Visual editor';
+$string['mode_html'] = 'Raw HTML';
 $string['content'] = 'Content';
+$string['contentraw'] = 'HTML content';
+$string['contentraw_help'] = 'Raw HTML, rendered exactly as written (templates and scripts included). Reference images by URL. Only roles allowed to add this block can edit it.';
 $string['showtitle'] = 'Show a title';
 $string['configtitle'] = 'Title';
 

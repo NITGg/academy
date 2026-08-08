@@ -141,6 +141,11 @@ $templatecontext = [
     'overflow' => $overflow,
     'headercontent' => $headercontent,
     'addblockbutton' => $addblockbutton,
+    // NIT: live site counters exposed to front-page section blocks as
+    // window.NIT_STATS (see theme_nit_get_site_stats()).
+    'nitstatsjson' => json_encode(theme_nit_get_site_stats(), JSON_UNESCAPED_UNICODE),
+    // NIT: course view-models exposed as window.NIT_COURSES.
+    'nitcoursesjson' => json_encode(theme_nit_get_courses(12), JSON_UNESCAPED_UNICODE),
     // NIT: full-width region payloads for theme_nit/frontpage.
     'fullwidthtop' => $fullwidthtop,
     'hasfullwidthtop' => $hasfullwidthtop,

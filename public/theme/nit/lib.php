@@ -46,6 +46,155 @@ function theme_nit_concat_scss(string $dir): string {
 }
 
 /**
+ * Live site counters for the front-page marketing sections.
+ *
+ * Exposed to JavaScript as `window.NIT_STATS` by the frontpage layout, so
+ * author-written NIT Section blocks can render real numbers dynamically
+ * (works for guests — no web service or token needed).
+ *
+ * @return array{courses:int,categories:int,topcategories:int,subcategories:int,students:int}
+ */
+function theme_nit_get_site_stats(): array {
+    global $DB;
+
+    $categories = (int) $DB->count_records('course_categories', ['visible' => 1]);
+    $topcategories = (int) $DB->count_records('course_categories', ['visible' => 1, 'parent' => 0]);
+
+    return [
+        // Real courses (exclude the site "course" id 1) that are visible.
+        'courses' => (int) $DB->count_records_select('course', 'id <> :site AND visible = 1', ['site' => SITEID]),
+        'categories' => $categories,
+        'topcategories' => $topcategories,
+        'subcategories' => max(0, $categories - $topcategories),
+        // Distinct users with at least one enrolment.
+        'students' => (int) $DB->count_records_sql('SELECT COUNT(DISTINCT userid) FROM {user_enrolments}'),
+    ];
+}
+
+/**
+ * The fee-enrolment price of a course, or '' when the course is free.
+ *
+ * @param int $courseid
+ * @return string e.g. "250.00 EGP" or '' (free)
+ */
+function theme_nit_course_price(int $courseid): string {
+    global $DB;
+
+    $recs = $DB->get_records_select(
+        'enrol',
+        "courseid = :cid AND status = 0 AND enrol IN ('fee', 'paypal')",
+        ['cid' => $courseid],
+        'sortorder ASC',
+        'id, cost, currency'
+    );
+    foreach ($recs as $r) {
+        if ((float) $r->cost > 0) {
+            return format_float($r->cost, 2, false) . ' ' . $r->currency;
+        }
+    }
+    return '';
+}
+
+/**
+ * The name of a course's (editing) teacher, or '' if none.
+ *
+ * @param int $courseid
+ * @return string
+ */
+function theme_nit_course_teacher(int $courseid): string {
+    global $DB;
+
+    $roleids = $DB->get_fieldset_select('role', 'id', "archetype IN ('editingteacher', 'teacher')");
+    if (empty($roleids)) {
+        return '';
+    }
+    [$insql, $params] = $DB->get_in_or_equal($roleids, SQL_PARAMS_NAMED);
+    $params['ctx'] = context_course::instance($courseid)->id;
+
+    $sql = "SELECT u.id, u.firstname, u.lastname, u.firstnamephonetic, u.lastnamephonetic,
+                   u.middlename, u.alternatename
+              FROM {role_assignments} ra
+              JOIN {user} u ON u.id = ra.userid
+             WHERE ra.contextid = :ctx AND ra.roleid $insql AND u.deleted = 0
+          ORDER BY ra.timemodified ASC";
+    $teacher = $DB->get_record_sql($sql, $params, IGNORE_MULTIPLE);
+
+    return $teacher ? fullname($teacher) : '';
+}
+
+/**
+ * Visible courses as view-models for the front-page "courses" section.
+ *
+ * Exposed to JavaScript as `window.NIT_COURSES`; author-written NIT Section
+ * blocks render them via a <template> (see the frontpage renderer).
+ *
+ * @param int $limit maximum number of courses
+ * @return array<int, array{id:int,fullname:string,summary:string,url:string,image:string,price:string}>
+ */
+function theme_nit_get_courses(int $limit = 12): array {
+    global $DB, $CFG, $OUTPUT;
+    require_once($CFG->libdir . '/filelib.php');
+
+    $records = $DB->get_records_select(
+        'course',
+        'id <> :site AND visible = 1',
+        ['site' => SITEID],
+        'sortorder ASC',
+        '*',
+        0,
+        $limit
+    );
+
+    $fs = get_file_storage();
+    $courses = [];
+    foreach ($records as $c) {
+        $context = context_course::instance($c->id);
+
+        // Course image: overview file, else a generated pattern.
+        $image = '';
+        $files = $fs->get_area_files($context->id, 'course', 'overviewfiles', 0, 'filename', false);
+        foreach ($files as $file) {
+            if ($file->is_valid_image()) {
+                $image = moodle_url::make_pluginfile_url(
+                    $file->get_contextid(),
+                    $file->get_component(),
+                    $file->get_filearea(),
+                    null,
+                    $file->get_filepath(),
+                    $file->get_filename()
+                )->out(false);
+                break;
+            }
+        }
+        if ($image === '') {
+            $image = $OUTPUT->get_generated_image_for_id($c->id);
+        }
+
+        // Short plain-text summary.
+        $summary = '';
+        if (!empty($c->summary)) {
+            $plain = html_to_text(
+                format_text($c->summary, $c->summaryformat, ['context' => $context, 'noclean' => true]),
+                0,
+                false
+            );
+            $summary = shorten_text(trim($plain), 120);
+        }
+
+        $courses[] = [
+            'id' => (int) $c->id,
+            'fullname' => format_string($c->fullname, true, ['context' => $context]),
+            'summary' => $summary,
+            'url' => (new moodle_url('/course/view.php', ['id' => $c->id]))->out(false),
+            'image' => $image,
+            'price' => theme_nit_course_price((int) $c->id),
+            'teacher' => theme_nit_course_teacher((int) $c->id),
+        ];
+    }
+    return $courses;
+}
+
+/**
  * Main SCSS: Boost's preset, then the NIT component layer.
  *
  * @param theme_config $theme the theme config object

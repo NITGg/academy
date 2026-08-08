@@ -100,6 +100,24 @@
         border-radius: $border-radius;
     }
 
+    // Links inside section blocks: kill the browser/Moodle focus-ring artefact
+    // (the white bar over buttons on click) and give a clean keyboard ring.
+    .block_nit_section a {
+        -webkit-tap-highlight-color: transparent;
+
+        &:focus,
+        &:active {
+            outline: none;
+            box-shadow: none;
+            text-decoration: none;
+        }
+
+        &:focus-visible {
+            outline: 2px solid rgba(232, 184, 75, 0.7);
+            outline-offset: 2px;
+        }
+    }
+
     // ---- block_nit_section: per-instance layout controls -------------------.
     .block_nit_section {
         // Widths. Blocks include Bootstrap gutters via padding on themselves.
@@ -121,14 +139,20 @@
         &.nit-attach-prev { margin-top: 0 !important; }
 
         // Plain chrome: strip the card frame for hero / full-bleed sections.
+        // Bootstrap's p-3 / mt-3 utilities are !important, so these overrides
+        // must be too, otherwise the content stays inset by the card padding.
         &.nit-chrome-plain {
-            border: 0;
-            background: transparent;
-            box-shadow: none;
+            border: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
 
-            > .card-body,
             .card-body {
-                padding: 0;
+                padding: 0 !important;
+            }
+
+            .card-text.content {
+                margin-top: 0 !important;
             }
         }
     }

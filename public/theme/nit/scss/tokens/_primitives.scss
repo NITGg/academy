@@ -45,6 +45,18 @@ $nit-slate-50:  #f7f8fa;
 $nit-surface:   #ffffff;
 $nit-line:      #dce1e8;
 
+// --- Navbar brand (navy field + gold wordmark) -------------------------------
+// The top navbar carries a distinct dark treatment, independent of the blue
+// product brand: a navy field with a gold wordmark and muted icons. Sourced
+// from the reference site (theme_edumy) so the rebuilt navbar matches it.
+// Consumed only by components/_navbar.scss.
+$nit-navy-900: #0a1628; // Navbar field.
+$nit-navy-800: #10203a; // Dropdown surface / hover on the navy field.
+$nit-navy-700: #1b2c48; // Dividers / borders on the navy field.
+$nit-gold-500: #e8b84b; // Wordmark + hover accents.
+$nit-gold-400: #f0c86a; // Wordmark hover.
+$nit-on-navy:  #cdd5e0; // Muted foreground (icons / links) on navy.
+
 // --- Semantic hues -----------------------------------------------------------
 $nit-green-600: #1e7a54;
 $nit-green-100: #e0f0e8;

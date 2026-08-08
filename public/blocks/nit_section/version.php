@@ -29,7 +29,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'block_nit_section';
-$plugin->version   = 2026080502;        // YYYYMMDDXX.
+$plugin->version   = 2026080504;        // YYYYMMDDXX.
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
 $plugin->maturity  = MATURITY_ALPHA;
 $plugin->release   = '0.1.0';
