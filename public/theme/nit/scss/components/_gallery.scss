@@ -30,11 +30,13 @@
         gap: $nit-space-3;
     }
 
+    // Vertical card: name on top (full width, reads horizontally), then a row
+    // with the swatch, the hex field and the default note.
     .nit-colour-row {
         display: flex;
-        align-items: center;
-        gap: $nit-space-3;
-        padding: $nit-space-2 $nit-space-3;
+        flex-direction: column;
+        gap: $nit-space-2;
+        padding: $nit-space-3;
         border: 1px solid #dce1e8;
         border-radius: $nit-radius-md;
         background: #ffffff;
@@ -44,21 +46,40 @@
     .nit-colour-meta {
         display: flex;
         flex-direction: column;
+        gap: 2px;
         min-width: 0;
-        flex: 1 1 auto;
+    }
 
-        label {
-            color: #171b22;
-        }
+    .nit-colour-name {
+        margin: 0;
+        font-weight: 600;
+        font-size: $nit-fs-lg;
+        line-height: 1.2;
+        color: #171b22;
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: anywhere;
+    }
 
-        code {
-            font-size: $nit-fs-xs;
-            color: #626c7a;
-        }
+    .nit-colour-config {
+        font-size: $nit-fs-xs;
+        color: #626c7a;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    // The swatch + hex + default sit in one horizontal row under the name.
+    .nit-colour-controls {
+        display: flex;
+        align-items: center;
+        gap: $nit-space-3;
     }
 
     .nit-colour-default {
+        margin-inline-start: auto;
+        font-size: $nit-fs-xs;
         color: #626c7a;
+        white-space: nowrap;
     }
 
     // The native colour well, styled to a neat rounded swatch.
@@ -88,8 +109,8 @@
     }
 
     .nit-colour-hex {
-        flex: 0 0 6.5rem;
-        width: 6.5rem;
+        flex: 0 1 8rem;
+        min-width: 6rem;
         font-family: $font-family-monospace;
         text-transform: uppercase;
     }

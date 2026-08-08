@@ -126,6 +126,31 @@ function theme_nit_colour(string $key): string {
 }
 
 /**
+ * The whole resolved colour palette, for API / export consumption.
+ *
+ * Each entry carries the token's group, label, the live resolved value (saved
+ * config, else default) and its default — so a client (e.g. the mobile app) can
+ * both apply the colours and show which were customised. Backs colours.php.
+ *
+ * @return array<int, array{key:string, group:string, label:string, value:string, default:string, iscustom:bool}>
+ */
+function theme_nit_colours_all(): array {
+    $out = [];
+    foreach (theme_nit_colour_palette() as $key => $meta) {
+        $value = theme_nit_colour($key);
+        $out[] = [
+            'key' => $key,
+            'group' => $meta['group'],
+            'label' => $meta['label'],
+            'value' => $value,
+            'default' => $meta['default'],
+            'iscustom' => (strtolower($value) !== strtolower($meta['default'])),
+        ];
+    }
+    return $out;
+}
+
+/**
  * Live site counters for the front-page marketing sections.
  *
  * Exposed to JavaScript as `window.NIT_STATS` by the frontpage layout, so

@@ -50,15 +50,17 @@
                 {{#colours}}
                     <div class="nit-colour-row" data-nit-colour>
                         <div class="nit-colour-meta">
-                            <label class="fw-semibold mb-0" for="nit-colour-{{key}}">{{label}}</label>
-                            <code class="small text-muted">{{configname}}</code>
+                            <label class="nit-colour-name" for="nit-colour-{{key}}">{{label}}</label>
+                            <code class="nit-colour-config">{{configname}}</code>
                         </div>
-                        <input type="color" id="nit-colour-{{key}}" name="colour_{{key}}" value="{{value}}"
-                               class="nit-colour-swatch" aria-label="{{label}}">
-                        <input type="text" name="colour_{{key}}_hex" value="{{value}}"
-                               class="form-control nit-colour-hex" aria-label="{{label}} hex value"
-                               pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" maxlength="7">
-                        <span class="small text-muted nit-colour-default">Default: {{default}}</span>
+                        <div class="nit-colour-controls">
+                            <input type="color" id="nit-colour-{{key}}" name="colour_{{key}}" value="{{value}}"
+                                   class="nit-colour-swatch" aria-label="{{label}}">
+                            <input type="text" name="colour_{{key}}_hex" value="{{value}}"
+                                   class="form-control nit-colour-hex" aria-label="{{label}} hex value"
+                                   pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" maxlength="7">
+                            <span class="nit-colour-default">Default: {{default}}</span>
+                        </div>
                     </div>
                 {{/colours}}
             </div>
