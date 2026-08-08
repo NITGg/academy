@@ -25,22 +25,24 @@
 // Shared "legacy sub-menu" panel look — one source of truth for every navbar
 // dropdown (language, gear-nav, profile, notifications). Lifted 1:1 from the
 // legacy edumy language panel so all four read identically.
-$nit-navpanel-bg:      #0d2149;
-$nit-navpanel-border:  rgba(201, 146, 42, 0.2); // gold-tinted, 20% alpha.
+// Colours read from the editable palette (--nit-* custom properties) with the
+// original values kept as SCSS fallbacks.
+$nit-navpanel-bg:      var(--nit-navbarpanel, #0d2149);
+$nit-navpanel-border:  rgba($nit-gold-500, 0.2); // gold-tinted, 20% alpha.
 $nit-navpanel-radius:  10px;
 $nit-navpanel-pad:     25px 20px;
 $nit-navpanel-shadow:  0 0 50px rgba(32, 32, 32, 0.15);
-$nit-navpanel-item:    #8a9ab5;                 // muted blue-grey row text.
-$nit-navpanel-divider: #dedede;                 // light row divider.
+$nit-navpanel-item:    var(--nit-navbarpaneltext, #8a9ab5);   // muted blue-grey row text.
+$nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divider.
 
 .nit-navbar {
-    background-color: $nit-navy-900;
-    border-bottom: 1px solid $nit-navy-700;
+    background-color: var(--nit-navbarbg, #{$nit-navy-900});
+    border-bottom: 1px solid var(--nit-navbarborder, #{$nit-navy-700});
     // Pronounced drop shadow so the bar separates from the content beneath it,
     // even on a dark page.
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
     // Base foreground: everything on the bar inherits light unless overridden.
-    color: $nit-on-navy;
+    color: var(--nit-navbartext, #{$nit-on-navy});
 
     // ---- Brand: compact logo + gold wordmark --------------------------------
     .nit-navbar-brand {
@@ -56,7 +58,7 @@ $nit-navpanel-divider: #dedede;                 // light row divider.
     }
 
     .nit-navbar-title {
-        color: $nit-gold-500;
+        color: var(--nit-navbaraccent, #{$nit-gold-500});
         font-weight: 700;
         font-size: 1.75rem;
         line-height: 1.1;
@@ -72,11 +74,11 @@ $nit-navpanel-divider: #dedede;                 // light row divider.
     .langmenu .dropdown-toggle,
     [data-region="usermenu"] .dropdown-toggle,
     [data-region="usermenu"] .usertext {
-        color: $nit-on-navy !important; // beat Bootstrap text utilities (!important).
+        color: var(--nit-navbartext, #{$nit-on-navy}) !important; // beat Bootstrap text utilities (!important).
 
         &:hover,
         &:focus {
-            color: $nit-gold-400 !important;
+            color: var(--nit-navbaraccenthover, #{$nit-gold-400}) !important;
         }
     }
 
@@ -123,15 +125,15 @@ $nit-navpanel-divider: #dedede;                 // light row divider.
         max-width: 42px;
         aspect-ratio: 1;
         padding: 0;
-        border: 1px solid $nit-navy-700;
-        background-color: $nit-navy-800;
+        border: 1px solid var(--nit-navbarborder, #{$nit-navy-700});
+        background-color: var(--nit-navbarsurface, #{$nit-navy-800});
         border-radius: 50%;
-        color: $nit-gold-500 !important;
+        color: var(--nit-navbaraccent, #{$nit-gold-500}) !important;
 
         &:hover,
         &:focus {
-            background-color: $nit-navy-700;
-            color: $nit-gold-400 !important;
+            background-color: var(--nit-navbarborder, #{$nit-navy-700});
+            color: var(--nit-navbaraccenthover, #{$nit-gold-400}) !important;
         }
 
         .fa,
@@ -320,7 +322,7 @@ $nit-navpanel-divider: #dedede;                 // light row divider.
         color: $nit-navpanel-item;
 
         .dropdown-header {
-            color: $nit-gold-500;
+            color: var(--nit-navbaraccent, #{$nit-gold-500});
             text-transform: uppercase;
             letter-spacing: 0.04em;
             font-size: $nit-fs-xs;
@@ -457,7 +459,7 @@ $nit-navpanel-divider: #dedede;                 // light row divider.
 
             .btn:hover,
             .btn:focus {
-                color: $nit-gold-400 !important;
+                color: var(--nit-navbaraccenthover, #{$nit-gold-400}) !important;
             }
         }
 
@@ -488,12 +490,12 @@ $nit-navpanel-divider: #dedede;                 // light row divider.
             }
 
             .popover-region-seeall-text {
-                color: $nit-gold-500;
+                color: var(--nit-navbaraccent, #{$nit-gold-500});
             }
 
             &:hover .popover-region-seeall-text,
             &:focus .popover-region-seeall-text {
-                color: $nit-gold-400;
+                color: var(--nit-navbaraccenthover, #{$nit-gold-400});
             }
         }
     }

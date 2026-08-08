@@ -35,24 +35,35 @@ class gallery implements renderable, templatable {
      * @return array
      */
     public function export_for_template(renderer_base $output): array {
-        // Read the live, admin-configured brand colours (settings.php). Falls
-        // back to the design-system primitive when a picker is left empty, so
-        // the swatches always mirror what the site actually renders.
-        $swatch = function (string $key, string $name, string $default): array {
-            $hex = get_config('theme_nit', $key);
-            return ['name' => $name, 'hex' => (!empty($hex) ? $hex : $default)];
-        };
+        // Build the editable colour palette, grouped for display. The palette
+        // (defined in lib.php) is ordered so each group's tokens are contiguous.
+        $groups = [];
+        $current = null;
+        foreach (\theme_nit_colour_palette() as $key => $meta) {
+            if ($current === null || $current['name'] !== $meta['group']) {
+                if ($current !== null) {
+                    $groups[] = $current;
+                }
+                $current = ['name' => $meta['group'], 'colours' => []];
+            }
+            $value = \theme_nit_colour($key);
+            $current['colours'][] = [
+                'key' => $key,
+                'label' => $meta['label'],
+                'configname' => 'theme_nit | colour_' . $key,
+                'value' => $value,
+                'default' => $meta['default'],
+                'isdefault' => (strtolower($value) === strtolower($meta['default'])),
+            ];
+        }
+        if ($current !== null) {
+            $groups[] = $current;
+        }
 
         return [
-            'swatches' => [
-                $swatch('brandprimary', 'Primary', '#2a50c8'),
-                $swatch('brandsecondary', 'Secondary', '#626c7a'),
-                $swatch('brandsuccess', 'Success', '#1e7a54'),
-                $swatch('brandwarning', 'Warning', '#9a6410'),
-                $swatch('branddanger', 'Danger', '#b23a2e'),
-                $swatch('brandinfo', 'Info', '#0e7c86'),
-                $swatch('inkcolour', 'Ink', '#171b22'),
-            ],
+            'sesskey' => sesskey(),
+            'actionurl' => (new \moodle_url('/theme/nit/gallery.php'))->out(false),
+            'colourgroups' => $groups,
             'stats' => [
                 ['label' => 'Active learners', 'value' => '1,284', 'trend' => '+12%', 'up' => true],
                 ['label' => 'Course completions', 'value' => '842', 'trend' => '+5%', 'up' => true],
