@@ -44,4 +44,17 @@ if ($ADMIN->fulltree) {
         get_string('foundation', 'theme_nit'),
         get_string('foundation_desc', 'theme_nit')
     ));
+
+    // The colour palette is edited on the design-system gallery page
+    // (Appearance → NIT Design System), not here — it lives beside the live
+    // component preview so changes can be seen in context.
+    $settings->add(new admin_setting_description(
+        'theme_nit/colourslink',
+        get_string('colours', 'theme_nit'),
+        get_string('colours_desc', 'theme_nit') . ' ' .
+            html_writer::link(
+                new moodle_url('/theme/nit/gallery.php'),
+                get_string('gallery', 'theme_nit')
+            )
+    ));
 }

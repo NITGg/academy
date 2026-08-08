@@ -46,6 +46,86 @@ function theme_nit_concat_scss(string $dir): string {
 }
 
 /**
+ * The NIT colour palette — the single source of truth for the site's colours.
+ *
+ * This is the "AppColors" of the theme: a flat set of semantically-named colour
+ * tokens the site is built from. It powers three things at once:
+ *   1. The colour editor on the gallery page (theme/nit/gallery.php) renders one
+ *      picker per token, grouped by the `group` label.
+ *   2. theme_nit_get_pre_scss() emits each token as a `$nit-c-<key>` SCSS
+ *      variable (config value, else the default here) before Bootstrap compiles.
+ *   3. scss/foundation/_root.scss republishes each as a `--nit-<key>` CSS custom
+ *      property, so any component — the navbar included — reads its colour from
+ *      the palette via `var(--nit-<key>)`.
+ *
+ * Defaults are the colours the site already uses today (navbar + home), so an
+ * untouched install looks identical to before the editor existed. `key` becomes
+ * the config name `colour_<key>`, the SCSS var `$nit-c-<key>` and the custom
+ * property `--nit-<key>`.
+ *
+ * @return array<string, array{group:string, label:string, default:string}>
+ *         ordered map keyed by token key
+ */
+function theme_nit_colour_palette(): array {
+    return [
+        // --- Brand (site) : Bootstrap $primary/$secondary + marketing accents --
+        'primary'          => ['group' => 'Brand', 'label' => 'Primary', 'default' => '#2a50c8'],
+        'secondary'        => ['group' => 'Brand', 'label' => 'Secondary', 'default' => '#626c7a'],
+        'accentgold'       => ['group' => 'Brand', 'label' => 'Accent gold', 'default' => '#e8b84b'],
+        'accentgolddark'   => ['group' => 'Brand', 'label' => 'Accent gold (dark / gradient)', 'default' => '#c9922a'],
+        'accentteal'       => ['group' => 'Brand', 'label' => 'Accent teal', 'default' => '#00a99d'],
+
+        // --- Navbar : the dark navy + gold top bar -----------------------------
+        'navbarbg'         => ['group' => 'Navbar', 'label' => 'Navbar background', 'default' => '#0a1628'],
+        'navbarsurface'    => ['group' => 'Navbar', 'label' => 'Navbar surface (buttons)', 'default' => '#10203a'],
+        'navbarborder'     => ['group' => 'Navbar', 'label' => 'Navbar border', 'default' => '#1b2c48'],
+        'navbaraccent'     => ['group' => 'Navbar', 'label' => 'Navbar accent (gold)', 'default' => '#e8b84b'],
+        'navbaraccenthover' => ['group' => 'Navbar', 'label' => 'Navbar accent hover', 'default' => '#f0c86a'],
+        'navbartext'       => ['group' => 'Navbar', 'label' => 'Navbar text', 'default' => '#cdd5e0'],
+        'navbarpanel'      => ['group' => 'Navbar', 'label' => 'Dropdown panel background', 'default' => '#0d2149'],
+        'navbarpaneltext'  => ['group' => 'Navbar', 'label' => 'Dropdown item text', 'default' => '#8a9ab5'],
+        'navbarpanelborder' => ['group' => 'Navbar', 'label' => 'Dropdown divider', 'default' => '#dedede'],
+
+        // --- Neutrals : surfaces, text, borders --------------------------------
+        'background'       => ['group' => 'Neutrals', 'label' => 'Background', 'default' => '#ffffff'],
+        'surface'          => ['group' => 'Neutrals', 'label' => 'Surface (subtle fill)', 'default' => '#f7f8fa'],
+        'textprimary'      => ['group' => 'Neutrals', 'label' => 'Text primary', 'default' => '#171b22'],
+        'textsecondary'    => ['group' => 'Neutrals', 'label' => 'Text secondary', 'default' => '#626c7a'],
+        'border'           => ['group' => 'Neutrals', 'label' => 'Border', 'default' => '#dce1e8'],
+
+        // --- Semantic : status colours -----------------------------------------
+        'success'          => ['group' => 'Semantic', 'label' => 'Success', 'default' => '#1e7a54'],
+        'warning'          => ['group' => 'Semantic', 'label' => 'Warning', 'default' => '#9a6410'],
+        'error'            => ['group' => 'Semantic', 'label' => 'Error / danger', 'default' => '#b23a2e'],
+        'info'             => ['group' => 'Semantic', 'label' => 'Info', 'default' => '#0e7c86'],
+
+        // --- Dark : the dark-mode palette (also seeds the dark marketing bands) -
+        // Defaults are the navy tones the site's dark surfaces already use, so the
+        // hero/section blocks render identically once they read these tokens.
+        'darkprimary'         => ['group' => 'Dark', 'label' => 'Dark primary', 'default' => '#6c9bd6'],
+        'darkbackground'      => ['group' => 'Dark', 'label' => 'Dark background', 'default' => '#0a1628'],
+        'darksurface'         => ['group' => 'Dark', 'label' => 'Dark surface (card)', 'default' => '#0f1e33'],
+        'darksurfacevariant'  => ['group' => 'Dark', 'label' => 'Dark surface (raised)', 'default' => '#13293f'],
+        'darktextprimary'     => ['group' => 'Dark', 'label' => 'Dark text primary', 'default' => '#ffffff'],
+        'darktextsecondary'   => ['group' => 'Dark', 'label' => 'Dark text secondary', 'default' => '#8a9ab5'],
+        'darkborder'          => ['group' => 'Dark', 'label' => 'Dark border', 'default' => '#244766'],
+    ];
+}
+
+/**
+ * The resolved value of one palette token: the saved config, else its default.
+ *
+ * @param string $key palette key (see theme_nit_colour_palette())
+ * @return string a `#rrggbb` colour
+ */
+function theme_nit_colour(string $key): string {
+    $palette = theme_nit_colour_palette();
+    $default = $palette[$key]['default'] ?? '#000000';
+    $value = get_config('theme_nit', 'colour_' . $key);
+    return (is_string($value) && $value !== '') ? $value : $default;
+}
+
+/**
  * Live site counters for the front-page marketing sections.
  *
  * Exposed to JavaScript as `window.NIT_STATS` by the frontpage layout, so
@@ -245,6 +325,40 @@ function theme_nit_get_pre_scss($theme) {
         }
         if (!empty($brand['font'])) {
             $scss .= '$font-family-sans-serif: ' . $brand['font'] . ";\n";
+        }
+    }
+
+    // User-editable colour palette (edited on the gallery page). Always emit
+    // every token as a `$nit-c-<key>` SCSS variable — the saved colour, else the
+    // palette default — so it is defined for the navbar and for the --nit-*
+    // custom properties in _root.scss (extra_scss, same combined stream).
+    foreach (theme_nit_colour_palette() as $key => $meta) {
+        $scss .= '$nit-c-' . $key . ': ' . theme_nit_colour($key) . ";\n";
+    }
+
+    // Map palette tokens onto the Bootstrap/semantic layer, but ONLY for tokens
+    // the admin has actually saved — so an untouched install (and any live M5
+    // SDK brand set just above) keeps its existing values. `$nit-c-*` above
+    // still carries the defaults for the custom-property layer regardless.
+    // Config key => the SCSS variables it drives.
+    $semanticmap = [
+        'primary'     => ['primary', 'link-color'],
+        'secondary'   => ['secondary'],
+        'success'     => ['success'],
+        'warning'     => ['warning'],
+        'error'       => ['danger'],
+        'info'        => ['info'],
+        'background'  => ['body-bg', 'nit-surface'],
+        'textprimary' => ['body-color', 'nit-ink'],
+        'border'      => ['border-color', 'card-border-color', 'nit-line'],
+    ];
+    foreach ($semanticmap as $key => $targets) {
+        $saved = get_config('theme_nit', 'colour_' . $key);
+        if (!is_string($saved) || $saved === '') {
+            continue;
+        }
+        foreach ($targets as $target) {
+            $scss .= '$' . $target . ': $nit-c-' . $key . ";\n";
         }
     }
 

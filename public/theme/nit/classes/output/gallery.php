@@ -35,15 +35,35 @@ class gallery implements renderable, templatable {
      * @return array
      */
     public function export_for_template(renderer_base $output): array {
+        // Build the editable colour palette, grouped for display. The palette
+        // (defined in lib.php) is ordered so each group's tokens are contiguous.
+        $groups = [];
+        $current = null;
+        foreach (\theme_nit_colour_palette() as $key => $meta) {
+            if ($current === null || $current['name'] !== $meta['group']) {
+                if ($current !== null) {
+                    $groups[] = $current;
+                }
+                $current = ['name' => $meta['group'], 'colours' => []];
+            }
+            $value = \theme_nit_colour($key);
+            $current['colours'][] = [
+                'key' => $key,
+                'label' => $meta['label'],
+                'configname' => 'theme_nit | colour_' . $key,
+                'value' => $value,
+                'default' => $meta['default'],
+                'isdefault' => (strtolower($value) === strtolower($meta['default'])),
+            ];
+        }
+        if ($current !== null) {
+            $groups[] = $current;
+        }
+
         return [
-            'swatches' => [
-                ['name' => 'Primary', 'hex' => '#2A50C8'],
-                ['name' => 'Secondary', 'hex' => '#626C7A'],
-                ['name' => 'Success', 'hex' => '#1E7A54'],
-                ['name' => 'Warning', 'hex' => '#9A6410'],
-                ['name' => 'Danger', 'hex' => '#B23A2E'],
-                ['name' => 'Ink', 'hex' => '#171B22'],
-            ],
+            'sesskey' => sesskey(),
+            'actionurl' => (new \moodle_url('/theme/nit/gallery.php'))->out(false),
+            'colourgroups' => $groups,
             'stats' => [
                 ['label' => 'Active learners', 'value' => '1,284', 'trend' => '+12%', 'up' => true],
                 ['label' => 'Course completions', 'value' => '842', 'trend' => '+5%', 'up' => true],

@@ -1,0 +1,100 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+// =============================================================================
+// Design-system gallery — the colour-palette editor (theme/nit/gallery.php).
+// Admin-only surface; kept self-contained and token-driven.
+// =============================================================================
+
+// The editor is a control panel — its own chrome uses FIXED light colours (not
+// the palette / --nit-* tokens it edits), so the labels stay readable no matter
+// what the admin sets or which colour-scheme the browser is in.
+.nit-colour-editor {
+    color: #171b22;
+
+    .nit-colour-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+        gap: $nit-space-3;
+    }
+
+    .nit-colour-row {
+        display: flex;
+        align-items: center;
+        gap: $nit-space-3;
+        padding: $nit-space-2 $nit-space-3;
+        border: 1px solid #dce1e8;
+        border-radius: $nit-radius-md;
+        background: #ffffff;
+        color: #171b22;
+    }
+
+    .nit-colour-meta {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        flex: 1 1 auto;
+
+        label {
+            color: #171b22;
+        }
+
+        code {
+            font-size: $nit-fs-xs;
+            color: #626c7a;
+        }
+    }
+
+    .nit-colour-default {
+        color: #626c7a;
+    }
+
+    // The native colour well, styled to a neat rounded swatch.
+    .nit-colour-swatch {
+        flex: 0 0 auto;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 1px solid #dce1e8;
+        border-radius: $nit-radius-md;
+        background: none;
+        cursor: pointer;
+
+        &::-webkit-color-swatch-wrapper {
+            padding: 3px;
+        }
+
+        &::-webkit-color-swatch {
+            border: 0;
+            border-radius: $nit-radius-sm;
+        }
+
+        &::-moz-color-swatch {
+            border: 0;
+            border-radius: $nit-radius-sm;
+        }
+    }
+
+    .nit-colour-hex {
+        flex: 0 0 6.5rem;
+        width: 6.5rem;
+        font-family: $font-family-monospace;
+        text-transform: uppercase;
+    }
+
+    .nit-colour-default {
+        flex: 0 0 auto;
+    }
+}

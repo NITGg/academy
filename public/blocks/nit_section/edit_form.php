@@ -146,6 +146,19 @@ class block_nit_section_edit_form extends block_edit_form {
      * @param stdClass $defaults
      */
     public function set_data($defaults) {
+        // Legacy instances (created before the Visual/Raw-HTML mode toggle) stored
+        // their markup in config->text with no mode/visualtext/htmltext. The page
+        // still renders it via get_content()'s legacy fallback, but the form has no
+        // field bound to it — so the editor opens empty. Surface that content in the
+        // Raw HTML field (verbatim, no WYSIWYG cleaning); the next save migrates the
+        // instance to mode='html' + htmltext and drops the orphan text field.
+        $config = $this->block->config ?? null;
+        if ($config && empty($config->mode) && empty($config->visualtext)
+                && empty($config->htmltext) && !empty($config->text)) {
+            $this->block->config->mode = 'html';
+            $this->block->config->htmltext = $config->text;
+        }
+
         if (!empty($this->block->config->visualtext)) {
             $text = $this->block->config->visualtext;
             $draftid = file_get_submitted_draft_itemid('config_visualtext');

@@ -31,6 +31,16 @@ $string['foundation'] = 'Foundation';
 $string['gallery'] = 'NIT Design System — Component Gallery';
 $string['foundation_desc'] = 'This is the M2 foundation release: a thin Boost child with the SCSS and JavaScript build pipeline in place. Branding and component controls arrive in later milestones.';
 
+// Colour palette (edited on the gallery page).
+$string['colours'] = 'Colour palette';
+$string['colours_desc'] = 'Edit the site colour palette on the design-system gallery page:';
+$string['coloureditor'] = 'Colour palette';
+$string['coloureditor_desc'] = 'The colours the whole site is built from. Each is published as a CSS custom property (<code>--nit-primary</code>, <code>--nit-navbaraccent</code>, …), so components — the navbar included — read their colour from here. Pick a colour and save to recolour the site.';
+$string['colourssaved'] = 'Colour palette saved. The theme CSS has been rebuilt.';
+$string['coloursreset'] = 'Colour palette reset to the defaults.';
+$string['savecolours'] = 'Save colours';
+$string['resetcolours'] = 'Reset to defaults';
+
 // Block region (inherited Boost layouts use side-pre).
 $string['region-side-pre'] = 'Right';
 
