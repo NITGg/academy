@@ -18,7 +18,12 @@
 // Admin-only surface; kept self-contained and token-driven.
 // =============================================================================
 
+// The editor is a control panel — its own chrome uses FIXED light colours (not
+// the palette / --nit-* tokens it edits), so the labels stay readable no matter
+// what the admin sets or which colour-scheme the browser is in.
 .nit-colour-editor {
+    color: #171b22;
+
     .nit-colour-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
@@ -30,9 +35,10 @@
         align-items: center;
         gap: $nit-space-3;
         padding: $nit-space-2 $nit-space-3;
-        border: 1px solid var(--nit-border, #{$nit-line});
+        border: 1px solid #dce1e8;
         border-radius: $nit-radius-md;
-        background: var(--nit-surface, #{$nit-surface});
+        background: #ffffff;
+        color: #171b22;
     }
 
     .nit-colour-meta {
@@ -41,9 +47,18 @@
         min-width: 0;
         flex: 1 1 auto;
 
+        label {
+            color: #171b22;
+        }
+
         code {
             font-size: $nit-fs-xs;
+            color: #626c7a;
         }
+    }
+
+    .nit-colour-default {
+        color: #626c7a;
     }
 
     // The native colour well, styled to a neat rounded swatch.
@@ -52,7 +67,7 @@
         width: 44px;
         height: 44px;
         padding: 0;
-        border: 1px solid var(--nit-border, #{$nit-line});
+        border: 1px solid #dce1e8;
         border-radius: $nit-radius-md;
         background: none;
         cursor: pointer;
