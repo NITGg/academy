@@ -68,8 +68,35 @@ if (empty($config->enabled)) {
     local_googleauth_fail('plugin_disabled', 503);
 }
 
-$idtoken = required_param('idtoken', PARAM_RAW);
-$serviceshortname = optional_param('service', 'moodle_mobile_app', PARAM_ALPHANUMEXT);
+// Accept the token from form-encoded POST, query string, OR a JSON body.
+// Both "idtoken" and "id_token" field names are accepted.
+$idtoken = optional_param('idtoken', '', PARAM_RAW);
+if ($idtoken === '') {
+    $idtoken = optional_param('id_token', '', PARAM_RAW);
+}
+$serviceshortname = optional_param('service', '', PARAM_ALPHANUMEXT);
+if ($idtoken === '') {
+    $raw = file_get_contents('php://input');
+    if (!empty($raw)) {
+        $json = json_decode($raw, true);
+        if (is_array($json)) {
+            if (!empty($json['idtoken'])) {
+                $idtoken = (string)$json['idtoken'];
+            } else if (!empty($json['id_token'])) {
+                $idtoken = (string)$json['id_token'];
+            }
+            if ($serviceshortname === '' && !empty($json['service'])) {
+                $serviceshortname = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)$json['service']);
+            }
+        }
+    }
+}
+if ($serviceshortname === '') {
+    $serviceshortname = 'moodle_mobile_app';
+}
+if ($idtoken === '') {
+    local_googleauth_fail('idtoken_missing', 400);
+}
 
 // Configured, accepted audiences (client IDs).
 $allowedaud = array_values(array_filter(array_map('trim', explode(',', (string)$config->clientids))));
@@ -93,7 +120,10 @@ if (empty($info->iss) || !in_array($info->iss, $validiss, true)) {
     local_googleauth_fail('invalid_issuer', 401);
 }
 if (empty($info->aud) || !in_array($info->aud, $allowedaud, true)) {
-    local_googleauth_fail('invalid_audience', 401);
+    // Include the received aud so the exact client ID to whitelist is visible.
+    http_response_code(401);
+    echo json_encode(['error' => 'invalid_audience', 'received_aud' => $info->aud ?? null]);
+    exit;
 }
 if (empty($info->exp) || (int)$info->exp < time()) {
     local_googleauth_fail('token_expired', 401);
