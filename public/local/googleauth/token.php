@@ -80,10 +80,19 @@ header('Content-Type: application/json; charset=utf-8');
 
 $config = get_config('local_googleauth');
 
-// CORS: echo the request Origin back only if it is in the configured allowlist.
-// Native mobile apps send no Origin header, so this never affects them — it only
-// controls which *browser* origins may read the response. Empty list ⇒ no CORS.
-$allowedorigins = array_filter(array_map('trim', explode(',', (string) ($config->allowedorigins ?? ''))));
+// CORS allowlist (kept in code, not an admin setting, so it can't be
+// misconfigured). Native mobile apps send no Origin header, so this never
+// affects them — it only controls which *browser* origins may read the response.
+// The site's own origin is always allowed (derived from $CFG->wwwroot; an Origin
+// is scheme://host[:port] with no path). Add extra browser origins — e.g. a
+// separate web app — to $extraorigins below (no trailing slash).
+$wwwrootparts = parse_url($CFG->wwwroot);
+$siteorigin = ($wwwrootparts['scheme'] ?? 'https') . '://' . ($wwwrootparts['host'] ?? '')
+    . (isset($wwwrootparts['port']) ? ':' . $wwwrootparts['port'] : '');
+$extraorigins = [
+    // 'https://app.nitg-eg.com',
+];
+$allowedorigins = array_values(array_filter(array_merge([$siteorigin], $extraorigins)));
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if ($origin !== '' && in_array($origin, $allowedorigins, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);

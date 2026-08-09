@@ -75,14 +75,8 @@ if ($hassiteconfig) {
         PARAM_RAW
     ));
 
-    // Browser origins allowed to read the endpoint's response (CORS allowlist).
-    $settings->add(new admin_setting_configtextarea(
-        'local_googleauth/allowedorigins',
-        get_string('allowedorigins', 'local_googleauth'),
-        get_string('allowedorigins_desc', 'local_googleauth'),
-        '',
-        PARAM_RAW
-    ));
+    // Note: the CORS browser-origin allowlist is intentionally kept in code
+    // (see token.php), not exposed as a setting, so it can't be misconfigured.
 
     // Per-IP request throttle (requests per minute; 0 disables).
     $settings->add(new admin_setting_configtext(
