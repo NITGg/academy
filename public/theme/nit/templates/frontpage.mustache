@@ -147,11 +147,19 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
                 var html = tpl.innerHTML
                     .replace(/\{\{id\}\}/g, cat.id)
                     .replace(/\{\{url\}\}/g, encodeURI(cat.url || '#'))
+                    .replace(/\{\{image\}\}/g, encodeURI(cat.image || ''))
                     .replace(/\{\{name\}\}/g, esc(cat.name))
                     .replace(/\{\{coursecount\}\}/g, esc(cat.coursecount))
                     .replace(/\{\{icon\}\}/g, esc(cat.icon));
                 var wrap = document.createElement('div');
                 wrap.innerHTML = html;
+                // Category image as a CSS background on any [data-nit-category-image].
+                if (cat.image) {
+                    var bg = 'url("' + String(cat.image).replace(/["\\]/g, '') + '")';
+                    Array.prototype.forEach.call(wrap.querySelectorAll('[data-nit-category-image]'), function (el) {
+                        el.style.backgroundImage = bg;
+                    });
+                }
                 while (wrap.firstChild) { frag.appendChild(wrap.firstChild); }
             });
             container.appendChild(frag);

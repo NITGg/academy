@@ -551,7 +551,13 @@ function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
  * @return array<int, array{id:int,name:string,coursecount:int,icon:string}>
  */
 function theme_nit_get_categories(int $limit = 4): array {
+    global $OUTPUT;
     $icons = ['💻', '📊', '🎨', '🗣️', '🔬', '💡', '📚', '🎯'];
+
+    // Moodle categories have no image field of their own, so use the site logo as
+    // the fallback image ("if the category has no image, show the site logo").
+    $logo = $OUTPUT->get_logo_url() ?: $OUTPUT->get_compact_logo_url();
+    $logourl = $logo ? $logo->out(false) : '';
 
     // Only main (top-level) categories, in display order, visible to this user.
     // core_course_category::top()->get_children() is permission- and visibility-aware.
@@ -567,6 +573,7 @@ function theme_nit_get_categories(int $limit = 4): array {
             // category whose courses live only in subcategories still shows a real total.
             'coursecount' => $cat->get_courses_count(['recursive' => true]),
             'icon' => $icons[$i % count($icons)],
+            'image' => $logourl,
             // Build the details-page URL here so the frontend never has to guess wwwroot.
             'url' => (new moodle_url('/local/nit_category/index.php', ['id' => $cat->id]))->out(false),
         ];
