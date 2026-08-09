@@ -541,3 +541,41 @@ function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
 
     send_file_not_found();
 }
+
+/**
+ * Visible categories as view-models for the front-page "categories" section.
+ *
+ * Exposed to JavaScript as `window.NIT_CATEGORIES`.
+ *
+ * @param int $limit maximum number of categories
+ * @return array<int, array{id:int,name:string,coursecount:int,icon:string}>
+ */
+function theme_nit_get_categories(int $limit = 4): array {
+    global $DB;
+    $records = $DB->get_records_select(
+        'course_categories',
+        'visible = 1',
+        null,
+        'sortorder ASC',
+        '*',
+        0,
+        $limit
+    );
+
+    $categories = [];
+    $icons = ['💻', '📊', '🎨', '🗣️', '🔬', '💡', '📚', '🎯'];
+    $icon_index = 0;
+
+    foreach ($records as $cat) {
+        $coursecount = $DB->count_records('course', ['category' => $cat->id]);
+        $categories[] = [
+            'id' => $cat->id,
+            'name' => format_string($cat->name, true, ['context' => context_coursecat::instance($cat->id)]),
+            'coursecount' => $coursecount,
+            'icon' => $icons[$icon_index % count($icons)],
+        ];
+        $icon_index++;
+    }
+
+    return $categories;
+}

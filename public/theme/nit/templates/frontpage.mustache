@@ -68,6 +68,7 @@
 <script>
 window.NIT_STATS = {{{ nitstatsjson }}};
 window.NIT_COURSES = {{{ nitcoursesjson }}};
+window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
 (function () {
     function esc(s) {
         var d = document.createElement('div');
@@ -130,8 +131,38 @@ window.NIT_COURSES = {{{ nitcoursesjson }}};
             });
             container.appendChild(frag);
         });
+        });
     }
-    function init() { fillStats(); renderCourses(); }
+
+    // Clone each [data-nit-categories] container's <template> once per category.
+    function renderCategories() {
+        var data = window.NIT_CATEGORIES || [];
+        Array.prototype.forEach.call(document.querySelectorAll('[data-nit-categories]'), function (container) {
+            var tpl = container.querySelector('[data-nit-category-card]');
+            if (!tpl) { return; }
+            var limit = parseInt(container.getAttribute('data-limit'), 10) || data.length;
+            var frag = document.createDocumentFragment();
+            
+            // Get Moodle root dynamically if possible
+            var wwwroot = (typeof M !== 'undefined' && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : '/moodle-new';
+            
+            data.slice(0, limit).forEach(function (cat) {
+                var url = wwwroot + '/local/nit_category/index.php?id=' + cat.id;
+                var html = tpl.innerHTML
+                    .replace(/\{\{id\}\}/g, cat.id)
+                    .replace(/\{\{url\}\}/g, encodeURI(url))
+                    .replace(/\{\{name\}\}/g, esc(cat.name))
+                    .replace(/\{\{coursecount\}\}/g, esc(cat.coursecount))
+                    .replace(/\{\{icon\}\}/g, esc(cat.icon));
+                var wrap = document.createElement('div');
+                wrap.innerHTML = html;
+                while (wrap.firstChild) { frag.appendChild(wrap.firstChild); }
+            });
+            container.appendChild(frag);
+        });
+    }
+
+    function init() { fillStats(); renderCourses(); renderCategories(); }
     if (document.readyState !== 'loading') { init(); }
     else { document.addEventListener('DOMContentLoaded', init); }
 })();

@@ -146,6 +146,8 @@ $templatecontext = [
     'nitstatsjson' => json_encode(theme_nit_get_site_stats(), JSON_UNESCAPED_UNICODE),
     // NIT: course view-models exposed as window.NIT_COURSES.
     'nitcoursesjson' => json_encode(theme_nit_get_courses(12), JSON_UNESCAPED_UNICODE),
+    // NIT: category view-models exposed as window.NIT_CATEGORIES.
+    'nitcategoriesjson' => json_encode(theme_nit_get_categories(12), JSON_UNESCAPED_UNICODE),
     // NIT: full-width region payloads for theme_nit/frontpage.
     'fullwidthtop' => $fullwidthtop,
     'hasfullwidthtop' => $hasfullwidthtop,
