@@ -82,6 +82,8 @@
                 <input type="hidden" name="sesskey" value="{{sesskey}}">
                 {{#colourgroups}}
                     <h4 class="h6 text-uppercase text-muted mt-4 mb-2">{{name}}</h4>
+                    {{! Groups without subgroups: one flat grid. }}
+                    {{^hassubgroups}}
                     <div class="nit-colour-grid">
                         {{#colours}}
                             <div class="nit-colour-row" data-nit-colour>
@@ -100,6 +102,31 @@
                             </div>
                         {{/colours}}
                     </div>
+                    {{/hassubgroups}}
+                    {{! Groups with subgroups (e.g. Categories → Style 1/2/3). }}
+                    {{#hassubgroups}}
+                        {{#subgroups}}
+                            <h5 class="h6 text-body mt-3 mb-2 ps-1">{{name}}</h5>
+                            <div class="nit-colour-grid">
+                                {{#colours}}
+                                    <div class="nit-colour-row" data-nit-colour>
+                                        <div class="nit-colour-meta">
+                                            <label class="nit-colour-name" for="nit-colour-{{key}}">{{label}}</label>
+                                            <code class="nit-colour-config">{{configname}}</code>
+                                        </div>
+                                        <div class="nit-colour-controls">
+                                            <input type="color" id="nit-colour-{{key}}" name="colour_{{key}}" value="{{value}}"
+                                                   class="nit-colour-swatch" aria-label="{{label}}">
+                                            <input type="text" name="colour_{{key}}_hex" value="{{value}}"
+                                                   class="form-control nit-colour-hex" aria-label="{{label}} hex value"
+                                                   pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" maxlength="7">
+                                            <span class="nit-colour-default">Default: {{default}}</span>
+                                        </div>
+                                    </div>
+                                {{/colours}}
+                            </div>
+                        {{/subgroups}}
+                    {{/hassubgroups}}
                 {{/colourgroups}}
                 <div class="d-flex gap-2 mt-4">
                     <button type="submit" name="savecolours" value="1" class="btn btn-primary">

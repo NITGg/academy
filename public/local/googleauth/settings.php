@@ -65,4 +65,31 @@ if ($hassiteconfig) {
         '',
         PARAM_RAW
     ));
+
+    // Which auth methods an existing account may be linked to via Google SSO.
+    $settings->add(new admin_setting_configtext(
+        'local_googleauth/allowedlinkauth',
+        get_string('allowedlinkauth', 'local_googleauth'),
+        get_string('allowedlinkauth_desc', 'local_googleauth'),
+        'oauth2',
+        PARAM_RAW
+    ));
+
+    // Browser origins allowed to read the endpoint's response (CORS allowlist).
+    $settings->add(new admin_setting_configtextarea(
+        'local_googleauth/allowedorigins',
+        get_string('allowedorigins', 'local_googleauth'),
+        get_string('allowedorigins_desc', 'local_googleauth'),
+        '',
+        PARAM_RAW
+    ));
+
+    // Per-IP request throttle (requests per minute; 0 disables).
+    $settings->add(new admin_setting_configtext(
+        'local_googleauth/ratelimit',
+        get_string('ratelimit', 'local_googleauth'),
+        get_string('ratelimit_desc', 'local_googleauth'),
+        20,
+        PARAM_INT
+    ));
 }

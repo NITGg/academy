@@ -176,10 +176,12 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
             if (btn.getAttribute('data-nit-wired')) { return; }
             btn.setAttribute('data-nit-wired', '1');
             btn.addEventListener('click', function () {
-                var dir = btn.getAttribute('data-nit-scroll') === 'next' ? 1 : -1;
                 var wrapper = btn.parentElement;
                 var scroller = wrapper ? wrapper.querySelector('[data-nit-courses],[data-nit-categories]') : null;
                 if (!scroller) { return; }
+                var dir = btn.getAttribute('data-nit-scroll') === 'next' ? 1 : -1;
+                // In RTL the horizontal scroll axis is mirrored, so flip the sign.
+                if (getComputedStyle(scroller).direction === 'rtl') { dir = -dir; }
                 var amount = Math.max(280, Math.round(scroller.clientWidth * 0.8));
                 scroller.scrollBy({ left: dir * amount, behavior: 'smooth' });
             });

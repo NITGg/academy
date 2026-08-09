@@ -51,8 +51,52 @@ function local_googleauth_fail(string $code, int $status = 400): void {
     exit;
 }
 
-header('Access-Control-Allow-Origin: *');
+/**
+ * Per-IP request throttle. Approximate sliding window backed by MUC; a small
+ * over-count under heavy concurrency is acceptable for rate limiting.
+ *
+ * @param int $maxperminute allowed requests per IP per minute (0 disables)
+ */
+function local_googleauth_rate_limit(int $maxperminute): void {
+    if ($maxperminute <= 0) {
+        return;
+    }
+    $cache = \cache::make('local_googleauth', 'ratelimit');
+    $key = 'ip_' . sha1(getremoteaddr());
+    $now = time();
+    $entry = $cache->get($key);
+    if (!is_array($entry) || ($entry['reset'] ?? 0) <= $now) {
+        $entry = ['count' => 0, 'reset' => $now + 60];
+    }
+    $entry['count']++;
+    $cache->set($key, $entry);
+    if ($entry['count'] > $maxperminute) {
+        header('Retry-After: ' . max(1, $entry['reset'] - $now));
+        local_googleauth_fail('rate_limited', 429);
+    }
+}
+
 header('Content-Type: application/json; charset=utf-8');
+
+$config = get_config('local_googleauth');
+
+// CORS: echo the request Origin back only if it is in the configured allowlist.
+// Native mobile apps send no Origin header, so this never affects them — it only
+// controls which *browser* origins may read the response. Empty list ⇒ no CORS.
+$allowedorigins = array_filter(array_map('trim', explode(',', (string) ($config->allowedorigins ?? ''))));
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if ($origin !== '' && in_array($origin, $allowedorigins, true)) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Access-Control-Allow-Methods: POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
+    header('Vary: Origin');
+}
+
+// CORS pre-flight: the headers above are enough; answer and stop.
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
 
 // Only accept POST so the ID token never lands in URLs/logs.
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
@@ -63,10 +107,13 @@ if (empty($CFG->enablewebservices)) {
     local_googleauth_fail('webservices_disabled', 503);
 }
 
-$config = get_config('local_googleauth');
 if (empty($config->enabled)) {
     local_googleauth_fail('plugin_disabled', 503);
 }
+
+// Throttle abusive callers before doing any real work (server-side crypto + an
+// outbound call to Google). Per-IP requests/minute; configurable, 0 disables.
+local_googleauth_rate_limit((int) ($config->ratelimit ?? 20));
 
 // Accept the token from form-encoded POST, query string, OR a JSON body.
 // Both "idtoken" and "id_token" field names are accepted.
@@ -193,7 +240,20 @@ if (!$user) {
     $user = $DB->get_record('user', ['id' => $newid], '*', MUST_EXIST);
 }
 
-// 4) Standard account gates (mirror /login/token.php).
+// 4) SSO link policy. Only mint a token for accounts whose auth method is
+// allowed to be linked via Google. This stops a Google sign-in from taking over
+// a pre-existing local (e.g. manual) password account that merely happens to
+// share the same verified email — the account is only linkable if it was made
+// for SSO. Auto-created users (auth = newuserauth, default oauth2) pass.
+$allowedlinkauth = array_filter(array_map('trim', explode(',', (string) ($config->allowedlinkauth ?? 'oauth2'))));
+if (empty($allowedlinkauth)) {
+    $allowedlinkauth = ['oauth2'];
+}
+if (!in_array($user->auth, $allowedlinkauth, true)) {
+    local_googleauth_fail('auth_not_linkable', 403);
+}
+
+// 5) Standard account gates (mirror /login/token.php).
 if (isguestuser($user)) {
     local_googleauth_fail('guest_not_allowed', 403);
 }

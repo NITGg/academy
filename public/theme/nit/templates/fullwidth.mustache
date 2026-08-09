@@ -31,12 +31,27 @@
 
 <body {{{ bodyattributes }}}>
 <style>
-    /* Edge-to-edge canvas: drop Boost's content-column constraints. */
-    body.nit-fullwidth-page #page.drawers { margin: 0; }
-    body.nit-fullwidth-page .main-inner { max-width: none; margin: 0; padding-left: 0; padding-right: 0; }
-    body.nit-fullwidth-page #page-content { padding: 0; }
-    body.nit-fullwidth-page #region-main-box { padding: 0; margin: 0; }
-    body.nit-fullwidth-page #region-main { padding: 0; margin: 0; border: 0; background: transparent; max-width: none; }
+    /* Edge-to-edge canvas: strip Boost's content-column width, padding, card
+       background and border so NIT pages paint their own full-bleed surface. */
+    body.nit-fullwidth-page #page.drawers .main-inner {
+        max-width: 100% !important;
+        width: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border-radius: 0 !important;
+    }
+    body.nit-fullwidth-page #page-content { padding: 0 !important; }
+    body.nit-fullwidth-page #region-main-box { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+    body.nit-fullwidth-page #region-main {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        display: block !important;
+    }
 </style>
 {{> core/local/toast/wrapper}}
 <div id="page-wrapper" class="d-print-block">

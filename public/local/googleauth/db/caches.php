@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Google mobile authentication - version info.
+ * Cache definitions for local_googleauth.
  *
  * @package    local_googleauth
  * @copyright  2026 NIT Academy
@@ -24,8 +24,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_googleauth';
-$plugin->version   = 2026080801;
-$plugin->requires  = 2024100700; // Moodle 4.5+ (core_external\util::generate_token_for_current_user).
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.1.0';
+$definitions = [
+    // Per-IP request counters for throttling the token endpoint. Application
+    // scope so the limit is shared across all web nodes; entries carry their
+    // own reset timestamp (see token.php), so no native TTL is required.
+    'ratelimit' => [
+        'mode'         => cache_store::MODE_APPLICATION,
+        'simplekeys'   => true,
+        'simpledata'   => false,
+    ],
+];
