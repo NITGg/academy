@@ -23,6 +23,12 @@
 defined('MOODLE_INTERNAL') || die();
 
 $callbacks = [
+    // Payment gate: redirect unenrolled users from a paid course to the buy page.
+    [
+        'hook' => \core\hook\output\before_http_headers::class,
+        'callback' => [\local_payments\hook_callbacks::class, 'before_http_headers'],
+    ],
+    // Load the catalog course-card price badge script into the page head.
     [
         'hook' => \core\hook\output\before_standard_head_html_generation::class,
         'callback' => [\local_payments\local\hooks\output::class, 'before_standard_head_html_generation'],
