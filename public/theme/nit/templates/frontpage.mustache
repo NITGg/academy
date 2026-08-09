@@ -121,8 +121,12 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
                     Array.prototype.forEach.call(wrap.querySelectorAll('[data-nit-course-image]'), function (el) {
                         el.style.backgroundImage = bg;
                     });
-                    // Also support an <img data-src> template, if used.
+                    // Also support an <img data-src> template, if used. Mark it
+                    // lazy + async so off-screen course images don't block the
+                    // initial render (better LCP; native browser lazy-loading).
                     Array.prototype.forEach.call(wrap.querySelectorAll('img[data-src]'), function (img) {
+                        if (!img.hasAttribute('loading')) { img.setAttribute('loading', 'lazy'); }
+                        if (!img.hasAttribute('decoding')) { img.setAttribute('decoding', 'async'); }
                         img.setAttribute('src', img.getAttribute('data-src'));
                         img.removeAttribute('data-src');
                     });
@@ -149,8 +153,7 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
                     .replace(/\{\{url\}\}/g, encodeURI(cat.url || '#'))
                     .replace(/\{\{image\}\}/g, encodeURI(cat.image || ''))
                     .replace(/\{\{name\}\}/g, esc(cat.name))
-                    .replace(/\{\{coursecount\}\}/g, esc(cat.coursecount))
-                    .replace(/\{\{icon\}\}/g, esc(cat.icon));
+                    .replace(/\{\{coursecount\}\}/g, esc(cat.coursecount));
                 var wrap = document.createElement('div');
                 wrap.innerHTML = html;
                 // Category image as a CSS background on any [data-nit-category-image].
@@ -166,11 +169,43 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
         });
     }
 
-    function init() { fillStats(); renderCourses(); renderCategories(); }
+    // Wire prev/next slider arrows. Inline onclick is stripped by Moodle's HTML
+    // editor, so the arrows carry data-nit-scroll="prev|next" and are wired here.
+    function wireSliders() {
+        Array.prototype.forEach.call(document.querySelectorAll('[data-nit-scroll]'), function (btn) {
+            if (btn.getAttribute('data-nit-wired')) { return; }
+            btn.setAttribute('data-nit-wired', '1');
+            btn.addEventListener('click', function () {
+                var dir = btn.getAttribute('data-nit-scroll') === 'next' ? 1 : -1;
+                var wrapper = btn.parentElement;
+                var scroller = wrapper ? wrapper.querySelector('[data-nit-courses],[data-nit-categories]') : null;
+                if (!scroller) { return; }
+                var amount = Math.max(280, Math.round(scroller.clientWidth * 0.8));
+                scroller.scrollBy({ left: dir * amount, behavior: 'smooth' });
+            });
+        });
+    }
+
+    function init() { fillStats(); renderCourses(); renderCategories(); wireSliders(); }
     if (document.readyState !== 'loading') { init(); }
     else { document.addEventListener('DOMContentLoaded', init); }
 })();
 </script>
+{{! NIT (SEO): schema.org structured data for the course catalogue, so search
+    engines can index the courses even though the visible grid is built client
+    side. Slashes are escaped server-side, so this is safe inside <script>. }}
+{{#nitcoursesldjson}}
+<script type="application/ld+json">{{{ nitcoursesldjson }}}</script>
+{{/nitcoursesldjson}}
+{{! NIT (SEO): crawlable fallback — real <a> links to every course for engines
+    (and users) that don't run the JS that builds the visual grid. }}
+{{#nitcoursesnoscript}}
+<noscript>
+    <nav class="nit-course-crawl-links" aria-label="{{#str}}courses{{/str}}">
+        {{{ nitcoursesnoscript }}}
+    </nav>
+</noscript>
+{{/nitcoursesnoscript}}
 {{> core/local/toast/wrapper}}
 <div id="page-wrapper" class="d-print-block">
 

@@ -45,19 +45,38 @@ class withdrawal_service extends service {
         if ($amountminor <= 0) {
             throw new finance_exception('err_amountpositive');
         }
-        $wallet = new wallet_service();
-        if ($amountminor > $wallet->available_balance($teacherid)) {
-            throw new finance_exception('err_insufficientbalance');
+
+        // Serialise concurrent withdrawal requests for the SAME teacher. The
+        // balance check and the row insert are two separate steps; without a
+        // lock, two simultaneous requests could both read the same balance,
+        // both pass the check, and together hold more than is available
+        // (a time-of-check/time-of-use race). The lock is keyed on the teacher
+        // so different teachers never block each other. A short timeout keeps a
+        // stuck request from hanging the caller.
+        $lockfactory = \core\lock\lock_config::get_lock_factory('local_nit_finance');
+        $lock = $lockfactory->get_lock('withdrawal_request_' . $teacherid, 10);
+        if (!$lock) {
+            throw new finance_exception('err_busy');
         }
-        $wd = new withdrawal(0, (object) [
-            'teacherid'    => $teacherid,
-            'amount_minor' => $amountminor,
-            'method'       => $method !== '' ? $method : 'bank',
-            'account'      => $account !== '' ? $account : null,
-            'status'       => withdrawal::STATUS_PENDING,
-        ]);
-        $wd->create();
-        return self::format($wd);
+
+        try {
+            $wallet = new wallet_service();
+            if ($amountminor > $wallet->available_balance($teacherid)) {
+                throw new finance_exception('err_insufficientbalance');
+            }
+            $wd = new withdrawal(0, (object) [
+                'teacherid'    => $teacherid,
+                'amount_minor' => $amountminor,
+                'method'       => $method !== '' ? $method : 'bank',
+                'account'      => $account !== '' ? $account : null,
+                'status'       => withdrawal::STATUS_PENDING,
+            ]);
+            $wd->create();
+            return self::format($wd);
+        } finally {
+            // Always release, even if the balance check throws.
+            $lock->release();
+        }
     }
 
     /**

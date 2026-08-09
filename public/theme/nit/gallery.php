@@ -119,6 +119,17 @@ if (($data = data_submitted()) && confirm_sesskey()) {
                 continue;
             }
 
+            // Verify the file's actual content, not just its extension: check the
+            // 4-byte signature so a renamed non-font file is rejected. Valid
+            // sfnt/font signatures: 0x00010000 (TrueType), "OTTO" (CFF/OpenType),
+            // "true"/"typ1" (Apple TrueType), "ttcf" (TrueType Collection).
+            $magic = (string) file_get_contents($upload['tmp_name'], false, null, 0, 4);
+            $validsignatures = ["\x00\x01\x00\x00", 'OTTO', 'true', 'typ1', 'ttcf'];
+            if (!in_array($magic, $validsignatures, true)) {
+                $errors[] = get_string('fontinvalidtype', 'theme_nit', $label);
+                continue;
+            }
+
             // Store under a fixed, predictable filename per slot (only the
             // extension varies), replacing any previous file in the area.
             $filename = clean_param($slot['basename'] . '.' . $ext, PARAM_FILE);

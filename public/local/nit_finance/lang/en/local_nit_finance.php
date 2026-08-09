@@ -54,6 +54,7 @@ $string['status_paid'] = 'Paid';
 
 // Errors.
 $string['err_amountpositive'] = 'The amount must be greater than zero.';
+$string['err_busy'] = 'Another withdrawal request for this teacher is being processed. Please try again in a moment.';
 $string['err_insufficientbalance'] = 'The requested amount exceeds the available balance.';
 $string['err_withdrawalnotfound'] = 'Withdrawal request not found.';
 $string['err_withdrawalstate'] = 'The withdrawal is not in a state that allows this action.';

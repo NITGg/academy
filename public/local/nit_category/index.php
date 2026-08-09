@@ -36,7 +36,8 @@ $PAGE->set_url(new moodle_url('/local/nit_category/index.php', ['id' => $categor
 $PAGE->set_context($context);
 $PAGE->set_title($category->get_formatted_name());
 $PAGE->set_heading($category->get_formatted_name());
-$PAGE->set_pagelayout('standard');
+// NIT full-width layout: navbar + footer only, no page heading / secondary nav.
+$PAGE->set_pagelayout('nit_fullwidth');
 
 // Courses in the target category and all its descendants, paginated.
 $totalcourses = $targetcat->get_courses_count(['recursive' => true]);
@@ -82,7 +83,7 @@ $categoryname = $category->get_formatted_name();
 echo $OUTPUT->header();
 ?>
 
-<div dir="auto" style="background: var(--nit-darkbackground, #0a1628); min-height: 100vh; margin: -20px; padding-bottom: 40px;">
+<div dir="auto" style="background: var(--nit-darkbackground, #0a1628); min-height: 100vh; padding-bottom: 40px;">
 
   <!-- Category Header Banner -->
   <div style="background: var(--nit-darksurface, #0f1e33); padding: 64px 16px; border-bottom: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 6%, transparent); position: relative; overflow: hidden;">
@@ -121,6 +122,16 @@ echo $OUTPUT->header();
         }
       ?>
     </div>
+
+    <?php
+      // When a subcategory is selected, show its name + description.
+      if ($subid) {
+          $subdescription = format_text($targetcat->description, $targetcat->descriptionformat, ['context' => $targetcat->get_context()]);
+          if (trim(strip_tags($subdescription)) !== '') {
+              echo '<div style="max-width: 900px; margin: 24px auto 0; text-align: center; color: var(--nit-darktextsecondary, #8a9ab5); font-size: 15px; line-height: 1.7;">' . $subdescription . '</div>';
+          }
+      }
+    ?>
   </div>
   <?php endif; ?>
 

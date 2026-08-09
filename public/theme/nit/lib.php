@@ -249,10 +249,18 @@ function theme_nit_font_scss($theme): string {
 function theme_nit_get_site_stats(): array {
     global $DB;
 
+    // Short-lived cache: these whole-table counts change slowly but run on the
+    // busiest page (Site home), so serve a cached copy for up to 5 minutes.
+    $cache = \cache::make('theme_nit', 'frontpage');
+    $cached = $cache->get('sitestats');
+    if (is_array($cached) && ($cached['expires'] ?? 0) > time()) {
+        return $cached['data'];
+    }
+
     $categories = (int) $DB->count_records('course_categories', ['visible' => 1]);
     $topcategories = (int) $DB->count_records('course_categories', ['visible' => 1, 'parent' => 0]);
 
-    return [
+    $stats = [
         // Real courses (exclude the site "course" id 1) that are visible.
         'courses' => (int) $DB->count_records_select('course', 'id <> :site AND visible = 1', ['site' => SITEID]),
         'categories' => $categories,
@@ -261,6 +269,9 @@ function theme_nit_get_site_stats(): array {
         // Distinct users with at least one enrolment.
         'students' => (int) $DB->count_records_sql('SELECT COUNT(DISTINCT userid) FROM {user_enrolments}'),
     ];
+
+    $cache->set('sitestats', ['expires' => time() + 300, 'data' => $stats]);
+    return $stats;
 }
 
 /**
@@ -327,6 +338,17 @@ function theme_nit_get_courses(int $limit = 12): array {
     global $DB, $CFG, $OUTPUT;
     require_once($CFG->libdir . '/filelib.php');
 
+    // Short-lived cache: assembling each card costs several per-course queries
+    // (context, overview image, price, teacher). On the Site home that is an
+    // N+1 pattern on the busiest page, so cache the assembled list (keyed by
+    // limit) for up to 5 minutes. Purge theme caches to refresh sooner.
+    $cache = \cache::make('theme_nit', 'frontpage');
+    $cachekey = 'courses_' . $limit;
+    $cached = $cache->get($cachekey);
+    if (is_array($cached) && ($cached['expires'] ?? 0) > time()) {
+        return $cached['data'];
+    }
+
     $records = $DB->get_records_select(
         'course',
         'id <> :site AND visible = 1',
@@ -383,6 +405,8 @@ function theme_nit_get_courses(int $limit = 12): array {
             'teacher' => theme_nit_course_teacher((int) $c->id),
         ];
     }
+
+    $cache->set($cachekey, ['expires' => time() + 300, 'data' => $courses]);
     return $courses;
 }
 
