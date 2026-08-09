@@ -30,3 +30,13 @@ desktop.ini
 *.swp
 *.swo
 *~
+
+# ===== Local Docker / server environment (not part of the app) =====
+/000-default.conf
+/Dockerfile
+/docker-compose.yml
+/php-moodle.ini
+
+# ===== Local DB / data snapshots (large, environment-specific) =====
+/moodle_backup.sql
+/moodledata.zip
