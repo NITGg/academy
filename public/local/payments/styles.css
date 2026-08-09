@@ -436,14 +436,53 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Catalog course-card price badge (injected by js/course_cards.js)   */
+/* Catalog / enrol-page price badge (injected by js/course_cards.js)  */
+/* This badge is injected OUTSIDE the .local-payments-* containers, so */
+/* it cannot inherit their palette — every colour here is explicit.   */
 /* ------------------------------------------------------------------ */
 .lp-card-badge {
-    display: flex;
-    align-items: baseline;
+    display: inline-flex;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    margin: 0.4rem 0 0.2rem;
+    gap: 0.5rem;
+    margin: 0.55rem 0 0.15rem;
+    padding: 0;
+    font-family: inherit;
+    line-height: 1;
+}
+
+/* -NN% chip: solid gradient so the number is always legible. */
+.lp-card-badge .lp-badge--sale {
+    background: linear-gradient(135deg, #f43f5e, #e0234e);
+    color: #fff;
+    border: 0;
+    box-shadow: 0 2px 8px rgba(224, 35, 78, 0.35);
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.24rem 0.6rem;
+}
+
+.lp-card-badge .lp-price {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.lp-card-badge .lp-price--original {
+    color: #6b7280;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: line-through;
+    text-decoration-color: rgba(224, 35, 78, 0.55);
+}
+
+.lp-card-badge .lp-price--sale {
+    color: #e0234e;
+    font-size: 1.15rem;
+}
+
+.lp-card-badge .lp-price--current {
+    color: #1a1a2e;
+    font-size: 1.1rem;
 }
 
 .lp-badge--purchased {
