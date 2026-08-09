@@ -57,4 +57,15 @@ if ($ADMIN->fulltree) {
                 get_string('gallery', 'theme_nit')
             )
     ));
+
+    // Performance: how long the Site home caches its course cards + site
+    // counters before recomputing them (see theme_nit_get_courses /
+    // theme_nit_get_site_stats in lib.php). Higher = less DB load but staler
+    // numbers. Set to 0 to disable caching. The picker stores seconds.
+    $settings->add(new admin_setting_configduration(
+        'theme_nit/frontpagecachettl',
+        get_string('frontpagecachettl', 'theme_nit'),
+        get_string('frontpagecachettl_desc', 'theme_nit'),
+        300
+    ));
 }

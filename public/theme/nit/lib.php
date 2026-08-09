@@ -268,6 +268,23 @@ function theme_nit_font_scss($theme): string {
 }
 
 /**
+ * How long (seconds) the front-page data helpers cache their result.
+ *
+ * Read from the theme setting `frontpagecachettl` (edited under Site admin →
+ * Appearance → NIT settings). When the setting has never been saved, fall back
+ * to 5 minutes; an explicit 0 disables caching (recompute every request).
+ *
+ * @return int seconds, or 0 to disable caching
+ */
+function theme_nit_frontpage_cache_ttl(): int {
+    $raw = get_config('theme_nit', 'frontpagecachettl');
+    if ($raw === false || $raw === null || $raw === '') {
+        return 300;
+    }
+    return max(0, (int) $raw);
+}
+
+/**
  * Live site counters for the front-page marketing sections.
  *
  * Exposed to JavaScript as `window.NIT_STATS` by the frontpage layout, so
@@ -280,11 +297,15 @@ function theme_nit_get_site_stats(): array {
     global $DB;
 
     // Short-lived cache: these whole-table counts change slowly but run on the
-    // busiest page (Site home), so serve a cached copy for up to 5 minutes.
+    // busiest page (Site home), so serve a cached copy. Lifetime is the
+    // admin-configurable theme setting (0 = disabled).
+    $ttl = theme_nit_frontpage_cache_ttl();
     $cache = \cache::make('theme_nit', 'frontpage');
-    $cached = $cache->get('sitestats');
-    if (is_array($cached) && ($cached['expires'] ?? 0) > time()) {
-        return $cached['data'];
+    if ($ttl > 0) {
+        $cached = $cache->get('sitestats');
+        if (is_array($cached) && ($cached['expires'] ?? 0) > time()) {
+            return $cached['data'];
+        }
     }
 
     $categories = (int) $DB->count_records('course_categories', ['visible' => 1]);
@@ -300,7 +321,9 @@ function theme_nit_get_site_stats(): array {
         'students' => (int) $DB->count_records_sql('SELECT COUNT(DISTINCT userid) FROM {user_enrolments}'),
     ];
 
-    $cache->set('sitestats', ['expires' => time() + 300, 'data' => $stats]);
+    if ($ttl > 0) {
+        $cache->set('sitestats', ['expires' => time() + $ttl, 'data' => $stats]);
+    }
     return $stats;
 }
 
@@ -371,12 +394,16 @@ function theme_nit_get_courses(int $limit = 12): array {
     // Short-lived cache: assembling each card costs several per-course queries
     // (context, overview image, price, teacher). On the Site home that is an
     // N+1 pattern on the busiest page, so cache the assembled list (keyed by
-    // limit) for up to 5 minutes. Purge theme caches to refresh sooner.
+    // limit). Lifetime is the admin-configurable theme setting (0 = disabled).
+    // Purge theme caches to refresh sooner.
+    $ttl = theme_nit_frontpage_cache_ttl();
     $cache = \cache::make('theme_nit', 'frontpage');
     $cachekey = 'courses_' . $limit;
-    $cached = $cache->get($cachekey);
-    if (is_array($cached) && ($cached['expires'] ?? 0) > time()) {
-        return $cached['data'];
+    if ($ttl > 0) {
+        $cached = $cache->get($cachekey);
+        if (is_array($cached) && ($cached['expires'] ?? 0) > time()) {
+            return $cached['data'];
+        }
     }
 
     $records = $DB->get_records_select(
@@ -436,7 +463,9 @@ function theme_nit_get_courses(int $limit = 12): array {
         ];
     }
 
-    $cache->set($cachekey, ['expires' => time() + 300, 'data' => $courses]);
+    if ($ttl > 0) {
+        $cache->set($cachekey, ['expires' => time() + $ttl, 'data' => $courses]);
+    }
     return $courses;
 }
 
