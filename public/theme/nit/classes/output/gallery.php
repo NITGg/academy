@@ -37,17 +37,20 @@ class gallery implements renderable, templatable {
     public function export_for_template(renderer_base $output): array {
         // Build the editable colour palette, grouped for display. The palette
         // (defined in lib.php) is ordered so each group's tokens are contiguous.
+        // A token may also carry a 'subgroup'; such groups render their colours
+        // under labelled sub-sections instead of a single flat grid.
         $groups = [];
-        $current = null;
+        $gidx = [];  // group name => index in $groups.
         foreach (\theme_nit_colour_palette() as $key => $meta) {
-            if ($current === null || $current['name'] !== $meta['group']) {
-                if ($current !== null) {
-                    $groups[] = $current;
-                }
-                $current = ['name' => $meta['group'], 'colours' => []];
+            $gname = $meta['group'];
+            if (!array_key_exists($gname, $gidx)) {
+                $gidx[$gname] = count($groups);
+                $groups[] = ['name' => $gname, 'colours' => [], 'subgroups' => [], 'hassubgroups' => false, 'subidx' => []];
             }
+            $gi = $gidx[$gname];
+
             $value = \theme_nit_colour($key);
-            $current['colours'][] = [
+            $row = [
                 'key' => $key,
                 'label' => $meta['label'],
                 'configname' => 'theme_nit | colour_' . $key,
@@ -55,10 +58,25 @@ class gallery implements renderable, templatable {
                 'default' => $meta['default'],
                 'isdefault' => (strtolower($value) === strtolower($meta['default'])),
             ];
+
+            if (!empty($meta['subgroup'])) {
+                $groups[$gi]['hassubgroups'] = true;
+                $sname = $meta['subgroup'];
+                if (!array_key_exists($sname, $groups[$gi]['subidx'])) {
+                    $groups[$gi]['subidx'][$sname] = count($groups[$gi]['subgroups']);
+                    $groups[$gi]['subgroups'][] = ['name' => $sname, 'colours' => []];
+                }
+                $si = $groups[$gi]['subidx'][$sname];
+                $groups[$gi]['subgroups'][$si]['colours'][] = $row;
+            } else {
+                $groups[$gi]['colours'][] = $row;
+            }
         }
-        if ($current !== null) {
-            $groups[] = $current;
+        // Drop the internal lookup key before handing off to the template.
+        foreach ($groups as &$group) {
+            unset($group['subidx']);
         }
+        unset($group);
 
         // Per-language font slots: current filename (if any) + a live preview
         // that renders in the uploaded family the compiled CSS already exposes.

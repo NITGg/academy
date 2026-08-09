@@ -36,7 +36,8 @@ $PAGE->set_url(new moodle_url('/local/nit_category/index.php', ['id' => $categor
 $PAGE->set_context($context);
 $PAGE->set_title($category->get_formatted_name());
 $PAGE->set_heading($category->get_formatted_name());
-$PAGE->set_pagelayout('standard');
+// NIT full-width layout: navbar + footer only, no page heading / secondary nav.
+$PAGE->set_pagelayout('nit_fullwidth');
 
 // Courses in the target category and all its descendants, paginated.
 $totalcourses = $targetcat->get_courses_count(['recursive' => true]);
@@ -54,24 +55,47 @@ $courses = $targetcat->get_courses([
 $logo = $OUTPUT->get_logo_url() ?: $OUTPUT->get_compact_logo_url();
 $categoryimage = $logo ? $logo->out(false) : '';
 
+// Colour style: each category details page cycles through the 3 category styles
+// (gallery: Categories -> Style 1/2/3). The style is chosen by the position of
+// this category's top-level ancestor, so every page under it stays consistent.
+$ancestors = $category->get_parents();                      // top-most first, excludes self.
+$rootid    = !empty($ancestors) ? (int) $ancestors[0] : (int) $category->id;
+$toplevels = core_course_category::top()->get_children();
+$position  = 0;
+$i = 0;
+foreach ($toplevels as $tl) {
+    if ((int) $tl->id === $rootid) {
+        $position = $i;
+        break;
+    }
+    $i++;
+}
+$stylenum = ($position % 3) + 1;                            // 1, 2, 3, 1, 2, 3, ...
+
+// Map the 8 style tokens to short local custom properties on the page wrapper;
+// every descendant then reads var(--cbg1..4) / var(--ctext1..4).
+$slots = ['text1', 'text2', 'text3', 'text4', 'bg1', 'bg2', 'bg3', 'bg4'];
+$stylevars = '';
+foreach ($slots as $slot) {
+    $stylevars .= '--c' . $slot . ': var(--nit-cat-style' . $stylenum . '-' . $slot . '); ';
+}
+
 // Bilingual inline helper (site is en/ar); mirrors the theme's {mlang} pairs.
 $isar = (strpos(current_language(), 'ar') === 0);
 $t = function (string $en, string $ar) use ($isar) {
     return $isar ? $ar : $en;
 };
 
-// A pill/label for the subcategory filter bar.
+// A pill/label for the subcategory filter bar (colours from the active style).
 $pill = function (moodle_url $url, string $label, bool $active): string {
     $base = 'display:inline-block; padding:9px 22px; border-radius:50px; font-size:14px; '
           . 'font-weight:bold; text-decoration:none; white-space:nowrap; transition:all .25s ease;';
     if ($active) {
-        $style = $base . 'background:linear-gradient(135deg,var(--nit-accentgolddark,#c9922a),'
-               . 'var(--nit-accentgold,#e8b84b)); color:var(--nit-darkbackground,#0a1628); '
-               . 'border:1px solid transparent; box-shadow:0 6px 18px color-mix(in srgb,'
-               . 'var(--nit-accentgold,#e8b84b) 25%,transparent);';
+        $style = $base . 'background:var(--cbg4); color:var(--ctext4); border:1px solid transparent; '
+               . 'box-shadow:0 6px 18px color-mix(in srgb, var(--cbg4) 30%, transparent);';
     } else {
-        $style = $base . 'background:var(--nit-darksurface,#0f1e33); color:var(--nit-darktextsecondary,#8a9ab5); '
-               . 'border:1px solid color-mix(in srgb,var(--nit-darktextprimary,#ffffff) 12%,transparent);';
+        $style = $base . 'background:var(--cbg2); color:var(--ctext2); '
+               . 'border:1px solid color-mix(in srgb, var(--ctext1) 14%, transparent);';
     }
     return '<a href="' . $url->out() . '" style="' . $style . '">' . $label . '</a>';
 };
@@ -82,26 +106,26 @@ $categoryname = $category->get_formatted_name();
 echo $OUTPUT->header();
 ?>
 
-<div dir="auto" style="background: var(--nit-darkbackground, #0a1628); min-height: 100vh; margin: -20px; padding-bottom: 40px;">
+<div dir="auto" class="nit-cat-details" style="<?= $stylevars ?>background: var(--cbg1); min-height: 100vh; padding-bottom: 40px;">
 
   <!-- Category Header Banner -->
-  <div style="background: var(--nit-darksurface, #0f1e33); padding: 64px 16px; border-bottom: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 6%, transparent); position: relative; overflow: hidden;">
-    <div style="position: absolute; top: -50%; left: -10%; width: 50%; height: 200%; background: radial-gradient(circle, color-mix(in srgb, var(--nit-accentteal, #00a99d) 5%, transparent) 0%, transparent 70%); pointer-events: none;"></div>
-    <div style="position: absolute; bottom: -50%; right: -10%; width: 50%; height: 200%; background: radial-gradient(circle, color-mix(in srgb, var(--nit-accentgold, #e8b84b) 5%, transparent) 0%, transparent 70%); pointer-events: none;"></div>
+  <div style="background: var(--cbg2); padding: 64px 16px; border-bottom: 1px solid color-mix(in srgb, var(--ctext1) 6%, transparent); position: relative; overflow: hidden;">
+    <div style="position: absolute; top: -50%; left: -10%; width: 50%; height: 200%; background: radial-gradient(circle, color-mix(in srgb, var(--ctext3) 6%, transparent) 0%, transparent 70%); pointer-events: none;"></div>
+    <div style="position: absolute; bottom: -50%; right: -10%; width: 50%; height: 200%; background: radial-gradient(circle, color-mix(in srgb, var(--cbg4) 8%, transparent) 0%, transparent 70%); pointer-events: none;"></div>
 
     <div style="max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; z-index: 1;">
 
       <?php if ($categoryimage !== ''): ?>
       <!-- Category image (site logo when the category has none) -->
-      <div style="width: 110px; height: 110px; border-radius: 24px; background: var(--nit-darksurfacevariant, #13293f) url('<?= s($categoryimage) ?>') center/contain no-repeat; border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 25%, transparent); margin-bottom: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.35);"></div>
+      <div style="width: 110px; height: 110px; border-radius: 24px; background: var(--cbg3) url('<?= s($categoryimage) ?>') center/contain no-repeat; border: 1px solid color-mix(in srgb, var(--ctext3) 25%, transparent); margin-bottom: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.35);"></div>
       <?php endif; ?>
 
-      <h1 style="font-size: clamp(32px, 5vw, 48px); font-weight: 800; color: var(--nit-darktextprimary, #ffffff); margin: 0 0 16px;">
+      <h1 style="font-size: clamp(32px, 5vw, 48px); font-weight: 800; color: var(--ctext1); margin: 0 0 16px;">
         <?= $categoryname ?>
       </h1>
 
       <?php if (trim(strip_tags($description)) !== ''): ?>
-      <div style="font-size: 16px; color: var(--nit-darktextsecondary, #8a9ab5); max-width: 800px; line-height: 1.7; margin: 0;">
+      <div style="font-size: 16px; color: var(--ctext2); max-width: 800px; line-height: 1.7; margin: 0;">
         <?= $description ?>
       </div>
       <?php endif; ?>
@@ -121,6 +145,16 @@ echo $OUTPUT->header();
         }
       ?>
     </div>
+
+    <?php
+      // When a subcategory is selected, show its description.
+      if ($subid) {
+          $subdescription = format_text($targetcat->description, $targetcat->descriptionformat, ['context' => $targetcat->get_context()]);
+          if (trim(strip_tags($subdescription)) !== '') {
+              echo '<div style="max-width: 900px; margin: 24px auto 0; text-align: center; color: var(--ctext2); font-size: 15px; line-height: 1.7;">' . $subdescription . '</div>';
+          }
+      }
+    ?>
   </div>
   <?php endif; ?>
 
@@ -130,10 +164,10 @@ echo $OUTPUT->header();
 
       <!-- Section Header -->
       <div style="margin-bottom: 32px;">
-        <h2 style="font-size: 26px; font-weight: bold; color: var(--nit-darktextprimary, #ffffff); margin: 0 0 8px;">
+        <h2 style="font-size: 26px; font-weight: bold; color: var(--ctext1); margin: 0 0 8px;">
           <?= $t('Available Courses', 'الدورات المتاحة') ?>
         </h2>
-        <div style="color: var(--nit-accentgold, #e8b84b); font-weight: bold; font-size: 14px;">
+        <div style="color: var(--ctext3); font-weight: bold; font-size: 14px;">
           <?= $totalcourses ?> <?= $t('Courses', 'دورة') ?>
         </div>
       </div>
@@ -183,33 +217,33 @@ echo $OUTPUT->header();
             $pricelabel = $price !== '' ? $price : $t('Free', 'مجانًا');
         ?>
         <!-- Course Card -->
-        <div style="background: var(--nit-darksurface, #0f1e33); border: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 6%, transparent); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; height: 100%; min-height: 380px; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 24px rgba(0,0,0,0.35)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+        <div style="background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--ctext1) 6%, transparent); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; height: 100%; min-height: 380px; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 24px rgba(0,0,0,0.35)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
 
           <!-- Image + price -->
           <div style="position: relative; flex: 0 0 160px; height: 160px;">
-            <div style="width: 100%; height: 160px; background: var(--nit-darksurfacevariant, #13293f) url('<?= s($courseimage) ?>') center/cover no-repeat;">&nbsp;</div>
-            <span style="position: absolute; top: 12px; inset-inline-end: 12px; background: var(--nit-accentteal, #00a99d); color: var(--nit-darktextprimary, #ffffff); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
+            <div style="width: 100%; height: 160px; background: var(--cbg3) url('<?= s($courseimage) ?>') center/cover no-repeat;">&nbsp;</div>
+            <span style="position: absolute; top: 12px; inset-inline-end: 12px; background: var(--cbg4); color: var(--ctext4); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
               <?= s($pricelabel) ?>
             </span>
           </div>
 
           <!-- Content -->
           <div style="padding: 18px; display: flex; flex-direction: column; flex: 1; min-height: 0;">
-            <h3 style="font-size: 17px; font-weight: bold; color: var(--nit-darktextprimary, #ffffff); margin: 0 0 4px; line-height: 1.4;">
+            <h3 style="font-size: 17px; font-weight: bold; color: var(--ctext1); margin: 0 0 4px; line-height: 1.4;">
               <?= $coursename ?>
             </h3>
 
             <?php if ($teacher !== ''): ?>
-            <div style="font-size: 12px; color: var(--nit-accentgold, #e8b84b); margin: 0 0 8px;">
+            <div style="font-size: 12px; color: var(--ctext3); margin: 0 0 8px;">
               👤 <?= s($teacher) ?>
             </div>
             <?php endif; ?>
 
-            <p style="font-size: 13px; color: var(--nit-darktextsecondary, #8a9ab5); line-height: 1.7; margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+            <p style="font-size: 13px; color: var(--ctext2); line-height: 1.7; margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
               <?= s($summary) ?>
             </p>
 
-            <a href="<?= $courseurl->out() ?>" style="display: block; width: 100%; box-sizing: border-box; margin-top: 16px; text-align: center; background: linear-gradient(135deg, var(--nit-accentgolddark, #c9922a), var(--nit-accentgold, #e8b84b)); color: var(--nit-darkbackground, #0a1628); font-weight: bold; padding: 10px 12px; border-radius: 8px; text-decoration: none;" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
+            <a href="<?= $courseurl->out() ?>" style="display: block; width: 100%; box-sizing: border-box; margin-top: 16px; text-align: center; background: var(--cbg4); color: var(--ctext4); font-weight: bold; padding: 10px 12px; border-radius: 8px; text-decoration: none;" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
               <?= $t('View More', 'المزيد') ?>
             </a>
           </div>
@@ -224,7 +258,7 @@ echo $OUTPUT->header();
       </div>
 
       <?php else: ?>
-      <div style="text-align: center; color: var(--nit-darktextsecondary, #8a9ab5); padding: 40px;">
+      <div style="text-align: center; color: var(--ctext2); padding: 40px;">
         <?= $t('No courses found in this category.', 'لا توجد دورات في هذا التصنيف.') ?>
       </div>
       <?php endif; ?>

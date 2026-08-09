@@ -119,6 +119,72 @@ $coursefullname = ($PAGE->course?->fullname) ? format_string(
 ) : '';
 $courseurl = $PAGE->course ? new \core\url('/course/view.php', ['id' => $PAGE->course->id]) : null;
 
+// NIT: front-page course/stat data — computed once (both are cached in lib.php)
+// and reused for the client-side render, the crawlable SEO fallback, and the
+// JSON-LD structured data below.
+$nitcourses = theme_nit_get_courses(12);
+$nitstats = theme_nit_get_site_stats();
+
+// NIT (SEO): a server-rendered, crawlable list of course links. The visible
+// grid is built client-side from window.NIT_COURSES, which non-JS crawlers do
+// not execute; this <noscript> fallback keeps the catalogue indexable and its
+// internal links followable. fullname is already format_string()-escaped and
+// the url is a clean moodle_url, so html_writer::link is safe.
+$nitcoursesnoscript = '';
+foreach ($nitcourses as $nitc) {
+    $nitcoursesnoscript .= html_writer::link($nitc['url'], $nitc['fullname'],
+        ['class' => 'nit-course-crawl-link']) . "\n";
+}
+
+// NIT (SEO): schema.org ItemList of Course for rich results / better indexing.
+// JSON-LD values are plain text, so decode the display-escaped entities back to
+// text; json_encode then re-escapes for JSON. Slashes stay escaped (default),
+// so "</script>" cannot break out of the embedding <script> element.
+$nitld = ['@context' => 'https://schema.org', '@type' => 'ItemList', 'itemListElement' => []];
+$nitpos = 1;
+foreach ($nitcourses as $nitc) {
+    $item = [
+        '@type' => 'Course',
+        'name'  => html_entity_decode((string) $nitc['fullname'], ENT_QUOTES, 'UTF-8'),
+        'url'   => $nitc['url'],
+    ];
+    if (!empty($nitc['summary'])) {
+        $item['description'] = html_entity_decode((string) $nitc['summary'], ENT_QUOTES, 'UTF-8');
+    }
+    if (!empty($nitc['image'])) {
+        $item['image'] = $nitc['image'];
+    }
+    $nitld['itemListElement'][] = ['@type' => 'ListItem', 'position' => $nitpos++, 'item' => $item];
+}
+$nitcoursesldjson = json_encode($nitld, JSON_UNESCAPED_UNICODE);
+
+// NIT (SEO): Open Graph / Twitter meta + a meta description for the Site home,
+// injected into <head> for this request only (additionalhtmlhead is emitted by
+// standard_head_html). Not persisted; attribute values are escaped with s().
+$nitsitectx = context_course::instance(SITEID);
+$nitogtitle = format_string($SITE->fullname, true, ['context' => $nitsitectx, 'escape' => false]);
+$nitogdesc = '';
+if (!empty($SITE->summary)) {
+    $nitogdesc = shorten_text(trim(html_to_text(
+        format_text($SITE->summary, $SITE->summaryformat ?? FORMAT_HTML, ['context' => $nitsitectx]), 0, false)), 300);
+}
+$nitoglogo = $OUTPUT->get_logo_url();
+$nitogmeta  = '<meta property="og:type" content="website">' . "\n";
+$nitogmeta .= '<meta property="og:site_name" content="' . s($nitogtitle) . '">' . "\n";
+$nitogmeta .= '<meta property="og:title" content="' . s($nitogtitle) . '">' . "\n";
+$nitogmeta .= '<meta property="og:url" content="' . s((new moodle_url('/'))->out(false)) . '">' . "\n";
+if ($nitogdesc !== '') {
+    $nitogmeta .= '<meta name="description" content="' . s($nitogdesc) . '">' . "\n";
+    $nitogmeta .= '<meta property="og:description" content="' . s($nitogdesc) . '">' . "\n";
+}
+if ($nitoglogo) {
+    $nitogmeta .= '<meta property="og:image" content="' . s($nitoglogo->out(false)) . '">' . "\n";
+    $nitogmeta .= '<meta name="twitter:card" content="summary_large_image">' . "\n";
+} else {
+    $nitogmeta .= '<meta name="twitter:card" content="summary">' . "\n";
+}
+$CFG->additionalhtmlhead = ($CFG->additionalhtmlhead ?? '') . "\n" . $nitogmeta;
+
 $templatecontext = [
     'sitename' => format_string($SITE->shortname, true, ['context' => context_course::instance(SITEID), "escape" => false]),
     'coursefullname' => $coursefullname,
@@ -143,9 +209,12 @@ $templatecontext = [
     'addblockbutton' => $addblockbutton,
     // NIT: live site counters exposed to front-page section blocks as
     // window.NIT_STATS (see theme_nit_get_site_stats()).
-    'nitstatsjson' => json_encode(theme_nit_get_site_stats(), JSON_UNESCAPED_UNICODE),
+    'nitstatsjson' => json_encode($nitstats, JSON_UNESCAPED_UNICODE),
     // NIT: course view-models exposed as window.NIT_COURSES.
-    'nitcoursesjson' => json_encode(theme_nit_get_courses(12), JSON_UNESCAPED_UNICODE),
+    'nitcoursesjson' => json_encode($nitcourses, JSON_UNESCAPED_UNICODE),
+    // NIT (SEO): schema.org JSON-LD + crawlable fallback links for the courses.
+    'nitcoursesldjson' => $nitcoursesldjson,
+    'nitcoursesnoscript' => $nitcoursesnoscript,
     // NIT: category view-models exposed as window.NIT_CATEGORIES.
     'nitcategoriesjson' => json_encode(theme_nit_get_categories(12), JSON_UNESCAPED_UNICODE),
     // NIT: full-width region payloads for theme_nit/frontpage.

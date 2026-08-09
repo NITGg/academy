@@ -83,3 +83,13 @@ $THEME->layouts['frontpage'] = [
     'defaultregion' => 'fullwidth-top',
     'options' => ['nonavbar' => true],
 ];
+
+// -----------------------------------------------------------------------------
+// NIT full-width page — an edge-to-edge canvas that keeps the top navbar and
+// footer but drops the content column max-width, the page heading, and the
+// secondary navigation tabs. Used by NIT-owned marketing/catalog pages such as
+// the category details page (local_nit_category). See theme/nit/layout/fullwidth.php.
+$THEME->layouts['nit_fullwidth'] = [
+    'file' => 'fullwidth.php',
+    'regions' => [],
+];

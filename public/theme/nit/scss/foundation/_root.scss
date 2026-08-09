@@ -69,6 +69,35 @@
     --nit-darktextsecondary: #{$nit-c-darktextsecondary};
     --nit-darkborder: #{$nit-c-darkborder};
 
+    // Category details-page styles (local_nit_category). Three interchangeable
+    // palettes; a page picks one by position via a scoped mapping. 4 text + 4 bg.
+    --nit-cat-style1-text1: #{$nit-c-cat_style1_text1};
+    --nit-cat-style1-text2: #{$nit-c-cat_style1_text2};
+    --nit-cat-style1-text3: #{$nit-c-cat_style1_text3};
+    --nit-cat-style1-text4: #{$nit-c-cat_style1_text4};
+    --nit-cat-style1-bg1: #{$nit-c-cat_style1_bg1};
+    --nit-cat-style1-bg2: #{$nit-c-cat_style1_bg2};
+    --nit-cat-style1-bg3: #{$nit-c-cat_style1_bg3};
+    --nit-cat-style1-bg4: #{$nit-c-cat_style1_bg4};
+
+    --nit-cat-style2-text1: #{$nit-c-cat_style2_text1};
+    --nit-cat-style2-text2: #{$nit-c-cat_style2_text2};
+    --nit-cat-style2-text3: #{$nit-c-cat_style2_text3};
+    --nit-cat-style2-text4: #{$nit-c-cat_style2_text4};
+    --nit-cat-style2-bg1: #{$nit-c-cat_style2_bg1};
+    --nit-cat-style2-bg2: #{$nit-c-cat_style2_bg2};
+    --nit-cat-style2-bg3: #{$nit-c-cat_style2_bg3};
+    --nit-cat-style2-bg4: #{$nit-c-cat_style2_bg4};
+
+    --nit-cat-style3-text1: #{$nit-c-cat_style3_text1};
+    --nit-cat-style3-text2: #{$nit-c-cat_style3_text2};
+    --nit-cat-style3-text3: #{$nit-c-cat_style3_text3};
+    --nit-cat-style3-text4: #{$nit-c-cat_style3_text4};
+    --nit-cat-style3-bg1: #{$nit-c-cat_style3_bg1};
+    --nit-cat-style3-bg2: #{$nit-c-cat_style3_bg2};
+    --nit-cat-style3-bg3: #{$nit-c-cat_style3_bg3};
+    --nit-cat-style3-bg4: #{$nit-c-cat_style3_bg4};
+
     // Legacy aliases kept for existing consumers (stat-tile, welcome_panel).
     // --nit-surface is their white card background, so it tracks `background`,
     // not the tinted `fill` token.

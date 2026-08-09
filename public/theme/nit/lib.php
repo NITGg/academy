@@ -109,6 +109,36 @@ function theme_nit_colour_palette(): array {
         'darktextprimary'     => ['group' => 'Dark', 'label' => 'Dark text primary', 'default' => '#ffffff'],
         'darktextsecondary'   => ['group' => 'Dark', 'label' => 'Dark text secondary', 'default' => '#8a9ab5'],
         'darkborder'          => ['group' => 'Dark', 'label' => 'Dark border', 'default' => '#244766'],
+
+        // --- Categories : three interchangeable colour styles for the category
+        // details page (local_nit_category). Each category page cycles through
+        // Style 1/2/3 by position. Eight tokens each: 4 text + 4 background.
+        'cat_style1_text1' => ['group' => 'Categories', 'subgroup' => 'Style 1', 'label' => 'Text 1', 'default' => '#ffffff'],
+        'cat_style1_text2' => ['group' => 'Categories', 'subgroup' => 'Style 1', 'label' => 'Text 2', 'default' => '#8a9ab5'],
+        'cat_style1_text3' => ['group' => 'Categories', 'subgroup' => 'Style 1', 'label' => 'Text 3', 'default' => '#e8b84b'],
+        'cat_style1_text4' => ['group' => 'Categories', 'subgroup' => 'Style 1', 'label' => 'Text 4', 'default' => '#0a1628'],
+        'cat_style1_bg1'   => ['group' => 'Categories', 'subgroup' => 'Style 1', 'label' => 'BG 1', 'default' => '#0a1628'],
+        'cat_style1_bg2'   => ['group' => 'Categories', 'subgroup' => 'Style 1', 'label' => 'BG 2', 'default' => '#0f1e33'],
+        'cat_style1_bg3'   => ['group' => 'Categories', 'subgroup' => 'Style 1', 'label' => 'BG 3', 'default' => '#13293f'],
+        'cat_style1_bg4'   => ['group' => 'Categories', 'subgroup' => 'Style 1', 'label' => 'BG 4', 'default' => '#e8b84b'],
+
+        'cat_style2_text1' => ['group' => 'Categories', 'subgroup' => 'Style 2', 'label' => 'Text 1', 'default' => '#ffffff'],
+        'cat_style2_text2' => ['group' => 'Categories', 'subgroup' => 'Style 2', 'label' => 'Text 2', 'default' => '#8fb5b0'],
+        'cat_style2_text3' => ['group' => 'Categories', 'subgroup' => 'Style 2', 'label' => 'Text 3', 'default' => '#34d1c2'],
+        'cat_style2_text4' => ['group' => 'Categories', 'subgroup' => 'Style 2', 'label' => 'Text 4', 'default' => '#04201d'],
+        'cat_style2_bg1'   => ['group' => 'Categories', 'subgroup' => 'Style 2', 'label' => 'BG 1', 'default' => '#071a1a'],
+        'cat_style2_bg2'   => ['group' => 'Categories', 'subgroup' => 'Style 2', 'label' => 'BG 2', 'default' => '#0c2626'],
+        'cat_style2_bg3'   => ['group' => 'Categories', 'subgroup' => 'Style 2', 'label' => 'BG 3', 'default' => '#113535'],
+        'cat_style2_bg4'   => ['group' => 'Categories', 'subgroup' => 'Style 2', 'label' => 'BG 4', 'default' => '#00a99d'],
+
+        'cat_style3_text1' => ['group' => 'Categories', 'subgroup' => 'Style 3', 'label' => 'Text 1', 'default' => '#ffffff'],
+        'cat_style3_text2' => ['group' => 'Categories', 'subgroup' => 'Style 3', 'label' => 'Text 2', 'default' => '#b0a4c8'],
+        'cat_style3_text3' => ['group' => 'Categories', 'subgroup' => 'Style 3', 'label' => 'Text 3', 'default' => '#c99bf0'],
+        'cat_style3_text4' => ['group' => 'Categories', 'subgroup' => 'Style 3', 'label' => 'Text 4', 'default' => '#14061f'],
+        'cat_style3_bg1'   => ['group' => 'Categories', 'subgroup' => 'Style 3', 'label' => 'BG 1', 'default' => '#140a24'],
+        'cat_style3_bg2'   => ['group' => 'Categories', 'subgroup' => 'Style 3', 'label' => 'BG 2', 'default' => '#1e1035'],
+        'cat_style3_bg3'   => ['group' => 'Categories', 'subgroup' => 'Style 3', 'label' => 'BG 3', 'default' => '#2a1747'],
+        'cat_style3_bg4'   => ['group' => 'Categories', 'subgroup' => 'Style 3', 'label' => 'BG 4', 'default' => '#a06be8'],
     ];
 }
 
@@ -249,10 +279,18 @@ function theme_nit_font_scss($theme): string {
 function theme_nit_get_site_stats(): array {
     global $DB;
 
+    // Short-lived cache: these whole-table counts change slowly but run on the
+    // busiest page (Site home), so serve a cached copy for up to 5 minutes.
+    $cache = \cache::make('theme_nit', 'frontpage');
+    $cached = $cache->get('sitestats');
+    if (is_array($cached) && ($cached['expires'] ?? 0) > time()) {
+        return $cached['data'];
+    }
+
     $categories = (int) $DB->count_records('course_categories', ['visible' => 1]);
     $topcategories = (int) $DB->count_records('course_categories', ['visible' => 1, 'parent' => 0]);
 
-    return [
+    $stats = [
         // Real courses (exclude the site "course" id 1) that are visible.
         'courses' => (int) $DB->count_records_select('course', 'id <> :site AND visible = 1', ['site' => SITEID]),
         'categories' => $categories,
@@ -261,6 +299,9 @@ function theme_nit_get_site_stats(): array {
         // Distinct users with at least one enrolment.
         'students' => (int) $DB->count_records_sql('SELECT COUNT(DISTINCT userid) FROM {user_enrolments}'),
     ];
+
+    $cache->set('sitestats', ['expires' => time() + 300, 'data' => $stats]);
+    return $stats;
 }
 
 /**
@@ -327,6 +368,17 @@ function theme_nit_get_courses(int $limit = 12): array {
     global $DB, $CFG, $OUTPUT;
     require_once($CFG->libdir . '/filelib.php');
 
+    // Short-lived cache: assembling each card costs several per-course queries
+    // (context, overview image, price, teacher). On the Site home that is an
+    // N+1 pattern on the busiest page, so cache the assembled list (keyed by
+    // limit) for up to 5 minutes. Purge theme caches to refresh sooner.
+    $cache = \cache::make('theme_nit', 'frontpage');
+    $cachekey = 'courses_' . $limit;
+    $cached = $cache->get($cachekey);
+    if (is_array($cached) && ($cached['expires'] ?? 0) > time()) {
+        return $cached['data'];
+    }
+
     $records = $DB->get_records_select(
         'course',
         'id <> :site AND visible = 1',
@@ -383,6 +435,8 @@ function theme_nit_get_courses(int $limit = 12): array {
             'teacher' => theme_nit_course_teacher((int) $c->id),
         ];
     }
+
+    $cache->set($cachekey, ['expires' => time() + 300, 'data' => $courses]);
     return $courses;
 }
 
