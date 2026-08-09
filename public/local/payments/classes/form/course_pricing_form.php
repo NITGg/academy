@@ -50,29 +50,17 @@ class course_pricing_form extends \moodleform {
         $mform->addRule('price', null, 'required', null, 'client');
         $mform->addRule('price', null, 'numeric', null, 'client');
 
-        // Sale price.
-        $mform->addElement('text', 'sale_price', get_string('sale_price', 'local_payments'));
-        $mform->setType('sale_price', PARAM_FLOAT);
-
-        // Start date.
-        $mform->addElement('date_time_selector', 'start_date', get_string('start_date', 'local_payments'),
-            ['optional' => true]);
-
-        // End date.
-        $mform->addElement('date_time_selector', 'end_date', get_string('end_date', 'local_payments'),
-            ['optional' => true]);
-
-        // Is default.
+        // Is default. The first price added to a course is the default by default.
+        global $DB;
+        $hasprices = $DB->record_exists('local_payments_course_prices', ['courseid' => $courseid]);
         $mform->addElement('advcheckbox', 'is_default', get_string('is_default', 'local_payments'));
+        if (!$hasprices) {
+            $mform->setDefault('is_default', 1);
+        }
 
         // Is active.
         $mform->addElement('advcheckbox', 'is_active', get_string('is_active', 'local_payments'));
         $mform->setDefault('is_active', 1);
-
-        // Priority.
-        $mform->addElement('text', 'priority', get_string('priority', 'local_payments'));
-        $mform->setType('priority', PARAM_INT);
-        $mform->setDefault('priority', 0);
 
         $this->add_action_buttons();
 
@@ -88,14 +76,6 @@ class course_pricing_form extends \moodleform {
             $errors['price'] = get_string('error_price_positive', 'local_payments');
         }
 
-        if (!empty($data['sale_price']) && $data['sale_price'] >= $data['price']) {
-            $errors['sale_price'] = get_string('error_sale_price_lower', 'local_payments');
-        }
-
-        if (!empty($data['start_date']) && !empty($data['end_date']) && $data['start_date'] >= $data['end_date']) {
-            $errors['end_date'] = get_string('error_end_after_start', 'local_payments');
-        }
-
         // Validate only one default per course.
         if (!empty($data['is_default'])) {
             global $DB;
@@ -109,9 +89,7 @@ class course_pricing_form extends \moodleform {
             }
         }
 
-        // Validate only one active rule per country (US-spec: one active price per country).
-        // Priority only ever breaks ties between overlapping date-ranged rules of the SAME
-        // country, so two active rules for one country would otherwise be ambiguous.
+        // Validate only one active rule per country (one active price per country).
         if (!empty($data['is_active'])) {
             global $DB;
             $existing = $DB->get_record_select(

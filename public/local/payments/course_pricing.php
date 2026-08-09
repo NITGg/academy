@@ -62,17 +62,15 @@ if ($action === 'edit' || $action === 'add') {
     }
 
     if ($formdata = $form->get_data()) {
+        // The first price for a course is always the default.
+        $isfirst = !$DB->record_exists('local_payments_course_prices', ['courseid' => $courseid]);
         $record = (object) [
             'courseid' => $courseid,
             'country' => $formdata->country,
             'currency' => $formdata->currency,
             'price' => $formdata->price,
-            'sale_price' => !empty($formdata->sale_price) ? $formdata->sale_price : null,
-            'start_date' => !empty($formdata->start_date) ? $formdata->start_date : null,
-            'end_date' => !empty($formdata->end_date) ? $formdata->end_date : null,
-            'is_default' => !empty($formdata->is_default) ? 1 : 0,
+            'is_default' => ($isfirst || !empty($formdata->is_default)) ? 1 : 0,
             'is_active' => !empty($formdata->is_active) ? 1 : 0,
-            'priority' => (int) $formdata->priority,
             'timemodified' => time(),
         ];
 
@@ -113,10 +111,8 @@ if (empty($prices)) {
         get_string('country', 'local_payments'),
         get_string('currency', 'local_payments'),
         get_string('price', 'local_payments'),
-        get_string('sale_price', 'local_payments'),
         get_string('is_default', 'local_payments'),
         get_string('is_active', 'local_payments'),
-        get_string('priority', 'local_payments'),
         get_string('actions', 'local_payments'),
     ];
     $table->attributes['class'] = 'generaltable';
@@ -140,10 +136,8 @@ if (empty($prices)) {
             $countryname,
             $p->currency,
             number_format((float) $p->price, 2),
-            !empty($p->sale_price) ? number_format((float) $p->sale_price, 2) : '-',
             $p->is_default ? get_string('yes') : get_string('no'),
             $p->is_active ? get_string('yes') : get_string('no'),
-            $p->priority,
             $actions,
         ];
     }
