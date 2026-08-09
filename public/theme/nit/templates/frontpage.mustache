@@ -75,6 +75,27 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
         d.textContent = (s == null ? '' : String(s));
         return d.innerHTML;
     }
+    // Lazy background images: defer setting a container's background-image until
+    // it scrolls near the viewport, so off-screen course/category art doesn't
+    // compete with the initial render (better LCP + less wasted bandwidth).
+    // Falls back to eager loading when IntersectionObserver is unavailable.
+    var nitBgObserver = ('IntersectionObserver' in window) ? new IntersectionObserver(function (entries, obs) {
+        entries.forEach(function (e) {
+            if (!e.isIntersecting) { return; }
+            var el = e.target, bg = el.getAttribute('data-nit-bg');
+            if (bg) { el.style.backgroundImage = bg; el.removeAttribute('data-nit-bg'); }
+            obs.unobserve(el);
+        });
+    }, { rootMargin: '200px' }) : null;
+    function nitLazyBg(el, url) {
+        var bg = 'url("' + String(url).replace(/["\\]/g, '') + '")';
+        if (nitBgObserver) {
+            el.setAttribute('data-nit-bg', bg);
+            nitBgObserver.observe(el);
+        } else {
+            el.style.backgroundImage = bg;
+        }
+    }
     // Count up every [data-nit-stat] element to its real value.
     function fillStats() {
         var stats = window.NIT_STATS || {};
@@ -117,9 +138,8 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
                 // Course image as a CSS background — no <img> token in the HTML,
                 // so the visual editor can't mangle a src. Set it here from data.
                 if (c.image) {
-                    var bg = 'url("' + String(c.image).replace(/["\\]/g, '') + '")';
                     Array.prototype.forEach.call(wrap.querySelectorAll('[data-nit-course-image]'), function (el) {
-                        el.style.backgroundImage = bg;
+                        nitLazyBg(el, c.image);
                     });
                     // Also support an <img data-src> template, if used. Mark it
                     // lazy + async so off-screen course images don't block the
@@ -158,9 +178,8 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
                 wrap.innerHTML = html;
                 // Category image as a CSS background on any [data-nit-category-image].
                 if (cat.image) {
-                    var bg = 'url("' + String(cat.image).replace(/["\\]/g, '') + '")';
                     Array.prototype.forEach.call(wrap.querySelectorAll('[data-nit-category-image]'), function (el) {
-                        el.style.backgroundImage = bg;
+                        nitLazyBg(el, cat.image);
                     });
                 }
                 while (wrap.firstChild) { frag.appendChild(wrap.firstChild); }

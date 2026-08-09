@@ -27,6 +27,8 @@ defined('MOODLE_INTERNAL') || die();
 $string['pluginname'] = 'NIT';
 $string['choosereadme'] = 'NIT is a Boost-based theme foundation for the NIT LMS Framework. This M2 release provides the theme skeleton and asset pipeline; the design system and branding arrive in later milestones.';
 $string['configtitle'] = 'NIT settings';
+$string['frontpagecachettl'] = 'Front page cache lifetime';
+$string['frontpagecachettl_desc'] = 'How long the Site home caches its course cards and site counters before recomputing them from the database. Higher values reduce database load on the busiest page but make the numbers slightly staler. Set to 0 to disable caching (recompute on every request).';
 $string['foundation'] = 'Foundation';
 $string['gallery'] = 'NIT Design System — Component Gallery';
 $string['foundation_desc'] = 'This is the M2 foundation release: a thin Boost child with the SCSS and JavaScript build pipeline in place. Branding and component controls arrive in later milestones.';
