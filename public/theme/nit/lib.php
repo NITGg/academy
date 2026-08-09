@@ -551,30 +551,26 @@ function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
  * @return array<int, array{id:int,name:string,coursecount:int,icon:string}>
  */
 function theme_nit_get_categories(int $limit = 4): array {
-    global $DB;
-    $records = $DB->get_records_select(
-        'course_categories',
-        'visible = 1',
-        null,
-        'sortorder ASC',
-        '*',
-        0,
-        $limit
-    );
+    $icons = ['💻', '📊', '🎨', '🗣️', '🔬', '💡', '📚', '🎯'];
+
+    // Only main (top-level) categories, in display order, visible to this user.
+    // core_course_category::top()->get_children() is permission- and visibility-aware.
+    $toplevel = core_course_category::top()->get_children(['limit' => $limit]);
 
     $categories = [];
-    $icons = ['💻', '📊', '🎨', '🗣️', '🔬', '💡', '📚', '🎯'];
-    $icon_index = 0;
-
-    foreach ($records as $cat) {
-        $coursecount = $DB->count_records('course', ['category' => $cat->id]);
+    $i = 0;
+    foreach ($toplevel as $cat) {
         $categories[] = [
-            'id' => $cat->id,
-            'name' => format_string($cat->name, true, ['context' => context_coursecat::instance($cat->id)]),
-            'coursecount' => $coursecount,
-            'icon' => $icons[$icon_index % count($icons)],
+            'id' => (int) $cat->id,
+            'name' => $cat->get_formatted_name(),
+            // Count courses in this category AND all its subcategories, so a main
+            // category whose courses live only in subcategories still shows a real total.
+            'coursecount' => $cat->get_courses_count(['recursive' => true]),
+            'icon' => $icons[$i % count($icons)],
+            // Build the details-page URL here so the frontend never has to guess wwwroot.
+            'url' => (new moodle_url('/local/nit_category/index.php', ['id' => $cat->id]))->out(false),
         ];
-        $icon_index++;
+        $i++;
     }
 
     return $categories;
