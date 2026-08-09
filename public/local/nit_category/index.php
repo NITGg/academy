@@ -106,7 +106,7 @@ $categoryname = $category->get_formatted_name();
 echo $OUTPUT->header();
 ?>
 
-<div dir="auto" class="nit-cat-details" style="<?= $stylevars ?>background: var(--cbg1); min-height: 100vh; padding-bottom: 40px;">
+<div dir="auto" class="nit-cat-details" style="<?= $stylevars ?>background: var(--cbg1); min-height: 100vh; padding-bottom: 40px; width: 100vw; max-width: 100vw; margin-inline: calc(50% - 50vw); margin-top: 0;">
 
   <!-- Category Header Banner -->
   <div style="background: var(--cbg2); padding: 64px 16px; border-bottom: 1px solid color-mix(in srgb, var(--ctext1) 6%, transparent); position: relative; overflow: hidden;">
