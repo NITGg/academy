@@ -1,9 +1,9 @@
 <?php
-require_once(__DIR__ . '/config.php');
+require_once(__DIR__ . '/../../config.php');
 
 $categoryid = optional_param('id', 0, PARAM_INT);
 
-$PAGE->set_url('/category.php', array('id' => $categoryid));
+$PAGE->set_url(new moodle_url('/local/nit_category/index.php', array('id' => $categoryid)));
 $PAGE->set_context(context_system::instance()); 
 $PAGE->set_title(get_string('category'));
 $PAGE->set_heading(get_string('category'));
