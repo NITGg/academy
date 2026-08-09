@@ -1,22 +1,24 @@
 <?php
 require_once(__DIR__ . '/../../config.php');
+require_once($CFG->dirroot . '/course/lib.php');
 
-$categoryid = optional_param('id', 0, PARAM_INT);
+$categoryid = required_param('id', PARAM_INT);
+
+// Fetch the category
+$category = core_course_category::get($categoryid, MUST_EXIST);
+$courses = $category->get_courses();
 
 $PAGE->set_url(new moodle_url('/local/nit_category/index.php', array('id' => $categoryid)));
-$PAGE->set_context(context_system::instance()); 
-$PAGE->set_title(get_string('category'));
-$PAGE->set_heading(get_string('category'));
-
-// Set up the layout
+$PAGE->set_context($category->get_context()); 
+$PAGE->set_title($category->get_formatted_name());
+$PAGE->set_heading($category->get_formatted_name());
 $PAGE->set_pagelayout('standard');
 
 echo $OUTPUT->header();
 
-// ==============================================================================
-// START OF CATEGORY DETAILS HTML
-// You can replace the static text below with dynamic data using $DB and language strings
-// ==============================================================================
+// Format category description
+$description = format_text($category->description, $category->descriptionformat, array('context' => $category->get_context()));
+$categoryname = $category->get_formatted_name();
 ?>
 
 <style>
@@ -44,8 +46,6 @@ echo $OUTPUT->header();
   
   <!-- Category Header Banner -->
   <div style="background: var(--nit-darksurface, #0f1e33); padding: 80px 16px; border-bottom: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 6%, transparent); position: relative; overflow: hidden;">
-    
-    <!-- Optional Background Decoration -->
     <div style="position: absolute; top: -50%; left: -10%; width: 50%; height: 200%; background: radial-gradient(circle, color-mix(in srgb, var(--nit-accentteal, #00a99d) 5%, transparent) 0%, transparent 70%); pointer-events: none;"></div>
     <div style="position: absolute; bottom: -50%; right: -10%; width: 50%; height: 200%; background: radial-gradient(circle, color-mix(in srgb, var(--nit-accentgold, #e8b84b) 5%, transparent) 0%, transparent 70%); pointer-events: none;"></div>
 
@@ -54,12 +54,11 @@ echo $OUTPUT->header();
         <span>💻</span> {mlang en}Category{mlang} {mlang ar}التصنيف{mlang}
       </span>
       <h1 style="font-size: clamp(32px, 5vw, 48px); font-weight: 800; color: var(--nit-darktextprimary, #ffffff); margin: 0 0 20px;">
-        {mlang en}Information Technology{mlang} {mlang ar}تقنية المعلومات{mlang}
+        <?= $categoryname ?>
       </h1>
-      <p style="font-size: 16px; color: var(--nit-darktextsecondary, #8a9ab5); max-width: 800px; line-height: 1.7; margin: 0;">
-        {mlang en}Explore our wide range of Information Technology courses, designed to help you master programming, networking, cybersecurity, and more. Upgrade your skills with expert-led training.{mlang} 
-        {mlang ar}استكشف مجموعتنا الواسعة من دورات تقنية المعلومات، المصممة لمساعدتك على احتراف البرمجة، الشبكات، الأمن السيبراني، والمزيد. ارتقِ بمهاراتك مع تدريب يقوده الخبراء.{mlang}
-      </p>
+      <div style="font-size: 16px; color: var(--nit-darktextsecondary, #8a9ab5); max-width: 800px; line-height: 1.7; margin: 0;">
+        <?= $description ?>
+      </div>
     </div>
   </div>
 
@@ -74,37 +73,57 @@ echo $OUTPUT->header();
             {mlang en}Available Courses{mlang} {mlang ar}الدورات المتاحة{mlang}
           </h2>
           <div style="color: var(--nit-accentgold, #e8b84b); font-weight: bold; font-size: 14px;">
-            {mlang en}15 Courses Found{mlang} {mlang ar}تم العثور على 15 دورة{mlang}
+            <?= count($courses) ?> {mlang en}Courses Found{mlang} {mlang ar}دورة{mlang}
           </div>
         </div>
       </div>
 
       <!-- Courses Grid -->
-      <div class="nit-course-grid" data-nit-category-courses="<?= htmlspecialchars($categoryid) ?>">
+      <div class="nit-course-grid">
         
-        <!-- Course Card 1 (Static Placeholder) -->
+        <?php foreach ($courses as $course): ?>
+        <?php
+            $coursecontext = context_course::instance($course->id);
+            $courseurl = new moodle_url('/course/view.php', array('id' => $course->id));
+            $coursefullname = format_string($course->fullname, true, array('context' => $coursecontext));
+            
+            // Get course image
+            $courseimage = '';
+            $courseobj = new core_course_list_element($course);
+            foreach ($courseobj->get_course_overviewfiles() as $file) {
+                if ($file->is_valid_image()) {
+                    $courseimage = moodle_url::make_pluginfile_url($file->get_contextid(), $file->get_component(), $file->get_filearea(), null, $file->get_filepath(), $file->get_filename())->out();
+                    break;
+                }
+            }
+            if (empty($courseimage)) {
+                $courseimage = $OUTPUT->image_url('patterns/default-course-image', 'core'); // Fallback
+            }
+        ?>
         <div class="nit-course-card">
           <div style="position: relative;">
-            <div style="width: 100%; height: 180px; background: var(--nit-darksurfacevariant, #13293f) center/cover no-repeat;" data-nit-course-image=""></div>
-            <span style="position: absolute; top: 12px; inset-inline-end: 12px; background: var(--nit-accentteal, #00a99d); color: var(--nit-darktextprimary, #ffffff); font-size: 12px; font-weight: bold; padding: 6px 14px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-              {mlang en}Free{mlang}{mlang ar}مجانًا{mlang}
-            </span>
+            <div style="width: 100%; height: 180px; background: var(--nit-darksurfacevariant, #13293f) url('<?= $courseimage ?>') center/cover no-repeat;"></div>
           </div>
           <div style="padding: 24px; display: flex; flex-direction: column; flex: 1;">
             <h3 style="font-size: 18px; font-weight: bold; color: var(--nit-darktextprimary, #ffffff); margin: 0 0 8px; line-height: 1.4;">
-              Introduction to Cybersecurity
+              <?= $coursefullname ?>
             </h3>
-            <div style="font-size: 13px; color: var(--nit-accentgold, #e8b84b); margin: 0 0 12px; display: flex; align-items: center; gap: 6px;">
-              <span>👤</span> Dr. Ahmed Ali
-            </div>
-            <p style="font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); line-height: 1.7; margin: 0 0 24px; flex: 1;">
-              Learn the fundamentals of cybersecurity, network protection, and how to safeguard digital assets from modern threats.
+            <p style="font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); line-height: 1.7; margin: 0 0 24px; flex: 1; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
+              <?= strip_tags(format_text($course->summary, $course->summaryformat, array('context' => $coursecontext))) ?>
             </p>
-            <a style="display: block; text-align: center; background: linear-gradient(135deg,var(--nit-accentgolddark, #c9922a),var(--nit-accentgold, #e8b84b)); color: var(--nit-darkbackground, #0a1628); font-weight: bold; padding: 12px; border-radius: 8px; text-decoration: none; transition: opacity 0.3s ease;" href="#" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
+            <a style="display: block; text-align: center; background: linear-gradient(135deg,var(--nit-accentgolddark, #c9922a),var(--nit-accentgold, #e8b84b)); color: var(--nit-darkbackground, #0a1628); font-weight: bold; padding: 12px; border-radius: 8px; text-decoration: none; transition: opacity 0.3s ease;" href="<?= $courseurl ?>" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
               {mlang en}View Course{mlang} {mlang ar}عرض الدورة{mlang}
             </a>
           </div>
         </div>
+        <?php endforeach; ?>
+        
+        <?php if (empty($courses)): ?>
+            <div style="grid-column: 1 / -1; text-align: center; color: var(--nit-darktextsecondary, #8a9ab5); padding: 40px;">
+                {mlang en}No courses found in this category.{mlang} {mlang ar}لا توجد دورات في هذا التصنيف.{mlang}
+            </div>
+        <?php endif; ?>
+
       </div>
       
     </div>
@@ -112,8 +131,4 @@ echo $OUTPUT->header();
 </div>
 
 <?php
-// ==============================================================================
-// END OF CATEGORY DETAILS HTML
-// ==============================================================================
-
 echo $OUTPUT->footer();
