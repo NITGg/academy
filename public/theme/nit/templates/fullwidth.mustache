@@ -33,6 +33,10 @@
 <style>
     /* Edge-to-edge canvas: strip Boost's content-column width, padding, card
        background and border so NIT pages paint their own full-bleed surface. */
+    /* #page carries horizontal padding for the drawer-toggle rails; this layout
+       has no drawers, so drop it (that padding was the gap at the page edges). */
+    body.nit-fullwidth-page #page { padding: 0 !important; }
+    body.nit-fullwidth-page #page-wrapper { overflow-x: clip; }
     body.nit-fullwidth-page #page.drawers .main-inner {
         max-width: 100% !important;
         width: 100%;
