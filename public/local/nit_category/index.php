@@ -6,7 +6,14 @@ $categoryid = required_param('id', PARAM_INT);
 
 // Fetch the category
 $category = core_course_category::get($categoryid, MUST_EXIST);
-$courses = $category->get_courses();
+
+// Subcategories to drill into, and the courses in this category and all its
+// descendants (recursive) so a main category still lists its related courses.
+$subcategories = $category->get_children();
+$courses = $category->get_courses([
+    'recursive' => true,
+    'sort' => ['sortorder' => 1],
+]);
 
 $PAGE->set_url(new moodle_url('/local/nit_category/index.php', array('id' => $categoryid)));
 $PAGE->set_context($category->get_context()); 
@@ -62,6 +69,44 @@ $categoryname = $category->get_formatted_name();
     </div>
   </div>
 
+  <?php if (!empty($subcategories)): ?>
+  <!-- Subcategories Section -->
+  <div style="padding: 56px 16px 0;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      <div style="margin-bottom: 32px;">
+        <h2 style="font-size: 28px; font-weight: bold; color: var(--nit-darktextprimary, #ffffff); margin: 0 0 8px;">
+          {mlang en}Subcategories{mlang} {mlang ar}التصنيفات الفرعية{mlang}
+        </h2>
+        <div style="color: var(--nit-accentgold, #e8b84b); font-weight: bold; font-size: 14px;">
+          <?= count($subcategories) ?> {mlang en}Subcategories{mlang} {mlang ar}تصنيف فرعي{mlang}
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px;">
+        <?php
+          $suicons = ['💻', '📊', '🎨', '🗣️', '🔬', '💡', '📚', '🎯'];
+          $suidx = 0;
+        ?>
+        <?php foreach ($subcategories as $subcat): ?>
+        <?php
+            $suburl = new moodle_url('/local/nit_category/index.php', array('id' => $subcat->id));
+            $subcount = $subcat->get_courses_count(array('recursive' => true));
+            $subicon = $suicons[$suidx % count($suicons)];
+            $suidx++;
+        ?>
+        <a href="<?= $suburl ?>" style="display: flex; align-items: center; gap: 16px; background: var(--nit-darksurface, #0f1e33); border: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 6%, transparent); border-radius: 14px; padding: 18px 20px; text-decoration: none; transition: transform 0.3s ease, border-color 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='color-mix(in srgb, var(--nit-accentteal, #00a99d) 40%, transparent)';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 6%, transparent)';">
+          <span style="font-size: 34px; line-height: 1;"><?= $subicon ?></span>
+          <span style="display: flex; flex-direction: column; min-width: 0;">
+            <span style="font-size: 16px; font-weight: bold; color: var(--nit-darktextprimary, #ffffff); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><?= $subcat->get_formatted_name() ?></span>
+            <span style="font-size: 13px; color: var(--nit-darktextsecondary, #8a9ab5);"><?= $subcount ?> {mlang en}Courses{mlang} {mlang ar}دورة{mlang}</span>
+          </span>
+        </a>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <?php if (!empty($courses) || empty($subcategories)): ?>
   <!-- Courses List Section -->
   <div style="padding: 64px 16px;">
     <div style="max-width: 1200px; margin: 0 auto;">
@@ -125,9 +170,10 @@ $categoryname = $category->get_formatted_name();
         <?php endif; ?>
 
       </div>
-      
+
     </div>
   </div>
+  <?php endif; ?>
 </div>
 
 <?php
