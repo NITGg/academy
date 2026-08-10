@@ -52,8 +52,10 @@ if (!$USER) {
 \core\session\manager::set_user($USER);
 $userid = (int) $USER->id;
 
-// The quiz manager appends this token to returned question-image URLs.
+// The quiz + teacher managers append this token to returned file/image URLs so
+// clients can load them directly (webservice/pluginfile.php + token).
 \local_academy\quiz_manager::set_token($token);
+\local_academy\teacher_manager::set_token($token);
 
 try {
     switch ($function) {
@@ -124,6 +126,11 @@ try {
         case 'get_my_quiz_attempts':
             $quizid = required_param('quizid', PARAM_INT);
             academy_respond(['status' => 'success', 'data' => \local_academy\quiz_manager::get_my_attempts($quizid, $userid)]);
+            break;
+
+        // Current user's profile with ready-to-use (token-embedded) image URLs.
+        case 'get_my_profile':
+            academy_respond(['status' => 'success', 'data' => \local_academy\profile_manager::get_my_profile($USER, $token)]);
             break;
 
         // ── Teachers (instructor directory) ─────────────────────────────────────────

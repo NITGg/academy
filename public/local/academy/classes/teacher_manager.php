@@ -24,6 +24,14 @@ defined('MOODLE_INTERNAL') || die();
  */
 class teacher_manager {
 
+    /** Caller's web-service token, so returned image URLs are directly loadable. */
+    private static $token = '';
+
+    /** Set the caller's token so photo/image URLs are returned token-embedded. */
+    public static function set_token(string $token): void {
+        self::$token = $token;
+    }
+
     /** User columns needed to build a name + user_picture + contact safely. */
     private static function user_fields(): string {
         return 'u.id, u.firstname, u.lastname, u.middlename, u.alternatename,
@@ -258,7 +266,7 @@ class teacher_manager {
         $page->set_context(\context_system::instance());
         $up = new \user_picture($u);
         $up->size = 100;
-        return $up->get_url($page)->out(false);
+        return ws_files::tokenize($up->get_url($page)->out(false), self::$token);
     }
 
     /** Course overview image URL, or '' if none. */
@@ -269,10 +277,10 @@ class teacher_manager {
         $files = $fs->get_area_files($context->id, 'course', 'overviewfiles', 0, 'filename', false);
         foreach ($files as $file) {
             if ($file->is_valid_image()) {
-                return \moodle_url::make_pluginfile_url(
+                return ws_files::tokenize(\moodle_url::make_pluginfile_url(
                     $file->get_contextid(), $file->get_component(), $file->get_filearea(),
                     null, $file->get_filepath(), $file->get_filename()
-                )->out(false);
+                )->out(false), self::$token);
             }
         }
         return '';
