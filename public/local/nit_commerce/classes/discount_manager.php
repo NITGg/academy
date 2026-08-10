@@ -408,4 +408,63 @@ class discount_manager {
         $result['discount'] = round($base - $result['final'], 2);
         return $result;
     }
+
+    /**
+     * Record coupon + offer usage after a successful payment. Idempotent per transaction.
+     *
+     * @param array $resolved output of {@see self::resolve()} (or the stored discount metadata)
+     * @param int $userid
+     * @param int $transactionid local_payments_transactions.id
+     * @param string $itemtype
+     * @param int $itemid
+     * @return void
+     */
+    public static function record_usage(array $resolved, $userid, $transactionid, $itemtype, $itemid) {
+        global $DB;
+        $now = time();
+        $transactionid = (int)$transactionid;
+
+        $offers = (isset($resolved['offers']) && is_array($resolved['offers'])) ? $resolved['offers'] : array();
+        if (empty($offers) && !empty($resolved['offer_id']) && ($resolved['offer_discount'] ?? 0) > 0) {
+            $offers = array(array('id' => $resolved['offer_id'], 'discount' => $resolved['offer_discount']));
+        }
+        foreach ($offers as $off) {
+            $off = (array)$off;
+            $oid = (int)($off['id'] ?? 0);
+            $odisc = round((float)($off['discount'] ?? 0), 2);
+            if ($oid <= 0 || $odisc <= 0) { continue; }
+            $exists = $transactionid > 0 && $DB->record_exists('nit_offer_usage',
+                array('offerid' => $oid, 'transactionid' => $transactionid));
+            if ($exists) { continue; }
+            $DB->insert_record('nit_offer_usage', (object) array(
+                'offerid'         => $oid,
+                'userid'          => $userid,
+                'transactionid'   => $transactionid,
+                'item_type'       => $itemtype,
+                'item_id'         => (int)$itemid,
+                'original_amount' => $resolved['original'] ?? 0,
+                'discount_amount' => $odisc,
+                'final_amount'    => round((float)($resolved['original'] ?? 0) - $odisc, 2),
+                'timecreated'     => $now,
+            ));
+        }
+
+        if (!empty($resolved['coupon_id']) && ($resolved['coupon_discount'] ?? 0) > 0) {
+            $exists = $transactionid > 0 && $DB->record_exists('nit_coupon_usage',
+                array('couponid' => $resolved['coupon_id'], 'transactionid' => $transactionid));
+            if (!$exists) {
+                $DB->insert_record('nit_coupon_usage', (object) array(
+                    'couponid'        => $resolved['coupon_id'],
+                    'userid'          => $userid,
+                    'transactionid'   => $transactionid,
+                    'item_type'       => $itemtype,
+                    'item_id'         => (int)$itemid,
+                    'original_amount' => $resolved['original'] ?? 0,
+                    'discount_amount' => $resolved['coupon_discount'],
+                    'final_amount'    => $resolved['final'] ?? 0,
+                    'timecreated'     => $now,
+                ));
+            }
+        }
+    }
 }

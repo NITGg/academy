@@ -210,6 +210,22 @@ try {
             nit_commerce_respond(['status' => 'success', 'data' => nit_commerce_discount_targets()]);
             break;
 
+        // ── Checkout: preview the discounted price (offer auto + optional coupon code) ──
+        case 'preview_discount':
+            $itemtype = required_param('item_type', PARAM_ALPHA);
+            $itemid   = required_param('item_id', PARAM_INT);
+            $code     = optional_param('coupon_code', '', PARAM_TEXT);
+            try {
+                $resolved = \local_nit_commerce\discount_manager::resolve($itemtype, $itemid, $USER->id, $code);
+                nit_commerce_respond(['status' => 'success', 'data' => $resolved]);
+            } catch (\moodle_exception $e) {
+                // Invalid coupon — recompute without it so the offer-only price still shows.
+                $resolved = \local_nit_commerce\discount_manager::resolve($itemtype, $itemid, $USER->id, '');
+                $resolved['coupon_error'] = $e->getMessage();
+                nit_commerce_respond(['status' => 'success', 'data' => $resolved]);
+            }
+            break;
+
         // ── Public reads for front-page blocks ──
         case 'get_available_coupons':
             nit_commerce_respond(['status' => 'success', 'data' => coupon_manager::get_available_coupons()]);

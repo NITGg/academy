@@ -228,6 +228,234 @@ class manager {
     }
 
     /**
+     * Create a Kashier checkout for a NIT subscription (item_type=subscription, courseid sentinel 0).
+     *
+     * The transaction is fulfilled on payment success by {@see self::fulfil_subscription()} — it
+     * creates a subscription purchase (local_nit_subscriptions) which grants live course access.
+     *
+     * @param int $subscriptionid
+     * @param int|null $userid
+     * @param string|null $app_country
+     * @param string $display_lang
+     * @param string $type normal | b2b
+     * @param int $seats B2B seat capacity
+     * @param string $coupon_code optional coupon entered at checkout
+     * @param string $return_url page the checkout was launched from
+     * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
+     */
+    public static function create_subscription_checkout(int $subscriptionid, ?int $userid = null,
+            ?string $app_country = null, string $display_lang = 'en', string $type = 'normal',
+            int $seats = 0, string $coupon_code = '', string $return_url = ''): object {
+        global $DB, $USER, $CFG;
+
+        $userid = $userid ?? $USER->id;
+        $user = $DB->get_record('user', ['id' => $userid], 'id, email, firstname, lastname, country', MUST_EXIST);
+        $sub = $DB->get_record('nit_subscription', ['id' => $subscriptionid], '*', MUST_EXIST);
+
+        $isb2b = ($type === 'b2b');
+        $b2bseats = 0;
+        $amount = (float) $sub->price;
+        $discountmeta = null;
+
+        if ($isb2b) {
+            if (empty($sub->b2b_enabled)) {
+                throw new \moodle_exception('error', 'moodle', '', null, 'This subscription is not available for B2B purchase');
+            }
+            $option = $DB->get_record('nit_sub_seat_option', ['subscriptionid' => $sub->id, 'seats' => (int) $seats]);
+            if (!$option) {
+                throw new \moodle_exception('error', 'moodle', '', null, 'The selected capacity is not available');
+            }
+            $b2bseats = (int) $seats;
+            if (class_exists('\local_nit_subscriptions\subscription_manager')) {
+                $price = \local_nit_subscriptions\subscription_manager::b2b_price($sub->price, $b2bseats, $option->discount_percent);
+                $amount = (float) $price['final'];
+            }
+        } else {
+            // A user may hold only one active NORMAL subscription at a time.
+            if (class_exists('\local_nit_subscriptions\subscription_purchase_manager')
+                    && \local_nit_subscriptions\subscription_purchase_manager::has_active_normal($userid)) {
+                throw new \moodle_exception('error', 'moodle', '', null, 'You already have an active subscription');
+            }
+            // Apply coupon/offer (normal purchase only).
+            $disc = self::apply_nit_discount('subscription', $subscriptionid, $userid, (float) $sub->price, $coupon_code);
+            $amount = $disc['amount'];
+            $discountmeta = $disc['discount'];
+        }
+
+        $originalamount = (float) $sub->price;
+        $currency = 'EGP';
+        $country = $app_country ?: ($user->country ?: 'EG');
+
+        $provider = self::get_provider($country, $currency);
+        $provider_record = $DB->get_record('local_payments_providers', ['name' => $provider->get_name()]);
+
+        $order_id = self::generate_order_id();
+        $idempotency_key = self::generate_idempotency_key($userid, $subscriptionid + 2000000);
+
+        $ttl = (int) get_config('local_payments', 'payment_ttl') ?: 1800;
+        $expires_at = time() + $ttl;
+
+        $transaction = (object) [
+            'userid' => $userid,
+            'courseid' => 0, // Sentinel: subscription transactions are not tied to a course.
+            'provider_id' => $provider_record->id,
+            'price_id' => null,
+            'order_id' => $order_id,
+            'idempotency_key' => $idempotency_key,
+            'amount' => $amount,
+            'original_amount' => $originalamount,
+            'currency' => $currency,
+            'status' => status_machine::PENDING,
+            'customer_email' => $user->email,
+            'customer_reference' => (string) $userid,
+            'display_lang' => $display_lang,
+            'country' => $country,
+            'ip_address' => getremoteaddr(),
+            'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500),
+            'metadata' => json_encode([
+                'item_type' => 'subscription',
+                'item_id' => $subscriptionid,
+                'subscription_name' => $sub->name,
+                'sub_type' => $isb2b ? 'b2b' : 'normal',
+                'seats' => $b2bseats,
+                'discount' => $discountmeta,
+                'coupon_code' => $coupon_code,
+                'return_url' => $return_url,
+            ]),
+            'expires_at' => $expires_at,
+            'timecreated' => time(),
+            'timemodified' => time(),
+        ];
+
+        $transaction_id = $DB->insert_record('local_payments_transactions', $transaction);
+        self::audit_log($transaction_id, $userid, 'payment_created', '', status_machine::PENDING);
+
+        $webhook_url = $CFG->wwwroot . '/local/payments/webhook.php?provider=' . $provider->get_name();
+        $success_url = $CFG->wwwroot . '/local/payments/callback.php?order_id=' . urlencode($order_id);
+        $failure_url = $CFG->wwwroot . '/local/payments/callback.php?order_id=' . urlencode($order_id) . '&status=failed';
+
+        $request = new payment_request([
+            'order_id' => $order_id,
+            'amount' => $amount,
+            'currency' => $currency,
+            'description' => 'Subscription: ' . format_string($sub->name),
+            'userid' => $userid,
+            'courseid' => 0,
+            'customer_email' => $user->email,
+            'customer_reference' => (string) $userid,
+            'display_lang' => $display_lang,
+            'webhook_url' => $webhook_url,
+            'success_url' => $success_url,
+            'failure_url' => $failure_url,
+            'metadata' => ['transaction_id' => $transaction_id],
+            'transaction_id' => $transaction_id,
+        ]);
+
+        $response = $provider->initialize_payment($request);
+
+        if (!$response->success) {
+            $DB->update_record('local_payments_transactions', (object) [
+                'id' => $transaction_id,
+                'status' => status_machine::FAILED,
+                'reject_reason' => substr($response->error_message, 0, 255),
+                'timemodified' => time(),
+            ]);
+            self::audit_log($transaction_id, $userid, 'status_changed', status_machine::PENDING, status_machine::FAILED);
+            throw new \moodle_exception('paymentinitiationfailed', 'local_payments', '', $response->error_message);
+        }
+
+        $DB->update_record('local_payments_transactions', (object) [
+            'id' => $transaction_id,
+            'provider_session_id' => $response->provider_session_id,
+            'checkout_url' => $response->checkout_url,
+            'timemodified' => time(),
+        ]);
+
+        return (object) [
+            'order_id' => $order_id,
+            'checkout_url' => $response->checkout_url,
+            'expires_at' => $expires_at,
+            'provider' => $provider->get_name(),
+            'transaction_id' => $transaction_id,
+        ];
+    }
+
+    /**
+     * Resolve the charged amount for a NIT commerce discount (coupon/offer), for checkout.
+     *
+     * @param string $item_type course | package | subscription
+     * @param int $item_id
+     * @param int $userid
+     * @param float $base base price before discount
+     * @param string $coupon_code
+     * @return array {amount: float, discount: array|null}
+     */
+    private static function apply_nit_discount(string $item_type, int $item_id, int $userid,
+            float $base, string $coupon_code): array {
+        if (!class_exists('\local_nit_commerce\discount_manager')) {
+            return ['amount' => $base, 'discount' => null];
+        }
+        $resolved = \local_nit_commerce\discount_manager::resolve($item_type, $item_id, $userid, $coupon_code, $base);
+        return [
+            'amount' => (float) $resolved['final'],
+            'discount' => [
+                'original'        => $resolved['original'],
+                'offers'          => $resolved['offers'] ?? [],
+                'coupon_id'       => $resolved['coupon_id'] ?? 0,
+                'coupon_code'     => $resolved['coupon_code'] ?? '',
+                'coupon_discount' => $resolved['coupon_discount'] ?? 0,
+                'offer_discount'  => $resolved['offer_discount'] ?? 0,
+                'discount'        => $resolved['discount'] ?? 0,
+                'final'           => $resolved['final'],
+            ],
+        ];
+    }
+
+    /**
+     * Fulfil a completed subscription transaction: create the purchase (grants live course access) and
+     * record coupon/offer usage. Safe to call more than once (fulfilment is idempotent by order id).
+     *
+     * @param \stdClass $transaction
+     * @param \stdClass $meta decoded transaction metadata
+     * @return void
+     */
+    private static function fulfil_subscription(\stdClass $transaction, \stdClass $meta): void {
+        try {
+            if (class_exists('\local_nit_subscriptions\subscription_purchase_manager')) {
+                \local_nit_subscriptions\subscription_purchase_manager::fulfil_from_gateway(
+                    (int) $transaction->userid,
+                    (int) ($meta->item_id ?? 0),
+                    (float) $transaction->amount,
+                    (string) $transaction->order_id,
+                    $meta->sub_type ?? 'normal',
+                    (int) ($meta->seats ?? 0)
+                );
+                self::audit_log($transaction->id, $transaction->userid, 'subscription_purchased', '',
+                    (string) ($meta->item_id ?? 0));
+            }
+        } catch (\Exception $e) {
+            self::log_entry($transaction->provider_id, $transaction->id, 'error',
+                'Subscription fulfilment failed: ' . $e->getMessage());
+        }
+
+        // Record coupon/offer usage (idempotent by transaction id).
+        if (isset($meta->discount) && $meta->discount && class_exists('\local_nit_commerce\discount_manager')) {
+            try {
+                \local_nit_commerce\discount_manager::record_usage(
+                    json_decode(json_encode($meta->discount), true),
+                    (int) $transaction->userid,
+                    (int) $transaction->id,
+                    'subscription',
+                    (int) ($meta->item_id ?? 0)
+                );
+            } catch (\Exception $e) {
+                self::log_entry($transaction->provider_id, $transaction->id, 'warning',
+                    'Discount usage record failed: ' . $e->getMessage());
+            }
+        }
+    }
+
+    /**
      * Process a webhook from a payment provider.
      */
     public static function process_webhook(string $provider_name, string $payload, array $headers): bool {
@@ -385,6 +613,13 @@ class manager {
         self::audit_log($transaction->id, $transaction->userid, 'status_changed',
             $transaction->status, status_machine::COMPLETED);
 
+        // Subscriptions are fulfilled differently (no course enrolment / course invoice / course event).
+        $meta = json_decode($transaction->metadata ?? '{}');
+        if (($meta->item_type ?? 'course') === 'subscription') {
+            self::fulfil_subscription($transaction, $meta);
+            return true;
+        }
+
         // Fulfilment: enrol the student in the purchased course.
         try {
             $enrolled = enrollment_handler::enrol_user((int) $transaction->userid, (int) $transaction->courseid);
@@ -479,6 +714,8 @@ class manager {
         $meta = json_decode($transaction->metadata ?? '{}');
         $item_type = $meta->item_type ?? 'course';
 
+        $issubscription = ($item_type === 'subscription');
+
         // If already completed (by webhook), return success immediately.
         if ($transaction->status === status_machine::COMPLETED) {
             return (object) [
@@ -486,7 +723,8 @@ class manager {
                 'status' => $transaction->status,
                 'courseid' => (int) $transaction->courseid,
                 'item_type' => $item_type,
-                'enrolled' => enrollment_handler::is_enrolled((int) $transaction->userid, (int) $transaction->courseid),
+                'enrolled' => $issubscription ? false
+                    : enrollment_handler::is_enrolled((int) $transaction->userid, (int) $transaction->courseid),
             ];
         }
 
@@ -528,6 +766,18 @@ class manager {
                 self::audit_log($transaction->id, $transaction->userid, 'status_changed',
                     $transaction->status, status_machine::COMPLETED);
 
+                if ($issubscription) {
+                    // Subscription: create the purchase (grants live course access); no course enrolment.
+                    self::fulfil_subscription($transaction, $meta);
+                    return (object) [
+                        'success' => true,
+                        'status' => status_machine::COMPLETED,
+                        'courseid' => 0,
+                        'item_type' => $item_type,
+                        'enrolled' => false,
+                    ];
+                }
+
                 $enrolled = false;
                 try {
                     $enrolled = enrollment_handler::enrol_user((int) $transaction->userid, (int) $transaction->courseid);
@@ -545,7 +795,8 @@ class manager {
                 invoice_generator::create((int) $transaction->id);
                 self::send_confirmation($transaction);
             } else {
-                $enrolled = enrollment_handler::is_enrolled((int) $transaction->userid, (int) $transaction->courseid);
+                $enrolled = $issubscription ? false
+                    : enrollment_handler::is_enrolled((int) $transaction->userid, (int) $transaction->courseid);
             }
 
             return (object) [
