@@ -1,0 +1,103 @@
+<!--
+  NIT — Available coupons home-page block.
+  Paste this whole snippet into an HTML block / text area on the home page.
+  It fetches active coupon codes from /local/nit_commerce/api.php (public read) and renders
+  responsive ticket-style cards. Requires the block to allow inline <script>. Self-contained (scoped CSS).
+-->
+<div class="nit-coupons-block" data-endpoint="/local/nit_commerce/api.php">
+  <style>
+    .nit-coupons-block { --nit-primary:#2A50C8; --nit-accent:#e8153b; --nit-ink:#1c1d1f; --nit-muted:#6a6f73; --nit-border:#e5e7eb;
+      font-family: inherit; margin: 2rem 0; }
+    .nit-coupons-block * { box-sizing: border-box; }
+    .nit-coupons-block__head { text-align:center; margin-bottom:1.5rem; }
+    .nit-coupons-block__title { font-size:1.6rem; font-weight:800; color:var(--nit-ink); margin:0 0 .25rem; }
+    .nit-coupons-block__sub { color:var(--nit-muted); margin:0; }
+    .nit-coupons-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1.1rem; }
+    .nit-coupon-card { position:relative; display:flex; align-items:stretch; border:1px dashed var(--nit-primary);
+      border-radius:14px; background:#fff; overflow:hidden; box-shadow:0 6px 18px rgba(20,30,80,.06); }
+    .nit-coupon-card__value { flex:0 0 96px; background:linear-gradient(135deg, var(--nit-primary), #4a6cf7);
+      color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:.5rem; }
+    .nit-coupon-card__value b { font-size:1.55rem; line-height:1; font-weight:800; }
+    .nit-coupon-card__value span { font-size:.7rem; opacity:.9; margin-top:.15rem; }
+    .nit-coupon-card__body { flex:1; padding:.85rem 1rem; display:flex; flex-direction:column; gap:.4rem; min-width:0; }
+    .nit-coupon-card__code { display:inline-flex; align-items:center; gap:.5rem; font-family:monospace; font-weight:700;
+      font-size:1.05rem; color:var(--nit-ink); background:#f4f6ff; border:1px solid var(--nit-border); border-radius:8px;
+      padding:.3rem .6rem; align-self:flex-start; cursor:pointer; }
+    .nit-coupon-card__code:hover { border-color:var(--nit-primary); }
+    .nit-coupon-card__scope { color:var(--nit-muted); font-size:.82rem; margin:0; }
+    .nit-coupon-card__dates { color:var(--nit-muted); font-size:.76rem; margin:0; }
+    .nit-coupon-card__copied { color:#0a8a3a; font-size:.7rem; font-weight:700; }
+    .nit-coupons-block__msg { text-align:center; color:var(--nit-muted); padding:1.5rem; }
+    @media (prefers-color-scheme: dark) {
+      .nit-coupons-block { --nit-ink:#f3f4f6; --nit-muted:#9aa0a6; --nit-border:#2b2f36; }
+      .nit-coupon-card { background:#1b1e24; box-shadow:none; }
+      .nit-coupon-card__code { background:#20253a; }
+    }
+  </style>
+
+  <div class="nit-coupons-block__head">
+    <h2 class="nit-coupons-block__title">Available coupons</h2>
+    <p class="nit-coupons-block__sub">Coupon codes you can enter at checkout.</p>
+  </div>
+  <div class="nit-coupons-grid" data-coupons-grid>
+    <div class="nit-coupons-block__msg" data-coupons-msg>Loading…</div>
+  </div>
+
+  <script>
+  (function () {
+    var root = document.currentScript.closest('.nit-coupons-block');
+    var grid = root.querySelector('[data-coupons-grid]');
+    var endpoint = root.getAttribute('data-endpoint') + '?function=get_available_coupons';
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+    function num(n){ return (Math.round(Number(n)*100)/100).toLocaleString(undefined,{minimumFractionDigits:0}); }
+    function fmt(ts){ return ts ? new Date(ts*1000).toLocaleDateString() : null; }
+    function msg(t){ grid.innerHTML = '<div class="nit-coupons-block__msg">'+esc(t)+'</div>'; }
+    function valueBox(c){
+      if (c.discount_type === 'percent') { return '<b>'+num(c.discount_value)+'%</b><span>OFF</span>'; }
+      return '<b>'+num(c.discount_value)+'</b><span>EGP OFF</span>';
+    }
+    function scopeText(c){
+      if (!c.applies_to || !c.applies_to.length) { return ''; }
+      return c.applies_to.map(function(a){ return a.label; }).join(', ');
+    }
+    function datesText(c){
+      var s = fmt(c.startdate), e = fmt(c.enddate);
+      if (!s && !e) { return ''; }
+      return 'Valid ' + (s || '…') + ' → ' + (e || '…');
+    }
+    fetch(endpoint, { headers: { 'Accept': 'application/json' } })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if (!res || res.status !== 'success') { throw new Error('load failed'); }
+        var rows = res.data || [];
+        if (!rows.length) { msg('No coupons available right now.'); return; }
+        grid.innerHTML = rows.map(function(c){
+          var scope = scopeText(c), dates = datesText(c);
+          return '<div class="nit-coupon-card">'+
+              '<div class="nit-coupon-card__value">'+valueBox(c)+'</div>'+
+              '<div class="nit-coupon-card__body">'+
+                '<button type="button" class="nit-coupon-card__code" data-code="'+esc(c.code)+'">'+esc(c.code)+
+                  ' <span aria-hidden="true">&#x29C9;</span></button>'+
+                (scope ? '<p class="nit-coupon-card__scope">'+esc(scope)+'</p>' : '')+
+                (dates ? '<p class="nit-coupon-card__dates">'+esc(dates)+'</p>' : '')+
+              '</div>'+
+            '</div>';
+        }).join('');
+        grid.querySelectorAll('.nit-coupon-card__code').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            var code = btn.getAttribute('data-code');
+            if (navigator.clipboard) { navigator.clipboard.writeText(code).catch(function(){}); }
+            if (!btn.querySelector('.nit-coupon-card__copied')) {
+              var s = document.createElement('span');
+              s.className = 'nit-coupon-card__copied';
+              s.textContent = 'copied';
+              btn.appendChild(s);
+              setTimeout(function(){ s.remove(); }, 1500);
+            }
+          });
+        });
+      })
+      .catch(function(){ msg('Could not load coupons.'); });
+  })();
+  </script>
+</div>
