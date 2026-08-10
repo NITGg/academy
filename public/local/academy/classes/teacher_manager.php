@@ -4,21 +4,36 @@ namespace local_academy;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Teacher (instructor) profiles for the app: list instructors, view one by id,
- * and list the courses they teach.
+ * Teacher (instructor) directory for the app.
  *
- * Moodle-native: a "teacher" is any non-deleted user who holds a role with the
- * 'teacher' or 'editingteacher' archetype in at least one course. Bio comes from
- * the standard user description field; the photo from Moodle's user_picture. No
- * custom tables and no core modifications.
+ * Faithful to the old academy's local_academy teacher API — same function names
+ * (get_all_teachers / browse_teachers / get_teacher) and the same response keys —
+ * so the existing web/mobile clients work unchanged.
+ *
+ * Difference from the old academy: this build is Moodle-native (courses model,
+ * not the Flex tutoring engine), so it has no teacher-profile/subjects/hours
+ * tables. Those fields are still present in every response for contract parity,
+ * but with empty/default values (subjects=[], hours=[], years=[], busy_times=[],
+ * rating=0, approved=1, available=1, headline/experience=''). The Moodle-native
+ * fields (userid, fullname, email, phone, bio, photourl) carry real data, plus a
+ * `courses` list — a superset that never breaks the old shape.
+ *
+ * A "teacher" = any non-deleted user holding a role with the 'teacher' or
+ * 'editingteacher' archetype in at least one course. No custom tables, no core
+ * modifications.
  */
 class teacher_manager {
 
-    /** User columns needed to build a name + user_picture safely. */
+    /** User columns needed to build a name + user_picture + contact safely. */
     private static function user_fields(): string {
         return 'u.id, u.firstname, u.lastname, u.middlename, u.alternatename,
-                u.firstnamephonetic, u.lastnamephonetic, u.picture, u.imagealt, u.email,
+                u.firstnamephonetic, u.lastnamephonetic, u.picture, u.imagealt, u.email, u.phone1,
                 u.description, u.descriptionformat, u.city, u.country';
+    }
+
+    /** Same columns without the "u." alias, for get_record_select. */
+    private static function user_fields_plain(): string {
+        return str_replace('u.', '', self::user_fields());
     }
 
     /** Is this user a teacher anywhere? (archetype-based, so admins are excluded.) */
@@ -35,18 +50,18 @@ class teacher_manager {
     }
 
     /**
-     * List instructors, optionally filtered, with pagination.
+     * Admin: list all teachers with optional filters and pagination.
+     * Matches the old academy shape: { total, page, perpage, teachers[] }.
      *
      * @param array $filters search, courseid, categoryid, page, perpage
-     * @return array { total, page, perpage, teachers[] }
+     *                       (subject/year/approved/available accepted but no-ops here)
      */
-    public static function browse_teachers(array $filters = []): array {
+    public static function get_all_teachers(array $filters = []): array {
         global $DB;
 
-        $where  = ['u.deleted = 0', 'u.suspended = 0', "r.archetype IN ('teacher', 'editingteacher')"];
+        $where  = ['u.deleted = 0', "r.archetype IN ('teacher', 'editingteacher')"];
         $params = [];
 
-        // Only teachers of a specific course.
         if (!empty($filters['courseid'])) {
             $where[] = 'EXISTS (SELECT 1 FROM {role_assignments} raf
                                  JOIN {context} ctx ON ctx.id = raf.contextid AND ctx.contextlevel = 50
@@ -55,8 +70,6 @@ class teacher_manager {
                                 WHERE raf.userid = u.id AND ctx.instanceid = :courseid)';
             $params['courseid'] = (int) $filters['courseid'];
         }
-
-        // Only teachers who teach in a given category.
         if (!empty($filters['categoryid'])) {
             $where[] = 'EXISTS (SELECT 1 FROM {role_assignments} raf
                                  JOIN {context} ctx ON ctx.id = raf.contextid AND ctx.contextlevel = 50
@@ -66,8 +79,6 @@ class teacher_manager {
                                 WHERE raf.userid = u.id)';
             $params['categoryid'] = (int) $filters['categoryid'];
         }
-
-        // Free-text search on name or email.
         if (!empty($filters['search'])) {
             $q = '%' . $DB->sql_like_escape($filters['search']) . '%';
             $where[] = '(' . $DB->sql_like('u.firstname', ':sq1', false)
@@ -98,13 +109,37 @@ class teacher_manager {
 
         $teachers = [];
         foreach ($rows as $u) {
-            $teachers[] = self::format_teacher($u, false);
+            // Admin listing keeps email (matches old get_all_teachers).
+            $teachers[] = self::format_profile($u, true, false);
         }
 
         return ['total' => $total, 'page' => $page, 'perpage' => $perpage, 'teachers' => $teachers];
     }
 
-    /** A single instructor's public profile, including the courses they teach. */
+    /**
+     * Public: browse instructors. Matches the old academy: returns a bare array
+     * with email dropped. The $subject filter is accepted for signature parity
+     * (the courses model has no subjects, so it does not filter).
+     */
+    public static function browse_teachers(string $subject = ''): array {
+        global $DB;
+        $sql = "SELECT DISTINCT " . self::user_fields() . "
+                  FROM {user} u
+                  JOIN {role_assignments} ra ON ra.userid = u.id
+                  JOIN {role} r ON r.id = ra.roleid
+                 WHERE u.deleted = 0 AND u.suspended = 0
+                   AND r.archetype IN ('teacher', 'editingteacher')
+              ORDER BY u.lastname ASC, u.firstname ASC";
+        $rows = $DB->get_records_sql($sql);
+
+        $out = [];
+        foreach ($rows as $u) {
+            $out[] = self::format_profile($u, false, false);
+        }
+        return $out;
+    }
+
+    /** Public: a single instructor's profile + the courses they teach (email dropped). */
     public static function get_teacher(int $teacherid): array {
         global $DB;
         $u = $DB->get_record_select(
@@ -116,7 +151,7 @@ class teacher_manager {
         if (!$u || !self::is_teacher($teacherid)) {
             throw new \moodle_exception('err_teachernotfound', 'local_academy');
         }
-        return self::format_teacher($u, true);
+        return self::format_profile($u, false, true);
     }
 
     /** Courses a teacher teaches (visible courses only). */
@@ -158,13 +193,14 @@ class teacher_manager {
 
     // ── helpers ──
 
-    /** Same columns as user_fields() but without the "u." alias, for get_record_select. */
-    private static function user_fields_plain(): string {
-        return str_replace('u.', '', self::user_fields());
-    }
-
-    /** Build the app-facing teacher view-model. */
-    private static function format_teacher(\stdClass $u, bool $withcourses): array {
+    /**
+     * Build the teacher view-model in the old academy's exact shape.
+     *
+     * @param \stdClass $u          user row (see user_fields)
+     * @param bool $withemail       include the email field (admin listing) — public views drop it
+     * @param bool $withcourses     append the `courses` list (single-teacher view)
+     */
+    private static function format_profile(\stdClass $u, bool $withemail, bool $withcourses): array {
         $bio = '';
         if (!empty($u->description)) {
             $bio = trim(html_to_text(
@@ -175,18 +211,29 @@ class teacher_manager {
             ));
         }
 
-        $countries = get_string_manager()->get_list_of_countries();
+        // Old academy shape — Flex-only fields kept as defaults for contract parity.
         $out = [
-            'id'          => (int) $u->id,
-            'fullname'    => fullname($u),
-            'firstname'   => $u->firstname,
-            'lastname'    => $u->lastname,
-            'bio'         => $bio,
-            'city'        => $u->city ?? '',
-            'country'     => (!empty($u->country) && isset($countries[$u->country])) ? $countries[$u->country] : ($u->country ?? ''),
-            'pictureurl'  => self::picture_url($u),
+            'userid'     => (int) $u->id,
+            'fullname'   => fullname($u),
+            'email'      => $u->email ?? '',
+            'phone'      => $u->phone1 ?? '',
+            'headline'   => '',
+            'bio'        => $bio,
+            'experience' => '',
+            'photourl'   => self::picture_url($u),
+            'rating'     => 0,
+            'approved'   => 1,
+            'available'  => 1,
+            'subjects'   => [],
+            'years'      => [],
+            'hours'      => [],
+            'busy_times' => [],
+            // Superset (never in the old shape, additive): quick course info.
             'coursecount' => self::course_count((int) $u->id),
         ];
+        if (!$withemail) {
+            unset($out['email']);
+        }
         if ($withcourses) {
             $out['courses'] = self::get_teacher_courses((int) $u->id);
         }
