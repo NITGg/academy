@@ -17,7 +17,7 @@ require_once($CFG->libdir . '/clilib.php');
 require_once($CFG->libdir . '/accesslib.php');
 
 list($options, $unrecognized) = cli_get_params(
-    ['token' => '', 'fix' => false, 'function' => '', 'help' => false],
+    ['token' => '', 'fix' => false, 'fixupload' => false, 'function' => '', 'help' => false],
     ['h' => 'help']
 );
 
@@ -25,6 +25,7 @@ if ($options['help'] || $options['token'] === '') {
     echo "Diagnose REST accessexception for a web-service token.\n";
     echo "  --token=WSTOKEN     the token string (required)\n";
     echo "  --fix               grant webservice/rest:use to the user's role(s)\n";
+    echo "  --fixupload         enable 'Can upload files' on the token's service\n";
     echo "  --function=NAME     also check one specific function (e.g. auth_email_signup_user)\n";
     exit(0);
 }
@@ -71,6 +72,22 @@ if (!$service) {
 }
 echo (($service->enabled) ? $ok : $bad) . "service: {$service->name} (shortname={$service->shortname}), "
     . "enabled={$service->enabled}, restrictedusers={$service->restrictedusers}\n";
+
+// 4b. File up/download flags — webservice/upload.php throws accessexception when
+//     uploadfiles is off (this is what breaks profile-picture upload).
+echo ((int) $service->uploadfiles === 1 ? $ok : $bad)
+    . "service uploadfiles = {$service->uploadfiles} "
+    . ((int) $service->uploadfiles === 1 ? "(file upload allowed)" : "(OFF — /webservice/upload.php will 'accessexception')") . "\n";
+echo "  ....    service downloadfiles = {$service->downloadfiles}\n";
+if ((int) $service->uploadfiles !== 1) {
+    if (!empty($options['fixupload'])) {
+        $DB->set_field('external_services', 'uploadfiles', 1, ['id' => $service->id]);
+        echo $ok . "Enabled uploadfiles on service '{$service->name}'. Upload should work now.\n";
+    } else {
+        echo "         -> Fix: Site admin > Server > Web services > External services > edit '{$service->name}'\n";
+        echo "            > tick 'Can upload files'. (Or re-run this with --fixupload.)\n";
+    }
+}
 
 // 5. If restricted, is the user authorised?
 if ((int) $service->restrictedusers === 1) {
@@ -186,15 +203,31 @@ if ($options['function'] !== '') {
 //    wrong-path / subpath / token issue without needing the app.
 echo "\n---- Profile picture URL for this user ----\n";
 echo "  wwwroot        = {$CFG->wwwroot}\n";
+echo "  user.picture flag = {$user->picture} (0 = no uploaded photo, >0 = has photo)\n";
 try {
+    // Build the URL AS THIS USER — user_picture::get_url() falls back to the
+    // default image unless the viewer is allowed to see the profile photo, so
+    // without setting the session user a CLI run misleadingly shows the default.
+    \core\session\manager::set_user($user);
+
     $picpage = new \moodle_page();
     $picpage->set_context(context_system::instance());
     $up = new \user_picture($user);
-    $up->size = 1; // f1 (small)
-    echo "  userpictureurl = " . $up->get_url($picpage)->out(false) . "\n";
-    $up->size = 100; // f3 (large)
-    echo "  large picture  = " . $up->get_url($picpage)->out(false) . "\n";
-    echo "  user.picture flag = {$user->picture} (0 = no uploaded photo, >0 = has photo)\n";
+    $up->size = 1;
+    $normal = $up->get_url($picpage)->out(false);
+    echo "  userpictureurl = {$normal}\n";
+
+    // If it's a real uploaded photo (pluginfile), show the app-usable form:
+    // pluginfile.php needs auth, so an API client must call webservice/pluginfile.php
+    // with the token appended. This exact URL is fetchable in a browser to confirm.
+    if (strpos($normal, '/pluginfile.php') !== false) {
+        $wsurl = str_replace('/pluginfile.php', '/webservice/pluginfile.php', $normal);
+        $sep = (strpos($wsurl, '?') !== false) ? '&' : '?';
+        echo "  app-usable URL = {$wsurl}{$sep}token={$token}\n";
+        echo "                   (paste in a browser — should return the photo, not a login page)\n";
+    } else {
+        echo "  (this is the DEFAULT placeholder — user.picture is 0, no photo uploaded)\n";
+    }
 } catch (\Throwable $e) {
     echo $bad . "Could not build picture URL: " . $e->getMessage() . "\n";
 }

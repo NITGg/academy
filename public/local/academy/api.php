@@ -126,21 +126,33 @@ try {
             academy_respond(['status' => 'success', 'data' => \local_academy\quiz_manager::get_my_attempts($quizid, $userid)]);
             break;
 
-        // ── Teachers (instructor profiles) ──────────────────────────────────────────
+        // ── Teachers (instructor directory) ─────────────────────────────────────────
+        // Same names/params/response as the old academy so existing clients work.
 
-        // List instructors. Optional: search, courseid, categoryid, page, perpage.
-        case 'browse_teachers':
-            $filters = [
-                'search'     => optional_param('search', '', PARAM_TEXT),
-                'courseid'   => optional_param('courseid', 0, PARAM_INT),
-                'categoryid' => optional_param('categoryid', 0, PARAM_INT),
-                'page'       => optional_param('page', 0, PARAM_INT),
-                'perpage'    => optional_param('perpage', 20, PARAM_INT),
-            ];
-            academy_respond(['status' => 'success', 'data' => \local_academy\teacher_manager::browse_teachers($filters)]);
+        // Admin: full teacher directory with filters + pagination (manageplatform).
+        case 'get_all_teachers':
+            if (!has_capability('local/academy:manageplatform', context_system::instance())) {
+                academy_respond(['status' => 'fail', 'error' => get_string('err_authrequired', 'local_academy')]);
+            }
+            $filters = [];
+            foreach (['courseid', 'categoryid', 'page', 'perpage'] as $f) {
+                if (isset($_REQUEST[$f]) && $_REQUEST[$f] !== '') {
+                    $filters[$f] = required_param($f, PARAM_INT);
+                }
+            }
+            if (isset($_REQUEST['search']) && $_REQUEST['search'] !== '') {
+                $filters['search'] = required_param('search', PARAM_TEXT);
+            }
+            academy_respond(['status' => 'success', 'data' => \local_academy\teacher_manager::get_all_teachers($filters)]);
             break;
 
-        // A single instructor's profile + the courses they teach.
+        // Public: browse instructors (bare array, email dropped). Optional subject.
+        case 'browse_teachers':
+            $subject = optional_param('subject', '', PARAM_TEXT);
+            academy_respond(['status' => 'success', 'data' => \local_academy\teacher_manager::browse_teachers($subject)]);
+            break;
+
+        // Public: a single instructor's profile + the courses they teach.
         case 'get_teacher':
             $teacherid = required_param('teacherid', PARAM_INT);
             try {
@@ -151,7 +163,7 @@ try {
             academy_respond(['status' => 'success', 'data' => $teacher]);
             break;
 
-        // Just the courses a given instructor teaches.
+        // Just the courses a given instructor teaches (superset helper).
         case 'get_teacher_courses':
             $teacherid = required_param('teacherid', PARAM_INT);
             academy_respond(['status' => 'success', 'data' => \local_academy\teacher_manager::get_teacher_courses($teacherid)]);

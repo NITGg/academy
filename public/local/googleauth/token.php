@@ -52,6 +52,85 @@ function local_googleauth_fail(string $code, int $status = 400): void {
 }
 
 /**
+ * Import the user's Google profile photo into Moodle as their user picture.
+ *
+ * OAuth2/Google users otherwise have no Moodle picture (user.picture = 0), so
+ * every profile/site-info API returns the default placeholder even though the
+ * person has a Google avatar. We download the verified `picture` URL from the
+ * Google ID-token claims and store it as the standard user icon.
+ *
+ * Only runs when the user has no picture yet, so a manually uploaded photo is
+ * never overwritten. SSRF-guarded: only Google-hosted URLs are fetched.
+ *
+ * @param \stdClass $user       the resolved Moodle user (needs id, picture)
+ * @param string|null $pictureurl the `picture` claim from Google
+ */
+function local_googleauth_sync_picture(\stdClass $user, ?string $pictureurl): void {
+    global $CFG, $DB;
+
+    // Diagnostic: every path logs why it did/didn't sync. View on the server with:
+    //   docker compose logs moodle --since=3m | grep picsync
+    $log = function (string $msg) use ($user) {
+        error_log("local_googleauth picsync: userid={$user->id} {$msg}");
+    };
+
+    if (empty($pictureurl)) {
+        $log('SKIP no picture claim in Google ID token (app likely did not request the profile scope)');
+        return;
+    }
+    if (!empty($user->picture)) {
+        $log("SKIP user already has picture={$user->picture}");
+        return;
+    }
+
+    // SSRF guard: only ever fetch from Google's own image hosts.
+    $host = core_text::strtolower((string) parse_url($pictureurl, PHP_URL_HOST));
+    $allowed = (substr($host, -strlen('googleusercontent.com')) === 'googleusercontent.com')
+        || (substr($host, -strlen('.google.com')) === '.google.com');
+    if ($host === '' || !$allowed) {
+        $log("SKIP host not allowed: '{$host}'");
+        return;
+    }
+
+    require_once($CFG->libdir . '/gdlib.php');
+    require_once($CFG->libdir . '/filelib.php');
+
+    $tmp = make_request_directory() . '/googlepic';
+    $c = new \curl();
+    $c->setopt([
+        'CURLOPT_TIMEOUT' => 10, 'CURLOPT_CONNECTTIMEOUT' => 5,
+        'CURLOPT_FOLLOWLOCATION' => true, 'CURLOPT_MAXREDIRS' => 3,
+    ]);
+    $data = $c->get($pictureurl);
+    if ($c->get_errno() || $data === '' || $data === false) {
+        $log("FAIL download errno={$c->get_errno()} len=" . strlen((string) $data) . " url={$pictureurl}");
+        return;
+    }
+    if (file_put_contents($tmp, $data) === false) {
+        $log('FAIL could not write temp file');
+        return;
+    }
+    // Must be a real image.
+    if (getimagesize($tmp) === false) {
+        $log('FAIL downloaded data is not a recognised image (len=' . strlen((string) $data) . ')');
+        @unlink($tmp);
+        return;
+    }
+
+    $usercontext = \context_user::instance($user->id);
+    $newpicture = process_new_icon($usercontext, 'user', 'icon', 0, $tmp);
+    @unlink($tmp);
+
+    if ($newpicture) {
+        $DB->set_field('user', 'picture', $newpicture, ['id' => $user->id]);
+        $user->picture = $newpicture;
+        $log("OK stored picture={$newpicture}");
+    } else {
+        $log('FAIL process_new_icon returned falsy (GD missing or invalid image)');
+    }
+}
+
+/**
  * Per-IP request throttle. Approximate sliding window backed by MUC; a small
  * over-count under heavy concurrency is acceptable for rate limiting.
  *
@@ -261,6 +340,10 @@ if (empty($allowedlinkauth)) {
 if (!in_array($user->auth, $allowedlinkauth, true)) {
     local_googleauth_fail('auth_not_linkable', 403);
 }
+
+// Import the Google avatar as the Moodle user picture (only if they have none).
+// Failure here must never block sign-in, so it is best-effort inside the helper.
+local_googleauth_sync_picture($user, $info->picture ?? null);
 
 // 5) Standard account gates (mirror /login/token.php).
 if (isguestuser($user)) {
