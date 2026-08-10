@@ -70,7 +70,7 @@ try {
         'currency'       => $pricing->currency,
         'is_sale_active' => (bool) $pricing->is_sale_active,
         'discount_pct'   => (int) $pricing->discount_pct,
-        'buy_url'        => (new moodle_url('/local/payments/checkout.php', ['courseid' => $courseid]))->out(false),
+        'buy_url'        => (new moodle_url('/local/payments/checkout.php', ['courseid' => $courseid, 'sesskey' => sesskey()]))->out(false),
         'can_enroll_via_sub' => $can_enroll_via_sub,
         'enroll_url'     => (new moodle_url('/local/payments/buy.php', ['courseid' => $courseid, 'action' => 'enroll', 'sesskey' => sesskey()]))->out(false),
     ];

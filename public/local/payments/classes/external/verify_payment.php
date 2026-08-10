@@ -28,6 +28,16 @@ class verify_payment extends external_api {
         $context = \context_system::instance();
         self::validate_context($context);
 
+        // Ownership gate: a user may only verify their own order (staff with
+        // viewalltransactions may verify any). Stops order-id enumeration and
+        // forcing state transitions on other users' orders.
+        global $USER, $DB;
+        $tx = $DB->get_record('local_payments_transactions', ['order_id' => $params['order_id']]);
+        if ($tx && (int) $tx->userid !== (int) $USER->id
+                && !has_capability('local/payments:viewalltransactions', $context)) {
+            throw new \moodle_exception('invalidaccess', 'error');
+        }
+
         $result = \local_payments\manager::verify_callback($params['order_id']);
 
         return [

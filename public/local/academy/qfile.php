@@ -26,13 +26,8 @@ if (!in_array($area, ['questiontext', 'answer', 'generalfeedback'], true)) {
     send_file_not_found();
 }
 
-// ── Authenticate token → user ──
-$tokenrec = $DB->get_record('external_tokens', ['token' => $token]);
-if (!$tokenrec) {
-    header('HTTP/1.1 401 Unauthorized');
-    die('Invalid token');
-}
-$user = $DB->get_record('user', ['id' => $tokenrec->userid, 'deleted' => 0]);
+// ── Authenticate token → user (full validation: expiry, IP, service, account) ──
+$user = \local_academy\token_auth::validate($token);
 if (!$user) {
     header('HTTP/1.1 401 Unauthorized');
     die('Invalid token');

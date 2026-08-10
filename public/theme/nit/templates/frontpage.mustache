@@ -68,6 +68,7 @@
 <script>
 window.NIT_STATS = {{{ nitstatsjson }}};
 window.NIT_COURSES = {{{ nitcoursesjson }}};
+window.NIT_MY_COURSES = {{{ nitmycoursesjson }}};
 window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
 (function () {
     function esc(s) {
@@ -177,6 +178,43 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
         });
     }
 
+    // Clone each [data-nit-my-courses] container's <template> once per enrolled course
+    // (window.NIT_MY_COURSES = the current user's enrolments). Same token set as renderCourses.
+    function renderMyCourses() {
+        var data = window.NIT_MY_COURSES || [];
+        Array.prototype.forEach.call(document.querySelectorAll('[data-nit-my-courses]'), function (container) {
+            var tpl = container.querySelector('[data-nit-my-course-card]');
+            if (!tpl) { return; }
+            var emptyEl = container.querySelector('[data-nit-my-courses-empty]');
+            if (!data.length) {
+                if (emptyEl) { emptyEl.style.display = ''; }
+                return;
+            }
+            if (emptyEl) { emptyEl.style.display = 'none'; }
+            var freeLabel = container.getAttribute('data-free-label') || '';
+            var limit = parseInt(container.getAttribute('data-limit'), 10) || data.length;
+            var frag = document.createDocumentFragment();
+            data.slice(0, limit).forEach(function (c) {
+                var html = tpl.innerHTML
+                    .replace(/\{\{url\}\}/g, encodeURI(c.url || '#'))
+                    .replace(/\{\{image\}\}/g, encodeURI(c.image || ''))
+                    .replace(/\{\{fullname\}\}/g, esc(c.fullname))
+                    .replace(/\{\{summary\}\}/g, esc(c.summary))
+                    .replace(/\{\{teacher\}\}/g, esc(c.teacher))
+                    .replace(/\{\{price\}\}/g, esc(freeLabel));
+                var wrap = document.createElement('div');
+                wrap.innerHTML = html;
+                if (c.image) {
+                    Array.prototype.forEach.call(wrap.querySelectorAll('[data-nit-my-course-image]'), function (el) {
+                        nitLazyBg(el, c.image);
+                    });
+                }
+                while (wrap.firstChild) { frag.appendChild(wrap.firstChild); }
+            });
+            container.appendChild(frag);
+        });
+    }
+
     // Clone each [data-nit-categories] container's <template> once per category.
     function renderCategories() {
         var data = window.NIT_CATEGORIES || [];
@@ -216,7 +254,7 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
             btn.setAttribute('data-nit-wired', '1');
             btn.addEventListener('click', function () {
                 var wrapper = btn.parentElement;
-                var scroller = wrapper ? wrapper.querySelector('[data-nit-courses],[data-nit-categories]') : null;
+                var scroller = wrapper ? wrapper.querySelector('[data-nit-courses],[data-nit-my-courses],[data-nit-categories]') : null;
                 if (!scroller) { return; }
                 var dir = btn.getAttribute('data-nit-scroll') === 'next' ? 1 : -1;
                 // In RTL the horizontal scroll axis is mirrored, so flip the sign.
@@ -227,7 +265,7 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
         });
     }
 
-    function init() { fillStats(); renderCourses(); renderCategories(); wireSliders(); }
+    function init() { fillStats(); renderCourses(); renderMyCourses(); renderCategories(); wireSliders(); }
     if (document.readyState !== 'loading') { init(); }
     else { document.addEventListener('DOMContentLoaded', init); }
 })();

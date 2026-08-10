@@ -20,11 +20,16 @@ class get_profile_fields extends external_api {
 
         self::validate_context(\context_system::instance());
 
+        // This feeds the mobile signup form, so return ONLY fields flagged to
+        // appear on signup. That is both correct (those are the fields a new user
+        // should fill) and avoids exposing admin-only/hidden field definitions
+        // and their menu options to any authenticated web-service caller.
         $fields = $DB->get_records_sql("
             SELECT f.id, f.shortname, f.name, f.datatype, f.description, f.required,
                    f.visible, f.param1, f.defaultdata, f.categoryid, c.name AS categoryname
               FROM {user_info_field} f
               JOIN {user_info_category} c ON c.id = f.categoryid
+             WHERE f.signup = 1
           ORDER BY c.sortorder, f.sortorder
         ");
 

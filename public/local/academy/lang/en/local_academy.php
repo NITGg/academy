@@ -10,6 +10,7 @@ $string['err_authrequired']     = 'Authentication required';
 $string['err_invalidtoken']     = 'Invalid token';
 $string['err_permissiondenied'] = 'Permission denied';
 $string['err_unknownfunction']  = 'Unknown function';
+$string['err_internal']         = 'An internal error occurred. Please try again later.';
 
 // Quiz manager.
 $string['notenrolled'] = 'You are not enrolled in this course';

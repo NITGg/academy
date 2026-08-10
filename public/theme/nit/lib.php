@@ -510,6 +510,82 @@ function theme_nit_get_courses(int $limit = 12): array {
 }
 
 /**
+ * The courses the current user is enrolled in, as view-models for the front-page "My courses" section.
+ *
+ * Exposed to JavaScript as `window.NIT_MY_COURSES`; a NIT Section block renders them via a
+ * <template> keyed on `data-nit-my-courses` / `data-nit-my-course-card`. Per-user, so not cached.
+ *
+ * @param int $limit maximum number of courses
+ * @return array<int, array{id:int,fullname:string,summary:string,url:string,image:string,price:string,is_free:bool,teacher:string}>
+ */
+function theme_nit_get_enrolled_courses(int $limit = 12): array {
+    global $CFG, $OUTPUT, $USER;
+    require_once($CFG->libdir . '/filelib.php');
+    require_once($CFG->libdir . '/enrollib.php');
+
+    if (empty($USER->id) || isguestuser()) {
+        return [];
+    }
+
+    // The user's enrolled, visible courses (most recently accessed first).
+    $records = enrol_get_my_courses('*', 'visible DESC, sortorder ASC');
+    $fs = get_file_storage();
+    $courses = [];
+    foreach ($records as $c) {
+        if ((int) $c->id === (int) SITEID || empty($c->visible)) {
+            continue;
+        }
+        $context = context_course::instance($c->id);
+
+        // Course image: overview file, else a generated pattern.
+        $image = '';
+        $files = $fs->get_area_files($context->id, 'course', 'overviewfiles', 0, 'filename', false);
+        foreach ($files as $file) {
+            if ($file->is_valid_image()) {
+                $image = moodle_url::make_pluginfile_url(
+                    $file->get_contextid(),
+                    $file->get_component(),
+                    $file->get_filearea(),
+                    null,
+                    $file->get_filepath(),
+                    $file->get_filename()
+                )->out(false);
+                break;
+            }
+        }
+        if ($image === '') {
+            $image = $OUTPUT->get_generated_image_for_id($c->id);
+        }
+
+        // Short plain-text summary.
+        $summary = '';
+        if (!empty($c->summary)) {
+            $plain = html_to_text(
+                format_text($c->summary, $c->summaryformat ?? FORMAT_HTML, ['context' => $context, 'noclean' => true]),
+                0,
+                false
+            );
+            $summary = shorten_text(trim($plain), 120);
+        }
+
+        $courses[] = [
+            'id' => (int) $c->id,
+            'fullname' => format_string($c->fullname, true, ['context' => $context]),
+            'summary' => $summary,
+            'url' => (new moodle_url('/course/view.php', ['id' => $c->id]))->out(false),
+            'image' => $image,
+            'price' => '',
+            'is_free' => true,
+            'teacher' => theme_nit_course_teacher((int) $c->id),
+        ];
+        if (count($courses) >= $limit) {
+            break;
+        }
+    }
+    return $courses;
+}
+
+/**
  * Main SCSS: Boost's preset, then the NIT component layer.
  *
  * @param theme_config $theme the theme config object

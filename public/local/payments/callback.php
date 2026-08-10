@@ -7,6 +7,16 @@ $kashier_status = strtoupper(optional_param('paymentStatus', '', PARAM_ALPHANUME
 
 require_login();
 
+// Ownership gate: only the buyer (or a staff member with viewalltransactions)
+// may act on / read an order. Without this, any logged-in user could flip
+// another user's PENDING order to FAILED, or read its course, by guessing the
+// semi-sequential order id.
+$owntx = $DB->get_record('local_payments_transactions', ['order_id' => $order_id]);
+if ($owntx && (int) $owntx->userid !== (int) $USER->id
+        && !has_capability('local/payments:viewalltransactions', context_system::instance())) {
+    throw new moodle_exception('invalidaccess', 'error');
+}
+
 $PAGE->set_url(new moodle_url('/local/payments/callback.php', ['order_id' => $order_id]));
 $PAGE->set_context(context_system::instance());
 $PAGE->set_pagelayout('standard');

@@ -123,6 +123,7 @@ $courseurl = $PAGE->course ? new \core\url('/course/view.php', ['id' => $PAGE->c
 // and reused for the client-side render, the crawlable SEO fallback, and the
 // JSON-LD structured data below.
 $nitcourses = theme_nit_get_courses(12);
+$nitmycourses = theme_nit_get_enrolled_courses(12);
 $nitstats = theme_nit_get_site_stats();
 
 // NIT (SEO): a server-rendered, crawlable list of course links. The visible
@@ -212,6 +213,8 @@ $templatecontext = [
     'nitstatsjson' => json_encode($nitstats, JSON_UNESCAPED_UNICODE),
     // NIT: course view-models exposed as window.NIT_COURSES.
     'nitcoursesjson' => json_encode($nitcourses, JSON_UNESCAPED_UNICODE),
+    // NIT: the current user's enrolled-course view-models exposed as window.NIT_MY_COURSES.
+    'nitmycoursesjson' => json_encode($nitmycourses, JSON_UNESCAPED_UNICODE),
     // NIT (SEO): schema.org JSON-LD + crawlable fallback links for the courses.
     'nitcoursesldjson' => $nitcoursesldjson,
     'nitcoursesnoscript' => $nitcoursesnoscript,

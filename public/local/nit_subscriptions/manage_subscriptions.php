@@ -696,8 +696,13 @@ echo html_writer::script(<<<'JS'
         if (ev.key === 'Escape' && $('unsub-modal-backdrop').style.display !== 'none') { closeUnsubscribeModal(); }
     });
     $('unsub-modal-confirm').addEventListener('click', function() {
-        // Unsubscribe requires the purchase subsystem (not built yet); the table is empty for now.
-        closeUnsubscribeModal();
+        var row = pendingUnsubscribe;
+        if (!row) { return; }
+        api('unsubscribe_user', { purchaseid: row.id }, 'POST').then(function() {
+            msg(str('sub_unsub_success'), 'success');
+            closeUnsubscribeModal();
+            loadUsers();
+        }).catch(function(e) { msg(e.message, 'danger'); });
     });
 
     $('refresh-users').addEventListener('click', loadUsers);
