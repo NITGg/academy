@@ -34,6 +34,10 @@ if ($kashier_status === 'FAILED') {
             'reject_reason' => 'Payment failed at provider (redirect)',
             'timemodified'  => time(),
         ]);
+        // Release any coupon/offer reservation this failed checkout was holding.
+        if (class_exists('\local_nit_commerce\discount_manager')) {
+            \local_nit_commerce\discount_manager::release_usage((int) $transaction->id);
+        }
     }
 
     $PAGE->set_title(get_string('payment_failure', 'local_payments'));
