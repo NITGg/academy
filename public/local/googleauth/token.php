@@ -68,8 +68,19 @@ function local_googleauth_fail(string $code, int $status = 400): void {
 function local_googleauth_sync_picture(\stdClass $user, ?string $pictureurl): void {
     global $CFG, $DB;
 
-    if (empty($pictureurl) || !empty($user->picture)) {
-        return; // Nothing to import, or the user already has a photo.
+    // Diagnostic: every path logs why it did/didn't sync. View on the server with:
+    //   docker compose logs moodle --since=3m | grep picsync
+    $log = function (string $msg) use ($user) {
+        error_log("local_googleauth picsync: userid={$user->id} {$msg}");
+    };
+
+    if (empty($pictureurl)) {
+        $log('SKIP no picture claim in Google ID token (app likely did not request the profile scope)');
+        return;
+    }
+    if (!empty($user->picture)) {
+        $log("SKIP user already has picture={$user->picture}");
+        return;
     }
 
     // SSRF guard: only ever fetch from Google's own image hosts.
@@ -77,6 +88,7 @@ function local_googleauth_sync_picture(\stdClass $user, ?string $pictureurl): vo
     $allowed = (substr($host, -strlen('googleusercontent.com')) === 'googleusercontent.com')
         || (substr($host, -strlen('.google.com')) === '.google.com');
     if ($host === '' || !$allowed) {
+        $log("SKIP host not allowed: '{$host}'");
         return;
     }
 
@@ -91,13 +103,16 @@ function local_googleauth_sync_picture(\stdClass $user, ?string $pictureurl): vo
     ]);
     $data = $c->get($pictureurl);
     if ($c->get_errno() || $data === '' || $data === false) {
+        $log("FAIL download errno={$c->get_errno()} len=" . strlen((string) $data) . " url={$pictureurl}");
         return;
     }
     if (file_put_contents($tmp, $data) === false) {
+        $log('FAIL could not write temp file');
         return;
     }
     // Must be a real image.
     if (getimagesize($tmp) === false) {
+        $log('FAIL downloaded data is not a recognised image (len=' . strlen((string) $data) . ')');
         @unlink($tmp);
         return;
     }
@@ -109,6 +124,9 @@ function local_googleauth_sync_picture(\stdClass $user, ?string $pictureurl): vo
     if ($newpicture) {
         $DB->set_field('user', 'picture', $newpicture, ['id' => $user->id]);
         $user->picture = $newpicture;
+        $log("OK stored picture={$newpicture}");
+    } else {
+        $log('FAIL process_new_icon returned falsy (GD missing or invalid image)');
     }
 }
 
