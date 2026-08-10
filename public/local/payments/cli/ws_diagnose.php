@@ -181,4 +181,22 @@ if ($options['function'] !== '') {
     }
 }
 
+// 8. Show the profile-picture URL Moodle generates for this user (this is what
+//    core_webservice_get_site_info returns as userpictureurl). Reveals a
+//    wrong-path / subpath / token issue without needing the app.
+echo "\n---- Profile picture URL for this user ----\n";
+echo "  wwwroot        = {$CFG->wwwroot}\n";
+try {
+    $picpage = new \moodle_page();
+    $picpage->set_context(context_system::instance());
+    $up = new \user_picture($user);
+    $up->size = 1; // f1 (small)
+    echo "  userpictureurl = " . $up->get_url($picpage)->out(false) . "\n";
+    $up->size = 100; // f3 (large)
+    echo "  large picture  = " . $up->get_url($picpage)->out(false) . "\n";
+    echo "  user.picture flag = {$user->picture} (0 = no uploaded photo, >0 = has photo)\n";
+} catch (\Throwable $e) {
+    echo $bad . "Could not build picture URL: " . $e->getMessage() . "\n";
+}
+
 echo "\n==== done ====\n";
