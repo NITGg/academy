@@ -334,7 +334,25 @@ function theme_nit_get_site_stats(): array {
  * @return string e.g. "250.00 EGP" or '' (free)
  */
 function theme_nit_course_price(int $courseid): string {
-    global $DB;
+    global $DB, $USER;
+
+    // Prefer the local_payments plugin: it stores per-country course prices in
+    // its own table (local_payments_course_prices), independent of Moodle's core
+    // enrol methods. Resolve the price for the current user's country, falling
+    // back to the course default. When the plugin isn't available, fall back to
+    // core fee/paypal enrolment costs below.
+    if (class_exists('\local_payments\price_resolver')
+        && \local_payments\price_resolver::has_pricing($courseid)) {
+        try {
+            $pricing = \local_payments\price_resolver::resolve(
+                $courseid,
+                !empty($USER->id) ? (int) $USER->id : null
+            );
+            return format_float($pricing->price, 2, false) . ' ' . $pricing->currency;
+        } catch (\moodle_exception $e) {
+            // No matching rule for this country — fall through to free/enrol.
+        }
+    }
 
     $recs = $DB->get_records_select(
         'enrol',
