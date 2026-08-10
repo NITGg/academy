@@ -126,6 +126,37 @@ try {
             academy_respond(['status' => 'success', 'data' => \local_academy\quiz_manager::get_my_attempts($quizid, $userid)]);
             break;
 
+        // ── Teachers (instructor profiles) ──────────────────────────────────────────
+
+        // List instructors. Optional: search, courseid, categoryid, page, perpage.
+        case 'browse_teachers':
+            $filters = [
+                'search'     => optional_param('search', '', PARAM_TEXT),
+                'courseid'   => optional_param('courseid', 0, PARAM_INT),
+                'categoryid' => optional_param('categoryid', 0, PARAM_INT),
+                'page'       => optional_param('page', 0, PARAM_INT),
+                'perpage'    => optional_param('perpage', 20, PARAM_INT),
+            ];
+            academy_respond(['status' => 'success', 'data' => \local_academy\teacher_manager::browse_teachers($filters)]);
+            break;
+
+        // A single instructor's profile + the courses they teach.
+        case 'get_teacher':
+            $teacherid = required_param('teacherid', PARAM_INT);
+            try {
+                $teacher = \local_academy\teacher_manager::get_teacher($teacherid);
+            } catch (\moodle_exception $e) {
+                academy_respond(['status' => 'fail', 'error' => get_string('err_teachernotfound', 'local_academy')]);
+            }
+            academy_respond(['status' => 'success', 'data' => $teacher]);
+            break;
+
+        // Just the courses a given instructor teaches.
+        case 'get_teacher_courses':
+            $teacherid = required_param('teacherid', PARAM_INT);
+            academy_respond(['status' => 'success', 'data' => \local_academy\teacher_manager::get_teacher_courses($teacherid)]);
+            break;
+
         default:
             academy_respond(['status' => 'fail', 'error' => get_string('err_unknownfunction', 'local_academy')]);
     }
