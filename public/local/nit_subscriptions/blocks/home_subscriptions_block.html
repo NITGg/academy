@@ -1,0 +1,82 @@
+<!--
+  NIT — Available subscriptions home-page block.
+  Paste this whole snippet into an HTML block / text area on the home page.
+  It fetches active subscription plans from /local/nit_subscriptions/api.php (public read) and
+  renders responsive cards. Requires the block to allow inline <script>. Self-contained (scoped CSS).
+-->
+<div class="nit-subs-block" data-endpoint="/local/nit_subscriptions/api.php">
+  <style>
+    .nit-subs-block { --nit-primary:#2A50C8; --nit-ink:#1c1d1f; --nit-muted:#6a6f73; --nit-border:#e5e7eb;
+      font-family: inherit; margin: 2rem 0; }
+    .nit-subs-block * { box-sizing: border-box; }
+    .nit-subs-block__head { text-align:center; margin-bottom:1.5rem; }
+    .nit-subs-block__title { font-size:1.6rem; font-weight:800; color:var(--nit-ink); margin:0 0 .25rem; }
+    .nit-subs-block__sub { color:var(--nit-muted); margin:0; }
+    .nit-subs-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:1.1rem; }
+    .nit-sub-card { border:1px solid var(--nit-border); border-radius:16px; background:#fff; overflow:hidden;
+      display:flex; flex-direction:column; box-shadow:0 6px 18px rgba(20,30,80,.06);
+      transition:transform .18s ease, box-shadow .18s ease; }
+    .nit-sub-card:hover { transform:translateY(-4px); box-shadow:0 14px 30px rgba(20,30,80,.12); }
+    .nit-sub-card__band { background:linear-gradient(135deg, var(--nit-primary), #4a6cf7); color:#fff;
+      padding:1.1rem 1.25rem; position:relative; }
+    .nit-sub-card__name { font-size:1.15rem; font-weight:700; margin:0; word-break:break-word; }
+    .nit-sub-card__b2b { position:absolute; top:.8rem; inset-inline-end:.9rem; background:rgba(255,255,255,.25);
+      border:1px solid rgba(255,255,255,.5); border-radius:999px; font-size:.7rem; font-weight:700; padding:.1rem .5rem; }
+    .nit-sub-card__body { padding:1.1rem 1.25rem; flex:1; display:flex; flex-direction:column; gap:.65rem; }
+    .nit-sub-card__price { font-size:1.9rem; font-weight:800; color:var(--nit-ink); line-height:1; }
+    .nit-sub-card__price small { font-size:.85rem; font-weight:600; color:var(--nit-muted); }
+    .nit-sub-card__desc { color:var(--nit-muted); font-size:.9rem; margin:0; }
+    .nit-sub-card__meta { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:auto; }
+    .nit-sub-chip { background:#eef2ff; color:var(--nit-primary); border-radius:999px; font-size:.78rem;
+      font-weight:600; padding:.25rem .7rem; }
+    .nit-subs-block__msg { text-align:center; color:var(--nit-muted); padding:1.5rem; }
+    @media (prefers-color-scheme: dark) {
+      .nit-subs-block { --nit-ink:#f3f4f6; --nit-muted:#9aa0a6; --nit-border:#2b2f36; }
+      .nit-sub-card { background:#1b1e24; box-shadow:none; }
+      .nit-sub-chip { background:#26305a; }
+    }
+  </style>
+
+  <div class="nit-subs-block__head">
+    <h2 class="nit-subs-block__title">Available subscriptions</h2>
+    <p class="nit-subs-block__sub">Unlock course access with a plan that fits you.</p>
+  </div>
+  <div class="nit-subs-grid" data-subs-grid>
+    <div class="nit-subs-block__msg" data-subs-msg>Loading…</div>
+  </div>
+
+  <script>
+  (function () {
+    var root = document.currentScript.closest('.nit-subs-block');
+    var grid = root.querySelector('[data-subs-grid]');
+    var endpoint = root.getAttribute('data-endpoint') + '?function=get_available_subscriptions';
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+    function money(n){ return (Math.round(Number(n)*100)/100).toLocaleString(undefined,{minimumFractionDigits:0}); }
+    function strip(html){ var d=document.createElement('div'); d.innerHTML=html||''; return (d.textContent||'').trim(); }
+    function msg(t){ grid.innerHTML = '<div class="nit-subs-block__msg">'+esc(t)+'</div>'; }
+    fetch(endpoint, { headers: { 'Accept': 'application/json' } })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if (!res || res.status !== 'success') { throw new Error('load failed'); }
+        var rows = res.data || [];
+        if (!rows.length) { msg('No subscriptions available right now.'); return; }
+        grid.innerHTML = rows.map(function(s){
+          var desc = strip(s.description);
+          var courses = s.courses_count ? '<span class="nit-sub-chip">'+s.courses_count+' course'+(s.courses_count>1?'s':'')+'</span>' : '';
+          var b2b = s.b2b_enabled ? '<span class="nit-sub-card__b2b">B2B</span>' : '';
+          return '<div class="nit-sub-card">'+
+              '<div class="nit-sub-card__band">'+b2b+'<h3 class="nit-sub-card__name">'+esc(s.name)+'</h3></div>'+
+              '<div class="nit-sub-card__body">'+
+                '<div class="nit-sub-card__price">'+money(s.price)+' <small>EGP</small></div>'+
+                (desc ? '<p class="nit-sub-card__desc">'+esc(desc)+'</p>' : '')+
+                '<div class="nit-sub-card__meta">'+
+                  '<span class="nit-sub-chip">'+esc(s.duration_days)+' days access</span>'+courses+
+                '</div>'+
+              '</div>'+
+            '</div>';
+        }).join('');
+      })
+      .catch(function(){ msg('Could not load subscriptions.'); });
+  })();
+  </script>
+</div>
