@@ -91,15 +91,15 @@ class price_resolver {
      */
     public static function is_covered_by_active_subscription(int $courseid, int $userid): bool {
         if ($userid <= 0
-            || !class_exists('\local_academy\subscription_purchase_manager')
-            || !class_exists('\local_academy\subscription_manager')) {
+            || !class_exists('\local_nit_subscriptions\subscription_purchase_manager')
+            || !class_exists('\local_nit_subscriptions\subscription_manager')) {
             return false;
         }
-        $activesub = \local_academy\subscription_purchase_manager::get_active_subscription($userid);
+        $activesub = \local_nit_subscriptions\subscription_purchase_manager::get_active_subscription($userid);
         if (!$activesub) {
             return false;
         }
-        $covered_courses = \local_academy\subscription_manager::courses_for_subscription($activesub->subscriptionid);
+        $covered_courses = \local_nit_subscriptions\subscription_manager::courses_for_subscription($activesub->subscriptionid);
         return in_array($courseid, $covered_courses);
     }
 

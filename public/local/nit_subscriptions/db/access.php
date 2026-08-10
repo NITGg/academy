@@ -33,4 +33,12 @@ $capabilities = [
             'manager' => CAP_ALLOW,
         ],
     ],
+    // Purchase a subscription for oneself (start a checkout).
+    'local/nit_subscriptions:subscribe' => [
+        'captype'      => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes'   => [
+            'user' => CAP_ALLOW,
+        ],
+    ],
 ];

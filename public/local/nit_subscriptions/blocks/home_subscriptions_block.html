@@ -1,82 +1,242 @@
-<!--
-  NIT — Available subscriptions home-page block.
-  Paste this whole snippet into an HTML block / text area on the home page.
-  It fetches active subscription plans from /local/nit_subscriptions/api.php (public read) and
-  renders responsive cards. Requires the block to allow inline <script>. Self-contained (scoped CSS).
--->
-<div class="nit-subs-block" data-endpoint="/local/nit_subscriptions/api.php">
-  <style>
-    .nit-subs-block { --nit-primary:#2A50C8; --nit-ink:#1c1d1f; --nit-muted:#6a6f73; --nit-border:#e5e7eb;
-      font-family: inherit; margin: 2rem 0; }
-    .nit-subs-block * { box-sizing: border-box; }
-    .nit-subs-block__head { text-align:center; margin-bottom:1.5rem; }
-    .nit-subs-block__title { font-size:1.6rem; font-weight:800; color:var(--nit-ink); margin:0 0 .25rem; }
-    .nit-subs-block__sub { color:var(--nit-muted); margin:0; }
-    .nit-subs-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:1.1rem; }
-    .nit-sub-card { border:1px solid var(--nit-border); border-radius:16px; background:#fff; overflow:hidden;
-      display:flex; flex-direction:column; box-shadow:0 6px 18px rgba(20,30,80,.06);
-      transition:transform .18s ease, box-shadow .18s ease; }
-    .nit-sub-card:hover { transform:translateY(-4px); box-shadow:0 14px 30px rgba(20,30,80,.12); }
-    .nit-sub-card__band { background:linear-gradient(135deg, var(--nit-primary), #4a6cf7); color:#fff;
-      padding:1.1rem 1.25rem; position:relative; }
-    .nit-sub-card__name { font-size:1.15rem; font-weight:700; margin:0; word-break:break-word; }
-    .nit-sub-card__b2b { position:absolute; top:.8rem; inset-inline-end:.9rem; background:rgba(255,255,255,.25);
-      border:1px solid rgba(255,255,255,.5); border-radius:999px; font-size:.7rem; font-weight:700; padding:.1rem .5rem; }
-    .nit-sub-card__body { padding:1.1rem 1.25rem; flex:1; display:flex; flex-direction:column; gap:.65rem; }
-    .nit-sub-card__price { font-size:1.9rem; font-weight:800; color:var(--nit-ink); line-height:1; }
-    .nit-sub-card__price small { font-size:.85rem; font-weight:600; color:var(--nit-muted); }
-    .nit-sub-card__desc { color:var(--nit-muted); font-size:.9rem; margin:0; }
-    .nit-sub-card__meta { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:auto; }
-    .nit-sub-chip { background:#eef2ff; color:var(--nit-primary); border-radius:999px; font-size:.78rem;
-      font-weight:600; padding:.25rem .7rem; }
-    .nit-subs-block__msg { text-align:center; color:var(--nit-muted); padding:1.5rem; }
-    @media (prefers-color-scheme: dark) {
-      .nit-subs-block { --nit-ink:#f3f4f6; --nit-muted:#9aa0a6; --nit-border:#2b2f36; }
-      .nit-sub-card { background:#1b1e24; box-shadow:none; }
-      .nit-sub-chip { background:#26305a; }
-    }
-  </style>
+<!-- NIT — Available subscriptions home-page block (with Subscribe + Kashier checkout modal).
+     Paste into an HTML block on the home page. Inline styles only (editor-safe).
+     Subscribe -> confirm modal (coupon Apply + Proceed to payment via Kashier).
+     Optional: if it can't find the API, set data-base to your Moodle URL,
+     e.g. data-base="https://academy2026.nitg-eg.com/moodle-new" -->
+<div dir="auto" data-nit-subs
+  data-endpoint="/local/nit_subscriptions/api.php"
+  data-commerce="/local/nit_commerce/api.php"
+  data-base=""
+  style="background: var(--nit-darkbackground, #0a1628); padding: 64px 16px;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <!-- Header -->
+    <div style="text-align: center; margin-bottom: 40px; color: var(--nit-darktextprimary, #ffffff);">
+      <span style="display: inline-block; background: color-mix(in srgb, var(--nit-accentgolddark, #c9922a) 15%, transparent); border: 1px solid color-mix(in srgb, var(--nit-accentgolddark, #c9922a) 30%, transparent); border-radius: 50px; padding: 6px 18px; font-size: 14px; color: var(--nit-accentgold, #e8b84b); font-weight: bold;">
+        {mlang en}Subscriptions{mlang}{mlang ar}الاشتراكات{mlang}
+      </span>
+      <h2 style="font-size: clamp(26px,4vw,38px); font-weight: 800; margin: 16px 0 0; color: var(--nit-darktextprimary, #ffffff);">
+        {mlang en}Available subscriptions{mlang}{mlang ar}الاشتراكات المتاحة{mlang}</h2>
+    </div>
 
-  <div class="nit-subs-block__head">
-    <h2 class="nit-subs-block__title">Available subscriptions</h2>
-    <p class="nit-subs-block__sub">Unlock course access with a plan that fits you.</p>
+    <!-- Slider Wrapper -->
+    <div style="position: relative; padding: 0 28px;">
+      <!-- LEFT ARROW --> <button
+        style="position: absolute; inset-inline-start: -23px; top: 50%; transform: translateY(-50%); z-index: 20; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 50%, transparent); background: var(--nit-darksurface, #0f1e33); color: var(--nit-accentgold, #e8b84b); font-size: 29px; font-weight: bold; line-height: 1; padding: 0; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.35);"
+        type="button" data-nit-subs-scroll="prev">‹</button>
+
+      <!-- SUBSCRIPTIONS HORIZONTAL SCROLL -->
+      <div data-nit-subs-scroller
+        style="display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; gap: 20px; width: 100%; overflow-x: auto; overflow-y: hidden; padding: 8px 4px 20px; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--nit-accentgold, #e8b84b) var(--nit-darksurface, #0f1e33); -webkit-overflow-scrolling: touch;">
+
+        <!-- CARD TEMPLATE (hidden; cloned per plan) -->
+        <div style="display: none; flex: 0 0 300px; flex-grow: 0; flex-shrink: 0; width: 300px; min-width: 300px; max-width: 300px; scroll-snap-align: start;"
+          data-nit-subs-card>
+          <div style="box-sizing: border-box; width: 300px; min-height: 320px; background: var(--nit-darksurface, #0f1e33); border: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 6%, transparent); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; scroll-snap-align: start;">
+            <div style="position: relative; padding: 20px; background: linear-gradient(135deg, var(--nit-darksurfacevariant, #13293f), var(--nit-darksurface, #0f1e33)); border-bottom: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 6%, transparent);">
+              <span data-nit-b2b
+                style="display: none; position: absolute; top: 16px; inset-inline-end: 16px; background: var(--nit-accentteal, #00a99d); color: #fff; font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 50px;">B2B</span>
+              <h3 style="font-size: 18px; font-weight: bold; color: var(--nit-darktextprimary, #ffffff); margin: 0; line-height: 1.4; padding-inline-end: 42px;">{{name}}</h3>
+            </div>
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px; flex: 1;">
+              <div style="font-size: 30px; font-weight: 800; color: var(--nit-accentgold, #e8b84b); line-height: 1;">
+                {{price}} <span style="font-size: 14px; font-weight: 600; color: var(--nit-darktextsecondary, #8a9ab5);">{mlang en}EGP{mlang}{mlang ar}ج.م{mlang}</span></div>
+              <p data-nit-desc style="font-size: 13px; color: var(--nit-darktextsecondary, #8a9ab5); line-height: 1.7; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{description}}</p>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto;">
+                <span style="background: color-mix(in srgb, var(--nit-accentgold, #e8b84b) 12%, transparent); color: var(--nit-accentgold, #e8b84b); border-radius: 50px; font-size: 12px; font-weight: 600; padding: 5px 12px;">{{days}} {mlang en}days access{mlang}{mlang ar}يوم وصول{mlang}</span>
+                <span data-nit-courses-chip style="display: none; background: color-mix(in srgb, var(--nit-accentteal, #00a99d) 15%, transparent); color: var(--nit-accentteal, #00a99d); border-radius: 50px; font-size: 12px; font-weight: 600; padding: 5px 12px;">{{courses}} {mlang en}courses{mlang}{mlang ar}كورس{mlang}</span>
+              </div>
+              <button type="button" data-nit-buy
+                style="display: block; width: 100%; box-sizing: border-box; text-align: center; background: linear-gradient(135deg, var(--nit-accentgolddark, #c9922a), var(--nit-accentgold, #e8b84b)); color: var(--nit-darkbackground, #0a1628); font-weight: bold; padding: 11px 12px; border: 0; border-radius: 8px; cursor: pointer; font-size: 15px;">
+                {mlang en}Subscribe{mlang}{mlang ar}اشترك{mlang}</button>
+            </div>
+          </div>
+        </div>
+
+        <div data-nit-subs-msg style="color: var(--nit-darktextsecondary, #8a9ab5); padding: 24px 8px; font-size: 15px;">…</div>
+      </div>
+
+      <!-- RIGHT ARROW --> <button
+        style="position: absolute; inset-inline-end: -23px; top: 50%; transform: translateY(-50%); z-index: 20; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 50%, transparent); background: var(--nit-darksurface, #0f1e33); color: var(--nit-accentgold, #e8b84b); font-size: 29px; font-weight: bold; line-height: 1; padding: 0; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.35);"
+        type="button" data-nit-subs-scroll="next">›</button>
+    </div>
   </div>
-  <div class="nit-subs-grid" data-subs-grid>
-    <div class="nit-subs-block__msg" data-subs-msg>Loading…</div>
+
+  <!-- CONFIRM MODAL -->
+  <div data-nit-modal
+    style="display: none; position: fixed; inset: 0; background: rgba(3,8,20,.72); z-index: 1080; align-items: center; justify-content: center; padding: 16px;">
+    <div style="width: 100%; max-width: 460px; background: var(--nit-darksurface, #0f1e33); border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 22%, transparent); border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.5); overflow: hidden;">
+      <div style="padding: 22px 24px 0;">
+        <h3 style="display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 800; color: var(--nit-darktextprimary, #ffffff); margin: 0;">
+          <span style="color: var(--nit-accentgold, #e8b84b);">♛</span> {mlang en}Confirm your subscription{mlang}{mlang ar}تأكيد الاشتراك{mlang}</h3>
+        <p style="color: var(--nit-darktextsecondary, #8a9ab5); font-size: 14px; line-height: 1.6; margin: 10px 0 0;">
+          {mlang en}You are about to subscribe to this plan. You will be taken to secure checkout to complete the payment.{mlang}{mlang ar}أنت على وشك الاشتراك في هذه الخطة. سيتم تحويلك إلى صفحة الدفع الآمن لإتمام العملية.{mlang}</p>
+      </div>
+      <div style="margin: 18px 24px; padding: 16px; border: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 10%, transparent); border-radius: 12px; background: var(--nit-darkbackground, #0a1628);">
+        <div data-nit-m-name style="font-size: 15px; font-weight: 700; color: var(--nit-darktextprimary, #ffffff); margin-bottom: 12px;"></div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); margin-bottom: 8px;">
+          <span>{mlang en}Duration{mlang}{mlang ar}المدة{mlang}</span><b data-nit-m-days style="color: var(--nit-darktextprimary, #ffffff);"></b></div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); margin-bottom: 12px;">
+          <span>{mlang en}Total{mlang}{mlang ar}الإجمالي{mlang}</span><b data-nit-m-original style="color: var(--nit-darktextprimary, #ffffff);"></b></div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); flex: 0 0 auto;">{mlang en}Coupon{mlang}{mlang ar}كوبون{mlang}</span>
+          <input data-nit-m-coupon type="text" autocomplete="off"
+            style="flex: 1; min-width: 0; background: var(--nit-darksurface, #0f1e33); border: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 15%, transparent); border-radius: 8px; color: var(--nit-darktextprimary, #ffffff); padding: 7px 10px; font-size: 14px;">
+          <button type="button" data-nit-m-apply
+            style="flex: 0 0 auto; background: transparent; border: 1px solid var(--nit-accentgold, #e8b84b); color: var(--nit-accentgold, #e8b84b); border-radius: 8px; padding: 7px 14px; font-weight: 700; cursor: pointer; font-size: 14px;">{mlang en}Apply{mlang}{mlang ar}تطبيق{mlang}</button>
+        </div>
+        <div data-nit-m-couponerr style="display:none; color:#ff6b6b; font-size:12px; margin: -6px 0 10px;"></div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); margin-bottom: 12px;">
+          <span>{mlang en}Discount{mlang}{mlang ar}الخصم{mlang}</span><b data-nit-m-discount style="color: var(--nit-accentteal, #00a99d);">0.00 EGP</b></div>
+        <div style="border-top: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 10%, transparent); padding-top: 12px; display: flex; justify-content: space-between; font-size: 16px; font-weight: 800;">
+          <span style="color: var(--nit-darktextprimary, #ffffff);">{mlang en}Total{mlang}{mlang ar}الإجمالي{mlang}</span><b data-nit-m-final style="color: var(--nit-accentgold, #e8b84b);"></b></div>
+      </div>
+      <div style="padding: 0 24px; color: var(--nit-darktextsecondary, #8a9ab5); font-size: 13px; display: flex; align-items: center; gap: 6px;">
+        <span>🔒</span> {mlang en}Secure payment via Kashier{mlang}{mlang ar}دفع آمن عبر Kashier{mlang}</div>
+      <div data-nit-m-error style="display:none; margin: 12px 24px 0; color:#ff6b6b; font-size:13px;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 18px 24px 22px;">
+        <button type="button" data-nit-m-cancel
+          style="background: transparent; border: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 18%, transparent); color: var(--nit-darktextsecondary, #8a9ab5); border-radius: 8px; padding: 9px 18px; font-weight: 700; cursor: pointer;">{mlang en}Cancel{mlang}{mlang ar}إلغاء{mlang}</button>
+        <button type="button" data-nit-m-proceed
+          style="background: linear-gradient(135deg, var(--nit-accentgolddark, #c9922a), var(--nit-accentgold, #e8b84b)); border: 0; color: var(--nit-darkbackground, #0a1628); border-radius: 8px; padding: 9px 20px; font-weight: 800; cursor: pointer;">{mlang en}Proceed to payment{mlang}{mlang ar}متابعة الدفع{mlang}</button>
+      </div>
+    </div>
   </div>
 
   <script>
   (function () {
-    var root = document.currentScript.closest('.nit-subs-block');
-    var grid = root.querySelector('[data-subs-grid]');
-    var endpoint = root.getAttribute('data-endpoint') + '?function=get_available_subscriptions';
+    var root = (document.currentScript && document.currentScript.closest('[data-nit-subs]'))
+      || document.querySelector('[data-nit-subs]');
+    if (!root || root.getAttribute('data-nit-wired')) { return; }
+    root.setAttribute('data-nit-wired', '1');
+    var scroller = root.querySelector('[data-nit-subs-scroller]');
+    var tpl = root.querySelector('[data-nit-subs-card]');
+    var msg = root.querySelector('[data-nit-subs-msg]');
+    var modal = root.querySelector('[data-nit-modal]');
+    var base = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : (root.getAttribute('data-base') || '');
+    var sesskey = (window.M && M.cfg && M.cfg.sesskey) ? M.cfg.sesskey : '';
+    var subsUrl = base + root.getAttribute('data-endpoint');
+    var commerceUrl = base + root.getAttribute('data-commerce');
+    var loggedIn = !document.body.classList.contains('notloggedin');
+    var current = null; // { id, name, days, price }
+
     function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-    function money(n){ return (Math.round(Number(n)*100)/100).toLocaleString(undefined,{minimumFractionDigits:0}); }
+    function money(n){ return (Math.round(Number(n)*100)/100).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
     function strip(html){ var d=document.createElement('div'); d.innerHTML=html||''; return (d.textContent||'').trim(); }
-    function msg(t){ grid.innerHTML = '<div class="nit-subs-block__msg">'+esc(t)+'</div>'; }
-    fetch(endpoint, { headers: { 'Accept': 'application/json' } })
+    function say(t){ if (msg){ msg.textContent = t; msg.style.display = ''; } }
+    function q(sel){ return modal.querySelector(sel); }
+
+    Array.prototype.forEach.call(root.querySelectorAll('[data-nit-subs-scroll]'), function (btn) {
+      btn.addEventListener('click', function () {
+        var dir = btn.getAttribute('data-nit-subs-scroll') === 'next' ? 1 : -1;
+        if (getComputedStyle(scroller).direction === 'rtl') { dir = -dir; }
+        scroller.scrollBy({ left: dir * Math.max(300, Math.round(scroller.clientWidth * 0.8)), behavior: 'smooth' });
+      });
+    });
+
+    // ── Modal ──
+    function openModal(sub) {
+      current = sub;
+      q('[data-nit-m-name]').textContent = sub.name;
+      q('[data-nit-m-days]').textContent = sub.days + ' {mlang en}days{mlang}{mlang ar}يوم{mlang}';
+      q('[data-nit-m-original]').textContent = money(sub.price) + ' EGP';
+      q('[data-nit-m-final]').textContent = money(sub.price) + ' EGP';
+      q('[data-nit-m-discount]').textContent = '0.00 EGP';
+      q('[data-nit-m-coupon]').value = '';
+      q('[data-nit-m-couponerr]').style.display = 'none';
+      q('[data-nit-m-error]').style.display = 'none';
+      modal.style.display = 'flex';
+    }
+    function closeModal(){ modal.style.display = 'none'; current = null; }
+    q('[data-nit-m-cancel]').addEventListener('click', closeModal);
+    modal.addEventListener('click', function(ev){ if (ev.target === modal) { closeModal(); } });
+    document.addEventListener('keydown', function(ev){ if (ev.key === 'Escape' && modal.style.display !== 'none') { closeModal(); } });
+
+    q('[data-nit-m-apply]').addEventListener('click', function () {
+      if (!current) { return; }
+      var code = q('[data-nit-m-coupon]').value.trim();
+      var url = commerceUrl + '?function=preview_discount&item_type=subscription&item_id=' + current.id +
+        '&coupon_code=' + encodeURIComponent(code) + '&sesskey=' + encodeURIComponent(sesskey);
+      fetch(url, { headers: { 'Accept': 'application/json' } })
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+          if (!res || res.status !== 'success') { throw new Error('preview failed'); }
+          var d = res.data || {};
+          q('[data-nit-m-discount]').textContent = money(d.discount || 0) + ' EGP';
+          q('[data-nit-m-final]').textContent = money(d.final != null ? d.final : current.price) + ' EGP';
+          var errEl = q('[data-nit-m-couponerr]');
+          if (d.coupon_error) { errEl.textContent = d.coupon_error; errEl.style.display = ''; }
+          else { errEl.style.display = 'none'; }
+        })
+        .catch(function(){ var e=q('[data-nit-m-couponerr]'); e.textContent='{mlang en}Could not apply coupon.{mlang}{mlang ar}تعذّر تطبيق الكوبون.{mlang}'; e.style.display=''; });
+    });
+
+    q('[data-nit-m-proceed]').addEventListener('click', function () {
+      if (!current) { return; }
+      var btn = this; btn.disabled = true;
+      var body = new URLSearchParams({
+        function: 'create_subscription_checkout', sesskey: sesskey,
+        subscriptionid: current.id, coupon_code: q('[data-nit-m-coupon]').value.trim(),
+        return_url: window.location.href
+      });
+      fetch(subsUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() })
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+          if (res && res.status === 'success' && res.data && res.data.checkout_url) {
+            window.location.href = res.data.checkout_url;
+          } else {
+            throw new Error((res && res.error) || 'checkout failed');
+          }
+        })
+        .catch(function(e){ btn.disabled = false; var el=q('[data-nit-m-error]'); el.textContent = e.message; el.style.display=''; });
+    });
+
+    // Delegated Subscribe click.
+    scroller.addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-nit-buy]');
+      if (!btn) { return; }
+      if (!loggedIn) { window.location.href = base + '/login/index.php'; return; }
+      var card = btn.closest('[data-sub-id]');
+      if (!card) { return; }
+      openModal({
+        id: card.getAttribute('data-sub-id'),
+        name: card.getAttribute('data-sub-name'),
+        days: card.getAttribute('data-sub-days'),
+        price: parseFloat(card.getAttribute('data-sub-price')) || 0
+      });
+    });
+
+    // ── Load plans ──
+    say('{mlang en}Loading…{mlang}{mlang ar}جاري التحميل…{mlang}');
+    fetch(subsUrl + '?function=get_available_subscriptions', { headers: { 'Accept': 'application/json' } })
       .then(function(r){ return r.json(); })
       .then(function(res){
         if (!res || res.status !== 'success') { throw new Error('load failed'); }
         var rows = res.data || [];
-        if (!rows.length) { msg('No subscriptions available right now.'); return; }
-        grid.innerHTML = rows.map(function(s){
+        if (!rows.length) { say('{mlang en}No subscriptions available right now.{mlang}{mlang ar}لا توجد اشتراكات متاحة حالياً.{mlang}'); return; }
+        if (msg) { msg.style.display = 'none'; }
+        rows.forEach(function(s){
           var desc = strip(s.description);
-          var courses = s.courses_count ? '<span class="nit-sub-chip">'+s.courses_count+' course'+(s.courses_count>1?'s':'')+'</span>' : '';
-          var b2b = s.b2b_enabled ? '<span class="nit-sub-card__b2b">B2B</span>' : '';
-          return '<div class="nit-sub-card">'+
-              '<div class="nit-sub-card__band">'+b2b+'<h3 class="nit-sub-card__name">'+esc(s.name)+'</h3></div>'+
-              '<div class="nit-sub-card__body">'+
-                '<div class="nit-sub-card__price">'+money(s.price)+' <small>EGP</small></div>'+
-                (desc ? '<p class="nit-sub-card__desc">'+esc(desc)+'</p>' : '')+
-                '<div class="nit-sub-card__meta">'+
-                  '<span class="nit-sub-chip">'+esc(s.duration_days)+' days access</span>'+courses+
-                '</div>'+
-              '</div>'+
-            '</div>';
-        }).join('');
+          var html = tpl.innerHTML
+            .replace(/\{\{name\}\}/g, esc(s.name))
+            .replace(/\{\{price\}\}/g, esc(money(s.price).replace(/\.00$/, '')))
+            .replace(/\{\{days\}\}/g, esc(s.duration_days))
+            .replace(/\{\{courses\}\}/g, esc(s.courses_count))
+            .replace(/\{\{description\}\}/g, esc(desc));
+          var wrap = document.createElement('div');
+          wrap.style.cssText = tpl.getAttribute('style').replace('display: none;', '');
+          wrap.setAttribute('data-nit-subs-card', '');
+          wrap.setAttribute('data-sub-id', s.id);
+          wrap.setAttribute('data-sub-name', s.name);
+          wrap.setAttribute('data-sub-days', s.duration_days);
+          wrap.setAttribute('data-sub-price', s.price);
+          wrap.innerHTML = html;
+          if (s.b2b_enabled) { var b=wrap.querySelector('[data-nit-b2b]'); if (b) { b.style.display = 'inline-block'; } }
+          if (s.courses_count > 0) { var ch=wrap.querySelector('[data-nit-courses-chip]'); if (ch) { ch.style.display = 'inline-block'; } }
+          if (!desc) { var d=wrap.querySelector('[data-nit-desc]'); if (d) { d.style.display = 'none'; } }
+          scroller.appendChild(wrap);
+        });
       })
-      .catch(function(){ msg('Could not load subscriptions.'); });
+      .catch(function(){ say('{mlang en}Could not load subscriptions.{mlang}{mlang ar}تعذّر تحميل الاشتراكات.{mlang}'); });
   })();
   </script>
 </div>

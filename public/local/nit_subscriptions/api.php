@@ -72,7 +72,8 @@ try {
 
     // Writes must be POST + sesskey.
     $writes = ['create_subscription', 'update_subscription', 'activate_subscription',
-        'deactivate_subscription', 'delete_subscription', 'set_subscription_courses'];
+        'deactivate_subscription', 'delete_subscription', 'set_subscription_courses',
+        'create_subscription_checkout'];
     if (in_array($function, $writes, true)) {
         if (!$ispost) {
             throw new \moodle_exception('err_postrequired', 'local_nit_subscriptions');
@@ -157,6 +158,30 @@ try {
         // ── Admin: user subscriptions (no purchase subsystem yet) ──
         case 'get_all_user_subscriptions':
             nit_subscriptions_respond(['status' => 'success', 'data' => []]);
+            break;
+
+        // ── Student: start a Kashier checkout for a subscription ──
+        case 'create_subscription_checkout':
+            require_capability('local/nit_subscriptions:subscribe', $context);
+            $mgrfile = $CFG->dirroot . '/local/payments/classes/manager.php';
+            if (!file_exists($mgrfile)) {
+                throw new \moodle_exception('err_paymentsunavailable', 'local_nit_subscriptions');
+            }
+            require_once($mgrfile);
+            if (!method_exists('\local_payments\manager', 'create_subscription_checkout')) {
+                throw new \moodle_exception('err_paymentsunavailable', 'local_nit_subscriptions');
+            }
+            $checkout = \local_payments\manager::create_subscription_checkout(
+                required_param('subscriptionid', PARAM_INT),
+                $USER->id,
+                null,
+                optional_param('alang', current_language(), PARAM_LANG),
+                optional_param('type', 'normal', PARAM_ALPHANUM),
+                optional_param('seats', 0, PARAM_INT),
+                optional_param('coupon_code', '', PARAM_TEXT),
+                optional_param('return_url', '', PARAM_RAW_TRIMMED)
+            );
+            nit_subscriptions_respond(['status' => 'success', 'data' => $checkout]);
             break;
 
         // ── Public: available plans for the home-page block ──

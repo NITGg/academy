@@ -133,3 +133,17 @@ $string['err_permissiondenied'] = 'Permission denied';
 $string['err_unknownfunction']  = 'Unknown function';
 $string['err_requestfailed']    = 'Request failed';
 $string['err_sessionexpired']   = 'Session expired — please reload the page and log in again.';
+$string['err_paymentsunavailable'] = 'The payment gateway is not available on this site.';
+$string['err_alreadyhassubscription'] = 'You already have an active subscription.';
+
+// Buy modal (home-page block checkout).
+$string['sub_confirm_title']   = 'Confirm your subscription';
+$string['sub_confirm_intro']   = 'You are about to subscribe to this plan. You will be taken to secure checkout to complete the payment.';
+$string['sub_duration_label']  = 'Duration';
+$string['sub_total_label']     = 'Total';
+$string['sub_coupon_label']    = 'Coupon';
+$string['sub_coupon_apply']    = 'Apply';
+$string['sub_discount_label']  = 'Discount';
+$string['sub_secure_kashier']  = 'Secure payment via Kashier';
+$string['sub_proceed_payment'] = 'Proceed to payment';
+$string['sub_buy']             = 'Subscribe';

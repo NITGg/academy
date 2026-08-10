@@ -58,5 +58,33 @@
         <INDEX NAME="subscriptionid_idx" UNIQUE="false" FIELDS="subscriptionid"/>
       </INDEXES>
     </TABLE>
+
+    <TABLE NAME="nit_sub_purchase" COMMENT="A student's subscription purchase (snapshot of terms at purchase time).">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="subscriptionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="type" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="normal" SEQUENCE="false" COMMENT="normal | b2b"/>
+        <FIELD NAME="seats" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="base_price" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="discount_percent" TYPE="number" LENGTH="5" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="price_paid" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="duration_days" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="active" SEQUENCE="false" COMMENT="active | expired | cancelled"/>
+        <FIELD NAME="source" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="online" SEQUENCE="false" COMMENT="online | admin_assigned"/>
+        <FIELD NAME="reference" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="gateway order id (idempotency)"/>
+        <FIELD NAME="timeactivated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="expires_at" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="subscriptionid_fk" TYPE="foreign" FIELDS="subscriptionid" REFTABLE="nit_subscription" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="user_status_idx" UNIQUE="false" FIELDS="userid, status"/>
+        <INDEX NAME="reference_idx" UNIQUE="false" FIELDS="reference"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>
