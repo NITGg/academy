@@ -357,6 +357,15 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
             }
         }
 
+        // ── customcert: stream the certificate PDF via a token endpoint so the
+        //    app opens it natively instead of the mod/customcert webview. ───────
+        if ($cm->modname === 'customcert') {
+            $act['mediatype']    = 'pdf';
+            $act['resourcetype'] = 'application/pdf';
+            $act['fileurl']      = $wwwroot . '/local/academy/certificate.php?cmid='
+                . $cm->id . '&token=' . $wstoken;
+        }
+
         $result[] = $act;
     }
     return $result;

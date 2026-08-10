@@ -128,6 +128,25 @@ try {
             academy_respond(['status' => 'success', 'data' => \local_academy\quiz_manager::get_my_attempts($quizid, $userid)]);
             break;
 
+        // ── Courses: is this course free? ───────────────────────────────────────────
+        // Free = no active pricing rule. Returns price/currency too when paid.
+        case 'is_course_free':
+            $courseid = required_param('courseid', PARAM_INT);
+            $isfree = !class_exists('\local_payments\price_resolver')
+                || !\local_payments\price_resolver::has_pricing($courseid);
+            $data = ['courseid' => (int) $courseid, 'is_free' => $isfree];
+            if (!$isfree) {
+                try {
+                    $p = \local_payments\price_resolver::resolve($courseid, $userid);
+                    $data['price']    = (float) $p->price;
+                    $data['currency'] = $p->currency;
+                } catch (\Throwable $e) {
+                    $data['is_free'] = true; // no rule resolvable for this user -> free
+                }
+            }
+            academy_respond(['status' => 'success', 'data' => $data]);
+            break;
+
         // ── Courses: self-enrol into a FREE course ──────────────────────────────────
         // Lets a student register themselves on a course that has NO active pricing.
         // Paid courses are rejected — they must go through the payment flow — so this

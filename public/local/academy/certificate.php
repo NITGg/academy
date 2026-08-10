@@ -1,0 +1,67 @@
+<?php
+/**
+ * GET /local/academy/certificate.php?cmid={cmid}&token={wstoken}
+ *
+ * Token-authenticated download of a mod_customcert certificate as a PDF, so the
+ * mobile app can open it natively instead of a webview.
+ *
+ * Why this exists: customcert generates the certificate PDF on the fly (there is
+ * no stored file), and its own view.php download requires a browser session. This
+ * endpoint authenticates via a web-service token, verifies the user's access, then
+ * streams the same PDF.
+ */
+
+define('NO_MOODLE_COOKIES', true);
+
+require(__DIR__ . '/../../config.php');
+
+function certificate_fail(string $code, int $http = 400): void {
+    http_response_code($http);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['error' => $code]);
+    exit;
+}
+
+$cmid  = required_param('cmid', PARAM_INT);
+$token = optional_param('token', '', PARAM_ALPHANUM);
+
+// customcert must be installed (it is a separate plugin, not always present).
+if (!class_exists('\mod_customcert\template')) {
+    certificate_fail('customcert_not_installed', 501);
+}
+
+// Authenticate the token (same full validation as the other academy endpoints).
+$user = \local_academy\token_auth::validate($token);
+if (!$user) {
+    certificate_fail('invalidtoken', 401);
+}
+\core\session\manager::set_user($user);
+
+$cm = get_coursemodule_from_id('customcert', $cmid, 0, false, IGNORE_MISSING);
+if (!$cm) {
+    certificate_fail('invalidcmid', 404);
+}
+$context = context_module::instance($cm->id);
+
+// Must be enrolled (or otherwise allowed to view the course).
+if (!is_enrolled($context, $user, '', true) && !has_capability('moodle/course:view', $context)) {
+    certificate_fail('notenrolled', 403);
+}
+
+$customcert  = $DB->get_record('customcert', ['id' => $cm->instance], '*', MUST_EXIST);
+$templaterec = $DB->get_record('customcert_templates', ['id' => $customcert->templateid], '*', MUST_EXIST);
+$template    = new \mod_customcert\template($templaterec);
+
+// Record the issue (mirrors mod/customcert/view.php's download path), best-effort.
+if (class_exists('\mod_customcert\certificate')
+        && method_exists('\mod_customcert\certificate', 'issue_certificate')) {
+    try {
+        \mod_customcert\certificate::issue_certificate($customcert->id, $user->id);
+    } catch (\Throwable $e) {
+        // Non-fatal — still deliver the PDF.
+    }
+}
+
+// Stream the certificate PDF for this user (preview=false, return=false = download).
+$template->generate_pdf(false, $user->id);
+exit;
