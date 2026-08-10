@@ -85,7 +85,7 @@ class manager {
      * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
      */
     public static function create_checkout(int $courseid, ?int $userid = null, ?string $app_country = null,
-            string $display_lang = 'en'): object {
+            string $display_lang = 'en', string $coupon_code = ''): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
@@ -93,6 +93,11 @@ class manager {
 
         // Resolve price.
         $pricing = price_resolver::resolve($courseid, $userid, $app_country);
+
+        // Apply NIT commerce discount (auto offer + optional coupon code) on the resolved price.
+        $disc = self::apply_nit_discount('course', $courseid, $userid, (float) $pricing->price, $coupon_code);
+        $amount = $disc['amount'];
+        $discountmeta = $disc['discount'];
 
         // Check for duplicate pending payment.
         $existing = $DB->get_record_select(
@@ -147,7 +152,7 @@ class manager {
             'price_id' => $pricing->price_id,
             'order_id' => $order_id,
             'idempotency_key' => $idempotency_key,
-            'amount' => $pricing->price,
+            'amount' => $amount,
             'original_amount' => $pricing->original_price,
             'currency' => $pricing->currency,
             'status' => status_machine::PENDING,
@@ -160,6 +165,10 @@ class manager {
             'metadata' => json_encode([
                 'pricing' => $pricing,
                 'course_name' => $DB->get_field('course', 'fullname', ['id' => $courseid]),
+                'item_type' => 'course',
+                'item_id' => $courseid,
+                'discount' => $discountmeta,
+                'coupon_code' => $coupon_code,
             ]),
             'expires_at' => $expires_at,
             'timecreated' => time(),
@@ -179,7 +188,7 @@ class manager {
         // Initialize payment with provider.
         $request = new payment_request([
             'order_id' => $order_id,
-            'amount' => $pricing->price,
+            'amount' => $amount,
             'currency' => $pricing->currency,
             'description' => get_string('paymentfor', 'local_payments',
                 $DB->get_field('course', 'fullname', ['id' => $courseid])),
@@ -445,19 +454,33 @@ class manager {
         }
 
         // Record coupon/offer usage (idempotent by transaction id).
-        if (isset($meta->discount) && $meta->discount && class_exists('\local_nit_commerce\discount_manager')) {
-            try {
-                \local_nit_commerce\discount_manager::record_usage(
-                    json_decode(json_encode($meta->discount), true),
-                    (int) $transaction->userid,
-                    (int) $transaction->id,
-                    'subscription',
-                    (int) ($meta->item_id ?? 0)
-                );
-            } catch (\Exception $e) {
-                self::log_entry($transaction->provider_id, $transaction->id, 'warning',
-                    'Discount usage record failed: ' . $e->getMessage());
-            }
+        self::record_nit_discount($transaction, $meta, 'subscription', (int) ($meta->item_id ?? 0));
+    }
+
+    /**
+     * Record NIT commerce coupon/offer usage for a fulfilled transaction (idempotent by transaction).
+     *
+     * @param \stdClass $transaction
+     * @param \stdClass|null $meta decoded transaction metadata (may carry ->discount)
+     * @param string $itemtype course | package | subscription
+     * @param int $itemid
+     * @return void
+     */
+    private static function record_nit_discount(\stdClass $transaction, $meta, string $itemtype, int $itemid): void {
+        if (!isset($meta->discount) || !$meta->discount || !class_exists('\local_nit_commerce\discount_manager')) {
+            return;
+        }
+        try {
+            \local_nit_commerce\discount_manager::record_usage(
+                json_decode(json_encode($meta->discount), true),
+                (int) $transaction->userid,
+                (int) $transaction->id,
+                $itemtype,
+                $itemid
+            );
+        } catch (\Exception $e) {
+            self::log_entry($transaction->provider_id, $transaction->id, 'warning',
+                'Discount usage record failed: ' . $e->getMessage());
         }
     }
 
@@ -645,6 +668,9 @@ class manager {
                 'Fulfillment failed: ' . $e->getMessage());
         }
 
+        // Record coupon/offer usage for the course purchase (idempotent).
+        self::record_nit_discount($transaction, $meta, 'course', (int) $transaction->courseid);
+
         // Generate invoice.
         try {
             invoice_generator::create((int) $transaction->id);
@@ -804,6 +830,9 @@ class manager {
                     self::log_entry($transaction->provider_id, $transaction->id, 'error',
                         'Fulfillment failed: ' . $e->getMessage());
                 }
+
+                // Record coupon/offer usage for the course purchase (idempotent).
+                self::record_nit_discount($transaction, $meta, 'course', (int) $transaction->courseid);
 
                 invoice_generator::create((int) $transaction->id);
                 self::send_confirmation($transaction);

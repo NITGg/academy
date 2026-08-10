@@ -110,6 +110,37 @@ $pill = function (moodle_url $url, string $label, bool $active): string {
 $description  = format_text($category->description, $category->descriptionformat, ['context' => $context]);
 $categoryname = $category->get_formatted_name();
 
+// NIT: checkout modal + course offer/price support (guarded — degrade if the plugins are absent).
+$nitcheckout = class_exists('\local_payments\price_resolver')
+    && file_exists($CFG->dirroot . '/local/nit_commerce/lib.php')
+    && class_exists('\local_nit_commerce\discount_manager');
+if ($nitcheckout) {
+    require_once($CFG->dirroot . '/local/nit_commerce/lib.php');
+    $PAGE->requires->js(new moodle_url('/local/nit_commerce/checkout_modal.js'), true);
+}
+// Per-course price + offer info for a card: [haspricing, price, offerlabel, offerfinal].
+$nitcourseinfo = function ($courseid) use ($nitcheckout) {
+    global $USER;
+    $out = ['haspricing' => false, 'price' => 0.0, 'offerlabel' => '', 'offerfinal' => 0.0];
+    if (!$nitcheckout || !\local_payments\price_resolver::has_pricing($courseid)) {
+        return $out;
+    }
+    try {
+        $pricing = \local_payments\price_resolver::resolve($courseid, (int) ($USER->id ?? 0));
+        $base = (float) $pricing->price;
+        $out['haspricing'] = true;
+        $out['price'] = $base;
+        $summary = \local_nit_commerce\discount_manager::offer_summary('course', (int) $courseid, $base);
+        if ($summary) {
+            $out['offerlabel'] = $summary['label'];   // e.g. "-40%"
+            $out['offerfinal'] = (float) $summary['final'];
+        }
+    } catch (\Throwable $e) {
+        // Leave defaults on any pricing error.
+    }
+    return $out;
+};
+
 echo $OUTPUT->header();
 ?>
 
@@ -222,6 +253,7 @@ echo $OUTPUT->header();
             $price      = function_exists('theme_nit_course_price') ? theme_nit_course_price((int) $course->id) : '';
             $teacher    = function_exists('theme_nit_course_teacher') ? theme_nit_course_teacher((int) $course->id) : '';
             $pricelabel = $price !== '' ? $price : $t('Free', 'مجانًا');
+            $info       = $nitcourseinfo($course->id);
         ?>
         <!-- Course Card -->
         <div style="background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--ctext1) 6%, transparent); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; height: 100%; min-height: 380px; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 24px rgba(0,0,0,0.35)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
@@ -232,6 +264,11 @@ echo $OUTPUT->header();
             <span style="position: absolute; top: 12px; inset-inline-end: 12px; background: var(--cbg4); color: var(--ctext4); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
               <?= s($pricelabel) ?>
             </span>
+            <?php if ($info['offerlabel'] !== ''): ?>
+            <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: var(--nit-accentteal, #00a99d); color: #ffffff; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
+              <?= s($info['offerlabel']) ?>
+            </span>
+            <?php endif; ?>
           </div>
 
           <!-- Content -->
@@ -250,9 +287,24 @@ echo $OUTPUT->header();
               <?= s($summary) ?>
             </p>
 
-            <a href="<?= $courseurl->out() ?>" style="display: block; width: 100%; box-sizing: border-box; margin-top: 16px; text-align: center; background: var(--cbg4); color: var(--ctext4); font-weight: bold; padding: 10px 12px; border-radius: 8px; text-decoration: none;" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
-              <?= $t('View More', 'المزيد') ?>
-            </a>
+            <!-- Actions: pinned to the card bottom so every card's buttons align, regardless of summary length. -->
+            <div style="margin-top: auto; padding-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+              <?php if ($info['haspricing']): ?>
+              <button type="button" data-nit-buy-course data-courseid="<?= (int) $course->id ?>"
+                data-name="<?= s($coursename) ?>" data-price="<?= s((string) $info['price']) ?>"
+                style="display: block; width: 100%; box-sizing: border-box; text-align: center; background: var(--cbg4); color: var(--ctext4); font-weight: bold; padding: 10px 12px; border: 0; border-radius: 8px; cursor: pointer; font-size: 15px;"
+                onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
+                <?= $t('Buy now', 'اشترِ الآن') ?>
+              </button>
+              <a href="<?= $courseurl->out() ?>" style="display: block; width: 100%; box-sizing: border-box; text-align: center; background: transparent; color: var(--ctext1); font-weight: bold; padding: 8px 12px; border: 1px solid color-mix(in srgb, var(--ctext1) 20%, transparent); border-radius: 8px; text-decoration: none;">
+                <?= $t('View More', 'المزيد') ?>
+              </a>
+              <?php else: ?>
+              <a href="<?= $courseurl->out() ?>" style="display: block; width: 100%; box-sizing: border-box; text-align: center; background: var(--cbg4); color: var(--ctext4); font-weight: bold; padding: 10px 12px; border-radius: 8px; text-decoration: none;" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
+                <?= $t('View More', 'المزيد') ?>
+              </a>
+              <?php endif; ?>
+            </div>
           </div>
         </div>
         <?php endforeach; ?>
@@ -275,4 +327,47 @@ echo $OUTPUT->header();
 </div>
 
 <?php
+// NIT: wire the course Buy buttons to the shared checkout modal (coupon + auto offer → Kashier).
+if ($nitcheckout) {
+    $costr = local_nit_commerce_string_map([
+        'co_title', 'co_intro', 'co_total', 'co_offer', 'co_coupon', 'co_apply', 'co_discount',
+        'co_secure', 'co_proceed', 'co_cancel', 'co_loading', 'co_coupon_failed', 'co_currency',
+    ]);
+    echo html_writer::script('window.NIT_CO = ' . json_encode([
+        'wwwroot'  => $CFG->wwwroot,
+        'sesskey'  => sesskey(),
+        'commerce' => '/local/nit_commerce/api.php',
+        'str'      => $costr,
+        'loggedin' => isloggedin() && !isguestuser(),
+    ]) . ';');
+    echo html_writer::script(<<<'JS'
+(function () {
+    function init() {
+        if (!window.NitCheckout || !window.NIT_CO) { return; }
+        NitCheckout.init(window.NIT_CO);
+        document.addEventListener('click', function (ev) {
+            var btn = ev.target.closest('[data-nit-buy-course]');
+            if (!btn) { return; }
+            ev.preventDefault();
+            if (!window.NIT_CO.loggedin) { window.location.href = window.NIT_CO.wwwroot + '/login/index.php'; return; }
+            var id = btn.getAttribute('data-courseid');
+            NitCheckout.open({
+                itemType: 'course',
+                itemId: parseInt(id, 10),
+                name: btn.getAttribute('data-name'),
+                price: parseFloat(btn.getAttribute('data-price')) || 0,
+                proceed: function (code) {
+                    window.location.href = window.NIT_CO.wwwroot + '/local/payments/checkout.php?courseid=' + id +
+                        '&sesskey=' + encodeURIComponent(window.NIT_CO.sesskey) + '&coupon_code=' + encodeURIComponent(code);
+                }
+            });
+        });
+    }
+    if (document.readyState !== 'loading') { init(); }
+    else { document.addEventListener('DOMContentLoaded', init); }
+})();
+JS
+    );
+}
+
 echo $OUTPUT->footer();

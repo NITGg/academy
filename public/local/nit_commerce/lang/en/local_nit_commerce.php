@@ -134,3 +134,19 @@ $string['err_permissiondenied']    = 'Permission denied';
 $string['err_unknownfunction']     = 'Unknown function';
 $string['err_requestfailed']       = 'Request failed';
 $string['err_sessionexpired']      = 'Session expired — please reload the page and log in again.';
+
+// Shared checkout modal (course/subscription buy).
+$string['co_title']         = 'Confirm your purchase';
+$string['co_intro']         = 'You will be taken to secure checkout to complete the payment.';
+$string['co_total']         = 'Total';
+$string['co_offer']         = 'Offer';
+$string['co_coupon']        = 'Coupon';
+$string['co_apply']         = 'Apply';
+$string['co_discount']      = 'Discount';
+$string['co_secure']        = 'Secure payment via Kashier';
+$string['co_proceed']       = 'Proceed to payment';
+$string['co_cancel']        = 'Cancel';
+$string['co_loading']       = 'Loading…';
+$string['co_coupon_failed'] = 'Could not apply coupon.';
+$string['co_currency']      = 'EGP';
+$string['co_buy']           = 'Buy now';

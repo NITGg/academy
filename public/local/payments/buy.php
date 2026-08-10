@@ -50,6 +50,14 @@ $PAGE->set_title($course->fullname);
 $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('standard');
 
+// NIT: shared checkout modal (coupon + auto offer) for the course buy button.
+$nitcommercelib = $CFG->dirroot . '/local/nit_commerce/lib.php';
+$nitcheckout = file_exists($nitcommercelib);
+if ($nitcheckout) {
+    require_once($nitcommercelib);
+    $PAGE->requires->js(new moodle_url('/local/nit_commerce/checkout_modal.js'), true);
+}
+
 echo $OUTPUT->header();
 
 if (!empty($course->summary)) {
@@ -76,6 +84,50 @@ try {
     ];
 
     echo $OUTPUT->render_from_template('local_payments/course_page_price', $templatedata);
+
+    // NIT: intercept the checkout link → open the coupon/offer modal → proceed with the coupon.
+    if ($nitcheckout) {
+        $costr = local_nit_commerce_string_map([
+            'co_title', 'co_intro', 'co_total', 'co_offer', 'co_coupon', 'co_apply', 'co_discount',
+            'co_secure', 'co_proceed', 'co_cancel', 'co_loading', 'co_coupon_failed', 'co_currency',
+        ]);
+        echo html_writer::script('window.NIT_CO = ' . json_encode([
+            'wwwroot'  => $CFG->wwwroot,
+            'sesskey'  => sesskey(),
+            'commerce' => '/local/nit_commerce/api.php',
+            'str'      => $costr,
+            'courseid' => (int) $courseid,
+            'name'     => format_string($course->fullname),
+            'price'    => (float) $pricing->price,
+        ]) . ';');
+        echo html_writer::script(<<<'JS'
+(function () {
+    function init() {
+        if (!window.NitCheckout || !window.NIT_CO) { return; }
+        NitCheckout.init(window.NIT_CO);
+        document.addEventListener('click', function (ev) {
+            var a = ev.target.closest('a[href*="/local/payments/checkout.php"], [data-nit-buy-course]');
+            if (!a) { return; }
+            var href = a.getAttribute('href');
+            if (!href) { return; }
+            ev.preventDefault();
+            NitCheckout.open({
+                itemType: 'course',
+                itemId: window.NIT_CO.courseid,
+                name: window.NIT_CO.name,
+                price: window.NIT_CO.price,
+                proceed: function (code) {
+                    window.location.href = href + (href.indexOf('?') >= 0 ? '&' : '?') + 'coupon_code=' + encodeURIComponent(code);
+                }
+            });
+        });
+    }
+    if (document.readyState !== 'loading') { init(); }
+    else { document.addEventListener('DOMContentLoaded', init); }
+})();
+JS
+        );
+    }
 } catch (\moodle_exception $e) {
     echo $OUTPUT->notification(get_string('nopricefound', 'local_payments'), 'info');
     echo $OUTPUT->continue_button(new moodle_url('/'));
