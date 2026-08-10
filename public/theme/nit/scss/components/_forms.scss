@@ -21,3 +21,17 @@
         box-shadow: 0 0 0 0.25rem rgba($nit-blue-500, 0.25);
     }
 }
+
+// Some Moodle widgets tag an editable field with the Bootstrap .bg-light /
+// .bg-white utility (e.g. inline-edit text areas). On the dark brand that
+// leaves the white field text on a light fill — unreadable. Keep editable
+// fields on the brand surface regardless of the utility. Scoped to form
+// controls only, so intentional light panels elsewhere are untouched.
+// !important is required to beat the utility's own !important background.
+.form-control.bg-light,
+.form-control.bg-white,
+textarea.bg-light,
+textarea.bg-white {
+    background-color: var(--nit-brand-surface) !important;
+    color: var(--nit-brand-textprimary);
+}

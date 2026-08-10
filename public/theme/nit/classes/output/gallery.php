@@ -78,6 +78,29 @@ class gallery implements renderable, templatable {
         }
         unset($group);
 
+        // Brand Colors palette: the new semantic layer, one section per group
+        // (Group 1/2/3), each listing the same 13 roles. The palette is ordered
+        // so each group's roles are contiguous.
+        $brandgroups = [];
+        $bidx = [];  // group name => index in $brandgroups.
+        foreach (\theme_nit_brand_palette() as $key => $meta) {
+            $gname = $meta['group'];
+            if (!array_key_exists($gname, $bidx)) {
+                $bidx[$gname] = count($brandgroups);
+                $brandgroups[] = ['name' => $gname, 'groupkey' => $meta['groupkey'], 'roles' => []];
+            }
+            $value = \theme_nit_brandcolour($key);
+            $brandgroups[$bidx[$gname]]['roles'][] = [
+                'key' => $key,
+                'label' => $meta['label'],
+                'usage' => $meta['usage'],
+                'cssvar' => '--nit-brand-' . $meta['role'],
+                'value' => $value,
+                'default' => $meta['default'],
+                'isdefault' => (strtolower($value) === strtolower($meta['default'])),
+            ];
+        }
+
         // Per-language font slots: current filename (if any) + a live preview
         // that renders in the uploaded family the compiled CSS already exposes.
         $fonts = [];
@@ -98,6 +121,7 @@ class gallery implements renderable, templatable {
         return [
             'sesskey' => sesskey(),
             'actionurl' => (new \moodle_url('/theme/nit/gallery.php'))->out(false),
+            'brandgroups' => $brandgroups,
             'colourgroups' => $groups,
             'fonts' => $fonts,
             'stats' => [

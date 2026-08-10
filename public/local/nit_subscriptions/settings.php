@@ -31,4 +31,12 @@ if ($hassiteconfig) {
         new moodle_url('/local/nit_subscriptions/manage_subscriptions.php'),
         'local/nit_subscriptions:managesubscriptions'
     ));
+
+    // Single-course purchases: who bought which course, with "Unbuy" (revoke + unenrol).
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_nit_subscriptions_managecourses',
+        get_string('managecourses', 'local_nit_subscriptions'),
+        new moodle_url('/local/nit_subscriptions/manage_courses.php'),
+        'local/nit_subscriptions:managesubscriptions'
+    ));
 }

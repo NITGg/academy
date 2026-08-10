@@ -33,6 +33,7 @@ require_once($CFG->dirroot . '/local/nit_subscriptions/lib.php');
 
 use local_nit_subscriptions\subscription_manager;
 use local_nit_subscriptions\subscription_purchase_manager;
+use local_nit_subscriptions\course_purchase_manager;
 
 $function = optional_param('function', '', PARAM_ALPHANUMEXT);
 
@@ -74,7 +75,7 @@ try {
     // Writes must be POST + sesskey.
     $writes = ['create_subscription', 'update_subscription', 'activate_subscription',
         'deactivate_subscription', 'delete_subscription', 'set_subscription_courses',
-        'create_subscription_checkout', 'unsubscribe_user'];
+        'create_subscription_checkout', 'unsubscribe_user', 'revoke_course_purchase'];
     if (in_array($function, $writes, true)) {
         if (!$ispost) {
             throw new \moodle_exception('err_postrequired', 'local_nit_subscriptions');
@@ -86,7 +87,7 @@ try {
     $adminfns = ['get_subscriptions', 'create_subscription', 'update_subscription',
         'activate_subscription', 'deactivate_subscription', 'delete_subscription',
         'get_categories_with_courses', 'set_subscription_courses', 'get_all_user_subscriptions',
-        'unsubscribe_user'];
+        'unsubscribe_user', 'get_all_course_purchases', 'revoke_course_purchase'];
     if (in_array($function, $adminfns, true)) {
         require_capability('local/nit_subscriptions:managesubscriptions', $context);
     }
@@ -165,6 +166,22 @@ try {
 
         case 'unsubscribe_user':
             subscription_purchase_manager::unsubscribe(required_param('purchaseid', PARAM_INT));
+            nit_subscriptions_respond(['status' => 'success', 'data' => []]);
+            break;
+
+        // ── Admin: single-course purchases ("Manage courses") ──
+        // List every user's paid single-course purchase (a completed local_payments transaction with
+        // item_type=course), so the admin can see who bought what and revoke it.
+        case 'get_all_course_purchases':
+            nit_subscriptions_respond(['status' => 'success',
+                'data' => course_purchase_manager::get_all_course_purchases()]);
+            break;
+
+        // "Unbuy" a course: unenrol the buyer and mark the transaction cancelled (or refunded).
+        case 'revoke_course_purchase':
+            course_purchase_manager::revoke_course_purchase(
+                required_param('transactionid', PARAM_INT),
+                (bool) optional_param('refund', 0, PARAM_BOOL));
             nit_subscriptions_respond(['status' => 'success', 'data' => []]);
             break;
 

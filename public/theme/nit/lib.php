@@ -181,6 +181,118 @@ function theme_nit_colours_all(): array {
 }
 
 /**
+ * The 13 semantic roles every Brand-Colors group is built from.
+ *
+ * This is the clean, small semantic layer that replaces the sprawling
+ * theme_nit_colour_palette(): a component references a role by name (Primary,
+ * Surface, Text primary, …) and never a raw colour. `label` and `usage` are the
+ * human copy shown on the gallery's Brand Colors tab; `default` is the Group 1
+ * seed (the dark red/navy brand). Hover / opacity variants are derived in SCSS
+ * (see scss/foundation/_brand.scss), never stored as their own tokens.
+ *
+ * @return array<string, array{label:string, usage:string, default:string}>
+ */
+function theme_nit_brand_roles(): array {
+    return [
+        'primary'         => ['label' => 'Primary', 'usage' => 'Button backgrounds', 'default' => '#e5322d'],
+        'secondary'       => ['label' => 'Secondary', 'usage' => 'Dual / secondary button backgrounds', 'default' => '#13293f'],
+        'accent'          => ['label' => 'Accent', 'usage' => 'Coloured text, underlines (hover = opacity)', 'default' => '#e5322d'],
+        'background'      => ['label' => 'Background', 'usage' => 'Site background', 'default' => '#0a1628'],
+        'surface'         => ['label' => 'Surface', 'usage' => 'Cards: courses, categories, instructors, side menu, dropdowns', 'default' => '#0f1e33'],
+        'textprimary'     => ['label' => 'Text primary', 'usage' => 'All text: buttons, navbar, courses, categories', 'default' => '#ffffff'],
+        'textsecondary'   => ['label' => 'Text secondary', 'usage' => 'Dual-button text, subtitles', 'default' => '#8a9ab5'],
+        'borderprimary'   => ['label' => 'Border primary', 'usage' => 'Card borders', 'default' => '#244766'],
+        'bordersecondary' => ['label' => 'Border secondary', 'usage' => 'Secondary-button borders', 'default' => '#3a5f86'],
+        'error'           => ['label' => 'Error', 'usage' => 'Error / danger', 'default' => '#e5484d'],
+        'success'         => ['label' => 'Success', 'usage' => 'Success', 'default' => '#1e9e63'],
+        'warning'         => ['label' => 'Warning', 'usage' => 'Warning', 'default' => '#9aa4b2'],
+        'info'            => ['label' => 'Info', 'usage' => 'Info', 'default' => '#ffffff'],
+    ];
+}
+
+/**
+ * The ordered Brand-Colors groups.
+ *
+ * A "group" is a complete named set of all 13 roles — a swappable palette.
+ * Group 1 is the site-wide default; a component can opt into another group via
+ * the matching wrapper class (`.nit-brand-2`, `.nit-brand-3`), keeping the same
+ * variable names but resolving them from that group's values. Groups 2 and 3
+ * seed equal to Group 1 and are tuned later on the gallery page.
+ *
+ * @return array<string, string> group key (g1/g2/g3) => display label
+ */
+function theme_nit_brand_groups(): array {
+    return ['g1' => 'Group 1', 'g2' => 'Group 2', 'g3' => 'Group 3'];
+}
+
+/**
+ * The full Brand-Colors palette: every group × every role, flattened.
+ *
+ * Keyed `g<N>_<role>` (e.g. `g1_primary`); the key becomes the config name
+ * `brandcolour_<key>`, the SCSS var `$nit-b-<gkey>-<role>` and the per-group
+ * custom property `--nit-brand-<gkey>-<role>`. Powers the Brand Colors editor,
+ * the pre-SCSS emission and the _brand.scss custom-property layer.
+ *
+ * @return array<string, array{group:string, groupkey:string, role:string,
+ *         label:string, usage:string, default:string}> ordered map keyed by token key
+ */
+function theme_nit_brand_palette(): array {
+    $out = [];
+    $roles = theme_nit_brand_roles();
+    foreach (theme_nit_brand_groups() as $gkey => $glabel) {
+        foreach ($roles as $role => $meta) {
+            $out[$gkey . '_' . $role] = [
+                'group'    => $glabel,
+                'groupkey' => $gkey,
+                'role'     => $role,
+                'label'    => $meta['label'],
+                'usage'    => $meta['usage'],
+                'default'  => $meta['default'],
+            ];
+        }
+    }
+    return $out;
+}
+
+/**
+ * The resolved value of one Brand-Colors token: the saved config, else default.
+ *
+ * @param string $key brand palette key (see theme_nit_brand_palette())
+ * @return string a `#rrggbb` colour
+ */
+function theme_nit_brandcolour(string $key): string {
+    $palette = theme_nit_brand_palette();
+    $default = $palette[$key]['default'] ?? '#000000';
+    $value = get_config('theme_nit', 'brandcolour_' . $key);
+    return (is_string($value) && $value !== '') ? $value : $default;
+}
+
+/**
+ * The whole resolved Brand-Colors palette, for the editor / export.
+ *
+ * @return array<int, array{key:string, group:string, groupkey:string, role:string,
+ *         label:string, usage:string, value:string, default:string, iscustom:bool}>
+ */
+function theme_nit_brand_all(): array {
+    $out = [];
+    foreach (theme_nit_brand_palette() as $key => $meta) {
+        $value = theme_nit_brandcolour($key);
+        $out[] = [
+            'key'      => $key,
+            'group'    => $meta['group'],
+            'groupkey' => $meta['groupkey'],
+            'role'     => $meta['role'],
+            'label'    => $meta['label'],
+            'usage'    => $meta['usage'],
+            'value'    => $value,
+            'default'  => $meta['default'],
+            'iscustom' => (strtolower($value) !== strtolower($meta['default'])),
+        ];
+    }
+    return $out;
+}
+
+/**
  * The per-language custom-font slots.
  *
  * The theme hosts one uploadable font file per site language: the English font
@@ -673,6 +785,44 @@ function theme_nit_get_pre_scss($theme) {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Brand Colors palette (the new semantic layer — gallery "Brand Colors" tab).
+    // Emit every group's tokens as `$nit-b-<gkey>-<role>` SCSS variables (saved
+    // value, else the seed default), so _brand.scss can publish them as
+    // `--nit-brand-*` custom properties in the same combined stream.
+    foreach (theme_nit_brand_palette() as $key => $meta) {
+        $scss .= '$nit-b-' . str_replace('_', '-', $key) . ': ' . theme_nit_brandcolour($key) . ";\n";
+    }
+
+    // Drive the Bootstrap / semantic SCSS layer from Group 1 — the site-wide
+    // default group. Unlike the legacy colour map above (applied only when the
+    // admin saved a value), the brand always sets these, so buttons, cards,
+    // alerts, links and the page body follow the brand out of the box. This is
+    // the primary "rewire the whole site" lever; components that read these
+    // Bootstrap vars need no edits. Group key => the SCSS variables it drives.
+    $brandmap = [
+        'g1_primary'         => ['primary'],
+        'g1_secondary'       => ['secondary'],
+        'g1_accent'          => ['link-color'],
+        'g1_background'      => ['body-bg'],
+        // Surface also drives form controls: Bootstrap's $input-bg is a fixed
+        // light gray, so on the dark brand it would leave white text on a light
+        // field (invisible). Point it at the brand surface instead.
+        'g1_surface'         => ['card-bg', 'dropdown-bg', 'input-bg', 'nit-surface'],
+        'g1_textprimary'     => ['body-color', 'dropdown-link-color', 'input-color', 'nit-ink'],
+        'g1_textsecondary'   => ['text-muted'],
+        'g1_borderprimary'   => ['border-color', 'card-border-color', 'dropdown-border-color', 'input-border-color', 'nit-line'],
+        'g1_success'         => ['success'],
+        'g1_warning'         => ['warning'],
+        'g1_error'           => ['danger'],
+        'g1_info'            => ['info'],
+    ];
+    foreach ($brandmap as $key => $targets) {
+        foreach ($targets as $target) {
+            $scss .= '$' . $target . ': $nit-b-' . str_replace('_', '-', $key) . ";\n";
+        }
+    }
+
     // Reserved pre-Boost overrides.
     $scss .= file_get_contents(__DIR__ . '/scss/pre.scss');
 
@@ -695,6 +845,10 @@ function theme_nit_get_pre_scss($theme) {
 function theme_nit_get_extra_scss($theme) {
     $scss = '';
 
+    // _brand.scss must come before _root.scss: it declares the --nit-brand-*
+    // custom properties (active layer + per-group + switch classes) that
+    // _root.scss then aliases the legacy --nit-* properties onto.
+    $scss .= file_get_contents(__DIR__ . '/scss/foundation/_brand.scss');
     $scss .= file_get_contents(__DIR__ . '/scss/foundation/_root.scss');
     $scss .= file_get_contents(__DIR__ . '/scss/foundation/_fonts.scss');
 

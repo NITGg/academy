@@ -104,6 +104,12 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
             var key = el.getAttribute('data-nit-stat');
             if (stats[key] === undefined) { return; }
             var target = parseInt(stats[key], 10) || 0;
+            // Reserve the final number's width up front so the count-up animation
+            // (0 → target) can't reflow the surrounding content and cause layout
+            // shift (CLS). Only touches this counter element's own box — not the
+            // block's structure or design.
+            el.style.display = 'inline-block';
+            el.style.minWidth = String(target).length + 'ch';
             var dur = 900, start = null;
             function step(now) {
                 if (!start) { start = now; }
