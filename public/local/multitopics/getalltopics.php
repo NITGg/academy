@@ -28,6 +28,18 @@ function api_error(string $errorcode, string $message, int $http = 400): void {
     exit;
 }
 
+// ── Helper: make a protected file URL loadable by a token client ────────────
+// Rewrites /pluginfile.php (needs a browser session) to /webservice/pluginfile.php
+// and appends the token with the correct separator. Plain pluginfile.php ignores
+// tokens, and when slasharguments is off the URL already has "?file=...", so a
+// naive "?token=" would produce a broken double "?". Both are handled here.
+function mt_ws_fileurl(\moodle_url $url, string $token): string {
+    $s = $url->out(false);
+    $s = str_replace('/pluginfile.php', '/webservice/pluginfile.php', $s);
+    $s .= (strpos($s, '?') !== false ? '&' : '?') . 'token=' . $token;
+    return $s;
+}
+
 // ── 1. Validate wstoken ────────────────────────────────────────────────────
 $wstoken  = optional_param('wstoken',  '', PARAM_ALPHANUM);
 $courseid = optional_param('courseid', 0,  PARAM_INT);
@@ -203,10 +215,10 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
                 $file = reset($files);
                 $mime = $file->get_mimetype();
                 $act['resourcetype'] = $mime;
-                $act['fileurl']      = \moodle_url::make_pluginfile_url(
+                $act['fileurl']      = mt_ws_fileurl(\moodle_url::make_pluginfile_url(
                     $ctx->id, 'mod_resource', 'content', $file->get_itemid(),
                     $file->get_filepath(), $file->get_filename()
-                )->out(false) . '?token=' . $wstoken;
+                ), $wstoken);
             }
         }
 
@@ -219,10 +231,10 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
                 $file = reset($files);
                 $mime = $file->get_mimetype();
                 $act['resourcetype'] = $mime;
-                $act['fileurl']      = \moodle_url::make_pluginfile_url(
+                $act['fileurl']      = mt_ws_fileurl(\moodle_url::make_pluginfile_url(
                     $ctx->id, 'mod_resource2', 'content', $file->get_itemid(),
                     $file->get_filepath(), $file->get_filename()
-                )->out(false) . '?token=' . $wstoken;
+                ), $wstoken);
             }
         }
 
@@ -235,10 +247,10 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
                 $file = reset($files);
                 $mime = $file->get_mimetype();
                 $act['resourcetype'] = $mime;
-                $act['fileurl']      = \moodle_url::make_pluginfile_url(
+                $act['fileurl']      = mt_ws_fileurl(\moodle_url::make_pluginfile_url(
                     $ctx->id, 'mod_testnew', 'content', $file->get_itemid(),
                     $file->get_filepath(), $file->get_filename()
-                )->out(false) . '?token=' . $wstoken;
+                ), $wstoken);
             }
         }
 
@@ -267,10 +279,10 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
                         'filename'     => $file->get_filename(),
                         'filesize'     => (int)$file->get_filesize(),
                         'mimetype'     => $file->get_mimetype(),
-                        'fileurl'      => \moodle_url::make_pluginfile_url(
+                        'fileurl'      => mt_ws_fileurl(\moodle_url::make_pluginfile_url(
                             $assign_ctx->id, 'mod_assign', 'introattachment', $file->get_itemid(),
                             $file->get_filepath(), $file->get_filename()
-                        )->out(false) . '?token=' . $wstoken,
+                        ), $wstoken),
                     ];
                 }
                 $act['introattachments'] = $materials;
