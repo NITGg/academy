@@ -17,14 +17,15 @@ require_once($CFG->libdir . '/clilib.php');
 require_once($CFG->libdir . '/accesslib.php');
 
 list($options, $unrecognized) = cli_get_params(
-    ['token' => '', 'fix' => false, 'help' => false],
+    ['token' => '', 'fix' => false, 'function' => '', 'help' => false],
     ['h' => 'help']
 );
 
 if ($options['help'] || $options['token'] === '') {
     echo "Diagnose REST accessexception for a web-service token.\n";
-    echo "  --token=WSTOKEN   the token string (required)\n";
-    echo "  --fix             grant webservice/rest:use to the user's role(s)\n";
+    echo "  --token=WSTOKEN     the token string (required)\n";
+    echo "  --fix               grant webservice/rest:use to the user's role(s)\n";
+    echo "  --function=NAME     also check one specific function (e.g. auth_email_signup_user)\n";
     exit(0);
 }
 
@@ -123,6 +124,61 @@ if (!$canrest) {
     echo "\n>>> REST access is OK for this user. If a SPECIFIC function still fails,\n";
     echo "    that function requires its own capability the user lacks, or it is not\n";
     echo "    attached to this service.\n";
+}
+
+// 7. Optional: inspect one specific function (e.g. the register endpoint).
+if ($options['function'] !== '') {
+    $fname = trim($options['function']);
+    echo "\n---- Function check: {$fname} ----\n";
+
+    $fn = $DB->get_record('external_functions', ['name' => $fname]);
+    if (!$fn) {
+        echo $bad . "Function '{$fname}' is not registered at all. Run the upgrade / check the name.\n";
+        echo "\n==== done ====\n";
+        exit(0);
+    }
+    echo $ok . "Function registered (component={$fn->component}).\n";
+
+    // Attached to the token's service? (Built-in services can also expose all
+    // functions via downloadfiles/uploadfiles flags, but the explicit map is
+    // what matters for a custom mobile service.)
+    $inservice = $DB->record_exists('external_services_functions', [
+        'externalserviceid' => $service->id,
+        'functionname' => $fname,
+    ]);
+    echo ($inservice ? $ok : $bad) . "Function " . ($inservice ? "IS" : "is NOT")
+        . " attached to service '{$service->shortname}'.\n";
+    if (!$inservice) {
+        echo "         -> Add it to the service (Site admin > Server > Web services > External services > Functions),\n";
+        echo "            or, for signup, it must be reachable without a token (see note below).\n";
+    }
+
+    // Required capabilities for the function.
+    $caps = trim((string) $fn->capabilities);
+    if ($caps === '') {
+        echo $ok . "Function declares NO required capability.\n";
+    } else {
+        echo "  ....    Function requires capability(ies): {$caps}\n";
+        foreach (preg_split('/\s*,\s*/', $caps) as $cap) {
+            if ($cap === '') {
+                continue;
+            }
+            $has = has_capability($cap, $systemctx, $user->id);
+            echo ($has ? $ok : $bad) . "user " . ($has ? "has" : "LACKS") . " '{$cap}'\n";
+        }
+    }
+
+    // Signup-specific note: registration is called BEFORE login, so it can't rely
+    // on a per-user token. Moodle exposes it through a no-login service.
+    if ($fname === 'auth_email_signup_user') {
+        $registerauth = (string) get_config('core', 'registerauth');
+        echo (($registerauth === 'email') ? $ok : $bad)
+            . "registerauth = '{$registerauth}' (email self-registration "
+            . (($registerauth === 'email') ? "enabled" : "NOT enabled — signup will be refused") . ")\n";
+        echo "         NOTE: signup is a pre-login call. The app must hit it WITHOUT a user token,\n";
+        echo "         via the built-in no-login service, and 'Email-based self-registration' must be\n";
+        echo "         the selected auth method (Site admin > Plugins > Authentication > Manage authentication).\n";
+    }
 }
 
 echo "\n==== done ====\n";
