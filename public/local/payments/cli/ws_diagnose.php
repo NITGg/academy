@@ -114,7 +114,7 @@ if (!$canrest) {
             echo $ok . "Granted webservice/rest:use to roleid={$roleid} at system context.\n";
         }
         $systemctx->mark_dirty();
-        accesslib_clear_all_caches_for_unit_testing();
+        purge_all_caches();
         echo "\n>>> FIXED. Re-run without --fix to confirm, then retry the REST call.\n";
     } else {
         echo "\n    Re-run with --fix to grant webservice/rest:use to the above role(s).\n";
