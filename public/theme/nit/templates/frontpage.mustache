@@ -126,12 +126,20 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
             var limit = parseInt(container.getAttribute('data-limit'), 10) || data.length;
             var frag = document.createDocumentFragment();
             data.slice(0, limit).forEach(function (c) {
+                // {{pricebadge}} — a fully styled pill that looks distinct for
+                // paid vs free courses (see the <style> block below). {{price}}
+                // stays as plain substituted text for backward compatibility.
+                var isFree = c.is_free || !c.price;
+                var priceBadge = isFree
+                    ? '<span class="nit-price-badge nit-price-badge--free">' + esc(freeLabel || 'Free') + '</span>'
+                    : '<span class="nit-price-badge nit-price-badge--paid">' + esc(c.price) + '</span>';
                 var html = tpl.innerHTML
                     .replace(/\{\{url\}\}/g, encodeURI(c.url || '#'))
                     .replace(/\{\{image\}\}/g, encodeURI(c.image || ''))
                     .replace(/\{\{fullname\}\}/g, esc(c.fullname))
                     .replace(/\{\{summary\}\}/g, esc(c.summary))
                     .replace(/\{\{teacher\}\}/g, esc(c.teacher))
+                    .replace(/\{\{pricebadge\}\}/g, priceBadge)
                     .replace(/\{\{price\}\}/g, c.price ? esc(c.price) : esc(freeLabel));
                 var wrap = document.createElement('div');
                 wrap.innerHTML = html;
@@ -212,6 +220,30 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
     else { document.addEventListener('DOMContentLoaded', init); }
 })();
 </script>
+{{! NIT: self-contained styling for the {{pricebadge}} pill so paid and free
+    courses read differently on the course cards. Kept here (not in SCSS) so it
+    ships with the template and needs only a cache purge, no theme rebuild. }}
+<style>
+.nit-price-badge {
+    display: inline-block;
+    padding: .28em .7em;
+    font-size: .82rem;
+    font-weight: 700;
+    line-height: 1;
+    border-radius: 999px;
+    white-space: nowrap;
+    letter-spacing: .01em;
+}
+.nit-price-badge--paid {
+    color: #1a1400;
+    background: linear-gradient(135deg, #ffd54a, #f5a623);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+}
+.nit-price-badge--free {
+    color: #ffffff;
+    background: #2e7d32;
+}
+</style>
 {{! NIT (SEO): schema.org structured data for the course catalogue, so search
     engines can index the courses even though the visible grid is built client
     side. Slashes are escaped server-side, so this is safe inside <script>. }}
