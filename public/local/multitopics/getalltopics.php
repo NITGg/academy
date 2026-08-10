@@ -39,16 +39,32 @@ if (!$courseid) {
     api_error('invalidparameter', 'courseid is required');
 }
 
+// Full web-service token validation — not just a raw token→user lookup: enforce
+// expiry, IP restriction, the service being enabled, and the account state, so
+// an expired / IP-locked / disabled-service / suspended token cannot authenticate.
+$now = time();
 $token_record = $DB->get_record('external_tokens', ['token' => $wstoken]);
-if (!$token_record) {
+if (!$token_record
+        || (!empty($token_record->validuntil) && $token_record->validuntil < $now)
+        || (!empty($token_record->iprestriction)
+            && !address_in_subnet(getremoteaddr(), $token_record->iprestriction))) {
+    api_error('invalidtoken', 'Invalid token', 401);
+}
+$service = $DB->get_record('external_services', ['id' => $token_record->externalserviceid]);
+if (!$service || empty($service->enabled)) {
     api_error('invalidtoken', 'Invalid token', 401);
 }
 
-// Load user from token.
+// Load user from token and enforce a live, confirmed, non-suspended local account.
 $USER = $DB->get_record('user', ['id' => $token_record->userid, 'deleted' => 0]);
-if (!$USER) {
+if (!$USER
+        || $USER->mnethostid != $CFG->mnet_localhost_id
+        || !empty($USER->suspended)
+        || empty($USER->confirmed)
+        || isguestuser($USER)) {
     api_error('invalidtoken', 'Token user not found', 401);
 }
+$DB->set_field('external_tokens', 'lastaccess', $now, ['id' => $token_record->id]);
 \core\session\manager::set_user($USER);
 
 // ── 2. Load course ─────────────────────────────────────────────────────────

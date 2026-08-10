@@ -43,11 +43,9 @@ $token    = optional_param('token', '', PARAM_ALPHANUM);
 if (empty($token)) {
     academy_respond(['status' => 'fail', 'error' => get_string('err_authrequired', 'local_academy')]);
 }
-$tokenrec = $DB->get_record('external_tokens', ['token' => $token]);
-if (!$tokenrec) {
-    academy_respond(['status' => 'fail', 'error' => get_string('err_invalidtoken', 'local_academy')]);
-}
-$USER = $DB->get_record('user', ['id' => $tokenrec->userid, 'deleted' => 0]);
+// Full web-service token validation (expiry, IP restriction, service enabled,
+// account state) — not just a raw token→user lookup.
+$USER = \local_academy\token_auth::validate($token);
 if (!$USER) {
     academy_respond(['status' => 'fail', 'error' => get_string('err_invalidtoken', 'local_academy')]);
 }
@@ -132,5 +130,8 @@ try {
             academy_respond(['status' => 'fail', 'error' => get_string('err_unknownfunction', 'local_academy')]);
     }
 } catch (\Throwable $e) {
-    academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+    // Log the real cause for developers, but never leak internal exception text
+    // (DB errors, paths, stack internals) to the client.
+    debugging('local_academy api error: ' . $e->getMessage(), DEBUG_DEVELOPER);
+    academy_respond(['status' => 'fail', 'error' => get_string('err_internal', 'local_academy')]);
 }

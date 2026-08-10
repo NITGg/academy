@@ -63,7 +63,7 @@
 
   <!-- CONFIRM MODAL -->
   <div data-nit-modal
-    style="display: none; position: fixed; inset: 0; background: rgba(3,8,20,.72); z-index: 1080; align-items: center; justify-content: center; padding: 16px;">
+    style="display: none; position: fixed; inset: 0; background: rgba(3,8,20,.72); z-index: 99999; align-items: center; justify-content: center; padding: 16px;">
     <div style="width: 100%; max-width: 460px; background: var(--nit-darksurface, #0f1e33); border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 22%, transparent); border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.5); overflow: hidden;">
       <div style="padding: 22px 24px 0;">
         <h3 style="display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 800; color: var(--nit-darktextprimary, #ffffff); margin: 0;">
@@ -72,11 +72,11 @@
           {mlang en}You are about to subscribe to this plan. You will be taken to secure checkout to complete the payment.{mlang}{mlang ar}أنت على وشك الاشتراك في هذه الخطة. سيتم تحويلك إلى صفحة الدفع الآمن لإتمام العملية.{mlang}</p>
       </div>
       <div style="margin: 18px 24px; padding: 16px; border: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 10%, transparent); border-radius: 12px; background: var(--nit-darkbackground, #0a1628);">
-        <div data-nit-m-name style="font-size: 15px; font-weight: 700; color: var(--nit-darktextprimary, #ffffff); margin-bottom: 12px;"></div>
+        <div data-nit-m-name style="font-size: 15px; font-weight: 700; color: var(--nit-darktextprimary, #ffffff); margin-bottom: 12px;">—</div>
         <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); margin-bottom: 8px;">
-          <span>{mlang en}Duration{mlang}{mlang ar}المدة{mlang}</span><b data-nit-m-days style="color: var(--nit-darktextprimary, #ffffff);"></b></div>
+          <span>{mlang en}Duration{mlang}{mlang ar}المدة{mlang}</span><b style="color: var(--nit-darktextprimary, #ffffff);"><span data-nit-m-days>—</span> {mlang en}days{mlang}{mlang ar}يوم{mlang}</b></div>
         <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); margin-bottom: 12px;">
-          <span>{mlang en}Total{mlang}{mlang ar}الإجمالي{mlang}</span><b data-nit-m-original style="color: var(--nit-darktextprimary, #ffffff);"></b></div>
+          <span>{mlang en}Total{mlang}{mlang ar}الإجمالي{mlang}</span><b data-nit-m-original style="color: var(--nit-darktextprimary, #ffffff);">—</b></div>
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
           <span style="font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); flex: 0 0 auto;">{mlang en}Coupon{mlang}{mlang ar}كوبون{mlang}</span>
           <input data-nit-m-coupon type="text" autocomplete="off"
@@ -84,15 +84,15 @@
           <button type="button" data-nit-m-apply
             style="flex: 0 0 auto; background: transparent; border: 1px solid var(--nit-accentgold, #e8b84b); color: var(--nit-accentgold, #e8b84b); border-radius: 8px; padding: 7px 14px; font-weight: 700; cursor: pointer; font-size: 14px;">{mlang en}Apply{mlang}{mlang ar}تطبيق{mlang}</button>
         </div>
-        <div data-nit-m-couponerr style="display:none; color:#ff6b6b; font-size:12px; margin: -6px 0 10px;"></div>
+        <div data-nit-m-couponerr style="display:none; color:#ff6b6b; font-size:12px; margin: -6px 0 10px;">&nbsp;</div>
         <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); margin-bottom: 12px;">
           <span>{mlang en}Discount{mlang}{mlang ar}الخصم{mlang}</span><b data-nit-m-discount style="color: var(--nit-accentteal, #00a99d);">0.00 EGP</b></div>
         <div style="border-top: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 10%, transparent); padding-top: 12px; display: flex; justify-content: space-between; font-size: 16px; font-weight: 800;">
-          <span style="color: var(--nit-darktextprimary, #ffffff);">{mlang en}Total{mlang}{mlang ar}الإجمالي{mlang}</span><b data-nit-m-final style="color: var(--nit-accentgold, #e8b84b);"></b></div>
+          <span style="color: var(--nit-darktextprimary, #ffffff);">{mlang en}Total{mlang}{mlang ar}الإجمالي{mlang}</span><b data-nit-m-final style="color: var(--nit-accentgold, #e8b84b);">—</b></div>
       </div>
       <div style="padding: 0 24px; color: var(--nit-darktextsecondary, #8a9ab5); font-size: 13px; display: flex; align-items: center; gap: 6px;">
         <span>🔒</span> {mlang en}Secure payment via Kashier{mlang}{mlang ar}دفع آمن عبر Kashier{mlang}</div>
-      <div data-nit-m-error style="display:none; margin: 12px 24px 0; color:#ff6b6b; font-size:13px;"></div>
+      <div data-nit-m-error style="display:none; margin: 12px 24px 0; color:#ff6b6b; font-size:13px;">&nbsp;</div>
       <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 18px 24px 22px;">
         <button type="button" data-nit-m-cancel
           style="background: transparent; border: 1px solid color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 18%, transparent); color: var(--nit-darktextsecondary, #8a9ab5); border-radius: 8px; padding: 9px 18px; font-weight: 700; cursor: pointer;">{mlang en}Cancel{mlang}{mlang ar}إلغاء{mlang}</button>
@@ -112,6 +112,9 @@
     var tpl = root.querySelector('[data-nit-subs-card]');
     var msg = root.querySelector('[data-nit-subs-msg]');
     var modal = root.querySelector('[data-nit-modal]');
+    // Portal the modal to <body> so its position:fixed is relative to the viewport, not trapped/
+    // clipped by a Moodle block wrapper that uses transform/overflow (which would make it invisible).
+    if (modal && modal.parentNode) { document.body.appendChild(modal); }
     var base = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : (root.getAttribute('data-base') || '');
     var sesskey = (window.M && M.cfg && M.cfg.sesskey) ? M.cfg.sesskey : '';
     var subsUrl = base + root.getAttribute('data-endpoint');
@@ -124,6 +127,10 @@
     function strip(html){ var d=document.createElement('div'); d.innerHTML=html||''; return (d.textContent||'').trim(); }
     function say(t){ if (msg){ msg.textContent = t; msg.style.display = ''; } }
     function q(sel){ return modal.querySelector(sel); }
+    // Null-safe helpers: Moodle's HTML purifier can drop elements, so never assume one exists.
+    function setTxt(sel, val){ var el = q(sel); if (el) { el.textContent = val; } }
+    function setDisp(sel, val){ var el = q(sel); if (el) { el.style.display = val; } }
+    function getVal(sel){ var el = q(sel); return el ? String(el.value || '').trim() : ''; }
 
     Array.prototype.forEach.call(root.querySelectorAll('[data-nit-subs-scroll]'), function (btn) {
       btn.addEventListener('click', function () {
@@ -136,24 +143,25 @@
     // ── Modal ──
     function openModal(sub) {
       current = sub;
-      q('[data-nit-m-name]').textContent = sub.name;
-      q('[data-nit-m-days]').textContent = sub.days + ' {mlang en}days{mlang}{mlang ar}يوم{mlang}';
-      q('[data-nit-m-original]').textContent = money(sub.price) + ' EGP';
-      q('[data-nit-m-final]').textContent = money(sub.price) + ' EGP';
-      q('[data-nit-m-discount]').textContent = '0.00 EGP';
-      q('[data-nit-m-coupon]').value = '';
-      q('[data-nit-m-couponerr]').style.display = 'none';
-      q('[data-nit-m-error]').style.display = 'none';
+      setTxt('[data-nit-m-name]', sub.name);
+      setTxt('[data-nit-m-days]', sub.days);
+      setTxt('[data-nit-m-original]', money(sub.price) + ' EGP');
+      setTxt('[data-nit-m-final]', money(sub.price) + ' EGP');
+      setTxt('[data-nit-m-discount]', '0.00 EGP');
+      var c = q('[data-nit-m-coupon]'); if (c) { c.value = ''; }
+      setDisp('[data-nit-m-couponerr]', 'none');
+      setDisp('[data-nit-m-error]', 'none');
       modal.style.display = 'flex';
     }
     function closeModal(){ modal.style.display = 'none'; current = null; }
-    q('[data-nit-m-cancel]').addEventListener('click', closeModal);
+    var cancelBtn = q('[data-nit-m-cancel]'); if (cancelBtn) { cancelBtn.addEventListener('click', closeModal); }
     modal.addEventListener('click', function(ev){ if (ev.target === modal) { closeModal(); } });
     document.addEventListener('keydown', function(ev){ if (ev.key === 'Escape' && modal.style.display !== 'none') { closeModal(); } });
 
-    q('[data-nit-m-apply]').addEventListener('click', function () {
+    var applyBtn = q('[data-nit-m-apply]');
+    if (applyBtn) { applyBtn.addEventListener('click', function () {
       if (!current) { return; }
-      var code = q('[data-nit-m-coupon]').value.trim();
+      var code = getVal('[data-nit-m-coupon]');
       var url = commerceUrl + '?function=preview_discount&item_type=subscription&item_id=' + current.id +
         '&coupon_code=' + encodeURIComponent(code) + '&sesskey=' + encodeURIComponent(sesskey);
       fetch(url, { headers: { 'Accept': 'application/json' } })
@@ -161,21 +169,21 @@
         .then(function(res){
           if (!res || res.status !== 'success') { throw new Error('preview failed'); }
           var d = res.data || {};
-          q('[data-nit-m-discount]').textContent = money(d.discount || 0) + ' EGP';
-          q('[data-nit-m-final]').textContent = money(d.final != null ? d.final : current.price) + ' EGP';
-          var errEl = q('[data-nit-m-couponerr]');
-          if (d.coupon_error) { errEl.textContent = d.coupon_error; errEl.style.display = ''; }
-          else { errEl.style.display = 'none'; }
+          setTxt('[data-nit-m-discount]', money(d.discount || 0) + ' EGP');
+          setTxt('[data-nit-m-final]', money(d.final != null ? d.final : current.price) + ' EGP');
+          if (d.coupon_error) { setTxt('[data-nit-m-couponerr]', d.coupon_error); setDisp('[data-nit-m-couponerr]', ''); }
+          else { setDisp('[data-nit-m-couponerr]', 'none'); }
         })
-        .catch(function(){ var e=q('[data-nit-m-couponerr]'); e.textContent='{mlang en}Could not apply coupon.{mlang}{mlang ar}تعذّر تطبيق الكوبون.{mlang}'; e.style.display=''; });
-    });
+        .catch(function(){ setTxt('[data-nit-m-couponerr]', '{mlang en}Could not apply coupon.{mlang}{mlang ar}تعذّر تطبيق الكوبون.{mlang}'); setDisp('[data-nit-m-couponerr]', ''); });
+    }); }
 
-    q('[data-nit-m-proceed]').addEventListener('click', function () {
+    var proceedBtn = q('[data-nit-m-proceed]');
+    if (proceedBtn) { proceedBtn.addEventListener('click', function () {
       if (!current) { return; }
       var btn = this; btn.disabled = true;
       var body = new URLSearchParams({
         function: 'create_subscription_checkout', sesskey: sesskey,
-        subscriptionid: current.id, coupon_code: q('[data-nit-m-coupon]').value.trim(),
+        subscriptionid: current.id, coupon_code: getVal('[data-nit-m-coupon]'),
         return_url: window.location.href
       });
       fetch(subsUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() })
@@ -187,11 +195,11 @@
             throw new Error((res && res.error) || 'checkout failed');
           }
         })
-        .catch(function(e){ btn.disabled = false; var el=q('[data-nit-m-error]'); el.textContent = e.message; el.style.display=''; });
-    });
+        .catch(function(e){ btn.disabled = false; setTxt('[data-nit-m-error]', e.message); setDisp('[data-nit-m-error]', ''); });
+    }); }
 
-    // Delegated Subscribe click.
-    scroller.addEventListener('click', function (ev) {
+    // Delegated Subscribe click (on the whole block, so it fires wherever the card ends up).
+    root.addEventListener('click', function (ev) {
       var btn = ev.target.closest('[data-nit-buy]');
       if (!btn) { return; }
       if (!loggedIn) { window.location.href = base + '/login/index.php'; return; }
@@ -235,8 +243,27 @@
           if (!desc) { var d=wrap.querySelector('[data-nit-desc]'); if (d) { d.style.display = 'none'; } }
           scroller.appendChild(wrap);
         });
+        if (loggedIn) { markActiveSubscription(); }
       })
       .catch(function(){ say('{mlang en}Could not load subscriptions.{mlang}{mlang ar}تعذّر تحميل الاشتراكات.{mlang}'); });
+
+    // If the user already holds an active subscription (only one allowed at a time), turn every
+    // Subscribe button into a disabled "Subscribed" state so they can't start a second checkout.
+    function markActiveSubscription() {
+      fetch(subsUrl + '?function=get_my_active_subscription&sesskey=' + encodeURIComponent(sesskey),
+        { headers: { 'Accept': 'application/json' } })
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+          if (!res || res.status !== 'success' || !res.data || !res.data.has_active) { return; }
+          Array.prototype.forEach.call(scroller.querySelectorAll('[data-nit-buy]'), function(b){
+            b.disabled = true;
+            b.style.opacity = '0.55';
+            b.style.cursor = 'default';
+            b.textContent = '{mlang en}Subscribed{mlang}{mlang ar}مشترك بالفعل{mlang}';
+          });
+        })
+        .catch(function(){});
+    }
   })();
   </script>
 </div>

@@ -3,6 +3,13 @@ require_once(__DIR__ . '/../../config.php');
 require_once($CFG->dirroot . '/course/lib.php');
 require_once($CFG->libdir . '/filelib.php');
 
+// Respect the site's forced-login policy: if the site requires login to browse,
+// gate this catalogue page too (core_course_category visibility checks below
+// still apply either way).
+if (!empty($CFG->forcelogin)) {
+    require_login();
+}
+
 $categoryid = required_param('id', PARAM_INT);      // Parent category (drives header + labels).
 $subid      = optional_param('sub', 0, PARAM_INT);  // 0 = "All" (parent, recursive).
 $page       = optional_param('page', 0, PARAM_INT); // Course pagination page (0-based).

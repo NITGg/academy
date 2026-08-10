@@ -60,13 +60,50 @@ class subscription_purchase_manager {
         global $DB;
 
         $reference = trim((string) $reference);
+
+        // Serialise concurrent fulfilments of the SAME gateway reference. The
+        // server-to-server webhook and the browser-redirect callback commonly
+        // fire near-simultaneously; without this, both pass the "does a purchase
+        // with this reference exist yet?" check and each inserts a row, doubling
+        // the paid subscription. The lock is keyed on the reference so different
+        // orders never block each other. Empty reference (e.g. non-gateway paths)
+        // skips the lock — it also skips the idempotency check below.
+        $lock = null;
         if ($reference !== '') {
-            $existing = $DB->get_record('nit_sub_purchase', ['reference' => $reference]);
-            if ($existing) {
-                return self::summary($existing);
-            }
+            $lockfactory = \core\lock\lock_config::get_lock_factory('local_nit_subscriptions');
+            $lock = $lockfactory->get_lock('fulfil_' . sha1($reference), 10);
         }
 
+        try {
+            if ($reference !== '') {
+                $existing = $DB->get_record('nit_sub_purchase', ['reference' => $reference]);
+                if ($existing) {
+                    return self::summary($existing);
+                }
+            }
+
+            return self::insert_purchase($DB, $userid, $subscriptionid, $pricepaid, $reference, $type, $seats);
+        } finally {
+            if ($lock) {
+                $lock->release();
+            }
+        }
+    }
+
+    /**
+     * Build and insert the purchase row. Split out of fulfil_from_gateway so the
+     * insert happens inside the reference lock held by the caller.
+     *
+     * @param \moodle_database $DB
+     * @param int $userid
+     * @param int $subscriptionid
+     * @param float $pricepaid
+     * @param string $reference
+     * @param string $type
+     * @param int $seats
+     * @return array purchase summary
+     */
+    private static function insert_purchase($DB, $userid, $subscriptionid, $pricepaid, $reference, $type, $seats) {
         $sub = $DB->get_record('nit_subscription', ['id' => $subscriptionid], '*', MUST_EXIST);
         $isb2b = ($type === 'b2b');
         $basePrice = (float) $sub->price;
@@ -187,6 +224,50 @@ class subscription_purchase_manager {
             return $b['timeactivated'] - $a['timeactivated'];
         });
         return $out;
+    }
+
+    /**
+     * All user subscription purchases for the admin table, newest first.
+     *
+     * @return array
+     */
+    public static function get_all_user_subscriptions() {
+        global $DB;
+        $sql = "SELECT sp.*, s.name AS subscription_name, u.firstname, u.lastname, u.email
+                  FROM {nit_sub_purchase} sp
+                  JOIN {nit_subscription} s ON s.id = sp.subscriptionid
+                  JOIN {user} u ON u.id = sp.userid
+              ORDER BY sp.timecreated DESC";
+        $out = [];
+        foreach ($DB->get_records_sql($sql) as $r) {
+            $out[] = [
+                'id'            => (int) $r->id,
+                'userid'        => (int) $r->userid,
+                'user_fullname' => fullname($r),
+                'user_email'    => $r->email,
+                'name'          => format_string(subscription_manager::resolve_mlang($r->subscription_name)),
+                'type'          => $r->type,
+                'price_paid'    => (float) $r->price_paid,
+                'status'        => self::effective_status($r),
+                'expires_at'    => (int) $r->expires_at,
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Cancel a user's subscription purchase (admin unsubscribe).
+     *
+     * @param int $purchaseid
+     * @return void
+     */
+    public static function unsubscribe($purchaseid) {
+        global $DB;
+        $purchase = $DB->get_record('nit_sub_purchase', ['id' => $purchaseid], '*', MUST_EXIST);
+        $DB->update_record('nit_sub_purchase', (object) [
+            'id'     => $purchase->id,
+            'status' => self::STATUS_CANCELLED,
+        ]);
     }
 
     /**

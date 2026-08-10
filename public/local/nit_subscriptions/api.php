@@ -32,6 +32,7 @@ require(__DIR__ . '/../../config.php');
 require_once($CFG->dirroot . '/local/nit_subscriptions/lib.php');
 
 use local_nit_subscriptions\subscription_manager;
+use local_nit_subscriptions\subscription_purchase_manager;
 
 $function = optional_param('function', '', PARAM_ALPHANUMEXT);
 
@@ -73,7 +74,7 @@ try {
     // Writes must be POST + sesskey.
     $writes = ['create_subscription', 'update_subscription', 'activate_subscription',
         'deactivate_subscription', 'delete_subscription', 'set_subscription_courses',
-        'create_subscription_checkout'];
+        'create_subscription_checkout', 'unsubscribe_user'];
     if (in_array($function, $writes, true)) {
         if (!$ispost) {
             throw new \moodle_exception('err_postrequired', 'local_nit_subscriptions');
@@ -84,7 +85,8 @@ try {
     // Admin-only functions.
     $adminfns = ['get_subscriptions', 'create_subscription', 'update_subscription',
         'activate_subscription', 'deactivate_subscription', 'delete_subscription',
-        'get_categories_with_courses', 'set_subscription_courses', 'get_all_user_subscriptions'];
+        'get_categories_with_courses', 'set_subscription_courses', 'get_all_user_subscriptions',
+        'unsubscribe_user'];
     if (in_array($function, $adminfns, true)) {
         require_capability('local/nit_subscriptions:managesubscriptions', $context);
     }
@@ -155,9 +157,25 @@ try {
             nit_subscriptions_respond(['status' => 'success', 'data' => $courses]);
             break;
 
-        // ── Admin: user subscriptions (no purchase subsystem yet) ──
+        // ── Admin: user subscriptions ──
         case 'get_all_user_subscriptions':
+            nit_subscriptions_respond(['status' => 'success',
+                'data' => subscription_purchase_manager::get_all_user_subscriptions()]);
+            break;
+
+        case 'unsubscribe_user':
+            subscription_purchase_manager::unsubscribe(required_param('purchaseid', PARAM_INT));
             nit_subscriptions_respond(['status' => 'success', 'data' => []]);
+            break;
+
+        // ── Student: my active subscription (for the home-block button state) ──
+        case 'get_my_active_subscription':
+            $active = subscription_purchase_manager::get_active_subscription($USER->id);
+            nit_subscriptions_respond(['status' => 'success', 'data' => [
+                'has_active'     => $active ? true : false,
+                'subscriptionid' => $active ? (int) $active->subscriptionid : 0,
+                'expires_at'     => $active ? (int) $active->expires_at : 0,
+            ]]);
             break;
 
         // ── Student: start a Kashier checkout for a subscription ──

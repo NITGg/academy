@@ -251,6 +251,12 @@ class manager {
         $userid = $userid ?? $USER->id;
         $user = $DB->get_record('user', ['id' => $userid], 'id, email, firstname, lastname, country', MUST_EXIST);
         $sub = $DB->get_record('nit_subscription', ['id' => $subscriptionid], '*', MUST_EXIST);
+        // The plan must be active. The public block only lists active plans, but
+        // this endpoint accepts any id, so guard against buying a
+        // deactivated/discontinued plan by supplying its id directly.
+        if (($sub->status ?? '') !== 'active') {
+            throw new \moodle_exception('error', 'moodle', '', null, 'This subscription plan is not available');
+        }
 
         $isb2b = ($type === 'b2b');
         $b2bseats = 0;
@@ -582,9 +588,14 @@ class manager {
         // Verify amount matches.
         $expected = (float) $transaction->amount;
         $received = $result->amount;
-        if (abs($expected - $received) > 0.01) {
+        // Reject if amount OR currency mismatches. Currency is only enforced when
+        // the gateway result carries one (guarded so it can't break payments where
+        // the field is absent) — a right-number, wrong-currency message is rejected.
+        $currencymismatch = !empty($result->currency)
+            && strcasecmp((string) $result->currency, (string) $transaction->currency) !== 0;
+        if (abs($expected - $received) > 0.01 || $currencymismatch) {
             self::log_entry($transaction->provider_id, $transaction->id, 'error',
-                "Amount mismatch: expected={$expected}, received={$received}");
+                "Amount/currency mismatch: expected={$expected} {$transaction->currency}, received={$received}");
             $DB->update_record('local_payments_transactions', (object) [
                 'id' => $transaction->id,
                 'status' => status_machine::FAILED,
@@ -743,8 +754,10 @@ class manager {
         $result = $provider->verify_payment($transaction->provider_session_id);
 
         if ($result->verified) {
-            // Double-check amount.
-            if (abs((float) $transaction->amount - $result->amount) > 0.01) {
+            // Double-check amount and (when present) currency.
+            $currencymismatch = !empty($result->currency)
+                && strcasecmp((string) $result->currency, (string) $transaction->currency) !== 0;
+            if (abs((float) $transaction->amount - $result->amount) > 0.01 || $currencymismatch) {
                 return (object) [
                     'success' => false,
                     'status' => 'amount_mismatch',

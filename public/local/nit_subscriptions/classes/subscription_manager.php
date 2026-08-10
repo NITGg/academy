@@ -206,7 +206,10 @@ class subscription_manager {
      * @return bool
      */
     public static function has_purchases($subscriptionid) {
-        return false;
+        global $DB;
+        // A plan is "in use" if any purchase row references it (any status) —
+        // deleting it would dangle those FKs and strip paying users' access.
+        return $DB->record_exists('nit_sub_purchase', ['subscriptionid' => (int) $subscriptionid]);
     }
 
     /**

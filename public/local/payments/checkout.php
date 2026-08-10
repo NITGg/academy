@@ -12,6 +12,9 @@ $context = context_course::instance($courseid);
 // page by Moodle's can_access_course() check.
 require_login();
 require_capability('local/payments:purchasecourse', $context);
+// State-changing (creates a transaction + opens a gateway session), so require a
+// valid sesskey — stops a logged-in victim being lured to checkout.php?courseid=X.
+require_sesskey();
 
 // No active pricing — course is free, nothing to check out.
 if (!\local_payments\price_resolver::has_pricing($courseid)) {

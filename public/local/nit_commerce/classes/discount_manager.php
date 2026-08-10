@@ -424,6 +424,39 @@ class discount_manager {
         $now = time();
         $transactionid = (int)$transactionid;
 
+        // Idempotency lock: a single transaction can be fulfilled twice when the
+        // gateway webhook and the browser-redirect callback race. Serialise on the
+        // transaction id so the "does a usage row for this transaction exist?"
+        // check-then-insert below cannot double-record offer/coupon usage.
+        $lock = null;
+        if ($transactionid > 0) {
+            $lockfactory = \core\lock\lock_config::get_lock_factory('local_nit_commerce');
+            $lock = $lockfactory->get_lock('record_usage_' . $transactionid, 10);
+        }
+
+        try {
+            self::do_record_usage($DB, $resolved, $userid, $transactionid, $itemtype, $itemid, $now);
+        } finally {
+            if ($lock) {
+                $lock->release();
+            }
+        }
+    }
+
+    /**
+     * Insert the offer/coupon usage rows for a transaction (idempotent per
+     * transaction). Runs inside the transaction lock held by record_usage().
+     *
+     * @param \moodle_database $DB
+     * @param array $resolved
+     * @param int $userid
+     * @param int $transactionid
+     * @param string $itemtype
+     * @param int $itemid
+     * @param int $now
+     * @return void
+     */
+    private static function do_record_usage($DB, array $resolved, $userid, $transactionid, $itemtype, $itemid, $now) {
         $offers = (isset($resolved['offers']) && is_array($resolved['offers'])) ? $resolved['offers'] : array();
         if (empty($offers) && !empty($resolved['offer_id']) && ($resolved['offer_discount'] ?? 0) > 0) {
             $offers = array(array('id' => $resolved['offer_id'], 'discount' => $resolved['offer_discount']));
