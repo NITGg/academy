@@ -118,25 +118,41 @@ if ($nitcheckout) {
     require_once($CFG->dirroot . '/local/nit_commerce/lib.php');
     $PAGE->requires->js(new moodle_url('/local/nit_commerce/checkout_modal.js'), true);
 }
-// Per-course price + offer info for a card: [haspricing, price, offerlabel, offerfinal].
+// Per-course state for a card: enrolment, subscription coverage, pricing, offer.
 $nitcourseinfo = function ($courseid) use ($nitcheckout) {
     global $USER;
-    $out = ['haspricing' => false, 'price' => 0.0, 'offerlabel' => '', 'offerfinal' => 0.0];
-    if (!$nitcheckout || !\local_payments\price_resolver::has_pricing($courseid)) {
+    $out = ['enrolled' => false, 'covered' => false, 'free' => true, 'haspricing' => false,
+        'price' => 0.0, 'offerlabel' => '', 'offerfinal' => 0.0];
+    $uid = (int) ($USER->id ?? 0);
+    $ctx = context_course::instance($courseid);
+    $out['enrolled'] = $uid > 0 && is_enrolled($ctx, $uid, '', true);
+
+    if (!$nitcheckout) {
         return $out;
     }
-    try {
-        $pricing = \local_payments\price_resolver::resolve($courseid, (int) ($USER->id ?? 0));
-        $base = (float) $pricing->price;
-        $out['haspricing'] = true;
-        $out['price'] = $base;
-        $summary = \local_nit_commerce\discount_manager::offer_summary('course', (int) $courseid, $base);
-        if ($summary) {
-            $out['offerlabel'] = $summary['label'];   // e.g. "-40%"
-            $out['offerfinal'] = (float) $summary['final'];
+    $out['haspricing'] = (bool) \local_payments\price_resolver::has_pricing($courseid);
+    $out['free'] = !$out['haspricing'];
+
+    // Covered by an active subscription (grants access without buying). Only relevant when not
+    // already enrolled and the course is paid (a free course is just "enrol").
+    if (!$out['enrolled'] && $out['haspricing']
+            && class_exists('\local_nit_subscriptions\subscription_purchase_manager')) {
+        $out['covered'] = (bool) \local_payments\price_resolver::is_covered_by_active_subscription($courseid, $uid);
+    }
+
+    if ($out['haspricing']) {
+        try {
+            $pricing = \local_payments\price_resolver::resolve($courseid, $uid);
+            $base = (float) $pricing->price;
+            $out['price'] = $base;
+            $summary = \local_nit_commerce\discount_manager::offer_summary('course', (int) $courseid, $base);
+            if ($summary) {
+                $out['offerlabel'] = $summary['label'];   // e.g. "-40%"
+                $out['offerfinal'] = (float) $summary['final'];
+            }
+        } catch (\Throwable $e) {
+            // Leave defaults on any pricing error.
         }
-    } catch (\Throwable $e) {
-        // Leave defaults on any pricing error.
     }
     return $out;
 };
@@ -264,7 +280,15 @@ echo $OUTPUT->header();
             <span style="position: absolute; top: 12px; inset-inline-end: 12px; background: var(--cbg4); color: var(--ctext4); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
               <?= s($pricelabel) ?>
             </span>
-            <?php if ($info['offerlabel'] !== ''): ?>
+            <?php if ($info['enrolled']): ?>
+            <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: #1e9e5a; color: #ffffff; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
+              ✓ <?= $t('Enrolled', 'مُسجَّل') ?>
+            </span>
+            <?php elseif ($info['covered']): ?>
+            <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: var(--nit-accentgold, #e8b84b); color: var(--nit-darkbackground, #0a1628); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
+              ★ <?= $t('In your subscription', 'ضمن اشتراكك') ?>
+            </span>
+            <?php elseif ($info['offerlabel'] !== ''): ?>
             <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: var(--nit-accentteal, #00a99d); color: #ffffff; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
               <?= s($info['offerlabel']) ?>
             </span>
@@ -287,22 +311,42 @@ echo $OUTPUT->header();
               <?= s($summary) ?>
             </p>
 
+            <?php
+              // Button styles.
+              $btnprimary   = 'display:block; width:100%; box-sizing:border-box; text-align:center; background:var(--cbg4); color:var(--ctext4); font-weight:bold; padding:10px 12px; border:0; border-radius:8px; cursor:pointer; font-size:15px; text-decoration:none;';
+              $btnsecondary = 'display:block; width:100%; box-sizing:border-box; text-align:center; background:transparent; color:var(--ctext1); font-weight:bold; padding:8px 12px; border:1px solid color-mix(in srgb, var(--ctext1) 20%, transparent); border-radius:8px; text-decoration:none;';
+              $detailsurl   = $courseurl->out();
+              $enrolurl     = (new moodle_url('/local/nit_subscriptions/enrol.php', ['courseid' => $course->id, 'sesskey' => sesskey()]))->out(false);
+            ?>
             <!-- Actions: pinned to the card bottom so every card's buttons align, regardless of summary length. -->
             <div style="margin-top: auto; padding-top: 16px; display: flex; flex-direction: column; gap: 8px;">
-              <?php if ($info['haspricing']): ?>
-              <button type="button" data-nit-buy-course data-courseid="<?= (int) $course->id ?>"
-                data-name="<?= s($coursename) ?>" data-price="<?= s((string) $info['price']) ?>"
-                style="display: block; width: 100%; box-sizing: border-box; text-align: center; background: var(--cbg4); color: var(--ctext4); font-weight: bold; padding: 10px 12px; border: 0; border-radius: 8px; cursor: pointer; font-size: 15px;"
-                onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
-                <?= $t('Buy now', 'اشترِ الآن') ?>
-              </button>
-              <a href="<?= $courseurl->out() ?>" style="display: block; width: 100%; box-sizing: border-box; text-align: center; background: transparent; color: var(--ctext1); font-weight: bold; padding: 8px 12px; border: 1px solid color-mix(in srgb, var(--ctext1) 20%, transparent); border-radius: 8px; text-decoration: none;">
-                <?= $t('View More', 'المزيد') ?>
-              </a>
-              <?php else: ?>
-              <a href="<?= $courseurl->out() ?>" style="display: block; width: 100%; box-sizing: border-box; text-align: center; background: var(--cbg4); color: var(--ctext4); font-weight: bold; padding: 10px 12px; border-radius: 8px; text-decoration: none;" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
-                <?= $t('View More', 'المزيد') ?>
-              </a>
+              <?php if ($info['covered']): ?>
+                <div style="font-size: 12px; font-weight: bold; color: var(--nit-accentgold, #e8b84b); text-align: center; margin-bottom: 2px;">
+                  ★ <?= $t('Included in your subscription', 'مشمول ضمن اشتراكك') ?>
+                </div>
+              <?php endif; ?>
+
+              <?php if ($info['enrolled']): ?>
+                <a href="<?= $detailsurl ?>" style="<?= $btnprimary ?>" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
+                  <?= $t('Go to course', 'الذهاب للكورس') ?>
+                </a>
+              <?php elseif ($info['covered']): ?>
+                <a href="<?= $enrolurl ?>" style="<?= $btnprimary ?>" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
+                  <?= $t('Enroll', 'التحاق') ?>
+                </a>
+                <a href="<?= $detailsurl ?>" style="<?= $btnsecondary ?>"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+              <?php elseif ($info['haspricing']): ?>
+                <button type="button" data-nit-buy-course data-courseid="<?= (int) $course->id ?>"
+                  data-name="<?= s($coursename) ?>" data-price="<?= s((string) $info['price']) ?>"
+                  style="<?= $btnprimary ?>" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
+                  <?= $t('Buy now', 'اشترِ الآن') ?>
+                </button>
+                <a href="<?= $detailsurl ?>" style="<?= $btnsecondary ?>"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+              <?php else: // Free course. ?>
+                <a href="<?= $enrolurl ?>" style="<?= $btnprimary ?>" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
+                  <?= $t('Enroll', 'التحاق') ?>
+                </a>
+                <a href="<?= $detailsurl ?>" style="<?= $btnsecondary ?>"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php endif; ?>
             </div>
           </div>

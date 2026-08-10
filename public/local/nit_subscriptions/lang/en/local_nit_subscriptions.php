@@ -147,3 +147,4 @@ $string['sub_discount_label']  = 'Discount';
 $string['sub_secure_kashier']  = 'Secure payment via Kashier';
 $string['sub_proceed_payment'] = 'Proceed to payment';
 $string['sub_buy']             = 'Subscribe';
+$string['enrolled']            = 'You are now enrolled in this course.';

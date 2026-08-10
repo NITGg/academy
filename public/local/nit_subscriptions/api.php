@@ -168,14 +168,25 @@ try {
             nit_subscriptions_respond(['status' => 'success', 'data' => []]);
             break;
 
-        // ── Student: my active subscription (for the home-block button state) ──
+        // ── Student: my active subscription (for the home-block banner + button state) ──
         case 'get_my_active_subscription':
             $active = subscription_purchase_manager::get_active_subscription($USER->id);
-            nit_subscriptions_respond(['status' => 'success', 'data' => [
-                'has_active'     => $active ? true : false,
-                'subscriptionid' => $active ? (int) $active->subscriptionid : 0,
-                'expires_at'     => $active ? (int) $active->expires_at : 0,
-            ]]);
+            $data = ['has_active' => false, 'subscriptionid' => 0, 'expires_at' => 0,
+                'name' => '', 'days_left' => 0, 'price_paid' => 0];
+            if ($active) {
+                $name = $DB->get_field('nit_subscription', 'name', ['id' => $active->subscriptionid]);
+                $daysleft = ((int) $active->expires_at > 0)
+                    ? max(0, (int) ceil(((int) $active->expires_at - time()) / DAYSECS)) : 0;
+                $data = [
+                    'has_active'     => true,
+                    'subscriptionid' => (int) $active->subscriptionid,
+                    'expires_at'     => (int) $active->expires_at,
+                    'name'           => $name !== false ? format_string(subscription_manager::resolve_mlang($name)) : '',
+                    'days_left'      => $daysleft,
+                    'price_paid'     => (float) $active->price_paid,
+                ];
+            }
+            nit_subscriptions_respond(['status' => 'success', 'data' => $data]);
             break;
 
         // ── Student: start a Kashier checkout for a subscription ──

@@ -18,6 +18,16 @@
         {mlang en}Available subscriptions{mlang}{mlang ar}الاشتراكات المتاحة{mlang}</h2>
     </div>
 
+    <!-- Current subscription banner (shown only when the user has an active subscription) -->
+    <div data-nit-mysub style="display: none; max-width: 720px; margin: 0 auto 32px; padding: 16px 20px; border-radius: 14px; background: linear-gradient(135deg, color-mix(in srgb, var(--nit-accentgold, #e8b84b) 18%, transparent), color-mix(in srgb, var(--nit-accentteal, #00a99d) 12%, transparent)); border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 40%, transparent); align-items: center; gap: 14px; flex-wrap: wrap;">
+      <span style="font-size: 26px;">★</span>
+      <div style="flex: 1; min-width: 200px;">
+        <div style="font-size: 13px; color: var(--nit-darktextsecondary, #8a9ab5); font-weight: 600;">{mlang en}Your active subscription{mlang}{mlang ar}اشتراكك الحالي{mlang}</div>
+        <div data-nit-mysub-name style="font-size: 18px; font-weight: 800; color: var(--nit-darktextprimary, #ffffff);">—</div>
+      </div>
+      <div data-nit-mysub-days style="font-size: 14px; font-weight: 700; color: var(--nit-accentgold, #e8b84b); text-align: end;">—</div>
+    </div>
+
     <!-- Slider Wrapper -->
     <div style="position: relative; padding: 0 28px;">
       <!-- LEFT ARROW --> <button
@@ -280,6 +290,21 @@
         .then(function(r){ return r.json(); })
         .then(function(res){
           if (!res || res.status !== 'success' || !res.data || !res.data.has_active) { return; }
+          var d = res.data;
+          // Show the "your active subscription" banner.
+          var banner = root.querySelector('[data-nit-mysub]');
+          if (banner) {
+            var nameEl = banner.querySelector('[data-nit-mysub-name]');
+            var daysEl = banner.querySelector('[data-nit-mysub-days]');
+            if (nameEl) { nameEl.textContent = d.name || '—'; }
+            if (daysEl) {
+              daysEl.textContent = (d.expires_at > 0)
+                ? (d.days_left + ' {mlang en}days left{mlang}{mlang ar}يوم متبقٍ{mlang}')
+                : '{mlang en}Unlimited{mlang}{mlang ar}غير محدود{mlang}';
+            }
+            banner.style.display = 'flex';
+          }
+          // Disable every Subscribe button (only one active subscription allowed at a time).
           Array.prototype.forEach.call(scroller.querySelectorAll('[data-nit-buy]'), function(b){
             b.disabled = true;
             b.style.opacity = '0.55';
