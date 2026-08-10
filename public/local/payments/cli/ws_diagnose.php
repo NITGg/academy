@@ -17,7 +17,7 @@ require_once($CFG->libdir . '/clilib.php');
 require_once($CFG->libdir . '/accesslib.php');
 
 list($options, $unrecognized) = cli_get_params(
-    ['token' => '', 'fix' => false, 'function' => '', 'help' => false],
+    ['token' => '', 'fix' => false, 'fixupload' => false, 'function' => '', 'help' => false],
     ['h' => 'help']
 );
 
@@ -25,6 +25,7 @@ if ($options['help'] || $options['token'] === '') {
     echo "Diagnose REST accessexception for a web-service token.\n";
     echo "  --token=WSTOKEN     the token string (required)\n";
     echo "  --fix               grant webservice/rest:use to the user's role(s)\n";
+    echo "  --fixupload         enable 'Can upload files' on the token's service\n";
     echo "  --function=NAME     also check one specific function (e.g. auth_email_signup_user)\n";
     exit(0);
 }
@@ -71,6 +72,22 @@ if (!$service) {
 }
 echo (($service->enabled) ? $ok : $bad) . "service: {$service->name} (shortname={$service->shortname}), "
     . "enabled={$service->enabled}, restrictedusers={$service->restrictedusers}\n";
+
+// 4b. File up/download flags — webservice/upload.php throws accessexception when
+//     uploadfiles is off (this is what breaks profile-picture upload).
+echo ((int) $service->uploadfiles === 1 ? $ok : $bad)
+    . "service uploadfiles = {$service->uploadfiles} "
+    . ((int) $service->uploadfiles === 1 ? "(file upload allowed)" : "(OFF — /webservice/upload.php will 'accessexception')") . "\n";
+echo "  ....    service downloadfiles = {$service->downloadfiles}\n";
+if ((int) $service->uploadfiles !== 1) {
+    if (!empty($options['fixupload'])) {
+        $DB->set_field('external_services', 'uploadfiles', 1, ['id' => $service->id]);
+        echo $ok . "Enabled uploadfiles on service '{$service->name}'. Upload should work now.\n";
+    } else {
+        echo "         -> Fix: Site admin > Server > Web services > External services > edit '{$service->name}'\n";
+        echo "            > tick 'Can upload files'. (Or re-run this with --fixupload.)\n";
+    }
+}
 
 // 5. If restricted, is the user authorised?
 if ((int) $service->restrictedusers === 1) {
