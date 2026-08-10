@@ -277,9 +277,15 @@ echo $OUTPUT->header();
           <!-- Image + price -->
           <div style="position: relative; flex: 0 0 160px; height: 160px;">
             <div style="width: 100%; height: 160px; background: var(--cbg3) url('<?= s($courseimage) ?>') center/cover no-repeat;">&nbsp;</div>
+            <?php if ($info['offerlabel'] !== '' && $info['offerfinal'] > 0): ?>
+            <span style="position: absolute; top: 12px; inset-inline-end: 12px; background: var(--cbg4); color: var(--ctext4); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
+              <span style="text-decoration: line-through; opacity: 0.65; margin-inline-end: 4px;"><?= s($pricelabel) ?></span><?= s(number_format($info['offerfinal'], 0)) ?> <?= $t('EGP', 'ج.م') ?>
+            </span>
+            <?php else: ?>
             <span style="position: absolute; top: 12px; inset-inline-end: 12px; background: var(--cbg4); color: var(--ctext4); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
               <?= s($pricelabel) ?>
             </span>
+            <?php endif; ?>
             <?php if ($info['enrolled']): ?>
             <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: #1e9e5a; color: #ffffff; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
               ✓ <?= $t('Enrolled', 'مُسجَّل') ?>
@@ -328,7 +334,7 @@ echo $OUTPUT->header();
 
               <?php if ($info['enrolled']): ?>
                 <a href="<?= $detailsurl ?>" style="<?= $btnprimary ?>" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
-                  <?= $t('Go to course', 'الذهاب للكورس') ?>
+                  <?= $t('Course details', 'تفاصيل الكورس') ?>
                 </a>
               <?php elseif ($info['covered']): ?>
                 <a href="<?= $enrolurl ?>" style="<?= $btnprimary ?>" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">

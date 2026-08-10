@@ -326,17 +326,50 @@ class subscription_purchase_manager {
 
     /**
      * Cancel a user's subscription purchase (admin unsubscribe).
+     * Also unenrols the user from every course that was covered by this subscription plan.
      *
      * @param int $purchaseid
      * @return void
      */
     public static function unsubscribe($purchaseid) {
-        global $DB;
+        global $DB, $CFG;
+        require_once($CFG->libdir . '/enrollib.php');
+
         $purchase = $DB->get_record('nit_sub_purchase', ['id' => $purchaseid], '*', MUST_EXIST);
+
+        // Cancel the purchase record.
         $DB->update_record('nit_sub_purchase', (object) [
             'id'     => $purchase->id,
             'status' => self::STATUS_CANCELLED,
         ]);
+
+        // Unenrol the user from courses covered by this subscription plan.
+        $courseids = $DB->get_fieldset_select('nit_course_access',
+            'courseid', 'subscriptionid = :sid', ['sid' => (int) $purchase->subscriptionid]);
+        if (empty($courseids)) {
+            return;
+        }
+
+        $plugin = enrol_get_plugin('manual');
+        if (!$plugin) {
+            return;
+        }
+
+        foreach ($courseids as $cid) {
+            $instance = $DB->get_record('enrol',
+                ['courseid' => (int) $cid, 'enrol' => 'manual', 'status' => ENROL_INSTANCE_ENABLED],
+                '*', IGNORE_MULTIPLE);
+            if (!$instance) {
+                continue;
+            }
+            $ctx = \context_course::instance((int) $cid, IGNORE_MISSING);
+            if (!$ctx) {
+                continue;
+            }
+            if (is_enrolled($ctx, (int) $purchase->userid, '', true)) {
+                $plugin->unenrol_user($instance, (int) $purchase->userid);
+            }
+        }
     }
 
     /**
