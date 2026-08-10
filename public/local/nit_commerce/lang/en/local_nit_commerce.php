@@ -125,6 +125,7 @@ $string['err_couponnotstarted']    = 'This coupon is not valid yet.';
 $string['err_couponexpired']       = 'This coupon has expired.';
 $string['err_couponnotapplicable'] = 'This coupon does not apply to this item.';
 $string['err_couponusedup']        = 'This coupon has reached its usage limit.';
+$string['err_couponalreadyusedbyuser'] = 'You have already used this coupon.';
 $string['err_couponhasusages']     = 'This coupon has been used and can only be deactivated.';
 $string['err_offernamerequired']   = 'An offer name is required.';
 $string['err_offernotfound']       = 'Offer not found.';

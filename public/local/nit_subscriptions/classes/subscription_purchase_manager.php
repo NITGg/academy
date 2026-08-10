@@ -106,6 +106,22 @@ class subscription_purchase_manager {
     private static function insert_purchase($DB, $userid, $subscriptionid, $pricepaid, $reference, $type, $seats) {
         $sub = $DB->get_record('nit_subscription', ['id' => $subscriptionid], '*', MUST_EXIST);
         $isb2b = ($type === 'b2b');
+
+        // Business rule: one active NORMAL subscription per user. If a duplicate
+        // payment reaches fulfilment (two checkouts paid before either fulfilled),
+        // do NOT grant a second — return the existing subscription and log so an
+        // admin can refund the duplicate charge. (Catches the sequential case; the
+        // rare truly-simultaneous cross-checkout case may still slip through, but
+        // no money is lost — the buyer paid — only the one-subscription rule.)
+        if (!$isb2b && self::has_active_normal($userid)) {
+            debugging("local_nit_subscriptions: duplicate active-normal subscription payment for user {$userid}"
+                . " (reference {$reference}) — no second subscription granted; refund required.", DEBUG_NORMAL);
+            $active = self::get_active_subscription($userid);
+            if ($active) {
+                return self::summary($active);
+            }
+        }
+
         $basePrice = (float) $sub->price;
         $discountPct = 0;
         if ($isb2b && $seats > 0) {

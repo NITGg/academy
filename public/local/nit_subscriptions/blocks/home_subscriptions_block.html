@@ -77,6 +77,8 @@
           <span>{mlang en}Duration{mlang}{mlang ar}المدة{mlang}</span><b style="color: var(--nit-darktextprimary, #ffffff);"><span data-nit-m-days>—</span> {mlang en}days{mlang}{mlang ar}يوم{mlang}</b></div>
         <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); margin-bottom: 12px;">
           <span>{mlang en}Total{mlang}{mlang ar}الإجمالي{mlang}</span><b data-nit-m-original style="color: var(--nit-darktextprimary, #ffffff);">—</b></div>
+        <div data-nit-m-offerrow style="display: none; justify-content: space-between; font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); margin-bottom: 12px;">
+          <span>{mlang en}Offer{mlang}{mlang ar}عرض{mlang}</span><b data-nit-m-offer style="color: var(--nit-accentteal, #00a99d);">—</b></div>
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
           <span style="font-size: 14px; color: var(--nit-darktextsecondary, #8a9ab5); flex: 0 0 auto;">{mlang en}Coupon{mlang}{mlang ar}كوبون{mlang}</span>
           <input data-nit-m-coupon type="text" autocomplete="off"
@@ -141,6 +143,34 @@
     });
 
     // ── Modal ──
+    // Fetch a fresh price preview (auto offer + optional coupon) and paint the modal.
+    function previewSub(code) {
+      if (!current) { return; }
+      var url = commerceUrl + '?function=preview_discount&item_type=subscription&item_id=' + current.id +
+        '&coupon_code=' + encodeURIComponent(code || '') + '&sesskey=' + encodeURIComponent(sesskey);
+      fetch(url, { headers: { 'Accept': 'application/json' } })
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+          if (!res || res.status !== 'success') { throw new Error('preview failed'); }
+          var d = res.data || {};
+          setTxt('[data-nit-m-original]', money(d.original != null ? d.original : current.price) + ' EGP');
+          setTxt('[data-nit-m-discount]', money(d.discount || 0) + ' EGP');
+          setTxt('[data-nit-m-final]', money(d.final != null ? d.final : current.price) + ' EGP');
+          // Auto-applied offer line (with its name if present).
+          var offerDisc = Number(d.offer_discount || 0);
+          if (offerDisc > 0) {
+            var oname = (d.offers && d.offers[0] && d.offers[0].name) ? d.offers[0].name : (d.offer_name || '');
+            setTxt('[data-nit-m-offer]', '-' + money(offerDisc) + ' EGP' + (oname ? ('  (' + oname + ')') : ''));
+            setDisp('[data-nit-m-offerrow]', 'flex');
+          } else {
+            setDisp('[data-nit-m-offerrow]', 'none');
+          }
+          if (d.coupon_error) { setTxt('[data-nit-m-couponerr]', d.coupon_error); setDisp('[data-nit-m-couponerr]', ''); }
+          else { setDisp('[data-nit-m-couponerr]', 'none'); }
+        })
+        .catch(function(){ setTxt('[data-nit-m-couponerr]', '{mlang en}Could not apply coupon.{mlang}{mlang ar}تعذّر تطبيق الكوبون.{mlang}'); setDisp('[data-nit-m-couponerr]', ''); });
+    }
+
     function openModal(sub) {
       current = sub;
       setTxt('[data-nit-m-name]', sub.name);
@@ -148,10 +178,12 @@
       setTxt('[data-nit-m-original]', money(sub.price) + ' EGP');
       setTxt('[data-nit-m-final]', money(sub.price) + ' EGP');
       setTxt('[data-nit-m-discount]', '0.00 EGP');
+      setDisp('[data-nit-m-offerrow]', 'none');
       var c = q('[data-nit-m-coupon]'); if (c) { c.value = ''; }
       setDisp('[data-nit-m-couponerr]', 'none');
       setDisp('[data-nit-m-error]', 'none');
       modal.style.display = 'flex';
+      previewSub(''); // Auto-apply any offer + fetch the true base.
     }
     function closeModal(){ modal.style.display = 'none'; current = null; }
     var cancelBtn = q('[data-nit-m-cancel]'); if (cancelBtn) { cancelBtn.addEventListener('click', closeModal); }
@@ -160,21 +192,7 @@
 
     var applyBtn = q('[data-nit-m-apply]');
     if (applyBtn) { applyBtn.addEventListener('click', function () {
-      if (!current) { return; }
-      var code = getVal('[data-nit-m-coupon]');
-      var url = commerceUrl + '?function=preview_discount&item_type=subscription&item_id=' + current.id +
-        '&coupon_code=' + encodeURIComponent(code) + '&sesskey=' + encodeURIComponent(sesskey);
-      fetch(url, { headers: { 'Accept': 'application/json' } })
-        .then(function(r){ return r.json(); })
-        .then(function(res){
-          if (!res || res.status !== 'success') { throw new Error('preview failed'); }
-          var d = res.data || {};
-          setTxt('[data-nit-m-discount]', money(d.discount || 0) + ' EGP');
-          setTxt('[data-nit-m-final]', money(d.final != null ? d.final : current.price) + ' EGP');
-          if (d.coupon_error) { setTxt('[data-nit-m-couponerr]', d.coupon_error); setDisp('[data-nit-m-couponerr]', ''); }
-          else { setDisp('[data-nit-m-couponerr]', 'none'); }
-        })
-        .catch(function(){ setTxt('[data-nit-m-couponerr]', '{mlang en}Could not apply coupon.{mlang}{mlang ar}تعذّر تطبيق الكوبون.{mlang}'); setDisp('[data-nit-m-couponerr]', ''); });
+      previewSub(getVal('[data-nit-m-coupon]'));
     }); }
 
     var proceedBtn = q('[data-nit-m-proceed]');

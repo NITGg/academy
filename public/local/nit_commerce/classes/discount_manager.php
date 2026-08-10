@@ -244,7 +244,9 @@ class discount_manager {
             if ($best === null || $discount > $best->discount) {
                 $best = (object) array(
                     'id'             => (int)$offer->id,
-                    'name'           => $offer->name,
+                    // Resolve {mlang} to the current language for display (the {mlang} filter is not
+                    // installed here), so the offer name shows translated in the checkout modal.
+                    'name'           => format_string(self::resolve_mlang($offer->name)),
                     'discount_type'  => $offer->discount_type,
                     'discount_value' => (float)$offer->discount_value,
                     'discount'       => $discount,
@@ -348,6 +350,12 @@ class discount_manager {
             }
         } else if ((int)$coupon->usage_limit > 0 && $used >= (int)$coupon->usage_limit) {
             throw new \moodle_exception('err_couponusedup', 'local_nit_commerce');
+        }
+        // One redemption per user, on top of any global cap: a coupon this user
+        // has already redeemed cannot be applied by them again.
+        if (!empty($userid)
+                && $DB->record_exists('nit_coupon_usage', array('couponid' => $coupon->id, 'userid' => (int) $userid))) {
+            throw new \moodle_exception('err_couponalreadyusedbyuser', 'local_nit_commerce');
         }
         return $coupon;
     }
