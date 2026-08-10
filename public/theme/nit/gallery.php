@@ -72,6 +72,36 @@ if (($data = data_submitted()) && confirm_sesskey()) {
     }
 
     // -------------------------------------------------------------------------
+    // Brand Colors palette (the new semantic layer — 3 groups × 13 roles). Same
+    // storage contract as the colours above: config `brandcolour_<key>`, purge
+    // caches so the SCSS rebuilds. Values are validated to #rgb / #rrggbb.
+    // -------------------------------------------------------------------------
+    $brand = theme_nit_brand_palette();
+
+    if (!empty($data->resetbrand)) {
+        foreach (array_keys($brand) as $key) {
+            unset_config('brandcolour_' . $key, 'theme_nit');
+        }
+        theme_reset_all_caches();
+        redirect($pageurl, get_string('brandcoloursreset', 'theme_nit'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
+    }
+
+    if (!empty($data->savebrand)) {
+        foreach ($brand as $key => $meta) {
+            $field = 'brandcolour_' . $key;
+            $value = optional_param($field, '', PARAM_RAW_TRIMMED);
+            if (!preg_match('/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) {
+                $value = $meta['default'];
+            }
+            set_config($field, $value, 'theme_nit');
+        }
+        theme_reset_all_caches();
+        redirect($pageurl, get_string('brandcolourssaved', 'theme_nit'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
+    }
+
+    // -------------------------------------------------------------------------
     // Per-language font upload / removal. Each slot (theme_nit_font_slots())
     // stores its file exactly like a Boost stored-file setting — system context,
     // itemid 0, config `theme_nit/<setting>` = the filename — so the standard

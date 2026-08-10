@@ -43,7 +43,15 @@ $string['coloursreset'] = 'Colour palette reset to the defaults.';
 $string['savecolours'] = 'Save colours';
 $string['resetcolours'] = 'Reset to defaults';
 
+// Brand Colors palette (the new semantic layer — edited on the gallery page).
+$string['brandcolours_desc'] = 'The semantic colours the whole site is built from. Each role is published as a CSS custom property (<code>--nit-brand-primary</code>, <code>--nit-brand-surface</code>, …) that defaults to <strong>Group 1</strong>. A component can opt into another group by carrying its class (<code>.nit-brand-2</code>, <code>.nit-brand-3</code>) — same variable names, that group\'s values. Pick a colour and save to recolour the site.';
+$string['brandcolourssaved'] = 'Brand Colors saved. The theme CSS has been rebuilt.';
+$string['brandcoloursreset'] = 'Brand Colors reset to the defaults.';
+$string['savebrandcolours'] = 'Save Brand Colors';
+$string['resetbrandcolours'] = 'Reset to defaults';
+
 // Design-system gallery tabs.
+$string['tab_brandcolours'] = 'Brand Colors';
 $string['tab_colours'] = 'Colours';
 $string['tab_fonts'] = 'Fonts';
 $string['tab_components'] = 'Components';

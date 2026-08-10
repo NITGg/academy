@@ -24,3 +24,17 @@
         @include nit-focus-ring();
     }
 }
+
+// Solid brand-coloured buttons carry the white brand foreground (Brand Colors:
+// buttons text = Text primary). Bootstrap's auto-contrast otherwise flips the
+// label to black on the mid-tone red / green fills, which fights the brand.
+// Light fills (warning, info) correctly keep dark text, so they are left to
+// Bootstrap. Using the brand token means a .nit-brand-2/3 wrapper switches the
+// label colour with the rest of the group.
+.btn-primary,
+.btn-danger,
+.btn-success {
+    --bs-btn-color: var(--nit-brand-textprimary);
+    --bs-btn-hover-color: var(--nit-brand-textprimary);
+    --bs-btn-active-color: var(--nit-brand-textprimary);
+}

@@ -26,7 +26,24 @@ defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'NIT Subscriptions';
 $string['managesubscriptions'] = 'Manage subscriptions';
+$string['managecourses']       = 'Manage courses';
 $string['privacy:metadata'] = 'The NIT Subscriptions plugin stores subscription plans and course-access rules defined by administrators; it does not store personal data by itself.';
+
+// Manage courses (single-course purchases: list + "Unbuy").
+$string['mc_desc']            = 'Users who bought a single course. Use "Unbuy" to unenrol a user and revoke the purchase.';
+$string['mc_col_course']      = 'Course';
+$string['mc_col_purchased']   = 'Purchased';
+$string['mc_none']            = 'No course purchases yet.';
+$string['mc_status_enrolled'] = 'Enrolled';
+$string['mc_status_norole']   = 'No access';
+$string['mc_unbuy']           = 'Unbuy';
+$string['mc_unbuy_title']     = 'Revoke course purchase';
+$string['mc_unbuy_confirm']   = 'Unenrol <b>{$a->user}</b> from <b>{$a->course}</b> and revoke this purchase?';
+$string['mc_unbuy_refund']    = 'Mark this purchase as refunded';
+$string['mc_unbuy_success']   = 'The course purchase was revoked.';
+$string['mc_course_deleted']  = '(deleted course)';
+$string['mc_txn_notfound']    = 'Purchase not found.';
+$string['mc_not_active']      = 'This purchase is not active and cannot be revoked.';
 
 // Shared UI.
 $string['ui_refresh']      = 'Refresh';

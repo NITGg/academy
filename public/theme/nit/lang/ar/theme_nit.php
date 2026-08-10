@@ -43,7 +43,15 @@ $string['coloursreset'] = 'أُعيدت لوحة الألوان إلى القي�
 $string['savecolours'] = 'حفظ الألوان';
 $string['resetcolours'] = 'إعادة إلى الافتراضي';
 
+// Brand Colors palette (the new semantic layer — edited on the gallery page).
+$string['brandcolours_desc'] = 'الألوان الدلالية التي يُبنى منها الموقع بالكامل. يُنشر كل دور كخاصية CSS مخصّصة (<code>--nit-brand-primary</code>، <code>--nit-brand-surface</code>، …) تعود افتراضيًّا إلى <strong>المجموعة 1</strong>. يمكن لأي مكوّن استخدام مجموعة أخرى بإضافة صنفها (<code>.nit-brand-2</code>، <code>.nit-brand-3</code>) — نفس أسماء المتغيّرات، بقيم تلك المجموعة. اختر لونًا واحفظ لإعادة تلوين الموقع.';
+$string['brandcolourssaved'] = 'تم حفظ ألوان الهوية. أُعيد بناء CSS الخاص بالقالب.';
+$string['brandcoloursreset'] = 'أُعيدت ألوان الهوية إلى القيم الافتراضية.';
+$string['savebrandcolours'] = 'حفظ ألوان الهوية';
+$string['resetbrandcolours'] = 'إعادة إلى الافتراضي';
+
 // Design-system gallery tabs.
+$string['tab_brandcolours'] = 'ألوان الهوية';
 $string['tab_colours'] = 'الألوان';
 $string['tab_fonts'] = 'الخطوط';
 $string['tab_components'] = 'المكوّنات';
