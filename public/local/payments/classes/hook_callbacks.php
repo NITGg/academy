@@ -50,13 +50,11 @@ class hook_callbacks {
             return;
         }
 
-        // Only redirect if this course has active payment pricing. A course
-        // with no active pricing is free — let the user through to Moodle's
-        // normal enrolment flow.
-        if (!\local_payments\price_resolver::has_pricing($courseid)) {
-            return;
-        }
-
+        // Route unenrolled students to our buy/register page for BOTH paid and
+        // free courses: paid shows the checkout, free shows a one-click "Register
+        // for free" button (core self-enrolment may be off, which is what caused
+        // "You cannot enrol yourself in this course"). buy.php is not intercepted
+        // here, so there is no redirect loop.
         header('Location: ' . $CFG->wwwroot . '/local/payments/buy.php?courseid=' . $courseid);
         exit;
     }

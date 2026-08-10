@@ -43,9 +43,33 @@ if ($can_enroll_via_sub && $action === 'enroll') {
     redirect(new moodle_url('/course/view.php', ['id' => $courseid]));
 }
 
-// No active pricing — course is free/open, no payment gate to show.
+// No active pricing — course is free. Let the student register themselves with
+// one click (there is no paid checkout to show, and core self-enrolment may not
+// be enabled on the course).
 if (!\local_payments\price_resolver::has_pricing($courseid) && !$can_enroll_via_sub) {
-    redirect(new moodle_url('/course/view.php', ['id' => $courseid]));
+    if ($action === 'enrollfree') {
+        require_sesskey();
+        \local_payments\enrollment_handler::enrol_user($USER->id, $courseid, 5);
+        redirect(new moodle_url('/course/view.php', ['id' => $courseid]),
+            get_string('freeenrolled', 'local_payments'));
+    }
+
+    $PAGE->set_url(new moodle_url('/local/payments/buy.php', ['courseid' => $courseid]));
+    $PAGE->set_context($context);
+    $PAGE->set_title($course->fullname);
+    $PAGE->set_heading($course->fullname);
+    $PAGE->set_pagelayout('standard');
+
+    echo $OUTPUT->header();
+    if (!empty($course->summary)) {
+        echo $OUTPUT->box(format_text($course->summary, $course->summaryformat), 'generalbox mb-3');
+    }
+    echo html_writer::tag('p', get_string('freecourseintro', 'local_payments'), ['class' => 'lead']);
+    $enrollurl = new moodle_url('/local/payments/buy.php',
+        ['courseid' => $courseid, 'action' => 'enrollfree', 'sesskey' => sesskey()]);
+    echo $OUTPUT->single_button($enrollurl, get_string('registerfree', 'local_payments'), 'post');
+    echo $OUTPUT->footer();
+    exit;
 }
 
 $PAGE->set_url(new moodle_url('/local/payments/buy.php', ['courseid' => $courseid]));
