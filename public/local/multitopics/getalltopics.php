@@ -108,19 +108,19 @@ $sections = $modinfo->get_section_info_all();
 // Fall back to a flat top-level-only structure if not present.
 $section_parent = [];   // sectionnum => parent sectionnum (0 = top-level)
 $is_multitopic  = ($course->format === 'multitopics');
-foreach ($sections as $snum => $sinfo) {
-    $parent_val = 0;
-    if ($is_multitopic) {
-        try {
-            $dbsec = $DB->get_record('course_sections',
-                ['course' => $courseid, 'section' => $snum],
-                'id,section,parent');
-            $parent_val = isset($dbsec->parent) ? (int)$dbsec->parent : 0;
-        } catch (\Exception $e) {
-            // parent column missing — treat all sections as top-level.
-        }
+// Fetch every section's parent in ONE query (keyed by section number) instead of
+// one query per section (N+1). If the 'parent' column is absent, treat all as
+// top-level.
+$dbsections = [];
+if ($is_multitopic) {
+    try {
+        $dbsections = $DB->get_records('course_sections', ['course' => $courseid], '', 'section, parent');
+    } catch (\Exception $e) {
+        $dbsections = [];
     }
-    $section_parent[$snum] = $parent_val;
+}
+foreach ($sections as $snum => $sinfo) {
+    $section_parent[$snum] = isset($dbsections[$snum]->parent) ? (int) $dbsections[$snum]->parent : 0;
 }
 
 /**

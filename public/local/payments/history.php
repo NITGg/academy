@@ -28,10 +28,24 @@ echo $OUTPUT->header();
 if (empty($transactions)) {
     echo $OUTPUT->notification(get_string('nopayments', 'local_payments'), 'info');
 } else {
+    // Batch-load course names + invoices once, instead of a query per row (N+1).
+    $courseids = [];
+    $txnids = [];
+    foreach ($transactions as $txn) {
+        $courseids[(int) $txn->courseid] = true;
+        $txnids[] = (int) $txn->id;
+    }
+    $coursenames = $courseids
+        ? $DB->get_records_list('course', 'id', array_keys($courseids), '', 'id, fullname')
+        : [];
+    $invoices = $txnids
+        ? $DB->get_records_list('local_payments_invoices', 'transaction_id', $txnids, '', 'transaction_id, invoice_number')
+        : [];
+
     $rows = [];
     foreach ($transactions as $txn) {
-        $coursename = $DB->get_field('course', 'fullname', ['id' => $txn->courseid]);
-        $invoice = $DB->get_record('local_payments_invoices', ['transaction_id' => $txn->id]);
+        $coursename = isset($coursenames[$txn->courseid]) ? $coursenames[$txn->courseid]->fullname : '';
+        $invoice = $invoices[$txn->id] ?? null;
 
         $status_class = '';
         switch ($txn->status) {

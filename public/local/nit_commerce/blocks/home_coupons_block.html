@@ -1,125 +1,587 @@
 <!-- NIT — Available coupons home-page block. Paste into an HTML block on the home page.
      Inline styles only (editor-safe). Fetches live coupons from the plugin and renders a dark slider.
+     Shows: code, discount value, applies-to scope, usage type, max discount, valid dates.
      Optional: if it can't find the API, set data-base on the wrapper to your Moodle URL,
      e.g. data-base="https://academy2026.nitg-eg.com/moodle-new" -->
-<div dir="auto" data-nit-coupons data-endpoint="/local/nit_commerce/api.php" data-base=""
-  style="background: var(--nit-darkbackground, #0a1628); padding: 64px 16px;">
+
+<div
+  dir="auto"
+  data-nit-coupons
+  data-endpoint="/local/nit_commerce/api.php"
+  data-base=""
+  style="background: var(--nit-darkbackground, #0a1628); padding: 64px 16px;"
+>
   <div style="max-width: 1200px; margin: 0 auto;">
+
     <!-- Header -->
-    <div style="text-align: center; margin-bottom: 40px; color: var(--nit-darktextprimary, #ffffff);">
-      <span style="display: inline-block; background: color-mix(in srgb, var(--nit-accentgolddark, #c9922a) 15%, transparent); border: 1px solid color-mix(in srgb, var(--nit-accentgolddark, #c9922a) 30%, transparent); border-radius: 50px; padding: 6px 18px; font-size: 14px; color: var(--nit-accentgold, #e8b84b); font-weight: bold;">
+    <div
+      style="text-align: center; margin-bottom: 40px; color: var(--nit-darktextprimary, #ffffff);"
+    >
+      <span
+        style="
+          display: inline-block;
+          background: color-mix(in srgb, var(--nit-accentgolddark, #c9922a) 15%, transparent);
+          border: 1px solid color-mix(in srgb, var(--nit-accentgolddark, #c9922a) 30%, transparent);
+          border-radius: 50px;
+          padding: 6px 18px;
+          font-size: 14px;
+          color: var(--nit-accentgold, #e8b84b);
+          font-weight: bold;
+        "
+      >
         {mlang en}Discounts{mlang}{mlang ar}الخصومات{mlang}
       </span>
-      <h2 style="font-size: clamp(26px,4vw,38px); font-weight: 800; margin: 16px 0 0; color: var(--nit-darktextprimary, #ffffff);">
-        {mlang en}Available coupons{mlang}{mlang ar}الكوبونات المتاحة{mlang}</h2>
+
+      <h2
+        style="
+          font-size: clamp(26px, 4vw, 38px);
+          font-weight: 800;
+          margin: 16px 0 0;
+          color: var(--nit-darktextprimary, #ffffff);
+        "
+      >
+        {mlang en}Available coupons{mlang}{mlang ar}الكوبونات المتاحة{mlang}
+      </h2>
     </div>
 
     <!-- Slider Wrapper -->
     <div style="position: relative; padding: 0 28px;">
-      <!-- LEFT ARROW --> <button
-        style="position: absolute; inset-inline-start: -23px; top: 50%; transform: translateY(-50%); z-index: 20; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 50%, transparent); background: var(--nit-darksurface, #0f1e33); color: var(--nit-accentgold, #e8b84b); font-size: 29px; font-weight: bold; line-height: 1; padding: 0; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.35);"
-        type="button" data-nit-coupons-scroll="prev">‹</button>
+
+      <!-- LEFT ARROW -->
+      <button
+        type="button"
+        data-nit-coupons-scroll="prev"
+        style="
+          position: absolute;
+          inset-inline-start: -23px;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 20;
+          width: 46px;
+          height: 46px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 50%, transparent);
+          background: var(--nit-darksurface, #0f1e33);
+          color: var(--nit-accentgold, #e8b84b);
+          font-size: 29px;
+          font-weight: bold;
+          line-height: 1;
+          padding: 0;
+          cursor: pointer;
+          box-shadow: 0 8px 24px rgba(0,0,0,.35);
+        "
+      >
+        ‹
+      </button>
 
       <!-- COUPONS HORIZONTAL SCROLL -->
-      <div data-nit-coupons-scroller
-        style="display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; gap: 20px; width: 100%; overflow-x: auto; overflow-y: hidden; padding: 8px 4px 20px; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--nit-accentgold, #e8b84b) var(--nit-darksurface, #0f1e33); -webkit-overflow-scrolling: touch;">
+      <div
+        data-nit-coupons-scroller
+        style="
+          display: flex;
+          flex-direction: row;
+          flex-wrap: nowrap;
+          align-items: stretch;
+          gap: 20px;
+          width: 100%;
+          overflow-x: auto;
+          overflow-y: hidden;
+          padding: 8px 4px 20px;
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+          scrollbar-width: thin;
+          scrollbar-color:
+            var(--nit-accentgold, #e8b84b)
+            var(--nit-darksurface, #0f1e33);
+          -webkit-overflow-scrolling: touch;
+        "
+      >
 
-        <!-- CARD TEMPLATE (hidden; cloned per coupon) -->
-        <div style="display: none; flex: 0 0 320px; flex-grow: 0; flex-shrink: 0; width: 320px; min-width: 320px; max-width: 320px; scroll-snap-align: start;"
-          data-nit-coupons-card>
-          <div style="box-sizing: border-box; width: 320px; min-height: 150px; display: flex; align-items: stretch; background: var(--nit-darksurface, #0f1e33); border: 1px dashed color-mix(in srgb, var(--nit-accentgold, #e8b84b) 55%, transparent); border-radius: 16px; overflow: hidden;">
+        <!-- CARD TEMPLATE -->
+        <div
+          data-nit-coupons-card
+          style="
+            display: none;
+            flex: 0 0 320px;
+            width: 320px;
+            min-width: 320px;
+            max-width: 320px;
+            scroll-snap-align: start;
+            align-self: stretch;
+          "
+        >
+          <div
+            style="
+              box-sizing: border-box;
+              width: 100%;
+              min-height: 150px;
+              height: 100%;
+              display: flex;
+              align-items: stretch;
+              background: var(--nit-darksurface, #0f1e33);
+              border: 1px dashed color-mix(in srgb, var(--nit-accentgold, #e8b84b) 55%, transparent);
+              border-radius: 16px;
+              overflow: hidden;
+            "
+          >
+
             <!-- VALUE -->
-            <div style="flex: 0 0 104px; background: linear-gradient(135deg, var(--nit-accentgolddark, #c9922a), var(--nit-accentgold, #e8b84b)); color: var(--nit-darkbackground, #0a1628); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 8px;">
-              <b data-nit-value style="font-size: 26px; line-height: 1; font-weight: 800;">{{value}}</b>
-              <span data-nit-valuelabel style="font-size: 11px; font-weight: 700; margin-top: 4px;">{{valuelabel}}</span>
+            <div
+              style="
+                flex: 0 0 104px;
+                background: linear-gradient(
+                  135deg,
+                  var(--nit-accentgolddark, #c9922a),
+                  var(--nit-accentgold, #e8b84b)
+                );
+                color: var(--nit-darkbackground, #0a1628);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                padding: 8px;
+              "
+            >
+              <strong
+                data-nit-value
+                style="
+                  font-size: 26px;
+                  line-height: 1;
+                  font-weight: 800;
+                "
+              >
+                {{value}}
+              </strong>
+
+              <span
+                data-nit-valuelabel
+                style="
+                  font-size: 11px;
+                  font-weight: bold;
+                  margin-top: 4px;
+                "
+              >
+                {{valuelabel}}
+              </span>
             </div>
+
             <!-- BODY -->
-            <div style="flex: 1; min-width: 0; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
-              <button type="button" data-nit-copy data-code="{{code}}"
-                style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; font-family: monospace; font-weight: 700; font-size: 16px; color: var(--nit-darktextprimary, #ffffff); background: color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 6%, transparent); border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 40%, transparent); border-radius: 8px; padding: 6px 12px; cursor: pointer;">
-                {{code}} <span aria-hidden="true">&#x29C9;</span></button>
-              <p data-nit-scope style="font-size: 12px; color: var(--nit-darktextsecondary, #8a9ab5); margin: 0;">{{scope}}</p>
-              <p data-nit-dates style="font-size: 11px; color: var(--nit-darktextsecondary, #8a9ab5); margin: 0;">{{dates}}</p>
+            <div
+              style="
+                flex: 1;
+                min-width: 0;
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 7px;
+              "
+            >
+              <button
+                type="button"
+                data-nit-copy
+                data-code="{{code}}"
+                style="
+                  align-self: flex-start;
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 8px;
+                  font-family: monospace;
+                  font-weight: bold;
+                  font-size: 16px;
+                  color: var(--nit-darktextprimary, #ffffff);
+                  background: color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 6%, transparent);
+                  border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 40%, transparent);
+                  border-radius: 8px;
+                  padding: 6px 12px;
+                  cursor: pointer;
+                "
+              >
+                {{code}}
+                <span aria-hidden="true">&#x29C9;</span>
+              </button>
+
+              <p
+                data-nit-scope
+                style="
+                  font-size: 12px;
+                  color: var(--nit-darktextsecondary, #8a9ab5);
+                  margin: 0;
+                "
+              >
+                {{scope}}
+              </p>
+
+              <p
+                data-nit-usage
+                style="
+                  font-size: 12px;
+                  color: var(--nit-darktextsecondary, #8a9ab5);
+                  margin: 0;
+                "
+              >
+                {{usage}}
+              </p>
+
+              <p
+                data-nit-max
+                style="
+                  font-size: 12px;
+                  color: var(--nit-accentteal, #00a99d);
+                  margin: 0;
+                "
+              >
+                {{max}}
+              </p>
+
+              <p
+                data-nit-dates
+                style="
+                  font-size: 11px;
+                  color: var(--nit-darktextsecondary, #8a9ab5);
+                  margin: 0;
+                "
+              >
+                {{dates}}
+              </p>
             </div>
+
           </div>
         </div>
 
         <!-- STATUS MESSAGE -->
-        <div data-nit-coupons-msg style="color: var(--nit-darktextsecondary, #8a9ab5); padding: 24px 8px; font-size: 15px;">…</div>
+        <div
+          data-nit-coupons-msg
+          style="
+            color: var(--nit-darktextsecondary, #8a9ab5);
+            padding: 24px 8px;
+            font-size: 15px;
+          "
+        >
+          …
+        </div>
+
       </div>
 
-      <!-- RIGHT ARROW --> <button
-        style="position: absolute; inset-inline-end: -23px; top: 50%; transform: translateY(-50%); z-index: 20; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 50%, transparent); background: var(--nit-darksurface, #0f1e33); color: var(--nit-accentgold, #e8b84b); font-size: 29px; font-weight: bold; line-height: 1; padding: 0; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.35);"
-        type="button" data-nit-coupons-scroll="next">›</button>
+      <!-- RIGHT ARROW -->
+      <button
+        type="button"
+        data-nit-coupons-scroll="next"
+        style="
+          position: absolute;
+          inset-inline-end: -23px;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 20;
+          width: 46px;
+          height: 46px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 50%, transparent);
+          background: var(--nit-darksurface, #0f1e33);
+          color: var(--nit-accentgold, #e8b84b);
+          font-size: 29px;
+          font-weight: bold;
+          line-height: 1;
+          padding: 0;
+          cursor: pointer;
+          box-shadow: 0 8px 24px rgba(0,0,0,.35);
+        "
+      >
+        ›
+      </button>
+
     </div>
   </div>
 
   <script>
-  (function () {
-    var root = (document.currentScript && document.currentScript.closest('[data-nit-coupons]'))
-      || document.querySelector('[data-nit-coupons]');
-    if (!root || root.getAttribute('data-nit-wired')) { return; }
-    root.setAttribute('data-nit-wired', '1');
-    var scroller = root.querySelector('[data-nit-coupons-scroller]');
-    var tpl = root.querySelector('[data-nit-coupons-card]');
-    var msg = root.querySelector('[data-nit-coupons-msg]');
-    var base = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : (root.getAttribute('data-base') || '');
-    var endpoint = base + root.getAttribute('data-endpoint') + '?function=get_available_coupons';
-    function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-    function num(n){ return (Math.round(Number(n)*100)/100).toLocaleString(undefined,{minimumFractionDigits:0}); }
-    function fmt(ts){ return ts ? new Date(ts*1000).toLocaleDateString() : null; }
-    function say(t){ if (msg){ msg.textContent = t; msg.style.display = ''; } }
+    (function () {
+      var root =
+        (document.currentScript &&
+          document.currentScript.closest('[data-nit-coupons]')) ||
+        document.querySelector('[data-nit-coupons]');
 
-    Array.prototype.forEach.call(root.querySelectorAll('[data-nit-coupons-scroll]'), function (btn) {
-      btn.addEventListener('click', function () {
-        var dir = btn.getAttribute('data-nit-coupons-scroll') === 'next' ? 1 : -1;
-        if (getComputedStyle(scroller).direction === 'rtl') { dir = -dir; }
-        scroller.scrollBy({ left: dir * Math.max(320, Math.round(scroller.clientWidth * 0.8)), behavior: 'smooth' });
-      });
-    });
+      if (!root || root.getAttribute('data-nit-wired')) {
+        return;
+      }
 
-    say('{mlang en}Loading…{mlang}{mlang ar}جاري التحميل…{mlang}');
-    fetch(endpoint, { headers: { 'Accept': 'application/json' } })
-      .then(function(r){ return r.json(); })
-      .then(function(res){
-        if (!res || res.status !== 'success') { throw new Error('load failed'); }
-        var rows = res.data || [];
-        if (!rows.length) { say('{mlang en}No coupons available right now.{mlang}{mlang ar}لا توجد كوبونات متاحة حالياً.{mlang}'); return; }
-        if (msg) { msg.style.display = 'none'; }
-        var pctLabel = '{mlang en}OFF{mlang}{mlang ar}خصم{mlang}';
-        var egpLabel = '{mlang en}EGP OFF{mlang}{mlang ar}ج.م خصم{mlang}';
-        rows.forEach(function(c){
-          var isPct = c.discount_type === 'percent';
-          var value = isPct ? (num(c.discount_value) + '%') : num(c.discount_value);
-          var scope = (c.applies_to && c.applies_to.length) ? c.applies_to.map(function(a){ return a.label; }).join(', ') : '';
-          var s = fmt(c.startdate), e = fmt(c.enddate);
-          var dates = (s || e) ? ('{mlang en}Valid{mlang}{mlang ar}صالح{mlang} ' + (s || '…') + ' → ' + (e || '…')) : '';
-          var html = tpl.innerHTML
-            .replace(/\{\{value\}\}/g, esc(value))
-            .replace(/\{\{valuelabel\}\}/g, isPct ? pctLabel : egpLabel)
-            .replace(/\{\{code\}\}/g, esc(c.code))
-            .replace(/\{\{scope\}\}/g, esc(scope))
-            .replace(/\{\{dates\}\}/g, esc(dates));
-          var wrap = document.createElement('div');
-          wrap.style.cssText = tpl.getAttribute('style').replace('display: none;', '');
-          wrap.setAttribute('data-nit-coupons-card', '');
-          wrap.innerHTML = html;
-          if (!scope) { var sc=wrap.querySelector('[data-nit-scope]'); if (sc) { sc.style.display='none'; } }
-          if (!dates) { var dt=wrap.querySelector('[data-nit-dates]'); if (dt) { dt.style.display='none'; } }
-          var btn = wrap.querySelector('[data-nit-copy]');
-          if (btn) {
-            btn.addEventListener('click', function () {
-              var code = btn.getAttribute('data-code');
-              if (navigator.clipboard) { navigator.clipboard.writeText(code).catch(function(){}); }
-              var old = btn.style.borderColor;
-              btn.style.borderColor = 'var(--nit-accentteal, #00a99d)';
-              setTimeout(function(){ btn.style.borderColor = old; }, 1200);
-            });
+      root.setAttribute('data-nit-wired', '1');
+
+      var scroller = root.querySelector('[data-nit-coupons-scroller]');
+      var tpl = root.querySelector('[data-nit-coupons-card]');
+      var msg = root.querySelector('[data-nit-coupons-msg]');
+
+      var base =
+        window.M && M.cfg && M.cfg.wwwroot
+          ? M.cfg.wwwroot
+          : root.getAttribute('data-base') || '';
+
+      var endpoint =
+        base +
+        root.getAttribute('data-endpoint') +
+        '?function=get_available_coupons';
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(
+          /[&<>"]/g,
+          function (c) {
+            return {
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;'
+            }[c];
           }
-          scroller.appendChild(wrap);
+        );
+      }
+
+      function num(n) {
+        return (
+          Math.round(Number(n) * 100) / 100
+        ).toLocaleString(undefined, {
+          minimumFractionDigits: 0
         });
+      }
+
+      function fmt(ts) {
+        return ts
+          ? new Date(ts * 1000).toLocaleDateString()
+          : null;
+      }
+
+      function say(t) {
+        if (msg) {
+          msg.textContent = t;
+          msg.style.display = '';
+        }
+      }
+
+      /* Slider arrows */
+      Array.prototype.forEach.call(
+        root.querySelectorAll('[data-nit-coupons-scroll]'),
+        function (btn) {
+          btn.addEventListener('click', function () {
+            var dir =
+              btn.getAttribute('data-nit-coupons-scroll') === 'next'
+                ? 1
+                : -1;
+
+            if (
+              getComputedStyle(scroller).direction === 'rtl'
+            ) {
+              dir = -dir;
+            }
+
+            scroller.scrollBy({
+              left:
+                dir *
+                Math.max(
+                  320,
+                  Math.round(scroller.clientWidth * 0.8)
+                ),
+              behavior: 'smooth'
+            });
+          });
+        }
+      );
+
+      say(
+        '{mlang en}Loading…{mlang}{mlang ar}جاري التحميل…{mlang}'
+      );
+
+      fetch(endpoint, {
+        headers: {
+          Accept: 'application/json'
+        }
       })
-      .catch(function(){ say('{mlang en}Could not load coupons.{mlang}{mlang ar}تعذّر تحميل الكوبونات.{mlang}'); });
-  })();
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (res) {
+          if (!res || res.status !== 'success') {
+            throw new Error('load failed');
+          }
+
+          var rows = res.data || [];
+
+          if (!rows.length) {
+            say(
+              '{mlang en}No coupons available right now.{mlang}{mlang ar}لا توجد كوبونات متاحة حالياً.{mlang}'
+            );
+            return;
+          }
+
+          if (msg) {
+            msg.style.display = 'none';
+          }
+
+          var pctLabel =
+            '{mlang en}OFF{mlang}{mlang ar}خصم{mlang}';
+
+          var egpLabel =
+            '{mlang en}EGP OFF{mlang}{mlang ar}ج.م خصم{mlang}';
+
+          rows.forEach(function (c) {
+            var isPct =
+              c.discount_type === 'percent';
+
+            var value = isPct
+              ? num(c.discount_value) + '%'
+              : num(c.discount_value);
+
+            var scope =
+              c.applies_to && c.applies_to.length
+                ? c.applies_to
+                    .map(function (a) {
+                      return a.label;
+                    })
+                    .join(', ')
+                : '';
+
+            var s = fmt(c.startdate);
+            var e = fmt(c.enddate);
+
+            var dates =
+              s || e
+                ? '{mlang en}Valid{mlang}{mlang ar}صالح{mlang} ' +
+                  (s || '…') +
+                  ' → ' +
+                  (e || '…')
+                : '';
+
+            /* Usage type */
+            var usage;
+
+            if (c.usage_type === 'once') {
+              usage =
+                '{mlang en}One-time use{mlang}{mlang ar}استخدام لمرة واحدة{mlang}';
+            } else {
+              usage =
+                '{mlang en}Multiple use{mlang}{mlang ar}استخدام متعدد{mlang}';
+
+              if (c.usage_limit > 0) {
+                usage +=
+                  ' (' +
+                  (c.usage_count || 0) +
+                  '/' +
+                  c.usage_limit +
+                  ')';
+              }
+            }
+
+            /* Max discount */
+            var max =
+              c.max_discount != null &&
+              Number(c.max_discount) > 0
+                ? '{mlang en}Max discount{mlang}{mlang ar}أقصى خصم{mlang}: ' +
+                  num(c.max_discount) +
+                  ' EGP'
+                : '';
+
+            var html = tpl.innerHTML
+              .replace(/\{\{value\}\}/g, esc(value))
+              .replace(
+                /\{\{valuelabel\}\}/g,
+                isPct ? pctLabel : egpLabel
+              )
+              .replace(/\{\{code\}\}/g, esc(c.code))
+              .replace(/\{\{scope\}\}/g, esc(scope))
+              .replace(/\{\{usage\}\}/g, esc(usage))
+              .replace(/\{\{max\}\}/g, esc(max))
+              .replace(/\{\{dates\}\}/g, esc(dates));
+
+            var wrap = document.createElement('div');
+
+            wrap.style.cssText =
+              tpl
+                .getAttribute('style')
+                .replace('display: none;', '');
+
+            /*
+             * IMPORTANT:
+             * Make generated cards flex containers so
+             * every card stretches to the height of
+             * the tallest card in the row.
+             */
+            wrap.style.display = 'flex';
+            wrap.style.alignItems = 'stretch';
+
+            wrap.setAttribute(
+              'data-nit-coupons-card',
+              ''
+            );
+
+            wrap.innerHTML = html;
+
+            if (!scope) {
+              var sc =
+                wrap.querySelector('[data-nit-scope]');
+
+              if (sc) {
+                sc.style.display = 'none';
+              }
+            }
+
+            if (!max) {
+              var mx =
+                wrap.querySelector('[data-nit-max]');
+
+              if (mx) {
+                mx.style.display = 'none';
+              }
+            }
+
+            if (!dates) {
+              var dt =
+                wrap.querySelector('[data-nit-dates]');
+
+              if (dt) {
+                dt.style.display = 'none';
+              }
+            }
+
+            var btn =
+              wrap.querySelector('[data-nit-copy]');
+
+            if (btn) {
+              btn.addEventListener(
+                'click',
+                function () {
+                  var code =
+                    btn.getAttribute('data-code');
+
+                  if (navigator.clipboard) {
+                    navigator.clipboard
+                      .writeText(code)
+                      .catch(function () {});
+                  }
+
+                  var old =
+                    btn.style.borderColor;
+
+                  btn.style.borderColor =
+                    'var(--nit-accentteal, #00a99d)';
+
+                  setTimeout(function () {
+                    btn.style.borderColor = old;
+                  }, 1200);
+                }
+              );
+            }
+
+            scroller.appendChild(wrap);
+          });
+        })
+        .catch(function () {
+          say(
+            '{mlang en}Could not load coupons.{mlang}{mlang ar}تعذّر تحميل الكوبونات.{mlang}'
+          );
+        });
+    })();
   </script>
 </div>

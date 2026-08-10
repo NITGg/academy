@@ -6,31 +6,37 @@ defined('MOODLE_INTERNAL') || die();
 class country_detector {
 
     /**
-     * Detect user's country using the configured priority chain.
+     * Detect user's country for pricing.
      *
-     * Priority: 1. User profile → 2. Flutter app header → 3. IP geolocation → 4. Admin default
+     * IP geolocation is tried FIRST because it is server-determined and cannot be
+     * self-selected by the buyer — this stops per-country pricing from being gamed
+     * by editing the profile country field or passing a cheaper app_country. The
+     * self-selectable sources are used only as a fallback when the IP cannot be
+     * resolved (dev/localhost, private IP, or geolocation unavailable).
+     *
+     * Priority: 1. IP geolocation → 2. User profile → 3. Flutter app header → 4. Admin default
      */
     public static function detect(?int $userid = null, ?string $app_country = null, ?string $ip = null): string {
         global $USER;
 
         $userid = $userid ?? $USER->id;
 
-        // 1. User profile country.
+        // 1. IP geolocation (trusted — not user-controlled).
+        $ip = $ip ?? getremoteaddr();
+        $ip_country = self::from_ip($ip);
+        if (!empty($ip_country)) {
+            return $ip_country;
+        }
+
+        // 2. User profile country (fallback when IP is unavailable).
         $profile_country = self::from_profile($userid);
         if (!empty($profile_country)) {
             return $profile_country;
         }
 
-        // 2. Country provided by Flutter app.
+        // 3. Country provided by the Flutter app (fallback).
         if (!empty($app_country) && self::is_valid_country($app_country)) {
             return strtoupper($app_country);
-        }
-
-        // 3. IP geolocation.
-        $ip = $ip ?? getremoteaddr();
-        $ip_country = self::from_ip($ip);
-        if (!empty($ip_country)) {
-            return $ip_country;
         }
 
         // 4. Admin default.

@@ -125,6 +125,7 @@ $string['err_couponnotstarted']    = 'This coupon is not valid yet.';
 $string['err_couponexpired']       = 'This coupon has expired.';
 $string['err_couponnotapplicable'] = 'This coupon does not apply to this item.';
 $string['err_couponusedup']        = 'This coupon has reached its usage limit.';
+$string['err_couponalreadyusedbyuser'] = 'You have already used this coupon.';
 $string['err_couponhasusages']     = 'This coupon has been used and can only be deactivated.';
 $string['err_offernamerequired']   = 'An offer name is required.';
 $string['err_offernotfound']       = 'Offer not found.';
@@ -134,3 +135,19 @@ $string['err_permissiondenied']    = 'Permission denied';
 $string['err_unknownfunction']     = 'Unknown function';
 $string['err_requestfailed']       = 'Request failed';
 $string['err_sessionexpired']      = 'Session expired — please reload the page and log in again.';
+
+// Shared checkout modal (course/subscription buy).
+$string['co_title']         = 'Confirm your purchase';
+$string['co_intro']         = 'You will be taken to secure checkout to complete the payment.';
+$string['co_total']         = 'Total';
+$string['co_offer']         = 'Offer';
+$string['co_coupon']        = 'Coupon';
+$string['co_apply']         = 'Apply';
+$string['co_discount']      = 'Discount';
+$string['co_secure']        = 'Secure payment via Kashier';
+$string['co_proceed']       = 'Proceed to payment';
+$string['co_cancel']        = 'Cancel';
+$string['co_loading']       = 'Loading…';
+$string['co_coupon_failed'] = 'Could not apply coupon.';
+$string['co_currency']      = 'EGP';
+$string['co_buy']           = 'Buy now';

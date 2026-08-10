@@ -215,12 +215,15 @@ try {
             $itemtype = required_param('item_type', PARAM_ALPHA);
             $itemid   = required_param('item_id', PARAM_INT);
             $code     = optional_param('coupon_code', '', PARAM_TEXT);
+            // Course prices live in local_payments (per-course rules), not in the discount engine,
+            // so resolve the base there and pass it in; subscriptions/packages resolve their own.
+            $base = nit_commerce_base_price($itemtype, $itemid, $USER->id);
             try {
-                $resolved = \local_nit_commerce\discount_manager::resolve($itemtype, $itemid, $USER->id, $code);
+                $resolved = \local_nit_commerce\discount_manager::resolve($itemtype, $itemid, $USER->id, $code, $base);
                 nit_commerce_respond(['status' => 'success', 'data' => $resolved]);
             } catch (\moodle_exception $e) {
                 // Invalid coupon — recompute without it so the offer-only price still shows.
-                $resolved = \local_nit_commerce\discount_manager::resolve($itemtype, $itemid, $USER->id, '');
+                $resolved = \local_nit_commerce\discount_manager::resolve($itemtype, $itemid, $USER->id, '', $base);
                 $resolved['coupon_error'] = $e->getMessage();
                 nit_commerce_respond(['status' => 'success', 'data' => $resolved]);
             }
@@ -240,6 +243,33 @@ try {
     }
 } catch (\Throwable $e) {
     nit_commerce_respond(['status' => 'error', 'error' => $e->getMessage()]);
+}
+
+/**
+ * The base (pre-discount) price of an item for the discount engine. Courses resolve their price via
+ * local_payments (per-course rules); other item types return null so discount_manager resolves them.
+ *
+ * @param string $itemtype
+ * @param int $itemid
+ * @param int $userid
+ * @return float|null
+ */
+function nit_commerce_base_price(string $itemtype, int $itemid, int $userid): ?float {
+    global $CFG;
+    if ($itemtype !== 'course') {
+        return null;
+    }
+    $file = $CFG->dirroot . '/local/payments/classes/price_resolver.php';
+    if (!file_exists($file) || !class_exists('\local_payments\price_resolver')) {
+        return null;
+    }
+    try {
+        $pricing = \local_payments\price_resolver::resolve($itemid, $userid);
+        // Use the pre-sale original price as the discount base (offers/coupons stack on the real price).
+        return (float) ($pricing->price ?? 0);
+    } catch (\Throwable $e) {
+        return null;
+    }
 }
 
 /**

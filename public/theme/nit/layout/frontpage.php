@@ -184,6 +184,23 @@ if ($nitoglogo) {
 } else {
     $nitogmeta .= '<meta name="twitter:card" content="summary">' . "\n";
 }
+
+// NIT (SEO): canonical URL + hreflang alternates. Tells search engines the
+// front page's preferred URL and that it exists in each installed language
+// (Moodle switches language via ?lang=xx), so the AR and EN versions aren't
+// treated as duplicates.
+$nithomeurl = (new moodle_url('/'))->out(false);
+$nitogmeta .= '<link rel="canonical" href="' . s($nithomeurl) . '">' . "\n";
+$nittranslations = get_string_manager()->get_list_of_translations();
+if (count($nittranslations) > 1) {
+    foreach ($nittranslations as $nitlangcode => $nitlangname) {
+        $nithreflang = str_replace('_', '-', $nitlangcode);
+        $nitalturl = (new moodle_url('/', ['lang' => $nitlangcode]))->out(false);
+        $nitogmeta .= '<link rel="alternate" hreflang="' . s($nithreflang)
+            . '" href="' . s($nitalturl) . '">' . "\n";
+    }
+    $nitogmeta .= '<link rel="alternate" hreflang="x-default" href="' . s($nithomeurl) . '">' . "\n";
+}
 $CFG->additionalhtmlhead = ($CFG->additionalhtmlhead ?? '') . "\n" . $nitogmeta;
 
 $templatecontext = [

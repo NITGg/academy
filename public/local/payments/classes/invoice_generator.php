@@ -22,20 +22,33 @@ class invoice_generator {
             return (int) $existing->id;
         }
 
-        $invoice_number = self::generate_number();
-
-        $invoice = (object) [
-            'transaction_id' => $transaction_id,
-            'userid' => $txn->userid,
-            'invoice_number' => $invoice_number,
-            'amount' => $txn->amount,
-            'currency' => $txn->currency,
-            'status' => 'issued',
-            'pdf_path' => null,
-            'timecreated' => time(),
-        ];
-
-        return (int) $DB->insert_record('local_payments_invoices', $invoice);
+        // Allocate a sequential number and insert, retrying on collision: two
+        // completions racing can compute the same number and hit the unique
+        // index. On failure, re-check for a now-existing invoice (same-transaction
+        // race) or recompute the next number and try again — so a losing insert
+        // no longer leaves the transaction with no invoice.
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $invoice = (object) [
+                'transaction_id' => $transaction_id,
+                'userid' => $txn->userid,
+                'invoice_number' => self::generate_number(),
+                'amount' => $txn->amount,
+                'currency' => $txn->currency,
+                'status' => 'issued',
+                'pdf_path' => null,
+                'timecreated' => time(),
+            ];
+            try {
+                return (int) $DB->insert_record('local_payments_invoices', $invoice);
+            } catch (\dml_write_exception $e) {
+                $existing = $DB->get_record('local_payments_invoices', ['transaction_id' => $transaction_id]);
+                if ($existing) {
+                    return (int) $existing->id;
+                }
+                // Otherwise the invoice_number collided — loop to recompute it.
+            }
+        }
+        throw new \moodle_exception('error', 'moodle', '', null, 'Could not allocate an invoice number');
     }
 
     /**
