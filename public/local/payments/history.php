@@ -25,8 +25,6 @@ $transactions = $DB->get_records_select(
 $total = $DB->count_records('local_payments_transactions', ['userid' => $USER->id]);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('paymenthistory', 'local_payments'));
-
 if (empty($transactions)) {
     echo $OUTPUT->notification(get_string('nopayments', 'local_payments'), 'info');
 } else {

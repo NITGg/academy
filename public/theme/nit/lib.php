@@ -334,23 +334,37 @@ function theme_nit_get_site_stats(): array {
  * @return string e.g. "250.00 EGP" or '' (free)
  */
 function theme_nit_course_price(int $courseid): string {
-    global $DB, $USER;
+    global $DB;
 
     // Prefer the local_payments plugin: it stores per-country course prices in
     // its own table (local_payments_course_prices), independent of Moodle's core
-    // enrol methods. Resolve the price for the current user's country, falling
-    // back to the course default. When the plugin isn't available, fall back to
-    // core fee/paypal enrolment costs below.
-    if (class_exists('\local_payments\price_resolver')
-        && \local_payments\price_resolver::has_pricing($courseid)) {
-        try {
-            $pricing = \local_payments\price_resolver::resolve(
-                $courseid,
-                !empty($USER->id) ? (int) $USER->id : null
+    // enrol methods. The front-page grid is cached and shared across all users,
+    // so show the course's DEFAULT active price here (deterministic, cache-safe).
+    // The exact per-country price is resolved later at checkout (buy.php).
+    if ($DB->get_manager()->table_exists('local_payments_course_prices')) {
+        $default = $DB->get_record_select(
+            'local_payments_course_prices',
+            'courseid = :courseid AND is_default = 1 AND is_active = 1',
+            ['courseid' => $courseid],
+            'price, currency',
+            IGNORE_MULTIPLE
+        );
+        // No default flagged? Fall back to any active price for the course.
+        if (!$default) {
+            $default = $DB->get_record_select(
+                'local_payments_course_prices',
+                'courseid = :courseid AND is_active = 1',
+                ['courseid' => $courseid],
+                'price, currency',
+                IGNORE_MULTIPLE
             );
-            return format_float($pricing->price, 2, false) . ' ' . $pricing->currency;
-        } catch (\moodle_exception $e) {
-            // No matching rule for this country — fall through to free/enrol.
+        }
+        if ($default && (float) $default->price > 0) {
+            return format_float($default->price, 2, false) . ' ' . $default->currency;
+        }
+        if ($default) {
+            // Active rule exists but price is 0 — treat as explicitly free.
+            return '';
         }
     }
 
@@ -403,7 +417,7 @@ function theme_nit_course_teacher(int $courseid): string {
  * blocks render them via a <template> (see the frontpage renderer).
  *
  * @param int $limit maximum number of courses
- * @return array<int, array{id:int,fullname:string,summary:string,url:string,image:string,price:string}>
+ * @return array<int, array{id:int,fullname:string,summary:string,url:string,image:string,price:string,is_free:bool}>
  */
 function theme_nit_get_courses(int $limit = 12): array {
     global $DB, $CFG, $OUTPUT;
@@ -470,13 +484,15 @@ function theme_nit_get_courses(int $limit = 12): array {
             $summary = shorten_text(trim($plain), 120);
         }
 
+        $price = theme_nit_course_price((int) $c->id);
         $courses[] = [
             'id' => (int) $c->id,
             'fullname' => format_string($c->fullname, true, ['context' => $context]),
             'summary' => $summary,
             'url' => (new moodle_url('/course/view.php', ['id' => $c->id]))->out(false),
             'image' => $image,
-            'price' => theme_nit_course_price((int) $c->id),
+            'price' => $price,
+            'is_free' => ($price === ''),
             'teacher' => theme_nit_course_teacher((int) $c->id),
         ];
     }
