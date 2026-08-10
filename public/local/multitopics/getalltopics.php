@@ -28,6 +28,21 @@ function api_error(string $errorcode, string $message, int $http = 400): void {
     exit;
 }
 
+// ── Helper: classify a mimetype so the app can pick a native player ─────────
+// Lets the client render a File activity natively (video/audio/image/pdf) instead
+// of opening the mod/resource/view.php webview.
+function mt_media_type(string $mime): string {
+    $mime = strtolower($mime);
+    if (strpos($mime, 'video/') === 0) { return 'video'; }
+    if (strpos($mime, 'audio/') === 0) { return 'audio'; }
+    if (strpos($mime, 'image/') === 0) { return 'image'; }
+    if ($mime === 'application/pdf') { return 'pdf'; }
+    if (strpos($mime, 'word') !== false || strpos($mime, 'excel') !== false
+        || strpos($mime, 'powerpoint') !== false || strpos($mime, 'officedocument') !== false
+        || strpos($mime, 'text/') === 0) { return 'document'; }
+    return 'file';
+}
+
 // ── Helper: make a protected file URL loadable by a token client ────────────
 // Rewrites /pluginfile.php (needs a browser session) to /webservice/pluginfile.php
 // and appends the token with the correct separator. Plain pluginfile.php ignores
@@ -198,6 +213,7 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
             'tags'            => [],
             'modicon'         => $modicon,
             'resourcetype'    => '',
+            'mediatype'       => '',
             'fileurl'         => '',
             // Access restrictions (e.g. date/group/grade conditions) — cm is still
             // uservisible here (fully-hidden cms were skipped above), but may be
@@ -215,6 +231,7 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
                 $file = reset($files);
                 $mime = $file->get_mimetype();
                 $act['resourcetype'] = $mime;
+                $act['mediatype']    = mt_media_type($mime);
                 $act['fileurl']      = mt_ws_fileurl(\moodle_url::make_pluginfile_url(
                     $ctx->id, 'mod_resource', 'content', $file->get_itemid(),
                     $file->get_filepath(), $file->get_filename()
@@ -231,6 +248,7 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
                 $file = reset($files);
                 $mime = $file->get_mimetype();
                 $act['resourcetype'] = $mime;
+                $act['mediatype']    = mt_media_type($mime);
                 $act['fileurl']      = mt_ws_fileurl(\moodle_url::make_pluginfile_url(
                     $ctx->id, 'mod_resource2', 'content', $file->get_itemid(),
                     $file->get_filepath(), $file->get_filename()
@@ -247,6 +265,7 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
                 $file = reset($files);
                 $mime = $file->get_mimetype();
                 $act['resourcetype'] = $mime;
+                $act['mediatype']    = mt_media_type($mime);
                 $act['fileurl']      = mt_ws_fileurl(\moodle_url::make_pluginfile_url(
                     $ctx->id, 'mod_testnew', 'content', $file->get_itemid(),
                     $file->get_filepath(), $file->get_filename()
