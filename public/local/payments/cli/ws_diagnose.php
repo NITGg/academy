@@ -186,15 +186,31 @@ if ($options['function'] !== '') {
 //    wrong-path / subpath / token issue without needing the app.
 echo "\n---- Profile picture URL for this user ----\n";
 echo "  wwwroot        = {$CFG->wwwroot}\n";
+echo "  user.picture flag = {$user->picture} (0 = no uploaded photo, >0 = has photo)\n";
 try {
+    // Build the URL AS THIS USER — user_picture::get_url() falls back to the
+    // default image unless the viewer is allowed to see the profile photo, so
+    // without setting the session user a CLI run misleadingly shows the default.
+    \core\session\manager::set_user($user);
+
     $picpage = new \moodle_page();
     $picpage->set_context(context_system::instance());
     $up = new \user_picture($user);
-    $up->size = 1; // f1 (small)
-    echo "  userpictureurl = " . $up->get_url($picpage)->out(false) . "\n";
-    $up->size = 100; // f3 (large)
-    echo "  large picture  = " . $up->get_url($picpage)->out(false) . "\n";
-    echo "  user.picture flag = {$user->picture} (0 = no uploaded photo, >0 = has photo)\n";
+    $up->size = 1;
+    $normal = $up->get_url($picpage)->out(false);
+    echo "  userpictureurl = {$normal}\n";
+
+    // If it's a real uploaded photo (pluginfile), show the app-usable form:
+    // pluginfile.php needs auth, so an API client must call webservice/pluginfile.php
+    // with the token appended. This exact URL is fetchable in a browser to confirm.
+    if (strpos($normal, '/pluginfile.php') !== false) {
+        $wsurl = str_replace('/pluginfile.php', '/webservice/pluginfile.php', $normal);
+        $sep = (strpos($wsurl, '?') !== false) ? '&' : '?';
+        echo "  app-usable URL = {$wsurl}{$sep}token={$token}\n";
+        echo "                   (paste in a browser — should return the photo, not a login page)\n";
+    } else {
+        echo "  (this is the DEFAULT placeholder — user.picture is 0, no photo uploaded)\n";
+    }
 } catch (\Throwable $e) {
     echo $bad . "Could not build picture URL: " . $e->getMessage() . "\n";
 }
