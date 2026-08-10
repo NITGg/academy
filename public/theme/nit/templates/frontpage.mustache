@@ -128,12 +128,23 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
             var frag = document.createDocumentFragment();
             data.slice(0, limit).forEach(function (c) {
                 // {{pricebadge}} — a fully styled pill that looks distinct for
-                // paid vs free courses (see the <style> block below). {{price}}
-                // stays as plain substituted text for backward compatibility.
+                // enrolled / paid / free courses (see the <style> block below).
+                // {{cta}} — the call-to-action text: "Continue" once the user owns
+                // the course, else the container's data-cta-label (or "View More").
+                // {{price}} stays as plain substituted text for backward compat.
                 var isFree = c.is_free || !c.price;
-                var priceBadge = isFree
-                    ? '<span class="nit-price-badge nit-price-badge--free">' + esc(freeLabel || 'Free') + '</span>'
-                    : '<span class="nit-price-badge nit-price-badge--paid">' + esc(c.price) + '</span>';
+                var ctaLabel = container.getAttribute('data-cta-label') || 'View More';
+                var continueLabel = container.getAttribute('data-continue-label') || 'Continue';
+                var enrolledLabel = container.getAttribute('data-enrolled-label') || 'Enrolled';
+                var priceBadge;
+                if (c.is_enrolled) {
+                    priceBadge = '<span class="nit-price-badge nit-price-badge--enrolled">' + esc(enrolledLabel) + '</span>';
+                } else if (isFree) {
+                    priceBadge = '<span class="nit-price-badge nit-price-badge--free">' + esc(freeLabel || 'Free') + '</span>';
+                } else {
+                    priceBadge = '<span class="nit-price-badge nit-price-badge--paid">' + esc(c.price) + '</span>';
+                }
+                var cta = c.is_enrolled ? continueLabel : ctaLabel;
                 var html = tpl.innerHTML
                     .replace(/\{\{url\}\}/g, encodeURI(c.url || '#'))
                     .replace(/\{\{image\}\}/g, encodeURI(c.image || ''))
@@ -141,6 +152,7 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
                     .replace(/\{\{summary\}\}/g, esc(c.summary))
                     .replace(/\{\{teacher\}\}/g, esc(c.teacher))
                     .replace(/\{\{pricebadge\}\}/g, priceBadge)
+                    .replace(/\{\{cta\}\}/g, esc(cta))
                     .replace(/\{\{price\}\}/g, c.price ? esc(c.price) : esc(freeLabel));
                 var wrap = document.createElement('div');
                 wrap.innerHTML = html;
@@ -280,6 +292,10 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
 .nit-price-badge--free {
     color: #ffffff;
     background: #2e7d32;
+}
+.nit-price-badge--enrolled {
+    color: #ffffff;
+    background: #1565c0;
 }
 </style>
 {{! NIT (SEO): schema.org structured data for the course catalogue, so search

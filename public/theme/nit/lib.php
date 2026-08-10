@@ -334,37 +334,27 @@ function theme_nit_get_site_stats(): array {
  * @return string e.g. "250.00 EGP" or '' (free)
  */
 function theme_nit_course_price(int $courseid): string {
-    global $DB;
+    global $DB, $USER;
 
     // Prefer the local_payments plugin: it stores per-country course prices in
     // its own table (local_payments_course_prices), independent of Moodle's core
-    // enrol methods. The front-page grid is cached and shared across all users,
-    // so show the course's DEFAULT active price here (deterministic, cache-safe).
-    // The exact per-country price is resolved later at checkout (buy.php).
-    if ($DB->get_manager()->table_exists('local_payments_course_prices')) {
-        $default = $DB->get_record_select(
-            'local_payments_course_prices',
-            'courseid = :courseid AND is_default = 1 AND is_active = 1',
-            ['courseid' => $courseid],
-            'price, currency',
-            IGNORE_MULTIPLE
-        );
-        // No default flagged? Fall back to any active price for the course.
-        if (!$default) {
-            $default = $DB->get_record_select(
-                'local_payments_course_prices',
-                'courseid = :courseid AND is_active = 1',
-                ['courseid' => $courseid],
-                'price, currency',
-                IGNORE_MULTIPLE
+    // enrol methods. Resolve for the current user's country so an Egyptian user
+    // sees the EGP price, etc. (the front-page grid cache is keyed by user +
+    // country — see theme_nit_get_courses — so this stays cache-safe).
+    if (class_exists('\local_payments\price_resolver')
+        && \local_payments\price_resolver::has_pricing($courseid)) {
+        try {
+            $pricing = \local_payments\price_resolver::resolve(
+                $courseid,
+                !empty($USER->id) ? (int) $USER->id : null
             );
-        }
-        if ($default && (float) $default->price > 0) {
-            return format_float($default->price, 2, false) . ' ' . $default->currency;
-        }
-        if ($default) {
-            // Active rule exists but price is 0 — treat as explicitly free.
+            if ((float) $pricing->price > 0) {
+                return format_float($pricing->price, 2, false) . ' ' . $pricing->currency;
+            }
+            // Active rule with a zero price — treat as explicitly free.
             return '';
+        } catch (\moodle_exception $e) {
+            // No matching rule for this country — fall through to free/enrol.
         }
     }
 
@@ -428,9 +418,20 @@ function theme_nit_get_courses(int $limit = 12): array {
     // N+1 pattern on the busiest page, so cache the assembled list (keyed by
     // limit). Lifetime is the admin-configurable theme setting (0 = disabled).
     // Purge theme caches to refresh sooner.
+    global $USER;
+
+    // Prices are resolved per country and the "enrolled" state is per user, so
+    // the cached view-model must be keyed by user + country — otherwise the first
+    // visitor's prices/enrolment would be served to everyone.
+    $userid = (int) ($USER->id ?? 0);
+    $country = '';
+    if (class_exists('\local_payments\country_detector')) {
+        $country = \local_payments\country_detector::detect($userid > 0 ? $userid : null);
+    }
+
     $ttl = theme_nit_frontpage_cache_ttl();
     $cache = \cache::make('theme_nit', 'frontpage');
-    $cachekey = 'courses_' . $limit;
+    $cachekey = 'courses_' . $limit . '_' . $userid . '_' . $country;
     if ($ttl > 0) {
         $cached = $cache->get($cachekey);
         if (is_array($cached) && ($cached['expires'] ?? 0) > time()) {
@@ -485,6 +486,10 @@ function theme_nit_get_courses(int $limit = 12): array {
         }
 
         $price = theme_nit_course_price((int) $c->id);
+        $isenrolled = false;
+        if ($userid > 0 && class_exists('\local_payments\enrollment_handler')) {
+            $isenrolled = \local_payments\enrollment_handler::is_enrolled($userid, (int) $c->id);
+        }
         $courses[] = [
             'id' => (int) $c->id,
             'fullname' => format_string($c->fullname, true, ['context' => $context]),
@@ -493,6 +498,7 @@ function theme_nit_get_courses(int $limit = 12): array {
             'image' => $image,
             'price' => $price,
             'is_free' => ($price === ''),
+            'is_enrolled' => $isenrolled,
             'teacher' => theme_nit_course_teacher((int) $c->id),
         ];
     }
