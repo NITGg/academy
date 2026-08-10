@@ -22,20 +22,24 @@ $action = optional_param('action', '', PARAM_ALPHA);
 // Check for active subscription coverage.
 $can_enroll_via_sub = false;
 $activesub = null;
-if (class_exists('\local_academy\subscription_purchase_manager') && class_exists('\local_academy\subscription_manager')) {
-    $activesub = \local_academy\subscription_purchase_manager::get_active_subscription($USER->id);
+if (class_exists('\local_nit_subscriptions\subscription_purchase_manager')
+        && class_exists('\local_nit_subscriptions\subscription_manager')) {
+    $activesub = \local_nit_subscriptions\subscription_purchase_manager::get_active_subscription($USER->id);
     if ($activesub) {
-        $covered_courses = \local_academy\subscription_manager::courses_for_subscription($activesub->subscriptionid);
+        $covered_courses = \local_nit_subscriptions\subscription_manager::courses_for_subscription($activesub->subscriptionid);
         if (in_array($courseid, $covered_courses)) {
             $can_enroll_via_sub = true;
         }
     }
 }
 
-// Handle enroll action
+// Handle enroll action. Gated above on the user actually holding an active
+// subscription that covers this course, plus sesskey — grant_course_access then
+// enrols them for the subscription's remaining lifetime.
 if ($can_enroll_via_sub && $action === 'enroll') {
     require_sesskey();
-    \local_academy\subscription_purchase_manager::grant_single_course_access($courseid, $USER->id, $activesub->expires_at);
+    \local_nit_subscriptions\subscription_purchase_manager::grant_course_access(
+        $courseid, $USER->id, (int) $activesub->expires_at);
     redirect(new moodle_url('/course/view.php', ['id' => $courseid]));
 }
 

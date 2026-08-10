@@ -418,6 +418,81 @@ class discount_manager {
     }
 
     /**
+     * Reserve coupon/offer usage for a still-pending checkout, so concurrent
+     * checkouts cannot over-redeem a capped coupon. The reservation IS the usage
+     * row tied to the pending transaction: it is confirmed as-is at fulfilment
+     * (record_usage is idempotent) and removed by {@see self::release_usage()} or
+     * the cleanup task if the payment fails or is abandoned.
+     *
+     * Under a per-coupon lock it re-checks the coupon's global + per-user limits,
+     * so two simultaneous reservations can't both pass.
+     *
+     * @param array $resolved discount metadata (see resolve() / apply_nit_discount)
+     * @param int $userid
+     * @param int $transactionid local_payments_transactions.id
+     * @param string $itemtype
+     * @param int $itemid
+     * @return void
+     * @throws \moodle_exception if the coupon's limit is already reached
+     */
+    public static function reserve_usage(array $resolved, $userid, $transactionid, $itemtype, $itemid) {
+        global $DB;
+        $couponid = (int) ($resolved['coupon_id'] ?? 0);
+        $hascoupon = $couponid > 0 && ($resolved['coupon_discount'] ?? 0) > 0;
+
+        // No coupon → only automatic (uncapped) offers to record; no lock needed.
+        if (!$hascoupon) {
+            self::do_record_usage($DB, $resolved, $userid, (int) $transactionid, $itemtype, $itemid, time());
+            return;
+        }
+
+        // Serialise reservations of the same coupon so the limit check + insert
+        // are atomic across concurrent checkouts.
+        $lock = \core\lock\lock_config::get_lock_factory('local_nit_commerce')
+            ->get_lock('coupon_reserve_' . $couponid, 10);
+        if (!$lock) {
+            throw new \moodle_exception('err_couponbusy', 'local_nit_commerce');
+        }
+        try {
+            $coupon = $DB->get_record('nit_coupon', array('id' => $couponid));
+            if ($coupon) {
+                $used = $DB->count_records('nit_coupon_usage', array('couponid' => $couponid));
+                if ($coupon->usage_type === 'once' && $used >= 1) {
+                    throw new \moodle_exception('err_couponusedup', 'local_nit_commerce');
+                }
+                if ((int) $coupon->usage_limit > 0 && $used >= (int) $coupon->usage_limit) {
+                    throw new \moodle_exception('err_couponusedup', 'local_nit_commerce');
+                }
+                if (!empty($userid)
+                        && $DB->record_exists('nit_coupon_usage', array('couponid' => $couponid, 'userid' => (int) $userid))) {
+                    throw new \moodle_exception('err_couponalreadyusedbyuser', 'local_nit_commerce');
+                }
+            }
+            self::do_record_usage($DB, $resolved, $userid, (int) $transactionid, $itemtype, $itemid, time());
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * Release (delete) any coupon/offer usage rows reserved for a transaction,
+     * when its payment failed or was abandoned — freeing the coupon for others.
+     * A no-op for a fulfilled (paid) transaction should never be called.
+     *
+     * @param int $transactionid
+     * @return void
+     */
+    public static function release_usage($transactionid) {
+        global $DB;
+        $transactionid = (int) $transactionid;
+        if ($transactionid <= 0) {
+            return;
+        }
+        $DB->delete_records('nit_coupon_usage', array('transactionid' => $transactionid));
+        $DB->delete_records('nit_offer_usage', array('transactionid' => $transactionid));
+    }
+
+    /**
      * Record coupon + offer usage after a successful payment. Idempotent per transaction.
      *
      * @param array $resolved output of {@see self::resolve()} (or the stored discount metadata)

@@ -38,8 +38,10 @@
               <h3 style="font-size: 18px; font-weight: bold; color: var(--nit-darktextprimary, #ffffff); margin: 0; line-height: 1.4; padding-inline-end: 42px;">{{name}}</h3>
             </div>
             <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px; flex: 1;">
-              <div style="font-size: 30px; font-weight: 800; color: var(--nit-accentgold, #e8b84b); line-height: 1;">
-                {{price}} <span style="font-size: 14px; font-weight: 600; color: var(--nit-darktextsecondary, #8a9ab5);">{mlang en}EGP{mlang}{mlang ar}ج.م{mlang}</span></div>
+              <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+                <span style="font-size: 30px; font-weight: 800; color: var(--nit-accentgold, #e8b84b); line-height: 1;">{{price}} <span style="font-size: 14px; font-weight: 600; color: var(--nit-darktextsecondary, #8a9ab5);">{mlang en}EGP{mlang}{mlang ar}ج.م{mlang}</span></span>
+                <span data-nit-offer style="display: none; align-self: center; font-size: 12px; font-weight: 800; color: #ffffff; background: var(--nit-accentteal, #00a99d); border-radius: 50px; padding: 4px 10px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.25);">—</span>
+              </div>
               <p data-nit-desc style="font-size: 13px; color: var(--nit-darktextsecondary, #8a9ab5); line-height: 1.7; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{description}}</p>
               <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto;">
                 <span style="background: color-mix(in srgb, var(--nit-accentgold, #e8b84b) 12%, transparent); color: var(--nit-accentgold, #e8b84b); border-radius: 50px; font-size: 12px; font-weight: 600; padding: 5px 12px;">{{days}} {mlang en}days access{mlang}{mlang ar}يوم وصول{mlang}</span>
@@ -259,6 +261,11 @@
           if (s.b2b_enabled) { var b=wrap.querySelector('[data-nit-b2b]'); if (b) { b.style.display = 'inline-block'; } }
           if (s.courses_count > 0) { var ch=wrap.querySelector('[data-nit-courses-chip]'); if (ch) { ch.style.display = 'inline-block'; } }
           if (!desc) { var d=wrap.querySelector('[data-nit-desc]'); if (d) { d.style.display = 'none'; } }
+          // Auto-offer badge next to the price (e.g. "-10% OFF").
+          if (s.offer_label) {
+            var of = wrap.querySelector('[data-nit-offer]');
+            if (of) { of.textContent = s.offer_label + ' {mlang en}OFF{mlang}{mlang ar}خصم{mlang}'; of.style.display = 'inline-block'; }
+          }
           scroller.appendChild(wrap);
         });
         if (loggedIn) { markActiveSubscription(); }

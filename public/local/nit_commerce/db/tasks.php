@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for NIT Commerce (discount coupons + automatic offers).
+ * Scheduled tasks for local_nit_commerce.
  *
  * @package    local_nit_commerce
  * @copyright  2026 NIT
@@ -24,12 +24,14 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_nit_commerce';
-$plugin->version   = 2026080902;
-$plugin->requires  = 2024100700;
-$plugin->supported = [405, 502];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.0';
-$plugin->dependencies = [
-    'local_nit_core' => 2026080404,
+$tasks = [
+    [
+        'classname' => 'local_nit_commerce\task\cleanup_reservations',
+        'blocking'  => 0,
+        'minute'    => '*/10',
+        'hour'      => '*',
+        'day'       => '*',
+        'month'     => '*',
+        'dayofweek' => '*',
+    ],
 ];

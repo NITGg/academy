@@ -227,6 +227,11 @@ class manager {
             'timemodified' => time(),
         ]);
 
+        // Reserve coupon/offer usage for this pending checkout so a capped coupon
+        // can't be over-redeemed by concurrent checkouts. Released on failure /
+        // abandonment (callback + cleanup task); confirmed as-is at fulfilment.
+        self::reserve_nit_discount($discountmeta, $userid, $transaction_id, 'course', $courseid);
+
         return (object) [
             'order_id' => $order_id,
             'checkout_url' => $response->checkout_url,
@@ -386,6 +391,10 @@ class manager {
             'timemodified' => time(),
         ]);
 
+        // Reserve coupon/offer usage for this pending subscription checkout (see
+        // create_checkout). Fails the checkout cleanly if a capped coupon is now used up.
+        self::reserve_nit_discount($discountmeta, $userid, $transaction_id, 'subscription', $subscriptionid);
+
         return (object) [
             'order_id' => $order_id,
             'checkout_url' => $response->checkout_url,
@@ -481,6 +490,52 @@ class manager {
         } catch (\Exception $e) {
             self::log_entry($transaction->provider_id, $transaction->id, 'warning',
                 'Discount usage record failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reserve NIT commerce coupon/offer usage for a pending checkout. If the
+     * coupon's limit is reached during reservation, this fails the checkout
+     * cleanly (marks the transaction FAILED and rethrows) so a capped coupon is
+     * never over-redeemed by concurrent checkouts.
+     *
+     * @param array|null $discount stored discount metadata (from apply_nit_discount)
+     * @param int $userid
+     * @param int $transactionid
+     * @param string $itemtype
+     * @param int $itemid
+     * @return void
+     */
+    private static function reserve_nit_discount($discount, int $userid, int $transactionid,
+            string $itemtype, int $itemid): void {
+        if (empty($discount) || !is_array($discount) || !class_exists('\local_nit_commerce\discount_manager')) {
+            return;
+        }
+        try {
+            \local_nit_commerce\discount_manager::reserve_usage($discount, $userid, $transactionid, $itemtype, $itemid);
+        } catch (\moodle_exception $e) {
+            global $DB;
+            $DB->update_record('local_payments_transactions', (object) [
+                'id' => $transactionid,
+                'status' => status_machine::FAILED,
+                'reject_reason' => substr($e->getMessage(), 0, 255),
+                'timemodified' => time(),
+            ]);
+            self::audit_log($transactionid, $userid, 'status_changed', status_machine::PENDING, status_machine::FAILED);
+            throw $e;
+        }
+    }
+
+    /**
+     * Release any coupon/offer reservation held by a transaction whose payment
+     * failed or was abandoned, freeing a capped coupon for others.
+     *
+     * @param int $transactionid
+     * @return void
+     */
+    private static function release_nit_discount(int $transactionid): void {
+        if ($transactionid > 0 && class_exists('\local_nit_commerce\discount_manager')) {
+            \local_nit_commerce\discount_manager::release_usage($transactionid);
         }
     }
 

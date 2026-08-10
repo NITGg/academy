@@ -233,8 +233,19 @@ function nit_subscriptions_seat_options(): array {
  */
 function nit_subscriptions_available(): array {
     $subs = subscription_manager::get_subscriptions(subscription_manager::STATUS_ACTIVE);
+    $hasoffers = class_exists('\local_nit_commerce\discount_manager');
     $out = [];
     foreach ($subs as $s) {
+        // The best auto-offer on this plan (for a card badge). Fixed offers still yield a % label.
+        $offerlabel = '';
+        $offerfinal = 0.0;
+        if ($hasoffers) {
+            $summary = \local_nit_commerce\discount_manager::offer_summary('subscription', (int) $s->id, (float) $s->price);
+            if ($summary) {
+                $offerlabel = $summary['label'];      // e.g. "-10%"
+                $offerfinal = (float) $summary['final'];
+            }
+        }
         $out[] = [
             'id'            => (int) $s->id,
             'name'          => format_string(subscription_manager::resolve_mlang($s->name)),
@@ -245,6 +256,8 @@ function nit_subscriptions_available(): array {
             'courses_count' => count($s->courses),
             'courses'       => array_map(static fn($c) => $c['fullname'], $s->courses),
             'seat_options'  => $s->seat_options,
+            'offer_label'   => $offerlabel,
+            'offer_final'   => $offerfinal,
         ];
     }
     return $out;

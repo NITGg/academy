@@ -185,6 +185,59 @@ class subscription_purchase_manager {
     }
 
     /**
+     * Grant a user access to one course covered by their active subscription, as a
+     * real Moodle enrolment that ends when the subscription expires. Idempotent:
+     * if already actively enrolled, it does nothing.
+     *
+     * SECURITY: this grants course access, so the CALLER must first verify the
+     * user holds an active subscription that actually covers this course (see
+     * local/payments/buy.php, which gates on courses_for_subscription + sesskey).
+     *
+     * @param int $courseid
+     * @param int $userid
+     * @param int $until unix time the access should end (subscription expiry); 0 = no end date
+     * @return bool true on success
+     */
+    public static function grant_course_access($courseid, $userid, $until = 0) {
+        global $DB, $CFG;
+        require_once($CFG->libdir . '/enrollib.php');
+
+        $courseid = (int) $courseid;
+        $userid = (int) $userid;
+        $context = \context_course::instance($courseid);
+
+        // Already actively enrolled — nothing to do.
+        if (is_enrolled($context, $userid, '', true)) {
+            return true;
+        }
+
+        $plugin = enrol_get_plugin('manual');
+        if (!$plugin) {
+            return false;
+        }
+
+        // The course's enabled manual enrolment instance (create one if absent).
+        $instance = $DB->get_record('enrol',
+            ['courseid' => $courseid, 'enrol' => 'manual', 'status' => ENROL_INSTANCE_ENABLED],
+            '*', IGNORE_MULTIPLE);
+        if (!$instance) {
+            $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
+            $instanceid = $plugin->add_default_instance($course);
+            if (!$instanceid) {
+                return false;
+            }
+            $instance = $DB->get_record('enrol', ['id' => $instanceid], '*', MUST_EXIST);
+        }
+
+        // Enrol as the instance's default role (student), ending when the
+        // subscription expires so access lapses automatically.
+        $timeend = ((int) $until > time()) ? (int) $until : 0;
+        $plugin->enrol_user($instance, $userid, $instance->roleid, time(), $timeend);
+
+        return true;
+    }
+
+    /**
      * The effective status of a purchase record (expired if past its expiry).
      *
      * @param \stdClass $record
