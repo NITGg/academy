@@ -14,7 +14,27 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 // NIT alert refinement: a leading accent bar for stronger status signalling.
+// Logical inline-start edge so the bar stays on the reading-start side in RTL.
 .alert {
     border-radius: $nit-radius-md;
-    border-left-width: 4px;
+    border-inline-start-width: 4px;
+}
+
+// Brand alert variants. Core Bootstrap paints each alert as a pale pastel island
+// (light bg + near-black text), which reads as a bright box on the dark brand.
+// Re-tint every variant from its semantic role: a translucent role wash for the
+// panel, a role-tinted border, a solid role bar on the inline-start edge, and the
+// brand foreground for text (white stays ≥ 14:1 on every tint). Everything reads
+// through the tokens, so a .nit-brand-2 / .nit-brand-3 wrapper reskins them.
+@each $variant, $role in (primary: primary, secondary: secondary,
+                          success: success, warning: warning,
+                          danger: error, info: info) {
+    .alert-#{$variant} {
+        --bs-alert-color: var(--nit-brand-textprimary);
+        --bs-alert-bg: #{"color-mix(in srgb, var(--nit-brand-#{$role}) 15%, transparent)"};
+        --bs-alert-border-color: #{"color-mix(in srgb, var(--nit-brand-#{$role}) 40%, transparent)"};
+        --bs-alert-link-color: var(--nit-brand-textprimary);
+
+        border-inline-start-color: var(--nit-brand-#{$role});
+    }
 }

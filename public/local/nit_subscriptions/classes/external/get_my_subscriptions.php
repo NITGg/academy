@@ -39,22 +39,32 @@ use local_nit_subscriptions\subscription_purchase_manager;
 class get_my_subscriptions extends external_api {
 
     /**
-     * Parameters: none (acts on the token's user).
+     * Parameters: optional display language (mobile apps send it on every call).
      *
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([]);
+        return new external_function_parameters([
+            'lang'  => new external_value(PARAM_LANG, 'Display language, e.g. en or ar (optional)', VALUE_DEFAULT, ''),
+            'alang' => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
+        ]);
     }
 
     /**
      * Fetch the current user's subscription purchases.
      *
+     * @param string $lang
+     * @param string $alang
      * @return array
      */
-    public static function execute(): array {
+    public static function execute(string $lang = '', string $alang = ''): array {
         global $USER;
+        $params = self::validate_parameters(self::execute_parameters(), ['lang' => $lang, 'alang' => $alang]);
         self::validate_context(\context_system::instance());
+        $chosen = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
+        if ($chosen !== '') {
+            force_current_language($chosen);
+        }
         return subscription_purchase_manager::get_my_subscriptions($USER->id);
     }
 
@@ -76,6 +86,13 @@ class get_my_subscriptions extends external_api {
                 'expires_at'     => new external_value(PARAM_INT, 'Expiry unix time (0 = never)'),
                 'remaining_days' => new external_value(PARAM_INT, 'Whole days until expiry (0 when not active)'),
                 'duration_days'  => new external_value(PARAM_INT, 'Plan duration in days'),
+                'courses'        => new external_multiple_structure(
+                    new external_single_structure([
+                        'id'       => new external_value(PARAM_INT, 'Moodle course id'),
+                        'fullname' => new external_value(PARAM_TEXT, 'Course full name'),
+                    ]),
+                    'The courses this subscription unlocks, as {id, fullname} objects'
+                ),
             ])
         );
     }

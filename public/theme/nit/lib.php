@@ -181,32 +181,36 @@ function theme_nit_colours_all(): array {
 }
 
 /**
- * The 13 semantic roles every Brand-Colors group is built from.
+ * The 15 semantic roles every Brand-Colors group is built from.
  *
  * This is the clean, small semantic layer that replaces the sprawling
  * theme_nit_colour_palette(): a component references a role by name (Primary,
- * Surface, Text primary, …) and never a raw colour. `label` and `usage` are the
- * human copy shown on the gallery's Brand Colors tab; `default` is the Group 1
- * seed (the dark red/navy brand). Hover / opacity variants are derived in SCSS
- * (see scss/foundation/_brand.scss), never stored as their own tokens.
+ * Surface, Text primary, …) and never a raw colour. `label` is the display name
+ * and `usage` is a list of the concrete UI things that should use the colour —
+ * rendered as chips on the gallery's Brand Colors tab; `default` is the Group 1
+ * seed (the dark red/navy brand). The Hover Background / Hover Text roles carry
+ * the explicit hover colours (other opacity variants are still derived in SCSS,
+ * see scss/foundation/_brand.scss).
  *
- * @return array<string, array{label:string, usage:string, default:string}>
+ * @return array<string, array{label:string, usage:string[], default:string}>
  */
 function theme_nit_brand_roles(): array {
     return [
-        'primary'         => ['label' => 'Primary', 'usage' => 'Filled action buttons, checked toggles, progress fill, notification dots', 'default' => '#e5322d'],
-        'secondary'       => ['label' => 'Secondary', 'usage' => 'Dual / secondary button fills', 'default' => '#13293f'],
-        'accent'          => ['label' => 'Accent', 'usage' => 'Links, highlights, underlines, active indicators, prices', 'default' => '#e5322d'],
-        'background'      => ['label' => 'Background', 'usage' => 'Main page & section background, modal scrim', 'default' => '#0a1628'],
-        'surface'         => ['label' => 'Surface', 'usage' => 'Cards, dropdowns, side menu, inputs, tooltips, table headers', 'default' => '#0f1e33'],
-        'textprimary'     => ['label' => 'Text primary', 'usage' => 'All body & heading text, button labels, input text', 'default' => '#ffffff'],
-        'textsecondary'   => ['label' => 'Text secondary', 'usage' => 'Sub-titles, captions, muted text, placeholders', 'default' => '#8a9ab5'],
-        'borderprimary'   => ['label' => 'Border primary', 'usage' => 'Card & surface outlines, dividers, input borders', 'default' => '#244766'],
-        'bordersecondary' => ['label' => 'Border secondary', 'usage' => 'Secondary / ghost button outlines', 'default' => '#3a5f86'],
-        'error'           => ['label' => 'Error', 'usage' => 'Errors, danger / destructive actions, invalid fields', 'default' => '#e5484d'],
-        'success'         => ['label' => 'Success', 'usage' => 'Success, enrolled / active / paid, positive states', 'default' => '#1e9e63'],
-        'warning'         => ['label' => 'Warning', 'usage' => 'Warnings, caution, pending / expiring', 'default' => '#9aa4b2'],
-        'info'            => ['label' => 'Info', 'usage' => 'Neutral notices, tips, hints', 'default' => '#ffffff'],
+        'primary'         => ['label' => 'Primary', 'usage' => ['background main button', 'checked toggles', 'progress fill', 'notification dots'], 'default' => '#e5322d'],
+        'secondary'       => ['label' => 'Secondary', 'usage' => ['background secondary button'], 'default' => '#13293f'],
+        'accent'          => ['label' => 'Accent', 'usage' => ['text of links', 'important words', 'underlines'], 'default' => '#e5322d'],
+        'background'      => ['label' => 'Background', 'usage' => ['page background'], 'default' => '#0a1628'],
+        'surface'         => ['label' => 'Surface', 'usage' => ['Cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'page sections background'], 'default' => '#0f1e33'],
+        'textprimary'     => ['label' => 'Text primary', 'usage' => ['main normal text', 'text in buttons', 'text in inputs'], 'default' => '#ffffff'],
+        'textsecondary'   => ['label' => 'Text secondary', 'usage' => ['secondary normal text', 'placeholders'], 'default' => '#8a9ab5'],
+        'borderprimary'   => ['label' => 'Border primary', 'usage' => ['main border color'], 'default' => '#244766'],
+        'bordersecondary' => ['label' => 'Border secondary', 'usage' => ['secondary border color'], 'default' => '#3a5f86'],
+        'hoverbackground' => ['label' => 'Hover Background', 'usage' => ['hover background'], 'default' => '#17263f'],
+        'hovertext'       => ['label' => 'Hover Text', 'usage' => ['hover text'], 'default' => '#f0554f'],
+        'error'           => ['label' => 'Error', 'usage' => ['Errors', 'danger / destructive actions', 'invalid fields'], 'default' => '#e5484d'],
+        'success'         => ['label' => 'Success', 'usage' => ['Success', 'enrolled / active / paid', 'positive states'], 'default' => '#1e9e63'],
+        'warning'         => ['label' => 'Warning', 'usage' => ['Warnings', 'caution', 'pending / expiring'], 'default' => '#9aa4b2'],
+        'info'            => ['label' => 'Info', 'usage' => ['Neutral notices', 'tips', 'hints'], 'default' => '#ffffff'],
     ];
 }
 

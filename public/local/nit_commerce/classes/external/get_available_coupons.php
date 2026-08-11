@@ -41,21 +41,31 @@ use local_nit_commerce\coupon_manager;
 class get_available_coupons extends external_api {
 
     /**
-     * Parameters: none.
+     * Parameters: optional display language (mobile apps send it on every call).
      *
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([]);
+        return new external_function_parameters([
+            'lang'  => new external_value(PARAM_LANG, 'Display language, e.g. en or ar (optional)', VALUE_DEFAULT, ''),
+            'alang' => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
+        ]);
     }
 
     /**
      * Fetch active, in-window coupons.
      *
+     * @param string $lang
+     * @param string $alang
      * @return array
      */
-    public static function execute(): array {
+    public static function execute(string $lang = '', string $alang = ''): array {
+        $params = self::validate_parameters(self::execute_parameters(), ['lang' => $lang, 'alang' => $alang]);
         self::validate_context(\context_system::instance());
+        $chosen = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
+        if ($chosen !== '') {
+            force_current_language($chosen);
+        }
         return coupon_manager::get_available_coupons();
     }
 

@@ -40,6 +40,8 @@
     --nit-brand-g1-textsecondary: #{$nit-b-g1-textsecondary};
     --nit-brand-g1-borderprimary: #{$nit-b-g1-borderprimary};
     --nit-brand-g1-bordersecondary: #{$nit-b-g1-bordersecondary};
+    --nit-brand-g1-hoverbackground: #{$nit-b-g1-hoverbackground};
+    --nit-brand-g1-hovertext: #{$nit-b-g1-hovertext};
     --nit-brand-g1-error: #{$nit-b-g1-error};
     --nit-brand-g1-success: #{$nit-b-g1-success};
     --nit-brand-g1-warning: #{$nit-b-g1-warning};
@@ -54,6 +56,8 @@
     --nit-brand-g2-textsecondary: #{$nit-b-g2-textsecondary};
     --nit-brand-g2-borderprimary: #{$nit-b-g2-borderprimary};
     --nit-brand-g2-bordersecondary: #{$nit-b-g2-bordersecondary};
+    --nit-brand-g2-hoverbackground: #{$nit-b-g2-hoverbackground};
+    --nit-brand-g2-hovertext: #{$nit-b-g2-hovertext};
     --nit-brand-g2-error: #{$nit-b-g2-error};
     --nit-brand-g2-success: #{$nit-b-g2-success};
     --nit-brand-g2-warning: #{$nit-b-g2-warning};
@@ -68,6 +72,8 @@
     --nit-brand-g3-textsecondary: #{$nit-b-g3-textsecondary};
     --nit-brand-g3-borderprimary: #{$nit-b-g3-borderprimary};
     --nit-brand-g3-bordersecondary: #{$nit-b-g3-bordersecondary};
+    --nit-brand-g3-hoverbackground: #{$nit-b-g3-hoverbackground};
+    --nit-brand-g3-hovertext: #{$nit-b-g3-hovertext};
     --nit-brand-g3-error: #{$nit-b-g3-error};
     --nit-brand-g3-success: #{$nit-b-g3-success};
     --nit-brand-g3-warning: #{$nit-b-g3-warning};
@@ -83,6 +89,8 @@
     --nit-brand-textsecondary: var(--nit-brand-g1-textsecondary);
     --nit-brand-borderprimary: var(--nit-brand-g1-borderprimary);
     --nit-brand-bordersecondary: var(--nit-brand-g1-bordersecondary);
+    --nit-brand-hoverbackground: var(--nit-brand-g1-hoverbackground);
+    --nit-brand-hovertext: var(--nit-brand-g1-hovertext);
     --nit-brand-error: var(--nit-brand-g1-error);
     --nit-brand-success: var(--nit-brand-g1-success);
     --nit-brand-warning: var(--nit-brand-g1-warning);
@@ -118,6 +126,8 @@
     --nit-brand-textsecondary: var(--nit-brand-g2-textsecondary);
     --nit-brand-borderprimary: var(--nit-brand-g2-borderprimary);
     --nit-brand-bordersecondary: var(--nit-brand-g2-bordersecondary);
+    --nit-brand-hoverbackground: var(--nit-brand-g2-hoverbackground);
+    --nit-brand-hovertext: var(--nit-brand-g2-hovertext);
     --nit-brand-error: var(--nit-brand-g2-error);
     --nit-brand-success: var(--nit-brand-g2-success);
     --nit-brand-warning: var(--nit-brand-g2-warning);
@@ -134,6 +144,8 @@
     --nit-brand-textsecondary: var(--nit-brand-g3-textsecondary);
     --nit-brand-borderprimary: var(--nit-brand-g3-borderprimary);
     --nit-brand-bordersecondary: var(--nit-brand-g3-bordersecondary);
+    --nit-brand-hoverbackground: var(--nit-brand-g3-hoverbackground);
+    --nit-brand-hovertext: var(--nit-brand-g3-hovertext);
     --nit-brand-error: var(--nit-brand-g3-error);
     --nit-brand-success: var(--nit-brand-g3-success);
     --nit-brand-warning: var(--nit-brand-g3-warning);

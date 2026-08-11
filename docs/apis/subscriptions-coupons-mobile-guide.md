@@ -59,6 +59,10 @@ GET  {WWWROOT}/webservice/rest/server.php
 
 - **Read** functions may be `GET`; **write** functions (`create_subscription_checkout`) should be `POST`
   with the params in the form body. There is **no `sesskey`** — the token *is* the credential.
+- **Every function accepts an optional `lang` (and its alias `alang`)** — e.g. `en` / `ar` — to
+  localize names/descriptions. Because Moodle web services **reject any undeclared parameter**
+  (`"Invalid parameter value detected"`), only send parameters listed for that function; `lang`/`alang`
+  are safe to send on all of them.
 - On success you get the raw JSON data (an array or object — **no `{status,data}` wrapper**).
 - On failure you get a Moodle exception object — see [§6 Errors](#6-error-handling).
 
@@ -165,9 +169,15 @@ GET …&wsfunction=local_nit_subscriptions_get_available_subscriptions&moodlewsr
     "description": "<p>Full-year access</p>",
     "price": 365.00,
     "duration_days": 365,
+    "status": "active",
+    "courses": [
+      { "id": 12, "fullname": "English A1" },
+      { "id": 13, "fullname": "Arabic B1" }
+    ],
+    "offer": { "original": 365.00, "final": 328.50, "label": "-10%", "name": "Launch Offer" },
+
     "b2b_enabled": 1,
     "courses_count": 2,
-    "courses": [ "English A1", "Arabic B1" ],
     "seat_options": [
       { "id": 7, "seats": 10, "discount_percent": 15,
         "original_price": 3650.00, "discount_amount": 547.50, "b2b_price": 3102.50 }
@@ -177,9 +187,13 @@ GET …&wsfunction=local_nit_subscriptions_get_available_subscriptions&moodlewsr
   }
 ]
 ```
-- Show `name`, `price`, `duration_days`, `description` (HTML), and the `courses` list.
-- `offer_label`/`offer_final` = the best current automatic offer (empty/`0` if none) — handy for a badge.
-- `seat_options` is for **B2B** (team) plans only; empty for a normal plan.
+- `courses` is an array of **`{id, fullname}` objects** — use `id` to map which catalog courses a plan
+  covers (`fullname` may contain `{mlang}` markup).
+- `offer` is a **nested object** `{original, final, label, name}` — **present only when there's an
+  active offer**, omitted otherwise. Use it for the price badge.
+- `status` is `active` (the endpoint only lists active plans).
+- Legacy fields `b2b_enabled`, `courses_count`, `seat_options`, `offer_label`, `offer_final` remain for
+  backward compatibility — `seat_options` is for **B2B** (team) plans, empty for a normal plan.
 
 ### 3.4 `local_nit_subscriptions_create_subscription_checkout` — **POST**
 
@@ -240,12 +254,18 @@ GET …&wsfunction=local_nit_subscriptions_get_my_subscriptions&moodlewsrestform
     "timeactivated": 1790400000,
     "expires_at": 1821936000,
     "remaining_days": 365,
-    "duration_days": 365
+    "duration_days": 365,
+    "courses": [
+      { "id": 12, "fullname": "English A1" },
+      { "id": 13, "fullname": "Arabic B1" }
+    ]
   }
 ]
 ```
 - `status` is computed live: `active` | `expired` | `cancelled`.
 - `remaining_days` = whole days until expiry (0 when not active).
+- `courses` is an array of **`{id, fullname}` objects** — the catalog reads each `id` to show
+  "included in your subscription" coverage.
 - A user holds at most **one active normal** subscription at a time.
 
 ### 3.6 `local_nit_subscriptions_get_subscription_payment_history`

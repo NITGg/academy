@@ -38,3 +38,23 @@
     --bs-btn-hover-color: var(--nit-brand-textprimary);
     --bs-btn-active-color: var(--nit-brand-textprimary);
 }
+
+// Ghost / outline-secondary (e.g. the "Reset" actions). Bootstrap draws these
+// from its grey $secondary, giving a mid-grey border and label that sit off the
+// brand. Point the resting state at the Border secondary role (ghost-button
+// borders) with brand text, and fill from the Hover roles on hover / active.
+.btn-outline-secondary {
+    --bs-btn-color: var(--nit-brand-textprimary);
+    --bs-btn-border-color: var(--nit-brand-bordersecondary);
+    --bs-btn-hover-color: var(--nit-brand-hovertext);
+    --bs-btn-hover-bg: var(--nit-brand-hoverbackground);
+    --bs-btn-hover-border-color: var(--nit-brand-bordersecondary);
+    --bs-btn-active-color: var(--nit-brand-hovertext);
+    --bs-btn-active-bg: var(--nit-brand-hoverbackground);
+    --bs-btn-active-border-color: var(--nit-brand-bordersecondary);
+
+    // Core carries a direct `border-color` on this variant (not just the
+    // --bs-btn-border-color var), so the resting border needs an explicit
+    // brand value to win; the state borders follow the vars above.
+    border-color: var(--nit-brand-bordersecondary);
+}

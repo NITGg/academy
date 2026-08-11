@@ -36,8 +36,9 @@ class gallery implements renderable, templatable {
      */
     public function export_for_template(renderer_base $output): array {
         // Brand Colors palette: the new semantic layer, one section per group
-        // (Group 1/2/3), each listing the same 13 roles. The palette is ordered
-        // so each group's roles are contiguous.
+        // (Group 1/2/3), each listing the same roles. The palette is ordered so
+        // each group's roles are contiguous. `usage` is a list of UI targets,
+        // wrapped as {label} objects so the template renders one chip each.
         $brandgroups = [];
         $bidx = [];  // group name => index in $brandgroups.
         foreach (\theme_nit_brand_palette() as $key => $meta) {
@@ -50,7 +51,7 @@ class gallery implements renderable, templatable {
             $brandgroups[$bidx[$gname]]['roles'][] = [
                 'key' => $key,
                 'label' => $meta['label'],
-                'usage' => $meta['usage'],
+                'usage' => array_map(static fn($u) => ['label' => $u], $meta['usage']),
                 'cssvar' => '--nit-brand-' . $meta['role'],
                 'value' => $value,
                 'default' => $meta['default'],
