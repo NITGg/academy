@@ -18,6 +18,26 @@
 // Admin-only surface; kept self-contained and token-driven.
 // =============================================================================
 
+// Page chrome that core paints off-brand on this admin surface.
+.nit-gallery {
+    // Inline <code> (the CSS-var names in the intro, font filenames). Bootstrap's
+    // --bs-code-color is a raw magenta; point it at the Accent role. Use the
+    // brighter accent tint so red code clears 4.5:1 on the dark Background
+    // (flat Accent measures ~4.2). The colour editor's own .nit-colour-config
+    // keeps its Text-secondary colour via its more specific rule.
+    --bs-code-color: var(--nit-brand-accent-bright);
+
+    // The tab strip. Core hands the admin <ul class="nav-tabs"> a light-grey
+    // ($gray-200) fill and a grey bottom rule, which flashes a pale band across
+    // the dark page. Drop the fill and reband the rule to Border primary. Scoped
+    // by id so it wins the cascade regardless of the core rule's origin; the
+    // per-tab active/hover styling stays with the global _tabs.scss.
+    #nit-gallery-tabs.nav-tabs {
+        background-color: transparent;
+        --bs-nav-tabs-border-color: var(--nit-brand-borderprimary);
+    }
+}
+
 // The editor practises what it preaches: its chrome is built from the very
 // Brand Colors roles it edits, so the page demonstrates the rules —
 //   card   → Surface        name   → Text primary
