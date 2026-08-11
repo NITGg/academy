@@ -284,6 +284,9 @@ class subscription_purchase_manager {
                 'expires_at'     => (int) $r->expires_at,
                 'remaining_days' => $daysleft,
                 'duration_days'  => (int) $r->duration_days,
+                // Courses the plan unlocks, as {id, fullname} objects — the catalog reads course.id
+                // to show "included in your subscription" coverage.
+                'courses'        => subscription_manager::courses_detail((int) $r->subscriptionid),
             ];
         }
         usort($out, function ($a, $b) {

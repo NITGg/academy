@@ -84,11 +84,15 @@ class get_available_subscriptions extends external_api {
                 'description'   => new external_value(PARAM_RAW, 'Plan description (HTML)'),
                 'price'         => new external_value(PARAM_FLOAT, 'Plan price (EGP)'),
                 'duration_days' => new external_value(PARAM_INT, 'Access duration in days'),
+                'status'        => new external_value(PARAM_TEXT, 'Plan status (active)'),
                 'b2b_enabled'   => new external_value(PARAM_INT, '1 if the plan can be bought for a team (B2B)'),
                 'courses_count' => new external_value(PARAM_INT, 'Number of courses the plan unlocks'),
                 'courses'       => new external_multiple_structure(
-                    new external_value(PARAM_TEXT, 'Course full name'),
-                    'Names of the courses this plan unlocks'
+                    new external_single_structure([
+                        'id'       => new external_value(PARAM_INT, 'Moodle course id'),
+                        'fullname' => new external_value(PARAM_TEXT, 'Course full name'),
+                    ]),
+                    'The courses this plan unlocks, as {id, fullname} objects'
                 ),
                 'seat_options'  => new external_multiple_structure(
                     new external_single_structure([
@@ -103,6 +107,12 @@ class get_available_subscriptions extends external_api {
                 ),
                 'offer_label'   => new external_value(PARAM_TEXT, 'Best current offer label, e.g. "-10%" (empty if none)'),
                 'offer_final'   => new external_value(PARAM_FLOAT, 'Price after the best offer (0 if none)'),
+                'offer'         => new external_single_structure([
+                    'original' => new external_value(PARAM_FLOAT, 'Price before the offer'),
+                    'final'    => new external_value(PARAM_FLOAT, 'Price after the offer'),
+                    'label'    => new external_value(PARAM_TEXT, 'Offer badge, e.g. "-10%"'),
+                    'name'     => new external_value(PARAM_TEXT, 'Offer name'),
+                ], 'Best current offer; omitted when there is no active offer', VALUE_OPTIONAL),
             ])
         );
     }

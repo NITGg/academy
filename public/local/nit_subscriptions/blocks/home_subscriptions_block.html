@@ -259,7 +259,9 @@
           if (s.courses && s.courses.length > 0) {
             var ul = wrap.querySelector('[data-nit-features]');
             if (ul) {
-              s.courses.forEach(function(cname) {
+              s.courses.forEach(function(course) {
+                // Courses are now {id, fullname} objects; tolerate the old string shape too.
+                var cname = (course && typeof course === 'object') ? course.fullname : course;
                 var li = document.createElement('li');
                 li.style.cssText = 'font-size: 13px; color: var(--nit-brand-textsecondary); padding: 8px 0; border-bottom: 1px solid color-mix(in srgb, var(--nit-brand-textprimary) 5%, transparent);';
                 li.innerHTML = '<span style="color:var(--nit-brand-success); font-weight:bold;">✓ </span> ' + esc(cname);

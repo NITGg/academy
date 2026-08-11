@@ -71,13 +71,24 @@
         overflow-wrap: anywhere;
     }
 
-    // The "what should use this colour" line — the usage guidance on each card.
+    // The "what should use this colour" guidance — one chip per UI target.
     .nit-colour-usage {
-        display: block;
-        margin-top: 2px;
-        font-size: .8125rem;
-        line-height: 1.45;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 4px;
+    }
+
+    .nit-colour-usage-item {
+        font-size: .75rem;
+        line-height: 1.4;
+        padding: 2px 9px;
+        border-radius: 999px;
+        // A step darker than the Surface card so the chips read as pills.
+        background: var(--nit-brand-background);
+        border: 1px solid var(--nit-brand-borderprimary);
         color: var(--nit-brand-textsecondary);
+        white-space: nowrap;
     }
 
     // The swatch + hex + default sit in one horizontal row under the name.

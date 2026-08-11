@@ -53,30 +53,45 @@ function nit_subscriptions_available(): array {
     $hasoffers = class_exists('\local_nit_commerce\discount_manager');
     $out = [];
     foreach ($subs as $s) {
-        // The best auto-offer on this plan (for a card badge). Fixed offers still yield a % label.
+        // The best auto-offer on this plan. Exposed two ways: flat offer_label/offer_final (the web
+        // block reads these) and a nested `offer` object (the mobile app reads this) — present only
+        // when there IS an active offer.
         $offerlabel = '';
         $offerfinal = 0.0;
+        $offer = null;
         if ($hasoffers) {
             $summary = \local_nit_commerce\discount_manager::offer_summary('subscription', (int) $s->id, (float) $s->price);
             if ($summary) {
                 $offerlabel = $summary['label'];      // e.g. "-10%"
                 $offerfinal = (float) $summary['final'];
+                $offer = [
+                    'original' => (float) $summary['original'],
+                    'final'    => (float) $summary['final'],
+                    'label'    => (string) $summary['label'],
+                    'name'     => (string) $summary['name'],
+                ];
             }
         }
-        $out[] = [
+        $item = [
             'id'            => (int) $s->id,
             'name'          => format_string(\local_nit_subscriptions\subscription_manager::resolve_mlang($s->name)),
             'description'   => $s->description !== null
                 ? format_text(\local_nit_subscriptions\subscription_manager::resolve_mlang($s->description), FORMAT_HTML) : '',
             'price'         => (float) $s->price,
             'duration_days' => (int) $s->duration_days,
+            'status'        => (string) $s->status,
             'b2b_enabled'   => (int) $s->b2b_enabled,
             'courses_count' => count($s->courses),
-            'courses'       => array_map(static fn($c) => $c['fullname'], $s->courses),
+            // Full {id, fullname} objects — the mobile app needs the course id to map coverage.
+            'courses'       => array_values($s->courses),
             'seat_options'  => $s->seat_options,
             'offer_label'   => $offerlabel,
             'offer_final'   => $offerfinal,
         ];
+        if ($offer !== null) {
+            $item['offer'] = $offer;
+        }
+        $out[] = $item;
     }
     return $out;
 }

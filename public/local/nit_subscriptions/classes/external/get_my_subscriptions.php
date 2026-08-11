@@ -86,6 +86,13 @@ class get_my_subscriptions extends external_api {
                 'expires_at'     => new external_value(PARAM_INT, 'Expiry unix time (0 = never)'),
                 'remaining_days' => new external_value(PARAM_INT, 'Whole days until expiry (0 when not active)'),
                 'duration_days'  => new external_value(PARAM_INT, 'Plan duration in days'),
+                'courses'        => new external_multiple_structure(
+                    new external_single_structure([
+                        'id'       => new external_value(PARAM_INT, 'Moodle course id'),
+                        'fullname' => new external_value(PARAM_TEXT, 'Course full name'),
+                    ]),
+                    'The courses this subscription unlocks, as {id, fullname} objects'
+                ),
             ])
         );
     }
