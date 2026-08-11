@@ -215,6 +215,12 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
             'resourcetype'    => '',
             'mediatype'       => '',
             'fileurl'         => '',
+            // Secure DRM video (VdoCipher) attached to a resource2 activity. When
+            // isvdocipher is true the app plays via the VdoCipher SDK using an OTP
+            // fetched from otpurl (short-lived, watermarked) — no fileurl/webview.
+            'isvdocipher'     => false,
+            'videoid'         => '',
+            'otpurl'          => '',
             // Distinguishes a downloadable certificate (customcert) from a plain
             // PDF resource, so the app can show certificate-specific UI (download,
             // share, "your certificate", etc.).
@@ -243,20 +249,34 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
             }
         }
 
-        // ── resource2: custom fork of mod_resource, get file URL and type ───
+        // ── resource2: custom fork of mod_resource ──────────────────────────
         if ($cm->modname === 'resource2') {
-            $fs   = get_file_storage();
-            $ctx  = context_module::instance($cm->id);
-            $files = $fs->get_area_files($ctx->id, 'mod_resource2', 'content', false, 'sortorder DESC, id ASC', false);
-            if ($files) {
-                $file = reset($files);
-                $mime = $file->get_mimetype();
-                $act['resourcetype'] = $mime;
-                $act['mediatype']    = mt_media_type($mime);
-                $act['fileurl']      = mt_ws_fileurl(\moodle_url::make_pluginfile_url(
-                    $ctx->id, 'mod_resource2', 'content', $file->get_itemid(),
-                    $file->get_filepath(), $file->get_filename()
-                ), $wstoken);
+            // A VdoCipher video attached to this activity takes precedence over any
+            // uploaded file: the app plays it securely via the SDK, never a webview.
+            $vrow = $DB->get_record('local_vdocipher_videos', ['cmid' => $cm->id]);
+            if ($vrow) {
+                $act['mediatype']    = 'vdocipher';
+                $act['isvdocipher']  = true;
+                $act['videoid']      = $vrow->videoid;
+                $act['resourcetype'] = 'video/vdocipher';
+                // Client GETs this right before playback to obtain a short-lived,
+                // watermarked OTP + playbackInfo.
+                $act['otpurl']       = $wwwroot . '/local/vdocipher/api.php?function=get_playback&cmid='
+                                       . $cm->id . '&token=' . $wstoken;
+            } else {
+                $fs   = get_file_storage();
+                $ctx  = context_module::instance($cm->id);
+                $files = $fs->get_area_files($ctx->id, 'mod_resource2', 'content', false, 'sortorder DESC, id ASC', false);
+                if ($files) {
+                    $file = reset($files);
+                    $mime = $file->get_mimetype();
+                    $act['resourcetype'] = $mime;
+                    $act['mediatype']    = mt_media_type($mime);
+                    $act['fileurl']      = mt_ws_fileurl(\moodle_url::make_pluginfile_url(
+                        $ctx->id, 'mod_resource2', 'content', $file->get_itemid(),
+                        $file->get_filepath(), $file->get_filename()
+                    ), $wstoken);
+                }
             }
         }
 
