@@ -215,6 +215,10 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
             'resourcetype'    => '',
             'mediatype'       => '',
             'fileurl'         => '',
+            // Distinguishes a downloadable certificate (customcert) from a plain
+            // PDF resource, so the app can show certificate-specific UI (download,
+            // share, "your certificate", etc.).
+            'iscertificate'   => false,
             // Access restrictions (e.g. date/group/grade conditions) — cm is still
             // uservisible here (fully-hidden cms were skipped above), but may be
             // greyed-out with a "not available unless..." message.
@@ -360,10 +364,14 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
         // ── customcert: stream the certificate PDF via a token endpoint so the
         //    app opens it natively instead of the mod/customcert webview. ───────
         if ($cm->modname === 'customcert') {
-            $act['mediatype']    = 'pdf';
-            $act['resourcetype'] = 'application/pdf';
-            $act['fileurl']      = $wwwroot . '/local/academy/certificate.php?cmid='
+            $act['iscertificate'] = true;             // the certificate flag the app checks
+            $act['mediatype']     = 'pdf';            // still a PDF, so it renders as one
+            $act['resourcetype']  = 'application/pdf';
+            // Explicit download URL (same protected PDF stream) for a "Download
+            // certificate" action.
+            $act['downloadurl']   = $wwwroot . '/local/academy/certificate.php?cmid='
                 . $cm->id . '&token=' . $wstoken;
+            $act['fileurl']       = $act['downloadurl'];
         }
 
         $result[] = $act;
