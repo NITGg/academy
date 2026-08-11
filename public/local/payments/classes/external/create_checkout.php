@@ -22,10 +22,12 @@ class create_checkout extends external_api {
             'country' => new external_value(PARAM_ALPHA, 'Country code from app', VALUE_DEFAULT, ''),
             'lang' => new external_value(PARAM_ALPHA, 'Display language (en/ar)', VALUE_DEFAULT, 'en'),
             'alang' => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
+            'coupon_code' => new external_value(PARAM_TEXT, 'Coupon code to apply at checkout (optional)', VALUE_DEFAULT, ''),
         ]);
     }
 
-    public static function execute(int $courseid, string $country = '', string $lang = 'en', string $alang = ''): array {
+    public static function execute(int $courseid, string $country = '', string $lang = 'en',
+            string $alang = '', string $coupon_code = ''): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
@@ -33,6 +35,7 @@ class create_checkout extends external_api {
             'country' => $country,
             'lang' => $lang,
             'alang' => $alang,
+            'coupon_code' => $coupon_code,
         ]);
         // The app may send the language as `alang` (old convention); prefer it when present.
         if ($params['alang'] !== '') {
@@ -51,7 +54,8 @@ class create_checkout extends external_api {
             $params['courseid'],
             $USER->id,
             !empty($params['country']) ? $params['country'] : null,
-            $params['lang']
+            $params['lang'],
+            $params['coupon_code']
         );
 
         return [
