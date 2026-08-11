@@ -31,6 +31,21 @@ class playback_service {
 
         self::require_view($cmid, $user);
 
+        return self::mint($row->videoid, $user);
+    }
+
+    /**
+     * Mint a watermarked OTP for a video WITHOUT an access check.
+     *
+     * The caller MUST have already verified the user may view it (e.g. the token
+     * API via {@see get_playback}, or the web player via require_login +
+     * require_capability). This is the shared OTP-building step.
+     *
+     * @param string $videoid
+     * @param \stdClass $user the viewer whose identity is watermarked
+     * @return array ['videoid','otp','playbackInfo','watermark','ttl']
+     */
+    public static function mint(string $videoid, \stdClass $user): array {
         $ttl = (int) get_config('local_vdocipher', 'otpttl');
         if ($ttl <= 0) {
             $ttl = 300;
@@ -40,10 +55,10 @@ class playback_service {
         $annotate  = self::build_annotate($watermark);
 
         $client = new api_client();
-        $result = $client->create_otp($row->videoid, $ttl, $annotate);
+        $result = $client->create_otp($videoid, $ttl, $annotate);
 
         return [
-            'videoid'      => $row->videoid,
+            'videoid'      => $videoid,
             'otp'          => $result['otp'] ?? '',
             'playbackInfo' => $result['playbackInfo'] ?? '',
             'watermark'    => $watermark,
