@@ -35,49 +35,6 @@ class gallery implements renderable, templatable {
      * @return array
      */
     public function export_for_template(renderer_base $output): array {
-        // Build the editable colour palette, grouped for display. The palette
-        // (defined in lib.php) is ordered so each group's tokens are contiguous.
-        // A token may also carry a 'subgroup'; such groups render their colours
-        // under labelled sub-sections instead of a single flat grid.
-        $groups = [];
-        $gidx = [];  // group name => index in $groups.
-        foreach (\theme_nit_colour_palette() as $key => $meta) {
-            $gname = $meta['group'];
-            if (!array_key_exists($gname, $gidx)) {
-                $gidx[$gname] = count($groups);
-                $groups[] = ['name' => $gname, 'colours' => [], 'subgroups' => [], 'hassubgroups' => false, 'subidx' => []];
-            }
-            $gi = $gidx[$gname];
-
-            $value = \theme_nit_colour($key);
-            $row = [
-                'key' => $key,
-                'label' => $meta['label'],
-                'configname' => 'theme_nit | colour_' . $key,
-                'value' => $value,
-                'default' => $meta['default'],
-                'isdefault' => (strtolower($value) === strtolower($meta['default'])),
-            ];
-
-            if (!empty($meta['subgroup'])) {
-                $groups[$gi]['hassubgroups'] = true;
-                $sname = $meta['subgroup'];
-                if (!array_key_exists($sname, $groups[$gi]['subidx'])) {
-                    $groups[$gi]['subidx'][$sname] = count($groups[$gi]['subgroups']);
-                    $groups[$gi]['subgroups'][] = ['name' => $sname, 'colours' => []];
-                }
-                $si = $groups[$gi]['subidx'][$sname];
-                $groups[$gi]['subgroups'][$si]['colours'][] = $row;
-            } else {
-                $groups[$gi]['colours'][] = $row;
-            }
-        }
-        // Drop the internal lookup key before handing off to the template.
-        foreach ($groups as &$group) {
-            unset($group['subidx']);
-        }
-        unset($group);
-
         // Brand Colors palette: the new semantic layer, one section per group
         // (Group 1/2/3), each listing the same 13 roles. The palette is ordered
         // so each group's roles are contiguous.
@@ -122,7 +79,6 @@ class gallery implements renderable, templatable {
             'sesskey' => sesskey(),
             'actionurl' => (new \moodle_url('/theme/nit/gallery.php'))->out(false),
             'brandgroups' => $brandgroups,
-            'colourgroups' => $groups,
             'fonts' => $fonts,
             'stats' => [
                 ['label' => 'Active learners', 'value' => '1,284', 'trend' => '+12%', 'up' => true],

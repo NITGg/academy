@@ -37,3 +37,46 @@ function local_nit_subscriptions_string_map(array $keys): array {
     }
     return $out;
 }
+
+/**
+ * Active subscription plans shaped for public listing (front-page block + mobile web service).
+ *
+ * Each plan carries its price, unlocked courses, B2B seat tiers and the best current auto-offer.
+ * Shared by api.php (?function=get_available_subscriptions) and the get_available_subscriptions
+ * external function so both return the identical shape.
+ *
+ * @return array
+ */
+function nit_subscriptions_available(): array {
+    $subs = \local_nit_subscriptions\subscription_manager::get_subscriptions(
+        \local_nit_subscriptions\subscription_manager::STATUS_ACTIVE);
+    $hasoffers = class_exists('\local_nit_commerce\discount_manager');
+    $out = [];
+    foreach ($subs as $s) {
+        // The best auto-offer on this plan (for a card badge). Fixed offers still yield a % label.
+        $offerlabel = '';
+        $offerfinal = 0.0;
+        if ($hasoffers) {
+            $summary = \local_nit_commerce\discount_manager::offer_summary('subscription', (int) $s->id, (float) $s->price);
+            if ($summary) {
+                $offerlabel = $summary['label'];      // e.g. "-10%"
+                $offerfinal = (float) $summary['final'];
+            }
+        }
+        $out[] = [
+            'id'            => (int) $s->id,
+            'name'          => format_string(\local_nit_subscriptions\subscription_manager::resolve_mlang($s->name)),
+            'description'   => $s->description !== null
+                ? format_text(\local_nit_subscriptions\subscription_manager::resolve_mlang($s->description), FORMAT_HTML) : '',
+            'price'         => (float) $s->price,
+            'duration_days' => (int) $s->duration_days,
+            'b2b_enabled'   => (int) $s->b2b_enabled,
+            'courses_count' => count($s->courses),
+            'courses'       => array_map(static fn($c) => $c['fullname'], $s->courses),
+            'seat_options'  => $s->seat_options,
+            'offer_label'   => $offerlabel,
+            'offer_final'   => $offerfinal,
+        ];
+    }
+    return $out;
+}

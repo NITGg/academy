@@ -1,6 +1,9 @@
 <!-- NIT — Available coupons home-page block. Paste into an HTML block on the home page.
      Inline styles only (editor-safe). Fetches live coupons from the plugin and renders a dark slider.
      Shows: code, discount value, applies-to scope, usage type, max discount, valid dates.
+     Colours read from the Brand Colors palette (theme/nit gallery). Gold accents map to
+     --nit-brand-accent, the teal "positive" accent maps to --nit-brand-success; shades are
+     derived with color-mix from those same brand variables (no hard-coded colours).
      Optional: if it can't find the API, set data-base on the wrapper to your Moodle URL,
      e.g. data-base="https://academy2026.nitg-eg.com/moodle-new" -->
 
@@ -9,23 +12,23 @@
   data-nit-coupons
   data-endpoint="/local/nit_commerce/api.php"
   data-base=""
-  style="background: var(--nit-darkbackground, #0a1628); padding: 64px 16px;"
+  style="background: var(--nit-brand-background); padding: 64px 16px;"
 >
   <div style="max-width: 1200px; margin: 0 auto;">
 
     <!-- Header -->
     <div
-      style="text-align: center; margin-bottom: 40px; color: var(--nit-darktextprimary, #ffffff);"
+      style="text-align: center; margin-bottom: 40px; color: var(--nit-brand-textprimary);"
     >
       <span
         style="
           display: inline-block;
-          background: color-mix(in srgb, var(--nit-accentgolddark, #c9922a) 15%, transparent);
-          border: 1px solid color-mix(in srgb, var(--nit-accentgolddark, #c9922a) 30%, transparent);
+          background: color-mix(in srgb, var(--nit-brand-accent) 15%, transparent);
+          border: 1px solid color-mix(in srgb, var(--nit-brand-accent) 30%, transparent);
           border-radius: 50px;
           padding: 6px 18px;
           font-size: 14px;
-          color: var(--nit-accentgold, #e8b84b);
+          color: var(--nit-brand-accent);
           font-weight: bold;
         "
       >
@@ -37,7 +40,7 @@
           font-size: clamp(26px, 4vw, 38px);
           font-weight: 800;
           margin: 16px 0 0;
-          color: var(--nit-darktextprimary, #ffffff);
+          color: var(--nit-brand-textprimary);
         "
       >
         {mlang en}Available coupons{mlang}{mlang ar}الكوبونات المتاحة{mlang}
@@ -63,9 +66,9 @@
           align-items: center;
           justify-content: center;
           border-radius: 50%;
-          border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 50%, transparent);
-          background: var(--nit-darksurface, #0f1e33);
-          color: var(--nit-accentgold, #e8b84b);
+          border: 1px solid color-mix(in srgb, var(--nit-brand-accent) 50%, transparent);
+          background: var(--nit-brand-surface);
+          color: var(--nit-brand-accent);
           font-size: 29px;
           font-weight: bold;
           line-height: 1;
@@ -94,8 +97,8 @@
           scroll-behavior: smooth;
           scrollbar-width: thin;
           scrollbar-color:
-            var(--nit-accentgold, #e8b84b)
-            var(--nit-darksurface, #0f1e33);
+            var(--nit-brand-accent)
+            var(--nit-brand-surface);
           -webkit-overflow-scrolling: touch;
         "
       >
@@ -121,8 +124,8 @@
               height: 100%;
               display: flex;
               align-items: stretch;
-              background: var(--nit-darksurface, #0f1e33);
-              border: 1px dashed color-mix(in srgb, var(--nit-accentgold, #e8b84b) 55%, transparent);
+              background: var(--nit-brand-surface);
+              border: 1px dashed color-mix(in srgb, var(--nit-brand-accent) 55%, transparent);
               border-radius: 16px;
               overflow: hidden;
             "
@@ -134,10 +137,10 @@
                 flex: 0 0 104px;
                 background: linear-gradient(
                   135deg,
-                  var(--nit-accentgolddark, #c9922a),
-                  var(--nit-accentgold, #e8b84b)
+                  color-mix(in srgb, var(--nit-brand-accent) 72%, #000),
+                  var(--nit-brand-accent)
                 );
-                color: var(--nit-darkbackground, #0a1628);
+                color: var(--nit-brand-textprimary);
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -192,9 +195,9 @@
                   font-family: monospace;
                   font-weight: bold;
                   font-size: 16px;
-                  color: var(--nit-darktextprimary, #ffffff);
-                  background: color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 6%, transparent);
-                  border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 40%, transparent);
+                  color: var(--nit-brand-textprimary);
+                  background: color-mix(in srgb, var(--nit-brand-textprimary) 6%, transparent);
+                  border: 1px solid color-mix(in srgb, var(--nit-brand-accent) 40%, transparent);
                   border-radius: 8px;
                   padding: 6px 12px;
                   cursor: pointer;
@@ -208,7 +211,7 @@
                 data-nit-scope
                 style="
                   font-size: 12px;
-                  color: var(--nit-darktextsecondary, #8a9ab5);
+                  color: var(--nit-brand-textsecondary);
                   margin: 0;
                 "
               >
@@ -219,7 +222,7 @@
                 data-nit-usage
                 style="
                   font-size: 12px;
-                  color: var(--nit-darktextsecondary, #8a9ab5);
+                  color: var(--nit-brand-textsecondary);
                   margin: 0;
                 "
               >
@@ -230,7 +233,7 @@
                 data-nit-max
                 style="
                   font-size: 12px;
-                  color: var(--nit-accentteal, #00a99d);
+                  color: var(--nit-brand-success);
                   margin: 0;
                 "
               >
@@ -241,7 +244,7 @@
                 data-nit-dates
                 style="
                   font-size: 11px;
-                  color: var(--nit-darktextsecondary, #8a9ab5);
+                  color: var(--nit-brand-textsecondary);
                   margin: 0;
                 "
               >
@@ -256,7 +259,7 @@
         <div
           data-nit-coupons-msg
           style="
-            color: var(--nit-darktextsecondary, #8a9ab5);
+            color: var(--nit-brand-textsecondary);
             padding: 24px 8px;
             font-size: 15px;
           "
@@ -282,9 +285,9 @@
           align-items: center;
           justify-content: center;
           border-radius: 50%;
-          border: 1px solid color-mix(in srgb, var(--nit-accentgold, #e8b84b) 50%, transparent);
-          background: var(--nit-darksurface, #0f1e33);
-          color: var(--nit-accentgold, #e8b84b);
+          border: 1px solid color-mix(in srgb, var(--nit-brand-accent) 50%, transparent);
+          background: var(--nit-brand-surface);
+          color: var(--nit-brand-accent);
           font-size: 29px;
           font-weight: bold;
           line-height: 1;
@@ -565,7 +568,7 @@
                     btn.style.borderColor;
 
                   btn.style.borderColor =
-                    'var(--nit-accentteal, #00a99d)';
+                    'var(--nit-brand-success)';
 
                   setTimeout(function () {
                     btn.style.borderColor = old;

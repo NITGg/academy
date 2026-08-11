@@ -206,6 +206,18 @@ try {
             nit_subscriptions_respond(['status' => 'success', 'data' => $data]);
             break;
 
+        // ── Student: my subscriptions (active first) for a "My subscriptions" screen ──
+        case 'get_my_subscriptions':
+            nit_subscriptions_respond(['status' => 'success',
+                'data' => subscription_purchase_manager::get_my_subscriptions($USER->id)]);
+            break;
+
+        // ── Student: my subscription payments (gateway transactions), newest first ──
+        case 'get_subscription_payment_history':
+            nit_subscriptions_respond(['status' => 'success',
+                'data' => subscription_purchase_manager::get_subscription_payment_history($USER->id)]);
+            break;
+
         // ── Student: start a Kashier checkout for a subscription ──
         case 'create_subscription_checkout':
             require_capability('local/nit_subscriptions:subscribe', $context);
@@ -254,39 +266,5 @@ function nit_subscriptions_seat_options(): array {
     return is_array($decoded) ? $decoded : [];
 }
 
-/**
- * Active subscription plans shaped for a public front-page block.
- *
- * @return array
- */
-function nit_subscriptions_available(): array {
-    $subs = subscription_manager::get_subscriptions(subscription_manager::STATUS_ACTIVE);
-    $hasoffers = class_exists('\local_nit_commerce\discount_manager');
-    $out = [];
-    foreach ($subs as $s) {
-        // The best auto-offer on this plan (for a card badge). Fixed offers still yield a % label.
-        $offerlabel = '';
-        $offerfinal = 0.0;
-        if ($hasoffers) {
-            $summary = \local_nit_commerce\discount_manager::offer_summary('subscription', (int) $s->id, (float) $s->price);
-            if ($summary) {
-                $offerlabel = $summary['label'];      // e.g. "-10%"
-                $offerfinal = (float) $summary['final'];
-            }
-        }
-        $out[] = [
-            'id'            => (int) $s->id,
-            'name'          => format_string(subscription_manager::resolve_mlang($s->name)),
-            'description'   => $s->description !== null ? format_text(subscription_manager::resolve_mlang($s->description), FORMAT_HTML) : '',
-            'price'         => (float) $s->price,
-            'duration_days' => (int) $s->duration_days,
-            'b2b_enabled'   => (int) $s->b2b_enabled,
-            'courses_count' => count($s->courses),
-            'courses'       => array_map(static fn($c) => $c['fullname'], $s->courses),
-            'seat_options'  => $s->seat_options,
-            'offer_label'   => $offerlabel,
-            'offer_final'   => $offerfinal,
-        ];
-    }
-    return $out;
-}
+// nit_subscriptions_available() now lives in lib.php (shared with the get_available_subscriptions
+// external function), and is loaded via the require_once at the top of this file.

@@ -54,13 +54,6 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="nit-tab-colours-btn" data-bs-toggle="tab"
-                    data-bs-target="#nit-tab-colours" type="button" role="tab"
-                    aria-controls="nit-tab-colours" aria-selected="false">
-                {{#str}}tab_colours, theme_nit{{/str}}
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
             <button class="nav-link" id="nit-tab-fonts-btn" data-bs-toggle="tab"
                     data-bs-target="#nit-tab-fonts" type="button" role="tab"
                     aria-controls="nit-tab-fonts" aria-selected="false">
@@ -115,74 +108,6 @@
                     </button>
                     <button type="submit" name="resetbrand" value="1" class="btn btn-outline-secondary">
                         {{#str}}resetbrandcolours, theme_nit{{/str}}
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        {{! ---------------------------------------------------------------- }}
-        {{! Colours tab                                                      }}
-        {{! ---------------------------------------------------------------- }}
-        <div class="tab-pane fade" id="nit-tab-colours" role="tabpanel"
-             aria-labelledby="nit-tab-colours-btn" tabindex="0">
-            <h3>Colour palette</h3>
-            <p class="text-muted">{{#str}}coloureditor_desc, theme_nit{{/str}}</p>
-            <form method="post" action="{{actionurl}}" class="nit-colour-editor mb-4">
-                <input type="hidden" name="sesskey" value="{{sesskey}}">
-                {{#colourgroups}}
-                    <h4 class="h6 text-uppercase text-muted mt-4 mb-2">{{name}}</h4>
-                    {{! Groups without subgroups: one flat grid. }}
-                    {{^hassubgroups}}
-                    <div class="nit-colour-grid">
-                        {{#colours}}
-                            <div class="nit-colour-row" data-nit-colour>
-                                <div class="nit-colour-meta">
-                                    <label class="nit-colour-name" for="nit-colour-{{key}}">{{label}}</label>
-                                    <code class="nit-colour-config">{{configname}}</code>
-                                </div>
-                                <div class="nit-colour-controls">
-                                    <input type="color" id="nit-colour-{{key}}" name="colour_{{key}}" value="{{value}}"
-                                           class="nit-colour-swatch" aria-label="{{label}}">
-                                    <input type="text" name="colour_{{key}}_hex" value="{{value}}"
-                                           class="form-control nit-colour-hex" aria-label="{{label}} hex value"
-                                           pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" maxlength="7">
-                                    <span class="nit-colour-default">Default: {{default}}</span>
-                                </div>
-                            </div>
-                        {{/colours}}
-                    </div>
-                    {{/hassubgroups}}
-                    {{! Groups with subgroups (e.g. Categories → Style 1/2/3). }}
-                    {{#hassubgroups}}
-                        {{#subgroups}}
-                            <h5 class="h6 text-body mt-3 mb-2 ps-1">{{name}}</h5>
-                            <div class="nit-colour-grid">
-                                {{#colours}}
-                                    <div class="nit-colour-row" data-nit-colour>
-                                        <div class="nit-colour-meta">
-                                            <label class="nit-colour-name" for="nit-colour-{{key}}">{{label}}</label>
-                                            <code class="nit-colour-config">{{configname}}</code>
-                                        </div>
-                                        <div class="nit-colour-controls">
-                                            <input type="color" id="nit-colour-{{key}}" name="colour_{{key}}" value="{{value}}"
-                                                   class="nit-colour-swatch" aria-label="{{label}}">
-                                            <input type="text" name="colour_{{key}}_hex" value="{{value}}"
-                                                   class="form-control nit-colour-hex" aria-label="{{label}} hex value"
-                                                   pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" maxlength="7">
-                                            <span class="nit-colour-default">Default: {{default}}</span>
-                                        </div>
-                                    </div>
-                                {{/colours}}
-                            </div>
-                        {{/subgroups}}
-                    {{/hassubgroups}}
-                {{/colourgroups}}
-                <div class="d-flex gap-2 mt-4">
-                    <button type="submit" name="savecolours" value="1" class="btn btn-primary">
-                        {{#str}}savecolours, theme_nit{{/str}}
-                    </button>
-                    <button type="submit" name="resetcolours" value="1" class="btn btn-outline-secondary">
-                        {{#str}}resetcolours, theme_nit{{/str}}
                     </button>
                 </div>
             </form>

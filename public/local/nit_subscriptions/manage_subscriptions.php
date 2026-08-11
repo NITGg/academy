@@ -54,8 +54,7 @@ $STR = local_nit_subscriptions_string_map(array(
     'sub_confirm_delete', 'sub_no_categories', 'sub_select_target', 'sub_courses_assigned',
     'sub_no_usersubs', 'sub_unsub_confirm', 'sub_unsub_success', 'pkg_unassign_paid',
     'sstat_active', 'sstat_expired', 'sstat_cancelled', 'sstat_pending', 'sstat_payment_failed',
-    'sub_field_b2b', 'sub_seat_options', 'sub_seat_options_help', 'sub_col_seats', 'sub_col_discount',
-    'sub_col_b2bprice', 'sub_seat_add', 'ui_remove', 'sub_b2b_badge', 'ui_pager_info',
+    'ui_pager_info',
     'ui_search', 'sub_courses_search', 'sub_selectall', 'sub_clear',
     'err_sessionexpired', 'err_requestfailed',
 ));
@@ -119,26 +118,6 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <div class="form-check mb-3">
                 <input type="checkbox" class="form-check-input" id="f-active" checked>
                 <label class="form-check-label" for="f-active"><?php echo $STR['ui_active']; ?></label>
-            </div>
-            <div class="form-check mb-3">
-                <input type="checkbox" class="form-check-input" id="f-b2b">
-                <label class="form-check-label" for="f-b2b"><?php echo $STR['sub_field_b2b']; ?></label>
-            </div>
-            <div id="f-b2b-section" class="mb-3 p-2" style="display:none; border:1px solid #dee2e6; border-radius:6px;">
-                <label class="d-block"><strong><?php echo $STR['sub_seat_options']; ?></strong></label>
-                <small class="text-muted d-block mb-2"><?php echo $STR['sub_seat_options_help']; ?></small>
-                <table class="table table-sm" id="seat-opts-table">
-                    <thead>
-                        <tr>
-                            <th><?php echo $STR['sub_col_seats']; ?></th>
-                            <th><?php echo $STR['sub_col_discount']; ?></th>
-                            <th><?php echo $STR['sub_col_b2bprice']; ?></th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-                <button type="button" id="seat-opt-add" class="btn btn-sm btn-outline-secondary"><?php echo $STR['sub_seat_add']; ?></button>
             </div>
             <button id="sub-save" class="btn btn-primary"><?php echo $STR['ui_save']; ?></button>
             <button id="sub-cancel" class="btn btn-link"><?php echo $STR['ui_cancel']; ?></button>
@@ -360,10 +339,9 @@ echo html_writer::script(<<<'JS'
             var toggle = s.status === 'active'
                 ? '<button class="btn btn-sm btn-warning" data-act="deactivate" data-id="' + s.id + '">' + esc(str('ui_deactivate')) + '</button>'
                 : '<button class="btn btn-sm btn-success" data-act="activate" data-id="' + s.id + '">' + esc(str('ui_activate')) + '</button>';
-            var b2bbadge = s.b2b_enabled ? ' <span class="badge badge-info">' + esc(str('sub_b2b_badge')) + '</span>' : '';
             tr.innerHTML =
                 '<td>' + esc(s.id) + '</td>' +
-                '<td>' + esc(displayName(s.name)) + b2bbadge + '</td>' +
+                '<td>' + esc(displayName(s.name)) + '</td>' +
                 '<td>' + esc(s.price) + '</td>' +
                 '<td>' + esc(s.duration_days) + '</td>' +
                 '<td>' + courseNames(s) + '</td>' +
@@ -401,60 +379,6 @@ echo html_writer::script(<<<'JS'
         }).catch(function (e) { msg(e.message, 'danger'); });
     }
 
-    // ── B2B seat options editor ──
-    function seatOptsBody() { return $('seat-opts-table').querySelector('tbody'); }
-
-    function recomputeSeatRow(tr) {
-        var base = parseFloat($('f-price').value) || 0;
-        var seats = parseInt(tr.querySelector('.seat-count').value, 10) || 0;
-        var pct = parseFloat(tr.querySelector('.seat-discount').value) || 0;
-        var original = base * seats;
-        var final = original - (original * pct / 100);
-        tr.querySelector('.seat-price').textContent = (seats > 0 ? final.toFixed(2) : '—');
-    }
-
-    function addSeatRow(opt) {
-        var tr = document.createElement('tr');
-        tr.innerHTML =
-            '<td><input type="number" class="form-control form-control-sm seat-count" min="1" value="' + (opt ? esc(opt.seats) : '') + '"></td>' +
-            '<td><input type="number" class="form-control form-control-sm seat-discount" min="0" max="100" step="0.01" value="' + (opt ? esc(opt.discount_percent) : '') + '"></td>' +
-            '<td class="seat-price align-middle">—</td>' +
-            '<td><button type="button" class="btn btn-sm btn-link text-danger seat-remove">' + esc(str('ui_remove')) + '</button></td>';
-        seatOptsBody().appendChild(tr);
-        recomputeSeatRow(tr);
-    }
-
-    function setSeatRows(options) {
-        seatOptsBody().innerHTML = '';
-        (options || []).forEach(function (o) { addSeatRow(o); });
-    }
-
-    function collectSeatOptions() {
-        var out = [];
-        seatOptsBody().querySelectorAll('tr').forEach(function (tr) {
-            var seats = parseInt(tr.querySelector('.seat-count').value, 10) || 0;
-            var pct = parseFloat(tr.querySelector('.seat-discount').value) || 0;
-            if (seats > 0) { out.push({ seats: seats, discount_percent: pct }); }
-        });
-        return out;
-    }
-
-    function toggleB2bSection() { $('f-b2b-section').style.display = $('f-b2b').checked ? 'block' : 'none'; }
-
-    $('f-b2b').addEventListener('change', toggleB2bSection);
-    $('seat-opt-add').addEventListener('click', function () { addSeatRow(null); });
-    $('seat-opts-table').addEventListener('click', function (ev) {
-        var rm = ev.target.closest('.seat-remove');
-        if (rm) { rm.closest('tr').remove(); }
-    });
-    $('seat-opts-table').addEventListener('input', function (ev) {
-        var tr = ev.target.closest('tr');
-        if (tr) { recomputeSeatRow(tr); }
-    });
-    $('f-price').addEventListener('input', function () {
-        seatOptsBody().querySelectorAll('tr').forEach(recomputeSeatRow);
-    });
-
     function showForm(sub) {
         $('sub-form-title').textContent = sub ? strf('sub_edit_titled', sub.id) : str('sub_new');
         var nm = parseMultilang(sub ? sub.name : '');
@@ -467,9 +391,6 @@ echo html_writer::script(<<<'JS'
         $('f-price').value    = sub ? sub.price : '';
         $('f-days').value     = sub ? sub.duration_days : '';
         $('f-active').checked = sub ? (sub.status === 'active') : true;
-        $('f-b2b').checked    = sub ? !!sub.b2b_enabled : false;
-        setSeatRows(sub ? sub.seat_options : []);
-        toggleB2bSection();
         $('sub-form-card').style.display = 'block';
     }
     function hideForm() { $('sub-form-card').style.display = 'none'; }
@@ -480,9 +401,7 @@ echo html_writer::script(<<<'JS'
             name: buildMultilang($('f-name-en').value, $('f-name-ar').value),
             description: buildMultilang($('f-desc-en').value, $('f-desc-ar').value),
             price: $('f-price').value,
-            duration_days: $('f-days').value,
-            b2b_enabled: $('f-b2b').checked ? 1 : 0,
-            seat_options: JSON.stringify($('f-b2b').checked ? collectSeatOptions() : [])
+            duration_days: $('f-days').value
         };
         var p;
         if (id) {

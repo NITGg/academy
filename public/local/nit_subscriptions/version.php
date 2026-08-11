@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_subscriptions';
-$plugin->version   = 2026081000;
+$plugin->version   = 2026081100;
 $plugin->requires  = 2024100700;
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;
