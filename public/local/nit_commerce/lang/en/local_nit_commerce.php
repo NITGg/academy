@@ -110,6 +110,7 @@ $string['ofr_delete_title']   = 'Delete offer';
 
 // Errors.
 $string['err_itemtype']            = 'Invalid item type.';
+$string['err_itemnotfound']        = 'The requested item was not found.';
 $string['err_discounttype']        = 'Discount type must be percentage or fixed.';
 $string['err_discountvalue']       = 'Discount value cannot be negative.';
 $string['err_discountpercent']     = 'A percentage discount must be between 0 and 100.';

@@ -18,11 +18,14 @@
 // Admin-only surface; kept self-contained and token-driven.
 // =============================================================================
 
-// The editor is a control panel — its own chrome uses FIXED light colours (not
-// the palette / --nit-* tokens it edits), so the labels stay readable no matter
-// what the admin sets or which colour-scheme the browser is in.
+// The editor practises what it preaches: its chrome is built from the very
+// Brand Colors roles it edits, so the page demonstrates the rules —
+//   card   → Surface        name   → Text primary
+//   border → Border primary usage/config/default → Text secondary
+//   field  → Background (a step darker than the Surface card, for contrast)
+// Everything reads through var(--nit-brand-*), so it recolours live on save.
 .nit-colour-editor {
-    color: #171b22;
+    color: var(--nit-brand-textprimary);
 
     .nit-colour-grid {
         display: grid;
@@ -37,10 +40,10 @@
         flex-direction: column;
         gap: $nit-space-2;
         padding: $nit-space-3;
-        border: 1px solid #dce1e8;
+        border: 1px solid var(--nit-brand-borderprimary);
         border-radius: $nit-radius-md;
-        background: #ffffff;
-        color: #171b22;
+        background: var(--nit-brand-surface);
+        color: var(--nit-brand-textprimary);
     }
 
     .nit-colour-meta {
@@ -55,7 +58,7 @@
         font-weight: 600;
         font-size: $nit-fs-lg;
         line-height: 1.2;
-        color: #171b22;
+        color: var(--nit-brand-textprimary);
         white-space: normal;
         word-break: normal;
         overflow-wrap: anywhere;
@@ -63,9 +66,18 @@
 
     .nit-colour-config {
         font-size: $nit-fs-xs;
-        color: #626c7a;
+        color: var(--nit-brand-textsecondary);
         white-space: normal;
         overflow-wrap: anywhere;
+    }
+
+    // The "what should use this colour" line — the usage guidance on each card.
+    .nit-colour-usage {
+        display: block;
+        margin-top: 2px;
+        font-size: .8125rem;
+        line-height: 1.45;
+        color: var(--nit-brand-textsecondary);
     }
 
     // The swatch + hex + default sit in one horizontal row under the name.
@@ -78,7 +90,7 @@
     .nit-colour-default {
         margin-inline-start: auto;
         font-size: $nit-fs-xs;
-        color: #626c7a;
+        color: var(--nit-brand-textsecondary);
         white-space: nowrap;
     }
 
@@ -88,7 +100,7 @@
         width: 44px;
         height: 44px;
         padding: 0;
-        border: 1px solid #dce1e8;
+        border: 1px solid var(--nit-brand-borderprimary);
         border-radius: $nit-radius-md;
         background: none;
         cursor: pointer;
@@ -108,11 +120,15 @@
         }
     }
 
+    // Hex field sits on the Surface card, so drop it to Background for contrast.
     .nit-colour-hex {
         flex: 0 1 8rem;
         min-width: 6rem;
         font-family: $font-family-monospace;
         text-transform: uppercase;
+        background: var(--nit-brand-background);
+        color: var(--nit-brand-textprimary);
+        border-color: var(--nit-brand-borderprimary);
     }
 
     .nit-colour-default {

@@ -194,19 +194,19 @@ function theme_nit_colours_all(): array {
  */
 function theme_nit_brand_roles(): array {
     return [
-        'primary'         => ['label' => 'Primary', 'usage' => 'Button backgrounds', 'default' => '#e5322d'],
-        'secondary'       => ['label' => 'Secondary', 'usage' => 'Dual / secondary button backgrounds', 'default' => '#13293f'],
-        'accent'          => ['label' => 'Accent', 'usage' => 'Coloured text, underlines (hover = opacity)', 'default' => '#e5322d'],
-        'background'      => ['label' => 'Background', 'usage' => 'Site background', 'default' => '#0a1628'],
-        'surface'         => ['label' => 'Surface', 'usage' => 'Cards: courses, categories, instructors, side menu, dropdowns', 'default' => '#0f1e33'],
-        'textprimary'     => ['label' => 'Text primary', 'usage' => 'All text: buttons, navbar, courses, categories', 'default' => '#ffffff'],
-        'textsecondary'   => ['label' => 'Text secondary', 'usage' => 'Dual-button text, subtitles', 'default' => '#8a9ab5'],
-        'borderprimary'   => ['label' => 'Border primary', 'usage' => 'Card borders', 'default' => '#244766'],
-        'bordersecondary' => ['label' => 'Border secondary', 'usage' => 'Secondary-button borders', 'default' => '#3a5f86'],
-        'error'           => ['label' => 'Error', 'usage' => 'Error / danger', 'default' => '#e5484d'],
-        'success'         => ['label' => 'Success', 'usage' => 'Success', 'default' => '#1e9e63'],
-        'warning'         => ['label' => 'Warning', 'usage' => 'Warning', 'default' => '#9aa4b2'],
-        'info'            => ['label' => 'Info', 'usage' => 'Info', 'default' => '#ffffff'],
+        'primary'         => ['label' => 'Primary', 'usage' => 'Filled action buttons, checked toggles, progress fill, notification dots', 'default' => '#e5322d'],
+        'secondary'       => ['label' => 'Secondary', 'usage' => 'Dual / secondary button fills', 'default' => '#13293f'],
+        'accent'          => ['label' => 'Accent', 'usage' => 'Links, highlights, underlines, active indicators, prices', 'default' => '#e5322d'],
+        'background'      => ['label' => 'Background', 'usage' => 'Main page & section background, modal scrim', 'default' => '#0a1628'],
+        'surface'         => ['label' => 'Surface', 'usage' => 'Cards, dropdowns, side menu, inputs, tooltips, table headers', 'default' => '#0f1e33'],
+        'textprimary'     => ['label' => 'Text primary', 'usage' => 'All body & heading text, button labels, input text', 'default' => '#ffffff'],
+        'textsecondary'   => ['label' => 'Text secondary', 'usage' => 'Sub-titles, captions, muted text, placeholders', 'default' => '#8a9ab5'],
+        'borderprimary'   => ['label' => 'Border primary', 'usage' => 'Card & surface outlines, dividers, input borders', 'default' => '#244766'],
+        'bordersecondary' => ['label' => 'Border secondary', 'usage' => 'Secondary / ghost button outlines', 'default' => '#3a5f86'],
+        'error'           => ['label' => 'Error', 'usage' => 'Errors, danger / destructive actions, invalid fields', 'default' => '#e5484d'],
+        'success'         => ['label' => 'Success', 'usage' => 'Success, enrolled / active / paid, positive states', 'default' => '#1e9e63'],
+        'warning'         => ['label' => 'Warning', 'usage' => 'Warnings, caution, pending / expiring', 'default' => '#9aa4b2'],
+        'info'            => ['label' => 'Info', 'usage' => 'Neutral notices, tips, hints', 'default' => '#ffffff'],
     ];
 }
 

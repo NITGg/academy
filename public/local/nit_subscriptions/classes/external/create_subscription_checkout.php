@@ -94,16 +94,31 @@ class create_subscription_checkout extends external_api {
             throw new \moodle_exception('err_paymentsunavailable', 'local_nit_subscriptions');
         }
 
-        $checkout = \local_payments\manager::create_subscription_checkout(
-            $params['subscriptionid'],
-            $USER->id,
-            !empty($params['country']) ? $params['country'] : null,
-            $params['lang'],
-            $params['type'],
-            $params['seats'],
-            $params['coupon_code'],
-            $params['return_url']
-        );
+        try {
+            $checkout = \local_payments\manager::create_subscription_checkout(
+                $params['subscriptionid'],
+                $USER->id,
+                !empty($params['country']) ? $params['country'] : null,
+                $params['lang'],
+                $params['type'],
+                $params['seats'],
+                $params['coupon_code'],
+                $params['return_url']
+            );
+        } catch (\dml_missing_record_exception $e) {
+            // The plan id does not exist — the manager does a MUST_EXIST lookup that surfaces as a raw
+            // "Can't find data record in database". Give the app a clean, specific message instead.
+            throw new \moodle_exception('err_subnotfound', 'local_nit_subscriptions');
+        } catch (\moodle_exception $e) {
+            // Business rules (already-subscribed, plan inactive, bad B2B seats, …) are thrown by the
+            // payments manager as a generic errorcode 'error' whose human-readable reason lives in
+            // debuginfo — which the web-service layer hides, leaving only "Error occurred". Re-surface
+            // the real reason so the app can show it; pass any other exception through unchanged.
+            if ($e->errorcode === 'error' && !empty($e->debuginfo)) {
+                throw new \moodle_exception('err_checkoutfailed', 'local_nit_subscriptions', '', $e->debuginfo);
+            }
+            throw $e;
+        }
 
         return [
             'order_id'       => $checkout->order_id,

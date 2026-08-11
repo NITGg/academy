@@ -152,6 +152,7 @@ $string['err_requestfailed']    = 'Request failed';
 $string['err_sessionexpired']   = 'Session expired — please reload the page and log in again.';
 $string['err_paymentsunavailable'] = 'The payment gateway is not available on this site.';
 $string['err_alreadyhassubscription'] = 'You already have an active subscription.';
+$string['err_checkoutfailed']   = '{$a}';
 
 // Buy modal (home-page block checkout).
 $string['sub_confirm_title']   = 'Confirm your subscription';

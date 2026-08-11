@@ -74,6 +74,10 @@ class preview_discount extends external_api {
 
         self::validate_context(\context_system::instance());
 
+        // Verify the item exists first, so a bad id returns a clear "not found" instead of a
+        // misleading final price of 0 (the discount engine treats an unknown item as base 0).
+        self::require_item_exists($params['item_type'], $params['item_id']);
+
         // Course prices live in local_payments (per-course rules); other item types
         // resolve their own base inside discount_manager.
         $base = self::base_price($params['item_type'], $params['item_id'], $USER->id);
@@ -90,6 +94,31 @@ class preview_discount extends external_api {
         }
 
         return self::shape($resolved);
+    }
+
+    /**
+     * Ensure the target item actually exists, or throw a clean "not found". Guards against a bad id
+     * silently previewing as free. Programs have no table yet, so they are rejected as not found.
+     *
+     * @param string $itemtype course | package | subscription | program
+     * @param int $itemid
+     * @return void
+     */
+    private static function require_item_exists(string $itemtype, int $itemid): void {
+        global $DB;
+        $exists = false;
+        if ($itemtype === 'course') {
+            $exists = $itemid > 1 && $DB->record_exists('course', ['id' => $itemid]); // 1 = site course.
+        } else if ($itemtype === 'subscription') {
+            $exists = $DB->get_manager()->table_exists('nit_subscription')
+                && $DB->record_exists('nit_subscription', ['id' => $itemid]);
+        } else if ($itemtype === 'package') {
+            $exists = $DB->get_manager()->table_exists('nit_package')
+                && $DB->record_exists('nit_package', ['id' => $itemid]);
+        }
+        if (!$exists) {
+            throw new \moodle_exception('err_itemnotfound', 'local_nit_commerce');
+        }
     }
 
     /**
