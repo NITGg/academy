@@ -53,6 +53,17 @@ if (!$USER) {
 try {
     switch ($function) {
 
+        // ── Playback ────────────────────────────────────────────────────────────
+        // Mint a short-lived OTP for the video on this activity, watermarked with
+        // the requesting user's identity. Call this immediately before playback.
+        case 'get_playback':
+            $cmid = required_param('cmid', PARAM_INT);
+            vdocipher_respond(['status' => 'success',
+                'data' => \local_vdocipher\playback_service::get_playback($cmid, $USER)]);
+            break;
+
+        // ── Teacher CRUD ────────────────────────────────────────────────────────
+
         // Get S3 upload credentials for a new video + record a pending row.
         // Teacher then uploads bytes straight to VdoCipher.
         case 'create_upload':
