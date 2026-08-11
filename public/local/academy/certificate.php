@@ -65,7 +65,9 @@ try {
     if (!$templaterec) {
         certificate_fail('customcert_template_missing', 404);
     }
-    $template = new \mod_customcert\template($templaterec);
+    // This customcert version's template constructor takes the template id (int),
+    // not the record object.
+    $template = new \mod_customcert\template((int) $customcert->templateid);
 
     // Record the issue (mirrors mod/customcert/view.php's download path), best-effort.
     if (class_exists('\mod_customcert\certificate')
