@@ -55,29 +55,29 @@ if (!is_enrolled($context, $user, '', true) && !has_capability('moodle/course:vi
 
 // From here, surface any failure as clean JSON instead of a themed HTML error
 // page, so the client (and we) can see the real cause instead of "could not
-// open the PDF".
+// open the PDF". This mirrors mod/customcert/view.php's downloadown path for
+// this (service-based) customcert version.
 try {
     $customcert = $DB->get_record('customcert', ['id' => $cm->instance], '*', IGNORE_MISSING);
     if (!$customcert) {
         certificate_fail('customcert_record_missing', 404);
     }
-    $templaterec = $DB->get_record('customcert_templates', ['id' => $customcert->templateid], '*', IGNORE_MISSING);
-    if (!$templaterec) {
-        certificate_fail('customcert_template_missing', 404);
-    }
-    // This customcert version's template constructor takes the template id (int),
-    // not the record object.
-    $template = new \mod_customcert\template((int) $customcert->templateid);
 
-    // Record the issue (mirrors mod/customcert/view.php's download path), best-effort.
-    if (class_exists('\mod_customcert\certificate')
-            && method_exists('\mod_customcert\certificate', 'issue_certificate')) {
-        try {
-            \mod_customcert\certificate::issue_certificate($customcert->id, $user->id);
-        } catch (\Throwable $e) {
-            // Non-fatal — still deliver the PDF.
-        }
+    // Load the template via the repository + factory (this version has no
+    // record-taking constructor).
+    $templaterecord = (new \mod_customcert\service\template_repository())
+        ->get_by_id_or_fail((int) $customcert->templateid);
+    $template = \mod_customcert\template::from_record($templaterecord);
+
+    // Issue the certificate if the user doesn't have one yet (as view.php does).
+    if (!(new \mod_customcert\service\issue_repository())
+            ->exists_for_user((int) $customcert->id, (int) $user->id)) {
+        \mod_customcert\service\certificate_issue_service::create()
+            ->issue_certificate((int) $customcert->id, (int) $user->id);
     }
+
+    // Release the session lock before the (potentially slow) PDF render.
+    \core\session\manager::write_close();
 
     // Discard any buffered output (stray notices/whitespace would corrupt the PDF
     // stream and make the client report "could not open the PDF").
@@ -85,8 +85,9 @@ try {
         ob_end_clean();
     }
 
-    // Stream the certificate PDF for this user (preview=false, return=false = download).
-    $template->generate_pdf(false, $user->id);
+    // Stream the certificate PDF for this user (preview = false).
+    \mod_customcert\service\pdf_generation_service::create()
+        ->generate_pdf($template, false, (int) $user->id);
     exit;
 } catch (\Throwable $e) {
     certificate_fail('generation_failed: ' . $e->getMessage(), 500);
