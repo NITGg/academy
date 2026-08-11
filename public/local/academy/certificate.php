@@ -62,6 +62,12 @@ if (class_exists('\mod_customcert\certificate')
     }
 }
 
+// Discard any buffered output (stray notices/whitespace would corrupt the PDF
+// stream and make the client report "could not open the PDF").
+while (ob_get_level() > 0) {
+    ob_end_clean();
+}
+
 // Stream the certificate PDF for this user (preview=false, return=false = download).
 $template->generate_pdf(false, $user->id);
 exit;
