@@ -17,14 +17,23 @@ global $CFG;
 class get_purchased_courses extends external_api {
 
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([]);
+        return new external_function_parameters([
+            'lang' => new external_value(PARAM_LANG, 'Display language, e.g. en or ar (optional)', VALUE_DEFAULT, ''),
+            'alang' => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
+        ]);
     }
 
-    public static function execute(): array {
+    public static function execute(string $lang = '', string $alang = ''): array {
         global $USER, $DB;
+
+        $params = self::validate_parameters(self::execute_parameters(), ['lang' => $lang, 'alang' => $alang]);
 
         $context = \context_system::instance();
         self::validate_context($context);
+        $wslang = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
+        if ($wslang !== '') {
+            force_current_language($wslang);
+        }
 
         $sql = "SELECT t.id, t.courseid, t.amount, t.currency, t.order_id, t.timecreated,
                        c.fullname, c.summary, c.startdate

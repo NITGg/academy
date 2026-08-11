@@ -42,17 +42,26 @@ class get_courses_with_pricing extends external_api {
                 VALUE_DEFAULT,
                 ''
             ),
+            'lang' => new external_value(PARAM_LANG, 'Display language, e.g. en or ar (optional)', VALUE_DEFAULT, ''),
+            'alang' => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
         ]);
     }
 
-    public static function execute(string $field = '', string $value = '', string $country = ''): array {
+    public static function execute(string $field = '', string $value = '', string $country = '',
+            string $lang = '', string $alang = ''): array {
         global $USER, $CFG;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'field'   => $field,
             'value'   => $value,
             'country' => $country,
+            'lang'    => $lang,
+            'alang'   => $alang,
         ]);
+        $wslang = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
+        if ($wslang !== '') {
+            force_current_language($wslang);
+        }
 
         self::validate_context(\context_system::instance());
 

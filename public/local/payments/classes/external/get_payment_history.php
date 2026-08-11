@@ -20,19 +20,27 @@ class get_payment_history extends external_api {
         return new external_function_parameters([
             'page' => new external_value(PARAM_INT, 'Page number', VALUE_DEFAULT, 0),
             'perpage' => new external_value(PARAM_INT, 'Per page', VALUE_DEFAULT, 20),
+            'lang' => new external_value(PARAM_LANG, 'Display language, e.g. en or ar (optional)', VALUE_DEFAULT, ''),
+            'alang' => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
         ]);
     }
 
-    public static function execute(int $page = 0, int $perpage = 20): array {
+    public static function execute(int $page = 0, int $perpage = 20, string $lang = '', string $alang = ''): array {
         global $USER, $DB;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'page' => $page,
             'perpage' => $perpage,
+            'lang' => $lang,
+            'alang' => $alang,
         ]);
 
         $context = \context_system::instance();
         self::validate_context($context);
+        $wslang = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
+        if ($wslang !== '') {
+            force_current_language($wslang);
+        }
         require_capability('local/payments:viewownhistory', $context);
 
         $transactions = $DB->get_records_select(

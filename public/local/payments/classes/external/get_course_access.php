@@ -19,13 +19,20 @@ class get_course_access extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'courseid' => new external_value(PARAM_INT, 'Course ID'),
+            'lang' => new external_value(PARAM_LANG, 'Display language, e.g. en or ar (optional)', VALUE_DEFAULT, ''),
+            'alang' => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
         ]);
     }
 
-    public static function execute(int $courseid): array {
+    public static function execute(int $courseid, string $lang = '', string $alang = ''): array {
         global $USER, $DB;
 
-        $params = self::validate_parameters(self::execute_parameters(), ['courseid' => $courseid]);
+        $params = self::validate_parameters(self::execute_parameters(),
+            ['courseid' => $courseid, 'lang' => $lang, 'alang' => $alang]);
+        $wslang = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
+        if ($wslang !== '') {
+            force_current_language($wslang);
+        }
 
         // Validate against the SYSTEM context: this endpoint is polled for unenrolled
         // users deciding whether to buy, so validating the course context (which enforces

@@ -21,17 +21,23 @@ class create_checkout extends external_api {
             'courseid' => new external_value(PARAM_INT, 'Course ID'),
             'country' => new external_value(PARAM_ALPHA, 'Country code from app', VALUE_DEFAULT, ''),
             'lang' => new external_value(PARAM_ALPHA, 'Display language (en/ar)', VALUE_DEFAULT, 'en'),
+            'alang' => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
         ]);
     }
 
-    public static function execute(int $courseid, string $country = '', string $lang = 'en'): array {
+    public static function execute(int $courseid, string $country = '', string $lang = 'en', string $alang = ''): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'courseid' => $courseid,
             'country' => $country,
             'lang' => $lang,
+            'alang' => $alang,
         ]);
+        // The app may send the language as `alang` (old convention); prefer it when present.
+        if ($params['alang'] !== '') {
+            $params['lang'] = $params['alang'];
+        }
 
         // Validate against the SYSTEM context, not the course context: the buyer is by
         // definition NOT enrolled yet, so validating the course context (require_login)
