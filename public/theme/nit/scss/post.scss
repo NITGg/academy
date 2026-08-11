@@ -18,6 +18,14 @@
 // Kept minimal by design.
 // -----------------------------------------------------------------------------
 
+// The "drawers" layout (admin, course, dashboard, …) ships its main content
+// wrapper white from core Boost, leaving a white band behind the page header on
+// the dark brand. The page header sits directly on this wrapper, so follow the
+// brand background instead. (#region-main already carries the brand ground.)
+#page.drawers .main-inner {
+    background-color: var(--nit-brand-background);
+}
+
 // -----------------------------------------------------------------------------
 // Front page (Site home) full-width block regions.
 //

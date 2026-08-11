@@ -13,17 +13,54 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-// NIT tab refinement: a clearer active indicator using the brand colour.
+// NIT tab refinement: brand-driven active indicator, hover and admin nav.
 .nav-tabs {
     .nav-link {
         font-weight: 600;
 
+        // Hover on an inactive tab: a subtle Surface fill. Core Bootstrap only
+        // lit a light-grey border here, which flashed white on the dark brand.
+        &:hover,
+        &:focus {
+            background-color: var(--nit-brand-surface);
+            border-color: var(--nit-brand-borderprimary);
+        }
+
         &.active {
-            border-bottom: 2px solid $nit-blue-600;
+            // Brand accent indicator + readable brand text on a Surface fill.
+            // Was a fixed blue underline ($nit-blue-600) on near-black text, and
+            // Bootstrap's --bs-nav-tabs-link-active-bg resolves to the accent
+            // red here — so pin the fill to Surface for a clean raised tab.
+            color: var(--nit-brand-textprimary);
+            background-color: var(--nit-brand-surface);
+            border-bottom: 2px solid var(--nit-brand-accent);
         }
 
         &:focus-visible {
             @include nit-focus-ring();
+        }
+    }
+}
+
+// Admin secondary navigation (Site administration: General / Users / …). Core
+// Boost tints hover & active with a light grey ($gray-100); recolour to the
+// brand Surface so the strip stays dark and legible. The red active underline
+// (from the .nav-tabs rule above) is preserved.
+.moremenu .nav-link {
+    &:hover,
+    &:focus {
+        background-color: var(--nit-brand-surface);
+    }
+
+    &.active {
+        background-color: var(--nit-brand-surface);
+        color: var(--nit-brand-textprimary);
+
+        // Core carries a higher-specificity light-grey rule for the active tab
+        // on hover/focus — match it so the active tab stays on brand too.
+        &:hover,
+        &:focus {
+            background-color: var(--nit-brand-surface);
         }
     }
 }
