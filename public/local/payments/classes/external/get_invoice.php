@@ -19,16 +19,23 @@ class get_invoice extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'transaction_id' => new external_value(PARAM_INT, 'Transaction ID'),
+            'lang' => new external_value(PARAM_LANG, 'Display language, e.g. en or ar (optional)', VALUE_DEFAULT, ''),
+            'alang' => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
         ]);
     }
 
-    public static function execute(int $transaction_id): array {
+    public static function execute(int $transaction_id, string $lang = '', string $alang = ''): array {
         global $USER, $DB;
 
-        $params = self::validate_parameters(self::execute_parameters(), ['transaction_id' => $transaction_id]);
+        $params = self::validate_parameters(self::execute_parameters(),
+            ['transaction_id' => $transaction_id, 'lang' => $lang, 'alang' => $alang]);
 
         $context = \context_system::instance();
         self::validate_context($context);
+        $wslang = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
+        if ($wslang !== '') {
+            force_current_language($wslang);
+        }
 
         $txn = $DB->get_record('local_payments_transactions', ['id' => $params['transaction_id']], '*', MUST_EXIST);
 

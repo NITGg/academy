@@ -59,10 +59,16 @@ GET  {WWWROOT}/webservice/rest/server.php
 
 - **Read** functions may be `GET`; **write** functions (`create_subscription_checkout`) should be `POST`
   with the params in the form body. There is **no `sesskey`** — the token *is* the credential.
-- **Every function accepts an optional `lang` (and its alias `alang`)** — e.g. `en` / `ar` — to
-  localize names/descriptions. Because Moodle web services **reject any undeclared parameter**
-  (`"Invalid parameter value detected"`), only send parameters listed for that function; `lang`/`alang`
-  are safe to send on all of them.
+- **Language / the `"Invalid parameter value detected"` trap.** Moodle web services **reject any
+  parameter a function doesn't declare** — so blindly appending `lang` (or anything else) to *every*
+  call breaks it. Two ways to send the display language:
+  - ✅ **Recommended — `moodlewssettinglang`.** Send `moodlewssettinglang=ar` (note the prefix). Moodle
+    strips it *before* parameter validation and applies it site-wide, so it works on **every** function
+    — these custom ones, the `local_payments` ones, **and core Moodle functions** (`core_course_*`,
+    `core_enrol_*`, …). Set it once in your shared API client and drop the per-call `lang`.
+  - Also accepted — a plain `lang` (alias `alang`, e.g. `en`/`ar`) is declared on all
+    `local_nit_*` and `local_payments` functions. But **core Moodle functions do not accept `lang`**,
+    so if your client appends `lang` to core calls too, use `moodlewssettinglang` instead.
 - On success you get the raw JSON data (an array or object — **no `{status,data}` wrapper**).
 - On failure you get a Moodle exception object — see [§6 Errors](#6-error-handling).
 
@@ -82,8 +88,13 @@ GET  {WWWROOT}/webservice/rest/server.php
 | 5 | My subscriptions | `local_nit_subscriptions_get_my_subscriptions` | GET | — |
 | 6 | My subscription payments | `local_nit_subscriptions_get_subscription_payment_history` | GET | — |
 
-Related course-payment functions already ship in `local_payments` (`local_payments_create_checkout`,
-`local_payments_get_payment_history`, `local_payments_get_purchased_courses`, …) — out of scope here.
+Related **course-purchase** functions ship in `local_payments` (token, same mobile service):
+`local_payments_get_course_price`, `local_payments_get_course_access`, `local_payments_get_payment_methods`,
+`local_payments_create_checkout`, `local_payments_verify_payment`, `local_payments_get_payment_history`,
+`local_payments_get_invoice`, `local_payments_get_purchased_courses`, `local_payments_get_courses_with_pricing`.
+They all now accept `lang`/`alang` too. Course-purchase flow: `create_checkout` → open `checkout_url`
+→ after the Kashier redirect, call `verify_payment(order_id)` (the browser page `callback.php` is
+**web-only** — it uses a session, so the mobile app uses `verify_payment` instead).
 
 ---
 
