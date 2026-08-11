@@ -62,30 +62,21 @@ $courses = $targetcat->get_courses([
 $logo = $OUTPUT->get_logo_url() ?: $OUTPUT->get_compact_logo_url();
 $categoryimage = $logo ? $logo->out(false) : '';
 
-// Colour style: each category details page cycles through the 3 category styles
-// (gallery: Categories -> Style 1/2/3). The style is chosen by the position of
-// this category's top-level ancestor, so every page under it stays consistent.
-$ancestors = $category->get_parents();                      // top-most first, excludes self.
-$rootid    = !empty($ancestors) ? (int) $ancestors[0] : (int) $category->id;
-$toplevels = core_course_category::top()->get_children();
-$position  = 0;
-$i = 0;
-foreach ($toplevels as $tl) {
-    if ((int) $tl->id === $rootid) {
-        $position = $i;
-        break;
-    }
-    $i++;
-}
-$stylenum = ($position % 3) + 1;                            // 1, 2, 3, 1, 2, 3, ...
-
-// Map the 8 style tokens to short local custom properties on the page wrapper;
-// every descendant then reads var(--cbg1..4) / var(--ctext1..4).
-$slots = ['text1', 'text2', 'text3', 'text4', 'bg1', 'bg2', 'bg3', 'bg4'];
-$stylevars = '';
-foreach ($slots as $slot) {
-    $stylevars .= '--c' . $slot . ': var(--nit-cat-style' . $stylenum . '-' . $slot . '); ';
-}
+// Colour palette: this page reads entirely from the site Brand Colors palette
+// (theme_nit's --nit-brand-* custom properties), so it re-skins with the rest of
+// the site and honours RTL/LTR + dark/light automatically. The 8 local slots map
+// to brand roles by job: backgrounds -> Background/Surface, the call-to-action fill
+// -> Primary, text -> Text primary/secondary, highlights -> Accent. --cbg3 (the tile
+// behind category/course images) is Surface lifted a touch so logos read cleanly.
+$stylevars =
+    '--cbg1: var(--nit-brand-background); '
+  . '--cbg2: var(--nit-brand-surface); '
+  . '--cbg3: color-mix(in srgb, var(--nit-brand-surface) 88%, var(--nit-brand-textprimary)); '
+  . '--cbg4: var(--nit-brand-primary); '
+  . '--ctext1: var(--nit-brand-textprimary); '
+  . '--ctext2: var(--nit-brand-textsecondary); '
+  . '--ctext3: var(--nit-brand-accent); '
+  . '--ctext4: var(--nit-brand-textprimary); ';
 
 // Bilingual inline helper (site is en/ar); mirrors the theme's {mlang} pairs.
 $isar = (strpos(current_language(), 'ar') === 0);
@@ -287,15 +278,15 @@ echo $OUTPUT->header();
             </span>
             <?php endif; ?>
             <?php if ($info['enrolled']): ?>
-            <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: #1e9e5a; color: #ffffff; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
+            <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: var(--nit-brand-success); color: var(--nit-brand-textprimary); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
               ✓ <?= $t('Enrolled', 'مُسجَّل') ?>
             </span>
             <?php elseif ($info['covered']): ?>
-            <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: var(--nit-accentgold, #e8b84b); color: var(--nit-darkbackground, #0a1628); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
+            <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: var(--nit-brand-accent); color: var(--nit-brand-textprimary); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
               ★ <?= $t('In your subscription', 'ضمن اشتراكك') ?>
             </span>
             <?php elseif ($info['offerlabel'] !== ''): ?>
-            <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: var(--nit-accentteal, #00a99d); color: #ffffff; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
+            <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: var(--nit-brand-success); color: var(--nit-brand-textprimary); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
               <?= s($info['offerlabel']) ?>
             </span>
             <?php endif; ?>
@@ -327,7 +318,7 @@ echo $OUTPUT->header();
             <!-- Actions: pinned to the card bottom so every card's buttons align, regardless of summary length. -->
             <div style="margin-top: auto; padding-top: 16px; display: flex; flex-direction: column; gap: 8px;">
               <?php if ($info['covered']): ?>
-                <div style="font-size: 12px; font-weight: bold; color: var(--nit-accentgold, #e8b84b); text-align: center; margin-bottom: 2px;">
+                <div style="font-size: 12px; font-weight: bold; color: var(--nit-brand-accent); text-align: center; margin-bottom: 2px;">
                   ★ <?= $t('Included in your subscription', 'مشمول ضمن اشتراكك') ?>
                 </div>
               <?php endif; ?>

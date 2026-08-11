@@ -243,12 +243,21 @@ wstoken=TOKEN&wsfunction=local_nit_subscriptions_create_subscription_checkout
   "checkout_url": "https://checkout.kashier.io/?...",
   "expires_at": 1790401800,
   "provider": "kashier",
-  "transaction_id": 91
+  "transaction_id": 91,
+  "amount": 359.20,
+  "original_amount": 499.00,
+  "currency": "EGP"
 }
 ```
 **Do:** open `checkout_url` in an in-app browser / WebView. After the user pays and the gateway
 redirects back, **poll `get_my_subscriptions`** (§3.5) until the plan shows `status: "active"` — the
 subscription is created server-side by the gateway webhook, not by this call.
+
+> 💰 **`amount`** is the actual price charged, **after** offer + coupon — this is exactly what Kashier
+> shows. `original_amount` is the pre-discount price (use it for a strikethrough). If `amount` here
+> equals the full price, the discount was not applied server-side (the coupon didn't match, or the
+> `coupon_code` didn't reach this call) — it is **not** a Kashier display issue. The course
+> `local_payments_create_checkout` returns the same three fields and also accepts `coupon_code`.
 
 Common failures (returned as exceptions): `"You already have an active subscription"` (one active
 normal plan per user), `"This subscription plan is not available"` (inactive), `"The selected capacity
