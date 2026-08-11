@@ -44,37 +44,12 @@ $pageurl = new moodle_url('/theme/nit/gallery.php');
 // rebuilds on the next request.
 // -----------------------------------------------------------------------------
 if (($data = data_submitted()) && confirm_sesskey()) {
-    $palette = theme_nit_colour_palette();
-
-    if (!empty($data->resetcolours)) {
-        foreach (array_keys($palette) as $key) {
-            unset_config('colour_' . $key, 'theme_nit');
-        }
-        theme_reset_all_caches();
-        redirect($pageurl, get_string('coloursreset', 'theme_nit'), null,
-            \core\output\notification::NOTIFY_SUCCESS);
-    }
-
-    if (!empty($data->savecolours)) {
-        foreach ($palette as $key => $meta) {
-            $field = 'colour_' . $key;
-            $value = optional_param($field, '', PARAM_RAW_TRIMMED);
-            // Accept a valid #rgb / #rrggbb only; otherwise fall back to the
-            // token's default so a bad value can never poison the stylesheet.
-            if (!preg_match('/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) {
-                $value = $meta['default'];
-            }
-            set_config($field, $value, 'theme_nit');
-        }
-        theme_reset_all_caches();
-        redirect($pageurl, get_string('colourssaved', 'theme_nit'), null,
-            \core\output\notification::NOTIFY_SUCCESS);
-    }
-
     // -------------------------------------------------------------------------
-    // Brand Colors palette (the new semantic layer — 3 groups × 13 roles). Same
-    // storage contract as the colours above: config `brandcolour_<key>`, purge
-    // caches so the SCSS rebuilds. Values are validated to #rgb / #rrggbb.
+    // Brand Colors palette (the semantic layer — 3 groups × 13 roles). Stored as
+    // config `brandcolour_<key>`; caches are purged so the SCSS rebuilds. Values
+    // are validated to #rgb / #rrggbb. (The legacy "Colours" editor was retired;
+    // its tokens still exist in lib.php for the dark bands / category styles that
+    // read them, but they are no longer edited here.)
     // -------------------------------------------------------------------------
     $brand = theme_nit_brand_palette();
 

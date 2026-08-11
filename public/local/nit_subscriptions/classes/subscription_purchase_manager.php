@@ -296,6 +296,55 @@ class subscription_purchase_manager {
     }
 
     /**
+     * The current user's subscription PAYMENTS, newest first, for a "Payment history" screen.
+     *
+     * Subscriptions are paid through the gateway (local_payments), so the money records live in
+     * local_payments_transactions with metadata item_type=subscription — not in nit_sub_purchase
+     * (which records fulfilment/access). This returns every subscription checkout the user started,
+     * including failed/abandoned ones, so the history is complete. Degrades to [] if local_payments
+     * is not installed.
+     *
+     * @param int $userid
+     * @return array
+     */
+    public static function get_subscription_payment_history($userid) {
+        global $DB;
+
+        if (!$DB->get_manager()->table_exists('local_payments_transactions')) {
+            return [];
+        }
+
+        $rows = $DB->get_records('local_payments_transactions',
+            ['userid' => $userid, 'courseid' => 0], 'timecreated DESC');
+        $out = [];
+        foreach ($rows as $r) {
+            $meta = json_decode($r->metadata ?? '{}');
+            // courseid=0 is the subscription sentinel, but guard on item_type too so any
+            // future non-course, non-subscription item can't leak into this history.
+            if (($meta->item_type ?? '') !== 'subscription') {
+                continue;
+            }
+            $name = $meta->subscription_name ?? '';
+            if ($name === '' && !empty($meta->item_id)) {
+                $name = (string) $DB->get_field('nit_subscription', 'name', ['id' => (int) $meta->item_id]);
+            }
+            $out[] = [
+                'id'             => (int) $r->id,
+                'subscriptionid' => (int) ($meta->item_id ?? 0),
+                'name'           => format_string(subscription_manager::resolve_mlang($name)),
+                'order_id'       => (string) $r->order_id,
+                'amount'         => (float) $r->amount,
+                'currency'       => (string) $r->currency,
+                'status'         => (string) $r->status,
+                'payment_method' => (string) ($r->payment_method_type ?? ''),
+                'coupon_code'    => (string) ($meta->coupon_code ?? ''),
+                'timecreated'    => (int) $r->timecreated,
+            ];
+        }
+        return $out;
+    }
+
+    /**
      * All user subscription purchases for the admin table, newest first.
      *
      * @return array
