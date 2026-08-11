@@ -52,9 +52,19 @@ if (($data = data_submitted()) && confirm_sesskey()) {
     // read them, but they are no longer edited here.)
     // -------------------------------------------------------------------------
     $brand = theme_nit_brand_palette();
+    // Save / reset act on ONE group at a time: each group's form posts its own
+    // group key (g1/g2/g3). An empty group (legacy single-form post) means "all".
+    $brandgroup = optional_param('brandgroup', '', PARAM_ALPHANUMEXT);
+    $groupkeys = array_keys(theme_nit_brand_groups());
+    if ($brandgroup !== '' && !in_array($brandgroup, $groupkeys, true)) {
+        $brandgroup = '';
+    }
 
     if (!empty($data->resetbrand)) {
-        foreach (array_keys($brand) as $key) {
+        foreach ($brand as $key => $meta) {
+            if ($brandgroup !== '' && $meta['groupkey'] !== $brandgroup) {
+                continue;
+            }
             unset_config('brandcolour_' . $key, 'theme_nit');
         }
         theme_reset_all_caches();
@@ -64,6 +74,9 @@ if (($data = data_submitted()) && confirm_sesskey()) {
 
     if (!empty($data->savebrand)) {
         foreach ($brand as $key => $meta) {
+            if ($brandgroup !== '' && $meta['groupkey'] !== $brandgroup) {
+                continue;
+            }
             $field = 'brandcolour_' . $key;
             $value = optional_param($field, '', PARAM_RAW_TRIMMED);
             if (!preg_match('/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) {
@@ -73,6 +86,30 @@ if (($data = data_submitted()) && confirm_sesskey()) {
         }
         theme_reset_all_caches();
         redirect($pageurl, get_string('brandcolourssaved', 'theme_nit'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
+    }
+
+    // -------------------------------------------------------------------------
+    // Category → Brand-group mapping. The "Category styles" tab lets an admin
+    // assign a brand group (g1/g2/g3) to each category; the category details page
+    // (local_nit_category) then wraps itself in .nit-brand-2 / .nit-brand-3 so it
+    // re-skins from that group. Stored as one JSON config `nit_category_groups`
+    // = { "<categoryid>": "g2", … }; Group 1 (the default) is stored as absence.
+    // No SCSS change, so no cache rebuild is needed — the class is applied per
+    // request and the group switch classes already exist in the compiled CSS.
+    // -------------------------------------------------------------------------
+    if (!empty($data->savecatgroups)) {
+        $selected = optional_param_array('catgroup', [], PARAM_ALPHANUMEXT);
+        $map = [];
+        foreach ($selected as $cid => $gk) {
+            $cid = (int) $cid;
+            // Only persist real, non-default assignments to keep the map small.
+            if ($cid > 0 && in_array($gk, $groupkeys, true) && $gk !== 'g1') {
+                $map[$cid] = $gk;
+            }
+        }
+        set_config('nit_category_groups', json_encode($map), 'theme_nit');
+        redirect($pageurl, get_string('categorygroupssaved', 'theme_nit'), null,
             \core\output\notification::NOTIFY_SUCCESS);
     }
 

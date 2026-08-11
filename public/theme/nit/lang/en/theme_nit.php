@@ -50,8 +50,17 @@ $string['brandcoloursreset'] = 'Brand Colors reset to the defaults.';
 $string['savebrandcolours'] = 'Save Brand Colors';
 $string['resetbrandcolours'] = 'Reset to defaults';
 
+// Category styles (assign a brand group to each category details page).
+$string['categorystyles_desc'] = 'Choose which Brand Colors group each category\'s details page uses. The page re-skins from that group (via the <code>.nit-brand-2</code> / <code>.nit-brand-3</code> switch classes); <strong>Group 1</strong> is the default look. Tune each group\'s colours on the Brand Colors tab.';
+$string['categorystyles_col_category'] = 'Category';
+$string['categorystyles_col_group'] = 'Brand group';
+$string['categorystyles_none'] = 'No categories found.';
+$string['savecategorygroups'] = 'Save category styles';
+$string['categorygroupssaved'] = 'Category styles saved.';
+
 // Design-system gallery tabs.
 $string['tab_brandcolours'] = 'Brand Colors';
+$string['tab_categorystyles'] = 'Category styles';
 $string['tab_colours'] = 'Colours';
 $string['tab_fonts'] = 'Fonts';
 $string['tab_components'] = 'Components';

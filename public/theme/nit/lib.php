@@ -230,6 +230,42 @@ function theme_nit_brand_groups(): array {
 }
 
 /**
+ * The Brand-Colors group assigned to a category (for the category details page).
+ *
+ * Admins map categories to groups on the gallery "Category styles" tab; the map
+ * is stored as the theme_nit config `nit_category_groups` (JSON `{id: "g2", …}`).
+ * A category with no explicit assignment uses Group 1 (the default). No ancestor
+ * inheritance — each category page is its own entry point, so the mapping is by
+ * the exact category id shown.
+ *
+ * @param int $categoryid the category whose page is being rendered
+ * @return string one of the group keys from theme_nit_brand_groups() (g1/g2/g3)
+ */
+function theme_nit_category_brand_group(int $categoryid): string {
+    static $map = null;
+    if ($map === null) {
+        $raw = get_config('theme_nit', 'nit_category_groups');
+        $map = ($raw && is_string($raw)) ? (json_decode($raw, true) ?: []) : [];
+    }
+    $group = $map[$categoryid] ?? 'g1';
+    return array_key_exists($group, theme_nit_brand_groups()) ? $group : 'g1';
+}
+
+/**
+ * The CSS body/wrapper class that switches an element to a brand group.
+ *
+ * Group 1 is the default layer (no class); groups 2/3 map to the switch classes
+ * declared in scss/foundation/_brand.scss.
+ *
+ * @param string $group a group key (g1/g2/g3)
+ * @return string '' | 'nit-brand-2' | 'nit-brand-3'
+ */
+function theme_nit_brand_group_class(string $group): string {
+    $classes = ['g1' => '', 'g2' => 'nit-brand-2', 'g3' => 'nit-brand-3'];
+    return $classes[$group] ?? '';
+}
+
+/**
  * The full Brand-Colors palette: every group × every role, flattened.
  *
  * Keyed `g<N>_<role>` (e.g. `g1_primary`); the key becomes the config name

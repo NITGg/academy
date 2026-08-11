@@ -27,6 +27,33 @@
 }
 
 // -----------------------------------------------------------------------------
+// Site-wide link affordance.
+//
+// The brand system already colours resting links with the "accent" role
+// (--nit-brand-accent, documented usage: "text of links / underlines") and
+// reserves "hovertext" (--nit-brand-hovertext) for the hover state. On hover,
+// keyboard focus, and click (active), every content link shifts to the brand
+// hover colour and shows an underline in that SAME colour — `currentColor`
+// keeps the underline matched to whatever brand group is in scope
+// (.nit-brand-2 / .nit-brand-3), so it never drifts from the text.
+//
+// Chrome-bearing anchors opt out (:not(...)) — buttons, nav/menu items,
+// dropdown entries, pagination, tabs, list-group rows, cards and badges own
+// their own hover treatment, and an underline would look wrong on them.
+a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link):not(.list-group-item):not(.badge):not(.card):not([role="button"]):not([role="tab"]):not([role="menuitem"]) {
+    &:hover,
+    &:focus,
+    &:active {
+        color: var(--nit-brand-hovertext);
+        text-decoration: underline;
+        text-decoration-color: currentColor;
+        // No filled box on click — only the colour + underline should change.
+        background-color: transparent;
+        box-shadow: none;
+    }
+}
+
+// -----------------------------------------------------------------------------
 // Front page (Site home) full-width block regions.
 //
 // The frontpage layout (layout/frontpage.php + templates/frontpage.mustache)

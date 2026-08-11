@@ -59,6 +59,31 @@ class gallery implements renderable, templatable {
             ];
         }
 
+        // Category → brand-group mapping for the "Category styles" tab. Every
+        // visible category gets a row with a Group 1/2/3 selector, pre-set to its
+        // stored assignment (default Group 1). Indented by depth to show the tree.
+        $rawmap = \get_config('theme_nit', 'nit_category_groups');
+        $catmap = ($rawmap && is_string($rawmap)) ? (json_decode($rawmap, true) ?: []) : [];
+        $grouplabels = \theme_nit_brand_groups();
+        $categorygroups = [];
+        foreach (\core_course_category::get_all() as $cat) {
+            $current = $catmap[$cat->id] ?? 'g1';
+            if (!array_key_exists($current, $grouplabels)) {
+                $current = 'g1';
+            }
+            $options = [];
+            foreach ($grouplabels as $gkey => $glabel) {
+                $options[] = ['value' => $gkey, 'label' => $glabel, 'selected' => ($gkey === $current)];
+            }
+            $categorygroups[] = [
+                'id' => $cat->id,
+                'name' => $cat->get_formatted_name(),
+                'indent' => str_repeat('&nbsp;&nbsp;&nbsp;&nbsp;', max(0, (int) $cat->depth - 1)),
+                'options' => $options,
+                'isdefault' => ($current === 'g1'),
+            ];
+        }
+
         // Per-language font slots: current filename (if any) + a live preview
         // that renders in the uploaded family the compiled CSS already exposes.
         $fonts = [];
@@ -80,6 +105,8 @@ class gallery implements renderable, templatable {
             'sesskey' => sesskey(),
             'actionurl' => (new \moodle_url('/theme/nit/gallery.php'))->out(false),
             'brandgroups' => $brandgroups,
+            'categorygroups' => $categorygroups,
+            'hascategorygroups' => !empty($categorygroups),
             'fonts' => $fonts,
             'stats' => [
                 ['label' => 'Active learners', 'value' => '1,284', 'trend' => '+12%', 'up' => true],
