@@ -27,6 +27,14 @@
     // keeps its Text-secondary colour via its more specific rule.
     --bs-code-color: var(--nit-brand-accent-bright);
 
+    // Muted descriptive copy — the per-tab intro paragraphs and the "GROUP n"
+    // labels. Core's `.text-muted` resolves to a translucent white here; point it
+    // at the Text secondary role instead. `.text-muted` ships `!important`, so
+    // match it (this higher-specificity !important wins).
+    .text-muted {
+        color: var(--nit-brand-textsecondary) !important;
+    }
+
     // The tab strip. Core hands the admin <ul class="nav-tabs"> a light-grey
     // ($gray-200) fill and a grey bottom rule, which flashes a pale band across
     // the dark page. Drop the fill and reband the rule to Border primary. Scoped

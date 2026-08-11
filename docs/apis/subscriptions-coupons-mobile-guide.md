@@ -96,6 +96,13 @@ They all now accept `lang`/`alang` too. Course-purchase flow: `create_checkout` 
 → after the Kashier redirect, call `verify_payment(order_id)` (the browser page `callback.php` is
 **web-only** — it uses a session, so the mobile app uses `verify_payment` instead).
 
+> 💸 **Getting the right price on the Kashier screen.** The amount shown by Kashier is the discounted
+> amount computed at checkout. To apply a coupon you **must pass `coupon_code`** to the checkout call
+> (`create_checkout` for a course, `create_subscription_checkout` for a plan) — auto-offers apply
+> without it, coupons do not. If you change the coupon and re-checkout, a fresh Kashier session is
+> created at the new price (a stale same-course pending session at a different price is retired
+> automatically).
+
 ---
 
 ### 3.1 `local_nit_commerce_get_available_coupons`

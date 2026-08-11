@@ -127,6 +127,9 @@ class create_subscription_checkout extends external_api {
             'expires_at'     => (int) $checkout->expires_at,
             'provider'       => $checkout->provider,
             'transaction_id' => (int) $checkout->transaction_id,
+            'amount'         => (float) ($checkout->amount ?? 0),
+            'original_amount' => (float) ($checkout->original_amount ?? 0),
+            'currency'       => $checkout->currency ?? 'EGP',
         ];
     }
 
@@ -142,6 +145,9 @@ class create_subscription_checkout extends external_api {
             'expires_at'     => new external_value(PARAM_INT, 'Checkout expiry unix time'),
             'provider'       => new external_value(PARAM_TEXT, 'Gateway name (e.g. kashier)'),
             'transaction_id' => new external_value(PARAM_INT, 'Transaction record id'),
+            'amount'         => new external_value(PARAM_FLOAT, 'Charged amount after coupon/offer — show THIS price'),
+            'original_amount' => new external_value(PARAM_FLOAT, 'Plan price before discount'),
+            'currency'       => new external_value(PARAM_TEXT, 'Currency (e.g. EGP)'),
         ]);
     }
 }

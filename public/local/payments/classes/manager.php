@@ -114,13 +114,30 @@ class manager {
         );
 
         if ($existing && !empty($existing->checkout_url)) {
-            return (object) [
-                'order_id' => $existing->order_id,
-                'checkout_url' => $existing->checkout_url,
-                'expires_at' => (int) $existing->expires_at,
-                'provider' => $DB->get_field('local_payments_providers', 'name', ['id' => $existing->provider_id]),
-                'transaction_id' => (int) $existing->id,
-            ];
+            // Reuse the pending gateway session ONLY if it was created for the same price. If a
+            // coupon/offer now makes the price different, the old session still shows the OLD amount
+            // on the gateway screen — so retire it (freeing any coupon reservation) and fall through
+            // to create a fresh session at the correct amount.
+            if (abs((float) $existing->amount - $amount) < 0.01) {
+                return (object) [
+                    'order_id' => $existing->order_id,
+                    'checkout_url' => $existing->checkout_url,
+                    'expires_at' => (int) $existing->expires_at,
+                    'provider' => $DB->get_field('local_payments_providers', 'name', ['id' => $existing->provider_id]),
+                    'transaction_id' => (int) $existing->id,
+                    'amount' => (float) $existing->amount,
+                    'original_amount' => (float) ($existing->original_amount ?? $existing->amount),
+                    'currency' => $existing->currency,
+                ];
+            }
+            $DB->update_record('local_payments_transactions', (object) [
+                'id' => $existing->id,
+                'status' => status_machine::EXPIRED,
+                'reject_reason' => 'Superseded by a new checkout at a different price',
+                'timemodified' => time(),
+            ]);
+            self::release_nit_discount((int) $existing->id);
+            self::audit_log($existing->id, $userid, 'status_changed', status_machine::PENDING, status_machine::EXPIRED);
         }
 
         // Check already purchased.
@@ -238,6 +255,9 @@ class manager {
             'expires_at' => $expires_at,
             'provider' => $provider->get_name(),
             'transaction_id' => $transaction_id,
+            'amount' => (float) $amount,
+            'original_amount' => (float) $pricing->original_price,
+            'currency' => $pricing->currency,
         ];
     }
 
@@ -401,6 +421,11 @@ class manager {
             'expires_at' => $expires_at,
             'provider' => $provider->get_name(),
             'transaction_id' => $transaction_id,
+            // The actual charged (post-discount) amount, so the app can display the correct price
+            // even if it renders its own summary/gateway screen instead of opening checkout_url.
+            'amount' => (float) $amount,
+            'original_amount' => (float) $originalamount,
+            'currency' => $currency,
         ];
     }
 
