@@ -321,11 +321,18 @@ Handle these:
 | Signal | Meaning | UI |
 |--------|---------|----|
 | `errorcode: invalidtoken` / HTML body | missing/expired token | go to login |
-| `errorcode: accessexception` / `requireloginerror` | token lacks the capability | see §8 |
+| `errorcode: accessexception` | WS/mobile service off, or function not in the token's service | see §8 |
+| `errorcode: err_subnotfound` — `"Subscription not found"` | `subscriptionid` doesn't exist | refresh plan list |
+| `errorcode: err_itemnotfound` — `"The requested item was not found."` | bad `item_id` in `preview_discount` | refresh list |
 | `"You already have an active subscription"` | one-active-normal rule | show current plan, hide Buy |
 | `"This subscription plan is not available"` | plan inactive | refresh list |
 | `"The selected capacity is not available"` | bad B2B `seats` | re-pick a `seat_options` tier |
+| `errorcode: noproviderfound` | no payment gateway enabled for the country/currency | server misconfig — contact backend |
 | `coupon_error` non-empty (in `preview_discount`) | coupon rejected | show inline, keep offer price |
+
+> The write endpoint `create_subscription_checkout` returns **clean, specific messages** — a bad id
+> gives `"Subscription not found"` (not a raw DB error) and business-rule failures give their real
+> reason (not a generic "Error occurred").
 
 ---
 
@@ -351,6 +358,15 @@ Key differences:
 
 ## 8. Prerequisites / capabilities
 
+- **Site must have web services on** (a fresh/default site does not): *Site admin → Advanced features*
+  → enable **web services**; *Server → Web services → Manage protocols* → enable **REST**; and enable
+  **mobile web services** (or the `moodle_mobile_app` service) so mobile tokens work. Without these,
+  every call returns `accessexception` (or an HTML redirect). CLI equivalent:
+  ```bash
+  php admin/cli/cfg.php --name=enablewebservices --set=1
+  php admin/cli/cfg.php --name=webserviceprotocols --set=rest
+  php admin/cli/cfg.php --name=enablemobilewebservice --set=1
+  ```
 - The token's service must expose these functions. They are registered against the **official mobile
   service** (`moodle_mobile_app`), so a standard mobile token includes them after the plugins are
   upgraded. If you use a **custom** external service, add each `wsfunction` to it under
