@@ -25,6 +25,15 @@ class profile_manager {
         $small = new \user_picture($user);
         $small->size = 35; // f2 / small
 
+        // Auth method: lets the app show the "change password" screen only for
+        // password-based (manual/email) accounts and hide it for Google/OAuth2.
+        $auth = $user->auth ?? 'manual';
+        $canchangepassword = false;
+        if (($authplugin = get_auth_plugin($auth))) {
+            // True only for internal (password) auths — false for oauth2/google.
+            $canchangepassword = $authplugin->can_change_password() && $authplugin->is_internal();
+        }
+
         return [
             'userid'               => (int) $user->id,
             'username'             => $user->username ?? '',
@@ -32,6 +41,9 @@ class profile_manager {
             'firstname'            => $user->firstname ?? '',
             'lastname'             => $user->lastname ?? '',
             'email'                => $user->email ?? '',
+            'auth'                 => $auth,
+            'isgoogle'             => ($auth === 'oauth2'),
+            'canchangepassword'    => (bool) $canchangepassword,
             'profileimageurl'      => ws_files::tokenize($big->get_url($page)->out(false), $token),
             'profileimageurlsmall' => ws_files::tokenize($small->get_url($page)->out(false), $token),
         ];
