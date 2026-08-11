@@ -47,6 +47,9 @@ a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link):not(.list-group-i
         color: var(--nit-brand-hovertext);
         text-decoration: underline;
         text-decoration-color: currentColor;
+        // No filled box on click — only the colour + underline should change.
+        background-color: transparent;
+        box-shadow: none;
     }
 }
 
