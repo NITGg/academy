@@ -112,6 +112,57 @@ class api_client {
         return $this->request('POST', '/videos/' . rawurlencode($videoid) . '/otp', [], $body);
     }
 
+    /**
+     * Upload a local file to VdoCipher end-to-end (credentials → S3 push) and
+     * return the new video id. Suitable for server-side upload of modest files;
+     * very large videos are better uploaded from the VdoCipher dashboard/app.
+     *
+     * @param string $filepath absolute path to a readable video file
+     * @param string $title    title shown in the dashboard
+     * @return string the new VdoCipher video id
+     * @throws api_exception on any failure
+     */
+    public function upload(string $filepath, string $title): string {
+        if (!is_file($filepath) || !is_readable($filepath)) {
+            throw new api_exception('Upload file not readable: ' . $filepath);
+        }
+
+        $creds   = $this->get_upload_credentials($title);
+        $videoid = (string) ($creds['videoId'] ?? '');
+        $payload = $creds['clientPayload'] ?? [];
+        if ($videoid === '' || empty($payload['uploadLink'])) {
+            throw new api_exception('Unexpected upload-credentials response', 0, json_encode($creds));
+        }
+
+        // S3 requires the policy fields BEFORE the file part; preserve that order.
+        $fields = [];
+        foreach (['policy', 'key', 'x-amz-signature', 'x-amz-algorithm', 'x-amz-date', 'x-amz-credential'] as $k) {
+            if (isset($payload[$k])) {
+                $fields[$k] = $payload[$k];
+            }
+        }
+        $fields['success_action_status'] = '201';
+        $fields['file'] = new \CURLFile(realpath($filepath));
+
+        $ch = curl_init($payload['uploadLink']);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 0); // large files: no hard cap
+        $resp = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err  = curl_error($ch);
+        curl_close($ch);
+
+        if ($err) {
+            throw new api_exception('S3 upload transport error: ' . $err);
+        }
+        if (!in_array($code, [200, 201, 204], true)) {
+            throw new api_exception('S3 upload rejected', $code, (string) $resp);
+        }
+        return $videoid;
+    }
+
     // ── Transport ────────────────────────────────────────────────────────────
 
     /**

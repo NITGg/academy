@@ -280,6 +280,19 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
             }
         }
 
+        // ── vdocipher: secure DRM video activity (mod_vdocipher) ────────────
+        if ($cm->modname === 'vdocipher') {
+            $vrow = $DB->get_record('local_vdocipher_videos', ['cmid' => $cm->id]);
+            if ($vrow && $vrow->videoid !== '') {
+                $act['mediatype']    = 'vdocipher';
+                $act['isvdocipher']  = true;
+                $act['videoid']      = $vrow->videoid;
+                $act['resourcetype'] = 'video/vdocipher';
+                $act['otpurl']       = $wwwroot . '/local/vdocipher/api.php?function=get_playback&cmid='
+                                       . $cm->id . '&token=' . $wstoken;
+            }
+        }
+
         // ── testnew: custom single-PDF activity, get file URL and type ──────
         if ($cm->modname === 'testnew') {
             $fs   = get_file_storage();

@@ -30,13 +30,13 @@ dependencies:
 ## 2. Detect a VdoCipher activity
 
 The course structure (`GET /local/multitopics/getalltopics.php?courseid=…&wstoken=…`)
-now returns these fields on each activity. For a `resource2` that has a secure
-video attached:
+now returns these fields on each activity. A **VdoCipher Video** activity
+(`modname: "vdocipher"`) carries the secure video:
 
 ```jsonc
 {
   "id": "1234",
-  "modname": "resource2",
+  "modname": "vdocipher",
   "name": "Lesson 3 — Kinematics",
   "mediatype": "vdocipher",      // ← play with the VdoCipher SDK
   "isvdocipher": true,           // ← boolean flag to branch on
