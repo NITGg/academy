@@ -78,6 +78,15 @@ $stylevars =
   . '--ctext3: var(--nit-brand-accent); '
   . '--ctext4: var(--nit-brand-textprimary); ';
 
+// Brand group for this category (gallery "Category styles" tab). Group 1 is the
+// default layer (no class); groups 2/3 add the .nit-brand-2 / .nit-brand-3 switch
+// class to the wrapper, so every --nit-brand-* the page reads (and hence every
+// --cbg*/--ctext* above) resolves from that group instead.
+$brandgroupclass = '';
+if (function_exists('theme_nit_category_brand_group')) {
+    $brandgroupclass = theme_nit_brand_group_class(theme_nit_category_brand_group((int) $category->id));
+}
+
 // Bilingual inline helper (site is en/ar); mirrors the theme's {mlang} pairs.
 $isar = (strpos(current_language(), 'ar') === 0);
 $t = function (string $en, string $ar) use ($isar) {
@@ -151,7 +160,7 @@ $nitcourseinfo = function ($courseid) use ($nitcheckout) {
 echo $OUTPUT->header();
 ?>
 
-<div dir="auto" class="nit-cat-details" style="<?= $stylevars ?>background: var(--cbg1); min-height: 100vh; padding-bottom: 40px; width: 100vw; max-width: 100vw; margin-inline: calc(50% - 50vw); margin-top: 0;">
+<div dir="auto" class="nit-cat-details<?= $brandgroupclass !== '' ? ' ' . $brandgroupclass : '' ?>" style="<?= $stylevars ?>background: var(--cbg1); min-height: 100vh; padding-bottom: 40px; width: 100vw; max-width: 100vw; margin-inline: calc(50% - 50vw); margin-top: 0;">
 
   <!-- Category Header Banner -->
   <div style="background: var(--cbg2); padding: 64px 16px; border-bottom: 1px solid color-mix(in srgb, var(--ctext1) 6%, transparent); position: relative; overflow: hidden;">
