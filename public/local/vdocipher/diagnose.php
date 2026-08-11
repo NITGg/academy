@@ -33,7 +33,7 @@ if ($configured) {
     echo $OUTPUT->heading('Live API test: list videos', 4);
     try {
         $client = new \local_vdocipher\api_client();
-        $result = $client->list_videos(['page' => 0, 'limit' => 5]);
+        $result = $client->list_videos(['page' => 1, 'limit' => 5]);
 
         $rows  = $result['rows'] ?? [];
         $count = $result['count'] ?? count($rows);
