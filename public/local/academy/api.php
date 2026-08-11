@@ -128,6 +128,62 @@ try {
             academy_respond(['status' => 'success', 'data' => \local_academy\quiz_manager::get_my_attempts($quizid, $userid)]);
             break;
 
+        // ── Password reset (OTP) + change password ──────────────────────────────────
+        // Forgot-password endpoints are pre-login: call them with the shared
+        // Registration API token. change_password is post-login: call it with the
+        // user's own token.
+
+        // Step 1: email a 6-digit OTP. Always returns generic success.
+        case 'request_password_otp':
+            academy_require_post();
+            $email = required_param('email', PARAM_RAW_TRIMMED);
+            try {
+                $data = \local_academy\password_reset_manager::request_otp($email);
+            } catch (\moodle_exception $e) {
+                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+            }
+            academy_respond(['status' => 'success', 'data' => $data]);
+            break;
+
+        // Step 2: verify the OTP -> returns a single-use reset token.
+        case 'verify_password_otp':
+            academy_require_post();
+            $email = required_param('email', PARAM_RAW_TRIMMED);
+            $otp   = required_param('otp', PARAM_ALPHANUM);
+            try {
+                $data = \local_academy\password_reset_manager::verify_otp($email, $otp);
+            } catch (\moodle_exception $e) {
+                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+            }
+            academy_respond(['status' => 'success', 'data' => $data]);
+            break;
+
+        // Step 3: set the new password using the verified reset token.
+        case 'reset_password':
+            academy_require_post();
+            $resettoken  = required_param('resettoken', PARAM_ALPHANUM);
+            $newpassword = required_param('newpassword', PARAM_RAW);
+            try {
+                $data = \local_academy\password_reset_manager::reset_password($resettoken, $newpassword);
+            } catch (\moodle_exception $e) {
+                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+            }
+            academy_respond(['status' => 'success', 'data' => $data]);
+            break;
+
+        // Logged-in user changes their own password (needs the current one).
+        case 'change_password':
+            academy_require_post();
+            $current     = required_param('currentpassword', PARAM_RAW);
+            $newpassword = required_param('newpassword', PARAM_RAW);
+            try {
+                $data = \local_academy\password_reset_manager::change_password($userid, $current, $newpassword);
+            } catch (\moodle_exception $e) {
+                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+            }
+            academy_respond(['status' => 'success', 'data' => $data]);
+            break;
+
         // ── Courses: is this course free? ───────────────────────────────────────────
         // Free = no active pricing rule. Returns price/currency too when paid.
         case 'is_course_free':
