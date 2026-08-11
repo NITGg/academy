@@ -41,6 +41,11 @@ $cm = get_coursemodule_from_id('customcert', $cmid, 0, false, IGNORE_MISSING);
 if (!$cm) {
     certificate_fail('invalidcmid', 404);
 }
+// Verify this cmid really is a customcert.
+if ($cm->modname !== 'customcert') {
+    certificate_fail('not_a_certificate', 404);
+}
+
 $context = context_module::instance($cm->id);
 
 // Must be enrolled (or otherwise allowed to view the course).
@@ -48,26 +53,39 @@ if (!is_enrolled($context, $user, '', true) && !has_capability('moodle/course:vi
     certificate_fail('notenrolled', 403);
 }
 
-$customcert  = $DB->get_record('customcert', ['id' => $cm->instance], '*', MUST_EXIST);
-$templaterec = $DB->get_record('customcert_templates', ['id' => $customcert->templateid], '*', MUST_EXIST);
-$template    = new \mod_customcert\template($templaterec);
-
-// Record the issue (mirrors mod/customcert/view.php's download path), best-effort.
-if (class_exists('\mod_customcert\certificate')
-        && method_exists('\mod_customcert\certificate', 'issue_certificate')) {
-    try {
-        \mod_customcert\certificate::issue_certificate($customcert->id, $user->id);
-    } catch (\Throwable $e) {
-        // Non-fatal — still deliver the PDF.
+// From here, surface any failure as clean JSON instead of a themed HTML error
+// page, so the client (and we) can see the real cause instead of "could not
+// open the PDF".
+try {
+    $customcert = $DB->get_record('customcert', ['id' => $cm->instance], '*', IGNORE_MISSING);
+    if (!$customcert) {
+        certificate_fail('customcert_record_missing', 404);
     }
-}
+    $templaterec = $DB->get_record('customcert_templates', ['id' => $customcert->templateid], '*', IGNORE_MISSING);
+    if (!$templaterec) {
+        certificate_fail('customcert_template_missing', 404);
+    }
+    $template = new \mod_customcert\template($templaterec);
 
-// Discard any buffered output (stray notices/whitespace would corrupt the PDF
-// stream and make the client report "could not open the PDF").
-while (ob_get_level() > 0) {
-    ob_end_clean();
-}
+    // Record the issue (mirrors mod/customcert/view.php's download path), best-effort.
+    if (class_exists('\mod_customcert\certificate')
+            && method_exists('\mod_customcert\certificate', 'issue_certificate')) {
+        try {
+            \mod_customcert\certificate::issue_certificate($customcert->id, $user->id);
+        } catch (\Throwable $e) {
+            // Non-fatal — still deliver the PDF.
+        }
+    }
 
-// Stream the certificate PDF for this user (preview=false, return=false = download).
-$template->generate_pdf(false, $user->id);
-exit;
+    // Discard any buffered output (stray notices/whitespace would corrupt the PDF
+    // stream and make the client report "could not open the PDF").
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    // Stream the certificate PDF for this user (preview=false, return=false = download).
+    $template->generate_pdf(false, $user->id);
+    exit;
+} catch (\Throwable $e) {
+    certificate_fail('generation_failed: ' . $e->getMessage(), 500);
+}
