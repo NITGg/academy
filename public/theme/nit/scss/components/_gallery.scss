@@ -174,3 +174,35 @@
         flex: 0 0 auto;
     }
 }
+
+// Category styles tab — the category → brand-group table. Bootstrap's `.table`
+// ships its own light-theme colours (`--bs-table-color` a near-black, grey
+// borders) which read as dark, low-contrast text on the brand-dark admin page —
+// that's why the "Category" / "Brand group" headers looked unstyled. Re-point the
+// table's own CSS variables at brand roles so the whole thing follows the palette.
+.nit-catstyles-table {
+    --bs-table-color: var(--nit-brand-textprimary);
+    --bs-table-bg: transparent;
+    --bs-table-border-color: var(--nit-brand-borderprimary);
+    color: var(--nit-brand-textprimary);
+
+    thead th {
+        color: var(--nit-brand-textsecondary);
+        border-bottom-color: var(--nit-brand-borderprimary);
+        font-weight: 600;
+    }
+
+    td,
+    th {
+        border-color: var(--nit-brand-borderprimary);
+        vertical-align: middle;
+    }
+
+    // The Group 1/2/3 pickers: brand surface field, so they match the rest of the
+    // theme's inputs rather than Bootstrap's default light select.
+    .form-select {
+        background-color: var(--nit-brand-surface);
+        color: var(--nit-brand-textprimary);
+        border-color: var(--nit-brand-borderprimary);
+    }
+}

@@ -59,14 +59,16 @@ class gallery implements renderable, templatable {
             ];
         }
 
-        // Category → brand-group mapping for the "Category styles" tab. Every
-        // visible category gets a row with a Group 1/2/3 selector, pre-set to its
-        // stored assignment (default Group 1). Indented by depth to show the tree.
+        // Category → brand-group mapping for the "Category styles" tab. Only the
+        // MAIN (top-level) categories are assignable; every page under a main
+        // category (its subcategories, filtered views) inherits that group via
+        // theme_nit_category_brand_group(). Each row gets a Group 1/2/3 selector,
+        // pre-set to the stored assignment (default Group 1).
         $rawmap = \get_config('theme_nit', 'nit_category_groups');
         $catmap = ($rawmap && is_string($rawmap)) ? (json_decode($rawmap, true) ?: []) : [];
         $grouplabels = \theme_nit_brand_groups();
         $categorygroups = [];
-        foreach (\core_course_category::get_all() as $cat) {
+        foreach (\core_course_category::top()->get_children() as $cat) {
             $current = $catmap[$cat->id] ?? 'g1';
             if (!array_key_exists($current, $grouplabels)) {
                 $current = 'g1';
@@ -78,7 +80,6 @@ class gallery implements renderable, templatable {
             $categorygroups[] = [
                 'id' => $cat->id,
                 'name' => $cat->get_formatted_name(),
-                'indent' => str_repeat('&nbsp;&nbsp;&nbsp;&nbsp;', max(0, (int) $cat->depth - 1)),
                 'options' => $options,
                 'isdefault' => ($current === 'g1'),
             ];

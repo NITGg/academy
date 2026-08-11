@@ -232,11 +232,11 @@ function theme_nit_brand_groups(): array {
 /**
  * The Brand-Colors group assigned to a category (for the category details page).
  *
- * Admins map categories to groups on the gallery "Category styles" tab; the map
- * is stored as the theme_nit config `nit_category_groups` (JSON `{id: "g2", …}`).
- * A category with no explicit assignment uses Group 1 (the default). No ancestor
- * inheritance — each category page is its own entry point, so the mapping is by
- * the exact category id shown.
+ * Admins map only the MAIN (top-level) categories to groups on the gallery
+ * "Category styles" tab; the map is stored as the theme_nit config
+ * `nit_category_groups` (JSON `{topcatid: "g2", …}`). A category page resolves to
+ * the group of its top-level ancestor, so every subcategory / filtered view under
+ * a main category inherits that main category's group. Unassigned → Group 1.
  *
  * @param int $categoryid the category whose page is being rendered
  * @return string one of the group keys from theme_nit_brand_groups() (g1/g2/g3)
@@ -247,7 +247,21 @@ function theme_nit_category_brand_group(int $categoryid): string {
         $raw = get_config('theme_nit', 'nit_category_groups');
         $map = ($raw && is_string($raw)) ? (json_decode($raw, true) ?: []) : [];
     }
-    $group = $map[$categoryid] ?? 'g1';
+    if (empty($map)) {
+        return 'g1';
+    }
+    // Styles are assigned per main category → resolve to the top-level ancestor.
+    $topid = $categoryid;
+    try {
+        $cat = core_course_category::get($categoryid, IGNORE_MISSING, true);
+        if ($cat) {
+            $parents = $cat->get_parents();      // Ancestor ids, top-most first, excludes self.
+            $topid = !empty($parents) ? (int) $parents[0] : (int) $categoryid;
+        }
+    } catch (\Throwable $e) {
+        $topid = $categoryid;
+    }
+    $group = $map[$topid] ?? 'g1';
     return array_key_exists($group, theme_nit_brand_groups()) ? $group : 'g1';
 }
 
