@@ -128,6 +128,48 @@ try {
             academy_respond(['status' => 'success', 'data' => \local_academy\quiz_manager::get_my_attempts($quizid, $userid)]);
             break;
 
+        // ── Courses: is this course free? ───────────────────────────────────────────
+        // Free = no active pricing rule. Returns price/currency too when paid.
+        case 'is_course_free':
+            $courseid = required_param('courseid', PARAM_INT);
+            $isfree = !class_exists('\local_payments\price_resolver')
+                || !\local_payments\price_resolver::has_pricing($courseid);
+            $data = ['courseid' => (int) $courseid, 'is_free' => $isfree];
+            if (!$isfree) {
+                try {
+                    $p = \local_payments\price_resolver::resolve($courseid, $userid);
+                    $data['price']    = (float) $p->price;
+                    $data['currency'] = $p->currency;
+                } catch (\Throwable $e) {
+                    $data['is_free'] = true; // no rule resolvable for this user -> free
+                }
+            }
+            academy_respond(['status' => 'success', 'data' => $data]);
+            break;
+
+        // ── Courses: self-enrol into a FREE course ──────────────────────────────────
+        // Lets a student register themselves on a course that has NO active pricing.
+        // Paid courses are rejected — they must go through the payment flow — so this
+        // can't be used to bypass payment.
+        case 'enrol_free_course':
+            academy_require_post();
+            $courseid = required_param('courseid', PARAM_INT);
+            if (!class_exists('\local_payments\price_resolver')) {
+                academy_respond(['status' => 'fail', 'error' => 'Payments module not available']);
+            }
+            if ($courseid == SITEID || !$DB->record_exists('course', ['id' => $courseid, 'visible' => 1])) {
+                academy_respond(['status' => 'fail', 'error' => 'Course not available']);
+            }
+            if (\local_payments\price_resolver::has_pricing($courseid)) {
+                academy_respond(['status' => 'fail', 'error' => 'This course is not free']);
+            }
+            $enrolled = \local_payments\enrollment_handler::enrol_user($userid, (int) $courseid, 5);
+            academy_respond([
+                'status' => $enrolled ? 'success' : 'fail',
+                'data'   => ['courseid' => (int) $courseid, 'enrolled' => $enrolled],
+            ]);
+            break;
+
         // Current user's profile with ready-to-use (token-embedded) image URLs.
         case 'get_my_profile':
             academy_respond(['status' => 'success', 'data' => \local_academy\profile_manager::get_my_profile($USER, $token)]);

@@ -6,6 +6,11 @@ $string['pluginname'] = 'Payments';
 $string['subplugintype_paymentprovider'] = 'Payment provider';
 $string['subplugintype_paymentprovider_plural'] = 'Payment providers';
 
+// Free-course self-registration.
+$string['registerfree'] = 'Register for free';
+$string['freecourseintro'] = 'This course is free. Click below to register and start learning.';
+$string['freeenrolled'] = 'You are now enrolled. Enjoy the course!';
+
 // Settings.
 $string['generalsettings'] = 'Payment settings';
 $string['default_country'] = 'Default country';
