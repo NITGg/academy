@@ -125,6 +125,9 @@ class manager {
                     'expires_at' => (int) $existing->expires_at,
                     'provider' => $DB->get_field('local_payments_providers', 'name', ['id' => $existing->provider_id]),
                     'transaction_id' => (int) $existing->id,
+                    'amount' => (float) $existing->amount,
+                    'original_amount' => (float) ($existing->original_amount ?? $existing->amount),
+                    'currency' => $existing->currency,
                 ];
             }
             $DB->update_record('local_payments_transactions', (object) [
@@ -252,6 +255,9 @@ class manager {
             'expires_at' => $expires_at,
             'provider' => $provider->get_name(),
             'transaction_id' => $transaction_id,
+            'amount' => (float) $amount,
+            'original_amount' => (float) $pricing->original_price,
+            'currency' => $pricing->currency,
         ];
     }
 
@@ -415,6 +421,11 @@ class manager {
             'expires_at' => $expires_at,
             'provider' => $provider->get_name(),
             'transaction_id' => $transaction_id,
+            // The actual charged (post-discount) amount, so the app can display the correct price
+            // even if it renders its own summary/gateway screen instead of opening checkout_url.
+            'amount' => (float) $amount,
+            'original_amount' => (float) $originalamount,
+            'currency' => $currency,
         ];
     }
 

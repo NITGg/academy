@@ -64,6 +64,9 @@ class create_checkout extends external_api {
             'expires_at' => $result->expires_at,
             'provider' => $result->provider,
             'transaction_id' => $result->transaction_id,
+            'amount' => (float) ($result->amount ?? 0),
+            'original_amount' => (float) ($result->original_amount ?? 0),
+            'currency' => $result->currency ?? '',
         ];
     }
 
@@ -74,6 +77,9 @@ class create_checkout extends external_api {
             'expires_at' => new external_value(PARAM_INT, 'Expiry timestamp'),
             'provider' => new external_value(PARAM_TEXT, 'Provider name'),
             'transaction_id' => new external_value(PARAM_INT, 'Transaction record ID'),
+            'amount' => new external_value(PARAM_FLOAT, 'Charged amount after coupon/offer — show THIS price'),
+            'original_amount' => new external_value(PARAM_FLOAT, 'Price before discount'),
+            'currency' => new external_value(PARAM_TEXT, 'Currency (e.g. EGP)'),
         ]);
     }
 }
