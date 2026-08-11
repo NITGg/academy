@@ -299,7 +299,7 @@ echo $OUTPUT->header();
             </h3>
 
             <?php if ($teacher !== ''): ?>
-            <div style="font-size: 12px; color: var(--ctext3); margin: 0 0 8px;">
+            <div style="font-size: 12px; color: var(--ctext2); margin: 0 0 8px;">
               👤 <?= s($teacher) ?>
             </div>
             <?php endif; ?>
