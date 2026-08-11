@@ -145,6 +145,7 @@ GET …&wsfunction=local_nit_commerce_preview_discount&moodlewsrestformat=json
 | `item_type` | ✔ | `course` \| `package` \| `subscription` \| `program` |
 | `item_id` | ✔ | the plan/course id |
 | `coupon_code` | — | omit or empty to preview the offer-only price |
+| `country` | — | ISO-2 (e.g. `EG`) — used only for **course** base pricing; ignored for other types |
 
 ```json
 {

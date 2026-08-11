@@ -52,6 +52,7 @@ class preview_discount extends external_api {
             'item_type'   => new external_value(PARAM_ALPHA, 'course | package | subscription | program'),
             'item_id'     => new external_value(PARAM_INT, 'Target item id'),
             'coupon_code' => new external_value(PARAM_TEXT, 'Coupon code to try (optional)', VALUE_DEFAULT, ''),
+            'country'     => new external_value(PARAM_ALPHA, 'ISO country from the app, for course pricing (optional)', VALUE_DEFAULT, ''),
             'lang'        => new external_value(PARAM_LANG, 'Display language, e.g. en or ar (optional)', VALUE_DEFAULT, ''),
             'alang'       => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
         ]);
@@ -63,18 +64,20 @@ class preview_discount extends external_api {
      * @param string $itemtype
      * @param int $itemid
      * @param string $couponcode
+     * @param string $country
      * @param string $lang
      * @param string $alang
      * @return array
      */
     public static function execute(string $itemtype, int $itemid, string $couponcode = '',
-            string $lang = '', string $alang = ''): array {
+            string $country = '', string $lang = '', string $alang = ''): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'item_type'   => $itemtype,
             'item_id'     => $itemid,
             'coupon_code' => $couponcode,
+            'country'     => $country,
             'lang'        => $lang,
             'alang'       => $alang,
         ]);
@@ -91,7 +94,7 @@ class preview_discount extends external_api {
 
         // Course prices live in local_payments (per-course rules); other item types
         // resolve their own base inside discount_manager.
-        $base = self::base_price($params['item_type'], $params['item_id'], $USER->id);
+        $base = self::base_price($params['item_type'], $params['item_id'], $USER->id, $params['country']);
 
         try {
             $resolved = discount_manager::resolve(
@@ -139,9 +142,10 @@ class preview_discount extends external_api {
      * @param string $itemtype
      * @param int $itemid
      * @param int $userid
+     * @param string $country ISO country for course pricing ('' = auto-detect)
      * @return float|null
      */
-    private static function base_price(string $itemtype, int $itemid, int $userid): ?float {
+    private static function base_price(string $itemtype, int $itemid, int $userid, string $country = ''): ?float {
         global $CFG;
         if ($itemtype !== 'course') {
             return null;
@@ -151,7 +155,7 @@ class preview_discount extends external_api {
             return null;
         }
         try {
-            $pricing = \local_payments\price_resolver::resolve($itemid, $userid);
+            $pricing = \local_payments\price_resolver::resolve($itemid, $userid, $country !== '' ? $country : null);
             return (float) ($pricing->price ?? 0);
         } catch (\Throwable $e) {
             return null;

@@ -13,27 +13,39 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-// NIT tab refinement: brand-driven active indicator, hover and admin nav.
+// NIT tab refinement: a brand three-state model applied to every .nav-tabs
+// across the site.
+//
+//   normal  → Text primary text, 50%-opacity Background fill, no border/underline
+//   active  → Text primary text, 50%-opacity Background fill, Primary border
+//   hover   → Text primary text, solid Background fill,        Primary border
+//
+// The fill reads through --nit-brand-background (translucent for the resting /
+// active states, solid on hover) and the indicator is a full Primary border on
+// the active and hovered tab, so the strip re-skins with the palette.
 .nav-tabs {
     .nav-link {
         font-weight: 600;
 
-        // Hover on an inactive tab: a subtle Surface fill. Core Bootstrap only
-        // lit a light-grey border here, which flashed white on the dark brand.
+        // Normal (resting) tab.
+        color: var(--nit-brand-textprimary);
+        background-color: color-mix(in srgb, var(--nit-brand-background) 50%, transparent);
+        border-color: transparent;
+
+        // Hover: solid Background fill, marked by a Primary border.
         &:hover,
         &:focus {
-            background-color: var(--nit-brand-surface);
-            border-color: var(--nit-brand-borderprimary);
+            color: var(--nit-brand-textprimary);
+            background-color: var(--nit-brand-background);
+            border-color: var(--nit-brand-primary);
         }
 
+        // Active: same translucent Background fill as the resting tab, marked by
+        // a Primary border.
         &.active {
-            // Brand accent indicator + readable brand text on a Surface fill.
-            // Was a fixed blue underline ($nit-blue-600) on near-black text, and
-            // Bootstrap's --bs-nav-tabs-link-active-bg resolves to the accent
-            // red here — so pin the fill to Surface for a clean raised tab.
             color: var(--nit-brand-textprimary);
-            background-color: var(--nit-brand-surface);
-            border-bottom: 2px solid var(--nit-brand-accent);
+            background-color: color-mix(in srgb, var(--nit-brand-background) 50%, transparent);
+            border-color: var(--nit-brand-primary);
         }
 
         &:focus-visible {
@@ -42,25 +54,27 @@
     }
 }
 
-// Admin secondary navigation (Site administration: General / Users / …). Core
-// Boost tints hover & active with a light grey ($gray-100); recolour to the
-// brand Surface so the strip stays dark and legible. The red active underline
-// (from the .nav-tabs rule above) is preserved.
+// Admin secondary navigation (Site administration: General / Users / …) is a
+// .moremenu .nav-tabs; core carries higher-specificity light-grey rules for its
+// hover / active states, so restate the same three-state brand model here to win
+// the cascade and keep the admin strip consistent with every other tab set.
 .moremenu .nav-link {
     &:hover,
     &:focus {
-        background-color: var(--nit-brand-surface);
+        color: var(--nit-brand-textprimary);
+        background-color: var(--nit-brand-background);
+        border-color: var(--nit-brand-primary);
     }
 
     &.active {
-        background-color: var(--nit-brand-surface);
         color: var(--nit-brand-textprimary);
+        background-color: color-mix(in srgb, var(--nit-brand-background) 50%, transparent);
+        border-color: var(--nit-brand-primary);
 
-        // Core carries a higher-specificity light-grey rule for the active tab
-        // on hover/focus — match it so the active tab stays on brand too.
         &:hover,
         &:focus {
-            background-color: var(--nit-brand-surface);
+            background-color: var(--nit-brand-background);
+            border-color: var(--nit-brand-primary);
         }
     }
 }

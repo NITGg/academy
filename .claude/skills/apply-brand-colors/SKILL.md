@@ -30,12 +30,12 @@ re-reads the same names from that group):
 
 | Role | Variable | Use it for |
 |------|----------|------------|
-| Primary | `--nit-brand-primary` | background of the main button, checked toggles, progress fill, notification dots |
+| Primary | `--nit-brand-primary` | background of the main button, checked toggles, progress fill, notification dots, navbar background |
 | Secondary | `--nit-brand-secondary` | background of secondary / dual buttons |
 | Accent | `--nit-brand-accent` | text of links, important words, underlines / active indicators |
 | Background | `--nit-brand-background` | page background |
 | Surface | `--nit-brand-surface` | background of cards, dropdowns, side menu, inputs, tooltips, tables, page sections |
-| Text primary | `--nit-brand-textprimary` | main text, text in buttons, text in inputs |
+| Text primary | `--nit-brand-textprimary` | main text, text in buttons, text in inputs, navbar text, navbar underline |
 | Text secondary | `--nit-brand-textsecondary` | secondary text, placeholders |
 | Border primary | `--nit-brand-borderprimary` | main border colour (cards, dividers, inputs) |
 | Border secondary | `--nit-brand-bordersecondary` | secondary / ghost button borders |

@@ -196,12 +196,12 @@ function theme_nit_colours_all(): array {
  */
 function theme_nit_brand_roles(): array {
     return [
-        'primary'         => ['label' => 'Primary', 'usage' => ['background main button', 'checked toggles', 'progress fill', 'notification dots'], 'default' => '#e5322d'],
+        'primary'         => ['label' => 'Primary', 'usage' => ['background main button', 'checked toggles', 'progress fill', 'notification dots', 'navbar background'], 'default' => '#e5322d'],
         'secondary'       => ['label' => 'Secondary', 'usage' => ['background secondary button'], 'default' => '#13293f'],
         'accent'          => ['label' => 'Accent', 'usage' => ['text of links', 'important words', 'underlines'], 'default' => '#e5322d'],
         'background'      => ['label' => 'Background', 'usage' => ['page background'], 'default' => '#0a1628'],
         'surface'         => ['label' => 'Surface', 'usage' => ['Cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'page sections background'], 'default' => '#0f1e33'],
-        'textprimary'     => ['label' => 'Text primary', 'usage' => ['main normal text', 'text in buttons', 'text in inputs'], 'default' => '#ffffff'],
+        'textprimary'     => ['label' => 'Text primary', 'usage' => ['main normal text', 'text in buttons', 'text in inputs', 'navbar text', 'navbar underline'], 'default' => '#ffffff'],
         'textsecondary'   => ['label' => 'Text secondary', 'usage' => ['secondary normal text', 'placeholders'], 'default' => '#8a9ab5'],
         'borderprimary'   => ['label' => 'Border primary', 'usage' => ['main border color'], 'default' => '#244766'],
         'bordersecondary' => ['label' => 'Border secondary', 'usage' => ['secondary border color'], 'default' => '#3a5f86'],
