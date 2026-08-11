@@ -54,6 +54,7 @@ class create_subscription_checkout extends external_api {
             'coupon_code'    => new external_value(PARAM_TEXT, 'Coupon code to apply (normal purchase only)', VALUE_DEFAULT, ''),
             'country'        => new external_value(PARAM_ALPHA, 'ISO country from the app (optional)', VALUE_DEFAULT, ''),
             'lang'           => new external_value(PARAM_ALPHA, 'Display language for the gateway (en/ar)', VALUE_DEFAULT, 'en'),
+            'alang'          => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
             'return_url'     => new external_value(PARAM_URL, 'URL to send the user back to after payment (optional)', VALUE_DEFAULT, ''),
         ]);
     }

@@ -52,6 +52,8 @@ class preview_discount extends external_api {
             'item_type'   => new external_value(PARAM_ALPHA, 'course | package | subscription | program'),
             'item_id'     => new external_value(PARAM_INT, 'Target item id'),
             'coupon_code' => new external_value(PARAM_TEXT, 'Coupon code to try (optional)', VALUE_DEFAULT, ''),
+            'lang'        => new external_value(PARAM_LANG, 'Display language, e.g. en or ar (optional)', VALUE_DEFAULT, ''),
+            'alang'       => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -61,18 +63,27 @@ class preview_discount extends external_api {
      * @param string $itemtype
      * @param int $itemid
      * @param string $couponcode
+     * @param string $lang
+     * @param string $alang
      * @return array
      */
-    public static function execute(string $itemtype, int $itemid, string $couponcode = ''): array {
+    public static function execute(string $itemtype, int $itemid, string $couponcode = '',
+            string $lang = '', string $alang = ''): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'item_type'   => $itemtype,
             'item_id'     => $itemid,
             'coupon_code' => $couponcode,
+            'lang'        => $lang,
+            'alang'       => $alang,
         ]);
 
         self::validate_context(\context_system::instance());
+        $chosen = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
+        if ($chosen !== '') {
+            force_current_language($chosen);
+        }
 
         // Verify the item exists first, so a bad id returns a clear "not found" instead of a
         // misleading final price of 0 (the discount engine treats an unknown item as base 0).

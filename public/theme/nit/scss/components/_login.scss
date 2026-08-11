@@ -126,15 +126,18 @@
 
     // "Log in with Google" / "Log in as guest" (.login-identityprovider-btn,
     // the guest one also .btn-outline-secondary). Core paints them white with
-    // grey text/border; brand them as Surface cards with brand text/border.
+    // grey text/border. These are secondary ACTIONS, so compose them from the
+    // button roles — Secondary fill + Border-secondary outline + brand text —
+    // not the Surface role (which is for cards / inputs), so they read as real
+    // secondary buttons and stay distinct from the surfaces around them.
     .login-identityprovider-btn {
-        background-color: var(--nit-brand-surface);
-        border-color: var(--nit-brand-borderprimary);
+        background-color: var(--nit-brand-secondary);
+        border-color: var(--nit-brand-bordersecondary);
         color: var(--nit-brand-textprimary);
 
         &:hover,
         &:focus {
-            background-color: var(--nit-brand-surface-2, var(--nit-brand-surface));
+            background-color: var(--nit-brand-secondary-hover, var(--nit-brand-secondary));
             border-color: var(--nit-brand-bordersecondary);
             color: var(--nit-brand-textprimary);
         }

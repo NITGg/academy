@@ -59,6 +59,10 @@ GET  {WWWROOT}/webservice/rest/server.php
 
 - **Read** functions may be `GET`; **write** functions (`create_subscription_checkout`) should be `POST`
   with the params in the form body. There is **no `sesskey`** — the token *is* the credential.
+- **Every function accepts an optional `lang` (and its alias `alang`)** — e.g. `en` / `ar` — to
+  localize names/descriptions. Because Moodle web services **reject any undeclared parameter**
+  (`"Invalid parameter value detected"`), only send parameters listed for that function; `lang`/`alang`
+  are safe to send on all of them.
 - On success you get the raw JSON data (an array or object — **no `{status,data}` wrapper**).
 - On failure you get a Moodle exception object — see [§6 Errors](#6-error-handling).
 
