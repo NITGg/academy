@@ -4,16 +4,15 @@
 // light `#f8f9fa` background. On the dark brand that surfaced a white band
 // behind the sidebar with unreadable white text.
 //
-// Brand it as page ground: the drawer is a region that holds block *cards*
-// (which are `--nit-brand-surface`), exactly like the main content area — so it
-// takes `--nit-brand-background`, mirroring `#page.drawers .main-inner`. The
-// Surface cards then float on it with a real tonal step, same as everywhere
-// else on the site. Background colour is direction-agnostic, so this is correct
-// for both the RTL (drawer-left in Arabic) and LTR sides with no logical-prop
-// work needed.
+// The brand system assigns the "side menu background" role to Surface, so the
+// drawer is a Surface panel (distinct from the page's Background ground). The
+// block cards inside are also Surface but carry their own Border-primary
+// outline, so they still read as separate cards on the panel. Background colour
+// is direction-agnostic, so this is correct for both the RTL (drawer-left in
+// Arabic) and LTR sides with no logical-prop work needed.
 // -----------------------------------------------------------------------------
 .drawer {
-    background-color: var(--nit-brand-background);
+    background-color: var(--nit-brand-surface);
     // The drawer's own separator from the page uses the brand border, not the
     // core grey it inherits from `$border-color`.
     border-inline-color: var(--nit-brand-borderprimary);

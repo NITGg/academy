@@ -40,7 +40,7 @@
 // Chrome-bearing anchors opt out (:not(...)) — buttons, nav/menu items,
 // dropdown entries, pagination, tabs, list-group rows, cards and badges own
 // their own hover treatment, and an underline would look wrong on them.
-a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link):not(.list-group-item):not(.badge):not(.card):not([role="button"]):not([role="tab"]):not([role="menuitem"]) {
+a:not(.btn):not(.nav-link):not(.navbar-brand):not(.dropdown-item):not(.page-link):not(.list-group-item):not(.badge):not(.card):not([role="button"]):not([role="tab"]):not([role="menuitem"]) {
     &:hover,
     &:focus,
     &:active {
