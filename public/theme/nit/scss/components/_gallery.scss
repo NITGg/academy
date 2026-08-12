@@ -25,7 +25,7 @@
     // brighter accent tint so red code clears 4.5:1 on the dark Background
     // (flat Accent measures ~4.2). The colour editor's own .nit-colour-config
     // keeps its Text-secondary colour via its more specific rule.
-    --bs-code-color: var(--nit-brand-accent-bright);
+    --bs-code-color: var(--nit-brand-accent-vivid);
 
     // Muted descriptive copy — the per-tab intro paragraphs and the "GROUP n"
     // labels. Core's `.text-muted` resolves to a translucent white here; point it

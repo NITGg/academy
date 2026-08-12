@@ -106,7 +106,12 @@
     --nit-brand-accent-hover: color-mix(in srgb, var(--nit-brand-accent) 16%, transparent);
     // A brighter accent for text / icon hover (where a translucent wash would
     // just fade the glyph).
-    --nit-brand-accent-bright: color-mix(in srgb, var(--nit-brand-accent) 70%, #fff);
+    // NOTE: name deliberately avoids the substring "right"/"left" — Moodle's RTL
+    // post-processor (rtlcss) rewrites those inside identifiers too, so an earlier
+    // `--nit-brand-accent-bright` was silently emitted as `--nit-brand-accent-bleft`
+    // in the RTL stylesheet, breaking every consumer (e.g. the navbar hover) in
+    // Arabic only. Keep directional words out of custom-property names.
+    --nit-brand-accent-vivid: color-mix(in srgb, var(--nit-brand-accent) 70%, #fff);
     --nit-brand-surface-2: color-mix(in srgb, var(--nit-brand-surface) 90%, #fff);
     --nit-brand-surface-translucent: color-mix(in srgb, var(--nit-brand-surface) 88%, transparent);
     --nit-brand-on-primary: var(--nit-brand-textprimary);
