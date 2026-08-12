@@ -140,9 +140,9 @@ body:has(.acad-cr) .acad-cr-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    // Deepen the primary a touch so the white label clears 4.5 (pure primary is
-    // 4.35 against #fff) while staying unmistakably brand red.
-    background: color-mix(in srgb, var(--cr-primary) 88%, #000);
+    // Use the exact brand primary so this matches every other primary button on
+    // the site (they are all #e5322d). Text stays brand-white (no auto-contrast).
+    background: var(--cr-primary);
     color: var(--nit-brand-textprimary);
     font-size: 16px;
     font-weight: 700;
@@ -153,7 +153,7 @@ body:has(.acad-cr) .acad-cr-btn {
     transition: background .15s ease, transform .15s ease;
 }
 body:has(.acad-cr) .acad-cr-btn:hover {
-    background: color-mix(in srgb, var(--cr-primary) 74%, #000);
+    background: color-mix(in srgb, var(--cr-primary) 86%, #000);
     color: var(--nit-brand-textprimary);
     text-decoration: none;
     transform: translateY(-1px);
