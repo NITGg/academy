@@ -14,9 +14,9 @@ $string['vdocipher:view']        = 'View a VdoCipher Video';
 // Form.
 $string['videosource']       = 'Video';
 $string['videofile']         = 'Upload a video';
-$string['videofile_help']    = 'Choose a video file to upload to VdoCipher. Best for modest file sizes — for very large videos, upload them on the VdoCipher dashboard (or the app) and paste the video ID below instead. If you both upload a file and paste an ID, the uploaded file wins.';
-$string['videoid']           = '…or VdoCipher video ID';
-$string['videoid_help']      = 'Paste the ID of a video that already exists in your VdoCipher account. Leave the upload field empty when using this.';
+$string['videofile_help']    = 'Choose a video file. It uploads directly from your browser to VdoCipher (it does not pass through the server), so large files and slow connections are fine — watch the progress bar. When it finishes, the video ID field below is filled automatically; then click Save.';
+$string['videoid']           = 'VdoCipher video ID';
+$string['videoid_help']      = 'Filled automatically after an upload finishes. You can also paste the ID of a video that already exists in your VdoCipher account instead of uploading.';
 $string['err_novideosource'] = 'Add a video: upload a file or paste a VdoCipher video ID.';
 
 // Index.

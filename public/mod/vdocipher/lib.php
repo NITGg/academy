@@ -111,38 +111,17 @@ function vdocipher_delete_instance($id) {
 }
 
 /**
- * Resolve the video id for a form submission: a freshly uploaded file (pushed to
- * VdoCipher server-side) takes precedence over a pasted id.
+ * Resolve the video id for a form submission.
+ *
+ * The file is uploaded directly from the browser to VdoCipher (see mod_form),
+ * which fills the videoid field — so here we just take that id. No bytes pass
+ * through PHP, avoiding memory/timeout limits on large videos.
  *
  * @param stdClass $data
  * @return string
  */
 function vdocipher_resolve_videoid($data): string {
-    global $USER;
-
-    $pasted = trim($data->videoid ?? '');
-
-    $draftid = $data->videofile ?? 0;
-    if ($draftid) {
-        $usercontext = context_user::instance($USER->id);
-        $fs = get_file_storage();
-        $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftid, 'id', false);
-        if ($files) {
-            $file = reset($files);
-            $tmp  = $file->copy_content_to_temp();
-            try {
-                $title = ($data->name ?? 'Video') . ' (' . $file->get_filename() . ')';
-                $videoid = (new \local_vdocipher\api_client())->upload($tmp, $title);
-            } finally {
-                if (is_file($tmp)) {
-                    @unlink($tmp);
-                }
-            }
-            return $videoid;
-        }
-    }
-
-    return $pasted;
+    return trim($data->videoid ?? '');
 }
 
 /**
