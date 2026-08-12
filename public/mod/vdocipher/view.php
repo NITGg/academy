@@ -1,0 +1,82 @@
+<?php
+/**
+ * Display a VdoCipher Video activity: the secure player for the logged-in user.
+ */
+
+require(__DIR__ . '/../../config.php');
+require_once(__DIR__ . '/lib.php');
+require_once($CFG->libdir . '/completionlib.php');
+
+$id = required_param('id', PARAM_INT); // course module id
+
+$cm      = get_coursemodule_from_id('vdocipher', $id, 0, false, MUST_EXIST);
+$course  = get_course($cm->course);
+$moduleinstance = $DB->get_record('vdocipher', ['id' => $cm->instance], '*', MUST_EXIST);
+
+require_login($course, true, $cm);
+
+$context = context_module::instance($cm->id);
+require_capability('mod/vdocipher:view', $context);
+
+// Log the view / completion.
+$event = \mod_vdocipher\event\course_module_viewed::create([
+    'objectid' => $moduleinstance->id,
+    'context'  => $context,
+]);
+$event->add_record_snapshot('course_modules', $cm);
+$event->add_record_snapshot('course', $course);
+$event->add_record_snapshot('vdocipher', $moduleinstance);
+$event->trigger();
+
+$completion = new completion_info($course);
+$completion->set_module_viewed($cm);
+
+$PAGE->set_url(new moodle_url('/mod/vdocipher/view.php', ['id' => $cm->id]));
+$PAGE->set_title(format_string($moduleinstance->name));
+$PAGE->set_heading(format_string($course->fullname));
+$PAGE->set_context($context);
+
+echo $OUTPUT->header();
+echo $OUTPUT->heading(format_string($moduleinstance->name));
+
+if (!empty($moduleinstance->intro)) {
+    echo $OUTPUT->box(format_module_intro('vdocipher', $moduleinstance, $cm->id), 'generalbox', 'intro');
+}
+
+if (empty($moduleinstance->videoid)) {
+    echo $OUTPUT->notification(get_string('err_novideo', 'local_vdocipher'),
+        \core\output\notification::NOTIFY_WARNING);
+    echo $OUTPUT->footer();
+    exit;
+}
+
+try {
+    $data = \local_vdocipher\playback_service::mint($moduleinstance->videoid, $USER);
+} catch (\Throwable $e) {
+    debugging('mod_vdocipher view mint error: ' . $e->getMessage(), DEBUG_DEVELOPER);
+    echo $OUTPUT->notification(get_string('err_apifailed', 'local_vdocipher', $e->getMessage()),
+        \core\output\notification::NOTIFY_ERROR);
+    echo $OUTPUT->footer();
+    exit;
+}
+
+$otp    = json_encode($data['otp']);
+$pbinfo = json_encode($data['playbackInfo']);
+?>
+<div id="vdo-embed" style="position:relative;width:100%;max-width:960px;margin:1rem auto;aspect-ratio:16/9;background:#000;"></div>
+<script src="https://player.vdocipher.com/v2/api.js"></script>
+<script>
+(function () {
+    function mount() {
+        if (typeof VdoPlayer === 'undefined') { return setTimeout(mount, 150); }
+        new VdoPlayer({
+            otp: <?php echo $otp; ?>,
+            playbackInfo: <?php echo $pbinfo; ?>,
+            container: document.querySelector('#vdo-embed')
+        });
+    }
+    mount();
+})();
+</script>
+<?php
+echo $OUTPUT->footer();

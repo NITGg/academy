@@ -112,6 +112,73 @@ class api_client {
         return $this->request('POST', '/videos/' . rawurlencode($videoid) . '/otp', [], $body);
     }
 
+    /**
+     * Upload a local file to VdoCipher end-to-end (credentials → S3 push) and
+     * return the new video id. Suitable for server-side upload of modest files;
+     * very large videos are better uploaded from the VdoCipher dashboard/app.
+     *
+     * @param string $filepath absolute path to a readable video file
+     * @param string $title    title shown in the dashboard
+     * @return string the new VdoCipher video id
+     * @throws api_exception on any failure
+     */
+    public function upload(string $filepath, string $title): string {
+        if (!is_file($filepath) || !is_readable($filepath)) {
+            throw new api_exception('Upload file not readable: ' . $filepath);
+        }
+
+        $creds   = $this->get_upload_credentials($title);
+        $videoid = (string) ($creds['videoId'] ?? '');
+        $payload = $creds['clientPayload'] ?? [];
+        if ($videoid === '' || empty($payload['uploadLink'])) {
+            throw new api_exception('Unexpected upload-credentials response', 0, json_encode($creds));
+        }
+
+        // Forward EVERY field VdoCipher signed into the policy (policy, key,
+        // x-amz-*, success_action_redirect, …) — cherry-picking a subset drops
+        // fields the S3 policy requires and the POST is rejected (HTTP 403).
+        // The file part must come last.
+        $fields = [];
+        foreach ($payload as $k => $v) {
+            if ($k === 'uploadLink' || $k === 'file' || !is_scalar($v)) {
+                continue;
+            }
+            $fields[$k] = (string) $v;
+        }
+        // The policy requires BOTH of these fields present (each starts-with "").
+        // redirect empty → S3 falls back to success_action_status (201).
+        if (!array_key_exists('success_action_redirect', $fields)) {
+            $fields['success_action_redirect'] = '';
+        }
+        if (!array_key_exists('success_action_status', $fields)) {
+            $fields['success_action_status'] = '201';
+        }
+        $fields['file'] = new \CURLFile(realpath($filepath));
+
+        // Give the request room but never let it hang forever (a hung request
+        // is killed by the web server → blank 500). Raise PHP's clock to match.
+        \core_php_time_limit::raise(300);
+
+        $ch = curl_init($payload['uploadLink']);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 180);
+        $resp = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err  = curl_error($ch);
+        curl_close($ch);
+
+        if ($err) {
+            throw new api_exception('S3 upload transport error: ' . $err);
+        }
+        if (!in_array($code, [200, 201, 204], true)) {
+            throw new api_exception('S3 upload rejected', $code, (string) $resp);
+        }
+        return $videoid;
+    }
+
     // ── Transport ────────────────────────────────────────────────────────────
 
     /**
