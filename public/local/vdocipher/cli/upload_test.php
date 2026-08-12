@@ -54,14 +54,17 @@ if ($videoid === '') {
     cli_heading('2) Uploading file to VdoCipher S3');
     $uploadlink = $payload['uploadLink'];
 
-    // S3 requires the policy fields BEFORE the file part; build in that order.
+    // Forward EVERY signed field (dropping any means an S3 policy 403); file last.
     $fields = [];
-    foreach (['policy', 'key', 'x-amz-signature', 'x-amz-algorithm', 'x-amz-date', 'x-amz-credential'] as $k) {
-        if (isset($payload[$k])) {
-            $fields[$k] = $payload[$k];
+    foreach ($payload as $k => $v) {
+        if ($k === 'uploadLink' || $k === 'file' || !is_scalar($v)) {
+            continue;
         }
+        $fields[$k] = (string) $v;
     }
-    $fields['success_action_status'] = '201';
+    if (!array_key_exists('success_action_redirect', $fields)) {
+        $fields['success_action_redirect'] = '';
+    }
     $fields['file'] = new CURLFile(realpath($file));
 
     $ch = curl_init($uploadlink);

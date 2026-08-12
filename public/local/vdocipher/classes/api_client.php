@@ -134,14 +134,21 @@ class api_client {
             throw new api_exception('Unexpected upload-credentials response', 0, json_encode($creds));
         }
 
-        // S3 requires the policy fields BEFORE the file part; preserve that order.
+        // Forward EVERY field VdoCipher signed into the policy (policy, key,
+        // x-amz-*, success_action_redirect, …) — cherry-picking a subset drops
+        // fields the S3 policy requires and the POST is rejected (HTTP 403).
+        // The file part must come last.
         $fields = [];
-        foreach (['policy', 'key', 'x-amz-signature', 'x-amz-algorithm', 'x-amz-date', 'x-amz-credential'] as $k) {
-            if (isset($payload[$k])) {
-                $fields[$k] = $payload[$k];
+        foreach ($payload as $k => $v) {
+            if ($k === 'uploadLink' || $k === 'file' || !is_scalar($v)) {
+                continue;
             }
+            $fields[$k] = (string) $v;
         }
-        $fields['success_action_status'] = '201';
+        // The policy requires this field (empty value allowed); ensure it's sent.
+        if (!array_key_exists('success_action_redirect', $fields)) {
+            $fields['success_action_redirect'] = '';
+        }
         $fields['file'] = new \CURLFile(realpath($filepath));
 
         // Give the request room but never let it hang forever (a hung request
