@@ -124,3 +124,59 @@
     // surface. Swap in a light one (matches the textprimary default, #fff).
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
 }
+
+// -----------------------------------------------------------------------------
+// Autocomplete (`form-autocomplete`) — the THIRD dropdown family. This is a
+// searchable widget with its own suggestions list, NOT a Bootstrap
+// `.dropdown-menu` and NOT a native `<select>`, so the rules above never touch
+// it. It backs the "Course category" picker (course/edit.php), the "Search"
+// selectors, tag / cohort / user pickers, report-builder filters, and more.
+//
+// Core paints the suggestions panel on `$forms-autocomplete-bg` (white) with
+// `$body-color` text (dark → invisible on the brand) and fills the hovered /
+// keyboard-selected row with `$dropdown-link-active-bg` — the solid primary red
+// bars. Rebind the whole widget to the palette so it matches the other
+// dropdowns: Surface panel, brand text, and the subtle Hover roles for the
+// active row (instead of a full-width red slab).
+// -----------------------------------------------------------------------------
+.form-autocomplete-suggestions {
+    background-color: var(--nit-brand-surface);
+    border: 1px solid var(--nit-brand-borderprimary);
+    border-radius: $border-radius;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+
+    li {
+        color: var(--nit-brand-textprimary);
+
+        // Hovered or keyboard-highlighted suggestion — the brand hover pair,
+        // matching `.dropdown-item` above (no more solid red bars).
+        &:hover,
+        &:focus,
+        &[aria-selected="true"] {
+            background-color: var(--nit-brand-hoverbackground);
+            color: var(--nit-brand-hovertext);
+        }
+
+        // Unavailable suggestion.
+        &[aria-disabled="true"] {
+            color: var(--nit-brand-textsecondary);
+            background-color: transparent;
+        }
+
+        // Group heading inside the list.
+        &.suggestions-heading {
+            color: var(--nit-brand-textsecondary);
+            background-color: var(--nit-brand-surface);
+        }
+    }
+}
+
+// The selected-items area (the chips above the search box) and its open-arrow.
+.form-autocomplete-selection,
+.form-autocomplete-selection [role="option"] {
+    color: var(--nit-brand-textprimary);
+}
+
+.form-autocomplete-downarrow {
+    color: var(--nit-brand-textprimary);
+}
