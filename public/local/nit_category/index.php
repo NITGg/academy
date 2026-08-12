@@ -153,18 +153,11 @@ $t = function (string $en, string $ar) use ($isar) {
     return $isar ? $ar : $en;
 };
 
-// A pill/label for the subcategory filter bar (colours from the active style).
+// Subcategory filter buttons reuse the site's gallery button components (Components
+// tab): the active filter is a solid .btn-primary, the rest are .btn-outline-primary.
 $pill = function (moodle_url $url, string $label, bool $active): string {
-    $base = 'display:inline-block; padding:9px 22px; border-radius:50px; font-size:14px; '
-          . 'font-weight:bold; text-decoration:none; white-space:nowrap; transition:all .25s ease;';
-    if ($active) {
-        $style = $base . 'background:var(--cbg4); color:var(--ctext4); border:1px solid transparent; '
-               . 'box-shadow:0 6px 18px color-mix(in srgb, var(--cbg4) 30%, transparent);';
-    } else {
-        $style = $base . 'background:var(--cbg2); color:var(--ctext2); '
-               . 'border:1px solid color-mix(in srgb, var(--ctext1) 14%, transparent);';
-    }
-    return '<a href="' . $url->out() . '" style="' . $style . '">' . $label . '</a>';
+    $cls = $active ? 'btn btn-primary' : 'btn btn-outline-primary';
+    return '<a href="' . $url->out() . '" class="' . $cls . ' fw-bold">' . $label . '</a>';
 };
 
 $description  = format_text($category->description, $category->descriptionformat, ['context' => $context]);
@@ -434,9 +427,9 @@ echo $OUTPUT->header();
         <!-- Course Card: fixed min-height + stretch grid => every card is the same size. -->
         <div style="background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; height: 100%; min-height: 320px; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 12px 28px rgba(0,0,0,0.38)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
 
-          <!-- Category name pill (with the section's colour dot) -->
-          <div style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--dot) 14%, transparent); border: 1px solid color-mix(in srgb, var(--dot) 40%, transparent); color: var(--ctext1); padding: 6px 14px; border-radius: 50px; font-size: 12px; font-weight: bold; margin-bottom: 16px;">
-            <span style="width: 9px; height: 9px; border-radius: 50%; background: var(--dot); box-shadow: 0 0 8px var(--dot); flex: 0 0 auto;"></span>
+          <!-- Category name pill: rounded tint + circle icon (matches nested titles) -->
+          <div class="nit-card-cat">
+            <span class="nit-card-cat-dot"></span>
             <span><?= $sectionname ?></span>
           </div>
 
@@ -517,12 +510,21 @@ echo $OUTPUT->header();
         ?>
         <div class="<?= $blockclass ?>">
           <div class="nit-spec-head">
+            <?php if ($depth === 0): ?>
+            <!-- Top-level subcategory: pin + gradient text + coloured start-border. -->
             <h3 class="nit-spec-title">
               <span class="nit-spec-pin">📌</span>
               <span class="nit-spec-name"><?= $name ?></span>
               <span class="nit-spec-count">(<?= $count ?>)</span>
             </h3>
-            <div class="nit-spec-rule"></div>
+            <?php else: ?>
+            <!-- Nested subcategory: rounded tint pill + circle icon. -->
+            <h3 class="nit-spec-title nit-spec-title--sub">
+              <span class="nit-spec-dot"></span>
+              <span class="nit-spec-subname"><?= $name ?></span>
+              <span class="nit-spec-count">(<?= $count ?>)</span>
+            </h3>
+            <?php endif; ?>
           </div>
 
           <?php if (!empty($node['courses'])): ?>
@@ -548,9 +550,9 @@ echo $OUTPUT->header();
       ?>
 
       <style>
-        /* Subcategory section title — X-Trade .specialty-title, on brand vars. */
+        /* Top-level subcategory title — X-Trade .specialty-title, on brand vars. */
         .nit-spec-block { margin-bottom: 44px; }
-        .nit-spec-head { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+        .nit-spec-head { margin-bottom: 22px; }
         .nit-spec-title {
           display: inline-flex; align-items: center; gap: 10px;
           margin: 0; font-size: 29px; font-weight: 800; line-height: 1.3;
@@ -564,17 +566,43 @@ echo $OUTPUT->header();
         }
         .nit-spec-title .nit-spec-pin { font-size: 24px; line-height: 1; }
         .nit-spec-title .nit-spec-count { font-size: 15px; font-weight: 700; color: var(--ctext3); }
-        .nit-spec-rule { flex: 1; height: 1px; background: color-mix(in srgb, var(--ctext1) 8%, transparent); }
+
+        /* Nested subcategory title — rounded tint pill (50% of the accent) + circle
+           icon instead of the pin; no gradient / start-border so it reads as a chip. */
+        .nit-spec-title--sub {
+          border-inline-start: none; padding: 8px 20px; border-radius: 50px;
+          background: color-mix(in srgb, var(--ctext3) 50%, transparent);
+          font-size: 20px; color: var(--ctext1);
+        }
+        .nit-spec-title--sub .nit-spec-subname { color: var(--ctext1); }
+        .nit-spec-title--sub .nit-spec-count { color: var(--ctext1); font-size: 14px; }
+        .nit-spec-title--sub .nit-spec-dot {
+          width: 12px; height: 12px; border-radius: 50%;
+          background: var(--ctext1); flex: 0 0 auto;
+        }
+
         .nit-spec-grid {
           display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
           gap: 24px; align-items: stretch;
         }
-        /* Nested subcategory groups sit indented under their parent, same title UI. */
+        /* Nested subcategory groups sit indented under their parent. */
         .nit-spec-children { margin-top: 28px; display: flex; flex-direction: column; gap: 8px; }
         .nit-spec-block--nested {
           margin-bottom: 32px;
           margin-inline-start: 20px; padding-inline-start: 16px;
           border-inline-start: 2px solid color-mix(in srgb, var(--cbg4) 18%, transparent);
+        }
+
+        /* Course-card category chip — same tint pill + circle icon as nested titles. */
+        .nit-card-cat {
+          align-self: flex-start; display: inline-flex; align-items: center; gap: 8px;
+          background: color-mix(in srgb, var(--ctext3) 50%, transparent);
+          color: var(--ctext1); padding: 6px 14px; border-radius: 50px;
+          font-size: 12px; font-weight: bold; margin-bottom: 16px;
+        }
+        .nit-card-cat-dot {
+          width: 9px; height: 9px; border-radius: 50%;
+          background: var(--ctext1); flex: 0 0 auto;
         }
       </style>
 
