@@ -419,10 +419,15 @@ function theme_nit_font_scss($theme): string {
         $format = ($ext === 'otf') ? 'opentype' : 'truetype';
         $family = $slot['family'];
 
+        // Declare the uploaded file as the *normal* weight only (not 100 900). Most
+        // uploads are a single regular-weight file; claiming it covers 100-900 makes
+        // the browser use that one file verbatim for bold too (headings look thin).
+        // Declaring just `normal` lets the browser synthesize bold for heavier weights
+        // (font-weight: 600/700/800 on headings), so a single-weight upload still bolds.
         $css .= '@font-face {'
             . 'font-family: "' . $family . '";'
             . 'src: url("' . $url . '") format("' . $format . '");'
-            . 'font-weight: 100 900;'
+            . 'font-weight: normal;'
             . 'font-style: normal;'
             . 'font-display: swap;'
             . "}\n";
