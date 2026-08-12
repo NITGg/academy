@@ -199,8 +199,48 @@ echo $OUTPUT->header();
   <style>
     @keyframes nit-gridshift { 0% { transform: translateY(0); } 100% { transform: translateY(60px); } }
     @keyframes nit-hpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-    @keyframes nit-fadeup { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes nit-fadedown { from { opacity: 0; transform: translateY(-18px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes nit-fadeup { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes nit-fadedown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .nit-hero-btn-primary {
+      background: linear-gradient(135deg, var(--cbg4), var(--ctext3));
+      color: var(--cbg1);
+      padding: 1rem 2.5rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 16px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      display: inline-block;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 30px color-mix(in srgb, var(--cbg4) 40%, transparent);
+    }
+    .nit-hero-btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 40px color-mix(in srgb, var(--cbg4) 50%, transparent);
+      color: var(--cbg1);
+      text-decoration: none;
+    }
+    .nit-hero-btn-outline {
+      background: transparent;
+      border: 1px solid color-mix(in srgb, var(--cbg4) 40%, transparent);
+      color: var(--ctext3);
+      padding: 1rem 2.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 16px;
+      text-decoration: none;
+      display: inline-block;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .nit-hero-btn-outline:hover {
+      background: color-mix(in srgb, var(--cbg4) 10%, transparent);
+      border-color: var(--ctext3);
+      color: var(--ctext3);
+      text-decoration: none;
+    }
   </style>
   <div style="background: var(--cbg2); min-height: 85vh; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 120px 5% 80px; position: relative; overflow: hidden; border-bottom: 1px solid color-mix(in srgb, var(--cbg4) 20%, transparent);">
 
@@ -214,20 +254,20 @@ echo $OUTPUT->header();
     <div style="max-width: 860px; margin: 0 auto; position: relative; z-index: 1;">
 
       <!-- Badge: category name with pulsing dot -->
-      <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: color-mix(in srgb, var(--cbg4) 12%, transparent); border: 1px solid color-mix(in srgb, var(--cbg4) 30%, transparent); border-radius: 50px; padding: 0.4rem 1.2rem; font-size: 0.85rem; color: var(--ctext3); font-weight: 600; margin-bottom: 2rem; position: relative; z-index: 1; animation: nit-fadedown 0.8s ease both;">
+      <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: color-mix(in srgb, var(--cbg4) 12%, transparent); border: 1px solid color-mix(in srgb, var(--cbg4) 30%, transparent); border-radius: 50px; padding: 0.4rem 1.2rem; font-size: 14px; color: var(--ctext3); font-weight: 600; margin-bottom: 2rem; position: relative; z-index: 1; animation: nit-fadedown 0.8s ease both;">
         <span style="width: 8px; height: 8px; background: var(--csuccess); border-radius: 50%; animation: nit-hpulse 2s infinite; flex-shrink: 0;"></span>
         <?= $categoryname ?>
       </div>
 
       <!-- H1: count in accent color, subtitle with secondary accent -->
-      <h1 style="font-size: clamp(2.4rem, 6vw, 4.5rem); font-weight: 800; line-height: 1.15; margin: 0; color: var(--ctext1); position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.1s both;">
+      <h1 style="font-size: clamp(38px, 6vw, 72px); font-weight: 800; line-height: 1.15; margin: 0; color: var(--ctext1); position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.1s both;">
         <span style="color: var(--ctext3);"><?= $bannertotal ?> <?= $t('Training programs', 'برنامجًا تدريبيًا') ?></span><br>
         <span><?= $t('Diplomas and certificates', 'دبلومات وشهادات') ?></span> <span style="color: var(--cbg4);"><?= $t('professional', 'احترافية') ?></span>
       </h1>
 
       <!-- Description -->
       <?php if (trim(strip_tags($description)) !== ''): ?>
-      <div style="font-size: clamp(1rem, 2vw, 1.25rem); color: var(--ctext2); max-width: 680px; margin: 1.5rem auto; line-height: 1.8; position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.25s both;">
+      <div style="font-size: clamp(16px, 2vw, 20px); color: var(--ctext2); max-width: 680px; margin: 1.5rem auto; line-height: 1.8; position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.25s both;">
         <?= $description ?>
       </div>
       <?php endif; ?>
@@ -235,28 +275,26 @@ echo $OUTPUT->header();
       <!-- Stats: floating flex, no border box -->
       <div style="display: flex; gap: 3rem; margin: 2.5rem 0; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.4s both;">
         <div style="text-align: center;">
-          <span style="font-size: 2.2rem; font-weight: 800; color: var(--ctext3); display: block; line-height: 1;"><?= $bannertotal ?></span>
-          <span style="font-size: 0.8rem; color: var(--ctext2); font-weight: 500;"><?= $t('Courses and diplomas', 'دورة ودبلوم') ?></span>
+          <span style="font-size: 35px; font-weight: 800; color: var(--ctext3); display: block; line-height: 1;"><?= $bannertotal ?></span>
+          <span style="font-size: 13px; color: var(--ctext2); font-weight: 500;"><?= $t('Courses and diplomas', 'دورة ودبلوم') ?></span>
         </div>
         <div style="text-align: center;">
-          <span style="font-size: 2.2rem; font-weight: 800; color: var(--ctext3); display: block; line-height: 1;"><?= count($subcategories) ?></span>
-          <span style="font-size: 0.8rem; color: var(--ctext2); font-weight: 500;"><?= $t('Main specializations', 'تخصص رئيسي') ?></span>
+          <span style="font-size: 35px; font-weight: 800; color: var(--ctext3); display: block; line-height: 1;"><?= count($subcategories) ?></span>
+          <span style="font-size: 13px; color: var(--ctext2); font-weight: 500;"><?= $t('Main specializations', 'تخصص رئيسي') ?></span>
         </div>
         <div style="text-align: center;">
-          <span style="font-size: 2.2rem; font-weight: 800; color: var(--ctext3); display: block; line-height: 1;">4</span>
-          <span style="font-size: 0.8rem; color: var(--ctext2); font-weight: 500;"><?= $t('Educational levels', 'مستويات تعليمية') ?></span>
+          <span style="font-size: 35px; font-weight: 800; color: var(--ctext3); display: block; line-height: 1;">4</span>
+          <span style="font-size: 13px; color: var(--ctext2); font-weight: 500;"><?= $t('Educational levels', 'مستويات تعليمية') ?></span>
         </div>
       </div>
 
       <!-- Buttons -->
-      <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; animation: nit-fadeup 0.9s ease 0.55s both;">
-        <a href="#nit-cat-filters"
-           style="background: linear-gradient(135deg, var(--cbg4), var(--ctext3)); color: var(--cbg1); padding: 1rem 2.5rem; border-radius: 8px; font-weight: 700; font-size: 1rem; text-decoration: none; box-shadow: 0 8px 30px color-mix(in srgb, var(--cbg4) 40%, transparent); display: inline-block;"
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.55s both;">
+        <a href="#nit-cat-filters" class="nit-hero-btn-primary"
            onclick="event.preventDefault(); document.getElementById('nit-cat-filters').scrollIntoView({behavior:'smooth'});">
           <?= $t('Explore specializations', 'استكشف التخصصات') ?>
         </a>
-        <a href="#nit-cat-filters"
-           style="background: transparent; border: 1px solid color-mix(in srgb, var(--cbg4) 40%, transparent); color: var(--ctext3); padding: 1rem 2.5rem; border-radius: 8px; font-weight: 600; font-size: 1rem; text-decoration: none; display: inline-block;"
+        <a href="#nit-cat-filters" class="nit-hero-btn-outline"
            onclick="event.preventDefault(); document.getElementById('nit-cat-filters').scrollIntoView({behavior:'smooth'});">
           <?= $t('Flexible plans', 'خطط مرنة') ?>
         </a>
