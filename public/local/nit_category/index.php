@@ -425,7 +425,7 @@ echo $OUTPUT->header();
                 ['courseid' => $course->id, 'sesskey' => sesskey()]))->out(false);
         ?>
         <!-- Course Card: fixed min-height + stretch grid => every card is the same size. -->
-        <div style="background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; height: 100%; min-height: 320px; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 12px 28px rgba(0,0,0,0.38)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+        <div style="background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; height: 100%; min-height: 320px; transition: box-shadow 0.3s ease;" onmouseover="this.style.boxShadow='0 12px 28px rgba(0,0,0,0.38)';" onmouseout="this.style.boxShadow='none';">
 
           <!-- Category name pill: rounded tint + circle icon (matches nested titles) -->
           <div class="nit-card-cat">
@@ -571,7 +571,7 @@ echo $OUTPUT->header();
            icon instead of the pin; no gradient / start-border so it reads as a chip. */
         .nit-spec-title--sub {
           border-inline-start: none; padding: 8px 20px; border-radius: 50px;
-          background: color-mix(in srgb, var(--ctext3) 50%, transparent);
+          background: color-mix(in srgb, var(--ctext3) 70%, transparent);
           font-size: 20px; color: var(--ctext1);
         }
         .nit-spec-title--sub .nit-spec-subname { color: var(--ctext1); }
@@ -596,8 +596,8 @@ echo $OUTPUT->header();
         /* Course-card category chip — same tint pill + circle icon as nested titles. */
         .nit-card-cat {
           align-self: flex-start; display: inline-flex; align-items: center; gap: 8px;
-          background: color-mix(in srgb, var(--ctext3) 50%, transparent);
-          color: var(--ctext1); padding: 6px 14px; border-radius: 50px;
+          background: color-mix(in srgb, var(--ctext3) 70%, transparent);
+          color: var(--ctext1); padding: 6px 14px; border-radius: 4px;
           font-size: 12px; font-weight: bold; margin-bottom: 16px;
         }
         .nit-card-cat-dot {

@@ -30,4 +30,9 @@ $callbacks = [
         'callback' => 'local_nit_core\hook\output_callbacks::add_welcome_panel',
         'priority' => 0,
     ],
+    [
+        'hook'     => \core\hook\output\before_standard_top_of_body_html_generation::class,
+        'callback' => 'local_nit_core\hook\output_callbacks::add_course_edit_chips',
+        'priority' => 0,
+    ],
 ];
