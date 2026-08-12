@@ -144,11 +144,16 @@ class api_client {
         $fields['success_action_status'] = '201';
         $fields['file'] = new \CURLFile(realpath($filepath));
 
+        // Give the request room but never let it hang forever (a hung request
+        // is killed by the web server → blank 500). Raise PHP's clock to match.
+        \core_php_time_limit::raise(300);
+
         $ch = curl_init($payload['uploadLink']);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 0); // large files: no hard cap
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 180);
         $resp = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err  = curl_error($ch);
