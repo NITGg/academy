@@ -171,10 +171,16 @@
     }
 }
 
-// The selected-items area (the chips above the search box) and its open-arrow.
-.form-autocomplete-selection,
+// The selected-item chips (above the search box). Core renders each as
+// `<span class="badge bg-secondary text-dark …">`, and the `.text-dark` /
+// `.bg-secondary` utilities are `!important` — so `.text-dark` forces near-black
+// text that is invisible on the dark chip, and no plain colour rule can beat it.
+// Re-skin the chip to a readable brand tile; `!important` is required to win
+// against the utilities.
 .form-autocomplete-selection [role="option"] {
-    color: var(--nit-brand-textprimary);
+    background-color: var(--nit-brand-surface-2) !important;
+    color: var(--nit-brand-textprimary) !important;
+    border: 1px solid var(--nit-brand-borderprimary);
 }
 
 .form-autocomplete-downarrow {

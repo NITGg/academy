@@ -195,106 +195,149 @@ echo $OUTPUT->header();
 
 <div dir="auto" class="nit-cat-details<?= $brandgroupclass !== '' ? ' ' . $brandgroupclass : '' ?>" style="<?= $stylevars ?>background: var(--cbg1); min-height: 100vh; padding-bottom: 40px; width: 100vw; max-width: 100vw; margin-inline: calc(50% - 50vw); margin-top: 0;">
 
-  <!-- Category Hero Banner -->
+  <!-- Category Hero Banner (X-Trade style) -->
   <style>
     @keyframes nit-gridshift { 0% { transform: translateY(0); } 100% { transform: translateY(60px); } }
     @keyframes nit-hpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     @keyframes nit-fadeup { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes nit-fadedown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
 
-    .nit-hero-btn-primary {
-      background: linear-gradient(135deg, var(--cbg4), var(--ctext3));
-      color: var(--cbg1);
-      padding: 1rem 2.5rem;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 16px;
-      text-decoration: none;
-      border: none;
-      cursor: pointer;
-      display: inline-block;
-      transition: all 0.3s ease;
-      box-shadow: 0 8px 30px color-mix(in srgb, var(--cbg4) 40%, transparent);
+    .nit-hero {
+      background: var(--cbg2);
+      min-height: 85vh;
+      display: flex; align-items: center; justify-content: center; flex-direction: column;
+      text-align: center;
+      padding: 120px 5% 80px;
+      position: relative; overflow: hidden;
+      border-bottom: 1px solid color-mix(in srgb, var(--cbg4) 20%, transparent);
     }
-    .nit-hero-btn-primary:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 15px 40px color-mix(in srgb, var(--cbg4) 50%, transparent);
-      color: var(--cbg1);
-      text-decoration: none;
+    .nit-hero__grid {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(color-mix(in srgb, var(--cbg4) 6%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--cbg4) 6%, transparent) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: nit-gridshift 20s linear infinite;
     }
-    .nit-hero-btn-outline {
-      background: transparent;
-      border: 1px solid color-mix(in srgb, var(--cbg4) 40%, transparent);
-      color: var(--ctext3);
-      padding: 1rem 2.5rem;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 16px;
-      text-decoration: none;
-      display: inline-block;
-      cursor: pointer;
-      transition: all 0.3s ease;
+    .nit-hero__glow-a {
+      position: absolute; top: -30%; left: 50%; transform: translateX(-50%);
+      width: 80%; height: 80%; pointer-events: none;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in srgb, var(--cborder) 30%, transparent) 0%, transparent 70%);
     }
-    .nit-hero-btn-outline:hover {
-      background: color-mix(in srgb, var(--cbg4) 10%, transparent);
-      border-color: var(--ctext3);
-      color: var(--ctext3);
-      text-decoration: none;
+    .nit-hero__glow-b {
+      position: absolute; bottom: -20%; inset-inline-end: -5%;
+      width: 35%; height: 70%; pointer-events: none;
+      background: radial-gradient(ellipse 40% 40% at 80% 80%, color-mix(in srgb, var(--cbg4) 12%, transparent) 0%, transparent 60%);
+    }
+    .nit-hero__inner { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
+
+    /* Badge — X-Trade .hero-badge */
+    .nit-hero__badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: color-mix(in srgb, var(--cbg4) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--cbg4) 30%, transparent);
+      border-radius: 50px; padding: 6px 19px;
+      font-size: 14px; color: var(--ctext3); font-weight: 600;
+      margin-bottom: 2rem;
+      animation: nit-fadedown 0.8s ease both;
+    }
+    .nit-hero__badge-dot {
+      width: 8px; height: 8px; background: var(--csuccess); border-radius: 50%;
+      animation: nit-hpulse 2s infinite; flex-shrink: 0;
+    }
+
+    /* H1 — X-Trade .hero h1 : clamp(2.4rem, 6vw, 4.5rem) @16px root = 38/72px */
+    .nit-hero__title {
+      font-size: clamp(38px, 6vw, 72px);
+      font-weight: 800; line-height: 1.15; margin: 0;
+      color: var(--ctext1);
+      animation: nit-fadeup 0.9s ease 0.1s both;
+    }
+    .nit-hero__title .nit-hero__n1 { color: var(--ctext3); }
+    .nit-hero__title .nit-hero__n2 { color: var(--cbg4); }
+
+    /* Description — X-Trade .hero-sub : clamp(1rem, 2vw, 1.25rem) = 16/20px.
+       format_text() wraps this in its own <div>/<p> that carries the theme's
+       default size, so force every descendant to the intended size. */
+    .nit-hero__sub {
+      max-width: 680px; margin: 1.5rem auto;
+      animation: nit-fadeup 0.9s ease 0.25s both;
+    }
+    .nit-hero__sub,
+    .nit-hero__sub * {
+      font-size: clamp(16px, 2vw, 20px) !important;
+      color: var(--ctext2);
+      line-height: 1.8;
+    }
+    .nit-hero__sub p, .nit-hero__sub div { margin: 0; }
+
+    /* Stats — X-Trade .hero-stats : gap 3rem, .stat-num 2.2rem, .stat-label 0.8rem */
+    .nit-hero__stats {
+      display: flex; gap: 48px; margin: 2.5rem 0;
+      justify-content: center; flex-wrap: wrap;
+      animation: nit-fadeup 0.9s ease 0.4s both;
+    }
+    .nit-hero__stat-num { font-size: 35px; font-weight: 800; color: var(--ctext3); display: block; line-height: 1; }
+    .nit-hero__stat-label { font-size: 13px; color: var(--ctext2); font-weight: 500; }
+
+    /* Buttons — reuse the site's .btn components (gallery.php); only size/shape
+       here, colour + hover come from the theme's Bootstrap button tokens. */
+    .nit-hero__btns {
+      display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+      animation: nit-fadeup 0.9s ease 0.55s both;
+    }
+    .nit-hero__btns .btn {
+      padding: 14px 40px; border-radius: 8px;
+      font-size: 16px; font-weight: 700;
     }
   </style>
-  <div style="background: var(--cbg2); min-height: 85vh; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 120px 5% 80px; position: relative; overflow: hidden; border-bottom: 1px solid color-mix(in srgb, var(--cbg4) 20%, transparent);">
+  <div class="nit-hero">
+    <div class="nit-hero__grid"></div>
+    <div class="nit-hero__glow-a"></div>
+    <div class="nit-hero__glow-b"></div>
 
-    <!-- Animated grid background -->
-    <div style="position: absolute; inset: 0; background-image: linear-gradient(color-mix(in srgb, var(--cbg4) 6%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--cbg4) 6%, transparent) 1px, transparent 1px); background-size: 60px 60px; animation: nit-gridshift 20s linear infinite; pointer-events: none;"></div>
-
-    <!-- Radial glows -->
-    <div style="position: absolute; top: -30%; left: 50%; transform: translateX(-50%); width: 80%; height: 80%; background: radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in srgb, var(--cborder) 30%, transparent) 0%, transparent 70%); pointer-events: none;"></div>
-    <div style="position: absolute; bottom: -20%; inset-inline-end: -5%; width: 35%; height: 70%; background: radial-gradient(ellipse 40% 40% at 80% 80%, color-mix(in srgb, var(--cbg4) 12%, transparent) 0%, transparent 60%); pointer-events: none;"></div>
-
-    <div style="max-width: 860px; margin: 0 auto; position: relative; z-index: 1;">
+    <div class="nit-hero__inner">
 
       <!-- Badge: category name with pulsing dot -->
-      <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: color-mix(in srgb, var(--cbg4) 12%, transparent); border: 1px solid color-mix(in srgb, var(--cbg4) 30%, transparent); border-radius: 50px; padding: 0.4rem 1.2rem; font-size: 14px; color: var(--ctext3); font-weight: 600; margin-bottom: 2rem; position: relative; z-index: 1; animation: nit-fadedown 0.8s ease both;">
-        <span style="width: 8px; height: 8px; background: var(--csuccess); border-radius: 50%; animation: nit-hpulse 2s infinite; flex-shrink: 0;"></span>
+      <div class="nit-hero__badge">
+        <span class="nit-hero__badge-dot"></span>
         <?= $categoryname ?>
       </div>
 
-      <!-- H1: count in accent color, subtitle with secondary accent -->
-      <h1 style="font-size: clamp(38px, 6vw, 72px); font-weight: 800; line-height: 1.15; margin: 0; color: var(--ctext1); position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.1s both;">
-        <span style="color: var(--ctext3);"><?= $bannertotal ?> <?= $t('Training programs', 'برنامجًا تدريبيًا') ?></span><br>
-        <span><?= $t('Diplomas and certificates', 'دبلومات وشهادات') ?></span> <span style="color: var(--cbg4);"><?= $t('professional', 'احترافية') ?></span>
+      <!-- H1: count in accent colour, subtitle with secondary accent -->
+      <h1 class="nit-hero__title">
+        <span class="nit-hero__n1"><?= $bannertotal ?> <?= $t('Training programs', 'برنامجًا تدريبيًا') ?></span><br>
+        <span><?= $t('Diplomas and certificates', 'دبلومات وشهادات') ?></span> <span class="nit-hero__n2"><?= $t('professional', 'احترافية') ?></span>
       </h1>
 
       <!-- Description -->
       <?php if (trim(strip_tags($description)) !== ''): ?>
-      <div style="font-size: clamp(16px, 2vw, 20px); color: var(--ctext2); max-width: 680px; margin: 1.5rem auto; line-height: 1.8; position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.25s both;">
-        <?= $description ?>
-      </div>
+      <div class="nit-hero__sub"><?= $description ?></div>
       <?php endif; ?>
 
       <!-- Stats: floating flex, no border box -->
-      <div style="display: flex; gap: 3rem; margin: 2.5rem 0; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.4s both;">
-        <div style="text-align: center;">
-          <span style="font-size: 35px; font-weight: 800; color: var(--ctext3); display: block; line-height: 1;"><?= $bannertotal ?></span>
-          <span style="font-size: 13px; color: var(--ctext2); font-weight: 500;"><?= $t('Courses and diplomas', 'دورة ودبلوم') ?></span>
+      <div class="nit-hero__stats">
+        <div>
+          <span class="nit-hero__stat-num"><?= $bannertotal ?></span>
+          <span class="nit-hero__stat-label"><?= $t('Courses and diplomas', 'دورة ودبلوم') ?></span>
         </div>
-        <div style="text-align: center;">
-          <span style="font-size: 35px; font-weight: 800; color: var(--ctext3); display: block; line-height: 1;"><?= count($subcategories) ?></span>
-          <span style="font-size: 13px; color: var(--ctext2); font-weight: 500;"><?= $t('Main specializations', 'تخصص رئيسي') ?></span>
+        <div>
+          <span class="nit-hero__stat-num"><?= count($subcategories) ?></span>
+          <span class="nit-hero__stat-label"><?= $t('Main specializations', 'تخصص رئيسي') ?></span>
         </div>
-        <div style="text-align: center;">
-          <span style="font-size: 35px; font-weight: 800; color: var(--ctext3); display: block; line-height: 1;">4</span>
-          <span style="font-size: 13px; color: var(--ctext2); font-weight: 500;"><?= $t('Educational levels', 'مستويات تعليمية') ?></span>
+        <div>
+          <span class="nit-hero__stat-num">4</span>
+          <span class="nit-hero__stat-label"><?= $t('Educational levels', 'مستويات تعليمية') ?></span>
         </div>
       </div>
 
-      <!-- Buttons -->
-      <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.55s both;">
-        <a href="#nit-cat-filters" class="nit-hero-btn-primary"
+      <!-- Buttons: the site's own .btn components -->
+      <div class="nit-hero__btns">
+        <a href="#nit-cat-filters" class="btn btn-primary"
            onclick="event.preventDefault(); document.getElementById('nit-cat-filters').scrollIntoView({behavior:'smooth'});">
           <?= $t('Explore specializations', 'استكشف التخصصات') ?>
         </a>
-        <a href="#nit-cat-filters" class="nit-hero-btn-outline"
+        <a href="#nit-cat-filters" class="btn btn-outline-primary"
            onclick="event.preventDefault(); document.getElementById('nit-cat-filters').scrollIntoView({behavior:'smooth'});">
           <?= $t('Flexible plans', 'خطط مرنة') ?>
         </a>
