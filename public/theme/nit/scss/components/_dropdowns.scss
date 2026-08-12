@@ -125,6 +125,19 @@
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
 }
 
+// Disabled selects — e.g. the "Sort by …" / "Move … to" pickers on
+// course/management.php, which core ships disabled until a row is selected.
+// Bootstrap's `.form-select:disabled` fills them with `--bs-secondary-bg`
+// (#e9ecef, a light grey) while our text stays white → white-on-grey, unreadable
+// and off-brand. Keep them on the brand surface with muted (but legible) text and
+// a dimmed look that still reads as "disabled".
+.form-select:disabled,
+.form-select[disabled] {
+    background-color: var(--nit-brand-surface);
+    color: var(--nit-brand-textsecondary);
+    border-color: var(--nit-brand-borderprimary);
+    opacity: 0.6;
+}
 // -----------------------------------------------------------------------------
 // Autocomplete (`form-autocomplete`) — the THIRD dropdown family. This is a
 // searchable widget with its own suggestions list, NOT a Bootstrap

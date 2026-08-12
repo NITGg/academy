@@ -422,6 +422,33 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
                 font-size: 1rem;
                 margin: 0;
             }
+
+            // Switch track: both states use brand-colour variables so it is
+            // visible on the dark panel (Bootstrap's default is a near-invisible
+            // grey-on-grey here). OFF = muted panel text; ON = the brand Info
+            // colour (matches the "Info" role on the Brand Colors gallery). The
+            // thumb is forced white in both states so it reads on either track,
+            // and !important beats Bootstrap's own `.form-switch`/`:checked` rules.
+            .form-check-input {
+                background-color: $nit-navpanel-item !important;
+                border-color: $nit-navpanel-item !important;
+                // Dark thumb: stays visible on the muted OFF track AND on the ON
+                // track whatever the Info role is set to (incl. a light/white
+                // Info). SVG data-URIs can't read CSS vars, so the fill is a fixed
+                // dark navy — same pattern as the .form-select caret in _dropdowns.
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%230a1628'/%3e%3c/svg%3e") !important;
+
+                &:checked {
+                    background-color: var(--nit-brand-info) !important;
+                    border-color: var(--nit-brand-info) !important;
+                }
+
+                &:focus {
+                    border-color: var(--nit-brand-info) !important;
+                    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--nit-brand-info) 25%, transparent) !important;
+                    outline: 0;
+                }
+            }
         }
     }
 
@@ -506,3 +533,10 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 // RTL: the brand keeps its start-side placement automatically via Bootstrap's
 // logical `me-*` / `ms-*` utilities; the gold wordmark and gear dropdown need
 // no directional overrides.
+//
+// One RTL gotcha worth recording: the language-button hover previously turned
+// gold in Arabic but lightened-red in English. Cause was NOT here — it was the
+// hover colour variable `--nit-brand-accent-*` whose name contained "bright";
+// rtlcss rewrote it to "bleft" in the RTL build, so the var went undefined and
+// the navbar hover fell back to its legacy gold literal. Fixed by renaming the
+// variable to `--nit-brand-accent-vivid` (see foundation/_brand.scss).
