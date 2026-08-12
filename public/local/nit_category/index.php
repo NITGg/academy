@@ -11,9 +11,7 @@ if (!empty($CFG->forcelogin)) {
 }
 
 $categoryid = required_param('id', PARAM_INT);      // Parent category (drives header + labels).
-$subid      = optional_param('sub', 0, PARAM_INT);  // 0 = "All" (parent, recursive).
-$page       = optional_param('page', 0, PARAM_INT); // Course pagination page (0-based).
-$perpage    = 12;
+$subid      = optional_param('sub', 0, PARAM_INT);  // 0 = "All" (every subcategory as its own section).
 
 // Parent category.
 $category = core_course_category::get($categoryid, MUST_EXIST);
@@ -46,16 +44,49 @@ $PAGE->set_heading($category->get_formatted_name());
 // NIT full-width layout: navbar + footer only, no page heading / secondary nav.
 $PAGE->set_pagelayout('nit_fullwidth');
 
-// Courses in the target category and all its descendants, paginated.
-$totalcourses = $targetcat->get_courses_count(['recursive' => true]);
-$courses = $targetcat->get_courses([
-    'recursive'      => true,
-    'sort'           => ['sortorder' => 1],
-    'offset'         => $page * $perpage,
-    'limit'          => $perpage,
-    'summary'        => true,
-    'coursecontacts' => true,
-]);
+// Build the sections to render. Each section = one category header + the cards of
+// its courses, so courses always sit under their own category name:
+//   * "All" (sub = 0)  -> one section per direct subcategory, plus a leading
+//                         section for any course sitting directly under the parent.
+//   * a chosen subcat  -> just that one section.
+//   * no subcategories -> a single section for the (leaf) parent itself.
+// Each course's category is thus its enclosing section, matching the header above it.
+$fetchcourses = function (core_course_category $cat, bool $recursive): array {
+    return $cat->get_courses([
+        'recursive'      => $recursive,
+        'sort'           => ['sortorder' => 1],
+        'summary'        => true,
+        'coursecontacts' => true,
+    ]);
+};
+
+$sections = [];
+if (empty($subcategories)) {
+    $sections[] = ['cat' => $category, 'courses' => $fetchcourses($category, true)];
+} else if ($subid) {
+    $sections[] = ['cat' => $targetcat, 'courses' => $fetchcourses($targetcat, true)];
+} else {
+    // Courses that live directly under the parent (not inside any child) get their
+    // own section first, so nothing is dropped from the "All" view.
+    $directcourses = $fetchcourses($category, false);
+    if (!empty($directcourses)) {
+        $sections[] = ['cat' => $category, 'courses' => $directcourses];
+    }
+    foreach ($subcategories as $sc) {
+        $sections[] = ['cat' => $sc, 'courses' => $fetchcourses($sc, true)];
+    }
+}
+
+// Drop empty sections and tally the visible total.
+$sections = array_values(array_filter($sections, static fn($s) => !empty($s['courses'])));
+$totalcourses = 0;
+foreach ($sections as $s) {
+    $totalcourses += count($s['courses']);
+}
+
+// Hero banner always shows the grand total for the whole parent category, regardless
+// of any subcategory filter currently selected.
+$bannertotal = $category->get_courses_count(['recursive' => true]);
 
 // Category image: Moodle categories have no image of their own, so fall back to
 // the site logo ("if the category has no image, show the site logo").
@@ -76,7 +107,9 @@ $stylevars =
   . '--ctext1: var(--nit-brand-textprimary); '
   . '--ctext2: var(--nit-brand-textsecondary); '
   . '--ctext3: var(--nit-brand-accent); '
-  . '--ctext4: var(--nit-brand-textprimary); ';
+  . '--ctext4: var(--nit-brand-textprimary); '
+  . '--cborder: var(--nit-brand-borderprimary); '
+  . '--csuccess: var(--nit-brand-success); ';
 
 // Brand group for this category (gallery "Category styles" tab). Group 1 is the
 // default layer (no class); groups 2/3 add the .nit-brand-2 / .nit-brand-3 switch
@@ -162,33 +195,79 @@ echo $OUTPUT->header();
 
 <div dir="auto" class="nit-cat-details<?= $brandgroupclass !== '' ? ' ' . $brandgroupclass : '' ?>" style="<?= $stylevars ?>background: var(--cbg1); min-height: 100vh; padding-bottom: 40px; width: 100vw; max-width: 100vw; margin-inline: calc(50% - 50vw); margin-top: 0;">
 
-  <!-- Category Header Banner -->
-  <div style="background: var(--cbg2); padding: 64px 16px; border-bottom: 1px solid color-mix(in srgb, var(--ctext1) 6%, transparent); position: relative; overflow: hidden;">
-    <div style="position: absolute; top: -50%; left: -10%; width: 50%; height: 200%; background: radial-gradient(circle, color-mix(in srgb, var(--ctext3) 6%, transparent) 0%, transparent 70%); pointer-events: none;"></div>
-    <div style="position: absolute; bottom: -50%; right: -10%; width: 50%; height: 200%; background: radial-gradient(circle, color-mix(in srgb, var(--cbg4) 8%, transparent) 0%, transparent 70%); pointer-events: none;"></div>
+  <!-- Category Hero Banner -->
+  <style>
+    @keyframes nit-gridshift { 0% { transform: translateY(0); } 100% { transform: translateY(60px); } }
+    @keyframes nit-hpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes nit-fadeup { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes nit-fadedown { from { opacity: 0; transform: translateY(-18px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+  <div style="background: var(--cbg2); min-height: 85vh; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 120px 5% 80px; position: relative; overflow: hidden; border-bottom: 1px solid color-mix(in srgb, var(--cbg4) 20%, transparent);">
 
-    <div style="max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; z-index: 1;">
+    <!-- Animated grid background -->
+    <div style="position: absolute; inset: 0; background-image: linear-gradient(color-mix(in srgb, var(--cbg4) 6%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--cbg4) 6%, transparent) 1px, transparent 1px); background-size: 60px 60px; animation: nit-gridshift 20s linear infinite; pointer-events: none;"></div>
 
-      <?php if ($categoryimage !== ''): ?>
-      <!-- Category image (site logo when the category has none) -->
-      <div style="width: 110px; height: 110px; border-radius: 24px; background: var(--cbg3) url('<?= s($categoryimage) ?>') center/contain no-repeat; border: 1px solid color-mix(in srgb, var(--ctext3) 25%, transparent); margin-bottom: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.35);"></div>
-      <?php endif; ?>
+    <!-- Radial glows -->
+    <div style="position: absolute; top: -30%; left: 50%; transform: translateX(-50%); width: 80%; height: 80%; background: radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in srgb, var(--cborder) 30%, transparent) 0%, transparent 70%); pointer-events: none;"></div>
+    <div style="position: absolute; bottom: -20%; inset-inline-end: -5%; width: 35%; height: 70%; background: radial-gradient(ellipse 40% 40% at 80% 80%, color-mix(in srgb, var(--cbg4) 12%, transparent) 0%, transparent 60%); pointer-events: none;"></div>
 
-      <h1 style="font-size: clamp(32px, 5vw, 48px); font-weight: 800; color: var(--ctext1); margin: 0 0 16px;">
+    <div style="max-width: 860px; margin: 0 auto; position: relative; z-index: 1;">
+
+      <!-- Badge: category name with pulsing dot -->
+      <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: color-mix(in srgb, var(--cbg4) 12%, transparent); border: 1px solid color-mix(in srgb, var(--cbg4) 30%, transparent); border-radius: 50px; padding: 0.4rem 1.2rem; font-size: 0.85rem; color: var(--ctext3); font-weight: 600; margin-bottom: 2rem; position: relative; z-index: 1; animation: nit-fadedown 0.8s ease both;">
+        <span style="width: 8px; height: 8px; background: var(--csuccess); border-radius: 50%; animation: nit-hpulse 2s infinite; flex-shrink: 0;"></span>
         <?= $categoryname ?>
+      </div>
+
+      <!-- H1: count in accent color, subtitle with secondary accent -->
+      <h1 style="font-size: clamp(2.4rem, 6vw, 4.5rem); font-weight: 800; line-height: 1.15; margin: 0; color: var(--ctext1); position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.1s both;">
+        <span style="color: var(--ctext3);"><?= $bannertotal ?> <?= $t('Training programs', 'برنامجًا تدريبيًا') ?></span><br>
+        <span><?= $t('Diplomas and certificates', 'دبلومات وشهادات') ?></span> <span style="color: var(--cbg4);"><?= $t('professional', 'احترافية') ?></span>
       </h1>
 
+      <!-- Description -->
       <?php if (trim(strip_tags($description)) !== ''): ?>
-      <div style="font-size: 16px; color: var(--ctext2); max-width: 800px; line-height: 1.7; margin: 0;">
+      <div style="font-size: clamp(1rem, 2vw, 1.25rem); color: var(--ctext2); max-width: 680px; margin: 1.5rem auto; line-height: 1.8; position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.25s both;">
         <?= $description ?>
       </div>
       <?php endif; ?>
+
+      <!-- Stats: floating flex, no border box -->
+      <div style="display: flex; gap: 3rem; margin: 2.5rem 0; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; animation: nit-fadeup 0.9s ease 0.4s both;">
+        <div style="text-align: center;">
+          <span style="font-size: 2.2rem; font-weight: 800; color: var(--ctext3); display: block; line-height: 1;"><?= $bannertotal ?></span>
+          <span style="font-size: 0.8rem; color: var(--ctext2); font-weight: 500;"><?= $t('Courses and diplomas', 'دورة ودبلوم') ?></span>
+        </div>
+        <div style="text-align: center;">
+          <span style="font-size: 2.2rem; font-weight: 800; color: var(--ctext3); display: block; line-height: 1;"><?= count($subcategories) ?></span>
+          <span style="font-size: 0.8rem; color: var(--ctext2); font-weight: 500;"><?= $t('Main specializations', 'تخصص رئيسي') ?></span>
+        </div>
+        <div style="text-align: center;">
+          <span style="font-size: 2.2rem; font-weight: 800; color: var(--ctext3); display: block; line-height: 1;">4</span>
+          <span style="font-size: 0.8rem; color: var(--ctext2); font-weight: 500;"><?= $t('Educational levels', 'مستويات تعليمية') ?></span>
+        </div>
+      </div>
+
+      <!-- Buttons -->
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; animation: nit-fadeup 0.9s ease 0.55s both;">
+        <a href="#nit-cat-filters"
+           style="background: linear-gradient(135deg, var(--cbg4), var(--ctext3)); color: var(--cbg1); padding: 1rem 2.5rem; border-radius: 8px; font-weight: 700; font-size: 1rem; text-decoration: none; box-shadow: 0 8px 30px color-mix(in srgb, var(--cbg4) 40%, transparent); display: inline-block;"
+           onclick="event.preventDefault(); document.getElementById('nit-cat-filters').scrollIntoView({behavior:'smooth'});">
+          <?= $t('Explore specializations', 'استكشف التخصصات') ?>
+        </a>
+        <a href="#nit-cat-filters"
+           style="background: transparent; border: 1px solid color-mix(in srgb, var(--cbg4) 40%, transparent); color: var(--ctext3); padding: 1rem 2.5rem; border-radius: 8px; font-weight: 600; font-size: 1rem; text-decoration: none; display: inline-block;"
+           onclick="event.preventDefault(); document.getElementById('nit-cat-filters').scrollIntoView({behavior:'smooth'});">
+          <?= $t('Flexible plans', 'خطط مرنة') ?>
+        </a>
+      </div>
+
     </div>
   </div>
 
   <!-- Subcategory Filter Bar (All + children) -->
   <?php if (!empty($subcategories)): ?>
-  <div style="padding: 32px 16px 0;">
+  <div id="nit-cat-filters" style="padding: 32px 16px 0;">
     <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;">
       <?php
         $allurl = new moodle_url('/local/nit_category/index.php', ['id' => $categoryid]);
@@ -213,159 +292,142 @@ echo $OUTPUT->header();
   <?php endif; ?>
 
   <!-- Courses Section -->
-  <div style="padding: 40px 16px 16px;">
+  <div style="padding: 32px 16px 16px;">
     <div style="max-width: 1200px; margin: 0 auto;">
 
-      <!-- Section Header -->
-      <div style="margin-bottom: 32px;">
-        <h2 style="font-size: 26px; font-weight: bold; color: var(--ctext1); margin: 0 0 8px;">
-          <?= $t('Available Courses', 'الدورات المتاحة') ?>
-        </h2>
-        <div style="color: var(--ctext3); font-weight: bold; font-size: 14px;">
-          <?= $totalcourses ?> <?= $t('Courses', 'دورة') ?>
-        </div>
-      </div>
+      <?php
+        // One card renderer, shared by every section. $sectioncat is the category the
+        // card lives under (its header), so the card shows that category's name. The
+        // dot colour is inherited from the section wrapper via the --dot custom prop.
+        $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo) {
+            $courseurl  = new moodle_url('/course/view.php', ['id' => $course->id]);
+            $coursename = $course->get_formatted_name();
 
-      <?php if (!empty($courses)): ?>
-      <!-- Courses Grid -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 24px; align-items: stretch;">
-
-        <?php foreach ($courses as $course): ?>
-        <?php
-            $coursecontext = context_course::instance($course->id);
-            $courseurl     = new moodle_url('/course/view.php', ['id' => $course->id]);
-            $coursename    = $course->get_formatted_name();
-
-            // Course image: overview file, else a generated pattern.
-            $courseimage = '';
-            foreach ($course->get_course_overviewfiles() as $file) {
-                if ($file->is_valid_image()) {
-                    $courseimage = moodle_url::make_pluginfile_url(
-                        $file->get_contextid(),
-                        $file->get_component(),
-                        $file->get_filearea(),
-                        null,
-                        $file->get_filepath(),
-                        $file->get_filename()
-                    )->out(false);
-                    break;
-                }
-            }
-            if ($courseimage === '') {
-                $courseimage = $OUTPUT->get_generated_image_for_id($course->id);
-            }
-
-            // Short plain-text summary.
+            // Short plain-text summary (no course image is used in this design).
             $summary = '';
             if ($course->has_summary()) {
+                $coursecontext = context_course::instance($course->id);
                 $plain = html_to_text(
                     format_text($course->summary, $course->summaryformat, ['context' => $coursecontext, 'noclean' => true]),
                     0,
                     false
                 );
-                $summary = shorten_text(trim($plain), 120);
+                $summary = shorten_text(trim($plain), 160);
             }
 
             $price      = function_exists('theme_nit_course_price') ? theme_nit_course_price((int) $course->id) : '';
             $teacher    = function_exists('theme_nit_course_teacher') ? theme_nit_course_teacher((int) $course->id) : '';
             $pricelabel = $price !== '' ? $price : $t('Free', 'مجانًا');
             $info       = $nitcourseinfo($course->id);
-        ?>
-        <!-- Course Card -->
-        <div style="background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--ctext1) 6%, transparent); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; height: 100%; min-height: 380px; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 24px rgba(0,0,0,0.35)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
 
-          <!-- Image + price -->
-          <div style="position: relative; flex: 0 0 160px; height: 160px;">
-            <div style="width: 100%; height: 160px; background: var(--cbg3) url('<?= s($courseimage) ?>') center/cover no-repeat;">&nbsp;</div>
-            <?php if ($info['offerlabel'] !== '' && $info['offerfinal'] > 0): ?>
-            <span style="position: absolute; top: 12px; inset-inline-end: 12px; background: var(--cbg4); color: var(--ctext4); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
-              <span style="text-decoration: line-through; opacity: 0.65; margin-inline-end: 4px;"><?= s($pricelabel) ?></span><?= s(number_format($info['offerfinal'], 0)) ?> <?= $t('EGP', 'ج.م') ?>
-            </span>
-            <?php else: ?>
-            <span style="position: absolute; top: 12px; inset-inline-end: 12px; background: var(--cbg4); color: var(--ctext4); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
-              <?= s($pricelabel) ?>
-            </span>
-            <?php endif; ?>
-            <?php if ($info['enrolled']): ?>
-            <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: var(--nit-brand-success); color: var(--nit-brand-textprimary); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
-              ✓ <?= $t('Enrolled', 'مُسجَّل') ?>
-            </span>
-            <?php elseif ($info['covered']): ?>
-            <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: var(--nit-brand-accent); color: var(--nit-brand-textprimary); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
-              ★ <?= $t('In your subscription', 'ضمن اشتراكك') ?>
-            </span>
-            <?php elseif ($info['offerlabel'] !== ''): ?>
-            <span style="position: absolute; top: 12px; inset-inline-start: 12px; background: var(--nit-brand-success); color: var(--nit-brand-textprimary); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.3);">
-              <?= s($info['offerlabel']) ?>
-            </span>
-            <?php endif; ?>
+            $detailsurl = $courseurl->out();
+            $enrolurl   = (new moodle_url('/local/nit_subscriptions/enrol.php',
+                ['courseid' => $course->id, 'sesskey' => sesskey()]))->out(false);
+        ?>
+        <!-- Course Card: fixed min-height + stretch grid => every card is the same size. -->
+        <div style="background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; height: 100%; min-height: 320px; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 12px 28px rgba(0,0,0,0.38)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+
+          <!-- Category name pill (with the section's colour dot) -->
+          <div style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--dot) 14%, transparent); border: 1px solid color-mix(in srgb, var(--dot) 40%, transparent); color: var(--ctext1); padding: 6px 14px; border-radius: 50px; font-size: 12px; font-weight: bold; margin-bottom: 16px;">
+            <span style="width: 9px; height: 9px; border-radius: 50%; background: var(--dot); box-shadow: 0 0 8px var(--dot); flex: 0 0 auto;"></span>
+            <span><?= $sectionname ?></span>
           </div>
 
-          <!-- Content -->
-          <div style="padding: 18px; display: flex; flex-direction: column; flex: 1; min-height: 0;">
-            <h3 style="font-size: 17px; font-weight: bold; color: var(--ctext1); margin: 0 0 4px; line-height: 1.4;">
-              <?= $coursename ?>
-            </h3>
+          <!-- Course name -->
+          <h3 style="font-size: 18px; font-weight: bold; color: var(--ctext1); margin: 0 0 10px; line-height: 1.4;">
+            <?= $coursename ?>
+          </h3>
 
-            <?php if ($teacher !== ''): ?>
-            <div style="font-size: 12px; color: var(--ctext2); margin: 0 0 8px;">
-              👤 <?= s($teacher) ?>
-            </div>
-            <?php endif; ?>
+          <?php if ($teacher !== ''): ?>
+          <div style="font-size: 12px; color: var(--ctext2); margin: 0 0 10px;">
+            👤 <?= s($teacher) ?>
+          </div>
+          <?php endif; ?>
 
-            <p style="font-size: 13px; color: var(--ctext2); line-height: 1.7; margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-              <?= s($summary) ?>
-            </p>
+          <!-- Course description -->
+          <?php if ($summary !== ''): ?>
+          <p style="font-size: 13px; color: var(--ctext2); line-height: 1.7; margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+            <?= s($summary) ?>
+          </p>
+          <?php endif; ?>
 
-            <?php
-              // Button styles.
-              $btnprimary   = 'display:block; width:100%; box-sizing:border-box; text-align:center; background:var(--cbg4); color:var(--ctext4); font-weight:bold; padding:10px 12px; border:0; border-radius:8px; cursor:pointer; font-size:15px; text-decoration:none;';
-              $btnsecondary = 'display:block; width:100%; box-sizing:border-box; text-align:center; background:transparent; color:var(--ctext1); font-weight:bold; padding:8px 12px; border:1px solid color-mix(in srgb, var(--ctext1) 20%, transparent); border-radius:8px; text-decoration:none;';
-              $detailsurl   = $courseurl->out();
-              $enrolurl     = (new moodle_url('/local/nit_subscriptions/enrol.php', ['courseid' => $course->id, 'sesskey' => sesskey()]))->out(false);
-            ?>
-            <!-- Actions: pinned to the card bottom so every card's buttons align, regardless of summary length. -->
-            <div style="margin-top: auto; padding-top: 16px; display: flex; flex-direction: column; gap: 8px;">
-              <?php if ($info['covered']): ?>
-                <div style="font-size: 12px; font-weight: bold; color: var(--nit-brand-accent); text-align: center; margin-bottom: 2px;">
-                  ★ <?= $t('Included in your subscription', 'مشمول ضمن اشتراكك') ?>
-                </div>
-              <?php endif; ?>
-
+          <!-- Footer: pinned to the bottom. A fixed-height status/price row sits above the
+               buttons so the buttons never move — a free course simply leaves it empty,
+               a paid course shows its price in the SAME reserved slot. -->
+          <div style="margin-top: auto; padding-top: 18px;">
+            <div style="min-height: 30px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
               <?php if ($info['enrolled']): ?>
-                <a href="<?= $detailsurl ?>" style="<?= $btnprimary ?>" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
-                  <?= $t('Course details', 'تفاصيل الكورس') ?>
-                </a>
+                <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--csuccess) 16%, transparent); color: var(--csuccess); border: 1px solid color-mix(in srgb, var(--csuccess) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
+                  ✓ <?= $t('Enrolled', 'مُسجَّل') ?>
+                </span>
               <?php elseif ($info['covered']): ?>
-                <a href="<?= $enrolurl ?>" style="<?= $btnprimary ?>" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
-                  <?= $t('Enroll', 'التحاق') ?>
-                </a>
-                <a href="<?= $detailsurl ?>" style="<?= $btnsecondary ?>"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--ctext3) 16%, transparent); color: var(--ctext3); border: 1px solid color-mix(in srgb, var(--ctext3) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
+                  ★ <?= $t('In your subscription', 'ضمن اشتراكك') ?>
+                </span>
+              <?php elseif ($info['offerlabel'] !== '' && $info['offerfinal'] > 0): ?>
+                <span style="font-size: 13px; color: var(--ctext2); text-decoration: line-through; opacity: 0.7;"><?= s($pricelabel) ?></span>
+                <span style="font-size: 16px; font-weight: bold; color: var(--ctext1);"><?= s(number_format($info['offerfinal'], 0)) ?> <?= $t('EGP', 'ج.م') ?></span>
+                <span style="background: var(--cbg4); color: var(--ctext4); font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 50px;"><?= s($info['offerlabel']) ?></span>
               <?php elseif ($info['haspricing']): ?>
-                <button type="button" data-nit-buy-course data-courseid="<?= (int) $course->id ?>"
-                  data-name="<?= s($coursename) ?>" data-price="<?= s((string) $info['price']) ?>"
-                  style="<?= $btnprimary ?>" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
-                  <?= $t('Buy now', 'اشترِ الآن') ?>
-                </button>
-                <a href="<?= $detailsurl ?>" style="<?= $btnsecondary ?>"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <span style="font-size: 16px; font-weight: bold; color: var(--ctext1);"><?= s($pricelabel) ?></span>
+              <?php else: // Free course: the slot stays empty (reserved) so buttons stay put. ?>
+                <span style="font-size: 13px; font-weight: bold; color: var(--csuccess);"><?= $t('Free', 'مجانًا') ?></span>
+              <?php endif; ?>
+            </div>
+
+            <!-- Actions: gallery button components (.btn-primary / .btn-outline-primary).
+                 Enrolled shows one button; every other state shows two. -->
+            <div class="d-grid gap-2">
+              <?php if ($info['enrolled']): ?>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+              <?php elseif ($info['covered']): ?>
+                <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= $t('Enroll', 'التحاق') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+              <?php elseif ($info['haspricing']): ?>
+                <button type="button" class="btn btn-primary fw-bold" data-nit-buy-course
+                  data-courseid="<?= (int) $course->id ?>" data-name="<?= s($coursename) ?>"
+                  data-price="<?= s((string) $info['price']) ?>"><?= $t('Buy now', 'اشترِ الآن') ?></button>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php else: // Free course. ?>
-                <a href="<?= $enrolurl ?>" style="<?= $btnprimary ?>" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
-                  <?= $t('Enroll', 'التحاق') ?>
-                </a>
-                <a href="<?= $detailsurl ?>" style="<?= $btnsecondary ?>"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= $t('Enroll', 'التحاق') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php endif; ?>
             </div>
           </div>
         </div>
+        <?php
+        };
+
+        // Palette of dot colours, cycled per section (decorative — pure brand variables,
+        // no new data). Green / red / blue / amber all read well on the dark surface.
+        $dotvars = ['--nit-brand-success', '--nit-brand-accent', '--nit-brand-bordersecondary', '--nit-brand-warning'];
+      ?>
+
+      <?php if (!empty($sections)): ?>
+        <?php foreach ($sections as $i => $section): ?>
+        <?php
+          $sectioncat  = $section['cat'];
+          $sectionname = $sectioncat->get_formatted_name();
+          $sectiondot  = $dotvars[$i % count($dotvars)];
+        ?>
+        <!-- Category section: header pill + this category's course cards -->
+        <section style="--dot: var(<?= $sectiondot ?>); margin-bottom: 44px;">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 22px;">
+            <div style="display: inline-flex; align-items: center; gap: 10px; background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--dot) 45%, transparent); padding: 10px 22px; border-radius: 50px;">
+              <span style="width: 11px; height: 11px; border-radius: 50%; background: var(--dot); box-shadow: 0 0 10px var(--dot); flex: 0 0 auto;"></span>
+              <span style="font-size: 16px; font-weight: bold; color: var(--ctext1);"><?= $sectionname ?></span>
+              <span style="font-size: 13px; font-weight: bold; color: var(--ctext3);">(<?= count($section['courses']) ?>)</span>
+            </div>
+            <div style="flex: 1; height: 1px; background: color-mix(in srgb, var(--ctext1) 8%, transparent);"></div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; align-items: stretch;">
+            <?php foreach ($section['courses'] as $course): ?>
+              <?php $rendercard($course, $sectionname); ?>
+            <?php endforeach; ?>
+          </div>
+        </section>
         <?php endforeach; ?>
-
-      </div>
-
-      <!-- Pagination -->
-      <div style="margin-top: 40px; display: flex; justify-content: center;">
-        <?= $OUTPUT->paging_bar($totalcourses, $page, $perpage, new moodle_url('/local/nit_category/index.php', ['id' => $categoryid, 'sub' => $subid])) ?>
-      </div>
-
       <?php else: ?>
       <div style="text-align: center; color: var(--ctext2); padding: 40px;">
         <?= $t('No courses found in this category.', 'لا توجد دورات في هذا التصنيف.') ?>

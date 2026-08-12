@@ -28,10 +28,12 @@
 // Colours read from the editable palette (--nit-* custom properties) with the
 // original values kept as SCSS fallbacks.
 $nit-navpanel-bg:      var(--nit-navbarpanel, #0d2149);
-$nit-navpanel-border:  rgba($nit-gold-500, 0.2); // gold-tinted, 20% alpha.
+// Structural panel border — a faint Border-primary tint (was a 20% gold alpha;
+// migrated to the brand palette so it re-skins with Group 2 / 3).
+$nit-navpanel-border:  color-mix(in srgb, var(--nit-navbarpanelborder, #{$nit-navy-700}) 55%, transparent);
 $nit-navpanel-radius:  10px;
 $nit-navpanel-pad:     25px 20px;
-$nit-navpanel-shadow:  0 0 50px rgba(32, 32, 32, 0.15);
+$nit-navpanel-shadow:  0 0 50px rgba(32, 32, 32, 0.15); // neutral drop shadow (not a brand colour).
 $nit-navpanel-item:    var(--nit-navbarpaneltext, #8a9ab5);   // muted blue-grey row text.
 $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divider.
 
@@ -178,7 +180,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         }
 
         .userbutton img {
-            border: 2px solid rgba(255, 255, 255, 0.7);
+            border: 2px solid color-mix(in srgb, var(--nit-brand-textprimary) 70%, transparent);
             border-radius: 50%;
             width: 42px;
             height: 42px;
@@ -297,7 +299,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
             &:hover,
             &:focus {
                 background-color: transparent;
-                color: #fff;
+                color: var(--nit-brand-textprimary);
             }
 
             &.active,
@@ -347,7 +349,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
             &:hover,
             &:focus {
                 background-color: transparent;
-                color: #fff;
+                color: var(--nit-brand-textprimary);
             }
 
             &.active,
@@ -371,7 +373,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
             &:hover,
             &:focus {
-                color: #fff !important;
+                color: var(--nit-brand-textprimary) !important;
                 background-color: transparent;
             }
         }
@@ -446,7 +448,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         }
 
         .popover-region-header-text {
-            color: #fff;
+            color: var(--nit-brand-textprimary);
         }
 
         // Action icons read light, gold on hover.
@@ -479,7 +481,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
             &:hover,
             &:focus {
-                background-color: rgba(255, 255, 255, 0.04);
+                background-color: var(--nit-brand-hoverbackground);
             }
         }
 
