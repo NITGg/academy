@@ -37,7 +37,6 @@ $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(format_string($moduleinstance->name));
 
 if (!empty($moduleinstance->intro)) {
     echo $OUTPUT->box(format_module_intro('vdocipher', $moduleinstance, $cm->id), 'generalbox', 'intro');
