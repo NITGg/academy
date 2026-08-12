@@ -65,6 +65,9 @@ if ($videoid === '') {
     if (!array_key_exists('success_action_redirect', $fields)) {
         $fields['success_action_redirect'] = '';
     }
+    if (!array_key_exists('success_action_status', $fields)) {
+        $fields['success_action_status'] = '201';
+    }
     $fields['file'] = new CURLFile(realpath($file));
 
     $ch = curl_init($uploadlink);

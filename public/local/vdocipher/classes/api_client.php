@@ -145,9 +145,13 @@ class api_client {
             }
             $fields[$k] = (string) $v;
         }
-        // The policy requires this field (empty value allowed); ensure it's sent.
+        // The policy requires BOTH of these fields present (each starts-with "").
+        // redirect empty → S3 falls back to success_action_status (201).
         if (!array_key_exists('success_action_redirect', $fields)) {
             $fields['success_action_redirect'] = '';
+        }
+        if (!array_key_exists('success_action_status', $fields)) {
+            $fields['success_action_status'] = '201';
         }
         $fields['file'] = new \CURLFile(realpath($filepath));
 
