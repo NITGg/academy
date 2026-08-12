@@ -59,23 +59,13 @@ try {
     exit;
 }
 
-$otp    = json_encode($data['otp']);
-$pbinfo = json_encode($data['playbackInfo']);
+$src = 'https://player.vdocipher.com/v2/?otp=' . rawurlencode($data['otp'])
+     . '&playbackInfo=' . rawurlencode($data['playbackInfo']);
 ?>
-<div id="vdo-embed" style="position:relative;width:100%;max-width:960px;margin:1rem auto;aspect-ratio:16/9;background:#000;"></div>
-<script src="https://player.vdocipher.com/v2/api.js"></script>
-<script>
-(function () {
-    function mount() {
-        if (typeof VdoPlayer === 'undefined') { return setTimeout(mount, 150); }
-        new VdoPlayer({
-            otp: <?php echo $otp; ?>,
-            playbackInfo: <?php echo $pbinfo; ?>,
-            container: document.querySelector('#vdo-embed')
-        });
-    }
-    mount();
-})();
-</script>
+<div style="position:relative;width:100%;max-width:960px;margin:1rem auto;aspect-ratio:16/9;background:#000;">
+  <iframe src="<?php echo s($src); ?>"
+          style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+          allow="encrypted-media" allowfullscreen></iframe>
+</div>
 <?php
 echo $OUTPUT->footer();
