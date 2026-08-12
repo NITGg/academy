@@ -62,8 +62,12 @@ class country_detector {
             return '';
         }
 
+        // Hash the IP into an alphanumeric cache key: raw IPs contain dots (and
+        // colons for IPv6), which are rejected as invalid "simple keys".
+        $key = md5($ip);
+
         $cache = \cache::make('local_payments', 'country_detection');
-        $cached = $cache->get($ip);
+        $cached = $cache->get($key);
         if ($cached !== false) {
             return $cached;
         }
@@ -74,7 +78,7 @@ class country_detector {
         $location = iplookup_find_location($ip);
         if (!empty($location['country'])) {
             $country = strtoupper($location['country']);
-            $cache->set($ip, $country);
+            $cache->set($key, $country);
             return $country;
         }
 

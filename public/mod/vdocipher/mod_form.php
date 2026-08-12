@@ -106,10 +106,13 @@ class mod_vdocipher_mod_form extends moodleform_mod {
         bar.style.width = '0';
         say('Requesting secure upload…');
 
+        var nameEl = document.querySelector('input[name="name"]');
+        var title = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : file.name;
+
         var cred = new FormData();
         cred.append('sesskey', sesskey);
         cred.append('courseid', courseid);
-        cred.append('title', file.name);
+        cred.append('title', title);
 
         fetch(credurl, { method: 'POST', body: cred, credentials: 'same-origin' })
             .then(function (r) { return r.json(); })
