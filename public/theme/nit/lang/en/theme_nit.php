@@ -100,3 +100,45 @@ $string['region-fullwidth-bottom'] = 'Full width (bottom)';
 
 // Privacy.
 $string['privacy:metadata'] = 'The NIT theme does not store any personal data.';
+
+// Branded course-detail page (theme_nit\output\format_topics_renderer).
+$string['acad_browse'] = 'Browse';
+$string['acad_about'] = 'About';
+$string['acad_skills_tab'] = 'Skills';
+$string['acad_requirements'] = 'Requirements';
+$string['acad_modules'] = 'Modules';
+$string['acad_instructor'] = 'Instructor:';
+$string['acad_plusmore'] = '+{$a} more';
+$string['acad_gotocourse'] = 'Go to course';
+$string['acad_enrol'] = 'Enroll';
+$string['acad_free'] = 'Free';
+$string['acad_starts'] = 'Starts {$a}';
+$string['acad_enrolledcount'] = '{$a} already enrolled';
+$string['acad_ataglance'] = 'At a glance';
+$string['acad_nmodules'] = '{$a} modules';
+$string['acad_duration'] = 'Duration';
+$string['acad_nhours'] = '{$a} hours';
+$string['acad_assessments'] = 'Assessments';
+$string['acad_nassessments'] = '{$a} assessments';
+$string['acad_language'] = 'Language';
+$string['acad_certificate'] = 'Certificate';
+$string['acad_certificate_sub'] = 'Shareable certificate';
+$string['acad_learn'] = 'What you\'ll learn';
+$string['acad_skills'] = 'Skills you\'ll gain';
+$string['acad_audience'] = 'Who this course is for';
+$string['acad_prerequisites'] = 'Prerequisites';
+$string['acad_about_h'] = 'About this course';
+$string['acad_nmodulesin'] = 'There are {$a} modules in this course';
+$string['acad_modulen'] = 'Module {$a}';
+$string['acad_nitems'] = '{$a} items';
+$string['acad_moduledetails'] = 'Module details';
+$string['acad_included'] = 'What\'s included';
+$string['acad_instructors'] = 'Instructors';
+$string['acad_instructorrole'] = 'Instructor';
+$string['acad_offeredby'] = 'Offered by';
+// Singular count variants.
+$string['acad_nmodule'] = '{$a} module';
+$string['acad_nhour'] = '{$a} hour';
+$string['acad_nassessment'] = '{$a} assessment';
+$string['acad_nitem'] = '{$a} item';
+$string['acad_1modulein'] = 'There is {$a} module in this course';

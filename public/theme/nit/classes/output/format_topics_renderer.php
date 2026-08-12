@@ -15,25 +15,41 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * NIT topics-format renderer — pixel replica of the Coursera course-detail page.
+ * NIT topics-format renderer — branded course-detail landing page.
  *
- * Ported from theme_edumy (legacy print_multiple_section_page override) to the
- * Moodle 5.x course-format output pipeline. In 5.x the whole course body is one
- * `\core_courseformat\output\local\content` renderable rendered by the format
- * renderer; we intercept it in {@see render()} and, on the multi-section landing
- * page while NOT editing, emit the Coursera bands instead of the stock template.
+ * On the multi-section course landing page (not editing) this replaces Moodle's
+ * stock course body with a bespoke, on-brand "course detail" layout inspired by
+ * the Coursera information architecture but styled entirely from the theme_nit
+ * Brand Colors palette (see scss/components/_coursepage.scss).
  *
- * In editing mode (and on single-section pages) we defer to the parent so
- * teachers keep the normal drag/drop management UI.
+ * Everything on the page is DRIVEN BY REAL COURSE DATA — there are no static
+ * placeholder values. The bands read:
+ *   - the course record (name, summary, start date, image),
+ *   - the section / activity tree (modules accordion, counts, assessments),
+ *   - enrolled teachers (instructors), enrolment count, category chain, tags, and
+ *   - the course custom fields under the "Other fields" category, mapped by
+ *     shortname:
+ *        course_fields ............. subject line + "skills" chips
+ *        total_number_of_hours ..... duration stat
+ *        language .................. language of instruction
+ *        certificate (checkbox) .... "Shareable certificate"
+ *        free (checkbox) ........... Free / Paid badge
+ *        target_audience ........... "Who this is for"
+ *        prerequisites ............. "Requirements"
+ *        ilos ...................... "What you'll learn"
+ *        by_the_end_of_training .... "What you'll learn"
  *
- * The visible labels are Coursera's own wording ("What you'll learn", "Skills
- * you'll gain", "What's included", …) and are intentionally hard-coded English
- * literals — they are brand copy, not Moodle language strings.
+ * A field (or whole band) that has no value is simply NOT rendered — nothing is
+ * ever shown as an em-dash. Short-text fields authored in the bilingual
+ * "{mlang en}…{mlang}{mlang ar}…{mlang}" convention are resolved to the current
+ * language via {@see acad_ml()} (the site multilang filter runs first; we fall
+ * back to resolving the tags ourselves so the page is correct even where the
+ * {mlang} filter is not installed). A field may also hold several items in one
+ * value separated by a pipe "|" (or a newline / bullet), which become individual
+ * chips — see {@see acad_chips()}.
  *
- * Data that Moodle does not natively hold (star rating, per-lesson duration,
- * learning outcomes, marketing bullets, …) is rendered as an em-dash "—" in the
- * exact slot where Coursera shows the real value, so the layout matches the
- * reference screenshots slot-for-slot.
+ * In editing mode (and on single-section views) we defer to the parent renderer
+ * so teachers keep the normal drag/drop management UI.
  *
  * @package    theme_nit
  * @copyright  2026 NIT
@@ -55,27 +71,16 @@ use core_courseformat\output\local\content;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Coursera-style course page renderer for the topics format.
+ * Branded course-detail renderer for the topics format.
  */
 class format_topics_renderer extends \format_topics\output\renderer {
-
-    /** @var string Placeholder for data Moodle does not have. */
-    const DASH = '—';
-
-    /**
-     * Separator that joins the individual "chip" sentences inside a single
-     * short-text course custom field (co1 = "What you'll learn", co2 = "Skills
-     * you'll gain"). Deliberately obscure so a learner never types it as part of
-     * a real sentence.
-     */
-    const CHIP_SEP = '@@|@@';
 
     /**
      * Intercept the course content renderable.
      *
      * On the multi-section landing page (not editing, not a single-section view)
-     * we replace Moodle's course body with the Coursera replica. Everything else
-     * falls through to the stock format renderer.
+     * we replace Moodle's course body with the branded detail layout. Everything
+     * else falls through to the stock format renderer.
      *
      * @param renderable $widget instance with renderable interface
      * @return string the widget HTML
@@ -92,30 +97,64 @@ class format_topics_renderer extends \format_topics\output\renderer {
     }
 
     /**
-     * Build the full Coursera-style page for the given course format.
+     * Build the full branded page for the given course format.
+     *
+     * Content bands are built first (each returns '' when it has no data) so the
+     * sticky tab bar can advertise only the sections that actually appear.
      *
      * @param \core_courseformat\base $format the course format
      * @return string HTML
      */
     protected function acad_render_page($format): string {
-        global $CFG;
-
         $course  = $format->get_course();
         $modinfo = get_fast_modinfo($course);
         $context = context_course::instance($course->id);
 
         $data = $this->acad_gather($course, $modinfo, $context);
 
-        $o  = html_writer::start_div('acad-cr');
+        // Content bands + the tabs they map to (id => label), in display order.
+        $tabs  = [];
+        $body  = '';
+
+        $learn = $this->acad_learn($data);
+        if ($learn !== '') {
+            $tabs['about'] = get_string('acad_about', 'theme_nit');
+            $body .= $learn;
+        }
+
+        $skills = $this->acad_skills($data);
+        if ($skills !== '') {
+            $tabs['skills'] = get_string('acad_skills_tab', 'theme_nit');
+            $body .= $skills;
+        }
+
+        $requirements = $this->acad_requirements($data);
+        if ($requirements !== '') {
+            $tabs['requirements'] = get_string('acad_requirements', 'theme_nit');
+            $body .= $requirements;
+        }
+
+        $expertise = $this->acad_expertise($course, $context, $data);
+        if ($expertise !== '') {
+            $body .= $expertise;
+        }
+
+        // Modules band always renders (the section tree is the core of the page).
+        $tabs['modules'] = get_string('acad_modules', 'theme_nit');
+        $body .= $this->acad_modules($course, $modinfo, $context, $data);
+
+        // Assemble in visual order. The brand group class lets a course adopt its
+        // top-level category's palette (Group 1/2/3), same as category pages.
+        $groupclass = '';
+        if (function_exists('theme_nit_category_brand_group') && $course->category) {
+            $groupclass = theme_nit_brand_group_class(theme_nit_category_brand_group($course->category));
+        }
+
+        $o  = html_writer::start_div('acad-cr' . ($groupclass ? ' ' . $groupclass : ''));
         $o .= $this->acad_breadcrumb($data);
         $o .= $this->acad_hero($course, $context, $data);
-        $o .= $this->acad_stats($data);
-        $o .= $this->acad_tabs();
-        $o .= $this->acad_learn($data);
-        $o .= $this->acad_skills($data);
-        $o .= $this->acad_details($data);
-        $o .= $this->acad_expertise($course, $context, $data);
-        $o .= $this->acad_modules($course, $modinfo, $context, $data);
+        $o .= $this->acad_tabs($tabs);
+        $o .= $body;
         $o .= html_writer::end_div();
 
         // Accordion / tab helpers. A format renderer runs after <head> is flushed,
@@ -141,6 +180,8 @@ class format_topics_renderer extends \format_topics\output\renderer {
         global $DB;
 
         $d = new stdClass();
+        $d->course   = $course;
+        $d->context  = $context;
         $d->enrolled = count_enrolled_users($context);
 
         // Category chain for the breadcrumb.
@@ -150,7 +191,9 @@ class format_topics_renderer extends \format_topics\output\renderer {
             if ($cat) {
                 foreach (array_reverse($cat->get_parents()) as $pid) {
                     $p = $DB->get_record('course_categories', ['id' => $pid], 'name');
-                    if ($p) { $d->catnames[] = format_string($p->name); }
+                    if ($p) {
+                        $d->catnames[] = format_string($p->name);
+                    }
                 }
                 $d->catnames[] = format_string($cat->get_formatted_name());
             }
@@ -160,52 +203,67 @@ class format_topics_renderer extends \format_topics\output\renderer {
         $numsections   = course_get_format($course)->get_last_section_number();
         $d->modulerows = [];
         $d->modcount   = 0;
+        $d->assesscount = 0;
         foreach ($modinfo->get_section_info_all() as $snum => $sec) {
             if ($snum === 0) {
-                if (empty($modinfo->sections[0]) || !$sec->uservisible) { continue; }
+                if (empty($modinfo->sections[0]) || !$sec->uservisible) {
+                    continue;
+                }
             }
-            if ($snum > $numsections) { continue; }
+            if ($snum > $numsections) {
+                continue;
+            }
             $show = $sec->uservisible ||
                 ($sec->visible && !$sec->available && !empty($sec->availableinfo)) ||
                 (!$sec->visible && !$course->hiddensections);
-            if (!$show) { continue; }
+            if (!$show) {
+                continue;
+            }
             $d->modulerows[$snum] = $sec;
             $d->modcount++;
         }
 
-        // Teachers (Coursera "Instructors").
+        // Count graded assessment activities (real "Assessments" figure).
+        foreach ($modinfo->get_cms() as $cm) {
+            if (!$cm->uservisible) {
+                continue;
+            }
+            if (in_array($cm->modname, ['assign', 'quiz', 'workshop', 'lesson'], true)) {
+                $d->assesscount++;
+            }
+        }
+
+        // Teachers (Instructors).
         $d->teachers = $this->acad_teachers($context);
 
-        // Skills = course tags.
+        // Skills fall back to course tags when the course_fields custom field is empty.
         $d->tags = core_tag_tag::get_item_tags('core', 'course', $course->id);
 
         // Course image.
         $d->image = $this->acad_course_image_url($context);
 
-        // Language name.
-        if ($course->lang) {
-            $langs = get_string_manager()->get_list_of_languages();
-            $d->lang = $langs[$course->lang] ?? $course->lang;
-        } else {
-            $d->lang = self::DASH;
-        }
+        // Start date.
+        $d->startlabel = $course->startdate ? userdate($course->startdate, get_string('strftimedatefullshort')) : '';
 
-        // Start date ("Starts Aug 3").
-        $d->startlabel = $course->startdate ? 'Starts ' . userdate($course->startdate, '%b %e') : self::DASH;
-
-        // Course custom fields, keyed by shortname. co1 = What you'll learn (chips),
-        // co2 = Skills you'll gain (chips), co3 = Instructor, co4 = level. Missing or
-        // hidden fields simply won't appear in the map, so each band falls back safely.
+        // Course custom fields under "Other fields", keyed by shortname, respecting
+        // visibility. Hidden / teacher-only fields are dropped for public viewers.
         $d->cf = [];
+        $canviewhidden = has_capability('moodle/course:update', $context);
         try {
             $handler = \core_course\customfield\course_handler::create();
-            foreach ($handler->get_instance_data($course->id, true) as $fielddata) {
-                $sn  = $fielddata->get_field()->get('shortname');
-                $val = $fielddata->get_value();
-                $d->cf[$sn] = is_string($val) ? trim($val) : $val;
+            foreach ($handler->get_instance_data($course->id, true) as $fd) {
+                $field = $fd->get_field();
+                $vis   = (int) $field->get_configdata_property('visibility');
+                // 0 = nobody, 1 = teachers, 2 = everyone.
+                if ($vis < 2 && !$canviewhidden) {
+                    continue;
+                }
+                $d->cf[$field->get('shortname')] = (object) [
+                    'type' => $field->get('type'),
+                    'raw'  => $fd->get_value(),
+                ];
             }
         } catch (\Throwable $e) {
-            // Custom fields component unavailable — leave $d->cf empty, bands fall back to DASH.
             $d->cf = [];
         }
 
@@ -213,38 +271,19 @@ class format_topics_renderer extends \format_topics\output\renderer {
     }
 
     /**
-     * Split a chip-style custom field value ("a@@|@@b@@|@@c") into a clean list
-     * of non-empty, trimmed sentences. Returns [] when the field is empty/absent.
+     * A count rendered with the correct singular / plural language string.
      *
-     * @param string $shortname
-     * @param stdClass $data
-     * @return string[]
-     */
-    protected function acad_cf_list($shortname, $data) {
-        $raw = $data->cf[$shortname] ?? '';
-        if (!is_string($raw) || trim($raw) === '') {
-            return [];
-        }
-        $parts = array_map('trim', explode(self::CHIP_SEP, $raw));
-        return array_values(array_filter($parts, function($p) {
-            return $p !== '';
-        }));
-    }
-
-    /**
-     * Plain (non-chip) short-text custom field value, or '' when empty/absent.
-     *
-     * @param string $shortname
-     * @param stdClass $data
+     * @param int $n
+     * @param string $onekey singular string key
+     * @param string $manykey plural string key
      * @return string
      */
-    protected function acad_cf_text($shortname, $data) {
-        $raw = $data->cf[$shortname] ?? '';
-        return is_string($raw) ? trim($raw) : '';
+    protected function acad_count($n, $onekey, $manykey): string {
+        return get_string(((int) $n === 1) ? $onekey : $manykey, 'theme_nit', $n);
     }
 
     /**
-     * Enrolled teachers for the Coursera "Instructors" slots.
+     * Enrolled teachers for the "Instructors" slots.
      *
      * @param \context_course $context
      * @return array
@@ -252,13 +291,17 @@ class format_topics_renderer extends \format_topics\output\renderer {
     protected function acad_teachers($context) {
         $out   = [];
         $roles = get_archetype_roles('editingteacher') + get_archetype_roles('teacher');
-        if (empty($roles)) { return $out; }
+        if (empty($roles)) {
+            return $out;
+        }
         $fields = 'u.id, u.firstname, u.lastname, u.email, u.picture, u.imagealt, u.firstnamephonetic,
                    u.lastnamephonetic, u.middlename, u.alternatename';
         $users = get_role_users(array_keys($roles), $context, false, $fields);
         $seen  = [];
         foreach ($users as $u) {
-            if (isset($seen[$u->id])) { continue; }
+            if (isset($seen[$u->id])) {
+                continue;
+            }
             $seen[$u->id] = true;
             $out[] = $u;
         }
@@ -266,28 +309,174 @@ class format_topics_renderer extends \format_topics\output\renderer {
     }
 
     // =========================================================================
+    // Custom-field helpers
+    // =========================================================================
+
+    /**
+     * Resolve a bilingual "{mlang}" value to the current language as plain text.
+     *
+     * The site's multilang filter (if installed) runs first via format_string();
+     * if {mlang} tags survive we resolve them ourselves so the page is correct
+     * even where the {mlang} filter is not present. Returns '' for empty input.
+     *
+     * @param string|null $raw
+     * @param stdClass $data
+     * @return string
+     */
+    protected function acad_ml($raw, $data): string {
+        if (!is_string($raw) || trim($raw) === '') {
+            return '';
+        }
+        $out = format_string($raw, true, ['context' => $data->context]);
+        if (stripos($out, '{mlang') === false) {
+            return trim($out);
+        }
+        return trim($this->acad_resolve_mlang($out));
+    }
+
+    /**
+     * Resolve {mlang XX}…{mlang} blocks for the current language.
+     *
+     * Blocks whose language list contains the current language win; otherwise
+     * "other" blocks are used; failing both, the first block is shown so a value
+     * is never lost. Mirrors filter_multilang2 selection behaviour.
+     *
+     * @param string $text
+     * @return string
+     */
+    protected function acad_resolve_mlang($text): string {
+        $lang = current_language();
+        $pattern = '/\{mlang\s+([^}]+)\}(.*?)\{mlang\}/is';
+        if (!preg_match_all($pattern, $text, $matches, PREG_SET_ORDER)) {
+            return $text;
+        }
+        $matched = '';
+        $other   = '';
+        $first   = null;
+        foreach ($matches as $block) {
+            $langs   = array_map('trim', explode(',', strtolower($block[1])));
+            $content = $block[2];
+            if ($first === null) {
+                $first = $content;
+            }
+            if (in_array($lang, $langs, true)) {
+                $matched .= $content;
+            }
+            if (in_array('other', $langs, true)) {
+                $other .= $content;
+            }
+        }
+        if ($matched !== '') {
+            return $matched;
+        }
+        if ($other !== '') {
+            return $other;
+        }
+        return $first ?? '';
+    }
+
+    /**
+     * A single short-text custom field, resolved to plain text ('' when absent).
+     *
+     * @param string $shortname
+     * @param stdClass $data
+     * @return string
+     */
+    protected function acad_cf_text($shortname, $data): string {
+        if (!isset($data->cf[$shortname])) {
+            return '';
+        }
+        return $this->acad_ml($data->cf[$shortname]->raw, $data);
+    }
+
+    /**
+     * A checkbox custom field as bool (false when absent).
+     *
+     * @param string $shortname
+     * @param stdClass $data
+     * @return bool
+     */
+    protected function acad_cf_bool($shortname, $data): bool {
+        if (!isset($data->cf[$shortname])) {
+            return false;
+        }
+        return (bool) $data->cf[$shortname]->raw;
+    }
+
+    /**
+     * A number custom field as a trimmed display string ('' when absent/zero-empty).
+     *
+     * @param string $shortname
+     * @param stdClass $data
+     * @return string
+     */
+    protected function acad_cf_number($shortname, $data): string {
+        if (!isset($data->cf[$shortname])) {
+            return '';
+        }
+        $val = $data->cf[$shortname]->raw;
+        if ($val === null || $val === '' || (is_numeric($val) && (float) $val == 0.0)) {
+            return '';
+        }
+        // Whole numbers show without the ".0" the number field stores; keep any
+        // genuine decimal part.
+        $f = (float) $val;
+        return ($f == (int) $f) ? (string) (int) $f : rtrim(rtrim((string) $f, '0'), '.');
+    }
+
+    /**
+     * Split one short-text value into a clean list of chips.
+     *
+     * Resolves {mlang} first, then splits on explicit list separators — pipe "|",
+     * newline, and the bullet "•". When $listsep is true the value is also split
+     * on commas (Arabic "،" included), which suits keyword/tag style fields such
+     * as course_fields. Returns [] for empty input.
+     *
+     * @param string $shortname
+     * @param stdClass $data
+     * @param bool $listsep also split on commas
+     * @return string[]
+     */
+    protected function acad_chips($shortname, $data, bool $listsep = false): array {
+        $text = $this->acad_cf_text($shortname, $data);
+        if ($text === '') {
+            return [];
+        }
+        $sep = $listsep ? '/[|\n•،,]+/u' : '/[|\n•]+/u';
+        $parts = preg_split($sep, $text);
+        $parts = array_map('trim', $parts);
+        return array_values(array_filter($parts, function ($p) {
+            return $p !== '';
+        }));
+    }
+
+    // =========================================================================
     // Bands
     // =========================================================================
 
     /**
-     * Breadcrumb band.
+     * Breadcrumb band (Browse › category chain).
      *
      * @param stdClass $data
      * @return string
      */
     protected function acad_breadcrumb($data) {
-        $parts = array_merge(['Browse'], $data->catnames);
+        $parts = array_merge([get_string('acad_browse', 'theme_nit')], $data->catnames);
         $html  = '';
         $last  = count($parts) - 1;
         foreach ($parts as $i => $p) {
-            $html .= html_writer::tag('span', s($p));
-            if ($i < $last) { $html .= html_writer::tag('span', '›'); }
+            // $p is already HTML-safe (a lang string or format_string() output).
+            $html .= html_writer::tag('span', $p, ['class' => 'acad-cr__crumb']);
+            if ($i < $last) {
+                $html .= html_writer::tag('span', '›', ['class' => 'acad-cr__crumb-sep', 'aria-hidden' => 'true']);
+            }
         }
         return html_writer::div(html_writer::div($html, 'acad-cr__crumbs'), 'acad-cr__wrap');
     }
 
     /**
-     * Hero band (provider, title, instructor line, CTA, enrolled count).
+     * Hero band: provider, title, subject, instructor, CTA + badges, and the
+     * "at a glance" facts card (the page's signature element).
      *
      * @param stdClass $course
      * @param \context_course $context
@@ -300,226 +489,275 @@ class format_topics_renderer extends \format_topics\output\renderer {
         $isenrolled = is_enrolled($context, $USER->id, '', true);
         if ($isenrolled) {
             $url   = new moodle_url('/course/view.php', ['id' => $course->id]);
-            $label = 'Go to Course';
+            $label = get_string('acad_gotocourse', 'theme_nit');
         } else {
             $url   = new moodle_url('/enrol/index.php', ['id' => $course->id]);
-            $label = 'Enroll for Free';
+            $label = get_string('acad_enrol', 'theme_nit');
         }
 
-        // Provider = top-level category (stands in for Coursera's "IBM" logo slot).
+        // Provider = top-level category.
         $provider = !empty($data->catnames) ? $data->catnames[0] : format_string($course->shortname);
-
-        // Instructor line. co3 = "Instructor" custom field wins when set; otherwise
-        // fall back to the enrolled teacher(s), then to a dash.
-        $cfinstructor = $this->acad_cf_text('co3', $data);
-        if ($cfinstructor !== '') {
-            $instr = html_writer::tag('strong', 'Instructor: ') . s($cfinstructor);
-        } else if (!empty($data->teachers)) {
-            $first = fullname($data->teachers[0]);
-            $more  = count($data->teachers) - 1;
-            $instr = html_writer::tag('strong', 'Instructor: ')
-                   . html_writer::tag('a', s($first), ['href' => '#'])
-                   . ($more > 0 ? ' +' . $more . ' more' : '');
-        } else {
-            $instr = html_writer::tag('strong', 'Instructor: ') . self::DASH;
-        }
 
         $o  = html_writer::start_div('acad-cr__hero');
 
         // ---- Left main ----
         $o .= html_writer::start_div('acad-cr__hero-main');
-        $o .= html_writer::div(s($provider), 'acad-cr__provider');
+        $o .= html_writer::div($provider, 'acad-cr__provider');
         $o .= html_writer::tag('h1', format_string($course->fullname), ['class' => 'acad-cr__title']);
-        $o .= html_writer::tag('p',
-            'This course is part of multiple programs. ' .
-            html_writer::tag('a', 'Learn more', ['href' => '#']),
-            ['class' => 'acad-cr__partof']);
-        $o .= html_writer::div($instr, 'acad-cr__instructor');
 
+        // Subject line from course_fields (real), else nothing. Already HTML-safe.
+        $subject = $this->acad_cf_text('course_fields', $data);
+        if ($subject !== '') {
+            $o .= html_writer::tag('p', $subject, ['class' => 'acad-cr__partof']);
+        }
+
+        // Instructor line from enrolled teachers only (real).
+        if (!empty($data->teachers)) {
+            $first = fullname($data->teachers[0]);
+            $more  = count($data->teachers) - 1;
+            $instr = html_writer::tag('strong', get_string('acad_instructor', 'theme_nit') . ' ')
+                   . html_writer::tag('span', s($first), ['class' => 'acad-cr__instr-name'])
+                   . ($more > 0 ? ' ' . get_string('acad_plusmore', 'theme_nit', $more) : '');
+            $o .= html_writer::div($instr, 'acad-cr__instructor');
+        }
+
+        // CTA row: enrol/go button + free-or-paid badge + start date.
         $o .= html_writer::start_div('acad-cr__cta-row');
-        $o .= html_writer::link($url, $label, ['class' => 'acad-cr-btn']);
-        $o .= html_writer::tag('span', s($data->startlabel), ['class' => 'acad-cr__starts']);
+        $o .= html_writer::link($url, s($label), ['class' => 'acad-cr-btn']);
+        if ($this->acad_cf_bool('free', $data)) {
+            $o .= html_writer::tag('span', get_string('acad_free', 'theme_nit'),
+                ['class' => 'acad-cr__badge acad-cr__badge--free']);
+        }
+        if ($data->startlabel !== '') {
+            $o .= html_writer::tag('span',
+                get_string('acad_starts', 'theme_nit', s($data->startlabel)),
+                ['class' => 'acad-cr__starts']);
+        }
         $o .= html_writer::end_div();
 
-        $o .= html_writer::div(
-            html_writer::tag('b', number_format($data->enrolled)) . ' already enrolled',
-            'acad-cr__enrolled');
-        $o .= html_writer::end_div(); // hero-main
+        if ($data->enrolled > 0) {
+            $o .= html_writer::div(
+                get_string('acad_enrolledcount', 'theme_nit', html_writer::tag('b', number_format($data->enrolled))),
+                'acad-cr__enrolled');
+        }
+        $o .= html_writer::end_div(); // hero-main.
 
-        // ---- Right aside (progress-ring card, decorative) ----
-        $o .= html_writer::div(
-            $this->acad_ring() .
-            html_writer::div('Included with course materials', 'acad-cr__aside-note'),
-            'acad-cr__hero-aside');
+        // ---- Right aside: "at a glance" facts (signature) ----
+        $o .= $this->acad_glance($data);
 
-        $o .= html_writer::end_div(); // hero
+        $o .= html_writer::end_div(); // hero.
         return html_writer::div($o, 'acad-cr__wrap');
     }
 
     /**
-     * Decorative circular ring like the Coursera hero.
-     *
-     * @return string
-     */
-    protected function acad_ring() {
-        return '<svg class="acad-cr__ring" viewBox="0 0 120 120" aria-hidden="true">'
-            . '<circle cx="60" cy="60" r="52" fill="none" stroke="#e5e5e5" stroke-width="10"/>'
-            . '<circle cx="60" cy="60" r="52" fill="none" stroke="#0056d2" stroke-width="10"'
-            . ' stroke-linecap="round" stroke-dasharray="245 327" transform="rotate(-90 60 60)"/>'
-            . '</svg>';
-    }
-
-    /**
-     * Stats strip (module count + level).
+     * "At a glance" facts card: only rows that have real data are shown.
      *
      * @param stdClass $data
      * @return string
      */
-    protected function acad_stats($data) {
-        // co4 = "level" custom field; fall back to a dash when unset.
-        $level = $this->acad_cf_text('co4', $data);
-        $leveltop = ($level !== '' ? s($level) : self::DASH) . ' level';
-        // Rating, "Flexible schedule" and the "—%" liked-this-course cells are
-        // intentionally dropped — only real data (modules count + level) is shown.
-        $stats = [
-            ['top' => $data->modcount . ' modules'],
-            ['top' => $leveltop],
-        ];
+    protected function acad_glance($data) {
+        $rows = [];
 
-        $o = html_writer::start_div('acad-cr__stats');
-        foreach ($stats as $st) {
-            $o .= html_writer::div(
-                html_writer::div($st['top'], 'acad-cr__stat-top'),
-                'acad-cr__stat'
+        // Modules.
+        if ($data->modcount > 0) {
+            $rows[] = [$this->acad_icon('modules'),
+                get_string('acad_modules', 'theme_nit'),
+                $this->acad_count($data->modcount, 'acad_nmodule', 'acad_nmodules')];
+        }
+        // Duration (hours).
+        $hours = $this->acad_cf_number('total_number_of_hours', $data);
+        if ($hours !== '') {
+            $rows[] = [$this->acad_icon('clock'),
+                get_string('acad_duration', 'theme_nit'),
+                get_string(($hours === '1') ? 'acad_nhour' : 'acad_nhours', 'theme_nit', s($hours))];
+        }
+        // Assessments (computed from the activity tree).
+        if ($data->assesscount > 0) {
+            $rows[] = [$this->acad_icon('assess'),
+                get_string('acad_assessments', 'theme_nit'),
+                $this->acad_count($data->assesscount, 'acad_nassessment', 'acad_nassessments')];
+        }
+        // Language of instruction.
+        $lang = $this->acad_cf_text('language', $data);
+        if ($lang !== '') {
+            // $lang is already HTML-safe (resolved via format_string/{mlang}).
+            $rows[] = [$this->acad_icon('lang'), get_string('acad_language', 'theme_nit'), $lang];
+        }
+        // Certificate.
+        if ($this->acad_cf_bool('certificate', $data)) {
+            $rows[] = [$this->acad_icon('cert'),
+                get_string('acad_certificate', 'theme_nit'),
+                get_string('acad_certificate_sub', 'theme_nit')];
+        }
+
+        if (empty($rows)) {
+            return '';
+        }
+
+        $body = '';
+        foreach ($rows as $r) {
+            $body .= html_writer::div(
+                html_writer::div($r[0], 'acad-cr__glance-ico') .
+                html_writer::div(
+                    html_writer::div($r[1], 'acad-cr__glance-k') .
+                    html_writer::div($r[2], 'acad-cr__glance-v'),
+                    'acad-cr__glance-txt'
+                ),
+                'acad-cr__glance-row'
             );
         }
-        $o .= html_writer::end_div();
-        return html_writer::div($o, 'acad-cr__wrap');
+
+        return html_writer::div(
+            html_writer::tag('h2', get_string('acad_ataglance', 'theme_nit'), ['class' => 'acad-cr__glance-h']) . $body,
+            'acad-cr__glance');
     }
 
     /**
-     * Sticky tab bar.
+     * Sticky tab bar built from the bands that actually rendered.
      *
+     * @param array $tabs id => label
      * @return string
      */
-    protected function acad_tabs() {
-        $tabs = [
-            ['id' => 'about',           'label' => 'About',           'active' => true],
-            ['id' => 'outcomes',        'label' => 'Outcomes',        'active' => false],
-            ['id' => 'modules',         'label' => 'Modules',         'active' => false],
-            ['id' => 'recommendations', 'label' => 'Recommendations', 'active' => false],
-            ['id' => 'testimonials',    'label' => 'Testimonials',    'active' => false],
-            ['id' => 'reviews',         'label' => 'Reviews',         'active' => false],
-        ];
+    protected function acad_tabs($tabs) {
+        if (count($tabs) < 2) {
+            return '';
+        }
         $o = html_writer::start_div('acad-cr__tabs');
-        foreach ($tabs as $t) {
-            $cls = 'acad-cr__tab' . (!empty($t['active']) ? ' is-active' : '');
-            $o .= html_writer::tag('button', s($t['label']), [
+        $first = true;
+        foreach ($tabs as $id => $label) {
+            $cls = 'acad-cr__tab' . ($first ? ' is-active' : '');
+            $o .= html_writer::tag('button', s($label), [
                 'class'      => $cls,
                 'type'       => 'button',
-                'data-crtab' => $t['id'],
+                'data-crtab' => $id,
                 'onclick'    => 'AcademyUI.crTab(this)',
             ]);
+            $first = false;
         }
         $o .= html_writer::end_div();
         return html_writer::div($o, 'acad-cr__wrap');
     }
 
     /**
-     * "What you'll learn" band.
+     * "What you'll learn" band — Intended Learning Outcomes + end-of-training
+     * statements. Empty ⇒ '' (band omitted).
      *
      * @param stdClass $data
      * @return string
      */
     protected function acad_learn($data) {
-        $check = '<svg class="acad-cr__check" viewBox="0 0 20 20" fill="none" aria-hidden="true">'
-               . '<path d="M4 10l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-
-        // co1 = "What you'll learn" chips. Fall back to four dashed slots so the
-        // checklist still matches the reference layout when the field is empty.
-        $items = $this->acad_cf_list('co1', $data);
-        $grid = '';
-        if ($items) {
-            foreach ($items as $item) {
-                $grid .= html_writer::div($check . html_writer::tag('span', s($item)), 'acad-cr__learn-item');
-            }
-        } else {
-            for ($i = 0; $i < 4; $i++) {
-                $grid .= html_writer::div($check . html_writer::tag('span', self::DASH), 'acad-cr__learn-item');
-            }
+        $items = array_merge(
+            $this->acad_chips('ilos', $data),
+            $this->acad_chips('by_the_end_of_training', $data)
+        );
+        if (empty($items)) {
+            return '';
         }
 
-        $inner = html_writer::tag('h2', "What you'll learn", ['class' => 'acad-cr__h2', 'id' => 'about'])
+        $check = $this->acad_icon('check');
+        $grid  = '';
+        foreach ($items as $item) {
+            // $item is already HTML-safe (resolved via format_string/{mlang}).
+            $grid .= html_writer::div($check . html_writer::tag('span', $item), 'acad-cr__learn-item');
+        }
+
+        $inner = html_writer::tag('h2', get_string('acad_learn', 'theme_nit'),
+                    ['class' => 'acad-cr__h2', 'id' => 'about'])
                . html_writer::div(html_writer::div($grid, 'acad-cr__learn-grid'), 'acad-cr__learn-card');
 
         return html_writer::div(html_writer::div($inner, 'acad-cr__wrap'), 'acad-cr__band');
     }
 
     /**
-     * "Skills you'll gain" band.
+     * "Course fields / Skills" band — course_fields chips, else course tags.
+     * Empty ⇒ '' (band omitted).
      *
      * @param stdClass $data
      * @return string
      */
     protected function acad_skills($data) {
-        // co2 = "Skills you'll gain" chips. Fall back to course tags, then to six
-        // dashed pills so the band always fills the reference layout.
-        $items = $this->acad_cf_list('co2', $data);
+        $items = $this->acad_chips('course_fields', $data, true);
         $pills = '';
-        if ($items) {
+        if (!empty($items)) {
             foreach ($items as $item) {
-                $pills .= html_writer::tag('span', s($item), ['class' => 'acad-cr__pill']);
+                // $item is already HTML-safe (resolved via format_string/{mlang}).
+                $pills .= html_writer::tag('span', $item, ['class' => 'acad-cr__pill']);
             }
         } else if (!empty($data->tags)) {
             foreach ($data->tags as $tag) {
                 $pills .= html_writer::tag('span', format_string($tag->get_display_name()), ['class' => 'acad-cr__pill']);
             }
-            $pills .= html_writer::tag('a', 'View all', ['class' => 'acad-cr__viewall', 'href' => '#']);
         } else {
-            for ($i = 0; $i < 6; $i++) {
-                $pills .= html_writer::tag('span', self::DASH, ['class' => 'acad-cr__pill']);
-            }
+            return '';
         }
 
-        $inner = html_writer::tag('h2', "Skills you'll gain", ['class' => 'acad-cr__h2', 'id' => 'outcomes'])
+        $inner = html_writer::tag('h2', get_string('acad_skills', 'theme_nit'),
+                    ['class' => 'acad-cr__h2', 'id' => 'skills'])
                . html_writer::div($pills, 'acad-cr__skills');
 
         return html_writer::div(html_writer::div($inner, 'acad-cr__wrap'), 'acad-cr__band');
     }
 
     /**
-     * "Details to know" band.
+     * "Requirements & audience" band — prerequisites + target audience.
+     * Empty ⇒ '' (band omitted).
      *
      * @param stdClass $data
      * @return string
      */
-    protected function acad_details($data) {
-        $cell = function($icon, $head, $sub) {
-            return html_writer::div(
-                html_writer::div($icon . html_writer::tag('span', $head), 'acad-cr__detail-h') .
-                html_writer::div($sub, 'acad-cr__detail-sub'),
-                'acad-cr__detail'
-            );
-        };
+    protected function acad_requirements($data) {
+        $cards = '';
 
-        $iconcert = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M8 14l-1 7 5-3 5 3-1-7" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
-        $iconassess = '<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-        $iconlang = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" stroke="currentColor" stroke-width="1.6"/></svg>';
+        $audience = $this->acad_chips('target_audience', $data);
+        if (!empty($audience)) {
+            $cards .= $this->acad_req_card(
+                $this->acad_icon('people'),
+                get_string('acad_audience', 'theme_nit'),
+                $audience);
+        }
 
-        $o  = html_writer::start_div('acad-cr__details');
-        $o .= $cell($iconcert,   'Shareable certificate', 'Add to your LinkedIn profile');
-        $o .= $cell($iconassess, 'Assessments',           self::DASH . ' assignments');
-        $o .= $cell($iconlang,   'Taught in ' . s($data->lang), self::DASH . ' languages available');
-        $o .= html_writer::end_div();
+        $prereq = $this->acad_chips('prerequisites', $data);
+        if (!empty($prereq)) {
+            $cards .= $this->acad_req_card(
+                $this->acad_icon('list'),
+                get_string('acad_prerequisites', 'theme_nit'),
+                $prereq);
+        }
 
-        $inner = html_writer::tag('h2', 'Details to know', ['class' => 'acad-cr__h2'])
-               . $o;
+        if ($cards === '') {
+            return '';
+        }
+
+        $inner = html_writer::tag('h2', get_string('acad_requirements', 'theme_nit'),
+                    ['class' => 'acad-cr__h2', 'id' => 'requirements'])
+               . html_writer::div($cards, 'acad-cr__req-grid');
 
         return html_writer::div(html_writer::div($inner, 'acad-cr__wrap'), 'acad-cr__band');
     }
 
     /**
-     * "Build your subject-matter expertise" band (grey).
+     * One requirements card (icon + heading + list of points).
+     *
+     * @param string $icon
+     * @param string $heading
+     * @param string[] $points
+     * @return string
+     */
+    protected function acad_req_card($icon, $heading, array $points) {
+        $list = '';
+        foreach ($points as $p) {
+            // $p is already HTML-safe (resolved via format_string/{mlang}).
+            $list .= html_writer::tag('li', $p);
+        }
+        return html_writer::div(
+            html_writer::div($icon . html_writer::tag('span', $heading), 'acad-cr__req-h') .
+            html_writer::tag('ul', $list, ['class' => 'acad-cr__req-list']),
+            'acad-cr__req-card'
+        );
+    }
+
+    /**
+     * "About this course" band — the course summary. Empty ⇒ '' (band omitted).
      *
      * @param stdClass $course
      * @param \context_course $context
@@ -528,30 +766,15 @@ class format_topics_renderer extends \format_topics\output\renderer {
      */
     protected function acad_expertise($course, $context, $data) {
         $summary = format_text($course->summary, $course->summaryformat, ['context' => $context]);
-        $summary = trim(strip_tags($summary)) !== '' ? $summary : html_writer::tag('p', self::DASH);
-
-        $tick = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        $bullets = '';
-        for ($i = 0; $i < 4; $i++) {
-            $bullets .= html_writer::tag('li', $tick . html_writer::tag('span', self::DASH));
+        if (trim(strip_tags($summary)) === '') {
+            return '';
         }
 
-        $left = html_writer::tag('h2', 'Build your subject-matter expertise', ['class' => 'acad-cr__h2'])
-              . html_writer::tag('p',
-                    'This course is available as part of multiple programs. When you enroll in this ' .
-                    'course, you\'ll also be asked to select a specific program.',
-                    ['class' => 'acad-cr__modules-intro'])
-              . html_writer::tag('ul', $bullets, ['class' => 'acad-cr__bullets']);
-
-        $right = html_writer::tag('h2',
-                    'There are ' . $data->modcount . ' modules in this course',
-                    ['class' => 'acad-cr__h2', 'id' => 'modules'])
-               . html_writer::div($summary, 'acad-cr__modules-intro');
-
-        $grid = html_writer::div($left . $right, 'acad-cr__expertise-grid');
+        $left = html_writer::tag('h2', get_string('acad_about_h', 'theme_nit'), ['class' => 'acad-cr__h2'])
+              . html_writer::div($summary, 'acad-cr__summary');
 
         return html_writer::div(
-            html_writer::div(html_writer::div($grid, 'acad-cr__wrap'), 'acad-cr__band'),
+            html_writer::div(html_writer::div($left, 'acad-cr__wrap'), 'acad-cr__band'),
             'acad-cr__soft'
         );
     }
@@ -577,7 +800,10 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $acc .= $this->acad_module_row($course, $section, $modinfo, $snum, $idx, ($idx === 1), $context);
         }
 
-        $left = html_writer::div($acc, 'acad-cr__acc');
+        $left = html_writer::tag('h2',
+                    $this->acad_count($data->modcount, 'acad_1modulein', 'acad_nmodulesin'),
+                    ['class' => 'acad-cr__h2', 'id' => 'modules'])
+              . html_writer::div($acc, 'acad-cr__acc');
         $rail = $this->acad_rail($course, $context, $data);
 
         $grid = html_writer::div(
@@ -606,20 +832,22 @@ class format_topics_renderer extends \format_topics\output\renderer {
         $bodyid = 'acad-cr-mod-' . $snum;
         $cmlist = !empty($modinfo->sections[$snum]) ? $modinfo->sections[$snum] : [];
 
-        // "What's included" tally by module type.
+        // Count visible activities + a "What's included" tally by module type.
         $typecounts = [];
+        $visitems   = 0;
         foreach ($cmlist as $cmid) {
             $cm = $modinfo->cms[$cmid];
-            if (!$cm->uservisible) { continue; }
-            // modplural is a lang_string; cast before using it as an array key.
+            if (!$cm->uservisible) {
+                continue;
+            }
+            $visitems++;
             $plural = (string) $cm->modplural;
             $typecounts[$plural] = ($typecounts[$plural] ?? 0) + 1;
         }
         $included = [];
         foreach ($typecounts as $plural => $count) {
-            $included[] = '<b>' . $count . '</b> ' . s($plural);
+            $included[] = html_writer::tag('b', $count) . ' ' . s($plural);
         }
-        $includedstr = $included ? implode(' · ', $included) : self::DASH;
 
         $o  = html_writer::start_div('acad-cr__mod' . ($open ? ' is-open' : ''), ['id' => 'acad-cr-modwrap-' . $snum]);
 
@@ -631,13 +859,16 @@ class format_topics_renderer extends \format_topics\output\renderer {
             'aria-expanded' => $open ? 'true' : 'false',
             'aria-controls' => $bodyid,
         ]);
+        $meta = get_string('acad_modulen', 'theme_nit', $idx);
+        if ($visitems > 0) {
+            $meta .= ' · ' . $this->acad_count($visitems, 'acad_nitem', 'acad_nitems');
+        }
         $o .= html_writer::div(
             html_writer::tag('div', format_string($title), ['class' => 'acad-cr__mod-title']) .
-            html_writer::tag('div', 'Module ' . $idx . ' · ' . self::DASH . ' to complete', ['class' => 'acad-cr__mod-meta'])
+            html_writer::tag('div', $meta, ['class' => 'acad-cr__mod-meta'])
         );
         $o .= html_writer::tag('span',
-            'Module details' .
-            '<svg viewBox="0 0 20 20" fill="none"><polyline points="5,8 10,13 15,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            get_string('acad_moduledetails', 'theme_nit') . $this->acad_icon('chevron'),
             ['class' => 'acad-cr__mod-toggle']);
         $o .= html_writer::end_tag('button');
 
@@ -646,27 +877,27 @@ class format_topics_renderer extends \format_topics\output\renderer {
 
         if ($section->uservisible && !empty($section->summary)) {
             $desc = format_text($section->summary, $section->summaryformat, ['context' => $context]);
-            $o .= html_writer::div($desc, 'acad-cr__mod-desc');
-        } else {
-            $o .= html_writer::div(self::DASH, 'acad-cr__mod-desc');
+            if (trim(strip_tags($desc)) !== '') {
+                $o .= html_writer::div($desc, 'acad-cr__mod-desc');
+            }
         }
 
-        $o .= html_writer::tag('div', "What's included", ['class' => 'acad-cr__included-h']);
-        $o .= html_writer::div($includedstr, 'acad-cr__included-sum');
+        if (!empty($included)) {
+            $o .= html_writer::tag('div', get_string('acad_included', 'theme_nit'), ['class' => 'acad-cr__included-h']);
+            $o .= html_writer::div(implode(' · ', $included), 'acad-cr__included-sum');
+        }
 
         if (!$section->uservisible) {
-            // Section is restricted for this viewer: show the availability note
-            // (core_courseformat has no public section_availability() helper in 5.x).
-            $locked = !empty($section->availableinfo)
-                ? \core_availability\info::format_info($section->availableinfo, $course)
-                : self::DASH;
-            $o .= html_writer::div($locked, 'acad-cr__act-locked');
+            if (!empty($section->availableinfo)) {
+                $locked = \core_availability\info::format_info($section->availableinfo, $course);
+                $o .= html_writer::div($locked, 'acad-cr__act-locked');
+            }
         } else {
             $o .= $this->acad_activities($modinfo, $cmlist);
         }
 
-        $o .= html_writer::end_div(); // body
-        $o .= html_writer::end_div(); // mod
+        $o .= html_writer::end_div(); // body.
+        $o .= html_writer::end_div(); // mod.
         return $o;
     }
 
@@ -678,16 +909,15 @@ class format_topics_renderer extends \format_topics\output\renderer {
      * @return string
      */
     protected function acad_activities($modinfo, $cmlist) {
-        if (empty($cmlist)) {
-            return html_writer::div(self::DASH, 'acad-cr__act-locked');
-        }
         $o = '';
         foreach ($cmlist as $cmid) {
             $cm = $modinfo->cms[$cmid];
-            if (!$cm->uservisible) { continue; }
+            if (!$cm->uservisible) {
+                continue;
+            }
 
             $ico = html_writer::empty_tag('img', [
-                'src' => $cm->get_icon_url(), 'alt' => (string) $cm->modfullname, 'class' => 'acad-cr__act-ico',
+                'src' => $cm->get_icon_url(), 'alt' => '', 'class' => 'acad-cr__act-ico', 'aria-hidden' => 'true',
             ]);
             $name = $cm->url
                 ? html_writer::link($cm->url, format_string($cm->name))
@@ -696,7 +926,7 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $o .= html_writer::div(
                 $ico .
                 html_writer::div($name, 'acad-cr__act-name') .
-                html_writer::tag('span', self::DASH, ['class' => 'acad-cr__act-dur']),
+                html_writer::tag('span', s((string) $cm->modfullname), ['class' => 'acad-cr__act-type']),
                 'acad-cr__act'
             );
         }
@@ -712,43 +942,42 @@ class format_topics_renderer extends \format_topics\output\renderer {
      * @return string
      */
     protected function acad_rail($course, $context, $data) {
-        // Instructors card.
-        $tutors = '';
+        $out = '';
+
+        // Instructors card (only when there are teachers).
         if (!empty($data->teachers)) {
+            $tutors = '';
             foreach ($data->teachers as $t) {
                 $userpic = new user_picture($t);
                 $userpic->size = 100;
                 $avatar = $this->output->render($userpic);
+                $profileurl = new moodle_url('/user/view.php', ['id' => $t->id, 'course' => $course->id]);
                 $tutors .= html_writer::div(
                     $avatar .
                     html_writer::div(
-                        html_writer::div(s(fullname($t)), 'acad-cr__tutor-name') .
-                        html_writer::div(self::DASH, 'acad-cr__tutor-org') .
-                        html_writer::div(self::DASH . ' Courses · ' . self::DASH . ' learners', 'acad-cr__tutor-stat')
+                        html_writer::link($profileurl, s(fullname($t)), ['class' => 'acad-cr__tutor-name']) .
+                        html_writer::div(get_string('acad_instructorrole', 'theme_nit'), 'acad-cr__tutor-org')
                     ),
                     'acad-cr__tutor'
                 );
             }
-        } else {
-            $tutors = html_writer::div(self::DASH, 'acad-cr__tutor');
+            $out .= html_writer::div(
+                html_writer::tag('div', get_string('acad_instructors', 'theme_nit'), ['class' => 'acad-cr__rail-h']) .
+                $tutors,
+                'acad-cr__rail-card'
+            );
         }
 
-        $instructorscard = html_writer::div(
-            html_writer::tag('div', 'Instructors', ['class' => 'acad-cr__rail-h']) .
-            $tutors,
-            'acad-cr__rail-card'
-        );
+        // Offered by = top-level category.
+        if (!empty($data->catnames)) {
+            $out .= html_writer::div(
+                html_writer::tag('div', get_string('acad_offeredby', 'theme_nit'), ['class' => 'acad-cr__offered-h']) .
+                html_writer::div($data->catnames[0], 'acad-cr__offered-logo'),
+                'acad-cr__rail-card'
+            );
+        }
 
-        // Offered by.
-        $provider = !empty($data->catnames) ? $data->catnames[0] : format_string($course->shortname);
-        $offeredcard = html_writer::div(
-            html_writer::tag('div', 'Offered by', ['class' => 'acad-cr__offered-h']) .
-            html_writer::div(s($provider), 'acad-cr__offered-logo') .
-            html_writer::tag('a', 'Learn more', ['href' => '#']),
-            'acad-cr__rail-card'
-        );
-
-        return $instructorscard . $offeredcard;
+        return $out;
     }
 
     // =========================================================================
@@ -773,8 +1002,31 @@ class format_topics_renderer extends \format_topics\output\renderer {
     }
 
     /**
-     * Inline accordion / tab helpers (ported from local/academy/ui.js). Emitted
-     * in the body because a format renderer runs after <head> is flushed.
+     * Small inline SVG icon (stroke = currentColor) by key.
+     *
+     * @param string $key
+     * @return string
+     */
+    protected function acad_icon($key): string {
+        $paths = [
+            'check'   => '<path d="M4 10l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+            'chevron' => '<polyline points="5,8 10,13 15,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+            'modules' => '<rect x="3" y="4" width="18" height="4" rx="1" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="10" width="18" height="4" rx="1" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="16" width="18" height="4" rx="1" stroke="currentColor" stroke-width="1.7"/>',
+            'clock'   => '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
+            'assess'  => '<rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+            'lang'    => '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" stroke="currentColor" stroke-width="1.7"/>',
+            'cert'    => '<circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="1.7"/><path d="M8 14l-1 7 5-3 5 3-1-7" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
+            'people'  => '<circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M16 5.5a3.2 3.2 0 0 1 0 5M17.5 20a5.5 5.5 0 0 0-2.5-4.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+            'list'    => '<path d="M8 6h12M8 12h12M8 18h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="4" cy="6" r="1.3" fill="currentColor"/><circle cx="4" cy="12" r="1.3" fill="currentColor"/><circle cx="4" cy="18" r="1.3" fill="currentColor"/>',
+        ];
+        $p = $paths[$key] ?? '';
+        return '<svg class="acad-cr__ico acad-cr__ico--' . $key . '" viewBox="0 0 24 24" fill="none" aria-hidden="true">'
+            . $p . '</svg>';
+    }
+
+    /**
+     * Inline accordion / tab helpers. Emitted in the body because a format
+     * renderer runs after <head> is flushed.
      *
      * @return string JavaScript
      */

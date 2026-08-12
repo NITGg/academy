@@ -90,3 +90,45 @@ $string['region-fullwidth-bottom'] = 'بعرض الصفحة (أسفل)';
 
 // Privacy.
 $string['privacy:metadata'] = 'لا يخزّن قالب NIT أي بيانات شخصية.';
+
+// صفحة تفاصيل الكورس (theme_nit\output\format_topics_renderer).
+$string['acad_browse'] = 'تصفّح';
+$string['acad_about'] = 'نظرة عامة';
+$string['acad_skills_tab'] = 'المهارات';
+$string['acad_requirements'] = 'المتطلبات';
+$string['acad_modules'] = 'الوحدات';
+$string['acad_instructor'] = 'المدرّب:';
+$string['acad_plusmore'] = '+{$a} آخرين';
+$string['acad_gotocourse'] = 'الذهاب إلى الكورس';
+$string['acad_enrol'] = 'التحق الآن';
+$string['acad_free'] = 'مجاني';
+$string['acad_starts'] = 'يبدأ {$a}';
+$string['acad_enrolledcount'] = '{$a} ملتحق بالفعل';
+$string['acad_ataglance'] = 'نظرة سريعة';
+$string['acad_nmodules'] = '{$a} وحدات';
+$string['acad_duration'] = 'المدة';
+$string['acad_nhours'] = '{$a} ساعة';
+$string['acad_assessments'] = 'التقييمات';
+$string['acad_nassessments'] = '{$a} تقييمات';
+$string['acad_language'] = 'اللغة';
+$string['acad_certificate'] = 'الشهادة';
+$string['acad_certificate_sub'] = 'شهادة قابلة للمشاركة';
+$string['acad_learn'] = 'ماذا ستتعلّم';
+$string['acad_skills'] = 'المهارات التي ستكتسبها';
+$string['acad_audience'] = 'لمن هذا الكورس';
+$string['acad_prerequisites'] = 'المتطلبات المسبقة';
+$string['acad_about_h'] = 'عن هذا الكورس';
+$string['acad_nmodulesin'] = 'يحتوي هذا الكورس على {$a} وحدات';
+$string['acad_modulen'] = 'الوحدة {$a}';
+$string['acad_nitems'] = '{$a} عناصر';
+$string['acad_moduledetails'] = 'تفاصيل الوحدة';
+$string['acad_included'] = 'ما الذي تتضمّنه';
+$string['acad_instructors'] = 'المدرّبون';
+$string['acad_instructorrole'] = 'مدرّب';
+$string['acad_offeredby'] = 'مقدَّم من';
+// صيغ المفرد للأعداد.
+$string['acad_nmodule'] = 'وحدة واحدة';
+$string['acad_nhour'] = 'ساعة واحدة';
+$string['acad_nassessment'] = 'تقييم واحد';
+$string['acad_nitem'] = 'عنصر واحد';
+$string['acad_1modulein'] = 'يحتوي هذا الكورس على وحدة واحدة';
