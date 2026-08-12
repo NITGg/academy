@@ -60,28 +60,55 @@ $fetchcourses = function (core_course_category $cat, bool $recursive): array {
     ]);
 };
 
-$sections = [];
+// Build a category "node": its own (direct) courses plus a node for every child
+// category, recursively. This lets each subcategory — at any depth — render as its
+// own titled group under its parent, instead of a parent lumping every descendant
+// course into one flat list.
+$buildnode = function (core_course_category $cat) use (&$buildnode, $fetchcourses): array {
+    $children = [];
+    foreach ($cat->get_children() as $child) {
+        $children[] = $buildnode($child);
+    }
+    return [
+        'cat'      => $cat,
+        'courses'  => $fetchcourses($cat, false), // direct only; descendants are child nodes
+        'children' => $children,
+    ];
+};
+
+// Total courses in a node's whole subtree (its own + every descendant's).
+$counttree = function (array $node) use (&$counttree): int {
+    $n = count($node['courses']);
+    foreach ($node['children'] as $child) {
+        $n += $counttree($child);
+    }
+    return $n;
+};
+
+$rootnodes = [];
 if (empty($subcategories)) {
-    $sections[] = ['cat' => $category, 'courses' => $fetchcourses($category, true)];
+    // Flat category (no children): just its own courses.
+    $rootnodes[] = $buildnode($category);
 } else if ($subid) {
-    $sections[] = ['cat' => $targetcat, 'courses' => $fetchcourses($targetcat, true)];
+    // One subcategory selected: render that subtree (its courses + nested subcategories).
+    $rootnodes[] = $buildnode($targetcat);
 } else {
-    // Courses that live directly under the parent (not inside any child) get their
-    // own section first, so nothing is dropped from the "All" view.
+    // "All": courses that live directly under the parent (not inside any child) get
+    // their own section first so nothing is dropped, then every subcategory subtree.
     $directcourses = $fetchcourses($category, false);
     if (!empty($directcourses)) {
-        $sections[] = ['cat' => $category, 'courses' => $directcourses];
+        $rootnodes[] = ['cat' => $category, 'courses' => $directcourses, 'children' => []];
     }
     foreach ($subcategories as $sc) {
-        $sections[] = ['cat' => $sc, 'courses' => $fetchcourses($sc, true)];
+        $rootnodes[] = $buildnode($sc);
     }
 }
 
-// Drop empty sections and tally the visible total.
-$sections = array_values(array_filter($sections, static fn($s) => !empty($s['courses'])));
+// Drop empty subtrees and tally the visible total.
+$rootnodes = array_values(array_filter($rootnodes, static fn($n) => $counttree($n) > 0));
 $totalcourses = 0;
-foreach ($sections as $s) {
-    $totalcourses += count($s['courses']);
+foreach ($rootnodes as $n) {
+    $totalcourses += $counttree($n);
 }
 
 // Hero banner always shows the grand total for the whole parent category, regardless
@@ -377,9 +404,8 @@ echo $OUTPUT->header();
     <div style="max-width: 1200px; margin: 0 auto;">
 
       <?php
-        // One card renderer, shared by every section. $sectioncat is the category the
-        // card lives under (its header), so the card shows that category's name. The
-        // dot colour is inherited from the section wrapper via the --dot custom prop.
+        // One card renderer, shared by every section. $sectionname is the category the
+        // card lives under (its header), so the card can show that category's name.
         $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo) {
             $courseurl  = new moodle_url('/course/view.php', ['id' => $course->id]);
             $coursename = $course->get_formatted_name();
@@ -479,35 +505,82 @@ echo $OUTPUT->header();
         <?php
         };
 
-        // Palette of dot colours, cycled per section (decorative — pure brand variables,
-        // no new data). Green / red / blue / amber all read well on the dark surface.
-        $dotvars = ['--nit-brand-success', '--nit-brand-accent', '--nit-brand-bordersecondary', '--nit-brand-warning'];
-      ?>
-
-      <?php if (!empty($sections)): ?>
-        <?php foreach ($sections as $i => $section): ?>
-        <?php
-          $sectioncat  = $section['cat'];
-          $sectionname = $sectioncat->get_formatted_name();
-          $sectiondot  = $dotvars[$i % count($dotvars)];
+        // Recursive section renderer: each category (at any depth) gets an X-Trade
+        // style "specialty" title — pin icon + gradient text + a coloured start-border —
+        // then its own course grid, then its child subcategories nested underneath with
+        // the same title UI (indented to show the hierarchy).
+        $rendernode = function (array $node, int $depth) use (&$rendernode, $rendercard, $counttree): void {
+            $cat   = $node['cat'];
+            $name  = $cat->get_formatted_name();
+            $count = $counttree($node);
+            $blockclass = 'nit-spec-block' . ($depth > 0 ? ' nit-spec-block--nested' : '');
         ?>
-        <!-- Category section: header pill + this category's course cards -->
-        <section style="--dot: var(<?= $sectiondot ?>); margin-bottom: 44px;">
-          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 22px;">
-            <div style="display: inline-flex; align-items: center; gap: 10px; background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--dot) 45%, transparent); padding: 10px 22px; border-radius: 50px;">
-              <span style="width: 11px; height: 11px; border-radius: 50%; background: var(--dot); box-shadow: 0 0 10px var(--dot); flex: 0 0 auto;"></span>
-              <span style="font-size: 16px; font-weight: bold; color: var(--ctext1);"><?= $sectionname ?></span>
-              <span style="font-size: 13px; font-weight: bold; color: var(--ctext3);">(<?= count($section['courses']) ?>)</span>
-            </div>
-            <div style="flex: 1; height: 1px; background: color-mix(in srgb, var(--ctext1) 8%, transparent);"></div>
+        <div class="<?= $blockclass ?>">
+          <div class="nit-spec-head">
+            <h3 class="nit-spec-title">
+              <span class="nit-spec-pin">📌</span>
+              <span class="nit-spec-name"><?= $name ?></span>
+              <span class="nit-spec-count">(<?= $count ?>)</span>
+            </h3>
+            <div class="nit-spec-rule"></div>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; align-items: stretch;">
-            <?php foreach ($section['courses'] as $course): ?>
-              <?php $rendercard($course, $sectionname); ?>
+          <?php if (!empty($node['courses'])): ?>
+          <div class="nit-spec-grid">
+            <?php foreach ($node['courses'] as $course): ?>
+              <?php $rendercard($course, $name); ?>
             <?php endforeach; ?>
           </div>
-        </section>
+          <?php endif; ?>
+
+          <?php if (!empty($node['children'])): ?>
+          <div class="nit-spec-children">
+            <?php foreach ($node['children'] as $child): ?>
+              <?php if ($counttree($child) > 0): ?>
+                <?php $rendernode($child, $depth + 1); ?>
+              <?php endif; ?>
+            <?php endforeach; ?>
+          </div>
+          <?php endif; ?>
+        </div>
+        <?php
+        };
+      ?>
+
+      <style>
+        /* Subcategory section title — X-Trade .specialty-title, on brand vars. */
+        .nit-spec-block { margin-bottom: 44px; }
+        .nit-spec-head { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+        .nit-spec-title {
+          display: inline-flex; align-items: center; gap: 10px;
+          margin: 0; font-size: 29px; font-weight: 800; line-height: 1.3;
+          border-inline-start: 4px solid var(--cbg4);
+          padding-inline-start: 14px;
+        }
+        .nit-spec-title .nit-spec-name {
+          background: linear-gradient(120deg, var(--ctext3), var(--cbg4));
+          -webkit-background-clip: text; background-clip: text;
+          -webkit-text-fill-color: transparent; color: transparent;
+        }
+        .nit-spec-title .nit-spec-pin { font-size: 24px; line-height: 1; }
+        .nit-spec-title .nit-spec-count { font-size: 15px; font-weight: 700; color: var(--ctext3); }
+        .nit-spec-rule { flex: 1; height: 1px; background: color-mix(in srgb, var(--ctext1) 8%, transparent); }
+        .nit-spec-grid {
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 24px; align-items: stretch;
+        }
+        /* Nested subcategory groups sit indented under their parent, same title UI. */
+        .nit-spec-children { margin-top: 28px; display: flex; flex-direction: column; gap: 8px; }
+        .nit-spec-block--nested {
+          margin-bottom: 32px;
+          margin-inline-start: 20px; padding-inline-start: 16px;
+          border-inline-start: 2px solid color-mix(in srgb, var(--cbg4) 18%, transparent);
+        }
+      </style>
+
+      <?php if (!empty($rootnodes)): ?>
+        <?php foreach ($rootnodes as $node): ?>
+          <?php $rendernode($node, 0); ?>
         <?php endforeach; ?>
       <?php else: ?>
       <div style="text-align: center; color: var(--ctext2); padding: 40px;">
