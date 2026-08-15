@@ -68,6 +68,10 @@ $string['errornotemail'] = 'Please enter a valid email address.';
 $string['errornoturl'] = 'Please enter a valid link starting with http:// or https://.';
 $string['errornotphone'] = 'Please enter a valid phone number (7 to 15 digits, an optional leading +).';
 
+// Date field help.
+$string['dateoptional'] = 'Optional date';
+$string['dateoptional_help'] = 'This date is optional. Tick the "Enable" checkbox to enter a date; leave it unticked to skip this field.';
+
 // Privacy.
 $string['privacy:metadata:jobform_submission'] = 'The forms a student submits for a Job Form activity.';
 $string['privacy:metadata:jobform_submission:jobformid'] = 'The Job Form activity the submission belongs to.';

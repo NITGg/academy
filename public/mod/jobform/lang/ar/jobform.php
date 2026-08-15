@@ -68,6 +68,10 @@ $string['errornotemail'] = 'من فضلك اكتب بريد إلكتروني ص�
 $string['errornoturl'] = 'من فضلك اكتب رابط صحيح يبدأ بـ http:// أو https://.';
 $string['errornotphone'] = 'من فضلك اكتب رقم هاتف صحيح (من 7 لـ 15 رقم، ويجوز يبدأ بـ +).';
 
+// Date field help.
+$string['dateoptional'] = 'تاريخ اختياري';
+$string['dateoptional_help'] = 'التاريخ ده اختياري. علّم على مربّع "تمكين" عشان تدخل تاريخ، أو سيبه من غير تعليم عشان تتخطى الحقل ده.';
+
 // Privacy.
 $string['privacy:metadata:jobform_submission'] = 'الاستمارات اللي الطالب بيبعتها لنشاط استمارة التوظيف.';
 $string['privacy:metadata:jobform_submission:jobformid'] = 'نشاط استمارة التوظيف اللي الاستمارة بتخصّه.';

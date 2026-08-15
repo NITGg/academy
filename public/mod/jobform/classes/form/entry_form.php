@@ -136,9 +136,14 @@ class entry_form extends \moodleform {
                 break;
 
             case field_types::TYPE_DATE:
-                // No "optional" toggle — that renders a confusing Enable ("تمكين")
-                // checkbox. The date is always shown.
-                $mform->addElement('date_selector', $name, $label);
+                // A non-required date is "optional": Moodle adds an Enable ("تمكين")
+                // checkbox so the student can leave it blank. A help button explains
+                // what that checkbox is for.
+                $optional = empty($field->required);
+                $mform->addElement('date_selector', $name, $label, ['optional' => $optional]);
+                if ($optional) {
+                    $mform->addHelpButton($name, 'dateoptional', 'mod_jobform');
+                }
                 break;
 
             case field_types::TYPE_CHECKBOX:
