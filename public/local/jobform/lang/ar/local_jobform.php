@@ -73,6 +73,9 @@ $string['deleteoption'] = 'حذف';
 $string['fieldmultiple'] = 'السماح باختيار متعدد';
 $string['fieldsingle'] = 'اختيار واحد';
 $string['fieldfixedvalue'] = 'قيمة ثابتة';
+$string['fieldfixedvalue_help'] = 'قيمة للقراءة فقط بتحطها انت (الأدمن). الطالب بيشوفها بس مش بيقدر يغيّرها — بتتبعت زي ما هي. املا اللغتين عشان كل طالب يشوف القيمة بلغته.';
+$string['fieldfixedvalue_en'] = 'قيمة ثابتة (إنجليزي)';
+$string['fieldfixedvalue_ar'] = 'قيمة ثابتة (عربي)';
 $string['actions'] = 'إجراءات';
 $string['confirmdeletefield'] = 'متأكد إنك عايز تمسح الحقل ده؟';
 

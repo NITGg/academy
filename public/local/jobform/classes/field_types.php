@@ -189,7 +189,7 @@ class field_types {
                 return mlang::resolve($value);
             case self::TYPE_FIXED:
                 $config = self::decode_config($field->configdata);
-                return $config['fixedvalue'];
+                return mlang::resolve($config['fixedvalue']);
             default:
                 return $value;
         }

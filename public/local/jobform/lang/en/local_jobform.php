@@ -73,6 +73,9 @@ $string['deleteoption'] = 'Remove';
 $string['fieldmultiple'] = 'Allow multiple selection';
 $string['fieldsingle'] = 'Single selection';
 $string['fieldfixedvalue'] = 'Fixed value';
+$string['fieldfixedvalue_help'] = 'A read-only value set by you (the admin). The student can see it but cannot change it — it is submitted as-is. Fill in both languages to show each student the value in their own language.';
+$string['fieldfixedvalue_en'] = 'Fixed value (English)';
+$string['fieldfixedvalue_ar'] = 'Fixed value (Arabic)';
 $string['actions'] = 'Actions';
 $string['confirmdeletefield'] = 'Are you sure you want to delete this field?';
 

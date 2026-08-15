@@ -239,7 +239,7 @@ class fields_ui {
                 html_writer::span('(' . $mode . ')', 'badge badge-secondary');
         }
         if (field_types::is_fixed($field->type)) {
-            return html_writer::span(s($config['fixedvalue']), 'text-muted');
+            return html_writer::span(s(mlang::resolve($config['fixedvalue'])), 'text-muted');
         }
         return html_writer::span('—', 'text-muted');
     }

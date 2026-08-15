@@ -108,9 +108,17 @@ class field_form extends \moodleform {
         $mform->hideIf('multiple', 'type', 'neq', field_types::TYPE_SELECT);
 
         // --- Fixed-value-only setting -------------------------------------
-        $mform->addElement('text', 'fixedvalue', get_string('fieldfixedvalue', 'local_jobform'), ['size' => 50]);
-        $mform->setType('fixedvalue', PARAM_TEXT);
-        $mform->hideIf('fixedvalue', 'type', 'neq', field_types::TYPE_FIXED);
+        // The admin-set value the student can only read (bilingual, like labels).
+        $mform->addElement('text', 'fixedvalue_en', get_string('fieldfixedvalue_en', 'local_jobform'),
+            ['size' => 50]);
+        $mform->setType('fixedvalue_en', PARAM_TEXT);
+        $mform->addHelpButton('fixedvalue_en', 'fieldfixedvalue', 'local_jobform');
+        $mform->hideIf('fixedvalue_en', 'type', 'neq', field_types::TYPE_FIXED);
+
+        $mform->addElement('text', 'fixedvalue_ar', get_string('fieldfixedvalue_ar', 'local_jobform'),
+            ['size' => 50, 'dir' => 'rtl']);
+        $mform->setType('fixedvalue_ar', PARAM_TEXT);
+        $mform->hideIf('fixedvalue_ar', 'type', 'neq', field_types::TYPE_FIXED);
 
         $this->add_action_buttons();
     }
@@ -131,8 +139,8 @@ class field_form extends \moodleform {
                 $errors['option_en[0]'] = get_string('erroroptionsrequired', 'local_jobform');
             }
         }
-        if ($data['type'] === field_types::TYPE_FIXED && trim($data['fixedvalue'] ?? '') === '') {
-            $errors['fixedvalue'] = get_string('errorfixedvaluerequired', 'local_jobform');
+        if ($data['type'] === field_types::TYPE_FIXED && trim($data['fixedvalue_en'] ?? '') === '') {
+            $errors['fixedvalue_en'] = get_string('errorfixedvaluerequired', 'local_jobform');
         }
 
         return $errors;
@@ -151,6 +159,8 @@ class field_form extends \moodleform {
         if ($data) {
             $data->name = mlang::build(['en' => $data->name_en ?? '', 'ar' => $data->name_ar ?? '']);
             $data->options = self::build_options($data->option_en ?? [], $data->option_ar ?? []);
+            $data->fixedvalue = mlang::build([
+                'en' => $data->fixedvalue_en ?? '', 'ar' => $data->fixedvalue_ar ?? '']);
         }
         return $data;
     }
@@ -188,16 +198,18 @@ class field_form extends \moodleform {
     public function set_field_data(object $field): void {
         $config = field_types::decode_config($field->configdata ?? null);
         $name = mlang::parse($field->name ?? '');
+        $fixed = mlang::parse($config['fixedvalue']);
 
         $data = [
-            'fieldid'    => $field->id,
-            'name_en'    => $name['en'],
-            'name_ar'    => $name['ar'],
-            'groupid'    => $field->groupid ?? 0,
-            'type'       => $field->type,
-            'required'   => $field->required,
-            'multiple'   => $config['multiple'] ? 1 : 0,
-            'fixedvalue' => $config['fixedvalue'],
+            'fieldid'       => $field->id,
+            'name_en'       => $name['en'],
+            'name_ar'       => $name['ar'],
+            'groupid'       => $field->groupid ?? 0,
+            'type'          => $field->type,
+            'required'      => $field->required,
+            'multiple'      => $config['multiple'] ? 1 : 0,
+            'fixedvalue_en' => $fixed['en'],
+            'fixedvalue_ar' => $fixed['ar'],
         ];
 
         // Split each stored option into the repeated group's English / Arabic inputs.

@@ -169,8 +169,9 @@ class entry_form extends \moodleform {
                 break;
 
             case field_types::TYPE_FIXED:
-                // Admin-set, read-only for the student.
-                $mform->addElement('static', $name . '_static', $label, s($config['fixedvalue']));
+                // Admin-set, read-only for the student (shown in their language).
+                $fixed = \local_jobform\mlang::resolve($config['fixedvalue']);
+                $mform->addElement('static', $name . '_static', $label, s($fixed));
                 $mform->addElement('hidden', $name, $config['fixedvalue']);
                 $mform->setType($name, PARAM_RAW);
                 break;
