@@ -29,9 +29,10 @@
 // -----------------------------------------------------------------------------
 // Site-wide link affordance.
 //
-// The brand system already colours resting links with the "accent" role
-// (--nit-brand-accent, documented usage: "text of links / underlines") and
-// reserves "hovertext" (--nit-brand-hovertext) for the hover state. On hover,
+// The brand system already colours resting links with the "Accent Text" role
+// (--nit-brand-accenttext, documented usage: "text of links / underlines"; it
+// drives Bootstrap's $link-color) and reserves "hovertext"
+// (--nit-brand-hovertext) for the hover state. On hover,
 // keyboard focus, and click (active), every content link shifts to the brand
 // hover colour and shows an underline in that SAME colour — `currentColor`
 // keeps the underline matched to whatever brand group is in scope

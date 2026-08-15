@@ -137,7 +137,7 @@
         }
 
         a:not(.btn) {
-            color: var(--nit-brand-accent);
+            color: var(--nit-brand-accenttext);
 
             &:hover,
             &:focus {
@@ -155,7 +155,7 @@
     color: var(--nit-brand-textprimary);
 
     a:not(.btn) {
-        color: var(--nit-brand-accent);
+        color: var(--nit-brand-accenttext);
 
         &:hover,
         &:focus {

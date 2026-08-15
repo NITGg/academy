@@ -37,17 +37,18 @@
     --nit-secondary: var(--nit-brand-secondary);
 
     // Marketing accent (gold underlines / highlights) now tracks the brand
-    // accent. The gradient companions stay on the legacy palette this pass so
-    // gold gradients aren't flattened to a single hue.
-    --nit-accentgold: var(--nit-brand-accent);
+    // "Accent Text" role — it is only ever consumed as text colour / underline.
+    // The gradient companions stay on the legacy palette this pass so gold
+    // gradients aren't flattened to a single hue.
+    --nit-accentgold: var(--nit-brand-accenttext);
     --nit-accentgolddark: #{$nit-c-accentgolddark};
     --nit-accentteal: #{$nit-c-accentteal};
 
     --nit-navbarbg: var(--nit-brand-background);
     --nit-navbarsurface: var(--nit-brand-surface);
     --nit-navbarborder: var(--nit-brand-borderprimary);
-    --nit-navbaraccent: var(--nit-brand-accent);
-    --nit-navbaraccenthover: var(--nit-brand-accent-vivid);
+    --nit-navbaraccent: var(--nit-brand-accenttext);
+    --nit-navbaraccenthover: var(--nit-brand-accenttext-vivid);
     --nit-navbartext: var(--nit-brand-textprimary);
     --nit-navbarpanel: var(--nit-brand-surface);
     --nit-navbarpaneltext: var(--nit-brand-textsecondary);

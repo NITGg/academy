@@ -24,7 +24,7 @@ admin nav, and `#page.drawers .main-inner` in `_login.scss` / `_tabs.scss` /
 ## The palette — role → variable → what uses it
 
 The source of truth is `theme_nit_brand_roles()` in `public/theme/nit/lib.php`.
-Pick the role by its **job**, never by its hue. 15 roles, each a live custom
+Pick the role by its **job**, never by its hue. 16 roles, each a live custom
 property that defaults to Group 1 (a component in `.nit-brand-2` / `.nit-brand-3`
 re-reads the same names from that group):
 
@@ -32,7 +32,8 @@ re-reads the same names from that group):
 |------|----------|------------|
 | Primary | `--nit-brand-primary` | background of the main button, checked toggles, progress fill, notification dots, navbar background |
 | Secondary | `--nit-brand-secondary` | background of secondary / dual buttons |
-| Accent | `--nit-brand-accent` | text of links, important words, underlines / active indicators |
+| Accent | `--nit-brand-accent` | non-text accent only (reserved) — **not** for text; use Accent Text for links/words/underlines |
+| Accent Text | `--nit-brand-accenttext` | text of links, important words, underlines / active indicators (drives Bootstrap `$link-color`) |
 | Background | `--nit-brand-background` | page background |
 | Surface | `--nit-brand-surface` | background of cards, dropdowns, side menu, inputs, tooltips, tables, page sections |
 | Text primary | `--nit-brand-textprimary` | main text, text in buttons, text in inputs, navbar text, navbar underline |

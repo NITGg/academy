@@ -21,11 +21,11 @@
 // Page chrome that core paints off-brand on this admin surface.
 .nit-gallery {
     // Inline <code> (the CSS-var names in the intro, font filenames). Bootstrap's
-    // --bs-code-color is a raw magenta; point it at the Accent role. Use the
-    // brighter accent tint so red code clears 4.5:1 on the dark Background
-    // (flat Accent measures ~4.2). The colour editor's own .nit-colour-config
-    // keeps its Text-secondary colour via its more specific rule.
-    --bs-code-color: var(--nit-brand-accent-vivid);
+    // --bs-code-color is a raw magenta; point it at the Accent Text role (code is
+    // text). Use the brighter accent-text tint so red code clears 4.5:1 on the
+    // dark Background (flat Accent Text measures ~4.2). The colour editor's own
+    // .nit-colour-config keeps its Text-secondary colour via its more specific rule.
+    --bs-code-color: var(--nit-brand-accenttext-vivid);
 
     // Muted descriptive copy — the per-tab intro paragraphs and the "GROUP n"
     // labels. Core's `.text-muted` resolves to a translucent white here; point it

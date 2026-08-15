@@ -23,10 +23,11 @@ body:has(.acad-cr) {
     --cr-border-2:  var(--nit-brand-bordersecondary);
     --cr-primary:   var(--nit-brand-primary);
     --cr-accent:    var(--nit-brand-accent);
-    // Lifted accent for small red TEXT on the dark canvas — pure accent only
-    // clears 3:1 (fine for icons/borders) but not the 4.5 body-text bar, so red
-    // labels/links use this tone instead.
-    --cr-link:      color-mix(in srgb, var(--nit-brand-accent) 74%, #fff);
+    // Lifted accent for small red TEXT on the dark canvas — derives from the
+    // "Accent Text" role (text of links/labels). Pure accent only clears 3:1
+    // (fine for icons/borders) but not the 4.5 body-text bar, so red labels/links
+    // use this tone instead.
+    --cr-link:      color-mix(in srgb, var(--nit-brand-accenttext) 74%, #fff);
     --cr-hoverbg:   var(--nit-brand-hoverbackground);
     --cr-success:   var(--nit-brand-success);
     --cr-pill:      color-mix(in srgb, var(--nit-brand-textprimary) 8%, transparent);

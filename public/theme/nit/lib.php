@@ -181,7 +181,7 @@ function theme_nit_colours_all(): array {
 }
 
 /**
- * The 15 semantic roles every Brand-Colors group is built from.
+ * The 16 semantic roles every Brand-Colors group is built from.
  *
  * This is the clean, small semantic layer that replaces the sprawling
  * theme_nit_colour_palette(): a component references a role by name (Primary,
@@ -198,7 +198,8 @@ function theme_nit_brand_roles(): array {
     return [
         'primary'         => ['label' => 'Primary', 'usage' => ['background main button', 'checked toggles', 'progress fill', 'notification dots', 'navbar background'], 'default' => '#e5322d'],
         'secondary'       => ['label' => 'Secondary', 'usage' => ['background secondary button'], 'default' => '#13293f'],
-        'accent'          => ['label' => 'Accent', 'usage' => ['text of links', 'important words', 'underlines'], 'default' => '#e5322d'],
+        'accent'          => ['label' => 'Accent', 'usage' => ['none text'], 'default' => '#e5322d'],
+        'accenttext'      => ['label' => 'Accent Text', 'usage' => ['text of links', 'important words', 'underlines'], 'default' => '#e5322d'],
         'background'      => ['label' => 'Background', 'usage' => ['page background'], 'default' => '#0a1628'],
         'surface'         => ['label' => 'Surface', 'usage' => ['Cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'page sections background'], 'default' => '#0f1e33'],
         'textprimary'     => ['label' => 'Text primary', 'usage' => ['main normal text', 'text in buttons', 'text in inputs', 'navbar text', 'navbar underline'], 'default' => '#ffffff'],
@@ -862,7 +863,7 @@ function theme_nit_get_pre_scss($theme) {
     $brandmap = [
         'g1_primary'         => ['primary'],
         'g1_secondary'       => ['secondary'],
-        'g1_accent'          => ['link-color'],
+        'g1_accenttext'      => ['link-color'],
         'g1_background'      => ['body-bg'],
         // Surface also drives form controls: Bootstrap's $input-bg is a fixed
         // light gray, so on the dark brand it would leave white text on a light
