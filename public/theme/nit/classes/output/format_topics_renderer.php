@@ -76,6 +76,17 @@ defined('MOODLE_INTERNAL') || die();
 class format_topics_renderer extends \format_topics\output\renderer {
 
     /**
+     * Canonical delimiter for multi-value short-text custom fields.
+     *
+     * Single source of truth for the "chips" contract: the course-edit chips
+     * editor (see {@see \local_nit_core\hook\output_callbacks::add_course_edit_chips()})
+     * joins entries with this token, and {@see acad_chips()} splits on it (a bare
+     * pipe is one of the separators the split regex recognises), so a field edited
+     * as chips reads back as a chip list here.
+     */
+    const CHIP_SEP = '|';
+
+    /**
      * Intercept the course content renderable.
      *
      * On the multi-section landing page (not editing, not a single-section view)

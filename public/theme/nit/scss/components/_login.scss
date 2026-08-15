@@ -45,7 +45,8 @@
 
     blockquote {
         color: inherit;
-        border-inline-start-color: var(--nit-accentgold, #{$nit-gold-500});
+        // The coloured side rule is a border, not text → non-text "Accent" role.
+        border-inline-start-color: var(--nit-brand-accent, #{$nit-gold-500});
     }
 
     a {

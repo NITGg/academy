@@ -47,8 +47,15 @@
     --nit-navbarbg: var(--nit-brand-background);
     --nit-navbarsurface: var(--nit-brand-surface);
     --nit-navbarborder: var(--nit-brand-borderprimary);
+    // Navbar TEXT accent (site name / wordmark, dropdown section headers, the
+    // "see all" link) — reads from the text-facing "Accent Text" role.
     --nit-navbaraccent: var(--nit-brand-accenttext);
     --nit-navbaraccenthover: var(--nit-brand-accenttext-vivid);
+    // Navbar ICON accent (the round bell + gear buttons and the notification
+    // action icons) — these are glyphs, not text, so they read from the
+    // non-text "Accent" role, keeping icon and link colours independently tunable.
+    --nit-navbariconaccent: var(--nit-brand-accent);
+    --nit-navbariconaccenthover: var(--nit-brand-accent-vivid);
     --nit-navbartext: var(--nit-brand-textprimary);
     --nit-navbarpanel: var(--nit-brand-surface);
     --nit-navbarpaneltext: var(--nit-brand-textsecondary);

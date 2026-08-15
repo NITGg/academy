@@ -130,12 +130,13 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         border: 1px solid var(--nit-navbarborder, #{$nit-navy-700});
         background-color: var(--nit-navbarsurface, #{$nit-navy-800});
         border-radius: 50%;
-        color: var(--nit-navbaraccent, #{$nit-gold-500}) !important;
+        // Icon glyph → non-text "Accent" role (see --nit-navbariconaccent).
+        color: var(--nit-navbariconaccent, #{$nit-gold-500}) !important;
 
         &:hover,
         &:focus {
             background-color: var(--nit-navbarborder, #{$nit-navy-700});
-            color: var(--nit-navbaraccenthover, #{$nit-gold-400}) !important;
+            color: var(--nit-navbariconaccenthover, #{$nit-gold-400}) !important;
         }
 
         .fa,
@@ -478,7 +479,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
             color: var(--nit-brand-textprimary);
         }
 
-        // Action icons read light, gold on hover.
+        // Action icons read light, accent on hover. Glyphs → non-text "Accent".
         .popover-region-header-actions {
             .btn,
             .icon,
@@ -488,7 +489,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
             .btn:hover,
             .btn:focus {
-                color: var(--nit-navbaraccenthover, #{$nit-gold-400}) !important;
+                color: var(--nit-navbariconaccenthover, #{$nit-gold-400}) !important;
             }
         }
 
