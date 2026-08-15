@@ -25,11 +25,11 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_jobform';
-$plugin->version   = 2026081502;
+$plugin->version   = 2026081503;
 $plugin->requires  = 2024100700;              // Moodle 4.5 LTS baseline.
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.3.0';
+$plugin->release   = '0.4.0';
 $plugin->dependencies = [
     'local_jobform' => 2026081502,            // Shared field types + default template.
 ];
