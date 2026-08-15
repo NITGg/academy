@@ -43,9 +43,19 @@ $string['fieldname_en'] = 'Field label (English)';
 $string['fieldname_ar'] = 'Field label (Arabic)';
 $string['fieldname_ar_help'] = 'Optional. If you fill in both languages, the label is stored as a bilingual {mlang} value and each student sees it in their own language. Leave blank to use the English label for everyone.';
 $string['fieldgroup'] = 'Group';
-$string['fieldgroup_help'] = 'Optional. Fields that share the same group are shown together under one heading on the form. Leave blank to keep a field ungrouped.';
-$string['fieldgroup_en'] = 'Group (English)';
-$string['fieldgroup_ar'] = 'Group (Arabic)';
+$string['fieldgroup_help'] = 'Optional. Pick a group so this field is shown together with the others in that group, under one heading on the form. Choose "No group" to keep the field ungrouped. Create groups with the "Add group" button.';
+
+// Groups.
+$string['groups'] = 'Groups:';
+$string['nogroups'] = 'No groups yet — add one to organise fields into sections.';
+$string['nogroup'] = 'No group';
+$string['addgroup'] = 'Add group';
+$string['editgroup'] = 'Edit group';
+$string['groupname_en'] = 'Group name (English)';
+$string['groupname_ar'] = 'Group name (Arabic)';
+$string['confirmdeletegroup'] = 'Are you sure you want to delete this group? Its fields will become ungrouped (they are not deleted).';
+$string['invalidgroup'] = 'Invalid group.';
+$string['usedefaultfields'] = 'Use default fields';
 $string['fieldtype'] = 'Field type';
 $string['fielddetails'] = 'Details';
 $string['fieldrequired'] = 'Required';

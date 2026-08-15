@@ -109,6 +109,7 @@ function jobform_delete_instance($id) {
     }
     $DB->delete_records('jobform_submission', ['jobformid' => $id]);
     $DB->delete_records('jobform_field', ['jobformid' => $id]);
+    $DB->delete_records('jobform_group', ['jobformid' => $id]);
     $DB->delete_records('jobform', ['id' => $id]);
 
     return true;

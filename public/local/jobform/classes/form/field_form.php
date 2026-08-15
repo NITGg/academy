@@ -57,14 +57,12 @@ class field_form extends \moodleform {
         $mform->setType('name_ar', PARAM_TEXT);
         $mform->addHelpButton('name_ar', 'fieldname_ar', 'local_jobform');
 
-        // Optional group — fields sharing a group are shown together under a heading.
-        $mform->addElement('text', 'group_en', get_string('fieldgroup_en', 'local_jobform'), ['size' => 50]);
-        $mform->setType('group_en', PARAM_TEXT);
-        $mform->addHelpButton('group_en', 'fieldgroup', 'local_jobform');
-
-        $mform->addElement('text', 'group_ar', get_string('fieldgroup_ar', 'local_jobform'),
-            ['size' => 50, 'dir' => 'rtl']);
-        $mform->setType('group_ar', PARAM_TEXT);
+        // Optional group — pick from the groups defined on this template / activity.
+        $groups = $this->_customdata['groups'] ?? [0 => get_string('nogroup', 'local_jobform')];
+        $mform->addElement('select', 'groupid', get_string('fieldgroup', 'local_jobform'), $groups);
+        $mform->setType('groupid', PARAM_INT);
+        $mform->setDefault('groupid', 0);
+        $mform->addHelpButton('groupid', 'fieldgroup', 'local_jobform');
 
         // Field type.
         $mform->addElement('select', 'type', get_string('fieldtype', 'local_jobform'), field_types::menu());
@@ -134,7 +132,6 @@ class field_form extends \moodleform {
         $data = parent::get_data();
         if ($data) {
             $data->name = mlang::build(['en' => $data->name_en ?? '', 'ar' => $data->name_ar ?? '']);
-            $data->groupname = mlang::build(['en' => $data->group_en ?? '', 'ar' => $data->group_ar ?? '']);
             $data->options = self::build_options($data->options_en ?? '', $data->options_ar ?? '');
         }
         return $data;
@@ -174,7 +171,6 @@ class field_form extends \moodleform {
     public function set_field_data(object $field): void {
         $config = field_types::decode_config($field->configdata ?? null);
         $name = mlang::parse($field->name ?? '');
-        $group = mlang::parse($field->groupname ?? '');
 
         // Split each stored option back into aligned English / Arabic lines.
         $optionsen = [];
@@ -189,8 +185,7 @@ class field_form extends \moodleform {
             'fieldid'    => $field->id,
             'name_en'    => $name['en'],
             'name_ar'    => $name['ar'],
-            'group_en'   => $group['en'],
-            'group_ar'   => $group['ar'],
+            'groupid'    => $field->groupid ?? 0,
             'type'       => $field->type,
             'required'   => $field->required,
             'options_en' => implode("\n", $optionsen),

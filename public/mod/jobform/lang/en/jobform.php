@@ -49,6 +49,8 @@ $string['allowresubmit_help'] = 'If enabled, the student can change and resend t
 // View.
 $string['generalsection'] = 'General';
 $string['activityfieldsintro'] = 'These are the fields students will fill in for this activity. Editing them here only affects this activity.';
+$string['confirmusedefaultfields'] = 'This will remove all of this activity\'s current fields and groups and replace them with the default template. Any answers already collected for the current fields will be deleted. Continue?';
+$string['defaultfieldsapplied'] = 'The default fields have been applied to this activity.';
 $string['certificaterequired'] = 'This form becomes available once you have earned the course certificate. Please finish the course first.';
 $string['alreadysubmitted'] = 'You have already sent this form. Below is what you submitted.';
 $string['noformfields'] = 'This form has no fields yet. Please check back later.';

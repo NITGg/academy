@@ -29,6 +29,7 @@ require(__DIR__ . '/../../config.php');
 
 use local_jobform\fields_ui;
 use mod_jobform\instance_manager;
+use mod_jobform\group_manager;
 use mod_jobform\submission_manager;
 use mod_jobform\form\entry_form;
 use mod_jobform\output\activity_submissions;
@@ -73,6 +74,10 @@ if ($cansmanage) {
     $fieldid = optional_param('fieldid', 0, PARAM_INT);
     $confirm = optional_param('confirm', 0, PARAM_BOOL);
 
+    $groupaction = optional_param('groupaction', '', PARAM_ALPHA);
+    $groupid = optional_param('groupid', 0, PARAM_INT);
+    $action = optional_param('action', '', PARAM_ALPHA);
+
     if ($fieldaction === 'moveup' && $fieldid > 0 && confirm_sesskey()) {
         instance_manager::reorder($fieldid, $jobform->id, -1);
         redirect($fieldsurl);
@@ -83,6 +88,14 @@ if ($cansmanage) {
         instance_manager::delete_field($fieldid, $jobform->id);
         redirect($fieldsurl, get_string('changessaved'), null,
             \core\output\notification::NOTIFY_SUCCESS);
+    } else if ($groupaction === 'delete' && $groupid > 0 && confirm_sesskey() && $confirm) {
+        group_manager::delete_group($groupid, $jobform->id);
+        redirect($fieldsurl, get_string('changessaved'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
+    } else if ($action === 'usedefault' && confirm_sesskey() && $confirm) {
+        instance_manager::reset_to_template($jobform->id);
+        redirect($fieldsurl, get_string('defaultfieldsapplied', 'mod_jobform'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
     }
 }
 
@@ -91,6 +104,7 @@ if ($cansmanage) {
 // ---------------------------------------------------------------------------
 $studentmode = !$cansmanage && has_capability('mod/jobform:submit', $context);
 $fields = instance_manager::get_fields($jobform->id);
+$groups = group_manager::get_groups($jobform->id);
 $entryform = null;
 
 if ($studentmode) {
@@ -100,7 +114,8 @@ if ($studentmode) {
         && empty($jobform->allowresubmit);
 
     if (!$gated && !$locked) {
-        $entryform = new entry_form($viewurl, ['fields' => array_values($fields)]);
+        $entryform = new entry_form($viewurl,
+            ['fields' => array_values($fields), 'groups' => $groups]);
 
         if ($entryform->is_cancelled()) {
             redirect(new moodle_url('/course/view.php', ['id' => $course->id]));
@@ -136,11 +151,15 @@ if (!empty($jobform->intro)) {
 }
 
 if ($cansmanage) {
-    // Confirm dialog before deleting a field.
+    // Confirm dialogs (field delete / group delete / use default fields).
     $fieldaction = optional_param('fieldaction', '', PARAM_ALPHA);
     $fieldid = optional_param('fieldid', 0, PARAM_INT);
-    if ($fieldaction === 'delete' && $fieldid > 0 && confirm_sesskey()
-            && !optional_param('confirm', 0, PARAM_BOOL)) {
+    $groupaction = optional_param('groupaction', '', PARAM_ALPHA);
+    $groupid = optional_param('groupid', 0, PARAM_INT);
+    $action = optional_param('action', '', PARAM_ALPHA);
+    $unconfirmed = !optional_param('confirm', 0, PARAM_BOOL);
+
+    if ($fieldaction === 'delete' && $fieldid > 0 && confirm_sesskey() && $unconfirmed) {
         $field = instance_manager::get_field($fieldid, $jobform->id);
         if ($field) {
             $yesurl = new moodle_url($fieldsurl,
@@ -151,6 +170,26 @@ if ($cansmanage) {
             echo $OUTPUT->footer();
             exit;
         }
+    }
+    if ($groupaction === 'delete' && $groupid > 0 && confirm_sesskey() && $unconfirmed) {
+        $group = group_manager::get_group($groupid, $jobform->id);
+        if ($group) {
+            $yesurl = new moodle_url($fieldsurl,
+                ['groupaction' => 'delete', 'groupid' => $groupid, 'sesskey' => sesskey(), 'confirm' => 1]);
+            echo $OUTPUT->confirm(
+                get_string('confirmdeletegroup', 'local_jobform') . ' (' . \local_jobform\mlang::display($group->name) . ')',
+                $yesurl, $fieldsurl);
+            echo $OUTPUT->footer();
+            exit;
+        }
+    }
+    if ($action === 'usedefault' && confirm_sesskey() && $unconfirmed) {
+        $yesurl = new moodle_url($fieldsurl,
+            ['action' => 'usedefault', 'sesskey' => sesskey(), 'confirm' => 1]);
+        echo $OUTPUT->confirm(
+            get_string('confirmusedefaultfields', 'mod_jobform'), $yesurl, $fieldsurl);
+        echo $OUTPUT->footer();
+        exit;
     }
 
     // Tabs: Fields (default) + Submissions.
@@ -168,7 +207,14 @@ if ($cansmanage) {
     } else {
         echo html_writer::div(get_string('activityfieldsintro', 'mod_jobform'), 'text-muted mb-3');
         $editurl = new moodle_url('/mod/jobform/edit_field.php', ['id' => $cm->id]);
-        echo fields_ui::render($fields, $editurl, $fieldsurl);
+        $groupediturl = new moodle_url('/mod/jobform/group_edit.php', ['id' => $cm->id]);
+        $usedefaulturl = new moodle_url($fieldsurl,
+            ['action' => 'usedefault', 'sesskey' => sesskey()]);
+        echo fields_ui::render($fields, $editurl, $fieldsurl, [
+            'groups'        => $groups,
+            'groupediturl'  => $groupediturl,
+            'usedefaulturl' => $usedefaulturl,
+        ]);
     }
 } else if ($studentmode) {
     if (submission_manager::has_certificate($jobform, $USER->id) === false) {
@@ -179,7 +225,8 @@ if ($cansmanage) {
         echo $OUTPUT->notification(get_string('alreadysubmitted', 'mod_jobform'),
             \core\output\notification::NOTIFY_INFO);
         $existing = submission_manager::get_submission($jobform->id, $USER->id);
-        $readform = new entry_form($viewurl, ['fields' => array_values($fields), 'readonly' => true]);
+        $readform = new entry_form($viewurl,
+            ['fields' => array_values($fields), 'groups' => $groups, 'readonly' => true]);
         $answers = submission_manager::get_answers($existing->id);
         $readform->set_data(
             ['id' => $cm->id] + entry_form::values_to_formdata($answers, array_values($fields)));

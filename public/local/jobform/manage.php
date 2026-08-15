@@ -26,6 +26,7 @@
 require(__DIR__ . '/../../config.php');
 
 use local_jobform\template_manager;
+use local_jobform\group_manager;
 use local_jobform\fields_ui;
 use local_jobform\submissions_ui;
 
@@ -53,6 +54,10 @@ $confirm = optional_param('confirm', 0, PARAM_BOOL);
 $submissionaction = optional_param('submissionaction', '', PARAM_ALPHA);
 $submissionid = optional_param('submissionid', 0, PARAM_INT);
 
+// Handle a group action (delete) coming from the fields tab.
+$groupaction = optional_param('groupaction', '', PARAM_ALPHA);
+$groupid = optional_param('groupid', 0, PARAM_INT);
+
 if ($fieldaction === 'moveup' && $fieldid > 0 && confirm_sesskey()) {
     template_manager::reorder($fieldid, -1);
     redirect($manageurl);
@@ -67,9 +72,29 @@ if ($fieldaction === 'moveup' && $fieldid > 0 && confirm_sesskey()) {
     submissions_ui::delete_submission($submissionid);
     redirect($submissionsurl, get_string('submissiondeleted', 'local_jobform'), null,
         \core\output\notification::NOTIFY_SUCCESS);
+} else if ($groupaction === 'delete' && $groupid > 0 && confirm_sesskey() && $confirm) {
+    group_manager::delete_group($groupid);
+    redirect($manageurl, get_string('changessaved'), null,
+        \core\output\notification::NOTIFY_SUCCESS);
 }
 
 echo $OUTPUT->header();
+
+// Ask before deleting a group.
+if ($groupaction === 'delete' && $groupid > 0 && confirm_sesskey() && !$confirm) {
+    $group = group_manager::get_group($groupid);
+    if ($group) {
+        $yesurl = new moodle_url($manageurl,
+            ['groupaction' => 'delete', 'groupid' => $groupid, 'sesskey' => sesskey(), 'confirm' => 1]);
+        echo $OUTPUT->confirm(
+            get_string('confirmdeletegroup', 'local_jobform') . ' (' . \local_jobform\mlang::display($group->name) . ')',
+            $yesurl,
+            $manageurl
+        );
+        echo $OUTPUT->footer();
+        exit;
+    }
+}
 
 // Ask before deleting a submission.
 if ($submissionaction === 'delete' && $submissionid > 0 && confirm_sesskey() && !$confirm) {
@@ -119,7 +144,11 @@ if ($tab === 'submissions') {
     echo $OUTPUT->heading(get_string('templatefieldsheading', 'local_jobform'), 3);
     echo html_writer::div(get_string('templatefieldsintro', 'local_jobform'), 'text-muted mb-3');
     $editurl = new moodle_url('/local/jobform/field_edit.php');
-    echo fields_ui::render(template_manager::get_fields(), $editurl, $manageurl);
+    $groupediturl = new moodle_url('/local/jobform/group_edit.php');
+    echo fields_ui::render(template_manager::get_fields(), $editurl, $manageurl, [
+        'groups'       => group_manager::get_groups(),
+        'groupediturl' => $groupediturl,
+    ]);
 }
 
 echo $OUTPUT->footer();

@@ -42,13 +42,27 @@ class instance_manager {
     public static function seed_from_template(int $jobformid): void {
         global $DB, $USER;
 
-        $template = \local_jobform\template_manager::get_fields();
         $now = time();
-        foreach ($template as $tfield) {
+
+        // 1. Copy the template groups, remembering template id => new activity id.
+        $groupmap = [0 => 0];
+        foreach (\local_jobform\group_manager::get_groups() as $tgroup) {
+            $grecord = new \stdClass();
+            $grecord->jobformid = $jobformid;
+            $grecord->name = $tgroup->name;
+            $grecord->sortorder = $tgroup->sortorder;
+            $grecord->usermodified = $USER->id;
+            $grecord->timecreated = $now;
+            $grecord->timemodified = $now;
+            $groupmap[$tgroup->id] = (int) $DB->insert_record('jobform_group', $grecord);
+        }
+
+        // 2. Copy the template fields, re-pointing groupid through the map.
+        foreach (\local_jobform\template_manager::get_fields() as $tfield) {
             $record = new \stdClass();
             $record->jobformid = $jobformid;
             $record->name = $tfield->name;
-            $record->groupname = $tfield->groupname ?? '';
+            $record->groupid = $groupmap[$tfield->groupid] ?? 0;
             $record->type = $tfield->type;
             $record->configdata = $tfield->configdata;
             $record->required = $tfield->required;
@@ -58,6 +72,29 @@ class instance_manager {
             $record->timemodified = $now;
             $DB->insert_record(self::TABLE, $record);
         }
+    }
+
+    /**
+     * Replace this activity's groups and fields with a fresh copy of the default
+     * template ("Use default fields"). Any collected answers for the old fields
+     * are removed to avoid orphans.
+     *
+     * @param int $jobformid
+     * @return void
+     */
+    public static function reset_to_template(int $jobformid): void {
+        global $DB;
+
+        // Remove answers tied to this activity's fields, then the fields and groups.
+        $fieldids = $DB->get_fieldset_select(self::TABLE, 'id', 'jobformid = ?', [$jobformid]);
+        if ($fieldids) {
+            [$insql, $params] = $DB->get_in_or_equal($fieldids);
+            $DB->delete_records_select('jobform_submission_data', "fieldid $insql", $params);
+        }
+        $DB->delete_records(self::TABLE, ['jobformid' => $jobformid]);
+        $DB->delete_records('jobform_group', ['jobformid' => $jobformid]);
+
+        self::seed_from_template($jobformid);
     }
 
     /**
@@ -97,7 +134,7 @@ class instance_manager {
         $record = new \stdClass();
         $record->jobformid = $jobformid;
         $record->name = trim($data->name);
-        $record->groupname = trim($data->groupname ?? '');
+        $record->groupid = (int) ($data->groupid ?? 0);
         $record->type = field_types::is_valid($data->type) ? $data->type : field_types::TYPE_TEXT;
         $record->configdata = field_types::encode_config(
             $record->type,

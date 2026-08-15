@@ -44,99 +44,48 @@ class entry_form extends \moodleform {
         $mform->setType('id', PARAM_INT);
 
         /** @var object[] $fields */
-        $fields = $this->_customdata['fields'] ?? [];
+        $fields = array_values($this->_customdata['fields'] ?? []);
+        /** @var object[] $groups group records keyed by id, in display order */
+        $groups = $this->_customdata['groups'] ?? [];
         $readonly = !empty($this->_customdata['readonly']);
 
-        // When any field defines a group, the whole form is split into headed
-        // sections (ungrouped fields fall under a "General" section).
-        $anygroup = false;
+        // Bucket fields by group id (an unknown/zero group id falls to "General").
+        $bygroup = [];
         foreach ($fields as $field) {
-            if (\local_jobform\mlang::resolve($field->groupname ?? '') !== '') {
-                $anygroup = true;
-                break;
+            $gid = (int) ($field->groupid ?? 0);
+            if (!$gid || !isset($groups[$gid])) {
+                $gid = 0;
             }
+            $bygroup[$gid][] = $field;
         }
-        $currentheader = null;
+
+        // Use headed sections only when at least one field actually sits in a group.
+        $grouped = array_diff(array_keys($bygroup), [0]);
+        $usesections = count($groups) > 0 && count($grouped) > 0;
         $headercount = 0;
 
-        foreach ($fields as $field) {
-            $name = self::PREFIX . $field->id;
-            $label = \local_jobform\mlang::display($field->name);
-            $config = field_types::decode_config($field->configdata ?? null);
-
-            // Emit a section header when the group changes.
-            if ($anygroup) {
-                $group = \local_jobform\mlang::resolve($field->groupname ?? '');
-                $headerlabel = $group !== '' ? $group : get_string('generalsection', 'mod_jobform');
-                if ($headerlabel !== $currentheader) {
-                    $mform->addElement('header', 'jfgroup_' . ($headercount++), $headerlabel);
-                    $mform->setExpanded('jfgroup_' . ($headercount - 1), true);
-                    $currentheader = $headerlabel;
+        if ($usesections) {
+            // Each defined group becomes a section (in group order); ungrouped last.
+            foreach ($groups as $group) {
+                if (empty($bygroup[$group->id])) {
+                    continue;
+                }
+                $this->add_section_header($mform, $headercount++,
+                    \local_jobform\mlang::resolve($group->name));
+                foreach ($bygroup[$group->id] as $field) {
+                    $this->add_field_element($mform, $field);
                 }
             }
-
-            switch ($field->type) {
-                case field_types::TYPE_NUMBER:
-                    $mform->addElement('text', $name, $label);
-                    $mform->setType($name, PARAM_RAW_TRIMMED);
-                    break;
-
-                case field_types::TYPE_EMAIL:
-                    $mform->addElement('text', $name, $label);
-                    $mform->setType($name, PARAM_RAW_TRIMMED);
-                    break;
-
-                case field_types::TYPE_PHONE:
-                    $mform->addElement('text', $name, $label);
-                    $mform->setType($name, PARAM_RAW_TRIMMED);
-                    break;
-
-                case field_types::TYPE_URL:
-                    $mform->addElement('text', $name, $label);
-                    $mform->setType($name, PARAM_RAW_TRIMMED);
-                    break;
-
-                case field_types::TYPE_DATE:
-                    $mform->addElement('date_selector', $name, $label, ['optional' => empty($field->required)]);
-                    break;
-
-                case field_types::TYPE_CHECKBOX:
-                    $mform->addElement('advcheckbox', $name, $label);
-                    break;
-
-                case field_types::TYPE_SELECT:
-                    // Key = the raw (possibly {mlang}) stored value; label = resolved.
-                    $options = [];
-                    foreach ($config['options'] as $optraw) {
-                        $options[$optraw] = \local_jobform\mlang::resolve($optraw);
-                    }
-                    if (!$config['multiple']) {
-                        $options = ['' => get_string('choosedots')] + $options;
-                    }
-                    $el = $mform->addElement('select', $name, $label, $options);
-                    if ($config['multiple']) {
-                        $el->setMultiple(true);
-                    }
-                    break;
-
-                case field_types::TYPE_FIXED:
-                    // Admin-set, read-only for the student.
-                    $mform->addElement('static', $name . '_static', $label, s($config['fixedvalue']));
-                    $mform->addElement('hidden', $name, $config['fixedvalue']);
-                    $mform->setType($name, PARAM_RAW);
-                    break;
-
-                case field_types::TYPE_TEXT:
-                default:
-                    $mform->addElement('text', $name, $label);
-                    $mform->setType($name, PARAM_TEXT);
-                    break;
+            if (!empty($bygroup[0])) {
+                $this->add_section_header($mform, $headercount++,
+                    get_string('generalsection', 'mod_jobform'));
+                foreach ($bygroup[0] as $field) {
+                    $this->add_field_element($mform, $field);
+                }
             }
-
-            // Required marker (fixed values are always supplied, so never required).
-            if (!empty($field->required)
-                    && !in_array($field->type, [field_types::TYPE_FIXED, field_types::TYPE_CHECKBOX, field_types::TYPE_DATE], true)) {
-                $mform->addRule($name, get_string('required'), 'required', null, 'client');
+        } else {
+            foreach ($fields as $field) {
+                $this->add_field_element($mform, $field);
             }
         }
 
@@ -149,6 +98,85 @@ class entry_form extends \moodleform {
                 get_string('sendform', 'mod_jobform'));
             $buttonarray[] = $mform->createElement('cancel');
             $mform->addGroup($buttonarray, 'buttonar', '', ' ', false);
+        }
+    }
+
+    /**
+     * Add an expanded section header for a group.
+     *
+     * @param \MoodleQuickForm $mform
+     * @param int $index unique header index
+     * @param string $label resolved section title
+     * @return void
+     */
+    protected function add_section_header($mform, int $index, string $label): void {
+        $mform->addElement('header', 'jfgroup_' . $index, $label);
+        $mform->setExpanded('jfgroup_' . $index, true);
+    }
+
+    /**
+     * Add the input element (and required rule) for a single field.
+     *
+     * @param \MoodleQuickForm $mform
+     * @param object $field
+     * @return void
+     */
+    protected function add_field_element($mform, object $field): void {
+        $name = self::PREFIX . $field->id;
+        $label = \local_jobform\mlang::display($field->name);
+        $config = field_types::decode_config($field->configdata ?? null);
+
+        switch ($field->type) {
+            case field_types::TYPE_NUMBER:
+            case field_types::TYPE_EMAIL:
+            case field_types::TYPE_PHONE:
+            case field_types::TYPE_URL:
+                $mform->addElement('text', $name, $label);
+                $mform->setType($name, PARAM_RAW_TRIMMED);
+                break;
+
+            case field_types::TYPE_DATE:
+                $mform->addElement('date_selector', $name, $label, ['optional' => empty($field->required)]);
+                break;
+
+            case field_types::TYPE_CHECKBOX:
+                $mform->addElement('advcheckbox', $name, $label);
+                break;
+
+            case field_types::TYPE_SELECT:
+                // Key = the raw (possibly {mlang}) stored value; label = resolved.
+                $options = [];
+                foreach ($config['options'] as $optraw) {
+                    $options[$optraw] = \local_jobform\mlang::resolve($optraw);
+                }
+                if (!$config['multiple']) {
+                    $options = ['' => get_string('choosedots')] + $options;
+                }
+                $el = $mform->addElement('select', $name, $label, $options);
+                if ($config['multiple']) {
+                    $el->setMultiple(true);
+                }
+                break;
+
+            case field_types::TYPE_FIXED:
+                // Admin-set, read-only for the student.
+                $mform->addElement('static', $name . '_static', $label, s($config['fixedvalue']));
+                $mform->addElement('hidden', $name, $config['fixedvalue']);
+                $mform->setType($name, PARAM_RAW);
+                break;
+
+            case field_types::TYPE_TEXT:
+            default:
+                $mform->addElement('text', $name, $label);
+                $mform->setType($name, PARAM_TEXT);
+                break;
+        }
+
+        // Required marker (fixed values are always supplied, so never required).
+        if (!empty($field->required)
+                && !in_array($field->type,
+                    [field_types::TYPE_FIXED, field_types::TYPE_CHECKBOX, field_types::TYPE_DATE], true)) {
+            $mform->addRule($name, get_string('required'), 'required', null, 'client');
         }
     }
 

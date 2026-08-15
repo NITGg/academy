@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/jobform/db" VERSION="2026081500" COMMENT="Job Form activity: per-instance fields (seeded from the local_jobform template) and student submissions.">
+<XMLDB PATH="mod/jobform/db" VERSION="2026081502" COMMENT="Job Form activity: per-instance groups, fields (seeded from the local_jobform template) and student submissions.">
   <TABLES>
     <TABLE NAME="jobform" COMMENT="Each Job Form activity instance.">
       <FIELDS>
@@ -19,12 +19,31 @@
       </KEYS>
     </TABLE>
 
+    <TABLE NAME="jobform_group" COMMENT="Groups (sections) belonging to one Job Form activity. Seeded from local_jobform_group on creation.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="jobformid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="May be a {mlang} bilingual value."/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="jobform" TYPE="foreign" FIELDS="jobformid" REFTABLE="jobform" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="jobform_sortorder_idx" UNIQUE="false" FIELDS="jobformid, sortorder"/>
+      </INDEXES>
+    </TABLE>
+
     <TABLE NAME="jobform_field" COMMENT="Fields belonging to one Job Form activity. Seeded from local_jobform_field on creation; editable per activity.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="jobformid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="May be a {mlang} bilingual value."/>
-        <FIELD NAME="groupname" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Optional group/section heading. May be a {mlang} value."/>
+        <FIELD NAME="groupid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="jobform_group.id this field belongs to, or 0 for none."/>
         <FIELD NAME="type" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="text" SEQUENCE="false"/>
         <FIELD NAME="configdata" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON: {options:[...], multiple:0|1, fixedvalue:string}."/>
         <FIELD NAME="required" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -39,6 +58,7 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="jobform_sortorder_idx" UNIQUE="false" FIELDS="jobformid, sortorder"/>
+        <INDEX NAME="groupid_idx" UNIQUE="false" FIELDS="groupid"/>
       </INDEXES>
     </TABLE>
 

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Add / edit a single field in the global Job Form template.
+ * Add / edit a group in the global Job Form template.
  *
  * @package    local_jobform
  * @copyright  2026 NIT
@@ -24,43 +24,41 @@
 
 require(__DIR__ . '/../../config.php');
 
-use local_jobform\template_manager;
 use local_jobform\group_manager;
-use local_jobform\form\field_form;
+use local_jobform\form\group_form;
 
 require_login();
 $context = context_system::instance();
 require_capability('local/jobform:manage', $context);
 
-$fieldid = optional_param('fieldid', 0, PARAM_INT);
+$groupid = optional_param('groupid', 0, PARAM_INT);
 
 $PAGE->set_context($context);
-$PAGE->set_url(new moodle_url('/local/jobform/field_edit.php', ['fieldid' => $fieldid]));
+$PAGE->set_url(new moodle_url('/local/jobform/group_edit.php', ['groupid' => $groupid]));
 $PAGE->set_pagelayout('admin');
 
 $manageurl = new moodle_url('/local/jobform/manage.php', ['tab' => 'fields']);
 
-$heading = $fieldid ? get_string('editfield', 'local_jobform') : get_string('addfield', 'local_jobform');
+$heading = $groupid ? get_string('editgroup', 'local_jobform') : get_string('addgroup', 'local_jobform');
 $PAGE->set_title($heading);
 $PAGE->set_heading($heading);
 $PAGE->navbar->add(get_string('managejobform', 'local_jobform'), $manageurl);
 $PAGE->navbar->add($heading);
 
-$form = new field_form($PAGE->url, ['groups' => group_manager::menu()]);
+$form = new group_form($PAGE->url);
 
-// Prime for editing.
-if ($fieldid) {
-    $field = template_manager::get_field($fieldid);
-    if (!$field) {
-        throw new moodle_exception('invalidfield', 'local_jobform');
+if ($groupid) {
+    $group = group_manager::get_group($groupid);
+    if (!$group) {
+        throw new moodle_exception('invalidgroup', 'local_jobform');
     }
-    $form->set_field_data($field);
+    $form->set_group_data($group);
 }
 
 if ($form->is_cancelled()) {
     redirect($manageurl);
 } else if ($data = $form->get_data()) {
-    template_manager::save_field($data);
+    group_manager::save_group($data);
     redirect($manageurl, get_string('changessaved'), null,
         \core\output\notification::NOTIFY_SUCCESS);
 }

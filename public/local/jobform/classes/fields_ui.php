@@ -34,22 +34,42 @@ use html_table;
 class fields_ui {
 
     /**
-     * Render the full fields panel: an "Add field" button and the table.
+     * Render the full fields panel: action buttons, the groups bar and the table.
      *
-     * @param array $fields field records (->id, ->name, ->type, ->configdata, ->required)
-     * @param moodle_url $editurl page that shows the add/edit form (gets ?id=)
-     * @param moodle_url $actionurl page that handles delete/move (gets ?fieldaction=&fieldid=&sesskey=)
+     * @param array $fields field records (->id, ->name, ->groupid, ->type, ->configdata, ->required)
+     * @param moodle_url $editurl page that shows the add/edit field form
+     * @param moodle_url $actionurl page that handles field/group delete/move (gets ?fieldaction=…&sesskey=)
+     * @param array $opts optional extras:
+     *      'groups'        => group records keyed by id (for the column + the groups bar)
+     *      'groupediturl'  => moodle_url to the add/edit group page (enables "Add group" + group editing)
+     *      'usedefaulturl' => moodle_url that resets to the default template (enables "Use default fields")
      * @return string HTML
      */
-    public static function render(array $fields, moodle_url $editurl, moodle_url $actionurl): string {
+    public static function render(array $fields, moodle_url $editurl, moodle_url $actionurl,
+            array $opts = []): string {
+        $groups = $opts['groups'] ?? [];
+        $groupediturl = $opts['groupediturl'] ?? null;
+        $usedefaulturl = $opts['usedefaulturl'] ?? null;
+
         $out = html_writer::start_div('local-jobform-fields');
 
-        $addurl = new moodle_url($editurl);
-        $out .= html_writer::div(
-            html_writer::link($addurl, get_string('addfield', 'local_jobform'),
-                ['class' => 'btn btn-primary']),
-            'mb-3'
-        );
+        // Action buttons: Add field · Add group · Use default fields.
+        $buttons = html_writer::link(new moodle_url($editurl),
+            get_string('addfield', 'local_jobform'), ['class' => 'btn btn-primary']);
+        if ($groupediturl) {
+            $buttons .= ' ' . html_writer::link(new moodle_url($groupediturl),
+                get_string('addgroup', 'local_jobform'), ['class' => 'btn btn-outline-primary']);
+        }
+        if ($usedefaulturl) {
+            $buttons .= ' ' . html_writer::link($usedefaulturl,
+                get_string('usedefaultfields', 'local_jobform'), ['class' => 'btn btn-outline-secondary']);
+        }
+        $out .= html_writer::div($buttons, 'mb-3');
+
+        // Groups bar.
+        if ($groupediturl) {
+            $out .= self::render_groups_bar($groups, $groupediturl, $actionurl);
+        }
 
         if (!$fields) {
             $out .= html_writer::div(get_string('nofields', 'local_jobform'), 'alert alert-info');
@@ -72,11 +92,13 @@ class fields_ui {
         $i = 0;
         foreach ($fields as $field) {
             $i++;
-            $group = mlang::resolve($field->groupname ?? '');
+            $gid = (int) ($field->groupid ?? 0);
+            $groupcell = ($gid && isset($groups[$gid]))
+                ? html_writer::span(s(mlang::resolve($groups[$gid]->name)), 'badge badge-info')
+                : html_writer::span('—', 'text-muted');
             $table->data[] = [
                 mlang::display($field->name),
-                $group !== '' ? html_writer::span(s($group), 'badge badge-info')
-                    : html_writer::span('—', 'text-muted'),
+                $groupcell,
                 get_string(field_types::all()[$field->type] ?? 'fieldtype_text', 'local_jobform'),
                 self::describe($field),
                 $field->required ? get_string('yes') : get_string('no'),
@@ -85,6 +107,41 @@ class fields_ui {
         }
 
         $out .= html_writer::table($table);
+        $out .= html_writer::end_div();
+        return $out;
+    }
+
+    /**
+     * Render the groups bar: each group as a chip with edit/delete, or a hint if none.
+     *
+     * @param array $groups group records keyed by id
+     * @param moodle_url $groupediturl add/edit group page (gets ?groupid=)
+     * @param moodle_url $actionurl handles group delete (gets ?groupaction=delete&groupid=&sesskey=)
+     * @return string HTML
+     */
+    protected static function render_groups_bar(array $groups, moodle_url $groupediturl,
+            moodle_url $actionurl): string {
+        global $OUTPUT;
+
+        $out = html_writer::start_div('local-jobform-groups card p-3 mb-3');
+        $out .= html_writer::tag('strong', get_string('groups', 'local_jobform')) . ' ';
+
+        if (!$groups) {
+            $out .= html_writer::span(get_string('nogroups', 'local_jobform'), 'text-muted');
+            $out .= html_writer::end_div();
+            return $out;
+        }
+
+        foreach ($groups as $group) {
+            $edit = new moodle_url($groupediturl, ['groupid' => $group->id]);
+            $delete = new moodle_url($actionurl,
+                ['groupaction' => 'delete', 'groupid' => $group->id, 'sesskey' => sesskey()]);
+            $chip = html_writer::span(s(mlang::resolve($group->name)), 'mr-1') .
+                $OUTPUT->action_icon($edit, new \pix_icon('t/edit', get_string('edit'))) .
+                $OUTPUT->action_icon($delete, new \pix_icon('t/delete', get_string('delete')));
+            $out .= html_writer::span($chip, 'badge badge-light border mr-2 p-2');
+        }
+
         $out .= html_writer::end_div();
         return $out;
     }
