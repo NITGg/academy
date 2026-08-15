@@ -30,6 +30,7 @@ use mod_jobform\group_manager;
 
 $cmid = required_param('id', PARAM_INT);       // Course module id.
 $fieldid = optional_param('fieldid', 0, PARAM_INT);
+$defaultgroupid = optional_param('groupid', 0, PARAM_INT);
 
 [$course, $cm] = get_course_and_cm_from_cmid($cmid, 'jobform');
 $jobform = $DB->get_record('jobform', ['id' => $cm->instance], '*', MUST_EXIST);
@@ -47,15 +48,27 @@ $PAGE->set_heading(format_string($course->fullname));
 
 $heading = $fieldid ? get_string('editfield', 'local_jobform') : get_string('addfield', 'local_jobform');
 
-// The action URL keeps ?id=<cmid> so this page still knows its activity on submit.
-// The field's own id travels in the form's 'fieldid' element, so there is no clash.
-$form = new field_form($PAGE->url, ['groups' => group_manager::menu($jobform->id)]);
-
+// Load the field first so the form can size its repeated option rows.
+$field = null;
 if ($fieldid) {
     $field = instance_manager::get_field($fieldid, $jobform->id);
     if (!$field) {
         throw new moodle_exception('invalidfield', 'local_jobform');
     }
+}
+$optioncount = $field
+    ? count(\local_jobform\field_types::decode_config($field->configdata)['options'])
+    : 0;
+
+// The action URL keeps ?id=<cmid> so this page still knows its activity on submit.
+// The field's own id travels in the form's 'fieldid' element, so there is no clash.
+$form = new field_form($PAGE->url, [
+    'groups'         => group_manager::menu($jobform->id),
+    'defaultgroupid' => $defaultgroupid,
+    'optioncount'    => $optioncount,
+]);
+
+if ($field) {
     $form->set_field_data($field);
 }
 

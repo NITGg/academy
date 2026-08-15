@@ -47,9 +47,10 @@ $tab = optional_param('tab', 'fields', PARAM_ALPHA);
 $cansmanage = has_capability('mod/jobform:managefields', $context);
 
 $PAGE->set_url(new moodle_url('/mod/jobform/view.php', ['id' => $cm->id, 'tab' => $tab]));
-$PAGE->set_title(format_string($jobform->name));
+$PAGE->set_title(format_string($course->shortname) . ': ' . format_string($jobform->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
+$PAGE->set_activity_record($jobform);
 $PAGE->add_body_class('mod-jobform');
 
 $viewurl = new moodle_url('/mod/jobform/view.php', ['id' => $cm->id]);
@@ -141,14 +142,13 @@ if ($studentmode) {
 }
 
 // ---------------------------------------------------------------------------
-// Output.
+// Output. The activity header (rendered by header()) already shows the activity
+// name and description, so we must not print the name again here.
 // ---------------------------------------------------------------------------
-echo $OUTPUT->header();
-echo $OUTPUT->heading(format_string($jobform->name));
-
 if (!empty($jobform->intro)) {
-    echo $OUTPUT->box(format_module_intro('jobform', $jobform, $cm->id), 'generalbox mod_introbox');
+    $PAGE->activityheader->set_description(format_module_intro('jobform', $jobform, $cm->id));
 }
+echo $OUTPUT->header();
 
 if ($cansmanage) {
     // Confirm dialogs (field delete / group delete / use default fields).

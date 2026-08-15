@@ -33,6 +33,7 @@ $context = context_system::instance();
 require_capability('local/jobform:manage', $context);
 
 $fieldid = optional_param('fieldid', 0, PARAM_INT);
+$defaultgroupid = optional_param('groupid', 0, PARAM_INT);
 
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/jobform/field_edit.php', ['fieldid' => $fieldid]));
@@ -46,14 +47,26 @@ $PAGE->set_heading($heading);
 $PAGE->navbar->add(get_string('managejobform', 'local_jobform'), $manageurl);
 $PAGE->navbar->add($heading);
 
-$form = new field_form($PAGE->url, ['groups' => group_manager::menu()]);
-
-// Prime for editing.
+// Load the field first so the form can size its repeated option rows.
+$field = null;
 if ($fieldid) {
     $field = template_manager::get_field($fieldid);
     if (!$field) {
         throw new moodle_exception('invalidfield', 'local_jobform');
     }
+}
+$optioncount = $field
+    ? count(\local_jobform\field_types::decode_config($field->configdata)['options'])
+    : 0;
+
+$form = new field_form($PAGE->url, [
+    'groups'         => group_manager::menu(),
+    'defaultgroupid' => $defaultgroupid,
+    'optioncount'    => $optioncount,
+]);
+
+// Prime for editing.
+if ($field) {
     $form->set_field_data($field);
 }
 
