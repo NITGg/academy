@@ -534,7 +534,7 @@ class format_topics_renderer extends \format_topics\output\renderer {
 
         // CTA row: enrol/go button + free-or-paid badge + start date.
         $o .= html_writer::start_div('acad-cr__cta-row');
-        $o .= html_writer::link($url, s($label), ['class' => 'acad-cr-btn']);
+        $o .= html_writer::link($url, s($label), ['class' => 'btn btn-primary acad-cr-btn']);
         if ($this->acad_cf_bool('free', $data)) {
             $o .= html_writer::tag('span', get_string('acad_free', 'theme_nit'),
                 ['class' => 'acad-cr__badge acad-cr__badge--free']);

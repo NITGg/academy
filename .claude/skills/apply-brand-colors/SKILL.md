@@ -60,6 +60,46 @@ Never hard-code a hex. Derive tints, gradients and opacity from a role with
 Bootstrap auto-contrast can flip a button label to black on a mid-tone fill. Force
 the brand foreground on solid brand buttons: `--bs-btn-color: var(--nit-brand-textprimary)`.
 
+### Accent vs Accent Text — split by the ELEMENT, not the variable name
+These two roles are the same hue by default but must resolve from different tokens,
+so either can be retuned without dragging the other:
+- **Accent Text** (`--nit-brand-accenttext`) — anything that is **real text**: link
+  text, the site name / wordmark, important words, headings, numbers/counts, prices,
+  labels, underlines, gradient-clipped text (`background-clip: text`).
+- **Accent** (`--nit-brand-accent`) — anything that is **not text**: icon glyphs
+  (bell, gear, a decorative ♛), backgrounds & tint fills, borders, outlines,
+  gradients used as a fill.
+
+**The trap that hides broken pages.** A page rarely reads `--nit-brand-accent*`
+directly — it defines an **intermediate slot** that aliases the role, then uses the
+slot. The slot's name lies: `--ctext3` (a *text* name) was wired to `Accent`; the
+checkout modal's `gold` token fed both link text and borders. A `grep` for
+`--nit-brand-accent` alone will NOT reveal these — you must trace every alias.
+
+**Audit method (do this, don't trust names):**
+1. Find every alias that maps to the accent roles, in SCSS **and** in plugin inline
+   styles (PHP `$stylevars`, mustache `style=`, JS colour objects like
+   `checkout_modal.js`):
+   ```bash
+   grep -rn "var(--nit-brand-accent" public/theme/nit public/local public/blocks \
+     --include="*.scss" --include="*.php" --include="*.mustache" --include="*.js"
+   ```
+   Then grep each alias you find (`--ctext3`, `--cr-accent`/`--cr-link`,
+   `--nit-navbaraccent`/`--nit-navbariconaccent`, `gold`/`goldtext`, …) for its own
+   consumers. Repeat until every chain ends at a CSS property.
+2. Classify each **consumer** by the property it sets: `color:` on real text →
+   Accent Text; `background`/`border`/`outline`/`fill`/gradient/`color:` on an icon
+   glyph → Accent.
+3. When one slot does **double duty** (text *and* non-text), split it into two — e.g.
+   `--ctext3` (Accent Text) + `--caccent` (Accent); `gold` (Accent) + `goldtext`
+   (Accent Text) — and repoint each consumer to the right one. Do the same for
+   hover/vivid companions (`--nit-navbaraccenthover` vs `--nit-navbariconaccenthover`).
+
+Known good references already following this: navbar (title/dropdown text vs
+bell+gear icons), `_coursepage.scss` (`--cr-link` text vs `--cr-accent` icons),
+`nit_category/index.php` (`--ctext3` vs `--caccent`), `nit_commerce/checkout_modal.js`
+(`goldtext` vs `gold`).
+
 ## Procedure
 
 Work on the local site (`http://localhost:8080`, bind-mounted to this repo,
@@ -124,6 +164,7 @@ stylesheet is otherwise stale).
 ## Verification checklist (all must pass)
 
 - [ ] No raw hex / core grey remains on the page — every colour is a `var(--nit-brand-*)` (or a `color-mix` of one).
+- [ ] **Accent split verified by element type:** every accent-coloured *text* traces to `--nit-brand-accenttext`; every accent-coloured *icon / background / border / outline / gradient* traces to `--nit-brand-accent`. Intermediate slots (`--ctext*`, `gold`, …) were traced to their root, and any double-duty slot was split.
 - [ ] Every text/background pair measures **≥ 4.5** contrast (large/bold text ≥ 3).
 - [ ] Buttons: solid brand buttons have brand-white labels (no black auto-contrast).
 - [ ] Hover states use `--nit-brand-hoverbackground` / `--nit-brand-hovertext`.

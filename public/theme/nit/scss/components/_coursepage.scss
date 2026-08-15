@@ -136,28 +136,25 @@ body:has(.acad-cr) .acad-cr__instructor {
 body:has(.acad-cr) .acad-cr__instructor strong { font-weight: 400; color: var(--cr-muted); }
 body:has(.acad-cr) .acad-cr__instr-name { font-weight: 600; color: var(--cr-ink); }
 
-/* Primary CTA — brand primary fill, brand foreground text (no auto-contrast). */
-body:has(.acad-cr) .acad-cr-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    // Use the exact brand primary so this matches every other primary button on
-    // the site (they are all #e5322d). Text stays brand-white (no auto-contrast).
-    background: var(--cr-primary);
-    color: var(--nit-brand-textprimary);
-    font-size: 16px;
-    font-weight: 700;
+/* Primary CTA — reuses the design-system primary button COMPONENT (.btn.btn-primary),
+   so it matches every other primary button on the site exactly: brand fill, brand
+   foreground text, the shared hover shade, focus ring and font weight all come from
+   the component (see scss/components/_buttons.scss). Here we only enlarge it for hero
+   prominence and add a subtle lift on hover. The renderer outputs the link with the
+   `btn btn-primary acad-cr-btn` classes. */
+body:has(.acad-cr) .acad-cr-btn.btn {
     padding: 13px 30px;
-    border-radius: var(--cr-radius-sm);
-    border: none;
-    cursor: pointer;
-    transition: background .15s ease, transform .15s ease;
+    font-size: 16px;
+    transition: background-color .15s ease, transform .15s ease;
 }
-body:has(.acad-cr) .acad-cr-btn:hover {
-    background: color-mix(in srgb, var(--cr-primary) 86%, #000);
-    color: var(--nit-brand-textprimary);
-    text-decoration: none;
+body:has(.acad-cr) .acad-cr-btn.btn:hover {
     transform: translateY(-1px);
+}
+/* The generic .acad-cr link rules add an underline on hover; the CTA is a button,
+   not a text link, so keep it clean (the component already sets text-decoration). */
+body:has(.acad-cr) .acad-cr a.acad-cr-btn,
+body:has(.acad-cr) .acad-cr a.acad-cr-btn:hover {
+    text-decoration: none;
 }
 
 body:has(.acad-cr) .acad-cr__cta-row {

@@ -124,8 +124,10 @@ $categoryimage = $logo ? $logo->out(false) : '';
 // (theme_nit's --nit-brand-* custom properties), so it re-skins with the rest of
 // the site and honours RTL/LTR + dark/light automatically. The 8 local slots map
 // to brand roles by job: backgrounds -> Background/Surface, the call-to-action fill
-// -> Primary, text -> Text primary/secondary, highlights -> Accent. --cbg3 (the tile
-// behind category/course images) is Surface lifted a touch so logos read cleanly.
+// -> Primary, text -> Text primary/secondary, accent TEXT (hero counts, stat numbers,
+// labels) -> Accent Text (--ctext3), and non-text accent tints/pills/borders -> Accent
+// (--caccent). --cbg3 (the tile behind category/course images) is Surface lifted a
+// touch so logos read cleanly.
 $stylevars =
     '--cbg1: var(--nit-brand-background); '
   . '--cbg2: var(--nit-brand-surface); '
@@ -133,7 +135,8 @@ $stylevars =
   . '--cbg4: var(--nit-brand-primary); '
   . '--ctext1: var(--nit-brand-textprimary); '
   . '--ctext2: var(--nit-brand-textsecondary); '
-  . '--ctext3: var(--nit-brand-accent); '
+  . '--ctext3: var(--nit-brand-accenttext); '
+  . '--caccent: var(--nit-brand-accent); '
   . '--ctext4: var(--nit-brand-textprimary); '
   . '--cborder: var(--nit-brand-borderprimary); '
   . '--csuccess: var(--nit-brand-success); ';
@@ -461,7 +464,7 @@ echo $OUTPUT->header();
                   ✓ <?= $t('Enrolled', 'مُسجَّل') ?>
                 </span>
               <?php elseif ($info['covered']): ?>
-                <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--ctext3) 16%, transparent); color: var(--ctext3); border: 1px solid color-mix(in srgb, var(--ctext3) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
+                <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--caccent) 16%, transparent); color: var(--ctext3); border: 1px solid color-mix(in srgb, var(--caccent) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
                   ★ <?= $t('In your subscription', 'ضمن اشتراكك') ?>
                 </span>
               <?php elseif ($info['offerlabel'] !== '' && $info['offerfinal'] > 0): ?>
@@ -571,7 +574,7 @@ echo $OUTPUT->header();
            icon instead of the pin; no gradient / start-border so it reads as a chip. */
         .nit-spec-title--sub {
           border-inline-start: none; padding: 8px 20px; border-radius: 50px;
-          background: color-mix(in srgb, var(--ctext3) 70%, transparent);
+          background: color-mix(in srgb, var(--caccent) 70%, transparent);
           font-size: 20px; color: var(--ctext1);
         }
         .nit-spec-title--sub .nit-spec-subname { color: var(--ctext1); }
@@ -596,7 +599,7 @@ echo $OUTPUT->header();
         /* Course-card category chip — same tint pill + circle icon as nested titles. */
         .nit-card-cat {
           align-self: flex-start; display: inline-flex; align-items: center; gap: 8px;
-          background: color-mix(in srgb, var(--ctext3) 70%, transparent);
+          background: color-mix(in srgb, var(--caccent) 70%, transparent);
           color: var(--ctext1); padding: 6px 14px; border-radius: 4px;
           font-size: 12px; font-weight: bold; margin-bottom: 16px;
         }

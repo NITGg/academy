@@ -32,7 +32,11 @@
     surface: 'var(--nit-darksurface, #0f1e33)',
     ink: 'var(--nit-darktextprimary, #ffffff)',
     muted: 'var(--nit-darktextsecondary, #8a9ab5)',
-    gold: 'var(--nit-accentgold, #e8b84b)',
+    // Split accent: `gold` is the NON-TEXT accent (card border, crown emblem,
+    // button border, the proceed-button gradient) -> Accent role. `goldtext` is
+    // the TEXT accent (the final price, the "apply" label) -> Accent Text role.
+    gold: 'var(--nit-brand-accent, #e8b84b)',
+    goldtext: 'var(--nit-brand-accenttext, #e8b84b)',
     golddark: 'var(--nit-accentgolddark, #c9922a)',
     teal: 'var(--nit-accentteal, #00a99d)',
     line: 'color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 10%, transparent)'
@@ -69,7 +73,7 @@
     els.coupon = el('input', 'flex:1; min-width:0; background:' + C.surface + '; border:1px solid color-mix(in srgb, ' + C.ink + ' 15%, transparent); border-radius:8px; color:' + C.ink + '; padding:7px 10px; font-size:14px;');
     els.coupon.type = 'text'; els.coupon.autocomplete = 'off';
     cRow.appendChild(els.coupon);
-    els.apply = el('button', 'flex:0 0 auto; background:transparent; border:1px solid ' + C.gold + '; color:' + C.gold + '; border-radius:8px; padding:7px 14px; font-weight:700; cursor:pointer; font-size:14px;', S('co_apply'));
+    els.apply = el('button', 'flex:0 0 auto; background:transparent; border:1px solid ' + C.gold + '; color:' + C.goldtext + '; border-radius:8px; padding:7px 14px; font-weight:700; cursor:pointer; font-size:14px;', S('co_apply'));
     els.apply.type = 'button';
     cRow.appendChild(els.apply);
     box.appendChild(cRow);
@@ -81,7 +85,7 @@
 
     var totalRow = el('div', 'border-top:1px solid ' + C.line + '; padding-top:12px; display:flex; justify-content:space-between; font-size:16px; font-weight:800;');
     totalRow.appendChild(el('span', 'color:' + C.ink + ';', S('co_total')));
-    els.final = el('b', 'color:' + C.gold + ';', '—');
+    els.final = el('b', 'color:' + C.goldtext + ';', '—');
     totalRow.appendChild(els.final);
     box.appendChild(totalRow);
     card.appendChild(box);
