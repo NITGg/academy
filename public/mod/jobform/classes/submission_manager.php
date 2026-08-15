@@ -67,6 +67,23 @@ class submission_manager {
     }
 
     /**
+     * Permanently delete a submission (and its answers) belonging to this activity.
+     *
+     * @param int $submissionid
+     * @param int $jobformid guard so only this activity's submissions can be deleted
+     * @return void
+     */
+    public static function delete_submission(int $submissionid, int $jobformid): void {
+        global $DB;
+        if (!$DB->record_exists('jobform_submission',
+                ['id' => $submissionid, 'jobformid' => $jobformid])) {
+            return;
+        }
+        $DB->delete_records('jobform_submission_data', ['submissionid' => $submissionid]);
+        $DB->delete_records('jobform_submission', ['id' => $submissionid]);
+    }
+
+    /**
      * Get the stored answers for a submission as fieldid => value.
      *
      * @param int $submissionid

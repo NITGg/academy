@@ -66,6 +66,7 @@ $string['draftsaved'] = 'Your draft has been saved.';
 $string['errornotnumber'] = 'Please enter a number.';
 $string['errornotemail'] = 'Please enter a valid email address.';
 $string['errornoturl'] = 'Please enter a valid link starting with http:// or https://.';
+$string['errornotphone'] = 'Please enter a valid phone number (7 to 15 digits, an optional leading +).';
 
 // Privacy.
 $string['privacy:metadata:jobform_submission'] = 'The forms a student submits for a Job Form activity.';

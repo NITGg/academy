@@ -101,6 +101,23 @@ if ($cansmanage) {
 }
 
 // ---------------------------------------------------------------------------
+// Delete a submitted form from the Submissions tab (needs the submissions cap,
+// which a non-editing teacher may hold without managefields).
+// ---------------------------------------------------------------------------
+$cansubmissions = has_capability('mod/jobform:viewsubmissions', $context);
+$submissionsurl = new moodle_url('/mod/jobform/view.php', ['id' => $cm->id, 'tab' => 'submissions']);
+if ($cansubmissions) {
+    $submissionaction = optional_param('submissionaction', '', PARAM_ALPHA);
+    $submissionid = optional_param('submissionid', 0, PARAM_INT);
+    if ($submissionaction === 'delete' && $submissionid > 0 && confirm_sesskey()
+            && optional_param('confirm', 0, PARAM_BOOL)) {
+        submission_manager::delete_submission($submissionid, $jobform->id);
+        redirect($submissionsurl, get_string('submissiondeleted', 'local_jobform'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Student form submission handling, before output.
 // ---------------------------------------------------------------------------
 $studentmode = !$cansmanage && has_capability('mod/jobform:submit', $context);
@@ -149,6 +166,21 @@ if (!empty($jobform->intro)) {
     $PAGE->activityheader->set_description(format_module_intro('jobform', $jobform, $cm->id));
 }
 echo $OUTPUT->header();
+
+// Confirm before deleting a submission (Submissions tab).
+if ($cansubmissions) {
+    $submissionaction = optional_param('submissionaction', '', PARAM_ALPHA);
+    $submissionid = optional_param('submissionid', 0, PARAM_INT);
+    if ($submissionaction === 'delete' && $submissionid > 0 && confirm_sesskey()
+            && !optional_param('confirm', 0, PARAM_BOOL)) {
+        $yesurl = new moodle_url($submissionsurl,
+            ['submissionaction' => 'delete', 'submissionid' => $submissionid, 'sesskey' => sesskey(), 'confirm' => 1]);
+        echo $OUTPUT->confirm(get_string('confirmdeletesubmission', 'local_jobform'),
+            $yesurl, $submissionsurl);
+        echo $OUTPUT->footer();
+        exit;
+    }
+}
 
 if ($cansmanage) {
     // Confirm dialogs (field delete / group delete / use default fields).
@@ -203,7 +235,7 @@ if ($cansmanage) {
 
     if ($tab === 'submissions') {
         require_capability('mod/jobform:viewsubmissions', $context);
-        echo activity_submissions::render($cm, $jobform);
+        echo activity_submissions::render($cm, $jobform, $cansubmissions);
     } else {
         echo html_writer::div(get_string('activityfieldsintro', 'mod_jobform'), 'text-muted mb-3');
         $editurl = new moodle_url('/mod/jobform/edit_field.php', ['id' => $cm->id]);
@@ -221,16 +253,13 @@ if ($cansmanage) {
         echo $OUTPUT->notification(get_string('certificaterequired', 'mod_jobform'),
             \core\output\notification::NOTIFY_WARNING);
     } else if ($entryform === null) {
-        // Locked: already submitted and resubmission disabled — show read-only answers.
+        // Locked: already submitted and resubmission disabled — show read-only answers
+        // as a clean brand-styled display (not a frozen form).
         echo $OUTPUT->notification(get_string('alreadysubmitted', 'mod_jobform'),
             \core\output\notification::NOTIFY_INFO);
         $existing = submission_manager::get_submission($jobform->id, $USER->id);
-        $readform = new entry_form($viewurl,
-            ['fields' => array_values($fields), 'groups' => $groups, 'readonly' => true]);
         $answers = submission_manager::get_answers($existing->id);
-        $readform->set_data(
-            ['id' => $cm->id] + entry_form::values_to_formdata($answers, array_values($fields)));
-        $readform->display();
+        echo \mod_jobform\output\submission_display::render($fields, $groups, $answers);
     } else {
         if (!$fields) {
             echo $OUTPUT->notification(get_string('noformfields', 'mod_jobform'),

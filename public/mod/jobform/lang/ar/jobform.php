@@ -66,6 +66,7 @@ $string['draftsaved'] = 'تم حفظ المسودة.';
 $string['errornotnumber'] = 'من فضلك اكتب رقم.';
 $string['errornotemail'] = 'من فضلك اكتب بريد إلكتروني صحيح.';
 $string['errornoturl'] = 'من فضلك اكتب رابط صحيح يبدأ بـ http:// أو https://.';
+$string['errornotphone'] = 'من فضلك اكتب رقم هاتف صحيح (من 7 لـ 15 رقم، ويجوز يبدأ بـ +).';
 
 // Privacy.
 $string['privacy:metadata:jobform_submission'] = 'الاستمارات اللي الطالب بيبعتها لنشاط استمارة التوظيف.';

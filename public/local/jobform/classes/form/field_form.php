@@ -73,24 +73,29 @@ class field_form extends \moodleform {
         $mform->setDefault('required', 0);
 
         // --- Dropdown-only settings ---------------------------------------
-        // One repeatable row per option, each holding its English and Arabic value
-        // plus a delete button. Rows are shown only for the dropdown type.
+        // One repeatable row PER option: its English + Arabic value and a delete
+        // button grouped under a single "Option N" label, so each row clearly
+        // reads as one option. Shown only for the dropdown type.
         $mform->addElement('static', 'optionshdr', get_string('fieldoptions', 'local_jobform'),
             get_string('fieldoptions_help', 'local_jobform'));
         $mform->hideIf('optionshdr', 'type', 'neq', field_types::TYPE_SELECT);
 
-        $optionelements = [
-            $mform->createElement('text', 'option_en', get_string('optionenglish', 'local_jobform'),
-                ['size' => 32, 'placeholder' => get_string('optionenglish', 'local_jobform')]),
-            $mform->createElement('text', 'option_ar', get_string('optionarabic', 'local_jobform'),
-                ['size' => 32, 'dir' => 'rtl', 'placeholder' => get_string('optionarabic', 'local_jobform')]),
+        $optionrow = [
+            $mform->createElement('text', 'option_en', '',
+                ['size' => 26, 'placeholder' => get_string('optionenglish', 'local_jobform')]),
+            $mform->createElement('text', 'option_ar', '',
+                ['size' => 26, 'dir' => 'rtl', 'placeholder' => get_string('optionarabic', 'local_jobform')]),
             $mform->createElement('submit', 'option_delete', get_string('deleteoption', 'local_jobform'),
-                [], false),
+                ['class' => 'btn-outline-danger'], false),
+        ];
+        $optionelements = [
+            $mform->createElement('group', 'optiongroup', get_string('optionn', 'local_jobform'),
+                $optionrow, '  ', false),
         ];
         $optionoptions = [
-            'option_en' => ['type' => PARAM_TEXT, 'hideif' => ['type', 'neq', field_types::TYPE_SELECT]],
-            'option_ar' => ['type' => PARAM_TEXT, 'hideif' => ['type', 'neq', field_types::TYPE_SELECT]],
-            'option_delete' => ['hideif' => ['type', 'neq', field_types::TYPE_SELECT]],
+            'option_en'   => ['type' => PARAM_TEXT],
+            'option_ar'   => ['type' => PARAM_TEXT],
+            'optiongroup' => ['hideif' => ['type', 'neq', field_types::TYPE_SELECT]],
         ];
         $optioncount = max(1, (int) ($this->_customdata['optioncount'] ?? 3));
         $this->repeat_elements($optionelements, $optioncount, $optionoptions,
@@ -184,26 +189,25 @@ class field_form extends \moodleform {
         $config = field_types::decode_config($field->configdata ?? null);
         $name = mlang::parse($field->name ?? '');
 
-        // Split each stored option into the repeated English / Arabic inputs.
-        $optionsen = [];
-        $optionsar = [];
-        foreach (array_values($config['options']) as $i => $option) {
-            $parts = mlang::parse($option);
-            $optionsen[$i] = $parts['en'];
-            $optionsar[$i] = $parts['ar'];
-        }
-
-        $this->set_data([
+        $data = [
             'fieldid'    => $field->id,
             'name_en'    => $name['en'],
             'name_ar'    => $name['ar'],
             'groupid'    => $field->groupid ?? 0,
             'type'       => $field->type,
             'required'   => $field->required,
-            'option_en'  => $optionsen,
-            'option_ar'  => $optionsar,
             'multiple'   => $config['multiple'] ? 1 : 0,
             'fixedvalue' => $config['fixedvalue'],
-        ]);
+        ];
+
+        // Split each stored option into the repeated group's English / Arabic inputs.
+        // Flat "name[i]" keys are how grouped repeat_elements read their defaults.
+        foreach (array_values($config['options']) as $i => $option) {
+            $parts = mlang::parse($option);
+            $data['option_en[' . $i . ']'] = $parts['en'];
+            $data['option_ar[' . $i . ']'] = $parts['ar'];
+        }
+
+        $this->set_data($data);
     }
 }

@@ -136,7 +136,9 @@ class entry_form extends \moodleform {
                 break;
 
             case field_types::TYPE_DATE:
-                $mform->addElement('date_selector', $name, $label, ['optional' => empty($field->required)]);
+                // No "optional" toggle — that renders a confusing Enable ("تمكين")
+                // checkbox. The date is always shown.
+                $mform->addElement('date_selector', $name, $label);
                 break;
 
             case field_types::TYPE_CHECKBOX:
@@ -149,12 +151,15 @@ class entry_form extends \moodleform {
                 foreach ($config['options'] as $optraw) {
                     $options[$optraw] = \local_jobform\mlang::resolve($optraw);
                 }
-                if (!$config['multiple']) {
-                    $options = ['' => get_string('choosedots')] + $options;
-                }
-                $el = $mform->addElement('select', $name, $label, $options);
                 if ($config['multiple']) {
-                    $el->setMultiple(true);
+                    // A searchable "open to pick" control instead of a giant list box.
+                    $mform->addElement('autocomplete', $name, $label, $options, [
+                        'multiple' => true,
+                        'noselectionstring' => get_string('choosedots'),
+                    ]);
+                } else {
+                    $mform->addElement('select', $name, $label,
+                        ['' => get_string('choosedots')] + $options);
                 }
                 break;
 
@@ -214,6 +219,15 @@ class entry_form extends \moodleform {
                 case field_types::TYPE_URL:
                     if ($value !== '' && !preg_match('#^https?://#i', $value)) {
                         $errors[$name] = get_string('errornoturl', 'mod_jobform');
+                    }
+                    break;
+                case field_types::TYPE_PHONE:
+                    // Allow an optional leading +, digits and common separators,
+                    // with 7–15 actual digits (E.164-ish).
+                    $digits = preg_replace('/\D+/', '', (string) $value);
+                    if ($value !== '' && (!preg_match('/^\+?[0-9\s().-]+$/', $value)
+                            || strlen($digits) < 7 || strlen($digits) > 15)) {
+                        $errors[$name] = get_string('errornotphone', 'mod_jobform');
                     }
                     break;
             }

@@ -34,9 +34,10 @@ class activity_submissions {
      *
      * @param \cm_info|object $cm the course module
      * @param object $jobform the activity record
+     * @param bool $candelete whether to show a delete action per row
      * @return string HTML
      */
-    public static function render($cm, object $jobform): string {
+    public static function render($cm, object $jobform, bool $candelete = false): string {
         global $DB;
 
         $userfields = \core_user\fields::for_name()->get_sql('u', false, '', '', false)->selects;
@@ -60,13 +61,23 @@ class activity_submissions {
         ];
         $table->attributes['class'] = 'generaltable';
 
+        $submissionsurl = new moodle_url('/mod/jobform/view.php',
+            ['id' => $cm->id, 'tab' => 'submissions']);
         foreach ($rows as $row) {
             $view = new moodle_url('/mod/jobform/view_submission.php',
                 ['id' => $cm->id, 'submissionid' => $row->id]);
+            $actions = html_writer::link($view, get_string('view'),
+                ['class' => 'btn btn-sm btn-secondary']);
+            if ($candelete) {
+                $delete = new moodle_url($submissionsurl,
+                    ['submissionaction' => 'delete', 'submissionid' => $row->id, 'sesskey' => sesskey()]);
+                $actions .= ' ' . html_writer::link($delete, get_string('delete'),
+                    ['class' => 'btn btn-sm btn-outline-danger']);
+            }
             $table->data[] = [
                 fullname($row),
                 userdate($row->timemodified),
-                html_writer::link($view, get_string('view'), ['class' => 'btn btn-sm btn-secondary']),
+                $actions,
             ];
         }
 

@@ -197,7 +197,8 @@ class fields_ui {
 
         $cell = new html_table_cell($content);
         $cell->colspan = $colspan;
-        $cell->attributes['class'] = 'local-jobform-group-header table-active';
+        $cell->attributes['class'] = 'local-jobform-group-header'
+            . ($group ? '' : ' local-jobform-group-header-none');
         $row = new html_table_row([$cell]);
         $row->attributes['class'] = 'local-jobform-group-row';
         return $row;
