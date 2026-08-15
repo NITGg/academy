@@ -105,7 +105,11 @@ class entry_form extends \moodleform {
                     break;
 
                 case field_types::TYPE_SELECT:
-                    $options = array_combine($config['options'], $config['options']) ?: [];
+                    // Key = the raw (possibly {mlang}) stored value; label = resolved.
+                    $options = [];
+                    foreach ($config['options'] as $optraw) {
+                        $options[$optraw] = \local_jobform\mlang::resolve($optraw);
+                    }
                     if (!$config['multiple']) {
                         $options = ['' => get_string('choosedots')] + $options;
                     }

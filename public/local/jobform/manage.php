@@ -42,11 +42,16 @@ $PAGE->set_title(get_string('managejobform', 'local_jobform'));
 $PAGE->set_heading(get_string('managejobform', 'local_jobform'));
 
 $manageurl = new moodle_url('/local/jobform/manage.php', ['tab' => 'fields']);
+$submissionsurl = new moodle_url('/local/jobform/manage.php', ['tab' => 'submissions']);
 
 // Handle a template field action (delete / reorder) coming from the fields tab.
 $fieldaction = optional_param('fieldaction', '', PARAM_ALPHA);
 $fieldid = optional_param('fieldid', 0, PARAM_INT);
 $confirm = optional_param('confirm', 0, PARAM_BOOL);
+
+// Handle a submission action (delete) coming from the submissions tab.
+$submissionaction = optional_param('submissionaction', '', PARAM_ALPHA);
+$submissionid = optional_param('submissionid', 0, PARAM_INT);
 
 if ($fieldaction === 'moveup' && $fieldid > 0 && confirm_sesskey()) {
     template_manager::reorder($fieldid, -1);
@@ -58,9 +63,26 @@ if ($fieldaction === 'moveup' && $fieldid > 0 && confirm_sesskey()) {
     template_manager::delete_field($fieldid);
     redirect($manageurl, get_string('changessaved'), null,
         \core\output\notification::NOTIFY_SUCCESS);
+} else if ($submissionaction === 'delete' && $submissionid > 0 && confirm_sesskey() && $confirm) {
+    submissions_ui::delete_submission($submissionid);
+    redirect($submissionsurl, get_string('submissiondeleted', 'local_jobform'), null,
+        \core\output\notification::NOTIFY_SUCCESS);
 }
 
 echo $OUTPUT->header();
+
+// Ask before deleting a submission.
+if ($submissionaction === 'delete' && $submissionid > 0 && confirm_sesskey() && !$confirm) {
+    $yesurl = new moodle_url($submissionsurl,
+        ['submissionaction' => 'delete', 'submissionid' => $submissionid, 'sesskey' => sesskey(), 'confirm' => 1]);
+    echo $OUTPUT->confirm(
+        get_string('confirmdeletesubmission', 'local_jobform'),
+        $yesurl,
+        $submissionsurl
+    );
+    echo $OUTPUT->footer();
+    exit;
+}
 
 // Ask before deleting a field.
 if ($fieldaction === 'delete' && $fieldid > 0 && confirm_sesskey() && !$confirm) {
@@ -92,7 +114,7 @@ echo $OUTPUT->tabtree($tabs, $tab);
 if ($tab === 'submissions') {
     echo $OUTPUT->heading(get_string('tabsubmissions', 'local_jobform'), 3);
     $viewurl = new moodle_url('/local/jobform/submission.php');
-    echo submissions_ui::render($viewurl);
+    echo submissions_ui::render($viewurl, $submissionsurl);
 } else {
     echo $OUTPUT->heading(get_string('templatefieldsheading', 'local_jobform'), 3);
     echo html_writer::div(get_string('templatefieldsintro', 'local_jobform'), 'text-muted mb-3');

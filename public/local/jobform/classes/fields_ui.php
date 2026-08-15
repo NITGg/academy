@@ -101,8 +101,9 @@ class fields_ui {
             $mode = $config['multiple']
                 ? get_string('fieldmultiple', 'local_jobform')
                 : get_string('fieldsingle', 'local_jobform');
-            $preview = implode(', ', array_slice($config['options'], 0, 5));
-            if (count($config['options']) > 5) {
+            $resolved = array_map([mlang::class, 'resolve'], $config['options']);
+            $preview = implode(', ', array_slice($resolved, 0, 5));
+            if (count($resolved) > 5) {
                 $preview .= ' …';
             }
             return html_writer::span(s($preview), 'text-muted') .

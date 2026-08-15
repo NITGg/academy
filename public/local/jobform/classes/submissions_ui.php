@@ -69,9 +69,10 @@ class submissions_ui {
      * Render the submissions table for the admin Submissions tab.
      *
      * @param moodle_url $viewurl page that shows one submission (gets ?submissionid=)
+     * @param moodle_url|null $actionurl page that handles delete (gets ?submissionaction=delete&submissionid=&sesskey=)
      * @return string HTML
      */
-    public static function render(moodle_url $viewurl): string {
+    public static function render(moodle_url $viewurl, ?moodle_url $actionurl = null): string {
         if (!self::available()) {
             return html_writer::div(
                 get_string('modnotinstalled', 'local_jobform'), 'alert alert-warning');
@@ -94,16 +95,39 @@ class submissions_ui {
 
         foreach ($rows as $row) {
             $view = new moodle_url($viewurl, ['submissionid' => $row->id]);
+            $actions = html_writer::link($view, get_string('view'),
+                ['class' => 'btn btn-sm btn-secondary']);
+            if ($actionurl) {
+                $delete = new moodle_url($actionurl,
+                    ['submissionaction' => 'delete', 'submissionid' => $row->id, 'sesskey' => sesskey()]);
+                $actions .= ' ' . html_writer::link($delete, get_string('delete'),
+                    ['class' => 'btn btn-sm btn-outline-danger']);
+            }
             $table->data[] = [
                 fullname($row),
                 format_string($row->coursename),
                 format_string($row->formname),
                 userdate($row->timemodified),
-                html_writer::link($view, get_string('view'), ['class' => 'btn btn-sm btn-secondary']),
+                $actions,
             ];
         }
 
         return html_writer::table($table);
+    }
+
+    /**
+     * Permanently delete a submitted form and its answers.
+     *
+     * @param int $submissionid
+     * @return void
+     */
+    public static function delete_submission(int $submissionid): void {
+        global $DB;
+        if (!self::available()) {
+            return;
+        }
+        $DB->delete_records('jobform_submission_data', ['submissionid' => $submissionid]);
+        $DB->delete_records('jobform_submission', ['id' => $submissionid]);
     }
 
     /**

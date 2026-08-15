@@ -181,11 +181,12 @@ class field_types {
                 return $value !== '' ? userdate((int) $value, get_string('strftimedate', 'langconfig')) : '';
             case self::TYPE_SELECT:
                 // Stored as a JSON array for multi-select, plain string otherwise.
+                // Each stored value may be a {mlang} option, so resolve for display.
                 $decoded = json_decode($value, true);
                 if (is_array($decoded)) {
-                    return implode(', ', $decoded);
+                    return implode(', ', array_map([mlang::class, 'resolve'], $decoded));
                 }
-                return $value;
+                return mlang::resolve($value);
             case self::TYPE_FIXED:
                 $config = self::decode_config($field->configdata);
                 return $config['fixedvalue'];

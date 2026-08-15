@@ -50,7 +50,9 @@ $string['fieldtype'] = 'نوع الحقل';
 $string['fielddetails'] = 'التفاصيل';
 $string['fieldrequired'] = 'إجباري';
 $string['fieldoptions'] = 'خيارات القائمة المنسدلة';
-$string['fieldoptions_help'] = 'اكتب خيار في كل سطر. الطالب هيختار من القيم دي.';
+$string['fieldoptions_help'] = 'اكتب خيار في كل سطر. الطالب هيختار من القيم دي. عشان تترجم خيار، حط العربي بتاعه في نفس رقم السطر في خانة العربي؛ السطور بتتقابل بالترتيب.';
+$string['fieldoptions_en'] = 'خيارات القائمة (إنجليزي)';
+$string['fieldoptions_ar'] = 'خيارات القائمة (عربي)';
 $string['fieldmultiple'] = 'السماح باختيار متعدد';
 $string['fieldsingle'] = 'اختيار واحد';
 $string['fieldfixedvalue'] = 'قيمة ثابتة';
@@ -85,6 +87,8 @@ $string['answers'] = 'الإجابات';
 $string['answer'] = 'الإجابة';
 $string['noanswers'] = 'الاستمارة دي مفيهاش إجابات.';
 $string['deletedfield'] = '(حقل متمسوح)';
+$string['confirmdeletesubmission'] = 'متأكد إنك عايز تمسح الاستمارة المُرسلة دي نهائيًا؟';
+$string['submissiondeleted'] = 'تم حذف الاستمارة المُرسلة.';
 
 // Privacy.
 $string['privacy:metadata'] = 'بلجن إدارة استمارة التوظيف بيخزّن تعريفات قالب الحقول بس ومابيخزّنش بيانات شخصية. الاستمارات المُرسلة بيخزّنها نشاط استمارة التوظيف.';

@@ -50,7 +50,9 @@ $string['fieldtype'] = 'Field type';
 $string['fielddetails'] = 'Details';
 $string['fieldrequired'] = 'Required';
 $string['fieldoptions'] = 'Dropdown options';
-$string['fieldoptions_help'] = 'Enter one option per line. The student picks from these values.';
+$string['fieldoptions_help'] = 'Enter one option per line. The student picks from these values. To translate an option, put its Arabic on the same line number in the Arabic box; lines are paired by position.';
+$string['fieldoptions_en'] = 'Dropdown options (English)';
+$string['fieldoptions_ar'] = 'Dropdown options (Arabic)';
 $string['fieldmultiple'] = 'Allow multiple selection';
 $string['fieldsingle'] = 'Single selection';
 $string['fieldfixedvalue'] = 'Fixed value';
@@ -85,6 +87,8 @@ $string['answers'] = 'Answers';
 $string['answer'] = 'Answer';
 $string['noanswers'] = 'This submission has no answers.';
 $string['deletedfield'] = '(deleted field)';
+$string['confirmdeletesubmission'] = 'Are you sure you want to permanently delete this submitted form?';
+$string['submissiondeleted'] = 'The submitted form has been deleted.';
 
 // Privacy.
 $string['privacy:metadata'] = 'The Job Form manager plugin stores only the field template definitions and does not store personal data. Submitted forms are stored by the Job Form activity.';

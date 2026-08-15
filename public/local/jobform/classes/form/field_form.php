@@ -75,11 +75,17 @@ class field_form extends \moodleform {
         $mform->setDefault('required', 0);
 
         // --- Dropdown-only settings ---------------------------------------
-        $mform->addElement('textarea', 'options', get_string('fieldoptions', 'local_jobform'),
+        // One option per line; line N in English pairs with line N in Arabic.
+        $mform->addElement('textarea', 'options_en', get_string('fieldoptions_en', 'local_jobform'),
             ['rows' => 6, 'cols' => 50]);
-        $mform->setType('options', PARAM_TEXT);
-        $mform->addHelpButton('options', 'fieldoptions', 'local_jobform');
-        $mform->hideIf('options', 'type', 'neq', field_types::TYPE_SELECT);
+        $mform->setType('options_en', PARAM_TEXT);
+        $mform->addHelpButton('options_en', 'fieldoptions', 'local_jobform');
+        $mform->hideIf('options_en', 'type', 'neq', field_types::TYPE_SELECT);
+
+        $mform->addElement('textarea', 'options_ar', get_string('fieldoptions_ar', 'local_jobform'),
+            ['rows' => 6, 'cols' => 50, 'dir' => 'rtl']);
+        $mform->setType('options_ar', PARAM_TEXT);
+        $mform->hideIf('options_ar', 'type', 'neq', field_types::TYPE_SELECT);
 
         $mform->addElement('advcheckbox', 'multiple', get_string('fieldmultiple', 'local_jobform'));
         $mform->setDefault('multiple', 0);
@@ -104,9 +110,9 @@ class field_form extends \moodleform {
         $errors = parent::validation($data, $files);
 
         if ($data['type'] === field_types::TYPE_SELECT) {
-            $options = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $data['options'] ?? '')));
+            $options = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $data['options_en'] ?? '')));
             if (count($options) < 1) {
-                $errors['options'] = get_string('erroroptionsrequired', 'local_jobform');
+                $errors['options_en'] = get_string('erroroptionsrequired', 'local_jobform');
             }
         }
         if ($data['type'] === field_types::TYPE_FIXED && trim($data['fixedvalue'] ?? '') === '') {
@@ -129,8 +135,34 @@ class field_form extends \moodleform {
         if ($data) {
             $data->name = mlang::build(['en' => $data->name_en ?? '', 'ar' => $data->name_ar ?? '']);
             $data->groupname = mlang::build(['en' => $data->group_en ?? '', 'ar' => $data->group_ar ?? '']);
+            $data->options = self::build_options($data->options_en ?? '', $data->options_ar ?? '');
         }
         return $data;
+    }
+
+    /**
+     * Pair English and Arabic option lines by position into {mlang} options,
+     * returned as a newline-separated list for field_types::encode_config().
+     *
+     * @param string $entext one English option per line
+     * @param string $artext one Arabic option per line (line N pairs with English line N)
+     * @return string
+     */
+    protected static function build_options(string $entext, string $artext): string {
+        $en = preg_split('/\r\n|\r|\n/', $entext);
+        $ar = preg_split('/\r\n|\r|\n/', $artext);
+        $count = max(count($en), count($ar));
+        $built = [];
+        for ($i = 0; $i < $count; $i++) {
+            $option = mlang::build([
+                'en' => $en[$i] ?? '',
+                'ar' => $ar[$i] ?? '',
+            ]);
+            if ($option !== '') {
+                $built[] = $option;
+            }
+        }
+        return implode("\n", $built);
     }
 
     /**
@@ -143,6 +175,16 @@ class field_form extends \moodleform {
         $config = field_types::decode_config($field->configdata ?? null);
         $name = mlang::parse($field->name ?? '');
         $group = mlang::parse($field->groupname ?? '');
+
+        // Split each stored option back into aligned English / Arabic lines.
+        $optionsen = [];
+        $optionsar = [];
+        foreach ($config['options'] as $option) {
+            $parts = mlang::parse($option);
+            $optionsen[] = $parts['en'];
+            $optionsar[] = $parts['ar'];
+        }
+
         $this->set_data([
             'fieldid'    => $field->id,
             'name_en'    => $name['en'],
@@ -151,7 +193,8 @@ class field_form extends \moodleform {
             'group_ar'   => $group['ar'],
             'type'       => $field->type,
             'required'   => $field->required,
-            'options'    => implode("\n", $config['options']),
+            'options_en' => implode("\n", $optionsen),
+            'options_ar' => implode("\n", $optionsar),
             'multiple'   => $config['multiple'] ? 1 : 0,
             'fixedvalue' => $config['fixedvalue'],
         ]);
