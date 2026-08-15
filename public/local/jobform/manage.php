@@ -69,7 +69,7 @@ if ($fieldaction === 'delete' && $fieldid > 0 && confirm_sesskey() && !$confirm)
         $yesurl = new moodle_url($manageurl,
             ['fieldaction' => 'delete', 'fieldid' => $fieldid, 'sesskey' => sesskey(), 'confirm' => 1]);
         echo $OUTPUT->confirm(
-            get_string('confirmdeletefield', 'local_jobform') . ' (' . format_string($field->name) . ')',
+            get_string('confirmdeletefield', 'local_jobform') . ' (' . \local_jobform\mlang::display($field->name) . ')',
             $yesurl,
             $manageurl
         );

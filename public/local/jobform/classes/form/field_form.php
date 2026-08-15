@@ -17,6 +17,7 @@
 namespace local_jobform\form;
 
 use local_jobform\field_types;
+use local_jobform\mlang;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -46,10 +47,24 @@ class field_form extends \moodleform {
         $mform->setType('fieldid', PARAM_INT);
         $mform->setDefault('fieldid', 0);
 
-        // Field label.
-        $mform->addElement('text', 'name', get_string('fieldname', 'local_jobform'), ['size' => 50]);
-        $mform->setType('name', PARAM_TEXT);
-        $mform->addRule('name', get_string('required'), 'required', null, 'client');
+        // Field label — one input per language; combined into a {mlang} value on save.
+        $mform->addElement('text', 'name_en', get_string('fieldname_en', 'local_jobform'), ['size' => 50]);
+        $mform->setType('name_en', PARAM_TEXT);
+        $mform->addRule('name_en', get_string('required'), 'required', null, 'client');
+
+        $mform->addElement('text', 'name_ar', get_string('fieldname_ar', 'local_jobform'),
+            ['size' => 50, 'dir' => 'rtl']);
+        $mform->setType('name_ar', PARAM_TEXT);
+        $mform->addHelpButton('name_ar', 'fieldname_ar', 'local_jobform');
+
+        // Optional group — fields sharing a group are shown together under a heading.
+        $mform->addElement('text', 'group_en', get_string('fieldgroup_en', 'local_jobform'), ['size' => 50]);
+        $mform->setType('group_en', PARAM_TEXT);
+        $mform->addHelpButton('group_en', 'fieldgroup', 'local_jobform');
+
+        $mform->addElement('text', 'group_ar', get_string('fieldgroup_ar', 'local_jobform'),
+            ['size' => 50, 'dir' => 'rtl']);
+        $mform->setType('group_ar', PARAM_TEXT);
 
         // Field type.
         $mform->addElement('select', 'type', get_string('fieldtype', 'local_jobform'), field_types::menu());
@@ -102,16 +117,38 @@ class field_form extends \moodleform {
     }
 
     /**
-     * Prime the form from a stored field record (decoding configdata).
+     * Collapse the per-language inputs into the stored {mlang} values.
+     *
+     * Downstream code (template_manager / instance_manager) still reads
+     * $data->name and $data->groupname, so it needs no changes.
+     *
+     * @return object|null
+     */
+    public function get_data() {
+        $data = parent::get_data();
+        if ($data) {
+            $data->name = mlang::build(['en' => $data->name_en ?? '', 'ar' => $data->name_ar ?? '']);
+            $data->groupname = mlang::build(['en' => $data->group_en ?? '', 'ar' => $data->group_ar ?? '']);
+        }
+        return $data;
+    }
+
+    /**
+     * Prime the form from a stored field record (decoding configdata + mlang).
      *
      * @param object $field
      * @return void
      */
     public function set_field_data(object $field): void {
         $config = field_types::decode_config($field->configdata ?? null);
+        $name = mlang::parse($field->name ?? '');
+        $group = mlang::parse($field->groupname ?? '');
         $this->set_data([
             'fieldid'    => $field->id,
-            'name'       => $field->name,
+            'name_en'    => $name['en'],
+            'name_ar'    => $name['ar'],
+            'group_en'   => $group['en'],
+            'group_ar'   => $group['ar'],
             'type'       => $field->type,
             'required'   => $field->required,
             'options'    => implode("\n", $config['options']),

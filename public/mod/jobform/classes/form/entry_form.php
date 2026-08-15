@@ -47,10 +47,33 @@ class entry_form extends \moodleform {
         $fields = $this->_customdata['fields'] ?? [];
         $readonly = !empty($this->_customdata['readonly']);
 
+        // When any field defines a group, the whole form is split into headed
+        // sections (ungrouped fields fall under a "General" section).
+        $anygroup = false;
+        foreach ($fields as $field) {
+            if (\local_jobform\mlang::resolve($field->groupname ?? '') !== '') {
+                $anygroup = true;
+                break;
+            }
+        }
+        $currentheader = null;
+        $headercount = 0;
+
         foreach ($fields as $field) {
             $name = self::PREFIX . $field->id;
-            $label = format_string($field->name);
+            $label = \local_jobform\mlang::display($field->name);
             $config = field_types::decode_config($field->configdata ?? null);
+
+            // Emit a section header when the group changes.
+            if ($anygroup) {
+                $group = \local_jobform\mlang::resolve($field->groupname ?? '');
+                $headerlabel = $group !== '' ? $group : get_string('generalsection', 'mod_jobform');
+                if ($headerlabel !== $currentheader) {
+                    $mform->addElement('header', 'jfgroup_' . ($headercount++), $headerlabel);
+                    $mform->setExpanded('jfgroup_' . ($headercount - 1), true);
+                    $currentheader = $headerlabel;
+                }
+            }
 
             switch ($field->type) {
                 case field_types::TYPE_NUMBER:
@@ -116,12 +139,10 @@ class entry_form extends \moodleform {
         if ($readonly) {
             $mform->hardFreeze();
         } else {
-            // Save as draft vs send.
+            // Send the form.
             $buttonarray = [];
             $buttonarray[] = $mform->createElement('submit', 'submitform',
                 get_string('sendform', 'mod_jobform'));
-            $buttonarray[] = $mform->createElement('submit', 'savedraft',
-                get_string('savedraft', 'mod_jobform'));
             $buttonarray[] = $mform->createElement('cancel');
             $mform->addGroup($buttonarray, 'buttonar', '', ' ', false);
         }

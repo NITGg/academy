@@ -26,6 +26,7 @@ require(__DIR__ . '/../../config.php');
 
 use local_jobform\submissions_ui;
 use local_jobform\field_types;
+use local_jobform\mlang;
 
 require_login();
 $context = context_system::instance();
@@ -75,7 +76,7 @@ if (!$data['answers']) {
             'type'       => $answer->type ?? field_types::TYPE_TEXT,
             'configdata' => $answer->configdata ?? null,
         ];
-        $label = $answer->fieldname !== null ? format_string($answer->fieldname)
+        $label = $answer->fieldname !== null ? mlang::display($answer->fieldname)
             : get_string('deletedfield', 'local_jobform');
         $table->data[] = [$label, s(field_types::format_value($fieldrec, $answer->value))];
     }

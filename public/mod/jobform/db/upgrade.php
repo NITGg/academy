@@ -15,18 +15,34 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the Job Form manager.
+ * Upgrade steps for mod_jobform.
  *
- * @package    local_jobform
+ * @package    mod_jobform
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_jobform';
-$plugin->version   = 2026081501;
-$plugin->requires  = 2024100700;              // Moodle 4.5 LTS baseline.
-$plugin->supported = [405, 502];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.2.0';
+/**
+ * Apply the schema/data changes for a given old version.
+ *
+ * @param int $oldversion
+ * @return bool
+ */
+function xmldb_jobform_upgrade($oldversion) {
+    global $DB;
+    $dbman = $DB->get_manager();
+
+    if ($oldversion < 2026081501) {
+        // Add the optional group heading column to each activity's fields.
+        $table = new xmldb_table('jobform_field');
+        $field = new xmldb_field('groupname', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'name');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_mod_savepoint(true, 2026081501, 'jobform');
+    }
+
+    return true;
+}

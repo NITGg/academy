@@ -65,6 +65,7 @@ class template_manager {
         $now = time();
         $record = new \stdClass();
         $record->name = trim($data->name);
+        $record->groupname = trim($data->groupname ?? '');
         $record->type = field_types::is_valid($data->type) ? $data->type : field_types::TYPE_TEXT;
         $record->configdata = field_types::encode_config(
             $record->type,

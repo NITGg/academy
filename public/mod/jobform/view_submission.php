@@ -25,6 +25,7 @@
 require(__DIR__ . '/../../config.php');
 
 use local_jobform\field_types;
+use local_jobform\mlang;
 use mod_jobform\instance_manager;
 use mod_jobform\submission_manager;
 
@@ -74,7 +75,7 @@ if (!$fields) {
     foreach ($fields as $field) {
         $value = $answers[$field->id] ?? '';
         $table->data[] = [
-            format_string($field->name),
+            mlang::display($field->name),
             s(field_types::format_value($field, $value)),
         ];
     }

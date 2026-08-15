@@ -60,6 +60,7 @@ class fields_ui {
         $table = new html_table();
         $table->head = [
             get_string('fieldname', 'local_jobform'),
+            get_string('fieldgroup', 'local_jobform'),
             get_string('fieldtype', 'local_jobform'),
             get_string('fielddetails', 'local_jobform'),
             get_string('fieldrequired', 'local_jobform'),
@@ -71,8 +72,11 @@ class fields_ui {
         $i = 0;
         foreach ($fields as $field) {
             $i++;
+            $group = mlang::resolve($field->groupname ?? '');
             $table->data[] = [
-                format_string($field->name),
+                mlang::display($field->name),
+                $group !== '' ? html_writer::span(s($group), 'badge badge-info')
+                    : html_writer::span('—', 'text-muted'),
                 get_string(field_types::all()[$field->type] ?? 'fieldtype_text', 'local_jobform'),
                 self::describe($field),
                 $field->required ? get_string('yes') : get_string('no'),

@@ -4,7 +4,8 @@
     <TABLE NAME="local_jobform_field" COMMENT="Default template fields. A new Job Form activity is seeded from this set; editing an activity only changes that activity's copy.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Field label shown to the student."/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Field label shown to the student. May be a {mlang} bilingual value."/>
+        <FIELD NAME="groupname" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Optional group/section heading; fields sharing a group are shown together. May be a {mlang} value."/>
         <FIELD NAME="type" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="text" SEQUENCE="false" COMMENT="text|number|email|phone|date|checkbox|url|select|fixed"/>
         <FIELD NAME="configdata" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON: {options:[...], multiple:0|1, fixedvalue:string} depending on type."/>
         <FIELD NAME="required" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>

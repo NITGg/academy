@@ -47,6 +47,7 @@ $string['allowresubmit'] = 'Allow the student to edit and resend';
 $string['allowresubmit_help'] = 'If enabled, the student can change and resend their form after sending it. If disabled, the form is locked once sent.';
 
 // View.
+$string['generalsection'] = 'General';
 $string['activityfieldsintro'] = 'These are the fields students will fill in for this activity. Editing them here only affects this activity.';
 $string['certificaterequired'] = 'This form becomes available once you have earned the course certificate. Please finish the course first.';
 $string['alreadysubmitted'] = 'You have already sent this form. Below is what you submitted.';

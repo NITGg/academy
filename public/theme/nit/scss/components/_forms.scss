@@ -22,6 +22,17 @@
     }
 }
 
+// Checkboxes / radios (.form-check-input) keep Bootstrap's default grey resting
+// border (#8f959e), which clashes with the Border-primary edge every other form
+// control (.form-control / .form-select) uses on the dark brand. Route the
+// resting border through the same Border-primary token so a checkbox field (e.g.
+// a mod_jobform TYPE_CHECKBOX question) matches the inputs around it. The
+// :checked (solid Primary fill) and :focus (site focus ring) states already come
+// from brand tokens, so they are left as-is.
+.form-check-input {
+    border-color: var(--nit-brand-borderprimary);
+}
+
 // Some Moodle widgets tag an editable field with the Bootstrap .bg-light /
 // .bg-white utility (e.g. inline-edit text areas). On the dark brand that
 // leaves the white field text on a light fill — unreadable. Keep editable

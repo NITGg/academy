@@ -68,6 +68,20 @@
     }
 }
 
+// Below 768px core turns every plain `.nav-tabs:not(.more-nav)` into a
+// segmented-control "track" and paints that track a light grey (#e9ecef) — an
+// off-brand grey frame around the (Background-filled) chips on the dark brand.
+// This hits any tabtree() strip on mobile (e.g. the mod_jobform Fields /
+// Submissions tabs). Repaint the track with a Surface fill so it stays a
+// brand-consistent segmented control; the chips keep their Background fill and
+// the active chip keeps its Primary underline. Scoped to the same breakpoint so
+// the ≥ 768px (transparent-track) layout is untouched.
+@media (max-width: 767.98px) {
+    .nav-tabs:not(.more-nav) {
+        background-color: var(--nit-brand-surface);
+    }
+}
+
 // Admin secondary navigation (Site administration: General / Users / …) is a
 // .moremenu .nav-tabs; core carries higher-specificity light-grey rules for its
 // hover / active states, so restate the same three-state brand model here to win

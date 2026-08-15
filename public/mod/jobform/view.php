@@ -146,7 +146,7 @@ if ($cansmanage) {
             $yesurl = new moodle_url($fieldsurl,
                 ['fieldaction' => 'delete', 'fieldid' => $fieldid, 'sesskey' => sesskey(), 'confirm' => 1]);
             echo $OUTPUT->confirm(
-                get_string('confirmdeletefield', 'local_jobform') . ' (' . format_string($field->name) . ')',
+                get_string('confirmdeletefield', 'local_jobform') . ' (' . \local_jobform\mlang::display($field->name) . ')',
                 $yesurl, $fieldsurl);
             echo $OUTPUT->footer();
             exit;

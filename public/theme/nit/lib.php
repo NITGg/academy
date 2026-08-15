@@ -347,6 +347,204 @@ function theme_nit_brand_all(): array {
     return $out;
 }
 
+// -----------------------------------------------------------------------------
+// Design-system export helpers.
+//
+// These back the public JSON API (design_system.php) that mirrors the four tabs
+// of the gallery page for external clients (the Flutter / mobile app):
+//   1. Brand Colors    → theme_nit_brand_export()
+//   2. Category styles → theme_nit_category_styles_export()
+//   3. Fonts           → theme_nit_fonts_export()
+//   4. Components      → theme_nit_components_export()
+// theme_nit_design_system_export() wraps all four into one payload. Everything
+// returned is public branding metadata (already visible in the site CSS / DOM);
+// nothing sensitive is exposed.
+// -----------------------------------------------------------------------------
+
+/**
+ * Brand Colors tab, as data: every group with its resolved roles.
+ *
+ * One entry per group (Group 1/2/3). Group 1 is the site-wide default (applied
+ * with no wrapper class); groups 2/3 are activated by wrapping an element in the
+ * matching `class` (`nit-brand-2` / `nit-brand-3`), which re-resolves the same
+ * `--nit-brand-<role>` custom properties to that group's values. `roles` lists
+ * the site-wide role keys shared by every group, in order.
+ *
+ * @return array{roles: string[], groups: array<int, array{key:string, name:string,
+ *         isdefault:bool, class:string, roles: array}>}
+ */
+function theme_nit_brand_export(): array {
+    $groups = [];
+    $gidx = [];
+    foreach (theme_nit_brand_all() as $token) {
+        $gkey = $token['groupkey'];
+        if (!array_key_exists($gkey, $gidx)) {
+            $gidx[$gkey] = count($groups);
+            $groups[] = [
+                'key'       => $gkey,
+                'name'      => $token['group'],
+                'isdefault' => ($gkey === 'g1'),
+                'class'     => theme_nit_brand_group_class($gkey),
+                'roles'     => [],
+            ];
+        }
+        $groups[$gidx[$gkey]]['roles'][] = [
+            'key'      => $token['key'],
+            'role'     => $token['role'],
+            'label'    => $token['label'],
+            // The semantic custom property a component consumes. Its value is the
+            // active group's value: inside a .nit-brand-2/3 wrapper it resolves to
+            // that group; at the top level it resolves to Group 1.
+            'cssvar'   => '--nit-brand-' . $token['role'],
+            'value'    => $token['value'],
+            'default'  => $token['default'],
+            'iscustom' => $token['iscustom'],
+            'usage'    => array_values($token['usage']),
+        ];
+    }
+
+    // The ordered list of role keys (identical across groups).
+    $roles = [];
+    foreach (theme_nit_brand_roles() as $role => $unused) {
+        $roles[] = $role;
+    }
+
+    return ['roles' => $roles, 'groups' => $groups];
+}
+
+/**
+ * Category styles tab, as data: which brand group each main category uses.
+ *
+ * Only top-level (main) categories are assignable; subcategories inherit their
+ * top ancestor's group. Visibility-aware: an anonymous request sees only the
+ * categories a guest may see. `group` is the assigned group key (default `g1`);
+ * `class` is the wrapper class that skins the category page from that group.
+ *
+ * @return array{groups: array<int, array{key:string, name:string}>,
+ *         categories: array<int, array{id:int, name:string, group:string,
+ *         groupname:string, class:string, isdefault:bool}>}
+ */
+function theme_nit_category_styles_export(): array {
+    $grouplabels = theme_nit_brand_groups();
+
+    $groups = [];
+    foreach ($grouplabels as $gkey => $glabel) {
+        $groups[] = ['key' => $gkey, 'name' => $glabel];
+    }
+
+    $raw = get_config('theme_nit', 'nit_category_groups');
+    $map = ($raw && is_string($raw)) ? (json_decode($raw, true) ?: []) : [];
+
+    $categories = [];
+    foreach (core_course_category::top()->get_children() as $cat) {
+        $gkey = $map[$cat->id] ?? 'g1';
+        if (!array_key_exists($gkey, $grouplabels)) {
+            $gkey = 'g1';
+        }
+        $categories[] = [
+            'id'        => (int) $cat->id,
+            'name'      => $cat->get_formatted_name(),
+            'group'     => $gkey,
+            'groupname' => $grouplabels[$gkey],
+            'class'     => theme_nit_brand_group_class($gkey),
+            'isdefault' => ($gkey === 'g1'),
+        ];
+    }
+
+    return ['groups' => $groups, 'categories' => $categories];
+}
+
+/**
+ * Fonts tab, as data: the per-language font family + downloadable file URL.
+ *
+ * One entry per language slot (en / ar). `family` is the CSS font-family the
+ * compiled stylesheet exposes; `url` is the self-hosted font file (empty when no
+ * font has been uploaded, in which case the site falls back to `fallback`).
+ *
+ * @return array<int, array{lang:string, label:string, family:string, rtl:bool,
+ *         fallback:string, hasfont:bool, filename:string, url:string}>
+ */
+function theme_nit_fonts_export(): array {
+    $theme = theme_config::load('nit');
+    $out = [];
+    foreach (theme_nit_font_slots() as $lang => $slot) {
+        $filename = get_config('theme_nit', $slot['setting']);
+        $hasfont = is_string($filename) && $filename !== '';
+        // setting_file_url() already returns a full, self-hosted pluginfile URL
+        // string (the same one theme_nit_font_scss() emits into the @font-face).
+        $url = $hasfont ? (string) $theme->setting_file_url($slot['setting'], $slot['filearea']) : '';
+        $out[] = [
+            'lang'     => $lang,
+            'label'    => get_string($slot['strkey'], 'theme_nit'),
+            'family'   => $slot['family'],
+            'rtl'      => (bool) $slot['rtl'],
+            'fallback' => $slot['fallback'],
+            'hasfont'  => $hasfont,
+            'filename' => $hasfont ? ltrim($filename, '/') : '',
+            'url'      => $url,
+        ];
+    }
+    return $out;
+}
+
+/**
+ * Components tab, as data: the global components showcased on the gallery page.
+ *
+ * A static inventory mirroring the gallery's Components tab — each component with
+ * its named variants and the CSS classes that render them — so the mobile app
+ * knows which shared UI elements exist and how they map to markup.
+ *
+ * @return array<int, array{name:string, variants: array<int, array{label:string, class:string}>}>
+ */
+function theme_nit_components_export(): array {
+    return [
+        [
+            'name'     => 'Buttons',
+            'variants' => [
+                ['label' => 'Primary',   'class' => 'btn btn-primary'],
+                ['label' => 'Secondary', 'class' => 'btn btn-secondary'],
+                ['label' => 'Success',   'class' => 'btn btn-success'],
+                ['label' => 'Warning',   'class' => 'btn btn-warning'],
+                ['label' => 'Danger',    'class' => 'btn btn-danger'],
+                ['label' => 'Outline',   'class' => 'btn btn-outline-primary'],
+                ['label' => 'Disabled',  'class' => 'btn btn-primary', 'disabled' => true],
+            ],
+        ],
+        [
+            'name'     => 'Alerts',
+            'variants' => [
+                ['label' => 'Primary', 'class' => 'alert alert-primary'],
+                ['label' => 'Success', 'class' => 'alert alert-success'],
+                ['label' => 'Warning', 'class' => 'alert alert-warning'],
+                ['label' => 'Danger',  'class' => 'alert alert-danger'],
+            ],
+        ],
+    ];
+}
+
+/**
+ * The whole design system as one payload — the four gallery tabs, as data.
+ *
+ * Backs design_system.php (the public mobile-facing JSON API).
+ *
+ * @return array{generated:int, site: array{name:string, url:string},
+ *         brandcolors: array, categorystyles: array, fonts: array, components: array}
+ */
+function theme_nit_design_system_export(): array {
+    global $SITE, $CFG;
+    return [
+        'generated'      => time(),
+        'site'           => [
+            'name' => format_string($SITE->fullname ?? ''),
+            'url'  => $CFG->wwwroot,
+        ],
+        'brandcolors'    => theme_nit_brand_export(),
+        'categorystyles' => theme_nit_category_styles_export(),
+        'fonts'          => theme_nit_fonts_export(),
+        'components'     => theme_nit_components_export(),
+    ];
+}
+
 /**
  * The per-language custom-font slots.
  *

@@ -48,6 +48,7 @@ class instance_manager {
             $record = new \stdClass();
             $record->jobformid = $jobformid;
             $record->name = $tfield->name;
+            $record->groupname = $tfield->groupname ?? '';
             $record->type = $tfield->type;
             $record->configdata = $tfield->configdata;
             $record->required = $tfield->required;
@@ -96,6 +97,7 @@ class instance_manager {
         $record = new \stdClass();
         $record->jobformid = $jobformid;
         $record->name = trim($data->name);
+        $record->groupname = trim($data->groupname ?? '');
         $record->type = field_types::is_valid($data->type) ? $data->type : field_types::TYPE_TEXT;
         $record->configdata = field_types::encode_config(
             $record->type,
