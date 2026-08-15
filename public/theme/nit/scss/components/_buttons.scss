@@ -39,6 +39,19 @@
     --bs-btn-active-color: var(--nit-brand-textprimary);
 }
 
+// Icon-only buttons (`.btn-icon`) — the action-menu "⋮" triggers, the activity
+// chooser's info / favourite buttons, collapse toggles, …. Core (Boost buttons.scss)
+// gives them a hover / active fill of `--bs-secondary-bg` (#e9ecef, a light grey),
+// which flashes a near-white circle on the dark brand. Point the hover / active
+// pair at the brand Hover roles so every icon button hovers on-brand, in any
+// palette group.
+.btn-icon {
+    --bs-btn-hover-bg: var(--nit-brand-hoverbackground);
+    --bs-btn-hover-color: var(--nit-brand-hovertext);
+    --bs-btn-active-bg: var(--nit-brand-hoverbackground);
+    --bs-btn-active-color: var(--nit-brand-hovertext);
+}
+
 // Ghost / outline-secondary (e.g. the "Reset" actions). Bootstrap draws these
 // from its grey $secondary, giving a mid-grey border and label that sit off the
 // brand. Point the resting state at the Border secondary role (ghost-button

@@ -277,7 +277,7 @@ echo $OUTPUT->header();
       animation: nit-fadeup 0.9s ease 0.1s both;
     }
     .nit-hero__title .nit-hero__n1 { color: var(--ctext3); }
-    .nit-hero__title .nit-hero__n2 { color: var(--cbg4); }
+    .nit-hero__title .nit-hero__n2 { color: var(--ctext1); }
 
     /* Description — X-Trade .hero-sub : clamp(1rem, 2vw, 1.25rem) = 16/20px.
        format_text() wraps this in its own <div>/<p> that carries the theme's
@@ -563,9 +563,7 @@ echo $OUTPUT->header();
           padding-inline-start: 14px;
         }
         .nit-spec-title .nit-spec-name {
-          background: linear-gradient(120deg, var(--ctext3), var(--cbg4));
-          -webkit-background-clip: text; background-clip: text;
-          -webkit-text-fill-color: transparent; color: transparent;
+          color: var(--ctext3);
         }
         .nit-spec-title .nit-spec-pin { font-size: 24px; line-height: 1; }
         .nit-spec-title .nit-spec-count { font-size: 15px; font-weight: 700; color: var(--ctext3); }

@@ -1,0 +1,83 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Arabic strings for local_jobform.
+ *
+ * @package    local_jobform
+ * @copyright  2026 NIT
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+$string['pluginname'] = 'استمارة التوظيف';
+$string['jobform:manage'] = 'إدارة قالب حقول استمارة التوظيف وعرض الاستمارات المُرسلة';
+
+// Admin page.
+$string['managejobform'] = 'إدارة استمارة التوظيف';
+$string['tabfields'] = 'الحقول';
+$string['tabsubmissions'] = 'الاستمارات المُرسلة';
+$string['templatefieldsheading'] = 'الحقول الافتراضية';
+$string['templatefieldsintro'] = 'دي الحقول الافتراضية اللي أي نشاط "استمارة توظيف" جديد بيبدأ منها. تعديل نشاط معيّن بعد كده بيغيّر نسخته هو بس.';
+
+// Fields table.
+$string['addfield'] = 'إضافة حقل';
+$string['editfield'] = 'تعديل الحقل';
+$string['nofields'] = 'لسه مفيش حقول متعرّفة.';
+$string['fieldname'] = 'اسم الحقل';
+$string['fieldtype'] = 'نوع الحقل';
+$string['fielddetails'] = 'التفاصيل';
+$string['fieldrequired'] = 'إجباري';
+$string['fieldoptions'] = 'خيارات القائمة المنسدلة';
+$string['fieldoptions_help'] = 'اكتب خيار في كل سطر. الطالب هيختار من القيم دي.';
+$string['fieldmultiple'] = 'السماح باختيار متعدد';
+$string['fieldsingle'] = 'اختيار واحد';
+$string['fieldfixedvalue'] = 'قيمة ثابتة';
+$string['actions'] = 'إجراءات';
+$string['confirmdeletefield'] = 'متأكد إنك عايز تمسح الحقل ده؟';
+
+// Field types.
+$string['fieldtype_text'] = 'نص';
+$string['fieldtype_number'] = 'رقم';
+$string['fieldtype_email'] = 'بريد إلكتروني';
+$string['fieldtype_phone'] = 'رقم هاتف';
+$string['fieldtype_date'] = 'تاريخ';
+$string['fieldtype_checkbox'] = 'مربع اختيار';
+$string['fieldtype_url'] = 'رابط (URL)';
+$string['fieldtype_select'] = 'قائمة منسدلة';
+$string['fieldtype_fixed'] = 'قيمة ثابتة';
+
+// Validation / errors.
+$string['erroroptionsrequired'] = 'اكتب خيار واحد على الأقل للقائمة المنسدلة.';
+$string['errorfixedvaluerequired'] = 'اكتب القيمة الثابتة.';
+$string['invalidfield'] = 'حقل غير صالح.';
+$string['invalidsubmission'] = 'استمارة غير صالحة.';
+
+// Submissions.
+$string['jobform'] = 'استمارة التوظيف';
+$string['nosubmissions'] = 'لسه مفيش استمارات مُرسلة.';
+$string['modnotinstalled'] = 'نشاط "استمارة التوظيف" لسه مش متثبّت، فمفيش استمارات نعرضها.';
+$string['student'] = 'الطالب';
+$string['submittedon'] = 'اتبعتت في';
+$string['viewsubmission'] = 'عرض الاستمارة';
+$string['answers'] = 'الإجابات';
+$string['answer'] = 'الإجابة';
+$string['noanswers'] = 'الاستمارة دي مفيهاش إجابات.';
+$string['deletedfield'] = '(حقل متمسوح)';
+
+// Privacy.
+$string['privacy:metadata'] = 'بلجن إدارة استمارة التوظيف بيخزّن تعريفات قالب الحقول بس ومابيخزّنش بيانات شخصية. الاستمارات المُرسلة بيخزّنها نشاط استمارة التوظيف.';
