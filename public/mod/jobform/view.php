@@ -55,7 +55,7 @@ $viewurl = new moodle_url('/mod/jobform/view.php', ['id' => $cm->id]);
 $fieldsurl = new moodle_url('/mod/jobform/view.php', ['id' => $cm->id, 'tab' => 'fields']);
 
 // Log the view and update completion.
-$event = \core\event\course_module_viewed::create([
+$event = \mod_jobform\event\course_module_viewed::create([
     'objectid' => $jobform->id,
     'context'  => $context,
 ]);

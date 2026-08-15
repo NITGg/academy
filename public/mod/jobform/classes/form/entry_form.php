@@ -42,8 +42,6 @@ class entry_form extends \moodleform {
 
         $mform->addElement('hidden', 'id'); // Course module id.
         $mform->setType('id', PARAM_INT);
-        $mform->addElement('hidden', 'sesskey', sesskey());
-        $mform->setType('sesskey', PARAM_RAW);
 
         /** @var object[] $fields */
         $fields = $this->_customdata['fields'] ?? [];
