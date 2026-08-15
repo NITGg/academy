@@ -302,3 +302,30 @@ mod_jobform_get_form(cmid)          → re-read to confirm status == "submitted"
   Submitting again overwrites it (allowed only while `locked == 0`).
 - **Capabilities**: read functions need `mod/jobform:view`; `submit_form` needs
   `mod/jobform:submit` (the student archetype has both).
+
+---
+
+## 8. Troubleshooting
+
+**`errorinvalidcmid` — "No Job Form activity was found for course module id N"**
+(previously surfaced as the cryptic `dml_missing_record_exception` /
+`invalidrecordunknown` / "Can't find data record in database").
+
+You are passing a `cmid` that is **not a Job Form activity on the site your
+token authenticates against**. This is almost always one of:
+
+1. **Wrong id** — `cmid` must be the **course-module id** (the `id` in the web
+   URL `…/mod/jobform/view.php?id=<cmid>`), not the instance id and not an id
+   from another activity. Fetch the correct value from
+   `mod_jobform_get_jobforms_by_courses` → `jobforms[].coursemodule`.
+2. **Wrong environment** — the `wstoken` belongs to a different site/database
+   than where that activity lives (e.g. testing against a local/staging server
+   while the activity exists only on production). Confirm the token's site is
+   the same one that serves `…/mod/jobform/view.php?id=<cmid>`.
+3. **Stale id** — the activity was deleted or recreated, changing its cmid.
+
+Quick check: open `…/mod/jobform/view.php?id=<cmid>` in a browser **logged in as
+the token's user**. If that 404s or redirects, the cmid is wrong for that site.
+
+**`certificaterequired` / `alreadysubmitted`** — expected gate responses; read
+`access` from `mod_jobform_get_form` first and branch (see §5).

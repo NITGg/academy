@@ -67,6 +67,7 @@ $string['errornotnumber'] = 'Please enter a number.';
 $string['errornotemail'] = 'Please enter a valid email address.';
 $string['errornoturl'] = 'Please enter a valid link starting with http:// or https://.';
 $string['errornotphone'] = 'Please enter a valid phone number (7 to 15 digits, an optional leading +).';
+$string['errorinvalidcmid'] = 'No Job Form activity was found for course module id {$a}. Pass the Job Form activity\'s course-module id (cmid) — you can get the correct value from mod_jobform_get_jobforms_by_courses.';
 
 // Date field help.
 $string['dateoptional'] = 'Optional date';

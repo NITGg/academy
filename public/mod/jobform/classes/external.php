@@ -44,6 +44,28 @@ defined('MOODLE_INTERNAL') || die();
  */
 class mod_jobform_external extends external_api {
 
+    /**
+     * Resolve a course-module id to [course, cm, jobform], with a clear error.
+     *
+     * `get_course_and_cm_from_cmid` throws a cryptic "Can't find data record"
+     * (dml_missing_record) when the cmid does not exist, and a different error
+     * when it exists but is not a Job Form. Both are turned into one actionable
+     * message so the mobile developer knows the cmid is wrong.
+     *
+     * @param int $cmid
+     * @return array [stdClass $course, cm_info $cm, stdClass $jobform]
+     */
+    protected static function resolve_cm(int $cmid): array {
+        global $DB;
+        try {
+            [$course, $cm] = get_course_and_cm_from_cmid($cmid, 'jobform');
+            $jobform = $DB->get_record('jobform', ['id' => $cm->instance], '*', MUST_EXIST);
+        } catch (\moodle_exception $e) {
+            throw new moodle_exception('errorinvalidcmid', 'mod_jobform', '', $cmid);
+        }
+        return [$course, $cm, $jobform];
+    }
+
     // ---------------------------------------------------------------------
     // get_jobforms_by_courses — list the Job Form activities in courses.
     // ---------------------------------------------------------------------
@@ -148,8 +170,7 @@ class mod_jobform_external extends external_api {
 
         $params = self::validate_parameters(self::view_jobform_parameters(), ['cmid' => $cmid]);
 
-        [$course, $cm] = get_course_and_cm_from_cmid($params['cmid'], 'jobform');
-        $jobform = $DB->get_record('jobform', ['id' => $cm->instance], '*', MUST_EXIST);
+        [$course, $cm, $jobform] = self::resolve_cm($params['cmid']);
 
         $context = context_module::instance($cm->id);
         self::validate_context($context);
@@ -207,8 +228,7 @@ class mod_jobform_external extends external_api {
 
         $params = self::validate_parameters(self::get_form_parameters(), ['cmid' => $cmid]);
 
-        [$course, $cm] = get_course_and_cm_from_cmid($params['cmid'], 'jobform');
-        $jobform = $DB->get_record('jobform', ['id' => $cm->instance], '*', MUST_EXIST);
+        [$course, $cm, $jobform] = self::resolve_cm($params['cmid']);
 
         $context = context_module::instance($cm->id);
         self::validate_context($context);
@@ -376,8 +396,7 @@ class mod_jobform_external extends external_api {
         $params = self::validate_parameters(self::submit_form_parameters(),
             ['cmid' => $cmid, 'answers' => $answers, 'draft' => $draft]);
 
-        [$course, $cm] = get_course_and_cm_from_cmid($params['cmid'], 'jobform');
-        $jobform = $DB->get_record('jobform', ['id' => $cm->instance], '*', MUST_EXIST);
+        [$course, $cm, $jobform] = self::resolve_cm($params['cmid']);
 
         $context = context_module::instance($cm->id);
         self::validate_context($context);
