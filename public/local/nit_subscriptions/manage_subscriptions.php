@@ -130,48 +130,54 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 
     <style>
         .acad-pager { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem; margin:1rem 0; }
-        .acad-pager__info { margin-inline-end:auto; color:#6a6f73; font-size:.9rem; }
-        .acad-pager button { border:1px solid #dee2e6; background:#fff; border-radius:6px; padding:.25rem .6rem; cursor:pointer; }
-        .acad-pager button.is-active { background:#0f6cbf; border-color:#0f6cbf; color:#fff; }
+        .acad-pager__info { margin-inline-end:auto; color:var(--nit-brand-textsecondary); font-size:.9rem; }
+        .acad-pager button { border:1px solid var(--nit-brand-borderprimary); background:var(--nit-brand-surface); color:var(--nit-brand-textprimary); border-radius:6px; padding:.25rem .6rem; cursor:pointer; }
+        .acad-pager button.is-active { background:var(--nit-brand-primary); border-color:var(--nit-brand-primary); color:var(--nit-brand-textprimary); }
         .acad-pager button:disabled { opacity:.5; cursor:default; }
         .ca-toolbar {
             display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem;
-            padding: 1rem 1.1rem; margin-bottom: 1.25rem; background: #f8f9fa;
-            border: 1px solid #e5e7eb; border-radius: 0.6rem;
+            padding: 1rem 1.1rem; margin-bottom: 1.25rem;
+            background: color-mix(in srgb,var(--nit-brand-background) 40%,var(--nit-brand-surface));
+            border: 1px solid var(--nit-brand-borderprimary); border-radius: 0.6rem;
         }
         .ca-toolbar .ca-field { display: flex; flex-direction: column; gap: 0.25rem; }
-        .ca-toolbar .ca-field label { margin: 0; font-size: 0.8rem; font-weight: 600; color: #6a6f73; }
+        .ca-toolbar .ca-field label { margin: 0; font-size: 0.8rem; font-weight: 600; color: var(--nit-brand-textsecondary); }
         .ca-toolbar #target-subscription { min-width: 240px; }
         .ca-toolbar .ca-search { flex: 1 1 220px; }
         .ca-toolbar .ca-search input { width: 100%; }
         .ca-toolbar .ca-actions { display: flex; gap: 0.4rem; margin-inline-start: auto; align-items: center; flex-wrap: wrap; }
         .course-chip {
-            display: inline-flex; align-items: center; background: #f1f3f5; border: 1px solid #dee2e6;
+            display: inline-flex; align-items: center;
+            background: color-mix(in srgb,var(--nit-brand-surface) 70%,var(--nit-brand-background));
+            border: 1px solid var(--nit-brand-borderprimary);
             border-radius: 20px; padding: 8px 16px; margin: 6px; cursor: pointer;
-            transition: all 0.16s ease; font-size: 0.95rem; color: #495057; user-select: none;
+            transition: all 0.16s ease; font-size: 0.95rem; color: var(--nit-brand-textprimary); user-select: none;
         }
-        .course-chip:hover { background: #e9ecef; box-shadow: 0 2px 4px rgba(0,0,0,0.08); transform: translateY(-1px); }
-        .course-chip:has(input:checked) { background: #eaf3ff; border-color: #0f6cbf; color: #0a4f8f; font-weight: 600; }
-        .course-chip input[type="checkbox"] { margin-right: 10px; cursor: pointer; width: 1.1rem; height: 1.1rem; }
+        .course-chip:hover { background: var(--nit-brand-hoverbackground); color: var(--nit-brand-hovertext); box-shadow: 0 2px 4px rgba(0,0,0,0.35); transform: translateY(-1px); }
+        .course-chip:has(input:checked) { background: color-mix(in srgb,var(--nit-brand-primary) 15%,transparent); border-color: var(--nit-brand-primary); color: var(--nit-brand-accenttext); font-weight: 600; }
+        .course-chip input[type="checkbox"] { margin-inline-end: 10px; cursor: pointer; width: 1.1rem; height: 1.1rem; }
         .category-card {
-            border: 1px solid #e5e7eb; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 12px;
-            overflow: hidden; margin-bottom: 1.5rem !important; background: #fff;
+            border: 1px solid var(--nit-brand-borderprimary); box-shadow: 0 4px 6px rgba(0,0,0,0.35); border-radius: 12px;
+            overflow: hidden; margin-bottom: 1.5rem !important; background: var(--nit-brand-surface);
         }
         .category-card .card-header {
-            background: #f8f9fa; border-bottom: 1px solid #dee2e6; font-size: 1.05rem; color: #212529;
+            background: color-mix(in srgb,var(--nit-brand-background) 40%,var(--nit-brand-surface));
+            border-bottom: 1px solid var(--nit-brand-borderprimary); font-size: 1.05rem; color: var(--nit-brand-textprimary);
             padding: 0.9rem 1.25rem; display: flex; align-items: center; justify-content: space-between;
         }
         .category-card .cat-count {
-            font-size: 0.78rem; font-weight: 600; color: #6a6f73; background: #fff; border: 1px solid #e5e7eb;
+            font-size: 0.78rem; font-weight: 600; color: var(--nit-brand-textsecondary);
+            background: var(--nit-brand-surface); border: 1px solid var(--nit-brand-borderprimary);
             border-radius: 999px; padding: 0.1rem 0.6rem;
         }
         .category-card .card-body { padding: 1.25rem; display: flex; flex-wrap: wrap; }
         .category-card.ca-empty { display: none; }
         .academy-modal-backdrop {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5);
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: color-mix(in srgb,var(--nit-brand-background) 50%,transparent);
             display: flex; align-items: center; justify-content: center; z-index: 1050;
         }
-        .academy-modal { background: #fff; border-radius: 10px; padding: 1.5rem; max-width: 440px; width: 90%; box-shadow: 0 12px 30px rgba(0,0,0,0.25); }
+        .academy-modal { background: var(--nit-brand-surface); color: var(--nit-brand-textprimary); border-radius: 10px; padding: 1.5rem; max-width: 440px; width: 90%; box-shadow: 0 12px 30px rgba(0,0,0,0.35); }
         .academy-modal-title { margin-bottom: 0.75rem; font-weight: 600; }
         .academy-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem; }
     </style>

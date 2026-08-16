@@ -75,11 +75,14 @@ a:not(.btn):not(.nav-link):not(.navbar-brand):not(.dropdown-item):not(.page-link
         display: none;
     }
 
-    // Hide the secondary navigation bar (Home / Settings / Participants /
-    // Reports / Question banks / More) on the Site home — it exposes
-    // admin-level course management links that don't belong on the public
-    // front page.
-    .secondary-navigation {
+    // Hide all admin-facing chrome on the Site home — the secondary nav tabs
+    // (Home / Settings / Participants / Reports / Question banks / More), the
+    // region settings gear, the "Add an activity or resource" course-section
+    // strip, and the "Add a new course" button.
+    .secondary-navigation,
+    [data-region="main-settings-menu"],
+    .course-content,
+    .addcourse {
         display: none;
     }
 
