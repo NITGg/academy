@@ -70,9 +70,16 @@ a:not(.btn):not(.nav-link):not(.navbar-brand):not(.dropdown-item):not(.page-link
     }
 
     // Hide the site-name page heading ("أكاديمية التفوق") on the Site home —
-    // the marketing hero is built with blocks instead. The settings cog and
-    // secondary nav live elsewhere and are unaffected.
+    // the marketing hero is built with blocks instead.
     #page-header .page-header-headings {
+        display: none;
+    }
+
+    // Hide the secondary navigation bar (Home / Settings / Participants /
+    // Reports / Question banks / More) on the Site home — it exposes
+    // admin-level course management links that don't belong on the public
+    // front page.
+    .secondary-navigation {
         display: none;
     }
 

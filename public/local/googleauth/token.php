@@ -374,11 +374,25 @@ if (!$service) {
 $token = \core_external\util::generate_token_for_current_user($service);
 \core_external\util::log_token_request($token);
 
+// generate_token_for_current_user() REUSES the most recent existing external_tokens
+// row for this user+service when one exists, returning whatever privatetoken that
+// row holds. Rows created via "Site admin > Manage tokens", or carried over in a
+// migration, have a NULL privatetoken — and core only ever generates one when it
+// *mints a brand-new* row. A NULL privatetoken makes tool_mobile_get_autologin_key
+// fail, so the WebView auto-login never works for these users (Google/Apple users
+// commonly hit this because their token row predates this flow). Backfill one the
+// exact same way core does when it creates a token: random_string(64), persisted.
+if (empty($token->privatetoken)) {
+    $token->privatetoken = random_string(64);
+    $DB->set_field('external_tokens', 'privatetoken', $token->privatetoken, ['id' => $token->id]);
+}
+
 $siteadmin = has_capability('moodle/site:config', $systemcontext, $user->id);
 
 $result = new stdClass();
 $result->token = $token->token;
-// Private token is only returned to non-admins over HTTPS (same policy as core).
+// Private token is only returned to non-admins over HTTPS (same policy as core
+// /login/token.php: is_https() && !$siteadmin, else null).
 $result->privatetoken = (is_https() && !$siteadmin) ? $token->privatetoken : null;
 $result->userid = (int)$user->id;
 
