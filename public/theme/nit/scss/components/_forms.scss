@@ -46,3 +46,15 @@ textarea.bg-white {
     background-color: var(--nit-brand-surface) !important;
     color: var(--nit-brand-textprimary);
 }
+
+// Bootstrap input-group addons (.input-group-text) default to a light grey fill
+// ($input-group-addon-bg) with body text. On the dark brand that is a light
+// island carrying the page's white text → unreadable (e.g. the "Show question
+// text in the question list?" addon on the question bank measured white-on-
+// #f8f9fa ≈ 1.05). Match the brand Surface the adjoining inputs sit on, with
+// brand text and the Border-primary edge every other control uses.
+.input-group-text {
+    background-color: var(--nit-brand-surface);
+    color: var(--nit-brand-textprimary);
+    border-color: var(--nit-brand-borderprimary);
+}
