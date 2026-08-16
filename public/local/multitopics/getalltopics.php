@@ -182,6 +182,48 @@ function build_restriction_info(cm_info $cm): string {
     return trim(html_to_text($html, 0, false));
 }
 
+/**
+ * Distinct question-type tokens a quiz DEMANDS to render natively.
+ *
+ * The app decides native-vs-webview by comparing what an activity requires against
+ * its OWN installed supported set (which grows with app version). So the server
+ * only states facts: one "qtype:<rawname>" per DISTINCT Moodle question type the
+ * quiz contains, using the exact Moodle qtype string (multichoice, truefalse,
+ * essay, shortanswer, …) with no renaming or grouping — the app matches on the
+ * literal string.
+ *
+ * Special slots are still honest facts, not decisions:
+ *   - a random-draw slot has no concrete type at list time  → "qtype:random"
+ *   - a deleted/unknown question becomes                     → "qtype:missingtype"
+ * No current app renders either, so they naturally fall back to the webview.
+ *
+ * An empty array means the quiz has no answerable questions — nothing special is
+ * required, so the app keeps its default (native by modname).
+ *
+ * @return string[] distinct "qtype:*" tokens (order not significant)
+ */
+function mt_quiz_requires(cm_info $cm): array {
+    $context = context_module::instance($cm->id);
+    try {
+        $structure = \mod_quiz\question\bank\qbank_helper::get_question_structure(
+            (int)$cm->instance, $context);
+    } catch (\Throwable $e) {
+        // Never let a quiz-structure error break the whole course listing;
+        // an empty requires just means "no special demand known".
+        return [];
+    }
+
+    $tokens = [];   // used as a set: "qtype:x" => true
+    foreach ($structure as $row) {
+        if (!empty($row->random)) {
+            $tokens['qtype:random'] = true;
+        } else if (!empty($row->qtype)) {
+            $tokens['qtype:' . $row->qtype] = true;
+        }
+    }
+    return array_keys($tokens);
+}
+
 // Build activity list for each section.
 function build_activities(array $cms, object $modinfo, string $wstoken, string $wwwroot,
                            object $DB, object $USER): array {
@@ -384,6 +426,20 @@ function build_activities(array $cms, object $modinfo, string $wstoken, string $
                     'status' => $window_info,
                 ];
             }
+        }
+
+        // ── Quiz: tell the app HOW to open it (native vs webview) ───────────
+        // The native quiz UI can only render some question types; a quiz holding
+        // anything else must open in the webview or the student gets stuck on a
+        // question the app cannot display. We do NOT decide that here — we state
+        // the facts (which qtypes the quiz contains) and let the app compare them
+        // against its own installed supported set. See mt_quiz_requires().
+        if ($cm->modname === 'quiz') {
+            $act['nativerender'] = [
+                'requires'     => mt_quiz_requires($cm),
+                'forcewebview' => false,
+                'fallbackurl'  => $wwwroot . '/mod/quiz/view.php?id=' . $cm->id,
+            ];
         }
 
         // ── URL module ───────────────────────────────────────────────────────
