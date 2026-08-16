@@ -31,8 +31,8 @@
     data-nit-subs-grid=""><!-- CARD TEMPLATE (hidden; cloned per plan) -->
     <div style="display: none;" data-nit-subs-card="">
       <div
-        style="flex: 1 1 280px; max-width: 310px; background: linear-gradient(145deg, var(--nit-brand-surface), var(--nit-brand-background)); border: 1px solid color-mix(in srgb, var(--nit-brand-accent) 20%, transparent); border-radius: 16px; padding: 30px 20px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; min-height: 420px; position: relative; transition: transform 0.3s ease, box-shadow 0.3s ease;">
-        <div>
+        style="width: 100%; height: 100%; box-sizing: border-box; background: linear-gradient(145deg, var(--nit-brand-surface), var(--nit-brand-background)); border: 1px solid color-mix(in srgb, var(--nit-brand-accent) 20%, transparent); border-radius: 16px; padding: 30px 20px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; position: relative; transition: transform 0.3s ease, box-shadow 0.3s ease;">
+        <div style="display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden;">
           <!-- Subscribed badge (hidden by default, shown on the active subscription card) -->
           <div
             style="display: none; position: absolute; top: -1px; inset-inline-start: -1px; inset-inline-end: -1px; background: linear-gradient(135deg, var(--nit-brand-success), color-mix(in srgb, var(--nit-brand-success) 82%, var(--nit-brand-textprimary))); color: var(--nit-brand-textprimary); font-size: 12px; font-weight: bold; padding: 6px 0; text-align: center; border-radius: 16px 16px 0 0;"
@@ -42,16 +42,16 @@
             style="display: none; position: absolute; top: 16px; inset-inline-start: 16px; background: var(--nit-brand-success); color: var(--nit-brand-textprimary); font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 50px;"
             data-nit-b2b="">B2B</span> <!-- Plan name -->
           <p
-            style="font-size: 14px; color: var(--nit-brand-textsecondary); font-weight: 600; margin: 0 0 15px 0;">
+            style="font-size: 14px; color: var(--nit-brand-textsecondary); font-weight: 600; margin: 0 0 15px 0; flex-shrink: 0;">
             {{name}}</p>
           <!-- Price -->
           <div
-            style="font-size: 40px; font-weight: 800; color: var(--nit-brand-accenttext); line-height: 1;">
+            style="font-size: 40px; font-weight: 800; color: var(--nit-brand-accenttext); line-height: 1; flex-shrink: 0;">
             <span data-nit-price-val="">{{price}}</span> <span
               style="font-size: 16px;">{mlang en}EGP{mlang}{mlang
               ar}ج.م{mlang}</span></div>
           <!-- Offer final price (shown when an offer applies) -->
-          <div style="display: none; margin-top: 4px;" data-nit-offer-final="">
+          <div style="display: none; margin-top: 4px; flex-shrink: 0;" data-nit-offer-final="">
             <span
               style="font-size: 14px; color: var(--nit-brand-textsecondary); text-decoration: line-through;"
               data-nit-orig-price=""> </span> <span
@@ -59,11 +59,11 @@
               data-nit-offer-label=""> </span></div>
           <!-- Duration -->
           <p
-            style="font-size: 12px; color: var(--nit-brand-textsecondary); margin: 5px 0 20px 0;">
+            style="font-size: 12px; color: var(--nit-brand-textsecondary); margin: 5px 0 20px 0; flex-shrink: 0;">
             / {{days}} {mlang en}days{mlang}{mlang ar}يوم{mlang}</p>
           <!-- Features list (courses) -->
           <ul
-            style="list-style: none; padding: 0; margin: 0 0 25px 0; text-align: right;"
+            style="list-style: none; padding: 0; margin: 0 0 20px 0; text-align: right; overflow-y: auto; flex: 1 1 auto; min-height: 0; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--nit-brand-accent) 40%, transparent) transparent;"
             data-nit-features="">
             <li
               style="display: none; font-size: 13px; color: var(--nit-brand-textsecondary); padding: 8px 0; border-bottom: 1px solid color-mix(in srgb, var(--nit-brand-textprimary) 5%, transparent);"
@@ -78,7 +78,7 @@
           </ul>
         </div>
         <button class="nit-btn-solid"
-          style="background-color: var(--nit-brand-primary); border: 1px solid var(--nit-brand-primary); color: var(--nit-brand-textprimary); padding: 12px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; width: 100%;"
+          style="background-color: var(--nit-brand-primary); border: 1px solid var(--nit-brand-primary); color: var(--nit-brand-textprimary); padding: 12px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; width: 100%; flex-shrink: 0; margin-top: auto;"
           type="button" data-nit-buy=""> {mlang en}Subscribe now{mlang}{mlang
           ar}ابدأ الآن{mlang} </button>
       </div>
@@ -457,7 +457,8 @@
               .replace(/\{\{description\}\}/g, esc(desc));
 
             var wrap = document.createElement('div');
-            wrap.style.cssText = 'flex: 1 1 280px; max-width: 310px;';
+            wrap.style.cssText =
+              'flex: 1 1 280px; max-width: 310px; height: 500px; display: flex; flex-direction: column;';
             wrap.setAttribute('data-sub-id', s.id);
             wrap.setAttribute('data-sub-name', s.name);
             wrap.setAttribute('data-sub-days', s.duration_days);

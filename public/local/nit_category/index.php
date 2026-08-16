@@ -553,6 +553,13 @@ echo $OUTPUT->header();
       ?>
 
       <style>
+        /* The local_payments course_cards.js appends its own price badge to the end
+           of every card with a /course/view.php link. This page already renders the
+           price in its footer status row (above the buttons), so that injected badge
+           is a redundant duplicate here — hide it (scoped to this page only, the
+           shared badge is untouched everywhere else). */
+        .nit-cat-details .lp-card-badge { display: none !important; }
+
         /* Top-level subcategory title — X-Trade .specialty-title, on brand vars. */
         .nit-spec-block { margin-bottom: 44px; }
         .nit-spec-head { margin-bottom: 22px; }

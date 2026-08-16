@@ -39,6 +39,56 @@ body:has(.acad-cr) {
     --cr-maxw: 1128px;
 }
 
+/* --- Category Brand-Colors group ------------------------------------------
+ * The renderer puts the group switch class (.nit-brand-2 / .nit-brand-3) on the
+ * .acad-cr wrapper so a course adopts its top-level category's palette. But the
+ * --cr-* token layer above — and the canvas rules below — are declared on <body>,
+ * an ANCESTOR of that wrapper. CSS custom properties resolve at the element that
+ * declares them, so there var(--nit-brand-*) always sees the default (Group 1)
+ * active layer and the switch never reaches the tokens or the page canvas.
+ *
+ * Hoist the active-layer re-point up to <body> for this page (keyed off the
+ * wrapper's switch class via :has()), mirroring .nit-brand-2 / .nit-brand-3 in
+ * foundation/_brand.scss. Now the whole course-detail page — tokens, bands and
+ * canvas alike — resolves against the category's group.
+ */
+body:has(.acad-cr.nit-brand-2) {
+    --nit-brand-primary: var(--nit-brand-g2-primary);
+    --nit-brand-secondary: var(--nit-brand-g2-secondary);
+    --nit-brand-accent: var(--nit-brand-g2-accent);
+    --nit-brand-accenttext: var(--nit-brand-g2-accenttext);
+    --nit-brand-background: var(--nit-brand-g2-background);
+    --nit-brand-surface: var(--nit-brand-g2-surface);
+    --nit-brand-textprimary: var(--nit-brand-g2-textprimary);
+    --nit-brand-textsecondary: var(--nit-brand-g2-textsecondary);
+    --nit-brand-borderprimary: var(--nit-brand-g2-borderprimary);
+    --nit-brand-bordersecondary: var(--nit-brand-g2-bordersecondary);
+    --nit-brand-hoverbackground: var(--nit-brand-g2-hoverbackground);
+    --nit-brand-hovertext: var(--nit-brand-g2-hovertext);
+    --nit-brand-error: var(--nit-brand-g2-error);
+    --nit-brand-success: var(--nit-brand-g2-success);
+    --nit-brand-warning: var(--nit-brand-g2-warning);
+    --nit-brand-info: var(--nit-brand-g2-info);
+}
+body:has(.acad-cr.nit-brand-3) {
+    --nit-brand-primary: var(--nit-brand-g3-primary);
+    --nit-brand-secondary: var(--nit-brand-g3-secondary);
+    --nit-brand-accent: var(--nit-brand-g3-accent);
+    --nit-brand-accenttext: var(--nit-brand-g3-accenttext);
+    --nit-brand-background: var(--nit-brand-g3-background);
+    --nit-brand-surface: var(--nit-brand-g3-surface);
+    --nit-brand-textprimary: var(--nit-brand-g3-textprimary);
+    --nit-brand-textsecondary: var(--nit-brand-g3-textsecondary);
+    --nit-brand-borderprimary: var(--nit-brand-g3-borderprimary);
+    --nit-brand-bordersecondary: var(--nit-brand-g3-bordersecondary);
+    --nit-brand-hoverbackground: var(--nit-brand-g3-hoverbackground);
+    --nit-brand-hovertext: var(--nit-brand-g3-hovertext);
+    --nit-brand-error: var(--nit-brand-g3-error);
+    --nit-brand-success: var(--nit-brand-g3-success);
+    --nit-brand-warning: var(--nit-brand-g3-warning);
+    --nit-brand-info: var(--nit-brand-g3-info);
+}
+
 /* --- Canvas: keep the branded page background across the content wrappers --- */
 body:has(.acad-cr) #region-main,
 body:has(.acad-cr) #region-main-box,
