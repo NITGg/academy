@@ -138,12 +138,7 @@ a:not(.btn):not(.nav-link):not(.navbar-brand):not(.dropdown-item):not(.page-link
 
     // Edit-mode Surface backgrounds — make edit affordance areas clearly distinct.
     &.editing {
-        // Outer page wrapper — the section that contains the add-block strip.
-        #page {
-            background: var(--nit-brand-surface);
-        }
-
-        // "Add a block" button strip.
+        // "Add a block" button strip — wraps [data-region="add-block-button"].
         .nit-addblock-top {
             background: var(--nit-brand-surface);
             border-radius: $border-radius;
