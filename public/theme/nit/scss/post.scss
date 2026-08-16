@@ -136,6 +136,28 @@ a:not(.btn):not(.nav-link):not(.navbar-brand):not(.dropdown-item):not(.page-link
         border-radius: $border-radius;
     }
 
+    // Edit-mode Surface backgrounds — make edit affordance areas clearly distinct.
+    &.editing {
+        // Outer page wrapper — the section that contains the add-block strip.
+        #page {
+            background: var(--nit-brand-surface);
+        }
+
+        // "Add a block" button strip.
+        .nit-addblock-top {
+            background: var(--nit-brand-surface);
+            border-radius: $border-radius;
+            padding-bottom: map-get($spacers, 3);
+        }
+
+        // Block controls row (drag handle + ⋮ action menu) inside nit-regions.
+        .nit-region .block_with_controls .card-body > .d-flex {
+            background: var(--nit-brand-surface);
+            padding: map-get($spacers, 2) map-get($spacers, 2);
+            border-radius: $border-radius;
+        }
+    }
+
     // Links inside section blocks: kill the browser/Moodle focus-ring artefact
     // (the white bar over buttons on click) and give a clean keyboard ring.
     .block_nit_section a {

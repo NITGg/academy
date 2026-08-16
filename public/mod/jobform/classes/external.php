@@ -80,6 +80,9 @@ class mod_jobform_external extends external_api {
             'courseids' => new external_multiple_structure(
                 new external_value(PARAM_INT, 'Course id'),
                 'Array of course ids (empty for all the user\'s courses)', VALUE_DEFAULT, []),
+            'lang' => new external_value(PARAM_LANG,
+                'Language for the returned names (e.g. "ar"). Defaults to the user\'s language.',
+                VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -89,9 +92,12 @@ class mod_jobform_external extends external_api {
      * @param int[] $courseids
      * @return array
      */
-    public static function get_jobforms_by_courses(array $courseids = []): array {
+    public static function get_jobforms_by_courses(array $courseids = [], string $lang = ''): array {
         $params = self::validate_parameters(self::get_jobforms_by_courses_parameters(),
-            ['courseids' => $courseids]);
+            ['courseids' => $courseids, 'lang' => $lang]);
+        if (!empty($params['lang'])) {
+            force_current_language($params['lang']);
+        }
         $warnings = [];
         $returned = [];
 
@@ -214,6 +220,9 @@ class mod_jobform_external extends external_api {
     public static function get_form_parameters(): external_function_parameters {
         return new external_function_parameters([
             'cmid' => new external_value(PARAM_INT, 'Course module id'),
+            'lang' => new external_value(PARAM_LANG,
+                'Language for the returned labels/options (e.g. "ar" or "en"). '
+                . 'Defaults to the user\'s language.', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -223,16 +232,22 @@ class mod_jobform_external extends external_api {
      * @param int $cmid
      * @return array
      */
-    public static function get_form(int $cmid): array {
+    public static function get_form(int $cmid, string $lang = ''): array {
         global $DB, $USER;
 
-        $params = self::validate_parameters(self::get_form_parameters(), ['cmid' => $cmid]);
+        $params = self::validate_parameters(self::get_form_parameters(),
+            ['cmid' => $cmid, 'lang' => $lang]);
 
         [$course, $cm, $jobform] = self::resolve_cm($params['cmid']);
 
         $context = context_module::instance($cm->id);
         self::validate_context($context);
         require_capability('mod/jobform:view', $context);
+
+        // Resolve the bilingual labels/options in the requested language.
+        if (!empty($params['lang'])) {
+            force_current_language($params['lang']);
+        }
 
         [$intro, $introformat] = util::format_text($jobform->intro, $jobform->introformat,
             $context, 'mod_jobform', 'intro', 0);

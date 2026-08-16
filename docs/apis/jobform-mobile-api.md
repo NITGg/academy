@@ -105,11 +105,24 @@ wsfunction=mod_jobform_view_jobform&cmid=39
 `mod_jobform_get_form` — the main call. Returns the fields, their groups, the
 certificate-gate status and any answers already saved by this student.
 
-**Params:** `cmid` (int).
+**Params**
+
+| Name | Type | Notes |
+|------|------|-------|
+| `cmid` | int | Course module id |
+| `lang` | string | Optional. Language for the returned labels/options, e.g. `ar` or `en`. Defaults to the user's language. |
 
 ```
-wsfunction=mod_jobform_get_form&cmid=39
+wsfunction=mod_jobform_get_form&cmid=39&lang=ar
 ```
+
+> **Getting Arabic labels.** Labels, group names, option labels and fixed values
+> are returned **in the requested language**. Pass `lang=ar` to force Arabic (or
+> `lang=en` for English). This only produces Arabic text for fields the admin
+> actually **translated** — i.e. fields where both "Field label (English)" and
+> "Field label (Arabic)" were filled in the field editor (stored as
+> `{mlang en}…{mlang}{mlang ar}…{mlang}`). A field entered in English only has no
+> Arabic to show and stays English regardless of `lang`.
 
 **Response**
 
@@ -293,8 +306,11 @@ mod_jobform_get_form(cmid)          → re-read to confirm status == "submitted"
 ## 7. Notes
 
 - **Languages**: `name`, group names, option `label`s and `fixedvalue` are
-  returned in the caller's language. Send the user's language via the standard
-  `lang` behaviour of your token/app; the server resolves the bilingual values.
+  returned in the caller's language. Pass `lang=ar` / `lang=en` to
+  `mod_jobform_get_form` (and `mod_jobform_get_jobforms_by_courses`) to force it;
+  otherwise the token user's language is used. Only fields the admin translated
+  (both English **and** Arabic filled) have a non-English value — see the note in
+  §3.
 - **Multi-select storage**: send a JSON array of the option `value`s. The server
   stores it as a JSON array; `get_form` returns it back the same way in
   `submission.answers[].value`.
