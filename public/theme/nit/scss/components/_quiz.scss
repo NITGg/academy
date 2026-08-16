@@ -69,6 +69,69 @@
     .questionbank .categoryselectallcontainer {
         background-color: var(--nit-brand-surface);
     }
+
+    // "You cannot add/remove questions because this quiz has attempts" — core
+    // paints this .statusdisplay a flat light yellow (#ffc) with white text on
+    // the dark brand (invisible). Make it a readable Warning-tinted notice.
+    .statusdisplay {
+        background-color: color-mix(in srgb, var(--nit-brand-warning) 20%, transparent);
+        border: 1px solid var(--nit-brand-warning);
+        color: var(--nit-brand-textprimary);
+        border-radius: 0.25rem;
+    }
+
+    // The per-question action strip (edit / move / delete icons) — core #e6e6e6.
+    .section .activity .actions {
+        background: var(--nit-brand-background);
+    }
+}
+
+// =============================================================================
+// Quiz review summary table (mod/quiz/review.php: the User / Status / Started /
+// Marks header block). Core mod/quiz/styles.css paints the label cells #f0f0f0
+// and the value cells #fafafa — light slabs carrying white text on the dark
+// brand. Route both to the brand Surface; the label cells sit a shade darker so
+// the two columns still read apart.
+// =============================================================================
+
+table.quizreviewsummary {
+
+    th.cell {
+        background: var(--nit-brand-background);
+        color: var(--nit-brand-textprimary);
+    }
+
+    td.cell {
+        background: var(--nit-brand-surface);
+        color: var(--nit-brand-textprimary);
+    }
+}
+
+// =============================================================================
+// Quiz navigation buttons (the numbered block on attempt.php / review.php).
+// Core paints the per-question status from flat light tokens (#cfc / #ffa / #fcc)
+// that clash on the dark brand; route each to its status role as a dark tint so
+// the white number stays readable.
+// =============================================================================
+
+.path-mod-quiz {
+
+    .qnbutton.correct {
+        background-color: color-mix(in srgb, var(--nit-brand-success) 32%, var(--nit-brand-surface));
+    }
+
+    .qnbutton.partiallycorrect {
+        background-color: color-mix(in srgb, var(--nit-brand-warning) 32%, var(--nit-brand-surface));
+    }
+
+    .qnbutton.notanswered,
+    .qnbutton.incorrect {
+        background-color: color-mix(in srgb, var(--nit-brand-error) 32%, var(--nit-brand-surface));
+    }
+
+    .qnbutton.blocked {
+        color: var(--nit-brand-textsecondary);
+    }
 }
 
 // =============================================================================
