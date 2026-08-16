@@ -13,8 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-// NIT card refinement: a subtle token-based elevation.
+// NIT card refinement: brand surface background, token-based elevation.
 .card {
     @include nit-elevation(1);
+    --bs-card-bg: var(--nit-brand-surface);
+    --bs-card-border-color: var(--nit-brand-borderprimary);
+    --bs-card-color: var(--nit-brand-textprimary);
+    --bs-card-cap-bg: color-mix(in srgb,var(--nit-brand-background) 40%,var(--nit-brand-surface));
+    --bs-card-cap-color: var(--nit-brand-textprimary);
     border-color: $nit-line;
+    color: var(--nit-brand-textprimary);
 }
