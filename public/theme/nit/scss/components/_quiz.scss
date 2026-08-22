@@ -84,6 +84,32 @@
     .section .activity .actions {
         background: var(--nit-brand-background);
     }
+
+    // The max-mark + edit-pencil box on the right of each question row — core
+    // hard-codes `background: white`, so it stays a white slab on the dark row.
+    ul.slots li.section li.activity .instancemaxmarkcontainer {
+        background: var(--nit-brand-surface);
+    }
+    // (core already makes the info-only variant transparent — keep it.)
+    ul.slots li.section li.activity .instancemaxmarkcontainer.infoitem {
+        background: transparent;
+    }
+
+    // Slot number badge (the "1 / 2 / 3" box) — core fills it $bs-secondary-bg
+    // (light) leaving the number unreadable. Brand Surface + brand text.
+    .slotnumber {
+        background-color: var(--nit-brand-surface);
+        color: var(--nit-brand-textprimary);
+    }
+
+    // Question name + text preview — core hard-codes #555 (dark grey), which is
+    // near-invisible on the dark row. Name → primary text, preview → secondary.
+    ul.slots li.activity div.activityinstance .questionname {
+        color: var(--nit-brand-textprimary);
+    }
+    ul.slots li.activity div.activityinstance .questiontext {
+        color: var(--nit-brand-textsecondary);
+    }
 }
 
 // =============================================================================
