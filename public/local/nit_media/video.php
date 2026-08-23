@@ -26,6 +26,10 @@
  * send_stored_file byteserves, so seeking in the player works (see
  * byteserving_send_file in lib/filelib.php).
  *
+ * Append ?diag=1 as a site administrator to see what is actually stored
+ * instead of streaming it — that tells a missing file apart from a file the
+ * browser cannot decode, which are indistinguishable from the player's error.
+ *
  * @package    local_nit_media
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -34,12 +38,18 @@
 require(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/filelib.php');
 
+$diag = optional_param('diag', 0, PARAM_BOOL);
+
 // Front page marketing content, so it is public unless the whole site is not.
-if (!empty($CFG->forcelogin)) {
+if ($diag || !empty($CFG->forcelogin)) {
     require_login();
 }
 
 $context = context_system::instance();
+
+if ($diag) {
+    require_capability('moodle/site:config', $context);
+}
 
 $fs = get_file_storage();
 $files = $fs->get_area_files(
@@ -52,6 +62,40 @@ $files = $fs->get_area_files(
 );
 
 $file = reset($files);
+
+if ($diag) {
+    $PAGE->set_context($context);
+    $PAGE->set_url(new moodle_url('/local/nit_media/video.php', ['diag' => 1]));
+    $PAGE->set_title(get_string('diagnostics', 'local_nit_media'));
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('diagnostics', 'local_nit_media'));
+
+    if (!$file) {
+        echo $OUTPUT->notification(
+            'No file is stored in local_nit_media/herovideo. Upload one on the plugin settings page.',
+            'error'
+        );
+    } else {
+        $rows = [
+            'File name'  => $file->get_filename(),
+            'Size'       => display_size($file->get_filesize()),
+            'MIME type'  => $file->get_mimetype(),
+            'Uploaded'   => userdate($file->get_timemodified()),
+            'Served at'  => (new moodle_url('/local/nit_media/video.php'))->out(),
+        ];
+        $table = new html_table();
+        $table->data = array_map(null, array_keys($rows), array_values($rows));
+        echo html_writer::table($table);
+        echo $OUTPUT->notification(
+            'The file is present and will be streamed. If the player still refuses it, the container or '
+            . 'codec is the problem rather than the upload - re-encode as an H.264 MP4.',
+            'info'
+        );
+    }
+
+    echo $OUTPUT->footer();
+    exit;
+}
 
 if (!$file) {
     // Nothing uploaded yet. The hero block turns this into a visible message

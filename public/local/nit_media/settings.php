@@ -54,4 +54,14 @@ if ($hassiteconfig) {
             'accepted_types' => ['.mp4', '.m4v', '.webm', '.ogv'],
         ]
     ));
+
+    // Tells a missing file apart from a file the browser cannot decode - the
+    // player reports both the same way.
+    $diagurl = (new moodle_url('/local/nit_media/video.php', ['diag' => 1]))->out();
+
+    $settings->add(new admin_setting_heading(
+        'local_nit_media/diagnostics',
+        get_string('diagnostics', 'local_nit_media'),
+        get_string('diagnostics_desc', 'local_nit_media', html_writer::link($diagurl, $diagurl))
+    ));
 }
