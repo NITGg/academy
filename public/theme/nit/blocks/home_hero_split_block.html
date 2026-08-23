@@ -6,8 +6,30 @@
      as one PNG, and the play button is "Frame 1707480653" (node 118:86). Both
      exports include their own shadow/glow bleed, so their pixel size is larger
      than the frame: the play button is a 60.5px circle centred in a 101px box,
-     which the negative margin below cancels so the layout still spaces off the
-     circle. Re-export from Figma to update the art — nothing here redraws it.
+     i.e. ~20px of transparent glow on every side. Only the OUTER edge gets a
+     negative margin — pulling the text-facing edge in too made the red glow
+     sit on top of the words. The label keeps a small gap and the glow stays
+     clear of it. Re-export from Figma to update the art — nothing redraws it.
+
+     THE VIDEO — managed from its own admin page, not from this file.
+     Site administration > Plugins > Local plugins > Site media
+     (/admin/settings.php?section=local_nit_media_settings)
+     is where the video is uploaded, replaced or deleted.
+
+     This block cannot name the file: it is static HTML, so a pluginfile URL —
+     which carries the file name and changes on every re-upload — would have to
+     be hand-edited each time. Instead the <source> below points at one fixed
+     address, /local/nit_media/video.php, and that endpoint serves whatever is
+     currently uploaded. Changing the video never touches this file.
+
+     Use an MP4 encoded H.264 + AAC. A .mov, or an MP4 encoded H.265/HEVC,
+     uploads fine but will not play in Chrome. If the modal shows its error
+     panel, open the address it prints: a 404 means nothing is uploaded yet, a
+     clean download means the encoding is the problem.
+
+     Prefer YouTube/Vimeo instead? Replace the whole <video> element with an
+     <iframe>; that moves the bandwidth off this server, which is the better
+     choice for a long or high-traffic clip.
 
      NEEDS local_nit_mlang's "Include rich text editors" switched OFF. With it
      on, the content editor is split into one tab per language and this single
@@ -41,7 +63,7 @@
      block and the page are painted from one value. No literal colours and no
      mixed values — every colour here is a named palette role. -->
 <div dir="auto"
-  style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px 20px; overflow: hidden;">
+  style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(20px, 5vw, 80px); overflow: hidden;">
   <div
     style="max-width: 1280px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 48px 12px;"
     data-nit-hero-split="">
@@ -73,15 +95,16 @@
         style="display: flex; align-items: center; flex-wrap: wrap; gap: 25px;">
         <a class="nit-btn-solid"
           style="background: var(--nit-brand-primary); border: 1px solid var(--nit-brand-borderprimary); color: var(--nit-brand-textprimary); width: 220px; height: 60px; border-radius: 8px; font-size: 18px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;"
-          href="/moodle-new/course/index.php" data-nit-btn=""> {mlang en}Start
+          href="/moodle-new/course/index.php" data-nit-btn=""
+          data-nit-scrollto="[data-nit-categories]"> {mlang en}Start
           Now{mlang} {mlang ar}ابدأ الان{mlang} </a>
         <a
-          style="display: inline-flex; align-items: center; gap: 16px; color: var(--nit-brand-textprimary); font-size: 18px; font-weight: 600; text-decoration: none;"
-          href="#" data-nit-hero-play=""> <span>{mlang en}See how it
-            works{mlang} {mlang ar}شاهد كيف يعمل{mlang}</span> <img
-            style="flex: 0 0 auto; width: 101px; height: 101px; margin: -20px;"
+          style="display: inline-flex; align-items: center; gap: 4px; color: var(--nit-brand-textprimary); font-size: 18px; font-weight: 600; text-decoration: none;"
+          href="#" data-nit-hero-play=""> <img
+            style="flex: 0 0 auto; width: 101px; height: 101px; margin-block: -20px; margin-inline-start: -20px;"
             src="/moodle-new/theme/nit/pix/home/hero-play.png" alt=""
-            decoding="async" data-nit-hero-playdot=""> </a>
+            decoding="async" data-nit-hero-playdot=""> <span>{mlang en}See how
+            it works{mlang} {mlang ar}شاهد كيف يعمل{mlang}</span> </a>
       </div>
     </div>
 
@@ -91,6 +114,43 @@
       src="/moodle-new/theme/nit/pix/home/hero-collage.png"
       alt="{mlang en}Students learning online{mlang} {mlang ar}طلاب يتعلمون عبر الإنترنت{mlang}"
       decoding="async" data-nit-hero-art="">
+  </div>
+
+  <!-- Video modal. Hidden until "See how it works" is clicked; the script
+       moves it to <body> on first open so no clipping ancestor can trap it. -->
+  <div style="display: none;" data-nit-hero-modal="">
+    <div
+      style="position: fixed; inset: 0; z-index: 1080; display: flex; align-items: center; justify-content: center; padding: 20px; background: color-mix(in srgb, var(--nit-brand-background) 88%, transparent);"
+      data-nit-hero-modal-backdrop="" role="dialog" aria-modal="true"
+      aria-label="{mlang en}How it works{mlang} {mlang ar}كيف يعمل{mlang}">
+      <div style="position: relative; width: 100%; max-width: 960px;">
+        <button type="button"
+          style="position: absolute; top: -52px; inset-inline-end: 0; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; border: 1px solid var(--nit-brand-borderprimary); background: var(--nit-brand-surface); color: var(--nit-brand-textprimary); font-size: 24px; line-height: 1;"
+          data-nit-hero-modal-close=""
+          aria-label="{mlang en}Close{mlang} {mlang ar}إغلاق{mlang}">&#215;</button>
+        <video
+          style="width: 100%; height: auto; display: block; border-radius: 12px; background: var(--nit-brand-background);"
+          controls preload="none" playsinline data-nit-hero-video="">
+          <source src="/moodle-new/local/nit_media/video.php" type="video/mp4">
+        </video>
+        <div
+          style="display: none; padding: 24px; border-radius: 12px; border: 1px solid var(--nit-brand-borderprimary); background: var(--nit-brand-surface); color: var(--nit-brand-textprimary); font-size: 15px; line-height: 1.7;"
+          data-nit-hero-video-error="">
+          <strong>{mlang en}The video could not be played.{mlang} {mlang ar}تعذّر
+            تشغيل الفيديو.{mlang}</strong> <span
+            style="display: block; margin-top: 8px; color: var(--nit-brand-textsecondary);">
+            {mlang en}Open the address below. If it downloads or 404s the file
+            name is wrong or missing; if it downloads fine but still will not
+            play, re-encode it as an H.264 MP4.{mlang} {mlang ar}افتح العنوان
+            التالي. لو نزّل الملف أو أعطى 404 فالاسم غلط أو الملف غير مرفوع؛ ولو
+            نزّل سليمًا ومع ذلك لا يعمل فأعد ترميزه إلى MP4 بترميز
+            H.264.{mlang} </span> <a
+            style="display: block; margin-top: 8px; word-break: break-all; color: var(--nit-brand-accenttext);"
+            href="#" target="_blank" rel="noopener"
+            data-nit-hero-video-url="">&#8230;</a>
+        </div>
+      </div>
+    </div>
   </div>
   <script>
     (function() {
@@ -126,6 +186,154 @@
       st.id = 'nit-hero-split-style';
       st.textContent = css;
       (document.head || document.documentElement).appendChild(st);
+    })();
+    // "Start Now" scrolls to the Learning Categories section when that block is
+    // on the page, and otherwise just follows its href — so the link still
+    // works with JS off, or on a page where the section is absent.
+    // "See how it works" opens the video modal.
+    (function() {
+      if (window.nitHeroSplitWired) {
+        return;
+      }
+      window.nitHeroSplitWired = true;
+      var modal = null;
+      // A missing file, or a codec the browser cannot decode, otherwise leaves
+      // the player spinning with nothing to act on. Surface the URL the browser
+      // actually requested so it can be opened directly and told apart: a 404
+      // means the filename is wrong, a clean download means the encoding is.
+      function showVideoError() {
+        if (!modal) {
+          return;
+        }
+        var srcEl = modal.querySelector('source');
+        var panel = modal.querySelector('[data-nit-hero-video-error]');
+        var link = modal.querySelector('[data-nit-hero-video-url]');
+        var vid = modal.querySelector('video');
+        if (link && srcEl) {
+          link.href = srcEl.src;
+          link.textContent = srcEl.src;
+        }
+        if (vid) {
+          vid.style.display = 'none';
+        }
+        if (panel) {
+          panel.style.display = 'block';
+        }
+      }
+      function getModal() {
+        if (!modal) {
+          modal = document.querySelector('[data-nit-hero-modal]');
+          // The block wrapper clips with overflow:hidden, and a transformed
+          // ancestor would trap a position:fixed child, so re-parent once.
+          if (modal && modal.parentNode !== document.body) {
+            document.body.appendChild(modal);
+          }
+          if (modal) {
+            var srcEl = modal.querySelector('source');
+            if (srcEl) {
+              srcEl.addEventListener('error', showVideoError);
+            }
+          }
+        }
+        return modal;
+      }
+      function closeModal() {
+        var m = getModal();
+        if (!m || m.style.display === 'none') {
+          return;
+        }
+        var v = m.querySelector('video');
+        if (v) {
+          v.pause();
+        }
+        m.style.display = 'none';
+        document.documentElement.style.overflow = '';
+      }
+      // The site header is pinned, so scrolling a section to y=0 tucks it
+      // underneath. Measure whatever is actually painted at the top of the
+      // viewport rather than hard-coding a height: the bar is a different
+      // height on mobile, and it is pinned by Moodle's own CSS, not by this
+      // theme, so a number copied from $navbar-height would drift.
+      function fixedTopOffset() {
+        if (!document.elementsFromPoint) {
+          return 0;
+        }
+        var stack = document.elementsFromPoint(Math.round(window.innerWidth / 2), 2) || [];
+        var offset = 0;
+        for (var i = 0; i < stack.length; i++) {
+          var pos = window.getComputedStyle(stack[i]).position;
+          if (pos !== 'fixed' && pos !== 'sticky') {
+            continue;
+          }
+          var rect = stack[i].getBoundingClientRect();
+          if (rect.top <= 2 && rect.bottom > offset) {
+            offset = rect.bottom;
+          }
+        }
+        return Math.ceil(offset);
+      }
+      document.addEventListener('click', function(ev) {
+        var scroller = ev.target.closest('[data-nit-scrollto]');
+        if (scroller) {
+          var target = document.querySelector(scroller.getAttribute('data-nit-scrollto'));
+          // The hook sits on the cards grid, but landing there cuts off the
+          // section's own badge and heading. Moodle wraps every block in
+          // <section data-block="..."> (lib/templates/block.mustache), so climb
+          // to that and the whole section comes into view. Falls back to the
+          // element itself where there is no block wrapper.
+          if (target) {
+            target = target.closest('[data-block]') || target;
+          }
+          if (target) {
+            ev.preventDefault();
+            // Honour reduced-motion, and never leave the click doing nothing:
+            // if smooth is unavailable the jump still happens.
+            var reduce = window.matchMedia &&
+              window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var top = target.getBoundingClientRect().top + window.pageYOffset -
+              fixedTopOffset() - 12;
+            window.scrollTo({
+              top: top > 0 ? top : 0,
+              behavior: reduce ? 'auto' : 'smooth'
+            });
+          }
+          return;
+        }
+        if (ev.target.closest('[data-nit-hero-play]')) {
+          var m = getModal();
+          if (!m) {
+            return;
+          }
+          ev.preventDefault();
+          m.style.display = 'block';
+          document.documentElement.style.overflow = 'hidden';
+          var v = m.querySelector('video');
+          if (v) {
+            var playing = v.play();
+            if (playing && playing.catch) {
+              playing.catch(function() {});
+            }
+            // NETWORK_NO_SOURCE (3) is the deterministic signal that every
+            // <source> failed. The source error event alone is unreliable here:
+            // with preload="none" it can fire before this handler is wired up.
+            setTimeout(function() {
+              if (v.networkState === 3 && !v.readyState) {
+                showVideoError();
+              }
+            }, 1500);
+          }
+          return;
+        }
+        if (ev.target.closest('[data-nit-hero-modal-close]') ||
+            ev.target.hasAttribute('data-nit-hero-modal-backdrop')) {
+          closeModal();
+        }
+      });
+      document.addEventListener('keydown', function(ev) {
+        if (ev.key === 'Escape') {
+          closeModal();
+        }
+      });
     })();
   </script>
 </div>
