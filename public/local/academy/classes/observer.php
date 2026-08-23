@@ -39,6 +39,17 @@ class observer {
 
     /** Build and send the welcome notification (in-app + email). */
     private static function send_welcome(\stdClass $user): void {
+        // The registration email an admin can edit (Site administration ›
+        // Plugins › Local plugins › Purchase & registration emails) replaces
+        // this one wherever that plugin is installed; the notification below
+        // stays as the fallback so a site without it still welcomes its
+        // students.
+        if (class_exists('\local_nit_emails\mailer')
+                && \local_nit_emails\mailer::handles(\local_nit_emails\templates::EVENT_REGISTRATION)) {
+            \local_nit_emails\mailer::send_registration($user);
+            return;
+        }
+
         $sitename = format_string(get_site()->fullname);
 
         $body = get_string('welcome_body', 'local_academy', [

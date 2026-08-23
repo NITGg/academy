@@ -151,6 +151,20 @@ class subscription_purchase_manager {
         $purchase->timecreated      = $now;
         $purchase->id = $DB->insert_record('nit_sub_purchase', $purchase);
 
+        // "Your subscription is active" — the admin-editable email under
+        // Site administration › Plugins › Local plugins › Purchase &
+        // registration emails. Sent from here rather than from the payment
+        // gateway so an admin-assigned plan is announced too, and only on a
+        // real insert, so a replayed webhook cannot send it twice. A failure
+        // here must never cost the student the subscription they paid for.
+        if (class_exists('\local_nit_emails\mailer')) {
+            try {
+                \local_nit_emails\mailer::send_subscription_purchase($purchase);
+            } catch (\Throwable $e) {
+                debugging('local_nit_subscriptions: subscription email failed: ' . $e->getMessage(), DEBUG_NORMAL);
+            }
+        }
+
         return self::summary($purchase);
     }
 

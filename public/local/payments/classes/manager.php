@@ -1015,6 +1015,19 @@ class manager {
             return;
         }
 
+        // The admin-editable purchase email (Site administration › Plugins ›
+        // Local plugins › Purchase & registration emails) is the one students
+        // actually receive: it carries the whole course file summary in the
+        // buyer's own language. Once that plugin owns this message the plain
+        // notification below is skipped entirely — including when an admin has
+        // switched the email off, which has to mean silence rather than a
+        // silent fall back to the old wording.
+        if (class_exists('\local_nit_emails\mailer')
+                && \local_nit_emails\mailer::handles(\local_nit_emails\templates::EVENT_COURSE)) {
+            \local_nit_emails\mailer::send_course_purchase($user, $course, $transaction);
+            return;
+        }
+
         $message = new \core\message\message();
         $message->component = 'local_payments';
         $message->name = 'payment_confirmation';
