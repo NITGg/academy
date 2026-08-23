@@ -73,6 +73,14 @@ if ($hassiteconfig) {
         1
     ));
 
+    // How to read a field name and a page type off a page — the two things the
+    // settings below are written in terms of.
+    $settings->add(new admin_setting_heading(
+        'local_nit_mlang/howto',
+        get_string('howto', 'local_nit_mlang'),
+        get_string('howto_desc', 'local_nit_mlang')
+    ));
+
     $settings->add(new admin_setting_configtextarea(
         'local_nit_mlang/extratextfields',
         get_string('extratextfields', 'local_nit_mlang'),
