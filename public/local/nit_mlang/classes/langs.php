@@ -53,11 +53,15 @@ class langs {
         $translations = $sm->get_list_of_translations();
 
         // Drop the "(en)"-style suffix Moodle appends: our UI prints the code itself.
+        // The name arrives wrapped in invisible LRM/RLM direction marks (Moodle adds
+        // them so the code reads correctly next to an RTL name), so those have to go
+        // first or the suffix is never recognised and the code appears twice.
         $langs = [];
         foreach ($translations as $code => $name) {
+            $name = preg_replace('/[\x{200E}\x{200F}\x{061C}]/u', '', (string) $name);
             $langs[$code] = [
                 'code' => $code,
-                'name' => trim(preg_replace('/\s*\([^)]*\)\s*$/u', '', (string) $name)),
+                'name' => trim(preg_replace('/\s*\([^)]*\)\s*$/u', '', $name)),
                 'dir'  => self::direction($code),
             ];
         }

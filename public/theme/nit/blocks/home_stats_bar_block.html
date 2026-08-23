@@ -1,0 +1,142 @@
+<!-- NIT — Stats bar home-page block (Figma "Component 1").
+     Paste into an HTML block on the FRONT PAGE (Site home).
+     Four figures inside the hand-drawn outline pill, split by hairline rules.
+     Designed to sit directly under home_hero_split_block.html.
+
+     NEEDS local_nit_mlang's "Include rich text editors" switched OFF. With it
+     on, the content editor is split into one tab per language and this single
+     bilingual file is torn in half on save — the symptom is the first label
+     printing as a raw multilang tag. Turn it off with:
+
+       php admin/cli/cfg.php --component=local_nit_mlang --name=editors --set=0
+
+     Name, Title and the other plain text fields keep their per-language inputs;
+     only editors go back to one field. The tags also need the "Multi-language
+     content (v2)" filter (filter/multilang2) enabled site-wide.
+
+     Paste into an EMPTY block. The multilang filter pairs tags in document
+     order, so a single unpaired opening tag left over from earlier content
+     shifts every pair after it and prints the first label raw.
+
+     Measured against Moodle's bundled TinyMCE (with editor_tiny's own options
+     and addSVGSupport), a save round-trip keeps the script, the SVG and its
+     path data, the inline styles, the data- attributes and the mlang tags.
+     The one thing it deletes is an EMPTY INLINE ELEMENT, so nothing structural
+     here may be an empty span — which is why the rules between the figures are
+     cell borders rather than divider elements. Pasting via Preferences >
+     Editor preferences > Plain text area avoids the round-trip entirely and is
+     still the safer route.
+
+     Every figure here comes from the database — nothing is typed in by hand.
+     [data-nit-stat="students"] and [data-nit-stat="courses"] are counted up to
+     the real numbers by theme_nit_get_site_stats() in lib.php, printed as
+     window.NIT_STATS by templates/frontpage.mustache. The engine also accepts
+     categories | topcategories | subcategories.
+
+     The Figma design shows four figures. The other two — "20.000 private
+     tutoring hours" and "870 expert teachers" — were mock-up numbers with no
+     data source, so they are gone rather than being passed off as real. Add a
+     figure back only once theme_nit_get_site_stats() can actually supply it.
+
+     Caveat on the "Active Students" label: the query is COUNT(DISTINCT userid)
+     over user_enrolments, so it counts every user holding at least one
+     enrolment — teachers included, suspended enrolments included. It is really
+     "users with an enrolment". Tighten the query if the label has to be exact.
+
+     The outline keeps the exact Figma path and stretches with the block
+     (preserveAspectRatio="none"); vector-effect="non-scaling-stroke" keeps the
+     line 2px at every width instead of smearing with the shape. The path is
+     FILLED with --nit-brand-background rather than putting a coloured box
+     behind it, so the data area is painted in the outline's own organic shape
+     — a rectangle would poke out past the curve at the corners.
+
+     Colours read from the Brand Colors palette (--nit-brand-*), the same names
+     the other home-page blocks use. --nit-brand-background is what the site
+     background itself resolves to: theme_nit maps the Background brand role
+     onto Bootstrap's $body-bg in lib.php theme_nit_get_pre_scss(), so the
+     block and the page are painted from one value. The rules between the
+     figures are --nit-brand-borderprimary, not a mixed-down text colour, so
+     they follow the palette's own border role. -->
+<div dir="auto"
+  style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 40px 20px 64px;">
+  <div style="max-width: 1180px; margin: 0 auto; position: relative;"
+    data-nit-statbar="">
+    <svg
+      style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 6px 22px color-mix(in srgb, var(--nit-brand-primary) 35%, transparent));"
+      viewBox="0 0 1171.4 423.014" preserveAspectRatio="none" fill="none"
+      aria-hidden="true">
+      <path
+        d="M7.7 275.51V206.339C7.7 147.937 52.5769 99.3377 110.794 94.6938L1008.79 23.0619C1073.95 17.8642 1129.7 69.3403 1129.7 134.707V284.314C1129.7 346.599 1078.88 396.919 1016.6 396.309L118.602 387.505C57.1774 386.903 7.7 336.938 7.7 275.51Z"
+        fill="var(--nit-brand-background)" stroke="var(--nit-brand-primary)"
+        stroke-width="2" vector-effect="non-scaling-stroke" />
+    </svg>
+    <div
+      style="position: relative; display: flex; flex-wrap: wrap; align-items: stretch; justify-content: space-around; gap: 32px 0; padding: 64px 56px;">
+
+      <div
+        style="flex: 1 1 130px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 21px; text-align: center; padding-inline: 12px; border-inline-start: 1px solid var(--nit-brand-borderprimary);">
+        <span
+          style="font-size: clamp(30px,4vw,48px); font-weight: 500; line-height: 1.1;"
+          data-nit-stat="students">0</span> <span
+          style="font-size: clamp(16px,2.1vw,28px); font-weight: 500; line-height: 1.35;">
+          {mlang en}Active Students{mlang} {mlang ar}الطلاب النشطون{mlang}
+        </span>
+      </div>
+
+      <div
+        style="flex: 1 1 130px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 21px; text-align: center; padding-inline: 12px; border-inline-start: 1px solid var(--nit-brand-borderprimary);">
+        <span
+          style="font-size: clamp(30px,4vw,48px); font-weight: 500; line-height: 1.1;"
+          data-nit-stat="courses">0</span> <span
+          style="font-size: clamp(16px,2.1vw,28px); font-weight: 500; line-height: 1.35;">
+          {mlang en}Subjects &amp; Courses{mlang} {mlang ar}الموضوع
+          والمقررات{mlang} </span>
+      </div>
+
+    </div>
+  </div>
+  <script>
+    (function() {
+      if (document.getElementById('nit-hoverfx-style')) {
+        return;
+      }
+      var css =
+        '.nit-btn-solid,.nit-btn-ghost,[data-nit-copy],[data-nit-scroll],[data-nit-coupons-scroll],[data-nit-categories]>a,[data-nit-my-courses]>div,[data-nit-about-card]{transition:background-color .2s ease,background .2s ease,color .2s ease,border-color .2s ease,transform .2s ease,box-shadow .2s ease}' +
+        '.nit-btn-solid:not(:disabled):hover{background:var(--nit-brand-primary-hover)!important;color:var(--nit-brand-textprimary)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
+        '.nit-btn-ghost:not(:disabled):hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-bordersecondary)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
+        '[data-nit-copy]:hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-hoverbackground)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
+        '[data-nit-scroll]:hover,[data-nit-coupons-scroll]:hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-hoverbackground)!important;transform:translateY(-50%) scale(1.08)!important}' +
+        '[data-nit-categories]>a:hover,[data-nit-my-courses]>div:not([data-nit-my-course-card]):not([data-nit-my-courses-empty]):hover{transform:translateY(-6px);border-color:var(--nit-brand-accent)!important;box-shadow:0 16px 40px rgba(0,0,0,.45)}' +
+        '[data-nit-categories]>a:hover [data-nit-cta]{background:var(--nit-brand-primary-hover)!important;color:var(--nit-brand-textprimary)!important}' +
+        '[data-nit-about-card]:hover{transform:translateY(-4px);border-color:var(--nit-brand-accent)!important}';
+      var st = document.createElement('style');
+      st.id = 'nit-hoverfx-style';
+      st.textContent = css;
+      (document.head || document.documentElement).appendChild(st);
+    })();
+    // The rules between the figures are cell borders, not separate elements:
+    // an empty <span> divider is exactly the kind of thing TinyMCE deletes on
+    // save, and a border cannot be dropped that way. That leaves two rules to
+    // apply here, both needing !important because the border is set inline.
+    // 1. The leading edge of the first cell is not a divider — turn it off.
+    // 2. The four figures wrap to a 2x2 grid at around 640px, and a vertical
+    //    rule then lands at the start of the second row instead of between
+    //    columns. The cut-off is set at 767px rather than at the wrap point
+    //    itself so a re-measure that shifts the wrap slightly cannot leave a
+    //    stray rule behind; the cost is losing the rules on the last stretch
+    //    where the row is still intact. Padding tightens at the same point.
+    (function() {
+      if (document.getElementById('nit-statbar-style')) {
+        return;
+      }
+      var css =
+        '[data-nit-statbar]>div>div:first-child{border-inline-start:0!important}' +
+        '@media (max-width:767px){[data-nit-statbar]>div>div{border-inline-start:0!important}' +
+        '[data-nit-statbar]>div{padding:44px 28px!important}}';
+      var st = document.createElement('style');
+      st.id = 'nit-statbar-style';
+      st.textContent = css;
+      (document.head || document.documentElement).appendChild(st);
+    })();
+  </script>
+</div>

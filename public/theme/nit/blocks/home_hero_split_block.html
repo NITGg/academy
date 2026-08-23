@@ -1,0 +1,131 @@
+<!-- NIT — Split hero home-page block (Figma "Frame 1707480660").
+     Paste into an HTML block on the FRONT PAGE (Site home).
+     Headline + CTAs on the text side, the artwork on the other.
+
+     The artwork is the Figma frame "Frame 1707480659" (node 118:102) exported
+     as one PNG, and the play button is "Frame 1707480653" (node 118:86). Both
+     exports include their own shadow/glow bleed, so their pixel size is larger
+     than the frame: the play button is a 60.5px circle centred in a 101px box,
+     which the negative margin below cancels so the layout still spaces off the
+     circle. Re-export from Figma to update the art — nothing here redraws it.
+
+     NEEDS local_nit_mlang's "Include rich text editors" switched OFF. With it
+     on, the content editor is split into one tab per language and this single
+     bilingual file is torn in half on save — the symptom is the first heading
+     printing as a raw multilang tag. Turn it off with:
+
+       php admin/cli/cfg.php --component=local_nit_mlang --name=editors --set=0
+
+     Name, Title and the other plain text fields keep their per-language inputs;
+     only editors go back to one field. The tags also need the "Multi-language
+     content (v2)" filter (filter/multilang2) enabled site-wide.
+
+     Paste into an EMPTY block. The multilang filter pairs tags in document
+     order, so a single unpaired opening tag left over from earlier content
+     shifts every pair after it and prints the first heading raw.
+
+     Direction: the text column sits on the right in Arabic and mirrors to the
+     left in English on its own. Alignment uses flex-start / text-align:start,
+     NOT flex-end / end — on a column flex container the cross axis follows the
+     writing direction, so flex-end resolves to the LEFT in RTL, which is the
+     opposite of the design.
+
+     Images are under theme/nit/pix/home/ and prefixed with the /moodle-new/
+     sub-directory this site is installed under, matching home_hero_block.html.
+     Change that prefix if wwwroot moves.
+
+     Colours read from the Brand Colors palette (--nit-brand-*), the same names
+     the other home-page blocks use. --nit-brand-background is what the site
+     background itself resolves to: theme_nit maps the Background brand role
+     onto Bootstrap's $body-bg in lib.php theme_nit_get_pre_scss(), so the
+     block and the page are painted from one value. No literal colours and no
+     mixed values — every colour here is a named palette role. -->
+<div dir="auto"
+  style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px 20px; overflow: hidden;">
+  <div
+    style="max-width: 1280px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 48px 12px;"
+    data-nit-hero-split="">
+
+    <!-- Text column -->
+    <div
+      style="flex: 1 1 420px; max-width: 589px; display: flex; flex-direction: column; align-items: flex-start; gap: 37px;">
+      <div
+        style="display: flex; flex-direction: column; align-items: flex-start; gap: 16px; width: 100%;">
+        <h1
+          style="font-size: clamp(34px,4.8vw,64px); font-weight: 700; line-height: 1.6; margin: 0; align-self: flex-start; width: fit-content; max-width: 100%; text-align: center;">
+          <span style="display: block; color: var(--nit-brand-textprimary);">
+            {mlang en}Learn Today{mlang} {mlang ar}تعلّــــم اليوم{mlang} </span>
+          <span style="display: block; color: var(--nit-brand-accenttext);">
+            {mlang en}Advance Tomorrow{mlang} {mlang ar}تقــدّم غدًا{mlang}
+          </span>
+        </h1>
+        <p
+          style="font-size: 18px; font-weight: 500; line-height: 1.9; color: var(--nit-brand-textsecondary); max-width: 487px; margin: 0; text-align: start;">
+          {mlang en} Enjoy a unique learning experience that gives you the
+          skills of the future. Join more than 10,000 learners and start
+          empowering your professional future with outstanding experts today.
+          {mlang} {mlang ar} استمتع بتجربة تعليمية فريدة تمنحك مهارات المستقبل.
+          انضم لأكثر من ١٠,٠٠٠ طالب وطالبة وابدأ رحلة تمكين مستقبلك المهني مع
+          خبراء متميزين اليوم. {mlang}</p>
+      </div>
+
+      <div
+        style="display: flex; align-items: center; flex-wrap: wrap; gap: 25px;">
+        <a class="nit-btn-solid"
+          style="background: var(--nit-brand-primary); border: 1px solid var(--nit-brand-borderprimary); color: var(--nit-brand-textprimary); width: 220px; height: 60px; border-radius: 8px; font-size: 18px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;"
+          href="/moodle-new/course/index.php" data-nit-btn=""> {mlang en}Start
+          Now{mlang} {mlang ar}ابدأ الان{mlang} </a>
+        <a
+          style="display: inline-flex; align-items: center; gap: 16px; color: var(--nit-brand-textprimary); font-size: 18px; font-weight: 600; text-decoration: none;"
+          href="#" data-nit-hero-play=""> <span>{mlang en}See how it
+            works{mlang} {mlang ar}شاهد كيف يعمل{mlang}</span> <img
+            style="flex: 0 0 auto; width: 101px; height: 101px; margin: -20px;"
+            src="/moodle-new/theme/nit/pix/home/hero-play.png" alt=""
+            decoding="async" data-nit-hero-playdot=""> </a>
+      </div>
+    </div>
+
+    <!-- Artwork: Figma "Frame 1707480659" exported as one image -->
+    <img
+      style="flex: 1 1 480px; max-width: 698px; min-width: 0; height: auto; display: block;"
+      src="/moodle-new/theme/nit/pix/home/hero-collage.png"
+      alt="{mlang en}Students learning online{mlang} {mlang ar}طلاب يتعلمون عبر الإنترنت{mlang}"
+      decoding="async" data-nit-hero-art="">
+  </div>
+  <script>
+    (function() {
+      if (document.getElementById('nit-hoverfx-style')) {
+        return;
+      }
+      var css =
+        '.nit-btn-solid,.nit-btn-ghost,[data-nit-copy],[data-nit-scroll],[data-nit-coupons-scroll],[data-nit-categories]>a,[data-nit-my-courses]>div,[data-nit-about-card]{transition:background-color .2s ease,background .2s ease,color .2s ease,border-color .2s ease,transform .2s ease,box-shadow .2s ease}' +
+        '.nit-btn-solid:not(:disabled):hover{background:var(--nit-brand-primary-hover)!important;color:var(--nit-brand-textprimary)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
+        '.nit-btn-ghost:not(:disabled):hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-bordersecondary)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
+        '[data-nit-copy]:hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-hoverbackground)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
+        '[data-nit-scroll]:hover,[data-nit-coupons-scroll]:hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-hoverbackground)!important;transform:translateY(-50%) scale(1.08)!important}' +
+        '[data-nit-categories]>a:hover,[data-nit-my-courses]>div:not([data-nit-my-course-card]):not([data-nit-my-courses-empty]):hover{transform:translateY(-6px);border-color:var(--nit-brand-accent)!important;box-shadow:0 16px 40px rgba(0,0,0,.45)}' +
+        '[data-nit-categories]>a:hover [data-nit-cta]{background:var(--nit-brand-primary-hover)!important;color:var(--nit-brand-textprimary)!important}' +
+        '[data-nit-about-card]:hover{transform:translateY(-4px);border-color:var(--nit-brand-accent)!important}';
+      var st = document.createElement('style');
+      st.id = 'nit-hoverfx-style';
+      st.textContent = css;
+      (document.head || document.documentElement).appendChild(st);
+    })();
+    // Hero-specific hover polish, in its own guarded style element because the
+    // shared nit-hoverfx-style block above is injected by whichever section
+    // block renders first and must stay byte-identical across all of them.
+    (function() {
+      if (document.getElementById('nit-hero-split-style')) {
+        return;
+      }
+      var css =
+        '[data-nit-hero-playdot]{transition:transform .2s ease}' +
+        '[data-nit-hero-play]:hover [data-nit-hero-playdot]{transform:scale(1.08)}' +
+        '@media (prefers-reduced-motion:reduce){[data-nit-hero-playdot]{transition:none}}';
+      var st = document.createElement('style');
+      st.id = 'nit-hero-split-style';
+      st.textContent = css;
+      (document.head || document.documentElement).appendChild(st);
+    })();
+  </script>
+</div>
