@@ -103,8 +103,7 @@ if (!$file) {
     send_file_not_found();
 }
 
-// Nothing below writes to the session, and holding it open blocks the user's
-// other requests while a large file streams.
-core\session\manager::write_close();
-
-send_stored_file($file, DAY_SECS, 0, false, ['cacheability' => 'public']);
+// send_stored_file unlocks the session itself before streaming
+// (\core\session\manager::write_close in lib/filelib.php), so there is nothing
+// to do here first.
+send_stored_file($file, DAYSECS, 0, false, ['cacheability' => 'public']);
