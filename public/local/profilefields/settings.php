@@ -15,7 +15,11 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the sign-up / profile field layout.
+ * Admin tree entry for local_profilefields.
+ *
+ * The page sits next to core's "User profile fields" under Users > Accounts,
+ * because that is where an admin goes looking for it - the two screens answer
+ * different halves of the same question.
  *
  * @package    local_profilefields
  * @copyright  2026 NIT
@@ -24,9 +28,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_profilefields';
-$plugin->version   = 2026082300;        // YYYYMMDDXX.
-$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
-$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.0.0';
+if ($hassiteconfig) {
+    $ADMIN->add('accounts', new admin_externalpage(
+        'local_profilefields_manage',
+        get_string('managefields', 'local_profilefields'),
+        new moodle_url('/local/profilefields/manage.php'),
+        'moodle/site:config'
+    ));
+}

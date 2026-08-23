@@ -15,7 +15,12 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the sign-up / profile field layout.
+ * Plugin callbacks for local_profilefields.
+ *
+ * `core_login_extend_signup_form()` collects `*_extend_signup_form()` out of every
+ * plugin's lib.php, which is the one extension point core offers for the sign-up
+ * form. It is called last in `login_signup_form::definition()`, so by the time we
+ * are handed the form every core box and every custom profile field is in place.
  *
  * @package    local_profilefields
  * @copyright  2026 NIT
@@ -24,9 +29,18 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_profilefields';
-$plugin->version   = 2026082300;        // YYYYMMDDXX.
-$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
-$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.0.0';
+/**
+ * Apply the configured field layout to the sign-up form.
+ *
+ * @param MoodleQuickForm $mform the sign-up form, mid-definition
+ * @return void
+ */
+function local_profilefields_extend_signup_form($mform) {
+    // Never touch the form while the site is mid-install or mid-upgrade: the
+    // config table may not hold our settings yet.
+    if (during_initial_install()) {
+        return;
+    }
+
+    \local_profilefields\signup::apply($mform);
+}

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the sign-up / profile field layout.
+ * Hook callback registrations for local_profilefields.
  *
  * @package    local_profilefields
  * @copyright  2026 NIT
@@ -24,9 +24,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_profilefields';
-$plugin->version   = 2026082300;        // YYYYMMDDXX.
-$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
-$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.0.0';
+$callbacks = [
+    [
+        // The profile edit form has no definition-time extension point, so the
+        // fields switched off there are hidden from the page head instead.
+        'hook'     => \core\hook\output\before_standard_head_html_generation::class,
+        'callback' => 'local_profilefields\hook\output_callbacks::hide_profile_fields',
+        'priority' => 0,
+    ],
+];
