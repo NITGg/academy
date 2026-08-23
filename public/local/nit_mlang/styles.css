@@ -1,0 +1,83 @@
+/* Multilingual fields — per-language inputs and editor language tabs.
+ *
+ * Colours resolve from the theme's brand palette (--nit-brand-*) with plain
+ * fallbacks, so the widget looks native in theme_nit and still readable under a
+ * stock Boost/Classic theme. Inputs keep Bootstrap's .form-control so they pick
+ * up the surrounding form styling unchanged.
+ */
+
+/* The original field stays in the form (it is what submits) but is never typed into. */
+.nitml-source {
+    display: none !important;
+}
+
+.nitml {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.nitml__row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.nitml__lang {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--nit-brand-textsecondary, #6c757d);
+}
+
+.nitml__input {
+    width: 100%;
+}
+
+.nitml-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.nitml-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid color-mix(in srgb, var(--nit-brand-textprimary, #212529) 18%, transparent);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--nit-brand-textsecondary, #6c757d);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.4;
+    padding: 0.25rem 0.85rem;
+    cursor: pointer;
+}
+
+.nitml-tab:hover {
+    border-color: var(--nit-brand-primary, #0f6cbf);
+    color: var(--nit-brand-textprimary, #212529);
+}
+
+.nitml-tab--active {
+    background: var(--nit-brand-primary, #0f6cbf);
+    border-color: var(--nit-brand-primary, #0f6cbf);
+    color: var(--nit-brand-textprimary, #fff);
+}
+
+/* A filled language gets a dot, so an author can see at a glance which
+   translations are still missing without clicking through every tab. */
+.nitml-tab--filled::after {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.75;
+}
