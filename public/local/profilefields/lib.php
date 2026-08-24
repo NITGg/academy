@@ -44,3 +44,32 @@ function local_profilefields_extend_signup_form($mform) {
 
     \local_profilefields\signup::apply($mform);
 }
+
+/**
+ * Server-side validation for the sign-up form additions.
+ *
+ * Covers the inline policy-consent checkbox (an unticked advcheckbox submits 0,
+ * which a client rule cannot catch) and the optional "IP country must match the
+ * phone country" rule.
+ *
+ * @param array $data submitted sign-up values
+ * @return array element name => error message
+ */
+function local_profilefields_validate_extend_signup_form($data) {
+    if (during_initial_install()) {
+        return [];
+    }
+
+    $errors = [];
+
+    if (\local_profilefields\manager::consent_enabled()
+            && empty($data[\local_profilefields\signup::CONSENT])) {
+        $errors[\local_profilefields\signup::CONSENT] = get_string('consentrequired', 'local_profilefields');
+    }
+
+    if (\local_profilefields\manager::ip_match_phone()) {
+        $errors = array_merge($errors, \local_profilefields\signup::validate_ip_match($data));
+    }
+
+    return $errors;
+}

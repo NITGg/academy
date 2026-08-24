@@ -75,14 +75,6 @@ class page {
      * @return void
      */
     public static function process(string $tab): void {
-        // Reorder links (register tab): move one field up or down and reload.
-        $do = optional_param('do', '', PARAM_ALPHA);
-        if ($do === 'moveup' || $do === 'movedown') {
-            require_sesskey();
-            self::move(optional_param('token', '', PARAM_RAW), $do === 'moveup');
-            redirect(self::url($tab));
-        }
-
         // Provisioning: create the recommended custom fields.
         if (optional_param('provision', 0, PARAM_BOOL)) {
             require_sesskey();
@@ -90,6 +82,16 @@ class page {
             redirect(self::url($tab),
                 get_string('provisiondone', 'local_profilefields', $count),
                 null, \core\output\notification::NOTIFY_SUCCESS);
+        }
+
+        // A reorder arrow on the register tab (a submit button, so the rest of the
+        // form is saved in the same request and nothing typed is lost).
+        $moveup = optional_param('moveup', '', PARAM_RAW);
+        $movedown = optional_param('movedown', '', PARAM_RAW);
+        if (($moveup !== '' || $movedown !== '') && confirm_sesskey()) {
+            self::save_register();
+            self::move($moveup !== '' ? $moveup : $movedown, $moveup !== '');
+            redirect(self::url($tab));
         }
 
         // Save the toggles for the active tab.
@@ -184,14 +186,12 @@ class page {
      * @return void
      */
     protected static function render_register(): void {
-        global $OUTPUT;
-
         echo html_writer::tag('p', get_string('tabregister_intro', 'local_profilefields'),
             ['class' => 'text-muted']);
 
-        echo self::username_panel();
-
-        // Fields table.
+        // One form for the whole tab, with a single Save button. Splitting the tab
+        // into several small forms made a label edit land only if the matching form's
+        // own Save was clicked - so edits appeared to save unpredictably.
         echo html_writer::start_tag('form', [
             'method' => 'post', 'action' => self::url(self::TAB_REGISTER)->out(false),
         ]);
@@ -208,7 +208,9 @@ class page {
             html_writer::tag('th', get_string('colrequired', 'local_profilefields'), ['class' => 'text-center']) .
             html_writer::tag('th', get_string('colrename', 'local_profilefields')));
 
-        $body = '';
+        // The two behaviour rows sit at the top of the same table.
+        $body = self::username_row() . self::country_from_phone_row();
+
         $last = count($tokens) - 1;
         foreach ($tokens as $i => $token) {
             $body .= self::register_row($token, $custom, $i === 0, $i === $last);
@@ -216,53 +218,59 @@ class page {
 
         echo html_writer::tag('table', $head . $body, ['class' => 'generaltable w-100']);
 
+        // Sections that live under the table but inside the same form and Save.
+        echo self::ipmatch_section();
+        echo self::terms_section();
+
         echo html_writer::tag('div',
             html_writer::tag('button', get_string('savechanges'),
                 ['type' => 'submit', 'class' => 'btn btn-primary']),
             ['class' => 'mt-3']);
         echo html_writer::end_tag('form');
-
-        echo self::terms_panel();
     }
 
     /**
-     * The username-from-email control panel.
+     * The "username from email" behaviour, as a table row.
      *
      * @return string HTML
      */
-    protected static function username_panel(): string {
-        $out = html_writer::start_tag('form', [
-            'method' => 'post', 'action' => self::url(self::TAB_REGISTER)->out(false),
-            'class' => 'card card-body mb-4',
-        ]);
-        $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
-        $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'save', 'value' => 1]);
-        $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'section', 'value' => 'username']);
-
-        $out .= html_writer::tag('h4', get_string('usernameheading', 'local_profilefields'));
-
-        $fromemail = manager::username_from_email();
-        $out .= html_writer::tag('div',
-            self::yesno_select('usernamefromemail', $fromemail) . ' ' .
-            html_writer::tag('label', get_string('usernamefromemail', 'local_profilefields'),
-                ['for' => 'id_usernamefromemail', 'class' => 'ms-2']),
-            ['class' => 'form-check form-switch mb-2']);
-
+    protected static function username_row(): string {
         $sources = [
             manager::USERNAME_EMAIL     => get_string('usernamesourceemail', 'local_profilefields'),
             manager::USERNAME_LOCALPART => get_string('usernamesourcelocalpart', 'local_profilefields'),
         ];
-        $out .= html_writer::tag('label', get_string('usernamesource', 'local_profilefields'),
-            ['class' => 'me-2']);
-        $out .= html_writer::select($sources, 'usernamesource', manager::username_source(), false);
+        $controls = html_writer::div(
+            self::yesno_select('usernamefromemail', manager::username_from_email()) .
+            html_writer::tag('label', get_string('usernamesource', 'local_profilefields'),
+                ['class' => 'ms-3 me-2 mb-0']) .
+            html_writer::select($sources, 'usernamesource', manager::username_source(), false),
+            'd-flex flex-wrap align-items-center gap-1');
 
-        $out .= html_writer::tag('div',
-            html_writer::tag('button', get_string('savechanges'),
-                ['type' => 'submit', 'class' => 'btn btn-secondary btn-sm']),
-            ['class' => 'mt-2']);
-        $out .= html_writer::end_tag('form');
+        return html_writer::tag('tr',
+            html_writer::tag('td', '') .
+            html_writer::tag('td',
+                html_writer::span(get_string('usernameheading', 'local_profilefields'), 'fw-semibold') . ' ' .
+                self::badge('special') . html_writer::div(
+                    get_string('usernamefromemail', 'local_profilefields'), 'text-muted small')) .
+            html_writer::tag('td', $controls, ['colspan' => 3]),
+            ['class' => 'table-active']);
+    }
 
-        return $out;
+    /**
+     * The "fill Country from the phone field" behaviour, as a table row.
+     *
+     * @return string HTML
+     */
+    protected static function country_from_phone_row(): string {
+        return html_writer::tag('tr',
+            html_writer::tag('td', '') .
+            html_writer::tag('td',
+                html_writer::span(get_string('countryfromphone', 'local_profilefields'), 'fw-semibold') . ' ' .
+                self::badge('special') . html_writer::div(
+                    get_string('countryfromphone_desc', 'local_profilefields'), 'text-muted small')) .
+            html_writer::tag('td',
+                self::yesno_select('countryfromphone', manager::country_from_phone()), ['colspan' => 3]),
+            ['class' => 'table-active']);
     }
 
     /**
@@ -283,7 +291,7 @@ class page {
                 return '';
             }
             $label = format_string($field->name);
-            $sub = html_writer::span(s($field->shortname), 'text-muted small');
+            $sub = html_writer::span(s($field->shortname), 'text-muted small') . ' ' . self::badge('custom');
             $show = ['name' => 'cfsignup[' . $field->id . ']', 'checked' => !empty($field->signup), 'disabled' => false];
             $req = ['name' => 'cfreq[' . $field->id . ']', 'checked' => !empty($field->required), 'disabled' => false];
             $rename = html_writer::link(
@@ -295,7 +303,7 @@ class page {
                 return '';
             }
             $label = self::core_label($token);
-            $sub = html_writer::span(s($token), 'text-muted small');
+            $sub = html_writer::span(s($token), 'text-muted small') . ' ' . self::badge('builtin');
             $mandatory = !self::core_can_hide($token);
             $show = [
                 'name' => 'show[' . $token . ']',
@@ -311,8 +319,8 @@ class page {
             $rename = self::rename_details($token);
         }
 
-        $up = $first ? '' : self::move_link($token, true);
-        $down = $slast ? '' : self::move_link($token, false);
+        $up = $first ? '' : self::move_button($token, true);
+        $down = $slast ? '' : self::move_button($token, false);
 
         return html_writer::tag('tr',
             html_writer::tag('td', $up . $down, ['class' => 'text-nowrap']) .
@@ -351,33 +359,24 @@ class page {
     }
 
     /**
-     * The terms & privacy status panel.
+     * The "match phone country to IP" section, under the fields table.
      *
      * @return string HTML
      */
-    protected static function terms_panel(): string {
-        global $CFG;
-
-        $installed = \core_component::get_component_directory('tool_policy') !== null;
-        $usingtool = ($CFG->sitepolicyhandler ?? '') === 'tool_policy';
-
+    protected static function ipmatch_section(): string {
         $out = html_writer::start_div('card card-body mt-4');
-        $out .= html_writer::tag('h4', get_string('termsheading', 'local_profilefields'));
-        $out .= html_writer::tag('p', get_string('termsnative', 'local_profilefields'),
-            ['class' => 'text-muted']);
+        $out .= html_writer::tag('h4', get_string('ipmatchheading', 'local_profilefields'));
+        $out .= html_writer::tag('div',
+            self::checkbox(['name' => 'ipmatchphone', 'checked' => manager::ip_match_phone()]) . ' ' .
+            html_writer::tag('label', get_string('ipmatchphone', 'local_profilefields'), ['class' => 'ms-2 mb-0']),
+            ['class' => 'form-check form-switch']);
+        $out .= html_writer::tag('p', get_string('ipmatchphone_desc', 'local_profilefields'),
+            ['class' => 'text-muted small mt-1']);
 
-        if ($installed) {
-            $status = $usingtool ? get_string('termson', 'local_profilefields')
-                : get_string('termsoff', 'local_profilefields');
-            $out .= html_writer::tag('p', $status,
-                ['class' => $usingtool ? 'text-success' : 'text-warning']);
-            $out .= html_writer::link(new moodle_url('/admin/tool/policy/managedocs.php'),
-                get_string('termsmanage', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm me-2']);
-            $out .= html_writer::link(new moodle_url('/admin/settings.php', ['section' => 'privacysettings']),
-                get_string('termssettings', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm']);
-        } else {
-            $out .= html_writer::link(new moodle_url('/admin/settings.php', ['section' => 'privacysettings']),
-                get_string('termssettings', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm']);
+        if (!self::geoip_available()) {
+            $url = (new moodle_url('/admin/settings.php', ['section' => 'locationsettings']))->out();
+            $out .= html_writer::div(get_string('ipmatchnogeoip', 'local_profilefields', $url),
+                'alert alert-warning');
         }
 
         $out .= html_writer::end_div();
@@ -385,23 +384,99 @@ class page {
     }
 
     /**
-     * Save the register tab (username panel or the fields table).
+     * The terms & privacy section: the inline-consent switch plus policy status.
+     *
+     * @return string HTML
+     */
+    protected static function terms_section(): string {
+        global $CFG;
+
+        $installed = \core_component::get_component_directory('tool_policy') !== null;
+        $usingtool = ($CFG->sitepolicyhandler ?? '') === 'tool_policy';
+
+        $out = html_writer::start_div('card card-body mt-4');
+        $out .= html_writer::tag('h4', get_string('termsheading', 'local_profilefields'));
+
+        $out .= html_writer::tag('div',
+            self::checkbox(['name' => 'consentenabled', 'checked' => manager::consent_enabled()]) . ' ' .
+            html_writer::tag('label', get_string('consentenable', 'local_profilefields'), ['class' => 'ms-2 mb-0']),
+            ['class' => 'form-check form-switch']);
+        $out .= html_writer::tag('p', get_string('consentenable_desc', 'local_profilefields'),
+            ['class' => 'text-muted small mt-1']);
+
+        $docs = policies::signup_documents();
+        if (!empty($docs)) {
+            $items = '';
+            foreach ($docs as $name => $url) {
+                $items .= html_writer::tag('li', html_writer::link($url, s($name), ['target' => '_blank']));
+            }
+            $out .= html_writer::tag('p', get_string('termsdocsfound', 'local_profilefields'));
+            $out .= html_writer::tag('ul', $items);
+        } else {
+            $out .= html_writer::div(get_string('termsdocsnone', 'local_profilefields'), 'alert alert-info');
+        }
+
+        if (manager::consent_enabled() && $usingtool) {
+            $url = (new moodle_url('/admin/settings.php', ['section' => 'privacysettings']))->out();
+            $out .= html_writer::div(get_string('termsdoubleask', 'local_profilefields', $url),
+                'alert alert-warning');
+        }
+
+        if ($installed) {
+            $out .= html_writer::link(new moodle_url('/admin/tool/policy/managedocs.php'),
+                get_string('termsmanage', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm']);
+        } else {
+            $out .= html_writer::div(get_string('termsnotool', 'local_profilefields'), 'text-muted small');
+        }
+
+        $out .= html_writer::end_div();
+        return $out;
+    }
+
+    /**
+     * A small "Built-in" / "Custom" / behaviour badge for a table row.
+     *
+     * @param string $kind one of 'builtin', 'custom', 'special'
+     * @return string HTML
+     */
+    protected static function badge(string $kind): string {
+        $map = [
+            'builtin' => ['badge bg-secondary', get_string('badgebuiltin', 'local_profilefields')],
+            'custom'  => ['badge bg-info text-dark', get_string('badgecustom', 'local_profilefields')],
+            'special' => ['badge bg-primary', get_string('badgespecial', 'local_profilefields')],
+        ];
+        [$class, $text] = $map[$kind] ?? $map['builtin'];
+        return html_writer::span($text, $class);
+    }
+
+    /**
+     * Whether a geo-IP source is configured and usable for the IP-match check.
+     *
+     * @return bool
+     */
+    protected static function geoip_available(): bool {
+        global $CFG;
+        return (!empty($CFG->geoip2file) && file_exists($CFG->geoip2file)) || !empty($CFG->geopluginapikey);
+    }
+
+    /**
+     * Save the whole register tab in one pass.
      *
      * @return void
      */
     protected static function save_register(): void {
-        // Each panel on the register tab posts on its own, tagged by "section".
-        $section = optional_param('section', '', PARAM_ALPHA);
-        if ($section === 'username') {
-            set_config('usernamefromemail', optional_param('usernamefromemail', 0, PARAM_BOOL) ? 1 : 0,
-                manager::COMPONENT);
-            $source = optional_param('usernamesource', manager::USERNAME_EMAIL, PARAM_ALPHA);
-            set_config('usernamesource',
-                $source === manager::USERNAME_LOCALPART ? manager::USERNAME_LOCALPART : manager::USERNAME_EMAIL,
-                manager::COMPONENT);
-            return;
-        }
+        // Behaviour toggles.
+        set_config('usernamefromemail', optional_param('usernamefromemail', 0, PARAM_BOOL) ? 1 : 0,
+            manager::COMPONENT);
+        $source = optional_param('usernamesource', manager::USERNAME_EMAIL, PARAM_ALPHA);
+        set_config('usernamesource',
+            $source === manager::USERNAME_LOCALPART ? manager::USERNAME_LOCALPART : manager::USERNAME_EMAIL,
+            manager::COMPONENT);
+        set_config('countryfromphone', optional_param('countryfromphone', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
+        set_config('ipmatchphone', optional_param('ipmatchphone', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
+        set_config('consentenabled', optional_param('consentenabled', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
 
+        // Core field toggles and per-language labels.
         $show = optional_param_array('show', [], PARAM_BOOL);
         $req = optional_param_array('req', [], PARAM_BOOL);
         $labels = self::posted_labels();
@@ -950,19 +1025,24 @@ class page {
     }
 
     /**
-     * A move-up / move-down arrow link.
+     * A move-up / move-down arrow, as a submit button.
+     *
+     * A submit (not a link) so pressing it saves the rest of the form in the same
+     * request - a field can be reordered without losing an in-progress label edit.
      *
      * @param string $token
      * @param bool $up
      * @return string HTML
      */
-    protected static function move_link(string $token, bool $up): string {
+    protected static function move_button(string $token, bool $up): string {
         global $OUTPUT;
-        $url = self::url(self::TAB_REGISTER, [
-            'do' => $up ? 'moveup' : 'movedown', 'token' => $token, 'sesskey' => sesskey(),
-        ]);
         $icon = $up ? 't/up' : 't/down';
         $alt = get_string($up ? 'moveup' : 'movedown');
-        return html_writer::link($url, $OUTPUT->pix_icon($icon, $alt), ['class' => 'me-1']);
+        return html_writer::tag('button', $OUTPUT->pix_icon($icon, $alt), [
+            'type' => 'submit',
+            'name' => $up ? 'moveup' : 'movedown',
+            'value' => $token,
+            'class' => 'btn btn-link p-0 me-1',
+        ]);
     }
 }

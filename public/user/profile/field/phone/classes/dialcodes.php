@@ -189,7 +189,7 @@ class dialcodes {
      *
      * @return string ISO alpha-2 country code, or ''
      */
-    protected static function country_from_ip(): string {
+    public static function country_from_ip(): string {
         global $CFG;
 
         // No GeoIP source configured means iplookup only ever returns an error;

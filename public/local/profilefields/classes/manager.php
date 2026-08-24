@@ -320,6 +320,33 @@ class manager {
     }
 
     /**
+     * Whether the sign-up Country box should mirror the phone field's country.
+     *
+     * @return bool
+     */
+    public static function country_from_phone(): bool {
+        return (bool) get_config(self::COMPONENT, 'countryfromphone');
+    }
+
+    /**
+     * Whether sign-up requires the visitor's IP country to match the phone country.
+     *
+     * @return bool
+     */
+    public static function ip_match_phone(): bool {
+        return (bool) get_config(self::COMPONENT, 'ipmatchphone');
+    }
+
+    /**
+     * Whether an inline "I agree to the policies" checkbox is added to sign-up.
+     *
+     * @return bool
+     */
+    public static function consent_enabled(): bool {
+        return (bool) get_config(self::COMPONENT, 'consentenabled');
+    }
+
+    /**
      * The admin-chosen order of fields on the sign-up form.
      *
      * Tokens are either a core field name (`email`) or `cf:<shortname>` for a

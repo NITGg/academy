@@ -100,6 +100,111 @@ class signup {
         }
 
         self::reorder($mform, $config);
+
+        // Appended last, so it sits just above the buttons core adds after us.
+        if (manager::consent_enabled()) {
+            self::add_consent($mform);
+        }
+
+        // Client-side: keep the Country box in step with the phone field's country.
+        if (manager::country_from_phone()) {
+            self::inject_country_sync();
+        }
+    }
+
+    /** @var string Element name of the inline policy-consent checkbox. */
+    const CONSENT = 'localprofilefieldsconsent';
+
+    /**
+     * Add the inline "I agree to the policies" checkbox.
+     *
+     * The alternative to tool_policy's separate acceptance page: one required
+     * checkbox on the form, its label linking to the policy documents. Formal
+     * per-policy acceptance records are only kept by tool_policy's own flow; this
+     * records agreement as a condition of submitting the form (enforced in
+     * local_profilefields_validate_extend_signup_form()).
+     *
+     * @param MoodleQuickForm $mform the sign-up form, mid-definition
+     * @return void
+     */
+    protected static function add_consent(MoodleQuickForm $mform): void {
+        if ($mform->elementExists(self::CONSENT)) {
+            return;
+        }
+        $mform->addElement('advcheckbox', self::CONSENT, '', policies::consent_label());
+        $mform->setType(self::CONSENT, PARAM_INT);
+    }
+
+    /**
+     * Emit the JS that copies the phone field's country into the Country box.
+     *
+     * Both selects use ISO alpha-2 country codes as their option values, so the sync
+     * is a straight value copy. A MutationObserver is not needed - the sign-up form
+     * is server-rendered in one shot.
+     *
+     * @return void
+     */
+    protected static function inject_country_sync(): void {
+        global $PAGE;
+
+        $js = <<<'JS'
+(function() {
+    var phone = document.querySelector('select[name="profile_field_phone[country]"]');
+    var country = document.querySelector('select[name="country"]');
+    if (!phone || !country) {
+        return;
+    }
+    var sync = function() {
+        if (phone.value && country.querySelector('option[value="' + phone.value + '"]')) {
+            country.value = phone.value;
+        }
+    };
+    phone.addEventListener('change', sync);
+    sync();
+})();
+JS;
+        $PAGE->requires->js_init_code($js, true);
+    }
+
+    /**
+     * Validate that the visitor's IP country matches the phone country.
+     *
+     * Returns an error only when a geo-IP source resolves the IP to a *different*
+     * country. When no geo-IP is configured, or the address cannot be resolved, the
+     * check is skipped rather than blocking a legitimate sign-up.
+     *
+     * @param array $data submitted sign-up values
+     * @return array element name => error message (empty when OK or skipped)
+     */
+    public static function validate_ip_match(array $data): array {
+        global $DB, $CFG;
+
+        if (!class_exists('\profilefield_phone\dialcodes')) {
+            return [];
+        }
+
+        // The phone field the check applies to (first one shown on sign-up).
+        $field = $DB->get_record_select('user_info_field',
+            "datatype = ? AND signup = 1", ['phone'], '*', IGNORE_MULTIPLE);
+        if (!$field) {
+            return [];
+        }
+        $element = self::CUSTOM_PREFIX . $field->shortname;
+        $value = $data[$element] ?? null;
+        if (!is_array($value) || empty($value['country'])) {
+            return [];
+        }
+
+        $ipiso = \profilefield_phone\dialcodes::country_from_ip();
+        if ($ipiso === '') {
+            // No geo-IP source, or the address is unresolvable - do not block.
+            return [];
+        }
+
+        if (strtoupper($value['country']) !== $ipiso) {
+            return [$element => get_string('ipmismatch', 'local_profilefields')];
+        }
+        return [];
     }
 
     /**
