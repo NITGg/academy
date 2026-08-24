@@ -463,8 +463,12 @@ class manager {
         if (count($filled) === 0) {
             return '';
         }
-        if (count($filled) === 1) {
-            return reset($filled);
+
+        // A {mlang} label only renders when a multilang filter is enabled; without
+        // one the raw tags would show. In that case (or a single language) store
+        // plain text, preferring the current interface language.
+        if (count($filled) === 1 || !self::multilang_active()) {
+            return $filled[current_language()] ?? reset($filled);
         }
 
         $out = '';
@@ -472,6 +476,19 @@ class manager {
             $out .= '{mlang ' . $lang . '}' . $text . '{mlang}';
         }
         return $out;
+    }
+
+    /**
+     * Whether a multilang filter is globally enabled to render {mlang} tags.
+     *
+     * @return bool
+     */
+    public static function multilang_active(): bool {
+        global $CFG;
+        require_once($CFG->dirroot . '/lib/filterlib.php');
+
+        $enabled = filter_get_globally_enabled();
+        return isset($enabled['multilang']) || isset($enabled['multilang2']);
     }
 
     /**
