@@ -1,6 +1,7 @@
 <?php
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->dirroot . '/course/lib.php');
+require_once($CFG->dirroot . '/local/nit_category/lib.php');
 require_once($CFG->libdir . '/filelib.php');
 
 // Respect the site's forced-login policy: if the site requires login to browse,
@@ -115,10 +116,16 @@ foreach ($rootnodes as $n) {
 // of any subcategory filter currently selected.
 $bannertotal = $category->get_courses_count(['recursive' => true]);
 
-// Category image: Moodle categories have no image of their own, so fall back to
-// the site logo ("if the category has no image, show the site logo").
-$logo = $OUTPUT->get_logo_url() ?: $OUTPUT->get_compact_logo_url();
-$categoryimage = $logo ? $logo->out(false) : '';
+// Category image: Moodle categories have no image of their own, so this plugin owns
+// one (uploaded on the "Category image" tab of the category). local_nit_category_get_image_url()
+// walks the chain uploaded image -> first image in the category description -> nearest
+// ancestor's image; if the whole chain comes up empty we still fall back to the site
+// logo ("if the category has no image, show the site logo").
+$categoryimage = local_nit_category_get_image_url((int) $category->id);
+if ($categoryimage === '') {
+    $logo = $OUTPUT->get_logo_url() ?: $OUTPUT->get_compact_logo_url();
+    $categoryimage = $logo ? $logo->out(false) : '';
+}
 
 // Colour palette: this page reads entirely from the site Brand Colors palette
 // (theme_nit's --nit-brand-* custom properties), so it re-skins with the rest of
