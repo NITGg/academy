@@ -6,32 +6,45 @@ defined('MOODLE_INTERNAL') || die();
 class country_detector {
 
     /**
-     * Detect user's country for pricing.
+     * Detect a buyer's country for pricing.
      *
-     * Pricing follows the buyer's Moodle profile country: it is the built-in field the
-     * academy uses to decide which per-country price applies, and it is what admins and
-     * users see and manage. IP geolocation is deliberately NOT consulted — a user's stated
-     * country drives their price, and if no price is configured for that country the
-     * resolvers fall back to the item's default price.
+     * The policy is hybrid, keyed on whether the buyer is logged in:
      *
-     * Priority: 1. User profile → 2. Flutter app header → 3. Admin default → 4. 'EG'
+     *  - LOGGED-IN user: their Moodle profile country drives pricing (the built-in field
+     *    the academy manages). It is stable and cannot whiplash between visits.
+     *  - GUEST (not logged in / guest account): there is no profile country, so the shop
+     *    window is localised by IP geolocation — an anonymous visitor sees their own
+     *    country's price. A guest cannot pay: buying redirects to login/registration, after
+     *    which their profile country takes over, so the guest price is only a preview.
      *
-     * (The $ip argument is retained for backwards compatibility with existing callers but
-     * is no longer used.)
+     * Priority (logged-in):  1. Profile → 2. App header → 3. Admin default → 4. 'EG'
+     * Priority (guest):      1. IP      → 2. App header → 3. Admin default → 4. 'EG'
      */
     public static function detect(?int $userid = null, ?string $app_country = null, ?string $ip = null): string {
-        global $USER;
+        global $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
 
-        // 1. User profile country — the built-in field pricing is keyed on.
-        $profile_country = self::from_profile($userid);
-        if (!empty($profile_country)) {
-            return $profile_country;
+        // Anonymous (id 0) or the site guest account = guest for pricing purposes.
+        $isguest = ($userid <= 0)
+            || (!empty($CFG->siteguest) && (int) $userid === (int) $CFG->siteguest);
+
+        if ($isguest) {
+            // 1. IP geolocation — localise the price for anonymous visitors.
+            $ip_country = self::from_ip($ip ?? getremoteaddr());
+            if (!empty($ip_country)) {
+                return $ip_country;
+            }
+        } else {
+            // 1. Logged-in user's profile country — the built-in field pricing is keyed on.
+            $profile_country = self::from_profile($userid);
+            if (!empty($profile_country)) {
+                return $profile_country;
+            }
         }
 
-        // 2. Country provided by the Flutter app (used only when the profile has none,
-        // e.g. an app guest who has not set a profile country yet).
+        // 2. Country provided by the Flutter app (fallback when the above yields nothing,
+        // e.g. an app guest, or a logged-in user with no profile country yet).
         if (!empty($app_country) && self::is_valid_country($app_country)) {
             return strtoupper($app_country);
         }

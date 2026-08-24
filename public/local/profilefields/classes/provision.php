@@ -366,13 +366,10 @@ class provision {
      * viewer is using - the same mechanism the rest of the site uses for
      * multilingual field labels.
      *
-     * Shared with {@see instructor_fields}, so both provisioned sets name their
-     * fields the same way.
-     *
      * @param array $spec one entry from self::fields()
      * @return string
      */
-    public static function field_name(array $spec): string {
+    protected static function field_name(array $spec): string {
         $en = $spec['name'];
 
         // A bilingual {mlang} name only makes sense when a multilang filter will

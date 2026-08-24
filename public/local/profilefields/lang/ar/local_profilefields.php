@@ -123,38 +123,4 @@ $string['fieldeducation'] = 'المؤهل التعليمي';
 $string['fieldnationalid'] = 'الرقم القومي';
 $string['fieldpassport'] = 'جواز السفر';
 
-// Instructor fields.
-$string['instructorcategory'] = 'بيانات المدرب';
-$string['instructorheading'] = 'حقول المدرب';
-$string['instructorintro'] = 'حقول ملف المدرب غير مكتملة ({$a->count} حقل ناقص). أنشئ الحقول الناقصة في "{$a->category}" بخطوة واحدة؛ الحقول الموجودة لن تتغيّر.';
-$string['instructorbutton'] = 'أنشئ حقول المدرب';
-$string['instructordone'] = 'تم إنشاء {$a} حقل.';
-$string['instructorallset'] = 'كل حقول المدرب موجودة.';
-$string['instructornofile'] = 'إضافة نوع حقل الملف (profilefield_file) غير مثبّتة، لذلك سيتم إنشاء "صورة الغلاف" و"السيرة الذاتية" كحقول رابط بدل الرفع الفعلي. ثبّتها أولًا إذا أردت أن يرفع المستخدمون الملفات بأنفسهم.';
-
-// Reasons a requested field is never provisioned.
-$string['skipcorename'] = 'موجود في مودل أصلًا - الاسم الأول واسم العائلة.';
-$string['skipcoreemail'] = 'موجود في مودل أصلًا - البريد الإلكتروني (فريد تلقائيًا).';
-$string['skipcorecountry'] = 'موجود في مودل أصلًا - الدولة.';
-$string['skipcorepicture'] = 'موجود في مودل أصلًا - الصورة الشخصية.';
-$string['skipexisting'] = 'موجود بالفعل كحقل مخصص باسم "{$a}".';
-
-// Instructor field names.
-$string['fieldcoverimage'] = 'صورة الغلاف';
-$string['fieldbiography'] = 'نبذة تعريفية';
-$string['fieldqualifications'] = 'المؤهلات';
-$string['fieldcertificates'] = 'الشهادات';
-$string['fieldexperience'] = 'الخبرات';
-$string['fieldspecialization'] = 'التخصص';
-$string['fieldlanguages'] = 'اللغات';
-$string['fieldlinkedin'] = 'لينكد إن';
-$string['fieldwebsite'] = 'الموقع الإلكتروني';
-$string['fieldfacebook'] = 'فيسبوك';
-$string['fieldinstagram'] = 'إنستجرام';
-$string['fieldtwitter'] = 'تويتر';
-$string['fieldyoutube'] = 'يوتيوب';
-$string['fieldawards'] = 'الجوائز';
-$string['fieldyearsofexperience'] = 'سنوات الخبرة';
-$string['fieldresume'] = 'السيرة الذاتية';
-
-$string['privacy:metadata'] ='إضافة حقول التسجيل والملف الشخصي تخزّن فقط إعدادات عرض الحقول، ولا تخزّن أي بيانات شخصية.';
+$string['privacy:metadata'] = 'إضافة حقول التسجيل والملف الشخصي تخزّن فقط إعدادات عرض الحقول، ولا تخزّن أي بيانات شخصية.';

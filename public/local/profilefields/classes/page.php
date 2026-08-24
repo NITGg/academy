@@ -84,15 +84,6 @@ class page {
                 null, \core\output\notification::NOTIFY_SUCCESS);
         }
 
-        // Provisioning: create the instructor field set.
-        if (optional_param('provisioninstructor', 0, PARAM_BOOL)) {
-            require_sesskey();
-            $count = instructor_fields::run();
-            redirect(self::url($tab),
-                get_string('instructordone', 'local_profilefields', $count),
-                null, \core\output\notification::NOTIFY_SUCCESS);
-        }
-
         // A reorder arrow on the register tab (a submit button, so the rest of the
         // form is saved in the same request and nothing typed is lost).
         $moveup = optional_param('moveup', '', PARAM_RAW);
@@ -591,7 +582,6 @@ class page {
             ['class' => 'text-muted']);
 
         echo self::provision_panel();
-        echo self::instructor_panel();
 
         echo html_writer::start_tag('form', [
             'method' => 'post', 'action' => self::url(self::TAB_PROFILE)->out(false),
@@ -722,54 +712,6 @@ class page {
         }
         $url = self::url(self::TAB_PROFILE, ['provision' => 1, 'sesskey' => sesskey()]);
         $out .= html_writer::link($url, get_string('provisionbutton', 'local_profilefields'),
-            ['class' => 'btn btn-secondary']);
-        $out .= html_writer::end_div();
-
-        return $out;
-    }
-
-    /**
-     * The instructor-fields panel: create the instructor profile field set.
-     *
-     * Lists what is missing before creating anything, so the admin can see exactly
-     * what the button will add rather than pressing it blind.
-     *
-     * @return string HTML
-     */
-    protected static function instructor_panel(): string {
-        $missing = instructor_fields::missing();
-
-        if (empty($missing)) {
-            return html_writer::div(
-                html_writer::span(get_string('instructorallset', 'local_profilefields'), 'text-success'),
-                'alert alert-info');
-        }
-
-        $specs = instructor_fields::fields();
-
-        $out = html_writer::start_div('card card-body mb-4');
-        $out .= html_writer::tag('h4', get_string('instructorheading', 'local_profilefields'));
-        $out .= html_writer::tag('p', get_string('instructorintro', 'local_profilefields', (object) [
-            'count'    => count($missing),
-            'category' => format_string(instructor_fields::category_name()),
-        ]));
-
-        if (!instructor_fields::file_available()) {
-            $out .= html_writer::div(get_string('instructornofile', 'local_profilefields'),
-                'alert alert-warning');
-        }
-
-        $items = '';
-        foreach ($missing as $shortname) {
-            $items .= html_writer::tag('li',
-                html_writer::span(s($specs[$shortname]['name']), 'fw-semibold') . ' ' .
-                html_writer::span(s($shortname) . ' - ' . s($specs[$shortname]['datatype']),
-                    'text-muted small'));
-        }
-        $out .= html_writer::tag('ul', $items, ['class' => 'mb-3']);
-
-        $url = self::url(self::TAB_PROFILE, ['provisioninstructor' => 1, 'sesskey' => sesskey()]);
-        $out .= html_writer::link($url, get_string('instructorbutton', 'local_profilefields'),
             ['class' => 'btn btn-secondary']);
         $out .= html_writer::end_div();
 
