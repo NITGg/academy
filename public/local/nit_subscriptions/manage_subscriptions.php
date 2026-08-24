@@ -46,7 +46,10 @@ $STR = local_nit_subscriptions_string_map(array(
     'pkg_col_id', 'pkg_col_name', 'pkg_col_price', 'sub_col_days', 'sub_col_courses', 'pkg_col_status',
     'pkg_col_actions', 'pkg_field_name', 'pkg_field_price', 'pkg_col_user', 'sub_col_subscription',
     'pkg_field_name_en', 'pkg_field_name_ar', 'pkg_field_desc_en', 'pkg_field_desc_ar',
-    'pkg_field_currency', 'sub_pricing',
+    'pkg_field_currency',
+    'sub_prices_heading', 'sub_prices_help', 'sub_price_add', 'sub_price_country',
+    'sub_price_currency', 'sub_price_amount', 'sub_price_active', 'sub_price_remove',
+    'sub_price_pickcountry',
     'pkg_col_pricepaid', 'pkg_col_expiresat',
     'sub_field_desc', 'sub_field_days', 'sub_courseavail_heading', 'sub_courseavail_desc', 'sub_target',
     'sub_select_placeholder', 'sub_save_courses', 'sub_usersubs_heading', 'sub_usersubs_desc',
@@ -61,10 +64,12 @@ $STR = local_nit_subscriptions_string_map(array(
 ));
 
 echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
-    'endpoint'    => (new moodle_url('/local/nit_subscriptions/api.php'))->out(false),
-    'pricingbase' => (new moodle_url('/local/nit_subscriptions/subscription_pricing.php'))->out(false),
-    'sesskey'     => sesskey(),
-    'lang'        => optional_param('lang', current_language(), PARAM_LANG),
+    'endpoint'   => (new moodle_url('/local/nit_subscriptions/api.php'))->out(false),
+    'sesskey'    => sesskey(),
+    'lang'       => optional_param('lang', current_language(), PARAM_LANG),
+    // Lists for the in-form per-country price editor.
+    'countries'  => get_string_manager()->get_list_of_countries(),
+    'currencies' => array('EGP', 'USD', 'EUR', 'GBP', 'SAR', 'AED', 'KWD', 'BHD', 'QAR', 'OMR'),
 )) . ';');
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
@@ -89,7 +94,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     </table>
     <div id="sub-table-pager" class="acad-pager"></div>
 
-    <div id="sub-form-card" class="card" style="display:none; max-width:560px;">
+    <div id="sub-form-card" class="card" style="display:none; max-width:640px;">
         <div class="card-body">
             <h4 id="sub-form-title" class="card-title"><?php echo $STR['sub_new']; ?></h4>
             <input type="hidden" id="f-id">
@@ -127,6 +132,22 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                     <option value="QAR">QAR - Qatari Riyal</option>
                     <option value="OMR">OMR - Omani Rial</option>
                 </select>
+            </div>
+            <!-- ── Per-country price overrides (optional) ── -->
+            <div class="sub-prices-box">
+                <div class="sub-prices-head">
+                    <strong><?php echo $STR['sub_prices_heading']; ?></strong>
+                    <button type="button" id="sub-price-add" class="btn btn-sm btn-outline-primary"><?php echo $STR['sub_price_add']; ?></button>
+                </div>
+                <p class="sub-prices-help text-muted"><?php echo $STR['sub_prices_help']; ?></p>
+                <div class="sub-prices-cols">
+                    <span><?php echo $STR['sub_price_country']; ?></span>
+                    <span><?php echo $STR['sub_price_currency']; ?></span>
+                    <span><?php echo $STR['sub_price_amount']; ?></span>
+                    <span><?php echo $STR['sub_price_active']; ?></span>
+                    <span></span>
+                </div>
+                <div id="sub-prices-list"></div>
             </div>
             <div class="form-group">
                 <label for="f-days"><?php echo $STR['sub_field_days']; ?></label>
@@ -197,6 +218,28 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         .academy-modal { background: var(--nit-brand-surface); color: var(--nit-brand-textprimary); border-radius: 10px; padding: 1.5rem; max-width: 440px; width: 90%; box-shadow: 0 12px 30px rgba(0,0,0,0.35); }
         .academy-modal-title { margin-bottom: 0.75rem; font-weight: 600; }
         .academy-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem; }
+
+        /* In-form per-country price editor. */
+        .sub-prices-box {
+            border: 1px solid var(--nit-brand-borderprimary); border-radius: 0.6rem;
+            padding: 0.9rem 1rem; margin-bottom: 1rem;
+            background: color-mix(in srgb, var(--nit-brand-background) 40%, var(--nit-brand-surface));
+        }
+        .sub-prices-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+        .sub-prices-help { font-size: 0.8rem; margin: 0.35rem 0 0.6rem; }
+        .sub-prices-cols, .sub-price-row {
+            display: grid; grid-template-columns: 1fr 0.9fr 0.8fr auto auto;
+            gap: 0.5rem; align-items: center;
+        }
+        .sub-prices-cols { font-size: 0.75rem; font-weight: 600; color: var(--nit-brand-textsecondary); margin-bottom: 0.35rem; }
+        .sub-prices-cols span:nth-child(4) { text-align: center; }
+        .sub-price-row { margin-bottom: 0.5rem; }
+        .sub-price-row select, .sub-price-row input[type="number"] { padding: 0.25rem 0.4rem; height: auto; }
+        .sub-price-row .sub-price-active { display: flex; justify-content: center; }
+        .sub-price-row .sub-price-del {
+            border: 0; background: transparent; color: var(--nit-brand-error);
+            cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 0.25rem;
+        }
     </style>
 
     <div id="course-selector-area" style="display:none;">
@@ -371,7 +414,6 @@ echo html_writer::script(<<<'JS'
                 '<td>' + esc(sstat(s.status)) + '</td>' +
                 '<td>' +
                     '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="' + s.id + '">' + esc(str('ui_edit')) + '</button> ' +
-                    '<a class="btn btn-sm btn-info" href="' + esc(CFG.pricingbase) + '?subscriptionid=' + esc(s.id) + '">' + esc(str('sub_pricing')) + '</a> ' +
                     toggle + ' ' +
                     '<button class="btn btn-sm btn-danger" data-act="delete" data-id="' + s.id + '">' + esc(str('ui_delete')) + '</button>' +
                 '</td>';
@@ -403,6 +445,65 @@ echo html_writer::script(<<<'JS'
         }).catch(function (e) { msg(e.message, 'danger'); });
     }
 
+    // ── In-form per-country price editor ──
+    var COUNTRIES = CFG.countries || {};
+    var CURRENCIES = CFG.currencies || ['EGP'];
+
+    function countryOptions(selected) {
+        var html = '<option value="">' + esc(str('sub_price_pickcountry')) + '</option>';
+        Object.keys(COUNTRIES).forEach(function (code) {
+            html += '<option value="' + esc(code) + '"' + (code === selected ? ' selected' : '') + '>' +
+                esc(COUNTRIES[code]) + '</option>';
+        });
+        return html;
+    }
+
+    function currencyOptions(selected) {
+        return CURRENCIES.map(function (c) {
+            return '<option value="' + esc(c) + '"' + (c === selected ? ' selected' : '') + '>' + esc(c) + '</option>';
+        }).join('');
+    }
+
+    function addPriceRow(p) {
+        p = p || {};
+        var list = $('sub-prices-list');
+        var row = document.createElement('div');
+        row.className = 'sub-price-row';
+        row.innerHTML =
+            '<select class="form-control sub-price-country">' + countryOptions(p.country || '') + '</select>' +
+            '<select class="form-control sub-price-cur">' + currencyOptions(p.currency || 'EGP') + '</select>' +
+            '<input type="number" class="form-control sub-price-val" min="0" step="0.01" value="' +
+                (p.price != null ? esc(p.price) : '') + '">' +
+            '<span class="sub-price-active"><input type="checkbox" class="sub-price-on"' +
+                ((p.is_active == null || Number(p.is_active)) ? ' checked' : '') + '></span>' +
+            '<button type="button" class="sub-price-del" title="' + esc(str('sub_price_remove')) + '">&times;</button>';
+        row.querySelector('.sub-price-del').addEventListener('click', function () { row.remove(); });
+        list.appendChild(row);
+    }
+
+    function fillPrices(prices) {
+        var list = $('sub-prices-list');
+        list.innerHTML = '';
+        (prices || []).forEach(addPriceRow);
+    }
+
+    // Collect the price rows into an array, skipping blank rows (no country chosen).
+    function collectPrices() {
+        var out = [];
+        document.querySelectorAll('#sub-prices-list .sub-price-row').forEach(function (row) {
+            var country = row.querySelector('.sub-price-country').value;
+            var price = row.querySelector('.sub-price-val').value;
+            if (!country || price === '') { return; }
+            out.push({
+                country: country,
+                currency: row.querySelector('.sub-price-cur').value,
+                price: price,
+                is_active: row.querySelector('.sub-price-on').checked ? 1 : 0
+            });
+        });
+        return out;
+    }
+
     function showForm(sub) {
         $('sub-form-title').textContent = sub ? strf('sub_edit_titled', sub.id) : str('sub_new');
         var nm = parseMultilang(sub ? sub.name : '');
@@ -415,6 +516,7 @@ echo html_writer::script(<<<'JS'
         $('f-price').value    = sub ? sub.price : '';
         $('f-currency').value = (sub && sub.currency) ? sub.currency : 'EGP';
         $('f-days').value     = sub ? sub.duration_days : '';
+        fillPrices(sub ? sub.prices : []);
         $('f-active').checked = sub ? (sub.status === 'active') : true;
         $('sub-form-card').style.display = 'block';
     }
@@ -427,7 +529,8 @@ echo html_writer::script(<<<'JS'
             description: buildMultilang($('f-desc-en').value, $('f-desc-ar').value),
             price: $('f-price').value,
             currency: $('f-currency').value,
-            duration_days: $('f-days').value
+            duration_days: $('f-days').value,
+            prices: JSON.stringify(collectPrices())
         };
         var p;
         if (id) {
@@ -466,6 +569,7 @@ echo html_writer::script(<<<'JS'
     $('sub-refresh').addEventListener('click', loadSubs);
     $('sub-save').addEventListener('click', save);
     $('sub-cancel').addEventListener('click', hideForm);
+    $('sub-price-add').addEventListener('click', function () { addPriceRow({}); });
 
     // ── Course access ──
     function loadCategories() {

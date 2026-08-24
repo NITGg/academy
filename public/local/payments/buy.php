@@ -127,6 +127,7 @@ try {
             'courseid' => (int) $courseid,
             'name'     => format_string($course->fullname),
             'price'    => (float) $pricing->price,
+            'currency' => (string) $pricing->currency,
         ]) . ';');
         echo html_writer::script(<<<'JS'
 (function () {
@@ -144,6 +145,7 @@ try {
                 itemId: window.NIT_CO.courseid,
                 name: window.NIT_CO.name,
                 price: window.NIT_CO.price,
+                currency: window.NIT_CO.currency,
                 proceed: function (code) {
                     window.location.href = href + (href.indexOf('?') >= 0 ? '&' : '?') + 'coupon_code=' + encodeURIComponent(code);
                 }

@@ -178,7 +178,7 @@ if ($nitcheckout) {
 $nitcourseinfo = function ($courseid) use ($nitcheckout) {
     global $USER;
     $out = ['enrolled' => false, 'covered' => false, 'free' => true, 'haspricing' => false,
-        'price' => 0.0, 'offerlabel' => '', 'offerfinal' => 0.0];
+        'price' => 0.0, 'currency' => '', 'offerlabel' => '', 'offerfinal' => 0.0];
     $uid = (int) ($USER->id ?? 0);
     $ctx = context_course::instance($courseid);
     $out['enrolled'] = $uid > 0 && is_enrolled($ctx, $uid, '', true);
@@ -201,6 +201,7 @@ $nitcourseinfo = function ($courseid) use ($nitcheckout) {
             $pricing = \local_payments\price_resolver::resolve($courseid, $uid);
             $base = (float) $pricing->price;
             $out['price'] = $base;
+            $out['currency'] = (string) $pricing->currency;
             $summary = \local_nit_commerce\discount_manager::offer_summary('course', (int) $courseid, $base);
             if ($summary) {
                 $out['offerlabel'] = $summary['label'];   // e.g. "-40%"
@@ -469,7 +470,7 @@ echo $OUTPUT->header();
                 </span>
               <?php elseif ($info['offerlabel'] !== '' && $info['offerfinal'] > 0): ?>
                 <span style="font-size: 13px; color: var(--ctext2); text-decoration: line-through; opacity: 0.7;"><?= s($pricelabel) ?></span>
-                <span style="font-size: 16px; font-weight: bold; color: var(--ctext1);"><?= s(number_format($info['offerfinal'], 0)) ?> <?= $t('EGP', 'ج.م') ?></span>
+                <span style="font-size: 16px; font-weight: bold; color: var(--ctext1);"><?= s(number_format($info['offerfinal'], 0)) ?> <?= s($info['currency'] !== '' ? $info['currency'] : $t('EGP', 'ج.م')) ?></span>
                 <span style="background: var(--cbg4); color: var(--ctext4); font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 50px;"><?= s($info['offerlabel']) ?></span>
               <?php elseif ($info['haspricing']): ?>
                 <span style="font-size: 16px; font-weight: bold; color: var(--ctext1);"><?= s($pricelabel) ?></span>
@@ -489,7 +490,7 @@ echo $OUTPUT->header();
               <?php elseif ($info['haspricing']): ?>
                 <button type="button" class="btn btn-primary fw-bold" data-nit-buy-course
                   data-courseid="<?= (int) $course->id ?>" data-name="<?= s($coursename) ?>"
-                  data-price="<?= s((string) $info['price']) ?>"><?= $t('Buy now', 'اشترِ الآن') ?></button>
+                  data-price="<?= s((string) $info['price']) ?>" data-currency="<?= s($info['currency']) ?>"><?= $t('Buy now', 'اشترِ الآن') ?></button>
                 <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php else: // Free course. ?>
                 <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= $t('Enroll', 'التحاق') ?></a>
@@ -658,6 +659,7 @@ if ($nitcheckout) {
                 itemId: parseInt(id, 10),
                 name: btn.getAttribute('data-name'),
                 price: parseFloat(btn.getAttribute('data-price')) || 0,
+                currency: btn.getAttribute('data-currency') || '',
                 proceed: function (code) {
                     window.location.href = window.NIT_CO.wwwroot + '/local/payments/checkout.php?courseid=' + id +
                         '&sesskey=' + encodeURIComponent(window.NIT_CO.sesskey) + '&coupon_code=' + encodeURIComponent(code);

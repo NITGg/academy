@@ -123,9 +123,24 @@ class context_builder {
         $seats = (int) ($purchase->seats ?? 0);
         $isb2b = (($purchase->type ?? 'normal') === 'b2b');
 
+        // The subscription's currency is per-country (resolved from the buyer's profile country),
+        // and nit_sub_purchase does not store it — resolve it the same way checkout did, so the
+        // email shows the currency the student was actually charged in (not the site default).
+        $currency = get_config('local_payments', 'default_currency') ?: 'EGP';
+        if (class_exists('\local_nit_subscriptions\subscription_manager')) {
+            try {
+                $resolved = \local_nit_subscriptions\subscription_manager::resolve_price(
+                    (int) $subscription->id, (int) $purchase->userid);
+                if (!empty($resolved->currency)) {
+                    $currency = $resolved->currency;
+                }
+            } catch (\Throwable $e) {
+                // Fall back to the default currency on any resolver error.
+            }
+        }
         $order = (object) [
             'amount'   => $purchase->price_paid ?? 0,
-            'currency' => get_config('local_payments', 'default_currency') ?: 'EGP',
+            'currency' => $currency,
             'order_id' => $purchase->reference ?? '',
         ];
 

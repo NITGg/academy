@@ -18,7 +18,9 @@
 
   function S(k) { return (cfg && cfg.str && cfg.str[k] != null) ? cfg.str[k] : k; }
   function money(n) { return (Math.round(Number(n) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-  function cur() { return S('co_currency'); }
+  // The currency of the item being bought (per-item, country-resolved). Falls back to the
+  // configured co_currency only when the caller did not pass one.
+  function cur() { return (current && current.currency) ? current.currency : S('co_currency'); }
 
   function el(tag, style, text) {
     var e = document.createElement(tag);

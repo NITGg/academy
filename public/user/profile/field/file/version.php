@@ -15,21 +15,18 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for NIT Subscriptions (course-access subscription plans).
+ * Version information for the file profile field.
  *
- * @package    local_nit_subscriptions
+ * @package    profilefield_file
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_nit_subscriptions';
-$plugin->version   = 2026082401;
-$plugin->requires  = 2024100700;
-$plugin->supported = [405, 502];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.0';
-$plugin->dependencies = [
-    'local_nit_core' => 2026080404,
-];
+$plugin->component = 'profilefield_file';
+$plugin->version   = 2026082400;        // YYYYMMDDXX.
+$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
+$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
+$plugin->maturity  = MATURITY_STABLE;
+$plugin->release   = '1.0.0';

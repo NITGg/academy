@@ -93,6 +93,10 @@ class subscription_manager {
         if ($b2benabled && array_key_exists('seat_options', $data)) {
             self::save_seat_options($id, (array)$data['seat_options']);
         }
+        // Per-country price overrides (from the edit form).
+        if (array_key_exists('prices', $data)) {
+            self::replace_prices($id, (array) $data['prices'], $userid);
+        }
         return $id;
     }
 
@@ -159,6 +163,11 @@ class subscription_manager {
             self::save_seat_options($sub->id, (array)$data['seat_options']);
         } else if ($b2benabled === 0) {
             $DB->delete_records('nit_sub_seat_option', array('subscriptionid' => $sub->id));
+        }
+
+        // Per-country price overrides (from the edit form).
+        if (array_key_exists('prices', $data)) {
+            self::replace_prices($sub->id, (array) $data['prices'], $userid);
         }
     }
 
@@ -251,6 +260,16 @@ class subscription_manager {
             $r->courses = self::courses_detail($r->id);
             $r->b2b_enabled = (int)$r->b2b_enabled;
             $r->seat_options = self::get_seat_options($r->id, (float)$r->price);
+            // Per-country price overrides, for the in-form editor.
+            $r->prices = array_map(function ($p) {
+                return [
+                    'id'        => (int) $p->id,
+                    'country'   => (string) $p->country,
+                    'currency'  => (string) $p->currency,
+                    'price'     => (float) $p->price,
+                    'is_active' => (int) $p->is_active,
+                ];
+            }, self::get_prices($r->id));
         }
         return $rows;
     }
@@ -490,6 +509,61 @@ class subscription_manager {
         global $DB;
         $DB->delete_records('nit_sub_price',
             ['id' => (int) $priceid, 'subscriptionid' => (int) $subscriptionid]);
+    }
+
+    /**
+     * Replace all per-country price overrides for a plan with the provided set (edit-form save).
+     * Validates each row and rejects duplicate countries. Blank rows are ignored.
+     *
+     * @param int $subscriptionid
+     * @param array $rows list of ['country','currency','price','is_active']
+     * @param int $userid
+     * @return void
+     */
+    public static function replace_prices($subscriptionid, array $rows, $userid) {
+        global $DB;
+
+        $subscriptionid = (int) $subscriptionid;
+        self::get_subscription($subscriptionid); // Validate plan exists.
+
+        // Validate + normalise every row before touching the DB, so a bad row aborts the whole save.
+        $now = time();
+        $clean = [];
+        $seen = [];
+        foreach ($rows as $row) {
+            $country = strtoupper(trim((string) ($row['country'] ?? '')));
+            if ($country === '') {
+                continue; // Blank row — skip.
+            }
+            if (!preg_match('/^[A-Z]{2}$/', $country)) {
+                throw new \moodle_exception('err_pricecountry', 'local_nit_subscriptions');
+            }
+            if (isset($seen[$country])) {
+                throw new \moodle_exception('err_priceonepercountry', 'local_nit_subscriptions');
+            }
+            $seen[$country] = true;
+            $price = (float) ($row['price'] ?? 0);
+            if ($price <= 0) {
+                throw new \moodle_exception('err_pricepositive', 'local_nit_subscriptions');
+            }
+            $clean[] = (object) [
+                'subscriptionid' => $subscriptionid,
+                'country'        => $country,
+                'currency'       => self::normalize_currency($row['currency'] ?? 'EGP'),
+                'price'          => $price,
+                'is_active'      => !empty($row['is_active']) ? 1 : 0,
+                'created_by'     => (int) $userid,
+                'timecreated'    => $now,
+                'timemodified'   => $now,
+            ];
+        }
+
+        $transaction = $DB->start_delegated_transaction();
+        $DB->delete_records('nit_sub_price', ['subscriptionid' => $subscriptionid]);
+        foreach ($clean as $record) {
+            $DB->insert_record('nit_sub_price', $record);
+        }
+        $transaction->allow_commit();
     }
 
     /**

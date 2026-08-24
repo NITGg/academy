@@ -123,4 +123,38 @@ $string['fieldeducation'] = 'Education';
 $string['fieldnationalid'] = 'National ID';
 $string['fieldpassport'] = 'Passport';
 
-$string['privacy:metadata'] = 'The Sign-up and profile fields plugin only stores which fields a site shows. It stores no personal data.';
+// Instructor fields.
+$string['instructorcategory'] = 'Instructor Fields';
+$string['instructorheading'] = 'Instructor fields';
+$string['instructorintro'] = 'The instructor profile set is not all present yet ({$a->count} missing). Create the missing fields in "{$a->category}" in one step; existing fields are left untouched.';
+$string['instructorbutton'] = 'Create the instructor fields';
+$string['instructordone'] = '{$a} instructor field(s) created.';
+$string['instructorallset'] = 'All instructor fields are present.';
+$string['instructornofile'] = 'The File field type plugin (profilefield_file) is not installed, so "Cover image" and "Resume" will be created as URL text fields instead of real uploads. Install it first if you want people to upload the files themselves.';
+
+// Reasons a requested field is never provisioned.
+$string['skipcorename'] = 'Built into Moodle - first name and surname.';
+$string['skipcoreemail'] = 'Built into Moodle - email address (already unique site-wide).';
+$string['skipcorecountry'] = 'Built into Moodle - country.';
+$string['skipcorepicture'] = 'Built into Moodle - the user picture.';
+$string['skipexisting'] = 'Already exists as the custom field "{$a}".';
+
+// Instructor field names (Arabic side supplies the translation).
+$string['fieldcoverimage'] = 'Cover image';
+$string['fieldbiography'] = 'Biography';
+$string['fieldqualifications'] = 'Qualifications';
+$string['fieldcertificates'] = 'Certificates';
+$string['fieldexperience'] = 'Experience';
+$string['fieldspecialization'] = 'Specialization';
+$string['fieldlanguages'] = 'Languages';
+$string['fieldlinkedin'] = 'LinkedIn';
+$string['fieldwebsite'] = 'Website';
+$string['fieldfacebook'] = 'Facebook';
+$string['fieldinstagram'] = 'Instagram';
+$string['fieldtwitter'] = 'Twitter';
+$string['fieldyoutube'] = 'YouTube';
+$string['fieldawards'] = 'Awards';
+$string['fieldyearsofexperience'] = 'Years of experience';
+$string['fieldresume'] = 'Resume';
+
+$string['privacy:metadata'] ='The Sign-up and profile fields plugin only stores which fields a site shows. It stores no personal data.';

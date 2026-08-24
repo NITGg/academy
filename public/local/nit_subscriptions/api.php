@@ -111,6 +111,7 @@ try {
                 'active'        => optional_param('active', 1, PARAM_INT),
                 'b2b_enabled'   => optional_param('b2b_enabled', 0, PARAM_INT),
                 'seat_options'  => nit_subscriptions_seat_options(),
+                'prices'        => nit_subscriptions_prices(),
             ], $USER->id);
             nit_subscriptions_respond(['status' => 'success', 'data' => ['id' => $id]]);
             break;
@@ -125,6 +126,7 @@ try {
                 'status'        => optional_param('status', 'active', PARAM_ALPHA),
                 'b2b_enabled'   => optional_param('b2b_enabled', 0, PARAM_INT),
                 'seat_options'  => nit_subscriptions_seat_options(),
+                'prices'        => nit_subscriptions_prices(),
             ], $USER->id);
             nit_subscriptions_respond(['status' => 'success', 'data' => []]);
             break;
@@ -264,6 +266,18 @@ try {
  */
 function nit_subscriptions_seat_options(): array {
     $raw = optional_param('seat_options', '[]', PARAM_RAW);
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+/**
+ * Decode the prices JSON parameter into an array of per-country price rows
+ * (['country','currency','price','is_active']).
+ *
+ * @return array
+ */
+function nit_subscriptions_prices(): array {
+    $raw = optional_param('prices', '[]', PARAM_RAW);
     $decoded = json_decode($raw, true);
     return is_array($decoded) ? $decoded : [];
 }

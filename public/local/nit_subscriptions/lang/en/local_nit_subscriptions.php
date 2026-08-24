@@ -79,7 +79,18 @@ $string['pkg_field_desc_ar'] = 'Description (Arabic)';
 $string['pkg_field_currency'] = 'Default currency';
 $string['pkg_unassign_paid'] = ' — <strong>{$a}</strong> paid';
 
-// Per-country pricing (mirrors the course "Pricing" feature).
+// Per-country pricing (managed inside the create/edit subscription form).
+$string['sub_prices_heading']     = 'Country prices';
+$string['sub_prices_help']        = 'Optional. Set a price for specific countries; buyers elsewhere pay the default price above.';
+$string['sub_price_add']          = '+ Add country price';
+$string['sub_price_country']      = 'Country';
+$string['sub_price_currency']     = 'Currency';
+$string['sub_price_amount']       = 'Price';
+$string['sub_price_active']       = 'Active';
+$string['sub_price_remove']       = 'Remove';
+$string['sub_price_pickcountry']  = 'Choose country…';
+
+// (Legacy strings from the old standalone pricing page — kept for compatibility.)
 $string['sub_pricing']            = 'Pricing';
 $string['subscriptionpricing']    = 'Subscription pricing';
 $string['backtosubscriptions']    = 'Back to subscriptions';
