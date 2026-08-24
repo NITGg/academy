@@ -611,6 +611,7 @@ class page {
     protected static function save_profile(): void {
         global $CFG;
         require_once($CFG->dirroot . '/user/profile/lib.php');
+        require_once($CFG->dirroot . '/user/profile/definelib.php');
 
         // Core fields.
         $pshow = optional_param_array('pshow', [], PARAM_BOOL);
@@ -835,6 +836,7 @@ class page {
     protected static function save_custom_signup(array $signup, array $req): void {
         global $CFG, $DB;
         require_once($CFG->dirroot . '/user/profile/lib.php');
+        require_once($CFG->dirroot . '/user/profile/definelib.php');
 
         $changed = false;
         foreach (custom_fields::get_all() as $field) {

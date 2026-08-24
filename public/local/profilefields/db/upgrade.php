@@ -39,5 +39,13 @@ function xmldb_local_profilefields_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026082402, 'local', 'profilefields');
     }
 
+    if ($oldversion < 2026082403) {
+        // Also collapse any {mlang} field names that leaked onto a site without a
+        // multilang filter to render them.
+        \local_profilefields\provision::repair();
+
+        upgrade_plugin_savepoint(true, 2026082403, 'local', 'profilefields');
+    }
+
     return true;
 }

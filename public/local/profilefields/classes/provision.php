@@ -55,8 +55,12 @@ class provision {
      */
     public static function fields(): array {
         global $CFG;
-        // The specs below reference PROFILE_VISIBLE_* constants defined here.
+        // The specs reference PROFILE_VISIBLE_* (lib.php); provisioning purges the
+        // field cache with profile_purge_user_fields_cache() (definelib.php). Neither
+        // pulls in the other, and CLI upgrade loads neither, so require both here -
+        // every provisioning path goes through fields().
         require_once($CFG->dirroot . '/user/profile/lib.php');
+        require_once($CFG->dirroot . '/user/profile/definelib.php');
 
         return [
             'phone' => [
@@ -268,7 +272,8 @@ class provision {
     public static function repair(): bool {
         global $DB;
 
-        $repaired = false;
+        $repaired = self::repair_names();
+
         foreach (self::fields() as $shortname => $spec) {
             if ($spec['datatype'] !== 'datetime') {
                 continue;
@@ -295,10 +300,42 @@ class provision {
         }
 
         if ($repaired) {
-            require_once(dirname(__DIR__, 3) . '/user/profile/lib.php');
             profile_purge_user_fields_cache();
         }
         return $repaired;
+    }
+
+    /**
+     * Strip leaked {mlang} tags from recommended field names when no filter renders them.
+     *
+     * If a multilang filter is enabled the tags are left in place (they render as
+     * intended); only on a site without the filter are they collapsed to the
+     * English part, so raw tags never show to users.
+     *
+     * @return bool true if any name was changed
+     */
+    protected static function repair_names(): bool {
+        global $DB;
+
+        if (self::multilang_active()) {
+            return false;
+        }
+
+        $changed = false;
+        foreach (self::fields() as $shortname => $spec) {
+            $field = $DB->get_record('user_info_field', ['shortname' => $shortname]);
+            if (!$field || strpos((string) $field->name, '{mlang') === false) {
+                continue;
+            }
+            if (preg_match('/\{mlang\s+en\}(.*?)\{mlang\}/s', $field->name, $m)) {
+                $plain = trim($m[1]);
+            } else {
+                $plain = $spec['name'];
+            }
+            $DB->set_field('user_info_field', 'name', $plain, ['id' => $field->id]);
+            $changed = true;
+        }
+        return $changed;
     }
 
     /**
@@ -323,6 +360,14 @@ class provision {
      */
     protected static function field_name(array $spec): string {
         $en = $spec['name'];
+
+        // A bilingual {mlang} name only makes sense when a multilang filter will
+        // actually render it; otherwise the raw tags would show to every user. On a
+        // site without the filter, store the plain English name instead.
+        if (!self::multilang_active()) {
+            return $en;
+        }
+
         $ar = get_string_manager()->string_exists($spec['namestr'], 'local_profilefields')
             ? get_string_manager()->get_string($spec['namestr'], 'local_profilefields', null, 'ar')
             : '';
@@ -331,6 +376,19 @@ class provision {
             return $en;
         }
         return '{mlang en}' . $en . '{mlang}{mlang ar}' . $ar . '{mlang}';
+    }
+
+    /**
+     * Whether a multilang filter is globally enabled to render {mlang} tags.
+     *
+     * @return bool
+     */
+    protected static function multilang_active(): bool {
+        global $CFG;
+        require_once($CFG->dirroot . '/lib/filterlib.php');
+
+        $enabled = filter_get_globally_enabled();
+        return isset($enabled['multilang']) || isset($enabled['multilang2']);
     }
 
     /**
