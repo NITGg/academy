@@ -79,3 +79,92 @@ textarea.form-control[readonly][disabled] {
     // A padlock, drawn in a light stroke that reads on the dark brand surface.
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' opacity='0.55'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/svg%3E");
 }
+
+// =============================================================================
+// Phone profile field (profilefield_phone) — one control, not two rows.
+//
+// The field is an mform *group*: a country select ("flag + dialling code +
+// country name") and a number box, which core renders as a bare
+// `d-flex flex-wrap` row of two independent form items. A select is as wide as
+// its longest option (≈410px here), so in a form column of ≈540px the number
+// box no longer fits beside it and wraps onto its own line — the dialling code
+// and the number it belongs to end up reading as two unrelated fields.
+//
+// Fix it the way a phone input is expected to look: give the select a fixed,
+// shrinkable share of the line, let the number take the rest, and butt the two
+// together into a single control.
+//
+// Scoped to `.mform .d-flex` on purpose. Core spaces the sub-elements of every
+// group with
+//     .mform .d-flex .fitem { margin: .1rem .25rem .1rem 0 !important; }
+// and !important only outranks the rest of the stylesheet at equal weight — a
+// bare `.profilefield-phone-*` rule (one class) loses to that three-class
+// selector however important it is. Matching its shape is what closes the gap.
+// =============================================================================
+.mform .d-flex:has(> .profilefield-phone-country) {
+    // A flex line wraps before it shrinks, so on a narrow screen the two boxes
+    // would split across two lines while both still had room to give. Holding the
+    // line lets flex-shrink do its job instead. (!important: core's own
+    // .flex-wrap utility carries one.) :has() keys off the field rather than the
+    // group name, which is whatever shortname the admin gave the profile field.
+    flex-wrap: nowrap !important;
+}
+
+.mform .d-flex {
+    .profilefield-phone-country,
+    .profilefield-phone-number {
+        // Each sub-element is also a form row in its own right (.mb-3), so the
+        // reset has to take the bottom gap with it.
+        margin: 0 !important;
+
+        .form-select,
+        .form-control {
+            width: 100%;
+        }
+
+        // The two borders overlap, so a focus ring would be clipped by the
+        // neighbour without lifting the focused control above it.
+        .form-select:focus,
+        .form-control:focus {
+            position: relative;
+            z-index: 2;
+        }
+    }
+
+    .profilefield-phone-country {
+        flex: 0 1 13rem;
+        // An explicit minimum is what stops the flex content-based minimum from
+        // re-inflating the select back to the width of its longest option.
+        min-width: 7rem;
+
+        // The edge that meets the number box. Logical, so an RTL page — where
+        // the select renders to the right of the number — flips it by itself.
+        .form-select {
+            border-start-end-radius: 0;
+            border-end-end-radius: 0;
+        }
+    }
+
+    .profilefield-phone-number {
+        flex: 1 1 11rem;
+        // Lets the box shrink past the intrinsic width of its size="20" input.
+        min-width: 0;
+        // Collapse the two adjoining 1px borders into one.
+        margin-inline-start: -1px !important;
+
+        // The number box carries dir="ltr" (a phone number always reads
+        // left-to-right), so its *own* logical edges never flip with the page —
+        // name the physical corners here and swap them for RTL below.
+        .form-control {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+    }
+}
+
+[dir="rtl"] .mform .d-flex .profilefield-phone-number .form-control {
+    border-top-left-radius: $border-radius;
+    border-bottom-left-radius: $border-radius;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}

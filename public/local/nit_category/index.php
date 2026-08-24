@@ -169,9 +169,12 @@ $t = function (string $en, string $ar) use ($isar) {
 
 // Subcategory filter buttons reuse the site's gallery button components (Components
 // tab): the active filter is a solid .btn-primary, the rest are .btn-outline-primary.
-$pill = function (moodle_url $url, string $label, bool $active): string {
+// $icon is the category's own icon HTML (or '' for the "All" button, which is not a
+// category); it prints inside the button, before the label.
+$pill = function (moodle_url $url, string $label, bool $active, string $icon = ''): string {
     $cls = $active ? 'btn btn-primary' : 'btn btn-outline-primary';
-    return '<a href="' . $url->out() . '" class="' . $cls . ' fw-bold">' . $label . '</a>';
+    return '<a href="' . $url->out() . '" class="' . $cls . ' fw-bold nit-cat-pill">'
+        . $icon . '<span>' . $label . '</span></a>';
 };
 
 $description  = format_text($category->description, $category->descriptionformat, ['context' => $context]);
@@ -185,11 +188,20 @@ if ($nitcheckout) {
     require_once($CFG->dirroot . '/local/nit_commerce/lib.php');
     $PAGE->requires->js(new moodle_url('/local/nit_commerce/checkout_modal.js'), true);
 }
-// Per-course state for a card: enrolment, subscription coverage, pricing, offer.
+// Per-course state for a card: enrolment, purchase, subscription coverage, pricing, offer.
+//
+// This is the ONE place a card's price is resolved. It used to be resolved twice — here for
+// the Buy button and again through theme_nit_course_price() for the printed label — and the
+// two disagreed whenever a rule failed to resolve, so a paid course printed "Free" right next
+// to its own "Buy now" button. Everything the card shows now comes out of this array.
+//
+// Guest vs logged in: price_resolver::resolve() is country-aware and keyed on the viewer, so
+// the user id is passed through in BOTH states — a guest (id 0) is priced by IP geolocation,
+// a logged-in user by their profile country (see local_payments\country_detector::detect()).
 $nitcourseinfo = function ($courseid) use ($nitcheckout) {
-    global $USER;
-    $out = ['enrolled' => false, 'covered' => false, 'free' => true, 'haspricing' => false,
-        'price' => 0.0, 'currency' => '', 'offerlabel' => '', 'offerfinal' => 0.0];
+    global $USER, $DB;
+    $out = ['enrolled' => false, 'purchased' => false, 'covered' => false, 'free' => true,
+        'haspricing' => false, 'price' => 0.0, 'currency' => '', 'offerlabel' => '', 'offerfinal' => 0.0];
     $uid = (int) ($USER->id ?? 0);
     $ctx = context_course::instance($courseid);
     $out['enrolled'] = $uid > 0 && is_enrolled($ctx, $uid, '', true);
@@ -197,32 +209,63 @@ $nitcourseinfo = function ($courseid) use ($nitcheckout) {
     if (!$nitcheckout) {
         return $out;
     }
+    // "Paid" means local_payments has an active rule — the same test enrol.php and buy.php
+    // gate on, so the card can never offer a flow the server will refuse.
     $out['haspricing'] = (bool) \local_payments\price_resolver::has_pricing($courseid);
     $out['free'] = !$out['haspricing'];
 
-    // Covered by an active subscription (grants access without buying). Only relevant when not
-    // already enrolled and the course is paid (a free course is just "enrol").
-    if (!$out['enrolled'] && $out['haspricing']
-            && class_exists('\local_nit_subscriptions\subscription_purchase_manager')) {
+    if ($out['enrolled'] || !$out['haspricing']) {
+        return $out;
+    }
+
+    // Already bought (payment completed) but not enrolled yet — must not be asked to buy again.
+    $out['purchased'] = $uid > 0 && \local_payments\price_resolver::is_purchased($courseid, $uid);
+
+    // Covered by an active subscription (grants access without buying).
+    if (!$out['purchased'] && class_exists('\local_nit_subscriptions\subscription_purchase_manager')) {
         $out['covered'] = (bool) \local_payments\price_resolver::is_covered_by_active_subscription($courseid, $uid);
     }
 
-    if ($out['haspricing']) {
+    try {
+        $pricing = \local_payments\price_resolver::resolve($courseid, $uid);
+        $out['price'] = (float) $pricing->price;
+        $out['currency'] = (string) $pricing->currency;
+    } catch (\Throwable $e) {
+        // resolve() throws when nothing matches the viewer's country AND the course has no
+        // default rule — a per-viewer miss, not a free course. Fall back to any active rule
+        // so the card still shows a real price instead of claiming the course is free.
+        $fallback = $DB->get_record_select(
+            'local_payments_course_prices',
+            'courseid = :courseid AND is_active = 1',
+            ['courseid' => $courseid],
+            'price, currency',
+            IGNORE_MULTIPLE
+        );
+        if ($fallback) {
+            $out['price'] = (float) $fallback->price;
+            $out['currency'] = (string) $fallback->currency;
+        }
+    }
+
+    if ($out['price'] > 0) {
         try {
-            $pricing = \local_payments\price_resolver::resolve($courseid, $uid);
-            $base = (float) $pricing->price;
-            $out['price'] = $base;
-            $out['currency'] = (string) $pricing->currency;
-            $summary = \local_nit_commerce\discount_manager::offer_summary('course', (int) $courseid, $base);
+            $summary = \local_nit_commerce\discount_manager::offer_summary('course', (int) $courseid, $out['price']);
             if ($summary) {
                 $out['offerlabel'] = $summary['label'];   // e.g. "-40%"
                 $out['offerfinal'] = (float) $summary['final'];
             }
         } catch (\Throwable $e) {
-            // Leave defaults on any pricing error.
+            // No offer engine / bad offer data — just show the undiscounted price.
         }
     }
     return $out;
+};
+
+// One money formatter for every price a card prints: the base price, the struck-through
+// original and the discounted final all go through it, so they can never disagree on
+// decimals or currency. Digits stay unlocalised (matching the rest of the shop).
+$nitmoney = function (float $amount, string $currency) use ($t): string {
+    return format_float($amount, 2, false) . ' ' . ($currency !== '' ? $currency : $t('EGP', 'ج.م'));
 };
 
 echo $OUTPUT->header();
@@ -265,6 +308,26 @@ echo $OUTPUT->header();
       background: radial-gradient(ellipse 40% 40% at 80% 80%, color-mix(in srgb, var(--cbg4) 12%, transparent) 0%, transparent 60%);
     }
     .nit-hero__inner { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
+
+    /* Category ICON — the small glyph beside a category NAME (badge, filter pill,
+       section heading). One base rule for both variants the renderer can emit: an
+       <img> for an uploaded icon, or a <span> holding an emoji. Sizing with both
+       width/height and font-size keeps the two visually identical, and `contain`
+       stops a non-square upload from being squashed. */
+    .nit-cat-icon {
+      display: inline-block; vertical-align: middle;
+      object-fit: contain; text-align: center;
+      flex: 0 0 auto; line-height: 1;
+    }
+    .nit-cat-icon--badge   { width: 20px; height: 20px; font-size: 17px; }
+    .nit-cat-icon--pill    { width: 20px; height: 20px; font-size: 17px; }
+    .nit-cat-icon--spec    { width: 34px; height: 34px; font-size: 29px; }
+    .nit-cat-icon--specsub { width: 24px; height: 24px; font-size: 20px; }
+
+    /* Keep the pill's icon and label on one line with a real gap. */
+    .nit-cat-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+    }
 
     /* Category image — sits above the badge. `contain` so wide banners and square
        logos both read correctly, on a lifted surface tile like the course cards. */
@@ -353,9 +416,10 @@ echo $OUTPUT->header();
       <img class="nit-hero__logo" src="<?= s($categoryimage) ?>" alt="<?= $categoryname ?>">
       <?php endif; ?>
 
-      <!-- Badge: category name with pulsing dot -->
+      <!-- Badge: category name with pulsing dot, and this category's icon if it has one -->
       <div class="nit-hero__badge">
         <span class="nit-hero__badge-dot"></span>
+        <?= local_nit_category_render_icon((int) $category->id, 'nit-cat-icon nit-cat-icon--badge', $categoryname) ?>
         <?= $categoryname ?>
       </div>
 
@@ -410,7 +474,13 @@ echo $OUTPUT->header();
         echo $pill($allurl, $t('All', 'الكل'), $subid === 0);
         foreach ($subcategories as $sc) {
             $suburl = new moodle_url('/local/nit_category/index.php', ['id' => $categoryid, 'sub' => $sc->id]);
-            echo $pill($suburl, $sc->get_formatted_name(), $subid === (int) $sc->id);
+            $scname = $sc->get_formatted_name();
+            echo $pill(
+                $suburl,
+                $scname,
+                $subid === (int) $sc->id,
+                local_nit_category_render_icon((int) $sc->id, 'nit-cat-icon nit-cat-icon--pill', $scname)
+            );
         }
       ?>
     </div>
@@ -434,7 +504,7 @@ echo $OUTPUT->header();
       <?php
         // One card renderer, shared by every section. $sectionname is the category the
         // card lives under (its header), so the card can show that category's name.
-        $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo) {
+        $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo, $nitmoney) {
             $courseurl  = new moodle_url('/course/view.php', ['id' => $course->id]);
             $coursename = $course->get_formatted_name();
 
@@ -450,10 +520,9 @@ echo $OUTPUT->header();
                 $summary = shorten_text(trim($plain), 160);
             }
 
-            $price      = function_exists('theme_nit_course_price') ? theme_nit_course_price((int) $course->id) : '';
             $teacher    = function_exists('theme_nit_course_teacher') ? theme_nit_course_teacher((int) $course->id) : '';
-            $pricelabel = $price !== '' ? $price : $t('Free', 'مجانًا');
             $info       = $nitcourseinfo($course->id);
+            $pricelabel = $nitmoney($info['price'], $info['currency']);
 
             $detailsurl = $courseurl->out();
             $enrolurl   = (new moodle_url('/local/nit_subscriptions/enrol.php',
@@ -495,16 +564,21 @@ echo $OUTPUT->header();
                 <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--csuccess) 16%, transparent); color: var(--csuccess); border: 1px solid color-mix(in srgb, var(--csuccess) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
                   ✓ <?= $t('Enrolled', 'مُسجَّل') ?>
                 </span>
+              <?php elseif ($info['purchased']): ?>
+                <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--csuccess) 16%, transparent); color: var(--csuccess); border: 1px solid color-mix(in srgb, var(--csuccess) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
+                  ✓ <?= $t('Purchased', 'تم الشراء') ?>
+                </span>
               <?php elseif ($info['covered']): ?>
                 <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--caccent) 16%, transparent); color: var(--ctext3); border: 1px solid color-mix(in srgb, var(--caccent) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
                   ★ <?= $t('In your subscription', 'ضمن اشتراكك') ?>
                 </span>
               <?php elseif ($info['offerlabel'] !== '' && $info['offerfinal'] > 0): ?>
                 <span style="font-size: 13px; color: var(--ctext2); text-decoration: line-through; opacity: 0.7;"><?= s($pricelabel) ?></span>
-                <span style="font-size: 16px; font-weight: bold; color: var(--ctext1);"><?= s(number_format($info['offerfinal'], 0)) ?> <?= s($info['currency'] !== '' ? $info['currency'] : $t('EGP', 'ج.م')) ?></span>
+                <span style="font-size: 16px; font-weight: bold; color: var(--ctext1);"><?= s($nitmoney($info['offerfinal'], $info['currency'])) ?></span>
                 <span style="background: var(--cbg4); color: var(--ctext4); font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 50px;"><?= s($info['offerlabel']) ?></span>
-              <?php elseif ($info['haspricing']): ?>
+              <?php elseif ($info['haspricing'] && $info['price'] > 0): ?>
                 <span style="font-size: 16px; font-weight: bold; color: var(--ctext1);"><?= s($pricelabel) ?></span>
+              <?php elseif ($info['haspricing']): // Priced, but no rule resolves to an amount — say nothing rather than "Free". ?>
               <?php else: // Free course: the slot stays empty (reserved) so buttons stay put. ?>
                 <span style="font-size: 13px; font-weight: bold; color: var(--csuccess);"><?= $t('Free', 'مجانًا') ?></span>
               <?php endif; ?>
@@ -513,7 +587,7 @@ echo $OUTPUT->header();
             <!-- Actions: gallery button components (.btn-primary / .btn-outline-primary).
                  Enrolled shows one button; every other state shows two. -->
             <div class="d-grid gap-2">
-              <?php if ($info['enrolled']): ?>
+              <?php if ($info['enrolled'] || $info['purchased']): ?>
                 <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif ($info['covered']): ?>
                 <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= $t('Enroll', 'التحاق') ?></a>
@@ -542,17 +616,22 @@ echo $OUTPUT->header();
             $name  = $cat->get_formatted_name();
             $count = $counttree($node);
             $blockclass = 'nit-spec-block' . ($depth > 0 ? ' nit-spec-block--nested' : '');
-            // This section's own image, standing in for the pin/dot. Inheritance is OFF
-            // here on purpose: with it on, every subcategory of an imaged parent would
-            // repeat the parent's picture and the whole list would look identical.
-            $secimage = local_nit_category_get_image_url((int) $cat->id, false);
+            // What stands in for the generic pin/dot, best first: the category's own
+            // icon, else its own image, else nothing (the pin/dot stays). Inheritance is
+            // OFF on purpose — with it on, every subcategory of an imaged parent would
+            // repeat the parent's artwork and the whole list would look identical.
+            $seciconclass = 'nit-cat-icon ' . ($depth === 0 ? 'nit-cat-icon--spec' : 'nit-cat-icon--specsub');
+            $secicon  = local_nit_category_render_icon((int) $cat->id, $seciconclass, $name);
+            $secimage = $secicon === '' ? local_nit_category_get_image_url((int) $cat->id, false) : '';
         ?>
         <div class="<?= $blockclass ?>">
           <div class="nit-spec-head">
             <?php if ($depth === 0): ?>
             <!-- Top-level subcategory: image (or pin) + gradient text + coloured start-border. -->
             <h3 class="nit-spec-title">
-              <?php if ($secimage !== ''): ?>
+              <?php if ($secicon !== ''): ?>
+              <?= $secicon ?>
+              <?php elseif ($secimage !== ''): ?>
               <img class="nit-spec-img" src="<?= s($secimage) ?>" alt="<?= $name ?>">
               <?php else: ?>
               <span class="nit-spec-pin">📌</span>
@@ -563,7 +642,9 @@ echo $OUTPUT->header();
             <?php else: ?>
             <!-- Nested subcategory: rounded tint pill + image (or circle icon). -->
             <h3 class="nit-spec-title nit-spec-title--sub">
-              <?php if ($secimage !== ''): ?>
+              <?php if ($secicon !== ''): ?>
+              <?= $secicon ?>
+              <?php elseif ($secimage !== ''): ?>
               <img class="nit-spec-img" src="<?= s($secimage) ?>" alt="<?= $name ?>">
               <?php else: ?>
               <span class="nit-spec-dot"></span>

@@ -144,3 +144,37 @@
         }
     }
 }
+
+// =============================================================================
+// Sign-up: the password-policy blurb as a field hint.
+//
+// Core's sign-up form adds `passwordpolicyinfo` as a static element *above* the
+// password box; local_profilefields moves it underneath and tags the wrapper
+// with .localprofilefields-passwordpolicy (see local_profilefields\signup::
+// attach_password_policy). All that is left here is to stop it looking like a
+// form row of its own — an empty label column, full body text, a validation
+// slot — and make it read as the password field's hint: small, muted, tucked
+// right under the box it describes.
+// =============================================================================
+.localprofilefields-passwordpolicy {
+    // The password row's own .mb-3 gap would leave the hint floating a full
+    // field apart from its field; close it back up to a hint-sized gap.
+    margin-top: -0.75rem;
+
+    // Nothing to label. With .full-width-labels the empty column still claims a
+    // line of its own, so take it out rather than leave the blank strip.
+    > .col-form-label {
+        display: none;
+    }
+
+    .form-control-static {
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        color: var(--nit-brand-textsecondary);
+    }
+
+    // A static element can never hold an error; the slot only adds height.
+    .form-control-feedback {
+        display: none;
+    }
+}

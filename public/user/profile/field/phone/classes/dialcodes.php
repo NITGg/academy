@@ -131,26 +131,38 @@ class dialcodes {
     }
 
     /**
-     * The list shown in the country select: ISO => "🇪🇬 Egypt (+20)".
+     * The list shown in the country select: ISO => "🇪🇬 +20 Egypt".
      *
      * Countries with a known dialling code are listed, sorted by the localised
      * name so the order follows the interface language.
+     *
+     * The flag and the dialling code come before the country name on purpose: the
+     * select sits beside the number box, so it is narrow, and a closed select clips
+     * whatever does not fit. Leading with the code keeps the part that has to stay
+     * readable - which country the number will be dialled as - visible at every
+     * width; the full name is still there in the open list.
      *
      * @return array<string,string>
      */
     public static function menu(): array {
         $names = get_string_manager()->get_list_of_countries(true);
 
-        $menu = [];
-        foreach (self::CODES as $iso => $dial) {
-            if (!isset($names[$iso])) {
-                continue;
+        // Sorted on the names, not on the finished labels: a label starts with a flag
+        // emoji (a pair of regional-indicator letters that track the ISO code), so
+        // sorting those would order the list by country code instead of by the name
+        // people are actually reading.
+        $order = [];
+        foreach (array_keys(self::CODES) as $iso) {
+            if (isset($names[$iso])) {
+                $order[$iso] = $names[$iso];
             }
-            $flag = self::flag($iso);
-            $menu[$iso] = trim($flag . ' ' . $names[$iso] . ' (+' . $dial . ')');
         }
+        \core_collator::asort($order);
 
-        \core_collator::asort($menu);
+        $menu = [];
+        foreach ($order as $iso => $name) {
+            $menu[$iso] = trim(self::flag($iso) . ' +' . self::CODES[$iso] . ' ' . $name);
+        }
 
         return $menu;
     }

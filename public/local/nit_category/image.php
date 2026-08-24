@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Upload / replace / remove the image of one course category.
+ * Set the image and the icon of one course category.
  *
- * Reached from the "Category image" tab that lib.php adds to the category settings
- * navigation, next to the stock Category / Settings / Upload courses tabs.
+ * Reached from the "Category image & icon" tab that lib.php adds to the category
+ * settings navigation, next to the stock Category / Settings / Upload courses tabs.
  *
  * @package    local_nit_category
  * @copyright  2026 NIT
@@ -41,29 +41,42 @@ $url = new moodle_url('/local/nit_category/image.php', ['id' => $categoryid]);
 $PAGE->set_url($url);
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('admin');
-$PAGE->set_title($category->get_formatted_name() . ': ' . get_string('categoryimage', 'local_nit_category'));
+$PAGE->set_title($category->get_formatted_name() . ': ' . get_string('categorymedia', 'local_nit_category'));
 $PAGE->set_heading($category->get_formatted_name());
 // Keep the category branch of the nav open and this tab highlighted.
 navigation_node::override_active_url(new moodle_url('/course/index.php', ['categoryid' => $categoryid]));
 $PAGE->set_secondary_active_tab('nitcategoryimage');
 
-$options = local_nit_category_image_options();
+$imageoptions = local_nit_category_image_options();
+$iconoptions  = local_nit_category_icon_options();
 
-// Load whatever is stored into a draft area for the filemanager to work on.
-$draftitemid = file_get_submitted_draft_itemid('categoryimage_filemanager');
+// Load whatever is stored into draft areas for the two filemanagers to work on.
+$imagedraftid = file_get_submitted_draft_itemid('categoryimage_filemanager');
 file_prepare_draft_area(
-    $draftitemid,
+    $imagedraftid,
     $context->id,
     'local_nit_category',
     LOCAL_NIT_CATEGORY_IMAGE_FILEAREA,
     0,
-    $options
+    $imageoptions
+);
+
+$icondraftid = file_get_submitted_draft_itemid('categoryicon_filemanager');
+file_prepare_draft_area(
+    $icondraftid,
+    $context->id,
+    'local_nit_category',
+    LOCAL_NIT_CATEGORY_ICON_FILEAREA,
+    0,
+    $iconoptions
 );
 
 $mform = new \local_nit_category\form\image_form($url->out(false));
 $mform->set_data([
-    'id'                         => $categoryid,
-    'categoryimage_filemanager'  => $draftitemid,
+    'id'                        => $categoryid,
+    'categoryimage_filemanager' => $imagedraftid,
+    'categoryicon_filemanager'  => $icondraftid,
+    'iconemoji'                 => local_nit_category_get_icon_emoji($categoryid),
 ]);
 
 $returnurl = new moodle_url('/course/index.php', ['categoryid' => $categoryid]);
@@ -77,19 +90,29 @@ if ($mform->is_cancelled()) {
         'local_nit_category',
         LOCAL_NIT_CATEGORY_IMAGE_FILEAREA,
         0,
-        $options
+        $imageoptions
     );
+    file_save_draft_area_files(
+        $data->categoryicon_filemanager,
+        $context->id,
+        'local_nit_category',
+        LOCAL_NIT_CATEGORY_ICON_FILEAREA,
+        0,
+        $iconoptions
+    );
+    local_nit_category_set_icon_emoji($categoryid, (string) ($data->iconemoji ?? ''));
+
     redirect(
         $url,
-        get_string('imagesaved', 'local_nit_category'),
+        get_string('mediasaved', 'local_nit_category'),
         null,
         \core\output\notification::NOTIFY_SUCCESS
     );
 }
 
-// Work out which link in the fallback chain is actually feeding this category right
-// now, so the admin can see at a glance whether the picture comes from this page, from
-// the description, from a parent category, or from the site logo.
+// Work out which link in the image fallback chain is actually feeding this category
+// right now, so the admin can see whether the picture comes from this page, from the
+// description, from a parent category, or from the site logo.
 $ownfile        = local_nit_category_get_image_file($categoryid);
 $owndescription = local_nit_category_description_image_url($categoryid);
 $resolved       = local_nit_category_get_image_url($categoryid);
@@ -106,11 +129,20 @@ if ($ownfile) {
     $resolved = $logo ? $logo->out(false) : '';
 }
 
-echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('categoryimage', 'local_nit_category'));
+$iconhtml = local_nit_category_render_icon(
+    $categoryid,
+    'local-nit-category-iconpreview',
+    $category->get_formatted_name()
+);
 
+echo $OUTPUT->header();
+echo $OUTPUT->heading(get_string('categorymedia', 'local_nit_category'));
+
+echo html_writer::start_div('d-flex flex-wrap gap-4 mb-4');
+
+// Current image.
 if ($resolved !== '') {
-    echo html_writer::start_div('mb-4');
+    echo html_writer::start_div();
     echo html_writer::tag('h3', get_string('currentimage', 'local_nit_category'), ['class' => 'h5']);
     echo html_writer::empty_tag('img', [
         'src'   => $resolved,
@@ -118,12 +150,28 @@ if ($resolved !== '') {
         'class' => 'img-fluid rounded border',
         'style' => 'max-height: 180px;',
     ]);
-    echo html_writer::div(
-        get_string($sourcekey, 'local_nit_category'),
-        'text-muted small mt-2'
-    );
+    echo html_writer::div(get_string($sourcekey, 'local_nit_category'), 'text-muted small mt-2');
     echo html_writer::end_div();
 }
+
+// Current icon, shown the way the site actually prints it — beside the category name.
+echo html_writer::start_div();
+echo html_writer::tag('h3', get_string('currenticon', 'local_nit_category'), ['class' => 'h5']);
+if ($iconhtml !== '') {
+    echo html_writer::div(
+        $iconhtml . html_writer::tag('span', $category->get_formatted_name(), ['class' => 'fw-bold']),
+        'd-inline-flex align-items-center gap-2 border rounded px-3 py-2'
+    );
+} else {
+    echo html_writer::div(get_string('noicon', 'local_nit_category'), 'text-muted small fst-italic');
+}
+echo html_writer::end_div();
+
+echo html_writer::end_div();
+
+// The icon preview must match the real thing: a contained square, emoji at heading size.
+echo html_writer::tag('style', '.local-nit-category-iconpreview{width:32px;height:32px;'
+    . 'object-fit:contain;font-size:26px;line-height:1;display:inline-block;text-align:center;}');
 
 echo html_writer::div(get_string('fallbackinfo', 'local_nit_category'), 'alert alert-info');
 

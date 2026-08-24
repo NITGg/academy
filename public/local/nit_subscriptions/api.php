@@ -248,8 +248,9 @@ try {
 
         // ── Public: available plans for the home-page block ──
         case 'get_available_subscriptions':
+            $country = optional_param('country', '', PARAM_ALPHA);
             nit_subscriptions_respond(['status' => 'success',
-                'data' => nit_subscriptions_available()]);
+                'data' => nit_subscriptions_available($country !== '' ? $country : null)]);
             break;
 
         default:

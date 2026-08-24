@@ -820,7 +820,20 @@ function theme_nit_course_price(int $courseid): string {
             // Active rule with a zero price — treat as explicitly free.
             return '';
         } catch (\moodle_exception $e) {
-            // No matching rule for this country — fall through to free/enrol.
+            // resolve() throws when nothing matches the viewer's country AND the course has
+            // no default rule. The course still HAS pricing (has_pricing() said so), so it is
+            // not free — fall back to any active rule rather than advertising it as free.
+            $fallback = $DB->get_record_select(
+                'local_payments_course_prices',
+                'courseid = :courseid AND is_active = 1',
+                ['courseid' => $courseid],
+                'price, currency',
+                IGNORE_MULTIPLE
+            );
+            if ($fallback && (float) $fallback->price > 0) {
+                return format_float($fallback->price, 2, false) . ' ' . $fallback->currency;
+            }
+            return '';
         }
     }
 
@@ -1255,7 +1268,7 @@ function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
  * Exposed to JavaScript as `window.NIT_CATEGORIES`.
  *
  * @param int $limit maximum number of categories
- * @return array<int, array{id:int,name:string,coursecount:int,icon:string,image:string,url:string}>
+ * @return array<int, array{id:int,name:string,coursecount:int,icon:string,iconurl:string,image:string,url:string}>
  */
 function theme_nit_get_categories(int $limit = 4): array {
     global $CFG, $OUTPUT;
@@ -1268,7 +1281,7 @@ function theme_nit_get_categories(int $limit = 4): array {
     if (file_exists($CFG->dirroot . '/local/nit_category/lib.php')) {
         require_once($CFG->dirroot . '/local/nit_category/lib.php');
     }
-    $hascategoryimages = function_exists('local_nit_category_get_image_url');
+    $hascategoryplugin = function_exists('local_nit_category_get_image_url');
 
     // Last resort, unchanged: "if the category has no image, show the site logo".
     $logo = $OUTPUT->get_logo_url() ?: $OUTPUT->get_compact_logo_url();
@@ -1283,7 +1296,13 @@ function theme_nit_get_categories(int $limit = 4): array {
     foreach ($toplevel as $cat) {
         // These are top-level categories, so there is no ancestor to inherit from; the
         // resolver still covers "uploaded file -> first image inside the description".
-        $catimage = $hascategoryimages ? local_nit_category_get_image_url((int) $cat->id) : '';
+        $catimage = $hascategoryplugin ? local_nit_category_get_image_url((int) $cat->id) : '';
+
+        // The category's own icon, when local_nit_category has one: `iconurl` for an
+        // uploaded icon file, `icon` for an emoji. The rotating emoji below is only a
+        // placeholder for categories that have set neither.
+        $caticonurl = $hascategoryplugin ? local_nit_category_get_icon_url((int) $cat->id) : '';
+        $caticonemoji = $hascategoryplugin ? local_nit_category_get_icon_emoji((int) $cat->id) : '';
 
         $categories[] = [
             'id' => (int) $cat->id,
@@ -1291,7 +1310,8 @@ function theme_nit_get_categories(int $limit = 4): array {
             // Count courses in this category AND all its subcategories, so a main
             // category whose courses live only in subcategories still shows a real total.
             'coursecount' => $cat->get_courses_count(['recursive' => true]),
-            'icon' => $icons[$i % count($icons)],
+            'icon' => $caticonemoji !== '' ? $caticonemoji : $icons[$i % count($icons)],
+            'iconurl' => $caticonurl,
             'image' => $catimage !== '' ? $catimage : $logourl,
             // Build the details-page URL here so the frontend never has to guess wwwroot.
             'url' => (new moodle_url('/local/nit_category/index.php', ['id' => $cat->id]))->out(false),

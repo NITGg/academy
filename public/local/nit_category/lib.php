@@ -34,6 +34,12 @@ defined('MOODLE_INTERNAL') || die();
 /** The filearea holding the (single) image of a course category. */
 define('LOCAL_NIT_CATEGORY_IMAGE_FILEAREA', 'categoryimage');
 
+/** The filearea holding the (single) icon of a course category. */
+define('LOCAL_NIT_CATEGORY_ICON_FILEAREA', 'categoryicon');
+
+/** Plugin config key holding the {categoryid: emoji} map of text icons. */
+define('LOCAL_NIT_CATEGORY_ICON_CONFIG', 'categoryicons');
+
 /**
  * Filemanager / draft-area options for the category image.
  *
@@ -171,7 +177,161 @@ function local_nit_category_get_image_url(int $categoryid, bool $inherit = true)
 }
 
 /**
- * Adds the "Category image" tab to a category's settings navigation.
+ * Filemanager / draft-area options for the category icon.
+ *
+ * Same shape as the image options, but the icon is the small glyph that sits next to a
+ * category's NAME (badge, filter pill, section heading), where the full-size image
+ * would be far too big.
+ *
+ * @return array options for filemanager elements and the file_*_draft_area helpers
+ */
+function local_nit_category_icon_options(): array {
+    global $CFG;
+    return [
+        'maxfiles'       => 1,
+        'maxbytes'       => $CFG->maxbytes,
+        'subdirs'        => 0,
+        'accepted_types' => ['web_image'],
+    ];
+}
+
+/**
+ * The icon file uploaded for a category, if there is one.
+ *
+ * @param int $categoryid a course category id
+ * @return stored_file|null the icon, or null when the category has none
+ */
+function local_nit_category_get_icon_file(int $categoryid): ?stored_file {
+    static $cache = [];
+    if (array_key_exists($categoryid, $cache)) {
+        return $cache[$categoryid];
+    }
+    $cache[$categoryid] = null;
+
+    $context = context_coursecat::instance($categoryid, IGNORE_MISSING);
+    if (!$context) {
+        return null;
+    }
+    $files = get_file_storage()->get_area_files(
+        $context->id,
+        'local_nit_category',
+        LOCAL_NIT_CATEGORY_ICON_FILEAREA,
+        0,
+        'filepath, filename',
+        false
+    );
+    foreach ($files as $file) {
+        if ($file->is_valid_image()) {
+            $cache[$categoryid] = $file;
+            return $file;
+        }
+    }
+    return null;
+}
+
+/**
+ * The URL of a category's uploaded icon.
+ *
+ * @param int $categoryid a course category id
+ * @return string icon URL, or '' when the category has no icon file
+ */
+function local_nit_category_get_icon_url(int $categoryid): string {
+    $file = local_nit_category_get_icon_file($categoryid);
+    if (!$file) {
+        return '';
+    }
+    return moodle_url::make_pluginfile_url(
+        $file->get_contextid(),
+        $file->get_component(),
+        $file->get_filearea(),
+        null,
+        $file->get_filepath(),
+        $file->get_filename()
+    )->out(false);
+}
+
+/**
+ * The whole {categoryid: emoji} icon map.
+ *
+ * Emoji icons live in one plugin config row rather than a table — the same shape
+ * theme_nit uses for its per-category brand groups (`nit_category_groups`), and one
+ * read serves a whole page of categories.
+ *
+ * @return array<int, string> category id => emoji
+ */
+function local_nit_category_get_icon_map(): array {
+    static $map = null;
+    if ($map === null) {
+        $raw = get_config('local_nit_category', LOCAL_NIT_CATEGORY_ICON_CONFIG);
+        $map = ($raw && is_string($raw)) ? (json_decode($raw, true) ?: []) : [];
+    }
+    return $map;
+}
+
+/**
+ * The emoji / short text icon set for a category.
+ *
+ * @param int $categoryid a course category id
+ * @return string the emoji, or '' when none is set
+ */
+function local_nit_category_get_icon_emoji(int $categoryid): string {
+    $map = local_nit_category_get_icon_map();
+    $value = $map[$categoryid] ?? ($map[(string) $categoryid] ?? '');
+    return is_string($value) ? $value : '';
+}
+
+/**
+ * Stores (or clears, when given '') a category's emoji icon.
+ *
+ * @param int $categoryid a course category id
+ * @param string $emoji the emoji / short text, or '' to remove it
+ */
+function local_nit_category_set_icon_emoji(int $categoryid, string $emoji): void {
+    $map = local_nit_category_get_icon_map();
+    $emoji = trim($emoji);
+
+    if ($emoji === '') {
+        unset($map[$categoryid], $map[(string) $categoryid]);
+    } else {
+        // A few characters is all an icon slot can show; a flag or a family emoji is
+        // several code points, hence 8 rather than 1.
+        $map[(string) $categoryid] = core_text::substr($emoji, 0, 8);
+    }
+
+    set_config(
+        LOCAL_NIT_CATEGORY_ICON_CONFIG,
+        json_encode($map, JSON_UNESCAPED_UNICODE),
+        'local_nit_category'
+    );
+}
+
+/**
+ * A category's icon as ready-to-print HTML.
+ *
+ * An uploaded icon file wins over the emoji, so an admin can start with an emoji and
+ * upload real artwork later without clearing anything. No inheritance from ancestors:
+ * an icon identifies one category, and inheriting would make every sibling identical.
+ *
+ * @param int $categoryid a course category id
+ * @param string $class CSS class(es) for the produced element
+ * @param string $alt alt text for the image variant (already format_string()'d)
+ * @return string HTML for the icon, or '' when the category has neither icon
+ */
+function local_nit_category_render_icon(int $categoryid, string $class = '', string $alt = ''): string {
+    $classattr = $class !== '' ? ' class="' . s($class) . '"' : '';
+
+    if ($url = local_nit_category_get_icon_url($categoryid)) {
+        return '<img' . $classattr . ' src="' . s($url) . '" alt="' . $alt . '">';
+    }
+    if ($emoji = local_nit_category_get_icon_emoji($categoryid)) {
+        // Decorative next to the name it accompanies, so hidden from screen readers.
+        return '<span' . $classattr . ' aria-hidden="true">' . s($emoji) . '</span>';
+    }
+    return '';
+}
+
+/**
+ * Adds the "Category image & icon" tab to a category's settings navigation.
  *
  * This is the supported extension point for category admin pages — the same one
  * tool_uploadcourse uses for its "Upload courses" tab — so the link appears next to the
@@ -188,7 +348,7 @@ function local_nit_category_extend_navigation_category_settings(
         return;
     }
     $navigation->add_node(navigation_node::create(
-        get_string('categoryimage', 'local_nit_category'),
+        get_string('categorymedia', 'local_nit_category'),
         new moodle_url('/local/nit_category/image.php', ['id' => $coursecategorycontext->instanceid]),
         navigation_node::TYPE_SETTING,
         null,
@@ -215,7 +375,8 @@ function local_nit_category_extend_navigation_category_settings(
 function local_nit_category_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
     global $CFG;
 
-    if ($context->contextlevel != CONTEXT_COURSECAT || $filearea !== LOCAL_NIT_CATEGORY_IMAGE_FILEAREA) {
+    $allowedareas = [LOCAL_NIT_CATEGORY_IMAGE_FILEAREA, LOCAL_NIT_CATEGORY_ICON_FILEAREA];
+    if ($context->contextlevel != CONTEXT_COURSECAT || !in_array($filearea, $allowedareas, true)) {
         send_file_not_found();
     }
     if (!empty($CFG->forcelogin)) {
@@ -232,7 +393,7 @@ function local_nit_category_pluginfile($course, $cm, $context, $filearea, $args,
     $file = get_file_storage()->get_file(
         $context->id,
         'local_nit_category',
-        LOCAL_NIT_CATEGORY_IMAGE_FILEAREA,
+        $filearea,
         0,
         $filepath,
         $filename

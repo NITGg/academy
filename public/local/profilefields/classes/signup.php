@@ -100,6 +100,7 @@ class signup {
         }
 
         self::reorder($mform, $config);
+        self::attach_password_policy($mform);
 
         // Appended last, so it sits just above the buttons core adds after us.
         if (manager::consent_enabled()) {
@@ -331,15 +332,12 @@ JS;
             return;
         }
 
-        // The element names to place, in order. The password box carries its policy
-        // blurb (a separate static element that only reads right directly above it).
+        // The element names to place, in order. The password-policy blurb is left
+        // out on purpose - it is not a field of its own, and attach_password_policy()
+        // pins it under the password box once the fields are in their final order.
         $wanted = [];
         foreach (manager::order_tokens(array_keys($elementfor)) as $token) {
-            $name = $elementfor[$token];
-            if ($name === 'password' && $mform->elementExists('passwordpolicyinfo')) {
-                $wanted[] = 'passwordpolicyinfo';
-            }
-            $wanted[] = $name;
+            $wanted[] = $elementfor[$token];
         }
         $wantedset = array_flip($wanted);
 
@@ -377,6 +375,57 @@ JS;
         array_splice($others, $insertat, 0, $block);
         $mform->_elements = array_values($others);
         self::rebuild_index($mform);
+    }
+
+    /** @var string Wrapper class the theme styles the policy blurb as a field hint with. */
+    const POLICY_CLASS = 'localprofilefields-passwordpolicy';
+
+    /**
+     * Turn the password-policy blurb into a hint sitting under the password box.
+     *
+     * Core adds `passwordpolicyinfo` as a static element *before* the password
+     * element, so the rules render as a full form row above the box they describe -
+     * read top to bottom, they look like a stray sentence belonging to the field
+     * above. Moving the element after the password box, and tagging its wrapper so
+     * the theme can render it small and muted, makes it read as that field's hint.
+     *
+     * Runs after reorder(), which deliberately ignores the blurb: it is not a field
+     * an admin can place, it just follows the password box wherever that lands.
+     *
+     * @param MoodleQuickForm $mform the sign-up form, mid-definition
+     * @return void
+     */
+    protected static function attach_password_policy(MoodleQuickForm $mform): void {
+        if (!$mform->elementExists('passwordpolicyinfo') || !$mform->elementExists('password')) {
+            return;
+        }
+
+        // An element's `class` attribute lands on the wrapper row as "extraclasses".
+        $mform->getElement('passwordpolicyinfo')->updateAttributes(['class' => self::POLICY_CLASS]);
+
+        // Rebuilt in one pass for the same reason reorder() does it that way:
+        // removeElement()/insertElementBefore() leave the name-to-index map stale.
+        $policy = null;
+        $rest = [];
+        foreach ($mform->_elements as $element) {
+            if ($policy === null && (string) $element->getName() === 'passwordpolicyinfo') {
+                $policy = $element;
+                continue;
+            }
+            $rest[] = $element;
+        }
+        if ($policy === null) {
+            return;
+        }
+
+        foreach ($rest as $i => $element) {
+            if ((string) $element->getName() === 'password') {
+                array_splice($rest, $i + 1, 0, [$policy]);
+                $mform->_elements = $rest;
+                self::rebuild_index($mform);
+                return;
+            }
+        }
     }
 
     /**

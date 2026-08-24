@@ -49,8 +49,10 @@ class get_available_subscriptions extends external_api {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-            'lang'  => new external_value(PARAM_LANG, 'Display language, e.g. en or ar (optional)', VALUE_DEFAULT, ''),
-            'alang' => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
+            'lang'    => new external_value(PARAM_LANG, 'Display language, e.g. en or ar (optional)', VALUE_DEFAULT, ''),
+            'alang'   => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
+            'country' => new external_value(PARAM_ALPHA, 'ISO 3166-1 alpha-2 country to price for (optional). '
+                . 'When omitted, the logged-in user\'s profile country is used.', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -59,16 +61,18 @@ class get_available_subscriptions extends external_api {
      *
      * @param string $lang
      * @param string $alang
+     * @param string $country optional ISO country override for pricing
      * @return array
      */
-    public static function execute(string $lang = '', string $alang = ''): array {
-        $params = self::validate_parameters(self::execute_parameters(), ['lang' => $lang, 'alang' => $alang]);
+    public static function execute(string $lang = '', string $alang = '', string $country = ''): array {
+        $params = self::validate_parameters(self::execute_parameters(),
+            ['lang' => $lang, 'alang' => $alang, 'country' => $country]);
         self::validate_context(\context_system::instance());
         $chosen = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
         if ($chosen !== '') {
             force_current_language($chosen);
         }
-        return nit_subscriptions_available();
+        return nit_subscriptions_available($params['country'] !== '' ? $params['country'] : null);
     }
 
     /**
@@ -82,8 +86,9 @@ class get_available_subscriptions extends external_api {
                 'id'            => new external_value(PARAM_INT, 'Subscription plan id'),
                 'name'          => new external_value(PARAM_TEXT, 'Plan name'),
                 'description'   => new external_value(PARAM_RAW, 'Plan description (HTML)'),
-                'price'         => new external_value(PARAM_FLOAT, 'Plan price for the caller\'s country'),
+                'price'         => new external_value(PARAM_FLOAT, 'Plan price for the resolved country'),
                 'currency'      => new external_value(PARAM_TEXT, 'ISO 4217 currency of the price (e.g. EGP, SAR)'),
+                'country'       => new external_value(PARAM_TEXT, 'ISO country the price was resolved for'),
                 'duration_days' => new external_value(PARAM_INT, 'Access duration in days'),
                 'status'        => new external_value(PARAM_TEXT, 'Plan status (active)'),
                 'b2b_enabled'   => new external_value(PARAM_INT, '1 if the plan can be bought for a team (B2B)'),

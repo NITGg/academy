@@ -25,5 +25,5 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_category';
-$plugin->version   = 2026082400;        // YYYYMMDDXX — adds the per-category image.
+$plugin->version   = 2026082402;        // YYYYMMDDXX — per-category image + icon.
 $plugin->requires  = 2022041900;

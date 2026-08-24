@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The category-image upload form.
+ * The category image + icon form.
  *
  * @package    local_nit_category
  * @copyright  2026 NIT
@@ -33,10 +33,10 @@ require_once("{$CFG->libdir}/formslib.php");
 require_once("{$CFG->dirroot}/local/nit_category/lib.php");
 
 /**
- * One image per course category.
+ * The two visual identifiers core never gave a course category.
  *
- * Deliberately tiny: this is the field core never gave the category edit form, and
- * nothing else belongs on this page.
+ * They are deliberately separate things: the IMAGE is the big picture on cards and the
+ * category hero, the ICON is the small glyph printed next to the category NAME.
  */
 class image_form extends moodleform {
 
@@ -44,14 +44,41 @@ class image_form extends moodleform {
     protected function definition() {
         $mform = $this->_form;
 
+        // ---- Image -------------------------------------------------------------
+        $mform->addElement('header', 'imageheader', get_string('categoryimage', 'local_nit_category'));
+        $mform->setExpanded('imageheader');
+
         $mform->addElement(
             'filemanager',
             'categoryimage_filemanager',
-            get_string('categoryimage', 'local_nit_category'),
+            get_string('categoryimagefile', 'local_nit_category'),
             null,
             \local_nit_category_image_options()
         );
         $mform->addHelpButton('categoryimage_filemanager', 'categoryimage', 'local_nit_category');
+
+        // ---- Icon --------------------------------------------------------------
+        $mform->addElement('header', 'iconheader', get_string('categoryicon', 'local_nit_category'));
+        $mform->setExpanded('iconheader');
+
+        // Emoji first: it is the zero-effort option, and most categories will stop here.
+        $mform->addElement(
+            'text',
+            'iconemoji',
+            get_string('categoryiconemoji', 'local_nit_category'),
+            ['size' => 6, 'maxlength' => 8]
+        );
+        $mform->setType('iconemoji', PARAM_TEXT);
+        $mform->addHelpButton('iconemoji', 'categoryiconemoji', 'local_nit_category');
+
+        $mform->addElement(
+            'filemanager',
+            'categoryicon_filemanager',
+            get_string('categoryiconfile', 'local_nit_category'),
+            null,
+            \local_nit_category_icon_options()
+        );
+        $mform->addHelpButton('categoryicon_filemanager', 'categoryiconfile', 'local_nit_category');
 
         $mform->addElement('hidden', 'id', 0);
         $mform->setType('id', PARAM_INT);

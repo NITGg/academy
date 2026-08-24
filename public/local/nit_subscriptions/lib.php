@@ -45,19 +45,22 @@ function local_nit_subscriptions_string_map(array $keys): array {
  * Shared by api.php (?function=get_available_subscriptions) and the get_available_subscriptions
  * external function so both return the identical shape.
  *
+ * @param string|null $app_country optional ISO 3166-1 alpha-2 country to price for (e.g. from the
+ *        mobile app). When null, the caller's profile country (or IP for guests) is used.
  * @return array
  */
-function nit_subscriptions_available(): array {
+function nit_subscriptions_available(?string $app_country = null): array {
     $subs = \local_nit_subscriptions\subscription_manager::get_subscriptions(
         \local_nit_subscriptions\subscription_manager::STATUS_ACTIVE);
     $hasoffers = class_exists('\local_nit_commerce\discount_manager');
     $out = [];
     foreach ($subs as $s) {
-        // Country-based price/currency for the current user (falls back to the plan's default
-        // price/currency when their profile country has no override row).
-        $resolved = \local_nit_subscriptions\subscription_manager::resolve_price((int) $s->id);
+        // Country-based price/currency for the caller (an explicit country wins; otherwise the
+        // profile country, falling back to the plan's default price/currency).
+        $resolved = \local_nit_subscriptions\subscription_manager::resolve_price((int) $s->id, null, $app_country);
         $price = (float) $resolved->price;
         $currency = (string) $resolved->currency;
+        $country = (string) $resolved->country;
 
         // The best auto-offer on this plan. Exposed two ways: flat offer_label/offer_final (the web
         // block reads these) and a nested `offer` object (the mobile app reads this) — present only
@@ -85,6 +88,7 @@ function nit_subscriptions_available(): array {
                 ? format_text(\local_nit_subscriptions\subscription_manager::resolve_mlang($s->description), FORMAT_HTML) : '',
             'price'         => $price,
             'currency'      => $currency,
+            'country'       => $country,
             'duration_days' => (int) $s->duration_days,
             'status'        => (string) $s->status,
             'b2b_enabled'   => (int) $s->b2b_enabled,
