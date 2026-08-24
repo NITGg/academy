@@ -1255,14 +1255,22 @@ function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
  * Exposed to JavaScript as `window.NIT_CATEGORIES`.
  *
  * @param int $limit maximum number of categories
- * @return array<int, array{id:int,name:string,coursecount:int,icon:string}>
+ * @return array<int, array{id:int,name:string,coursecount:int,icon:string,image:string,url:string}>
  */
 function theme_nit_get_categories(int $limit = 4): array {
-    global $OUTPUT;
+    global $CFG, $OUTPUT;
     $icons = ['💻', '📊', '🎨', '🗣️', '🔬', '💡', '📚', '🎯'];
 
-    // Moodle categories have no image field of their own, so use the site logo as
-    // the fallback image ("if the category has no image, show the site logo").
+    // Moodle categories have no image field of their own, so local_nit_category adds
+    // one (uploaded on the category's "Category image" tab, or taken from the first
+    // image in its description). Guarded with function_exists so the front page still
+    // renders if that plugin is ever absent.
+    if (file_exists($CFG->dirroot . '/local/nit_category/lib.php')) {
+        require_once($CFG->dirroot . '/local/nit_category/lib.php');
+    }
+    $hascategoryimages = function_exists('local_nit_category_get_image_url');
+
+    // Last resort, unchanged: "if the category has no image, show the site logo".
     $logo = $OUTPUT->get_logo_url() ?: $OUTPUT->get_compact_logo_url();
     $logourl = $logo ? $logo->out(false) : '';
 
@@ -1273,6 +1281,10 @@ function theme_nit_get_categories(int $limit = 4): array {
     $categories = [];
     $i = 0;
     foreach ($toplevel as $cat) {
+        // These are top-level categories, so there is no ancestor to inherit from; the
+        // resolver still covers "uploaded file -> first image inside the description".
+        $catimage = $hascategoryimages ? local_nit_category_get_image_url((int) $cat->id) : '';
+
         $categories[] = [
             'id' => (int) $cat->id,
             'name' => $cat->get_formatted_name(),
@@ -1280,7 +1292,7 @@ function theme_nit_get_categories(int $limit = 4): array {
             // category whose courses live only in subcategories still shows a real total.
             'coursecount' => $cat->get_courses_count(['recursive' => true]),
             'icon' => $icons[$i % count($icons)],
-            'image' => $logourl,
+            'image' => $catimage !== '' ? $catimage : $logourl,
             // Build the details-page URL here so the frontend never has to guess wwwroot.
             'url' => (new moodle_url('/local/nit_category/index.php', ['id' => $cat->id]))->out(false),
         ];

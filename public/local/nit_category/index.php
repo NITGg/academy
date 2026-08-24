@@ -122,7 +122,11 @@ $bannertotal = $category->get_courses_count(['recursive' => true]);
 // ancestor's image; if the whole chain comes up empty we still fall back to the site
 // logo ("if the category has no image, show the site logo").
 $categoryimage = local_nit_category_get_image_url((int) $category->id);
-if ($categoryimage === '') {
+// Whether that image is genuinely this category's own (or an ancestor's) rather than
+// the site-wide logo. The hero only shows a picture when there is a real one — a big
+// site logo on top of every un-imaged category would be noise, not branding.
+$hasrealimage = ($categoryimage !== '');
+if (!$hasrealimage) {
     $logo = $OUTPUT->get_logo_url() ?: $OUTPUT->get_compact_logo_url();
     $categoryimage = $logo ? $logo->out(false) : '';
 }
@@ -262,6 +266,20 @@ echo $OUTPUT->header();
     }
     .nit-hero__inner { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
 
+    /* Category image — sits above the badge. `contain` so wide banners and square
+       logos both read correctly, on a lifted surface tile like the course cards. */
+    .nit-hero__logo {
+      display: block; margin: 0 auto 1.5rem;
+      max-width: min(320px, 70vw); max-height: 140px;
+      width: auto; height: auto;
+      object-fit: contain;
+      border-radius: 16px;
+      background: var(--cbg3);
+      padding: 14px;
+      box-sizing: border-box;
+      animation: nit-fadedown 0.8s ease both;
+    }
+
     /* Badge — X-Trade .hero-badge */
     .nit-hero__badge {
       display: inline-flex; align-items: center; gap: 0.5rem;
@@ -328,6 +346,12 @@ echo $OUTPUT->header();
     <div class="nit-hero__glow-b"></div>
 
     <div class="nit-hero__inner">
+
+      <!-- Category image (local_nit_category): only when this category really has one. -->
+      <?php if ($hasrealimage): ?>
+      <?php // $categoryname comes from format_string(), so it is already attribute-safe. ?>
+      <img class="nit-hero__logo" src="<?= s($categoryimage) ?>" alt="<?= $categoryname ?>">
+      <?php endif; ?>
 
       <!-- Badge: category name with pulsing dot -->
       <div class="nit-hero__badge">
@@ -518,20 +542,32 @@ echo $OUTPUT->header();
             $name  = $cat->get_formatted_name();
             $count = $counttree($node);
             $blockclass = 'nit-spec-block' . ($depth > 0 ? ' nit-spec-block--nested' : '');
+            // This section's own image, standing in for the pin/dot. Inheritance is OFF
+            // here on purpose: with it on, every subcategory of an imaged parent would
+            // repeat the parent's picture and the whole list would look identical.
+            $secimage = local_nit_category_get_image_url((int) $cat->id, false);
         ?>
         <div class="<?= $blockclass ?>">
           <div class="nit-spec-head">
             <?php if ($depth === 0): ?>
-            <!-- Top-level subcategory: pin + gradient text + coloured start-border. -->
+            <!-- Top-level subcategory: image (or pin) + gradient text + coloured start-border. -->
             <h3 class="nit-spec-title">
+              <?php if ($secimage !== ''): ?>
+              <img class="nit-spec-img" src="<?= s($secimage) ?>" alt="<?= $name ?>">
+              <?php else: ?>
               <span class="nit-spec-pin">📌</span>
+              <?php endif; ?>
               <span class="nit-spec-name"><?= $name ?></span>
               <span class="nit-spec-count">(<?= $count ?>)</span>
             </h3>
             <?php else: ?>
-            <!-- Nested subcategory: rounded tint pill + circle icon. -->
+            <!-- Nested subcategory: rounded tint pill + image (or circle icon). -->
             <h3 class="nit-spec-title nit-spec-title--sub">
+              <?php if ($secimage !== ''): ?>
+              <img class="nit-spec-img" src="<?= s($secimage) ?>" alt="<?= $name ?>">
+              <?php else: ?>
               <span class="nit-spec-dot"></span>
+              <?php endif; ?>
               <span class="nit-spec-subname"><?= $name ?></span>
               <span class="nit-spec-count">(<?= $count ?>)</span>
             </h3>
@@ -582,6 +618,12 @@ echo $OUTPUT->header();
         }
         .nit-spec-title .nit-spec-pin { font-size: 24px; line-height: 1; }
         .nit-spec-title .nit-spec-count { font-size: 15px; font-weight: 700; color: var(--ctext3); }
+        /* A subcategory's own image, standing in for the pin when it has one. */
+        .nit-spec-title .nit-spec-img {
+          width: 40px; height: 40px; flex: 0 0 auto;
+          object-fit: contain; border-radius: 10px;
+          background: var(--cbg3); padding: 5px; box-sizing: border-box;
+        }
 
         /* Nested subcategory title — rounded tint pill (50% of the accent) + circle
            icon instead of the pin; no gradient / start-border so it reads as a chip. */
@@ -595,6 +637,11 @@ echo $OUTPUT->header();
         .nit-spec-title--sub .nit-spec-dot {
           width: 12px; height: 12px; border-radius: 50%;
           background: var(--ctext1); flex: 0 0 auto;
+        }
+        /* Smaller inside the chip, and round to match the dot it replaces. */
+        .nit-spec-title--sub .nit-spec-img {
+          width: 28px; height: 28px; border-radius: 50%; padding: 3px;
+          background: color-mix(in srgb, var(--ctext1) 15%, transparent);
         }
 
         .nit-spec-grid {

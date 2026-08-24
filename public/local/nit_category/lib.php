@@ -58,6 +58,14 @@ function local_nit_category_image_options(): array {
  * @return stored_file|null the image, or null when the category has none
  */
 function local_nit_category_get_image_file(int $categoryid): ?stored_file {
+    // Memoised: a category listing resolves the same category more than once (hero,
+    // section header, card), and every miss is a file_storage query.
+    static $cache = [];
+    if (array_key_exists($categoryid, $cache)) {
+        return $cache[$categoryid];
+    }
+    $cache[$categoryid] = null;
+
     $context = context_coursecat::instance($categoryid, IGNORE_MISSING);
     if (!$context) {
         return null;
@@ -72,6 +80,7 @@ function local_nit_category_get_image_file(int $categoryid): ?stored_file {
     );
     foreach ($files as $file) {
         if ($file->is_valid_image()) {
+            $cache[$categoryid] = $file;
             return $file;
         }
     }

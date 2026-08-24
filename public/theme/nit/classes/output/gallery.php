@@ -64,6 +64,13 @@ class gallery implements renderable, templatable {
         // category (its subcategories, filtered views) inherits that group via
         // theme_nit_category_brand_group(). Each row gets a Group 1/2/3 selector,
         // pre-set to the stored assignment (default Group 1).
+        global $CFG;
+        // Category pictures come from local_nit_category; load it so the per-row
+        // thumbnail below can resolve, but keep the tab working without it.
+        if (file_exists($CFG->dirroot . '/local/nit_category/lib.php')) {
+            require_once($CFG->dirroot . '/local/nit_category/lib.php');
+        }
+
         $rawmap = \get_config('theme_nit', 'nit_category_groups');
         $catmap = ($rawmap && is_string($rawmap)) ? (json_decode($rawmap, true) ?: []) : [];
         $grouplabels = \theme_nit_brand_groups();
@@ -77,11 +84,22 @@ class gallery implements renderable, templatable {
             foreach ($grouplabels as $gkey => $glabel) {
                 $options[] = ['value' => $gkey, 'label' => $glabel, 'selected' => ($gkey === $current)];
             }
+            // The category's picture (local_nit_category), so this one screen shows
+            // both halves of a category's branding — its palette and its image — and
+            // an admin can see at a glance which categories are still missing one.
+            $image = '';
+            if (function_exists('local_nit_category_get_image_url')) {
+                $image = \local_nit_category_get_image_url((int) $cat->id, false);
+            }
+
             $categorygroups[] = [
                 'id' => $cat->id,
                 'name' => $cat->get_formatted_name(),
                 'options' => $options,
                 'isdefault' => ($current === 'g1'),
+                'image' => $image,
+                'hasimage' => ($image !== ''),
+                'imageurl' => (new \moodle_url('/local/nit_category/image.php', ['id' => $cat->id]))->out(false),
             ];
         }
 

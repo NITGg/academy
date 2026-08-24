@@ -140,6 +140,7 @@
                     <table class="table table-sm align-middle nit-catstyles-table">
                         <thead>
                             <tr>
+                                <th scope="col" style="width: 5rem;">{{#str}}categorystyles_col_image, theme_nit{{/str}}</th>
                                 <th scope="col">{{#str}}categorystyles_col_category, theme_nit{{/str}}</th>
                                 <th scope="col" style="width: 12rem;">{{#str}}categorystyles_col_group, theme_nit{{/str}}</th>
                             </tr>
@@ -147,6 +148,17 @@
                         <tbody>
                             {{#categorygroups}}
                             <tr>
+                                <td>
+                                    <a href="{{imageurl}}" title="{{#str}}categorystyles_editimage, theme_nit{{/str}}">
+                                        {{#hasimage}}
+                                        <img src="{{image}}" alt="{{name}}" class="rounded border"
+                                             style="width: 48px; height: 48px; object-fit: contain; background: var(--nit-brand-surface); padding: 3px;">
+                                        {{/hasimage}}
+                                        {{^hasimage}}
+                                        <span class="text-muted small fst-italic">{{#str}}categorystyles_noimage, theme_nit{{/str}}</span>
+                                        {{/hasimage}}
+                                    </a>
+                                </td>
                                 <td>{{name}}</td>
                                 <td>
                                     <select class="form-select form-select-sm" name="catgroup[{{id}}]" aria-label="{{name}}">
