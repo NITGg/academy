@@ -185,15 +185,26 @@ class provision {
             profile_purge_user_fields_cache();
         }
 
-        // Give the sign-up form a sensible starting order the first time only, so an
-        // admin who has already arranged fields is never overridden.
+        self::ensure_signup_order();
+
+        return $created;
+    }
+
+    /**
+     * Set a sensible default sign-up field order, once.
+     *
+     * Only applied when the admin has not arranged the fields themselves, so their
+     * choice is never overridden. Tokens for fields that do not exist are ignored
+     * when the order is applied, so listing cf:phone before it is created is safe.
+     *
+     * @return void
+     */
+    public static function ensure_signup_order(): void {
         if (empty(manager::signup_order())) {
             manager::set_signup_order([
                 'firstname', 'lastname', 'email', 'cf:phone', 'cf:nationality', 'password',
             ]);
         }
-
-        return $created;
     }
 
     /**

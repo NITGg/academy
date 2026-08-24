@@ -47,9 +47,6 @@ defined('MOODLE_INTERNAL') || die();
  */
 class signup {
 
-    /** @var string Throwaway element used as an insertion point when reordering. */
-    const ANCHOR = 'localprofilefieldsanchor';
-
     /**
      * Reshape the sign-up form according to the saved configuration.
      *
@@ -227,46 +224,73 @@ class signup {
             return;
         }
 
-        $ordered = manager::order_tokens(array_keys($elementfor));
+        // The element names to place, in order. The password box carries its policy
+        // blurb (a separate static element that only reads right directly above it).
         $wanted = [];
-        foreach ($ordered as $token) {
-            $wanted[] = $elementfor[$token];
+        foreach (manager::order_tokens(array_keys($elementfor)) as $token) {
+            $name = $elementfor[$token];
+            if ($name === 'password' && $mform->elementExists('passwordpolicyinfo')) {
+                $wanted[] = 'passwordpolicyinfo';
+            }
+            $wanted[] = $name;
         }
+        $wantedset = array_flip($wanted);
 
-        // Already in this order? Then leave the form alone - reordering means pulling
-        // elements out and pushing them back, which is not worth doing for nothing.
-        $current = [];
+        // Rebuild the element list in one pass rather than moving elements one by one:
+        // MoodleQuickForm's removeElement()/insertElementBefore() do not keep the
+        // element-name index consistent across a run of moves, so the second move
+        // onwards resolves the wrong element and the form ends up duplicated. Pulling
+        // the wanted elements out, ordering them, and splicing the block back in at
+        // the first one's old position is deterministic.
+        $others = [];
+        $found = [];
+        $insertat = null;
         foreach ($mform->_elements as $element) {
-            if (in_array($element->getName(), $wanted, true)) {
-                $current[] = $element->getName();
+            $name = (string) $element->getName();
+            if (isset($wantedset[$name]) && !isset($found[$name])) {
+                $found[$name] = $element;
+                if ($insertat === null) {
+                    $insertat = count($others);
+                }
+            } else {
+                $others[] = $element;
             }
         }
-        if ($current === $wanted) {
+        if ($insertat === null) {
             return;
         }
 
-        $anchor = self::find_anchor($mform, $wanted);
-        if ($anchor === null) {
-            return;
-        }
-
+        $block = [];
         foreach ($wanted as $name) {
-            // The password policy blurb is a separate static element that only makes
-            // sense directly above the password box, so it travels with it.
-            $group = ($name === 'password' && $mform->elementExists('passwordpolicyinfo'))
-                ? ['passwordpolicyinfo', $name]
-                : [$name];
-
-            foreach ($group as $move) {
-                $element = $mform->removeElement($move, false);
-                $mform->insertElementBefore($element, $anchor);
+            if (isset($found[$name])) {
+                $block[] = $found[$name];
             }
         }
 
-        // Our own insertion point has done its job. Leaving it behind would put a
-        // stray property on the object login/signup.php hands to user_create_user().
-        if ($anchor === self::ANCHOR) {
-            $mform->removeElement(self::ANCHOR, true);
+        array_splice($others, $insertat, 0, $block);
+        $mform->_elements = array_values($others);
+        self::rebuild_index($mform);
+    }
+
+    /**
+     * Rebuild the form's name-to-index maps from the current element list.
+     *
+     * Mirrors how MoodleQuickForm indexes elements as they are added, so the form
+     * behaves identically after the element list has been reordered in place.
+     *
+     * @param MoodleQuickForm $mform the sign-up form, mid-definition
+     * @return void
+     */
+    protected static function rebuild_index(MoodleQuickForm $mform): void {
+        $mform->_elementIndex = [];
+        $mform->_duplicateIndex = [];
+        foreach ($mform->_elements as $i => $element) {
+            $name = $element->getName();
+            if (!isset($mform->_elementIndex[$name])) {
+                $mform->_elementIndex[$name] = $i;
+            } else {
+                $mform->_duplicateIndex[$name][] = $i;
+            }
         }
     }
 
@@ -335,49 +359,4 @@ class signup {
         return $token;
     }
 
-    /**
-     * The element everything reordered is inserted in front of.
-     *
-     * That is the first uniquely-named element sitting after the whole core block,
-     * so the block keeps the position core gave it - above the custom profile
-     * fields, the captcha and the buttons.
-     *
-     * @param MoodleQuickForm $mform the sign-up form, mid-definition
-     * @param string[] $wanted the core fields being reordered
-     * @return string|null element name, or null when reordering is not safe
-     */
-    protected static function find_anchor(MoodleQuickForm $mform, array $wanted): ?string {
-        $names = [];
-        foreach ($mform->_elements as $element) {
-            $names[] = (string) $element->getName();
-        }
-        $counts = array_count_values($names);
-
-        $last = -1;
-        foreach ($wanted as $name) {
-            $index = array_search($name, $names, true);
-            if ($index !== false && $index > $last) {
-                $last = $index;
-            }
-        }
-        if ($last < 0) {
-            return null;
-        }
-
-        $total = count($names);
-        for ($i = $last + 1; $i < $total; $i++) {
-            // Unnamed elements (raw html) and duplicated names are not addressable by
-            // insertElementBefore(), so they cannot serve as the insertion point.
-            if ($names[$i] !== '' && ($counts[$names[$i]] ?? 0) === 1) {
-                return $names[$i];
-            }
-        }
-
-        // Nothing usable follows, so the block is at the end of the form as it
-        // stands; a throwaway hidden element gives us something to aim at.
-        $mform->addElement('hidden', self::ANCHOR);
-        $mform->setType(self::ANCHOR, PARAM_RAW);
-
-        return self::ANCHOR;
-    }
 }

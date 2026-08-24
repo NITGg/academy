@@ -122,23 +122,12 @@ class profile_field_phone extends profile_field_base {
         $mform->addGroup($group, $this->inputname, format_string($this->field->name), ' ', true);
         $mform->setType($this->inputname . '[number]', PARAM_TEXT);
 
-        if ($this->is_required() && ($this->userid == 0 || isguestuser())) {
-            $mform->addGroupRule($this->inputname, [
-                'number' => [[get_string('required'), 'required', null, 'client']],
-            ]);
-        }
-    }
-
-    /**
-     * Required-ness is handled by the group rule in edit_field_add.
-     *
-     * The base method would add a `required` rule to the group as a whole, which
-     * for a two-control group means "not entirely empty" and would let a country be
-     * chosen with no number. The group rule targets the number box specifically.
-     *
-     * @param MoodleQuickForm $mform
-     */
-    public function edit_field_set_required($mform) {
+        // "Required" is enforced server-side in edit_validate_field(), not with a
+        // group rule. A client-side group rule records the group name against the
+        // rule; when this plugin later reorders the field on the sign-up form, the
+        // form's validation-script builder resolves that name to the inner select
+        // instead of the group and calls a group-only method on it - fatal on the
+        // whole page. Skipping the rule keeps the field required without that risk.
     }
 
     /**
@@ -197,7 +186,13 @@ class profile_field_phone extends profile_field_base {
         [$iso, $number] = self::values($raw);
 
         if ($number === '') {
-            // An empty required field is caught by the group rule, not here.
+            // Required-ness is enforced here (there is no client-side group rule).
+            // On the sign-up page and when editing one's own profile a missing value
+            // is an error; an admin editing someone else may legitimately leave it.
+            if ($this->is_required() && ($this->userid == 0 || isguestuser()
+                    || $this->userid == ($GLOBALS['USER']->id ?? 0))) {
+                $errors[$this->inputname] = get_string('required');
+            }
             return $errors;
         }
 

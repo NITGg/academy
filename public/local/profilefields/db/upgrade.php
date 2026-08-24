@@ -47,5 +47,14 @@ function xmldb_local_profilefields_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026082403, 'local', 'profilefields');
     }
 
+    if ($oldversion < 2026082404) {
+        // The first provisioning run aborted before setting the default sign-up
+        // order (a since-fixed fatal in the cache purge), so set it now if the admin
+        // has not arranged the fields themselves.
+        \local_profilefields\provision::ensure_signup_order();
+
+        upgrade_plugin_savepoint(true, 2026082404, 'local', 'profilefields');
+    }
+
     return true;
 }
