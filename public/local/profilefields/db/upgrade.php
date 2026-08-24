@@ -15,12 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin callbacks for local_profilefields.
- *
- * `core_login_extend_signup_form()` collects `*_extend_signup_form()` out of every
- * plugin's lib.php, which is the one extension point core offers for the sign-up
- * form. It is called last in `login_signup_form::definition()`, so by the time we
- * are handed the form every core box and every custom profile field is in place.
+ * Upgrade steps for local_profilefields.
  *
  * @package    local_profilefields
  * @copyright  2026 NIT
@@ -30,17 +25,19 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Apply the configured field layout to the sign-up form.
+ * Run the plugin upgrade steps.
  *
- * @param MoodleQuickForm $mform the sign-up form, mid-definition
- * @return void
+ * @param int $oldversion the version we are upgrading from
+ * @return bool
  */
-function local_profilefields_extend_signup_form($mform) {
-    // Never touch the form while the site is mid-install or mid-upgrade: the
-    // config table may not hold our settings yet.
-    if (during_initial_install()) {
-        return;
+function xmldb_local_profilefields_upgrade($oldversion) {
+    if ($oldversion < 2026082402) {
+        // Repair any recommended datetime field created without valid year
+        // parameters, which otherwise makes every profile edit page fatal.
+        \local_profilefields\provision::repair();
+
+        upgrade_plugin_savepoint(true, 2026082402, 'local', 'profilefields');
     }
 
-    \local_profilefields\signup::apply($mform);
+    return true;
 }

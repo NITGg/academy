@@ -358,58 +358,29 @@ class page {
     protected static function terms_panel(): string {
         global $CFG;
 
-        $manage = new moodle_url('/admin/tool/policy/managedocs.php');
-        $handler = new moodle_url('/admin/settings.php', ['section' => 'privacysettings']);
-        $enabled = manager::consent_enabled();
-        $docs = policies::signup_documents();
+        $installed = \core_component::get_component_directory('tool_policy') !== null;
+        $usingtool = ($CFG->sitepolicyhandler ?? '') === 'tool_policy';
 
-        $out = html_writer::start_tag('form', [
-            'method' => 'post', 'action' => self::url(self::TAB_REGISTER)->out(false),
-            'class' => 'card card-body mt-4',
-        ]);
-        $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
-        $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'save', 'value' => 1]);
-        $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'section', 'value' => 'terms']);
-
+        $out = html_writer::start_div('card card-body mt-4');
         $out .= html_writer::tag('h4', get_string('termsheading', 'local_profilefields'));
+        $out .= html_writer::tag('p', get_string('termsnative', 'local_profilefields'),
+            ['class' => 'text-muted']);
 
-        // The switch that turns the inline checkbox on.
-        $out .= html_writer::tag('div',
-            self::checkbox(['name' => 'consentenabled', 'checked' => $enabled]) . ' ' .
-            html_writer::tag('label', get_string('consentenable', 'local_profilefields'), ['class' => 'ms-2']),
-            ['class' => 'form-check form-switch mb-2']);
-        $out .= html_writer::tag('p', get_string('consentenable_desc', 'local_profilefields'),
-            ['class' => 'text-muted small']);
-
-        // What the documents are, and where they come from.
-        if (!empty($docs)) {
-            $items = '';
-            foreach ($docs as $name => $url) {
-                $items .= html_writer::tag('li', html_writer::link($url, s($name), ['target' => '_blank']));
-            }
-            $out .= html_writer::tag('p', get_string('termsdocsfound', 'local_profilefields'));
-            $out .= html_writer::tag('ul', $items);
+        if ($installed) {
+            $status = $usingtool ? get_string('termson', 'local_profilefields')
+                : get_string('termsoff', 'local_profilefields');
+            $out .= html_writer::tag('p', $status,
+                ['class' => $usingtool ? 'text-success' : 'text-warning']);
+            $out .= html_writer::link(new moodle_url('/admin/tool/policy/managedocs.php'),
+                get_string('termsmanage', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm me-2']);
+            $out .= html_writer::link(new moodle_url('/admin/settings.php', ['section' => 'privacysettings']),
+                get_string('termssettings', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm']);
         } else {
-            $out .= html_writer::div(get_string('termsdocsnone', 'local_profilefields'),
-                'alert alert-info');
+            $out .= html_writer::link(new moodle_url('/admin/settings.php', ['section' => 'privacysettings']),
+                get_string('termssettings', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm']);
         }
 
-        // When the inline checkbox is on, tool_policy's own separate page should be
-        // switched off so the user is not asked twice.
-        if ($enabled && ($CFG->sitepolicyhandler ?? '') === 'tool_policy') {
-            $out .= html_writer::div(
-                get_string('termsdoubleask', 'local_profilefields', $handler->out()),
-                'alert alert-warning');
-        }
-
-        $out .= html_writer::div(
-            html_writer::link($manage, get_string('termsmanage', 'local_profilefields'),
-                ['class' => 'btn btn-secondary btn-sm me-2']) .
-            html_writer::tag('button', get_string('savechanges'),
-                ['type' => 'submit', 'class' => 'btn btn-primary btn-sm']),
-            'mt-2');
-
-        $out .= html_writer::end_tag('form');
+        $out .= html_writer::end_div();
         return $out;
     }
 
@@ -427,11 +398,6 @@ class page {
             $source = optional_param('usernamesource', manager::USERNAME_EMAIL, PARAM_ALPHA);
             set_config('usernamesource',
                 $source === manager::USERNAME_LOCALPART ? manager::USERNAME_LOCALPART : manager::USERNAME_EMAIL,
-                manager::COMPONENT);
-            return;
-        }
-        if ($section === 'terms') {
-            set_config('consentenabled', optional_param('consentenabled', 0, PARAM_BOOL) ? 1 : 0,
                 manager::COMPONENT);
             return;
         }

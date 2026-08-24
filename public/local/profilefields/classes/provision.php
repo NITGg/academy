@@ -54,6 +54,10 @@ class provision {
      * @return array[] field specs keyed by shortname
      */
     public static function fields(): array {
+        global $CFG;
+        // The specs below reference PROFILE_VISIBLE_* constants defined here.
+        require_once($CFG->dirroot . '/user/profile/lib.php');
+
         return [
             'phone' => [
                 'name' => 'Phone', 'namestr' => 'fieldphone',
@@ -237,11 +241,11 @@ class provision {
             'visible'           => $spec['visible'],
             'forceunique'       => $spec['forceunique'],
             'signup'            => $spec['signup'],
-            'defaultdata'       => '',
+            'defaultdata'       => self::field_defaultdata($spec),
             'defaultdataformat' => FORMAT_HTML,
             'param1'            => self::field_param1($spec),
-            'param2'            => null,
-            'param3'            => null,
+            'param2'            => self::field_param2($spec),
+            'param3'            => self::field_param3($spec),
             'param4'            => null,
             'param5'            => null,
         ];
@@ -249,6 +253,62 @@ class provision {
 
         $field = $DB->get_record('user_info_field', ['id' => $record->id]);
         \core\event\user_info_field_created::create_from_field($field)->trigger();
+    }
+
+    /**
+     * Correct any recommended datetime field left with invalid parameters.
+     *
+     * A datetime profile field needs numeric start/end years and a numeric default;
+     * created without them, `profilefield_datetime` passes an empty string to
+     * `getdate()`, which is fatal on PHP 8 and takes down every profile edit page.
+     * This repairs such a field in place so an already-provisioned site recovers.
+     *
+     * @return bool true if anything was repaired
+     */
+    public static function repair(): bool {
+        global $DB;
+
+        $repaired = false;
+        foreach (self::fields() as $shortname => $spec) {
+            if ($spec['datatype'] !== 'datetime') {
+                continue;
+            }
+            $field = $DB->get_record('user_info_field', ['shortname' => $shortname, 'datatype' => 'datetime']);
+            if (!$field) {
+                continue;
+            }
+            if (self::is_numeric_or_empty($field->param1) && self::is_numeric_or_empty($field->param2)
+                    && ($field->defaultdata === '0' || (string) $field->defaultdata === '0' || $field->defaultdata === null)) {
+                // param1/param2 already sane and default numeric - nothing to fix.
+                if ($field->param1 !== null && $field->param1 !== '' && $field->param2 !== null && $field->param2 !== '') {
+                    continue;
+                }
+            }
+            $DB->update_record('user_info_field', (object) [
+                'id'          => $field->id,
+                'param1'      => (string) self::field_param1($spec),
+                'param2'      => (string) self::field_param2($spec),
+                'param3'      => (string) self::field_param3($spec),
+                'defaultdata' => (string) self::field_defaultdata($spec),
+            ]);
+            $repaired = true;
+        }
+
+        if ($repaired) {
+            require_once(dirname(__DIR__, 3) . '/user/profile/lib.php');
+            profile_purge_user_fields_cache();
+        }
+        return $repaired;
+    }
+
+    /**
+     * Whether a stored parameter is numeric or blank (never a stray string).
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    protected static function is_numeric_or_empty($value): bool {
+        return $value === null || $value === '' || is_numeric($value);
     }
 
     /**
@@ -280,7 +340,12 @@ class provision {
      * @return string|null
      */
     protected static function field_param1(array $spec): ?string {
-        if (($spec['datatype'] ?? '') !== 'menu') {
+        $type = $spec['datatype'] ?? '';
+        if ($type === 'datetime') {
+            // Start year: old enough for a date of birth.
+            return '1920';
+        }
+        if ($type !== 'menu') {
             return null;
         }
         if (($spec['options'] ?? '') === 'countries') {
@@ -288,5 +353,41 @@ class provision {
             return implode("\n", array_values($countries));
         }
         return $spec['options'] ?? '';
+    }
+
+    /**
+     * The param2 value for a field - the datetime end year, otherwise none.
+     *
+     * @param array $spec one entry from self::fields()
+     * @return string|null
+     */
+    protected static function field_param2(array $spec): ?string {
+        if (($spec['datatype'] ?? '') === 'datetime') {
+            return (string) (int) userdate(time(), '%Y');
+        }
+        return null;
+    }
+
+    /**
+     * The param3 value for a field - datetime "include time", off by default.
+     *
+     * @param array $spec one entry from self::fields()
+     * @return string|null
+     */
+    protected static function field_param3(array $spec): ?string {
+        if (($spec['datatype'] ?? '') === 'datetime') {
+            return '0';
+        }
+        return null;
+    }
+
+    /**
+     * The default value for a field - a numeric zero for datetime, else blank.
+     *
+     * @param array $spec one entry from self::fields()
+     * @return string
+     */
+    protected static function field_defaultdata(array $spec): string {
+        return (($spec['datatype'] ?? '') === 'datetime') ? '0' : '';
     }
 }
