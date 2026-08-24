@@ -490,6 +490,18 @@ class manager {
     }
 
     /**
+     * Whether an inline "I agree to the policies" checkbox is added to sign-up.
+     *
+     * Off by default: turning it on is a deliberate choice to move consent onto the
+     * form instead of tool_policy's separate acceptance page.
+     *
+     * @return bool
+     */
+    public static function consent_enabled(): bool {
+        return (bool) get_config(self::COMPONENT, 'consentenabled');
+    }
+
+    /**
      * Which part of the email address becomes the username.
      *
      * @return string one of the USERNAME_* constants

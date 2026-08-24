@@ -233,7 +233,7 @@ class page {
     protected static function username_panel(): string {
         $out = html_writer::start_tag('form', [
             'method' => 'post', 'action' => self::url(self::TAB_REGISTER)->out(false),
-            'class' => 'card card-body bg-light mb-4',
+            'class' => 'card card-body mb-4',
         ]);
         $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
         $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'save', 'value' => 1]);
@@ -358,31 +358,58 @@ class page {
     protected static function terms_panel(): string {
         global $CFG;
 
-        $out = html_writer::start_div('card card-body mt-4');
+        $manage = new moodle_url('/admin/tool/policy/managedocs.php');
+        $handler = new moodle_url('/admin/settings.php', ['section' => 'privacysettings']);
+        $enabled = manager::consent_enabled();
+        $docs = policies::signup_documents();
+
+        $out = html_writer::start_tag('form', [
+            'method' => 'post', 'action' => self::url(self::TAB_REGISTER)->out(false),
+            'class' => 'card card-body mt-4',
+        ]);
+        $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+        $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'save', 'value' => 1]);
+        $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'section', 'value' => 'terms']);
+
         $out .= html_writer::tag('h4', get_string('termsheading', 'local_profilefields'));
 
-        $usingtool = ($CFG->sitepolicyhandler ?? '') === 'tool_policy';
-        $installed = \core_component::get_component_directory('tool_policy') !== null;
+        // The switch that turns the inline checkbox on.
+        $out .= html_writer::tag('div',
+            self::checkbox(['name' => 'consentenabled', 'checked' => $enabled]) . ' ' .
+            html_writer::tag('label', get_string('consentenable', 'local_profilefields'), ['class' => 'ms-2']),
+            ['class' => 'form-check form-switch mb-2']);
+        $out .= html_writer::tag('p', get_string('consentenable_desc', 'local_profilefields'),
+            ['class' => 'text-muted small']);
 
-        if ($usingtool && $installed) {
-            $manage = new moodle_url('/admin/tool/policy/managedocs.php');
-            $out .= html_writer::tag('p', get_string('termson', 'local_profilefields'),
-                ['class' => 'text-success']);
-            $out .= html_writer::link($manage, get_string('termsmanage', 'local_profilefields'),
-                ['class' => 'btn btn-secondary btn-sm']);
+        // What the documents are, and where they come from.
+        if (!empty($docs)) {
+            $items = '';
+            foreach ($docs as $name => $url) {
+                $items .= html_writer::tag('li', html_writer::link($url, s($name), ['target' => '_blank']));
+            }
+            $out .= html_writer::tag('p', get_string('termsdocsfound', 'local_profilefields'));
+            $out .= html_writer::tag('ul', $items);
         } else {
-            $handler = new moodle_url('/admin/settings.php', ['section' => 'privacysettings']);
-            $manage = new moodle_url('/admin/tool/policy/managedocs.php');
-            $out .= html_writer::tag('p', get_string('termsoff', 'local_profilefields'),
-                ['class' => 'text-warning']);
-            $out .= html_writer::tag('ol',
-                html_writer::tag('li', get_string('termsstep1', 'local_profilefields',
-                    $handler->out())) .
-                html_writer::tag('li', get_string('termsstep2', 'local_profilefields',
-                    $manage->out())));
+            $out .= html_writer::div(get_string('termsdocsnone', 'local_profilefields'),
+                'alert alert-info');
         }
 
-        $out .= html_writer::end_div();
+        // When the inline checkbox is on, tool_policy's own separate page should be
+        // switched off so the user is not asked twice.
+        if ($enabled && ($CFG->sitepolicyhandler ?? '') === 'tool_policy') {
+            $out .= html_writer::div(
+                get_string('termsdoubleask', 'local_profilefields', $handler->out()),
+                'alert alert-warning');
+        }
+
+        $out .= html_writer::div(
+            html_writer::link($manage, get_string('termsmanage', 'local_profilefields'),
+                ['class' => 'btn btn-secondary btn-sm me-2']) .
+            html_writer::tag('button', get_string('savechanges'),
+                ['type' => 'submit', 'class' => 'btn btn-primary btn-sm']),
+            'mt-2');
+
+        $out .= html_writer::end_tag('form');
         return $out;
     }
 
@@ -392,13 +419,19 @@ class page {
      * @return void
      */
     protected static function save_register(): void {
-        // The username panel posts on its own; the fields table posts everything else.
-        if (optional_param('section', '', PARAM_ALPHA) === 'username') {
+        // Each panel on the register tab posts on its own, tagged by "section".
+        $section = optional_param('section', '', PARAM_ALPHA);
+        if ($section === 'username') {
             set_config('usernamefromemail', optional_param('usernamefromemail', 0, PARAM_BOOL) ? 1 : 0,
                 manager::COMPONENT);
             $source = optional_param('usernamesource', manager::USERNAME_EMAIL, PARAM_ALPHA);
             set_config('usernamesource',
                 $source === manager::USERNAME_LOCALPART ? manager::USERNAME_LOCALPART : manager::USERNAME_EMAIL,
+                manager::COMPONENT);
+            return;
+        }
+        if ($section === 'terms') {
+            set_config('consentenabled', optional_param('consentenabled', 0, PARAM_BOOL) ? 1 : 0,
                 manager::COMPONENT);
             return;
         }
@@ -681,10 +714,10 @@ class page {
         if (empty($missing)) {
             return html_writer::div(
                 html_writer::span(get_string('provisionallset', 'local_profilefields'), 'text-success'),
-                'alert alert-light');
+                'alert alert-info');
         }
 
-        $out = html_writer::start_div('card card-body bg-light mb-4');
+        $out = html_writer::start_div('card card-body mb-4');
         $out .= html_writer::tag('h4', get_string('provisionheading', 'local_profilefields'));
         $out .= html_writer::tag('p', get_string('provisionintro', 'local_profilefields', count($missing)));
         if (in_array('phone', $missing, true) && !provision::phone_available()) {

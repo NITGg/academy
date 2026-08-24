@@ -112,12 +112,15 @@ class profile_field_phone extends profile_field_base {
         $group = [
             $mform->createElement('select', 'country', get_string('country'), $countries,
                 ['class' => 'profilefield-phone-country']),
+            // The number is forced left-to-right with a dir attribute rather than
+            // setForceLtr(): the latter looks the element up by name, and a grouped
+            // sub-element ("name[number]") is not a top-level element, so the lookup
+            // raises a PEAR error that is fatal on PHP 8.
             $mform->createElement('text', 'number', get_string('phone'),
-                ['size' => 20, 'class' => 'profilefield-phone-number']),
+                ['size' => 20, 'dir' => 'ltr', 'class' => 'profilefield-phone-number']),
         ];
         $mform->addGroup($group, $this->inputname, format_string($this->field->name), ' ', true);
         $mform->setType($this->inputname . '[number]', PARAM_TEXT);
-        $mform->setForceLtr($this->inputname . '[number]');
 
         if ($this->is_required() && ($this->userid == 0 || isguestuser())) {
             $mform->addGroupRule($this->inputname, [

@@ -103,6 +103,33 @@ class signup {
         }
 
         self::reorder($mform, $config);
+
+        // Appended last, so it sits just above the buttons core adds after us.
+        if (manager::consent_enabled()) {
+            self::add_consent($mform);
+        }
+    }
+
+    /** @var string Element name of the inline policy-consent checkbox. */
+    const CONSENT = 'localprofilefieldsconsent';
+
+    /**
+     * Add the inline "I agree to the policies" checkbox.
+     *
+     * This is the alternative to tool_policy's separate acceptance page: one
+     * required checkbox on the form, its label linking to the policy documents.
+     * Formal per-policy acceptance records are only kept by tool_policy's own flow;
+     * this records agreement as a condition of submitting the form.
+     *
+     * @param MoodleQuickForm $mform the sign-up form, mid-definition
+     * @return void
+     */
+    protected static function add_consent(MoodleQuickForm $mform): void {
+        if ($mform->elementExists(self::CONSENT)) {
+            return;
+        }
+        $mform->addElement('advcheckbox', self::CONSENT, '', policies::consent_label());
+        $mform->setType(self::CONSENT, PARAM_INT);
     }
 
     /**

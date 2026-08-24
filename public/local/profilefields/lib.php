@@ -44,3 +44,25 @@ function local_profilefields_extend_signup_form($mform) {
 
     \local_profilefields\signup::apply($mform);
 }
+
+/**
+ * Server-side validation for the sign-up form additions.
+ *
+ * Only the inline policy-consent checkbox needs checking here: an unticked
+ * advcheckbox submits 0, which a client-side "required" rule cannot catch on its
+ * own, so agreement is enforced on the server.
+ *
+ * @param array $data submitted sign-up values
+ * @return array element name => error message
+ */
+function local_profilefields_validate_extend_signup_form($data) {
+    if (during_initial_install() || !\local_profilefields\manager::consent_enabled()) {
+        return [];
+    }
+
+    if (empty($data[\local_profilefields\signup::CONSENT])) {
+        return [\local_profilefields\signup::CONSENT => get_string('consentrequired', 'local_profilefields')];
+    }
+
+    return [];
+}
