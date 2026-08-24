@@ -33,7 +33,7 @@ $string['tablogin'] = 'Login page';
 $string['tabprofile'] = 'Profile page';
 $string['tabregister_intro'] = 'Choose which fields a new user fills in when creating an account, in what order, and what each one is called.';
 $string['tablogin_intro'] = 'The login page only ever asks for an identifier and a password. These are the few things around it that can be turned on or off.';
-$string['tabprofile_intro'] = 'Choose which fields a user sees when editing their profile, and whether each one is required, unique, and editable by the user.';
+$string['tabprofile_intro'] = 'Choose which profile fields a user is allowed to edit themselves. Whether a field appears, is required or must be unique is managed on the sign-up tab (for the register form) and on each field\'s own "Edit profile field" page.';
 
 // Table columns.
 $string['colfield'] = 'Field';
@@ -59,7 +59,8 @@ $string['countryfromphone_desc'] = 'On the sign-up form, the Country box follows
 $string['ipmatchheading'] = 'Location check';
 $string['ipmatchphone'] = 'Require the sign-up country to match the visitor\'s location';
 $string['ipmatchphone_desc'] = 'When on, a new account is only created if the visitor\'s IP address resolves to the same country as the phone number they entered. Users on a VPN or roaming would be blocked, so use with care.';
-$string['ipmatchnogeoip'] = 'This needs a geo-IP source. None is configured yet, so the check is skipped (nobody is blocked) until you set one up in <a href="{$a}">Location &gt; IP address lookup</a>.';
+$string['ipmatchonline'] = 'No setup needed: this uses a free online lookup to find the visitor\'s country. For faster, self-hosted lookups you can install a local GeoIP database in <a href="{$a}">Location &gt; IP address lookup</a>, and it will be used instead. If a lookup ever fails, the sign-up is allowed (never wrongly blocked).';
+$string['ipmatchgeoip'] = 'A local GeoIP database is configured, so it is used for the lookup. If a lookup fails, the sign-up is allowed (never wrongly blocked).';
 $string['ipmismatch'] = 'Your location does not match the country of the phone number you entered.';
 
 // Username.

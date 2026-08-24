@@ -373,11 +373,13 @@ class page {
         $out .= html_writer::tag('p', get_string('ipmatchphone_desc', 'local_profilefields'),
             ['class' => 'text-muted small mt-1']);
 
-        if (!self::geoip_available()) {
-            $url = (new moodle_url('/admin/settings.php', ['section' => 'locationsettings']))->out();
-            $out .= html_writer::div(get_string('ipmatchnogeoip', 'local_profilefields', $url),
-                'alert alert-warning');
-        }
+        // The check works with no setup via a free online lookup; a local GeoIP
+        // database, if the admin installs one, is used instead.
+        $url = (new moodle_url('/admin/settings.php', ['section' => 'locationsettings']))->out();
+        $note = self::geoip_available()
+            ? get_string('ipmatchgeoip', 'local_profilefields')
+            : get_string('ipmatchonline', 'local_profilefields', $url);
+        $out .= html_writer::div($note, 'alert alert-info');
 
         $out .= html_writer::end_div();
         return $out;
@@ -589,14 +591,11 @@ class page {
 
         $head = html_writer::tag('tr',
             html_writer::tag('th', get_string('colfield', 'local_profilefields')) .
-            html_writer::tag('th', get_string('colshow', 'local_profilefields'), ['class' => 'text-center']) .
-            html_writer::tag('th', get_string('colrequired', 'local_profilefields'), ['class' => 'text-center']) .
-            html_writer::tag('th', get_string('colunique', 'local_profilefields'), ['class' => 'text-center']) .
             html_writer::tag('th', get_string('colcanedit', 'local_profilefields'), ['class' => 'text-center']));
 
         $body = html_writer::tag('tr',
             html_writer::tag('td', html_writer::tag('strong',
-                get_string('corefieldsheading', 'local_profilefields')), ['colspan' => 5]),
+                get_string('corefieldsheading', 'local_profilefields')), ['colspan' => 2]),
             ['class' => 'table-active']);
         foreach (core_locks::LOCKABLE as $name) {
             $body .= self::profile_core_row($name);
@@ -604,7 +603,7 @@ class page {
 
         $body .= html_writer::tag('tr',
             html_writer::tag('td', html_writer::tag('strong',
-                get_string('customfieldsheading', 'local_profilefields')), ['colspan' => 5]),
+                get_string('customfieldsheading', 'local_profilefields')), ['colspan' => 2]),
             ['class' => 'table-active']);
         foreach (custom_fields::get_all() as $field) {
             $body .= self::profile_custom_row($field);
@@ -620,125 +619,67 @@ class page {
     }
 
     /**
-     * One profile-table row for a core field.
+     * One profile-table row for a core field: name + "user can edit".
      *
      * @param string $name core field name
      * @return string HTML
      */
     protected static function profile_core_row(string $name): string {
-        $meta = manager::core_fields()[$name] ?? [];
-        $label = self::core_label($name);
-
-        // Show: only for fields we can hide from the profile form.
-        if (!empty($meta['selectors']) && count($meta['modes'] ?? []) > 1) {
-            $show = self::checkbox(['name' => 'pshow[' . $name . ']', 'checked' => manager::on_profile($name)]);
-        } else {
-            $show = self::fixed(true);
-        }
-
-        // Required is core-fixed for these fields; shown read-only.
-        $required = self::fixed(in_array($name, ['firstname', 'lastname', 'email'], true));
-
-        // Unique: only meaningful for email.
-        if ($name === 'email') {
-            $unique = self::checkbox(['name' => 'emailunique', 'checked' => core_locks::email_unique()]);
-        } else {
-            $unique = self::fixed(false);
-        }
-
-        // Can edit: the native per-auth field lock.
         $canedit = self::checkbox(['name' => 'pedit[' . $name . ']', 'checked' => !core_locks::is_locked($name)]);
 
         return html_writer::tag('tr',
-            html_writer::tag('td', html_writer::span($label, 'fw-semibold') . ' ' .
+            html_writer::tag('td', html_writer::span(self::core_label($name), 'fw-semibold') . ' ' .
                 html_writer::span(s($name), 'text-muted small')) .
-            html_writer::tag('td', $show, ['class' => 'text-center']) .
-            html_writer::tag('td', $required, ['class' => 'text-center']) .
-            html_writer::tag('td', $unique, ['class' => 'text-center']) .
             html_writer::tag('td', $canedit, ['class' => 'text-center']));
     }
 
     /**
-     * One profile-table row for a custom field.
+     * One profile-table row for a custom field: name + "user can edit".
      *
      * @param \stdClass $field a user_info_field record
      * @return string HTML
      */
     protected static function profile_custom_row(\stdClass $field): string {
-        $id = (int) $field->id;
-        $visible = (int) $field->visible !== (int) PROFILE_VISIBLE_NONE;
+        $canedit = self::checkbox(['name' => 'pcfedit[' . (int) $field->id . ']', 'checked' => empty($field->locked)]);
 
         return html_writer::tag('tr',
             html_writer::tag('td', html_writer::span(format_string($field->name), 'fw-semibold') . ' ' .
                 html_writer::span(s($field->shortname), 'text-muted small')) .
-            html_writer::tag('td', self::checkbox(['name' => 'pcfshow[' . $id . ']', 'checked' => $visible]),
-                ['class' => 'text-center']) .
-            html_writer::tag('td', self::checkbox(['name' => 'pcfreq[' . $id . ']', 'checked' => !empty($field->required)]),
-                ['class' => 'text-center']) .
-            html_writer::tag('td', self::checkbox(['name' => 'pcfunique[' . $id . ']', 'checked' => !empty($field->forceunique)]),
-                ['class' => 'text-center']) .
-            html_writer::tag('td', self::checkbox(['name' => 'pcfedit[' . $id . ']', 'checked' => empty($field->locked)]),
-                ['class' => 'text-center']));
+            html_writer::tag('td', $canedit, ['class' => 'text-center']));
     }
 
     /**
-     * Save the profile tab.
+     * Save the profile tab: only "which fields the user can edit".
+     *
+     * Everything else about a field (whether it shows, is required, is unique) is
+     * managed where it naturally belongs - the sign-up tab for the register form,
+     * and the core "Edit profile field" page for the field's own settings.
      *
      * @return void
      */
     protected static function save_profile(): void {
-        global $CFG;
+        global $CFG, $DB;
         require_once($CFG->dirroot . '/user/profile/lib.php');
         require_once($CFG->dirroot . '/user/profile/definelib.php');
 
-        // Core fields.
-        $pshow = optional_param_array('pshow', [], PARAM_BOOL);
+        // Core fields: the native per-auth field lock.
         $pedit = optional_param_array('pedit', [], PARAM_BOOL);
-
-        manager::update_config(function (array $config) use ($pshow) {
-            foreach (manager::core_fields() as $name => $meta) {
-                if (empty($meta['onprofile']) || empty($meta['selectors']) || count($meta['modes']) < 2) {
-                    continue;
-                }
-                $onprofile = !empty($pshow[$name]);
-                // Keep the field's current sign-up visibility; this tab only owns
-                // the profile side.
-                $onsignup = manager::on_signup($name);
-                $config[$name]['mode'] = self::merge_mode($config[$name]['mode'], $onsignup, $onprofile, $meta['modes']);
-            }
-            return $config;
-        });
-
         foreach (core_locks::LOCKABLE as $name) {
             core_locks::set_locked($name, empty($pedit[$name]));
         }
-        core_locks::set_email_unique(optional_param('emailunique', 0, PARAM_BOOL));
 
-        // Custom fields.
-        $show = optional_param_array('pcfshow', [], PARAM_BOOL);
-        $req = optional_param_array('pcfreq', [], PARAM_BOOL);
-        $unique = optional_param_array('pcfunique', [], PARAM_BOOL);
+        // Custom fields: the "locked" flag.
         $edit = optional_param_array('pcfedit', [], PARAM_BOOL);
-
         $changed = false;
         foreach (custom_fields::get_all() as $field) {
-            $id = (int) $field->id;
-            $visible = !empty($show[$id]) ? (int) $field->visible : (int) PROFILE_VISIBLE_NONE;
-            if (!empty($show[$id]) && (int) $field->visible === (int) PROFILE_VISIBLE_NONE) {
-                $visible = (int) PROFILE_VISIBLE_ALL;
+            $wantlocked = empty($edit[(int) $field->id]) ? 1 : 0;
+            if ((int) $field->locked === $wantlocked) {
+                continue;
             }
-            $mode = $visible === (int) PROFILE_VISIBLE_NONE ? manager::MODE_HIDDEN
-                : (empty($field->signup) ? manager::MODE_PROFILE : manager::MODE_BOTH);
-
-            $applied = custom_fields::apply($field, $mode, $visible,
-                !empty($req[$id]) ? 1 : 0, empty($edit[$id]) ? 1 : 0);
-
-            // apply() does not touch forceunique; set it directly when it changed.
-            if ((int) $field->forceunique !== (!empty($unique[$id]) ? 1 : 0)) {
-                self::set_forceunique($id, !empty($unique[$id]));
-                $applied = true;
-            }
-            $changed = $applied || $changed;
+            $DB->set_field('user_info_field', 'locked', $wantlocked, ['id' => $field->id]);
+            \core\event\user_info_field_updated::create_from_field(
+                $DB->get_record('user_info_field', ['id' => $field->id]))->trigger();
+            $changed = true;
         }
         if ($changed) {
             profile_purge_user_fields_cache();
@@ -941,20 +882,6 @@ class page {
         }
     }
 
-    /**
-     * Set the forceunique flag on a custom field.
-     *
-     * @param int $id user_info_field id
-     * @param bool $unique
-     * @return void
-     */
-    protected static function set_forceunique(int $id, bool $unique): void {
-        global $DB;
-        $DB->set_field('user_info_field', 'forceunique', $unique ? 1 : 0, ['id' => $id]);
-        \core\event\user_info_field_updated::create_from_field(
-            $DB->get_record('user_info_field', ['id' => $id]))->trigger();
-    }
-
     // -----------------------------------------------------------------
     // Small HTML helpers.
     // -----------------------------------------------------------------
@@ -983,17 +910,6 @@ class page {
             ]) : '') . html_writer::empty_tag('input', $attrs);
         }
         return html_writer::empty_tag('input', $attrs);
-    }
-
-    /**
-     * A read-only yes/no indicator (a fixed, non-editable state).
-     *
-     * @param bool $on
-     * @return string HTML
-     */
-    protected static function fixed(bool $on): string {
-        return html_writer::span($on ? '&#10003;' : '&ndash;',
-            'text-muted', ['title' => get_string('fixedbycore', 'local_profilefields')]);
     }
 
     /**

@@ -73,8 +73,8 @@ class manager {
      *  - modes:      the placements an admin may choose. A single-entry list means
      *                the placement is fixed and the page shows it as read-only text.
      *  - canrequire: "required" is an admin decision rather than a core rule.
-     *  - selectors:  CSS selectors for the profile edit form, used when the field
-     *                is switched off there (see hook\output_callbacks).
+     *  - selectors:  CSS selectors for the field's row on the profile edit form
+     *                (kept for reference; no longer used to hide anything).
      *
      * Fields Moodle cannot run without - password, email, first and last name -
      * are deliberately fixed: an account with no password or no name is broken,
@@ -583,23 +583,5 @@ class manager {
         }
 
         return $candidate;
-    }
-
-    /**
-     * CSS selectors for the core fields switched off on the profile edit form.
-     *
-     * @return string[] selector list, possibly empty
-     */
-    public static function profile_hidden_selectors(): array {
-        $selectors = [];
-        foreach (self::core_fields() as $name => $meta) {
-            if (empty($meta['onprofile']) || empty($meta['selectors'])) {
-                continue;
-            }
-            if (!self::on_profile($name)) {
-                $selectors = array_merge($selectors, $meta['selectors']);
-            }
-        }
-        return $selectors;
     }
 }

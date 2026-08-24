@@ -183,25 +183,51 @@ class dialcodes {
     /**
      * The ISO country code for the current visitor's IP address, if resolvable.
      *
-     * `iplookup_find_location()` returns a localised country *name*, so this maps
-     * that name back to its ISO code via Moodle's own country list. Returns '' when
-     * no GeoIP source is configured or the address cannot be resolved.
+     * Prefers Moodle's own GeoIP lookup when a database or key is configured; when
+     * none is, it falls back to a free, no-setup online lookup so the feature works
+     * out of the box. Private/reserved addresses (localhost, LAN) and any failure
+     * resolve to '' so callers can skip rather than block.
      *
+     * @param bool $allowonline whether to fall back to an external lookup when no
+     *        local GeoIP source resolves the address. Off by default: the caller
+     *        that runs on every page (the country preselect) must stay local and
+     *        fast; only the opt-in IP-match check turns it on.
      * @return string ISO alpha-2 country code, or ''
      */
-    public static function country_from_ip(): string {
+    public static function country_from_ip(bool $allowonline = false): string {
         global $CFG;
 
-        // No GeoIP source configured means iplookup only ever returns an error;
-        // do not pay for the call.
-        if (empty($CFG->geoip2file) && empty($CFG->geopluginapikey)) {
+        $ip = getremoteaddr();
+        if (empty($ip) || !filter_var($ip, FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            // No usable public address (e.g. localhost or a LAN client behind no proxy).
             return '';
         }
 
-        $ip = getremoteaddr();
-        if (empty($ip)) {
-            return '';
+        // 1) Moodle's configured GeoIP source, if any.
+        if (!empty($CFG->geoip2file) || !empty($CFG->geopluginapikey)) {
+            $iso = self::country_from_moodle($ip);
+            if ($iso !== '') {
+                return $iso;
+            }
         }
+
+        // 2) Free online lookup - needs no admin setup, but is an external call, so
+        // only for the opt-in check that asks for it.
+        return $allowonline ? self::country_from_online($ip) : '';
+    }
+
+    /**
+     * Resolve a country ISO code through Moodle's own iplookup.
+     *
+     * `iplookup_find_location()` returns a localised country *name*, so this maps it
+     * back to an ISO code via Moodle's country list.
+     *
+     * @param string $ip a public IP address
+     * @return string ISO alpha-2 country code, or ''
+     */
+    protected static function country_from_moodle(string $ip): string {
+        global $CFG;
 
         require_once($CFG->dirroot . '/iplookup/lib.php');
         $info = iplookup_find_location($ip);
@@ -211,6 +237,55 @@ class dialcodes {
 
         $iso = array_search($info['country'], get_string_manager()->get_list_of_countries(true), true);
         return ($iso !== false && isset(self::CODES[$iso])) ? $iso : '';
+    }
+
+    /**
+     * Resolve a country ISO code through a free, no-key online service.
+     *
+     * Sends only the IP address to the lookup host over HTTPS, with a short timeout;
+     * any failure returns '' so the caller degrades gracefully. This is an external
+     * call, so it only runs for the opt-in features that need it.
+     *
+     * @param string $ip a public IP address
+     * @return string ISO alpha-2 country code, or ''
+     */
+    protected static function country_from_online(string $ip): string {
+        global $CFG;
+
+        // One lookup per address per request, in case both callers ask.
+        static $cache = [];
+        if (array_key_exists($ip, $cache)) {
+            return $cache[$ip];
+        }
+
+        require_once($CFG->libdir . '/filelib.php');
+
+        // Free, no-key, HTTPS services that return the ISO country code as JSON.
+        // A second is tried if the first is unreachable or rate-limited, so a busy
+        // moment on one host does not disable the check.
+        $endpoints = [
+            ['url' => 'https://api.country.is/' . rawurlencode($ip), 'key' => 'country'],
+            ['url' => 'https://ipwho.is/' . rawurlencode($ip) . '?fields=country_code', 'key' => 'country_code'],
+        ];
+
+        $iso = '';
+        foreach ($endpoints as $endpoint) {
+            $body = download_file_content($endpoint['url'], null, null, false, 4, 4, false, null, false);
+            if (!is_string($body)) {
+                continue;
+            }
+            $data = json_decode($body, true);
+            if (!is_array($data) || empty($data[$endpoint['key']])) {
+                continue;
+            }
+            $candidate = strtoupper(trim((string) $data[$endpoint['key']]));
+            if (preg_match('/^[A-Z]{2}$/', $candidate) && isset(self::CODES[$candidate])) {
+                $iso = $candidate;
+                break;
+            }
+        }
+
+        return $cache[$ip] = $iso;
     }
 }
 

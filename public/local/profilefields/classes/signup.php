@@ -195,7 +195,9 @@ JS;
             return [];
         }
 
-        $ipiso = \profilefield_phone\dialcodes::country_from_ip();
+        // Allow the free online fallback here: this runs once, on submit, only when
+        // the admin turned the check on.
+        $ipiso = \profilefield_phone\dialcodes::country_from_ip(true);
         if ($ipiso === '') {
             // No geo-IP source, or the address is unresolvable - do not block.
             return [];
