@@ -417,14 +417,17 @@ class page {
         }
 
         if (manager::consent_enabled() && $usingtool) {
-            $url = (new moodle_url('/admin/settings.php', ['section' => 'privacysettings']))->out();
+            // The site policy handler lives on the Policy settings page, not Privacy.
+            $url = (new moodle_url('/admin/settings.php', ['section' => 'policysettings']))->out();
             $out .= html_writer::div(get_string('termsdoubleask', 'local_profilefields', $url),
                 'alert alert-warning');
         }
 
         if ($installed) {
             $out .= html_writer::link(new moodle_url('/admin/tool/policy/managedocs.php'),
-                get_string('termsmanage', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm']);
+                get_string('termsmanage', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm me-2']);
+            $out .= html_writer::link(new moodle_url('/admin/settings.php', ['section' => 'policysettings']),
+                get_string('termspolicysettings', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm']);
         } else {
             $out .= html_writer::div(get_string('termsnotool', 'local_profilefields'), 'text-muted small');
         }

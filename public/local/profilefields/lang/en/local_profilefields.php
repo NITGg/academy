@@ -85,7 +85,8 @@ $string['consentrequired'] = 'You must agree to the policies before you can crea
 $string['and'] = 'and';
 $string['termsdocsfound'] = 'The checkbox will link to these policy documents:';
 $string['termsdocsnone'] = 'No policy documents for guests are defined yet. Create them (below) and they will be linked from the checkbox automatically; until then the checkbox shows plain wording.';
-$string['termsdoubleask'] = 'Moodle\'s Policies tool is also set to ask on a separate page, so users would be asked twice. While the inline checkbox is on, open <a href="{$a}">Privacy settings</a> and set the site policy handler to "Not set".';
+$string['termsdoubleask'] = 'Moodle\'s Policies tool is also set to ask on a separate page, so users would be asked twice. While the inline checkbox is on, open <a href="{$a}">Users &gt; Privacy and policies &gt; Policy settings</a> and set the "Site policy handler" to "Default (based on the site policy setting)".';
+$string['termspolicysettings'] = 'Policy settings';
 
 // Login tab.
 $string['loginselfregister'] = 'Allow new users to create their own account';
