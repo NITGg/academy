@@ -25,41 +25,74 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'Sign-up and profile fields';
-
-// Management page.
 $string['managefields'] = 'Sign-up and profile field layout';
-$string['manageintro'] = 'Decide which fields a new account fills in on the <a href="{$a}">sign-up form</a>, and which ones an existing account sees when editing its profile. Use core\'s <em>User profile fields</em> page to create, edit and reorder custom fields; use this page to place them.';
+
+// Tabs.
+$string['tabregister'] = 'Register page';
+$string['tablogin'] = 'Login page';
+$string['tabprofile'] = 'Profile page';
+$string['tabregister_intro'] = 'Choose which fields a new user fills in when creating an account, in what order, and what each one is called.';
+$string['tablogin_intro'] = 'The login page only ever asks for an identifier and a password. These are the few things around it that can be turned on or off.';
+$string['tabprofile_intro'] = 'Choose which fields a user sees when editing their profile, and whether each one is required, unique, and editable by the user.';
+
+// Table columns.
+$string['colfield'] = 'Field';
+$string['colshow'] = 'Show';
+$string['colrequired'] = 'Required';
+$string['colunique'] = 'Unique';
+$string['colcanedit'] = 'User can edit';
+$string['colrename'] = 'Label';
+$string['renamefield'] = 'Rename';
+$string['renameoncore'] = 'Rename on the field page';
+$string['fixedbycore'] = 'Fixed by Moodle - not configurable here.';
 
 // Username.
 $string['usernameheading'] = 'Username';
-$string['usernameintro'] = 'Moodle always needs a username. It does not always need to ask the person for one.';
-$string['usernamefromemail'] = 'Build the username from the email address';
-$string['usernamefromemail_help'] = 'When set to Yes, the Username box is removed from the sign-up form and the username is generated from the email address the person types. They then sign in with their email address.
-
-Existing accounts are untouched, and administrators can still set a username by hand when creating an account.';
+$string['usernamefromemail'] = 'Build the username from the email address (hide the Username box)';
 $string['usernamesource'] = 'Username taken from';
-$string['usernamesource_help'] = 'Either the whole email address (ali@example.com becomes the username ali@example.com) or just the part before the "@" (which becomes ali). Either way a number is added if the name is already taken.';
 $string['usernamesourceemail'] = 'The whole email address';
 $string['usernamesourcelocalpart'] = 'The part before the "@"';
 
-// Core fields.
+// Terms & privacy.
+$string['termsheading'] = 'Terms and privacy policy';
+$string['termson'] = 'Policies are active. A user must accept them on the sign-up form before the account is created.';
+$string['termsoff'] = 'The site is not yet set to ask new users to accept policies. To switch this on:';
+$string['termsstep1'] = 'Open <a href="{$a}">Users &gt; Privacy and policies &gt; Site policies</a> and set the policy handler to "Policies (tool_policy)".';
+$string['termsstep2'] = 'Then open <a href="{$a}">Policies &gt; Manage policies</a>, add a "Terms of use" and a "Privacy policy" document, and set each to apply to authenticated users during sign-up.';
+$string['termsmanage'] = 'Manage policies';
+
+// Login tab.
+$string['loginselfregister'] = 'Allow new users to create their own account';
+$string['loginselfregister_desc'] = 'Shows the "Create new account" button on the login page (email-based self registration).';
+$string['loginguest'] = 'Show the "Log in as a guest" button';
+$string['loginguest_desc'] = 'Lets visitors browse guest-accessible courses without an account.';
+$string['loginremember'] = 'Remember the username';
+$string['loginremember_desc'] = 'Ticks and pre-fills the username on the login page on the next visit.';
+
+// Provisioning.
+$string['provisionheading'] = 'Recommended fields';
+$string['provisionintro'] = 'The academy\'s recommended set is not all present yet ({$a} missing). Create the missing fields in one step; existing fields are left untouched.';
+$string['provisionbutton'] = 'Create the recommended fields';
+$string['provisiondone'] = '{$a} field(s) created.';
+$string['provisionallset'] = 'All recommended fields are present.';
+$string['provisionnophone'] = 'The Phone field type plugin (profilefield_phone) is not installed, so the phone field cannot be created. Install it, then run this again.';
+$string['academycategory'] = 'Additional details';
+
+// Core headings.
 $string['corefieldsheading'] = 'Built-in Moodle fields';
-$string['corefieldsintro'] = 'The fields Moodle ships with. Leave the label empty to keep Moodle\'s own wording; the position number only affects the sign-up form, where fields are shown from the lowest number to the highest. Fields an account cannot work without - password, email and name - cannot be switched off.';
-$string['optionalcorefields'] = 'Optional section (ID number, institution, department, phone, address)';
-$string['labeloverrideplaceholder'] = 'Label';
-$string['orderplaceholder'] = 'Pos.';
-
-// Custom fields.
 $string['customfieldsheading'] = 'Custom profile fields';
-$string['customfieldsintro'] = 'Fields defined for this site.';
-$string['customfieldsnone'] = 'No custom profile fields have been created yet.';
-$string['createnewfield'] = 'Create a new field:';
+$string['optionalcorefields'] = 'Optional section (ID number, institution, department, phone, address)';
 
-// Placement.
-$string['modeboth'] = 'Sign-up and profile';
-$string['modesignup'] = 'Sign-up only';
-$string['modeprofile'] = 'Profile only';
-$string['modehidden'] = 'Hidden';
-$string['modehiddencustom'] = 'Hidden (administrators only)';
+// Provisioned field names (Arabic side supplies the translation).
+$string['fieldphone'] = 'Phone';
+$string['fieldnationality'] = 'Nationality';
+$string['fieldgender'] = 'Gender';
+$string['fielddateofbirth'] = 'Date of birth';
+$string['fieldjobtitle'] = 'Job title';
+$string['fieldcompany'] = 'Company';
+$string['fieldindustry'] = 'Industry';
+$string['fieldeducation'] = 'Education';
+$string['fieldnationalid'] = 'National ID';
+$string['fieldpassport'] = 'Passport';
 
 $string['privacy:metadata'] = 'The Sign-up and profile fields plugin only stores which fields a site shows. It stores no personal data.';

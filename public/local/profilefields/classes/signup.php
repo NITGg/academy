@@ -64,6 +64,11 @@ class signup {
             self::autofill_username($mform);
         }
 
+        // The sign-up form is meant to read as one flat list (name, email, phone,
+        // ...), so drop the per-category headers Moodle adds for custom fields;
+        // otherwise reordering a custom field upwards would strand its header.
+        self::strip_custom_headers($mform);
+
         foreach (manager::core_fields() as $name => $meta) {
             if (empty($meta['onsignup'])) {
                 continue;
@@ -198,27 +203,34 @@ class signup {
     }
 
     /**
-     * Put the visible core fields into the admin's chosen order.
+     * Put the visible sign-up fields into the admin's chosen order.
+     *
+     * Works on a unified list of both core fields and custom profile fields, so an
+     * admin can place a custom field (phone, nationality) above a core one
+     * (password). Tokens from the stored order map to element names: a core name is
+     * the element name as-is; `cf:<shortname>` maps to `profile_field_<shortname>`.
      *
      * @param MoodleQuickForm $mform the sign-up form, mid-definition
      * @param array $config config map keyed by field name
      * @return void
      */
     protected static function reorder(MoodleQuickForm $mform, array $config): void {
-        $wanted = [];
-        foreach (manager::core_fields() as $name => $meta) {
-            if (empty($meta['onsignup']) || !manager::on_signup($name) || !$mform->elementExists($name)) {
-                continue;
+        // Element name for every token that is actually on the form right now.
+        $elementfor = [];
+        foreach (self::tokens_present($mform) as $token) {
+            $element = self::token_element($token);
+            if ($element !== '' && $mform->elementExists($element)) {
+                $elementfor[$token] = $element;
             }
-            if ($name === 'username' && manager::username_from_email()) {
-                continue;
-            }
-            $wanted[$name] = (int) ($config[$name]['order'] ?? 0);
         }
-        asort($wanted);
-        $wanted = array_keys($wanted);
-        if (count($wanted) < 2) {
+        if (count($elementfor) < 2) {
             return;
+        }
+
+        $ordered = manager::order_tokens(array_keys($elementfor));
+        $wanted = [];
+        foreach ($ordered as $token) {
+            $wanted[] = $elementfor[$token];
         }
 
         // Already in this order? Then leave the form alone - reordering means pulling
@@ -256,6 +268,71 @@ class signup {
         if ($anchor === self::ANCHOR) {
             $mform->removeElement(self::ANCHOR, true);
         }
+    }
+
+    /** @var string Prefix Moodle gives every custom profile field element. */
+    const CUSTOM_PREFIX = 'profile_field_';
+
+    /**
+     * Remove the custom-field category headers from the sign-up form.
+     *
+     * @param MoodleQuickForm $mform the sign-up form, mid-definition
+     * @return void
+     */
+    protected static function strip_custom_headers(MoodleQuickForm $mform): void {
+        $remove = [];
+        foreach ($mform->_elements as $element) {
+            $name = (string) $element->getName();
+            if ($element->getType() === 'header' && preg_match('/^category_\d+$/', $name)) {
+                $remove[] = $name;
+            }
+        }
+        foreach ($remove as $name) {
+            $mform->removeElement($name, true);
+        }
+    }
+
+    /**
+     * The order tokens for the sign-up fields currently on the form.
+     *
+     * A core field contributes its own name; a custom field contributes
+     * `cf:<shortname>`. Only fields this plugin is willing to reorder are returned -
+     * the reCAPTCHA, policy checkbox, buttons and hidden helpers are left alone.
+     *
+     * @param MoodleQuickForm $mform the sign-up form, mid-definition
+     * @return string[] tokens in their present order
+     */
+    protected static function tokens_present(MoodleQuickForm $mform): array {
+        $core = manager::core_fields();
+        $tokens = [];
+        foreach ($mform->_elements as $element) {
+            $name = (string) $element->getName();
+            if ($name === '' || $element->getType() === 'hidden') {
+                // Switched-off fields and the derived username are hidden inputs, not
+                // things to place among the visible fields.
+                continue;
+            }
+            if (isset($core[$name]) && !empty($core[$name]['onsignup'])) {
+                $tokens[] = $name;
+            } else if (strpos($name, self::CUSTOM_PREFIX) === 0) {
+                $tokens[] = 'cf:' . substr($name, strlen(self::CUSTOM_PREFIX));
+            }
+        }
+        return $tokens;
+    }
+
+    /**
+     * The form element name a reorder token points at.
+     *
+     * @param string $token a core field name or `cf:<shortname>`
+     * @return string element name, or '' when the token is malformed
+     */
+    protected static function token_element(string $token): string {
+        if (strpos($token, 'cf:') === 0) {
+            $shortname = substr($token, 3);
+            return $shortname === '' ? '' : self::CUSTOM_PREFIX . $shortname;
+        }
+        return $token;
     }
 
     /**

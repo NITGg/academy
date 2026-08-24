@@ -1,0 +1,292 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+namespace local_profilefields;
+
+use stdClass;
+
+defined('MOODLE_INTERNAL') || die();
+
+/**
+ * Creates the academy's recommended set of custom profile fields in one action.
+ *
+ * The requirement lists a fixed set of profile fields (phone, nationality, gender,
+ * date of birth, job title, company, industry, education, national ID, passport).
+ * Rather than ask the admin to hand-build ten fields on the core screen, this class
+ * creates them - and their category - with the right type and flags. It is
+ * idempotent: a field whose shortname already exists is left exactly as it is, so
+ * running it twice, or after an admin has tweaked a field, changes nothing.
+ *
+ * It writes straight to `user_info_field` (the same table the core screen writes)
+ * and fires the same events, so the fields are indistinguishable from ones created
+ * by hand. This is provisioning, not a parallel store.
+ *
+ * @package    local_profilefields
+ * @copyright  2026 NIT
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class provision {
+
+    /** @var string Shortname of the category the recommended fields live in. */
+    const CATEGORY = 'academy_details';
+
+    /**
+     * The recommended fields, in display order.
+     *
+     * Flags map straight onto `user_info_field` columns. `signup` decides the
+     * register form, `visible` the profile form, `required`/`forceunique`/`locked`
+     * the usual per-field rules. `menu` fields set `param1` to their newline-joined
+     * options; `countries` is expanded to the localised country list at run time.
+     *
+     * @return array[] field specs keyed by shortname
+     */
+    public static function fields(): array {
+        return [
+            'phone' => [
+                'name' => 'Phone', 'namestr' => 'fieldphone',
+                'datatype' => 'phone',
+                'required' => 1, 'forceunique' => 1, 'locked' => 0,
+                'signup' => 1, 'visible' => PROFILE_VISIBLE_ALL,
+            ],
+            'nationality' => [
+                'name' => 'Nationality', 'namestr' => 'fieldnationality',
+                'datatype' => 'menu', 'options' => 'countries',
+                'required' => 0, 'forceunique' => 0, 'locked' => 0,
+                'signup' => 1, 'visible' => PROFILE_VISIBLE_ALL,
+            ],
+            'gender' => [
+                'name' => 'Gender', 'namestr' => 'fieldgender',
+                'datatype' => 'menu', 'options' => "Female\nMale\nPrefer not to say",
+                'required' => 0, 'forceunique' => 0, 'locked' => 0,
+                'signup' => 0, 'visible' => PROFILE_VISIBLE_ALL,
+            ],
+            'dateofbirth' => [
+                'name' => 'Date of birth', 'namestr' => 'fielddateofbirth',
+                'datatype' => 'datetime',
+                'required' => 0, 'forceunique' => 0, 'locked' => 0,
+                'signup' => 0, 'visible' => PROFILE_VISIBLE_ALL,
+            ],
+            'jobtitle' => [
+                'name' => 'Job title', 'namestr' => 'fieldjobtitle',
+                'datatype' => 'text',
+                'required' => 0, 'forceunique' => 0, 'locked' => 0,
+                'signup' => 0, 'visible' => PROFILE_VISIBLE_ALL,
+            ],
+            'company' => [
+                'name' => 'Company', 'namestr' => 'fieldcompany',
+                'datatype' => 'text',
+                'required' => 0, 'forceunique' => 0, 'locked' => 0,
+                'signup' => 0, 'visible' => PROFILE_VISIBLE_ALL,
+            ],
+            'industry' => [
+                'name' => 'Industry', 'namestr' => 'fieldindustry',
+                'datatype' => 'text',
+                'required' => 0, 'forceunique' => 0, 'locked' => 0,
+                'signup' => 0, 'visible' => PROFILE_VISIBLE_ALL,
+            ],
+            'education' => [
+                'name' => 'Education', 'namestr' => 'fieldeducation',
+                'datatype' => 'text',
+                'required' => 0, 'forceunique' => 0, 'locked' => 0,
+                'signup' => 0, 'visible' => PROFILE_VISIBLE_ALL,
+            ],
+            'nationalid' => [
+                'name' => 'National ID', 'namestr' => 'fieldnationalid',
+                'datatype' => 'text',
+                'required' => 0, 'forceunique' => 0, 'locked' => 0,
+                'signup' => 0, 'visible' => PROFILE_VISIBLE_ALL,
+            ],
+            'passport' => [
+                'name' => 'Passport', 'namestr' => 'fieldpassport',
+                'datatype' => 'text',
+                'required' => 0, 'forceunique' => 0, 'locked' => 0,
+                'signup' => 0, 'visible' => PROFILE_VISIBLE_ALL,
+            ],
+        ];
+    }
+
+    /**
+     * Which of the recommended fields do not yet exist.
+     *
+     * @return string[] shortnames still missing
+     */
+    public static function missing(): array {
+        global $DB;
+
+        $existing = $DB->get_fieldset_select('user_info_field', 'shortname', '');
+        $existing = array_flip($existing);
+
+        $missing = [];
+        foreach (self::fields() as $shortname => $spec) {
+            if (!isset($existing[$shortname])) {
+                $missing[] = $shortname;
+            }
+        }
+        return $missing;
+    }
+
+    /**
+     * Whether the phone field type plugin is installed.
+     *
+     * The recommended set includes a phone field; without profilefield_phone that
+     * one field cannot be created, so the page can warn instead of failing silently.
+     *
+     * @return bool
+     */
+    public static function phone_available(): bool {
+        return \core_component::get_component_directory('profilefield_phone') !== null;
+    }
+
+    /**
+     * Create every recommended field that is missing.
+     *
+     * @return int the number of fields created
+     */
+    public static function run(): int {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/user/profile/lib.php');
+
+        $categoryid = self::ensure_category();
+        $created = 0;
+
+        foreach (self::fields() as $shortname => $spec) {
+            if ($DB->record_exists('user_info_field', ['shortname' => $shortname])) {
+                continue;
+            }
+            if ($spec['datatype'] === 'phone' && !self::phone_available()) {
+                continue;
+            }
+            self::create_field($shortname, $spec, $categoryid);
+            $created++;
+        }
+
+        if ($created > 0) {
+            profile_purge_user_fields_cache();
+        }
+
+        // Give the sign-up form a sensible starting order the first time only, so an
+        // admin who has already arranged fields is never overridden.
+        if (empty(manager::signup_order())) {
+            manager::set_signup_order([
+                'firstname', 'lastname', 'email', 'cf:phone', 'cf:nationality', 'password',
+            ]);
+        }
+
+        return $created;
+    }
+
+    /**
+     * The category id for the recommended fields, creating it if needed.
+     *
+     * @return int
+     */
+    protected static function ensure_category(): int {
+        global $DB;
+
+        $name = get_string('academycategory', 'local_profilefields');
+        if ($id = $DB->get_field('user_info_category', 'id', ['name' => $name])) {
+            return (int) $id;
+        }
+
+        $sortorder = (int) $DB->get_field_sql('SELECT MAX(sortorder) FROM {user_info_category}') + 1;
+        $category = (object) ['name' => $name, 'sortorder' => $sortorder];
+        $category->id = $DB->insert_record('user_info_category', $category);
+
+        \core\event\user_info_category_created::create_from_category($category)->trigger();
+
+        return (int) $category->id;
+    }
+
+    /**
+     * Insert one field record and fire the created event.
+     *
+     * @param string $shortname
+     * @param array $spec one entry from self::fields()
+     * @param int $categoryid
+     * @return void
+     */
+    protected static function create_field(string $shortname, array $spec, int $categoryid): void {
+        global $DB;
+
+        $sortorder = (int) $DB->get_field_sql(
+            'SELECT MAX(sortorder) FROM {user_info_field} WHERE categoryid = ?', [$categoryid]) + 1;
+
+        $record = (object) [
+            'shortname'         => $shortname,
+            'name'              => self::field_name($spec),
+            'datatype'          => $spec['datatype'],
+            'description'       => '',
+            'descriptionformat' => FORMAT_HTML,
+            'categoryid'        => $categoryid,
+            'sortorder'         => $sortorder,
+            'required'          => $spec['required'],
+            'locked'            => $spec['locked'],
+            'visible'           => $spec['visible'],
+            'forceunique'       => $spec['forceunique'],
+            'signup'            => $spec['signup'],
+            'defaultdata'       => '',
+            'defaultdataformat' => FORMAT_HTML,
+            'param1'            => self::field_param1($spec),
+            'param2'            => null,
+            'param3'            => null,
+            'param4'            => null,
+            'param5'            => null,
+        ];
+        $record->id = $DB->insert_record('user_info_field', $record);
+
+        $field = $DB->get_record('user_info_field', ['id' => $record->id]);
+        \core\event\user_info_field_created::create_from_field($field)->trigger();
+    }
+
+    /**
+     * The field name, bilingual when the string is translated.
+     *
+     * Uses `{mlang}` so the one stored name renders in whichever language the
+     * viewer is using - the same mechanism the rest of the site uses for
+     * multilingual field labels.
+     *
+     * @param array $spec one entry from self::fields()
+     * @return string
+     */
+    protected static function field_name(array $spec): string {
+        $en = $spec['name'];
+        $ar = get_string_manager()->string_exists($spec['namestr'], 'local_profilefields')
+            ? get_string_manager()->get_string($spec['namestr'], 'local_profilefields', null, 'ar')
+            : '';
+
+        if ($ar === '' || $ar === $en) {
+            return $en;
+        }
+        return '{mlang en}' . $en . '{mlang}{mlang ar}' . $ar . '{mlang}';
+    }
+
+    /**
+     * The param1 value for a field - its menu options, if any.
+     *
+     * @param array $spec one entry from self::fields()
+     * @return string|null
+     */
+    protected static function field_param1(array $spec): ?string {
+        if (($spec['datatype'] ?? '') !== 'menu') {
+            return null;
+        }
+        if (($spec['options'] ?? '') === 'countries') {
+            $countries = get_string_manager()->get_list_of_countries(true);
+            return implode("\n", array_values($countries));
+        }
+        return $spec['options'] ?? '';
+    }
+}

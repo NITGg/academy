@@ -70,19 +70,6 @@ class custom_fields {
     }
 
     /**
-     * The placements a custom field can be given.
-     *
-     * @return array MODE_* value => menu label
-     */
-    public static function mode_options(): array {
-        return [
-            manager::MODE_BOTH    => get_string('modeboth', 'local_profilefields'),
-            manager::MODE_PROFILE => get_string('modeprofile', 'local_profilefields'),
-            manager::MODE_HIDDEN  => get_string('modehiddencustom', 'local_profilefields'),
-        ];
-    }
-
-    /**
      * Who gets to see the field's value, once it is visible at all.
      *
      * @return array PROFILE_VISIBLE_* value => menu label

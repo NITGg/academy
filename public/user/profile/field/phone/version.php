@@ -15,18 +15,18 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the sign-up / profile field layout.
+ * Phone profile field version information.
  *
- * @package    local_profilefields
+ * @package    profilefield_phone
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_profilefields';
-$plugin->version   = 2026082400;        // YYYYMMDDXX.
-$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
-$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
+$plugin->component = 'profilefield_phone';   // Full name of the plugin.
+$plugin->version   = 2026082300;             // The current plugin version (YYYYMMDDXX).
+$plugin->requires  = 2024100700;             // Moodle 4.5 LTS baseline.
+$plugin->supported = [405, 502];             // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.0.0';
+$plugin->release   = '1.0.0';

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Sign-up and profile field layout.
+ * Sign-up, login and profile field layout - a three-tab control panel.
  *
  * @package    local_profilefields
  * @copyright  2026 NIT
@@ -26,28 +26,23 @@ require(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->dirroot . '/user/profile/lib.php');
 
+use local_profilefields\page;
+
 admin_externalpage_setup('local_profilefields_manage');
 
-$form = new \local_profilefields\form\manage_form($PAGE->url);
-
-if ($form->is_cancelled()) {
-    redirect($PAGE->url);
-} else if ($data = $form->get_data()) {
-    \local_profilefields\form\manage_form::save($data);
-    redirect($PAGE->url, get_string('changessaved'), null, \core\output\notification::NOTIFY_SUCCESS);
+$tab = optional_param('tab', page::TAB_REGISTER, PARAM_ALPHA);
+if (!in_array($tab, page::tabs(), true)) {
+    $tab = page::TAB_REGISTER;
 }
 
-$form->load_current_values();
+$PAGE->set_url(new moodle_url('/local/profilefields/manage.php', ['tab' => $tab]));
+
+// Runs before output so a save or reorder can redirect with a notice.
+page::process($tab);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managefields', 'local_profilefields'));
 
-echo $OUTPUT->notification(
-    get_string('manageintro', 'local_profilefields', (new moodle_url('/login/signup.php'))->out()),
-    \core\output\notification::NOTIFY_INFO,
-    false
-);
-
-$form->display();
+page::render($tab);
 
 echo $OUTPUT->footer();

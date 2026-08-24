@@ -25,41 +25,74 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'حقول التسجيل والملف الشخصي';
-
-// Management page.
 $string['managefields'] = 'تنظيم حقول التسجيل والملف الشخصي';
-$string['manageintro'] = 'حدّد الحقول التي يملؤها المستخدم الجديد في <a href="{$a}">صفحة إنشاء حساب</a>، والحقول التي يراها المستخدم الحالي عند تعديل ملفه الشخصي. استخدم صفحة <em>حقول الملف الشخصي</em> الأصلية لإنشاء الحقول المخصصة وتعديلها وترتيبها، واستخدم هذه الصفحة لتحديد مكان ظهورها.';
+
+// Tabs.
+$string['tabregister'] = 'صفحة التسجيل';
+$string['tablogin'] = 'صفحة الدخول';
+$string['tabprofile'] = 'صفحة الملف الشخصي';
+$string['tabregister_intro'] = 'اختر الحقول التي يملؤها المستخدم الجديد عند إنشاء حساب، وترتيبها، واسم كل حقل.';
+$string['tablogin_intro'] = 'صفحة الدخول لا تطلب سوى معرّف وكلمة مرور. هذه هي الأشياء القليلة حولها التي يمكن تشغيلها أو إيقافها.';
+$string['tabprofile_intro'] = 'اختر الحقول التي يراها المستخدم عند تعديل ملفه الشخصي، وهل كل حقل إجباري أم فريد أم يمكن للمستخدم تعديله.';
+
+// Table columns.
+$string['colfield'] = 'الحقل';
+$string['colshow'] = 'إظهار';
+$string['colrequired'] = 'إجباري';
+$string['colunique'] = 'فريد';
+$string['colcanedit'] = 'يمكن للمستخدم التعديل';
+$string['colrename'] = 'التسمية';
+$string['renamefield'] = 'إعادة تسمية';
+$string['renameoncore'] = 'إعادة التسمية من صفحة الحقل';
+$string['fixedbycore'] = 'ثابت في مودل - غير قابل للتعديل هنا.';
 
 // Username.
 $string['usernameheading'] = 'اسم المستخدم';
-$string['usernameintro'] = 'يحتاج مودل دائمًا إلى اسم مستخدم، لكنه لا يحتاج دائمًا إلى سؤال المستخدم عنه.';
-$string['usernamefromemail'] = 'توليد اسم المستخدم من البريد الإلكتروني';
-$string['usernamefromemail_help'] = 'عند اختيار "نعم" يُحذف حقل اسم المستخدم من صفحة إنشاء الحساب، ويُولَّد اسم المستخدم من البريد الإلكتروني الذي يكتبه المستخدم، ثم يسجّل الدخول ببريده الإلكتروني.
-
-لا يتأثر أي حساب قائم، ويستطيع المدير كما هو الحال دائمًا تحديد اسم المستخدم يدويًا عند إنشاء حساب.';
+$string['usernamefromemail'] = 'توليد اسم المستخدم من البريد الإلكتروني (وإخفاء خانة اسم المستخدم)';
 $string['usernamesource'] = 'مصدر اسم المستخدم';
-$string['usernamesource_help'] = 'إما البريد الإلكتروني كاملًا (فيصبح ali@example.com اسم المستخدم) أو الجزء الذي يسبق علامة "@" فقط (فيصبح ali). وفي الحالتين يُضاف رقم إذا كان الاسم مستخدمًا من قبل.';
 $string['usernamesourceemail'] = 'البريد الإلكتروني كاملًا';
 $string['usernamesourcelocalpart'] = 'الجزء الذي يسبق علامة "@"';
 
-// Core fields.
+// Terms & privacy.
+$string['termsheading'] = 'الشروط وسياسة الخصوصية';
+$string['termson'] = 'السياسات مفعّلة، ويجب على المستخدم الموافقة عليها في صفحة التسجيل قبل إنشاء الحساب.';
+$string['termsoff'] = 'الموقع غير مُعَدّ بعدُ لمطالبة المستخدمين الجدد بالموافقة على السياسات. لتفعيل ذلك:';
+$string['termsstep1'] = 'افتح <a href="{$a}">المستخدمون &gt; الخصوصية والسياسات &gt; سياسات الموقع</a> واضبط مُعالِج السياسات على «السياسات (tool_policy)».';
+$string['termsstep2'] = 'ثم افتح <a href="{$a}">السياسات &gt; إدارة السياسات</a>، وأضِف مستند «شروط الاستخدام» ومستند «سياسة الخصوصية»، واضبط كلًّا منهما ليُطبَّق على المستخدمين المُوثَّقين أثناء التسجيل.';
+$string['termsmanage'] = 'إدارة السياسات';
+
+// Login tab.
+$string['loginselfregister'] = 'السماح للمستخدمين الجدد بإنشاء حساب بأنفسهم';
+$string['loginselfregister_desc'] = 'يُظهر زر «إنشاء حساب جديد» في صفحة الدخول (التسجيل الذاتي عبر البريد الإلكتروني).';
+$string['loginguest'] = 'إظهار زر «الدخول كضيف»';
+$string['loginguest_desc'] = 'يتيح للزوار تصفّح المقررات المتاحة للضيوف دون حساب.';
+$string['loginremember'] = 'تذكّر اسم المستخدم';
+$string['loginremember_desc'] = 'يحدّد ويملأ اسم المستخدم مسبقًا في صفحة الدخول عند الزيارة التالية.';
+
+// Provisioning.
+$string['provisionheading'] = 'الحقول الموصى بها';
+$string['provisionintro'] = 'المجموعة الموصى بها ليست كاملة بعد (ناقص {$a}). أنشئ الحقول الناقصة بخطوة واحدة؛ الحقول الموجودة تبقى كما هي.';
+$string['provisionbutton'] = 'إنشاء الحقول الموصى بها';
+$string['provisiondone'] = 'تم إنشاء {$a} حقل/حقول.';
+$string['provisionallset'] = 'كل الحقول الموصى بها موجودة.';
+$string['provisionnophone'] = 'إضافة نوع حقل الهاتف (profilefield_phone) غير مثبّتة، لذا لا يمكن إنشاء حقل الهاتف. ثبّتها ثم أعد المحاولة.';
+$string['academycategory'] = 'بيانات إضافية';
+
+// Core headings.
 $string['corefieldsheading'] = 'حقول مودل الأساسية';
-$string['corefieldsintro'] = 'الحقول التي يأتي بها مودل. اترك خانة التسمية فارغة للإبقاء على التسمية الأصلية، ورقم الترتيب يؤثر في صفحة إنشاء الحساب فقط، حيث تظهر الحقول من الرقم الأصغر إلى الأكبر. أما الحقول التي لا يعمل الحساب بدونها — كلمة المرور والبريد الإلكتروني والاسم — فلا يمكن إيقافها.';
-$string['optionalcorefields'] = 'القسم الاختياري (الرقم التعريفي، المؤسسة، القسم، الهاتف، العنوان)';
-$string['labeloverrideplaceholder'] = 'التسمية';
-$string['orderplaceholder'] = 'ترتيب';
-
-// Custom fields.
 $string['customfieldsheading'] = 'حقول الملف الشخصي المخصصة';
-$string['customfieldsintro'] = 'الحقول المعرَّفة في هذا الموقع.';
-$string['customfieldsnone'] = 'لم يتم إنشاء أي حقول مخصصة بعد.';
-$string['createnewfield'] = 'إنشاء حقل جديد:';
+$string['optionalcorefields'] = 'القسم الاختياري (الرقم التعريفي، المؤسسة، القسم، الهاتف، العنوان)';
 
-// Placement.
-$string['modeboth'] = 'التسجيل والملف الشخصي';
-$string['modesignup'] = 'التسجيل فقط';
-$string['modeprofile'] = 'الملف الشخصي فقط';
-$string['modehidden'] = 'مخفي';
-$string['modehiddencustom'] = 'مخفي (للمديرين فقط)';
+// Provisioned field names.
+$string['fieldphone'] = 'الهاتف';
+$string['fieldnationality'] = 'الجنسية';
+$string['fieldgender'] = 'النوع';
+$string['fielddateofbirth'] = 'تاريخ الميلاد';
+$string['fieldjobtitle'] = 'المسمّى الوظيفي';
+$string['fieldcompany'] = 'الشركة';
+$string['fieldindustry'] = 'المجال';
+$string['fieldeducation'] = 'المؤهل التعليمي';
+$string['fieldnationalid'] = 'الرقم القومي';
+$string['fieldpassport'] = 'جواز السفر';
 
 $string['privacy:metadata'] = 'إضافة حقول التسجيل والملف الشخصي تخزّن فقط إعدادات عرض الحقول، ولا تخزّن أي بيانات شخصية.';

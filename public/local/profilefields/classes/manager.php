@@ -287,6 +287,167 @@ class manager {
     }
 
     /**
+     * Set where a single core field appears, then persist.
+     *
+     * Silently ignores a mode the field does not offer, so a tampered POST cannot
+     * push a field into an impossible state.
+     *
+     * @param string $name core field name
+     * @param string $mode one of the MODE_* constants
+     * @return void
+     */
+    public static function set_mode(string $name, string $mode): void {
+        $fields = self::core_fields();
+        if (!isset($fields[$name]) || !in_array($mode, $fields[$name]['modes'], true)) {
+            return;
+        }
+        $config = self::get_config();
+        $config[$name]['mode'] = $mode;
+        self::save_config($config);
+    }
+
+    /**
+     * Update the whole stored config from a callback, once.
+     *
+     * The page changes several fields at a time; this lets it edit the map in
+     * memory and write it back in a single set_config call.
+     *
+     * @param callable $mutator receives the config map by value, returns the new one
+     * @return void
+     */
+    public static function update_config(callable $mutator): void {
+        self::save_config($mutator(self::get_config()));
+    }
+
+    /**
+     * The admin-chosen order of fields on the sign-up form.
+     *
+     * Tokens are either a core field name (`email`) or `cf:<shortname>` for a
+     * custom field, so core and custom fields can be freely interleaved - which the
+     * requirement needs (phone and nationality before the password box). Anything
+     * the stored list does not mention is appended in its natural order by the
+     * caller, so a newly created field is never lost.
+     *
+     * @return string[] ordered tokens, or [] when never set
+     */
+    public static function signup_order(): array {
+        $stored = get_config(self::COMPONENT, 'signuporder');
+        if (empty($stored)) {
+            return [];
+        }
+        $tokens = json_decode($stored, true);
+        return is_array($tokens) ? array_values(array_filter($tokens, 'is_string')) : [];
+    }
+
+    /**
+     * Persist the sign-up field order.
+     *
+     * @param string[] $tokens ordered tokens (core name or `cf:<shortname>`)
+     * @return void
+     */
+    public static function set_signup_order(array $tokens): void {
+        set_config('signuporder', json_encode(array_values($tokens)), self::COMPONENT);
+    }
+
+    /**
+     * Order a set of tokens by the stored preference, appending unknown ones.
+     *
+     * @param string[] $tokens the tokens actually present now
+     * @return string[] the same tokens, in the configured order
+     */
+    public static function order_tokens(array $tokens): array {
+        $preferred = self::signup_order();
+        $present = array_flip($tokens);
+
+        $ordered = [];
+        foreach ($preferred as $token) {
+            if (isset($present[$token])) {
+                $ordered[] = $token;
+                unset($present[$token]);
+            }
+        }
+        // Whatever the stored order did not cover keeps its incoming order.
+        foreach ($tokens as $token) {
+            if (isset($present[$token])) {
+                $ordered[] = $token;
+            }
+        }
+        return $ordered;
+    }
+
+    /**
+     * The languages a field label can be given, keyed by code.
+     *
+     * @return array<string,string> language code => human name
+     */
+    public static function label_langs(): array {
+        $langs = get_string_manager()->get_list_of_translations();
+        if (!isset($langs['en'])) {
+            $langs = ['en' => 'English'] + $langs;
+        }
+        return $langs;
+    }
+
+    /**
+     * Split a stored label into its per-language parts for editing.
+     *
+     * A `{mlang}` label becomes one value per language; a plain label is treated as
+     * belonging to the site's current language so it lands in an editable box.
+     *
+     * @param string $label the stored label
+     * @return array<string,string> language code => text
+     */
+    public static function label_parts(string $label): array {
+        $parts = [];
+        if (strpos($label, '{mlang') !== false) {
+            if (preg_match_all('/\{mlang\s+(\w+)\}(.*?)\{mlang\}/s', $label, $m, PREG_SET_ORDER)) {
+                foreach ($m as $one) {
+                    $parts[$one[1]] = trim($one[2]);
+                }
+            }
+            return $parts;
+        }
+
+        if (trim($label) !== '') {
+            $parts[current_language()] = trim($label);
+        }
+        return $parts;
+    }
+
+    /**
+     * Rebuild a stored label from per-language input.
+     *
+     * One language filled is stored plain (so it always shows, whatever multilang
+     * filter is on); two or more are stored as `{mlang}` blocks. Everything is
+     * cleaned to plain text - a label is never rich content.
+     *
+     * @param array<string,string> $perlang language code => text
+     * @return string the label to store, '' for "no override"
+     */
+    public static function build_label(array $perlang): string {
+        $filled = [];
+        foreach ($perlang as $lang => $text) {
+            $text = trim((string) $text);
+            if ($text !== '') {
+                $filled[$lang] = clean_param($text, PARAM_TEXT);
+            }
+        }
+
+        if (count($filled) === 0) {
+            return '';
+        }
+        if (count($filled) === 1) {
+            return reset($filled);
+        }
+
+        $out = '';
+        foreach ($filled as $lang => $text) {
+            $out .= '{mlang ' . $lang . '}' . $text . '{mlang}';
+        }
+        return $out;
+    }
+
+    /**
      * Where a single core field is configured to appear.
      *
      * @param string $name core field name
