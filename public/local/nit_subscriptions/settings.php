@@ -39,4 +39,14 @@ if ($hassiteconfig) {
         new moodle_url('/local/nit_subscriptions/manage_courses.php'),
         'local/nit_subscriptions:managesubscriptions'
     ));
+
+    // Per-country pricing for a single plan. Hidden — reached from the "Pricing" button on
+    // manage_subscriptions.php with a ?subscriptionid=; only registered so admin_externalpage_setup resolves.
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_nit_subscriptions_pricing',
+        get_string('subscriptionpricing', 'local_nit_subscriptions'),
+        new moodle_url('/local/nit_subscriptions/subscription_pricing.php'),
+        'local/nit_subscriptions:managesubscriptions',
+        true // Hidden from the admin tree.
+    ));
 }

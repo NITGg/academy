@@ -8,38 +8,35 @@ class country_detector {
     /**
      * Detect user's country for pricing.
      *
-     * IP geolocation is tried FIRST because it is server-determined and cannot be
-     * self-selected by the buyer — this stops per-country pricing from being gamed
-     * by editing the profile country field or passing a cheaper app_country. The
-     * self-selectable sources are used only as a fallback when the IP cannot be
-     * resolved (dev/localhost, private IP, or geolocation unavailable).
+     * Pricing follows the buyer's Moodle profile country: it is the built-in field the
+     * academy uses to decide which per-country price applies, and it is what admins and
+     * users see and manage. IP geolocation is deliberately NOT consulted — a user's stated
+     * country drives their price, and if no price is configured for that country the
+     * resolvers fall back to the item's default price.
      *
-     * Priority: 1. IP geolocation → 2. User profile → 3. Flutter app header → 4. Admin default
+     * Priority: 1. User profile → 2. Flutter app header → 3. Admin default → 4. 'EG'
+     *
+     * (The $ip argument is retained for backwards compatibility with existing callers but
+     * is no longer used.)
      */
     public static function detect(?int $userid = null, ?string $app_country = null, ?string $ip = null): string {
         global $USER;
 
         $userid = $userid ?? $USER->id;
 
-        // 1. IP geolocation (trusted — not user-controlled).
-        $ip = $ip ?? getremoteaddr();
-        $ip_country = self::from_ip($ip);
-        if (!empty($ip_country)) {
-            return $ip_country;
-        }
-
-        // 2. User profile country (fallback when IP is unavailable).
+        // 1. User profile country — the built-in field pricing is keyed on.
         $profile_country = self::from_profile($userid);
         if (!empty($profile_country)) {
             return $profile_country;
         }
 
-        // 3. Country provided by the Flutter app (fallback).
+        // 2. Country provided by the Flutter app (used only when the profile has none,
+        // e.g. an app guest who has not set a profile country yet).
         if (!empty($app_country) && self::is_valid_country($app_country)) {
             return strtoupper($app_country);
         }
 
-        // 4. Admin default.
+        // 3. Admin default.
         $default = get_config('local_payments', 'default_country');
         if (!empty($default)) {
             return strtoupper($default);

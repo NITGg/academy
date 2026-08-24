@@ -46,6 +46,7 @@ $STR = local_nit_subscriptions_string_map(array(
     'pkg_col_id', 'pkg_col_name', 'pkg_col_price', 'sub_col_days', 'sub_col_courses', 'pkg_col_status',
     'pkg_col_actions', 'pkg_field_name', 'pkg_field_price', 'pkg_col_user', 'sub_col_subscription',
     'pkg_field_name_en', 'pkg_field_name_ar', 'pkg_field_desc_en', 'pkg_field_desc_ar',
+    'pkg_field_currency', 'sub_pricing',
     'pkg_col_pricepaid', 'pkg_col_expiresat',
     'sub_field_desc', 'sub_field_days', 'sub_courseavail_heading', 'sub_courseavail_desc', 'sub_target',
     'sub_select_placeholder', 'sub_save_courses', 'sub_usersubs_heading', 'sub_usersubs_desc',
@@ -60,9 +61,10 @@ $STR = local_nit_subscriptions_string_map(array(
 ));
 
 echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
-    'endpoint' => (new moodle_url('/local/nit_subscriptions/api.php'))->out(false),
-    'sesskey'  => sesskey(),
-    'lang'     => optional_param('lang', current_language(), PARAM_LANG),
+    'endpoint'    => (new moodle_url('/local/nit_subscriptions/api.php'))->out(false),
+    'pricingbase' => (new moodle_url('/local/nit_subscriptions/subscription_pricing.php'))->out(false),
+    'sesskey'     => sesskey(),
+    'lang'        => optional_param('lang', current_language(), PARAM_LANG),
 )) . ';');
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
@@ -110,6 +112,21 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <div class="form-group">
                 <label for="f-price"><?php echo $STR['pkg_field_price']; ?></label>
                 <input type="number" class="form-control" id="f-price" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+                <label for="f-currency"><?php echo $STR['pkg_field_currency']; ?></label>
+                <select class="form-control" id="f-currency">
+                    <option value="EGP">EGP - Egyptian Pound</option>
+                    <option value="USD">USD - US Dollar</option>
+                    <option value="EUR">EUR - Euro</option>
+                    <option value="GBP">GBP - British Pound</option>
+                    <option value="SAR">SAR - Saudi Riyal</option>
+                    <option value="AED">AED - UAE Dirham</option>
+                    <option value="KWD">KWD - Kuwaiti Dinar</option>
+                    <option value="BHD">BHD - Bahraini Dinar</option>
+                    <option value="QAR">QAR - Qatari Riyal</option>
+                    <option value="OMR">OMR - Omani Rial</option>
+                </select>
             </div>
             <div class="form-group">
                 <label for="f-days"><?php echo $STR['sub_field_days']; ?></label>
@@ -354,6 +371,7 @@ echo html_writer::script(<<<'JS'
                 '<td>' + esc(sstat(s.status)) + '</td>' +
                 '<td>' +
                     '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="' + s.id + '">' + esc(str('ui_edit')) + '</button> ' +
+                    '<a class="btn btn-sm btn-info" href="' + esc(CFG.pricingbase) + '?subscriptionid=' + esc(s.id) + '">' + esc(str('sub_pricing')) + '</a> ' +
                     toggle + ' ' +
                     '<button class="btn btn-sm btn-danger" data-act="delete" data-id="' + s.id + '">' + esc(str('ui_delete')) + '</button>' +
                 '</td>';
@@ -395,6 +413,7 @@ echo html_writer::script(<<<'JS'
         $('f-desc-en').value  = ds.en;
         $('f-desc-ar').value  = ds.ar;
         $('f-price').value    = sub ? sub.price : '';
+        $('f-currency').value = (sub && sub.currency) ? sub.currency : 'EGP';
         $('f-days').value     = sub ? sub.duration_days : '';
         $('f-active').checked = sub ? (sub.status === 'active') : true;
         $('sub-form-card').style.display = 'block';
@@ -407,6 +426,7 @@ echo html_writer::script(<<<'JS'
             name: buildMultilang($('f-name-en').value, $('f-name-ar').value),
             description: buildMultilang($('f-desc-en').value, $('f-desc-ar').value),
             price: $('f-price').value,
+            currency: $('f-currency').value,
             duration_days: $('f-days').value
         };
         var p;

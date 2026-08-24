@@ -64,5 +64,38 @@ function xmldb_local_nit_subscriptions_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026080901, 'local', 'nit_subscriptions');
     }
 
+    if ($oldversion < 2026082400) {
+        // Per-country subscription pricing (mirror of local_payments course pricing).
+
+        // 1. Base-price currency on the plan itself (the default price's currency).
+        $table = new xmldb_table('nit_subscription');
+        $field = new xmldb_field('currency', XMLDB_TYPE_CHAR, '3', null, XMLDB_NOTNULL, null, 'EGP', 'price');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // 2. Per-country price override table.
+        $table = new xmldb_table('nit_sub_price');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('subscriptionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('country', XMLDB_TYPE_CHAR, '2', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('currency', XMLDB_TYPE_CHAR, '3', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('price', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('is_active', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1');
+        $table->add_field('created_by', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('subscriptionid_fk', XMLDB_KEY_FOREIGN, ['subscriptionid'], 'nit_subscription', ['id']);
+        $table->add_index('sub_country_uk', XMLDB_INDEX_UNIQUE, ['subscriptionid', 'country']);
+        $table->add_index('sub_country_active_idx', XMLDB_INDEX_NOTUNIQUE, ['subscriptionid', 'country', 'is_active']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026082400, 'local', 'nit_subscriptions');
+    }
+
     return true;
 }

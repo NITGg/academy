@@ -48,8 +48,7 @@
           <div
             style="font-size: 40px; font-weight: 800; color: var(--nit-brand-accenttext); line-height: 1; flex-shrink: 0;">
             <span data-nit-price-val="">{{price}}</span> <span
-              style="font-size: 16px;">{mlang en}EGP{mlang}{mlang
-              ar}ج.م{mlang}</span></div>
+              style="font-size: 16px;" data-nit-currency="">{{currency}}</span></div>
           <!-- Offer final price (shown when an offer applies) -->
           <div style="display: none; margin-top: 4px; flex-shrink: 0;" data-nit-offer-final="">
             <span
@@ -238,6 +237,11 @@
         return modal ? modal.querySelector(sel) : null;
       }
 
+      // Currency label of the plan currently in the modal (falls back to EGP).
+      function curLabel() {
+        return (current && current.currency) ? current.currency : 'EGP';
+      }
+
       function setTxt(sel, val) {
         var el = q(sel);
         if (el) {
@@ -281,16 +285,16 @@
             }
             var d = res.data || {};
             setTxt('[data-nit-m-original]', money(d.original != null ? d
-              .original : current.price) + ' EGP');
+              .original : current.price) + ' ' + curLabel());
             setTxt('[data-nit-m-discount]', money(d.discount || 0) +
-              ' EGP');
+              ' ' + curLabel());
             setTxt('[data-nit-m-final]', money(d.final != null ? d.final :
-              current.price) + ' EGP');
+              current.price) + ' ' + curLabel());
             var offerDisc = Number(d.offer_discount || 0);
             if (offerDisc > 0) {
               var oname = (d.offers && d.offers[0] && d.offers[0].name) ? d
                 .offers[0].name : (d.offer_name || '');
-              setTxt('[data-nit-m-offer]', '-' + money(offerDisc) + ' EGP' +
+              setTxt('[data-nit-m-offer]', '-' + money(offerDisc) + ' ' + curLabel() +
                 (oname ? ('  (' + oname + ')') : ''));
               setDisp('[data-nit-m-offerrow]', 'flex');
             } else {
@@ -315,9 +319,9 @@
         current = sub;
         setTxt('[data-nit-m-name]', sub.name);
         setTxt('[data-nit-m-days]', sub.days);
-        setTxt('[data-nit-m-original]', money(sub.price) + ' EGP');
-        setTxt('[data-nit-m-final]', money(sub.price) + ' EGP');
-        setTxt('[data-nit-m-discount]', '0.00 EGP');
+        setTxt('[data-nit-m-original]', money(sub.price) + ' ' + curLabel());
+        setTxt('[data-nit-m-final]', money(sub.price) + ' ' + curLabel());
+        setTxt('[data-nit-m-discount]', '0.00 ' + curLabel());
         setDisp('[data-nit-m-offerrow]', 'none');
         var c = q('[data-nit-m-coupon]');
         if (c) {
@@ -417,7 +421,8 @@
           id: card.getAttribute('data-sub-id'),
           name: card.getAttribute('data-sub-name'),
           days: card.getAttribute('data-sub-days'),
-          price: parseFloat(card.getAttribute('data-sub-price')) || 0
+          price: parseFloat(card.getAttribute('data-sub-price')) || 0,
+          currency: card.getAttribute('data-sub-currency') || 'EGP'
         });
       });
 
@@ -449,9 +454,11 @@
           rows.forEach(function(s, idx) {
             var desc = strip(s.description);
             var priceDisplay = moneyShort(s.price);
+            var currency = s.currency || 'EGP';
             var html = tpl.innerHTML
               .replace(/\{\{name\}\}/g, esc(s.name))
               .replace(/\{\{price\}\}/g, esc(priceDisplay))
+              .replace(/\{\{currency\}\}/g, esc(currency))
               .replace(/\{\{days\}\}/g, esc(s.duration_days))
               .replace(/\{\{courses\}\}/g, esc(s.courses_count))
               .replace(/\{\{description\}\}/g, esc(desc));
@@ -463,6 +470,7 @@
             wrap.setAttribute('data-sub-name', s.name);
             wrap.setAttribute('data-sub-days', s.duration_days);
             wrap.setAttribute('data-sub-price', s.price);
+            wrap.setAttribute('data-sub-currency', currency);
             wrap.innerHTML = html;
             var inner = wrap.firstElementChild;
 

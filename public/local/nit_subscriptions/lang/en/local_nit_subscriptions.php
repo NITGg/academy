@@ -71,12 +71,29 @@ $string['pkg_col_user']      = 'User';
 $string['pkg_col_pricepaid'] = 'Price Paid';
 $string['pkg_col_expiresat'] = 'Expires At';
 $string['pkg_field_name']    = 'Name';
-$string['pkg_field_price']   = 'Price (EGP)';
+$string['pkg_field_price']   = 'Default price';
 $string['pkg_field_name_en'] = 'Name (English)';
 $string['pkg_field_name_ar'] = 'Name (Arabic)';
 $string['pkg_field_desc_en'] = 'Description (English)';
 $string['pkg_field_desc_ar'] = 'Description (Arabic)';
+$string['pkg_field_currency'] = 'Default currency';
 $string['pkg_unassign_paid'] = ' — <strong>{$a}</strong> paid';
+
+// Per-country pricing (mirrors the course "Pricing" feature).
+$string['sub_pricing']            = 'Pricing';
+$string['subscriptionpricing']    = 'Subscription pricing';
+$string['backtosubscriptions']    = 'Back to subscriptions';
+$string['price_country']          = 'Country';
+$string['price_currency']         = 'Currency';
+$string['price_amount']           = 'Price';
+$string['price_is_active']        = 'Active';
+$string['price_add']              = 'Add country price';
+$string['price_edit']             = 'Edit country price';
+$string['price_none']             = 'No country-specific prices yet. Buyers pay the default price above.';
+$string['price_saved']            = 'Price saved.';
+$string['price_deleted']          = 'Price deleted.';
+$string['price_confirmdelete']    = 'Delete this country price?';
+$string['price_default_notice']   = 'Default price (used when a buyer\'s country has no price below): <strong>{$a->price} {$a->currency}</strong>. Edit it on the subscription plan itself.';
 
 // Subscription plans.
 $string['sub_plans_heading']  = 'Subscription plans';
@@ -138,6 +155,10 @@ $string['sstat_payment_failed'] = 'Payment failed';
 $string['err_subnamerequired']  = 'Subscription name is required';
 $string['err_subnameempty']     = 'Subscription name cannot be empty';
 $string['err_pricenegative']    = 'Price cannot be negative';
+$string['err_pricepositive']    = 'Price must be greater than zero';
+$string['err_pricecountry']     = 'Please choose a valid country';
+$string['err_priceonepercountry'] = 'This subscription already has a price for that country';
+$string['err_currency']         = 'Please choose a valid currency';
 $string['err_durationpositive'] = 'Number of days must be greater than zero';
 $string['err_subnotfound']      = 'Subscription not found';
 $string['err_subhaspurchases']  = 'This subscription has purchase records and cannot be deleted. Deactivate it instead.';

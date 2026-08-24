@@ -61,10 +61,13 @@ class subscription_manager {
         if ($name === '') {
             throw new \moodle_exception('err_subnamerequired', 'local_nit_subscriptions');
         }
+        // Every plan must carry a positive default price — it is the fallback used whenever a
+        // buyer's country has no per-country override row, so a plan can never exist without a price.
         $price = (float)($data['price'] ?? 0);
-        if ($price < 0) {
-            throw new \moodle_exception('err_pricenegative', 'local_nit_subscriptions');
+        if ($price <= 0) {
+            throw new \moodle_exception('err_pricepositive', 'local_nit_subscriptions');
         }
+        $currency = self::normalize_currency($data['currency'] ?? 'EGP');
         $duration = (int)($data['duration_days'] ?? 0);
         if ($duration <= 0) {
             throw new \moodle_exception('err_durationpositive', 'local_nit_subscriptions');
@@ -76,6 +79,7 @@ class subscription_manager {
         $record->name          = $name;
         $record->description   = $data['description'] ?? '';
         $record->price         = $price;
+        $record->currency      = $currency;
         $record->duration_days = $duration;
         $record->status        = !empty($data['active']) ? self::STATUS_ACTIVE : self::STATUS_INACTIVE;
         $record->b2b_enabled   = $b2benabled;
@@ -120,10 +124,13 @@ class subscription_manager {
         }
         if (array_key_exists('price', $data)) {
             $price = (float)$data['price'];
-            if ($price < 0) {
-                throw new \moodle_exception('err_pricenegative', 'local_nit_subscriptions');
+            if ($price <= 0) {
+                throw new \moodle_exception('err_pricepositive', 'local_nit_subscriptions');
             }
             $update->price = $price;
+        }
+        if (array_key_exists('currency', $data)) {
+            $update->currency = self::normalize_currency($data['currency']);
         }
         if (array_key_exists('duration_days', $data)) {
             $duration = (int)$data['duration_days'];
@@ -335,6 +342,168 @@ class subscription_manager {
             ));
         }
         $transaction->allow_commit();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Per-country pricing (mirror of local_payments course pricing)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Resolve the price a given user pays for a plan, based on their profile country.
+     *
+     * A country-specific active override row (nit_sub_price) wins; otherwise the plan's base
+     * price/currency (nit_subscription) is the default. Mirrors local_payments price_resolver::resolve().
+     *
+     * @param int $subscriptionid
+     * @param int|null $userid defaults to current $USER
+     * @param string|null $app_country optional country hint from the mobile app
+     * @return \stdClass {price, currency, price_id, country}
+     */
+    public static function resolve_price($subscriptionid, $userid = null, $app_country = null) {
+        global $DB, $USER;
+
+        $userid = $userid ?? (int) $USER->id;
+        $sub = self::get_subscription($subscriptionid); // Throws if missing.
+        $country = self::detect_country($userid, $app_country);
+
+        $row = $DB->get_record_select(
+            'nit_sub_price',
+            'subscriptionid = :sid AND country = :country AND is_active = 1',
+            ['sid' => (int) $subscriptionid, 'country' => $country],
+            '*',
+            IGNORE_MULTIPLE
+        );
+
+        if ($row) {
+            return (object) [
+                'price'    => (float) $row->price,
+                'currency' => (string) $row->currency,
+                'price_id' => (int) $row->id,
+                'country'  => $country,
+            ];
+        }
+
+        // Default: the plan's base price/currency.
+        return (object) [
+            'price'    => (float) $sub->price,
+            'currency' => (string) ($sub->currency ?? 'EGP'),
+            'price_id' => 0,
+            'country'  => $country,
+        ];
+    }
+
+    /**
+     * Detect the buyer's country for pricing. Delegates to local_payments country_detector
+     * (profile-first) when available, else reads the user's profile country directly.
+     *
+     * @param int $userid
+     * @param string|null $app_country
+     * @return string ISO 3166-1 alpha-2 (uppercase)
+     */
+    public static function detect_country($userid, $app_country = null) {
+        global $DB;
+        if (class_exists('\local_payments\country_detector')) {
+            return \local_payments\country_detector::detect($userid, $app_country);
+        }
+        $country = (string) $DB->get_field('user', 'country', ['id' => $userid]);
+        if (preg_match('/^[A-Za-z]{2}$/', $country)) {
+            return strtoupper($country);
+        }
+        if (!empty($app_country) && preg_match('/^[A-Za-z]{2}$/', $app_country)) {
+            return strtoupper($app_country);
+        }
+        return 'EG';
+    }
+
+    /**
+     * All per-country override rows for a plan, country ASC.
+     *
+     * @param int $subscriptionid
+     * @return array
+     */
+    public static function get_prices($subscriptionid) {
+        global $DB;
+        return array_values($DB->get_records('nit_sub_price',
+            ['subscriptionid' => (int) $subscriptionid], 'country ASC'));
+    }
+
+    /**
+     * Create or update a per-country price override row. One active row per (plan, country).
+     *
+     * @param array $data subscriptionid, country, currency, price, is_active, priceid (0 = new)
+     * @param int $userid admin performing the action
+     * @return int the row id
+     */
+    public static function save_price(array $data, $userid) {
+        global $DB;
+
+        $subscriptionid = (int) ($data['subscriptionid'] ?? 0);
+        self::get_subscription($subscriptionid); // Validate plan exists.
+
+        $country = strtoupper(trim((string) ($data['country'] ?? '')));
+        if (!preg_match('/^[A-Z]{2}$/', $country)) {
+            throw new \moodle_exception('err_pricecountry', 'local_nit_subscriptions');
+        }
+        $currency = self::normalize_currency($data['currency'] ?? 'EGP');
+        $price = (float) ($data['price'] ?? 0);
+        if ($price <= 0) {
+            throw new \moodle_exception('err_pricepositive', 'local_nit_subscriptions');
+        }
+        $isactive = !empty($data['is_active']) ? 1 : 0;
+        $priceid = (int) ($data['priceid'] ?? 0);
+
+        // Enforce one row per (plan, country) — the unique index guards this too.
+        $existing = $DB->get_record('nit_sub_price',
+            ['subscriptionid' => $subscriptionid, 'country' => $country]);
+        if ($existing && $existing->id != $priceid) {
+            throw new \moodle_exception('err_priceonepercountry', 'local_nit_subscriptions');
+        }
+
+        $now = time();
+        $record = (object) [
+            'subscriptionid' => $subscriptionid,
+            'country'        => $country,
+            'currency'       => $currency,
+            'price'          => $price,
+            'is_active'      => $isactive,
+            'timemodified'   => $now,
+        ];
+
+        if ($priceid) {
+            $record->id = $priceid;
+            $DB->update_record('nit_sub_price', $record);
+            return $priceid;
+        }
+        $record->created_by  = (int) $userid;
+        $record->timecreated = $now;
+        return (int) $DB->insert_record('nit_sub_price', $record);
+    }
+
+    /**
+     * Delete a per-country price override row.
+     *
+     * @param int $priceid
+     * @param int $subscriptionid guard so a row can only be deleted from its own plan
+     * @return void
+     */
+    public static function delete_price($priceid, $subscriptionid) {
+        global $DB;
+        $DB->delete_records('nit_sub_price',
+            ['id' => (int) $priceid, 'subscriptionid' => (int) $subscriptionid]);
+    }
+
+    /**
+     * Validate/normalize an ISO 4217 currency code.
+     *
+     * @param string $currency
+     * @return string uppercase 3-letter code
+     */
+    public static function normalize_currency($currency) {
+        $currency = strtoupper(trim((string) $currency));
+        if (!preg_match('/^[A-Z]{3}$/', $currency)) {
+            throw new \moodle_exception('err_currency', 'local_nit_subscriptions');
+        }
+        return $currency;
     }
 
     // ──────────────────────────────────────────────────────────────────────────

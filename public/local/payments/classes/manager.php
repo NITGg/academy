@@ -292,9 +292,21 @@ class manager {
             throw new \moodle_exception('error', 'moodle', '', null, 'This subscription plan is not available');
         }
 
+        // Resolve the buyer's country-based base price + currency (falls back to the plan's
+        // default price/currency when their country has no override — see subscription_manager).
+        $basePrice = (float) $sub->price;
+        $currency = (string) ($sub->currency ?? 'EGP');
+        $country = $app_country ?: ($user->country ?: 'EG');
+        if (class_exists('\local_nit_subscriptions\subscription_manager')) {
+            $resolved = \local_nit_subscriptions\subscription_manager::resolve_price($subscriptionid, $userid, $app_country);
+            $basePrice = (float) $resolved->price;
+            $currency = (string) $resolved->currency;
+            $country = (string) $resolved->country;
+        }
+
         $isb2b = ($type === 'b2b');
         $b2bseats = 0;
-        $amount = (float) $sub->price;
+        $amount = $basePrice;
         $discountmeta = null;
 
         if ($isb2b) {
@@ -307,7 +319,7 @@ class manager {
             }
             $b2bseats = (int) $seats;
             if (class_exists('\local_nit_subscriptions\subscription_manager')) {
-                $price = \local_nit_subscriptions\subscription_manager::b2b_price($sub->price, $b2bseats, $option->discount_percent);
+                $price = \local_nit_subscriptions\subscription_manager::b2b_price($basePrice, $b2bseats, $option->discount_percent);
                 $amount = (float) $price['final'];
             }
         } else {
@@ -316,15 +328,13 @@ class manager {
                     && \local_nit_subscriptions\subscription_purchase_manager::has_active_normal($userid)) {
                 throw new \moodle_exception('error', 'moodle', '', null, 'You already have an active subscription');
             }
-            // Apply coupon/offer (normal purchase only).
-            $disc = self::apply_nit_discount('subscription', $subscriptionid, $userid, (float) $sub->price, $coupon_code);
+            // Apply coupon/offer (normal purchase only) on the resolved base price.
+            $disc = self::apply_nit_discount('subscription', $subscriptionid, $userid, $basePrice, $coupon_code);
             $amount = $disc['amount'];
             $discountmeta = $disc['discount'];
         }
 
-        $originalamount = (float) $sub->price;
-        $currency = 'EGP';
-        $country = $app_country ?: ($user->country ?: 'EG');
+        $originalamount = $basePrice;
 
         $provider = self::get_provider($country, $currency);
         $provider_record = $DB->get_record('local_payments_providers', ['name' => $provider->get_name()]);

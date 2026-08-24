@@ -53,6 +53,12 @@ function nit_subscriptions_available(): array {
     $hasoffers = class_exists('\local_nit_commerce\discount_manager');
     $out = [];
     foreach ($subs as $s) {
+        // Country-based price/currency for the current user (falls back to the plan's default
+        // price/currency when their profile country has no override row).
+        $resolved = \local_nit_subscriptions\subscription_manager::resolve_price((int) $s->id);
+        $price = (float) $resolved->price;
+        $currency = (string) $resolved->currency;
+
         // The best auto-offer on this plan. Exposed two ways: flat offer_label/offer_final (the web
         // block reads these) and a nested `offer` object (the mobile app reads this) — present only
         // when there IS an active offer.
@@ -60,7 +66,7 @@ function nit_subscriptions_available(): array {
         $offerfinal = 0.0;
         $offer = null;
         if ($hasoffers) {
-            $summary = \local_nit_commerce\discount_manager::offer_summary('subscription', (int) $s->id, (float) $s->price);
+            $summary = \local_nit_commerce\discount_manager::offer_summary('subscription', (int) $s->id, $price);
             if ($summary) {
                 $offerlabel = $summary['label'];      // e.g. "-10%"
                 $offerfinal = (float) $summary['final'];
@@ -77,14 +83,16 @@ function nit_subscriptions_available(): array {
             'name'          => format_string(\local_nit_subscriptions\subscription_manager::resolve_mlang($s->name)),
             'description'   => $s->description !== null
                 ? format_text(\local_nit_subscriptions\subscription_manager::resolve_mlang($s->description), FORMAT_HTML) : '',
-            'price'         => (float) $s->price,
+            'price'         => $price,
+            'currency'      => $currency,
             'duration_days' => (int) $s->duration_days,
             'status'        => (string) $s->status,
             'b2b_enabled'   => (int) $s->b2b_enabled,
             'courses_count' => count($s->courses),
             // Full {id, fullname} objects — the mobile app needs the course id to map coverage.
             'courses'       => array_values($s->courses),
-            'seat_options'  => $s->seat_options,
+            // Seat tiers priced off the resolved (country) base price.
+            'seat_options'  => \local_nit_subscriptions\subscription_manager::get_seat_options((int) $s->id, $price),
             'offer_label'   => $offerlabel,
             'offer_final'   => $offerfinal,
         ];

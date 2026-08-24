@@ -105,6 +105,14 @@ class discount_manager {
             return $minor / 100;
         }
         if ($itemtype === self::TYPE_SUBSCRIPTION && $DB->get_manager()->table_exists('nit_subscription')) {
+            if (!$DB->record_exists('nit_subscription', array('id' => $itemid))) {
+                return 0.0;
+            }
+            // Use the buyer's country-resolved price so a coupon/offer preview matches the
+            // price shown on the plan card (which is already country-resolved).
+            if (class_exists('\local_nit_subscriptions\subscription_manager')) {
+                return (float) \local_nit_subscriptions\subscription_manager::resolve_price($itemid)->price;
+            }
             return (float)$DB->get_field('nit_subscription', 'price', array('id' => $itemid));
         }
         return 0.0;
