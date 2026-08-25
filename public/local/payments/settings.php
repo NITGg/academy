@@ -47,6 +47,13 @@ if ($hassiteconfig) {
         1
     ));
 
+    $settings->add(new admin_setting_configcheckbox(
+        'local_payments/course_preview',
+        get_string('course_preview', 'local_payments'),
+        get_string('course_preview_desc', 'local_payments'),
+        1
+    ));
+
     $ADMIN->add('local_payments_category', $settings);
 
     // Provider management link.

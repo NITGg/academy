@@ -236,17 +236,26 @@ class signup_user extends external_api {
     /**
      * Present field errors the way core's sign-up service does.
      *
+     * One deliberate difference: the message is plain text. Some of them are built
+     * as HTML for the web form - the password policy is a `<div>` per rule - and
+     * core passes that straight through `s()`, so a client that is not a browser
+     * ends up printing "&lt;div&gt;" at the user. A native app wants the sentence.
+     *
      * @param array $errors element name => message
      * @return array[] warning records
      */
     protected static function as_warnings(array $errors): array {
         $warnings = [];
         foreach ($errors as $item => $message) {
+            $message = (string) $message;
+            if (strpos($message, '<') !== false) {
+                $message = trim(html_to_text($message, 0, false));
+            }
             $warnings[] = [
                 'item' => $item === signup::CONSENT ? 'consent' : $item,
                 'itemid' => 0,
                 'warningcode' => 'fielderror',
-                'message' => s($message),
+                'message' => $message,
             ];
         }
         return $warnings;

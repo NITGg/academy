@@ -18,6 +18,14 @@ $string['show_sale_badge'] = 'إظهار شارة التخفيض';
 $string['show_sale_badge_desc'] = 'عرض شارة نسبة الخصم على بطاقات الدورات.';
 $string['auto_expire_enabled'] = 'انتهاء المدفوعات المعلقة تلقائياً';
 $string['auto_expire_enabled_desc'] = 'إنهاء المدفوعات المعلقة تلقائياً بعد انتهاء المهلة.';
+$string['course_preview'] = 'معاينة الكورس مع قفل الأنشطة';
+$string['course_preview_desc'] = 'السماح لأي زائر — حتى غير المسجَّل دخولاً — بفتح صفحة الكورس وقراءة وصفه وقائمة أنشطته، مع بقاء كل الأنشطة مقفلة حتى يلتحق أو يشتري. عطِّل الخيار للعودة إلى تحويله إلى صفحة الدخول أو الشراء.';
+
+// Locked course preview.
+$string['preview_notice'] = 'أنت تشاهد معاينة لهذا الكورس. تُفتح الأنشطة بعد حصولك على صلاحية الوصول.';
+$string['preview_unlock'] = 'افتح هذا الكورس';
+$string['preview_login'] = 'سجّل الدخول للمتابعة';
+$string['preview_locked'] = 'هذا النشاط مقفل حتى تحصل على صلاحية الوصول إلى الكورس.';
 $string['manageproviders'] = 'إدارة مزودي الدفع';
 $string['providersettings'] = 'إعدادات المزود';
 $string['reports'] = 'تقارير المدفوعات';

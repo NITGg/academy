@@ -12,28 +12,62 @@ defined('MOODLE_INTERNAL') || die();
 class hook_callbacks {
 
     /**
-     * Intercept course view / enrol for unenrolled users and redirect to the buy
-     * page when the course has active payment pricing. Runs before HTTP headers.
+     * Open the course page as a locked preview for visitors who have not bought it yet.
+     *
+     * Runs as early as a plugin can (straight after setup.php), because the decision has to
+     * be made before /course/view.php calls require_login(). See \local_payments\course_preview.
+     *
+     * @param \core\hook\after_config $hook
+     */
+    public static function after_config(\core\hook\after_config $hook): void {
+        course_preview::setup();
+    }
+
+    /**
+     * Send a student who is trying to ENROL in a course they have not paid for to the buy
+     * page. Runs before HTTP headers.
+     *
+     * Note what is deliberately NOT intercepted any more: /course/view.php. The course page
+     * is the product page — course_preview lets anyone read it with every activity locked,
+     * so redirecting it to the checkout would hide the very thing being sold. Only the
+     * enrolment attempt itself is routed to payment, which is also where core sends anyone
+     * who tries to open a locked activity.
      *
      * @param \core\hook\output\before_http_headers $hook
      */
     public static function before_http_headers(\core\hook\output\before_http_headers $hook): void {
-        global $CFG;
+        global $CFG, $PAGE, $SESSION;
 
-        $script = $_SERVER['SCRIPT_NAME'] ?? '';
-        $is_course_view = strpos($script, '/course/view.php') !== false;
-        $is_enrol_index = strpos($script, '/enrol/index.php') !== false;
-        if (!$is_course_view && !$is_enrol_index) {
+        // On a course page the viewer has no real access to, tell the theme to padlock the
+        // activity links. Asked of the PAGE rather than of course_preview, so the class is
+        // also there when the visitor got in some other way — e.g. a course with core
+        // "guest access" switched on, where the activities are locked by
+        // local_payments_after_require_login() and must look locked too.
+        if (self::is_locked_course_view($PAGE)) {
+            $PAGE->add_body_class('local-payments-preview');
+        }
+
+        // Never redirect a preview page — this IS the page the visitor asked for.
+        if (course_preview::active_courseid()) {
             return;
         }
 
-        if (!isloggedin() || isguestuser()) {
+        $script = $_SERVER['SCRIPT_NAME'] ?? '';
+        if (strpos($script, '/enrol/index.php') === false) {
             return;
         }
 
         $courseid = (int) ($_GET['id'] ?? 0);
         if (!$courseid) {
             return;
+        }
+
+        // A guest (including the auto-guest of a preview) cannot buy or enrol anything:
+        // the first step is an account, so send them to log in and come back.
+        if (!isloggedin() || isguestuser()) {
+            $SESSION->wantsurl = (new \moodle_url('/course/view.php', ['id' => $courseid]))->out(false);
+            header('Location: ' . $CFG->wwwroot . '/login/index.php');
+            exit;
         }
 
         $context = \context_course::instance($courseid);
@@ -57,5 +91,32 @@ class hook_callbacks {
         // here, so there is no redirect loop.
         header('Location: ' . $CFG->wwwroot . '/local/payments/buy.php?courseid=' . $courseid);
         exit;
+    }
+
+    /**
+     * Is this a course page being read by somebody who has no real access to the course?
+     *
+     * @param \moodle_page $page
+     * @return bool
+     */
+    protected static function is_locked_course_view(\moodle_page $page): bool {
+        if (!course_preview::is_enabled()) {
+            return false;
+        }
+        if (strpos((string) $page->pagetype, 'course-view') !== 0) {
+            return false;
+        }
+
+        $course = $page->course;
+        if (empty($course->id) || $course->id == SITEID) {
+            return false;
+        }
+
+        $context = \context_course::instance($course->id, IGNORE_MISSING);
+        if (!$context || is_siteadmin() || is_viewing($context)) {
+            return false;
+        }
+
+        return !(isloggedin() && !isguestuser() && is_enrolled($context, null, '', true));
     }
 }

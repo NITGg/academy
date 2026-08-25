@@ -23,6 +23,14 @@ $string['show_sale_badge'] = 'Show sale badge';
 $string['show_sale_badge_desc'] = 'Display sale discount badge on course cards.';
 $string['auto_expire_enabled'] = 'Auto-expire pending payments';
 $string['auto_expire_enabled_desc'] = 'Automatically expire pending payments after the timeout period.';
+$string['course_preview'] = 'Locked course preview';
+$string['course_preview_desc'] = 'Let anyone — including visitors who are not logged in — open a course page and read its description and activity list, with every activity locked until they enrol or buy. Turn this off to go back to sending them to the login or buy page instead.';
+
+// Locked course preview.
+$string['preview_notice'] = 'You are previewing this course. The activities unlock once you have access.';
+$string['preview_unlock'] = 'Unlock this course';
+$string['preview_login'] = 'Log in to continue';
+$string['preview_locked'] = 'This activity is locked until you have access to the course.';
 $string['manageproviders'] = 'Manage payment providers';
 $string['providersettings'] = 'Provider settings';
 $string['reports'] = 'Payment reports';

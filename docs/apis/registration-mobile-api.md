@@ -199,7 +199,9 @@ a number.
 
 `item` is the field's `name` from step 1 (`consent` for the checkbox, or
 `recaptcharesponse`) — attach the `message` to that box. The messages are
-already localised for the request language; show them as they are.
+already localised for the request language, and plain text (no HTML tags to
+strip) — show them as they are. A multi-rule password message arrives as one
+string with a line break per rule.
 
 **After a successful sign-up** the account exists but is **unconfirmed**: Moodle
 has emailed a confirmation link. Tell the user to check their inbox. A login

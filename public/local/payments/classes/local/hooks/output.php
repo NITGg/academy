@@ -49,4 +49,25 @@ class output {
         $src = $CFG->wwwroot . '/local/payments/js/course_cards.js?v=' . $version;
         $hook->add_html('<script defer src="' . s($src) . '"></script>');
     }
+
+    /**
+     * On a locked course preview, put a bar at the top of the page saying so and offering
+     * the way in (buy / register, or log in first for a guest).
+     *
+     * Without it the page is a puzzle: every activity is padlocked and nothing explains why
+     * or what to do about it.
+     *
+     * @param \core\hook\output\before_standard_top_of_body_html_generation $hook
+     * @return void
+     */
+    public static function before_standard_top_of_body_html_generation(
+            \core\hook\output\before_standard_top_of_body_html_generation $hook): void {
+
+        $courseid = \local_payments\course_preview::active_courseid();
+        if (!$courseid) {
+            return;
+        }
+
+        $hook->add_html(\local_payments\course_preview::banner_html($courseid));
+    }
 }

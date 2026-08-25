@@ -1,0 +1,130 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+// -----------------------------------------------------------------------------
+// Locked course preview.
+//
+// local_payments\course_preview lets ANY visitor — logged in or not — open a
+// course page they have not bought, with read-only access granted for that one
+// request. The lock is enforced server-side (every activity URL still runs
+// require_login() with no grant and lands on the buy page); this file is the
+// visible half of it, added by the `local-payments-preview` body class the
+// plugin sets on such a page:
+//
+//   * activity links go dead and grow a padlock, so a visitor is not invited to
+//     click something that will bounce them to a checkout;
+//   * a bar at the bottom of the viewport says why, and offers the way in.
+//
+// Colours come from the Brand Colors palette, so the bar re-skins with the site
+// and works in both directions (RTL/LTR) and both light and dark.
+// -----------------------------------------------------------------------------
+
+.lp-preview-bar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 1035;
+
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 18px;
+    // Generous inline-end padding keeps the bar clear of the footer popover button.
+    padding: 12px 76px;
+
+    background: var(--nit-brand-surface);
+    border-top: 1px solid var(--nit-brand-borderprimary);
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.25);
+    color: var(--nit-brand-textprimary);
+    font-weight: 600;
+    text-align: center;
+
+    .lp-preview-text::before {
+        content: "🔒";
+        margin-inline-end: 8px;
+    }
+
+    .lp-preview-cta {
+        flex: 0 0 auto;
+    }
+
+    @media (max-width: 575px) {
+        padding: 10px 16px 12px;
+        font-size: 0.9rem;
+    }
+}
+
+body.local-payments-preview {
+    // Room for the fixed bar, so it never sits on top of the page footer.
+    padding-bottom: 76px;
+
+    // ---- The lock ----------------------------------------------------------
+    // Every route into an activity goes dead: the curriculum accordion on the
+    // branded course landing page (format_topics_renderer's .acad-cr bands, which
+    // is what this site actually shows), the stock course-format activity cards
+    // behind it, and the same activities in the course index drawer.
+    .acad-cr,
+    .course-content,
+    #course-index,
+    .courseindex {
+        .acad-cr__act-name a,
+        .activityname a,
+        a.aalink,
+        .activity-altcontent a,
+        .activity-afterlink a,
+        .courseindex-link {
+            pointer-events: none;
+            cursor: not-allowed;
+            color: var(--nit-brand-textsecondary) !important;
+            text-decoration: none !important;
+        }
+    }
+
+    // Padlock + a dimmed row, so the state reads as "locked", not "broken".
+    .acad-cr__act {
+        opacity: 0.92;
+
+        .acad-cr__act-name::after {
+            content: "🔒";
+            margin-inline-start: 8px;
+            font-size: 0.85em;
+            opacity: 0.75;
+        }
+    }
+
+    .course-content .activity-item {
+        opacity: 0.92;
+
+        .activityname {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+
+            &::after {
+                content: "🔒";
+                font-size: 0.85em;
+                opacity: 0.75;
+            }
+        }
+
+        // Completion toggles and the activity action menu do nothing for someone
+        // who has no access — printing them just adds noise to the preview.
+        .activity-completion,
+        .activity-actions {
+            display: none;
+        }
+    }
+}
