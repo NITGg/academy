@@ -39,6 +39,40 @@ $PAGE->requires->js(new moodle_url('/local/nit_subscriptions/ui.js'), true);
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managesubscriptions', 'local_nit_subscriptions'));
 
+// Admin note: explain how the price a user sees is chosen. The key idea to make clear is
+// that pricing is ALWAYS by country — the IP only *identifies* the country for a guest, it
+// does not carry a price of its own. Rendered in the admin's current language (site is en/ar).
+$pricingnote_isar = (strpos(current_language(), 'ar') === 0);
+if ($pricingnote_isar) {
+    $pricingnote =
+        '<strong>كيف يظهر سعر الاشتراك للمستخدم؟</strong><br>'
+        . 'السعر يعتمد دائمًا على <strong>دولة المستخدم</strong>، وطريقة معرفة الدولة:'
+        . '<ul style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
+        . '<li>مستخدم <strong>مسجّل دخول</strong>: تُؤخذ الدولة من بروفايله (الدولة التي سجّل بها).</li>'
+        . '<li>مستخدم <strong>غير مسجّل</strong>: نُخمّن دولته من عنوان الـ IP (موقعه التقريبي).</li>'
+        . '</ul>'
+        . 'بعد تحديد الدولة: إذا كان للخطة سعرٌ مضبوطٌ لتلك الدولة يظهر هذا السعر، '
+        . 'وإذا لم يوجد سعرٌ لتلك الدولة يظهر <strong>السعر الافتراضي</strong> للخطة.<br>'
+        . '<span style="opacity:.85;">ملاحظة: عنوان الـ IP نفسه ليس له سعر — هو فقط يحدّد الدولة، '
+        . 'ثم يُطبَّق سعر تلك الدولة إن وُجد.</span><br>'
+        . 'تضبط أسعار الدول من داخل نموذج إضافة/تعديل الاشتراك في قسم «Country prices».';
+} else {
+    $pricingnote =
+        '<strong>How is a user&rsquo;s subscription price chosen?</strong><br>'
+        . 'The price is always based on the <strong>user&rsquo;s country</strong>. How the country is known:'
+        . '<ul style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
+        . '<li><strong>Logged-in user</strong>: the country comes from their profile (the country used at registration).</li>'
+        . '<li><strong>Not logged in</strong>: the country is guessed from their IP address (approximate location).</li>'
+        . '</ul>'
+        . 'Once the country is known: if the plan has a price set for that country, it is shown; '
+        . 'otherwise the plan&rsquo;s <strong>default price</strong> is shown.<br>'
+        . '<span style="opacity:.85;">Note: an IP address has no price of its own &mdash; it only identifies the country, '
+        . 'then that country&rsquo;s price is applied if one exists.</span><br>'
+        . 'Set per-country prices inside the add/edit subscription form, under &ldquo;Country prices&rdquo;.';
+}
+echo html_writer::div($pricingnote, 'alert alert-info',
+    ['dir' => $pricingnote_isar ? 'rtl' : 'ltr']);
+
 // Localised strings: server-rendered HTML reads $STR['key']; the JS reads window.ACADEMY_STR.
 $STR = local_nit_subscriptions_string_map(array(
     'sub_plans_heading', 'sub_new', 'ui_refresh', 'ui_loading', 'ui_save', 'ui_cancel', 'ui_active',

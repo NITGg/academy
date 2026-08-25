@@ -100,6 +100,40 @@ $prices = $DB->get_records('local_payments_course_prices', ['courseid' => $cours
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('coursepricing', 'local_payments'));
 
+// Admin note: explain how the price a user sees is chosen. The key idea to make clear is that
+// pricing is ALWAYS by country — the IP only *identifies* the country for a guest, it does not
+// carry a price of its own. Rendered in the admin's current language (site is en/ar).
+$pricingnote_isar = (strpos(current_language(), 'ar') === 0);
+if ($pricingnote_isar) {
+    $pricingnote =
+        '<strong>كيف يظهر سعر الكورس للمستخدم؟</strong><br>'
+        . 'السعر يعتمد دائمًا على <strong>دولة المستخدم</strong>، وطريقة معرفة الدولة:'
+        . '<ul style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
+        . '<li>مستخدم <strong>مسجّل دخول</strong>: تُؤخذ الدولة من بروفايله (الدولة التي سجّل بها).</li>'
+        . '<li>مستخدم <strong>غير مسجّل</strong>: نُخمّن دولته من عنوان الـ IP (موقعه التقريبي).</li>'
+        . '</ul>'
+        . 'بعد تحديد الدولة: إذا كان للكورس سعرٌ مضبوطٌ لتلك الدولة يظهر هذا السعر، '
+        . 'وإذا لم يوجد سعرٌ لتلك الدولة يظهر <strong>السعر الافتراضي</strong> (صف «Default price» بالأسفل).<br>'
+        . '<span style="opacity:.85;">ملاحظة: عنوان الـ IP نفسه ليس له سعر — هو فقط يحدّد الدولة، '
+        . 'ثم يُطبَّق سعر تلك الدولة إن وُجد.</span><br>'
+        . 'أضِف أسعار الدول من زر «' . get_string('addprice', 'local_payments') . '» بالأسفل.';
+} else {
+    $pricingnote =
+        '<strong>How is a user&rsquo;s course price chosen?</strong><br>'
+        . 'The price is always based on the <strong>user&rsquo;s country</strong>. How the country is known:'
+        . '<ul style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
+        . '<li><strong>Logged-in user</strong>: the country comes from their profile (the country used at registration).</li>'
+        . '<li><strong>Not logged in</strong>: the country is guessed from their IP address (approximate location).</li>'
+        . '</ul>'
+        . 'Once the country is known: if the course has a price set for that country, it is shown; '
+        . 'otherwise the <strong>Default price</strong> row below is shown.<br>'
+        . '<span style="opacity:.85;">Note: an IP address has no price of its own &mdash; it only identifies the country, '
+        . 'then that country&rsquo;s price is applied if one exists.</span><br>'
+        . 'Add per-country prices with the &ldquo;' . get_string('addprice', 'local_payments') . '&rdquo; button below.';
+}
+echo html_writer::div($pricingnote, 'alert alert-info',
+    ['dir' => $pricingnote_isar ? 'rtl' : 'ltr']);
+
 $addurl = new moodle_url('/local/payments/course_pricing.php', ['courseid' => $courseid, 'action' => 'add']);
 echo html_writer::link($addurl, get_string('addprice', 'local_payments'), ['class' => 'btn btn-primary mb-3']);
 
