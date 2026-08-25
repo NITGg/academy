@@ -264,7 +264,7 @@ class signup_api {
      * @param object $element a QuickForm element
      * @return string
      */
-    protected static function field_label($element): string {
+    public static function field_label($element): string {
         $label = (string) $element->getLabel();
         if ($label === '' && method_exists($element, 'getText')) {
             $label = (string) $element->getText();
@@ -318,7 +318,7 @@ class signup_api {
      * @param object $element a QuickForm element
      * @return array[] [['value' => .., 'label' => .., 'dialcode' => ..], ..]
      */
-    protected static function field_options($element): array {
+    public static function field_options($element): array {
         $select = null;
 
         if (in_array((string) $element->getType(), ['select', 'autocomplete'], true)) {
@@ -368,7 +368,7 @@ class signup_api {
      * @param stdClass|null $record the custom field record, when there is one
      * @return bool
      */
-    protected static function is_required(MoodleQuickForm $mform, string $name, ?stdClass $record): bool {
+    public static function is_required(MoodleQuickForm $mform, string $name, ?stdClass $record): bool {
         if ($record && !empty($record->required)) {
             return true;
         }

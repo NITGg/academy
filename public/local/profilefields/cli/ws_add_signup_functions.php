@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * List (and optionally add) the sign-up web-service functions on an external service.
+ * List (and optionally add) the sign-up and profile web-service functions on a service.
  *
  * A REST call fails with `accessexception` when the function is not listed in the
  * service the token belongs to - the token itself and the function can both be
@@ -44,15 +44,18 @@ require_once($CFG->dirroot . '/webservice/lib.php');
     ['h' => 'help']
 );
 
-/** @var string[] The functions the mobile sign-up flow needs. */
+/** @var string[] The functions the mobile sign-up and profile flows need. */
 $wanted = [
     'local_profilefields_get_signup_form',
     'local_profilefields_signup_user',
     'local_profilefields_get_policy_documents',
+    'local_profilefields_get_profile',
+    'local_profilefields_get_profile_form',
+    'local_profilefields_update_profile',
 ];
 
 if ($options['help'] || ($options['token'] === '' && $options['service'] === '')) {
-    echo "Put the sign-up web-service functions on the service a token uses.\n\n";
+    echo "Put the sign-up and profile web-service functions on the service a token uses.\n\n";
     echo "  --token=WSTOKEN     the token the app calls with (the service is read from it)\n";
     echo "  --service=NAME|ID   the service, when you know it instead of a token\n";
     echo "  --add               actually add the missing functions (otherwise report only)\n\n";
@@ -103,7 +106,7 @@ $existing = $DB->get_records_menu('external_services_functions',
     ['externalserviceid' => $service->id], '', 'id, functionname');
 $existing = array_flip($existing);
 
-echo "\n---- Sign-up functions on this service ----\n";
+echo "\n---- Sign-up and profile functions on this service ----\n";
 $missing = [];
 foreach ($wanted as $name) {
     $installed = $DB->record_exists('external_functions', ['name' => $name]);

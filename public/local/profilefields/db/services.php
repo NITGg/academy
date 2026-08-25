@@ -47,4 +47,38 @@ $functions = [
         'loginrequired' => false,
         'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+
+    // Profile. These three are the profile-side twins of the sign-up pair above:
+    // they describe and submit /user/profile.php and /user/edit.php as this site
+    // renders them, so an app no longer has to open those pages in a WebView.
+    // Core offers no alternative for the edit half - core_user_update_users needs
+    // moodle/user:update, which an ordinary user editing their own profile does
+    // not have.
+    'local_profilefields_get_profile' => [
+        'classname'   => 'local_profilefields\external\get_profile',
+        'methodname'  => 'execute',
+        'description' => 'Read a profile the way /user/profile.php shows it: the user\'s details, the custom '
+            . 'profile fields this viewer may see, and the page\'s own section/row tree.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+    'local_profilefields_get_profile_form' => [
+        'classname'   => 'local_profilefields\external\get_profile_form',
+        'methodname'  => 'execute',
+        'description' => 'Describe the profile edit form as this site renders it: the fields to show, in order, '
+            . 'with their labels, current values, requiredness, options and which of them the auth plugin has locked.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+    'local_profilefields_update_profile' => [
+        'classname'   => 'local_profilefields\external\update_profile',
+        'methodname'  => 'execute',
+        'description' => 'Save the profile through the site\'s own edit flow: the same capability checks, the same '
+            . 'validation and the same email-change confirmation /user/edit.php applies.',
+        'type'        => 'write',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
 ];

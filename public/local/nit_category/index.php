@@ -156,7 +156,17 @@ $stylevars =
 // default layer (no class); groups 2/3 add the .nit-brand-2 / .nit-brand-3 switch
 // class to the wrapper, so every --nit-brand-* the page reads (and hence every
 // --cbg*/--ctext* above) resolves from that group instead.
+//
+// theme/nit/lib.php (where those helpers live) is only auto-included when the
+// theme is initialised — theme_config::__construct, which runs later than this,
+// at $OUTPUT->header(). So it has to be required here: without it function_exists()
+// was always false and every category page silently fell back to Group 1, while
+// course pages (rendered after theme init) picked the right group up fine.
 $brandgroupclass = '';
+$themenitlib = $CFG->dirroot . '/theme/nit/lib.php';
+if (file_exists($themenitlib)) {
+    require_once($themenitlib);
+}
 if (function_exists('theme_nit_category_brand_group')) {
     $brandgroupclass = theme_nit_brand_group_class(theme_nit_category_brand_group((int) $category->id));
 }
