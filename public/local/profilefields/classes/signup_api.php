@@ -71,8 +71,10 @@ class signup_api {
      *
      * A web-service request boots none of these: `signup_validate_data()`,
      * `signup_setup_new_user()` and `signup_captcha_enabled()` are in authlib, the
-     * plugin callbacks in login/lib.php, and the profile-field helpers in
-     * user/profile/lib.php.
+     * plugin callbacks in login/lib.php, the profile-field helpers in
+     * user/profile/lib.php, and `useredit_get_required_name_fields()` - which
+     * signup_setup_new_user() calls - in user/editlib.php. The same four files
+     * auth_email's external class requires for the same reason.
      *
      * @return void
      */
@@ -82,6 +84,7 @@ class signup_api {
         require_once($CFG->libdir . '/authlib.php');
         require_once($CFG->dirroot . '/login/lib.php');
         require_once($CFG->dirroot . '/user/profile/lib.php');
+        require_once($CFG->dirroot . '/user/editlib.php');
     }
 
     /**
