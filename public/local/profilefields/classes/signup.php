@@ -178,11 +178,7 @@ JS;
      * @return array element name => error message (empty when OK or skipped)
      */
     public static function validate_ip_match(array $data): array {
-        global $DB, $CFG;
-
-        if (!class_exists('\profilefield_phone\dialcodes')) {
-            return [];
-        }
+        global $DB;
 
         // The phone field the check applies to (first one shown on sign-up).
         $field = $DB->get_record_select('user_info_field',
@@ -196,18 +192,48 @@ JS;
             return [];
         }
 
+        $error = self::ip_country_error((string) $value['country']);
+        return $error === null ? [] : [$element => $error];
+    }
+
+    /**
+     * The mismatch message for a chosen country, or null when sign-up may proceed.
+     *
+     * This is the single implementation of the rule. The web sign-up form reaches it
+     * through `validate_ip_match()`, and `profilefield_phone` calls it straight from
+     * `edit_validate_field()` so the web-service sign-up used by the mobile app is
+     * covered too - core's `signup_validate_data()` runs profile-field validation on
+     * both paths, but only the web form runs the plugin sign-up callbacks.
+     *
+     * Returns null - i.e. allows the sign-up - when the check is switched off, when
+     * no geo-IP source resolves the address, or when the countries agree. A failed
+     * lookup must never block a legitimate sign-up.
+     *
+     * @param string $iso the alpha-2 country code the visitor chose
+     * @return string|null localised error message, or null when the sign-up is fine
+     */
+    public static function ip_country_error(string $iso): ?string {
+        // Both callers can fire in one request; the verdict cannot change mid-submit.
+        static $verdicts = [];
+
+        $iso = strtoupper(trim($iso));
+        if ($iso === '' || !manager::ip_match_phone()
+                || !class_exists('\profilefield_phone\dialcodes')) {
+            return null;
+        }
+        if (array_key_exists($iso, $verdicts)) {
+            return $verdicts[$iso];
+        }
+
         // Allow the free online fallback here: this runs once, on submit, only when
         // the admin turned the check on.
         $ipiso = \profilefield_phone\dialcodes::country_from_ip(true);
-        if ($ipiso === '') {
-            // No geo-IP source, or the address is unresolvable - do not block.
-            return [];
+        if ($ipiso === '' || $ipiso === $iso) {
+            // No geo-IP source, an unresolvable address, or a match - do not block.
+            return $verdicts[$iso] = null;
         }
 
-        if (strtoupper($value['country']) !== $ipiso) {
-            return [$element => get_string('ipmismatch', 'local_profilefields')];
-        }
-        return [];
+        return $verdicts[$iso] = get_string('ipmismatch', 'local_profilefields');
     }
 
     /**

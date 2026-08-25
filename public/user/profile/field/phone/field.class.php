@@ -221,6 +221,22 @@ class profile_field_phone extends profile_field_base {
             }
         }
 
+        // The optional "sign-up country must match the visitor's location" rule, which
+        // local_profilefields owns. It lives here rather than in that plugin's sign-up
+        // callback because core runs the callbacks on the web form only, while profile
+        // field validation also runs for auth_email_signup_user - the web service the
+        // mobile app signs up with. Only a visitor creating their own account is
+        // checked: an admin creating a user, or anyone editing an existing profile, is
+        // legitimately in a different country from the number they hold.
+        if (empty($errors) && !empty($this->field->signup) && $this->userid == 0
+                && (!isloggedin() || isguestuser())
+                && class_exists('\local_profilefields\signup')) {
+            $mismatch = \local_profilefields\signup::ip_country_error($iso);
+            if ($mismatch !== null) {
+                $errors[$this->inputname] = $mismatch;
+            }
+        }
+
         return $errors;
     }
 
