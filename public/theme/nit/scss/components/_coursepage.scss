@@ -493,11 +493,10 @@ body:has(.acad-cr) .acad-cr__eyebrow {
 }
 
 /* ---- About this course --------------------------------------------------
- * Opens the modules band at FULL content width, above the accordion/rail grid:
- * an eyebrow label over a lead-sized summary, so the course pitch reads before
- * the syllabus.
+ * The closing full-width band: a standard band heading over a lead-sized
+ * summary. Nothing follows it, so it carries the page's bottom breathing room.
  */
-body:has(.acad-cr) .acad-cr__about { margin-block-end: 30px; }
+body:has(.acad-cr) .acad-cr__about { padding-block-end: 64px; }
 body:has(.acad-cr) .acad-cr__summary {
     font-size: 19px;
     color: var(--cr-ink);

@@ -145,18 +145,17 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $body .= $requirements;
         }
 
-        // "About this course" is not a band of its own any more: it opens the
-        // modules column, directly above the curriculum accordion (design ref:
-        // the "المقرر" screen). It still gets its own tab because it is a
-        // distinct anchor within that column.
+        // Modules band always renders (the section tree is the core of the page).
+        $tabs['modules'] = get_string('acad_modules', 'theme_nit');
+        $body .= $this->acad_modules($course, $modinfo, $context, $data);
+
+        // "About this course" CLOSES the page — it is the final full-width band,
+        // after the curriculum, so it must stay last in both $body and $tabs.
         $about = $this->acad_about($course, $context);
         if ($about !== '') {
             $tabs['about'] = get_string('acad_about_h', 'theme_nit');
+            $body .= $about;
         }
-
-        // Modules band always renders (the section tree is the core of the page).
-        $tabs['modules'] = get_string('acad_modules', 'theme_nit');
-        $body .= $this->acad_modules($course, $modinfo, $context, $data, $about);
 
         // Assemble in visual order. The brand group class lets a course adopt its
         // top-level category's palette (Group 1/2/3), same as category pages.
@@ -812,10 +811,10 @@ class format_topics_renderer extends \format_topics\output\renderer {
     }
 
     /**
-     * "About this course" block — the course summary, rendered as an eyebrow
-     * label above the lead paragraph. Returned bare (no band / wrap) because it
-     * is placed inside the modules column, above the accordion.
-     * Empty ⇒ '' (block omitted).
+     * "About this course" band — the course summary, as the closing full-width
+     * section of the page. Its heading is a normal band h2 (not the small eyebrow
+     * it used to be) because it now stands as a peer of the other bands rather
+     * than as a label inside the modules column. Empty ⇒ '' (band omitted).
      *
      * @param stdClass $course
      * @param \context_course $context
@@ -827,11 +826,11 @@ class format_topics_renderer extends \format_topics\output\renderer {
             return '';
         }
 
-        return html_writer::div(
-            html_writer::div(get_string('acad_about_h', 'theme_nit'), 'acad-cr__eyebrow', ['id' => 'about'])
-            . html_writer::div($summary, 'acad-cr__summary'),
-            'acad-cr__about'
-        );
+        $inner = html_writer::tag('h2', get_string('acad_about_h', 'theme_nit'),
+                    ['class' => 'acad-cr__h2', 'id' => 'about'])
+               . html_writer::div($summary, 'acad-cr__summary');
+
+        return html_writer::div(html_writer::div($inner, 'acad-cr__wrap'), 'acad-cr__band acad-cr__about');
     }
 
     // =========================================================================
@@ -845,10 +844,9 @@ class format_topics_renderer extends \format_topics\output\renderer {
      * @param \course_modinfo $modinfo
      * @param \context_course $context
      * @param stdClass $data
-     * @param string $about pre-built "About this course" block ('' when the course has no summary)
      * @return string
      */
-    protected function acad_modules($course, $modinfo, $context, $data, $about = '') {
+    protected function acad_modules($course, $modinfo, $context, $data) {
         $acc = '';
         $idx = 0;
         foreach ($data->modulerows as $snum => $section) {
@@ -856,10 +854,9 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $acc .= $this->acad_module_row($course, $section, $modinfo, $snum, $idx, ($idx === 1), $context);
         }
 
-        // "About this course" and the modules heading run the FULL content width,
-        // above the grid — only the accordion and the rail are columned.
-        $head = $about
-              . html_writer::tag('h2',
+        // The modules heading runs the FULL content width, above the grid — only
+        // the accordion and the rail are columned.
+        $head = html_writer::tag('h2',
                     $this->acad_count($data->modcount, 'acad_1modulein', 'acad_nmodulesin'),
                     ['class' => 'acad-cr__h2', 'id' => 'modules']);
 
