@@ -187,7 +187,7 @@ if ($options['function'] !== '') {
 
     // Signup-specific note: registration is called BEFORE login, so it can't rely
     // on a per-user token. Moodle exposes it through a no-login service.
-    if ($fname === 'auth_email_signup_user') {
+    if ($fname === 'auth_email_signup_user' || $fname === 'local_profilefields_signup_user') {
         $registerauth = (string) get_config('core', 'registerauth');
         echo (($registerauth === 'email') ? $ok : $bad)
             . "registerauth = '{$registerauth}' (email self-registration "
@@ -195,6 +195,11 @@ if ($options['function'] !== '') {
         echo "         NOTE: signup is a pre-login call. The app must hit it WITHOUT a user token,\n";
         echo "         via the built-in no-login service, and 'Email-based self-registration' must be\n";
         echo "         the selected auth method (Site admin > Plugins > Authentication > Manage authentication).\n";
+        if ($fname === 'auth_email_signup_user') {
+            echo "         NOTE: this is stock Moodle's signup, which does not match this site's form\n";
+            echo "         (username from email, consent checkbox, country from phone). The app should call\n";
+            echo "         local_profilefields_signup_user instead — see docs/apis/registration-mobile-api.md.\n";
+        }
     }
 }
 

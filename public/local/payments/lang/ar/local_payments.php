@@ -153,3 +153,6 @@ $string['payments:managerefunds'] = 'إدارة المبالغ المستردة'
 $string['payments:manageproviders'] = 'إدارة مزودي الدفع';
 $string['payments:viewalltransactions'] = 'عرض جميع المعاملات';
 $string['payments:viewauditlogs'] = 'عرض سجل التدقيق';
+
+// Course details (public product page, local_nit_category/course.php).
+$string['viewcoursedetails'] = 'عرض تفاصيل الكورس';

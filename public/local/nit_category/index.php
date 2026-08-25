@@ -181,91 +181,21 @@ $description  = format_text($category->description, $category->descriptionformat
 $categoryname = $category->get_formatted_name();
 
 // NIT: checkout modal + course offer/price support (guarded — degrade if the plugins are absent).
-$nitcheckout = class_exists('\local_payments\price_resolver')
-    && file_exists($CFG->dirroot . '/local/nit_commerce/lib.php')
-    && class_exists('\local_nit_commerce\discount_manager');
+$nitcheckout = local_nit_category_checkout_available();
 if ($nitcheckout) {
     require_once($CFG->dirroot . '/local/nit_commerce/lib.php');
     $PAGE->requires->js(new moodle_url('/local/nit_commerce/checkout_modal.js'), true);
 }
-// Per-course state for a card: enrolment, purchase, subscription coverage, pricing, offer.
-//
-// This is the ONE place a card's price is resolved. It used to be resolved twice — here for
-// the Buy button and again through theme_nit_course_price() for the printed label — and the
-// two disagreed whenever a rule failed to resolve, so a paid course printed "Free" right next
-// to its own "Buy now" button. Everything the card shows now comes out of this array.
-//
-// Guest vs logged in: price_resolver::resolve() is country-aware and keyed on the viewer, so
-// the user id is passed through in BOTH states — a guest (id 0) is priced by IP geolocation,
-// a logged-in user by their profile country (see local_payments\country_detector::detect()).
-$nitcourseinfo = function ($courseid) use ($nitcheckout) {
-    global $USER, $DB;
-    $out = ['enrolled' => false, 'purchased' => false, 'covered' => false, 'free' => true,
-        'haspricing' => false, 'price' => 0.0, 'currency' => '', 'offerlabel' => '', 'offerfinal' => 0.0];
-    $uid = (int) ($USER->id ?? 0);
-    $ctx = context_course::instance($courseid);
-    $out['enrolled'] = $uid > 0 && is_enrolled($ctx, $uid, '', true);
 
-    if (!$nitcheckout) {
-        return $out;
-    }
-    // "Paid" means local_payments has an active rule — the same test enrol.php and buy.php
-    // gate on, so the card can never offer a flow the server will refuse.
-    $out['haspricing'] = (bool) \local_payments\price_resolver::has_pricing($courseid);
-    $out['free'] = !$out['haspricing'];
-
-    if ($out['enrolled'] || !$out['haspricing']) {
-        return $out;
-    }
-
-    // Already bought (payment completed) but not enrolled yet — must not be asked to buy again.
-    $out['purchased'] = $uid > 0 && \local_payments\price_resolver::is_purchased($courseid, $uid);
-
-    // Covered by an active subscription (grants access without buying).
-    if (!$out['purchased'] && class_exists('\local_nit_subscriptions\subscription_purchase_manager')) {
-        $out['covered'] = (bool) \local_payments\price_resolver::is_covered_by_active_subscription($courseid, $uid);
-    }
-
-    try {
-        $pricing = \local_payments\price_resolver::resolve($courseid, $uid);
-        $out['price'] = (float) $pricing->price;
-        $out['currency'] = (string) $pricing->currency;
-    } catch (\Throwable $e) {
-        // resolve() throws when nothing matches the viewer's country AND the course has no
-        // default rule — a per-viewer miss, not a free course. Fall back to any active rule
-        // so the card still shows a real price instead of claiming the course is free.
-        $fallback = $DB->get_record_select(
-            'local_payments_course_prices',
-            'courseid = :courseid AND is_active = 1',
-            ['courseid' => $courseid],
-            'price, currency',
-            IGNORE_MULTIPLE
-        );
-        if ($fallback) {
-            $out['price'] = (float) $fallback->price;
-            $out['currency'] = (string) $fallback->currency;
-        }
-    }
-
-    if ($out['price'] > 0) {
-        try {
-            $summary = \local_nit_commerce\discount_manager::offer_summary('course', (int) $courseid, $out['price']);
-            if ($summary) {
-                $out['offerlabel'] = $summary['label'];   // e.g. "-40%"
-                $out['offerfinal'] = (float) $summary['final'];
-            }
-        } catch (\Throwable $e) {
-            // No offer engine / bad offer data — just show the undiscounted price.
-        }
-    }
-    return $out;
+// Per-course state for a card (enrolment, purchase, subscription coverage, pricing, offer)
+// and the one money formatter every printed price goes through. Both live in lib.php so the
+// cards here and the public course details page (course.php) can never disagree about a
+// course's price or state.
+$nitcourseinfo = function ($courseid): array {
+    return local_nit_category_course_info((int) $courseid);
 };
-
-// One money formatter for every price a card prints: the base price, the struck-through
-// original and the discounted final all go through it, so they can never disagree on
-// decimals or currency. Digits stay unlocalised (matching the rest of the shop).
-$nitmoney = function (float $amount, string $currency) use ($t): string {
-    return format_float($amount, 2, false) . ' ' . ($currency !== '' ? $currency : $t('EGP', 'ج.م'));
+$nitmoney = function (float $amount, string $currency): string {
+    return local_nit_category_money($amount, $currency);
 };
 
 echo $OUTPUT->header();
@@ -524,7 +454,13 @@ echo $OUTPUT->header();
             $info       = $nitcourseinfo($course->id);
             $pricelabel = $nitmoney($info['price'], $info['currency']);
 
-            $detailsurl = $courseurl->out();
+            // "Course details" goes to our own public details page: core /course/view.php
+            // asks a guest to log in, and local_payments' hook bounces a logged-in but
+            // still-unenrolled student straight to buy.php — so neither can show a
+            // catalogue visitor what the course actually is. Only an active enrolment
+            // links straight into the course itself.
+            $detailsurl    = (new moodle_url('/local/nit_category/course.php', ['id' => $course->id]))->out(false);
+            $courseviewurl = $courseurl->out();
             $enrolurl   = (new moodle_url('/local/nit_subscriptions/enrol.php',
                 ['courseid' => $course->id, 'sesskey' => sesskey()]))->out(false);
         ?>
@@ -588,7 +524,7 @@ echo $OUTPUT->header();
                  Enrolled shows one button; every other state shows two. -->
             <div class="d-grid gap-2">
               <?php if ($info['enrolled'] || $info['purchased']): ?>
-                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $info['enrolled'] ? $courseviewurl : $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif ($info['covered']): ?>
                 <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= $t('Enroll', 'التحاق') ?></a>
                 <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
