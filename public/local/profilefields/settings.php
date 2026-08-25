@@ -36,3 +36,27 @@ if ($hassiteconfig) {
         'moodle/site:config'
     ));
 }
+
+// Keep the policy document editor reachable when we take over the asking.
+//
+// tool_policy registers its 'tool_policy_managedocs' admin page only while it is
+// the site policy handler (see admin/tool/policy/settings.php). Our inline
+// sign-up checkbox deliberately wants the handler on "Default" so the user is
+// not asked twice - which would leave managedocs.php / editpolicydoc.php dead
+// with "Section error!". Registering the same page name here restores it. The
+// two registrations are mutually exclusive by construction: core adds it when
+// the handler is tool_policy, we add it when it is not.
+$policyinstalled = core_component::get_component_directory('tool_policy') !== null;
+$policyishandler = ($CFG->sitepolicyhandler ?? '') === 'tool_policy';
+
+if ($policyinstalled && !$policyishandler && $ADMIN->locate('privacy')) {
+    $managecap = 'tool/policy:managedocs';
+    if ($hassiteconfig || has_capability($managecap, context_system::instance())) {
+        $ADMIN->add('privacy', new admin_externalpage(
+            'tool_policy_managedocs',
+            new lang_string('managepolicies', 'tool_policy'),
+            new moodle_url('/admin/tool/policy/managedocs.php'),
+            $managecap
+        ));
+    }
+}

@@ -148,8 +148,16 @@ class signup_api {
             'warnings'              => [],
         ];
 
-        foreach (policies::signup_documents() as $name => $url) {
-            $result['consent']['documents'][] = ['name' => $name, 'url' => $url];
+        foreach (policies::signup_document_records() as $doc) {
+            // The ids are what a client without a browser view needs: it fetches the
+            // text with local_profilefields_get_policy_documents instead of opening
+            // the URL.
+            $result['consent']['documents'][] = [
+                'name'      => $doc->name,
+                'url'       => $doc->url,
+                'policyid'  => $doc->policyid,
+                'versionid' => $doc->versionid,
+            ];
         }
 
         if (signup_captcha_enabled()) {

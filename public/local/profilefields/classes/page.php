@@ -426,19 +426,12 @@ class page {
         }
 
         if ($installed) {
-            // managedocs.php only registers its admin page while tool_policy is the site
-            // policy handler; linking to it otherwise throws "Section error!".
-            if ($usingtool) {
-                $out .= html_writer::link(new moodle_url('/admin/tool/policy/managedocs.php'),
-                    get_string('termsmanage', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm me-2']);
-            }
+            // Reachable with either handler - our settings.php re-registers the admin
+            // page that tool_policy hides when it is not the site policy handler.
+            $out .= html_writer::link(new moodle_url('/admin/tool/policy/managedocs.php'),
+                get_string('termsmanage', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm me-2']);
             $out .= html_writer::link(new moodle_url('/admin/settings.php', ['section' => 'policysettings']),
                 get_string('termspolicysettings', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm']);
-            if (!$usingtool) {
-                $url = (new moodle_url('/admin/settings.php', ['section' => 'policysettings']))->out();
-                $out .= html_writer::div(get_string('termsmanagelocked', 'local_profilefields', $url),
-                    'alert alert-info mt-3 mb-0');
-            }
         } else {
             $out .= html_writer::div(get_string('termsnotool', 'local_profilefields'), 'text-muted small');
         }

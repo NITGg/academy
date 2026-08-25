@@ -46,33 +46,57 @@ class policies {
     }
 
     /**
-     * The policy documents a person signing up should see, as name => view URL.
+     * The policy documents a person signing up should see.
      *
      * Only current versions aimed at guests (or everyone) are relevant to sign-up.
      * Returns an empty array when tool_policy is absent or defines no such document.
      *
-     * @return array<string,string> document name => absolute URL
+     * Each entry carries the identifiers as well as the link, because a client that
+     * renders the document itself (a mobile app with no browser view) needs the
+     * version id, not a URL to open.
+     *
+     * @return stdClass[] objects with policyid, versionid, name, url and the raw
+     *                    tool_policy version record
      */
-    public static function signup_documents(): array {
+    public static function signup_document_records(): array {
         if (!self::tool_available()) {
             return [];
         }
 
-        $docs = [];
         try {
             $versions = \tool_policy\api::list_current_versions(\tool_policy\policy_version::AUDIENCE_GUESTS);
         } catch (\Throwable $e) {
             return [];
         }
 
+        $docs = [];
         foreach ($versions as $version) {
             $url = new moodle_url('/admin/tool/policy/view.php', [
                 'policyid' => $version->policyid,
                 'versionid' => $version->id,
             ]);
-            $docs[format_string($version->name)] = $url->out(false);
+            $docs[] = (object) [
+                'policyid'  => (int) $version->policyid,
+                'versionid' => (int) $version->id,
+                'name'      => format_string($version->name),
+                'url'       => $url->out(false),
+                'version'   => $version,
+            ];
         }
 
+        return $docs;
+    }
+
+    /**
+     * The same documents as name => view URL, for building the checkbox label.
+     *
+     * @return array<string,string> document name => absolute URL
+     */
+    public static function signup_documents(): array {
+        $docs = [];
+        foreach (self::signup_document_records() as $doc) {
+            $docs[$doc->name] = $doc->url;
+        }
         return $docs;
     }
 

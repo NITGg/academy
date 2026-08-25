@@ -27,6 +27,16 @@ $functions = [
         'loginrequired' => false,
         'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    'local_profilefields_get_policy_documents' => [
+        'classname'     => 'local_profilefields\external\get_policy_documents',
+        'methodname'    => 'execute',
+        'description'   => 'Get the text of the policy documents shown on sign-up, so a client can render them itself '
+            . 'instead of opening the tool_policy page.',
+        'type'          => 'read',
+        'ajax'          => true,
+        'loginrequired' => false,
+        'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
     'local_profilefields_signup_user' => [
         'classname'     => 'local_profilefields\external\signup_user',
         'methodname'    => 'execute',

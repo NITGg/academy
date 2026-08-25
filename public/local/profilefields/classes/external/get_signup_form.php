@@ -86,7 +86,11 @@ class get_signup_form extends external_api {
                 'documents' => new external_multiple_structure(
                     new external_single_structure([
                         'name' => new external_value(PARAM_RAW, 'Document name'),
-                        'url' => new external_value(PARAM_URL, 'Where the document can be read'),
+                        'url' => new external_value(PARAM_URL, 'Where the document can be read in a browser'),
+                        'policyid' => new external_value(PARAM_INT, 'Policy id'),
+                        'versionid' => new external_value(PARAM_INT,
+                            'Policy version id - pass it to local_profilefields_get_policy_documents to render the text '
+                            . 'natively instead of opening the URL'),
                     ]), 'The policy documents the label links to.'
                 ),
             ], 'The inline "I agree to the policies" checkbox.'),

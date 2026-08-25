@@ -105,7 +105,7 @@ prefix. Render a country picker plus a number box.
     "required": true,
     "label": "I agree to the <a href=\"…\">Terms of use</a> and the <a href=\"…\">Privacy policy</a>.",
     "documents": [
-      {"name": "Terms of use", "url": "https://…/admin/tool/policy/view.php?policyid=1&versionid=1"}
+      {"name": "Terms of use", "url": "https://…/admin/tool/policy/view.php?policyid=1&versionid=1", "policyid": 1, "versionid": 1}
     ]
   },
   "fields": [
@@ -191,6 +191,44 @@ already localised for the request language; show them as they are.
 **After a successful sign-up** the account exists but is **unconfirmed**: Moodle
 has emailed a confirmation link. Tell the user to check their inbox. A login
 attempt before confirmation fails with `errorcode: "usernotconfirmed"`.
+
+---
+
+## 3) `local_profilefields_get_policy_documents` — the Terms text
+
+For showing the terms / privacy policy **without a WebView**. Returns the same
+documents `consent.documents` lists, with their text.
+
+| Param | Type | Notes |
+|---|---|---|
+| `versionid` | int | Optional. `0` (default) returns every sign-up document; pass a `versionid` from `consent.documents` for just one |
+
+```json
+{
+  "documents": [
+    {
+      "policyid": 1,
+      "versionid": 3,
+      "name": "شروط الاستخدام",
+      "url": "https://…/admin/tool/policy/view.php?policyid=1&versionid=3",
+      "content": "<h3>…</h3><p>…</p>",
+      "contentformat": 1
+    }
+  ],
+  "warnings": []
+}
+```
+
+`content` is HTML written by the admin in Moodle's Policies tool — render it in
+whatever HTML widget the app uses, with `name` as the screen title. Pre-login,
+like the other two.
+
+If the document embeds images, their URLs point at `pluginfile.php`; when
+calling over REST with a token, append `&token=<the same token>` to load them.
+
+Prefer this over the `url`. The `url` is still there for a browser view — add
+`&nitembed=1` to it and theme_nit drops the header, footer and menus, which is
+what the in-app WebView wants.
 
 ---
 
