@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for NIT Subscriptions (course-access subscription plans).
+ * Event observers for local_nit_subscriptions.
  *
  * @package    local_nit_subscriptions
  * @copyright  2026 NIT
@@ -24,12 +24,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_nit_subscriptions';
-$plugin->version   = 2026082500;
-$plugin->requires  = 2024100700;
-$plugin->supported = [405, 502];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.0';
-$plugin->dependencies = [
-    'local_nit_core' => 2026080404,
+$observers = [
+    [
+        // Unenrolling a buyer — from core's participants page or anywhere else — revokes the
+        // single-course purchase that granted them the course, exactly like the plugin's own
+        // "Unbuy" button does.
+        'eventname' => '\core\event\user_enrolment_deleted',
+        'callback'  => '\local_nit_subscriptions\observer::user_enrolment_deleted',
+    ],
 ];

@@ -30,15 +30,18 @@ $string['managecourses']       = 'Manage courses';
 $string['privacy:metadata'] = 'The NIT Subscriptions plugin stores subscription plans and course-access rules defined by administrators; it does not store personal data by itself.';
 
 // Manage courses (single-course purchases: list + "Unbuy").
-$string['mc_desc']            = 'Users who bought a single course. Use "Unbuy" to unenrol a user and revoke the purchase.';
+$string['mc_desc']            = 'Users who bought a single course. Use "Unbuy" to unenrol a user and revoke the purchase. Unenrolling a buyer from the course itself revokes their purchase too, so they can buy it again.';
 $string['mc_col_course']      = 'Course';
 $string['mc_col_purchased']   = 'Purchased';
 $string['mc_none']            = 'No course purchases yet.';
 $string['mc_status_enrolled'] = 'Enrolled';
 $string['mc_status_norole']   = 'No access';
+$string['mc_status_revoked']  = 'Revoked';
+$string['mc_status_refunded'] = 'Refunded';
 $string['mc_unbuy']           = 'Unbuy';
 $string['mc_unbuy_title']     = 'Revoke course purchase';
 $string['mc_unbuy_confirm']   = 'Unenrol <b>{$a->user}</b> from <b>{$a->course}</b> and revoke this purchase?';
+$string['mc_unbuy_confirm_norole'] = 'Revoke <b>{$a->user}</b>\'s purchase of <b>{$a->course}</b>? They are already unenrolled from it.';
 $string['mc_unbuy_refund']    = 'Mark this purchase as refunded';
 $string['mc_unbuy_success']   = 'The course purchase was revoked.';
 $string['mc_course_deleted']  = '(deleted course)';

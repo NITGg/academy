@@ -224,16 +224,21 @@ $nitcourseinfo = function ($courseid) use ($nitcheckout) {
     $out['haspricing'] = (bool) \local_payments\price_resolver::has_pricing($courseid);
     $out['free'] = !$out['haspricing'];
 
-    if ($out['enrolled'] || !$out['haspricing']) {
+    if (!$out['haspricing']) {
         return $out;
     }
 
-    // Already bought (payment completed) but not enrolled yet — must not be asked to buy again.
-    $out['purchased'] = $uid > 0 && \local_payments\price_resolver::is_purchased($courseid, $uid);
+    // An enrolled viewer skips the purchase/coverage probes — the "Enrolled" badge already wins
+    // over both — but NOT the price resolution below: the card prints the course price next to
+    // that badge, so a paid course always shows what it costs, enrolled or not.
+    if (!$out['enrolled']) {
+        // Already bought (payment completed) but not enrolled yet — must not be asked to buy again.
+        $out['purchased'] = $uid > 0 && \local_payments\price_resolver::is_purchased($courseid, $uid);
 
-    // Covered by an active subscription (grants access without buying).
-    if (!$out['purchased'] && class_exists('\local_nit_subscriptions\subscription_purchase_manager')) {
-        $out['covered'] = (bool) \local_payments\price_resolver::is_covered_by_active_subscription($courseid, $uid);
+        // Covered by an active subscription (grants access without buying).
+        if (!$out['purchased'] && class_exists('\local_nit_subscriptions\subscription_purchase_manager')) {
+            $out['covered'] = (bool) \local_payments\price_resolver::is_covered_by_active_subscription($courseid, $uid);
+        }
     }
 
     try {
@@ -276,6 +281,27 @@ $nitcourseinfo = function ($courseid) use ($nitcheckout) {
 // decimals or currency. Digits stay unlocalised (matching the rest of the shop).
 $nitmoney = function (float $amount, string $currency) use ($t): string {
     return format_float($amount, 2, false) . ' ' . ($currency !== '' ? $currency : $t('EGP', 'ج.م'));
+};
+
+// The price tags a card prints in its status row. With a live offer that is the original struck
+// through + the discounted amount + the "-40%" pill; otherwise the plain price; and nothing at all
+// when the course is priced but no rule resolves to an amount (saying nothing beats claiming
+// "Free"). One helper because the same tags now print in TWO places — next to the "Enrolled"
+// badge and above the "Buy now" button — and the two must never drift apart.
+$nitpricetags = function (array $info) use ($nitmoney): string {
+    if ($info['offerlabel'] !== '' && $info['offerfinal'] > 0) {
+        return '<span style="font-size: 13px; color: var(--ctext2); text-decoration: line-through; opacity: 0.7;">'
+            . s($nitmoney($info['price'], $info['currency'])) . '</span>'
+            . '<span style="font-size: 16px; font-weight: bold; color: var(--ctext1);">'
+            . s($nitmoney($info['offerfinal'], $info['currency'])) . '</span>'
+            . '<span style="background: var(--cbg4); color: var(--ctext4); font-size: 11px; font-weight: bold;'
+            . ' padding: 3px 10px; border-radius: 50px;">' . s($info['offerlabel']) . '</span>';
+    }
+    if ($info['price'] > 0) {
+        return '<span style="font-size: 16px; font-weight: bold; color: var(--ctext1);">'
+            . s($nitmoney($info['price'], $info['currency'])) . '</span>';
+    }
+    return '';
 };
 
 echo $OUTPUT->header();
@@ -514,7 +540,7 @@ echo $OUTPUT->header();
       <?php
         // One card renderer, shared by every section. $sectionname is the category the
         // card lives under (its header), so the card can show that category's name.
-        $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo, $nitmoney) {
+        $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo, $nitpricetags) {
             $courseurl  = new moodle_url('/course/view.php', ['id' => $course->id]);
             $coursename = $course->get_formatted_name();
 
@@ -532,7 +558,6 @@ echo $OUTPUT->header();
 
             $teacher    = function_exists('theme_nit_course_teacher') ? theme_nit_course_teacher((int) $course->id) : '';
             $info       = $nitcourseinfo($course->id);
-            $pricelabel = $nitmoney($info['price'], $info['currency']);
 
             $detailsurl = $courseurl->out();
             $enrolurl   = (new moodle_url('/local/nit_subscriptions/enrol.php',
@@ -574,6 +599,9 @@ echo $OUTPUT->header();
                 <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--csuccess) 16%, transparent); color: var(--csuccess); border: 1px solid color-mix(in srgb, var(--csuccess) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
                   ✓ <?= $t('Enrolled', 'مُسجَّل') ?>
                 </span>
+                <?php // Enrolled still shows what the course costs — the badge says they have it,
+                      // the price says what it is worth. Free courses print nothing extra here. ?>
+                <?= $nitpricetags($info) ?>
               <?php elseif ($info['purchased']): ?>
                 <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--csuccess) 16%, transparent); color: var(--csuccess); border: 1px solid color-mix(in srgb, var(--csuccess) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
                   ✓ <?= $t('Purchased', 'تم الشراء') ?>
@@ -582,13 +610,9 @@ echo $OUTPUT->header();
                 <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--caccent) 16%, transparent); color: var(--ctext3); border: 1px solid color-mix(in srgb, var(--caccent) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
                   ★ <?= $t('In your subscription', 'ضمن اشتراكك') ?>
                 </span>
-              <?php elseif ($info['offerlabel'] !== '' && $info['offerfinal'] > 0): ?>
-                <span style="font-size: 13px; color: var(--ctext2); text-decoration: line-through; opacity: 0.7;"><?= s($pricelabel) ?></span>
-                <span style="font-size: 16px; font-weight: bold; color: var(--ctext1);"><?= s($nitmoney($info['offerfinal'], $info['currency'])) ?></span>
-                <span style="background: var(--cbg4); color: var(--ctext4); font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 50px;"><?= s($info['offerlabel']) ?></span>
-              <?php elseif ($info['haspricing'] && $info['price'] > 0): ?>
-                <span style="font-size: 16px; font-weight: bold; color: var(--ctext1);"><?= s($pricelabel) ?></span>
-              <?php elseif ($info['haspricing']): // Priced, but no rule resolves to an amount — say nothing rather than "Free". ?>
+              <?php elseif ($info['haspricing']): // Priced: offer tags, plain price, or — when no rule
+                                                  // resolves to an amount — nothing rather than "Free". ?>
+                <?= $nitpricetags($info) ?>
               <?php else: // Free course: the slot stays empty (reserved) so buttons stay put. ?>
                 <span style="font-size: 13px; font-weight: bold; color: var(--csuccess);"><?= $t('Free', 'مجانًا') ?></span>
               <?php endif; ?>

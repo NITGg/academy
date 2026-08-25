@@ -46,7 +46,8 @@ $STR = local_nit_subscriptions_string_map(array(
     'ui_refresh', 'ui_loading', 'ui_cancel', 'ui_optional', 'ui_pager_info',
     'pkg_col_user', 'pkg_col_pricepaid', 'pkg_col_status', 'pkg_col_actions',
     'mc_desc', 'mc_col_course', 'mc_col_purchased', 'mc_none',
-    'mc_status_enrolled', 'mc_status_norole', 'mc_unbuy', 'mc_unbuy_title', 'mc_unbuy_confirm',
+    'mc_status_enrolled', 'mc_status_norole', 'mc_status_revoked', 'mc_status_refunded',
+    'mc_unbuy', 'mc_unbuy_title', 'mc_unbuy_confirm', 'mc_unbuy_confirm_norole',
     'mc_unbuy_refund', 'mc_unbuy_success',
     'err_sessionexpired', 'err_requestfailed',
 ));
@@ -59,22 +60,35 @@ echo html_writer::script('window.ACADEMY_MC = ' . json_encode(array(
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
 <style>
-    .academy-modal-backdrop { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5);
+    /* Every colour here reads from the theme_nit brand palette (--nit-brand-*), like the sibling
+       manage_subscriptions.php page: the hard-coded #fff modal and #0f6cbf pager were a white
+       island on the dark theme, and unreadable in it. */
+    .academy-modal-backdrop { position: fixed; top:0; left:0; right:0; bottom:0;
+        background: color-mix(in srgb, var(--nit-brand-background) 50%, transparent);
         display:flex; align-items:center; justify-content:center; z-index:1050; }
-    .academy-modal { background:#fff; border-radius:10px; padding:1.5rem; max-width:440px; width:90%;
-        box-shadow:0 12px 30px rgba(0,0,0,0.25); }
-    .academy-modal-title { margin-bottom:.75rem; font-weight:600; }
+    .academy-modal { background: var(--nit-brand-surface); color: var(--nit-brand-textprimary);
+        border: 1px solid var(--nit-brand-borderprimary); border-radius:10px; padding:1.5rem;
+        max-width:440px; width:90%; box-shadow:0 12px 30px rgba(0,0,0,0.35); }
+    .academy-modal-title { margin-bottom:.75rem; font-weight:600; color: var(--nit-brand-textprimary); }
     .academy-modal-actions { display:flex; justify-content:flex-end; gap:.5rem; margin-top:1.25rem; }
+    .academy-modal .form-check-label { color: var(--nit-brand-textprimary); }
+    .academy-modal .text-muted { color: var(--nit-brand-textsecondary) !important; }
     .acad-pager { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem; margin:1rem 0; }
-    .acad-pager__info { margin-inline-end:auto; color:#6a6f73; font-size:.9rem; }
-    .acad-pager button { border:1px solid #dee2e6; background:#fff; border-radius:6px; padding:.25rem .6rem; cursor:pointer; }
-    .acad-pager button.is-active { background:#0f6cbf; border-color:#0f6cbf; color:#fff; }
+    .acad-pager__info { margin-inline-end:auto; color:var(--nit-brand-textsecondary); font-size:.9rem; }
+    .acad-pager button { border:1px solid var(--nit-brand-borderprimary); background:var(--nit-brand-surface);
+        color:var(--nit-brand-textprimary); border-radius:6px; padding:.25rem .6rem; cursor:pointer; }
+    .acad-pager button.is-active { background:var(--nit-brand-primary); border-color:var(--nit-brand-primary);
+        color:var(--nit-brand-textprimary); }
     .acad-pager button:disabled { opacity:.5; cursor:default; }
+    /* The "how this page works" note: a brand-tinted info panel instead of a bootstrap-yellow bar. */
+    .mc-note { background: color-mix(in srgb, var(--nit-brand-info) 14%, var(--nit-brand-surface));
+        border: 1px solid color-mix(in srgb, var(--nit-brand-info) 45%, transparent);
+        color: var(--nit-brand-textprimary); padding: 10px 14px; border-radius: 8px; }
 </style>
 <div id="academy-mc-app">
     <div id="mc-message" class="alert" style="display:none"></div>
 
-    <p class="text-muted" style="background:#fff3cd;padding:8px 12px;border-radius:6px;"><?php echo $STR['mc_desc']; ?></p>
+    <p class="mc-note"><?php echo $STR['mc_desc']; ?></p>
     <button id="mc-refresh" class="btn btn-secondary mb-2"><?php echo $STR['ui_refresh']; ?></button>
     <table class="table table-striped" id="mc-table">
         <thead>
@@ -163,10 +177,21 @@ echo html_writer::script(<<<'JS'
         tbody.innerHTML = '';
         items.forEach(function(r){
             var tr = document.createElement('tr');
-            var statusLabel = r.enrolled ? str('mc_status_enrolled') : str('mc_status_norole');
-            var statusClass = r.enrolled ? 'badge-success' : 'badge-secondary';
-            // Only an enrolled buyer can be unbought.
-            var action = r.enrolled
+            // Four states: live purchase + enrolled, live purchase without a role (payment landed
+            // but enrolment did not), and the two revoked ends — cancelled ("Revoked") / refunded.
+            var statusLabel, statusClass;
+            if (!r.active){
+                var refunded = (r.status === 'refunded');
+                statusLabel = refunded ? str('mc_status_refunded') : str('mc_status_revoked');
+                statusClass = refunded ? 'badge-warning' : 'badge-secondary';
+            } else {
+                statusLabel = r.enrolled ? str('mc_status_enrolled') : str('mc_status_norole');
+                statusClass = r.enrolled ? 'badge-success' : 'badge-secondary';
+            }
+            // Unbuy revokes the PURCHASE, so it stays available for any live purchase — including one
+            // whose buyer is not enrolled. (Gating it on r.enrolled hid the button whenever the
+            // enrolment was removed elsewhere, leaving the purchase impossible to revoke.)
+            var action = r.active
                 ? '<button class="btn btn-sm btn-danger btn-unbuy" data-id="' + r.id + '">' + esc(str('mc_unbuy')) + '</button>'
                 : '';
             tr.innerHTML =
@@ -202,7 +227,8 @@ echo html_writer::script(<<<'JS'
     var pending = null;
     function openModal(row){
         pending = row;
-        $('mc-modal-text').innerHTML = strf('mc_unbuy_confirm', {
+        // The buyer may already have been unenrolled elsewhere — don't promise to unenrol them again.
+        $('mc-modal-text').innerHTML = strf(row.enrolled ? 'mc_unbuy_confirm' : 'mc_unbuy_confirm_norole', {
             user: esc(row.user_fullname), course: esc(row.course_fullname)
         });
         $('mc-refund-checkbox').checked = false;
