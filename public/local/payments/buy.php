@@ -64,17 +64,6 @@ if (!\local_payments\price_resolver::has_pricing($courseid) && !$can_enroll_via_
     if (!empty($course->summary)) {
         echo $OUTPUT->box(format_text($course->summary, $course->summaryformat), 'generalbox mb-3');
     }
-    // Way back out to the full product page. A student who reached this checkout from
-    // anywhere other than the catalogue (a shared link, a search result, the hook that
-    // redirects /course/view.php here) has otherwise never seen what the course contains.
-    echo html_writer::div(
-        html_writer::link(
-            new moodle_url('/local/nit_category/course.php', ['id' => $courseid]),
-            get_string('viewcoursedetails', 'local_payments'),
-            ['class' => 'btn btn-outline-primary']
-        ),
-        'mb-3'
-    );
     echo html_writer::tag('p', get_string('freecourseintro', 'local_payments'), ['class' => 'lead']);
     $enrollurl = new moodle_url('/local/payments/buy.php',
         ['courseid' => $courseid, 'action' => 'enrollfree', 'sesskey' => sesskey()]);
@@ -102,16 +91,6 @@ echo $OUTPUT->header();
 if (!empty($course->summary)) {
     echo $OUTPUT->box(format_text($course->summary, $course->summaryformat), 'generalbox mb-3');
 }
-
-// Same "what am I buying?" link as the free branch above.
-echo html_writer::div(
-    html_writer::link(
-        new moodle_url('/local/nit_category/course.php', ['id' => $courseid]),
-        get_string('viewcoursedetails', 'local_payments'),
-        ['class' => 'btn btn-outline-primary']
-    ),
-    'mb-3'
-);
 
 try {
     $pricing = \local_payments\price_resolver::resolve($courseid, $USER->id);

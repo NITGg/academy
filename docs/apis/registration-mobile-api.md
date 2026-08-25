@@ -47,6 +47,19 @@ Responses are plain Moodle REST: the result object on success, or
 `{"exception":"...","errorcode":"...","message":"..."}` on failure. Field-level
 problems are **not** exceptions — they come back in `warnings` (see below).
 
+> **`errorcode: accessexception` on the REST path** means the function is not
+> listed in the external service the token belongs to — not a bad token and not
+> a missing function (an uninstalled function returns `invalidrecord`). Fix it
+> on the server with:
+>
+> ```
+> php public/local/profilefields/cli/ws_add_signup_functions.php --token=THE_TOKEN --add
+> ```
+>
+> or by hand in *Site administration → Server → Web services → External
+> services → \<the service\> → Functions → Add functions*. The no-token
+> transport above is not affected by this.
+
 ---
 
 ## 1) `local_profilefields_get_signup_form`

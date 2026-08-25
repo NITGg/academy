@@ -391,7 +391,7 @@ class page {
      * @return string HTML
      */
     protected static function terms_section(): string {
-        global $CFG;
+        global $CFG, $OUTPUT;
 
         $installed = \core_component::get_component_directory('tool_policy') !== null;
         $usingtool = ($CFG->sitepolicyhandler ?? '') === 'tool_policy';
@@ -426,12 +426,22 @@ class page {
         }
 
         if ($installed) {
-            // Reachable with either handler - our settings.php re-registers the admin
-            // page that tool_policy hides when it is not the site policy handler.
-            $out .= html_writer::link(new moodle_url('/admin/tool/policy/managedocs.php'),
-                get_string('termsmanage', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm me-2']);
-            $out .= html_writer::link(new moodle_url('/admin/settings.php', ['section' => 'policysettings']),
-                get_string('termspolicysettings', 'local_profilefields'), ['class' => 'btn btn-secondary btn-sm']);
+            // Theme_nit brands .btn-outline-* from the --nit-brand-* roles, so these
+            // follow the palette (and a .nit-brand-2/3 group) instead of sitting on
+            // Bootstrap's flat slate. They also need a flex row of their own: the
+            // wrapper is a .card, which is display:flex/column, so bare anchors would
+            // be stretched into full-width slabs. `gap` replaces a me-* margin, which
+            // would sit on the wrong side in Arabic.
+            $buttons = html_writer::link(new moodle_url('/admin/tool/policy/managedocs.php'),
+                $OUTPUT->pix_icon('i/edit', '') . html_writer::span(
+                    get_string('termsmanage', 'local_profilefields')),
+                ['class' => 'btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2 icon-no-margin']);
+            $buttons .= html_writer::link(new moodle_url('/admin/settings.php', ['section' => 'policysettings']),
+                $OUTPUT->pix_icon('i/settings', '') . html_writer::span(
+                    get_string('termspolicysettings', 'local_profilefields')),
+                ['class' => 'btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2 icon-no-margin']);
+
+            $out .= html_writer::div($buttons, 'd-flex flex-wrap gap-2 mt-3');
         } else {
             $out .= html_writer::div(get_string('termsnotool', 'local_profilefields'), 'text-muted small');
         }

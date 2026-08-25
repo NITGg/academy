@@ -11,9 +11,6 @@ $string['registerfree'] = 'Register for free';
 $string['freecourseintro'] = 'This course is free. Click below to register and start learning.';
 $string['freeenrolled'] = 'You are now enrolled. Enjoy the course!';
 
-// Course details (public product page, local_nit_category/course.php).
-$string['viewcoursedetails'] = 'View course details';
-
 // Settings.
 $string['generalsettings'] = 'Payment settings';
 $string['default_country'] = 'Default country';
