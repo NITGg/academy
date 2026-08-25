@@ -93,17 +93,12 @@ $string['privacy:metadata'] = 'لا يخزّن قالب NIT أي بيانات ش
 
 // صفحة تفاصيل الكورس (theme_nit\output\format_topics_renderer).
 $string['acad_browse'] = 'تصفّح';
-$string['acad_about'] = 'نظرة عامة';
 $string['acad_skills_tab'] = 'المهارات';
 $string['acad_requirements'] = 'المتطلبات';
 $string['acad_modules'] = 'الوحدات';
-$string['acad_instructor'] = 'المدرّب:';
 $string['acad_plusmore'] = '+{$a} آخرين';
-$string['acad_gotocourse'] = 'الذهاب إلى الكورس';
 $string['acad_enrol'] = 'التحق الآن';
 $string['acad_free'] = 'مجاني';
-$string['acad_starts'] = 'يبدأ {$a}';
-$string['acad_enrolledcount'] = '{$a} ملتحق بالفعل';
 $string['acad_ataglance'] = 'نظرة سريعة';
 $string['acad_nmodules'] = '{$a} وحدات';
 $string['acad_duration'] = 'المدة';
@@ -132,3 +127,10 @@ $string['acad_nhour'] = 'ساعة واحدة';
 $string['acad_nassessment'] = 'تقييم واحد';
 $string['acad_nitem'] = 'عنصر واحد';
 $string['acad_1modulein'] = 'يحتوي هذا الكورس على وحدة واحدة';
+
+// صفحة تفاصيل المقرر — تسميات الحقائق في الترويسة ومجموعات "ماذا ستتعلّم".
+$string['acad_instructorlabel'] = 'المدرّب';
+$string['acad_enrolledlabel'] = 'الملتحقون';
+$string['acad_startlabel'] = 'يبدأ';
+$string['acad_ilos'] = 'النتائج التعليمية المرجوة';
+$string['acad_bytheend'] = 'بنهاية هذا البرنامج التدريبي ستتمكّن من';

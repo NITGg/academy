@@ -29,30 +29,58 @@
     return e;
   }
 
+  // Every colour below is a Brand Colors role from the theme gallery
+  // (theme/nit/gallery.php -> --nit-brand-*), so the modal recolours with the
+  // saved palette and follows a category's group (see group() below). The old
+  // --nit-dark* / --nit-accentgolddark / --nit-accentteal tokens came from the
+  // retired "Colours" palette, which the gallery no longer edits -- that is why
+  // the proceed button drifted off-brand. Hex fallbacks are the Group 1 seeds,
+  // used only if the theme CSS is missing.
   var C = {
-    bg: 'var(--nit-darkbackground, #0a1628)',
-    surface: 'var(--nit-darksurface, #0f1e33)',
-    ink: 'var(--nit-darktextprimary, #ffffff)',
-    muted: 'var(--nit-darktextsecondary, #8a9ab5)',
-    // Split accent: `gold` is the NON-TEXT accent (card border, crown emblem,
-    // button border, the proceed-button gradient) -> Accent role. `goldtext` is
-    // the TEXT accent (the final price, the "apply" label) -> Accent Text role.
-    gold: 'var(--nit-brand-accent, #e8b84b)',
-    goldtext: 'var(--nit-brand-accenttext, #e8b84b)',
-    golddark: 'var(--nit-accentgolddark, #c9922a)',
-    teal: 'var(--nit-accentteal, #00a99d)',
-    line: 'color-mix(in srgb, var(--nit-darktextprimary, #ffffff) 10%, transparent)'
+    bg: 'var(--nit-brand-background, #0c141f)',
+    surface: 'var(--nit-brand-surface, #121e2d)',
+    ink: 'var(--nit-brand-textprimary, #eef3f9)',
+    muted: 'var(--nit-brand-textsecondary, #94a3b8)',
+    // Split accent: `accent` is the NON-TEXT accent (card border, crown emblem,
+    // the apply-button border) -> Accent role. `accenttext` is the TEXT accent
+    // (the final price, the "apply" label) -> Accent Text role.
+    accent: 'var(--nit-brand-accent, #5488c4)',
+    accenttext: 'var(--nit-brand-accenttext, #7fabdb)',
+    // The main call to action: same fill + label as the site's .btn-primary
+    // (Brand Colors: Primary = "background main button", Text primary = "text
+    // in buttons"), so Proceed matches every other primary button on the site.
+    primary: 'var(--nit-brand-primary, #5488c4)',
+    primaryhover: 'var(--nit-brand-primary-hover, #497ab0)',
+    onprimary: 'var(--nit-brand-textprimary, #eef3f9)',
+    // Money saved (offer / discount) is a positive state -> Success role.
+    good: 'var(--nit-brand-success, #3fa877)',
+    error: 'var(--nit-brand-error, #d07f43)',
+    line: 'var(--nit-brand-borderprimary, #223244)'
   };
+
+  // The modal is appended to <body>, i.e. OUTSIDE any .nit-brand-2 / .nit-brand-3
+  // wrapper, so --nit-brand-* would always resolve to Group 1 even on a category
+  // page skinned with another group. Mirror the page's switch class onto the
+  // modal root so it re-resolves from the same group as the page behind it.
+  function group(trigger) {
+    if (!modal) { return; }
+    var src = (trigger && trigger.closest) ? trigger.closest('.nit-brand-2, .nit-brand-3') : null;
+    if (!src) { src = document.querySelector('.nit-brand-2, .nit-brand-3'); }
+    modal.classList.remove('nit-brand-2', 'nit-brand-3');
+    if (src) {
+      modal.classList.add(src.classList.contains('nit-brand-3') ? 'nit-brand-3' : 'nit-brand-2');
+    }
+  }
 
   function build() {
     if (modal) { return; }
     modal = el('div', 'display:none; position:fixed; inset:0; background:rgba(3,8,20,.72); z-index:99999; align-items:center; justify-content:center; padding:16px;');
 
-    var card = el('div', 'width:100%; max-width:460px; background:' + C.surface + '; border:1px solid color-mix(in srgb, ' + C.gold + ' 22%, transparent); border-radius:16px; box-shadow:0 24px 60px rgba(0,0,0,.5); overflow:hidden;');
+    var card = el('div', 'width:100%; max-width:460px; background:' + C.surface + '; border:1px solid color-mix(in srgb, ' + C.accent + ' 22%, transparent); border-radius:16px; box-shadow:0 24px 60px rgba(0,0,0,.5); overflow:hidden;');
 
     var head = el('div', 'padding:22px 24px 0;');
     var h3 = el('h3', 'display:flex; align-items:center; gap:10px; font-size:20px; font-weight:800; color:' + C.ink + '; margin:0;');
-    h3.appendChild(el('span', 'color:' + C.gold + ';', '♛'));
+    h3.appendChild(el('span', 'color:' + C.accent + ';', '♛'));
     h3.appendChild(document.createTextNode(' ' + S('co_title')));
     head.appendChild(h3);
     head.appendChild(el('p', 'color:' + C.muted + '; font-size:14px; line-height:1.6; margin:10px 0 0;', S('co_intro')));
@@ -65,29 +93,29 @@
     box.appendChild(els.subtitle);
 
     box.appendChild(row(S('co_total'), (els.original = el('b', 'color:' + C.ink + ';', '—'))));
-    els.offerRow = row(S('co_offer'), (els.offer = el('b', 'color:' + C.teal + ';', '—')));
+    els.offerRow = row(S('co_offer'), (els.offer = el('b', 'color:' + C.good + ';', '—')));
     els.offerRow.style.display = 'none';
     box.appendChild(els.offerRow);
 
     // Coupon input + apply.
     var cRow = el('div', 'display:flex; align-items:center; gap:8px; margin:12px 0;');
     cRow.appendChild(el('span', 'font-size:14px; color:' + C.muted + '; flex:0 0 auto;', S('co_coupon')));
-    els.coupon = el('input', 'flex:1; min-width:0; background:' + C.surface + '; border:1px solid color-mix(in srgb, ' + C.ink + ' 15%, transparent); border-radius:8px; color:' + C.ink + '; padding:7px 10px; font-size:14px;');
+    els.coupon = el('input', 'flex:1; min-width:0; background:' + C.surface + '; border:1px solid ' + C.line + '; border-radius:8px; color:' + C.ink + '; padding:7px 10px; font-size:14px;');
     els.coupon.type = 'text'; els.coupon.autocomplete = 'off';
     cRow.appendChild(els.coupon);
-    els.apply = el('button', 'flex:0 0 auto; background:transparent; border:1px solid ' + C.gold + '; color:' + C.goldtext + '; border-radius:8px; padding:7px 14px; font-weight:700; cursor:pointer; font-size:14px;', S('co_apply'));
+    els.apply = el('button', 'flex:0 0 auto; background:transparent; border:1px solid ' + C.accent + '; color:' + C.accenttext + '; border-radius:8px; padding:7px 14px; font-weight:700; cursor:pointer; font-size:14px;', S('co_apply'));
     els.apply.type = 'button';
     cRow.appendChild(els.apply);
     box.appendChild(cRow);
 
-    els.couponErr = el('div', 'display:none; color:#ff6b6b; font-size:12px; margin:-6px 0 10px;', ' ');
+    els.couponErr = el('div', 'display:none; color:' + C.error + '; font-size:12px; margin:-6px 0 10px;', ' ');
     box.appendChild(els.couponErr);
 
-    box.appendChild(row(S('co_discount'), (els.discount = el('b', 'color:' + C.teal + ';', '0.00 ' + cur()))));
+    box.appendChild(row(S('co_discount'), (els.discount = el('b', 'color:' + C.good + ';', '0.00 ' + cur()))));
 
     var totalRow = el('div', 'border-top:1px solid ' + C.line + '; padding-top:12px; display:flex; justify-content:space-between; font-size:16px; font-weight:800;');
     totalRow.appendChild(el('span', 'color:' + C.ink + ';', S('co_total')));
-    els.final = el('b', 'color:' + C.goldtext + ';', '—');
+    els.final = el('b', 'color:' + C.accenttext + ';', '—');
     totalRow.appendChild(els.final);
     box.appendChild(totalRow);
     card.appendChild(box);
@@ -97,14 +125,19 @@
     secure.appendChild(document.createTextNode(' ' + S('co_secure')));
     card.appendChild(secure);
 
-    els.error = el('div', 'display:none; margin:12px 24px 0; color:#ff6b6b; font-size:13px;', ' ');
+    els.error = el('div', 'display:none; margin:12px 24px 0; color:' + C.error + '; font-size:13px;', ' ');
     card.appendChild(els.error);
 
     var actions = el('div', 'display:flex; justify-content:flex-end; gap:10px; padding:18px 24px 22px;');
-    els.cancel = el('button', 'background:transparent; border:1px solid color-mix(in srgb, ' + C.ink + ' 18%, transparent); color:' + C.muted + '; border-radius:8px; padding:9px 18px; font-weight:700; cursor:pointer;', S('co_cancel'));
+    els.cancel = el('button', 'background:transparent; border:1px solid ' + C.line + '; color:' + C.muted + '; border-radius:8px; padding:9px 18px; font-weight:700; cursor:pointer;', S('co_cancel'));
     els.cancel.type = 'button';
-    els.proceed = el('button', 'background:linear-gradient(135deg, ' + C.golddark + ', ' + C.gold + '); border:0; color:' + C.bg + '; border-radius:8px; padding:9px 20px; font-weight:800; cursor:pointer;', S('co_proceed'));
+    // Primary call to action: solid Primary fill + Text primary label, matching
+    // the site's .btn-primary (theme/nit/scss/components/_buttons.scss).
+    els.proceed = el('button', 'background:' + C.primary + '; border:0; color:' + C.onprimary + '; border-radius:8px; padding:9px 20px; font-weight:800; cursor:pointer;', S('co_proceed'));
     els.proceed.type = 'button';
+    // Inline styles cannot carry :hover, so mirror the theme's primary hover token.
+    els.proceed.addEventListener('mouseenter', function () { els.proceed.style.background = C.primaryhover; });
+    els.proceed.addEventListener('mouseleave', function () { els.proceed.style.background = C.primary; });
     actions.appendChild(els.cancel);
     actions.appendChild(els.proceed);
     card.appendChild(actions);
@@ -168,6 +201,7 @@
     open: function (item) {
       if (!cfg) { return; }
       build();
+      group(item.trigger);
       current = item;
       els.name.textContent = item.name || '—';
       if (item.subtitle) { els.subtitle.textContent = item.subtitle; els.subtitle.style.display = ''; }

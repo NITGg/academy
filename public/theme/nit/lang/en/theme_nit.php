@@ -106,17 +106,12 @@ $string['privacy:metadata'] = 'The NIT theme does not store any personal data.';
 
 // Branded course-detail page (theme_nit\output\format_topics_renderer).
 $string['acad_browse'] = 'Browse';
-$string['acad_about'] = 'About';
 $string['acad_skills_tab'] = 'Skills';
 $string['acad_requirements'] = 'Requirements';
 $string['acad_modules'] = 'Modules';
-$string['acad_instructor'] = 'Instructor:';
 $string['acad_plusmore'] = '+{$a} more';
-$string['acad_gotocourse'] = 'Go to course';
 $string['acad_enrol'] = 'Enroll';
 $string['acad_free'] = 'Free';
-$string['acad_starts'] = 'Starts {$a}';
-$string['acad_enrolledcount'] = '{$a} already enrolled';
 $string['acad_ataglance'] = 'At a glance';
 $string['acad_nmodules'] = '{$a} modules';
 $string['acad_duration'] = 'Duration';
@@ -145,3 +140,10 @@ $string['acad_nhour'] = '{$a} hour';
 $string['acad_nassessment'] = '{$a} assessment';
 $string['acad_nitem'] = '{$a} item';
 $string['acad_1modulein'] = 'There is {$a} module in this course';
+
+// Course-detail page — hero fact labels and "what you'll learn" sub-groups.
+$string['acad_instructorlabel'] = 'Instructor';
+$string['acad_enrolledlabel'] = 'Enrolled';
+$string['acad_startlabel'] = 'Starts';
+$string['acad_ilos'] = 'Intended learning outcomes';
+$string['acad_bytheend'] = 'By the end of this program you will be able to';

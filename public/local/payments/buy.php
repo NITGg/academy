@@ -141,6 +141,9 @@ try {
             if (!href) { return; }
             ev.preventDefault();
             NitCheckout.open({
+                // The clicked link locates the page's Brand Colors group
+                // (.nit-brand-2/3) so the modal opens in the same palette.
+                trigger: a,
                 itemType: 'course',
                 itemId: window.NIT_CO.courseid,
                 name: window.NIT_CO.name,

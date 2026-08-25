@@ -800,6 +800,9 @@ if ($nitcheckout) {
             if (!window.NIT_CO.loggedin) { window.location.href = window.NIT_CO.wwwroot + '/login/index.php'; return; }
             var id = btn.getAttribute('data-courseid');
             NitCheckout.open({
+                // The clicked button locates the page's Brand Colors group
+                // (.nit-brand-2/3) so the modal opens in the same palette.
+                trigger: btn,
                 itemType: 'course',
                 itemId: parseInt(id, 10),
                 name: btn.getAttribute('data-name'),

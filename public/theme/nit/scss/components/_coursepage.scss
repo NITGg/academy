@@ -15,7 +15,6 @@
 body:has(.acad-cr) {
     --cr-bg:        var(--nit-brand-background);
     --cr-surface:   var(--nit-brand-surface);
-    --cr-soft:      color-mix(in srgb, var(--nit-brand-surface) 60%, var(--nit-brand-background));
     --cr-ink:       var(--nit-brand-textprimary);
     --cr-ink-2:     color-mix(in srgb, var(--nit-brand-textprimary) 78%, var(--nit-brand-textsecondary));
     --cr-muted:     var(--nit-brand-textsecondary);
@@ -146,9 +145,21 @@ body:has(.acad-cr) .acad-cr__hero {
     grid-template-columns: 1fr 340px;
     gap: 40px;
     padding-block-end: 36px;
-    align-items: start;
+    /* Stretch, not start: the two hero cards share a baseline and a bottom edge
+       whichever one is taller, and the CTA can pin itself to the card foot. */
+    align-items: stretch;
 }
-body:has(.acad-cr) .acad-cr__hero-main { min-width: 0; }
+/* The identity half is a surface card, so the hero reads as two cards side by
+   side (design ref: the "المقرر" screen) instead of bare text next to a card. */
+body:has(.acad-cr) .acad-cr__hero-main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius);
+    background: var(--cr-surface);
+    padding: 30px 32px;
+}
 
 body:has(.acad-cr) .acad-cr__provider {
     display: inline-flex;
@@ -178,12 +189,42 @@ body:has(.acad-cr) .acad-cr__partof {
     max-width: 60ch;
 }
 
-body:has(.acad-cr) .acad-cr__instructor {
-    font-size: 14px;
-    color: var(--cr-ink-2);
-    margin-block-end: 24px;
+/* Status badges under the title (Free / Certificate) — these carry custom-field
+   values that used to sit beside the CTA, which enrolled users no longer get. */
+body:has(.acad-cr) .acad-cr__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-block-end: 20px;
 }
-body:has(.acad-cr) .acad-cr__instructor strong { font-weight: 400; color: var(--cr-muted); }
+
+/* Key facts: a label / value list (instructor, enrolled, start date).
+   The <dl> owns the two-column track so every label lines up, and each dt/dd
+   pair joins it via `display: contents` — the label column then sizes to the
+   longest label instead of a guessed fixed width. */
+body:has(.acad-cr) .acad-cr__facts {
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: baseline;
+    gap: 10px 14px;
+    font-size: 15px;
+}
+body:has(.acad-cr) .acad-cr__fact { display: contents; }
+body:has(.acad-cr) .acad-cr__fact-k {
+    margin: 0;
+    font-weight: 400;
+    color: var(--cr-muted);
+    /* Colon after the label, on the side the reader ends the label on. */
+    &::after { content: " :"; }
+}
+body:has(.acad-cr) .acad-cr__fact-v {
+    margin: 0;
+    color: var(--cr-ink);
+    font-weight: 600;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
 body:has(.acad-cr) .acad-cr__instr-name { font-weight: 600; color: var(--cr-ink); }
 
 /* Primary CTA — reuses the design-system primary button COMPONENT (.btn.btn-primary),
@@ -193,6 +234,9 @@ body:has(.acad-cr) .acad-cr__instr-name { font-weight: 600; color: var(--cr-ink)
    prominence and add a subtle lift on hover. The renderer outputs the link with the
    `btn btn-primary acad-cr-btn` classes. */
 body:has(.acad-cr) .acad-cr-btn.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 13px 30px;
     font-size: 16px;
     transition: background-color .15s ease, transform .15s ease;
@@ -207,38 +251,36 @@ body:has(.acad-cr) .acad-cr a.acad-cr-btn:hover {
     text-decoration: none;
 }
 
+/* CTA sits at the foot of the identity card and spans it, so the card ends on a
+   single clear action. `margin-block-start: auto` pins it to the bottom when the
+   card is stretched by the taller glance card beside it. */
 body:has(.acad-cr) .acad-cr__cta-row {
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-block-end: 14px;
+    margin-block-start: auto;
+    padding-block-start: 26px;
 }
-body:has(.acad-cr) .acad-cr__starts {
-    font-size: 14px;
-    color: var(--cr-ink-2);
-    font-weight: 600;
+body:has(.acad-cr) .acad-cr__cta-row .acad-cr-btn.btn {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
 }
 
-/* Free / status pill next to the CTA. */
+/* Status pill (Free). */
 body:has(.acad-cr) .acad-cr__badge {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
     font-size: 13px;
     font-weight: 700;
     letter-spacing: .02em;
     padding: 6px 12px;
     border-radius: 999px;
-    text-transform: uppercase;
 }
 body:has(.acad-cr) .acad-cr__badge--free {
     color: var(--cr-success);
     background: color-mix(in srgb, var(--cr-success) 16%, transparent);
     border: 1px solid color-mix(in srgb, var(--cr-success) 45%, transparent);
 }
-
-body:has(.acad-cr) .acad-cr__enrolled { font-size: 14px; color: var(--cr-ink-2); }
-body:has(.acad-cr) .acad-cr__enrolled b { font-weight: 700; color: var(--cr-ink); }
 
 /* ---- Signature: "At a glance" facts card -------------------------------- */
 body:has(.acad-cr) .acad-cr__glance {
@@ -345,6 +387,20 @@ body:has(.acad-cr) .acad-cr__learn-card {
     background: var(--cr-surface);
     padding: 28px 32px;
 }
+/* Two labelled groups (ILOs / end-of-training), divided by a hairline. */
+body:has(.acad-cr) .acad-cr__learn-group + .acad-cr__learn-group {
+    margin-block-start: 24px;
+    padding-block-start: 24px;
+    border-block-start: 1px solid var(--cr-hairline);
+}
+body:has(.acad-cr) .acad-cr__learn-grouph {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--cr-muted);
+    margin: 0 0 16px;
+}
 body:has(.acad-cr) .acad-cr__learn-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -426,17 +482,28 @@ body:has(.acad-cr) .acad-cr__req-list li::before {
     background: var(--cr-accent);
 }
 
-/* ---- About this course (soft band) -------------------------------------- */
-body:has(.acad-cr) .acad-cr__soft {
-    background: var(--cr-soft);
-    border-block: 1px solid var(--cr-border);
+/* ---- Small uppercase section label (eyebrow) ---------------------------- */
+body:has(.acad-cr) .acad-cr__eyebrow {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--cr-muted);
+    margin-block-end: 10px;
 }
+
+/* ---- About this course --------------------------------------------------
+ * Opens the modules band at FULL content width, above the accordion/rail grid:
+ * an eyebrow label over a lead-sized summary, so the course pitch reads before
+ * the syllabus.
+ */
+body:has(.acad-cr) .acad-cr__about { margin-block-end: 30px; }
 body:has(.acad-cr) .acad-cr__summary {
-    font-size: 16px;
-    color: var(--cr-ink-2);
-    line-height: 1.7;
-    max-width: 78ch;
+    font-size: 19px;
+    color: var(--cr-ink);
+    line-height: 1.6;
 }
+body:has(.acad-cr) .acad-cr__summary > :last-child { margin-block-end: 0; }
 body:has(.acad-cr) .acad-cr__summary :is(h1,h2,h3,h4,strong,b) { color: var(--cr-ink); }
 body:has(.acad-cr) .acad-cr__summary a { color: var(--cr-link); }
 
@@ -475,6 +542,10 @@ body:has(.acad-cr) .acad-cr__mod-head {
     color: inherit;
 }
 body:has(.acad-cr) .acad-cr__mod-head:hover { background: var(--cr-hoverbg); }
+/* The expanded row is tinted so the open module is obvious at a glance. */
+body:has(.acad-cr) .acad-cr__mod.is-open .acad-cr__mod-head {
+    background: color-mix(in srgb, var(--cr-ink) 5%, transparent);
+}
 body:has(.acad-cr) .acad-cr__mod-title {
     font-size: 19px;
     font-weight: 700;
@@ -533,9 +604,13 @@ body:has(.acad-cr) .acad-cr__rail-card {
     border-radius: var(--cr-radius);
     background: var(--cr-surface);
     padding: 24px;
-    margin-block-end: 20px;
 }
-body:has(.acad-cr) .acad-cr__rail-h { font-size: 19px; font-weight: 700; color: var(--cr-ink); margin: 0 0 14px; }
+/* One card, blocks divided by a hairline (instructors, then "offered by"). */
+body:has(.acad-cr) .acad-cr__rail-block + .acad-cr__rail-block {
+    margin-block-start: 22px;
+    padding-block-start: 22px;
+    border-block-start: 1px solid var(--cr-hairline);
+}
 body:has(.acad-cr) .acad-cr__tutor {
     display: flex;
     gap: 12px;
@@ -544,23 +619,59 @@ body:has(.acad-cr) .acad-cr__tutor {
     border-block-start: 1px solid var(--cr-hairline);
 }
 body:has(.acad-cr) .acad-cr__tutor:first-of-type { border-block-start: none; }
+/* The avatar link wrapper Moodle emits around the picture. */
+body:has(.acad-cr) .acad-cr__tutor > a {
+    flex-shrink: 0;
+    line-height: 0;
+}
+/* Users WITH a picture get <img class="userpicture">; users without get
+   <span class="userinitials size-100"> — a 100px block. Size both, or the
+   initials avatar renders at more than twice the intended diameter. */
 body:has(.acad-cr) .acad-cr__tutor img,
-body:has(.acad-cr) .acad-cr__tutor .userpicture {
+body:has(.acad-cr) .acad-cr__tutor .userpicture,
+body:has(.acad-cr) .acad-cr__tutor .userinitials {
     width: 46px;
     height: 46px;
+    min-width: 46px;
     border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0;
+}
+body:has(.acad-cr) .acad-cr__tutor .userinitials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
 }
 body:has(.acad-cr) .acad-cr__tutor-name { font-weight: 700; font-size: 15px; color: var(--cr-ink); }
 body:has(.acad-cr) .acad-cr__tutor-name:hover { color: var(--cr-link); }
 body:has(.acad-cr) .acad-cr__tutor-org { font-size: 13px; color: var(--cr-muted); }
 
-body:has(.acad-cr) .acad-cr__offered-h { font-size: 16px; font-weight: 700; color: var(--cr-ink); margin: 0 0 10px; }
-body:has(.acad-cr) .acad-cr__offered-logo {
+/* "Offered by" — icon tile + category name, matching the glance-card rows. */
+body:has(.acad-cr) .acad-cr__offered {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+body:has(.acad-cr) .acad-cr__offered-ico {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    color: var(--cr-accent);
+    background: color-mix(in srgb, var(--cr-accent) 14%, transparent);
+    flex-shrink: 0;
+}
+body:has(.acad-cr) .acad-cr__offered-ico .acad-cr__ico { width: 20px; height: 20px; }
+body:has(.acad-cr) .acad-cr__offered-name {
     font-weight: 700;
-    font-size: 18px;
-    color: var(--cr-link);
+    font-size: 16px;
+    color: var(--cr-ink);
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 /* ---- Keyboard focus (quality floor) ------------------------------------- */
@@ -589,4 +700,19 @@ body:has(.acad-cr) .acad-cr :is(a, button):focus-visible {
     body:has(.acad-cr) .acad-cr__req-grid { grid-template-columns: 1fr; }
     body:has(.acad-cr) .acad-cr__learn-card { padding: 22px; }
     body:has(.acad-cr) .acad-cr__h2 { font-size: 22px; }
+    body:has(.acad-cr) .acad-cr__hero-main { padding: 24px 20px; }
+    body:has(.acad-cr) .acad-cr__summary { font-size: 17px; }
+    /* Narrow columns cannot hold a label track — stack label over value. */
+    body:has(.acad-cr) .acad-cr__facts {
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+    body:has(.acad-cr) .acad-cr__fact-k::after { content: none; }
+    /* `:first-child` still resolves against the DOM, where each dt is the first
+       child of its .acad-cr__fact wrapper — so key off the wrapper instead. */
+    body:has(.acad-cr) .acad-cr__fact:not(:first-child) .acad-cr__fact-k { margin-block-start: 12px; }
+    body:has(.acad-cr) .acad-cr__mod-head { padding: 18px 18px; }
+    body:has(.acad-cr) .acad-cr__mod-body { padding: 0 18px 20px; }
+    body:has(.acad-cr) .acad-cr__glance-row,
+    body:has(.acad-cr) .acad-cr__glance-h { padding-inline: 18px; }
 }
