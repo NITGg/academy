@@ -145,17 +145,17 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $body .= $requirements;
         }
 
-        // Modules band always renders (the section tree is the core of the page).
-        $tabs['modules'] = get_string('acad_modules', 'theme_nit');
-        $body .= $this->acad_modules($course, $modinfo, $context, $data);
-
-        // "About this course" CLOSES the page — it is the final full-width band,
-        // after the curriculum, so it must stay last in both $body and $tabs.
+        // "About this course" is not a band of its own: it opens the closing band,
+        // above the instructors row and the curriculum. It still gets its own tab
+        // because it is a distinct anchor inside that band.
         $about = $this->acad_about($course, $context);
         if ($about !== '') {
             $tabs['about'] = get_string('acad_about_h', 'theme_nit');
-            $body .= $about;
         }
+
+        // Modules band always renders (the section tree is the core of the page).
+        $tabs['modules'] = get_string('acad_modules', 'theme_nit');
+        $body .= $this->acad_modules($course, $modinfo, $context, $data, $about);
 
         // Assemble in visual order. The brand group class lets a course adopt its
         // top-level category's palette (Group 1/2/3), same as category pages.
@@ -198,12 +198,15 @@ class format_topics_renderer extends \format_topics\output\renderer {
         $d->context  = $context;
         $d->enrolled = count_enrolled_users($context);
 
-        // Category chain for the breadcrumb.
+        // Category chain for the breadcrumb. get_parents() is already top-down —
+        // [top, …, immediate parent] — so the chain is built in that order and
+        // $catnames[0] is always the TOP-level category, which is what the "provider"
+        // line and the "Offered by" card both mean.
         $d->catnames = [];
         if ($course->category) {
             $cat = core_course_category::get($course->category, IGNORE_MISSING);
             if ($cat) {
-                foreach (array_reverse($cat->get_parents()) as $pid) {
+                foreach ($cat->get_parents() as $pid) {
                     $p = $DB->get_record('course_categories', ['id' => $pid], 'name');
                     if ($p) {
                         $d->catnames[] = format_string($p->name);
@@ -811,10 +814,9 @@ class format_topics_renderer extends \format_topics\output\renderer {
     }
 
     /**
-     * "About this course" band — the course summary, as the closing full-width
-     * section of the page. Its heading is a normal band h2 (not the small eyebrow
-     * it used to be) because it now stands as a peer of the other bands rather
-     * than as a label inside the modules column. Empty ⇒ '' (band omitted).
+     * "About this course" block — the course summary, rendered as an eyebrow label
+     * above the lead paragraph. Returned bare (no band / wrap) because it opens the
+     * closing band, above the instructors row. Empty ⇒ '' (block omitted).
      *
      * @param stdClass $course
      * @param \context_course $context
@@ -826,11 +828,11 @@ class format_topics_renderer extends \format_topics\output\renderer {
             return '';
         }
 
-        $inner = html_writer::tag('h2', get_string('acad_about_h', 'theme_nit'),
-                    ['class' => 'acad-cr__h2', 'id' => 'about'])
-               . html_writer::div($summary, 'acad-cr__summary');
-
-        return html_writer::div(html_writer::div($inner, 'acad-cr__wrap'), 'acad-cr__band acad-cr__about');
+        return html_writer::div(
+            html_writer::div(get_string('acad_about_h', 'theme_nit'), 'acad-cr__eyebrow', ['id' => 'about'])
+            . html_writer::div($summary, 'acad-cr__summary'),
+            'acad-cr__about'
+        );
     }
 
     // =========================================================================
@@ -838,15 +840,21 @@ class format_topics_renderer extends \format_topics\output\renderer {
     // =========================================================================
 
     /**
-     * Modules band: "about" + curriculum accordion (main) + instructor rail (aside).
+     * Closing band, stacked full-width rows in this order:
+     *   1. "About this course"
+     *   2. the instructors / "offered by" card — a row of its own
+     *   3. the curriculum heading + accordion — a row of its own
+     *
+     * Nothing is columned any more: each row owns the full content width.
      *
      * @param stdClass $course
      * @param \course_modinfo $modinfo
      * @param \context_course $context
      * @param stdClass $data
+     * @param string $about pre-built "About this course" block ('' when the course has no summary)
      * @return string
      */
-    protected function acad_modules($course, $modinfo, $context, $data) {
+    protected function acad_modules($course, $modinfo, $context, $data, $about = '') {
         $acc = '';
         $idx = 0;
         foreach ($data->modulerows as $snum => $section) {
@@ -854,21 +862,21 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $acc .= $this->acad_module_row($course, $section, $modinfo, $snum, $idx, ($idx === 1), $context);
         }
 
-        // The modules heading runs the FULL content width, above the grid — only
-        // the accordion and the rail are columned.
-        $head = html_writer::tag('h2',
-                    $this->acad_count($data->modcount, 'acad_1modulein', 'acad_nmodulesin'),
-                    ['class' => 'acad-cr__h2', 'id' => 'modules']);
+        $o = $about;
 
+        // Instructors / "offered by" — its own full-width row.
         $rail = $this->acad_rail($course, $context, $data);
+        if ($rail !== '') {
+            $o .= html_writer::div($rail, 'acad-cr__instructors-row');
+        }
 
-        $grid = html_writer::div(
-            html_writer::div(html_writer::div($acc, 'acad-cr__acc'), 'acad-cr__modules-main') .
-            html_writer::div($rail, 'acad-cr__modules-rail'),
-            'acad-cr__modules-grid'
-        );
+        // Curriculum — its own full-width row.
+        $o .= html_writer::tag('h2',
+                  $this->acad_count($data->modcount, 'acad_1modulein', 'acad_nmodulesin'),
+                  ['class' => 'acad-cr__h2', 'id' => 'modules'])
+            . html_writer::div($acc, 'acad-cr__acc');
 
-        return html_writer::div(html_writer::div($head . $grid, 'acad-cr__wrap'), 'acad-cr__band');
+        return html_writer::div(html_writer::div($o, 'acad-cr__wrap'), 'acad-cr__band');
     }
 
     /**
@@ -1022,14 +1030,12 @@ class format_topics_renderer extends \format_topics\output\renderer {
                 'acad-cr__rail-block');
         }
 
-        // Offered by = top-level category.
+        // Offered by = top-level category. Name only — no icon: the tile here was
+        // generic decoration that said nothing the name does not already say.
         if (!empty($data->catnames)) {
             $blocks[] = html_writer::div(
                 html_writer::div(get_string('acad_offeredby', 'theme_nit'), 'acad-cr__eyebrow') .
-                html_writer::div(
-                    html_writer::div($this->acad_icon('badge'), 'acad-cr__offered-ico') .
-                    html_writer::div($data->catnames[0], 'acad-cr__offered-name'),
-                    'acad-cr__offered'),
+                html_writer::div($data->catnames[0], 'acad-cr__offered-name'),
                 'acad-cr__rail-block');
         }
 
@@ -1078,7 +1084,6 @@ class format_topics_renderer extends \format_topics\output\renderer {
             'cert'    => '<circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="1.7"/><path d="M8 14l-1 7 5-3 5 3-1-7" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
             'people'  => '<circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M16 5.5a3.2 3.2 0 0 1 0 5M17.5 20a5.5 5.5 0 0 0-2.5-4.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
             'list'    => '<path d="M8 6h12M8 12h12M8 18h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="4" cy="6" r="1.3" fill="currentColor"/><circle cx="4" cy="12" r="1.3" fill="currentColor"/><circle cx="4" cy="18" r="1.3" fill="currentColor"/>',
-            'badge'   => '<path d="M12 3l7 3.5v5c0 4-3 7.4-7 8.5-4-1.1-7-4.5-7-8.5v-5L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
         ];
         $p = $paths[$key] ?? '';
         return '<svg class="acad-cr__ico acad-cr__ico--' . $key . '" viewBox="0 0 24 24" fill="none" aria-hidden="true">'

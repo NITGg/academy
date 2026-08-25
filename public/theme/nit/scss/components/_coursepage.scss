@@ -493,10 +493,10 @@ body:has(.acad-cr) .acad-cr__eyebrow {
 }
 
 /* ---- About this course --------------------------------------------------
- * The closing full-width band: a standard band heading over a lead-sized
- * summary. Nothing follows it, so it carries the page's bottom breathing room.
+ * Opens the closing band at FULL content width, above the instructors row: an
+ * eyebrow label over a lead-sized summary, so the pitch reads before the syllabus.
  */
-body:has(.acad-cr) .acad-cr__about { padding-block-end: 64px; }
+body:has(.acad-cr) .acad-cr__about { margin-block-end: 34px; }
 body:has(.acad-cr) .acad-cr__summary {
     font-size: 19px;
     color: var(--cr-ink);
@@ -509,13 +509,9 @@ body:has(.acad-cr) .acad-cr__summary a { color: var(--cr-link); }
 /* ==========================================================================
  * Modules band — accordion (left) + instructor rail (right)
  * ==========================================================================*/
-body:has(.acad-cr) .acad-cr__modules-grid {
-    display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 40px;
-    align-items: start;
-}
-body:has(.acad-cr) .acad-cr__modules-main { min-width: 0; }
+/* The instructors card is a row of its own, above the curriculum row — nothing
+   in this band is columned, each row owns the full content width. */
+body:has(.acad-cr) .acad-cr__instructors-row { margin-block-end: 40px; }
 
 /* Accordion list */
 body:has(.acad-cr) .acad-cr__acc {
@@ -604,11 +600,22 @@ body:has(.acad-cr) .acad-cr__rail-card {
     background: var(--cr-surface);
     padding: 24px;
 }
-/* One card, blocks divided by a hairline (instructors, then "offered by"). */
+/* One card holding two blocks (instructors, then "offered by"). Now that the card
+   spans the full width, the blocks sit side by side with a vertical rule instead of
+   stacking — otherwise a 1100px-wide card holds two short lines and a lot of air. */
+body:has(.acad-cr) .acad-cr__rail-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+}
 body:has(.acad-cr) .acad-cr__rail-block + .acad-cr__rail-block {
-    margin-block-start: 22px;
-    padding-block-start: 22px;
-    border-block-start: 1px solid var(--cr-hairline);
+    padding-inline-start: 32px;
+    border-inline-start: 1px solid var(--cr-hairline);
+}
+/* A lone block (no teachers, or no category) keeps the full card. */
+body:has(.acad-cr) .acad-cr__rail-card:has(.acad-cr__rail-block:only-child) {
+    grid-template-columns: 1fr;
 }
 body:has(.acad-cr) .acad-cr__tutor {
     display: flex;
@@ -647,24 +654,7 @@ body:has(.acad-cr) .acad-cr__tutor-name { font-weight: 700; font-size: 15px; col
 body:has(.acad-cr) .acad-cr__tutor-name:hover { color: var(--cr-link); }
 body:has(.acad-cr) .acad-cr__tutor-org { font-size: 13px; color: var(--cr-muted); }
 
-/* "Offered by" — icon tile + category name, matching the glance-card rows. */
-body:has(.acad-cr) .acad-cr__offered {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-body:has(.acad-cr) .acad-cr__offered-ico {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    color: var(--cr-accent);
-    background: color-mix(in srgb, var(--cr-accent) 14%, transparent);
-    flex-shrink: 0;
-}
-body:has(.acad-cr) .acad-cr__offered-ico .acad-cr__ico { width: 20px; height: 20px; }
+/* "Offered by" — the category name on its own, no icon. */
 body:has(.acad-cr) .acad-cr__offered-name {
     font-weight: 700;
     font-size: 16px;
@@ -688,9 +678,17 @@ body:has(.acad-cr) .acad-cr :is(a, button):focus-visible {
 /* ---- Responsive ---------------------------------------------------------- */
 @media (max-width: 1024px) {
     body:has(.acad-cr) .acad-cr__hero { grid-template-columns: 1fr; }
-    body:has(.acad-cr) .acad-cr__modules-grid { grid-template-columns: 1fr; }
     /* Keep the facts card — stack it, never hide it. */
     body:has(.acad-cr) .acad-cr__glance { max-width: 480px; }
+    /* Not enough width for two rail columns: stack them behind a hairline again. */
+    body:has(.acad-cr) .acad-cr__rail-card { grid-template-columns: 1fr; gap: 0; }
+    body:has(.acad-cr) .acad-cr__rail-block + .acad-cr__rail-block {
+        padding-inline-start: 0;
+        border-inline-start: none;
+        margin-block-start: 22px;
+        padding-block-start: 22px;
+        border-block-start: 1px solid var(--cr-hairline);
+    }
 }
 @media (max-width: 640px) {
     body:has(.acad-cr) .acad-cr__wrap { padding-inline: 18px; }
