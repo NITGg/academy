@@ -62,6 +62,20 @@ class completion {
     /** @var string Admin setting: is the gate switched on. */
     const SETTING = 'completiongate';
 
+    /** @var string User preference stamped once an account has been through this page. */
+    const PREF_DONE = 'local_profilefields_completed';
+
+    /**
+     * Auth methods that build an account without ever showing the sign-up form.
+     *
+     * `email` is the sign-up form itself and `manual` is an admin filling the boxes
+     * by hand - both mean a human answered the questions. `oauth2` (Log in with
+     * Google / Apple) does not: it mints the account from the provider's claims.
+     *
+     * @var string[]
+     */
+    const SKIPS_SIGNUP = ['oauth2'];
+
     /**
      * Core fields that only exist while an account is being created.
      *
@@ -89,6 +103,19 @@ class completion {
      * @var string[]
      */
     const RENDERABLE_CORE = ['firstname', 'lastname', 'city', 'country'];
+
+    /**
+     * Fields an identity provider really does answer.
+     *
+     * Google and Apple return the name, so a value in these boxes came from a human
+     * and is not re-asked. Nothing else on the sign-up form has a provider claim
+     * behind it - a country or a city sitting on a fresh OAuth2 account is the site
+     * default that user_create_user() stamped, which is exactly the case this class
+     * exists to catch.
+     *
+     * @var string[]
+     */
+    const PROVIDER_SUPPLIED = ['firstname', 'lastname'];
 
     /**
      * Is the completion gate switched on?
@@ -138,6 +165,14 @@ class completion {
             return ['fields' => [], 'consent' => false];
         }
 
+        // "Still empty" is not a safe test on an account that never saw the sign-up
+        // form. user_create_user() stamps `country` with the site's default country
+        // (user/lib.php:104) and `city` with the site's default city, so a Google
+        // account is born holding values nobody chose - and pricing keys on
+        // `country`. For those accounts every required field is asked once, with
+        // whatever the account currently holds prefilled, so the user confirms
+        // rather than retypes.
+        $askall = self::skipped_signup($user);
         $fields = [];
 
         foreach (manager::get_config() as $name => $settings) {
@@ -147,28 +182,40 @@ class completion {
             if (empty($settings['required']) || !manager::on_signup($name)) {
                 continue;
             }
-            if (!isset($user->$name) || trim((string) $user->$name) === '') {
+            $current = trim((string) ($user->$name ?? ''));
+            // The provider genuinely answered the name boxes, so those are only
+            // asked when they really are blank. Everything else the provider cannot
+            // know, and a value sitting in it came from the site defaults, not from
+            // the user - so it is asked even though it looks filled in.
+            $sweep = $askall && !in_array($name, self::PROVIDER_SUPPLIED, true);
+            if ($sweep || $current === '') {
                 $fields[] = [
-                    'kind'  => 'core',
-                    'token' => $name,
-                    'name'  => $name,
-                    'field' => null,
+                    'kind'    => 'core',
+                    'token'   => $name,
+                    'name'    => $name,
+                    'field'   => null,
+                    'current' => $current,
                 ];
             }
         }
 
         foreach (profile_get_user_fields_with_data($user->id) as $field) {
-            // The same test core runs in profile_has_required_custom_fields_set(),
-            // so anything that would bounce the user to /user/edit.php is asked
-            // here first - including a required field the admin kept off sign-up.
-            if ($field->is_required() && !$field->is_locked() && $field->is_empty()
-                    && $field->get_field_config_for_external()['visible']) {
+            if ($field->is_locked() || !$field->get_field_config_for_external()['visible']) {
+                continue;
+            }
+            // Otherwise the same test core runs in
+            // profile_has_required_custom_fields_set(), so anything that would bounce
+            // the user to /user/edit.php is asked here first - including a required
+            // field the admin kept off sign-up.
+            $unanswered = $field->is_empty() || ($askall && $field->is_signup_field());
+            if ($field->is_required() && $unanswered) {
                 $shortname = $field->field->shortname;
                 $fields[] = [
-                    'kind'  => 'custom',
-                    'token' => 'cf:' . $shortname,
-                    'name'  => signup::CUSTOM_PREFIX . $shortname,
-                    'field' => $field,
+                    'kind'    => 'custom',
+                    'token'   => 'cf:' . $shortname,
+                    'name'    => signup::CUSTOM_PREFIX . $shortname,
+                    'field'   => $field,
+                    'current' => '',
                 ];
             }
         }
@@ -203,6 +250,36 @@ class completion {
         usort($decorated, static fn(array $a, array $b): int => [$a[0], $a[1]] <=> [$b[0], $b[1]]);
 
         return array_column($decorated, 2);
+    }
+
+    /**
+     * Did this account come into being without anyone answering the sign-up form?
+     *
+     * True for an OAuth2 account that has not yet been through the completion page.
+     * Stamping a preference rather than inferring it from the data is what makes
+     * the answer stable: the fields the account was auto-filled with are
+     * indistinguishable from fields the user genuinely chose, so the only reliable
+     * record of "they have now been asked" is that we wrote it down.
+     *
+     * @param stdClass $user
+     * @return bool
+     */
+    public static function skipped_signup(stdClass $user): bool {
+        if (!in_array((string) ($user->auth ?? ''), self::SKIPS_SIGNUP, true)) {
+            return false;
+        }
+
+        return !get_user_preferences(self::PREF_DONE, 0, $user->id);
+    }
+
+    /**
+     * Record that this account has now answered the sign-up questions.
+     *
+     * @param stdClass $user
+     * @return void
+     */
+    public static function mark_done(stdClass $user): void {
+        set_user_preference(self::PREF_DONE, 1, $user->id);
     }
 
     /**

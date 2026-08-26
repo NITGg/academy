@@ -89,6 +89,12 @@ if ($data = $form->get_data()) {
     $data->id = $USER->id;
     profile_save_data($data);
 
+    // Write down that this account has now been asked. Without this the gate would
+    // re-fire forever on an OAuth2 account: the values it was auto-filled with look
+    // identical to values the user chose, so "have they answered?" cannot be
+    // re-derived from the data afterwards.
+    completion::mark_done($USER);
+
     // Refresh the session copy, otherwise the gate would fire again on the very
     // next page and bounce the user straight back here. `fullysetupstrict` is
     // core's own one-hour cache of the same answer, so it has to go too.

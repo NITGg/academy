@@ -77,6 +77,13 @@ class complete_form extends moodleform {
                 if ($label !== '' && $mform->elementExists($entry['name'])) {
                     $mform->getElement($entry['name'])->setLabel(format_string($label));
                 }
+                // An account that skipped sign-up is asked to confirm what the
+                // system filled in for it, not to retype it from scratch. (Custom
+                // fields need no help: edit_field_set_default() already preselects
+                // the user's own value.)
+                if ($entry['current'] !== '') {
+                    $mform->setDefault($entry['name'], $entry['current']);
+                }
             } else {
                 // The field object owns its element, its default and its rules.
                 $entry['field']->edit_field($mform);

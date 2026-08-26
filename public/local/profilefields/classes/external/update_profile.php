@@ -132,6 +132,10 @@ class update_profile extends external_api {
             ];
         }
 
+        // What the sign-up flow was still owed before this save - checked here so
+        // the answer is not confused by the save itself.
+        $outstanding = \local_profilefields\completion::missing($user);
+
         $emailchanged = profile_api::save($user, $usernew);
 
         // The terms checkbox. Only ever moves from "not agreed" to "agreed", and
@@ -144,11 +148,54 @@ class update_profile extends external_api {
             $USER->policyagreed = 1;
         }
 
+        // This is the app's half of /local/profilefields/complete.php: when the call
+        // answered everything that was outstanding, the account has been asked and
+        // the gate is done with it. Deliberately strict - a partial profile edit
+        // that merely happens to validate must not count, or an account could slip
+        // past the questions it was never asked.
+        self::mark_completion_done($user, $outstanding, $submitted, !empty($params['consent']));
+
         return [
             'success' => true,
             'emailchangepending' => $emailchanged,
             'warnings' => [],
         ];
+    }
+
+    /**
+     * Stamp the "has answered the sign-up questions" marker, if this call earned it.
+     *
+     * @param \stdClass $user the profile that was saved
+     * @param array $outstanding completion::missing() as it stood before the save
+     * @param array $submitted the field values this call sent, keyed by element name
+     * @param bool $consent whether the call also accepted the policies
+     * @return void
+     */
+    protected static function mark_completion_done(
+        \stdClass $user,
+        array $outstanding,
+        array $submitted,
+        bool $consent
+    ): void {
+        global $USER;
+
+        // Nobody completes a registration on someone else's behalf.
+        if ((int) $user->id !== (int) $USER->id) {
+            return;
+        }
+        if (empty($outstanding['fields']) && empty($outstanding['consent'])) {
+            return;
+        }
+        if (!empty($outstanding['consent']) && !$consent) {
+            return;
+        }
+        foreach ($outstanding['fields'] as $entry) {
+            if (!array_key_exists($entry['name'], $submitted)) {
+                return;
+            }
+        }
+
+        \local_profilefields\completion::mark_done($user);
     }
 
     /**
