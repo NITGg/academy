@@ -123,23 +123,31 @@ class get_completion_status extends external_api {
                 'Whether the site is currently holding incomplete accounts at all.'),
             'countryfromphone' => new external_value(PARAM_BOOL,
                 'Whether the country should follow the phone field\'s country code.'),
+            // Deliberately the same entry shape local_profilefields_get_profile_form
+            // returns - it is built from the same describe() call - so a client that
+            // can already draw the profile form can draw this with no new code.
             'fields' => new external_multiple_structure(
                 new external_single_structure([
-                    'name'         => new external_value(PARAM_RAW, 'Form element name.'),
-                    'shortname'    => new external_value(PARAM_RAW, 'Field shortname.'),
-                    'type'         => new external_value(PARAM_ALPHANUMEXT, 'Field type.'),
-                    'label'        => new external_value(PARAM_RAW, 'Visible label.'),
-                    'description'  => new external_value(PARAM_RAW, 'Help text.', VALUE_OPTIONAL),
-                    'required'     => new external_value(PARAM_BOOL, 'Always true here.'),
-                    'iscustom'     => new external_value(PARAM_BOOL, 'Custom profile field?'),
-                    'defaultvalue' => new external_value(PARAM_RAW, 'Default value.', VALUE_OPTIONAL),
-                    'options'      => new external_multiple_structure(
+                    'name'        => new external_value(PARAM_RAW, 'The name to send back to update_profile.'),
+                    'shortname'   => new external_value(PARAM_RAW, 'Field shortname.'),
+                    'type'        => new external_value(PARAM_ALPHANUMEXT,
+                        'text, select, checkbox, editor, datetime, phone, tags, ...'),
+                    'label'       => new external_value(PARAM_RAW, 'Visible label.'),
+                    'description' => new external_value(PARAM_RAW, 'Help text.'),
+                    'required'    => new external_value(PARAM_BOOL, 'Always true here.'),
+                    'locked'      => new external_value(PARAM_BOOL, 'Read-only; do not send it back.'),
+                    'iscustom'    => new external_value(PARAM_BOOL, 'Custom profile field?'),
+                    'value'       => new external_value(PARAM_RAW,
+                        'What the account currently holds. Prefill the box with it: on an OAuth2 account '
+                        . 'the country arrives pre-filled from the site default, and the user is confirming '
+                        . 'it rather than typing it.'),
+                    'options'     => new external_multiple_structure(
                         new external_single_structure([
-                            'value' => new external_value(PARAM_RAW, 'Stored value.'),
-                            'label' => new external_value(PARAM_RAW, 'Visible label.'),
-                        ]),
-                        'Choices, for menu-style fields.',
-                        VALUE_OPTIONAL
+                            'value'    => new external_value(PARAM_RAW, 'The value to submit.'),
+                            'label'    => new external_value(PARAM_RAW, 'What to show the user.'),
+                            'dialcode' => new external_value(PARAM_RAW,
+                                'Dialling code, for a country option (e.g. "+20").'),
+                        ]), 'Choices, for a field the user picks from. Empty for free-text fields.'
                     ),
                 ]),
                 'The fields still to be answered, in sign-up order.'
