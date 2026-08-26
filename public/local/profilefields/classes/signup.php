@@ -145,7 +145,7 @@ class signup {
      *
      * @return void
      */
-    protected static function inject_country_sync(): void {
+    public static function inject_country_sync(): void {
         global $PAGE;
 
         $js = <<<'JS'

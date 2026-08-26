@@ -147,3 +147,12 @@ $string['acad_enrolledlabel'] = 'Enrolled';
 $string['acad_startlabel'] = 'Starts';
 $string['acad_ilos'] = 'Intended learning outcomes';
 $string['acad_bytheend'] = 'By the end of this program you will be able to';
+
+// Sign-up: password strength meter and reveal ("eye") toggle.
+$string['passwordstrength'] = 'Password strength';
+$string['passwordstrengthweak'] = 'Weak password';
+$string['passwordstrengthfair'] = 'Fair password';
+$string['passwordstrengthgood'] = 'Good password';
+$string['passwordstrengthstrong'] = 'Strong password';
+$string['showpassword'] = 'Show password';
+$string['hidepassword'] = 'Hide password';

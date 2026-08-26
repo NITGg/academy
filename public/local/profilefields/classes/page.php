@@ -209,7 +209,7 @@ class page {
             html_writer::tag('th', get_string('colrename', 'local_profilefields')));
 
         // The two behaviour rows sit at the top of the same table.
-        $body = self::username_row() . self::country_from_phone_row();
+        $body = self::username_row() . self::country_from_phone_row() . self::completion_gate_row();
 
         $last = count($tokens) - 1;
         foreach ($tokens as $i => $token) {
@@ -270,6 +270,27 @@ class page {
                     get_string('countryfromphone_desc', 'local_profilefields'), 'text-muted small')) .
             html_writer::tag('td',
                 self::yesno_select('countryfromphone', manager::country_from_phone()), ['colspan' => 3]),
+            ['class' => 'table-active']);
+    }
+
+    /**
+     * The "hold incomplete accounts" gate, as a table row.
+     *
+     * Sits with the other behaviour toggles because that is what it is: it does
+     * not add or remove a field, it decides whether the fields above are enforced
+     * on accounts that never saw this form (an OAuth2 login).
+     *
+     * @return string HTML
+     */
+    protected static function completion_gate_row(): string {
+        return html_writer::tag('tr',
+            html_writer::tag('td', '') .
+            html_writer::tag('td',
+                html_writer::span(get_string('completiongate', 'local_profilefields'), 'fw-semibold') . ' ' .
+                self::badge('special') . html_writer::div(
+                    get_string('completiongate_desc', 'local_profilefields'), 'text-muted small')) .
+            html_writer::tag('td',
+                self::yesno_select('completiongate', completion::enabled()), ['colspan' => 3]),
             ['class' => 'table-active']);
     }
 
@@ -490,6 +511,7 @@ class page {
             $source === manager::USERNAME_LOCALPART ? manager::USERNAME_LOCALPART : manager::USERNAME_EMAIL,
             manager::COMPONENT);
         set_config('countryfromphone', optional_param('countryfromphone', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
+        set_config(completion::SETTING, optional_param('completiongate', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
         set_config('ipmatchphone', optional_param('ipmatchphone', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
         set_config('consentenabled', optional_param('consentenabled', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
 

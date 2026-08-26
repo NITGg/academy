@@ -30,4 +30,9 @@ $callbacks = [
         'hook'     => \core\hook\output\before_http_headers::class,
         'callback' => \theme_nit\local\hook_callbacks::class . '::before_http_headers',
     ],
+    [
+        // Password strength meter + reveal toggle on the sign-up form.
+        'hook'     => \core\hook\output\before_footer_html_generation::class,
+        'callback' => \theme_nit\local\hook_callbacks::class . '::before_footer_html_generation',
+    ],
 ];

@@ -134,3 +134,12 @@ $string['acad_enrolledlabel'] = 'الملتحقون';
 $string['acad_startlabel'] = 'يبدأ';
 $string['acad_ilos'] = 'النتائج التعليمية المرجوة';
 $string['acad_bytheend'] = 'بنهاية هذا البرنامج التدريبي ستتمكّن من';
+
+// التسجيل: مؤشر قوة كلمة المرور وزر إظهار/إخفاء كلمة المرور.
+$string['passwordstrength'] = 'قوة كلمة المرور';
+$string['passwordstrengthweak'] = 'كلمة مرور ضعيفة';
+$string['passwordstrengthfair'] = 'كلمة مرور مقبولة';
+$string['passwordstrengthgood'] = 'كلمة مرور جيدة';
+$string['passwordstrengthstrong'] = 'كلمة مرور قوية';
+$string['showpassword'] = 'إظهار كلمة المرور';
+$string['hidepassword'] = 'إخفاء كلمة المرور';

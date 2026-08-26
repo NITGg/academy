@@ -124,3 +124,11 @@ $string['fieldnationalid'] = 'National ID';
 $string['fieldpassport'] = 'Passport';
 
 $string['privacy:metadata'] = 'The Sign-up and profile fields plugin only stores which fields a site shows. It stores no personal data.';
+
+// Completing a registration that never went through the sign-up form.
+$string['completetitle'] = 'Complete your registration';
+$string['completeintro'] = 'We just need a couple of details before you carry on.';
+$string['completesave'] = 'Save and continue';
+$string['completedone'] = 'Thanks — your registration is complete.';
+$string['completiongate'] = 'Hold incomplete accounts';
+$string['completiongate_desc'] = 'Send any signed-in user who is missing a required sign-up field to a page that collects it. Catches accounts created outside the sign-up form, such as a Google login.';

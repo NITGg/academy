@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the sign-up / profile field layout.
+ * Hook callbacks for local_profilefields.
  *
  * @package    local_profilefields
  * @copyright  2026 NIT
@@ -24,9 +24,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_profilefields';
-$plugin->version   = 2026082600;        // YYYYMMDDXX.
-$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
-$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.5.0';
+$callbacks = [
+    [
+        // Hold a user who never went through the sign-up form (an OAuth2 account,
+        // typically) on the page that collects what sign-up would have asked for.
+        'hook'     => \core\hook\output\before_http_headers::class,
+        'callback' => \local_profilefields\hook_callbacks::class . '::before_http_headers',
+    ],
+];

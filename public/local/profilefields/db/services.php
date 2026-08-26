@@ -81,4 +81,18 @@ $functions = [
         'ajax'        => true,
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    // Call this straight after login. An account created outside the sign-up form
+    // (a Google sign-in) was never asked for the phone, the country or the terms,
+    // so the app has to finish the job before letting the user browse. Save the
+    // answers with local_profilefields_update_profile - there is no second writer.
+    'local_profilefields_get_completion_status' => [
+        'classname'   => 'local_profilefields\external\get_completion_status',
+        'methodname'  => 'execute',
+        'description' => 'What the signed-in user still owes the sign-up flow: whether their registration is '
+            . 'complete, and if not, the outstanding fields (in sign-up order) plus whether the site policies '
+            . 'still need accepting.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
 ];

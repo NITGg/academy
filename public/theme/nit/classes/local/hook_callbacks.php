@@ -94,4 +94,63 @@ class hook_callbacks {
 
         $PAGE->set_pagelayout('embedded');
     }
+
+    /**
+     * Load the sign-up password affordances: a strength meter and a reveal
+     * ("eye") toggle on the password box.
+     *
+     * Why a hook and not the template
+     * -------------------------------
+     * theme_nit already overrides core/signup_form_layout, but a Mustache
+     * template cannot read $CFG. The meter has to know the site's *configured*
+     * password policy (Site administration > Security > Site security settings)
+     * so it never reports "strong" for something check_password_policy() will
+     * reject on submit — the bar is an affordance, the server stays the gate.
+     * So the policy and the labels are handed to the module from here.
+     *
+     * `before_footer_html_generation` is the right moment: the page is still
+     * open, so js_call_amd() lands in the footer script block, and the password
+     * box is guaranteed to be in the DOM by the time the module runs.
+     *
+     * Scoped to the sign-up page only. Nothing is injected anywhere else, and
+     * with JS off the form degrades to exactly what core renders today.
+     *
+     * @param \core\hook\output\before_footer_html_generation $hook
+     */
+    public static function before_footer_html_generation(
+        \core\hook\output\before_footer_html_generation $hook
+    ): void {
+        global $CFG, $PAGE;
+
+        if (empty($PAGE) || $PAGE->pagetype !== 'login-signup') {
+            return;
+        }
+
+        $policy = [
+            // With the policy switched off there is no floor to clear, so the
+            // meter scores purely on length and variety.
+            'minlength'   => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpasswordlength,
+            'digits'      => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpassworddigits,
+            'lower'       => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpasswordlower,
+            'upper'       => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpasswordupper,
+            'nonalphanum' => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpasswordnonalphanum,
+        ];
+
+        $strings = [
+            'strength'     => get_string('passwordstrength', 'theme_nit'),
+            'showpassword' => get_string('showpassword', 'theme_nit'),
+            'hidepassword' => get_string('hidepassword', 'theme_nit'),
+            // Keyed 1..4 to match the score the module produces.
+            'levels'       => [
+                1 => get_string('passwordstrengthweak', 'theme_nit'),
+                2 => get_string('passwordstrengthfair', 'theme_nit'),
+                3 => get_string('passwordstrengthgood', 'theme_nit'),
+                4 => get_string('passwordstrengthstrong', 'theme_nit'),
+            ],
+        ];
+
+        $PAGE->requires->js_call_amd('theme_nit/passwordstrength', 'init', [
+            ['policy' => $policy, 'strings' => $strings],
+        ]);
+    }
 }

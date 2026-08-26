@@ -56,5 +56,16 @@ function xmldb_local_profilefields_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026082404, 'local', 'profilefields');
     }
 
+    if ($oldversion < 2026082600) {
+        // Switch the completion gate on. Accounts created outside the sign-up form
+        // (a Google login) skipped every field this plugin manages, which among
+        // other things leaves `country` empty - and local_payments prices on it.
+        // Off by default in the class so a fresh install never locks itself out;
+        // an existing site that already relies on these fields wants it on.
+        set_config(\local_profilefields\completion::SETTING, 1, \local_profilefields\manager::COMPONENT);
+
+        upgrade_plugin_savepoint(true, 2026082600, 'local', 'profilefields');
+    }
+
     return true;
 }

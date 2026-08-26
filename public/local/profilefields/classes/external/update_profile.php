@@ -70,6 +70,11 @@ class update_profile extends external_api {
             'descriptionformat' => new external_value(PARAM_INT,
                 'The format the "description" value is in - 1 = HTML, 2 = plain text. Ignored when no '
                 . 'description is sent.', VALUE_DEFAULT, FORMAT_HTML),
+            'consent' => new external_value(PARAM_BOOL,
+                'Set to 1 to record that the user accepted the site policies. Only needed when '
+                . 'local_profilefields_get_completion_status reports consent.required - an account created '
+                . 'outside the sign-up form (an OAuth2 login) was never asked. Ignored otherwise.',
+                VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -79,13 +84,17 @@ class update_profile extends external_api {
      * @param array $fields the fields to change
      * @param int $userid whose profile, 0 for the caller's own
      * @param int $descriptionformat the format the description value is in
+     * @param bool $consent record acceptance of the site policies
      * @return array
      */
-    public static function execute($fields, $userid = 0, $descriptionformat = FORMAT_HTML): array {
+    public static function execute($fields, $userid = 0, $descriptionformat = FORMAT_HTML, $consent = 0): array {
+        global $DB, $USER;
+
         $params = self::validate_parameters(self::execute_parameters(), [
             'fields' => $fields,
             'userid' => $userid,
             'descriptionformat' => $descriptionformat,
+            'consent' => $consent,
         ]);
 
         $user = profile_api::get_user((int) $params['userid']);
@@ -124,6 +133,16 @@ class update_profile extends external_api {
         }
 
         $emailchanged = profile_api::save($user, $usernew);
+
+        // The terms checkbox. Only ever moves from "not agreed" to "agreed", and
+        // only for the profile's own owner - nobody consents on someone else's
+        // behalf. This is the flag auth_email_signup_user() sets on a normal
+        // sign-up; the account being updated here simply never went through one.
+        if (!empty($params['consent']) && \local_profilefields\manager::consent_enabled()
+                && empty($user->policyagreed) && (int) $user->id === (int) $USER->id) {
+            $DB->set_field('user', 'policyagreed', 1, ['id' => $user->id]);
+            $USER->policyagreed = 1;
+        }
 
         return [
             'success' => true,
