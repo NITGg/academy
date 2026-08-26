@@ -174,6 +174,19 @@ class complete_form extends moodleform {
             }
         }
 
+        // The "phone country must match the visitor's location" rule.
+        //
+        // profilefield_phone applies it only to a visitor creating an account
+        // (field.class.php: `$this->userid == 0 && !isloggedin()`), because an
+        // ordinary profile edit is legitimately done from another country. This page
+        // is neither: it IS the sign-up questions, just asked late, so the rule has
+        // to be applied here by hand or a Google account becomes the way around it -
+        // register with a Saudi number from an Egyptian address and nothing stops
+        // you, which the sign-up form would have refused.
+        if (manager::ip_match_phone()) {
+            $errors = array_merge($errors, signup::validate_ip_match($data));
+        }
+
         return $errors;
     }
 }

@@ -34,3 +34,7 @@ $string['privacy:metadata:profilefield_phone:fieldid'] = 'The ID of the phone pr
 $string['privacy:metadata:profilefield_phone:data'] = 'The phone number (country and number).';
 $string['privacy:metadata:profilefield_phone:dataformat'] = 'The format of the phone number.';
 $string['privacy:metadata:profilefield_phone:tableexplanation'] = 'Phone profile field data.';
+
+// Per-country number length (see profilefield_phone\dialcodes::LENGTHS).
+$string['invalidphonelength'] = 'The phone number for this country must be {$a} digits.';
+$string['invalidphonelengthrange'] = 'The phone number for this country must be between {$a->min} and {$a->max} digits.';

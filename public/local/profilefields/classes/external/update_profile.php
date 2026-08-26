@@ -123,7 +123,12 @@ class update_profile extends external_api {
 
         $usernew = profile_api::prepare_data($user, $described, $submitted, (int) $params['descriptionformat']);
 
+        // What the sign-up flow is still owed. Read before the save, so the answer
+        // is about the account as it arrived, not as this call leaves it.
+        $outstanding = \local_profilefields\completion::missing($user);
+
         $errors = profile_api::validate($user, $usernew, $described, $submitted);
+        $errors = array_merge($errors, self::signup_only_errors($user, $outstanding, $usernew));
         if (!empty($errors)) {
             return [
                 'success' => false,
@@ -131,10 +136,6 @@ class update_profile extends external_api {
                 'warnings' => self::as_warnings($errors),
             ];
         }
-
-        // What the sign-up flow was still owed before this save - checked here so
-        // the answer is not confused by the save itself.
-        $outstanding = \local_profilefields\completion::missing($user);
 
         $emailchanged = profile_api::save($user, $usernew);
 
@@ -160,6 +161,55 @@ class update_profile extends external_api {
             'emailchangepending' => $emailchanged,
             'warnings' => [],
         ];
+    }
+
+    /**
+     * Rules that belong to the sign-up flow rather than to profile editing.
+     *
+     * Today that is one rule: the phone's country must match where the visitor
+     * appears to be. profilefield_phone applies it to a visitor creating an account
+     * and to nobody else, because an ordinary profile edit is legitimately done from
+     * another country. But a call that is finishing a registration IS the sign-up
+     * questions, just asked late - so without this an OAuth2 account is the way
+     * around a rule the sign-up form enforces.
+     *
+     * Only fires while the phone is one of the outstanding fields, so a later,
+     * ordinary profile edit is untouched.
+     *
+     * @param \stdClass $user the profile being saved
+     * @param array $outstanding completion::missing() as it stood before the save
+     * @param \stdClass $usernew the prepared values
+     * @return array element name => message
+     */
+    protected static function signup_only_errors(
+        \stdClass $user,
+        array $outstanding,
+        \stdClass $usernew
+    ): array {
+        global $USER;
+
+        if ((int) $user->id !== (int) $USER->id
+                || !\local_profilefields\manager::ip_match_phone()) {
+            return [];
+        }
+
+        foreach ($outstanding['fields'] as $entry) {
+            if ($entry['kind'] !== 'custom'
+                    || $entry['field']->field->datatype !== 'phone') {
+                continue;
+            }
+            $value = $usernew->{$entry['name']} ?? null;
+            $iso = is_array($value) ? (string) ($value['country'] ?? '') : '';
+            if ($iso === '') {
+                continue;
+            }
+            $mismatch = \local_profilefields\signup::ip_country_error($iso);
+            if ($mismatch !== null) {
+                return [$entry['name'] => $mismatch];
+            }
+        }
+
+        return [];
     }
 
     /**

@@ -34,3 +34,7 @@ $string['privacy:metadata:profilefield_phone:fieldid'] = 'معرّف حقل ال
 $string['privacy:metadata:profilefield_phone:data'] = 'رقم الهاتف (الدولة والرقم).';
 $string['privacy:metadata:profilefield_phone:dataformat'] = 'صيغة رقم الهاتف.';
 $string['privacy:metadata:profilefield_phone:tableexplanation'] = 'بيانات حقل الهاتف.';
+
+// طول الرقم حسب الدولة.
+$string['invalidphonelength'] = 'رقم الهاتف لهذه الدولة يجب أن يكون {$a} أرقام.';
+$string['invalidphonelengthrange'] = 'رقم الهاتف لهذه الدولة يجب أن يكون بين {$a->min} و {$a->max} رقمًا.';

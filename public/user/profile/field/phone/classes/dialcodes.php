@@ -80,6 +80,56 @@ class dialcodes {
     ];
 
     /**
+     * How many digits a national (subscriber) number has, per country.
+     *
+     * `[min, max]` digit counts for the number AFTER the dialling code, i.e. what
+     * the user types in the number box. A "+20 1012345678" entry is 10 digits.
+     *
+     * Why a table and not a library
+     * -----------------------------
+     * Getting this exactly right for every country is what libphonenumber exists
+     * for, and Moodle ships nothing of the kind - there is no site setting for
+     * phone length anywhere in core. Pulling in libphonenumber means a Composer
+     * dependency and a few megabytes of metadata to keep updated, for a sign-up
+     * box. So this table carries the countries the academy actually sees, taken
+     * from the ITU national numbering plans and covering mobile numbers (the
+     * shorter landline formats in the same country are inside the same range).
+     *
+     * Anything not listed falls back to GENERIC_LENGTH, which is the widest range
+     * any E.164 number can occupy. That is deliberate: a country we have not
+     * checked must never reject a real number. Add entries as needed - a wrong
+     * length here blocks a legitimate sign-up, so only add what you can verify.
+     *
+     * @var array<string,int[]>
+     */
+    const LENGTHS = [
+        // Arab world.
+        'EG' => [10, 10], 'SA' => [9, 9],  'AE' => [9, 9],  'KW' => [8, 8],
+        'QA' => [8, 8],   'BH' => [8, 8],  'OM' => [8, 8],  'JO' => [9, 9],
+        'LB' => [7, 8],   'IQ' => [10, 10], 'SY' => [9, 9], 'YE' => [9, 9],
+        'PS' => [9, 9],   'LY' => [9, 9],  'SD' => [9, 9],  'MA' => [9, 9],
+        'DZ' => [9, 9],   'TN' => [8, 8],  'MR' => [8, 8],  'SO' => [8, 9],
+        'DJ' => [8, 8],   'KM' => [7, 7],
+        // Elsewhere, most common among our learners.
+        'TR' => [10, 10], 'IR' => [10, 10], 'PK' => [10, 10], 'IN' => [10, 10],
+        'BD' => [10, 10], 'ID' => [9, 12],  'MY' => [9, 10],  'PH' => [10, 10],
+        'CN' => [11, 11], 'JP' => [10, 10], 'KR' => [9, 10],
+        'US' => [10, 10], 'CA' => [10, 10], 'GB' => [10, 10], 'IE' => [9, 9],
+        'DE' => [10, 11], 'FR' => [9, 9],   'IT' => [9, 10],  'ES' => [9, 9],
+        'PT' => [9, 9],   'NL' => [9, 9],   'BE' => [8, 9],   'CH' => [9, 9],
+        'AT' => [10, 11], 'SE' => [7, 9],   'NO' => [8, 8],   'DK' => [8, 8],
+        'FI' => [9, 10],  'PL' => [9, 9],   'RO' => [9, 9],   'GR' => [10, 10],
+        'RU' => [10, 10], 'UA' => [9, 9],
+        'NG' => [10, 10], 'KE' => [9, 9],   'ZA' => [9, 9],   'GH' => [9, 9],
+        'ET' => [9, 9],   'TZ' => [9, 9],   'UG' => [9, 9],
+        'BR' => [10, 11], 'MX' => [10, 10], 'AR' => [10, 10], 'AU' => [9, 9],
+        'NZ' => [8, 10],
+    ];
+
+    /** @var int[] The [min, max] used for any country not in LENGTHS. */
+    const GENERIC_LENGTH = [4, 15];
+
+    /**
      * The dialling code for a country, without the leading "+".
      *
      * @param string $iso ISO alpha-2 country code
@@ -87,6 +137,35 @@ class dialcodes {
      */
     public static function code(string $iso): string {
         return self::CODES[strtoupper($iso)] ?? '';
+    }
+
+    /**
+     * The digit count a national number may have in a country.
+     *
+     * @param string $iso ISO alpha-2 country code
+     * @return int[] [min, max]
+     */
+    public static function length(string $iso): array {
+        return self::LENGTHS[strtoupper($iso)] ?? self::GENERIC_LENGTH;
+    }
+
+    /**
+     * Is this a plausible national number for the country?
+     *
+     * Length only. It cannot tell a real number from an invented one of the right
+     * shape - that needs a carrier lookup - but it does catch the everyday mistakes:
+     * a digit dropped, a digit doubled, the dialling code typed into the number box,
+     * or a number pasted from another country.
+     *
+     * @param string $iso ISO alpha-2 country code
+     * @param string $number the national number, digits only
+     * @return bool
+     */
+    public static function length_ok(string $iso, string $number): bool {
+        [$min, $max] = self::length($iso);
+        $digits = strlen(preg_replace('/\D/', '', $number));
+
+        return $digits >= $min && $digits <= $max;
     }
 
     /**
@@ -137,10 +216,19 @@ class dialcodes {
      * name so the order follows the interface language.
      *
      * The flag and the dialling code come before the country name on purpose: the
-     * select sits beside the number box, so it is narrow, and a closed select clips
-     * whatever does not fit. Leading with the code keeps the part that has to stay
-     * readable - which country the number will be dialled as - visible at every
-     * width; the full name is still there in the open list.
+     * The label leads with the country NAME, and that ordering is load-bearing, not
+     * cosmetic. A browser's select type-ahead ("press S to jump to Saudi Arabia")
+     * matches from the first character of the option text. This label used to open
+     * with the flag emoji - which is built from two regional-indicator code points
+     * standing for the ISO code - so the jump landed on the country CODE instead:
+     * pressing "g" never found Germany (DE), and whether it worked at all depended
+     * on how the browser folds those code points. That reads as "sometimes the
+     * keyboard filters, sometimes it doesn't".
+     *
+     * So: name, then dialling code, then the flag last. The flag is the first thing
+     * a narrow select clips, which is the right thing to lose - and on Windows,
+     * where there is no flag glyph, it was rendering as a duplicate of the ISO code
+     * anyway.
      *
      * @return array<string,string>
      */
@@ -161,7 +249,7 @@ class dialcodes {
 
         $menu = [];
         foreach ($order as $iso => $name) {
-            $menu[$iso] = trim(self::flag($iso) . ' +' . self::CODES[$iso] . ' ' . $name);
+            $menu[$iso] = trim($name . ' +' . self::CODES[$iso] . ' ' . self::flag($iso));
         }
 
         return $menu;

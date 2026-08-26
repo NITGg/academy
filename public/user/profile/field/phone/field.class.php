@@ -200,8 +200,15 @@ class profile_field_phone extends profile_field_base {
             $errors[$this->inputname] = get_string('selectacountry');
             return $errors;
         }
-        if (strlen($number) < 4 || strlen($number) > 15) {
-            $errors[$this->inputname] = get_string('invalidphone', 'profilefield_phone');
+        // Length, per country where we know it. A number that is the right shape can
+        // still be nobody's number, but the wrong length never is - and a wrong
+        // number is only discovered when a password reset or an OTP fails to arrive.
+        if (!dialcodes::length_ok($iso, $number)) {
+            [$min, $max] = dialcodes::length($iso);
+            $errors[$this->inputname] = $min === $max
+                ? get_string('invalidphonelength', 'profilefield_phone', $min)
+                : get_string('invalidphonelengthrange', 'profilefield_phone',
+                    (object) ['min' => $min, 'max' => $max]);
             return $errors;
         }
 
