@@ -16,6 +16,7 @@
 
 namespace local_profilefields;
 
+use core_text;
 use MoodleQuickForm;
 
 defined('MOODLE_INTERNAL') || die();
@@ -148,9 +149,14 @@ class signup {
     public static function inject_country_sync(): void {
         global $PAGE;
 
-        $js = <<<'JS'
+        $element = self::phone_element();
+        if ($element === '') {
+            return;
+        }
+
+        $js = <<<JS
 (function() {
-    var phone = document.querySelector('select[name="profile_field_phone[country]"]');
+    var phone = document.querySelector('select[name="{$element}[country]"]');
     var country = document.querySelector('select[name="country"]');
     if (!phone || !country) {
         return;
@@ -168,6 +174,135 @@ JS;
     }
 
     /**
+     * The form element name of the phone field the sign-up flow uses.
+     *
+     * One lookup for every caller that needs the phone: the sync script, the
+     * IP-match rule and the "country follows the phone" derivation all have to
+     * agree on *which* phone field they mean, and none of them may assume the
+     * shortname is literally `phone` - the admin names the field.
+     *
+     * The sign-up one wins when there is more than one, because that is the box
+     * the visitor actually filled in; any phone field will do otherwise, which is
+     * what the completion page needs when the admin took the phone off sign-up but
+     * left it required.
+     *
+     * @return string e.g. `profile_field_phone`, or '' when the site has no phone field
+     */
+    public static function phone_element(): string {
+        global $DB;
+
+        // Several callers ask in one request (the form, the rules, the derivation),
+        // and the answer cannot change mid-request.
+        static $element = null;
+        if ($element !== null) {
+            return $element;
+        }
+
+        $field = $DB->get_record_select('user_info_field', 'datatype = ? AND signup = 1',
+            ['phone'], 'shortname', IGNORE_MULTIPLE)
+            ?: $DB->get_record_select('user_info_field', 'datatype = ?',
+                ['phone'], 'shortname', IGNORE_MULTIPLE);
+
+        return $element = $field ? self::CUSTOM_PREFIX . $field->shortname : '';
+    }
+
+    /**
+     * The country code chosen in the phone field, out of a set of submitted values.
+     *
+     * The single implementation of "which country did the phone say?", shared by
+     * the web sign-up form, the completion page and the web-service sign-up, so
+     * every registration path stores the same answer. An unrecognised code comes
+     * back as '' rather than being written to the profile - `country` is what
+     * `local_payments\country_detector` prices on, so it only ever takes a real
+     * ISO alpha-2 code.
+     *
+     * @param array $data submitted values, keyed by element name
+     * @return string ISO alpha-2, or '' when there is no usable phone value
+     */
+    public static function phone_country(array $data): string {
+        $element = self::phone_element();
+        if ($element === '') {
+            return '';
+        }
+
+        $value = $data[$element] ?? null;
+        if (!is_array($value) || empty($value['country'])) {
+            return '';
+        }
+
+        $iso = core_text::strtoupper(trim((string) $value['country']));
+        $countries = get_string_manager()->get_list_of_countries(true);
+
+        return isset($countries[$iso]) ? $iso : '';
+    }
+
+    /**
+     * The country the phone field carries in the request being processed.
+     *
+     * The web form's server-side twin of `inject_country_sync()`: the script keeps
+     * a *visible* Country box in step, but when the admin switched that box off
+     * there is nothing on the page to sync and the value has to be derived from
+     * what was posted. Reading `$_POST` directly is the same trick `add_hidden()`
+     * relies on - `definition()` runs before QuickForm copies the submission in.
+     *
+     * @return string ISO alpha-2, or '' when nothing usable was posted
+     */
+    public static function posted_phone_country(): string {
+        $element = self::phone_element();
+        if ($element === '' || empty($_POST[$element]) || !is_array($_POST[$element])) {
+            return '';
+        }
+
+        // Read by hand rather than with optional_param_array(): that helper raises a
+        // coding exception when a value is itself an array, which a hand-made POST
+        // can arrange, and this runs while the sign-up form is being built.
+        $iso = $_POST[$element]['country'] ?? '';
+        if (!is_scalar($iso)) {
+            return '';
+        }
+
+        return self::phone_country([$element => ['country' => clean_param((string) $iso, PARAM_ALPHA)]]);
+    }
+
+    /**
+     * The country the account's saved phone number carries.
+     *
+     * The completion page can be finishing a registration whose phone was answered
+     * earlier - core's own /user/edit.php redirect may have collected it - in which
+     * case nothing is posted for the phone and the country still has to come from
+     * somewhere. `profilefield_phone` stores the pair as `ISO:number`.
+     *
+     * @param \stdClass $user the account to read
+     * @return string ISO alpha-2, or '' when there is no usable stored value
+     */
+    public static function stored_phone_country(\stdClass $user): string {
+        global $DB;
+
+        $element = self::phone_element();
+        if ($element === '' || empty($user->id)) {
+            return '';
+        }
+        $shortname = substr($element, strlen(self::CUSTOM_PREFIX));
+
+        // profile_load_custom_fields() may already have put it on the session user.
+        $raw = (string) ($user->profile[$shortname] ?? '');
+        if ($raw === '') {
+            $raw = (string) $DB->get_field_sql(
+                "SELECT d.data
+                   FROM {user_info_data} d
+                   JOIN {user_info_field} f ON f.id = d.fieldid
+                  WHERE d.userid = ? AND f.shortname = ?",
+                [$user->id, $shortname]);
+        }
+        if ($raw === '' || strpos($raw, ':') === false) {
+            return '';
+        }
+        [$iso] = explode(':', $raw, 2);
+
+        return self::phone_country([$element => ['country' => $iso]]);
+    }
+
+    /**
      * Validate that the visitor's IP country matches the phone country.
      *
      * Returns an error only when a geo-IP source resolves the IP to a *different*
@@ -178,15 +313,11 @@ JS;
      * @return array element name => error message (empty when OK or skipped)
      */
     public static function validate_ip_match(array $data): array {
-        global $DB;
-
         // The phone field the check applies to (first one shown on sign-up).
-        $field = $DB->get_record_select('user_info_field',
-            "datatype = ? AND signup = 1", ['phone'], '*', IGNORE_MULTIPLE);
-        if (!$field) {
+        $element = self::phone_element();
+        if ($element === '') {
             return [];
         }
-        $element = self::CUSTOM_PREFIX . $field->shortname;
         $value = $data[$element] ?? null;
         if (!is_array($value) || empty($value['country'])) {
             return [];
@@ -284,6 +415,19 @@ JS;
             case 'city':
                 return (string) ($CFG->defaultcity ?? '');
             case 'country':
+                // "Country follows the phone" has to hold whether or not the Country
+                // box is on the form. When it is, the sync script does it in the
+                // browser; when it is switched off - which is how this site is set
+                // up - there is no select to sync, so the hidden input carries the
+                // posted phone country instead of the site default. Without this the
+                // web form stores $CFG->country for everyone, and pricing falls back
+                // to a geo-IP guess for an answer the user already gave us.
+                if (manager::country_from_phone()) {
+                    $iso = self::posted_phone_country();
+                    if ($iso !== '') {
+                        return $iso;
+                    }
+                }
                 return (string) ($CFG->country ?? '');
             default:
                 return '';

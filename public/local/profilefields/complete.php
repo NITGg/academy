@@ -33,6 +33,7 @@ require_once($CFG->dirroot . '/user/lib.php');
 
 use local_profilefields\completion;
 use local_profilefields\form\complete_form;
+use local_profilefields\manager;
 use local_profilefields\signup;
 
 // require_login() MUST NOT be used here. It runs user_not_fully_set_up(), which
@@ -69,6 +70,29 @@ if ($data = $form->get_data()) {
         $name = $entry['name'];
         if ($entry['kind'] === 'core' && isset($data->$name)) {
             $usernew->$name = $data->$name;
+        }
+    }
+
+    // "Country follows the phone", the same rule the sign-up form applies - and the
+    // reason this page exists at all: `country` is what local_payments prices on,
+    // and an OAuth2 account is carrying whatever user_create_user() stamped it with
+    // rather than an answer from the user.
+    //
+    // When the Country box is one of the outstanding fields the sync script already
+    // put the value in it, and the loop above has it. When it is not - the usual
+    // case, because the admin keeps Country off the sign-up form - nothing on the
+    // page carries the country, so it is derived here from the phone that was just
+    // answered. Note this writes `country`, never the `nationality` profile field:
+    // they are different questions, and only `country` drives pricing.
+    if (manager::country_from_phone() && !isset($usernew->country)) {
+        $iso = signup::phone_country((array) $data);
+        if ($iso === '') {
+            // The phone was not among the outstanding fields (it was already on the
+            // account), so nothing was posted for it - read the stored value.
+            $iso = signup::stored_phone_country($USER);
+        }
+        if ($iso !== '' && $iso !== (string) ($USER->country ?? '')) {
+            $usernew->country = $iso;
         }
     }
 

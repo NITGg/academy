@@ -141,7 +141,23 @@ class completion {
     public static function is_complete(?stdClass $user = null): bool {
         $missing = self::missing($user);
 
-        return empty($missing['fields']) && empty($missing['consent']);
+        return empty(self::blocking($missing['fields'])) && empty($missing['consent']);
+    }
+
+    /**
+     * The outstanding fields that actually hold the account up.
+     *
+     * `missing()` reports two kinds of field. A blocking one is a requirement -
+     * the account is not finished until it is answered. A non-blocking one is a
+     * sign-up box the user was never shown (an optional one), offered here so the
+     * completion page asks exactly what sign-up asks; leaving it empty is a valid
+     * answer, and gating on it would bounce the user back to this page forever.
+     *
+     * @param array[] $fields entries from missing()
+     * @return array[] only the blocking ones
+     */
+    public static function blocking(array $fields): array {
+        return array_values(array_filter($fields, static fn(array $f): bool => !empty($f['blocking'])));
     }
 
     /**
@@ -152,6 +168,11 @@ class completion {
      * page has to honour that or the two forms visibly differ. Each entry carries
      * the element name, and for a custom field the field object itself - it knows
      * how to render, validate and save itself, so nothing is restated here.
+     *
+     * The list is what the sign-up form would put on the page, so it includes the
+     * optional sign-up boxes too - marked `blocking => false`, because the page
+     * offers them but nothing waits on an answer. `blocking()` is the filter for
+     * anyone asking "is this account finished?".
      *
      * @param stdClass|null $user defaults to $USER
      * @return array{fields: array[], consent: bool}
@@ -181,7 +202,10 @@ class completion {
             if (in_array($name, self::SIGNUP_ONLY, true) || !in_array($name, self::RENDERABLE_CORE, true)) {
                 continue;
             }
-            if (empty($settings['required']) || !manager::on_signup($name)) {
+            // Off the sign-up form is off this page too: the two ask the same
+            // questions. A box sign-up shows but does not insist on is still shown
+            // here - it is simply not something the account is held up for.
+            if (!manager::on_signup($name)) {
                 continue;
             }
             $current = trim((string) ($user->$name ?? ''));
@@ -191,12 +215,18 @@ class completion {
             // the user - so it is asked even though it looks filled in.
             $sweep = $askall && !in_array($name, self::PROVIDER_SUPPLIED, true);
             if ($sweep || $current === '') {
+                // "Required" is only ours to decide where `canrequire` says so -
+                // core insists on the name boxes whatever our config holds, and
+                // user_not_fully_set_up() would bounce an account that left one
+                // empty to /user/edit.php the moment this page let it through.
+                $meta = manager::core_fields()[$name] ?? [];
                 $fields[] = [
-                    'kind'    => 'core',
-                    'token'   => $name,
-                    'name'    => $name,
-                    'field'   => null,
-                    'current' => $current,
+                    'kind'     => 'core',
+                    'token'    => $name,
+                    'name'     => $name,
+                    'field'    => null,
+                    'current'  => $current,
+                    'blocking' => empty($meta['canrequire']) || !empty($settings['required']),
                 ];
             }
         }
@@ -205,21 +235,26 @@ class completion {
             if ($field->is_locked() || !$field->get_field_config_for_external()['visible']) {
                 continue;
             }
-            // Otherwise the same test core runs in
+            // Two reasons to ask. A *required* field is the same test core runs in
             // profile_has_required_custom_fields_set(), so anything that would bounce
             // the user to /user/edit.php is asked here first - including a required
-            // field the admin kept off sign-up.
+            // field the admin kept off sign-up. A field that is merely *on sign-up*
+            // is asked because this page stands in for the sign-up form and has to
+            // offer the same boxes; an empty answer to one of those is a fine answer,
+            // which is what `blocking` records.
             $unanswered = $field->is_empty() || ($askall && $field->is_signup_field());
-            if ($field->is_required() && $unanswered) {
-                $shortname = $field->field->shortname;
-                $fields[] = [
-                    'kind'    => 'custom',
-                    'token'   => 'cf:' . $shortname,
-                    'name'    => signup::CUSTOM_PREFIX . $shortname,
-                    'field'   => $field,
-                    'current' => '',
-                ];
+            if (!$unanswered || (!$field->is_required() && !$field->is_signup_field())) {
+                continue;
             }
+            $shortname = $field->field->shortname;
+            $fields[] = [
+                'kind'     => 'custom',
+                'token'    => 'cf:' . $shortname,
+                'name'     => signup::CUSTOM_PREFIX . $shortname,
+                'field'    => $field,
+                'current'  => '',
+                'blocking' => $field->is_required(),
+            ];
         }
 
         return [

@@ -67,7 +67,7 @@ class complete_form extends moodleform {
 
         foreach ($missing['fields'] as $entry) {
             if ($entry['kind'] === 'core') {
-                $this->add_core_field($entry['name']);
+                $this->add_core_field($entry['name'], !empty($entry['blocking']));
                 // Honour the "Rename" column on the management page, the same way
                 // signup::apply() does - otherwise the box the user was going to see
                 // as "Nationality" turns up here labelled "Country". Custom fields
@@ -96,10 +96,12 @@ class complete_form extends moodleform {
         }
 
         // Same courtesy the sign-up form does: keep the country box in step with the
-        // phone's country code, so most people never touch it.
+        // phone's country code, so most people never touch it. The element name is
+        // whatever the admin called the phone field, never a hard-coded `phone`.
+        $phone = signup::phone_element();
         if (manager::country_from_phone()
                 && $mform->elementExists('country')
-                && $mform->elementExists(signup::CUSTOM_PREFIX . 'phone')) {
+                && $phone !== '' && $mform->elementExists($phone)) {
             signup::inject_country_sync();
         }
 
@@ -114,9 +116,10 @@ class complete_form extends moodleform {
      * draw, which would be an inescapable redirect loop.
      *
      * @param string $name core user field name
+     * @param bool $required whether the admin made the box a requirement on sign-up
      * @return void
      */
-    protected function add_core_field(string $name): void {
+    protected function add_core_field(string $name, bool $required = true): void {
         global $CFG;
 
         $mform = $this->_form;
@@ -128,7 +131,6 @@ class complete_form extends moodleform {
                 if (!empty($CFG->defaultcity)) {
                     $mform->setDefault('city', $CFG->defaultcity);
                 }
-                $mform->addRule('city', get_string('required'), 'required', null, 'client');
                 break;
 
             case 'country':
@@ -138,15 +140,24 @@ class complete_form extends moodleform {
                 );
                 $mform->addElement('select', 'country', get_string('country'), $countries);
                 $mform->setDefault('country', '');
-                $mform->addRule('country', get_string('required'), 'required', null, 'client');
                 break;
 
             case 'firstname':
             case 'lastname':
                 $mform->addElement('text', $name, get_string($name));
                 $mform->setType($name, core_user::get_property_type($name));
-                $mform->addRule($name, get_string('required'), 'required', null, 'client');
                 break;
+
+            default:
+                return;
+        }
+
+        // Required exactly where sign-up would be: a box the admin left optional is
+        // offered, not demanded. Demanding one here would also be a trap - nothing
+        // marks the account done until every *requirement* is answered, so a box the
+        // user may legitimately leave empty must not be one of them.
+        if ($required) {
+            $mform->addRule($name, get_string('required'), 'required', null, 'client');
         }
     }
 

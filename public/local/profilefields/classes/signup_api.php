@@ -453,23 +453,7 @@ class signup_api {
      * @return string ISO alpha-2, or '' when there is no usable phone value
      */
     protected static function phone_country(array $data): string {
-        global $DB;
-
-        $field = $DB->get_record_select('user_info_field', 'datatype = ? AND signup = 1',
-            ['phone'], 'shortname', IGNORE_MULTIPLE);
-        if (!$field) {
-            return '';
-        }
-
-        $value = $data[signup::CUSTOM_PREFIX . $field->shortname] ?? null;
-        if (!is_array($value) || empty($value['country'])) {
-            return '';
-        }
-
-        $iso = core_text::strtoupper(trim((string) $value['country']));
-        $countries = get_string_manager()->get_list_of_countries(true);
-
-        return isset($countries[$iso]) ? $iso : '';
+        return signup::phone_country($data);
     }
 
     /**

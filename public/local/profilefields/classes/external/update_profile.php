@@ -127,6 +127,13 @@ class update_profile extends external_api {
         // is about the account as it arrived, not as this call leaves it.
         $outstanding = \local_profilefields\completion::missing($user);
 
+        // The app's half of the rule /local/profilefields/complete.php applies: while
+        // this call is finishing a registration, `country` follows the phone the user
+        // just gave, so a Google account ends up with the same country an ordinary
+        // sign-up would have stored. An ordinary later profile edit is untouched -
+        // nothing is outstanding by then.
+        self::apply_country_from_phone($user, $outstanding, $usernew, $submitted);
+
         $errors = profile_api::validate($user, $usernew, $described, $submitted);
         $errors = array_merge($errors, self::signup_only_errors($user, $outstanding, $usernew));
         if (!empty($errors)) {
@@ -161,6 +168,46 @@ class update_profile extends external_api {
             'emailchangepending' => $emailchanged,
             'warnings' => [],
         ];
+    }
+
+    /**
+     * Store the phone's country in `country`, while this call is finishing sign-up.
+     *
+     * The web form does this in the browser when the Country box is on the page and
+     * in complete.php when it is not; the sign-up web service does it in
+     * `signup_api::normalise()`. This is the fourth and last path into the same
+     * rule, so every way of registering leaves the same value behind. Only `country`
+     * is written - `nationality`, where a site has one, is a different question and
+     * is never derived from a dialling code.
+     *
+     * @param \stdClass $user the profile being saved
+     * @param array $outstanding completion::missing() as it stood before the save
+     * @param \stdClass $usernew the prepared values, modified in place
+     * @param array $submitted the field values this call sent, keyed by element name
+     * @return void
+     */
+    protected static function apply_country_from_phone(
+        \stdClass $user,
+        array $outstanding,
+        \stdClass $usernew,
+        array $submitted
+    ): void {
+        global $USER;
+
+        if ((int) $user->id !== (int) $USER->id
+                || !\local_profilefields\manager::country_from_phone()
+                || empty(\local_profilefields\completion::blocking($outstanding['fields']))
+                || array_key_exists('country', $submitted)) {
+            return;
+        }
+
+        $iso = \local_profilefields\signup::phone_country((array) $usernew);
+        if ($iso === '') {
+            $iso = \local_profilefields\signup::stored_phone_country($user);
+        }
+        if ($iso !== '' && $iso !== (string) ($user->country ?? '')) {
+            $usernew->country = $iso;
+        }
     }
 
     /**
@@ -233,13 +280,18 @@ class update_profile extends external_api {
         if ((int) $user->id !== (int) $USER->id) {
             return;
         }
-        if (empty($outstanding['fields']) && empty($outstanding['consent'])) {
+        // Only the requirements have to have been answered. An optional sign-up box
+        // is offered by the form, and a client that leaves it out has still answered
+        // everything that was asked of it - waiting for it would hold the account in
+        // the gate for a value nobody insists on.
+        $required = \local_profilefields\completion::blocking($outstanding['fields']);
+        if (empty($required) && empty($outstanding['consent'])) {
             return;
         }
         if (!empty($outstanding['consent']) && !$consent) {
             return;
         }
-        foreach ($outstanding['fields'] as $entry) {
+        foreach ($required as $entry) {
             if (!array_key_exists($entry['name'], $submitted)) {
                 return;
             }
