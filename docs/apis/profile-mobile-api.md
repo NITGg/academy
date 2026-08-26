@@ -201,6 +201,7 @@ cannot change it here.
 | `fields` | array | `[{name, value}]` — `name` is the field's `name` from step 2 |
 | `userid` | int | Optional. `0` (default) = the calling user |
 | `descriptionformat` | int | Optional. The format the `description` value is in: `1` = HTML (default), `2` = plain text |
+| `consent` | bool | Optional, `0` (default). Records acceptance of the site policies. Only needed when finishing a Google sign-up — see [oauth-completion-mobile-api.md](oauth-completion-mobile-api.md). Ignored otherwise |
 
 **A submission is a partial update.** Only the fields you send are changed, so
 the app can save one screen of a multi-step profile without blanking the rest.
@@ -217,6 +218,12 @@ all-or-nothing behaviour.
 A name that is not on the form comes back as an exception
 (`invalid_parameter_exception`) — that is a client bug, not a user error. A
 `locked` field is accepted and silently ignored, matching the web form.
+
+**Two things this call also does when it is finishing a Google sign-up.** If the
+account still owes the sign-up form answers, a save that covers *all* of them
+marks the registration complete, and the phone's "country must match your
+location" rule is applied. Neither affects an ordinary profile edit. Details in
+[oauth-completion-mobile-api.md](oauth-completion-mobile-api.md).
 
 ```json
 {

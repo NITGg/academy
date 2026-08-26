@@ -103,6 +103,18 @@ Each entry of `fields`:
 `value` is the ISO code, `label` the country name and `dialcode` its `+…`
 prefix. Render a country picker plus a number box.
 
+> **Read the `+…` prefix from `dialcode`, never by slicing `label`.** As of
+> `profilefield_phone` 1.1.0 the label leads with the country name
+> (`Egypt +20 🇪🇬`, previously `🇪🇬 +20 Egypt`), so any parser that assumed the
+> old order will break.
+>
+> The same release checks the **number length per country** — Egypt 10 digits,
+> Saudi Arabia 9, Kuwait 8, and so on; countries not in the table keep the old
+> 4–15 range. A wrong length now comes back as a field error naming the expected
+> count ("The phone number for this country must be 10 digits."), so show the
+> message as it is. See
+> [oauth-completion-mobile-api.md](oauth-completion-mobile-api.md#phone-field-changes).
+
 ### Example response (today's configuration)
 
 ```json
@@ -127,7 +139,7 @@ prefix. Render a country picker plus a number box.
     {"name": "email",     "type": "email",    "label": "Email address","required": true,  "iscustom": false, "options": []},
     {"name": "password",  "type": "password", "label": "Password",     "required": true,  "iscustom": false, "options": []},
     {"name": "profile_field_phone", "type": "phone", "label": "Phone", "required": true, "iscustom": true,
-     "options": [{"value": "EG", "label": "🇪🇬 +20 Egypt", "dialcode": "+20"}, …]},
+     "options": [{"value": "EG", "label": "Egypt +20 🇪🇬", "dialcode": "+20"}, …]},
     {"name": "profile_field_nationality", "type": "menu", "label": "Nationality", "required": false, "iscustom": true,
      "options": [{"value": "Egyptian", "label": "Egyptian", "dialcode": ""}, …]},
     {"name": "consent",   "type": "consent",  "label": "I agree to the …", "required": true, "iscustom": false, "options": []}

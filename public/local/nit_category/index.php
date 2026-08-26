@@ -206,8 +206,10 @@ if ($nitcheckout) {
 // to its own "Buy now" button. Everything the card shows now comes out of this array.
 //
 // Guest vs logged in: price_resolver::resolve() is country-aware and keyed on the viewer, so
-// the user id is passed through in BOTH states — a guest (id 0) is priced by IP geolocation,
-// a logged-in user by their profile country (see local_payments\country_detector::detect()).
+// the user id is passed through in BOTH states — a logged-in user is priced by their profile
+// country, and a guest (id 0), or a logged-in user whose profile has no country, by IP
+// geolocation. When neither yields a country the course's default price is used; see
+// local_payments\country_detector::detect_for_pricing().
 $nitcourseinfo = function ($courseid) use ($nitcheckout) {
     global $USER, $DB;
     $out = ['enrolled' => false, 'purchased' => false, 'covered' => false, 'free' => true,

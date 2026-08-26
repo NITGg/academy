@@ -31,16 +31,23 @@ class price_resolver {
         global $DB, $USER;
 
         $userid = $userid ?? $USER->id;
-        $country = country_detector::detect($userid, $app_country);
+
+        // May be '' when the country genuinely cannot be determined (logged-in user with no
+        // profile country AND no usable IP, or a guest whose IP lookup failed). That case must
+        // land on the course's Default price row, never on the admin default country's row.
+        $country = country_detector::detect_for_pricing($userid, $app_country);
 
         // Country-specific active price wins; otherwise the course's default active price.
-        $price_record = $DB->get_record_select(
-            'local_payments_course_prices',
-            'courseid = :courseid AND country = :country AND is_active = 1',
-            ['courseid' => $courseid, 'country' => $country],
-            '*',
-            IGNORE_MULTIPLE
-        );
+        $price_record = null;
+        if ($country !== '') {
+            $price_record = $DB->get_record_select(
+                'local_payments_course_prices',
+                'courseid = :courseid AND country = :country AND is_active = 1',
+                ['courseid' => $courseid, 'country' => $country],
+                '*',
+                IGNORE_MULTIPLE
+            );
+        }
 
         if (!$price_record) {
             $price_record = $DB->get_record_select(
@@ -66,7 +73,10 @@ class price_resolver {
             'sale_price' => null,
             'original_price' => $price,
             'currency' => $price_record->currency,
-            'country' => $country,
+            // Consumers such as manager::get_provider() and the transaction row need a real
+            // code, so an unknown country is reported as the admin default here — that only
+            // affects provider routing/reporting, never which price was chosen above.
+            'country' => $country !== '' ? $country : country_detector::fallback_country(),
             'discount_pct' => 0,
             'is_sale_active' => false,
             'sale_ends_at' => 0,

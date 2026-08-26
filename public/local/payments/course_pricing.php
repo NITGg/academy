@@ -100,35 +100,50 @@ $prices = $DB->get_records('local_payments_course_prices', ['courseid' => $cours
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('coursepricing', 'local_payments'));
 
-// Admin note: explain how the price a user sees is chosen. The key idea to make clear is that
-// pricing is ALWAYS by country — the IP only *identifies* the country for a guest, it does not
-// carry a price of its own. Rendered in the admin's current language (site is en/ar).
+// Admin note: explain how the price a user sees is chosen. Two key ideas to make clear:
+// pricing is ALWAYS by country (the IP only *identifies* a country, it carries no price of its
+// own), and every dead end — no profile country, no usable IP — resolves to the Default price
+// row rather than to some other country's price. Mirrors local_payments\country_detector.
+// Rendered in the admin's current language (site is en/ar).
 $pricingnote_isar = (strpos(current_language(), 'ar') === 0);
 if ($pricingnote_isar) {
     $pricingnote =
         '<strong>كيف يظهر سعر الكورس للمستخدم؟</strong><br>'
-        . 'السعر يعتمد دائمًا على <strong>دولة المستخدم</strong>، وطريقة معرفة الدولة:'
-        . '<ul style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
-        . '<li>مستخدم <strong>مسجّل دخول</strong>: تُؤخذ الدولة من بروفايله (الدولة التي سجّل بها).</li>'
-        . '<li>مستخدم <strong>غير مسجّل</strong>: نُخمّن دولته من عنوان الـ IP (موقعه التقريبي).</li>'
-        . '</ul>'
-        . 'بعد تحديد الدولة: إذا كان للكورس سعرٌ مضبوطٌ لتلك الدولة يظهر هذا السعر، '
+        . 'السعر يعتمد دائمًا على <strong>دولة المستخدم</strong>. تُحدَّد الدولة بالترتيب التالي، '
+        . 'وأوّل خطوة تنجح هي المعتمدة:'
+        . '<ol style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
+        . '<li>مستخدم <strong>مسجّل دخول ولبروفايله دولة</strong>: تُؤخذ الدولة من بروفايله '
+        . '(الدولة التي سجّل بها).</li>'
+        . '<li>مستخدم <strong>مسجّل دخول لكن بروفايله بلا دولة</strong>، أو مستخدم '
+        . '<strong>غير مسجّل</strong>: نُخمّن الدولة من عنوان الـ IP (موقعه التقريبي).</li>'
+        . '<li>إذا <strong>تعذّر تحديد الدولة</strong> (فشل تحديد الموقع من الـ IP، أو عنوان داخلي/غير '
+        . 'صالح، أو خدمة تحديد الموقع غير مُفعّلة): يظهر <strong>السعر الافتراضي</strong> مباشرةً.</li>'
+        . '</ol>'
+        . 'بعد تحديد الدولة: إذا كان للكورس سعرٌ مضبوطٌ <strong>ومفعّل</strong> لتلك الدولة يظهر هذا السعر، '
         . 'وإذا لم يوجد سعرٌ لتلك الدولة يظهر <strong>السعر الافتراضي</strong> (صف «Default price» بالأسفل).<br>'
         . '<span style="opacity:.85;">ملاحظة: عنوان الـ IP نفسه ليس له سعر — هو فقط يحدّد الدولة، '
-        . 'ثم يُطبَّق سعر تلك الدولة إن وُجد.</span><br>'
+        . 'ثم يُطبَّق سعر تلك الدولة إن وُجد. ولأن السعر الافتراضي هو المُستخدَم في كل الحالات '
+        . 'غير المُغطّاة، يجب أن يكون للكورس دائمًا صف «Default price» مفعّل.</span><br>'
         . 'أضِف أسعار الدول من زر «' . get_string('addprice', 'local_payments') . '» بالأسفل.';
 } else {
     $pricingnote =
         '<strong>How is a user&rsquo;s course price chosen?</strong><br>'
-        . 'The price is always based on the <strong>user&rsquo;s country</strong>. How the country is known:'
-        . '<ul style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
-        . '<li><strong>Logged-in user</strong>: the country comes from their profile (the country used at registration).</li>'
-        . '<li><strong>Not logged in</strong>: the country is guessed from their IP address (approximate location).</li>'
-        . '</ul>'
-        . 'Once the country is known: if the course has a price set for that country, it is shown; '
-        . 'otherwise the <strong>Default price</strong> row below is shown.<br>'
+        . 'The price is always based on the <strong>user&rsquo;s country</strong>. The country is worked out '
+        . 'in this order, and the first step that succeeds wins:'
+        . '<ol style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
+        . '<li><strong>Logged-in user whose profile has a country</strong>: that profile country is used '
+        . '(the country used at registration).</li>'
+        . '<li><strong>Logged-in user whose profile has no country</strong>, or a user who is '
+        . '<strong>not logged in</strong>: the country is guessed from their IP address (approximate location).</li>'
+        . '<li>If the country <strong>still cannot be determined</strong> (IP lookup fails, the address is '
+        . 'private/invalid, or geolocation is not configured): the <strong>Default price</strong> is shown '
+        . 'straight away.</li>'
+        . '</ol>'
+        . 'Once the country is known: if the course has an <strong>active</strong> price set for that country, '
+        . 'it is shown; otherwise the <strong>Default price</strong> row below is shown.<br>'
         . '<span style="opacity:.85;">Note: an IP address has no price of its own &mdash; it only identifies the country, '
-        . 'then that country&rsquo;s price is applied if one exists.</span><br>'
+        . 'then that country&rsquo;s price is applied if one exists. Because the Default price covers every '
+        . 'case not matched above, each course should always keep an active &ldquo;Default price&rdquo; row.</span><br>'
         . 'Add per-country prices with the &ldquo;' . get_string('addprice', 'local_payments') . '&rdquo; button below.';
 }
 echo html_writer::div($pricingnote, 'alert alert-info',

@@ -38,8 +38,10 @@ defined('MOODLE_INTERNAL') || die();
  * which is not a registration step. It also misses two things that matter here:
  *
  *   - The built-in `country` field. Not a custom field, so core never checks it,
- *     yet `local_payments\country_detector` keys every price on it - an empty
- *     country silently prices the buyer at `local_payments | default_country`.
+ *     yet `local_payments\country_detector` keys every price on it. An empty
+ *     country falls back to IP geolocation and then to the course's default
+ *     price - a guess, and the wrong one as soon as the buyer is travelling or
+ *     behind a VPN. The profile country is the only answer they actually gave us.
  *   - The terms checkbox. This site keeps `sitepolicyhandler` on "Default" on
  *     purpose (see settings.php) so consent is one checkbox on the sign-up form
  *     rather than a separate tool_policy page - which also means tool_policy is

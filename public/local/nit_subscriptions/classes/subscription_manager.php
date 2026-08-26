@@ -368,10 +368,11 @@ class subscription_manager {
     // ──────────────────────────────────────────────────────────────────────────
 
     /**
-     * Resolve the price a given user pays for a plan, based on their profile country.
+     * Resolve the price a given user pays for a plan, based on their country.
      *
      * A country-specific active override row (nit_sub_price) wins; otherwise the plan's base
-     * price/currency (nit_subscription) is the default. Mirrors local_payments price_resolver::resolve().
+     * price/currency (nit_subscription) is the default. Mirrors local_payments price_resolver::resolve(),
+     * including the fallbacks: profile country → IP geolocation → app hint → plan default price.
      *
      * @param int $subscriptionid
      * @param int|null $userid defaults to current $USER
@@ -383,22 +384,32 @@ class subscription_manager {
 
         $userid = $userid ?? (int) $USER->id;
         $sub = self::get_subscription($subscriptionid); // Throws if missing.
-        $country = self::detect_country($userid, $app_country);
 
-        $row = $DB->get_record_select(
-            'nit_sub_price',
-            'subscriptionid = :sid AND country = :country AND is_active = 1',
-            ['sid' => (int) $subscriptionid, 'country' => $country],
-            '*',
-            IGNORE_MULTIPLE
-        );
+        // May be '' when the country genuinely cannot be determined (no profile country AND no
+        // usable IP). That must land on the plan's base price, never on the admin default
+        // country's override row.
+        $country = self::detect_country_for_pricing($userid, $app_country);
+        // Consumers such as the payment-provider routing in local_payments\manager need a real
+        // code, so an unknown country is reported as the admin default.
+        $reported = $country !== '' ? $country : self::fallback_country();
+
+        $row = null;
+        if ($country !== '') {
+            $row = $DB->get_record_select(
+                'nit_sub_price',
+                'subscriptionid = :sid AND country = :country AND is_active = 1',
+                ['sid' => (int) $subscriptionid, 'country' => $country],
+                '*',
+                IGNORE_MULTIPLE
+            );
+        }
 
         if ($row) {
             return (object) [
                 'price'    => (float) $row->price,
                 'currency' => (string) $row->currency,
                 'price_id' => (int) $row->id,
-                'country'  => $country,
+                'country'  => $reported,
             ];
         }
 
@@ -407,22 +418,24 @@ class subscription_manager {
             'price'    => (float) $sub->price,
             'currency' => (string) ($sub->currency ?? 'EGP'),
             'price_id' => 0,
-            'country'  => $country,
+            'country'  => $reported,
         ];
     }
 
     /**
-     * Detect the buyer's country for pricing. Delegates to local_payments country_detector
-     * (profile-first) when available, else reads the user's profile country directly.
+     * The country to key a plan's price on, or '' when it cannot be determined.
+     *
+     * Delegates to local_payments country_detector (profile → IP → app hint) when available.
+     * Standalone, without that plugin, there is no geolocation, so it is profile → app hint.
      *
      * @param int $userid
      * @param string|null $app_country
-     * @return string ISO 3166-1 alpha-2 (uppercase)
+     * @return string ISO 3166-1 alpha-2 (uppercase), or '' when unknown
      */
-    public static function detect_country($userid, $app_country = null) {
+    public static function detect_country_for_pricing($userid, $app_country = null) {
         global $DB;
         if (class_exists('\local_payments\country_detector')) {
-            return \local_payments\country_detector::detect($userid, $app_country);
+            return \local_payments\country_detector::detect_for_pricing($userid, $app_country);
         }
         $country = (string) $DB->get_field('user', 'country', ['id' => $userid]);
         if (preg_match('/^[A-Za-z]{2}$/', $country)) {
@@ -430,6 +443,32 @@ class subscription_manager {
         }
         if (!empty($app_country) && preg_match('/^[A-Za-z]{2}$/', $app_country)) {
             return strtoupper($app_country);
+        }
+        return '';
+    }
+
+    /**
+     * Detect the buyer's country, always returning a usable code. Use where a country is
+     * structurally required (provider routing, reporting) — not to choose which price to show,
+     * which is {@see self::detect_country_for_pricing()}.
+     *
+     * @param int $userid
+     * @param string|null $app_country
+     * @return string ISO 3166-1 alpha-2 (uppercase), never empty
+     */
+    public static function detect_country($userid, $app_country = null) {
+        $country = self::detect_country_for_pricing($userid, $app_country);
+        return $country !== '' ? $country : self::fallback_country();
+    }
+
+    /**
+     * The site's fallback country code, used only where a code is mandatory.
+     *
+     * @return string ISO 3166-1 alpha-2 (uppercase), never empty
+     */
+    public static function fallback_country() {
+        if (class_exists('\local_payments\country_detector')) {
+            return \local_payments\country_detector::fallback_country();
         }
         return 'EG';
     }

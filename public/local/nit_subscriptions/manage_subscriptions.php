@@ -39,35 +39,56 @@ $PAGE->requires->js(new moodle_url('/local/nit_subscriptions/ui.js'), true);
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managesubscriptions', 'local_nit_subscriptions'));
 
-// Admin note: explain how the price a user sees is chosen. The key idea to make clear is
-// that pricing is ALWAYS by country — the IP only *identifies* the country for a guest, it
-// does not carry a price of its own. Rendered in the admin's current language (site is en/ar).
+// Admin note: explain how the price a user sees is chosen. Two key ideas to make clear:
+// pricing is ALWAYS by country (the IP only *identifies* a country, it carries no price of its
+// own), and every dead end — no profile country, no usable IP — resolves to the plan's default
+// price rather than to some other country's price. Same rules as the course pricing page; see
+// subscription_manager::resolve_price() / local_payments\country_detector.
+// Rendered in the admin's current language (site is en/ar).
+// Name the plan's base-price field exactly as the add/edit form labels it, so "default price"
+// in the note points at a field the admin can actually see.
+$STR_PRICE_LABEL = s(get_string('pkg_field_price', 'local_nit_subscriptions'));
 $pricingnote_isar = (strpos(current_language(), 'ar') === 0);
 if ($pricingnote_isar) {
     $pricingnote =
         '<strong>كيف يظهر سعر الاشتراك للمستخدم؟</strong><br>'
-        . 'السعر يعتمد دائمًا على <strong>دولة المستخدم</strong>، وطريقة معرفة الدولة:'
-        . '<ul style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
-        . '<li>مستخدم <strong>مسجّل دخول</strong>: تُؤخذ الدولة من بروفايله (الدولة التي سجّل بها).</li>'
-        . '<li>مستخدم <strong>غير مسجّل</strong>: نُخمّن دولته من عنوان الـ IP (موقعه التقريبي).</li>'
-        . '</ul>'
-        . 'بعد تحديد الدولة: إذا كان للخطة سعرٌ مضبوطٌ لتلك الدولة يظهر هذا السعر، '
-        . 'وإذا لم يوجد سعرٌ لتلك الدولة يظهر <strong>السعر الافتراضي</strong> للخطة.<br>'
+        . 'السعر يعتمد دائمًا على <strong>دولة المستخدم</strong>. تُحدَّد الدولة بالترتيب التالي، '
+        . 'وأوّل خطوة تنجح هي المعتمدة:'
+        . '<ol style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
+        . '<li>مستخدم <strong>مسجّل دخول ولبروفايله دولة</strong>: تُؤخذ الدولة من بروفايله '
+        . '(الدولة التي سجّل بها).</li>'
+        . '<li>مستخدم <strong>مسجّل دخول لكن بروفايله بلا دولة</strong>، أو مستخدم '
+        . '<strong>غير مسجّل</strong>: نُخمّن الدولة من عنوان الـ IP (موقعه التقريبي).</li>'
+        . '<li>إذا <strong>تعذّر تحديد الدولة</strong> (فشل تحديد الموقع من الـ IP، أو عنوان داخلي/غير '
+        . 'صالح، أو خدمة تحديد الموقع غير مُفعّلة): يظهر <strong>السعر الافتراضي</strong> للخطة مباشرةً.</li>'
+        . '</ol>'
+        . 'بعد تحديد الدولة: إذا كان للخطة سعرٌ مضبوطٌ <strong>ومفعّل</strong> لتلك الدولة يظهر هذا السعر، '
+        . 'وإذا لم يوجد سعرٌ لتلك الدولة يظهر <strong>السعر الافتراضي</strong> للخطة '
+        . '(حقل «' . $STR_PRICE_LABEL . '» في نموذج الخطة).<br>'
         . '<span style="opacity:.85;">ملاحظة: عنوان الـ IP نفسه ليس له سعر — هو فقط يحدّد الدولة، '
-        . 'ثم يُطبَّق سعر تلك الدولة إن وُجد.</span><br>'
+        . 'ثم يُطبَّق سعر تلك الدولة إن وُجد. ولأن السعر الافتراضي هو المُستخدَم في كل الحالات '
+        . 'غير المُغطّاة، يجب أن يكون لكل خطة سعرٌ افتراضيٌّ صحيح.</span><br>'
         . 'تضبط أسعار الدول من داخل نموذج إضافة/تعديل الاشتراك في قسم «Country prices».';
 } else {
     $pricingnote =
         '<strong>How is a user&rsquo;s subscription price chosen?</strong><br>'
-        . 'The price is always based on the <strong>user&rsquo;s country</strong>. How the country is known:'
-        . '<ul style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
-        . '<li><strong>Logged-in user</strong>: the country comes from their profile (the country used at registration).</li>'
-        . '<li><strong>Not logged in</strong>: the country is guessed from their IP address (approximate location).</li>'
-        . '</ul>'
-        . 'Once the country is known: if the plan has a price set for that country, it is shown; '
-        . 'otherwise the plan&rsquo;s <strong>default price</strong> is shown.<br>'
+        . 'The price is always based on the <strong>user&rsquo;s country</strong>. The country is worked out '
+        . 'in this order, and the first step that succeeds wins:'
+        . '<ol style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
+        . '<li><strong>Logged-in user whose profile has a country</strong>: that profile country is used '
+        . '(the country used at registration).</li>'
+        . '<li><strong>Logged-in user whose profile has no country</strong>, or a user who is '
+        . '<strong>not logged in</strong>: the country is guessed from their IP address (approximate location).</li>'
+        . '<li>If the country <strong>still cannot be determined</strong> (IP lookup fails, the address is '
+        . 'private/invalid, or geolocation is not configured): the plan&rsquo;s <strong>default price</strong> '
+        . 'is shown straight away.</li>'
+        . '</ol>'
+        . 'Once the country is known: if the plan has an <strong>active</strong> price set for that country, '
+        . 'it is shown; otherwise the plan&rsquo;s <strong>default price</strong> is shown (the '
+        . '&ldquo;' . $STR_PRICE_LABEL . '&rdquo; field on the plan itself).<br>'
         . '<span style="opacity:.85;">Note: an IP address has no price of its own &mdash; it only identifies the country, '
-        . 'then that country&rsquo;s price is applied if one exists.</span><br>'
+        . 'then that country&rsquo;s price is applied if one exists. Because the default price covers every '
+        . 'case not matched above, every plan should always carry a valid default price.</span><br>'
         . 'Set per-country prices inside the add/edit subscription form, under &ldquo;Country prices&rdquo;.';
 }
 echo html_writer::div($pricingnote, 'alert alert-info',
