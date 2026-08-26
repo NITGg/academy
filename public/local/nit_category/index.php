@@ -288,8 +288,9 @@ $nitmoney = function (float $amount, string $currency) use ($t): string {
 // The price tags a card prints in its status row. With a live offer that is the original struck
 // through + the discounted amount + the "-40%" pill; otherwise the plain price; and nothing at all
 // when the course is priced but no rule resolves to an amount (saying nothing beats claiming
-// "Free"). One helper because the same tags now print in TWO places — next to the "Enrolled"
-// badge and above the "Buy now" button — and the two must never drift apart.
+// "Free"). One helper because the same tags print in EVERY card state — next to the "Enrolled",
+// "Purchased" and "In your subscription" badges and above the "Buy now" button — so a priced
+// course always shows what it costs and no two states can drift apart.
 $nitpricetags = function (array $info) use ($nitmoney): string {
     if ($info['offerlabel'] !== '' && $info['offerfinal'] > 0) {
         return '<span style="font-size: 13px; color: var(--ctext2); text-decoration: line-through; opacity: 0.7;">'
@@ -608,10 +609,17 @@ echo $OUTPUT->header();
                 <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--csuccess) 16%, transparent); color: var(--csuccess); border: 1px solid color-mix(in srgb, var(--csuccess) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
                   ✓ <?= $t('Purchased', 'تم الشراء') ?>
                 </span>
+                <?php // Same rule as "Enrolled": the badge says they own it, the price says
+                      // what it is worth. ?>
+                <?= $nitpricetags($info) ?>
               <?php elseif ($info['covered']): ?>
                 <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--caccent) 16%, transparent); color: var(--ctext3); border: 1px solid color-mix(in srgb, var(--caccent) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
                   ★ <?= $t('In your subscription', 'ضمن اشتراكك') ?>
                 </span>
+                <?php // Subscription coverage hides the Buy button, not the price: the card
+                      // still prints what the course costs on its own, so the value of the
+                      // subscription stays visible. A priced course shows a price in EVERY state. ?>
+                <?= $nitpricetags($info) ?>
               <?php elseif ($info['haspricing']): // Priced: offer tags, plain price, or — when no rule
                                                   // resolves to an amount — nothing rather than "Free". ?>
                 <?= $nitpricetags($info) ?>
