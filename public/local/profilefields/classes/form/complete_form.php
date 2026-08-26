@@ -63,9 +63,20 @@ class complete_form extends moodleform {
 
         // One interleaved pass, so the boxes land in the sign-up order rather than
         // core-then-custom.
+        $config = manager::get_config();
+
         foreach ($missing['fields'] as $entry) {
             if ($entry['kind'] === 'core') {
                 $this->add_core_field($entry['name']);
+                // Honour the "Rename" column on the management page, the same way
+                // signup::apply() does - otherwise the box the user was going to see
+                // as "Nationality" turns up here labelled "Country". Custom fields
+                // need no equivalent: their name lives on the field record itself,
+                // which is what edit_field() reads.
+                $label = trim((string) ($config[$entry['name']]['label'] ?? ''));
+                if ($label !== '' && $mform->elementExists($entry['name'])) {
+                    $mform->getElement($entry['name'])->setLabel(format_string($label));
+                }
             } else {
                 // The field object owns its element, its default and its rules.
                 $entry['field']->edit_field($mform);
