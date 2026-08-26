@@ -201,3 +201,6 @@ $string['sub_secure_kashier']  = 'Secure payment via Kashier';
 $string['sub_proceed_payment'] = 'Proceed to payment';
 $string['sub_buy']             = 'Subscribe';
 $string['enrolled']            = 'You are now enrolled in this course.';
+
+// Scheduled task: end subscriptions past their deadline.
+$string['task_expire_subscriptions'] = 'Expire finished subscriptions and unenrol students';

@@ -175,16 +175,36 @@ class subscription_purchase_manager {
      * @return \stdClass|null
      */
     public static function get_active_subscription($userid) {
+        $rows = self::get_active_subscriptions($userid);
+        return $rows ? reset($rows) : null;
+    }
+
+    /**
+     * ALL of the user's active (non-expired) subscription purchases, newest activation first.
+     *
+     * A user normally holds at most one, but a B2B seat can sit alongside a personal plan, and
+     * a renewal can overlap the plan it replaces. Expiry has to look at every one of them before
+     * it takes a course away — see {@see revoke_course_access()}.
+     *
+     * @param int $userid
+     * @param int $excludeid purchase id to leave out (the one being expired/cancelled)
+     * @return \stdClass[] purchase records
+     */
+    public static function get_active_subscriptions($userid, $excludeid = 0) {
         global $DB;
         $now = time();
         $rows = $DB->get_records('nit_sub_purchase',
-            ['userid' => $userid, 'status' => self::STATUS_ACTIVE], 'timeactivated DESC');
+            ['userid' => (int) $userid, 'status' => self::STATUS_ACTIVE], 'timeactivated DESC');
+        $out = [];
         foreach ($rows as $r) {
+            if ((int) $r->id === (int) $excludeid) {
+                continue;
+            }
             if ((int) $r->expires_at === 0 || $now <= (int) $r->expires_at) {
-                return $r;
+                $out[$r->id] = $r;
             }
         }
-        return null;
+        return $out;
     }
 
     /**
@@ -200,8 +220,14 @@ class subscription_purchase_manager {
 
     /**
      * Grant a user access to one course covered by their active subscription, as a
-     * real Moodle enrolment that ends when the subscription expires. Idempotent:
-     * if already actively enrolled, it does nothing.
+     * real Moodle enrolment that ends when the subscription expires.
+     *
+     * Idempotent, and safe to call again on renewal: an existing manual enrolment whose
+     * end date is EARLIER than the new subscription's expiry is pushed out to the new
+     * date. (Without that, renewing before the old plan lapsed left the enrolment pinned
+     * to the old expiry, so access still died on the old date.) An open-ended enrolment
+     * — a bought course, a free registration, a teacher's manual enrolment — is never
+     * shortened or touched.
      *
      * SECURITY: this grants course access, so the CALLER must first verify the
      * user holds an active subscription that actually covers this course (see
@@ -220,8 +246,10 @@ class subscription_purchase_manager {
         $userid = (int) $userid;
         $context = \context_course::instance($courseid);
 
-        // Already actively enrolled — nothing to do.
+        // Already actively enrolled — extend the end date if this subscription runs longer,
+        // otherwise leave the enrolment exactly as it is.
         if (is_enrolled($context, $userid, '', true)) {
+            self::extend_enrolment_end($courseid, $userid, (int) $until);
             return true;
         }
 
@@ -249,6 +277,188 @@ class subscription_purchase_manager {
         $plugin->enrol_user($instance, $userid, $instance->roleid, time(), $timeend);
 
         return true;
+    }
+
+    /**
+     * The user's manual enrolment records in a course (there is normally one).
+     *
+     * Returns the user_enrolments row plus the id of its enrol instance, so callers can read
+     * timeend (which is what marks an enrolment as subscription-granted, since only this
+     * plugin gives a manual enrolment an end date) and still reach the instance needed to
+     * unenrol. Disabled instances are included on purpose: a lingering enrolment on a
+     * disabled instance still has to be cleaned up.
+     *
+     * @param int $courseid
+     * @param int $userid
+     * @return \stdClass[] rows of {ueid, enrolid, timeend, uestatus}
+     */
+    private static function manual_enrolments($courseid, $userid) {
+        global $DB;
+        $sql = "SELECT ue.id AS ueid, ue.enrolid, ue.timeend, ue.status AS uestatus
+                  FROM {user_enrolments} ue
+                  JOIN {enrol} e ON e.id = ue.enrolid
+                 WHERE e.courseid = :courseid AND e.enrol = 'manual' AND ue.userid = :userid";
+        return $DB->get_records_sql($sql, ['courseid' => (int) $courseid, 'userid' => (int) $userid]);
+    }
+
+    /**
+     * Push an existing manual enrolment's end date out to $until (renewal).
+     *
+     * Only ever extends: an enrolment that already ends later, or has no end date at all,
+     * is left alone so this can never shorten access someone paid for separately.
+     *
+     * @param int $courseid
+     * @param int $userid
+     * @param int $until unix time; 0 (unlimited plan) clears the end date
+     * @return void
+     */
+    private static function extend_enrolment_end($courseid, $userid, $until) {
+        global $DB, $CFG;
+        require_once($CFG->libdir . '/enrollib.php');
+
+        $plugin = enrol_get_plugin('manual');
+        if (!$plugin) {
+            return;
+        }
+        foreach (self::manual_enrolments($courseid, $userid) as $row) {
+            $timeend = (int) $row->timeend;
+            if ($timeend === 0) {
+                continue; // Already open-ended — nothing to extend.
+            }
+            if ($until !== 0 && $until <= $timeend) {
+                continue; // Current enrolment already runs at least as long.
+            }
+            $instance = $DB->get_record('enrol', ['id' => (int) $row->enrolid], '*', MUST_EXIST);
+            $plugin->update_user_enrol($instance, (int) $userid, null, null, (int) $until);
+        }
+    }
+
+    /**
+     * Take back the course access one subscription purchase granted: unenrol the user from
+     * every course that plan unlocked.
+     *
+     * Deliberately conservative — a course is SKIPPED when:
+     *  - another still-active subscription of theirs also covers it (renewal, or a B2B seat
+     *    alongside a personal plan);
+     *  - they bought that single course separately (a completed local_payments transaction);
+     *  - their enrolment is open-ended (timeend = 0) while the plan had an end date — that
+     *    enrolment came from a free registration, a purchase or a teacher, not from here;
+     *  - their enrolment ends LATER than this plan did — something else granted it.
+     *
+     * Only manual enrolments are touched; self/cohort/guest access is none of our business.
+     *
+     * @param \stdClass $purchase nit_sub_purchase record
+     * @return int number of courses the user was unenrolled from
+     */
+    public static function revoke_course_access($purchase) {
+        global $DB, $CFG;
+        require_once($CFG->libdir . '/enrollib.php');
+
+        $userid = (int) $purchase->userid;
+        $expiresat = (int) $purchase->expires_at;
+
+        $courseids = subscription_manager::courses_for_subscription((int) $purchase->subscriptionid);
+        if (empty($courseids)) {
+            return 0;
+        }
+
+        $plugin = enrol_get_plugin('manual');
+        if (!$plugin) {
+            return 0;
+        }
+
+        // Courses still covered by another live subscription of this user's.
+        $stillcovered = [];
+        foreach (self::get_active_subscriptions($userid, (int) $purchase->id) as $other) {
+            foreach (subscription_manager::courses_for_subscription((int) $other->subscriptionid) as $cid) {
+                $stillcovered[$cid] = true;
+            }
+        }
+
+        $haspayments = class_exists('\local_payments\price_resolver');
+        $removed = 0;
+
+        foreach ($courseids as $courseid) {
+            $courseid = (int) $courseid;
+
+            if (isset($stillcovered[$courseid])) {
+                continue;
+            }
+            // The course is gone (its context with it) — nothing to unenrol from.
+            if (!$DB->record_exists('course', ['id' => $courseid])) {
+                continue;
+            }
+            // Bought on its own — that purchase, not the subscription, owns the access.
+            if ($haspayments && \local_payments\price_resolver::is_purchased($courseid, $userid)) {
+                continue;
+            }
+
+            foreach (self::manual_enrolments($courseid, $userid) as $row) {
+                $timeend = (int) $row->timeend;
+
+                if ($expiresat > 0) {
+                    // A dated plan only ever produced a dated enrolment ending on its expiry.
+                    if ($timeend === 0 || $timeend > $expiresat) {
+                        continue;
+                    }
+                }
+
+                $instance = $DB->get_record('enrol', ['id' => (int) $row->enrolid], '*', MUST_EXIST);
+                $plugin->unenrol_user($instance, $userid);
+                $removed++;
+                break;
+            }
+        }
+
+        return $removed;
+    }
+
+    /**
+     * Close out every subscription purchase whose deadline has passed: flag the purchase
+     * `expired` and unenrol the student from the courses it had unlocked.
+     *
+     * This is the piece that makes a subscription actually END. Until it runs, an expired
+     * purchase keeps status `active` in the database and the student keeps a (lapsed but
+     * present) enrolment in every covered course. Driven by the expire_subscriptions
+     * scheduled task; safe to run repeatedly and safe to run on a backlog, since a purchase
+     * is only ever processed once.
+     *
+     * @param int $now unix time to expire against (defaults to now; injectable for tests)
+     * @return array{purchases:int, unenrolments:int}
+     */
+    public static function expire_due_purchases($now = 0) {
+        global $DB;
+
+        $now = $now > 0 ? (int) $now : time();
+
+        $due = $DB->get_records_select('nit_sub_purchase',
+            'status = :status AND expires_at > 0 AND expires_at <= :now',
+            ['status' => self::STATUS_ACTIVE, 'now' => $now],
+            'expires_at ASC');
+
+        $unenrolments = 0;
+        $count = 0;
+        foreach ($due as $purchase) {
+            // Flag it expired FIRST, so revoke_course_access no longer sees it as one of the
+            // user's live subscriptions, and so a crash mid-revoke cannot leave it looking
+            // active forever (the next run picks the leftovers up from the enrolment side).
+            $DB->update_record('nit_sub_purchase', (object) [
+                'id'     => $purchase->id,
+                'status' => self::STATUS_EXPIRED,
+            ]);
+            $purchase->status = self::STATUS_EXPIRED;
+
+            try {
+                $unenrolments += self::revoke_course_access($purchase);
+            } catch (\Throwable $e) {
+                // One broken course must not stop the rest of the queue.
+                debugging("local_nit_subscriptions: revoking access for purchase {$purchase->id} failed: "
+                    . $e->getMessage(), DEBUG_NORMAL);
+            }
+            $count++;
+        }
+
+        return ['purchases' => $count, 'unenrolments' => $unenrolments];
     }
 
     /**
@@ -398,8 +608,7 @@ class subscription_purchase_manager {
      * @return void
      */
     public static function unsubscribe($purchaseid) {
-        global $DB, $CFG;
-        require_once($CFG->libdir . '/enrollib.php');
+        global $DB;
 
         $purchase = $DB->get_record('nit_sub_purchase', ['id' => $purchaseid], '*', MUST_EXIST);
 
@@ -408,34 +617,12 @@ class subscription_purchase_manager {
             'id'     => $purchase->id,
             'status' => self::STATUS_CANCELLED,
         ]);
+        $purchase->status = self::STATUS_CANCELLED;
 
-        // Unenrol the user from courses covered by this subscription plan.
-        $courseids = $DB->get_fieldset_select('nit_course_access',
-            'courseid', 'subscriptionid = :sid', ['sid' => (int) $purchase->subscriptionid]);
-        if (empty($courseids)) {
-            return;
-        }
-
-        $plugin = enrol_get_plugin('manual');
-        if (!$plugin) {
-            return;
-        }
-
-        foreach ($courseids as $cid) {
-            $instance = $DB->get_record('enrol',
-                ['courseid' => (int) $cid, 'enrol' => 'manual', 'status' => ENROL_INSTANCE_ENABLED],
-                '*', IGNORE_MULTIPLE);
-            if (!$instance) {
-                continue;
-            }
-            $ctx = \context_course::instance((int) $cid, IGNORE_MISSING);
-            if (!$ctx) {
-                continue;
-            }
-            if (is_enrolled($ctx, (int) $purchase->userid, '', true)) {
-                $plugin->unenrol_user($instance, (int) $purchase->userid);
-            }
-        }
+        // Same revoke path natural expiry uses, so an admin cancellation and a lapsed deadline
+        // leave the student in exactly the same state — and neither one takes away a course the
+        // student bought separately or still holds through another subscription.
+        self::revoke_course_access($purchase);
     }
 
     /**
