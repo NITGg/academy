@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/games/db" VERSION="2026082600"
+       COMMENT="Games Corner: per-user points and earned badges.">
+  <TABLES>
+    <TABLE NAME="local_games_progress" COMMENT="One row per user per game: the running score for that game">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="gameid" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false" COMMENT="Registry slug, e.g. math-race"/>
+        <FIELD NAME="points" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Lifetime points earned in this game"/>
+        <FIELD NAME="plays" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Number of finished rounds"/>
+        <FIELD NAME="bestscore" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Best single-round score"/>
+        <FIELD NAME="beststreak" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Longest run of correct answers ever"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="useridgameid" UNIQUE="true" FIELDS="userid, gameid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_games_badge" COMMENT="Badges a user has earned; one row per badge, awarded once">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="gameid" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="badge" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false" COMMENT="Badge key, unique across the whole corner"/>
+        <FIELD NAME="timeawarded" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="useridbadge" UNIQUE="true" FIELDS="userid, badge"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

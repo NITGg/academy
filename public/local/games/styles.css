@@ -1,0 +1,685 @@
+/* This file is part of Moodle - http://moodle.org/
+ *
+ * Moodle is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Moodle is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/**
+ * Games Corner.
+ *
+ * Colours come from theme_nit's --nit-brand-* tokens so the corner follows the
+ * site palette, with hard fallbacks for the case where the theme is not active.
+ * Every box uses logical properties: the corner is read right-to-left far more
+ * often than left-to-right.
+ *
+ * @package    local_games
+ * @copyright  2026 NIT
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+.local-games {
+    --gc-surface: var(--nit-brand-surface, #121e2d);
+    --gc-background: var(--nit-brand-background, #0c141f);
+    --gc-border: var(--nit-brand-borderprimary, #223244);
+    --gc-border-soft: var(--nit-brand-bordersecondary, #33475e);
+    --gc-text: var(--nit-brand-textprimary, #eef3f9);
+    --gc-muted: var(--nit-brand-textsecondary, #94a3b8);
+    --gc-primary: var(--nit-brand-primary, #5488c4);
+    --gc-success: var(--nit-brand-success, #3fa877);
+    --gc-warn: var(--nit-brand-error, #d07f43);
+    --gc-gold: var(--nit-brand-warning, #d8c24e);
+    --gc-hoverbg: var(--nit-brand-hoverbackground, #16222f);
+    --gc-hovertext: var(--nit-brand-hovertext, #7fabdb);
+
+    /* Brand Colors: text on a solid brand fill is Text primary, never
+       Bootstrap's auto-contrast black. Same rule as theme_nit's _buttons.scss. */
+    --gc-onfill: var(--nit-brand-textprimary, #eef3f9);
+
+    /* Primary at full strength carries Text primary at only 3.3:1 — under the
+       4.5 a 16px label needs, and these labels are read by seven-year-olds.
+       Derive the fill from the same role rather than picking a new colour, so
+       it still follows the palette (and a .nit-brand-2/3 group) but clears the
+       threshold. Measured 4.9:1 against Group 1. */
+    --gc-fill: color-mix(in srgb, var(--gc-primary) 82%, #000);
+    --gc-fill-hover: color-mix(in srgb, var(--gc-primary) 66%, #000);
+
+    /* Same story for the right/wrong feedback fills: Success and Error at full
+       strength carry Text primary at 2.7:1. These two are the most important
+       words on the screen, so they are darkened until they clear 4.5. The
+       bright roles stay in use for borders, where contrast is not a text rule. */
+    --gc-success-fill: color-mix(in srgb, var(--gc-success) 72%, #000);
+    --gc-warn-fill: color-mix(in srgb, var(--gc-warn) 72%, #000);
+
+    --gc-radius: 18px;
+}
+
+/* ---------------------------------------------------------------- hub ---- */
+
+.gc-hub {
+    max-width: 1120px;
+    margin-inline: auto;
+    padding-block: 0 3rem;
+}
+
+.gc-hero {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.75rem;
+    margin-block-end: 2.25rem;
+    border: 2px solid var(--gc-border);
+    border-radius: calc(var(--gc-radius) + 6px);
+    background: var(--gc-surface);
+}
+
+.gc-hero__title {
+    margin: 0;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 800;
+    color: var(--gc-text);
+}
+
+.gc-hero__intro {
+    margin-block: 0.5rem 0;
+    color: var(--gc-muted);
+    font-size: 1.05rem;
+}
+
+.gc-hero__stats {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.gc-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 6.5rem;
+    padding: 0.9rem 1.1rem;
+    border: 2px solid var(--gc-border-soft);
+    border-radius: var(--gc-radius);
+    background: var(--gc-background);
+}
+
+.gc-stat__icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.gc-stat__value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--gc-text);
+}
+
+.gc-stat__label {
+    font-size: 0.85rem;
+    color: var(--gc-muted);
+}
+
+.gc-section {
+    margin-block-end: 2.5rem;
+}
+
+.gc-section__title {
+    margin-block-end: 0.35rem;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--gc-text);
+}
+
+.gc-section__note {
+    margin-block-end: 1rem;
+    color: var(--gc-muted);
+    font-size: 0.95rem;
+}
+
+.gc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 1rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+/* ---------------------------------------------------------------- card --- */
+
+.gc-card {
+    display: flex;
+}
+
+.gc-card__link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    inline-size: 100%;
+    padding: 1.25rem;
+    border: 2px solid var(--gc-border);
+    border-radius: var(--gc-radius);
+    background: var(--gc-surface);
+    color: var(--gc-text);
+    text-decoration: none;
+    transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+a.gc-card__link:hover,
+a.gc-card__link:focus-visible {
+    transform: translateY(-4px);
+    border-color: var(--gc-primary);
+    background: var(--gc-hoverbg);
+    text-decoration: none;
+    color: var(--gc-hovertext);
+}
+
+.gc-card__face {
+    font-size: 2.6rem;
+    line-height: 1;
+}
+
+.gc-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+}
+
+.gc-card__name {
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.gc-card__desc {
+    font-size: 0.9rem;
+    color: var(--gc-muted);
+    line-height: 1.5;
+}
+
+.gc-card__meta {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--gc-muted);
+}
+
+.gc-card__best {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--gc-success);
+}
+
+.gc-card__cta {
+    align-self: flex-start;
+    padding: 0.5rem 1.25rem;
+    border-radius: 999px;
+    background: var(--gc-fill);
+    color: var(--gc-onfill);
+    font-weight: 700;
+}
+
+.gc-card__cta--soon {
+    background: transparent;
+    border: 2px dashed var(--gc-border-soft);
+    color: var(--gc-muted);
+}
+
+.gc-card--soon .gc-card__link {
+    opacity: 0.62;
+    cursor: default;
+}
+
+/* -------------------------------------------------------------- badges --- */
+
+.gc-badges {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.gc-badge {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 0.75rem;
+    align-items: center;
+    padding: 0.9rem 1.1rem;
+    border: 2px solid var(--gc-border);
+    border-radius: var(--gc-radius);
+    background: var(--gc-surface);
+    opacity: 0.6;
+}
+
+.gc-badge--earned {
+    opacity: 1;
+    border-color: var(--gc-gold);
+}
+
+.gc-badge__icon {
+    grid-row: span 2;
+    font-size: 1.8rem;
+}
+
+.gc-badge__name {
+    font-weight: 800;
+    color: var(--gc-text);
+}
+
+.gc-badge__hint {
+    font-size: 0.85rem;
+    color: var(--gc-muted);
+}
+
+/* ------------------------------------------------------------- play bar --- */
+
+.gc-play {
+    position: relative;
+    max-width: 940px;
+    margin-inline: auto;
+}
+
+.gc-play__bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    margin-block-end: 1rem;
+    border: 2px solid var(--gc-border);
+    border-radius: var(--gc-radius);
+    background: var(--gc-surface);
+}
+
+.gc-back {
+    color: var(--gc-muted);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.gc-back:hover,
+.gc-back:focus-visible {
+    color: var(--gc-hovertext);
+}
+
+/* The arrow is a glyph, so it has to be flipped by hand in RTL. */
+[dir="rtl"] .gc-back__arrow {
+    display: inline-block;
+    transform: scaleX(-1);
+}
+
+.gc-hud {
+    display: flex;
+    gap: 1.25rem;
+    align-items: center;
+}
+
+.gc-hud__item {
+    display: flex;
+    gap: 0.4rem;
+    align-items: baseline;
+}
+
+.gc-hud__item--hidden {
+    display: none;
+}
+
+.gc-hud__label {
+    font-size: 0.8rem;
+    color: var(--gc-muted);
+}
+
+.gc-hud__value {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--gc-text);
+}
+
+.gc-sound {
+    padding: 0.4rem 0.7rem;
+    border: 2px solid var(--gc-border-soft);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--gc-text);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+/* --------------------------------------------------------------- stage --- */
+
+.gc-stage {
+    position: relative;
+    min-block-size: 460px;
+    padding: 1.25rem;
+    border: 2px solid var(--gc-border);
+    border-radius: calc(var(--gc-radius) + 6px);
+    background: var(--gc-background);
+    overflow: hidden;
+}
+
+.gc-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: color-mix(in srgb, var(--gc-background) 92%, transparent);
+}
+
+.gc-overlay--hidden {
+    display: none;
+}
+
+.gc-card-panel {
+    max-inline-size: 30rem;
+    padding: 2rem;
+    border: 2px solid var(--gc-border-soft);
+    border-radius: calc(var(--gc-radius) + 6px);
+    background: var(--gc-surface);
+    text-align: center;
+}
+
+.gc-card-panel__face {
+    font-size: 3.4rem;
+    line-height: 1;
+}
+
+.gc-card-panel__title {
+    margin-block: 0.75rem 0.5rem;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--gc-text);
+}
+
+.gc-card-panel__text {
+    margin-block-end: 1.5rem;
+    color: var(--gc-muted);
+    line-height: 1.6;
+}
+
+.gc-card-panel__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.gc-btn {
+    padding: 0.75rem 1.75rem;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: var(--gc-fill);
+    color: var(--gc-onfill);
+    font-weight: 800;
+    font-size: 1.05rem;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.gc-btn--big {
+    padding: 0.95rem 2.5rem;
+    font-size: 1.2rem;
+}
+
+.gc-btn--ghost {
+    background: transparent;
+    border-color: var(--gc-border-soft);
+    color: var(--gc-muted);
+}
+
+/* A solid brand fill keeps its brand foreground on hover and darkens the fill
+   itself - the same contract Bootstrap's --bs-btn-hover-* pair gives core
+   buttons in theme_nit's _buttons.scss. */
+.gc-btn:hover,
+.gc-btn:focus-visible {
+    color: var(--gc-onfill);
+    background: var(--gc-fill-hover);
+}
+
+/* Ghost buttons fill from the Hover roles instead, like .btn-outline-secondary. */
+.gc-btn--ghost:hover,
+.gc-btn--ghost:focus-visible {
+    background: var(--gc-hoverbg);
+    color: var(--gc-hovertext);
+}
+
+.gc-newbadge {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0.7rem 1rem;
+    margin-block-end: 1rem;
+    border: 2px solid var(--gc-gold);
+    border-radius: var(--gc-radius);
+    font-weight: 800;
+    color: var(--gc-text);
+}
+
+.gc-newbadge__icon {
+    font-size: 1.5rem;
+}
+
+/* Floating "well done" / "try again" over the stage. */
+.gc-flash {
+    position: absolute;
+    inset-block-start: 12%;
+    inset-inline-start: 50%;
+    z-index: 4;
+    padding: 0.5rem 1.25rem;
+    border-radius: 999px;
+    font-weight: 800;
+    color: var(--gc-onfill);
+    pointer-events: none;
+    transform: translateX(-50%);
+    animation: gc-flash-rise 0.9s ease forwards;
+}
+
+.gc-flash--ok {
+    background: var(--gc-success-fill);
+}
+
+.gc-flash--no {
+    background: var(--gc-warn-fill);
+}
+
+@keyframes gc-flash-rise {
+    0% { opacity: 0; transform: translate(-50%, 10px); }
+    20% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, -26px); }
+}
+
+/* ----------------------------------------------------------- math race --- */
+
+.gc-race {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    block-size: 100%;
+}
+
+.gc-race__track {
+    position: relative;
+    block-size: 62px;
+    border-block-end: 4px dashed var(--gc-border-soft);
+}
+
+.gc-race__runner {
+    position: absolute;
+    inset-block-end: 6px;
+    inset-inline-start: 0;
+    font-size: 2.1rem;
+    line-height: 1;
+    transition: inset-inline-start 0.4s ease;
+}
+
+.gc-race__flag {
+    position: absolute;
+    inset-block-end: 6px;
+    inset-inline-end: 0;
+    font-size: 2.1rem;
+    line-height: 1;
+}
+
+.gc-race__timer {
+    block-size: 10px;
+    border-radius: 999px;
+    background: var(--gc-border);
+    overflow: hidden;
+}
+
+.gc-race__timerbar {
+    display: block;
+    block-size: 100%;
+    inline-size: 100%;
+    background: var(--gc-primary);
+}
+
+.gc-race__question {
+    padding-block: 1.5rem;
+    text-align: center;
+    font-size: clamp(2.2rem, 8vw, 3.6rem);
+    font-weight: 800;
+    color: var(--gc-text);
+}
+
+.gc-race__answers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.gc-answer {
+    padding-block: 1.4rem;
+    border: 3px solid var(--gc-border-soft);
+    border-radius: var(--gc-radius);
+    background: var(--gc-surface);
+    color: var(--gc-text);
+    font-size: clamp(1.6rem, 5vw, 2.2rem);
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.gc-answer:hover,
+.gc-answer:focus-visible {
+    transform: translateY(-3px);
+    border-color: var(--gc-primary);
+    background: var(--gc-hoverbg);
+    color: var(--gc-hovertext);
+}
+
+.gc-answer--ok {
+    border-color: var(--gc-success);
+    background: var(--gc-success-fill);
+    color: var(--gc-onfill);
+}
+
+.gc-answer--no {
+    border-color: var(--gc-warn);
+    background: var(--gc-warn-fill);
+    color: var(--gc-onfill);
+}
+
+/* -------------------------------------------------------- math catcher --- */
+
+.gc-catch {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    block-size: 100%;
+}
+
+.gc-catch__rule {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border: 2px dashed var(--gc-primary);
+    border-radius: var(--gc-radius);
+    text-align: center;
+    font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+    font-weight: 800;
+    color: var(--gc-text);
+}
+
+.gc-catch__canvas {
+    flex: 1;
+    inline-size: 100%;
+    min-block-size: 300px;
+    border-radius: var(--gc-radius);
+    background: var(--gc-surface);
+    touch-action: none;
+}
+
+.gc-catch__controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.gc-steer {
+    padding-block: 1rem;
+    border: 3px solid var(--gc-border-soft);
+    border-radius: var(--gc-radius);
+    background: var(--gc-surface);
+    color: var(--gc-text);
+    font-size: 1.15rem;
+    font-weight: 800;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+.gc-steer:hover,
+.gc-steer:active {
+    border-color: var(--gc-primary);
+    background: var(--gc-hoverbg);
+    color: var(--gc-hovertext);
+}
+
+/* --------------------------------------------------------------- small --- */
+
+@media (max-width: 576px) {
+    .gc-hero {
+        padding: 1.25rem;
+    }
+
+    .gc-stage {
+        min-block-size: 420px;
+        padding: 0.9rem;
+    }
+
+    .gc-race__answers {
+        gap: 0.6rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gc-card__link,
+    .gc-answer,
+    .gc-race__runner {
+        transition: none;
+    }
+
+    .gc-flash {
+        animation: none;
+        opacity: 1;
+    }
+}
