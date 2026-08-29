@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_payments';
-$plugin->version   = 2026082500;   // Locked course preview (guest-readable course page).
+$plugin->version   = 2026082900;   // Country-gated pricing: no profile country = no price, no purchase.
 $plugin->requires  = 2024100700; // Moodle 4.5+
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_STABLE;

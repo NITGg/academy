@@ -111,7 +111,13 @@ class discount_manager {
             // Use the buyer's country-resolved price so a coupon/offer preview matches the
             // price shown on the plan card (which is already country-resolved).
             if (class_exists('\local_nit_subscriptions\subscription_manager')) {
-                return (float) \local_nit_subscriptions\subscription_manager::resolve_price($itemid)->price;
+                try {
+                    return (float) \local_nit_subscriptions\subscription_manager::resolve_price($itemid)->price;
+                } catch (\Throwable $e) {
+                    // No price for this viewer (signed in with no profile country) — a coupon
+                    // preview has nothing to discount, and the purchase is refused anyway.
+                    return 0.0;
+                }
             }
             return (float)$DB->get_field('nit_subscription', 'price', array('id' => $itemid));
         }

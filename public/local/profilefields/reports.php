@@ -15,21 +15,33 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for NIT Subscriptions (course-access subscription plans).
+ * Register reports - refused sign-up attempts, and the IP deny list behind them.
  *
- * @package    local_nit_subscriptions
+ * @package    local_profilefields
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+require(__DIR__ . '/../../config.php');
+require_once($CFG->libdir . '/adminlib.php');
 
-$plugin->component = 'local_nit_subscriptions';
-$plugin->version   = 2026082900;        // Country-gated pricing (see local_payments country_detector).
-$plugin->requires  = 2024100700;
-$plugin->supported = [405, 502];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.0';
-$plugin->dependencies = [
-    'local_nit_core' => 2026080404,
-];
+use local_profilefields\reports;
+
+admin_externalpage_setup('local_profilefields_reports');
+
+$tab = optional_param('tab', reports::TAB_ATTEMPTS, PARAM_ALPHA);
+if (!in_array($tab, reports::tabs(), true)) {
+    $tab = reports::TAB_ATTEMPTS;
+}
+
+$PAGE->set_url(reports::url($tab));
+
+// Runs before output so an action can redirect with a notice.
+reports::process($tab);
+
+echo $OUTPUT->header();
+echo $OUTPUT->heading(get_string('reportstitle', 'local_profilefields'));
+
+reports::render($tab);
+
+echo $OUTPUT->footer();

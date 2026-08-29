@@ -31,6 +31,10 @@ defined('MOODLE_INTERNAL') || die();
  * @return bool
  */
 function xmldb_local_profilefields_upgrade($oldversion) {
+    global $DB;
+
+    $dbman = $DB->get_manager();
+
     if ($oldversion < 2026082402) {
         // Repair any recommended datetime field created without valid year
         // parameters, which otherwise makes every profile edit page fatal.
@@ -65,6 +69,46 @@ function xmldb_local_profilefields_upgrade($oldversion) {
         set_config(\local_profilefields\completion::SETTING, 1, \local_profilefields\manager::COMPONENT);
 
         upgrade_plugin_savepoint(true, 2026082600, 'local', 'profilefields');
+    }
+
+    if ($oldversion < 2026082900) {
+        // The plugin had no tables of its own until now, so these are created here
+        // rather than by install.xml on every existing site.
+        $table = new xmldb_table('local_profilefields_log');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('ip', XMLDB_TYPE_CHAR, '45', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('declared', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('detected', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('reason', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('origin', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'signup');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('timecreated_idx', XMLDB_INDEX_NOTUNIQUE, ['timecreated']);
+        $table->add_index('ip_idx', XMLDB_INDEX_NOTUNIQUE, ['ip']);
+        $table->add_index('reason_idx', XMLDB_INDEX_NOTUNIQUE, ['reason']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        $table = new xmldb_table('local_profilefields_ip');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('ip', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('note', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('ip_uix', XMLDB_INDEX_UNIQUE, ['ip']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Make the "refuse an address we cannot place" rule explicit rather than
+        // leaving it to the class default, so it shows as set on the register tab.
+        set_config('blockunresolvedip', 1, \local_profilefields\manager::COMPONENT);
+
+        upgrade_plugin_savepoint(true, 2026082900, 'local', 'profilefields');
     }
 
     return true;

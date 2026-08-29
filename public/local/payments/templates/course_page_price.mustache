@@ -1,6 +1,7 @@
 {{!
     Course page price display with full details.
-    Context: {price, sale_price, original_price, currency, is_sale_active, discount_pct, is_purchased, is_enrolled, is_free, courseid, country, course_url, buy_url}
+    Context: {price, sale_price, original_price, currency, is_sale_active, discount_pct, is_purchased, is_enrolled, is_free, courseid, country, course_url, buy_url,
+              country_required, country_short, country_message, country_action, country_url}
 }}
 <div class="local-payments-course-price lp-page-card">
     {{#is_enrolled}}
@@ -26,6 +27,19 @@
                 </div>
             {{/is_purchased}}
             {{^is_purchased}}
+                {{! Signed in with no profile country: prices are per country, so this account
+                    has none yet. Show what to do about it instead of an amount + Buy button. }}
+                {{#country_required}}
+                    <div class="lp-page-status lp-page-status--countryrequired">
+                        <i class="fa fa-globe"></i>
+                        <h5>{{country_short}}</h5>
+                        <p>{{country_message}}</p>
+                        <a href="{{country_url}}" class="lp-btn lp-btn--subscribe lp-btn--block lp-btn--lg">
+                            <i class="fa fa-user-edit"></i> {{country_action}}
+                        </a>
+                    </div>
+                {{/country_required}}
+                {{^country_required}}
                 <div class="lp-page-buy">
                     {{#is_sale_active}}
                         <span class="lp-badge lp-badge--sale lp-badge--lg">
@@ -62,6 +76,7 @@
                         <i class="fa fa-lock"></i> {{#str}}secure_checkout, local_payments{{/str}}
                     </small>
                 </div>
+                {{/country_required}}
             {{/is_purchased}}
         {{/is_free}}
     {{/is_enrolled}}

@@ -49,8 +49,16 @@ function local_profilefields_extend_signup_form($mform) {
  * Server-side validation for the sign-up form additions.
  *
  * Covers the inline policy-consent checkbox (an unticked advcheckbox submits 0,
- * which a client rule cannot catch) and the optional "IP country must match the
- * phone country" rule.
+ * which a client rule cannot catch), the registration IP deny list, and the
+ * optional "IP country must match the phone country" rule.
+ *
+ * Both sign-up paths arrive here: the web form through
+ * `login_signup_form::validation()`, and the app's web service through
+ * `local_profilefields\signup_api::validate()`, which calls
+ * `core_login_validate_extend_signup_form()` for exactly this reason. The third
+ * registration path - `local/profilefields/complete.php`, where an account created
+ * by Google answers the sign-up questions late - runs core's sign-up callbacks not
+ * at all, so `complete_form::validation()` repeats these two checks by hand.
  *
  * @param array $data submitted sign-up values
  * @return array element name => error message
@@ -58,6 +66,14 @@ function local_profilefields_extend_signup_form($mform) {
 function local_profilefields_validate_extend_signup_form($data) {
     if (during_initial_install()) {
         return [];
+    }
+
+    // A denied address is denied whatever else the form says, so this comes first
+    // and short-circuits: there is no point telling someone which other boxes they
+    // also got wrong on a form that will never be accepted from where they are.
+    $blocked = \local_profilefields\signup::validate_ip_allowed();
+    if ($blocked) {
+        return $blocked;
     }
 
     $errors = [];

@@ -284,6 +284,15 @@ class manager {
 
         $userid = $userid ?? $USER->id;
         $user = $DB->get_record('user', ['id' => $userid], 'id, email, firstname, lastname, country', MUST_EXIST);
+
+        // Same rule as a course: a signed-in account with no profile country has no price, so
+        // there is nothing to charge. Checked here as well as in the resolver because the
+        // standalone branch below (local_nit_subscriptions absent) would otherwise fall back
+        // to the plan's base price and quote a country nobody chose.
+        if (country_detector::pricing_blocked($userid)) {
+            throw new country_required_exception("Subscription {$subscriptionid}: user {$userid} has no profile country");
+        }
+
         $sub = $DB->get_record('nit_subscription', ['id' => $subscriptionid], '*', MUST_EXIST);
         // The plan must be active. The public block only lists active plans, but
         // this endpoint accepts any id, so guard against buying a

@@ -21,6 +21,13 @@
             return '<div class="lp-card-badge">' +
                 '<span class="lp-badge lp-badge--purchased">' + esc(labels.purchased) + '</span></div>';
         }
+        // Signed in with no profile country: prices are per country, so this viewer has none.
+        // The badge says so and links to the fix rather than printing an empty amount.
+        if (ctx.country_required) {
+            return '<div class="lp-card-badge">' +
+                '<a class="lp-badge lp-badge--countryrequired" href="' + esc(ctx.country_url) + '"' +
+                ' title="' + esc(ctx.country_message) + '">' + esc(ctx.country_short) + "</a></div>";
+        }
         var cur = esc(ctx.currency || "");
         if (ctx.is_sale_active) {
             return '<div class="lp-card-badge">' +

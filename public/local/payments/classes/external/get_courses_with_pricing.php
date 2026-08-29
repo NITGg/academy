@@ -78,6 +78,13 @@ class get_courses_with_pricing extends external_api {
         $app_country = !empty($params['country']) ? $params['country'] : null;
         $courses     = [];
 
+        // Signed in with no profile country: every paid course in this list comes back priceless
+        // and flagged, so the app shows its "add your country" prompt on the cards instead of an
+        // amount. Free courses are unaffected — there is no price to withhold.
+        $country_required = \local_payments\price_resolver::country_required($USER->id);
+        $country_message = $country_required
+            ? \local_payments\country_detector::country_required_notice()['message'] : '';
+
         foreach ($core_result['courses'] as $course_data) {
             $courseid = (int) $course_data['id'];
 
@@ -100,9 +107,15 @@ class get_courses_with_pricing extends external_api {
                 'is_free'             => true,
                 'is_purchased'        => $is_purchased,
                 'is_enrolled'         => $is_enrolled,
+                'country_required'    => false,
+                'country_message'     => '',
             ];
 
-            if (\local_payments\price_resolver::has_pricing($courseid)) {
+            if ($country_required && \local_payments\price_resolver::has_pricing($courseid)) {
+                $pricing['is_free']          = false;
+                $pricing['country_required'] = true;
+                $pricing['country_message']  = $country_message;
+            } else if (\local_payments\price_resolver::has_pricing($courseid)) {
                 try {
                     $resolved = \local_payments\price_resolver::resolve($courseid, $USER->id, $app_country);
                     $pricing['pricing_country']     = $resolved->country;
@@ -147,6 +160,11 @@ class get_courses_with_pricing extends external_api {
             'is_free'             => new external_value(PARAM_BOOL,  'true if no active pricing rule', VALUE_OPTIONAL),
             'is_purchased'        => new external_value(PARAM_BOOL,  'current user has a completed purchase', VALUE_OPTIONAL),
             'is_enrolled'         => new external_value(PARAM_BOOL,  'current user is enrolled in the course', VALUE_OPTIONAL),
+            'country_required'    => new external_value(PARAM_BOOL,
+                'true when the signed-in account has no profile country: the course is paid but no price '
+                . 'is returned and it cannot be bought until one is set', VALUE_OPTIONAL),
+            'country_message'     => new external_value(PARAM_TEXT,
+                'localised message to show in place of the price when country_required is true', VALUE_OPTIONAL),
         ];
         // $returns->keys['courses'] is an external_multiple_structure; its ->content is the
         // per-course external_single_structure we augment with the pricing keys.

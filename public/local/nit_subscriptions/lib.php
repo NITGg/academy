@@ -45,6 +45,9 @@ function local_nit_subscriptions_string_map(array $keys): array {
  * Shared by api.php (?function=get_available_subscriptions) and the get_available_subscriptions
  * external function so both return the identical shape.
  *
+ * A signed-in caller with no profile country gets every plan back priceless and flagged
+ * `country_required` — see {@see \local_payments\country_detector::pricing_blocked()}.
+ *
  * @param string|null $app_country optional ISO 3166-1 alpha-2 country to price for (e.g. from the
  *        mobile app). When null, the caller's profile country (or IP for guests) is used.
  * @return array
@@ -53,14 +56,37 @@ function nit_subscriptions_available(?string $app_country = null): array {
     $subs = \local_nit_subscriptions\subscription_manager::get_subscriptions(
         \local_nit_subscriptions\subscription_manager::STATUS_ACTIVE);
     $hasoffers = class_exists('\local_nit_commerce\discount_manager');
+
+    // Signed in with no profile country: the plans still list (their name, duration and course
+    // list are not secret) but every one of them comes back with no price, no offer and no seat
+    // tiers, plus the flag and message the block and the app show in place of the amount.
+    // Subscribing is refused server-side too — see local_payments\manager::create_subscription_checkout().
+    $blocked = \local_nit_subscriptions\subscription_manager::pricing_blocked();
+    $notice = [];
+    if ($blocked) {
+        $notice = class_exists('\local_payments\country_detector')
+            ? \local_payments\country_detector::country_required_notice()
+            : [
+                'message' => get_string('countryrequired_desc', 'local_nit_subscriptions'),
+                'short' => get_string('countryrequired', 'local_nit_subscriptions'),
+                'action' => get_string('countryrequired_action', 'local_nit_subscriptions'),
+                'url' => (new moodle_url('/user/edit.php'))->out(false),
+            ];
+    }
+
     $out = [];
     foreach ($subs as $s) {
         // Country-based price/currency for the caller (an explicit country wins; otherwise the
         // profile country, falling back to the plan's default price/currency).
-        $resolved = \local_nit_subscriptions\subscription_manager::resolve_price((int) $s->id, null, $app_country);
-        $price = (float) $resolved->price;
-        $currency = (string) $resolved->currency;
-        $country = (string) $resolved->country;
+        $price = 0.0;
+        $currency = '';
+        $country = '';
+        if (!$blocked) {
+            $resolved = \local_nit_subscriptions\subscription_manager::resolve_price((int) $s->id, null, $app_country);
+            $price = (float) $resolved->price;
+            $currency = (string) $resolved->currency;
+            $country = (string) $resolved->country;
+        }
 
         // The best auto-offer on this plan. Exposed two ways: flat offer_label/offer_final (the web
         // block reads these) and a nested `offer` object (the mobile app reads this) — present only
@@ -68,7 +94,7 @@ function nit_subscriptions_available(?string $app_country = null): array {
         $offerlabel = '';
         $offerfinal = 0.0;
         $offer = null;
-        if ($hasoffers) {
+        if ($hasoffers && !$blocked) {
             $summary = \local_nit_commerce\discount_manager::offer_summary('subscription', (int) $s->id, $price);
             if ($summary) {
                 $offerlabel = $summary['label'];      // e.g. "-10%"
@@ -95,10 +121,17 @@ function nit_subscriptions_available(?string $app_country = null): array {
             'courses_count' => count($s->courses),
             // Full {id, fullname} objects — the mobile app needs the course id to map coverage.
             'courses'       => array_values($s->courses),
-            // Seat tiers priced off the resolved (country) base price.
-            'seat_options'  => \local_nit_subscriptions\subscription_manager::get_seat_options((int) $s->id, $price),
+            // Seat tiers priced off the resolved (country) base price. Nothing to price when
+            // the caller is blocked, so the tiers are withheld along with the base price.
+            'seat_options'  => $blocked
+                ? [] : \local_nit_subscriptions\subscription_manager::get_seat_options((int) $s->id, $price),
             'offer_label'   => $offerlabel,
             'offer_final'   => $offerfinal,
+            'country_required' => $blocked,
+            'country_message'  => $blocked ? (string) $notice['message'] : '',
+            'country_short'    => $blocked ? (string) $notice['short'] : '',
+            'country_action'   => $blocked ? (string) $notice['action'] : '',
+            'country_url'      => $blocked ? (string) $notice['url'] : '',
         ];
         if ($offer !== null) {
             $item['offer'] = $offer;

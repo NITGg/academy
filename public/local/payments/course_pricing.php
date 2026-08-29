@@ -100,10 +100,12 @@ $prices = $DB->get_records('local_payments_course_prices', ['courseid' => $cours
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('coursepricing', 'local_payments'));
 
-// Admin note: explain how the price a user sees is chosen. Two key ideas to make clear:
+// Admin note: explain how the price a user sees is chosen. Three key ideas to make clear:
 // pricing is ALWAYS by country (the IP only *identifies* a country, it carries no price of its
-// own), and every dead end — no profile country, no usable IP — resolves to the Default price
-// row rather than to some other country's price. Mirrors local_payments\country_detector.
+// own); a SIGNED-IN account is priced on its profile country and nothing else, so an empty one
+// means no price and no purchase at all rather than a borrowed price; and every remaining dead
+// end — guest, no usable IP — resolves to the Default price row rather than to some other
+// country's price. Mirrors local_payments\country_detector.
 // Rendered in the admin's current language (site is en/ar).
 $pricingnote_isar = (strpos(current_language(), 'ar') === 0);
 if ($pricingnote_isar) {
@@ -114,9 +116,14 @@ if ($pricingnote_isar) {
         . '<ol style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
         . '<li>مستخدم <strong>مسجّل دخول ولبروفايله دولة</strong>: تُؤخذ الدولة من بروفايله '
         . '(الدولة التي سجّل بها).</li>'
-        . '<li>مستخدم <strong>مسجّل دخول لكن بروفايله بلا دولة</strong>، أو مستخدم '
-        . '<strong>غير مسجّل</strong>: نُخمّن الدولة من عنوان الـ IP (موقعه التقريبي).</li>'
-        . '<li>إذا <strong>تعذّر تحديد الدولة</strong> (فشل تحديد الموقع من الـ IP، أو عنوان داخلي/غير '
+        . '<li>مستخدم <strong>مسجّل دخول لكن بروفايله بلا دولة</strong>: <strong>لا يُعرض له أي سعر '
+        . 'ولا يستطيع الشراء</strong>. تظهر له بدلًا من السعر رسالة تطلب تحديد دولته مع رابط لصفحة '
+        . 'بياناته، وبمجرد حفظ الدولة تعمل الأسعار والشراء فورًا. (لا نُخمّن دولته من الـ IP: '
+        . 'الحساب الذي نستطيع سؤاله لا يُسعَّر بالتخمين، وإلّا لرأى المستخدم الواحد سعرين مختلفين '
+        . 'من شبكتين مختلفتين.)</li>'
+        . '<li>زائر <strong>غير مسجّل دخول</strong>: نُخمّن الدولة من عنوان الـ IP (موقعه التقريبي) — '
+        . 'فلا بروفايل لديه لنسأله.</li>'
+        . '<li>إذا <strong>تعذّر تحديد الدولة</strong> للزائر (فشل تحديد الموقع من الـ IP، أو عنوان داخلي/غير '
         . 'صالح، أو خدمة تحديد الموقع غير مُفعّلة): يظهر <strong>السعر الافتراضي</strong> مباشرةً.</li>'
         . '</ol>'
         . 'بعد تحديد الدولة: إذا كان للكورس سعرٌ مضبوطٌ <strong>ومفعّل</strong> لتلك الدولة يظهر هذا السعر، '
@@ -133,11 +140,16 @@ if ($pricingnote_isar) {
         . '<ol style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
         . '<li><strong>Logged-in user whose profile has a country</strong>: that profile country is used '
         . '(the country used at registration).</li>'
-        . '<li><strong>Logged-in user whose profile has no country</strong>, or a user who is '
-        . '<strong>not logged in</strong>: the country is guessed from their IP address (approximate location).</li>'
-        . '<li>If the country <strong>still cannot be determined</strong> (IP lookup fails, the address is '
-        . 'private/invalid, or geolocation is not configured): the <strong>Default price</strong> is shown '
-        . 'straight away.</li>'
+        . '<li><strong>Logged-in user whose profile has no country</strong>: <strong>no price is shown and '
+        . 'they cannot buy</strong>. Wherever a price would appear they get a short message asking them to '
+        . 'set their country, with a link to their profile; saving it switches prices and checkout back on '
+        . 'immediately. (Their IP is deliberately not used: an account we can simply ask is not priced by a '
+        . 'guess, which would otherwise quote the same buyer two different prices from two networks.)</li>'
+        . '<li>A visitor who is <strong>not logged in</strong>: the country is guessed from their IP address '
+        . '(approximate location) &mdash; there is no profile to ask.</li>'
+        . '<li>If a visitor&rsquo;s country <strong>still cannot be determined</strong> (IP lookup fails, the '
+        . 'address is private/invalid, or geolocation is not configured): the <strong>Default price</strong> is '
+        . 'shown straight away.</li>'
         . '</ol>'
         . 'Once the country is known: if the course has an <strong>active</strong> price set for that country, '
         . 'it is shown; otherwise the <strong>Default price</strong> row below is shown.<br>'

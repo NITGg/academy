@@ -796,11 +796,24 @@ function theme_nit_get_site_stats(): array {
 /**
  * The fee-enrolment price of a course, or '' when the course is free.
  *
+ * A signed-in account with no profile country is quoted nothing at all — every price here is a
+ * country price and that account has no country — so this returns the short "set your country"
+ * label instead of an amount. It is deliberately NOT '': '' means free, and a paid course must
+ * never be advertised as free. Callers that need to tell the two apart read the
+ * `country_required` flag on the view-models below.
+ *
  * @param int $courseid
- * @return string e.g. "250.00 EGP" or '' (free)
+ * @return string e.g. "250.00 EGP", the country-required label, or '' (free)
  */
 function theme_nit_course_price(int $courseid): string {
     global $DB, $USER;
+
+    if (class_exists('\local_payments\country_detector')
+        && \local_payments\country_detector::pricing_blocked()
+        && class_exists('\local_payments\price_resolver')
+        && \local_payments\price_resolver::has_pricing($courseid)) {
+        return get_string('countryrequired', 'local_payments');
+    }
 
     // Prefer the local_payments plugin: it stores per-country course prices in
     // its own table (local_payments_course_prices), independent of Moodle's core
@@ -886,7 +899,7 @@ function theme_nit_course_teacher(int $courseid): string {
  * blocks render them via a <template> (see the frontpage renderer).
  *
  * @param int $limit maximum number of courses
- * @return array<int, array{id:int,fullname:string,summary:string,url:string,image:string,price:string,is_free:bool}>
+ * @return array<int, array{id:int,fullname:string,summary:string,url:string,image:string,price:string,is_free:bool,country_required:bool}>
  */
 function theme_nit_get_courses(int $limit = 12): array {
     global $DB, $CFG, $OUTPUT;
@@ -908,9 +921,12 @@ function theme_nit_get_courses(int $limit = 12): array {
         $country = \local_payments\country_detector::detect($userid > 0 ? $userid : null);
     }
 
+    // A card can now carry a translated string in its price slot (the "set your country"
+    // label), so the language joins the key — otherwise the first visitor's language would be
+    // served to the next one.
     $ttl = theme_nit_frontpage_cache_ttl();
     $cache = \cache::make('theme_nit', 'frontpage');
-    $cachekey = 'courses_' . $limit . '_' . $userid . '_' . $country;
+    $cachekey = 'courses_' . $limit . '_' . $userid . '_' . $country . '_' . current_language();
     if ($ttl > 0) {
         $cached = $cache->get($cachekey);
         if (is_array($cached) && ($cached['expires'] ?? 0) > time()) {
@@ -927,6 +943,11 @@ function theme_nit_get_courses(int $limit = 12): array {
         0,
         $limit
     );
+
+    // Asked once, not per card: is this viewer barred from seeing prices (signed in, no profile
+    // country)? See local_payments\country_detector::pricing_blocked().
+    $pricingblocked = class_exists('\local_payments\country_detector')
+        && \local_payments\country_detector::pricing_blocked();
 
     $fs = get_file_storage();
     $courses = [];
@@ -969,6 +990,12 @@ function theme_nit_get_courses(int $limit = 12): array {
         if ($userid > 0 && class_exists('\local_payments\enrollment_handler')) {
             $isenrolled = \local_payments\enrollment_handler::is_enrolled($userid, (int) $c->id);
         }
+        // When this is on, `price` holds the "set your country" label rather than an amount,
+        // and the course is paid — a block that wants to style the two differently branches
+        // on this instead of parsing the string.
+        $countryrequired = $pricingblocked
+            && class_exists('\local_payments\price_resolver')
+            && \local_payments\price_resolver::has_pricing((int) $c->id);
         $courses[] = [
             'id' => (int) $c->id,
             'fullname' => format_string($c->fullname, true, ['context' => $context]),
@@ -977,6 +1004,7 @@ function theme_nit_get_courses(int $limit = 12): array {
             'image' => $image,
             'price' => $price,
             'is_free' => ($price === ''),
+            'country_required' => $countryrequired,
             'is_enrolled' => $isenrolled,
             'teacher' => theme_nit_course_teacher((int) $c->id),
         ];

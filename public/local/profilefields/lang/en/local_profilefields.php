@@ -59,9 +59,14 @@ $string['countryfromphone_desc'] = 'On the sign-up form, the Country box follows
 $string['ipmatchheading'] = 'Location check';
 $string['ipmatchphone'] = 'Require the sign-up country to match the visitor\'s location';
 $string['ipmatchphone_desc'] = 'When on, a new account is only created if the visitor\'s IP address resolves to the same country as the phone number they entered. Users on a VPN or roaming would be blocked, so use with care.';
-$string['ipmatchonline'] = 'No setup needed: this uses a free online lookup to find the visitor\'s country. For faster, self-hosted lookups you can install a local GeoIP database in <a href="{$a}">Location &gt; IP address lookup</a>, and it will be used instead. If a lookup ever fails, the sign-up is allowed (never wrongly blocked).';
-$string['ipmatchgeoip'] = 'A local GeoIP database is configured, so it is used for the lookup. If a lookup fails, the sign-up is allowed (never wrongly blocked).';
+$string['ipmatchonline'] = 'No setup needed: this uses a free online lookup to find the visitor\'s country. For faster, self-hosted lookups you can install a local GeoIP database in <a href="{$a}">Location &gt; IP address lookup</a>, and it will be used instead.';
+$string['ipmatchgeoip'] = 'A local GeoIP database is configured, so it is used for the lookup.';
 $string['ipmismatch'] = 'Your location does not match the country of the phone number you entered.';
+$string['blockunresolvedip'] = 'Also refuse sign-up when the location cannot be determined';
+$string['blockunresolvedip_desc'] = 'Applies while the check above is on. With this on, an address the lookup cannot place in any country is refused instead of let through. Note that a site behind a reverse proxy must have $CFG->getremoteaddrconf set, or every visitor looks like the proxy and nobody can be placed.';
+$string['ipunresolved'] = 'We could not determine your location, so the account could not be created. If you are using a VPN or a proxy, please turn it off and try again.';
+$string['ipblocked'] = 'New accounts cannot be created from your current network.';
+$string['seereports'] = 'See the refused attempts in Register reports';
 
 // Username.
 $string['usernameheading'] = 'Username';
@@ -132,3 +137,69 @@ $string['completesave'] = 'Save and continue';
 $string['completedone'] = 'Thanks — your registration is complete.';
 $string['completiongate'] = 'Hold incomplete accounts';
 $string['completiongate_desc'] = 'Send any signed-in user who is missing a required sign-up field to a page that collects it. Catches accounts created outside the sign-up form, such as a Google login.';
+
+// Register reports: the refused-attempt log and the IP deny list.
+$string['reportstitle'] = 'Register reports';
+$string['tabattempts'] = 'Blocked attempts';
+$string['tabblacklist'] = 'IP blacklist';
+$string['tabattempts_intro'] = 'Every attempt to create an account that the location rules refused: the country the visitor said they were in, the country their address actually resolved to, why they were turned away, and the address itself.';
+$string['tabblacklist_intro'] = 'Addresses listed here cannot create an account, whatever country they claim. Existing accounts are not affected - this gates registration only, not logging in or reading the site.';
+
+// Report columns.
+$string['colwhen'] = 'When';
+$string['colip'] = 'IP address';
+$string['coldeclared'] = 'Declared country';
+$string['coldetected'] = 'Detected country';
+$string['colreason'] = 'Reason';
+$string['colorigin'] = 'Came from';
+$string['colactions'] = 'Actions';
+$string['colnote'] = 'Note';
+$string['coladded'] = 'Added';
+
+// Reasons an attempt was refused.
+$string['reasonany'] = 'Any reason';
+$string['reasonmismatch'] = 'Country mismatch';
+$string['reasonunresolved'] = 'Location unknown';
+$string['reasonblocked'] = 'Blacklisted IP';
+
+// Which registration page the attempt came from.
+$string['originsignup'] = 'Sign-up page';
+$string['origincomplete'] = 'Complete registration';
+$string['originapp'] = 'Mobile app';
+
+// Deny-list editor.
+$string['blockipaddress'] = 'IP address';
+$string['blockipaddress_help'] = 'One entry per address. Accepted formats are the same ones Moodle uses elsewhere:
+
+* a single address - `1.2.3.4` or `2001:db8::1`
+* a network in CIDR notation - `1.2.3.0/24`
+* the start of an address - `1.2.3.`
+* a range in the last group - `1.2.3.4-16`';
+$string['blockipnote'] = 'Note (optional)';
+$string['blockipadd'] = 'Add to the blacklist';
+$string['blockipinvalid'] = 'That is not an address, network, address prefix or range this list can match against.';
+$string['blockipduplicate'] = 'That entry is already on the blacklist.';
+$string['blockipadded'] = 'Added {$a} to the blacklist.';
+$string['blockipremoved'] = 'Removed from the blacklist.';
+$string['blockipfromreport'] = 'Added from the blocked-attempts report';
+$string['blockthisip'] = 'Blacklist this IP';
+$string['alreadyblocked'] = 'Blacklisted';
+$string['blocklistempty'] = 'The blacklist is empty. Nothing is being refused on the strength of its address alone.';
+
+// Report furniture.
+$string['repeatoffenders'] = 'Addresses that keep trying:';
+$string['attemptcount'] = '{$a} attempts';
+$string['clearlog'] = 'Clear the log';
+$string['clearlogconfirm'] = 'Delete every refused attempt on record? The blacklist itself is not touched.';
+$string['logcleared'] = '{$a} logged attempt(s) deleted.';
+$string['guardoff'] = 'The location check is switched off, so nothing is being refused and no new rows will appear here. Turn it on under <a href="{$a}">Sign-up and profile field layout &gt; Register page</a>.';
+$string['guardonstrict'] = 'The location check is on, and visitors whose location cannot be determined are refused as well. Both kinds of refusal are listed here. Settings are on the <a href="{$a}">Register page</a> tab.';
+$string['guardonlenient'] = 'The location check is on, but visitors whose location cannot be determined are let through. Only country mismatches and blacklisted addresses are listed here. Settings are on the <a href="{$a}">Register page</a> tab.';
+
+// Privacy.
+$string['privacy:metadata:local_profilefields_log'] = 'A record of registration attempts the location rules refused. No account exists for these rows - they are the record of accounts that were never created - so they cannot be linked back to a user.';
+$string['privacy:metadata:local_profilefields_log:ip'] = 'The IP address the refused attempt came from.';
+$string['privacy:metadata:local_profilefields_log:declared'] = 'The country the attempt claimed to be in.';
+$string['privacy:metadata:local_profilefields_log:detected'] = 'The country the IP address was resolved to.';
+$string['privacy:metadata:local_profilefields_log:reason'] = 'Why the attempt was refused.';
+$string['privacy:metadata:local_profilefields_log:timecreated'] = 'When the attempt was made.';

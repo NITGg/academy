@@ -169,3 +169,9 @@ $string['payments:managerefunds'] = 'Manage refunds';
 $string['payments:manageproviders'] = 'Manage payment providers';
 $string['payments:viewalltransactions'] = 'View all transactions';
 $string['payments:viewauditlogs'] = 'View audit logs';
+
+// Country-gated pricing: a signed-in account with no profile country is shown no price at all
+// (see local_payments\country_detector::pricing_blocked) and cannot reach checkout.
+$string['countryrequired'] = 'Set your country to see the price';
+$string['countryrequired_desc'] = 'Prices are set per country. Add your country to your profile to see the price for this course and continue to checkout.';
+$string['countryrequired_action'] = 'Add your country';

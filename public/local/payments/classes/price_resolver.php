@@ -25,6 +25,7 @@ class price_resolver {
      * @param int|null $userid
      * @param string|null $app_country Country from Flutter app.
      * @return object {price_id, price, sale_price, original_price, currency, country, discount_pct, is_sale_active}
+     * @throws country_required_exception if the buyer is signed in with no profile country.
      * @throws \moodle_exception if no pricing found.
      */
     public static function resolve(int $courseid, ?int $userid = null, ?string $app_country = null): object {
@@ -32,9 +33,16 @@ class price_resolver {
 
         $userid = $userid ?? $USER->id;
 
-        // May be '' when the country genuinely cannot be determined (logged-in user with no
-        // profile country AND no usable IP, or a guest whose IP lookup failed). That case must
-        // land on the course's Default price row, never on the admin default country's row.
+        // A signed-in account with no profile country has no price — not the default one, not
+        // an IP-guessed one. Refusing here (rather than at each of the dozen display surfaces)
+        // is what makes the rule leak-proof: nothing can print an amount it never received.
+        if (country_detector::pricing_blocked($userid)) {
+            throw new country_required_exception("Course {$courseid}: user {$userid} has no profile country");
+        }
+
+        // May be '' when the country genuinely cannot be determined (a guest whose IP lookup
+        // failed and who sent no app hint). That case must land on the course's Default price
+        // row, never on the admin default country's row.
         $country = country_detector::detect_for_pricing($userid, $app_country);
 
         // Country-specific active price wins; otherwise the course's default active price.
@@ -80,6 +88,35 @@ class price_resolver {
             'discount_pct' => 0,
             'is_sale_active' => false,
             'sale_ends_at' => 0,
+        ];
+    }
+
+    /**
+     * Is this viewer barred from seeing prices because their profile has no country?
+     *
+     * Thin passthrough so display code (templates, category cards, the theme) can ask the
+     * question without reaching for the detector, and there is still exactly one answer.
+     *
+     * @param int|null $userid defaults to the current user
+     * @return bool
+     */
+    public static function country_required(?int $userid = null): bool {
+        return country_detector::pricing_blocked($userid);
+    }
+
+    /**
+     * Template context for the "set your country" notice: message, button label, target URL.
+     *
+     * @return array{country_message: string, country_short: string, country_action: string, country_url: string}
+     */
+    public static function country_notice(): array {
+        $notice = country_detector::country_required_notice();
+
+        return [
+            'country_message' => $notice['message'],
+            'country_short' => $notice['short'],
+            'country_action' => $notice['action'],
+            'country_url' => $notice['url'],
         ];
     }
 
@@ -174,6 +211,18 @@ class price_resolver {
 
         try {
             $pricing = self::resolve($courseid, $userid > 0 ? $userid : null);
+        } catch (country_required_exception $e) {
+            // Signed in with no profile country: the card shows the "set your country" notice
+            // where the price and the Buy button would be. Caught BEFORE the generic handler
+            // below — falling into that one would label a paid course "Free".
+            return [
+                'is_enrolled' => false,
+                'is_free' => false,
+                'is_purchased' => false,
+                'can_renew' => $can_renew,
+                'course_url' => $course_url,
+                'country_required' => true,
+            ] + self::country_notice();
         } catch (\moodle_exception $e) {
             return [
                 'is_enrolled' => false,

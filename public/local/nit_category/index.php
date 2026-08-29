@@ -206,14 +206,16 @@ if ($nitcheckout) {
 // to its own "Buy now" button. Everything the card shows now comes out of this array.
 //
 // Guest vs logged in: price_resolver::resolve() is country-aware and keyed on the viewer, so
-// the user id is passed through in BOTH states — a logged-in user is priced by their profile
-// country, and a guest (id 0), or a logged-in user whose profile has no country, by IP
-// geolocation. When neither yields a country the course's default price is used; see
-// local_payments\country_detector::detect_for_pricing().
+// the user id is passed through in BOTH states. A logged-in user is priced by their profile
+// country and by nothing else — with that field empty the card shows no price and no Buy
+// button at all ('countryrequired' below), because a price they were never quoted is worse
+// than no price. A guest (id 0) is priced by IP geolocation, and when that yields nothing the
+// course's default price is used; see local_payments\country_detector::detect_for_pricing().
 $nitcourseinfo = function ($courseid) use ($nitcheckout) {
     global $USER, $DB;
     $out = ['enrolled' => false, 'purchased' => false, 'covered' => false, 'free' => true,
-        'haspricing' => false, 'price' => 0.0, 'currency' => '', 'offerlabel' => '', 'offerfinal' => 0.0];
+        'haspricing' => false, 'price' => 0.0, 'currency' => '', 'offerlabel' => '', 'offerfinal' => 0.0,
+        'countryrequired' => false];
     $uid = (int) ($USER->id ?? 0);
     $ctx = context_course::instance($courseid);
     $out['enrolled'] = $uid > 0 && is_enrolled($ctx, $uid, '', true);
@@ -247,6 +249,12 @@ $nitcourseinfo = function ($courseid) use ($nitcheckout) {
         $pricing = \local_payments\price_resolver::resolve($courseid, $uid);
         $out['price'] = (float) $pricing->price;
         $out['currency'] = (string) $pricing->currency;
+    } catch (\local_payments\country_required_exception $e) {
+        // Signed in with no profile country — no price exists for this viewer. Caught before
+        // the generic handler on purpose: that one reaches past the resolver for "any active
+        // rule", which is exactly the borrowed price this rule forbids.
+        $out['countryrequired'] = true;
+        return $out;
     } catch (\Throwable $e) {
         // resolve() throws when nothing matches the viewer's country AND the course has no
         // default rule — a per-viewer miss, not a free course. Fall back to any active rule
@@ -291,7 +299,18 @@ $nitmoney = function (float $amount, string $currency) use ($t): string {
 // "Free"). One helper because the same tags print in EVERY card state — next to the "Enrolled",
 // "Purchased" and "In your subscription" badges and above the "Buy now" button — so a priced
 // course always shows what it costs and no two states can drift apart.
-$nitpricetags = function (array $info) use ($nitmoney): string {
+// The "set your country" notice, built once per page (it is the same for every card) and only
+// when a card actually needs it. Empty array = this viewer is priced normally.
+$nitcountrynotice = (class_exists('\local_payments\country_detector')
+    && \local_payments\country_detector::pricing_blocked())
+    ? \local_payments\country_detector::country_required_notice() : [];
+
+$nitpricetags = function (array $info) use ($nitmoney, $nitcountrynotice): string {
+    // No profile country: the price slot carries the reason there is no price, not an amount.
+    if (!empty($info['countryrequired']) && $nitcountrynotice) {
+        return '<span style="font-size: 13px; font-weight: bold; color: var(--ctext2);">'
+            . s($nitcountrynotice['short']) . '</span>';
+    }
     if ($info['offerlabel'] !== '' && $info['offerfinal'] > 0) {
         return '<span style="font-size: 13px; color: var(--ctext2); text-decoration: line-through; opacity: 0.7;">'
             . s($nitmoney($info['price'], $info['currency'])) . '</span>'
@@ -543,7 +562,7 @@ echo $OUTPUT->header();
       <?php
         // One card renderer, shared by every section. $sectionname is the category the
         // card lives under (its header), so the card can show that category's name.
-        $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo, $nitpricetags) {
+        $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo, $nitpricetags, $nitcountrynotice) {
             $courseurl  = new moodle_url('/course/view.php', ['id' => $course->id]);
             $coursename = $course->get_formatted_name();
 
@@ -635,6 +654,11 @@ echo $OUTPUT->header();
                 <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif ($info['covered']): ?>
                 <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= $t('Enroll', 'التحاق') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+              <?php elseif (!empty($info['countryrequired']) && $nitcountrynotice): // No profile
+                     // country: buying is refused server-side anyway, so offer the fix instead
+                     // of a Buy button that can only fail. ?>
+                <a href="<?= s($nitcountrynotice['url']) ?>" class="btn btn-primary fw-bold"><?= s($nitcountrynotice['action']) ?></a>
                 <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif ($info['haspricing']): ?>
                 <button type="button" class="btn btn-primary fw-bold" data-nit-buy-course

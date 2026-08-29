@@ -305,12 +305,8 @@ JS;
     /**
      * Validate that the visitor's IP country matches the phone country.
      *
-     * Returns an error only when a geo-IP source resolves the IP to a *different*
-     * country. When no geo-IP is configured, or the address cannot be resolved, the
-     * check is skipped rather than blocking a legitimate sign-up.
-     *
      * @param array $data submitted sign-up values
-     * @return array element name => error message (empty when OK or skipped)
+     * @return array element name => error message (empty when the sign-up may proceed)
      */
     public static function validate_ip_match(array $data): array {
         // The phone field the check applies to (first one shown on sign-up).
@@ -328,7 +324,29 @@ JS;
     }
 
     /**
-     * The mismatch message for a chosen country, or null when sign-up may proceed.
+     * Refuse a registration coming from an address on the deny list.
+     *
+     * The error is pinned to a caller-chosen element rather than to the phone field:
+     * the deny list has nothing to do with the number that was typed, and an error
+     * keyed to an element that does not render produces a form that refuses to
+     * submit with nothing shown. `email` is the right anchor on the sign-up form;
+     * complete.php has no email box and names one of its own.
+     *
+     * @param string $element the form element to pin the message to
+     * @return array element name => error message (empty when the address is fine)
+     */
+    public static function validate_ip_allowed(string $element = 'email'): array {
+        if (!blocklist::blocks()) {
+            return [];
+        }
+
+        blocklog::record(blocklog::REASON_BLOCKED);
+
+        return [$element => get_string('ipblocked', 'local_profilefields')];
+    }
+
+    /**
+     * The location error for a chosen country, or null when sign-up may proceed.
      *
      * This is the single implementation of the rule. The web sign-up form reaches it
      * through `validate_ip_match()`, and `profilefield_phone` calls it straight from
@@ -336,15 +354,19 @@ JS;
      * covered too - core's `signup_validate_data()` runs profile-field validation on
      * both paths, but only the web form runs the plugin sign-up callbacks.
      *
-     * Returns null - i.e. allows the sign-up - when the check is switched off, when
-     * no geo-IP source resolves the address, or when the countries agree. A failed
-     * lookup must never block a legitimate sign-up.
+     * Three outcomes, and every one of them that refuses also writes a row to
+     * {@see blocklog} so the reports page can account for it:
+     *
+     * - the countries agree, or the check is switched off: allowed;
+     * - the countries disagree: refused as a mismatch;
+     * - nothing could resolve the address: refused, unless the admin has turned
+     *   {@see manager::block_unresolved_ip()} off, in which case it is allowed.
      *
      * @param string $iso the alpha-2 country code the visitor chose
      * @return string|null localised error message, or null when the sign-up is fine
      */
     public static function ip_country_error(string $iso): ?string {
-        // Both callers can fire in one request; the verdict cannot change mid-submit.
+        // Every caller can fire in one request; the verdict cannot change mid-submit.
         static $verdicts = [];
 
         $iso = strtoupper(trim($iso));
@@ -359,10 +381,30 @@ JS;
         // Allow the free online fallback here: this runs once, on submit, only when
         // the admin turned the check on.
         $ipiso = \profilefield_phone\dialcodes::country_from_ip(true);
-        if ($ipiso === '' || $ipiso === $iso) {
-            // No geo-IP source, an unresolvable address, or a match - do not block.
+
+        if ($ipiso === '') {
+            // Nothing resolved the address - no geo-IP source, a lookup that failed,
+            // or a private/reserved address such as a LAN client behind no proxy. The
+            // rule cannot be applied, and whether that means "let them through" or
+            // "turn them away" is a policy question, so it is an admin setting rather
+            // than a silent default. Note that a site behind a reverse proxy needs
+            // $CFG->getremoteaddrconf set so getremoteaddr() returns the real client
+            // address; otherwise every visitor looks like the proxy and resolves to
+            // nothing.
+            if (!manager::block_unresolved_ip()) {
+                return $verdicts[$iso] = null;
+            }
+
+            blocklog::record(blocklog::REASON_UNRESOLVED, $iso);
+
+            return $verdicts[$iso] = get_string('ipunresolved', 'local_profilefields');
+        }
+
+        if ($ipiso === $iso) {
             return $verdicts[$iso] = null;
         }
+
+        blocklog::record(blocklog::REASON_MISMATCH, $iso, $ipiso);
 
         return $verdicts[$iso] = get_string('ipmismatch', 'local_profilefields');
     }

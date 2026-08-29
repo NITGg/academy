@@ -490,3 +490,45 @@
     color: #3730a3;
     border: 1px solid rgba(55, 48, 163, 0.18);
 }
+
+/* ------------------------------------------------------------------ */
+/* "Set your country" — the state a signed-in account with no profile  */
+/* country lands in. Every price on this site is a country price, so   */
+/* such an account is shown no amount at all and no Buy control; these */
+/* rules dress the notice that takes their place (card badge, card     */
+/* status row, and the full course-page card).                         */
+/* ------------------------------------------------------------------ */
+
+.lp-badge--countryrequired {
+    background: #eef2ff;
+    color: #3730a3;
+    border: 1px solid rgba(55, 48, 163, 0.18);
+    text-decoration: none;
+}
+
+.lp-badge--countryrequired:hover,
+.lp-badge--countryrequired:focus {
+    background: #e0e7ff;
+    color: #312e81;
+    text-decoration: none;
+}
+
+.lp-card-status--countryrequired {
+    background: #eef2ff;
+    color: #3730a3;
+    border: 1px solid rgba(55, 48, 163, 0.18);
+}
+
+.lp-page-status--countryrequired {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.lp-page-status--countryrequired p {
+    color: var(--lp-muted, #6b7280);
+    font-size: 0.95rem;
+    margin: 0 0 0.5rem;
+    max-width: 34rem;
+}

@@ -196,6 +196,13 @@ try {
                     $p = \local_payments\price_resolver::resolve($courseid, $userid);
                     $data['price']    = (float) $p->price;
                     $data['currency'] = $p->currency;
+                } catch (\local_payments\country_required_exception $e) {
+                    // Signed in with no profile country: the course is still paid, we just
+                    // may not quote it. Never fall into the "free" branch below — that would
+                    // hand the caller a free course it could enrol into without paying.
+                    $data['country_required'] = true;
+                    $data['country_message']  =
+                        \local_payments\country_detector::country_required_notice()['message'];
                 } catch (\Throwable $e) {
                     $data['is_free'] = true; // no rule resolvable for this user -> free
                 }

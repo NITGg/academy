@@ -532,6 +532,34 @@
               }
             }
 
+            // No profile country on a signed-in account: the server sends this plan with no
+            // price, no offer and no seat tiers, because every price here is a country price.
+            // The card shows the reason where the amount goes, and the Subscribe button
+            // becomes the link that fixes it — checkout would refuse it anyway.
+            if (s.country_required) {
+              var crPrice = wrap.querySelector('[data-nit-price-val]');
+              var crCur = wrap.querySelector('[data-nit-currency]');
+              if (crPrice) {
+                crPrice.textContent = s.country_short || '';
+                crPrice.style.fontSize = '17px';
+                crPrice.style.fontWeight = '700';
+              }
+              if (crCur) {
+                crCur.style.display = 'none';
+              }
+              var crBtn = wrap.querySelector('[data-nit-buy]');
+              if (crBtn && crBtn.parentNode) {
+                var crLink = document.createElement('a');
+                crLink.className = crBtn.className;
+                crLink.setAttribute('style', (crBtn.getAttribute('style') || '') +
+                  ';display:block; box-sizing:border-box; text-align:center; text-decoration:none;');
+                crLink.href = s.country_url || (base + '/user/edit.php');
+                crLink.textContent = s.country_action || '';
+                crLink.title = s.country_message || '';
+                crBtn.parentNode.replaceChild(crLink, crBtn);
+              }
+            }
+
             grid.appendChild(wrap);
           });
 

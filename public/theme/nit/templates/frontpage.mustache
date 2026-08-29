@@ -145,6 +145,11 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
                 var priceBadge;
                 if (c.is_enrolled) {
                     priceBadge = '<span class="nit-price-badge nit-price-badge--enrolled">' + esc(enrolledLabel) + '</span>';
+                } else if (c.country_required) {
+                    // Signed in with no profile country: prices are per country, so the server
+                    // sent the reason instead of an amount (see theme_nit_course_price). Its own
+                    // neutral pill — a gold "price" pill would read as if that text were a price.
+                    priceBadge = '<span class="nit-price-badge nit-price-badge--countryrequired">' + esc(c.price) + '</span>';
                 } else if (isFree) {
                     priceBadge = '<span class="nit-price-badge nit-price-badge--free">' + esc(freeLabel || 'Free') + '</span>';
                 } else {
@@ -302,6 +307,11 @@ window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
 .nit-price-badge--enrolled {
     color: #ffffff;
     background: #1565c0;
+}
+.nit-price-badge--countryrequired {
+    color: #ffffff;
+    background: #4a5568;
+    white-space: normal;
 }
 </style>
 {{! NIT (SEO): schema.org structured data for the course catalogue, so search

@@ -213,15 +213,17 @@ class update_profile extends external_api {
     /**
      * Rules that belong to the sign-up flow rather than to profile editing.
      *
-     * Today that is one rule: the phone's country must match where the visitor
-     * appears to be. profilefield_phone applies it to a visitor creating an account
-     * and to nobody else, because an ordinary profile edit is legitimately done from
-     * another country. But a call that is finishing a registration IS the sign-up
-     * questions, just asked late - so without this an OAuth2 account is the way
-     * around a rule the sign-up form enforces.
+     * Today that is two rules: the registration IP deny list, and the phone's
+     * country having to match where the visitor appears to be (which also covers
+     * "we could not place this address at all"). profilefield_phone applies the
+     * second to a visitor creating an account and to nobody else, because an
+     * ordinary profile edit is legitimately done from another country. But a call
+     * that is finishing a registration IS the sign-up questions, just asked late -
+     * so without this an OAuth2 account is the way around rules the sign-up form
+     * enforces.
      *
-     * Only fires while the phone is one of the outstanding fields, so a later,
-     * ordinary profile edit is untouched.
+     * The location rule only fires while the phone is one of the outstanding
+     * fields, so a later, ordinary profile edit is untouched.
      *
      * @param \stdClass $user the profile being saved
      * @param array $outstanding completion::missing() as it stood before the save
@@ -235,8 +237,20 @@ class update_profile extends external_api {
     ): array {
         global $USER;
 
-        if ((int) $user->id !== (int) $USER->id
-                || !\local_profilefields\manager::ip_match_phone()) {
+        if ((int) $user->id !== (int) $USER->id) {
+            return [];
+        }
+
+        // The deny list, pinned to a field the client is actually showing - a
+        // warning about an element the app never rendered is a warning nobody sees.
+        $first = reset($outstanding['fields']);
+        $blocked = \local_profilefields\signup::validate_ip_allowed(
+            $first ? $first['name'] : 'consent');
+        if ($blocked) {
+            return $blocked;
+        }
+
+        if (!\local_profilefields\manager::ip_match_phone()) {
             return [];
         }
 

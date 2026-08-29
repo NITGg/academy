@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/profilefields/db" VERSION="2026082900" COMMENT="Sign-up guard: the log of refused registration attempts and the IP deny list that feeds it."
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="local_profilefields_log" COMMENT="One row per registration attempt the location guard refused. No account exists for these rows - they are the record of accounts that were never created.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="ip" TYPE="char" LENGTH="45" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="The visitor's address as getremoteaddr() reported it. 45 chars covers IPv6."/>
+        <FIELD NAME="declared" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Alpha-2 country the visitor claimed (the phone field's country), or '' when the attempt never got that far."/>
+        <FIELD NAME="detected" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Alpha-2 country the geo-IP lookup resolved, or '' when it resolved nothing."/>
+        <FIELD NAME="reason" TYPE="char" LENGTH="32" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="mismatch|unresolved|blocked - see local_profilefields\blocklog."/>
+        <FIELD NAME="origin" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="signup" SEQUENCE="false" COMMENT="signup|complete|app - which of the three registration entry points was refused."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="timecreated_idx" UNIQUE="false" FIELDS="timecreated"/>
+        <INDEX NAME="ip_idx" UNIQUE="false" FIELDS="ip"/>
+        <INDEX NAME="reason_idx" UNIQUE="false" FIELDS="reason"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_profilefields_ip" COMMENT="The registration IP deny list. Each row is one entry in the format address_in_subnet() understands: a single address, a CIDR block, a partial address or a range.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="ip" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="e.g. 1.2.3.4, 1.2.3.0/24, 1.2.3. or 1.2.3.4-16"/>
+        <FIELD NAME="note" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Free-text note for whoever reads the list later."/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="ip_uix" UNIQUE="true" FIELDS="ip"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

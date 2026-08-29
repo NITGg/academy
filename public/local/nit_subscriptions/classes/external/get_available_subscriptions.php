@@ -119,6 +119,21 @@ class get_available_subscriptions extends external_api {
                     'label'    => new external_value(PARAM_TEXT, 'Offer badge, e.g. "-10%"'),
                     'name'     => new external_value(PARAM_TEXT, 'Offer name'),
                 ], 'Best current offer; omitted when there is no active offer', VALUE_OPTIONAL),
+                // Prices are per country. A signed-in account with no profile country is quoted
+                // nothing: price/currency/seat_options/offer come back empty and this flag is
+                // set, so the app prompts for the country instead of showing "0".
+                'country_required' => new external_value(PARAM_BOOL,
+                    'True when the signed-in account has no profile country: no price is returned and the '
+                    . 'plan cannot be bought until one is set', VALUE_DEFAULT, false),
+                'country_message'  => new external_value(PARAM_TEXT,
+                    'Localised message to show in place of the price when country_required is true',
+                    VALUE_DEFAULT, ''),
+                'country_short'    => new external_value(PARAM_TEXT,
+                    'Short label for the price slot when country_required is true', VALUE_DEFAULT, ''),
+                'country_action'   => new external_value(PARAM_TEXT,
+                    'Call-to-action label when country_required is true', VALUE_DEFAULT, ''),
+                'country_url'      => new external_value(PARAM_RAW,
+                    'Web URL where the country can be set when country_required is true', VALUE_DEFAULT, ''),
             ])
         );
     }

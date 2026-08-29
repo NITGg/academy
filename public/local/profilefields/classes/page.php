@@ -394,6 +394,27 @@ class page {
         $out .= html_writer::tag('p', get_string('ipmatchphone_desc', 'local_profilefields'),
             ['class' => 'text-muted small mt-1']);
 
+        // What the check does when it has no location to check against. Kept as a
+        // separate switch rather than folded into the one above, because "block a
+        // country mismatch" and "block an address we cannot place at all" refuse
+        // very different populations - the second one also catches anyone on a LAN
+        // address, which on a misconfigured reverse proxy is everybody.
+        $out .= html_writer::tag('div',
+            self::checkbox([
+                'name' => 'blockunresolvedip',
+                'checked' => manager::block_unresolved_ip(),
+            ]) . ' ' .
+            html_writer::tag('label', get_string('blockunresolvedip', 'local_profilefields'),
+                ['class' => 'ms-2 mb-0']),
+            ['class' => 'form-check form-switch mt-3']);
+        $out .= html_writer::tag('p', get_string('blockunresolvedip_desc', 'local_profilefields'),
+            ['class' => 'text-muted small mt-1']);
+
+        // Where the refusals this section produces end up.
+        $out .= html_writer::tag('p', html_writer::link(
+            new moodle_url('/local/profilefields/reports.php'),
+            get_string('seereports', 'local_profilefields')), ['class' => 'small']);
+
         // The check works with no setup via a free online lookup; a local GeoIP
         // database, if the admin installs one, is used instead.
         $url = (new moodle_url('/admin/settings.php', ['section' => 'locationsettings']))->out();
@@ -513,6 +534,8 @@ class page {
         set_config('countryfromphone', optional_param('countryfromphone', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
         set_config(completion::SETTING, optional_param('completiongate', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
         set_config('ipmatchphone', optional_param('ipmatchphone', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
+        set_config('blockunresolvedip', optional_param('blockunresolvedip', 0, PARAM_BOOL) ? 1 : 0,
+            manager::COMPONENT);
         set_config('consentenabled', optional_param('consentenabled', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
 
         // Core field toggles and per-language labels.

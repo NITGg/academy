@@ -161,3 +161,9 @@ $string['payments:managerefunds'] = 'إدارة المبالغ المستردة'
 $string['payments:manageproviders'] = 'إدارة مزودي الدفع';
 $string['payments:viewalltransactions'] = 'عرض جميع المعاملات';
 $string['payments:viewauditlogs'] = 'عرض سجل التدقيق';
+
+// Country-gated pricing: a signed-in account with no profile country is shown no price at all
+// (see local_payments\country_detector::pricing_blocked) and cannot reach checkout.
+$string['countryrequired'] = 'حدِّد دولتك لعرض السعر';
+$string['countryrequired_desc'] = 'تختلف الأسعار من دولة لأخرى. أضِف دولتك إلى ملفك الشخصي لعرض سعر هذا الكورس ومتابعة الشراء.';
+$string['countryrequired_action'] = 'أضِف دولتك';

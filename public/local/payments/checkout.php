@@ -30,6 +30,14 @@ $PAGE->set_pagelayout('standard');
 try {
     $result = \local_payments\manager::create_checkout($courseid, $USER->id, null, $lang, $couponcode);
     redirect(new moodle_url($result->checkout_url));
+} catch (\local_payments\country_required_exception $e) {
+    // No profile country = no price = nothing to charge. Send them to fill it in rather than
+    // to the course they cannot buy yet.
+    $notice = \local_payments\country_detector::country_required_notice();
+    echo $OUTPUT->header();
+    echo $OUTPUT->notification($notice['message'], 'info');
+    echo $OUTPUT->single_button(new moodle_url($notice['url']), $notice['action'], 'get');
+    echo $OUTPUT->footer();
 } catch (\Exception $e) {
     echo $OUTPUT->header();
     echo $OUTPUT->notification($e->getMessage(), 'error');

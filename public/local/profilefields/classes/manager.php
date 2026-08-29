@@ -338,6 +338,28 @@ class manager {
     }
 
     /**
+     * Whether an address the geo-IP lookup cannot place is refused.
+     *
+     * Only consulted while `ip_match_phone()` is on - it decides what the location
+     * check does when it has no location to check against, which is the case for a
+     * failed lookup, a site with no geo-IP source, and any private or reserved
+     * address (a LAN client, or a site behind a reverse proxy with
+     * `$CFG->getremoteaddrconf` not set).
+     *
+     * Defaults to on, including on a site upgraded from before the setting existed:
+     * a location rule that quietly waves through everyone it cannot locate is not
+     * much of a rule. An admin who would rather never risk a false refusal turns it
+     * off on the register tab.
+     *
+     * @return bool
+     */
+    public static function block_unresolved_ip(): bool {
+        $value = get_config(self::COMPONENT, 'blockunresolvedip');
+
+        return $value === false ? true : (bool) $value;
+    }
+
+    /**
      * Whether an inline "I agree to the policies" checkbox is added to sign-up.
      *
      * @return bool

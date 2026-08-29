@@ -15,11 +15,12 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Admin tree entry for local_profilefields.
+ * Admin tree entries for local_profilefields.
  *
- * The page sits next to core's "User profile fields" under Users > Accounts,
- * because that is where an admin goes looking for it - the two screens answer
- * different halves of the same question.
+ * Both pages sit under Plugins > Local plugins, alongside the rest of the
+ * academy's own screens, rather than under Users > Accounts next to core's
+ * "User profile fields": an admin looking for something we added looks in one
+ * place, and the reports page has no counterpart in the Accounts tree at all.
  *
  * @package    local_profilefields
  * @copyright  2026 NIT
@@ -29,10 +30,17 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
-    $ADMIN->add('accounts', new admin_externalpage(
+    $ADMIN->add('localplugins', new admin_externalpage(
         'local_profilefields_manage',
         get_string('managefields', 'local_profilefields'),
         new moodle_url('/local/profilefields/manage.php'),
+        'moodle/site:config'
+    ));
+
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_profilefields_reports',
+        get_string('reportstitle', 'local_profilefields'),
+        new moodle_url('/local/profilefields/reports.php'),
         'moodle/site:config'
     ));
 }

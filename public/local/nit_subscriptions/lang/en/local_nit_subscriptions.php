@@ -204,3 +204,10 @@ $string['enrolled']            = 'You are now enrolled in this course.';
 
 // Scheduled task: end subscriptions past their deadline.
 $string['task_expire_subscriptions'] = 'Expire finished subscriptions and unenrol students';
+
+// Country-gated pricing. Normally the wording comes from local_payments (which carries the
+// Arabic too, and keeps courses and plans saying the same thing); these are the standalone
+// fallbacks used only when that plugin is not installed.
+$string['countryrequired'] = 'Set your country to see the price';
+$string['countryrequired_desc'] = 'Prices are set per country. Add your country to your profile to see this plan\'s price and subscribe.';
+$string['countryrequired_action'] = 'Add your country';

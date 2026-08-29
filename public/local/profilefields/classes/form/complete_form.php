@@ -172,6 +172,24 @@ class complete_form extends moodleform {
         $errors = parent::validation($data, $files);
         $missing = $this->_customdata['missing'];
 
+        // The box a page-level refusal is pinned to. The sign-up form uses `email`,
+        // which this form does not have - the account already exists - and an error
+        // keyed to an element that is not rendered makes a form that refuses to
+        // submit with nothing shown. Something is always outstanding here or the
+        // page would have redirected instead of drawing, so this always resolves.
+        $first = reset($missing['fields']);
+        $anchor = $first ? $first['name'] : (!empty($missing['consent']) ? signup::CONSENT : '');
+
+        // The registration IP deny list, the same one the sign-up form applies. This
+        // page is a registration - the sign-up questions asked late - so an address
+        // that may not create an account may not finish creating one either.
+        if ($anchor !== '') {
+            $blocked = signup::validate_ip_allowed($anchor);
+            if ($blocked) {
+                return $blocked;
+            }
+        }
+
         // An unticked advcheckbox submits 0 rather than nothing, so a 'required'
         // rule never fires on it - the sign-up form checks it the same way.
         if (!empty($missing['consent']) && empty($data[signup::CONSENT])) {
@@ -185,7 +203,9 @@ class complete_form extends moodleform {
             }
         }
 
-        // The "phone country must match the visitor's location" rule.
+        // The "phone country must match the visitor's location" rule - which also
+        // covers the "we could not place this address at all" refusal, since both
+        // verdicts come out of signup::ip_country_error().
         //
         // profilefield_phone applies it only to a visitor creating an account
         // (field.class.php: `$this->userid == 0 && !isloggedin()`), because an

@@ -67,6 +67,30 @@ class get_course_price extends external_api {
             ];
         }
 
+        // Signed in with no profile country: the app gets no amount at all, plus the flag and
+        // message that tell it to send the user to its profile-completion screen. Reported as
+        // a normal result rather than an exception so the app can render the prompt in place
+        // of the price instead of showing an error.
+        if (\local_payments\price_resolver::country_required($USER->id)) {
+            $notice = \local_payments\country_detector::country_required_notice();
+            return [
+                'courseid' => $params['courseid'],
+                'country' => '',
+                'currency' => '',
+                'price' => 0.0,
+                'sale_price' => 0.0,
+                'original_price' => 0.0,
+                'discount_percentage' => 0,
+                'is_sale_active' => false,
+                'sale_ends_at' => 0,
+                'is_purchased' => $is_purchased,
+                'is_enrolled' => $is_enrolled,
+                'is_free' => false,
+                'country_required' => true,
+                'country_message' => $notice['message'],
+            ];
+        }
+
         $pricing = \local_payments\price_resolver::resolve(
             $params['courseid'],
             $USER->id,
@@ -103,6 +127,12 @@ class get_course_price extends external_api {
             'is_purchased' => new external_value(PARAM_BOOL, 'Already purchased'),
             'is_enrolled' => new external_value(PARAM_BOOL, 'Already enrolled'),
             'is_free' => new external_value(PARAM_BOOL, 'Course has no active pricing — free/open access'),
+            'country_required' => new external_value(PARAM_BOOL,
+                'True when the signed-in account has no profile country: no price is returned and the '
+                . 'course cannot be bought until one is set', VALUE_DEFAULT, false),
+            'country_message' => new external_value(PARAM_TEXT,
+                'Localised message to show in place of the price when country_required is true',
+                VALUE_DEFAULT, ''),
         ]);
     }
 }

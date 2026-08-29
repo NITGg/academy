@@ -372,12 +372,14 @@ class subscription_manager {
      *
      * A country-specific active override row (nit_sub_price) wins; otherwise the plan's base
      * price/currency (nit_subscription) is the default. Mirrors local_payments price_resolver::resolve(),
-     * including the fallbacks: profile country → IP geolocation → app hint → plan default price.
+     * including the rule that a signed-in account with no profile country has no price at all:
+     * signed in → profile country, guest → IP geolocation → app hint → plan default price.
      *
      * @param int $subscriptionid
      * @param int|null $userid defaults to current $USER
      * @param string|null $app_country optional country hint from the mobile app
      * @return \stdClass {price, currency, price_id, country}
+     * @throws \local_payments\country_required_exception if signed in with no profile country
      */
     public static function resolve_price($subscriptionid, $userid = null, $app_country = null) {
         global $DB, $USER;
@@ -385,8 +387,19 @@ class subscription_manager {
         $userid = $userid ?? (int) $USER->id;
         $sub = self::get_subscription($subscriptionid); // Throws if missing.
 
-        // May be '' when the country genuinely cannot be determined (no profile country AND no
-        // usable IP). That must land on the plan's base price, never on the admin default
+        // A signed-in account with no profile country is quoted nothing — not the plan's base
+        // price, not an IP guess. Same rule and same exception as a course price, so every
+        // caller handles one case, not two.
+        if (self::pricing_blocked($userid)) {
+            $debug = "Subscription {$subscriptionid}: user {$userid} has no profile country";
+            if (class_exists('\local_payments\country_required_exception')) {
+                throw new \local_payments\country_required_exception($debug);
+            }
+            throw new \moodle_exception('countryrequired_desc', 'local_nit_subscriptions', '', null, $debug);
+        }
+
+        // May be '' when the country genuinely cannot be determined (a guest with no usable IP
+        // and no app hint). That must land on the plan's base price, never on the admin default
         // country's override row.
         $country = self::detect_country_for_pricing($userid, $app_country);
         // Consumers such as the payment-provider routing in local_payments\manager need a real
@@ -420,6 +433,30 @@ class subscription_manager {
             'price_id' => 0,
             'country'  => $reported,
         ];
+    }
+
+    /**
+     * Is this user barred from seeing any price because their profile carries no country?
+     *
+     * Delegates to local_payments so courses and subscriptions can never disagree about who is
+     * blocked. Standalone (that plugin absent) the same test runs against the user record.
+     *
+     * @param int|null $userid defaults to current $USER
+     * @return bool
+     */
+    public static function pricing_blocked($userid = null) {
+        global $DB, $USER, $CFG;
+
+        $userid = (int) ($userid ?? $USER->id);
+        if (class_exists('\local_payments\country_detector')) {
+            return \local_payments\country_detector::pricing_blocked($userid);
+        }
+        // Guests have no profile to fill in, so they are never blocked.
+        if ($userid <= 0 || (!empty($CFG->siteguest) && $userid === (int) $CFG->siteguest)) {
+            return false;
+        }
+
+        return !preg_match('/^[A-Za-z]{2}$/', (string) $DB->get_field('user', 'country', ['id' => $userid]));
     }
 
     /**

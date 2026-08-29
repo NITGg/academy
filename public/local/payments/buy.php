@@ -161,6 +161,28 @@ try {
 JS
         );
     }
+} catch (\local_payments\country_required_exception $e) {
+    // Signed in with no profile country. Prices are per country, so this account has none —
+    // no amount, no checkout link, just the one step that unblocks it. A subscription that
+    // already covers the course still enrols (no price is involved), so that button stays.
+    $notice = \local_payments\country_detector::country_required_notice();
+    echo $OUTPUT->render_from_template('local_payments/course_page_price', [
+        'courseid' => $courseid,
+        'is_enrolled' => false,
+        'is_purchased' => false,
+        'is_free' => false,
+        'country_required' => true,
+        'country_short' => $notice['short'],
+        'country_message' => $notice['message'],
+        'country_action' => $notice['action'],
+        'country_url' => $notice['url'],
+    ]);
+    if ($can_enroll_via_sub) {
+        echo $OUTPUT->single_button(
+            new moodle_url('/local/payments/buy.php',
+                ['courseid' => $courseid, 'action' => 'enroll', 'sesskey' => sesskey()]),
+            get_string('enroll', 'local_payments'), 'post');
+    }
 } catch (\moodle_exception $e) {
     echo $OUTPUT->notification(get_string('nopricefound', 'local_payments'), 'info');
     echo $OUTPUT->continue_button(new moodle_url('/'));

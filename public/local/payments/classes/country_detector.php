@@ -9,18 +9,23 @@ class country_detector {
      * Resolve the country a buyer's price should be keyed on, or '' when it genuinely
      * cannot be determined.
      *
-     * Pricing is ALWAYS by country. The chain, in order, is:
+     * Pricing is ALWAYS by country. The chain splits on whether anybody is signed in:
      *
-     *   1. LOGGED-IN user's profile country — the built-in field the academy manages.
-     *      Stable, and it cannot whiplash between visits.
-     *   2. IP geolocation — used for guests (no profile at all) AND for a logged-in user
-     *      whose profile country is empty, so an incomplete profile still gets a localised
-     *      price instead of silently landing on someone else's country.
-     *   3. Country hint sent by the Flutter app.
-     *   4. '' — country unknown. The caller must then fall back to the *default price*
-     *      row/base price, NOT to some other country's price.
+     *   A SIGNED-IN account is priced on its **profile country and nothing else**. If that
+     *   field is empty the account has no price at all — see {@see self::pricing_blocked()},
+     *   which every price surface checks *before* calling this. It deliberately does not fall
+     *   through to IP: an account we can ask is an account whose own answer is the only
+     *   honest one, and a guessed country would let the same buyer be quoted two different
+     *   prices from two different networks. This method returns '' for that account; the gate,
+     *   not the '' , is what stops the price being shown.
      *
-     * Returning '' at step 4 is the whole point: an unknown country must never be silently
+     *   A GUEST (nobody signed in) has no profile to read, so:
+     *     1. IP geolocation — approximate, but it localises the shop window.
+     *     2. Country hint sent by the Flutter app.
+     *     3. '' — country unknown. The caller must then fall back to the *default price*
+     *        row/base price, NOT to some other country's price.
+     *
+     * Returning '' at the end is the whole point: an unknown country must never be silently
      * rewritten to the admin "default country", because that country may well have a price
      * row of its own and the buyer would be shown a price meant for somebody else. Use
      * {@see self::detect()} where a non-empty code is structurally required (payment-provider
@@ -32,36 +37,115 @@ class country_detector {
      * @return string ISO 3166-1 alpha-2 (uppercase), or '' when unknown
      */
     public static function detect_for_pricing(?int $userid = null, ?string $app_country = null, ?string $ip = null): string {
-        global $USER, $CFG;
+        global $USER;
 
         $userid = $userid ?? $USER->id;
 
-        // Anonymous (id 0) or the site guest account = guest for pricing purposes.
-        $isguest = ($userid <= 0)
-            || (!empty($CFG->siteguest) && (int) $userid === (int) $CFG->siteguest);
-
-        // 1. Profile country (logged-in only).
-        if (!$isguest) {
-            $profile_country = self::from_profile($userid);
-            if ($profile_country !== '') {
-                return $profile_country;
-            }
+        // Signed in: the profile country is the only source, and an empty one is a dead end
+        // (pricing_blocked() is what the display/purchase surfaces act on). No IP guess.
+        if (!self::is_guest($userid)) {
+            return self::from_profile($userid);
         }
 
-        // 2. IP geolocation. Covers guests, and logged-in users with no profile country.
-        // Yields '' when geolocation is unconfigured, the IP is private, or the lookup fails.
+        // Guest — no profile to read. 1. IP geolocation. Yields '' when geolocation is
+        // unconfigured, the IP is private, or the lookup fails.
         $ip_country = self::from_ip($ip ?? getremoteaddr());
         if ($ip_country !== '') {
             return $ip_country;
         }
 
-        // 3. Country provided by the Flutter app.
+        // 2. Country provided by the Flutter app.
         if (!empty($app_country) && self::is_valid_country($app_country)) {
             return strtoupper($app_country);
         }
 
-        // 4. Unknown — the caller applies the default price.
+        // 3. Unknown — the caller applies the default price.
         return '';
+    }
+
+    /**
+     * Must this user be shown no price at all?
+     *
+     * True for a signed-in account whose profile country is empty. Such an account is not
+     * priced by IP or by the admin default — it is not priced at all: every price surface
+     * prints {@see self::country_required_notice()} instead of an amount, and every purchase
+     * entry point refuses. The buyer sets their country once, on their profile, and the whole
+     * shop starts working.
+     *
+     * Guests are NOT blocked: they have no profile to fill in, so they keep the IP →
+     * default-price ladder in {@see self::detect_for_pricing()} and the shop window still
+     * shows real prices to visitors who have not signed up yet.
+     *
+     * @param int|null $userid defaults to the current user
+     * @return bool
+     */
+    public static function pricing_blocked(?int $userid = null): bool {
+        global $USER;
+
+        $userid = $userid ?? (int) $USER->id;
+
+        return !self::is_guest($userid) && self::from_profile($userid) === '';
+    }
+
+    /**
+     * What a blocked buyer is told, and where to send them to fix it.
+     *
+     * One place builds it so the course cards, the course page, the buy page, the
+     * subscription block and the mobile web services all say the same thing.
+     *
+     * `url` prefers local_profilefields' sign-up completion page — a short form that asks only
+     * what registration would still ask — but ONLY when that page would actually ask for the
+     * country. If it would not (the gate is off, or country is not one of its required boxes)
+     * it bounces a "complete" user straight back to the site home, which would leave the buyer
+     * with nowhere to go; the profile editor always carries the country selector, so that is
+     * the fallback.
+     *
+     * Memoised: a catalogue page resolves a card context per course, and each one asks for this
+     * notice.
+     *
+     * @return array{message: string, short: string, action: string, url: string}
+     */
+    public static function country_required_notice(): array {
+        global $USER, $PAGE;
+        static $notice = null;
+
+        if ($notice !== null) {
+            return $notice;
+        }
+
+        $url = new \moodle_url('/user/edit.php', ['id' => (int) $USER->id]);
+        if (class_exists('\local_profilefields\completion') && \local_profilefields\completion::enabled()) {
+            $missing = \local_profilefields\completion::missing($USER);
+            foreach ($missing['fields'] as $field) {
+                if (($field['name'] ?? '') === 'country') {
+                    $here = $PAGE && $PAGE->has_set_url() ? $PAGE->url->out(false) : '';
+                    $url = \local_profilefields\completion::url($here);
+                    break;
+                }
+            }
+        }
+
+        $notice = [
+            'message' => get_string('countryrequired_desc', 'local_payments'),
+            'short' => get_string('countryrequired', 'local_payments'),
+            'action' => get_string('countryrequired_action', 'local_payments'),
+            'url' => $url->out(false),
+        ];
+
+        return $notice;
+    }
+
+    /**
+     * Anonymous (id 0) or the site guest account — nobody with a profile to price on.
+     *
+     * @param int $userid
+     * @return bool
+     */
+    private static function is_guest(int $userid): bool {
+        global $CFG;
+
+        return ($userid <= 0)
+            || (!empty($CFG->siteguest) && (int) $userid === (int) $CFG->siteguest);
     }
 
     /**
@@ -95,13 +179,26 @@ class country_detector {
         return 'EG';
     }
 
+    /**
+     * The profile country, or '' when the account has none.
+     *
+     * Cached per request: a catalogue page asks this once per card (once to decide whether the
+     * viewer is blocked, once more to price), and it is one column on one row that cannot
+     * change mid-request.
+     */
     private static function from_profile(int $userid): string {
         global $DB;
-        $country = $DB->get_field('user', 'country', ['id' => $userid]);
-        if (!empty($country) && self::is_valid_country($country)) {
-            return strtoupper($country);
+        static $cache = [];
+
+        if (array_key_exists($userid, $cache)) {
+            return $cache[$userid];
         }
-        return '';
+
+        $country = $DB->get_field('user', 'country', ['id' => $userid]);
+        $cache[$userid] = (!empty($country) && self::is_valid_country($country))
+            ? strtoupper($country) : '';
+
+        return $cache[$userid];
     }
 
     /**

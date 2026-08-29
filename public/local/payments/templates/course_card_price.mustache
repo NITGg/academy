@@ -1,6 +1,7 @@
 {{!
     Course card price display.
-    Context: {price, sale_price, original_price, currency, is_sale_active, discount_pct, is_purchased, is_enrolled, is_free, can_enroll_via_sub, can_renew, course_url, buy_url, enroll_url}
+    Context: {price, sale_price, original_price, currency, is_sale_active, discount_pct, is_purchased, is_enrolled, is_free, can_enroll_via_sub, can_renew, course_url, buy_url, enroll_url,
+              country_required, country_short, country_action, country_url}
 }}
 <div class="local-payments-card-price">
     {{#can_renew}}
@@ -40,6 +41,20 @@
                     </div>
                 {{/is_purchased}}
                 {{^is_purchased}}
+                    {{! Signed in with no profile country: no amount and no Buy button — the
+                        card offers the one thing that unblocks it instead. }}
+                    {{#country_required}}
+                        <div class="lp-card-row lp-card-row--countryrequired">
+                            <span class="lp-card-status lp-card-status--countryrequired">
+                                <i class="fa fa-globe"></i>
+                                <span>{{country_short}}</span>
+                            </span>
+                            <a href="{{country_url}}" class="lp-btn lp-btn--subscribe">
+                                <i class="fa fa-user-edit"></i> {{country_action}}
+                            </a>
+                        </div>
+                    {{/country_required}}
+                    {{^country_required}}
                     <div class="lp-card-row">
                         <div class="lp-price-block">
                             {{#is_sale_active}}
@@ -57,6 +72,7 @@
                             <i class="fa fa-credit-card"></i> {{#str}}buynow, local_payments{{/str}}
                         </a>
                     </div>
+                    {{/country_required}}
                 {{/is_purchased}}
             {{/is_free}}
         {{/can_enroll_via_sub}}
