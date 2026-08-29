@@ -97,75 +97,23 @@
         /**
          * Pick the next rule, and the wording that goes with it.
          *
-         * @return {{test: Function, label: string, expressions: boolean}}
+         * Which rules the game may set is no longer decided here: they are rows
+         * an administrator edits in Game control, and the shell turns one of
+         * them into a test and a label. "Equal to n" is the only kind that
+         * changes what falls - the tokens become little sums, so the child has
+         * to do the arithmetic before they move.
+         *
+         * @return {?{test: Function, label: string, expressions: boolean}} null when no rules are set
          */
         function makeRule() {
-            var kind = api.pick(['equals', 'divisible', 'greater', 'less', 'even', 'odd']);
-            var n;
-
-            if (kind === 'equals') {
-                n = api.random(8, 20);
-                return {
-                    // Tokens are little sums here, so "equal to 12" means doing
-                    // the arithmetic in your head before you move.
-                    expressions: true,
-                    test: function (value) {
-                        return value === n;
-                    },
-                    label: api.strings.catch_rule_equals.replace('{$a}', api.fmt(n))
-                };
+            var rule = api.numberRule('catch');
+            if (!rule) {
+                return null;
             }
 
-            if (kind === 'divisible') {
-                n = api.pick([2, 3, 4, 5]);
-                return {
-                    expressions: false,
-                    test: function (value) {
-                        return value % n === 0;
-                    },
-                    label: api.strings.catch_rule_divisible.replace('{$a}', api.fmt(n))
-                };
-            }
+            rule.expressions = rule.target !== undefined;
 
-            if (kind === 'greater') {
-                n = api.random(10, 30);
-                return {
-                    expressions: false,
-                    test: function (value) {
-                        return value > n;
-                    },
-                    label: api.strings.catch_rule_greater.replace('{$a}', api.fmt(n))
-                };
-            }
-
-            if (kind === 'less') {
-                n = api.random(10, 30);
-                return {
-                    expressions: false,
-                    test: function (value) {
-                        return value < n;
-                    },
-                    label: api.strings.catch_rule_less.replace('{$a}', api.fmt(n))
-                };
-            }
-
-            if (kind === 'even') {
-                return {
-                    expressions: false,
-                    test: function (value) {
-                        return value % 2 === 0;
-                    },
-                    label: api.strings.catch_rule_even
-                };
-            }
-
-            return {
-                expressions: false,
-                test: function (value) {
-                    return value % 2 === 1;
-                },
-                label: api.strings.catch_rule_odd
-            };
+            return rule;
         }
 
         /**
@@ -173,8 +121,16 @@
          */
         function setRule() {
             rule = makeRule();
+            // No rules set means nothing to ask for. Ending the round is a
+            // quiet finish rather than a screen the child cannot get out of.
+            if (!rule) {
+                api.finish(0);
+                return false;
+            }
+            api.setProgress(caught, TARGET);
             nodes.rule.textContent = rule.label;
             api.say(rule.label);
+            return true;
         }
 
         /**
@@ -266,7 +222,9 @@
         function catchToken(token) {
             if (rule.test(token.value)) {
                 caught++;
+                api.setProgress(caught, TARGET);
                 api.correct();
+                api.setProgress(caught, TARGET);
                 if (caught % RULE_EVERY === 0 && caught < TARGET) {
                     setRule();
                 }
@@ -349,7 +307,11 @@
             }
             // A backgrounded tab hands back a huge delta; clamp it so nothing
             // teleports past the basket on return.
-            var dt = Math.min((timestamp - lastframe) / 1000, 0.05);
+            // Clamped at BOTH ends. A backgrounded tab hands back a huge delta on
+            // return, and a clock that appears to run backwards - a device time
+            // change, or a first frame stamped before lastframe was set - would
+            // otherwise drive every timer in the game the wrong way.
+            var dt = Math.max(0, Math.min((timestamp - lastframe) / 1000, 0.05));
             lastframe = timestamp;
 
             update(dt);
@@ -403,8 +365,17 @@
 
             var left = wrap.querySelector('[data-steer="-1"]');
             var right = wrap.querySelector('[data-steer="1"]');
-            left.textContent = '⬅️ ' + api.strings.catch_left;
-            right.textContent = api.strings.catch_right + ' ➡️';
+
+            // A steering pad is not text: the button that moves the basket left
+            // has to sit on the left in Arabic too. The container is pinned to
+            // ltr in the stylesheet so the grid keeps its physical order, and
+            // each arrow is placed on the button's outer edge - arrow first on
+            // the left button, arrow last on the right one.
+            left.appendChild(arrow('⬅️'));
+            left.appendChild(label(api.strings.catch_left));
+            right.appendChild(label(api.strings.catch_right));
+            right.appendChild(arrow('➡️'));
+
             canvas.setAttribute('aria-label', api.strings.catch_howto || '');
 
             bindSteering(left, -1);
@@ -414,6 +385,35 @@
             document.addEventListener('keydown', onKeyDown);
             document.addEventListener('keyup', onKeyUp);
             window.addEventListener('resize', resize);
+        }
+
+        /**
+         * A directional arrow, marked decorative - the button's own label is
+         * what a screen reader should read.
+         *
+         * @param {string} glyph
+         * @return {HTMLElement}
+         */
+        function arrow(glyph) {
+            var el = document.createElement('span');
+            el.className = 'gc-steer__arrow';
+            el.setAttribute('aria-hidden', 'true');
+            el.textContent = glyph;
+            return el;
+        }
+
+        /**
+         * The button's word. Isolated so an Arabic label cannot drag the arrow
+         * around it through bidi reordering.
+         *
+         * @param {string} text
+         * @return {HTMLElement}
+         */
+        function label(text) {
+            var el = document.createElement('span');
+            el.className = 'gc-steer__label';
+            el.textContent = text;
+            return el;
         }
 
         /**
@@ -517,7 +517,9 @@
                 build();
                 readColours();
                 resize();
-                setRule();
+                if (!setRule()) {
+                    return;
+                }
                 api.setLives(lives);
 
                 running = true;

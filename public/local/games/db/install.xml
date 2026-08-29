@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/games/db" VERSION="2026082600"
-       COMMENT="Games Corner: per-user points and earned badges.">
+<XMLDB PATH="local/games/db" VERSION="2026082903"
+       COMMENT="Games Corner: per-user points and badges, plus the admin-editable catalogue and each game's own content.">
   <TABLES>
     <TABLE NAME="local_games_progress" COMMENT="One row per user per game: the running score for that game">
       <FIELDS>
@@ -36,6 +36,42 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="useridbadge" UNIQUE="true" FIELDS="userid, badge"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_games_game" COMMENT="What an admin has changed about one catalogue entry. No row means the registry default is used.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="gameid" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false" COMMENT="Registry slug, e.g. math-race"/>
+        <FIELD NAME="name" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Display name, one value carrying {mlang} markup. Empty falls back to the language pack."/>
+        <FIELD NAME="description" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Hub card line, one value carrying {mlang} markup."/>
+        <FIELD NAME="enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="0 hides the game from the hub and refuses play.php"/>
+        <FIELD NAME="level" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1..3 stars; 0 keeps the registry level"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Position inside its hub section; 0 keeps the registry order"/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="gameid" UNIQUE="true" FIELDS="gameid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_games_content" COMMENT="One row of one game's content. Every game owns its own rows: two games of the same shape never share a row.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="gameid" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false" COMMENT="Which game owns this row"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="data" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="The row as JSON, keyed by the field names of the game's shape. Display strings carry {mlang} markup."/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="gameidsortorder" UNIQUE="false" FIELDS="gameid, sortorder"/>
       </INDEXES>
     </TABLE>
   </TABLES>

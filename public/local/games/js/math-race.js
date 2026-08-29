@@ -58,40 +58,16 @@
         /**
          * Build one question, harder as the round goes on.
          *
-         * The first third stays inside addition and subtraction under 20 - the
-         * doc puts this game at age 7 - then multiplication joins in.
+         * Which sums the game may ask is not decided here any more: the ranges
+         * are rows an administrator edits in Game control, and api.sum() draws
+         * one of them. The game is still endless - it generates inside whatever
+         * rules it has been given - so a class can be put on times tables only
+         * without anybody touching this file.
          *
-         * @param {number} index which question this is, 0-based
-         * @return {{text: string, answer: number}}
+         * @return {?{text: string, answer: number}} null when no rules are set
          */
-        function makeQuestion(index) {
-            var kind;
-            if (index < 4) {
-                kind = api.pick(['+', '-']);
-            } else if (index < 8) {
-                kind = api.pick(['+', '-', '*']);
-            } else {
-                kind = api.pick(['+', '-', '*', '*']);
-            }
-
-            var a;
-            var b;
-
-            if (kind === '+') {
-                a = api.random(2, index < 4 ? 10 : 25);
-                b = api.random(2, index < 4 ? 9 : 20);
-                return {text: a + ' + ' + b, answer: a + b};
-            }
-
-            if (kind === '-') {
-                a = api.random(5, index < 4 ? 18 : 40);
-                b = api.random(1, a - 1);
-                return {text: a + ' - ' + b, answer: a - b};
-            }
-
-            a = api.random(2, index < 8 ? 6 : 10);
-            b = api.random(2, index < 8 ? 6 : 10);
-            return {text: a + ' × ' + b, answer: a * b};
+        function makeQuestion() {
+            return api.sum();
         }
 
         /**
@@ -176,6 +152,7 @@
             allowed = TIME_START - (TIME_START - TIME_FLOOR) * progress;
             deadline = Date.now() + allowed * 1000;
 
+            api.setProgress(solved, TARGET);
             nodes.question.textContent = api.fmt(current.text) + ' = ?';
             nodes.question.setAttribute('dir', 'ltr');
 
@@ -210,6 +187,7 @@
             if (value === current.answer) {
                 button.classList.add('gc-answer--ok');
                 solved++;
+                api.setProgress(solved, TARGET);
                 api.correct();
                 moveRunner();
             } else {
@@ -283,7 +261,15 @@
                 solved = 0;
                 attempts = 0;
                 for (var i = 0; i < TARGET; i++) {
-                    queue.push(makeQuestion(i));
+                    var question = makeQuestion();
+                    // No rules set means no sums to ask. Finishing the round at
+                    // once is a quiet end rather than an empty screen the child
+                    // has to work out how to leave.
+                    if (!question) {
+                        api.finish(0);
+                        return;
+                    }
+                    queue.push(question);
                 }
                 build();
                 moveRunner();

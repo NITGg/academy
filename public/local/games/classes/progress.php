@@ -90,15 +90,18 @@ class progress {
      * @param int    $wrong wrong answers this round
      * @param int    $streak longest run of correct answers this round
      * @param int    $score the round score the game itself reports
+     * @param int    $goal how many times the game's own goal was met this round
      * @return array{points: int, badges: int, gamepoints: int, bestscore: int, newbadges: string[]}
      */
-    public static function submit(int $userid, string $gameid, int $correct, int $wrong, int $streak, int $score): array {
+    public static function submit(int $userid, string $gameid, int $correct, int $wrong, int $streak,
+            int $score, int $goal = 0): array {
         global $DB;
 
         $correct = min(max($correct, 0), self::MAX_PER_ROUND);
         $wrong   = min(max($wrong, 0), self::MAX_PER_ROUND);
         $streak  = min(max($streak, 0), $correct);
         $score   = min(max($score, 0), self::MAX_PER_ROUND);
+        $goal    = min(max($goal, 0), self::MAX_PER_ROUND);
 
         $now = time();
         $record = $DB->get_record('local_games_progress', ['userid' => $userid, 'gameid' => $gameid]);
@@ -124,7 +127,7 @@ class progress {
             $record->id = $DB->insert_record('local_games_progress', $record);
         }
 
-        $newbadges = self::award_badges($userid, $gameid, $correct, $wrong, $streak);
+        $newbadges = self::award_badges($userid, $gameid, $correct, $wrong, $streak, $goal);
 
         $totals = self::get_totals($userid);
 
@@ -149,9 +152,11 @@ class progress {
      * @param int    $correct
      * @param int    $wrong
      * @param int    $streak
+     * @param int    $goal
      * @return string[] badge keys awarded by this round
      */
-    private static function award_badges(int $userid, string $gameid, int $correct, int $wrong, int $streak): array {
+    private static function award_badges(int $userid, string $gameid, int $correct, int $wrong, int $streak,
+            int $goal): array {
         global $DB;
 
         $game = registry::get_game($gameid);
@@ -166,7 +171,7 @@ class progress {
             if (in_array($badge, $already, true)) {
                 continue;
             }
-            if (!self::rule_met($rule, $correct, $wrong, $streak)) {
+            if (!self::rule_met($rule, $correct, $wrong, $streak, $goal)) {
                 continue;
             }
             try {
@@ -193,9 +198,10 @@ class progress {
      * @param int   $correct
      * @param int   $wrong
      * @param int   $streak
+     * @param int   $goal
      * @return bool
      */
-    private static function rule_met(array $rule, int $correct, int $wrong, int $streak): bool {
+    private static function rule_met(array $rule, int $correct, int $wrong, int $streak, int $goal): bool {
         if (isset($rule['streak']) && $streak < $rule['streak']) {
             return false;
         }
@@ -203,6 +209,13 @@ class progress {
             return false;
         }
         if (isset($rule['maxwrong']) && $wrong > $rule['maxwrong']) {
+            return false;
+        }
+        // Whatever the game itself calls winning: matches won in XO, planets
+        // reached in Space Trip, a board cleared inside a flip budget. Counting
+        // right answers cannot express any of those, and inventing a separate
+        // rule per game would put game logic in the server.
+        if (isset($rule['goal']) && $goal < $rule['goal']) {
             return false;
         }
         return true;

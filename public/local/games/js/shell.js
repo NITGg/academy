@@ -42,6 +42,44 @@
     var factories = {};
     var booted = false;
 
+    /** Where the sound choice is kept between games. */
+    var SOUND_KEY = 'local_games_sound';
+
+    /**
+     * Has the child turned the sound off?
+     *
+     * The choice belongs to the corner, not to one game: a child who silences
+     * Math Race because they are on a bus does not want Number Catcher to
+     * start talking the moment they open it. localStorage keeps it per device,
+     * which is the right scope - the same account on a tablet at home may well
+     * want the sound on.
+     *
+     * Every access is guarded: private windows and blocked site data both make
+     * localStorage throw, and a game must not die over a sound setting.
+     *
+     * @return {boolean}
+     */
+    function soundWanted() {
+        try {
+            return window.localStorage.getItem(SOUND_KEY) !== 'off';
+        } catch (e) {
+            return true;
+        }
+    }
+
+    /**
+     * Remember the choice for the next game.
+     *
+     * @param {boolean} enabled
+     */
+    function rememberSound(enabled) {
+        try {
+            window.localStorage.setItem(SOUND_KEY, enabled ? 'on' : 'off');
+        } catch (e) {
+            // Nothing to do; the setting simply will not survive this page.
+        }
+    }
+
     /**
      * Sound: short tones for feedback, and the browser's own voice for text.
      *
@@ -50,7 +88,7 @@
      * playable game.
      */
     var audio = {
-        enabled: true,
+        enabled: soundWanted(),
         ctx: null,
 
         context: function () {
@@ -166,13 +204,38 @@
         var lang = config.arabicdigits ? 'ar-EG' : (document.documentElement.lang || 'en');
 
         // Round bookkeeping. Reset by api.reset() before every round.
-        var round = {correct: 0, wrong: 0, streak: 0, best: 0};
+        //
+        // `correct` counts events and is what badge rules are written against
+        // ("10 words in one round"); `score` counts points and is what the HUD
+        // shows. They are the same number in every game that scores one point
+        // per answer, and they part ways in Word Builder, where a longer word
+        // is worth more without being more than one word.
+        var round = {correct: 0, wrong: 0, streak: 0, best: 0, score: 0};
 
         var api = {
             stage: dom.stage,
             strings: strings,
             lang: lang,
             audio: audio,
+
+            // The word bank and the shop shelf, straight from the language
+            // pack: [{word, emoji, clue}] and [{emoji, name}].
+            words: config.words || [],
+            shopitems: config.shopitems || [],
+
+            // The wider vocabulary, for games that only need to know whether
+            // something is a word.
+            wordlist: config.wordlist || [],
+
+            // The question bank six games are built on, plus the smaller banks
+            // for True or False, Who Am I and Colour Challenge.
+            quiz: config.quiz || [],
+            truefalse: config.truefalse || [],
+            whoami: config.whoami || [],
+            colours: config.colours || [],
+            sumrules: config.sumrules || [],
+            numberrules: config.numberrules || [],
+
 
             /**
              * A number as the child reads it: Arabic-Indic digits in Arabic.
@@ -232,23 +295,165 @@
                 audio.say(text, lang);
             },
 
+            /**
+             * A shuffled run of questions, ready to ask.
+             *
+             * Six games ask questions and all six were about to grow their own
+             * copy of "pick some questions, shuffle the options, remember which
+             * one is right". It belongs here once.
+             *
+             * @param {number} count how many questions
+             * @param {string} [topic] restrict to one wheel segment
+             * @return {Array<{question: string, answer: string, options: string[], topic: string}>}
+             */
+            questions: function (count, topic) {
+                var pool = api.quiz.filter(function (entry) {
+                    return !topic || entry.topic === topic;
+                });
+
+                return api.shuffle(pool).slice(0, count).map(function (entry) {
+                    return {
+                        topic: entry.topic,
+                        question: entry.question,
+                        answer: entry.answer,
+                        // Three choices for a young child, four once there are
+                        // enough wrong answers to make a fourth meaningful.
+                        options: api.shuffle([entry.answer].concat(entry.wrong.slice(0, 3)))
+                    };
+                });
+            },
+
+            /**
+             * One arithmetic question, drawn from the rules the admin set.
+             *
+             * Math Race used to hard-code its own ranges, which meant nobody
+             * running the site could put the class on times tables only. The
+             * ranges are rows now, and this turns one of them into a sum - so
+             * the game is still endless, inside whatever it has been given.
+             *
+             * @return {?{text: string, answer: number}} null when there are no rules
+             */
+            sum: function () {
+                if (!api.sumrules.length) {
+                    return null;
+                }
+
+                var rule = api.pick(api.sumrules);
+                var a = api.random(rule.mina, rule.maxa);
+                var b = api.random(rule.minb, rule.maxb);
+
+                if (rule.op === 'minus') {
+                    // Never a negative answer: the child has not met one yet.
+                    if (b > a) {
+                        var swap = a;
+                        a = b;
+                        b = swap;
+                    }
+                    return {text: a + ' - ' + b, answer: a - b};
+                }
+                if (rule.op === 'times') {
+                    return {text: a + ' × ' + b, answer: a * b};
+                }
+
+                return {text: a + ' + ' + b, answer: a + b};
+            },
+
+            /**
+             * One "catch only these" rule, drawn from the rows the admin set.
+             *
+             * Number Catcher and Balloon Pop ask the same kind of thing and used
+             * to carry two copies of this. The wording differs between them, so
+             * the caller says which set of strings to read.
+             *
+             * @param {string} prefix string prefix, "catch" or "balloon"
+             * @return {?{test: Function, label: string}} null when there are no rules
+             */
+            numberRule: function (prefix) {
+                if (!api.numberrules.length) {
+                    return null;
+                }
+
+                var rule = api.pick(api.numberrules);
+                var lo = Math.min(rule.minn, rule.maxn);
+                var hi = Math.max(rule.minn, rule.maxn);
+                var n = hi > 0 ? api.random(lo > 0 ? lo : 1, hi) : 0;
+                var strings = api.strings;
+
+                var say = function (key, value) {
+                    var text = strings[prefix + '_rule_' + key] || '';
+                    return value === undefined ? text : text.replace('{$a}', api.fmt(value));
+                };
+
+                switch (rule.kind) {
+                    case 'odd':
+                        return {test: function (v) {
+                            return Math.abs(v % 2) === 1;
+                        }, label: say('odd')};
+                    case 'greater':
+                        return {test: function (v) {
+                            return v > n;
+                        }, label: say('greater', n)};
+                    case 'less':
+                        return {test: function (v) {
+                            return v < n;
+                        }, label: say('less', n)};
+                    case 'divisible':
+                        return {test: function (v) {
+                            return n > 0 && v % n === 0;
+                        }, label: say('divisible', n)};
+                    case 'equals':
+                        return {test: function (v) {
+                            return v === n;
+                        }, label: say('equals', n), target: n};
+                    default:
+                        return {test: function (v) {
+                            return v % 2 === 0;
+                        }, label: say('even')};
+                }
+            },
+
             /** Start a fresh round's counters. */
             reset: function () {
-                round = {correct: 0, wrong: 0, streak: 0, best: 0};
+                round = {correct: 0, wrong: 0, streak: 0, best: 0, score: 0};
                 setHud(dom, 0, 0);
-                hideLives(dom);
+                hide(dom, 'lives-wrap');
+                hide(dom, 'progress-wrap');
+            },
+
+            /**
+             * Say how far through the round the child is.
+             *
+             * Every game calls this. A game with no visible end is a game a
+             * child stops trusting - they cannot tell whether stopping now
+             * loses anything.
+             *
+             * @param {number} done steps finished
+             * @param {number} total steps in the round
+             */
+            setProgress: function (done, total) {
+                var wrap = dom.root.querySelector('[data-hud="progress-wrap"]');
+                var value = dom.root.querySelector('[data-hud="progress"]');
+
+                wrap.classList.remove('gc-hud__item--hidden');
+                value.textContent = api.fmt(Math.min(done, total)) + ' / ' + api.fmt(total);
+                value.setAttribute('aria-label', (strings.progress || '{$a} / {$b}')
+                    .replace('{$a}', String(done))
+                    .replace('{$b}', String(total)));
+                wrap.setAttribute('title', strings.progresslabel || '');
             },
 
             /**
              * The child got it right.
              *
              * @param {string} [message] what to show instead of the default praise
+             * @param {number} [points] what this answer is worth; defaults to 1
              */
-            correct: function (message) {
+            correct: function (message, points) {
                 round.correct++;
+                round.score += typeof points === 'number' ? points : 1;
                 round.streak++;
                 round.best = Math.max(round.best, round.streak);
-                setHud(dom, round.correct, round.streak);
+                setHud(dom, round.score, round.streak);
                 audio.ding();
                 flash(dom, 'ok', message || strings.correct);
             },
@@ -261,7 +466,7 @@
             wrong: function (message) {
                 round.wrong++;
                 round.streak = 0;
-                setHud(dom, round.correct, round.streak);
+                setHud(dom, round.score, round.streak);
                 audio.buzz();
                 flash(dom, 'no', message || strings.wrong);
             },
@@ -280,16 +485,29 @@
 
             /** The round's running numbers, should a game want them. */
             stats: function () {
-                return {correct: round.correct, wrong: round.wrong, streak: round.best};
+                return {
+                    correct: round.correct,
+                    wrong: round.wrong,
+                    streak: round.best,
+                    score: round.score
+                };
             },
 
             /**
              * End the round, save it, and show the end card.
              *
-             * @param {number} [score] the game's own score; defaults to correct answers
+             * @param {number} [score] the game own score; defaults to the points collected
+             * @param {number} [goal] how many times the game own goal was met - matches
+             *        won, planets reached, a board cleared inside its budget
              */
-            finish: function (score) {
-                finishRound(config, dom, round, typeof score === 'number' ? score : round.correct);
+            finish: function (score, goal) {
+                finishRound(
+                    config,
+                    dom,
+                    round,
+                    typeof score === "number" ? score : round.score,
+                    typeof goal === "number" ? goal : 0
+                );
             }
         };
 
@@ -309,16 +527,26 @@
     }
 
     /**
-     * Hide the lives slot again between rounds.
+     * Hide one of the optional HUD slots again between rounds.
      *
      * @param {Object} dom
+     * @param {string} slot the data-hud name of the wrapper
      */
-    function hideLives(dom) {
-        dom.root.querySelector('[data-hud="lives-wrap"]').classList.add('gc-hud__item--hidden');
+    function hide(dom, slot) {
+        dom.root.querySelector('[data-hud="' + slot + '"]').classList.add('gc-hud__item--hidden');
     }
 
     /**
-     * A short message floating over the stage.
+     * A message floating over the stage.
+     *
+     * It stays up for two and a half seconds. The first version cleared after
+     * 900ms, which is fine for "well done" - the child already knows - but far
+     * too quick for the messages that actually say something, like "that is
+     * not a word we know". A message a child cannot finish reading is the same
+     * as no message.
+     *
+     * Only one is ever on screen: a new message replaces the old rather than
+     * stacking on top of it.
      *
      * @param {Object} dom
      * @param {string} kind 'ok' or 'no'
@@ -328,15 +556,23 @@
         if (!text) {
             return;
         }
+
+        var previous = dom.stage.querySelector('.gc-flash');
+        if (previous && previous.parentNode) {
+            previous.parentNode.removeChild(previous);
+        }
+
         var el = document.createElement('div');
         el.className = 'gc-flash gc-flash--' + kind;
+        el.setAttribute('role', 'status');
         el.textContent = text;
         dom.stage.appendChild(el);
+
         window.setTimeout(function () {
             if (el.parentNode) {
                 el.parentNode.removeChild(el);
             }
-        }, 900);
+        }, 2500);
     }
 
     /**
@@ -347,7 +583,7 @@
      * @param {Object} round
      * @param {number} score
      */
-    function finishRound(config, dom, round, score) {
+    function finishRound(config, dom, round, score, goal) {
         var strings = config.strings || {};
 
         audio.silence();
@@ -365,8 +601,26 @@
         again.textContent = strings.playagain || '';
         end.classList.remove('gc-overlay--hidden');
 
-        submit(config, round, score).then(function (result) {
-            text.textContent = (strings.yougot || '{$a}').replace('{$a}', String(round.correct));
+        // Anything hosting the shell - today the Game activity, which has to
+        // record the round against a course module the corner knows nothing
+        // about - gets told the round is over. It is announced here rather than
+        // after the save so a host that does its own bookkeeping is not waiting
+        // on the corner's network call, and it carries the numbers rather than
+        // a promise so a listener cannot change what gets saved.
+        dom.root.dispatchEvent(new CustomEvent('local-games:roundfinished', {
+            bubbles: true,
+            detail: {
+                gameid: config.gameid,
+                correct: round.correct,
+                wrong: round.wrong,
+                streak: round.best,
+                score: score,
+                goal: goal || 0
+            }
+        }));
+
+        submit(config, round, score, goal).then(function (result) {
+            text.textContent = (strings.yougot || '{$a}').replace('{$a}', String(score));
 
             (result.newbadges || []).forEach(function (badge) {
                 var el = document.createElement('div');
@@ -396,7 +650,7 @@
      * @param {number} score
      * @return {Promise<Object>}
      */
-    function submit(config, round, score) {
+    function submit(config, round, score, goal) {
         var url = config.wwwroot + '/lib/ajax/service.php?sesskey=' + encodeURIComponent(config.sesskey)
             + '&info=local_games_submit_result';
 
@@ -412,7 +666,8 @@
                     correct: round.correct,
                     wrong: round.wrong,
                     streak: round.best,
-                    score: score
+                    score: score,
+                    goal: goal || 0
                 }
             }])
         }).then(function (response) {
@@ -487,16 +742,29 @@
         dom.end.querySelector('[data-action="again"]').addEventListener('click', play);
 
         var soundbutton = root.querySelector('[data-action="sound"]');
-        soundbutton.addEventListener('click', function () {
-            audio.enabled = !audio.enabled;
-            if (!audio.enabled) {
-                audio.silence();
-            }
+
+        /**
+         * Put the button in the state the sound is actually in.
+         */
+        var paintSound = function () {
             var label = audio.enabled ? config.strings.sound_on : config.strings.sound_off;
             soundbutton.setAttribute('aria-pressed', audio.enabled ? 'true' : 'false');
             soundbutton.setAttribute('title', label);
             soundbutton.querySelector('.sr-only').textContent = label;
             soundbutton.firstElementChild.textContent = audio.enabled ? '🔊' : '🔇';
+        };
+
+        // The markup ships with the sound on, so a page opened after the child
+        // muted the corner has to be corrected before they see it.
+        paintSound();
+
+        soundbutton.addEventListener('click', function () {
+            audio.enabled = !audio.enabled;
+            if (!audio.enabled) {
+                audio.silence();
+            }
+            rememberSound(audio.enabled);
+            paintSound();
         });
 
         // Leaving mid-round must not leave a voice talking to an empty room.

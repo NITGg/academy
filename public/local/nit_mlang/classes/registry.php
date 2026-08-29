@@ -78,6 +78,10 @@ class registry {
         'answer[*][text]',
         's__fullname',
         's__shortname',
+        // One row of a Games Corner game's content: the question, the word, the
+        // clue. Grouped under one prefix so the corner can add a field to a
+        // game's shape without this list having to learn its name.
+        'gametext[*]',
     ];
 
     /**

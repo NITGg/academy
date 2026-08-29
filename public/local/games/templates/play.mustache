@@ -24,8 +24,8 @@
     Context variables required for this template:
     * gameid - registry slug
     * name, emoji - what the game is called
-    * huburl, backlabel - the way back to the corner
-    * startlabel, readytitle, howto - the start card
+    * huburl, backlabel, cancellabel - the ways out of the game
+    * startlabel, readytitle, howto, desc - the start card
     * scorelabel, streaklabel - HUD labels
     * soundonlabel - accessible name of the sound toggle
     * config - JSON blob read by shell.js
@@ -37,9 +37,11 @@
         "emoji": "+",
         "huburl": "#",
         "backlabel": "Back to the games",
+        "cancellabel": "Not now",
         "startlabel": "Start",
         "readytitle": "Ready for the race?",
         "howto": "A sum appears, three answers under it.",
+        "desc": "Pick the right answer and keep the race going.",
         "scorelabel": "Score",
         "streaklabel": "In a row",
         "soundonlabel": "Sound on",
@@ -67,6 +69,11 @@
             <span class="gc-hud__item gc-hud__item--hidden" data-hud="lives-wrap">
                 <span class="gc-hud__value" data-hud="lives"></span>
             </span>
+            <!-- How far through the round the child is. Every game reports it,
+                 so no game can feel like it goes on for ever. -->
+            <span class="gc-hud__item gc-hud__item--hidden" data-hud="progress-wrap">
+                <span class="gc-hud__value gc-hud__value--progress" data-hud="progress"></span>
+            </span>
         </div>
 
         <button type="button" class="gc-sound" data-action="sound" aria-pressed="true" title="{{soundonlabel}}">
@@ -75,14 +82,26 @@
         </button>
     </div>
 
+    <!-- The same how-to-play text the start panel gives, kept on the page
+         behind it. Once the panel is dismissed a child has nowhere else to
+         read the rules, and "how you play" is what they need in front of them
+         while playing - not the one-line description from the hub card. -->
+    <p class="gc-play__desc">
+        <span class="gc-play__descface" aria-hidden="true">{{emoji}}</span> {{howto}}
+    </p>
+
     <div class="gc-stage" data-role="stage"></div>
 
     <div class="gc-overlay" data-role="start">
         <div class="gc-card-panel">
             <div class="gc-card-panel__face" aria-hidden="true">{{emoji}}</div>
             <h2 class="gc-card-panel__title">{{readytitle}}</h2>
+            <p class="gc-card-panel__desc">{{desc}}</p>
             <p class="gc-card-panel__text">{{howto}}</p>
-            <button type="button" class="gc-btn gc-btn--big" data-action="start">{{startlabel}}</button>
+            <div class="gc-card-panel__actions">
+                <button type="button" class="gc-btn gc-btn--big" data-action="start">{{startlabel}}</button>
+                <a class="gc-btn gc-btn--ghost" href="{{huburl}}">{{cancellabel}}</a>
+            </div>
         </div>
     </div>
 

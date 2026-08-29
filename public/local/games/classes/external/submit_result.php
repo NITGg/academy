@@ -45,6 +45,7 @@ class submit_result extends external_api {
             'wrong'   => new external_value(PARAM_INT, 'Wrong answers this round'),
             'streak'  => new external_value(PARAM_INT, 'Longest run of correct answers this round'),
             'score'   => new external_value(PARAM_INT, 'Round score as the game counts it'),
+            'goal'    => new external_value(PARAM_INT, 'How many times the game met its own goal', VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -56,9 +57,11 @@ class submit_result extends external_api {
      * @param int $wrong
      * @param int $streak
      * @param int $score
+     * @param int $goal
      * @return array
      */
-    public static function execute(string $gameid, int $correct, int $wrong, int $streak, int $score): array {
+    public static function execute(string $gameid, int $correct, int $wrong, int $streak, int $score,
+            int $goal = 0): array {
         global $USER;
 
         [
@@ -67,12 +70,14 @@ class submit_result extends external_api {
             'wrong'   => $wrong,
             'streak'  => $streak,
             'score'   => $score,
+            'goal'    => $goal,
         ] = self::validate_parameters(self::execute_parameters(), [
             'gameid'  => $gameid,
             'correct' => $correct,
             'wrong'   => $wrong,
             'streak'  => $streak,
             'score'   => $score,
+            'goal'    => $goal,
         ]);
 
         $context = \context_system::instance();
@@ -85,7 +90,7 @@ class submit_result extends external_api {
             throw new \moodle_exception('errorunknowngame', 'local_games');
         }
 
-        $result = progress::submit((int) $USER->id, $gameid, $correct, $wrong, $streak, $score);
+        $result = progress::submit((int) $USER->id, $gameid, $correct, $wrong, $streak, $score, $goal);
 
         // The browser needs the human-readable badge names to celebrate with.
         $newbadges = [];

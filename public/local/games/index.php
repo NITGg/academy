@@ -24,6 +24,7 @@
 
 require(__DIR__ . '/../../config.php');
 
+use local_games\mlang;
 use local_games\progress;
 use local_games\registry;
 
@@ -56,16 +57,14 @@ foreach (registry::get_categories() as $catkey => $catemoji) {
         if ($game['category'] !== $catkey) {
             continue;
         }
-        $key  = registry::key($id);
         $live = $game['status'] === registry::STATUS_LIVE;
 
         $cards[] = [
             'id'        => $id,
             'emoji'     => $game['emoji'],
-            'name'      => get_string('game_' . $key, 'local_games'),
-            'desc'      => get_string('gamedesc_' . $key, 'local_games'),
+            'name'      => mlang::display(registry::name($id)),
+            'desc'      => mlang::display(registry::description($id)),
             'stars'     => str_repeat('⭐', $game['level']),
-            'minutes'   => get_string('minutes', 'local_games', $game['minutes']),
             'live'      => $live,
             'url'       => $live ? (new moodle_url('/local/games/play.php', ['id' => $id]))->out(false) : null,
             'played'    => isset($played[$id]) && $played[$id]->plays > 0,

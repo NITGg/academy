@@ -36,6 +36,18 @@ $capabilities = [
         ],
     ],
 
+    // Who may open "Game control": rename a game, switch one off, and edit the
+    // questions and words the games are built from. RISK_XSS because the names
+    // and bank rows an admin types here are shown to every player.
+    'local/games:manage' => [
+        'captype'      => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'riskbitmask'  => RISK_XSS | RISK_CONFIG,
+        'archetypes'   => [
+            'manager' => CAP_ALLOW,
+        ],
+    ],
+
     // Who may see other learners' play history (teacher / parent dashboards,
     // built on top of the same tables). Nothing reads it yet.
     'local/games:viewreports' => [
