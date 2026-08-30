@@ -127,6 +127,7 @@ class hook_callbacks {
         }
 
         self::load_form_gate();
+        self::load_inline_validation();
 
         // AC-4.4.1 asks for the same reveal toggle and the same per-rule messages
         // on the "set a new password" screen as on sign-up. The module finds the
@@ -160,6 +161,54 @@ class hook_callbacks {
 
         $PAGE->requires->js_call_amd('theme_nit/passwordstrength', 'init', [
             ['policy' => $policy, 'strings' => $strings],
+        ]);
+    }
+
+    /**
+     * Hand the inline-validation module the server's own sentences (US-4.1.3).
+     *
+     * The messages are fetched here rather than written into the JavaScript so
+     * that there is exactly one place they exist. AC-4.1.15 fixes the wording and
+     * acceptance is tested on it; a second copy in a .js file would drift from the
+     * first the moment either is edited, and the drift would show as the field
+     * saying one thing before submit and another after.
+     *
+     * Runs on the same screens as the button gate, and only when
+     * local_profilefields is present to supply the strings.
+     *
+     * @return void
+     */
+    protected static function load_inline_validation(): void {
+        global $PAGE;
+
+        if (!get_config('local_profilefields', 'gatebuttons')) {
+            return;
+        }
+
+        $pages = self::gated_pages();
+        if (!isset($pages[$PAGE->pagetype])) {
+            return;
+        }
+        if (!get_string_manager()->string_exists('errfirstnameempty', 'local_profilefields')) {
+            return;
+        }
+
+        $keys = [
+            'errfirstnameempty', 'errlastnameempty', 'errnamelength', 'errnamechars',
+            'erremailempty', 'erremailformat', 'errphoneempty', 'errphonedigits',
+            'pwtooshort', 'pwnoupper', 'pwnolower', 'pwnodigit',
+        ];
+
+        $strings = [];
+        foreach ($keys as $key) {
+            $strings[$key] = get_string($key, 'local_profilefields');
+        }
+
+        $PAGE->requires->js_call_amd('theme_nit/inlinevalidation', 'init', [
+            [
+                'forms' => explode(', ', $pages[$PAGE->pagetype]),
+                'strings' => $strings,
+            ],
         ]);
     }
 

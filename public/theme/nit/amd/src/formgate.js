@@ -69,12 +69,53 @@ const submitsOf = (form) => [...form.querySelectorAll('button[type="submit"], in
     .filter((el) => !el.matches('[name="cancel"], .btn-cancel, [data-cancel]'));
 
 /**
+ * Is this element part of an enhanced widget's own chrome rather than a field?
+ *
+ * Moodle's `core/form-autocomplete` replaces a select with a small interface of
+ * its own: a search box, a suggestion list and a "selected items" area. Those are
+ * controls, they sit inside the field's wrapper, and they are visible - so a naive
+ * scan picks them up as if they were the question.
+ *
+ * The search box is the one that matters. The module *clears it once a choice is
+ * made*, so a gate that watched it would see an empty required field forever and
+ * would never release the button, no matter what the user selected. That is a real
+ * bug this function exists to prevent, not a hypothetical.
+ *
+ * @param {HTMLElement} el
+ * @return {Boolean}
+ */
+const isWidgetChrome = (el) => {
+    const id = el.id || '';
+
+    return id.indexOf('form_autocomplete_input') === 0
+        || id.indexOf('form_autocomplete_suggestions') === 0
+        || id.indexOf('form_autocomplete_selection') === 0
+        || id.indexOf('form_autocomplete_downarrow') === 0
+        || !!el.closest('.form-autocomplete-selection, .form-autocomplete-suggestions');
+};
+
+/**
+ * Has this control been replaced on screen by a widget that still speaks for it?
+ *
+ * An enhanced autocomplete hides its original select and marks it `aria-hidden`.
+ * The select is invisible but it is still where the answer lives, so it has to
+ * stay in the gate - the alternative is reading the widget, which reports nothing
+ * useful once its search box has been cleared.
+ *
+ * @param {HTMLElement} el
+ * @return {Boolean}
+ */
+const isProxiedControl = (el) => el.tagName === 'SELECT'
+    && el.getAttribute('aria-hidden') === 'true';
+
+/**
  * Is this control on screen and answerable?
  *
  * `offsetParent` is null for anything with `display: none` anywhere up the tree,
  * which is how Moodle hides a conditional field and how our own layout hides the
  * elements it replaces with hidden inputs. A field the user cannot see must not
- * be able to hold the button down.
+ * be able to hold the button down - unless it is a control an enhancement has
+ * hidden while still using it to store the answer.
  *
  * @param {HTMLElement} el
  * @return {Boolean}
@@ -82,7 +123,11 @@ const submitsOf = (form) => [...form.querySelectorAll('button[type="submit"], in
 const isLive = (el) => !el.disabled
     && el.type !== 'hidden'
     && !el.hasAttribute(IGNORE)
-    && (el.offsetParent !== null || el.type === 'radio' || el.type === 'checkbox');
+    && !isWidgetChrome(el)
+    && (el.offsetParent !== null
+        || isProxiedControl(el)
+        || el.type === 'radio'
+        || el.type === 'checkbox');
 
 /**
  * Does this control count as answered?
