@@ -40,7 +40,7 @@ require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/clilib.php');
 
 [$options, $unrecognised] = cli_get_params(
-    ['help' => false, 'purge-cache' => false],
+    ['help' => false, 'purge-cache' => false, 'logs' => false, 'webhooks' => false],
     ['h' => 'help']
 );
 
@@ -52,9 +52,56 @@ if ($options['help']) {
     cli_writeln("Check the Fawaterk credentials and list the account's payment methods.
 
 Options:
-  --purge-cache   Drop the cached method list before checking.
+  --purge-cache   Drop the cached method list and access tokens before checking.
+  --logs[=N]      Print the last N API log entries (default 15) and exit. This is
+                  the full response body from every failed call — the fastest way
+                  to see what Fawaterk actually objected to.
+  --webhooks[=N]  Print the last N received webhooks (default 10) and exit,
+                  including whether the signature verified.
   -h, --help      Print this help.
 ");
+    exit(0);
+}
+
+$providerid = $DB->get_field('local_payments_providers', 'id', ['name' => 'fawaterk']);
+
+// Reading the logs needs no credentials, so handle it before any config checks.
+if ($options['logs'] !== false) {
+    $limit = is_numeric($options['logs']) ? max(1, (int) $options['logs']) : 15;
+    $rows = $DB->get_records('local_payments_logs', $providerid ? ['provider_id' => $providerid] : null,
+        'id DESC', '*', 0, $limit);
+
+    if (empty($rows)) {
+        cli_writeln('No log entries.');
+        exit(0);
+    }
+    foreach (array_reverse($rows) as $row) {
+        cli_writeln(str_repeat('-', 78));
+        cli_writeln(sprintf('%s  [%s]  %s', userdate($row->timecreated), strtoupper($row->level), $row->message));
+        if (!empty($row->context) && $row->context !== '[]') {
+            cli_writeln('  ' . $row->context);
+        }
+    }
+    exit(0);
+}
+
+if ($options['webhooks'] !== false) {
+    $limit = is_numeric($options['webhooks']) ? max(1, (int) $options['webhooks']) : 10;
+    $rows = $DB->get_records('local_payments_webhooks', $providerid ? ['provider_id' => $providerid] : null,
+        'id DESC', '*', 0, $limit);
+
+    if (empty($rows)) {
+        cli_writeln('No webhooks received yet. If payments are completing at Fawaterk but');
+        cli_writeln('nobody is being enrolled, this is the reason — check the webhook URL.');
+        exit(0);
+    }
+    foreach (array_reverse($rows) as $row) {
+        cli_writeln(str_repeat('-', 78));
+        cli_writeln(sprintf('%s  event=%s  status=%s  signature=%s',
+            userdate($row->timecreated), $row->event_type ?: '?', $row->status,
+            $row->signature_valid ? 'VALID' : 'INVALID — check the HASH API key'));
+        cli_writeln('  ' . \core_text::substr((string) $row->payload, 0, 600));
+    }
     exit(0);
 }
 
