@@ -30,8 +30,13 @@ class gateway extends base_provider {
     /** Staging/sandbox API host. */
     const SANDBOX_URL = 'https://staging.fawaterk.com';
 
+    /**
+     * The vendor key is trimmed: it is long enough that people paste it with a
+     * trailing newline, and Fawaterk then answers "Invalid Token" for what looks
+     * like a correct key.
+     */
     private function get_vendor_key(): string {
-        return (string) $this->get_setting('vendor_key', '');
+        return trim((string) $this->get_setting('vendor_key', ''));
     }
 
     /**
@@ -173,9 +178,63 @@ class gateway extends base_provider {
      * hosted page where Fawaterk asks for the method itself.
      */
     public function initialize_payment(payment_request $request): checkout_response {
-        return $request->payment_method_id > 0
-            ? $this->init_direct_payment($request)
-            : $this->init_hosted_invoice($request);
+        $methodid = $request->payment_method_id;
+
+        // -1 is the explicit "give me the hosted page" escape hatch.
+        if ($methodid < 0) {
+            return $this->init_hosted_invoice($request);
+        }
+
+        // Nothing chosen (the web checkout, which has no picker): pick for them.
+        if ($methodid === 0) {
+            $methodid = $this->resolve_auto_method();
+        }
+
+        if ($methodid <= 0) {
+            // No usable method — either auto-selection is off or the account
+            // reported none. The hosted page can still take the payment.
+            return $this->init_hosted_invoice($request);
+        }
+
+        $request->payment_method_id = $methodid;
+        return $this->init_direct_payment($request);
+    }
+
+    /**
+     * Choose a payment method when the caller didn't.
+     *
+     * One enabled method → use it. Several → take the first one named in the
+     * configured priority list; anything the list doesn't mention falls to the
+     * end, in the order Fawaterk returned it. That keeps the web checkout on a
+     * single, predictable method without asking the buyer to choose.
+     *
+     * @return int Method id, or 0 to fall back to the hosted page.
+     */
+    private function resolve_auto_method(): int {
+        if (!$this->get_setting('auto_select_method', 1)) {
+            return 0;
+        }
+
+        $methods = $this->get_payment_methods();
+        if (empty($methods)) {
+            return 0;
+        }
+        if (count($methods) === 1) {
+            return (int) $methods[0]['id'];
+        }
+
+        $available = array_column($methods, 'id');
+
+        $priority = array_filter(array_map('intval',
+            explode(',', (string) $this->get_setting('method_priority', '2,4,3'))));
+        foreach ($priority as $preferred) {
+            if (in_array($preferred, $available, true)) {
+                return $preferred;
+            }
+        }
+
+        // Priority list matched nothing the account actually has enabled.
+        return (int) $methods[0]['id'];
     }
 
     /**
@@ -218,12 +277,10 @@ class gateway extends base_provider {
             'transaction_id' => $request->transaction_id,
         ]);
 
-        return checkout_response::success($url, $invoiceid, $payload, [
-            'type' => 'redirect',
-            'redirect_url' => $url,
-            'reference' => '',
-            'reference_expires_at' => '',
-        ]);
+        return checkout_response::success($url, $invoiceid, $payload, array_merge(
+            checkout_response::empty_payment_data(),
+            ['type' => 'redirect', 'redirect_url' => $url]
+        ));
     }
 
     /**
@@ -264,6 +321,7 @@ class gateway extends base_provider {
         }
 
         $normalised = $this->normalise_payment_data($paymentdata);
+        $normalised['method_name'] = $this->method_name($request->payment_method_id);
 
         if ($normalised['type'] === 'none') {
             // Nothing to redirect to and no code to show — the buyer would be
@@ -289,6 +347,19 @@ class gateway extends base_provider {
         // checkout_url stays the redirect target when there is one; for a
         // reference-code method there is no page to open and it is empty.
         return checkout_response::success($normalised['redirect_url'], $invoiceid, $payload, $normalised);
+    }
+
+    /**
+     * Display name of a method id, from the cached account list.
+     */
+    private function method_name(int $methodid): string {
+        foreach ($this->get_payment_methods() as $method) {
+            if ((int) $method['id'] === $methodid) {
+                return current_language() === 'ar' && $method['name_ar'] !== ''
+                    ? $method['name_ar'] : $method['name_en'];
+            }
+        }
+        return '';
     }
 
     /**
@@ -355,8 +426,32 @@ class gateway extends base_provider {
 
     /**
      * GET /api/v2/getPaymentmethods — the methods enabled on the account.
+     *
+     * Cached (see local_payments db/caches.php) so selecting a method does not
+     * add an API round-trip to every checkout. Purge caches after enabling a new
+     * method in the Fawaterk dashboard, or wait out the hour.
      */
     public function get_payment_methods(): array {
+        $cache = \cache::make('local_payments', 'provider_payment_methods');
+        $key = $this->plugin_name . ($this->is_sandbox() ? '_sandbox' : '_live');
+
+        $cached = $cache->get($key);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $methods = $this->fetch_payment_methods();
+
+        // Only cache a real answer — caching an empty list would keep the site on
+        // the hosted-page fallback for an hour after a transient API failure.
+        if (!empty($methods)) {
+            $cache->set($key, $methods);
+        }
+
+        return $methods;
+    }
+
+    private function fetch_payment_methods(): array {
         $base = $this->get_api_base();
         $result = $this->http_request('GET', "{$base}/api/v2/getPaymentmethods", $this->get_auth_headers());
 
@@ -676,13 +771,30 @@ class gateway extends base_provider {
     }
 
     private function stringify_error(array $payload): string {
+        $text = '';
         if (!empty($payload['message'])) {
-            return is_array($payload['message']) ? json_encode($payload['message']) : (string) $payload['message'];
+            $text = is_array($payload['message']) ? json_encode($payload['message']) : (string) $payload['message'];
+        } else if (!empty($payload['errors'])) {
+            $text = json_encode($payload['errors']);
+        } else {
+            $text = json_encode($payload);
         }
-        if (!empty($payload['errors'])) {
-            return json_encode($payload['errors']);
+
+        // Fawaterk answers a bad vendor key with HTTP 400 and a "token" error
+        // rather than a 401, which reads like a bad request. Name the usual
+        // cause, because staging and live are separate accounts with separate
+        // keys and mixing them up is by far the most common setup mistake.
+        if (stripos($text, 'token') !== false || stripos($text, 'vendor') !== false) {
+            $mode = $this->is_sandbox() ? 'sandbox' : 'live';
+            $other = $this->is_sandbox() ? 'live' : 'sandbox';
+            $text .= sprintf(
+                ' — Fawaterk rejected the vendor key. This provider is in %s mode and calls %s,'
+                . ' so the key must be the %s account\'s API key; a %s key will always fail here.',
+                $mode, $this->get_api_base(), $mode, $other
+            );
         }
-        return json_encode($payload);
+
+        return $text;
     }
 
     /**

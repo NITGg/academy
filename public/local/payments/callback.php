@@ -94,10 +94,24 @@ try {
         ];
         echo $OUTPUT->render_from_template('local_payments/payment_success', $templatedata);
     } else {
+        $transaction = $DB->get_record('local_payments_transactions', ['order_id' => $order_id]);
+
+        // Still waiting on an offline code (Fawry/Meeza). Not a failure — the
+        // buyer simply hasn't paid it yet, possibly because they came straight
+        // back here from the code screen. Show the code again, not an error.
+        if ($transaction && \local_payments\reference_screen::applies($transaction)) {
+            $PAGE->set_title(get_string('reference_title', 'local_payments'));
+            echo $OUTPUT->header();
+            echo $OUTPUT->notification(get_string('reference_pending', 'local_payments'), 'info');
+            echo $OUTPUT->render_from_template('local_payments/payment_reference',
+                \local_payments\reference_screen::export($transaction));
+            echo $OUTPUT->footer();
+            exit;
+        }
+
         $PAGE->set_title(get_string('payment_failure', 'local_payments'));
         echo $OUTPUT->header();
 
-        $transaction = $DB->get_record('local_payments_transactions', ['order_id' => $order_id]);
         $templatedata = [
             'success'     => false,
             'status'      => $result->status,

@@ -19,6 +19,7 @@ class checkout_response {
      *  - reference: code the buyer pays with at an outlet or in a wallet app
      *               (Fawry code, Meeza reference) (type=reference)
      *  - reference_expires_at: human-readable expiry for that code, if given
+     *  - method_name: the method actually charged, for display ("Fawry")
      */
     public array $payment_data;
 
@@ -51,6 +52,7 @@ class checkout_response {
             'redirect_url' => '',
             'reference' => '',
             'reference_expires_at' => '',
+            'method_name' => '',
         ];
     }
 }

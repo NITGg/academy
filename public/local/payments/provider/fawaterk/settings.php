@@ -54,6 +54,32 @@ if ($hassiteconfig) {
         PARAM_URL
     ));
 
+    // Charge a method directly instead of showing Fawaterk's hosted picker.
+    $settings->add(new admin_setting_configcheckbox(
+        'paymentprovider_fawaterk/auto_select_method',
+        get_string('auto_select_method', 'paymentprovider_fawaterk'),
+        get_string('auto_select_method_desc', 'paymentprovider_fawaterk'),
+        1
+    ));
+
+    // Which method wins when the account has several enabled.
+    $settings->add(new admin_setting_configtext(
+        'paymentprovider_fawaterk/method_priority',
+        get_string('method_priority', 'paymentprovider_fawaterk'),
+        get_string('method_priority_desc', 'paymentprovider_fawaterk'),
+        '2,4,3',
+        PARAM_TEXT
+    ));
+
+    // How long an offline reference code (Fawry/Meeza) stays payable.
+    $settings->add(new admin_setting_configtext(
+        'paymentprovider_fawaterk/reference_ttl_days',
+        get_string('reference_ttl_days', 'paymentprovider_fawaterk'),
+        get_string('reference_ttl_days_desc', 'paymentprovider_fawaterk'),
+        '3',
+        PARAM_INT
+    ));
+
     // Fallback phone for buyers with no phone on their Moodle profile.
     $settings->add(new admin_setting_configtext(
         'paymentprovider_fawaterk/default_phone',

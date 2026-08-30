@@ -9,11 +9,20 @@ It supports two flows:
 
 | Flow | Endpoint | Who picks the payment method | Use it for |
 |------|----------|------------------------------|------------|
-| **Server-to-server** (recommended) | `POST /api/v2/invoiceInitPay` | your app, from a list you fetch | the mobile app, and any UI that renders its own method picker |
-| Hosted invoice link | `POST /api/v2/createInvoiceLink` | Fawaterk, on its own page | the web checkout, or as a fallback |
+| **Server-to-server** (default) | `POST /api/v2/invoiceInitPay` | you — the app from a list it fetches, the web by configured priority | everything |
+| Hosted invoice link | `POST /api/v2/createInvoiceLink` | Fawaterk, on its own page | fallback only |
 
-The flow is chosen per checkout: pass a `payment_method_id` and you get the
-server-to-server flow; omit it (or pass `0`) and you get the hosted link.
+Server-to-server is what Fawaterk recommends and is the default everywhere. The
+flow is chosen per checkout by `payment_method_id`:
+
+| `payment_method_id` | Result |
+|---------------------|--------|
+| a method id | charges that method |
+| `0` (default) | auto-selects a method — see [web checkout](#11-web-checkout-has-no-picker) |
+| `-1` | forces the hosted page |
+
+It only falls back to the hosted page on its own when auto-selection is off or
+the account reports no usable method.
 
 ---
 
@@ -27,13 +36,44 @@ server-to-server flow; omit it (or pass `0`) and you get the hosted link.
 | Vendor key (API key) | Bearer token for every API call **and** the HMAC secret for webhook signatures |
 | Provider key | Only needed for Fawaterk's JS iframe; leave empty |
 | Live / Sandbox API base URL | Overridable in case Fawaterk moves hosts |
+| Charge a method directly | On by default — server-to-server. Off = always use the hosted page. |
+| Payment method priority | Comma-separated method ids, best first. Default `2,4,3` (card, Meeza, Fawry). |
+| Reference code validity | Days an order stays open when the buyer gets an offline code. Default 3. |
 | Fallback phone / address | Sent when the buyer's Moodle profile has neither (both are mandatory to Fawaterk) |
 | Email / SMS the invoice | Lets Fawaterk notify the buyer directly |
+
+Check the whole setup in one command:
+
+```bash
+docker compose exec moodle php local/payments/cli/fawaterk_diagnose.php
+```
+
+It proves the key, prints the methods the account has enabled, and says which
+one the web checkout will charge.
 
 Then **Manage providers** → enable *Fawaterk* (and set its priority above Kashier
 if it should be the default pick).
 
-### Webhook
+### 1.1 Web checkout has no picker
+
+The web checkout never asks the buyer to choose. It calls the gateway with no
+method, and the gateway picks one:
+
+- **one method enabled** → that one.
+- **two or more** → the first one named in *Payment method priority* that the
+  account actually has enabled. Anything the list doesn't mention is used only if
+  nothing in the list matches.
+- **none, or auto-selection off** → the Fawaterk hosted page.
+
+The account's method list is cached for an hour, so purge caches after enabling a
+new method in the Fawaterk dashboard (or run the diagnose script with
+`--purge-cache`).
+
+If the chosen method redirects (card), the buyer goes straight to it. If it
+returns a code (Fawry, Meeza), they land on a page showing the code — see
+[offline codes](#4-offline-codes-fawry-meeza).
+
+### 1.2 Webhook
 
 In the Fawaterk dashboard set the webhook URL to:
 
@@ -101,7 +141,7 @@ Both take the same new parameter:
 
 | Param | Type | Notes |
 |-------|------|-------|
-| `payment_method_id` | int | `id` from the list above. `0` = hosted page. |
+| `payment_method_id` | int | `id` from the list above. `0` = let the server pick, `-1` = hosted page. |
 
 …alongside what they already took (`courseid` / `subscriptionid`, `country`,
 `alang`, `coupon_code`, and for subscriptions `type`, `seats`, `return_url`).
@@ -122,7 +162,8 @@ Both now return a `payment_data` object on top of their existing fields:
     "type": "redirect",
     "redirect_url": "https://staging.fawaterk.com/link/I0PAH",
     "reference": "",
-    "reference_expires_at": ""
+    "reference_expires_at": "",
+    "method_name": "Visa-Mastercard"
   }
 }
 ```
@@ -149,7 +190,8 @@ Example of a `reference` response (Fawry, `payment_method_id: 3`):
     "type": "reference",
     "redirect_url": "",
     "reference": "981335305",
-    "reference_expires_at": "2026-09-02 15:53:41"
+    "reference_expires_at": "2026-09-02 15:53:41",
+    "method_name": "Fawry"
   }
 }
 ```
@@ -170,8 +212,7 @@ the webhook hasn't landed yet, falls back to asking Fawaterk directly.
 - **`redirect` payments:** poll every ~3 s for up to ~2 min after the web view
   returns.
 - **`reference` payments:** don't block the UI. The order stays `PENDING` until
-  the buyer pays the code (or the checkout TTL expires — default 30 min, raise
-  `local_payments | payment_ttl` if you sell via Fawry). Re-check on app
+  the buyer pays the code — which may be the next day. Re-check on app
   foreground, or show it under *Payment history*.
 
 ---
@@ -198,7 +239,32 @@ get_provider_payment_methods(courseid)
 
 ---
 
-## 4. Behaviour worth knowing
+## 4. Offline codes (Fawry, Meeza)
+
+Some methods don't take the money — they hand the buyer a code to pay at an
+outlet or in a wallet app, often the next day. That changes three things:
+
+**There is nothing to redirect to.** `checkout_url` is empty and
+`payment_data.type` is `reference`. On the web the buyer gets a dedicated screen
+(`templates/payment_reference.mustache`) showing the code, the amount, the
+deadline and a copy button. Returning to `callback.php` for an order that still
+hasn't been paid re-shows that screen instead of a failure page.
+
+**The order has to stay open long enough.** A checkout normally expires after 30
+minutes (`local_payments | payment_ttl`); a Fawry code would outlive it, and the
+confirmation would then land on a dead transaction. So for reference payments the
+expiry is taken from the code's own deadline, falling back to Fawaterk's
+*Reference code validity* setting (3 days by default).
+
+**A late confirmation still fulfils.** `expired → completed` is an allowed status
+transition: if a payment is confirmed after we gave up waiting, the buyer is
+still enrolled. Reaching `completed` always requires a signature- and
+amount-verified webhook, so this doesn't weaken anything — it just refuses to
+strand someone who really paid.
+
+---
+
+## 5. Behaviour worth knowing
 
 **Reusing a pending checkout.** A second `create_checkout` for the same course
 returns the existing pending session only if the price *and* the payment method
@@ -221,7 +287,7 @@ support comes back as an HTTP 400 at `createInvoiceLink` / `invoiceInitPay`.
 
 ---
 
-## 5. Troubleshooting
+## 6. Troubleshooting
 
 Every API call is logged to `local_payments_logs` with the full response body:
 
@@ -238,6 +304,6 @@ Webhook bodies (including ones that failed signature checks) are in
 | Symptom | Usual cause |
 |---------|-------------|
 | `HTTP 400` on checkout | A rejected field. The message now includes Fawaterk's own validation text — read it. Most often: a currency the account doesn't support, a phone that isn't `01XXXXXXXXX`, or a missing address. Phone and address already fall back to the configured placeholders. |
-| `HTTP 401` | Wrong vendor key, or a live key used while sandbox mode is on (and vice versa). |
+| `{"token":["Invalid Token or inactive vendor."]}` | Fawaterk rejecting the vendor key — note it answers **400**, not 401. Staging and live are separate accounts with separate keys, so a live key with sandbox mode on (or the reverse) always fails. Run `fawaterk_diagnose.php` to see which mode and key are in play. Also possible: the vendor account isn't activated yet. |
 | Payment succeeds but no enrolment | The webhook isn't arriving. Check the dashboard URL ends in `webhook_json.php`, and look for `signature_valid = 0` rows — that means the vendor key in Moodle differs from the one signing the webhook. |
 | `no redirect URL or reference` | The account doesn't have that `payment_method_id` enabled. Re-fetch the method list. |

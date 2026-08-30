@@ -167,3 +167,18 @@ $string['payments:viewauditlogs'] = 'عرض سجل التدقيق';
 $string['countryrequired'] = 'حدِّد دولتك لعرض السعر';
 $string['countryrequired_desc'] = 'تختلف الأسعار من دولة لأخرى. أضِف دولتك إلى ملفك الشخصي لعرض سعر هذا الكورس ومتابعة الشراء.';
 $string['countryrequired_action'] = 'أضِف دولتك';
+
+// Offline payment reference (Fawry / Meeza / wallet codes).
+$string['reference_title'] = 'خطوة أخيرة — ادفع بهذا الكود';
+$string['reference_lead'] = 'تم حجز طلبك. ادفع الكود التالي لإتمام العملية.';
+$string['reference_lead_method'] = 'تم حجز طلبك. ادفع الكود التالي عبر {$a} لإتمام العملية.';
+$string['reference_copy'] = 'نسخ';
+$string['reference_copied'] = 'تم النسخ';
+$string['reference_amount'] = 'المبلغ';
+$string['reference_item'] = 'مقابل';
+$string['reference_expires'] = 'ادفع قبل';
+$string['reference_order'] = 'رقم الطلب';
+$string['reference_note'] = 'يتم منح الوصول تلقائياً فور تأكيد الدفع — عادةً خلال دقائق من السداد. يمكنك إغلاق هذه الصفحة؛ الكود محفوظ في سجل مدفوعاتك.';
+$string['reference_check'] = 'لقد دفعت — تحقق الآن';
+$string['reference_history'] = 'سجل المدفوعات';
+$string['reference_pending'] = 'لم نستلم هذه الدفعة بعد. إذا كنت قد دفعت للتو، انتظر بضع دقائق ثم تحقق مرة أخرى.';

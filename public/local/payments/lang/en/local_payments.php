@@ -175,3 +175,18 @@ $string['payments:viewauditlogs'] = 'View audit logs';
 $string['countryrequired'] = 'Set your country to see the price';
 $string['countryrequired_desc'] = 'Prices are set per country. Add your country to your profile to see the price for this course and continue to checkout.';
 $string['countryrequired_action'] = 'Add your country';
+
+// Offline payment reference (Fawry / Meeza / wallet codes).
+$string['reference_title'] = 'Almost done — pay with this code';
+$string['reference_lead'] = 'Your order is reserved. Pay the code below to complete it.';
+$string['reference_lead_method'] = 'Your order is reserved. Pay the code below using {$a} to complete it.';
+$string['reference_copy'] = 'Copy';
+$string['reference_copied'] = 'Copied';
+$string['reference_amount'] = 'Amount';
+$string['reference_item'] = 'For';
+$string['reference_expires'] = 'Pay before';
+$string['reference_order'] = 'Order';
+$string['reference_note'] = 'Access is granted automatically as soon as the payment is confirmed — usually within a few minutes of paying. You can close this page; the code is saved in your payment history.';
+$string['reference_check'] = 'I have paid — check now';
+$string['reference_history'] = 'Payment history';
+$string['reference_pending'] = 'We have not received this payment yet. If you have just paid, give it a few minutes and check again.';

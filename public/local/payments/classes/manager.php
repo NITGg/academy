@@ -260,11 +260,13 @@ class manager {
         // the buyer pays it hours after leaving the checkout screen.
         $storedmeta = json_decode($transaction->metadata, true) ?: [];
         $storedmeta['payment_data'] = $response->payment_data;
+        $expires_at = self::resolve_expiry($response->payment_data, $provider_record->plugin_name, $expires_at);
         $DB->update_record('local_payments_transactions', (object) [
             'id' => $transaction_id,
             'provider_session_id' => $response->provider_session_id,
             'checkout_url' => $response->checkout_url,
             'metadata' => json_encode($storedmeta),
+            'expires_at' => $expires_at,
             'timemodified' => time(),
         ]);
 
@@ -453,11 +455,13 @@ class manager {
 
         $storedmeta = json_decode($transaction->metadata, true) ?: [];
         $storedmeta['payment_data'] = $response->payment_data;
+        $expires_at = self::resolve_expiry($response->payment_data, $provider_record->plugin_name, $expires_at);
         $DB->update_record('local_payments_transactions', (object) [
             'id' => $transaction_id,
             'provider_session_id' => $response->provider_session_id,
             'checkout_url' => $response->checkout_url,
             'metadata' => json_encode($storedmeta),
+            'expires_at' => $expires_at,
             'timemodified' => time(),
         ]);
 
@@ -478,6 +482,43 @@ class manager {
             'currency' => $currency,
             'payment_data' => $response->payment_data,
         ];
+    }
+
+    /**
+     * How long an order must stay open, given how the buyer was told to pay.
+     *
+     * A card payment happens in the next few minutes, so the normal checkout TTL
+     * is right. An offline reference code (Fawry, Meeza) is typically paid the
+     * next day — if the order has expired by then the gateway's confirmation
+     * arrives against a dead transaction. Prefer the expiry the gateway itself
+     * put on the code; fall back to the provider's configured window.
+     *
+     * @param array $payment_data checkout_response::$payment_data
+     * @param string $plugin_name Provider plugin, for its reference_ttl_days setting.
+     * @param int $default_expires_at The normal expiry, used when nothing applies.
+     * @return int Unix timestamp.
+     */
+    private static function resolve_expiry(array $payment_data, string $plugin_name,
+            int $default_expires_at): int {
+        if (($payment_data['type'] ?? '') !== 'reference') {
+            return $default_expires_at;
+        }
+
+        $stated = trim((string) ($payment_data['reference_expires_at'] ?? ''));
+        if ($stated !== '') {
+            $ts = strtotime($stated);
+            if ($ts !== false && $ts > time()) {
+                // Give the webhook a little room after the code itself dies.
+                return $ts + HOURSECS;
+            }
+        }
+
+        $days = (int) get_config($plugin_name, 'reference_ttl_days');
+        if ($days > 0) {
+            return time() + ($days * DAYSECS);
+        }
+
+        return $default_expires_at;
     }
 
     /**

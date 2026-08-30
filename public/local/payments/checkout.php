@@ -29,6 +29,28 @@ $PAGE->set_pagelayout('standard');
 
 try {
     $result = \local_payments\manager::create_checkout($courseid, $USER->id, null, $lang, $couponcode);
+
+    // Card-style methods hand back a page to send the buyer to. Offline methods
+    // (Fawry, Meeza) hand back a code instead — there is nothing to redirect to,
+    // so the code itself is the checkout result and gets its own screen.
+    $paymentdata = $result->payment_data ?? [];
+    if (($paymentdata['type'] ?? '') === 'reference') {
+        $transaction = $DB->get_record('local_payments_transactions',
+            ['id' => $result->transaction_id], '*', MUST_EXIST);
+
+        $PAGE->set_title(get_string('reference_title', 'local_payments'));
+        echo $OUTPUT->header();
+        echo $OUTPUT->render_from_template('local_payments/payment_reference',
+            \local_payments\reference_screen::export($transaction));
+        echo $OUTPUT->footer();
+        exit;
+    }
+
+    if (empty($result->checkout_url)) {
+        throw new moodle_exception('paymentinitiationfailed', 'local_payments', '', null,
+            'Gateway returned no checkout URL and no payment reference.');
+    }
+
     redirect(new moodle_url($result->checkout_url));
 } catch (\local_payments\country_required_exception $e) {
     // No profile country = no price = nothing to charge. Send them to fill it in rather than
