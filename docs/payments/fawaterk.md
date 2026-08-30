@@ -5,24 +5,41 @@ Fawaterk (Fawaterak) is a payment gateway subplugin of `local_payments`, living 
 `provider_interface` as Kashier, so nothing above the gateway layer knows which
 one is charging the card.
 
-It supports two flows:
+## Which API, which credential
 
-| Flow | Endpoint | Who picks the payment method | Use it for |
-|------|----------|------------------------------|------------|
-| **Server-to-server** (default) | `POST /api/v2/invoiceInitPay` | you — the app from a list it fetches, the web by configured priority | everything |
-| Hosted invoice link | `POST /api/v2/createInvoiceLink` | Fawaterk, on its own page | fallback only |
+Fawaterk has two generations of API and they take **different credentials**, so
+the credential and the version go together. `Authentication method` picks both:
 
-Server-to-server is what Fawaterk recommends and is the default everywhere. The
-flow is chosen per checkout by `payment_method_id`:
+| Mode | API | Credential | Notes |
+|---|---|---|---|
+| **OAuth 2.0** (default) | `/api/v3/*` | Client ID + secret → `/oauth/token` | Current API. Per-request webhook URL, refunds, `intent_key`. |
+| HASH API key | `/api/v2/*` | HASH API key as the bearer | Fallback. No refund API; webhook URL must be set in the dashboard. |
+
+Both credentials are on the dashboard's **Integrations** page. The **HASH API
+key is required either way** — every webhook is signed with it, not with an
+access token, so without it no payment can ever be confirmed.
+
+Verified against a live account (Aug 2026): the OAuth grant, both
+`createTransaction` shapes, `getTransactionData`, and the v2 equivalents. Note
+that a v3 OAuth token is *rejected* by `/api/v2/*` and vice versa — the two
+generations do not share credentials, which is the single most confusing thing
+about this integration.
+
+Two consequences worth knowing:
+
+- **OAuth clients can only be created on the live dashboard.** There is no
+  staging equivalent, so OAuth and sandbox mode cannot be combined.
+- **Sandbox and live are separate accounts with separate credentials.**
+  Anything copied from `app.fawaterk.com` is a live credential and is rejected
+  when *Sandbox mode* is on, with `Invalid Token or inactive vendor`.
+
+## Payment flows
 
 | `payment_method_id` | Result |
 |---------------------|--------|
-| a method id | charges that method |
+| a method id | charges that method directly (server-to-server) |
 | `0` (default) | auto-selects a method — see [web checkout](#11-web-checkout-has-no-picker) |
-| `-1` | forces the hosted page |
-
-It only falls back to the hosted page on its own when auto-selection is off or
-the account reports no usable method.
+| `-1` | Fawaterk's hosted page, where it asks for the method itself |
 
 ---
 
@@ -62,9 +79,10 @@ Two further consequences worth knowing:
 | Setting | Notes |
 |---------|-------|
 | Sandbox mode | On → `https://staging.fawaterk.com`, off → `https://app.fawaterk.com` |
-| Authentication method | Leave on **HASH API key** — see above |
-| HASH API key | From *Iframe/Webhook integrations settings*. The API bearer **and** the webhook signature secret. |
-| OAuth client ID / secret / token URL | Only used when the authentication method is set to OAuth |
+| Authentication method | **OAuth 2.0 (v3)** by default; HASH API key (v2) is the fallback |
+| OAuth client ID / secret | From *Integrations → machine-to-machine credentials*. The secret is shown once. |
+| OAuth token URL | Leave empty — defaults to `/oauth/token` on the current mode's host |
+| HASH API key | From *Iframe/Webhook integrations settings*. Signs every webhook; also the v2 bearer. |
 | providerKey | Only needed for Fawaterk's JS iframe, which this plugin doesn't use |
 | Live / Sandbox API base URL | Overridable in case Fawaterk moves hosts |
 | Charge a method directly | On by default — server-to-server. Off = always use the hosted page. |
@@ -121,6 +139,11 @@ https://<your-site>/local/payments/webhook_json.php
 The `_json` suffix is required — it is how Fawaterk decides to POST a JSON body
 rather than form fields. That is also why Fawaterk gets its own endpoint file
 instead of the shared `webhook.php?provider=…`.
+
+On **v3** the paid/pending webhook URL is sent with every `createTransaction`, so
+that one works without any dashboard setup. The **failed**, **cancellation** and
+**refund** webhooks are still dashboard-only — set all of them to the same URL;
+the handler tells the shapes apart by their fields.
 
 The webhook is what actually enrols the buyer. Everything the app does after
 starting a payment is polling for the result of this call.
@@ -313,10 +336,12 @@ amount, and the amount check is what gates enrolment — so on a valid paid webh
 the gateway calls `getInvoiceData` and uses the API's figures. A webhook whose
 signature is fine but whose invoice isn't actually paid is rejected.
 
-**Refunds.** Fawaterk's v2 API has no refund endpoint, so `supports_refund()` is
-`false`. Refunds are raised in the Fawaterk dashboard. Their refund webhook is
-unsigned and carries no invoice reference, so it is recorded in
-`local_payments_webhooks` but never applied automatically — reconcile it by hand.
+**Refunds.** Supported on **v3** (`POST /api/v3/refund/create`, `refund_type: 3`
+= integration transaction). On v2 there is no refund endpoint, so
+`supports_refund()` reports `false` in that mode and refunds must be raised in
+the dashboard. The v3 refund webhook *is* signed, so an approved refund is
+matched back to its order by Fawaterk's numeric transaction id — which is
+recorded when the payment completes — and applied automatically.
 
 **Currency.** The provider row allows `EGP, USD, SAR, AED`, but the Fawaterk
 *account* decides what it will actually accept. A currency the account doesn't
@@ -341,7 +366,8 @@ Webhook bodies (including ones that failed signature checks) are in
 | Symptom | Usual cause |
 |---------|-------------|
 | `HTTP 400` on checkout | A rejected field. The message now includes Fawaterk's own validation text — read it. Most often: a currency the account doesn't support, a phone that isn't `01XXXXXXXXX`, or a missing address. Phone and address already fall back to the configured placeholders. |
-| `{"token":["Invalid Token or inactive vendor."]}` | Fawaterk rejecting the credentials — note it answers **400**, not 401. Two causes: (a) *Authentication method* is set to OAuth, which the payment API does not accept — switch it to the HASH API key; (b) credentials from the wrong environment, since `app.fawaterk.com` is the *live* dashboard and its keys fail while sandbox mode is on. `fawaterk_diagnose.php` tells you which. |
+| `{"token":["Invalid Token or inactive vendor."]}` | Fawaterk rejecting the credentials — note v2 answers **400**, not 401. Either the credential doesn't match the API generation (a v3 OAuth token sent to `/api/v2/*`, or the HASH key sent to `/api/v3/*`), or it's from the wrong environment: `app.fawaterk.com` is the *live* dashboard and its keys fail while sandbox mode is on. `fawaterk_diagnose.php` tells you which. |
+| `{"status":"error","message":"Unable to resolve vendor from OAuth client"}` (401) | The OAuth client is valid but isn't linked to a vendor account. Ask Fawaterk to attach it. |
 | `{"content-type":["The content-type field is required."]}` | The v2 API demands a `Content-Type` header even on GET. Handled since Aug 2026; if you see it, the deploy is behind. |
 | `{"cartTotal":["Amount must be bigger than 5 EGP"]}` (HTTP 422) | Fawaterk enforces a 5 EGP floor per invoice. Any course or plan priced below that cannot be sold through it. |
 | Everything worked, then stopped | The OAuth client was revoked, or its secret rotated. Tokens are cached until they expire, so a revocation can surface minutes later. `fawaterk_diagnose.php --purge-cache` forces a fresh handshake. |

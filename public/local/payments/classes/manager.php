@@ -739,14 +739,31 @@ class manager {
             }
         }
 
-        if (!$transaction && !empty($result->provider_order_id)) {
-            // Last resort: match on the gateway's own session/invoice id. Providers
-            // that echo our order id only inside a custom payload (Fawaterk's
-            // pay_load) have nothing else to match on if that payload goes missing.
+        if (!$transaction && !empty($result->order_reference)) {
+            // Match on the gateway's own session key. Providers that echo our
+            // order id only inside a custom payload (Fawaterk's pay_load) have
+            // nothing else to match on if that payload goes missing.
             $transaction = $DB->get_record('local_payments_transactions', [
                 'provider_id' => $provider_record->id,
-                'provider_session_id' => $result->provider_order_id,
+                'provider_session_id' => $result->order_reference,
             ], '*', IGNORE_MULTIPLE);
+        }
+
+        if (!$transaction && !empty($result->provider_order_id)) {
+            // Refund notifications carry only the gateway's numeric transaction
+            // id — no session key and no payload — so this is the only handle
+            // back to the order. We record it when the payment completes.
+            $transaction = $DB->get_record('local_payments_transactions', [
+                'provider_id' => $provider_record->id,
+                'provider_order_id' => $result->provider_order_id,
+            ], '*', IGNORE_MULTIPLE);
+
+            if (!$transaction) {
+                $transaction = $DB->get_record('local_payments_transactions', [
+                    'provider_id' => $provider_record->id,
+                    'provider_session_id' => $result->provider_order_id,
+                ], '*', IGNORE_MULTIPLE);
+            }
         }
 
         if (!$transaction) {
@@ -776,7 +793,13 @@ class manager {
 
         // Process based on event type.
         $success = false;
-        if (in_array($result->event_type, ['pay', 'capture'])) {
+        if ($result->event_type === 'pending') {
+            // An async method has issued a reference but nothing has been paid
+            // yet (a Fawry code handed over at checkout). Acknowledge it and
+            // leave the order pending — treating it as a payment result would
+            // wrongly fail an order the buyer is still on their way to paying.
+            $success = true;
+        } else if (in_array($result->event_type, ['pay', 'capture'])) {
             $success = self::process_payment_webhook($transaction, $result, $webhook_id);
         } else if ($result->event_type === 'refund') {
             $success = self::process_refund_webhook($transaction, $result, $webhook_id);

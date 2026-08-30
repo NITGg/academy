@@ -40,7 +40,7 @@ require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/clilib.php');
 
 [$options, $unrecognised] = cli_get_params(
-    ['help' => false, 'purge-cache' => false],
+    ['help' => false, 'purge-cache' => false, 'logs' => false, 'webhooks' => false],
     ['h' => 'help']
 );
 
@@ -52,9 +52,56 @@ if ($options['help']) {
     cli_writeln("Check the Fawaterk credentials and list the account's payment methods.
 
 Options:
-  --purge-cache   Drop the cached method list before checking.
+  --purge-cache   Drop the cached method list and access tokens before checking.
+  --logs[=N]      Print the last N API log entries (default 15) and exit. This is
+                  the full response body from every failed call — the fastest way
+                  to see what Fawaterk actually objected to.
+  --webhooks[=N]  Print the last N received webhooks (default 10) and exit,
+                  including whether the signature verified.
   -h, --help      Print this help.
 ");
+    exit(0);
+}
+
+$providerid = $DB->get_field('local_payments_providers', 'id', ['name' => 'fawaterk']);
+
+// Reading the logs needs no credentials, so handle it before any config checks.
+if ($options['logs'] !== false) {
+    $limit = is_numeric($options['logs']) ? max(1, (int) $options['logs']) : 15;
+    $rows = $DB->get_records('local_payments_logs', $providerid ? ['provider_id' => $providerid] : null,
+        'id DESC', '*', 0, $limit);
+
+    if (empty($rows)) {
+        cli_writeln('No log entries.');
+        exit(0);
+    }
+    foreach (array_reverse($rows) as $row) {
+        cli_writeln(str_repeat('-', 78));
+        cli_writeln(sprintf('%s  [%s]  %s', userdate($row->timecreated), strtoupper($row->level), $row->message));
+        if (!empty($row->context) && $row->context !== '[]') {
+            cli_writeln('  ' . $row->context);
+        }
+    }
+    exit(0);
+}
+
+if ($options['webhooks'] !== false) {
+    $limit = is_numeric($options['webhooks']) ? max(1, (int) $options['webhooks']) : 10;
+    $rows = $DB->get_records('local_payments_webhooks', $providerid ? ['provider_id' => $providerid] : null,
+        'id DESC', '*', 0, $limit);
+
+    if (empty($rows)) {
+        cli_writeln('No webhooks received yet. If payments are completing at Fawaterk but');
+        cli_writeln('nobody is being enrolled, this is the reason — check the webhook URL.');
+        exit(0);
+    }
+    foreach (array_reverse($rows) as $row) {
+        cli_writeln(str_repeat('-', 78));
+        cli_writeln(sprintf('%s  event=%s  status=%s  signature=%s',
+            userdate($row->timecreated), $row->event_type ?: '?', $row->status,
+            $row->signature_valid ? 'VALID' : 'INVALID — check the HASH API key'));
+        cli_writeln('  ' . \core_text::substr((string) $row->payload, 0, 600));
+    }
     exit(0);
 }
 
@@ -80,7 +127,7 @@ function fawaterk_mask(string $value): string {
 }
 
 $sandbox = (bool) get_config('paymentprovider_fawaterk', 'sandbox_mode');
-$authmode = get_config('paymentprovider_fawaterk', 'auth_mode') === 'oauth' ? 'oauth' : 'apikey';
+$authmode = get_config('paymentprovider_fawaterk', 'auth_mode') === 'apikey' ? 'apikey' : 'oauth';
 $key = trim((string) get_config('paymentprovider_fawaterk', 'vendor_key'));
 $clientid = trim((string) get_config('paymentprovider_fawaterk', 'client_id'));
 $clientsecret = trim((string) get_config('paymentprovider_fawaterk', 'client_secret'));
@@ -93,8 +140,8 @@ cli_writeln('Fawaterk configuration');
 cli_writeln('  enabled in Moodle : ' . ($record->enabled ? 'yes' : 'NO — enable it under Manage providers'));
 cli_writeln('  mode              : ' . ($sandbox ? 'SANDBOX' : 'LIVE'));
 cli_writeln('  api base          : ' . $base);
-cli_writeln('  auth method       : ' . ($authmode === 'oauth'
-    ? 'OAuth 2.0 client credentials' : 'HASH API key'));
+cli_writeln('  api + auth        : ' . ($authmode === 'oauth'
+    ? 'v3 with OAuth 2.0 client credentials' : 'v2 with the HASH API key'));
 if ($authmode === 'oauth') {
     cli_writeln('  token url         : ' . $tokenurl);
     cli_writeln('  client id         : ' . ($clientid === '' ? 'NOT SET' : $clientid));
@@ -111,14 +158,6 @@ if ($sandbox) {
     cli_writeln('NOTE: sandbox mode is ON, so every credential above must come from the');
     cli_writeln('      STAGING account. Credentials copied from app.fawaterk.com are live');
     cli_writeln('      credentials and will be rejected here.');
-    cli_writeln('');
-}
-
-if ($authmode === 'oauth') {
-    cli_writeln('WARNING: OAuth is selected. Tokens issue correctly from /oauth/token, but the');
-    cli_writeln('         /api/v2 payment endpoints reject them with "Invalid Token or inactive');
-    cli_writeln('         vendor" — verified against a live account. Unless Fawaterk has since');
-    cli_writeln('         changed that, set the authentication method to the HASH API key.');
     cli_writeln('');
 }
 
@@ -164,12 +203,12 @@ if (empty($methods)) {
         . ($sandbox ? 'SANDBOX' : 'LIVE') . ' mode,');
     cli_writeln('     so they must come from the ' . ($sandbox ? 'staging' : 'live') . ' account.');
     if ($authmode === 'oauth') {
-        cli_writeln('  2. OAuth tokens are not accepted by the payment API — switch to the');
-        cli_writeln('     HASH API key.');
-        cli_writeln('  3. The OAuth client was revoked. Check it still shows Active.');
+        cli_writeln('  2. The OAuth client was revoked or its secret is wrong. Check it still');
+        cli_writeln('     shows Active on the Integrations page.');
+        cli_writeln('  3. The token URL is wrong for this account: ' . $tokenurl);
     } else {
         cli_writeln('  2. The Fawaterk vendor account is not activated for payments yet.');
-        cli_writeln('  3. No payment methods are enabled on the account at all — ask Fawaterk.');
+        cli_writeln('  3. No payment methods are enabled on the account — ask Fawaterk to enable them.');
     }
     exit(1);
 }
