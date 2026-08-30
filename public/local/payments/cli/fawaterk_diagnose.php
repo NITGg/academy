@@ -80,7 +80,7 @@ function fawaterk_mask(string $value): string {
 }
 
 $sandbox = (bool) get_config('paymentprovider_fawaterk', 'sandbox_mode');
-$authmode = get_config('paymentprovider_fawaterk', 'auth_mode') === 'apikey' ? 'apikey' : 'oauth';
+$authmode = get_config('paymentprovider_fawaterk', 'auth_mode') === 'oauth' ? 'oauth' : 'apikey';
 $key = trim((string) get_config('paymentprovider_fawaterk', 'vendor_key'));
 $clientid = trim((string) get_config('paymentprovider_fawaterk', 'client_id'));
 $clientsecret = trim((string) get_config('paymentprovider_fawaterk', 'client_secret'));
@@ -94,7 +94,7 @@ cli_writeln('  enabled in Moodle : ' . ($record->enabled ? 'yes' : 'NO — enabl
 cli_writeln('  mode              : ' . ($sandbox ? 'SANDBOX' : 'LIVE'));
 cli_writeln('  api base          : ' . $base);
 cli_writeln('  auth method       : ' . ($authmode === 'oauth'
-    ? 'OAuth 2.0 client credentials' : 'static HASH API key (legacy)'));
+    ? 'OAuth 2.0 client credentials' : 'HASH API key'));
 if ($authmode === 'oauth') {
     cli_writeln('  token url         : ' . $tokenurl);
     cli_writeln('  client id         : ' . ($clientid === '' ? 'NOT SET' : $clientid));
@@ -111,6 +111,14 @@ if ($sandbox) {
     cli_writeln('NOTE: sandbox mode is ON, so every credential above must come from the');
     cli_writeln('      STAGING account. Credentials copied from app.fawaterk.com are live');
     cli_writeln('      credentials and will be rejected here.');
+    cli_writeln('');
+}
+
+if ($authmode === 'oauth') {
+    cli_writeln('WARNING: OAuth is selected. Tokens issue correctly from /oauth/token, but the');
+    cli_writeln('         /api/v2 payment endpoints reject them with "Invalid Token or inactive');
+    cli_writeln('         vendor" — verified against a live account. Unless Fawaterk has since');
+    cli_writeln('         changed that, set the authentication method to the HASH API key.');
     cli_writeln('');
 }
 
@@ -134,29 +142,39 @@ if ($options['purge-cache']) {
     cli_writeln('');
 }
 
+$priority = (string) (get_config('paymentprovider_fawaterk', 'method_priority') ?: '2,4,3');
+
 $gateway = new \paymentprovider_fawaterk\gateway($record);
 $methods = $gateway->get_payment_methods();
 
 if (empty($methods)) {
-    cli_writeln('FAILED — no payment methods came back.');
+    // Not necessarily fatal: getPaymentmethods reports what is configured for
+    // the hosted iframe, and accounts have been seen returning [] while
+    // invoiceInitPay still charges card fine. So report it, explain the
+    // fallback, and let the caller judge.
+    cli_writeln('getPaymentmethods returned no methods.');
     cli_writeln('');
-    cli_writeln('The exact API response is in local_payments_logs (look for the most recent');
-    cli_writeln('error rows). The usual causes:');
+    cli_writeln('That is not automatically a failure — this endpoint lists what is set up for');
+    cli_writeln('the hosted iframe, and an account can return an empty list while still');
+    cli_writeln('accepting a direct charge. Checkout will use the first id in the priority');
+    cli_writeln('list (' . $priority . ') instead of the hosted page.');
+    cli_writeln('');
+    cli_writeln('If payments also fail, check local_payments_logs for the API response. Causes:');
     cli_writeln('  1. The credentials belong to the other environment. This provider is in '
         . ($sandbox ? 'SANDBOX' : 'LIVE') . ' mode,');
     cli_writeln('     so they must come from the ' . ($sandbox ? 'staging' : 'live') . ' account.');
     if ($authmode === 'oauth') {
-        cli_writeln('  2. The OAuth client was revoked, or the secret is wrong. Check that the');
-        cli_writeln('     client still shows as Active on the Integrations page.');
-        cli_writeln('  3. The token URL is wrong for this account: ' . $tokenurl);
+        cli_writeln('  2. OAuth tokens are not accepted by the payment API — switch to the');
+        cli_writeln('     HASH API key.');
+        cli_writeln('  3. The OAuth client was revoked. Check it still shows Active.');
     } else {
-        cli_writeln('  2. The Fawaterk vendor account is not activated yet.');
-        cli_writeln('  3. Consider switching to OAuth — it is the method Fawaterk recommends.');
+        cli_writeln('  2. The Fawaterk vendor account is not activated for payments yet.');
+        cli_writeln('  3. No payment methods are enabled on the account at all — ask Fawaterk.');
     }
     exit(1);
 }
 
-cli_writeln('OK — the key works. Methods enabled on this account:');
+cli_writeln('OK — the credentials work. Methods enabled on this account:');
 foreach ($methods as $method) {
     cli_writeln(sprintf('  id=%-3d %-24s %s',
         $method['id'],
@@ -166,7 +184,6 @@ foreach ($methods as $method) {
 }
 
 cli_writeln('');
-$priority = (string) (get_config('paymentprovider_fawaterk', 'method_priority') ?: '2,4,3');
 $auto = get_config('paymentprovider_fawaterk', 'auto_select_method');
 if ($auto === false || $auto) {
     cli_writeln('Auto-selection is ON, priority: ' . $priority);

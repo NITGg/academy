@@ -31,30 +31,40 @@ the account reports no usable method.
 **Site admin → Plugins → Local plugins → Payments → Provider settings → Fawaterk**
 
 Fawaterk issues **two separate credential sets**, both on the dashboard's
-**Integrations** page, doing two different jobs. Mixing them up is the usual
-reason nothing works:
+**Integrations** page. Only one of them works for payments:
 
-| Dashboard section | What it gives you | What it's for |
+| Dashboard section | What it gives you | Does it authenticate the payment API? |
 |---|---|---|
-| *machine-to-machine credentials* | Client ID + secret, and a token URL (`/oauth/token`) | authenticating API calls — **the recommended method** |
-| *Iframe/Webhook integrations settings* | HASH API key, providerKey | the HASH API key is the secret Fawaterk signs webhook `hashKey`s with |
+| *Iframe/Webhook integrations settings* | HASH API key, providerKey | **Yes** — use this. Also the secret webhook `hashKey`s are signed with. |
+| *machine-to-machine credentials* | Client ID + secret, token URL `/oauth/token` | **No** (as of Aug 2026) |
 
-The HASH API key is required **whichever** authentication method you pick —
-webhooks are signed with it, not with an access token, and an unverifiable
-webhook means no payment ever completes.
+The OAuth path looks like the obvious choice — it's the newer, "recommended"
+integration and the dialog is right there. It isn't the one to use. Tested
+against the live account: `/oauth/token` mints a token correctly, but
+`/api/v2/getPaymentmethods` with that token answers HTTP 400
+`{"token":["Invalid Token or inactive vendor."]}`, while the same call with the
+HASH API key returns HTTP 200. Those client credentials belong to Fawaterk's
+newer *Integrations Transactions* API, not to the v2 payment endpoints.
 
-> **Sandbox and live are separate Fawaterk accounts with separate credentials for
-> both sets.** `app.fawaterk.com` is the live dashboard. Credentials copied from
-> there while *Sandbox mode* is on are rejected with
-> `{"token":["Invalid Token or inactive vendor."]}`.
+The OAuth grant is implemented and selectable (`Authentication method` →
+OAuth), so if Fawaterk extends it to payments it's a one-setting switch. Until
+then, leave it on **HASH API key**.
+
+Two further consequences worth knowing:
+
+- **OAuth clients can only be created on the live dashboard.** There is no
+  staging equivalent, so OAuth and sandbox mode can't be combined at all.
+- **Sandbox and live are separate accounts with separate credentials.**
+  `app.fawaterk.com` is the live dashboard; anything copied from it while
+  *Sandbox mode* is on is rejected with the same
+  `Invalid Token or inactive vendor`.
 
 | Setting | Notes |
 |---------|-------|
 | Sandbox mode | On → `https://staging.fawaterk.com`, off → `https://app.fawaterk.com` |
-| Authentication method | `OAuth 2.0 client credentials` (default, recommended) or the legacy static key |
-| OAuth client ID / secret | From *Integrations → machine-to-machine credentials*. The secret is shown once. |
-| OAuth token URL | Leave empty — defaults to `/oauth/token` on the current mode's host |
-| HASH API key | From *Iframe/Webhook integrations settings*. Verifies webhook signatures; also the bearer in legacy mode. |
+| Authentication method | Leave on **HASH API key** — see above |
+| HASH API key | From *Iframe/Webhook integrations settings*. The API bearer **and** the webhook signature secret. |
+| OAuth client ID / secret / token URL | Only used when the authentication method is set to OAuth |
 | providerKey | Only needed for Fawaterk's JS iframe, which this plugin doesn't use |
 | Live / Sandbox API base URL | Overridable in case Fawaterk moves hosts |
 | Charge a method directly | On by default — server-to-server. Off = always use the hosted page. |
@@ -84,7 +94,13 @@ method, and the gateway picks one:
 - **two or more** → the first one named in *Payment method priority* that the
   account actually has enabled. Anything the list doesn't mention is used only if
   nothing in the list matches.
-- **none, or auto-selection off** → the Fawaterk hosted page.
+- **the account lists none** → the first id in *Payment method priority*
+  anyway. An empty list does not mean the account can't take payments:
+  `getPaymentmethods` reports what's configured for the hosted iframe, and the
+  live account here returns `[]` while `invoiceInitPay` charges card (id 2)
+  perfectly well. Trusting the enumeration over the configured preference would
+  silently push every checkout onto the hosted page.
+- **auto-selection off, or no priority configured** → the Fawaterk hosted page.
 
 The account's method list is cached for an hour, so purge caches after enabling a
 new method in the Fawaterk dashboard (or run the diagnose script with
@@ -325,7 +341,9 @@ Webhook bodies (including ones that failed signature checks) are in
 | Symptom | Usual cause |
 |---------|-------------|
 | `HTTP 400` on checkout | A rejected field. The message now includes Fawaterk's own validation text — read it. Most often: a currency the account doesn't support, a phone that isn't `01XXXXXXXXX`, or a missing address. Phone and address already fall back to the configured placeholders. |
-| `{"token":["Invalid Token or inactive vendor."]}` | Fawaterk rejecting the credentials — note it answers **400**, not 401. Nearly always credentials from the wrong environment: `app.fawaterk.com` is the *live* dashboard, so its client id/secret and HASH API key fail while sandbox mode is on. Run `fawaterk_diagnose.php` to see which mode and credentials are in play. Also check the OAuth client still shows **Active** on the Integrations page. |
+| `{"token":["Invalid Token or inactive vendor."]}` | Fawaterk rejecting the credentials — note it answers **400**, not 401. Two causes: (a) *Authentication method* is set to OAuth, which the payment API does not accept — switch it to the HASH API key; (b) credentials from the wrong environment, since `app.fawaterk.com` is the *live* dashboard and its keys fail while sandbox mode is on. `fawaterk_diagnose.php` tells you which. |
+| `{"content-type":["The content-type field is required."]}` | The v2 API demands a `Content-Type` header even on GET. Handled since Aug 2026; if you see it, the deploy is behind. |
+| `{"cartTotal":["Amount must be bigger than 5 EGP"]}` (HTTP 422) | Fawaterk enforces a 5 EGP floor per invoice. Any course or plan priced below that cannot be sold through it. |
 | Everything worked, then stopped | The OAuth client was revoked, or its secret rotated. Tokens are cached until they expire, so a revocation can surface minutes later. `fawaterk_diagnose.php --purge-cache` forces a fresh handshake. |
 | Payment succeeds but no enrolment | The webhook isn't arriving. Check the dashboard URL ends in `webhook_json.php`, and look for `signature_valid = 0` rows — that means the vendor key in Moodle differs from the one signing the webhook. |
 | `no redirect URL or reference` | The account doesn't have that `payment_method_id` enabled. Re-fetch the method list. |
