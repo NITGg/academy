@@ -43,3 +43,5 @@ $string['method_priority'] = 'Payment method priority';
 $string['method_priority_desc'] = 'Comma-separated Fawaterk payment method ids, best first. The first one the account actually has enabled is used. Default 2,4,3 = Visa/Mastercard, then Meeza, then Fawry. Anything not listed is tried last.';
 $string['reference_ttl_days'] = 'Reference code validity (days)';
 $string['reference_ttl_days_desc'] = 'How long an order stays open when the buyer is given an offline code (Fawry, Meeza) instead of paying immediately. They often pay the next day, and the order must still be open when Fawaterk confirms it. Set 0 to use the site-wide checkout timeout instead.';
+$string['due_date_days'] = 'Payment link validity (days)';
+$string['due_date_days_desc'] = 'The due date shown on the Fawaterk payment page. Left at 0 Fawaterk applies its own default of 2 days, which is why a link for a 30-minute order can show a due date days away. The Moodle order may expire sooner; a payment that arrives after that is still fulfilled.';

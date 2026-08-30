@@ -121,6 +121,15 @@ if ($hassiteconfig) {
         PARAM_TEXT
     ));
 
+    // How long Fawaterk keeps the transaction itself payable.
+    $settings->add(new admin_setting_configtext(
+        'paymentprovider_fawaterk/due_date_days',
+        get_string('due_date_days', 'paymentprovider_fawaterk'),
+        get_string('due_date_days_desc', 'paymentprovider_fawaterk'),
+        '2',
+        PARAM_INT
+    ));
+
     // How long an offline reference code (Fawry/Meeza) stays payable.
     $settings->add(new admin_setting_configtext(
         'paymentprovider_fawaterk/reference_ttl_days',
