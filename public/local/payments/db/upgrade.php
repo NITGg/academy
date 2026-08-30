@@ -14,6 +14,14 @@ function xmldb_local_payments_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026070106, 'local', 'payments');
     }
 
+    if ($oldversion < 2026083000) {
+        // Register the Fawaterk provider on sites that were installed before it
+        // existed. It is seeded disabled; enable it from Manage providers.
+        require_once(__DIR__ . '/install.php');
+        local_payments_seed_fawaterk_provider();
+        upgrade_plugin_savepoint(true, 2026083000, 'local', 'payments');
+    }
+
     return true;
 }
 

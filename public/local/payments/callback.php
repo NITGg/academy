@@ -2,8 +2,12 @@
 require_once(__DIR__ . '/../../config.php');
 
 $order_id      = required_param('order_id', PARAM_TEXT);
-// Kashier appends paymentStatus=SUCCESS|FAILED to the redirect URL.
+// Kashier appends paymentStatus=SUCCESS|FAILED to the redirect URL. Providers
+// with no such parameter (Fawaterk) get the same signal from the &status=failed
+// we put on the failure_url we hand them at checkout.
 $kashier_status = strtoupper(optional_param('paymentStatus', '', PARAM_ALPHANUMEXT));
+$failed_redirect = ($kashier_status === 'FAILED')
+    || (strtolower(optional_param('status', '', PARAM_ALPHANUMEXT)) === 'failed');
 
 require_login();
 
@@ -21,10 +25,10 @@ $PAGE->set_url(new moodle_url('/local/payments/callback.php', ['order_id' => $or
 $PAGE->set_context(context_system::instance());
 $PAGE->set_pagelayout('standard');
 
-// ── FAILED redirect from Kashier ────────────────────────────────────────────
-// Kashier told us right now that the payment failed. Update the DB and show
-// the failure page immediately — no need to call Kashier's API again.
-if ($kashier_status === 'FAILED') {
+// ── FAILED redirect from the gateway ────────────────────────────────────────
+// The gateway told us right now that the payment failed. Update the DB and show
+// the failure page immediately — no need to call the provider API again.
+if ($failed_redirect) {
     $transaction = $DB->get_record('local_payments_transactions', ['order_id' => $order_id]);
 
     if ($transaction && $transaction->status === \local_payments\status_machine::PENDING) {
