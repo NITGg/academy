@@ -118,22 +118,30 @@ class verification {
      * task: the list is only ever consulted here, so an entry nobody will look at
      * again costs nothing until the next read tidies it away.
      *
+     * Public because `resend_api` has to apply the identical rules to a list it
+     * holds itself - the decoy tally it keeps for addresses that own no account -
+     * and two implementations of "how long must this caller wait" would be two
+     * answers a caller could tell apart.
+     *
      * @param stdClass $user
      * @return int[]
      */
-    protected static function sends(stdClass $user): array {
+    public static function sends(stdClass $user): array {
         $raw = (string) get_user_preferences(self::PREF_SENDS, '', $user->id);
-        if ($raw === '') {
-            return [];
-        }
 
+        return self::recent($raw === '' ? [] : array_map('intval', explode(',', $raw)));
+    }
+
+    /**
+     * Drop the timestamps that have aged out of the rate-limit window.
+     *
+     * @param int[] $sends any send timestamps, in order
+     * @return int[] those still inside the window, oldest first
+     */
+    public static function recent(array $sends): array {
         $cutoff = time() - self::WINDOW;
-        $recent = array_filter(
-            array_map('intval', explode(',', $raw)),
-            static fn(int $stamp): bool => $stamp > $cutoff
-        );
 
-        return array_values($recent);
+        return array_values(array_filter($sends, static fn(int $stamp): bool => $stamp > $cutoff));
     }
 
     /**
@@ -146,14 +154,39 @@ class verification {
      * @return int zero when a send is allowed right now
      */
     public static function seconds_until_resend(stdClass $user): int {
-        $sends = self::sends($user);
+        return self::wait_from(self::sends($user));
+    }
+
+    /**
+     * The cooldown still outstanding for a given list of sends (AC-4.2.2).
+     *
+     * @param int[] $sends send timestamps inside the window, oldest first
+     * @return int zero when a send is allowed right now
+     */
+    public static function wait_from(array $sends): int {
         if (!$sends) {
             return 0;
         }
 
-        $elapsed = time() - (int) end($sends);
+        return max(0, self::cooldown() - (time() - (int) end($sends)));
+    }
 
-        return max(0, self::cooldown() - $elapsed);
+    /**
+     * How long until the hourly ceiling frees up a slot (AC-4.2.3).
+     *
+     * The window rolls, so the wait is until the *oldest* send inside it ages
+     * out - not until the top of some fixed hour. A caller who used all five in
+     * one minute waits nearly a full hour; one who spread them out waits less.
+     *
+     * @param int[] $sends send timestamps inside the window, oldest first
+     * @return int seconds, zero when the ceiling is not currently reached
+     */
+    public static function window_wait_from(array $sends): int {
+        if (count($sends) < self::max_sends()) {
+            return 0;
+        }
+
+        return max(0, ((int) $sends[0] + self::WINDOW) - time());
     }
 
     /**
@@ -251,6 +284,46 @@ class verification {
     public static function clear(stdClass $user): void {
         unset_user_preference(self::PREF_ISSUED, $user->id);
         unset_user_preference(self::PREF_SENDS, $user->id);
+    }
+
+    /**
+     * The secret a confirmation URL carries.
+     *
+     * The counterpart of {@see self::user_from_link()}, reading the other half of
+     * the same two link shapes: `data=secret/username`, and the older `p=secret`
+     * with the username in `s`.
+     *
+     * @param string $data the `data` parameter, possibly empty
+     * @param string $p the `p` parameter, possibly empty
+     * @return string the secret, or '' when the link carries none
+     */
+    public static function secret_from_link(string $data, string $p): string {
+        if ($data !== '') {
+            return (string) explode('/', $data, 2)[0];
+        }
+
+        return trim($p);
+    }
+
+    /**
+     * Is this the link the account is currently waiting on? (AC-4.2.4)
+     *
+     * Every resend mints a new secret, so a link built on any earlier one is dead
+     * the moment the next mail goes out. Core would answer such a link with
+     * `invalidconfirmdata` - an exception page reading "Invalid confirmation data",
+     * which tells a learner holding two emails nothing about which to open.
+     *
+     * @param stdClass $user the account the link names
+     * @param string $secret the secret the link carries
+     * @return bool false when a later link has superseded this one
+     */
+    public static function secret_is_current(stdClass $user, string $secret): bool {
+        if ($secret === '') {
+            // Nothing to judge - core will refuse it on its own terms.
+            return true;
+        }
+
+        return $secret === (string) $user->secret;
     }
 
     /**

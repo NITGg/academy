@@ -24,7 +24,7 @@ same validation, same error messages.
 
 ## Transport
 
-Both functions are **pre-login**. Two ways to call them, pick one:
+All four functions are **pre-login**. Two ways to call them, pick one:
 
 **With the Registration API token** (the same token used by the forgot-password
 endpoints — see [forgot-password-mobile-api.md](forgot-password-mobile-api.md)):
@@ -290,11 +290,78 @@ string with a line break per rule.
 
 **After a successful sign-up** the account exists but is **unconfirmed**: Moodle
 has emailed a confirmation link. Tell the user to check their inbox. A login
-attempt before confirmation fails with `errorcode: "usernotconfirmed"`.
+attempt before confirmation fails with `errorcode: "usernotconfirmed"`. Show the
+confirmation step next, with a Resend button — section 3.
 
 ---
 
-## 3) `local_profilefields_get_policy_documents` — the Terms text
+## 3) `local_profilefields_resend_confirmation` — the Resend button
+
+What the confirmation screen's **Resend** button calls. Also pre-login (the
+account being confirmed cannot log in yet — that is the point).
+
+**Parameters**
+
+| Param | Type | Notes |
+|---|---|---|
+| `email` | string, required | The address entered at sign-up. Trimmed and lower-cased before matching, exactly as `signup_user` stored it |
+
+**Returns — one shape, always**
+
+```json
+{"success": true,  "message": null, "errorcode": null, "retryafter": 60}
+{"success": false, "message": "Please wait 47 seconds before requesting another email.",
+ "errorcode": "toomanyrequests", "retryafter": 47}
+```
+
+| Key | Notes |
+|---|---|
+| `retryafter` | Seconds until the button may be tapped again. **Always present — drive your countdown from this and nothing else.** 60 after an accepted request; the time left in the window after a refusal |
+| `success` | Whether the request was accepted |
+| `errorcode` | `toomanyrequests`, or `null` on success. The only code this function has |
+| `message` | The refusal, already translated per `moodlewssettinglang`. `null` on success |
+
+Start the countdown at `retryafter` on **every** reply, success or refusal.
+Do not hard-code 60 — the wait is an admin setting, and after a refusal the
+number is not 60 at all.
+
+**When you will see each reply**
+
+| Situation | Reply |
+|---|---|
+| A new link was sent | `success: true`, `retryafter: 60` |
+| Under 60 s since the last send — **including the sign-up email itself** | `toomanyrequests`, `retryafter` = seconds left |
+| 6th request within one rolling hour | `toomanyrequests`, `retryafter` ≈ what is left of the hour, message: "Too many requests. Please try again in one hour." / «تم إرسال عدد كبير من الطلبات. يرجى المحاولة مرة أخرى بعد ساعة.» |
+
+Note the second row: the sign-up email counts as the first send, so a Resend
+tapped straight after Create Account is refused. That is why the app's countdown
+should start at 60 the moment the confirmation screen opens, not when the button
+is first tapped.
+
+> **This function will not tell you whether an account exists.** An address
+> nobody registered, and one that is already confirmed, are answered exactly like
+> a successful send — same keys, same values, same rate limiting on repeat calls.
+> There is no reply that means "no such account", and none is coming: it would be
+> an account-enumeration endpoint open to the whole internet. Do not try to infer
+> registration status from this call, and do not show the user anything other
+> than "we have sent it, check your inbox".
+
+**The email language** follows `moodlewssettinglang`, so send the same header you
+send everywhere else and the learner gets the confirmation mail in the language
+they are using the app in.
+
+**What happens to the old link.** Each send invalidates every link issued before
+it, so only the newest email works. The three outcomes on the confirmation page:
+
+| The link | The learner sees |
+|---|---|
+| Newest, under 24 h old | Account confirmed and logged in |
+| Superseded by a resend, or over 24 h old | "This confirmation link is no longer valid. Please request a new one." — with a Resend button on the page |
+| Newest, but the account is already confirmed | "Your account is already confirmed. Please log in." — not an error |
+
+---
+
+## 4) `local_profilefields_get_policy_documents` — the Terms text
 
 For showing the terms / privacy policy **without a WebView**. Returns the same
 documents `consent.documents` lists, with their text.

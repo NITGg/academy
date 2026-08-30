@@ -20,10 +20,16 @@ defined('MOODLE_INTERNAL') || die();
 class password_reset_manager {
 
     // The four numbers below are what AC-4.4.4 and AC-4.4.5 are about, so they
-    // are administrator-controlled: Site administration > Plugins > Local
-    // plugins > Academy. The constants are the shipped defaults and the fallback
-    // when a setting has never been saved - limit() picks between them, so the
-    // plugin still behaves sanely on a site that has not visited the page.
+    // are administrator-controlled - on the "Password reset" tab of
+    // local_profilefields' sign-up and login control panel, which is where an
+    // administrator already goes to set the login lock-out and the verification
+    // limits. The constants are the shipped defaults and the fallback when a
+    // setting has never been saved, so the plugin behaves sanely on a site whose
+    // administrator has never opened that page.
+    //
+    // The screen lives in another plugin, so limits(), limit_value() and
+    // set_limit() below are the seam: the setting names and their sane ranges are
+    // stated here, once, and nothing outside this class needs to know them.
 
     /** OTP lifetime, seconds. Overridden by the 'otpttl' setting. */
     const OTP_TTL = 600;            // 10 minutes
@@ -55,6 +61,75 @@ class password_reset_manager {
         }
 
         return (int) $value;
+    }
+
+    /**
+     * The administrator-settable limits, their defaults and their sane ranges.
+     *
+     * The single description of these four settings. The screen that edits them
+     * is in local_profilefields, and it builds itself from this - so adding a
+     * limit, or changing what counts as a sensible value for one, is a change
+     * here and nowhere else.
+     *
+     * 'unit' says how the number is stored versus how a person thinks about it:
+     * 'count' is a plain number, 'minutes' is stored in seconds but shown and
+     * typed in minutes. 'default', 'min' and 'max' are all in the STORED unit -
+     * seconds for a 'minutes' setting - so that set_limit() can clamp without
+     * having to know which unit its caller was thinking in.
+     *
+     * @return array setting name => ['default' => int, 'unit' => string, 'min' => int, 'max' => int]
+     */
+    public static function limits(): array {
+        return [
+            'otprequestmax'    => ['default' => self::REQUEST_MAX, 'unit' => 'count',
+                                   'min' => 1, 'max' => 50],
+            'otprequestwindow' => ['default' => self::REQUEST_WINDOW, 'unit' => 'minutes',
+                                   'min' => MINSECS, 'max' => DAYSECS],
+            'otpmaxattempts'   => ['default' => self::OTP_MAX_ATTEMPTS, 'unit' => 'count',
+                                   'min' => 1, 'max' => 20],
+            'otpttl'           => ['default' => self::OTP_TTL, 'unit' => 'minutes',
+                                   'min' => MINSECS, 'max' => 2 * HOURSECS],
+        ];
+    }
+
+    /**
+     * The value one limit currently has, in the unit it is stored in.
+     *
+     * @param string $name one of the keys of limits()
+     * @return int
+     */
+    public static function limit_value(string $name): int {
+        $limits = self::limits();
+
+        if (!isset($limits[$name])) {
+            throw new \coding_exception("Unknown password-reset limit: {$name}");
+        }
+
+        return self::limit($name, $limits[$name]['default']);
+    }
+
+    /**
+     * Store a new value for one limit, in the unit it is stored in.
+     *
+     * Clamped to the range declared above rather than trusted: the editing screen
+     * is in another plugin and a hand-made POST need not respect the boundaries a
+     * number box advertised. Zero requests allowed, or a code that expires before
+     * it is sent, would be an outage rather than a setting.
+     *
+     * @param string $name one of the keys of limits()
+     * @param int $value the new value
+     * @return void
+     */
+    public static function set_limit(string $name, int $value): void {
+        $limits = self::limits();
+
+        if (!isset($limits[$name])) {
+            throw new \coding_exception("Unknown password-reset limit: {$name}");
+        }
+
+        $value = min($limits[$name]['max'], max($limits[$name]['min'], $value));
+
+        set_config($name, $value, 'local_academy');
     }
 
     /** Auth methods whose password we can reset. */

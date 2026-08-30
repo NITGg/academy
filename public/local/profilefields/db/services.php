@@ -37,6 +37,17 @@ $functions = [
         'loginrequired' => false,
         'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    'local_profilefields_resend_confirmation' => [
+        'classname'     => 'local_profilefields\external\resend_confirmation',
+        'methodname'    => 'execute',
+        'description'   => 'Send the confirmation link again, for the Resend button on the app\'s confirmation '
+            . 'screen. Rate-limited per account, and deliberately unable to tell a caller whether an address is '
+            . 'registered.',
+        'type'          => 'write',
+        'ajax'          => true,
+        'loginrequired' => false,
+        'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
     'local_profilefields_signup_user' => [
         'classname'     => 'local_profilefields\external\signup_user',
         'methodname'    => 'execute',

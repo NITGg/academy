@@ -46,13 +46,16 @@ class page {
     /** @var string Profile tab. */
     const TAB_PROFILE = 'profile';
 
+    /** @var string Password-reset tab. */
+    const TAB_PASSWORDRESET = 'passwordreset';
+
     /**
      * The valid tab identifiers.
      *
      * @return string[]
      */
     public static function tabs(): array {
-        return [self::TAB_REGISTER, self::TAB_LOGIN, self::TAB_PROFILE];
+        return [self::TAB_REGISTER, self::TAB_LOGIN, self::TAB_PROFILE, self::TAB_PASSWORDRESET];
     }
 
     /**
@@ -106,6 +109,9 @@ class page {
                 case self::TAB_PROFILE:
                     self::save_profile();
                     break;
+                case self::TAB_PASSWORDRESET:
+                    self::save_passwordreset();
+                    break;
             }
             redirect(self::url($tab), get_string('changessaved'),
                 null, \core\output\notification::NOTIFY_SUCCESS);
@@ -128,6 +134,8 @@ class page {
                 get_string('tablogin', 'local_profilefields')),
             new tabobject(self::TAB_PROFILE, self::url(self::TAB_PROFILE),
                 get_string('tabprofile', 'local_profilefields')),
+            new tabobject(self::TAB_PASSWORDRESET, self::url(self::TAB_PASSWORDRESET),
+                get_string('tabpasswordreset', 'local_profilefields')),
         ];
         echo $OUTPUT->tabtree($rows, $tab);
 
@@ -137,6 +145,9 @@ class page {
                 break;
             case self::TAB_PROFILE:
                 self::render_profile();
+                break;
+            case self::TAB_PASSWORDRESET:
+                self::render_passwordreset();
                 break;
             case self::TAB_REGISTER:
             default:
@@ -707,6 +718,108 @@ class page {
         return html_writer::tag('h3', get_string('verifyheading', 'local_profilefields'), ['class' => 'mt-4 h5']) .
             html_writer::tag('p', get_string('verifyintro', 'local_profilefields'), ['class' => 'text-muted']) .
             html_writer::tag('table', implode('', $rows), ['class' => 'generaltable w-100']);
+    }
+
+    // -----------------------------------------------------------------
+    // Password reset tab.
+    // -----------------------------------------------------------------
+
+    /**
+     * Is the plugin that owns these limits installed?
+     *
+     * local_profilefields has to keep working on a site that does not run
+     * local_academy, so the tab explains itself rather than fataling.
+     *
+     * @return bool
+     */
+    protected static function passwordreset_available(): bool {
+        return class_exists('\local_academy\password_reset_manager');
+    }
+
+    /**
+     * Render the password-reset tab (AC-4.4.4, AC-4.4.5).
+     *
+     * The numbers belong to local_academy, which owns the reset flow; this page
+     * only edits them, the same way the login tab edits core's lock-out settings
+     * rather than keeping a second copy. The rows are built from
+     * password_reset_manager::limits(), so the ranges shown here and the ranges
+     * enforced on save are by construction the same ones.
+     *
+     * @return void
+     */
+    protected static function render_passwordreset(): void {
+        if (!self::passwordreset_available()) {
+            echo html_writer::div(
+                get_string('resetnoacademy', 'local_profilefields'), 'alert alert-info');
+            return;
+        }
+
+        $limits = \local_academy\password_reset_manager::limits();
+
+        echo html_writer::tag('p', get_string('tabpasswordreset_intro', 'local_profilefields'),
+            ['class' => 'text-muted']);
+
+        echo html_writer::start_tag('form', [
+            'method' => 'post', 'action' => self::url(self::TAB_PASSWORDRESET)->out(false),
+        ]);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'save', 'value' => 1]);
+
+        $rows = [];
+        foreach ($limits as $name => $meta) {
+            $value = \local_academy\password_reset_manager::limit_value($name);
+            $isminutes = ($meta['unit'] === 'minutes');
+
+            $rows[] = self::number_row(
+                $name,
+                $isminutes ? (int) round($value / MINSECS) : $value,
+                get_string('reset_' . $name, 'local_profilefields'),
+                get_string('reset_' . $name . '_desc', 'local_profilefields'),
+                $isminutes ? (int) ceil($meta['min'] / MINSECS) : $meta['min'],
+                $isminutes ? (int) floor($meta['max'] / MINSECS) : $meta['max']
+            );
+        }
+
+        echo html_writer::tag('table', implode('', $rows), ['class' => 'generaltable w-100']);
+
+        // Lock-out is the other thing an administrator reaches for on this screen
+        // and is a different mechanism entirely, so say so rather than let someone
+        // change the wrong number.
+        echo html_writer::div(get_string('resetnotlockout', 'local_profilefields'),
+            'alert alert-info mt-3');
+
+        echo html_writer::tag('div',
+            html_writer::tag('button', get_string('savechanges'),
+                ['type' => 'submit', 'class' => 'btn btn-primary']),
+            ['class' => 'mt-3']);
+        echo html_writer::end_tag('form');
+    }
+
+    /**
+     * Save the password-reset tab back into local_academy's settings.
+     *
+     * set_limit() clamps, so a hand-made POST cannot set a limit of zero and turn
+     * password reset off for the whole site.
+     *
+     * @return void
+     */
+    protected static function save_passwordreset(): void {
+        if (!self::passwordreset_available()) {
+            return;
+        }
+
+        foreach (\local_academy\password_reset_manager::limits() as $name => $meta) {
+            $isminutes = ($meta['unit'] === 'minutes');
+
+            $min = $isminutes ? (int) ceil($meta['min'] / MINSECS) : $meta['min'];
+            $max = $isminutes ? (int) floor($meta['max'] / MINSECS) : $meta['max'];
+            $default = $isminutes ? (int) round($meta['default'] / MINSECS) : $meta['default'];
+
+            $posted = self::posted_number($name, $min, $max, $default);
+
+            \local_academy\password_reset_manager::set_limit(
+                $name, $isminutes ? $posted * MINSECS : $posted);
+        }
     }
 
     /**

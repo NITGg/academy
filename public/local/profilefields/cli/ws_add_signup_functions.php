@@ -48,6 +48,7 @@ require_once($CFG->dirroot . '/webservice/lib.php');
 $wanted = [
     'local_profilefields_get_signup_form',
     'local_profilefields_signup_user',
+    'local_profilefields_resend_confirmation',
     'local_profilefields_get_policy_documents',
     'local_profilefields_get_profile',
     'local_profilefields_get_profile_form',

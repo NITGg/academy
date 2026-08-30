@@ -37,6 +37,20 @@ defined('MOODLE_INTERNAL') || die();
 class policies {
 
     /**
+     * User preference: this account ticked the box while nobody was logged in.
+     *
+     * tool_policy refuses to file an acceptance for a visitor - `can_accept_policies()`
+     * throws `noguest` before it looks at anything else - and sign-up happens
+     * precisely then, so the audit row cannot be written at the moment of the tick.
+     * The tick is not lost: `agree()` stores the flag the site actually gates on and
+     * leaves this marker, and `settle_pending()` files the row on the first login,
+     * which for a self-registration is the confirmation link.
+     *
+     * @var string
+     */
+    const PREF_PENDING = 'local_profilefields_consentpending';
+
+    /**
      * Whether the tool_policy plugin is installed.
      *
      * @return bool
@@ -182,5 +196,72 @@ class policies {
         }
 
         return $recorded;
+    }
+
+    /**
+     * Record the sign-up tick on an account that is not logged in yet.
+     *
+     * This is the one that had to exist. `record_acceptance()` alone cannot carry
+     * a sign-up tick, because tool_policy will not file an acceptance for anyone
+     * who is not logged in, and at sign-up nobody is: the whole call was throwing
+     * `noguest`, being swallowed by the catch, and leaving no trace at all. The
+     * tick then had nowhere else to live either - the checkbox is our own element,
+     * so core stores nothing for it, and `$CFG->sitepolicy` is empty on this site
+     * (the documents live in tool_policy while the handler stays on "Default"), so
+     * core's own `policyagreed` checkbox is never added to the form to store it.
+     *
+     * The result was that every learner who ticked the box on sign-up was asked
+     * again the moment they opened the confirmation link, because
+     * `completion::missing()` reads `policyagreed` and it was still 0.
+     *
+     * So the flag is written here directly - the same flag core's default site
+     * policy handler writes, and the same one `complete.php` writes when it asks -
+     * and the versioned tool_policy row is left pending for `settle_pending()` to
+     * file on the first login, when there is finally a session to file it under.
+     *
+     * @param int $userid the account that ticked the box
+     * @return void
+     */
+    public static function agree(int $userid): void {
+        global $DB, $USER;
+
+        if ($userid <= 0) {
+            return;
+        }
+
+        $DB->set_field('user', 'policyagreed', 1, ['id' => $userid]);
+        if ((int) ($USER->id ?? 0) === $userid) {
+            $USER->policyagreed = 1;
+        }
+
+        // Logged in already (the completion page, an app session): the row can be
+        // filed now and nothing needs to be remembered. Otherwise leave the marker.
+        if (isloggedin() && !isguestuser() && (int) ($USER->id ?? 0) === $userid) {
+            self::record_acceptance($userid);
+            return;
+        }
+
+        set_user_preference(self::PREF_PENDING, 1, $userid);
+    }
+
+    /**
+     * File the tool_policy row a sign-up tick could not file at the time.
+     *
+     * Called from the login observer, which is the first moment the account has a
+     * session - for a self-registration that is the confirmation link. Only an
+     * account carrying the marker is touched, so this can never quietly accept a
+     * policy version published after the tick: a new version clears `policyagreed`
+     * site-wide and is asked for properly, and the marker is long since gone.
+     *
+     * @param int $userid
+     * @return void
+     */
+    public static function settle_pending(int $userid): void {
+        if ($userid <= 0 || !get_user_preferences(self::PREF_PENDING, 0, $userid)) {
+            return;
+        }
+
+        self::record_acceptance($userid);
+        unset_user_preference(self::PREF_PENDING, $userid);
     }
 }

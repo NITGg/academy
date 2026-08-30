@@ -372,3 +372,18 @@ If you did not ask for this, please contact support immediately.';
 // The note stored against a policy acceptance recorded from the sign-up form,
 // so an administrator reading the acceptance log can see where it came from.
 $string['consentnote'] = 'Accepted on the sign-up form.';
+
+// Password reset tab (AC-4.4.4, AC-4.4.5). The limits themselves belong to
+// local_academy, which owns the reset flow; this page only edits them.
+$string['tabpasswordreset'] = 'Password reset';
+$string['tabpasswordreset_intro'] = 'Limits for the one-time code sent when someone asks to reset a forgotten password from the app. Leave a box empty or out of range and the shipped default is used.';
+$string['reset_otprequestmax'] = 'Maximum reset requests';
+$string['reset_otprequestmax_desc'] = 'How many codes one email address may request within the window below. Further requests are refused until the window passes. Counted per address, including addresses with no account, so the reply never reveals whether an account exists.';
+$string['reset_otprequestwindow'] = 'Reset request window (minutes)';
+$string['reset_otprequestwindow_desc'] = 'The period the request limit is counted over.';
+$string['reset_otpmaxattempts'] = 'Maximum incorrect code entries';
+$string['reset_otpmaxattempts_desc'] = 'How many times a code may be entered incorrectly before that code is invalidated and a new one must be requested.';
+$string['reset_otpttl'] = 'Code validity (minutes)';
+$string['reset_otpttl_desc'] = 'How long a code stays usable after it is emailed.';
+$string['resetnotlockout'] = 'These limits are about the password-reset code only. Blocking an account after repeated failed sign-ins is a separate mechanism, set on the Login page tab under "Failed attempts before lock-out".';
+$string['resetnoacademy'] = 'These settings belong to the Academy plugin (local_academy), which is not installed on this site.';

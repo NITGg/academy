@@ -339,24 +339,54 @@ class hook_callbacks {
     }
 
     /**
-     * Refuse a confirmation link that has passed its 24 hours (AC-4.2.11).
+     * Answer a confirmation link in AC-4.2's words rather than core's.
      *
-     * Only expiry is judged here. Whether the secret is even correct, and whether
-     * the account was already confirmed, stay core's business - it answers both
-     * well, and duplicating them would mean two implementations of "is this link
-     * genuine?" that could disagree.
+     * Three of the four outcomes are settled here; the fourth - a link that is
+     * current, unexpired and genuine - is passed straight through, because
+     * confirming an account is core's job and reimplementing it would mean two
+     * answers to "is this link genuine?" that could disagree.
+     *
+     * - **Already confirmed** (AC-4.2.13). Core prints "Registration has already
+     *   been confirmed" above a button to the course list, which is a dead end for
+     *   somebody who is not logged in. The specification's sentence sends them to
+     *   the login page, which is where they were trying to get.
+     *
+     * - **Superseded** (AC-4.2.4, AC-4.2.11). A link built on a secret that a
+     *   later resend has replaced. Core calls this `invalidconfirmdata` - an
+     *   exception page reading "Invalid confirmation data" - which reads as a
+     *   broken site rather than as "you have a newer email, open that one".
+     *
+     * - **Expired** (AC-4.2.10, AC-4.2.11). Core has no expiry at all.
+     *
+     * The last two are the same event as far as the learner is concerned - the
+     * link in their hand does not work and they need another - so they get the
+     * same screen, which is the one with the Resend button on it.
      *
      * @return void
      */
     protected static function guard_confirm_link(): void {
-        $user = verification::user_from_link(
-            optional_param('data', '', PARAM_RAW),
-            optional_param('s', '', PARAM_RAW)
-        );
+        $data = optional_param('data', '', PARAM_RAW);
+        $user = verification::user_from_link($data, optional_param('s', '', PARAM_RAW));
 
-        // Nothing to judge: no such account, or one that is already confirmed and
-        // is about to be told so by core in the words of AC-4.2.13.
-        if (!$user || !empty($user->confirmed) || !verification::link_expired($user)) {
+        // A link naming no account at all stays core's to refuse: there is nothing
+        // here we could say about it that would not amount to confirming which
+        // usernames exist.
+        if (!$user) {
+            return;
+        }
+
+        if (!empty($user->confirmed)) {
+            redirect(
+                new \moodle_url('/login/index.php'),
+                get_string('verifyalreadydone', 'local_profilefields'),
+                null,
+                \core\output\notification::NOTIFY_INFO
+            );
+        }
+
+        $secret = verification::secret_from_link($data, optional_param('p', '', PARAM_RAW));
+
+        if (verification::secret_is_current($user, $secret) && !verification::link_expired($user)) {
             return;
         }
 

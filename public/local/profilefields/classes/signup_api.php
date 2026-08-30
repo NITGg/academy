@@ -552,10 +552,17 @@ class signup_api {
         $data[signup::CONSENT] = empty($data['consent']) ? 0 : 1;
         unset($data['consent']);
 
-        // 6. A site policy handler records acceptance from that checkbox; this matches
-        //    what auth_email_signup_user does, for the same reason.
+        // 6. Carry the tick onto the account as `policyagreed`. auth_email_signup_user()
+        //    does this from core's own checkbox, which only exists when a site policy
+        //    handler is defined - and this site deliberately leaves the handler on
+        //    "Default" with no `$CFG->sitepolicy`, keeping the documents in tool_policy
+        //    purely to build our label. So the handler test alone stored nothing here,
+        //    and the completion gate - which reads `policyagreed` - asked the learner
+        //    to agree again on their first page. Our own checkbox is the authority
+        //    when consent is enabled; the handler test still covers the case where an
+        //    admin turns ours off and configures core's site policy instead.
         $manager = new \core_privacy\local\sitepolicy\manager();
-        if ($manager->is_defined()) {
+        if (!empty($data[signup::CONSENT]) || $manager->is_defined()) {
             $data['policyagreed'] = 1;
         }
 
@@ -623,6 +630,8 @@ class signup_api {
         self::require_libs();
 
         // Not a user field: it drives the validation callback and nothing else.
+        // `prepare()` has already turned it into `policyagreed`, which is.
+        $consented = !empty($data[signup::CONSENT]);
         unset($data[signup::CONSENT]);
 
         $user = signup_setup_new_user((object) $data);
@@ -634,6 +643,14 @@ class signup_api {
         }
 
         get_auth_plugin('email')->user_signup_with_confirmation($user, false, $confirmationurl);
+
+        // The web form's tick reaches the user_created observer through the request;
+        // a web service call carries it as a parameter instead, so the same
+        // bookkeeping - the flag, and the tool_policy row left pending until there
+        // is a session to file it under - is done here for the app.
+        if ($consented && manager::consent_enabled()) {
+            policies::agree((int) $user->id);
+        }
 
         return $user;
     }
