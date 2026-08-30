@@ -354,3 +354,17 @@ $string['taskpurgetokens'] = 'Purge expired remember-me tokens';
 // Shown when the server refuses a resend that arrived inside the cooldown -
 // normally prevented by the disabled button, so this is the no-JavaScript path.
 $string['verifyresendtoosoon'] = 'Please wait {$a} seconds before requesting another email.';
+
+// AC-4.5.7 - account deletion.
+$string['deleteaccountword'] = 'DELETE';
+$string['deleteaccounttype'] = 'Type {$a} to confirm';
+$string['deleteaccountwrongword'] = 'Please type {$a} exactly to confirm.';
+$string['deleteaccountrefused'] = 'This account cannot be deleted from here. Please contact support.';
+$string['deleteaccountdonesubject'] = 'Your account has been deleted';
+$string['deleteaccountdonebody'] = 'Hi {$a->firstname},
+
+Your account on {$a->sitename} has been deleted, as you asked. Your access to the courses you had and to your certificates has ended, and this cannot be undone.
+
+Certificates you had already earned remain verifiable by anyone holding their code.
+
+If you did not ask for this, please contact support immediately.';

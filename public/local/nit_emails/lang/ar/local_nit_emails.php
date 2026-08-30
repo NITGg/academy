@@ -124,3 +124,32 @@ $string['sample_module1'] = 'الوحدة الأولى — بدء المشروع
 $string['sample_module2'] = 'الوحدة الثانية — تخطيط النطاق والزمن والتكلفة';
 $string['sample_planname'] = 'باقة الوصول الكامل السنوية';
 $string['sample_plandesc'] = 'وصول غير محدود إلى جميع دورات المنصة لمدة عام كامل.';
+
+// AC-4.5.5 - تفضيلات البريد الإلكتروني للمتعلّم.
+$string['prefstitle'] = 'تفضيلات البريد الإلكتروني';
+$string['prefsintro'] = 'اختر الرسائل التي تودّ أن تصلك منّا. أما الرسائل الخاصة بحسابك وبأمانه فتُرسَل دائمًا.';
+$string['prefssaved'] = 'تم حفظ تفضيلات البريد الإلكتروني.';
+
+$string['group_marketing'] = 'العروض والأخبار';
+$string['group_transactional'] = 'حسابك ومشترياتك';
+$string['group_security'] = 'الأمان';
+
+$string['kind_offers'] = 'الخصومات والعروض';
+$string['kind_offers_desc'] = 'أكواد الخصم والعروض محدودة المدة على الدورات والباقات.';
+$string['kind_newcourses'] = 'الدورات الجديدة';
+$string['kind_newcourses_desc'] = 'رسالة عند نشر دورة جديدة في مجال سبق أن درست فيه.';
+$string['kind_newsletter'] = 'النشرة البريدية';
+$string['kind_newsletter_desc'] = 'أخبار الأكاديمية من حين إلى آخر.';
+
+$string['kind_registration'] = 'رسالة الترحيب';
+$string['kind_registration_desc'] = 'تُرسَل مرة واحدة عند تأكيد بريدك الإلكتروني.';
+$string['kind_course_purchase'] = 'تأكيد شراء دورة';
+$string['kind_course_purchase_desc'] = 'يؤكّد الدورة التي اشتريتها وكيفية البدء فيها.';
+$string['kind_subscription_purchase'] = 'تأكيد شراء باقة';
+$string['kind_subscription_purchase_desc'] = 'يؤكّد الباقة التي اشتريتها وما تتيحه ولأي مدة.';
+$string['kind_invoice'] = 'الفواتير والإيصالات';
+$string['kind_invoice_desc'] = 'سجلّ ما دفعته، وقد تحتاجه لحساباتك الخاصة.';
+$string['kind_expiry'] = 'تنبيهات قرب انتهاء الاشتراك';
+$string['kind_expiry_desc'] = 'تنبيه قبل انتهاء وصولك إلى دورة أو باقة.';
+$string['kind_accountsecurity'] = 'تنبيهات أمان الحساب';
+$string['kind_accountsecurity_desc'] = 'تغيير كلمة المرور، ومحاولات الدخول التي رفضناها، وقفل الحساب. وكثيرًا ما تكون هذه هي العلامة الوحيدة على أن شخصًا آخر يستخدم حسابك.';

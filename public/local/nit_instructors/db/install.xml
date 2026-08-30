@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/nit_instructors/db" VERSION="2026083000" COMMENT="The instructor's Academic and Professional Background (AC-4.5.9 to AC-4.5.17), kept as an approved version and a pending one."
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="local_nit_instructors_profile" COMMENT="One row per version of an instructor's background. At most one approved and one pending per instructor: AC-4.5.14 keeps the approved version visible to learners while a change waits for review, which needs both to exist at once.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="approved|pending|rejected"/>
+        <FIELD NAME="specialtyen" TYPE="char" LENGTH="120" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Exact specialty / subspecialty, English. AC-4.5 caps this at 120 per language."/>
+        <FIELD NAME="specialtyar" TYPE="char" LENGTH="120" NOTNULL="true" DEFAULT="" SEQUENCE="false"/>
+        <FIELD NAME="years" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whole years of teaching experience, 0 to 60."/>
+        <FIELD NAME="decidedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="decisionnote" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The reason an administrator gave, shown to the instructor under AC-4.5.15."/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timedecided" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userstatus_idx" UNIQUE="false" FIELDS="userid, status"/>
+        <INDEX NAME="status_idx" UNIQUE="false" FIELDS="status"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_nit_instructors_entry" COMMENT="The repeating entries of AC-4.5.12 - qualifications, positions, certifications - belonging to one version of a profile. Deliberately one table with a type column: the three read identically (a title, an organisation, a period) and three tables would be the same code three times.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="profileid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="type" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="qualification|position|certification"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="AC-4.5.12 lets an instructor reorder entries."/>
+        <FIELD NAME="titleen" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Qualification / position / award title."/>
+        <FIELD NAME="titlear" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false"/>
+        <FIELD NAME="orgen" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Awarding body / organisation / issuing body."/>
+        <FIELD NAME="orgar" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false"/>
+        <FIELD NAME="perioden" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Year, or a period such as 2015-2019. Free text: an Arabic profile may write its own numerals."/>
+        <FIELD NAME="periodar" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="profileid" TYPE="foreign" FIELDS="profileid" REFTABLE="local_nit_instructors_profile" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="profiletype_idx" UNIQUE="false" FIELDS="profileid, type, sortorder"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

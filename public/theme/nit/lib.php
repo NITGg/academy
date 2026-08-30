@@ -893,6 +893,59 @@ function theme_nit_course_teacher(int $courseid): string {
 }
 
 /**
+ * The course's lead teacher as a link to their public instructor profile.
+ *
+ * AC-4.5.17: "The instructor's name and photograph on the course details page
+ * link to the public instructor profile." The public page is the one that shows
+ * their background and nothing private (AC-4.5.16); Moodle's own /user/view.php
+ * decides what to reveal from capabilities and site settings, which is exactly the
+ * decision the specification does not want made per-site.
+ *
+ * Falls back to the plain name whenever there is no profile to link to - the
+ * plugin absent, or the teacher not recognised as an instructor - so a caller can
+ * use this everywhere the name appears without checking first.
+ *
+ * @param int $courseid
+ * @return string HTML: a link, an escaped name, or ''
+ */
+function theme_nit_course_teacher_link(int $courseid): string {
+    global $DB;
+
+    $roleids = $DB->get_fieldset_select('role', 'id', "archetype IN ('editingteacher', 'teacher')");
+    if (empty($roleids)) {
+        return '';
+    }
+
+    [$insql, $params] = $DB->get_in_or_equal($roleids, SQL_PARAMS_NAMED);
+    $params['ctx'] = context_course::instance($courseid)->id;
+
+    $sql = "SELECT u.id, u.firstname, u.lastname, u.firstnamephonetic, u.lastnamephonetic,
+                   u.middlename, u.alternatename
+              FROM {role_assignments} ra
+              JOIN {user} u ON u.id = ra.userid
+             WHERE ra.contextid = :ctx AND ra.roleid $insql AND u.deleted = 0
+          ORDER BY ra.timemodified ASC";
+    $teacher = $DB->get_record_sql($sql, $params, IGNORE_MULTIPLE);
+
+    if (!$teacher) {
+        return '';
+    }
+
+    $name = fullname($teacher);
+
+    if (!class_exists('\local_nit_instructors\profile')
+            || !\local_nit_instructors\profile::is_instructor((int) $teacher->id)) {
+        return s($name);
+    }
+
+    return html_writer::link(
+        new moodle_url('/local/nit_instructors/view.php', ['id' => $teacher->id]),
+        s($name),
+        ['class' => 'nit-instructor-link']
+    );
+}
+
+/**
  * Visible courses as view-models for the front-page "courses" section.
  *
  * Exposed to JavaScript as `window.NIT_COURSES`; author-written NIT Section

@@ -15,18 +15,18 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for NIT Emails (transactional email templates).
+ * Plugin version and metadata for the instructor background.
  *
- * @package    local_nit_emails
+ * @package    local_nit_instructors
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_nit_emails';
-$plugin->version   = 2026083000;
-$plugin->requires  = 2024100700;
-$plugin->supported = [405, 502];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.2.0';
+$plugin->component = 'local_nit_instructors';
+$plugin->version   = 2026083000;        // YYYYMMDDXX.
+$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
+$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
+$plugin->maturity  = MATURITY_STABLE;
+$plugin->release   = '1.0.0';

@@ -572,7 +572,13 @@ echo $OUTPUT->header();
                 $summary = shorten_text(trim($plain), 160);
             }
 
-            $teacher    = function_exists('theme_nit_course_teacher') ? theme_nit_course_teacher((int) $course->id) : '';
+            // AC-4.5.17: the instructor's name links to their public profile where
+            // they have one. The helper returns already-escaped HTML - a link, or a
+            // plain name when there is nothing to link to - so the echo below must
+            // not escape it a second time.
+            $teacher    = function_exists('theme_nit_course_teacher_link')
+                ? theme_nit_course_teacher_link((int) $course->id)
+                : '';
             $info       = $nitcourseinfo($course->id);
 
             $detailsurl = $courseurl->out();
@@ -595,7 +601,7 @@ echo $OUTPUT->header();
 
           <?php if ($teacher !== ''): ?>
           <div style="font-size: 12px; color: var(--ctext2); margin: 0 0 10px;">
-            👤 <?= s($teacher) ?>
+            👤 <?= $teacher ?>
           </div>
           <?php endif; ?>
 

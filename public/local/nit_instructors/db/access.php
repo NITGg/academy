@@ -15,18 +15,28 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for NIT Emails (transactional email templates).
+ * Capabilities for local_nit_instructors.
  *
- * @package    local_nit_emails
+ * @package    local_nit_instructors
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_nit_emails';
-$plugin->version   = 2026083000;
-$plugin->requires  = 2024100700;
-$plugin->supported = [405, 502];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.2.0';
+$capabilities = [
+    // AC-4.5.14 makes approval an administrative act, so this is a capability
+    // rather than a site-admin check: an academy will want a content manager to
+    // clear the queue without handing them the whole site.
+    //
+    // RISKY_XSS because approving publishes text somebody else wrote under the
+    // academy's name, which is the judgement the capability exists to gate.
+    'local/nit_instructors:review' => [
+        'riskbitmask'  => RISK_XSS,
+        'captype'      => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes'   => [
+            'manager' => CAP_ALLOW,
+        ],
+    ],
+];

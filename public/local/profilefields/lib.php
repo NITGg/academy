@@ -46,6 +46,67 @@ function local_profilefields_extend_signup_form($mform) {
 }
 
 /**
+ * Add this academy's own entries to a user's profile page.
+ *
+ * `core_myprofile_navigation()` collects `<component>_myprofile_navigation()` out
+ * of every plugin, which is the supported way to put something on
+ * /user/profile.php without touching core.
+ *
+ * Only "Delete my account" for now, and only on your own profile: AC-4.5.7 is a
+ * self-service action, and an administrator removing somebody else's account does
+ * it from Moodle's user management where it is audited as an administrative act.
+ *
+ * @param \core_user\output\myprofile\tree $tree the profile page's node tree
+ * @param stdClass $user the profile being viewed
+ * @param bool $iscurrentuser whether that profile belongs to the viewer
+ * @param stdClass|null $course the course context, when viewed from within one
+ * @return bool
+ */
+function local_profilefields_myprofile_navigation(
+    \core_user\output\myprofile\tree $tree,
+    $user,
+    $iscurrentuser,
+    $course
+) {
+    if (during_initial_install() || !$iscurrentuser) {
+        return true;
+    }
+    if (!\local_profilefields\accountdeletion::allowed($user)) {
+        return true;
+    }
+
+    // The parent category has to be one that actually exists on this tree, or
+    // attach_nodes_to_categories() throws a coding_exception and takes the whole
+    // profile page down with it. 'privacyandpolicies' is the natural home but it
+    // belongs to tool_dataprivacy, which may be absent, disabled, or simply not
+    // have run its callback yet - the order plugins are asked in is not ours to
+    // rely on. So the first category that is really there wins, and if somehow
+    // none is, the entry is quietly left out rather than breaking the page.
+    $categories = (array) $tree->categories;
+    $parent = '';
+    foreach (['privacyandpolicies', 'administration', 'miscellaneous', 'contact'] as $candidate) {
+        if (isset($categories[$candidate])) {
+            $parent = $candidate;
+            break;
+        }
+    }
+
+    if ($parent === '') {
+        return true;
+    }
+
+    $tree->add_node(new \core_user\output\myprofile\node(
+        $parent,
+        'local_profilefields_delete',
+        get_string('deleteaccount', 'local_profilefields'),
+        null,
+        new moodle_url('/local/profilefields/deleteaccount.php')
+    ));
+
+    return true;
+}
+
+/**
  * The password rules of AC-4.1.6, applied wherever Moodle checks a password.
  *
  * `get_password_policy_errors()` collects `check_password_policy()` out of every

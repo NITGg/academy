@@ -197,6 +197,15 @@ class mailer {
             return false;
         }
 
+        // AC-4.5.5. Consulted for every event, not only the ones that happen to be
+        // optional today: preferences::accepts() answers "yes" for anything that
+        // is not marketing, so the check costs nothing now and is already in place
+        // for the first campaign email somebody adds later. Putting it here rather
+        // than at each call site is what makes that guarantee hold.
+        if (!preferences::accepts((int) $user->id, $event)) {
+            return false;
+        }
+
         $lang = self::user_lang($user);
         $old = force_current_language($lang);
         try {

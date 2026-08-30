@@ -124,3 +124,32 @@ $string['sample_module1'] = 'Module 1 — Initiating the project';
 $string['sample_module2'] = 'Module 2 — Planning scope, time and cost';
 $string['sample_planname'] = 'Annual full-access plan';
 $string['sample_plandesc'] = 'Unlimited access to every course in the catalogue for a full year.';
+
+// AC-4.5.5 - the learner's email preferences.
+$string['prefstitle'] = 'Email preferences';
+$string['prefsintro'] = 'Choose which emails you would like to receive from us. Messages about your account and its security are always sent.';
+$string['prefssaved'] = 'Your email preferences have been saved.';
+
+$string['group_marketing'] = 'Offers and news';
+$string['group_transactional'] = 'Your account and purchases';
+$string['group_security'] = 'Security';
+
+$string['kind_offers'] = 'Discounts and offers';
+$string['kind_offers_desc'] = 'Coupon codes and limited-time offers on courses and packages.';
+$string['kind_newcourses'] = 'New courses';
+$string['kind_newcourses_desc'] = 'A note when we publish a course in a subject you have studied.';
+$string['kind_newsletter'] = 'Newsletter';
+$string['kind_newsletter_desc'] = 'Occasional news from the academy.';
+
+$string['kind_registration'] = 'Welcome message';
+$string['kind_registration_desc'] = 'Sent once, when your email address is confirmed.';
+$string['kind_course_purchase'] = 'Course purchase confirmation';
+$string['kind_course_purchase_desc'] = 'Confirms a course you have bought and how to start it.';
+$string['kind_subscription_purchase'] = 'Package purchase confirmation';
+$string['kind_subscription_purchase_desc'] = 'Confirms a package you have bought, what it unlocks and for how long.';
+$string['kind_invoice'] = 'Invoices and receipts';
+$string['kind_invoice_desc'] = 'The record of what you paid, which you may need for your own accounts.';
+$string['kind_expiry'] = 'Access expiry reminders';
+$string['kind_expiry_desc'] = 'A warning before access to a course or package runs out.';
+$string['kind_accountsecurity'] = 'Account security alerts';
+$string['kind_accountsecurity_desc'] = 'Password changes, sign-in attempts we refused, and account lock-outs. These are often the only sign that somebody else is using your account.';
