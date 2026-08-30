@@ -159,3 +159,10 @@ $string['hidepassword'] = 'Hide password';
 
 // AC-4.1.1 - the submit button waits for a complete form.
 $string['gatehint'] = 'Please complete every required field first.';
+
+// SRS §4.1 sign-up screen furniture. The heading and its supporting line are the
+// screen's own copy; the provider label is shared with the login screen.
+$string['createaccount'] = 'Create your account';
+$string['createaccountsub'] = 'Start learning with the academy.';
+$string['or'] = 'or';
+$string['continuewith'] = 'Continue with {$a}';

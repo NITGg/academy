@@ -109,9 +109,22 @@ class profile_field_phone extends profile_field_base {
             $countries = ['' => get_string('choosedots')] + $countries;
         }
 
+        // AC-4.1.3: "The country dropdown is searchable by country name in both
+        // Arabic and English and by dialling code, and displays the country flag."
+        //
+        // `autocomplete` is core's own searchable combobox and a direct subclass of
+        // the plain select, so it takes the same option array and posts the same
+        // value - nothing downstream has to know the difference. It searches the
+        // visible option text, and dialcodes::menu() builds that text as
+        // "<localised name> +<code> <flag>", which is what makes all three of the
+        // specification's search keys work at once: the name is localised by
+        // get_list_of_countries(), so an Arabic interface is searchable in Arabic
+        // and an English one in English, without a second list to maintain.
+        //
+        // With JavaScript off it degrades to exactly the select it used to be.
         $group = [
-            $mform->createElement('select', 'country', get_string('country'), $countries,
-                ['class' => 'profilefield-phone-country']),
+            $mform->createElement('autocomplete', 'country', get_string('country'), $countries,
+                ['class' => 'profilefield-phone-country', 'noselectionstring' => get_string('choosedots')]),
             // The number is forced left-to-right with a dir attribute rather than
             // setForceLtr(): the latter looks the element up by name, and a grouped
             // sub-element ("name[number]") is not a top-level element, so the lookup

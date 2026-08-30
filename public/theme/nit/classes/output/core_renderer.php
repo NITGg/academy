@@ -71,6 +71,43 @@ class core_renderer extends \theme_boost\output\core_renderer {
     }
 
     /**
+     * Render the sign-up form, with the parts §4.1 asks for that core omits.
+     *
+     * The screen-elements table of §4.1 lists "Sign in with Google" and "Sign in
+     * with Apple" as elements of this screen. Core's sign-up page has no concept of
+     * identity providers at all - they exist only on the login page - so the
+     * buttons cannot appear without being put here.
+     *
+     * Everything else in the context is core's; this adds the providers and the two
+     * lines of copy the specification words, and leaves the form itself alone.
+     *
+     * @param \core_auth\output\login_signup_form $form the sign-up form renderable
+     * @return string HTML
+     */
+    public function render_login_signup_form($form): string {
+        global $SITE, $CFG;
+
+        $context = $form->export_for_template($this);
+
+        $url = $this->get_logo_url();
+        $context['logourl'] = $url ? $url->out(false) : null;
+        $context['sitename'] = format_string($SITE->fullname, true,
+            ['context' => \context_course::instance(SITEID), 'escape' => false]);
+
+        // The same providers the login screen offers, built the way login/index.php
+        // builds them. A learner who signed up with Google must find that button in
+        // both places, or they will create a second, password account by accident -
+        // which AC-4.3.7 then has to reconcile.
+        $providers = \auth_plugin_base::get_identity_providers(get_enabled_auth_plugins());
+        $providers = \auth_plugin_base::prepare_identity_providers_for_output($providers, $this);
+
+        $context['nitidentityproviders'] = $providers;
+        $context['nithasproviders'] = !empty($providers);
+
+        return $this->render_from_template('core/signup_form_layout', $context);
+    }
+
+    /**
      * Render the standalone navbar language menu for every user.
      *
      * Core exposes the standalone language menu (primary::export_for_template)

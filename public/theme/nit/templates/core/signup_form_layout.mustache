@@ -1,23 +1,63 @@
 {{!
     @template theme_nit/core/signup_form_layout
 
-    Overrides core/signup_form_layout to add a prompt sending existing users
-    back to the login page. Layout otherwise matches core.
+    Overrides core/signup_form_layout to build the screen §4.1 describes.
+
+    Core renders a bare heading and the form. The specification's screen-elements
+    table also lists a supporting line under the heading, "Sign in with Google" and
+    "Sign in with Apple" buttons, and the "Already have an account? Log in" link -
+    none of which core's sign-up page has any concept of. The providers arrive from
+    theme_nit\output\core_renderer::render_login_signup_form().
+
+    The field layout itself (two-column names, the inline reveal toggle, the
+    strength meter) is styled in scss/components/_authpages.scss rather than
+    rebuilt here: the boxes are rendered by moodleform, and restyling its output is
+    what keeps this working across Moodle upgrades.
+
+    Context variables required for this template:
+    * logourl - the site logo, or false
+    * sitename - the site's full name
+    * formhtml - the rendered sign-up form
+    * nithasproviders - whether any identity provider is configured
+    * nitidentityproviders - [{url, iconurl, name}]
 
     Example context (json):
     {
         "logourl": "https://moodle.org/logo/moodle-logo.svg",
-        "sitename": "Site name",
-        "formhtml": "<p>(Form html would go here)</p>"
+        "sitename": "EAAC",
+        "formhtml": "<p>(Form html would go here)</p>",
+        "nithasproviders": true,
+        "nitidentityproviders": [
+            {"url": "https://localhost/auth/oauth2/login.php", "iconurl": "", "name": "Google"}
+        ]
     }
 }}
-<div class="signupform">
-    <h1 class="login-heading">{{#str}} newaccount {{/str}}</h1>
-    {{{formhtml}}}
-    <div class="signup-haveaccount text-center mt-3">
-        <span class="signup-haveaccount-text">{{#str}} alreadyhaveaccount, theme_nit {{/str}}</span>
-        <a href="{{config.wwwroot}}/login/index.php" class="btn btn-outline-primary signup-login-link ml-2">
-            {{#str}} logintoaccount, theme_nit {{/str}}
-        </a>
+<div class="signupform nit-auth">
+    <div class="nit-auth-head">
+        <h1 class="nit-auth-title">{{#str}} createaccount, theme_nit {{/str}}</h1>
+        <p class="nit-auth-sub">{{#str}} createaccountsub, theme_nit {{/str}}</p>
     </div>
+
+    {{{formhtml}}}
+
+    {{#nithasproviders}}
+        <div class="nit-auth-divider" role="separator">
+            <span>{{#str}} or, theme_nit {{/str}}</span>
+        </div>
+        <div class="nit-auth-providers">
+            {{#nitidentityproviders}}
+                <a class="btn nit-auth-provider" href="{{url}}">
+                    {{#iconurl}}
+                        <img src="{{iconurl}}" alt="" width="20" height="20">
+                    {{/iconurl}}
+                    <span>{{#str}} continuewith, theme_nit, {{name}} {{/str}}</span>
+                </a>
+            {{/nitidentityproviders}}
+        </div>
+    {{/nithasproviders}}
+
+    <p class="nit-auth-foot">
+        <span>{{#str}} alreadyhaveaccount, theme_nit {{/str}}</span>
+        <a href="{{config.wwwroot}}/login/index.php">{{#str}} logintoaccount, theme_nit {{/str}}</a>
+    </p>
 </div>

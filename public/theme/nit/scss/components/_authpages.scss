@@ -1,0 +1,344 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+// =============================================================================
+// The account screens of SRS §4.1 – §4.5: sign up, log in, confirm, complete,
+// reset.
+//
+// The boxes themselves stay Moodle's. moodleform renders them, plugin code
+// reorders and relabels them, and this file only changes how they look - which
+// is what keeps the screens working across a Moodle upgrade instead of turning
+// every point release into a merge.
+//
+// Everything is written with logical properties (inline-start, not left) so the
+// same rules mirror correctly in Arabic without a second RTL stylesheet.
+// =============================================================================
+
+.nit-auth {
+    // §4.1 is a single column of short fields. Wider than this and the eye
+    // travels a long way from the label it belongs to.
+    max-width: 30rem;
+    margin-inline: auto;
+
+    // ---------------------------------------------------------------------
+    // Heading block
+    // ---------------------------------------------------------------------
+    .nit-auth-head {
+        text-align: center;
+        margin-bottom: 1.75rem;
+    }
+
+    .nit-auth-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0 0 0.35rem;
+        color: var(--nit-brand-textprimary);
+        text-wrap: balance;
+    }
+
+    .nit-auth-sub {
+        margin: 0;
+        color: var(--nit-brand-textsecondary);
+        font-size: 0.95rem;
+    }
+
+    // ---------------------------------------------------------------------
+    // Fields
+    //
+    // Moodle's element template is a 12-column row: a 3-column label beside a
+    // 9-column control. On a form this narrow that leaves the boxes too short to
+    // type an email into, so the row is unwound into label-above-control.
+    // ---------------------------------------------------------------------
+    .fitem {
+        display: block;
+        margin-bottom: 1rem;
+
+        > .col-md-3,
+        > .col-md-9 {
+            width: 100%;
+            max-width: 100%;
+            flex: 0 0 100%;
+            padding-inline: 0;
+        }
+
+        .col-form-label {
+            padding-bottom: 0.3rem;
+            justify-content: flex-start;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+    }
+
+    // Moodle wraps every control in `.felement`, which carries Bootstrap's
+    // `d-flex flex-wrap` - and Bootstrap's display utilities are `!important`, so
+    // the wrapper cannot simply be turned back into a block. The controls inside
+    // it are therefore treated as flex items and told to take the full row, which
+    // gets to the same place without fighting the utility. Without this a text
+    // box shrinks to its content and a first-name field ends up 103px wide.
+    // Descendant, not child: how deeply the control is wrapped varies by element
+    // type (a plain text box is a direct child, a password box sits inside the
+    // unmask wrapper), and a child combinator silently misses half of them.
+    .felement {
+        .form-control,
+        .form-select,
+        .custom-select {
+            flex: 1 1 100%;
+            width: 100%;
+            min-width: 0;
+        }
+    }
+
+    .form-control,
+    .form-select,
+    .custom-select {
+        width: 100%;
+    }
+
+    // The action buttons come out of moodleform inside their own fitem; the
+    // label column beside them is empty and only adds a gap.
+    #fgroup_id_buttonar .col-form-label,
+    .fitem.femptylabel .col-form-label {
+        display: none;
+    }
+
+    // ---------------------------------------------------------------------
+    // Two-column name row
+    //
+    // §4.1 lists First name and Last name as separate fields but they are one
+    // question, and pairing them shortens the form by a row without hiding
+    // anything. Collapses on a narrow screen.
+    // ---------------------------------------------------------------------
+    @media (min-width: 30rem) {
+        #fitem_id_firstname,
+        #fitem_id_lastname {
+            display: inline-block;
+            width: calc(50% - 0.4rem);
+            vertical-align: top;
+        }
+
+        #fitem_id_firstname {
+            margin-inline-end: 0.8rem;
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Phone: dialling code beside the number
+    //
+    // §4.1 lists "Country code" and "Phone number" as two elements of one
+    // question, and profilefield_phone renders them as a group. Left to itself
+    // the group wraps onto three lines with the searchable country box floating
+    // over the number, because both children are flex items with no basis.
+    // ---------------------------------------------------------------------
+    #fgroup_id_profile_field_phone {
+        fieldset > .d-flex {
+            gap: 0.5rem;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+        }
+
+        .fitem {
+            margin-bottom: 0;
+        }
+
+        // The dialling code needs room for a flag, a name and a code; the number
+        // takes what is left. `min-width: 0` on both, or a flex item refuses to
+        // shrink below its content and the pair overflows the row.
+        .profilefield-phone-country {
+            flex: 0 0 12rem;
+            min-width: 0;
+        }
+
+        .profilefield-phone-number {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        // Only the group's *own* repeated "Phone"/"Country" captions are hidden -
+        // the ones belonging to the two inner fitems. Hiding every .col-form-label
+        // in this subtree also took out the searchable country box, whose visible
+        // parts the autocomplete renders inside a label.
+        > .col-form-label {
+            display: none;
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Password: the reveal toggle belongs inside the box
+    //
+    // Moodle renders the toggle as a button after the input, which on this form
+    // lands underneath it looking like a stray control. Pulling it into the
+    // field is what makes it read as "show what I typed" rather than as another
+    // thing to press.
+    // ---------------------------------------------------------------------
+    [data-passwordunmask="wrapper"],
+    .nit-pw-field {
+        position: relative;
+        display: block;
+        width: 100%;
+    }
+
+    [data-passwordunmask="wrapper"] {
+        .form-control {
+            // Room for the toggle, on whichever side the language puts it.
+            padding-inline-end: 2.75rem;
+        }
+
+        [data-passwordunmask="edit"],
+        .btn {
+            position: absolute;
+            inset-inline-end: 0.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+            border: 0;
+            background: transparent;
+            box-shadow: none;
+            padding: 0.35rem 0.5rem;
+            color: var(--nit-brand-textsecondary);
+
+            &:hover,
+            &:focus {
+                color: var(--nit-brand-textprimary);
+                background: transparent;
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Terms and Conditions (AC-4.1.1)
+    // ---------------------------------------------------------------------
+    #fitem_id_localprofilefieldsconsent {
+        .form-check,
+        .felement {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.55rem;
+        }
+
+        label {
+            font-weight: 400;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Submit
+    // ---------------------------------------------------------------------
+    #fgroup_id_buttonar {
+        margin-top: 1.25rem;
+
+        // `.felement` is `d-flex flex-wrap align-items-start`, and every one of
+        // those Bootstrap utilities is `!important`. Matching that is the only way
+        // to turn the row into a column, so the primary action gets its own
+        // full-width row and Cancel sits quietly beneath it.
+        .felement {
+            flex-direction: column !important;
+            flex-wrap: nowrap !important;
+            align-items: stretch !important;
+            gap: 0.6rem;
+        }
+
+        // The primary action fills the column; Cancel sits under it, quiet.
+        input[type="submit"],
+        button[type="submit"] {
+            width: 100%;
+            padding-block: 0.6rem;
+            font-weight: 600;
+        }
+
+        #id_cancel,
+        [name="cancel"] {
+            width: 100%;
+            background: transparent;
+            border-color: transparent;
+            color: var(--nit-brand-textsecondary);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // "or" rule between the form and the identity providers
+    // ---------------------------------------------------------------------
+    .nit-auth-divider {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        margin: 1.5rem 0;
+        color: var(--nit-brand-textsecondary);
+        font-size: 0.85rem;
+
+        &::before,
+        &::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: color-mix(in srgb, var(--nit-brand-textprimary) 14%, transparent);
+        }
+    }
+
+    .nit-auth-providers {
+        display: grid;
+        gap: 0.6rem;
+    }
+
+    .nit-auth-provider {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        width: 100%;
+        padding-block: 0.6rem;
+        font-weight: 600;
+        border: 1px solid color-mix(in srgb, var(--nit-brand-textprimary) 18%, transparent);
+        background: var(--nit-brand-surface);
+        color: var(--nit-brand-textprimary);
+
+        &:hover,
+        &:focus {
+            background: var(--nit-brand-hoverbackground);
+            color: var(--nit-brand-hovertext);
+        }
+
+        img {
+            flex: 0 0 auto;
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Footer link
+    // ---------------------------------------------------------------------
+    .nit-auth-foot {
+        margin: 1.5rem 0 0;
+        text-align: center;
+        font-size: 0.92rem;
+        color: var(--nit-brand-textsecondary);
+
+        a {
+            font-weight: 600;
+            margin-inline-start: 0.35rem;
+        }
+    }
+
+    // Moodle's "Required" key sits under the buttons and repeats what the
+    // asterisks already say on a form this short.
+    .fdescription.required {
+        font-size: 0.82rem;
+        color: var(--nit-brand-textsecondary);
+        text-align: center;
+    }
+}
