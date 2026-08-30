@@ -193,9 +193,12 @@ Future<void> changePassword(String userToken, String current, String next) =>
 
 ## Administrator settings
 
-The four limits in this flow are not hard-coded. They live at
-**Site administration › Plugins › Local plugins › Academy**, under
-*Password reset codes*:
+The four limits in this flow are not hard-coded. They live on the
+**Password reset** tab of **Site administration > Plugins > Local plugins >
+Sign-up and profile field layout**
+(`/local/profilefields/manage.php?tab=passwordreset`) — the same screen that
+already carries the sign-up form layout and the login lock-out, so there is one
+place to go rather than three:
 
 | Setting | Default | Governs |
 |---------|---------|---------|
