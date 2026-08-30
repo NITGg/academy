@@ -23,13 +23,14 @@ defined('MOODLE_INTERNAL') || die();
  * Two separate credentials, both from the dashboard's Integrations page, doing
  * two different jobs — mixing them up is the usual reason nothing works:
  *
- *  - OAuth 2.0 client id + secret ("Create machine-to-machine credentials")
- *    authenticate API calls, via a client_credentials grant on /oauth/token.
- *    This is Fawaterk's recommended path and the default here. The legacy
- *    alternative is sending the HASH API key straight through as the bearer.
- *  - The HASH API key ("Iframe/Webhook integrations settings") is the secret
- *    Fawaterk signs webhook hashKeys with. It is needed even in OAuth mode,
- *    because webhooks are not authenticated with an access token.
+ *  - The HASH API key ("Iframe/Webhook integrations settings") does two jobs:
+ *    it is the bearer the /api/v2 payment endpoints accept, and it is the secret
+ *    Fawaterk signs webhook hashKeys with. It is always required.
+ *  - The OAuth 2.0 client id + secret ("Create machine-to-machine credentials")
+ *    mint tokens on /oauth/token, but those tokens are rejected by /api/v2/* —
+ *    checked against a live account. They belong to Fawaterk's newer
+ *    Integrations API. The grant is implemented and selectable, but is not the
+ *    default because it cannot currently take a payment.
  *
  * Sandbox and live are separate Fawaterk accounts with separate credentials for
  * both of the above.
@@ -62,12 +63,16 @@ class gateway extends base_provider {
     /**
      * Which credential set to authenticate API calls with.
      *
-     * oauth  — client_credentials grant against /oauth/token (recommended; this
-     *          is what the dashboard's Integrations page issues).
-     * apikey — the HASH API key sent directly as the bearer (legacy v2 style).
+     * apikey — the HASH API key sent straight through as the bearer. This is what
+     *          the /api/v2 payment endpoints accept, and the default.
+     * oauth  — client_credentials grant against /oauth/token. Verified against a
+     *          live account: the token issues fine, but /api/v2/* rejects it with
+     *          "Invalid Token or inactive vendor", so those credentials belong to
+     *          Fawaterk's newer Integrations API rather than to payments. Kept
+     *          working here for when the payment endpoints accept it.
      */
     private function get_auth_mode(): string {
-        return $this->get_setting('auth_mode', 'oauth') === 'apikey' ? 'apikey' : 'oauth';
+        return $this->get_setting('auth_mode', 'apikey') === 'oauth' ? 'oauth' : 'apikey';
     }
 
     private function get_client_id(): string {
@@ -208,13 +213,23 @@ class gateway extends base_provider {
      * try once with a fresh one rather than failing a real payment.
      */
     private function api_request(string $method, string $url, $body = null): array {
-        $result = $this->http_request($method, $url, $this->get_auth_headers(), $body);
+        $headers = $this->get_auth_headers();
+
+        // Fawaterk validates a content-type on GET too — without it the answer is
+        // "The content-type field is required." base_provider only sets it for
+        // POST/PUT, so add it here, and only here: setting it in the auth headers
+        // would send it twice on a POST.
+        if (strtoupper($method) === 'GET') {
+            $headers['Content-Type'] = 'application/json';
+        }
+
+        $result = $this->http_request($method, $url, $headers, $body);
 
         if ($result['http_code'] === 401 && $this->get_auth_mode() === 'oauth') {
             $this->log('info', 'Fawaterk returned 401; refreshing the OAuth token and retrying once');
             $token = $this->get_access_token(true);
             if ($token !== '') {
-                $result = $this->http_request($method, $url, $this->get_auth_headers(), $body);
+                $result = $this->http_request($method, $url, $headers, $body);
             }
         }
 
@@ -397,26 +412,35 @@ class gateway extends base_provider {
             return 0;
         }
 
+        $priority = array_values(array_filter(array_map('intval',
+            explode(',', (string) $this->get_setting('method_priority', '2,4,3')))));
+
         $methods = $this->get_payment_methods();
+
         if (empty($methods)) {
-            // Auto-selection is on but the account listed nothing — almost always
-            // the credentials, occasionally Fawaterk being down. Degrade to the
-            // hosted page rather than blocking the sale, but say so loudly: the
-            // resulting error mentions createInvoiceLink, which reads like the
-            // hosted page was the intended flow when it never was.
-            $this->log('warning', 'Fawaterk auto-selection found no payment methods; '
-                . 'falling back to the hosted invoice page. Check the vendor key with '
-                . 'cli/fawaterk_diagnose.php.');
+            // An empty list does NOT mean the account can't take payments:
+            // getPaymentmethods reports only what is configured for the hosted
+            // iframe, and accounts have been seen returning [] while
+            // invoiceInitPay happily charges card (method 2). So trust the
+            // configured preference over the enumeration and try the first id
+            // rather than silently dropping to the hosted page.
+            if (!empty($priority)) {
+                $this->log('info', 'Fawaterk listed no payment methods; using the first '
+                    . 'configured priority id (' . $priority[0] . ') instead.');
+                return $priority[0];
+            }
+
+            $this->log('warning', 'Fawaterk listed no payment methods and no method priority '
+                . 'is configured; falling back to the hosted invoice page. Check the '
+                . 'credentials with cli/fawaterk_diagnose.php.');
             return 0;
         }
+
         if (count($methods) === 1) {
             return (int) $methods[0]['id'];
         }
 
         $available = array_column($methods, 'id');
-
-        $priority = array_filter(array_map('intval',
-            explode(',', (string) $this->get_setting('method_priority', '2,4,3'))));
         foreach ($priority as $preferred) {
             if (in_array($preferred, $available, true)) {
                 return $preferred;
