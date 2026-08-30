@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_payments';
-$plugin->version   = 2026083004;   // Fawaterk auth verified against live: HASH key, GET content-type.
+$plugin->version   = 2026083005;   // Fix parse error in the Fawaterk English lang file.
 $plugin->requires  = 2024100700; // Moodle 4.5+
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_STABLE;
