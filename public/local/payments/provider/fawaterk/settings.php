@@ -13,11 +13,13 @@ if ($hassiteconfig) {
     ));
 
     // Sandbox mode — switches the API host to staging.fawaterk.com.
+    // Defaults to OFF: OAuth clients can only be created on the live dashboard,
+    // so a fresh install defaulting to sandbox could never authenticate.
     $settings->add(new admin_setting_configcheckbox(
         'paymentprovider_fawaterk/sandbox_mode',
         get_string('sandbox_mode', 'paymentprovider_fawaterk'),
         get_string('sandbox_mode_desc', 'paymentprovider_fawaterk'),
-        1
+        0
     ));
 
     // ── API authentication ──────────────────────────────────────────────────
