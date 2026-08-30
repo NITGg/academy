@@ -638,6 +638,16 @@ class manager {
             }
         }
 
+        if (!$transaction && !empty($result->provider_order_id)) {
+            // Last resort: match on the gateway's own session/invoice id. Providers
+            // that echo our order id only inside a custom payload (Fawaterk's
+            // pay_load) have nothing else to match on if that payload goes missing.
+            $transaction = $DB->get_record('local_payments_transactions', [
+                'provider_id' => $provider_record->id,
+                'provider_session_id' => $result->provider_order_id,
+            ], '*', IGNORE_MULTIPLE);
+        }
+
         if (!$transaction) {
             $DB->update_record('local_payments_webhooks', (object) [
                 'id' => $webhook_id,
