@@ -222,6 +222,13 @@ class page {
         echo self::ipmatch_section();
         echo self::terms_section();
 
+        // Email confirmation belongs to the registration journey, not the login
+        // one: it is the step between submitting this form and being able to use
+        // the account at all. It first lived on the Login tab, where nobody
+        // looking for it thought to check - and a setting that cannot be found is
+        // barely better than a setting that does not exist.
+        echo self::verification_section();
+
         echo html_writer::tag('div',
             html_writer::tag('button', get_string('savechanges'),
                 ['type' => 'submit', 'class' => 'btn btn-primary']),
@@ -536,6 +543,12 @@ class page {
         set_config('ipmatchphone', optional_param('ipmatchphone', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
         set_config('blockunresolvedip', optional_param('blockunresolvedip', 0, PARAM_BOOL) ? 1 : 0,
             manager::COMPONENT);
+
+        // Email confirmation (AC-4.2.2, AC-4.2.3, AC-4.2.10) - saved here because
+        // the section is drawn on this tab, beside the rest of registration.
+        set_config('linkttlhours', self::posted_number('linkttlhours', 1, 168, 24), manager::COMPONENT);
+        set_config('resendcooldown', self::posted_number('resendcooldown', 0, 600, 60), manager::COMPONENT);
+        set_config('resendmax', self::posted_number('resendmax', 1, 50, 5), manager::COMPONENT);
         set_config('consentenabled', optional_param('consentenabled', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
 
         // Core field toggles and per-language labels.
@@ -607,7 +620,6 @@ class page {
 
         echo self::security_section();
         echo self::rememberme_section();
-        echo self::verification_section();
 
         echo html_writer::tag('div',
             html_writer::tag('button', get_string('savechanges'),
@@ -746,9 +758,6 @@ class page {
         set_config('remembermeenabled', optional_param('remembermeenabled', 0, PARAM_BOOL) ? 1 : 0,
             manager::COMPONENT);
         set_config('remembermedays', self::posted_number('remembermedays', 1, 365, 30), manager::COMPONENT);
-        set_config('linkttlhours', self::posted_number('linkttlhours', 1, 168, 24), manager::COMPONENT);
-        set_config('resendcooldown', self::posted_number('resendcooldown', 0, 600, 60), manager::COMPONENT);
-        set_config('resendmax', self::posted_number('resendmax', 1, 50, 5), manager::COMPONENT);
     }
 
     /**

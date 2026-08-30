@@ -33,6 +33,23 @@
     margin-inline: auto;
 
     // ---------------------------------------------------------------------
+    // Page-level messages
+    //
+    // A server-rendered error arrives with the page, so there is no way to avoid
+    // the layout differing from the attempt before it - they are two different
+    // page loads. What can be avoided is its looking like something that fell on
+    // the form: it is given the card's width, the card's radius, and a short
+    // entrance so the eye follows it instead of being surprised by it.
+    // ---------------------------------------------------------------------
+    .alert,
+    #loginerrormessage {
+        margin-bottom: 1.25rem;
+        padding: 0.75rem 1rem;
+        font-size: 0.92rem;
+        animation: nit-auth-message 220ms ease-out;
+    }
+
+    // ---------------------------------------------------------------------
     // Heading block
     // ---------------------------------------------------------------------
     .nit-auth-head {
@@ -55,6 +72,31 @@
     }
 
     // ---------------------------------------------------------------------
+    // A permanent slot for the field's message
+    //
+    // Moodle keeps the per-field error slot at `display: none` and reveals it
+    // when there is something to say. On a form that validates as you leave each
+    // box, that means every message shoves the rest of the form down the page -
+    // the "components change position" problem, and the reason a corrected field
+    // makes everything jump back up again.
+    //
+    // So the slot is always in the flow, sized for one line, whether or not it
+    // holds anything. The space is not wasted: it doubles as the gap between
+    // fields, which is why the margin below each field drops to match. A message
+    // long enough to wrap still expands - that is rare, and a rare shift is a far
+    // better trade than a guaranteed one.
+    // ---------------------------------------------------------------------
+    .form-control-feedback,
+    [id^="id_error"] {
+        display: block !important;
+        min-height: 1.15rem;
+        margin-top: 0.3rem;
+        font-size: 0.85rem;
+        line-height: 1.35;
+        color: var(--nit-brand-error);
+    }
+
+    // ---------------------------------------------------------------------
     // Fields
     //
     // Moodle's element template is a 12-column row: a 3-column label beside a
@@ -63,7 +105,7 @@
     // ---------------------------------------------------------------------
     .fitem {
         display: block;
-        margin-bottom: 1rem;
+        margin-bottom: 0.4rem;
 
         > .col-md-3,
         > .col-md-9 {
@@ -340,5 +382,29 @@
         font-size: 0.82rem;
         color: var(--nit-brand-textsecondary);
         text-align: center;
+    }
+}
+
+// The entrance used by .nit-auth's page-level messages. Declared outside the
+// block because a @keyframes inside a nested rule is still global, and putting it
+// here makes that obvious rather than surprising.
+@keyframes nit-auth-message {
+    from {
+        opacity: 0;
+        transform: translateY(-0.35rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+// Motion is decoration here: the message is just as readable without it, and a
+// reader who has asked for less movement should not be given any.
+@media (prefers-reduced-motion: reduce) {
+    .nit-auth .alert,
+    .nit-auth #loginerrormessage {
+        animation: none;
     }
 }
