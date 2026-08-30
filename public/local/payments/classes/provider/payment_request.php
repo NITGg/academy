@@ -18,6 +18,11 @@ class payment_request {
     public string $failure_url;
     public array $metadata;
     public int $transaction_id;
+    /**
+     * Provider-specific payment method to charge directly (server-to-server).
+     * 0 = let the provider show its own method picker on a hosted page.
+     */
+    public int $payment_method_id;
 
     public function __construct(array $data) {
         $this->order_id = $data['order_id'];
@@ -34,5 +39,6 @@ class payment_request {
         $this->failure_url = $data['failure_url'] ?? '';
         $this->metadata = $data['metadata'] ?? [];
         $this->transaction_id = (int) ($data['transaction_id'] ?? 0);
+        $this->payment_method_id = (int) ($data['payment_method_id'] ?? 0);
     }
 }

@@ -58,6 +58,24 @@ interface provider_interface {
      */
     public function get_transaction(string $provider_reference): transaction_info;
 
+    /**
+     * Whether this provider can charge a specific payment method server-to-server
+     * (as opposed to only handing the buyer a hosted page that picks one).
+     *
+     * @return bool
+     */
+    public function supports_payment_methods(): bool;
+
+    /**
+     * List the payment methods the provider account has enabled.
+     *
+     * Each entry: id, name_en, name_ar, logo, redirect (bool — whether paying with
+     * it sends the buyer to another page rather than returning a reference code).
+     *
+     * @return array[] Empty when the provider does not support method selection.
+     */
+    public function get_payment_methods(): array;
+
     public function supports_refund(): bool;
     public function supports_void(): bool;
     public function supports_recurring(): bool;

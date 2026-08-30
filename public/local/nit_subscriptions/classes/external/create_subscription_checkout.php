@@ -18,7 +18,8 @@
  * Web-service (token) function: start a payment-gateway checkout for a subscription plan.
  *
  * This replaces the old "assume-paid" purchase_subscription: the new platform charges through a real
- * gateway (Kashier). The call returns a `checkout_url` the app opens; the subscription is granted
+ * gateway. The call returns a `checkout_url` the app opens (or, when a payment_method_id is given,
+ * the `payment_data` needed to finish paying in-app); the subscription is granted
  * server-side only after the gateway confirms payment (webhook / verify_payment). Poll
  * get_my_subscriptions afterwards to detect activation.
  *
@@ -56,6 +57,9 @@ class create_subscription_checkout extends external_api {
             'lang'           => new external_value(PARAM_ALPHA, 'Display language for the gateway (en/ar)', VALUE_DEFAULT, 'en'),
             'alang'          => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
             'return_url'     => new external_value(PARAM_URL, 'URL to send the user back to after payment (optional)', VALUE_DEFAULT, ''),
+            'payment_method_id' => new external_value(PARAM_INT,
+                'Gateway payment method id from local_payments_get_provider_payment_methods. '
+                . '0 (default) opens the gateway-hosted page instead.', VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -69,10 +73,12 @@ class create_subscription_checkout extends external_api {
      * @param string $country
      * @param string $lang
      * @param string $returnurl
+     * @param int $paymentmethodid
      * @return array
      */
     public static function execute(int $subscriptionid, string $type = 'normal', int $seats = 0,
-            string $couponcode = '', string $country = '', string $lang = 'en', string $returnurl = ''): array {
+            string $couponcode = '', string $country = '', string $lang = 'en', string $returnurl = '',
+            int $paymentmethodid = 0): array {
         global $USER, $CFG;
 
         $params = self::validate_parameters(self::execute_parameters(), [
@@ -83,6 +89,7 @@ class create_subscription_checkout extends external_api {
             'country'        => $country,
             'lang'           => $lang,
             'return_url'     => $returnurl,
+            'payment_method_id' => $paymentmethodid,
         ]);
 
         $context = \context_system::instance();
@@ -104,7 +111,8 @@ class create_subscription_checkout extends external_api {
                 $params['type'],
                 $params['seats'],
                 $params['coupon_code'],
-                $params['return_url']
+                $params['return_url'],
+                $params['payment_method_id']
             );
         } catch (\dml_missing_record_exception $e) {
             // The plan id does not exist — the manager does a MUST_EXIST lookup that surfaces as a raw
@@ -130,6 +138,8 @@ class create_subscription_checkout extends external_api {
             'amount'         => (float) ($checkout->amount ?? 0),
             'original_amount' => (float) ($checkout->original_amount ?? 0),
             'currency'       => $checkout->currency ?? 'EGP',
+            'payment_data'   => $checkout->payment_data
+                ?? \local_payments\provider\checkout_response::empty_payment_data(),
         ];
     }
 
@@ -148,6 +158,15 @@ class create_subscription_checkout extends external_api {
             'amount'         => new external_value(PARAM_FLOAT, 'Charged amount after coupon/offer — show THIS price'),
             'original_amount' => new external_value(PARAM_FLOAT, 'Plan price before discount'),
             'currency'       => new external_value(PARAM_TEXT, 'Currency (e.g. EGP)'),
+            'payment_data'   => new external_single_structure([
+                'type' => new external_value(PARAM_ALPHA,
+                    'redirect = open redirect_url; reference = show the code; none = no extra step'),
+                'redirect_url' => new external_value(PARAM_RAW, 'Page to open when type=redirect'),
+                'reference' => new external_value(PARAM_TEXT,
+                    'Code the buyer pays with (Fawry/Meeza) when type=reference'),
+                'reference_expires_at' => new external_value(PARAM_TEXT, 'When that code stops working, if given'),
+                'method_name' => new external_value(PARAM_TEXT, 'Name of the method charged, for display'),
+            ], 'How to finish the payment'),
         ]);
     }
 }

@@ -29,6 +29,18 @@ class status_machine {
         self::PARTIALLY_REFUNDED => [
             self::REFUNDED,
         ],
+        // A gateway can confirm a payment after we gave up waiting: an offline
+        // method (a Fawry code paid at an outlet) settles hours later, or a
+        // webhook simply arrives seconds after the expiry cron ran. The money is
+        // real either way, so let a confirmed payment still fulfil the order —
+        // refusing to enrol someone who paid is the worse failure. Reaching
+        // COMPLETED still requires a signature- and amount-verified webhook.
+        self::EXPIRED => [
+            self::COMPLETED, self::FAILED,
+        ],
+        self::TIMED_OUT => [
+            self::COMPLETED, self::FAILED,
+        ],
     ];
 
     public static function can_transition(string $from, string $to): bool {

@@ -82,10 +82,12 @@ class manager {
      * @param int|null $userid
      * @param string|null $app_country
      * @param string $display_lang
-     * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
+     * @param string $coupon_code
+     * @param int $payment_method_id Provider payment method to charge directly (0 = hosted picker).
+     * @return object {order_id, checkout_url, expires_at, provider, transaction_id, payment_data}
      */
     public static function create_checkout(int $courseid, ?int $userid = null, ?string $app_country = null,
-            string $display_lang = 'en', string $coupon_code = ''): object {
+            string $display_lang = 'en', string $coupon_code = '', int $payment_method_id = 0): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
@@ -113,12 +115,17 @@ class manager {
             IGNORE_MULTIPLE
         );
 
-        if ($existing && !empty($existing->checkout_url)) {
-            // Reuse the pending gateway session ONLY if it was created for the same price. If a
-            // coupon/offer now makes the price different, the old session still shows the OLD amount
-            // on the gateway screen — so retire it (freeing any coupon reservation) and fall through
-            // to create a fresh session at the correct amount.
-            if (abs((float) $existing->amount - $amount) < 0.01) {
+        if ($existing) {
+            $existingmeta = json_decode($existing->metadata ?? '{}', true) ?: [];
+            $samemethod = ((int) ($existingmeta['payment_method_id'] ?? 0) === $payment_method_id);
+
+            // Reuse the pending gateway session ONLY if it was created for the same price AND the
+            // same payment method. If a coupon/offer now makes the price different, the old session
+            // still shows the OLD amount on the gateway screen; and a session opened for one method
+            // (say a Fawry code) is useless to a buyer who has now chosen a card. Either way, retire
+            // it (freeing any coupon reservation) and fall through to create a fresh one.
+            if ($samemethod && abs((float) $existing->amount - $amount) < 0.01
+                    && (!empty($existing->checkout_url) || !empty($existingmeta['payment_data']['reference']))) {
                 return (object) [
                     'order_id' => $existing->order_id,
                     'checkout_url' => $existing->checkout_url,
@@ -128,12 +135,22 @@ class manager {
                     'amount' => (float) $existing->amount,
                     'original_amount' => (float) ($existing->original_amount ?? $existing->amount),
                     'currency' => $existing->currency,
+                    'payment_data' => $existingmeta['payment_data']
+                        ?? \local_payments\provider\checkout_response::empty_payment_data(),
                 ];
             }
+
+            if (empty($existing->checkout_url) && empty($existingmeta['payment_data']['reference'])) {
+                // Never got as far as a usable session — nothing to supersede.
+                $existing = null;
+            }
+        }
+
+        if ($existing) {
             $DB->update_record('local_payments_transactions', (object) [
                 'id' => $existing->id,
                 'status' => status_machine::EXPIRED,
-                'reject_reason' => 'Superseded by a new checkout at a different price',
+                'reject_reason' => 'Superseded by a new checkout at a different price or payment method',
                 'timemodified' => time(),
             ]);
             self::release_nit_discount((int) $existing->id);
@@ -186,6 +203,7 @@ class manager {
                 'item_id' => $courseid,
                 'discount' => $discountmeta,
                 'coupon_code' => $coupon_code,
+                'payment_method_id' => $payment_method_id,
             ]),
             'expires_at' => $expires_at,
             'timecreated' => time(),
@@ -219,6 +237,7 @@ class manager {
             'failure_url' => $failure_url,
             'metadata' => ['transaction_id' => $transaction_id, 'courseid' => $courseid],
             'transaction_id' => $transaction_id,
+            'payment_method_id' => $payment_method_id,
         ]);
 
         $response = $provider->initialize_payment($request);
@@ -236,11 +255,18 @@ class manager {
             throw new \moodle_exception('paymentinitiationfailed', 'local_payments', '', $response->error_message);
         }
 
-        // Update transaction with provider session info.
+        // Update transaction with provider session info. payment_data is kept in
+        // metadata so a reference code (Fawry/Meeza) can be shown again later —
+        // the buyer pays it hours after leaving the checkout screen.
+        $storedmeta = json_decode($transaction->metadata, true) ?: [];
+        $storedmeta['payment_data'] = $response->payment_data;
+        $expires_at = self::resolve_expiry($response->payment_data, $provider_record->plugin_name, $expires_at);
         $DB->update_record('local_payments_transactions', (object) [
             'id' => $transaction_id,
             'provider_session_id' => $response->provider_session_id,
             'checkout_url' => $response->checkout_url,
+            'metadata' => json_encode($storedmeta),
+            'expires_at' => $expires_at,
             'timemodified' => time(),
         ]);
 
@@ -258,6 +284,7 @@ class manager {
             'amount' => (float) $amount,
             'original_amount' => (float) $pricing->original_price,
             'currency' => $pricing->currency,
+            'payment_data' => $response->payment_data,
         ];
     }
 
@@ -279,7 +306,8 @@ class manager {
      */
     public static function create_subscription_checkout(int $subscriptionid, ?int $userid = null,
             ?string $app_country = null, string $display_lang = 'en', string $type = 'normal',
-            int $seats = 0, string $coupon_code = '', string $return_url = ''): object {
+            int $seats = 0, string $coupon_code = '', string $return_url = '',
+            int $payment_method_id = 0): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
@@ -380,6 +408,7 @@ class manager {
                 'discount' => $discountmeta,
                 'coupon_code' => $coupon_code,
                 'return_url' => $return_url,
+                'payment_method_id' => $payment_method_id,
             ]),
             'expires_at' => $expires_at,
             'timecreated' => time(),
@@ -408,6 +437,7 @@ class manager {
             'failure_url' => $failure_url,
             'metadata' => ['transaction_id' => $transaction_id],
             'transaction_id' => $transaction_id,
+            'payment_method_id' => $payment_method_id,
         ]);
 
         $response = $provider->initialize_payment($request);
@@ -423,10 +453,15 @@ class manager {
             throw new \moodle_exception('paymentinitiationfailed', 'local_payments', '', $response->error_message);
         }
 
+        $storedmeta = json_decode($transaction->metadata, true) ?: [];
+        $storedmeta['payment_data'] = $response->payment_data;
+        $expires_at = self::resolve_expiry($response->payment_data, $provider_record->plugin_name, $expires_at);
         $DB->update_record('local_payments_transactions', (object) [
             'id' => $transaction_id,
             'provider_session_id' => $response->provider_session_id,
             'checkout_url' => $response->checkout_url,
+            'metadata' => json_encode($storedmeta),
+            'expires_at' => $expires_at,
             'timemodified' => time(),
         ]);
 
@@ -445,6 +480,72 @@ class manager {
             'amount' => (float) $amount,
             'original_amount' => (float) $originalamount,
             'currency' => $currency,
+            'payment_data' => $response->payment_data,
+        ];
+    }
+
+    /**
+     * How long an order must stay open, given how the buyer was told to pay.
+     *
+     * A card payment happens in the next few minutes, so the normal checkout TTL
+     * is right. An offline reference code (Fawry, Meeza) is typically paid the
+     * next day — if the order has expired by then the gateway's confirmation
+     * arrives against a dead transaction. Prefer the expiry the gateway itself
+     * put on the code; fall back to the provider's configured window.
+     *
+     * @param array $payment_data checkout_response::$payment_data
+     * @param string $plugin_name Provider plugin, for its reference_ttl_days setting.
+     * @param int $default_expires_at The normal expiry, used when nothing applies.
+     * @return int Unix timestamp.
+     */
+    private static function resolve_expiry(array $payment_data, string $plugin_name,
+            int $default_expires_at): int {
+        if (($payment_data['type'] ?? '') !== 'reference') {
+            return $default_expires_at;
+        }
+
+        $stated = trim((string) ($payment_data['reference_expires_at'] ?? ''));
+        if ($stated !== '') {
+            $ts = strtotime($stated);
+            if ($ts !== false && $ts > time()) {
+                // Give the webhook a little room after the code itself dies.
+                return $ts + HOURSECS;
+            }
+        }
+
+        $days = (int) get_config($plugin_name, 'reference_ttl_days');
+        if ($days > 0) {
+            return time() + ($days * DAYSECS);
+        }
+
+        return $default_expires_at;
+    }
+
+    /**
+     * List the payment methods offered by the provider that would handle a
+     * purchase for this country/currency.
+     *
+     * @param string $country ISO 3166-1 alpha-2
+     * @param string $currency ISO 4217
+     * @return object {provider, supports_payment_methods, methods[]}
+     */
+    public static function get_provider_payment_methods(string $country, string $currency): object {
+        $provider = self::get_provider($country, $currency);
+
+        if (!$provider->supports_payment_methods()) {
+            // Hosted-picker providers (Kashier): the buyer chooses on the gateway
+            // page, so there is nothing for the app to render.
+            return (object) [
+                'provider' => $provider->get_name(),
+                'supports_payment_methods' => false,
+                'methods' => [],
+            ];
+        }
+
+        return (object) [
+            'provider' => $provider->get_name(),
+            'supports_payment_methods' => true,
+            'methods' => $provider->get_payment_methods(),
         ];
     }
 

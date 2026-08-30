@@ -23,11 +23,14 @@ class create_checkout extends external_api {
             'lang' => new external_value(PARAM_ALPHA, 'Display language (en/ar)', VALUE_DEFAULT, 'en'),
             'alang' => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
             'coupon_code' => new external_value(PARAM_TEXT, 'Coupon code to apply at checkout (optional)', VALUE_DEFAULT, ''),
+            'payment_method_id' => new external_value(PARAM_INT,
+                'Gateway payment method id from local_payments_get_provider_payment_methods. '
+                . '0 (default) opens the gateway-hosted page instead.', VALUE_DEFAULT, 0),
         ]);
     }
 
     public static function execute(int $courseid, string $country = '', string $lang = 'en',
-            string $alang = '', string $coupon_code = ''): array {
+            string $alang = '', string $coupon_code = '', int $payment_method_id = 0): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
@@ -36,6 +39,7 @@ class create_checkout extends external_api {
             'lang' => $lang,
             'alang' => $alang,
             'coupon_code' => $coupon_code,
+            'payment_method_id' => $payment_method_id,
         ]);
         // The app may send the language as `alang` (old convention); prefer it when present.
         if ($params['alang'] !== '') {
@@ -55,7 +59,8 @@ class create_checkout extends external_api {
             $USER->id,
             !empty($params['country']) ? $params['country'] : null,
             $params['lang'],
-            $params['coupon_code']
+            $params['coupon_code'],
+            $params['payment_method_id']
         );
 
         return [
@@ -67,6 +72,8 @@ class create_checkout extends external_api {
             'amount' => (float) ($result->amount ?? 0),
             'original_amount' => (float) ($result->original_amount ?? 0),
             'currency' => $result->currency ?? '',
+            'payment_data' => $result->payment_data
+                ?? \local_payments\provider\checkout_response::empty_payment_data(),
         ];
     }
 
@@ -80,6 +87,15 @@ class create_checkout extends external_api {
             'amount' => new external_value(PARAM_FLOAT, 'Charged amount after coupon/offer — show THIS price'),
             'original_amount' => new external_value(PARAM_FLOAT, 'Price before discount'),
             'currency' => new external_value(PARAM_TEXT, 'Currency (e.g. EGP)'),
+            'payment_data' => new external_single_structure([
+                'type' => new external_value(PARAM_ALPHA,
+                    'redirect = open redirect_url; reference = show the code; none = no extra step'),
+                'redirect_url' => new external_value(PARAM_RAW, 'Page to open when type=redirect'),
+                'reference' => new external_value(PARAM_TEXT,
+                    'Code the buyer pays with (Fawry/Meeza) when type=reference'),
+                'reference_expires_at' => new external_value(PARAM_TEXT, 'When that code stops working, if given'),
+                'method_name' => new external_value(PARAM_TEXT, 'Name of the method charged, for display'),
+            ], 'How to finish the payment'),
         ]);
     }
 }
