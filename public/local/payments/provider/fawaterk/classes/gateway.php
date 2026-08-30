@@ -14,30 +14,23 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Fawaterk (Fawaterak) payment provider.
  *
- * Payments go server-to-server through POST /api/v2/invoiceInitPay, which charges
- * one chosen method; POST /api/v2/createInvoiceLink (Fawaterk's own hosted page)
- * is the fallback. Either way the invoice id we get back is stored as the
- * transaction's provider_session_id, and that is what verify_payment() and the
- * webhook handler use to re-read the invoice server-side.
+ * Fawaterk has two generations of API and they use different credentials. Both
+ * are implemented; `auth_mode` picks one, because the credential and the API
+ * version go together:
  *
- * Two separate credentials, both from the dashboard's Integrations page, doing
- * two different jobs — mixing them up is the usual reason nothing works:
+ *  - **v3 + OAuth** (`auth_mode = oauth`, the default). Client id/secret from
+ *    the dashboard's Integrations page mint a token on /oauth/token, which
+ *    authenticates /api/v3/*. This is the current API: it takes a per-request
+ *    webhook URL, exposes refunds, and reports transactions by `intent_key`.
+ *  - **v2 + HASH API key** (`auth_mode = apikey`). The older /api/v2/* endpoints
+ *    take the HASH API key straight through as the bearer. Kept as a fallback;
+ *    it has no refund API and the webhook URL must be set in the dashboard.
  *
- *  - The HASH API key ("Iframe/Webhook integrations settings") does two jobs:
- *    it is the bearer the /api/v2 payment endpoints accept, and it is the secret
- *    Fawaterk signs webhook hashKeys with. It is always required.
- *  - The OAuth 2.0 client id + secret ("Create machine-to-machine credentials")
- *    mint tokens on /oauth/token, but those tokens are rejected by /api/v2/* —
- *    checked against a live account. They belong to Fawaterk's newer
- *    Integrations API. The grant is implemented and selectable, but is not the
- *    default because it cannot currently take a payment.
+ * The HASH API key is required either way: every webhook is signed with it, not
+ * with an access token, so without it no payment can ever be confirmed.
  *
- * Sandbox and live are separate Fawaterk accounts with separate credentials for
- * both of the above.
- *
- * Fawaterk has no per-request webhook URL — it is configured once in the
- * dashboard and must end in "_json" to get a JSON body, so point it at
- * {wwwroot}/local/payments/webhook_json.php
+ * Endpoints verified against a live account (Aug 2026): the OAuth grant, both
+ * createTransaction shapes, getTransactionData, and the v2 equivalents.
  */
 class gateway extends base_provider {
 
@@ -47,32 +40,26 @@ class gateway extends base_provider {
     /** Staging/sandbox API host. */
     const SANDBOX_URL = 'https://staging.fawaterk.com';
 
+    // ─── Configuration ──────────────────────────────────────────────────────
+
     /**
      * The HASH API key from "Iframe/Webhook integrations settings".
      *
-     * Two jobs: it is the secret Fawaterk signs webhook hashKeys with (always),
-     * and it is the bearer token when auth_mode is the legacy static key.
-     *
+     * Signs every webhook (both API generations), and is the bearer in v2 mode.
      * Trimmed because it is long enough that people paste it with a trailing
-     * newline, and Fawaterk then answers "Invalid Token" for a correct key.
+     * newline, and Fawaterk then rejects a key that looks correct.
      */
     private function get_vendor_key(): string {
         return trim((string) $this->get_setting('vendor_key', ''));
     }
 
-    /**
-     * Which credential set to authenticate API calls with.
-     *
-     * apikey — the HASH API key sent straight through as the bearer. This is what
-     *          the /api/v2 payment endpoints accept, and the default.
-     * oauth  — client_credentials grant against /oauth/token. Verified against a
-     *          live account: the token issues fine, but /api/v2/* rejects it with
-     *          "Invalid Token or inactive vendor", so those credentials belong to
-     *          Fawaterk's newer Integrations API rather than to payments. Kept
-     *          working here for when the payment endpoints accept it.
-     */
     private function get_auth_mode(): string {
-        return $this->get_setting('auth_mode', 'apikey') === 'oauth' ? 'oauth' : 'apikey';
+        return $this->get_setting('auth_mode', 'oauth') === 'apikey' ? 'apikey' : 'oauth';
+    }
+
+    /** OAuth mode means the v3 API; the static key means v2. */
+    private function uses_v3(): bool {
+        return $this->get_auth_mode() === 'oauth';
     }
 
     private function get_client_id(): string {
@@ -83,18 +70,25 @@ class gateway extends base_provider {
         return trim((string) $this->get_setting('client_secret', ''));
     }
 
+    private function get_api_base(): string {
+        $key = $this->is_sandbox() ? 'sandbox_url' : 'base_url';
+        $default = $this->is_sandbox() ? self::SANDBOX_URL : self::LIVE_URL;
+        return rtrim((string) $this->get_setting($key, $default) ?: $default, '/');
+    }
+
     /**
-     * Token endpoint. Defaults to /oauth/token on whichever host the current
-     * mode uses, so switching sandbox/live moves it automatically.
+     * Token endpoint. Defaults to /oauth/token on the current mode's host.
      */
     private function get_token_url(): string {
         $override = trim((string) $this->get_setting('token_url', ''));
         return $override !== '' ? $override : $this->get_api_base() . '/oauth/token';
     }
 
+    // ─── Authentication ─────────────────────────────────────────────────────
+
     /**
-     * Cache key for the current credentials, so a key change or a sandbox
-     * switch can never hand back the previous account's token.
+     * Cache key for the current credentials, so changing a key or flipping
+     * sandbox can never hand back the previous account's token.
      */
     private function token_cache_key(): string {
         return $this->plugin_name . '_' . substr(sha1(
@@ -103,13 +97,11 @@ class gateway extends base_provider {
     }
 
     /**
-     * Bearer token for API calls.
-     *
      * @param bool $forcerefresh Skip the cache (used once after a 401).
      * @return string Empty when no token could be obtained.
      */
     private function get_access_token(bool $forcerefresh = false): string {
-        if ($this->get_auth_mode() === 'apikey') {
+        if (!$this->uses_v3()) {
             return $this->get_vendor_key();
         }
 
@@ -135,10 +127,8 @@ class gateway extends base_provider {
     }
 
     /**
-     * POST /oauth/token — client_credentials grant.
-     *
-     * Sent form-encoded, which every OAuth 2 server accepts; the response is
-     * the standard {access_token, token_type, expires_in}.
+     * POST /oauth/token — client_credentials grant. Form-encoded; the response
+     * is the standard {access_token, token_type, expires_in}.
      *
      * @return array|null ['token' => string, 'expires' => int] or null on failure.
      */
@@ -164,7 +154,6 @@ class gateway extends base_provider {
             $this->log('error', 'Fawaterk OAuth token request failed', [
                 'http_code' => $result['http_code'],
                 'token_url' => $this->get_token_url(),
-                // error/error_description are the standard OAuth failure fields.
                 'error' => $body['error'] ?? '',
                 'error_description' => $body['error_description'] ?? ($body['message'] ?? ''),
             ]);
@@ -205,47 +194,6 @@ class gateway extends base_provider {
         ];
     }
 
-    /**
-     * Authenticated API call, with one retry after a 401.
-     *
-     * A cached token can be revoked or invalidated server-side before its stated
-     * expiry, and the only way to find out is to be rejected — so drop it and
-     * try once with a fresh one rather than failing a real payment.
-     */
-    private function api_request(string $method, string $url, $body = null): array {
-        $headers = $this->get_auth_headers();
-
-        // Fawaterk validates a content-type on GET too — without it the answer is
-        // "The content-type field is required." base_provider only sets it for
-        // POST/PUT, so add it here, and only here: setting it in the auth headers
-        // would send it twice on a POST.
-        if (strtoupper($method) === 'GET') {
-            $headers['Content-Type'] = 'application/json';
-        }
-
-        $result = $this->http_request($method, $url, $headers, $body);
-
-        if ($result['http_code'] === 401 && $this->get_auth_mode() === 'oauth') {
-            $this->log('info', 'Fawaterk returned 401; refreshing the OAuth token and retrying once');
-            $token = $this->get_access_token(true);
-            if ($token !== '') {
-                $result = $this->http_request($method, $url, $headers, $body);
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Base host for the current mode. base_url / sandbox_url are overridable in
-     * settings so a host change never needs a code deploy.
-     */
-    private function get_api_base(): string {
-        $key = $this->is_sandbox() ? 'sandbox_url' : 'base_url';
-        $default = $this->is_sandbox() ? self::SANDBOX_URL : self::LIVE_URL;
-        return rtrim((string) $this->get_setting($key, $default) ?: $default, '/');
-    }
-
     private function get_auth_headers(): array {
         return [
             'Authorization' => 'Bearer ' . $this->get_access_token(),
@@ -254,7 +202,38 @@ class gateway extends base_provider {
     }
 
     /**
-     * Split the buyer's Moodle profile into the name/phone Fawaterk requires.
+     * Authenticated API call, with one retry after a 401.
+     *
+     * A token can be revoked server-side before its stated expiry and the only
+     * way to find out is to be rejected, so drop it and try once more rather
+     * than failing a real payment.
+     */
+    private function api_request(string $method, string $url, $body = null): array {
+        $headers = $this->get_auth_headers();
+
+        // Fawaterk validates a content-type on GET too — without it the answer
+        // is "The content-type field is required". base_provider only sets it
+        // for POST/PUT, and setting it in the auth headers would send it twice.
+        if (strtoupper($method) === 'GET') {
+            $headers['Content-Type'] = 'application/json';
+        }
+
+        $result = $this->http_request($method, $url, $headers, $body);
+
+        if ($result['http_code'] === 401 && $this->uses_v3()) {
+            $this->log('info', 'Fawaterk returned 401; refreshing the OAuth token and retrying once');
+            if ($this->get_access_token(true) !== '') {
+                $result = $this->http_request($method, $url, $this->get_auth_headers(), $body);
+            }
+        }
+
+        return $result;
+    }
+
+    // ─── Customer details ───────────────────────────────────────────────────
+
+    /**
+     * Split the buyer's Moodle profile into the fields Fawaterk requires.
      * payment_request only carries the email, so read the rest from the user row.
      */
     private function get_customer(payment_request $request): array {
@@ -276,8 +255,8 @@ class gateway extends base_provider {
             }
         }
 
-        // Fawaterk validates every one of these and answers HTTP 400 if any is
-        // empty or malformed, so fall back to values that are valid but
+        // Fawaterk validates every one of these and rejects the request if any
+        // is empty or malformed, so fall back to values that are valid but
         // obviously placeholder rather than letting the checkout die.
         if ($firstname === '') {
             $firstname = 'Customer';
@@ -300,9 +279,9 @@ class gateway extends base_provider {
 
     /**
      * Coerce a Moodle profile phone into the local Egyptian format Fawaterk
-     * accepts (01XXXXXXXXX). "+20 100 123 4567", "0020...", "201..." all reduce
-     * to the same 11 digits; anything that still doesn't fit falls back to the
-     * configured placeholder, because a malformed phone is a hard 400.
+     * accepts (01XXXXXXXXX). "+20 100 123 4567", "0020…", "201…" all reduce to
+     * the same 11 digits; anything that still doesn't fit falls back to the
+     * configured placeholder, because a malformed phone is a hard rejection.
      */
     private function normalise_phone(string $phone): string {
         $fallback = (string) $this->get_setting('default_phone', '01000000000');
@@ -312,7 +291,6 @@ class gateway extends base_provider {
             return $fallback;
         }
 
-        // Strip an international Egyptian prefix in any of its spellings.
         if (strpos($digits, '0020') === 0) {
             $digits = substr($digits, 4);
         } else if (strpos($digits, '20') === 0 && strlen($digits) > 10) {
@@ -325,87 +303,41 @@ class gateway extends base_provider {
         return preg_match('/^01[0-9]{9}$/', $digits) ? $digits : $fallback;
     }
 
-    /**
-     * Build the invoice body both endpoints share.
-     *
-     * Fawaterk validates cartTotal against the sum of cartItems, so the cart is
-     * kept to a single line worth exactly the amount we are charging.
-     */
-    private function build_invoice_body(payment_request $request): array {
-        $amount = number_format(round($request->amount, 2), 2, '.', '');
-        $itemname = $request->description !== '' ? $request->description : ('Order ' . $request->order_id);
-
-        return [
-            'cartTotal' => $amount,
-            'currency' => $request->currency,
-            'customer' => $this->get_customer($request),
-            'redirectionUrls' => [
-                'successUrl' => $request->success_url,
-                'failUrl' => $request->failure_url,
-                'pendingUrl' => $request->success_url,
-            ],
-            'cartItems' => [
-                [
-                    'name' => \core_text::substr($itemname, 0, 100),
-                    'price' => $amount,
-                    'quantity' => '1',
-                ],
-            ],
-            // Echoed back verbatim on every webhook — this is how we find the
-            // transaction again, since Fawaterk does not carry our order id.
-            'payLoad' => array_merge($request->metadata, [
-                'transaction_id' => $request->transaction_id,
-                'courseid' => $request->courseid,
-                'order_id' => $request->order_id,
-            ]),
-            'sendEmail' => (bool) $this->get_setting('send_email', 0),
-            'sendSMS' => (bool) $this->get_setting('send_sms', 0),
-        ];
-    }
+    // ─── Creating a payment ─────────────────────────────────────────────────
 
     /**
      * Create the payment.
      *
-     * With a payment_method_id the charge goes server-to-server through
-     * /api/v2/invoiceInitPay — the buyer never sees a Fawaterk method picker and
-     * we get back either a 3-D Secure URL or a reference code to display. This is
-     * the flow Fawaterk recommends and the one the mobile app uses.
-     *
-     * Without one we fall back to /api/v2/createInvoiceLink, which returns a
-     * hosted page where Fawaterk asks for the method itself.
+     * With a payment method the charge is server-to-server and we get back
+     * either a 3-D Secure URL or a reference code to display. Without one,
+     * Fawaterk returns a hosted page where it asks for the method itself.
      */
     public function initialize_payment(payment_request $request): checkout_response {
         $methodid = $request->payment_method_id;
 
         // -1 is the explicit "give me the hosted page" escape hatch.
         if ($methodid < 0) {
-            return $this->init_hosted_invoice($request);
-        }
-
-        // Nothing chosen (the web checkout, which has no picker): pick for them.
-        if ($methodid === 0) {
+            $methodid = 0;
+        } else if ($methodid === 0) {
+            // Nothing chosen (the web checkout, which has no picker): pick one.
             $methodid = $this->resolve_auto_method();
         }
 
-        if ($methodid <= 0) {
-            // No usable method — either auto-selection is off or the account
-            // reported none. The hosted page can still take the payment.
-            return $this->init_hosted_invoice($request);
-        }
-
         $request->payment_method_id = $methodid;
-        return $this->init_direct_payment($request);
+
+        return $this->uses_v3()
+            ? $this->create_transaction_v3($request, $methodid)
+            : $this->create_invoice_v2($request, $methodid);
     }
 
     /**
      * Choose a payment method when the caller didn't.
      *
-     * One enabled method → use it. Several → take the first one named in the
-     * configured priority list; anything the list doesn't mention falls to the
-     * end, in the order Fawaterk returned it. That keeps the web checkout on a
-     * single, predictable method without asking the buyer to choose.
+     * One enabled method → use it. Several → the first named in the configured
+     * priority list. That keeps the web checkout on a single, predictable
+     * method without asking the buyer to choose.
      *
-     * @return int Method id, or 0 to fall back to the hosted page.
+     * @return int Method id, or 0 for the hosted page.
      */
     private function resolve_auto_method(): int {
         if (!$this->get_setting('auto_select_method', 1)) {
@@ -418,12 +350,11 @@ class gateway extends base_provider {
         $methods = $this->get_payment_methods();
 
         if (empty($methods)) {
-            // An empty list does NOT mean the account can't take payments:
-            // getPaymentmethods reports only what is configured for the hosted
-            // iframe, and accounts have been seen returning [] while
-            // invoiceInitPay happily charges card (method 2). So trust the
-            // configured preference over the enumeration and try the first id
-            // rather than silently dropping to the hosted page.
+            // An empty list does NOT mean the account can't take payments: the
+            // list reports what is configured for the hosted iframe, and the
+            // account this was built against returns [] while createTransaction
+            // charges card (id 2) perfectly well. Trust the configured
+            // preference over the enumeration.
             if (!empty($priority)) {
                 $this->log('info', 'Fawaterk listed no payment methods; using the first '
                     . 'configured priority id (' . $priority[0] . ') instead.');
@@ -431,8 +362,8 @@ class gateway extends base_provider {
             }
 
             $this->log('warning', 'Fawaterk listed no payment methods and no method priority '
-                . 'is configured; falling back to the hosted invoice page. Check the '
-                . 'credentials with cli/fawaterk_diagnose.php.');
+                . 'is configured; falling back to the hosted page. Check the credentials '
+                . 'with cli/fawaterk_diagnose.php.');
             return 0;
         }
 
@@ -447,135 +378,201 @@ class gateway extends base_provider {
             }
         }
 
-        // Priority list matched nothing the account actually has enabled.
         return (int) $methods[0]['id'];
     }
 
     /**
-     * POST /api/v2/createInvoiceLink — hosted invoice page.
+     * The cart body both API generations share.
+     *
+     * Fawaterk validates cartTotal against the sum of cartItems, so the cart is
+     * a single line worth exactly the amount we are charging.
      */
-    private function init_hosted_invoice(payment_request $request): checkout_response {
-        $base = $this->get_api_base();
-        $body = $this->build_invoice_body($request);
+    private function build_cart(payment_request $request): array {
+        $amount = round($request->amount, 2);
+        $itemname = $request->description !== '' ? $request->description : ('Order ' . $request->order_id);
 
-        $this->log('info', 'Creating Fawaterk invoice link', [
+        return [
+            'amount' => $amount,
+            'item_name' => \core_text::substr($itemname, 0, 100),
+            // Echoed back on every webhook — this is how we find the transaction
+            // again, since Fawaterk does not carry our order id natively.
+            'payload' => array_merge($request->metadata, [
+                'transaction_id' => $request->transaction_id,
+                'courseid' => $request->courseid,
+                'order_id' => $request->order_id,
+            ]),
+        ];
+    }
+
+    /**
+     * POST /api/v3/createTransaction.
+     */
+    private function create_transaction_v3(payment_request $request, int $methodid): checkout_response {
+        $cart = $this->build_cart($request);
+
+        $body = [
+            'cartTotal' => $cart['amount'],
+            'currency' => $request->currency,
+            'customer' => $this->get_customer($request),
+            'cartItems' => [
+                ['name' => $cart['item_name'], 'price' => $cart['amount'], 'quantity' => 1],
+            ],
+            'pay_load' => $cart['payload'],
+            'redirectionUrls' => [
+                'successUrl' => $request->success_url,
+                'failUrl' => $request->failure_url,
+                'pendingUrl' => $request->success_url,
+                // v3 takes the webhook per request, so the paid/pending callback
+                // does not depend on the dashboard being configured.
+                'webhookUrl' => $request->webhook_url,
+            ],
+            'sendEmail' => (bool) $this->get_setting('send_email', 0),
+            'sendSMS' => (bool) $this->get_setting('send_sms', 0),
+            'lang' => $request->display_lang === 'ar' ? 'ar' : 'en',
+        ];
+
+        if ($methodid > 0) {
+            $body['payment_method_id'] = $methodid;
+        }
+
+        $this->log('info', 'Creating Fawaterk v3 transaction', [
             'order_id' => $request->order_id,
-            'amount' => $request->amount,
+            'payment_method_id' => $methodid,
+            'amount' => $cart['amount'],
             'currency' => $request->currency,
             'transaction_id' => $request->transaction_id,
         ]);
 
-        $result = $this->api_request('POST', "{$base}/api/v2/createInvoiceLink", $body);
+        $result = $this->api_request('POST', $this->get_api_base() . '/api/v3/createTransaction', $body);
+
+        $error = $this->check_api_error($result, 'transaction creation', $request->transaction_id);
+        if ($error !== null) {
+            return $error;
+        }
+
+        $data = $result['body']['data'] ?? [];
+        $intentkey = (string) ($data['intent_key'] ?? '');
+
+        if ($intentkey === '') {
+            $this->log('error', 'Fawaterk v3 response missing intent_key', [
+                'response' => $result['body'],
+                'transaction_id' => $request->transaction_id,
+            ]);
+            return checkout_response::failure('Missing intent_key in Fawaterk response', $result['body']);
+        }
+
+        // Hosted page (no method chosen) answers with `url`; a direct charge
+        // answers with `payment_data` shaped by the method.
+        $hostedurl = (string) ($data['url'] ?? '');
+        $paymentdata = is_array($data['payment_data'] ?? null) ? $data['payment_data'] : [];
+
+        $normalised = $hostedurl !== ''
+            ? array_merge(checkout_response::empty_payment_data(),
+                ['type' => 'redirect', 'redirect_url' => $hostedurl])
+            : $this->normalise_payment_data($paymentdata);
+        $normalised['method_name'] = $this->method_name($methodid);
+
+        if ($normalised['type'] === 'none') {
+            $this->log('error', 'Fawaterk returned no usable payment_data', [
+                'response' => $result['body'],
+                'payment_method_id' => $methodid,
+                'transaction_id' => $request->transaction_id,
+            ]);
+            return checkout_response::failure(
+                'Fawaterk returned no redirect URL or reference for payment method ' . $methodid,
+                $result['body']
+            );
+        }
+
+        $this->log('info', 'Fawaterk v3 transaction created', [
+            'intent_key' => $intentkey,
+            'payment_type' => $normalised['type'],
+            'transaction_id' => $request->transaction_id,
+        ]);
+
+        return checkout_response::success($normalised['redirect_url'], $intentkey, $result['body'], $normalised);
+    }
+
+    /**
+     * Legacy v2: createInvoiceLink (hosted) or invoiceInitPay (direct charge).
+     */
+    private function create_invoice_v2(payment_request $request, int $methodid): checkout_response {
+        $cart = $this->build_cart($request);
+        $amount = number_format($cart['amount'], 2, '.', '');
+
+        $body = [
+            'cartTotal' => $amount,
+            'currency' => $request->currency,
+            'customer' => $this->get_customer($request),
+            'redirectionUrls' => [
+                'successUrl' => $request->success_url,
+                'failUrl' => $request->failure_url,
+                'pendingUrl' => $request->success_url,
+            ],
+            'cartItems' => [
+                ['name' => $cart['item_name'], 'price' => $amount, 'quantity' => '1'],
+            ],
+            'payLoad' => $cart['payload'],
+            'sendEmail' => (bool) $this->get_setting('send_email', 0),
+            'sendSMS' => (bool) $this->get_setting('send_sms', 0),
+        ];
+
+        $direct = ($methodid > 0);
+        if ($direct) {
+            $body['payment_method_id'] = $methodid;
+        }
+        $endpoint = $direct ? '/api/v2/invoiceInitPay' : '/api/v2/createInvoiceLink';
+
+        $this->log('info', 'Creating Fawaterk v2 invoice', [
+            'order_id' => $request->order_id,
+            'payment_method_id' => $methodid,
+            'amount' => $cart['amount'],
+            'transaction_id' => $request->transaction_id,
+        ]);
+
+        $result = $this->api_request('POST', $this->get_api_base() . $endpoint, $body);
 
         $error = $this->check_api_error($result, 'invoice creation', $request->transaction_id);
         if ($error !== null) {
             return $error;
         }
 
-        $payload = $result['body'];
-        $data = $payload['data'] ?? [];
-        $url = (string) ($data['url'] ?? '');
+        $data = $result['body']['data'] ?? [];
         $invoiceid = (string) ($data['invoiceId'] ?? $data['invoice_id'] ?? '');
-
-        if ($url === '' || $invoiceid === '') {
-            $this->log('error', 'Fawaterk response missing url/invoiceId', [
-                'response' => $payload,
-                'transaction_id' => $request->transaction_id,
-            ]);
-            return checkout_response::failure('Missing url or invoiceId in Fawaterk response', $payload);
-        }
-
-        $this->log('info', 'Fawaterk invoice link created', [
-            'invoice_id' => $invoiceid,
-            'transaction_id' => $request->transaction_id,
-        ]);
-
-        return checkout_response::success($url, $invoiceid, $payload, array_merge(
-            checkout_response::empty_payment_data(),
-            ['type' => 'redirect', 'redirect_url' => $url]
-        ));
-    }
-
-    /**
-     * POST /api/v2/invoiceInitPay — charge one specific payment method.
-     */
-    private function init_direct_payment(payment_request $request): checkout_response {
-        $base = $this->get_api_base();
-        $body = $this->build_invoice_body($request);
-        $body['payment_method_id'] = $request->payment_method_id;
-
-        $this->log('info', 'Initiating Fawaterk direct payment', [
-            'order_id' => $request->order_id,
-            'payment_method_id' => $request->payment_method_id,
-            'amount' => $request->amount,
-            'currency' => $request->currency,
-            'transaction_id' => $request->transaction_id,
-        ]);
-
-        $result = $this->api_request('POST', "{$base}/api/v2/invoiceInitPay", $body);
-
-        $error = $this->check_api_error($result, 'payment initiation', $request->transaction_id);
-        if ($error !== null) {
-            return $error;
-        }
-
-        $payload = $result['body'];
-        $data = $payload['data'] ?? [];
-        $invoiceid = (string) ($data['invoice_id'] ?? $data['invoiceId'] ?? '');
-        $paymentdata = is_array($data['payment_data'] ?? null) ? $data['payment_data'] : [];
-
         if ($invoiceid === '') {
-            $this->log('error', 'Fawaterk direct payment response missing invoice_id', [
-                'response' => $payload,
-                'transaction_id' => $request->transaction_id,
-            ]);
-            return checkout_response::failure('Missing invoice_id in Fawaterk response', $payload);
+            return checkout_response::failure('Missing invoice id in Fawaterk response', $result['body']);
         }
 
-        $normalised = $this->normalise_payment_data($paymentdata);
-        $normalised['method_name'] = $this->method_name($request->payment_method_id);
+        if (!$direct) {
+            $url = (string) ($data['url'] ?? '');
+            if ($url === '') {
+                return checkout_response::failure('Missing url in Fawaterk response', $result['body']);
+            }
+            return checkout_response::success($url, $invoiceid, $result['body'], array_merge(
+                checkout_response::empty_payment_data(),
+                ['type' => 'redirect', 'redirect_url' => $url, 'method_name' => '']
+            ));
+        }
+
+        $normalised = $this->normalise_payment_data(
+            is_array($data['payment_data'] ?? null) ? $data['payment_data'] : []);
+        $normalised['method_name'] = $this->method_name($methodid);
 
         if ($normalised['type'] === 'none') {
-            // Nothing to redirect to and no code to show — the buyer would be
-            // stuck, so treat it as a failure rather than a silent dead end.
-            $this->log('error', 'Fawaterk returned no usable payment_data', [
-                'response' => $payload,
-                'payment_method_id' => $request->payment_method_id,
-                'transaction_id' => $request->transaction_id,
-            ]);
             return checkout_response::failure(
-                'Fawaterk returned no redirect URL or reference for payment method '
-                    . $request->payment_method_id,
-                $payload
+                'Fawaterk returned no redirect URL or reference for payment method ' . $methodid,
+                $result['body']
             );
         }
 
-        $this->log('info', 'Fawaterk direct payment initiated', [
-            'invoice_id' => $invoiceid,
-            'payment_type' => $normalised['type'],
-            'transaction_id' => $request->transaction_id,
-        ]);
-
-        // checkout_url stays the redirect target when there is one; for a
-        // reference-code method there is no page to open and it is empty.
-        return checkout_response::success($normalised['redirect_url'], $invoiceid, $payload, $normalised);
-    }
-
-    /**
-     * Display name of a method id, from the cached account list.
-     */
-    private function method_name(int $methodid): string {
-        foreach ($this->get_payment_methods() as $method) {
-            if ((int) $method['id'] === $methodid) {
-                return current_language() === 'ar' && $method['name_ar'] !== ''
-                    ? $method['name_ar'] : $method['name_en'];
-            }
-        }
-        return '';
+        return checkout_response::success($normalised['redirect_url'], $invoiceid, $result['body'], $normalised);
     }
 
     /**
      * Flatten Fawaterk's per-method payment_data into our fixed shape.
+     *
+     * Card returns somewhere to go; Fawry/Meeza return a code to pay at an
+     * outlet; wallets return a reference plus a QR to scan.
      */
     private function normalise_payment_data(array $data): array {
         $out = checkout_response::empty_payment_data();
@@ -587,25 +584,40 @@ class gateway extends base_provider {
             return $out;
         }
 
-        // Fawry / Meeza / wallet codes — the buyer pays with the code elsewhere
-        // and the webhook tells us when they did.
-        $reference = (string) ($data['fawryCode'] ?? $data['meezaReference']
-            ?? $data['aman_code'] ?? $data['masaryCode'] ?? $data['reference'] ?? '');
+        $reference = (string) ($data['referenceNumber'] ?? $data['fawryCode'] ?? $data['meezaReference']
+            ?? $data['systemReference'] ?? $data['aman_code'] ?? $data['masaryCode'] ?? '');
         if ($reference !== '') {
             $out['type'] = 'reference';
             $out['reference'] = $reference;
-            $out['reference_expires_at'] = (string) ($data['expireDate'] ?? '');
+            $out['reference_expires_at'] = (string) ($data['expireDate'] ?? $data['expirationTime'] ?? '');
+            $out['qr'] = (string) ($data['isoQr'] ?? '');
         }
 
         return $out;
     }
 
     /**
+     * Display name of a method id, from the cached account list.
+     */
+    private function method_name(int $methodid): string {
+        if ($methodid <= 0) {
+            return '';
+        }
+        foreach ($this->get_payment_methods() as $method) {
+            if ((int) $method['id'] === $methodid) {
+                return current_language() === 'ar' && $method['name_ar'] !== ''
+                    ? $method['name_ar'] : $method['name_en'];
+            }
+        }
+        return '';
+    }
+
+    /**
      * Turn a non-2xx or non-success API answer into a checkout_response.
      *
      * The gateway's own validation message is folded into the error text —
-     * without it a 400 is untraceable from the site, and the reason is nearly
-     * always a rejected field (currency, phone format, cart total).
+     * without it a failure is untraceable from the site, and the reason is
+     * nearly always a rejected field or a credential mismatch.
      *
      * @return checkout_response|null Null when the call succeeded.
      */
@@ -636,353 +648,7 @@ class gateway extends base_provider {
         return null;
     }
 
-    /**
-     * GET /api/v2/getPaymentmethods — the methods enabled on the account.
-     *
-     * Cached (see local_payments db/caches.php) so selecting a method does not
-     * add an API round-trip to every checkout. Purge caches after enabling a new
-     * method in the Fawaterk dashboard, or wait out the hour.
-     */
-    public function get_payment_methods(): array {
-        $cache = \cache::make('local_payments', 'provider_payment_methods');
-        $key = $this->plugin_name . ($this->is_sandbox() ? '_sandbox' : '_live');
-
-        $cached = $cache->get($key);
-        if (is_array($cached)) {
-            return $cached;
-        }
-
-        $methods = $this->fetch_payment_methods();
-
-        // Only cache a real answer — caching an empty list would keep the site on
-        // the hosted-page fallback for an hour after a transient API failure.
-        if (!empty($methods)) {
-            $cache->set($key, $methods);
-        }
-
-        return $methods;
-    }
-
-    private function fetch_payment_methods(): array {
-        $base = $this->get_api_base();
-        $result = $this->api_request('GET', "{$base}/api/v2/getPaymentmethods");
-
-        if ($result['http_code'] < 200 || $result['http_code'] >= 300
-                || (($result['body']['status'] ?? '') !== 'success')) {
-            $this->log('error', 'Fawaterk getPaymentmethods failed', [
-                'http_code' => $result['http_code'],
-                'response' => $result['body'],
-            ]);
-            return [];
-        }
-
-        $methods = [];
-        foreach (($result['body']['data'] ?? []) as $method) {
-            if (empty($method['paymentId'])) {
-                continue;
-            }
-            $methods[] = [
-                'id' => (int) $method['paymentId'],
-                'name_en' => (string) ($method['name_en'] ?? ''),
-                'name_ar' => (string) ($method['name_ar'] ?? ''),
-                'logo' => (string) ($method['logo'] ?? ''),
-                // Fawaterk sends this as the string "true"/"false".
-                'redirect' => filter_var($method['redirect'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            ];
-        }
-
-        return $methods;
-    }
-
-    public function supports_payment_methods(): bool {
-        return true;
-    }
-
-    /**
-     * GET /api/v2/getInvoiceData/:invoiceId — authoritative invoice state.
-     *
-     * @param string $invoiceid
-     * @return array|null Decoded `data` object, or null when the call failed.
-     */
-    private function get_invoice_data(string $invoiceid): ?array {
-        if ($invoiceid === '') {
-            return null;
-        }
-
-        $base = $this->get_api_base();
-        $result = $this->api_request('GET', "{$base}/api/v2/getInvoiceData/{$invoiceid}");
-
-        if ($result['http_code'] < 200 || $result['http_code'] >= 300) {
-            $this->log('error', 'Fawaterk getInvoiceData failed', [
-                'invoice_id' => $invoiceid,
-                'http_code' => $result['http_code'],
-            ]);
-            return null;
-        }
-
-        $payload = $result['body'];
-        if (($payload['status'] ?? '') !== 'success') {
-            return null;
-        }
-
-        return $payload['data'] ?? [];
-    }
-
-    /**
-     * Verify a payment server-side. $provider_reference is the Fawaterk invoice id
-     * we stored as provider_session_id at checkout time.
-     */
-    public function verify_payment(string $provider_reference): verification_result {
-        $data = $this->get_invoice_data($provider_reference);
-
-        if ($data === null) {
-            return new verification_result([
-                'verified' => false,
-                'error_message' => 'Fawaterk invoice lookup failed for invoice ' . $provider_reference,
-            ]);
-        }
-
-        $paid = $this->invoice_is_paid($data);
-
-        return new verification_result([
-            'verified' => $paid,
-            'status' => $paid ? 'SUCCESS' : strtoupper((string) ($data['invoice_status'] ?? 'UNPAID')),
-            'amount' => (float) ($data['total'] ?? $data['paid_amount'] ?? 0),
-            'currency' => (string) ($data['currency'] ?? ''),
-            'provider_txn_id' => $this->extract_txn_id($data),
-            'provider_order_id' => (string) ($data['invoice_id'] ?? $provider_reference),
-            'payment_method_type' => (string) ($data['payment_method'] ?? ''),
-            'raw_response' => $data,
-        ]);
-    }
-
-    /**
-     * Fawaterk reports "paid" either as a 1/0 flag or an invoice_status string
-     * depending on the endpoint version — accept both.
-     */
-    private function invoice_is_paid(array $data): bool {
-        if (isset($data['paid'])) {
-            return (int) $data['paid'] === 1;
-        }
-        return strtolower((string) ($data['invoice_status'] ?? '')) === 'paid';
-    }
-
-    private function extract_txn_id(array $data): string {
-        $transactions = $data['invoice_transactions'] ?? [];
-        if (is_array($transactions) && !empty($transactions)) {
-            $last = end($transactions);
-            if (is_array($last)) {
-                return (string) ($last['transaction_id'] ?? $last['id'] ?? $last['reference_number'] ?? '');
-            }
-        }
-        return (string) ($data['referenceNumber'] ?? '');
-    }
-
-    /**
-     * Process a Fawaterk webhook.
-     *
-     * Fawaterk posts four different shapes to the same URL, so the event is
-     * inferred from the fields present:
-     *  - invoice_status = paid  → successful payment
-     *  - errorMessage present   → failed payment attempt
-     *  - status = EXPIRED       → cancelled (Fawry/Aman/Masary reference expired)
-     *  - approvedAt present     → refund approved
-     *
-     * The hashKey is an HMAC-SHA256 of a fixed query string, keyed with the
-     * vendor key. Paid/failed use InvoiceId+InvoiceKey+PaymentMethod, cancelled
-     * uses referenceId+PaymentMethod.
-     */
-    public function handle_webhook(string $payload, array $headers): webhook_result {
-        $data = json_decode($payload, true);
-        if (empty($data) || !is_array($data)) {
-            return new webhook_result([
-                'signature_valid' => false,
-                'processed' => false,
-                'error_message' => 'Invalid JSON payload',
-            ]);
-        }
-
-        $meta = $this->decode_payload_field($data['pay_load'] ?? $data['payLoad'] ?? null);
-        $merchantorderid = (string) ($meta['order_id'] ?? '');
-        $hashkey = (string) ($data['hashKey'] ?? '');
-
-        // ── Refund approved ──────────────────────────────────────────────────
-        // Fawaterk documents no hashKey for refund notifications and sends no
-        // invoice reference, so there is nothing to authenticate or match on.
-        // Record it and let an admin reconcile from the dashboard.
-        if (isset($data['approvedAt']) || strtolower((string) ($data['status'] ?? '')) === 'approved') {
-            $this->log('warning', 'Fawaterk refund webhook received (not auto-applied)', [
-                'transaction_reference' => $data['transactionId'] ?? '',
-                'amount' => $data['amount'] ?? '',
-            ]);
-            return new webhook_result([
-                'signature_valid' => false,
-                'processed' => false,
-                'event_type' => 'refund',
-                'merchant_order_id' => $merchantorderid,
-                'provider_txn_id' => (string) ($data['transactionId'] ?? ''),
-                'status' => (string) ($data['status'] ?? ''),
-                'amount' => (float) ($data['amount'] ?? 0),
-                'currency' => (string) ($data['currency'] ?? ''),
-                'response_message' => (string) ($data['reason'] ?? ''),
-                'metadata' => $meta,
-                'error_message' => 'Fawaterk refund webhooks are unsigned and carry no invoice reference; '
-                    . 'reconcile this refund manually.',
-            ]);
-        }
-
-        // ── Cancelled / expired reference ────────────────────────────────────
-        if (strtoupper((string) ($data['status'] ?? '')) === 'EXPIRED') {
-            $method = (string) ($data['paymentMethod'] ?? '');
-            $referenceid = (string) ($data['referenceId'] ?? '');
-            $valid = $this->check_hash($hashkey, "referenceId={$referenceid}&PaymentMethod={$method}");
-
-            if (!$valid) {
-                $this->log('warning', 'Fawaterk cancelled-webhook signature check failed', [
-                    'reference_id' => $referenceid,
-                ]);
-            }
-
-            return new webhook_result([
-                'signature_valid' => $valid,
-                'processed' => $valid,
-                'event_type' => 'pay',
-                'merchant_order_id' => $merchantorderid,
-                'provider_txn_id' => (string) ($data['transactionId'] ?? ''),
-                'order_reference' => $referenceid,
-                'status' => 'EXPIRED',
-                'payment_method' => $method,
-                'response_message' => 'Payment reference expired',
-                'metadata' => $meta,
-            ]);
-        }
-
-        // ── Paid / failed ────────────────────────────────────────────────────
-        $invoiceid = (string) ($data['invoice_id'] ?? '');
-        $invoicekey = (string) ($data['invoice_key'] ?? '');
-        $method = (string) ($data['payment_method'] ?? '');
-        $ispaid = strtolower((string) ($data['invoice_status'] ?? '')) === 'paid';
-
-        $signaturebase = "InvoiceId={$invoiceid}&InvoiceKey={$invoicekey}&PaymentMethod={$method}";
-        $valid = $this->check_hash($hashkey, $signaturebase);
-
-        if ($ispaid) {
-            if (!$valid) {
-                $this->log('warning', 'Fawaterk paid-webhook signature check failed', [
-                    'invoice_id' => $invoiceid,
-                ]);
-                return new webhook_result([
-                    'signature_valid' => false,
-                    'processed' => false,
-                    'event_type' => 'pay',
-                    'merchant_order_id' => $merchantorderid,
-                    'provider_order_id' => $invoiceid,
-                    'error_message' => 'hashKey verification failed',
-                ]);
-            }
-
-            // The paid webhook carries no amount, and the amount is what the
-            // manager checks before enrolling — so re-read the invoice from the
-            // API and use those figures rather than trusting the POST body.
-            $invoice = $this->get_invoice_data($invoiceid);
-            if ($invoice === null || !$this->invoice_is_paid($invoice)) {
-                $this->log('error', 'Fawaterk paid webhook not confirmed by getInvoiceData', [
-                    'invoice_id' => $invoiceid,
-                ]);
-                return new webhook_result([
-                    'signature_valid' => true,
-                    'processed' => false,
-                    'event_type' => 'pay',
-                    'merchant_order_id' => $merchantorderid,
-                    'provider_order_id' => $invoiceid,
-                    'error_message' => 'Invoice is not confirmed paid by the Fawaterk API',
-                ]);
-            }
-
-            return new webhook_result([
-                'signature_valid' => true,
-                'processed' => true,
-                'event_type' => 'pay',
-                'merchant_order_id' => $merchantorderid,
-                'provider_order_id' => $invoiceid,
-                'provider_txn_id' => (string) ($data['referenceNumber'] ?? $this->extract_txn_id($invoice)),
-                'order_reference' => $invoicekey,
-                'status' => 'SUCCESS',
-                'amount' => (float) ($invoice['total'] ?? 0),
-                'currency' => (string) ($invoice['currency'] ?? ''),
-                'payment_method' => $method ?: (string) ($invoice['payment_method'] ?? ''),
-                'metadata' => $meta,
-            ]);
-        }
-
-        // Failed attempt. Fawaterk's docs show no hashKey on this shape, so when
-        // it is absent confirm server-side that the invoice really is unpaid
-        // before letting an unauthenticated POST fail somebody's order.
-        if ($hashkey === '') {
-            $invoice = $this->get_invoice_data($invoiceid);
-            $valid = ($invoice !== null && !$this->invoice_is_paid($invoice));
-            if (!$valid) {
-                $this->log('warning', 'Unsigned Fawaterk failure webhook could not be confirmed', [
-                    'invoice_id' => $invoiceid,
-                ]);
-            }
-        }
-
-        $response = $data['response'] ?? [];
-
-        return new webhook_result([
-            'signature_valid' => $valid,
-            'processed' => $valid,
-            'event_type' => 'pay',
-            'merchant_order_id' => $merchantorderid,
-            'provider_order_id' => $invoiceid,
-            'provider_txn_id' => (string) ($data['referenceNumber'] ?? ''),
-            'order_reference' => $invoicekey,
-            'status' => 'FAILED',
-            'amount' => (float) ($data['amount'] ?? 0),
-            'currency' => (string) ($data['paidCurrency'] ?? ''),
-            'payment_method' => $method,
-            'response_code' => (string) ($response['gatewayCode'] ?? ''),
-            'response_message' => (string) ($data['errorMessage']
-                ?? ($response['gatewayRecommendation'] ?? '')),
-            'metadata' => $meta,
-        ]);
-    }
-
-    /**
-     * Constant-time HMAC-SHA256 comparison against the vendor key.
-     */
-    private function check_hash(string $received, string $querystring): bool {
-        if ($received === '') {
-            return false;
-        }
-        $vendorkey = $this->get_vendor_key();
-        if ($vendorkey === '') {
-            $this->log('error', 'Fawaterk vendor key is not configured; cannot verify webhook');
-            return false;
-        }
-        $calculated = hash_hmac('sha256', $querystring, $vendorkey, false);
-        return hash_equals($calculated, $received);
-    }
-
-    /**
-     * pay_load comes back as an object on some events and a JSON string on others.
-     */
-    private function decode_payload_field($raw): array {
-        if (is_array($raw)) {
-            return $raw;
-        }
-        if (is_string($raw) && $raw !== '') {
-            $decoded = json_decode($raw, true);
-            if (is_array($decoded)) {
-                return $decoded;
-            }
-        }
-        return [];
-    }
-
     private function stringify_error(array $payload): string {
-        $text = '';
         if (!empty($payload['message'])) {
             $text = is_array($payload['message']) ? json_encode($payload['message']) : (string) $payload['message'];
         } else if (!empty($payload['errors'])) {
@@ -991,15 +657,12 @@ class gateway extends base_provider {
             $text = json_encode($payload);
         }
 
-        // Fawaterk answers a bad vendor key with HTTP 400 and a "token" error
-        // rather than a 401, which reads like a bad request. Name the usual
-        // cause, because staging and live are separate accounts with separate
-        // keys and mixing them up is by far the most common setup mistake.
+        // A rejected credential comes back as a "token"/"vendor" complaint —
+        // and on v2 as HTTP 400, which reads like a bad request. Name the usual
+        // cause, since sandbox and live are separate accounts.
         if (stripos($text, 'token') !== false || stripos($text, 'vendor') !== false) {
             $env = $this->is_sandbox() ? 'sandbox' : 'live';
-            $credential = $this->get_auth_mode() === 'oauth'
-                ? 'the OAuth client id/secret'
-                : 'the HASH API key';
+            $credential = $this->uses_v3() ? 'the OAuth client id/secret' : 'the HASH API key';
             $text .= sprintf(
                 ' — Fawaterk rejected the credentials. This provider is in %s mode and calls %s,'
                 . ' so %s must belong to the %s account: sandbox and live are separate accounts'
@@ -1011,23 +674,144 @@ class gateway extends base_provider {
         return $text;
     }
 
+    // ─── Payment methods ────────────────────────────────────────────────────
+
     /**
-     * Fawaterk exposes no refund endpoint on the v2 API — refunds are raised from
-     * the Fawaterk dashboard and only notified back over the webhook.
+     * The methods enabled on the account.
+     *
+     * Cached (see local_payments db/caches.php) so selecting a method does not
+     * add an API round-trip to every checkout. Purge caches after enabling a new
+     * method in the Fawaterk dashboard, or wait out the hour.
      */
-    public function refund(string $provider_order_id, float $amount, string $currency, string $reason = ''): refund_result {
-        return new refund_result([
-            'success' => false,
-            'amount' => $amount,
-            'currency' => $currency,
-            'error_message' => 'Fawaterk does not expose a refund API; raise the refund in the Fawaterk dashboard.',
-        ]);
+    public function get_payment_methods(): array {
+        $cache = \cache::make('local_payments', 'provider_payment_methods');
+        $key = $this->plugin_name . ($this->is_sandbox() ? '_sandbox' : '_live')
+            . ($this->uses_v3() ? '_v3' : '_v2');
+
+        $cached = $cache->get($key);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $methods = $this->fetch_payment_methods();
+
+        // Only cache a real answer — caching an empty list would keep the site
+        // on the fallback for an hour after a transient API failure.
+        if (!empty($methods)) {
+            $cache->set($key, $methods);
+        }
+
+        return $methods;
     }
 
-    public function void_payment(string $provider_order_id, string $reason = ''): refund_result {
-        return new refund_result([
-            'success' => false,
-            'error_message' => 'Fawaterk does not support voiding an invoice through the API.',
+    private function fetch_payment_methods(): array {
+        $url = $this->get_api_base()
+            . ($this->uses_v3() ? '/api/v3/getTrPaymentmethods' : '/api/v2/getPaymentmethods');
+
+        $result = $this->api_request('GET', $url);
+
+        if ($result['http_code'] < 200 || $result['http_code'] >= 300
+                || (($result['body']['status'] ?? '') !== 'success')) {
+            $this->log('error', 'Fawaterk payment method listing failed', [
+                'http_code' => $result['http_code'],
+                'response' => $result['body'],
+            ]);
+            return [];
+        }
+
+        $methods = [];
+        foreach (($result['body']['data'] ?? []) as $method) {
+            // v3 calls it payment_method_id, v2 calls it paymentId.
+            $id = (int) ($method['payment_method_id'] ?? $method['paymentId'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
+            // v3 reports whether the method is actually live for this account.
+            if (isset($method['integration_status']) && (int) $method['integration_status'] !== 1) {
+                continue;
+            }
+            $methods[] = [
+                'id' => $id,
+                'name_en' => (string) ($method['name_en'] ?? ''),
+                'name_ar' => (string) ($method['name_ar'] ?? ''),
+                'logo' => (string) ($method['logo'] ?? ''),
+                // Sent as the string "true"/"false".
+                'redirect' => filter_var($method['redirect'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            ];
+        }
+
+        return $methods;
+    }
+
+    public function supports_payment_methods(): bool {
+        return true;
+    }
+
+    // ─── Verification ───────────────────────────────────────────────────────
+
+    /**
+     * Read the authoritative state of a payment.
+     *
+     * $provider_reference is the v3 intent_key or the v2 invoice id, whichever
+     * we stored as provider_session_id at checkout time.
+     *
+     * @return array|null Normalised {paid, status, amount, currency, method, txn_id}.
+     */
+    private function fetch_transaction(string $provider_reference): ?array {
+        if ($provider_reference === '') {
+            return null;
+        }
+
+        $base = $this->get_api_base();
+
+        if ($this->uses_v3()) {
+            $result = $this->api_request('POST', $base . '/api/v3/getTransactionData',
+                ['intent_key' => $provider_reference]);
+        } else {
+            $result = $this->api_request('GET', $base . '/api/v2/getInvoiceData/' . $provider_reference);
+        }
+
+        if ($result['http_code'] < 200 || $result['http_code'] >= 300
+                || (($result['body']['status'] ?? '') !== 'success')) {
+            $this->log('error', 'Fawaterk transaction lookup failed', [
+                'reference' => $provider_reference,
+                'http_code' => $result['http_code'],
+            ]);
+            return null;
+        }
+
+        $data = $result['body']['data'] ?? [];
+
+        return [
+            'paid' => (int) ($data['paid'] ?? 0) === 1,
+            'status' => (string) ($data['status_text'] ?? ($data['invoice_status'] ?? '')),
+            'amount' => (float) ($data['total'] ?? 0),
+            'currency' => (string) ($data['currency'] ?? ''),
+            'method' => (string) ($data['payment_method'] ?? ''),
+            'txn_id' => (string) ($data['transaction_id'] ?? $data['invoice_id'] ?? ''),
+            'raw' => $data,
+        ];
+    }
+
+    public function verify_payment(string $provider_reference): verification_result {
+        $data = $this->fetch_transaction($provider_reference);
+
+        if ($data === null) {
+            return new verification_result([
+                'verified' => false,
+                'error_message' => 'Fawaterk transaction lookup failed for ' . $provider_reference,
+            ]);
+        }
+
+        return new verification_result([
+            'verified' => $data['paid'],
+            'status' => $data['paid'] ? 'SUCCESS' : strtoupper($data['status'] ?: 'UNPAID'),
+            'amount' => $data['amount'],
+            'currency' => $data['currency'],
+            'provider_txn_id' => $data['txn_id'],
+            'provider_order_id' => $data['txn_id'],
+            'payment_method_type' => $data['method'],
+            'raw_response' => $data['raw'],
         ]);
     }
 
@@ -1045,8 +829,339 @@ class gateway extends base_provider {
         ]);
     }
 
+    // ─── Webhooks ───────────────────────────────────────────────────────────
+
+    /**
+     * Process a Fawaterk webhook.
+     *
+     * Fawaterk posts four different shapes, and the v3 and v2 generations name
+     * their fields differently, so the event is inferred from what is present:
+     *
+     *  - status paid/pending (+ transaction_key) → payment, v3
+     *  - invoice_status paid                     → payment, v2
+     *  - errorMessage                            → failed attempt
+     *  - status EXPIRED/CANCELED                 → reference expired
+     *  - approvedAt                              → refund approved
+     *
+     * Every shape is signed HMAC-SHA256 with the HASH API key over a fixed
+     * string; only the fields in that string differ.
+     */
+    public function handle_webhook(string $payload, array $headers): webhook_result {
+        $data = json_decode($payload, true);
+        if (empty($data) || !is_array($data)) {
+            return new webhook_result([
+                'signature_valid' => false,
+                'processed' => false,
+                'error_message' => 'Invalid JSON payload',
+            ]);
+        }
+
+        $meta = $this->decode_payload_field($data['pay_load'] ?? $data['payLoad'] ?? null);
+        $merchantorderid = (string) ($meta['order_id'] ?? '');
+
+        // Refund approved.
+        if (isset($data['approvedAt']) || (isset($data['transactionId'], $data['amount'], $data['currency'])
+                && !isset($data['referenceId']))) {
+            return $this->webhook_refund($data, $meta, $merchantorderid);
+        }
+
+        // Reference expired or cancelled.
+        if (in_array(strtoupper((string) ($data['status'] ?? '')), ['EXPIRED', 'CANCELED', 'CANCELLED'], true)) {
+            return $this->webhook_cancelled($data, $meta, $merchantorderid);
+        }
+
+        // Failed attempt.
+        if (isset($data['errorMessage'])) {
+            return $this->webhook_failed($data, $meta, $merchantorderid);
+        }
+
+        return $this->webhook_payment($data, $meta, $merchantorderid);
+    }
+
+    /**
+     * Paid or pending. v3 signs this one as `transactionHashKey`.
+     */
+    private function webhook_payment(array $data, array $meta, string $merchantorderid): webhook_result {
+        $transactionkey = (string) ($data['transaction_key'] ?? '');
+        $transactionid = (string) ($data['transaction_id'] ?? '');
+        $method = (string) ($data['payment_method'] ?? '');
+
+        $hash = (string) ($data['transactionHashKey'] ?? $data['hashKey'] ?? '');
+        $valid = $this->check_hash($hash, $this->payment_string_to_sign($data));
+
+        if (!$valid) {
+            $this->log('warning', 'Fawaterk payment webhook signature check failed', [
+                'transaction_key' => $transactionkey,
+                'transaction_id' => $transactionid,
+            ]);
+            return new webhook_result([
+                'signature_valid' => false,
+                'processed' => false,
+                'event_type' => 'pay',
+                'merchant_order_id' => $merchantorderid,
+                'provider_order_id' => $transactionid,
+                'error_message' => 'hashKey verification failed',
+            ]);
+        }
+
+        // v3 reports pending for async methods (a Fawry code issued but not yet
+        // paid). That is not a failure and must not fail the order — acknowledge
+        // it and wait for the paid callback.
+        $status = strtolower((string) ($data['status'] ?? $data['invoice_status'] ?? ''));
+        if ($status === 'pending') {
+            return new webhook_result([
+                'signature_valid' => true,
+                'processed' => true,
+                'event_type' => 'pending',
+                'merchant_order_id' => $merchantorderid,
+                'provider_order_id' => $transactionid,
+                'order_reference' => $transactionkey,
+                'status' => 'PENDING',
+                'payment_method' => $method,
+                'metadata' => $meta,
+            ]);
+        }
+
+        // The signature covers only the ids and the method, not the amount — so
+        // a captured webhook could be replayed with a different paidAmount. Read
+        // the figures back from the API instead of trusting the body.
+        $reference = $transactionkey !== '' ? $transactionkey : (string) ($data['invoice_id'] ?? '');
+        $confirmed = $this->fetch_transaction($reference);
+
+        if ($confirmed === null || !$confirmed['paid']) {
+            $this->log('error', 'Fawaterk paid webhook not confirmed by the API', [
+                'transaction_key' => $transactionkey,
+                'reported_status' => $status,
+            ]);
+            return new webhook_result([
+                'signature_valid' => true,
+                'processed' => false,
+                'event_type' => 'pay',
+                'merchant_order_id' => $merchantorderid,
+                'provider_order_id' => $transactionid,
+                'error_message' => 'Transaction is not confirmed paid by the Fawaterk API',
+            ]);
+        }
+
+        return new webhook_result([
+            'signature_valid' => true,
+            'processed' => true,
+            'event_type' => 'pay',
+            'merchant_order_id' => $merchantorderid,
+            'provider_order_id' => $transactionid ?: $confirmed['txn_id'],
+            'provider_txn_id' => $transactionid ?: $confirmed['txn_id'],
+            'order_reference' => $transactionkey,
+            'status' => 'SUCCESS',
+            'amount' => $confirmed['amount'],
+            'currency' => $confirmed['currency'],
+            'payment_method' => $method ?: $confirmed['method'],
+            'metadata' => $meta,
+        ]);
+    }
+
+    private function webhook_failed(array $data, array $meta, string $merchantorderid): webhook_result {
+        $response = $this->decode_payload_field($data['response'] ?? null);
+
+        $valid = $this->check_hash((string) ($data['hashKey'] ?? ''), $this->payment_string_to_sign($data));
+        if (!$valid) {
+            $this->log('warning', 'Fawaterk failure webhook signature check failed', [
+                'transaction_key' => $data['transaction_key'] ?? '',
+            ]);
+        }
+
+        return new webhook_result([
+            'signature_valid' => $valid,
+            'processed' => $valid,
+            'event_type' => 'pay',
+            'merchant_order_id' => $merchantorderid,
+            'provider_order_id' => (string) ($data['transaction_id'] ?? ''),
+            'order_reference' => (string) ($data['transaction_key'] ?? ''),
+            'status' => 'FAILED',
+            'amount' => (float) ($data['amount'] ?? 0),
+            'currency' => (string) ($data['paidCurrency'] ?? ''),
+            'payment_method' => (string) ($data['payment_method'] ?? ''),
+            'response_code' => (string) ($response['gatewayCode'] ?? ''),
+            'response_message' => (string) ($data['errorMessage'] ?? ''),
+            'metadata' => $meta,
+        ]);
+    }
+
+    private function webhook_cancelled(array $data, array $meta, string $merchantorderid): webhook_result {
+        $method = (string) ($data['paymentMethod'] ?? '');
+        $referenceid = (string) ($data['referenceId'] ?? '');
+
+        $valid = $this->check_hash((string) ($data['hashKey'] ?? ''),
+            "referenceId={$referenceid}&PaymentMethod={$method}");
+
+        if (!$valid) {
+            $this->log('warning', 'Fawaterk cancellation webhook signature check failed', [
+                'reference_id' => $referenceid,
+            ]);
+        }
+
+        return new webhook_result([
+            'signature_valid' => $valid,
+            'processed' => $valid,
+            'event_type' => 'pay',
+            'merchant_order_id' => $merchantorderid,
+            'provider_order_id' => (string) ($data['transactionId'] ?? ''),
+            'order_reference' => (string) ($data['transactionKey'] ?? $referenceid),
+            'status' => strtoupper((string) ($data['status'] ?? 'EXPIRED')),
+            'payment_method' => $method,
+            'response_message' => 'Payment reference ' . strtolower((string) ($data['status'] ?? 'expired')),
+            'metadata' => $meta,
+        ]);
+    }
+
+    private function webhook_refund(array $data, array $meta, string $merchantorderid): webhook_result {
+        $txnid = (string) ($data['transactionId'] ?? '');
+        $amount = (string) ($data['amount'] ?? '');
+        $currency = (string) ($data['currency'] ?? '');
+
+        $valid = $this->check_hash((string) ($data['hashKey'] ?? ''),
+            "transactionId={$txnid}&amount={$amount}&currency={$currency}");
+
+        if (!$valid) {
+            $this->log('warning', 'Fawaterk refund webhook signature check failed', ['transaction_id' => $txnid]);
+        }
+
+        return new webhook_result([
+            'signature_valid' => $valid,
+            'processed' => $valid,
+            'event_type' => 'refund',
+            'merchant_order_id' => $merchantorderid,
+            // The refund payload carries no intent key, so this id is the only
+            // handle back to the transaction — the manager matches on it.
+            'provider_order_id' => $txnid,
+            'provider_txn_id' => $txnid,
+            'status' => (string) ($data['status'] ?? ''),
+            'amount' => (float) $amount,
+            'currency' => $currency,
+            'response_message' => (string) ($data['reason'] ?? ''),
+            'metadata' => $meta,
+        ]);
+    }
+
+    /**
+     * Paid and failed webhooks sign the same three fields. v3 names them
+     * TransactionId/TransactionKey; the older invoice payloads use
+     * InvoiceId/InvoiceKey.
+     */
+    private function payment_string_to_sign(array $data): string {
+        $method = (string) ($data['payment_method'] ?? '');
+
+        if (isset($data['transaction_key'])) {
+            return 'TransactionId=' . (string) ($data['transaction_id'] ?? '')
+                . '&TransactionKey=' . (string) $data['transaction_key']
+                . '&PaymentMethod=' . $method;
+        }
+
+        return 'InvoiceId=' . (string) ($data['invoice_id'] ?? '')
+            . '&InvoiceKey=' . (string) ($data['invoice_key'] ?? '')
+            . '&PaymentMethod=' . $method;
+    }
+
+    /**
+     * Constant-time HMAC-SHA256 comparison against the HASH API key.
+     */
+    private function check_hash(string $received, string $stringtosign): bool {
+        if ($received === '') {
+            return false;
+        }
+        $vendorkey = $this->get_vendor_key();
+        if ($vendorkey === '') {
+            $this->log('error', 'Fawaterk HASH API key is not configured; webhooks cannot be verified');
+            return false;
+        }
+        return hash_equals(hash_hmac('sha256', $stringtosign, $vendorkey, false), $received);
+    }
+
+    /**
+     * pay_load comes back as an object on some events and a JSON string on
+     * others; `response` on the failure webhook is a JSON string too.
+     */
+    private function decode_payload_field($raw): array {
+        if (is_array($raw)) {
+            return $raw;
+        }
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+        return [];
+    }
+
+    // ─── Refunds ────────────────────────────────────────────────────────────
+
+    /**
+     * POST /api/v3/refund/create.
+     *
+     * refund_type 3 is "Integration transaction" — what createTransaction makes.
+     * $provider_order_id is Fawaterk's numeric transaction id, which we record
+     * from the paid webhook.
+     */
+    public function refund(string $provider_order_id, float $amount, string $currency, string $reason = ''): refund_result {
+        if (!$this->uses_v3()) {
+            return new refund_result([
+                'success' => false,
+                'amount' => $amount,
+                'currency' => $currency,
+                'error_message' => 'Refunds need the v3 API. Switch the authentication method to '
+                    . 'OAuth, or raise the refund in the Fawaterk dashboard.',
+            ]);
+        }
+
+        $body = [
+            'refund_type' => '3',
+            'refund_id' => (int) $provider_order_id,
+            'reason' => $reason ?: 'Customer requested refund',
+            'refundable_amount' => round($amount, 2),
+            'comment' => 'Refund raised from Moodle',
+        ];
+
+        $this->log('info', 'Requesting Fawaterk refund', [
+            'provider_order_id' => $provider_order_id,
+            'amount' => $amount,
+        ]);
+
+        $result = $this->api_request('POST', $this->get_api_base() . '/api/v3/refund/create', $body);
+        $payload = is_array($result['body']) ? $result['body'] : [];
+        $success = ($result['http_code'] >= 200 && $result['http_code'] < 300)
+            && (($payload['status'] ?? '') === 'success');
+
+        if (!$success) {
+            $this->log('error', 'Fawaterk refund request failed', [
+                'provider_order_id' => $provider_order_id,
+                'http_code' => $result['http_code'],
+                'response' => $payload,
+            ]);
+        }
+
+        return new refund_result([
+            'success' => $success,
+            'status' => $success ? 'requested' : 'failed',
+            'amount' => $amount,
+            'currency' => $currency,
+            'error_message' => $success ? '' : ('Refund failed: ' . $this->stringify_error($payload)),
+            'raw_response' => $payload,
+        ]);
+    }
+
+    /**
+     * Fawaterk has no void — an unpaid transaction simply expires.
+     */
+    public function void_payment(string $provider_order_id, string $reason = ''): refund_result {
+        return new refund_result([
+            'success' => false,
+            'error_message' => 'Fawaterk does not support voiding a transaction; an unpaid one expires on its own.',
+        ]);
+    }
+
     public function supports_refund(): bool {
-        return false;
+        // Refunds are a v3 feature; v2 has no refund endpoint.
+        return $this->uses_v3();
     }
 
     public function supports_void(): bool {

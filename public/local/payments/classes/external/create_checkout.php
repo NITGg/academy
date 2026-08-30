@@ -95,6 +95,7 @@ class create_checkout extends external_api {
                     'Code the buyer pays with (Fawry/Meeza) when type=reference'),
                 'reference_expires_at' => new external_value(PARAM_TEXT, 'When that code stops working, if given'),
                 'method_name' => new external_value(PARAM_TEXT, 'Name of the method charged, for display'),
+                'qr' => new external_value(PARAM_RAW, 'Scannable code payload, when the method issues one'),
             ], 'How to finish the payment'),
         ]);
     }

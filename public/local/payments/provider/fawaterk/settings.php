@@ -31,7 +31,7 @@ if ($hassiteconfig) {
         'paymentprovider_fawaterk/auth_mode',
         get_string('auth_mode', 'paymentprovider_fawaterk'),
         get_string('auth_mode_desc', 'paymentprovider_fawaterk'),
-        'apikey',
+        'oauth',
         [
             'oauth' => get_string('auth_mode_oauth', 'paymentprovider_fawaterk'),
             'apikey' => get_string('auth_mode_apikey', 'paymentprovider_fawaterk'),

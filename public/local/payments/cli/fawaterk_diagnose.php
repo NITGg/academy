@@ -80,7 +80,7 @@ function fawaterk_mask(string $value): string {
 }
 
 $sandbox = (bool) get_config('paymentprovider_fawaterk', 'sandbox_mode');
-$authmode = get_config('paymentprovider_fawaterk', 'auth_mode') === 'oauth' ? 'oauth' : 'apikey';
+$authmode = get_config('paymentprovider_fawaterk', 'auth_mode') === 'apikey' ? 'apikey' : 'oauth';
 $key = trim((string) get_config('paymentprovider_fawaterk', 'vendor_key'));
 $clientid = trim((string) get_config('paymentprovider_fawaterk', 'client_id'));
 $clientsecret = trim((string) get_config('paymentprovider_fawaterk', 'client_secret'));
@@ -93,8 +93,8 @@ cli_writeln('Fawaterk configuration');
 cli_writeln('  enabled in Moodle : ' . ($record->enabled ? 'yes' : 'NO — enable it under Manage providers'));
 cli_writeln('  mode              : ' . ($sandbox ? 'SANDBOX' : 'LIVE'));
 cli_writeln('  api base          : ' . $base);
-cli_writeln('  auth method       : ' . ($authmode === 'oauth'
-    ? 'OAuth 2.0 client credentials' : 'HASH API key'));
+cli_writeln('  api + auth        : ' . ($authmode === 'oauth'
+    ? 'v3 with OAuth 2.0 client credentials' : 'v2 with the HASH API key'));
 if ($authmode === 'oauth') {
     cli_writeln('  token url         : ' . $tokenurl);
     cli_writeln('  client id         : ' . ($clientid === '' ? 'NOT SET' : $clientid));
@@ -111,14 +111,6 @@ if ($sandbox) {
     cli_writeln('NOTE: sandbox mode is ON, so every credential above must come from the');
     cli_writeln('      STAGING account. Credentials copied from app.fawaterk.com are live');
     cli_writeln('      credentials and will be rejected here.');
-    cli_writeln('');
-}
-
-if ($authmode === 'oauth') {
-    cli_writeln('WARNING: OAuth is selected. Tokens issue correctly from /oauth/token, but the');
-    cli_writeln('         /api/v2 payment endpoints reject them with "Invalid Token or inactive');
-    cli_writeln('         vendor" — verified against a live account. Unless Fawaterk has since');
-    cli_writeln('         changed that, set the authentication method to the HASH API key.');
     cli_writeln('');
 }
 
@@ -164,12 +156,12 @@ if (empty($methods)) {
         . ($sandbox ? 'SANDBOX' : 'LIVE') . ' mode,');
     cli_writeln('     so they must come from the ' . ($sandbox ? 'staging' : 'live') . ' account.');
     if ($authmode === 'oauth') {
-        cli_writeln('  2. OAuth tokens are not accepted by the payment API — switch to the');
-        cli_writeln('     HASH API key.');
-        cli_writeln('  3. The OAuth client was revoked. Check it still shows Active.');
+        cli_writeln('  2. The OAuth client was revoked or its secret is wrong. Check it still');
+        cli_writeln('     shows Active on the Integrations page.');
+        cli_writeln('  3. The token URL is wrong for this account: ' . $tokenurl);
     } else {
         cli_writeln('  2. The Fawaterk vendor account is not activated for payments yet.');
-        cli_writeln('  3. No payment methods are enabled on the account at all — ask Fawaterk.');
+        cli_writeln('  3. No payment methods are enabled on the account — ask Fawaterk to enable them.');
     }
     exit(1);
 }
