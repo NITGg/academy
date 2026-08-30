@@ -61,6 +61,94 @@ class validation {
     /** @var int Shortest accepted password (AC-4.1.6). */
     const PASSWORD_MIN = 8;
 
+    /** @var int Fewest digits a password needs (AC-4.1.6), as {@see self::password()} tests for. */
+    const PASSWORD_MIN_DIGITS = 1;
+
+    /** @var int Fewest lower-case letters a password needs (AC-4.1.6). */
+    const PASSWORD_MIN_LOWER = 1;
+
+    /** @var int Fewest upper-case letters a password needs (AC-4.1.6). */
+    const PASSWORD_MIN_UPPER = 1;
+
+    /** @var int Fewest non-alphanumeric characters a password needs - none, by AC-4.1.6. */
+    const PASSWORD_MIN_NONALPHA = 0;
+
+    /**
+     * @var string The characters a first or last name may be made of (AC-4.1.15).
+     *
+     * Held as a bare pattern rather than as a finished PCRE so that the same string
+     * can be given to a client that has to check the box while it is being typed
+     * (`local_profilefields_get_signup_form` sends it) and be the expression this
+     * class matches against on submit. Written in the subset PHP and Dart both
+     * understand: no lookaround, no inline flags, and the curly apostrophe as
+     * itself rather than as `\x{2019}`, which is PCRE-only. A client compiles it
+     * with its Unicode mode on - `RegExp(pattern, unicode: true)` in Dart - because
+     * `\p{L}` means nothing without it.
+     */
+    const NAME_PATTERN = '^[\p{L}\p{M} \'’\-]+$';
+
+    /**
+     * @var string The characters a phone number may be made of. Portable, as {@see self::NAME_PATTERN}.
+     *
+     * The leading `+` is allowed although this class's own message says "digits
+     * only": the field that actually stores the number strips separators and a
+     * dialling code the user typed themselves before it looks at anything, so
+     * `+20 100 123 4567` is a number this site accepts, and a client must not
+     * refuse what the server will take.
+     */
+    const PHONE_PATTERN = '^\+?[0-9 ()\-]+$';
+
+    /**
+     * @var string The shape of an email address, for a client to check while typing.
+     *
+     * Not what {@see self::email()} enforces: that is `validate_email()`, i.e.
+     * `filter_var(FILTER_VALIDATE_EMAIL)`, which is not expressible as a regular
+     * expression anyone should write. This is the shape the error message already
+     * describes ("for example name@example.com"), and it differs from the server in
+     * one direction only - it also wants a dot in the domain. An address without
+     * one cannot receive the confirmation email that finishes sign-up, so nothing
+     * that would have worked is turned away.
+     */
+    const EMAIL_PATTERN = '^[^@\s]+@[^@\s]+\.[^@\s]+$';
+
+    /**
+     * The password rules in force, as numbers a client can test against.
+     *
+     * Two sets of rules run on every password: this class's, through
+     * `local_profilefields_check_password_policy()`, and core's own four minimums
+     * out of `get_password_policy_errors()`. db/upgrade.php zeroes core's so that
+     * only one message is shown - but an administrator is free to raise one again,
+     * and if they do, core enforces it. The rule a client should apply is therefore
+     * the higher of the two, per rule.
+     *
+     * Both sets hang off `$CFG->passwordpolicy`: with it switched off,
+     * `check_password_policy()` runs neither, so there is genuinely nothing to
+     * check and every number is zero.
+     *
+     * @return int[] minlength, mindigits, minlower, minupper, minnonalpha
+     */
+    public static function password_rules(): array {
+        global $CFG;
+
+        if (empty($CFG->passwordpolicy)) {
+            return [
+                'minlength'   => 0,
+                'mindigits'   => 0,
+                'minlower'    => 0,
+                'minupper'    => 0,
+                'minnonalpha' => 0,
+            ];
+        }
+
+        return [
+            'minlength'   => max(self::PASSWORD_MIN, (int) ($CFG->minpasswordlength ?? 0)),
+            'mindigits'   => max(self::PASSWORD_MIN_DIGITS, (int) ($CFG->minpassworddigits ?? 0)),
+            'minlower'    => max(self::PASSWORD_MIN_LOWER, (int) ($CFG->minpasswordlower ?? 0)),
+            'minupper'    => max(self::PASSWORD_MIN_UPPER, (int) ($CFG->minpasswordupper ?? 0)),
+            'minnonalpha' => max(self::PASSWORD_MIN_NONALPHA, (int) ($CFG->minpasswordnonalphanum ?? 0)),
+        ];
+    }
+
     /**
      * The first password rule that fails, as a localised message.
      *
@@ -124,7 +212,7 @@ class validation {
             return get_string('errnamelength', 'local_profilefields');
         }
 
-        if (!preg_match('/^[\p{L}\p{M} \'\x{2019}\-]+$/u', $value)) {
+        if (!preg_match('/' . self::NAME_PATTERN . '/u', $value)) {
             return get_string('errnamechars', 'local_profilefields');
         }
 
@@ -178,7 +266,11 @@ class validation {
         if ($value === '') {
             return get_string('errphoneempty', 'local_profilefields');
         }
-        if (preg_match('/[^0-9 \-()]/', $value)) {
+        // The whole value has to be digits and separators. Stated as a positive,
+        // anchored match rather than as a search for a stray character so that the
+        // one expression can also be handed to a client - see self::PHONE_PATTERN.
+        // The empty case is already answered above, so the `+` costs nothing.
+        if (!preg_match('/' . self::PHONE_PATTERN . '/', $value)) {
             return get_string('errphonedigits', 'local_profilefields');
         }
 

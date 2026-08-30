@@ -142,6 +142,9 @@ class signup_api {
             'defaultcity'           => (string) ($CFG->defaultcity ?? ''),
             'defaultcountry'        => (string) ($CFG->country ?? ''),
             'passwordpolicy'        => empty($CFG->passwordpolicy) ? '' : print_password_policy(),
+            // The same policy as numbers, so a client can check the box as it is
+            // typed instead of only being able to print the sentence above it.
+            'passwordrules'         => validation::password_rules(),
             'consent'               => [
                 'required'  => manager::consent_enabled(),
                 'label'     => manager::consent_enabled() ? policies::consent_label() : '',
@@ -223,6 +226,12 @@ class signup_api {
                 'options'      => self::field_options($element),
             ];
 
+            // Whatever the server will refuse this box for, as numbers and one
+            // expression, so the client can say it while the box is being typed.
+            // Only the keys that mean something are sent: a field with no length
+            // limit has no `maxlength`, rather than a `maxlength` of nothing.
+            $field += self::field_rules($mform, $name, $field['type'], $element);
+
             if ($name === signup::CONSENT) {
                 // Not a profile value: a condition of submitting the form. The client
                 // sends it back as the `consent` parameter, not as a custom field.
@@ -237,6 +246,113 @@ class signup_api {
         }
 
         return $fields;
+    }
+
+    /**
+     * What one field will be refused for, in a form a client can test itself.
+     *
+     * The point is that the app can go on saying "between 2 and 50 characters"
+     * under the box, with Create Account disabled, without a second copy of this
+     * site's rules being written in Dart and drifting from ours. Nothing here is a
+     * new rule: every value is read from whatever `signup_user` already enforces,
+     * so a limit an administrator changes on the management page reaches the app on
+     * the next call to this function.
+     *
+     * Two layers, in this order:
+     *
+     * 1. What the form element declares. Core's boxes carry `maxlength="100"`, the
+     *    password box carries the `MAX_PASSWORD_CHARACTERS` rule, and a custom text
+     *    field's "Maximum length" parameter becomes the same attribute - one read
+     *    covers all three and any field type added later.
+     * 2. This site's own rules, from {@see validation}, which are the tighter ones
+     *    wherever both apply: a name is capped at 50 by AC-4.1.15 and at 100 by
+     *    core's attribute, and 50 is the number that actually decides.
+     *
+     * The password box deliberately gets no `minlength` here. Its rules are the
+     * site's password policy, which is not a property of this one box - they are
+     * returned once, as `passwordrules`, at the top level.
+     *
+     * @param MoodleQuickForm $mform the sign-up form
+     * @param string $name element name
+     * @param string $type the client-facing type, as {@see self::field_type()} named it
+     * @param object $element the QuickForm element
+     * @return array the subset of minlength/maxlength/pattern/patternmessage that applies
+     */
+    protected static function field_rules(MoodleQuickForm $mform, string $name, string $type, $element): array {
+        $rules = [];
+
+        foreach (['minlength', 'maxlength'] as $key) {
+            $length = self::element_length($mform, $name, $element, $key);
+            if ($length > 0) {
+                $rules[$key] = $length;
+            }
+        }
+
+        switch ($name) {
+            case 'firstname':
+            case 'lastname':
+                $rules['minlength'] = validation::NAME_MIN;
+                $rules['maxlength'] = validation::NAME_MAX;
+                $rules['pattern'] = validation::NAME_PATTERN;
+                $rules['patternmessage'] = get_string('errnamechars', 'local_profilefields');
+                break;
+
+            case 'email':
+            case 'email2':
+                $rules['pattern'] = validation::EMAIL_PATTERN;
+                $rules['patternmessage'] = get_string('erremailformat', 'local_profilefields');
+                break;
+        }
+
+        // Matched on the datatype, not on the name: the phone field is a custom one
+        // and its shortname is whatever the administrator who created it chose.
+        if ($type === 'phone') {
+            $rules['pattern'] = validation::PHONE_PATTERN;
+            $rules['patternmessage'] = get_string('errphonedigits', 'local_profilefields');
+            // No length: profilefield_phone checks it per country, against the
+            // dialling code the user picks, so there is no one number to send.
+        }
+
+        return $rules;
+    }
+
+    /**
+     * A length limit the form puts on one field, from either place it can be stated.
+     *
+     * An attribute (`maxlength="100"`) is the browser's hint; a QuickForm rule is
+     * enforced server-side. Both are read because core uses both - the sign-up form
+     * caps the password with a rule and the email with an attribute - and the
+     * stricter of the two is the one that decides.
+     *
+     * @param MoodleQuickForm $mform the sign-up form
+     * @param string $name element name
+     * @param object $element the QuickForm element
+     * @param string $key 'minlength' or 'maxlength'
+     * @return int the limit, or 0 when the field has none
+     */
+    protected static function element_length(MoodleQuickForm $mform, string $name, $element, string $key): int {
+        $limit = 0;
+
+        if (method_exists($element, 'getAttribute')) {
+            $attribute = (int) $element->getAttribute($key);
+            if ($attribute > 0) {
+                $limit = $attribute;
+            }
+        }
+
+        foreach ($mform->_rules[$name] ?? [] as $rule) {
+            $ruled = (int) ($rule['format'] ?? 0);
+            if (($rule['type'] ?? '') !== $key || $ruled <= 0) {
+                continue;
+            }
+            if ($limit <= 0) {
+                $limit = $ruled;
+            } else {
+                $limit = $key === 'maxlength' ? min($limit, $ruled) : max($limit, $ruled);
+            }
+        }
+
+        return $limit;
     }
 
     /**

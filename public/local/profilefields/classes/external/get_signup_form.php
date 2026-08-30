@@ -80,6 +80,13 @@ class get_signup_form extends external_api {
             'defaultcity' => new external_value(PARAM_NOTAGS, 'City stored when the form does not ask for one.'),
             'defaultcountry' => new external_value(PARAM_RAW, 'Country stored when the form does not ask for one.'),
             'passwordpolicy' => new external_value(PARAM_RAW, 'The password policy to show under the password box.'),
+            'passwordrules' => new external_single_structure([
+                'minlength' => new external_value(PARAM_INT, 'Fewest characters a password may have.'),
+                'mindigits' => new external_value(PARAM_INT, 'Fewest digits it must contain.'),
+                'minlower' => new external_value(PARAM_INT, 'Fewest lower-case letters it must contain.'),
+                'minupper' => new external_value(PARAM_INT, 'Fewest upper-case letters it must contain.'),
+                'minnonalpha' => new external_value(PARAM_INT, 'Fewest non-alphanumeric characters it must contain.'),
+            ], 'The same policy as numbers, to check the password box as it is typed. A rule of 0 does not apply.'),
             'consent' => new external_single_structure([
                 'required' => new external_value(PARAM_BOOL, 'True when the user must agree before the account is created.'),
                 'label' => new external_value(PARAM_RAW, 'The checkbox label, with the policy documents linked from it.'),
@@ -107,6 +114,18 @@ class get_signup_form extends external_api {
                     'required' => new external_value(PARAM_BOOL, 'Whether the field must be filled in.'),
                     'iscustom' => new external_value(PARAM_BOOL, 'True for a custom profile field.'),
                     'defaultvalue' => new external_value(PARAM_RAW, 'Default value, when the field has one.'),
+                    'minlength' => new external_value(PARAM_INT,
+                        'Fewest characters this field accepts. Absent when it has no lower limit.', VALUE_OPTIONAL),
+                    'maxlength' => new external_value(PARAM_INT,
+                        'Most characters this field accepts. Absent when it has no upper limit.', VALUE_OPTIONAL),
+                    'pattern' => new external_value(PARAM_RAW,
+                        'A regular expression the value must match, anchored, written so that it compiles unchanged in '
+                        . 'PHP and Dart (no lookaround). Turn Unicode mode on - RegExp(pattern, unicode: true) - or '
+                        . '\p{L} will not work. Absent when the field has no shape rule.', VALUE_OPTIONAL),
+                    'patternmessage' => new external_value(PARAM_RAW,
+                        'What to show when "pattern" does not match, already localised. Always sent with "pattern". '
+                        . 'Length messages have no counterpart here: compose them from minlength/maxlength.',
+                        VALUE_OPTIONAL),
                     'options' => new external_multiple_structure(
                         new external_single_structure([
                             'value' => new external_value(PARAM_RAW, 'The value to submit'),

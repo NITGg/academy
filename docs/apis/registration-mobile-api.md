@@ -80,6 +80,7 @@ live configuration — do not hard-code the field list.
 | `ipmatchphone` | bool | `true` → sign-up is refused when the caller's IP country differs from the phone country |
 | `consent` | object | `{required, label, documents[]}` — the agreement checkbox |
 | `passwordpolicy` | string (HTML) | Show under the password box |
+| `passwordrules` | object | The same policy as numbers, to check the box while it is typed — see [Validating before submit](#validating-before-submit) |
 | `defaultcity` / `defaultcountry` | string | What the server stores when the form does not ask |
 | `extendedusernamechars` | bool | Site setting, informational |
 | `recaptchapublickey` | string | Present only when a captcha is required |
@@ -98,6 +99,8 @@ Each entry of `fields`:
 | `iscustom` | `true` for a custom profile field |
 | `defaultvalue` | Pre-fill with this when non-empty |
 | `options` | `[{value, label, dialcode}]` for anything the user picks from. Empty for free-text fields |
+| `minlength` / `maxlength` | Character limits. **Absent when the field has no such limit** — see [Validating before submit](#validating-before-submit) |
+| `pattern` / `patternmessage` | A shape rule and the sentence to show when it fails. Both absent together |
 
 `type: "phone"` is a **composite** field: `options` is the country list, where
 `value` is the ISO code, `label` the country name and `dialcode` its `+…`
@@ -126,6 +129,7 @@ prefix. Render a country picker plus a number box.
   "defaultcity": "",
   "defaultcountry": "EG",
   "passwordpolicy": "The password must have at least 8 characters…",
+  "passwordrules": {"minlength": 8, "mindigits": 1, "minlower": 1, "minupper": 1, "minnonalpha": 0},
   "consent": {
     "required": true,
     "label": "I agree to the <a href=\"…\">Terms of use</a> and the <a href=\"…\">Privacy policy</a>.",
@@ -134,11 +138,22 @@ prefix. Render a country picker plus a number box.
     ]
   },
   "fields": [
-    {"name": "firstname", "type": "text",     "label": "First name",   "required": true,  "iscustom": false, "options": []},
-    {"name": "lastname",  "type": "text",     "label": "Last name",    "required": true,  "iscustom": false, "options": []},
-    {"name": "email",     "type": "email",    "label": "Email address","required": true,  "iscustom": false, "options": []},
-    {"name": "password",  "type": "password", "label": "Password",     "required": true,  "iscustom": false, "options": []},
+    {"name": "firstname", "type": "text",     "label": "First name",   "required": true,  "iscustom": false, "options": [],
+     "minlength": 2, "maxlength": 50,
+     "pattern": "^[\\p{L}\\p{M} '’\\-]+$",
+     "patternmessage": "Only letters, spaces, hyphens and apostrophes are allowed."},
+    {"name": "lastname",  "type": "text",     "label": "Last name",    "required": true,  "iscustom": false, "options": [],
+     "minlength": 2, "maxlength": 50,
+     "pattern": "^[\\p{L}\\p{M} '’\\-]+$",
+     "patternmessage": "Only letters, spaces, hyphens and apostrophes are allowed."},
+    {"name": "email",     "type": "email",    "label": "Email address","required": true,  "iscustom": false, "options": [],
+     "maxlength": 100,
+     "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+     "patternmessage": "Please enter a valid email address, for example name@example.com."},
+    {"name": "password",  "type": "password", "label": "Password",     "required": true,  "iscustom": false, "options": [],
+     "maxlength": 128},
     {"name": "profile_field_phone", "type": "phone", "label": "Phone", "required": true, "iscustom": true,
+     "pattern": "^\\+?[0-9 ()\\-]+$", "patternmessage": "Please enter digits only.",
      "options": [{"value": "EG", "label": "Egypt +20 🇪🇬", "dialcode": "+20"}, …]},
     {"name": "profile_field_nationality", "type": "menu", "label": "Nationality", "required": false, "iscustom": true,
      "options": [{"value": "Egyptian", "label": "Egyptian", "dialcode": ""}, …]},
@@ -150,6 +165,64 @@ prefix. Render a country picker plus a number box.
 
 Note what is **not** there: no `username`, no `email2`, no `city`, no `country`.
 The site fills those in. Do not send them and do not show boxes for them.
+
+### Validating before submit
+
+`passwordrules` and the four per-field keys exist so the app can validate while
+the user types — a one-letter first name showing "between 2 and 50 characters"
+under the box, Create Account disabled until every rule passes — without a
+second copy of this site's rules living in Dart.
+
+They are **descriptions of what the server will do**, read from the same
+configuration `local_profilefields_signup_user` enforces: a limit an
+administrator changes reaches the app on the next call. They are not a
+replacement for handling the errors that function returns — uniqueness, the
+per-country phone length, reCAPTCHA and the location check can only be decided
+by the server.
+
+**Per field.** A key is **absent** when the field has no such rule; it is never
+sent as `0`, `null` or `""`. So test for presence, not for truthiness.
+
+| Key | Meaning |
+|---|---|
+| `minlength` | Fewest characters, counted as characters, not bytes (`value.characters.length`, or `runes` — a name in Arabic must not be measured in UTF-8 bytes) |
+| `maxlength` | Most characters. Use it as the input's own `maxLength` as well |
+| `pattern` | An **anchored** regular expression the whole value must match |
+| `patternmessage` | The sentence to show when `pattern` fails, already translated per `moodlewssettinglang`. Always sent with `pattern`, never without it |
+
+There is no message for the length rules: compose those yourself from the
+numbers, so the wording matches the rest of your screen.
+
+**The pattern is written to be used unchanged.** It uses no lookahead,
+lookbehind, backreference, named group or inline flag — only what PHP and Dart
+both accept. Compile it with Unicode mode on, or `\p{L}` is a syntax error:
+
+```dart
+final ok = RegExp(field.pattern!, unicode: true).hasMatch(value);
+```
+
+Trim leading and trailing spaces before testing, as the server does.
+
+**Passwords.** `passwordrules` gives the policy as five numbers; keep printing
+`passwordpolicy` under the box as the human sentence. A rule of `0` does not
+apply — with `minnonalpha: 0` a password of letters and digits is fine. Count
+each class over the whole string:
+
+| Key | Passes when |
+|---|---|
+| `minlength` | the password has at least this many characters |
+| `mindigits` | it contains at least this many digits |
+| `minlower` / `minupper` | at least this many lower- / upper-case letters |
+| `minnonalpha` | at least this many characters that are none of the above |
+
+The password box's own `maxlength` (128) arrives as a field key like any other.
+
+**One gap to know about.** The phone number's length is checked **per country**
+against the dialling code picked — Egypt 10 digits, Saudi Arabia 9, Kuwait 8 —
+so it cannot be sent as a single `minlength`/`maxlength` and is not sent at all.
+The `pattern` on that field only says what it may be made of. A wrong length is
+still returned by `signup_user` as a field error naming the expected count; show
+it as it is.
 
 ---
 
