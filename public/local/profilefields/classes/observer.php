@@ -59,6 +59,17 @@ class observer {
 
             verification::stamp_issued($user);
 
+            // The learner ticked the Terms box on the form, so record it against
+            // the policy documents it named. Without this tool_policy has no
+            // record, and asks them to agree a second time the moment they open
+            // the confirmation link. The value is read from the request because
+            // that is where the tick still is - the account was created from it a
+            // moment ago and it is not stored on the user record.
+            if (manager::consent_enabled()
+                    && optional_param(signup::CONSENT, 0, PARAM_BOOL)) {
+                policies::record_acceptance((int) $user->id);
+            }
+
             // Remember who just registered, so the notice core is about to print
             // can be replaced by ours. This event is raised inside
             // auth_email::user_signup(), a few lines before it renders that

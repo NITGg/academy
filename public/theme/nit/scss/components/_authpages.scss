@@ -179,47 +179,6 @@
     }
 
     // ---------------------------------------------------------------------
-    // Phone: dialling code beside the number
-    //
-    // §4.1 lists "Country code" and "Phone number" as two elements of one
-    // question, and profilefield_phone renders them as a group. Left to itself
-    // the group wraps onto three lines with the searchable country box floating
-    // over the number, because both children are flex items with no basis.
-    // ---------------------------------------------------------------------
-    #fgroup_id_profile_field_phone {
-        fieldset > .d-flex {
-            gap: 0.5rem;
-            flex-wrap: nowrap !important;
-            align-items: center !important;
-        }
-
-        .fitem {
-            margin-bottom: 0;
-        }
-
-        // The dialling code needs room for a flag, a name and a code; the number
-        // takes what is left. `min-width: 0` on both, or a flex item refuses to
-        // shrink below its content and the pair overflows the row.
-        .profilefield-phone-country {
-            flex: 0 0 12rem;
-            min-width: 0;
-        }
-
-        .profilefield-phone-number {
-            flex: 1 1 auto;
-            min-width: 0;
-        }
-
-        // Only the group's *own* repeated "Phone"/"Country" captions are hidden -
-        // the ones belonging to the two inner fitems. Hiding every .col-form-label
-        // in this subtree also took out the searchable country box, whose visible
-        // parts the autocomplete renders inside a label.
-        > .col-form-label {
-            display: none;
-        }
-    }
-
-    // ---------------------------------------------------------------------
     // Password: the reveal toggle belongs inside the box
     //
     // Moodle renders the toggle as a button after the input, which on this form
@@ -405,6 +364,74 @@
 @media (prefers-reduced-motion: reduce) {
     .nit-auth .alert,
     .nit-auth #loginerrormessage {
+        animation: none;
+    }
+}
+
+// =============================================================================
+// Page-level notifications on the account screens
+//
+// Moodle drops a redirect's message into #user-notifications, which sits in
+// #region-main *beside* the content rather than inside it. Two things follow, and
+// both are visible the moment a message appears:
+//
+//   1. it is in the normal flow, so the heading and everything under it move down
+//      the page - the same content sitting in two different places depending on
+//      whether the last action produced a message;
+//   2. the container shrink-wraps its content (it is 0px wide when empty), so the
+//      box lands hard against the start edge instead of lining up with the
+//      centred card it is talking about.
+//
+// A redirect message here is always a short, transient confirmation - "a new
+// confirmation email has been sent" - which is exactly what a toast is for. Fixed
+// to the viewport it cannot move anything, and it can be placed deliberately
+// instead of wherever the flow happens to put it.
+//
+// Deliberately NOT auto-dismissed: Moodle's own close button stays, and a message
+// that vanishes on a timer is a message somebody will miss. And deliberately
+// scoped to the login layout - an administrator's "changes saved" belongs in
+// context, next to what was saved.
+// =============================================================================
+body.pagelayout-login #user-notifications {
+    position: fixed;
+    z-index: 1080;
+
+    // Anchored to the bottom, not the top. The login layout has no navigation bar
+    // for a toast to sit under, so a top-anchored one lands straight on the page
+    // heading - which is worse than the shifting it was meant to fix. The bottom
+    // edge is empty on every screen in this journey.
+    bottom: 1.5rem;
+    inset-inline: 0;
+    width: min(26rem, calc(100% - 2rem));
+    margin-inline: auto;
+    pointer-events: none;
+
+    // The container is inert so it never blocks the page behind it; the messages
+    // themselves take their clicks back, so Close still works.
+    > * {
+        pointer-events: auto;
+    }
+
+    .alert {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        animation: nit-toast-in 240ms ease-out;
+    }
+}
+
+@keyframes nit-toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.5rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.pagelayout-login #user-notifications .alert {
         animation: none;
     }
 }

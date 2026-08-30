@@ -368,3 +368,7 @@ Your account on {$a->sitename} has been deleted, as you asked. Your access to th
 Certificates you had already earned remain verifiable by anyone holding their code.
 
 If you did not ask for this, please contact support immediately.';
+
+// The note stored against a policy acceptance recorded from the sign-up form,
+// so an administrator reading the acceptance log can see where it came from.
+$string['consentnote'] = 'Accepted on the sign-up form.';

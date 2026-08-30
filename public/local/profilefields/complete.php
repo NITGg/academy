@@ -128,6 +128,13 @@ if ($data = $form->get_data()) {
     profile_load_custom_fields($USER);
     unset($SESSION->fullysetupstrict);
 
+    // The Google path collects the same Terms tick as the sign-up form, so it has
+    // to leave the same record - otherwise tool_policy asks this learner again on
+    // their very next page, having seen no acceptance.
+    if (!empty($missing['consent']) && !empty($data->{signup::CONSENT})) {
+        \local_profilefields\policies::record_acceptance((int) $USER->id);
+    }
+
     // AC-4.1.16: registration is only now finished for this account, and no event
     // marks the moment - the learner was already logged in when they arrived. The
     // observer that welcomes password accounts on first login declines to act

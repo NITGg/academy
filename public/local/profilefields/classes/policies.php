@@ -131,4 +131,56 @@ class policies {
 
         return get_string('consentlabel', 'local_profilefields', $list);
     }
+
+    /**
+     * Write a formal acceptance for everything the sign-up checkbox covered.
+     *
+     * Without this the learner is asked twice. The inline checkbox of AC-4.1 is a
+     * condition of submitting the form - it stops the account being created - but
+     * it leaves no record anywhere, because it was only ever borrowing tool_policy's
+     * documents to build its label. tool_policy therefore still believes nothing has
+     * been accepted, and the first time the account reaches `require_login()` -
+     * which is the moment the confirmation link is opened - it puts its own
+     * acceptance page in front of the learner for the same documents they already
+     * agreed to on the form.
+     *
+     * So the tick is recorded against every current guest-audience version, which
+     * is exactly the set the checkbox's label listed. tool_policy then has nothing
+     * outstanding to ask about, and the site has a real, versioned audit trail
+     * instead of the tick vanishing into a form submission.
+     *
+     * Safe to call more than once: accept_policies() updates the existing row
+     * rather than adding a second one, so a re-run after an interrupted sign-up
+     * changes nothing.
+     *
+     * @param int $userid the account that ticked the box
+     * @return int how many policy versions were recorded
+     */
+    public static function record_acceptance(int $userid): int {
+        if (!self::tool_available() || $userid <= 0) {
+            return 0;
+        }
+
+        $recorded = 0;
+
+        foreach (self::signup_document_records() as $doc) {
+            try {
+                \tool_policy\api::accept_policies(
+                    $doc->versionid,
+                    $userid,
+                    get_string('consentnote', 'local_profilefields')
+                );
+                $recorded++;
+            } catch (\Throwable $e) {
+                // One document failing must not stop the others, and must never
+                // break the sign-up that is still in progress. The worst case is
+                // the learner being asked once on the policy page - which is the
+                // behaviour they had before this method existed.
+                debugging('local_profilefields: could not record policy acceptance for version '
+                    . $doc->versionid . ': ' . $e->getMessage(), DEBUG_DEVELOPER);
+            }
+        }
+
+        return $recorded;
+    }
 }
