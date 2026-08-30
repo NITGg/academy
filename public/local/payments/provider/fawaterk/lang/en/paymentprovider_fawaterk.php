@@ -6,13 +6,15 @@ $string['webhook_heading'] = 'Webhook URL';
 $string['webhook_heading_desc'] = 'In the Fawaterk dashboard, set the webhook URL to:<br><code>{$a}</code><br>'
     . 'The path must end in <code>_json</code> — that is how Fawaterk decides to POST JSON instead of form data.';
 $string['sandbox_mode'] = 'Sandbox mode';
-$string['sandbox_mode_desc'] = 'Use the Fawaterk staging environment instead of live. Staging is a separate account with its own credentials &mdash; anything copied from app.fawaterk.com is a live credential and will be rejected here.';
+$string['sandbox_mode_desc'] = 'Use the Fawaterk staging environment instead of live. <b>Leave this off unless you have a separate staging account.</b> Staging has its own credentials, and anything copied from app.fawaterk.com is a live credential that will be rejected here. OAuth clients in particular can only be created on the live dashboard, so OAuth and sandbox mode cannot be combined at all.';
 $string['auth_heading'] = 'API authentication';
 $string['auth_heading_desc'] = 'How Moodle talks to the Fawaterk API. Both credential sets come from the Fawaterk dashboard: <b>Integrations</b> in the left menu. Note that OAuth clients can only be created on the live dashboard, so OAuth and sandbox mode cannot be combined.';
 $string['auth_mode'] = 'Authentication method';
 $string['auth_mode_desc'] = 'This picks the API generation as well as the credential, because the two go together. OAuth uses the current v3 API: it takes a per-request webhook URL and supports refunds. The HASH API key uses the older v2 API, which has neither. Leave this on OAuth unless v3 is unavailable on your account.';
-$string['auth_mode_oauth'] = 'OAuth 2.0 client credentials &mdash; API v3 (recommended)';
-$string['auth_mode_apikey'] = 'HASH API key &mdash; API v2 (fallback, no refunds)';
+// These two are dropdown options, not descriptions: Moodle escapes them, so an
+// HTML entity here renders literally on the settings page.
+$string['auth_mode_oauth'] = 'OAuth 2.0 client credentials — API v3 (recommended)';
+$string['auth_mode_apikey'] = 'HASH API key — API v2 (fallback, no refunds)';
 $string['client_id'] = 'OAuth client ID';
 $string['client_id_desc'] = 'From the Fawaterk dashboard: Integrations → machine-to-machine credentials → Client ID. Looks like a UUID.';
 $string['client_secret'] = 'OAuth client secret';
