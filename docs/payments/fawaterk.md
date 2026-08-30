@@ -94,11 +94,40 @@ Two further consequences worth knowing:
 Check the whole setup in one command:
 
 ```bash
-docker compose exec moodle php local/payments/cli/fawaterk_diagnose.php
+docker compose exec moodle php public/local/payments/cli/fawaterk_diagnose.php
 ```
 
-It proves the key, prints the methods the account has enabled, and says which
-one the web checkout will charge.
+It proves the credentials, prints the methods the account has enabled, and says
+which one the web checkout will charge.
+
+> **The `public/` prefix matters.** The container's working directory is the
+> repo root, not the Moodle code root, so CLI scripts are under `public/`. Core
+> scripts like `admin/cli/upgrade.php` resolve without it (there is an `admin/`
+> at the repo root too), which makes the difference easy to miss.
+
+Two more options, both reading through Moodle's DB layer so they work without a
+`mysql` client — there isn't one in the moodle container:
+
+```bash
+docker compose exec moodle php public/local/payments/cli/fawaterk_diagnose.php --logs
+```
+
+The full response body of every failed API call — what Fawaterk actually
+objected to.
+
+```bash
+docker compose exec moodle php public/local/payments/cli/fawaterk_diagnose.php --webhooks
+```
+
+What has arrived and whether each signature verified. This separates "Fawaterk
+never called us" from "it called and we rejected it" — worth checking after the
+first real payment, since the webhook is what does the enrolling.
+
+To syntax-check the plugin after a deploy (silence means clean):
+
+```bash
+docker compose exec moodle sh -c 'find . -name "*.php" -path "*local/payments*" -exec php -l {} \;' | grep -v 'No syntax errors'
+```
 
 Then **Manage providers** → enable *Fawaterk* (and set its priority above Kashier
 if it should be the default pick).
@@ -370,6 +399,8 @@ Webhook bodies (including ones that failed signature checks) are in
 | `{"status":"error","message":"Unable to resolve vendor from OAuth client"}` (401) | The OAuth client is valid but isn't linked to a vendor account. Ask Fawaterk to attach it. |
 | `{"content-type":["The content-type field is required."]}` | The v2 API demands a `Content-Type` header even on GET. Handled since Aug 2026; if you see it, the deploy is behind. |
 | `{"cartTotal":["Amount must be bigger than 5 EGP"]}` (HTTP 422) | Fawaterk enforces a 5 EGP floor per invoice. Any course or plan priced below that cannot be sold through it. |
+| The payment page says **"Setup in Progress — we are completing the final configuration for this invoice's payment methods"** | Nothing to fix on this side. The Fawaterk account has no payment methods activated, which is also why `getTrPaymentmethods` returns `[]`. Ask Fawaterk to enable the methods (card, Fawry, Meeza…) for the vendor account. Until they do, every transaction is created successfully but cannot be paid. |
+| The due date on the payment page is days away | Fawaterk's default is 2 days; *Payment link validity* now sets it explicitly. The Moodle order may expire sooner — that is fine, a payment confirmed afterwards still fulfils. |
 | Everything worked, then stopped | The OAuth client was revoked, or its secret rotated. Tokens are cached until they expire, so a revocation can surface minutes later. `fawaterk_diagnose.php --purge-cache` forces a fresh handshake. |
 | Payment succeeds but no enrolment | The webhook isn't arriving. Check the dashboard URL ends in `webhook_json.php`, and look for `signature_valid = 0` rows — that means the vendor key in Moodle differs from the one signing the webhook. |
 | `no redirect URL or reference` | The account doesn't have that `payment_method_id` enabled. Re-fetch the method list. |

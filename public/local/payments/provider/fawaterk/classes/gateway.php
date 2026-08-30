@@ -435,6 +435,16 @@ class gateway extends base_provider {
             $body['payment_method_id'] = $methodid;
         }
 
+        // How long Fawaterk keeps the transaction payable. Left unset it applies
+        // its own default (2 days), which is why a link for a 30-minute order
+        // shows a due date days out. Sending it makes that window a decision
+        // rather than an inherited surprise. Our order can still expire first —
+        // a late payment is fulfilled by the expired->completed transition.
+        $duedays = (int) $this->get_setting('due_date_days', 2);
+        if ($duedays > 0) {
+            $body['due_date'] = gmdate('Y-m-d\TH:i:s\Z', time() + ($duedays * DAYSECS));
+        }
+
         $this->log('info', 'Creating Fawaterk v3 transaction', [
             'order_id' => $request->order_id,
             'payment_method_id' => $methodid,

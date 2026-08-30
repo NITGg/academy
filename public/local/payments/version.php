@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_payments';
-$plugin->version   = 2026083007;   // fawaterk_diagnose --logs/--webhooks.
+$plugin->version   = 2026083008;   // Explicit Fawaterk due_date; docs corrected to the public/ CLI path.
 $plugin->requires  = 2024100700; // Moodle 4.5+
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_STABLE;
