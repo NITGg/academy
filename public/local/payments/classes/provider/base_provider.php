@@ -97,4 +97,16 @@ abstract class base_provider implements provider_interface {
     public function supports_recurring(): bool {
         return false;
     }
+
+    /**
+     * Providers that only offer a hosted page (their own method picker) inherit
+     * these no-op defaults, so adding method selection never breaks them.
+     */
+    public function supports_payment_methods(): bool {
+        return false;
+    }
+
+    public function get_payment_methods(): array {
+        return [];
+    }
 }

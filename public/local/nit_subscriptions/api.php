@@ -222,7 +222,7 @@ try {
                 'data' => subscription_purchase_manager::get_subscription_payment_history($USER->id)]);
             break;
 
-        // ── Student: start a Kashier checkout for a subscription ──
+        // ── Student: start a gateway checkout for a subscription ──
         case 'create_subscription_checkout':
             require_capability('local/nit_subscriptions:subscribe', $context);
             $mgrfile = $CFG->dirroot . '/local/payments/classes/manager.php';
@@ -241,7 +241,8 @@ try {
                 optional_param('type', 'normal', PARAM_ALPHANUM),
                 optional_param('seats', 0, PARAM_INT),
                 optional_param('coupon_code', '', PARAM_TEXT),
-                optional_param('return_url', '', PARAM_RAW_TRIMMED)
+                optional_param('return_url', '', PARAM_RAW_TRIMMED),
+                optional_param('payment_method_id', 0, PARAM_INT)
             );
             nit_subscriptions_respond(['status' => 'success', 'data' => $checkout]);
             break;

@@ -21,3 +21,5 @@ $string['send_email'] = 'Email the invoice';
 $string['send_email_desc'] = 'Let Fawaterk send the invoice to the buyer by email.';
 $string['send_sms'] = 'SMS the invoice';
 $string['send_sms_desc'] = 'Let Fawaterk send the invoice to the buyer by SMS.';
+$string['default_address'] = 'Fallback address';
+$string['default_address_desc'] = 'Fawaterk requires an address on every invoice. This value is sent when the buyer has no address or city on their Moodle profile.';

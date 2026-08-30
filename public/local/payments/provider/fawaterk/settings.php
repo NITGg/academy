@@ -63,6 +63,15 @@ if ($hassiteconfig) {
         PARAM_TEXT
     ));
 
+    // Fallback address for buyers with no address on their Moodle profile.
+    $settings->add(new admin_setting_configtext(
+        'paymentprovider_fawaterk/default_address',
+        get_string('default_address', 'paymentprovider_fawaterk'),
+        get_string('default_address_desc', 'paymentprovider_fawaterk'),
+        'N/A',
+        PARAM_TEXT
+    ));
+
     // Let Fawaterk email the invoice to the buyer.
     $settings->add(new admin_setting_configcheckbox(
         'paymentprovider_fawaterk/send_email',

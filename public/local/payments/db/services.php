@@ -18,6 +18,14 @@ $functions = [
         'ajax'        => true,
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    'local_payments_get_provider_payment_methods' => [
+        'classname'   => 'local_payments\external\get_provider_payment_methods',
+        'methodname'  => 'execute',
+        'description' => 'Get the payment methods (card, Fawry, Meeza, wallets) the active gateway offers.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
     'local_payments_create_checkout' => [
         'classname'   => 'local_payments\external\create_checkout',
         'methodname'  => 'execute',

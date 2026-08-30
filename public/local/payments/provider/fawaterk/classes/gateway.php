@@ -61,50 +61,80 @@ class gateway extends base_provider {
         $firstname = '';
         $lastname = '';
         $phone = '';
+        $address = '';
 
         if ($request->userid) {
             $user = $DB->get_record('user', ['id' => $request->userid],
-                'id, firstname, lastname, phone1, phone2, email');
+                'id, firstname, lastname, phone1, phone2, email, city, address, country');
             if ($user) {
                 $firstname = trim((string) $user->firstname);
                 $lastname = trim((string) $user->lastname);
                 $phone = trim((string) ($user->phone1 ?: $user->phone2));
+                $address = trim((string) ($user->address ?: $user->city));
             }
         }
 
-        // Fawaterk rejects the invoice if any of these are empty, so fall back to
-        // values that are valid but obviously placeholder.
+        // Fawaterk validates every one of these and answers HTTP 400 if any is
+        // empty or malformed, so fall back to values that are valid but
+        // obviously placeholder rather than letting the checkout die.
         if ($firstname === '') {
             $firstname = 'Customer';
         }
         if ($lastname === '') {
             $lastname = (string) $request->customer_reference ?: 'Account';
         }
-        if ($phone === '') {
-            $phone = (string) $this->get_setting('default_phone', '01000000000');
+        if ($address === '') {
+            $address = (string) $this->get_setting('default_address', 'N/A');
         }
 
         return [
-            'first_name' => $firstname,
-            'last_name' => $lastname,
+            'first_name' => \core_text::substr($firstname, 0, 50),
+            'last_name' => \core_text::substr($lastname, 0, 50),
             'email' => $request->customer_email,
-            'phone' => $phone,
+            'phone' => $this->normalise_phone($phone),
+            'address' => \core_text::substr($address, 0, 100),
         ];
     }
 
     /**
-     * POST /api/v2/createInvoiceLink — create a hosted invoice/checkout link.
+     * Coerce a Moodle profile phone into the local Egyptian format Fawaterk
+     * accepts (01XXXXXXXXX). "+20 100 123 4567", "0020...", "201..." all reduce
+     * to the same 11 digits; anything that still doesn't fit falls back to the
+     * configured placeholder, because a malformed phone is a hard 400.
      */
-    public function initialize_payment(payment_request $request): checkout_response {
-        $base = $this->get_api_base();
+    private function normalise_phone(string $phone): string {
+        $fallback = (string) $this->get_setting('default_phone', '01000000000');
 
-        // Fawaterk validates cartTotal against the sum of cartItems, so keep the
-        // cart a single line worth exactly the amount we are charging.
-        $amount = round($request->amount, 2);
+        $digits = preg_replace('/\D+/', '', $phone);
+        if ($digits === '') {
+            return $fallback;
+        }
+
+        // Strip an international Egyptian prefix in any of its spellings.
+        if (strpos($digits, '0020') === 0) {
+            $digits = substr($digits, 4);
+        } else if (strpos($digits, '20') === 0 && strlen($digits) > 10) {
+            $digits = substr($digits, 2);
+        }
+        if (strlen($digits) === 10 && strpos($digits, '1') === 0) {
+            $digits = '0' . $digits;
+        }
+
+        return preg_match('/^01[0-9]{9}$/', $digits) ? $digits : $fallback;
+    }
+
+    /**
+     * Build the invoice body both endpoints share.
+     *
+     * Fawaterk validates cartTotal against the sum of cartItems, so the cart is
+     * kept to a single line worth exactly the amount we are charging.
+     */
+    private function build_invoice_body(payment_request $request): array {
+        $amount = number_format(round($request->amount, 2), 2, '.', '');
         $itemname = $request->description !== '' ? $request->description : ('Order ' . $request->order_id);
 
-        $body = [
-            'cartTotal' => number_format($amount, 2, '.', ''),
+        return [
+            'cartTotal' => $amount,
             'currency' => $request->currency,
             'customer' => $this->get_customer($request),
             'redirectionUrls' => [
@@ -115,7 +145,7 @@ class gateway extends base_provider {
             'cartItems' => [
                 [
                     'name' => \core_text::substr($itemname, 0, 100),
-                    'price' => number_format($amount, 2, '.', ''),
+                    'price' => $amount,
                     'quantity' => '1',
                 ],
             ],
@@ -129,10 +159,35 @@ class gateway extends base_provider {
             'sendEmail' => (bool) $this->get_setting('send_email', 0),
             'sendSMS' => (bool) $this->get_setting('send_sms', 0),
         ];
+    }
 
-        $this->log('info', 'Creating Fawaterk invoice', [
+    /**
+     * Create the payment.
+     *
+     * With a payment_method_id the charge goes server-to-server through
+     * /api/v2/invoiceInitPay — the buyer never sees a Fawaterk method picker and
+     * we get back either a 3-D Secure URL or a reference code to display. This is
+     * the flow Fawaterk recommends and the one the mobile app uses.
+     *
+     * Without one we fall back to /api/v2/createInvoiceLink, which returns a
+     * hosted page where Fawaterk asks for the method itself.
+     */
+    public function initialize_payment(payment_request $request): checkout_response {
+        return $request->payment_method_id > 0
+            ? $this->init_direct_payment($request)
+            : $this->init_hosted_invoice($request);
+    }
+
+    /**
+     * POST /api/v2/createInvoiceLink — hosted invoice page.
+     */
+    private function init_hosted_invoice(payment_request $request): checkout_response {
+        $base = $this->get_api_base();
+        $body = $this->build_invoice_body($request);
+
+        $this->log('info', 'Creating Fawaterk invoice link', [
             'order_id' => $request->order_id,
-            'amount' => $amount,
+            'amount' => $request->amount,
             'currency' => $request->currency,
             'transaction_id' => $request->transaction_id,
         ]);
@@ -140,30 +195,12 @@ class gateway extends base_provider {
         $result = $this->http_request('POST', "{$base}/api/v2/createInvoiceLink",
             $this->get_auth_headers(), $body);
 
-        if ($result['http_code'] < 200 || $result['http_code'] >= 300) {
-            $this->log('error', 'Fawaterk invoice creation failed', [
-                'http_code' => $result['http_code'],
-                'response' => $result['body'],
-                'transaction_id' => $request->transaction_id,
-            ]);
-            return checkout_response::failure(
-                'Fawaterk invoice creation failed: HTTP ' . $result['http_code'],
-                $result['body']
-            );
+        $error = $this->check_api_error($result, 'invoice creation', $request->transaction_id);
+        if ($error !== null) {
+            return $error;
         }
 
         $payload = $result['body'];
-        if (($payload['status'] ?? '') !== 'success') {
-            $this->log('error', 'Fawaterk returned a non-success status', [
-                'response' => $payload,
-                'transaction_id' => $request->transaction_id,
-            ]);
-            return checkout_response::failure(
-                'Fawaterk error: ' . $this->stringify_error($payload),
-                $payload
-            );
-        }
-
         $data = $payload['data'] ?? [];
         $url = (string) ($data['url'] ?? '');
         $invoiceid = (string) ($data['invoiceId'] ?? $data['invoice_id'] ?? '');
@@ -176,13 +213,182 @@ class gateway extends base_provider {
             return checkout_response::failure('Missing url or invoiceId in Fawaterk response', $payload);
         }
 
-        $this->log('info', 'Fawaterk invoice created', [
+        $this->log('info', 'Fawaterk invoice link created', [
             'invoice_id' => $invoiceid,
-            'invoice_key' => $data['invoiceKey'] ?? '',
             'transaction_id' => $request->transaction_id,
         ]);
 
-        return checkout_response::success($url, $invoiceid, $payload);
+        return checkout_response::success($url, $invoiceid, $payload, [
+            'type' => 'redirect',
+            'redirect_url' => $url,
+            'reference' => '',
+            'reference_expires_at' => '',
+        ]);
+    }
+
+    /**
+     * POST /api/v2/invoiceInitPay — charge one specific payment method.
+     */
+    private function init_direct_payment(payment_request $request): checkout_response {
+        $base = $this->get_api_base();
+        $body = $this->build_invoice_body($request);
+        $body['payment_method_id'] = $request->payment_method_id;
+
+        $this->log('info', 'Initiating Fawaterk direct payment', [
+            'order_id' => $request->order_id,
+            'payment_method_id' => $request->payment_method_id,
+            'amount' => $request->amount,
+            'currency' => $request->currency,
+            'transaction_id' => $request->transaction_id,
+        ]);
+
+        $result = $this->http_request('POST', "{$base}/api/v2/invoiceInitPay",
+            $this->get_auth_headers(), $body);
+
+        $error = $this->check_api_error($result, 'payment initiation', $request->transaction_id);
+        if ($error !== null) {
+            return $error;
+        }
+
+        $payload = $result['body'];
+        $data = $payload['data'] ?? [];
+        $invoiceid = (string) ($data['invoice_id'] ?? $data['invoiceId'] ?? '');
+        $paymentdata = is_array($data['payment_data'] ?? null) ? $data['payment_data'] : [];
+
+        if ($invoiceid === '') {
+            $this->log('error', 'Fawaterk direct payment response missing invoice_id', [
+                'response' => $payload,
+                'transaction_id' => $request->transaction_id,
+            ]);
+            return checkout_response::failure('Missing invoice_id in Fawaterk response', $payload);
+        }
+
+        $normalised = $this->normalise_payment_data($paymentdata);
+
+        if ($normalised['type'] === 'none') {
+            // Nothing to redirect to and no code to show — the buyer would be
+            // stuck, so treat it as a failure rather than a silent dead end.
+            $this->log('error', 'Fawaterk returned no usable payment_data', [
+                'response' => $payload,
+                'payment_method_id' => $request->payment_method_id,
+                'transaction_id' => $request->transaction_id,
+            ]);
+            return checkout_response::failure(
+                'Fawaterk returned no redirect URL or reference for payment method '
+                    . $request->payment_method_id,
+                $payload
+            );
+        }
+
+        $this->log('info', 'Fawaterk direct payment initiated', [
+            'invoice_id' => $invoiceid,
+            'payment_type' => $normalised['type'],
+            'transaction_id' => $request->transaction_id,
+        ]);
+
+        // checkout_url stays the redirect target when there is one; for a
+        // reference-code method there is no page to open and it is empty.
+        return checkout_response::success($normalised['redirect_url'], $invoiceid, $payload, $normalised);
+    }
+
+    /**
+     * Flatten Fawaterk's per-method payment_data into our fixed shape.
+     */
+    private function normalise_payment_data(array $data): array {
+        $out = checkout_response::empty_payment_data();
+
+        $redirect = (string) ($data['redirectTo'] ?? $data['redirectUrl'] ?? '');
+        if ($redirect !== '') {
+            $out['type'] = 'redirect';
+            $out['redirect_url'] = $redirect;
+            return $out;
+        }
+
+        // Fawry / Meeza / wallet codes — the buyer pays with the code elsewhere
+        // and the webhook tells us when they did.
+        $reference = (string) ($data['fawryCode'] ?? $data['meezaReference']
+            ?? $data['aman_code'] ?? $data['masaryCode'] ?? $data['reference'] ?? '');
+        if ($reference !== '') {
+            $out['type'] = 'reference';
+            $out['reference'] = $reference;
+            $out['reference_expires_at'] = (string) ($data['expireDate'] ?? '');
+        }
+
+        return $out;
+    }
+
+    /**
+     * Turn a non-2xx or non-success API answer into a checkout_response.
+     *
+     * The gateway's own validation message is folded into the error text —
+     * without it a 400 is untraceable from the site, and the reason is nearly
+     * always a rejected field (currency, phone format, cart total).
+     *
+     * @return checkout_response|null Null when the call succeeded.
+     */
+    private function check_api_error(array $result, string $what, int $transactionid): ?checkout_response {
+        $body = is_array($result['body']) ? $result['body'] : [];
+
+        if ($result['http_code'] < 200 || $result['http_code'] >= 300) {
+            $this->log('error', "Fawaterk {$what} failed", [
+                'http_code' => $result['http_code'],
+                'response' => $body ?: $result['raw'],
+                'transaction_id' => $transactionid,
+            ]);
+            return checkout_response::failure(
+                sprintf('Fawaterk %s failed: HTTP %d — %s', $what, $result['http_code'],
+                    $this->stringify_error($body ?: ['message' => (string) $result['raw']])),
+                $body
+            );
+        }
+
+        if (($body['status'] ?? '') !== 'success') {
+            $this->log('error', "Fawaterk {$what} returned a non-success status", [
+                'response' => $body,
+                'transaction_id' => $transactionid,
+            ]);
+            return checkout_response::failure('Fawaterk error: ' . $this->stringify_error($body), $body);
+        }
+
+        return null;
+    }
+
+    /**
+     * GET /api/v2/getPaymentmethods — the methods enabled on the account.
+     */
+    public function get_payment_methods(): array {
+        $base = $this->get_api_base();
+        $result = $this->http_request('GET', "{$base}/api/v2/getPaymentmethods", $this->get_auth_headers());
+
+        if ($result['http_code'] < 200 || $result['http_code'] >= 300
+                || (($result['body']['status'] ?? '') !== 'success')) {
+            $this->log('error', 'Fawaterk getPaymentmethods failed', [
+                'http_code' => $result['http_code'],
+                'response' => $result['body'],
+            ]);
+            return [];
+        }
+
+        $methods = [];
+        foreach (($result['body']['data'] ?? []) as $method) {
+            if (empty($method['paymentId'])) {
+                continue;
+            }
+            $methods[] = [
+                'id' => (int) $method['paymentId'],
+                'name_en' => (string) ($method['name_en'] ?? ''),
+                'name_ar' => (string) ($method['name_ar'] ?? ''),
+                'logo' => (string) ($method['logo'] ?? ''),
+                // Fawaterk sends this as the string "true"/"false".
+                'redirect' => filter_var($method['redirect'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            ];
+        }
+
+        return $methods;
+    }
+
+    public function supports_payment_methods(): bool {
+        return true;
     }
 
     /**
