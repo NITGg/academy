@@ -49,9 +49,9 @@ class changeemail_form extends moodleform {
     protected function definition(): void {
         $mform = $this->_form;
 
-        $mform->addElement('static', 'changeintro', '',
-            get_string('verifychangeemail', 'local_profilefields'));
-
+        // No intro line here: verify.php already prints "Change email address" as
+        // the heading immediately above this form, and repeating it inside made
+        // the same four words appear twice in a row.
         $mform->addElement('text', 'newemail', get_string('email'), ['maxlength' => 100]);
         $mform->setType('newemail', PARAM_RAW_TRIMMED);
 
@@ -137,8 +137,15 @@ class changeemail_form extends moodleform {
             return str_repeat('*', 4) . $domain;
         }
 
+        // The run of asterisks is capped rather than matching the local part
+        // character for character. A long address otherwise produces a wall of
+        // stars wide enough to wrap the line - which reads as damage rather than
+        // as privacy, and tells the reader nothing extra about how long their own
+        // address is.
+        $hidden = min(6, max(3, core_text::strlen($local) - 2));
+
         return core_text::substr($local, 0, 1)
-            . str_repeat('*', core_text::strlen($local) - 2)
+            . str_repeat('*', $hidden)
             . core_text::substr($local, -1)
             . $domain;
     }

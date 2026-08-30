@@ -129,12 +129,22 @@ if ($form->is_cancelled()) {
 // ---------------------------------------------------------------------------
 echo $OUTPUT->header();
 
+// The same wrapper the sign-up screen uses, so the two steps of one journey are
+// laid out alike - centred, one column, the same width. theme_nit styles it in
+// scss/components/_authpages.scss; on a theme without those rules the class is
+// inert and the page falls back to the plain column it was before.
+echo html_writer::start_div('nit-auth');
+
 if ($expired) {
     echo $OUTPUT->notification(get_string('verifylinkexpired', 'local_profilefields'),
         \core\output\notification::NOTIFY_ERROR);
 }
 
-echo $OUTPUT->heading(get_string('verifyheading', 'local_profilefields'), 3);
+echo html_writer::div(
+    html_writer::tag('h1', get_string('verifyheading', 'local_profilefields'),
+        ['class' => 'nit-auth-title']),
+    'nit-auth-head'
+);
 
 // AC-4.2.8's two sentences. The address is masked because this page is reachable
 // by guessing an id.
@@ -175,7 +185,10 @@ if ($exhausted) {
     }
 }
 
-echo html_writer::tag('h4', get_string('verifychangeemail', 'local_profilefields'), ['class' => 'mt-4 h5']);
+echo html_writer::tag('h2', get_string('verifychangeemail', 'local_profilefields'),
+    ['class' => 'h5 mt-4']);
 $form->display();
+
+echo html_writer::end_div();
 
 echo $OUTPUT->footer();
