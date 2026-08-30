@@ -41,6 +41,18 @@ class blocklist {
     const TABLE = 'local_profilefields_ip';
 
     /**
+     * @var string[]|null The entries, read once per request.
+     *
+     * A class property rather than a `static` inside {@see self::blocks()}, so
+     * that {@see self::add()} and {@see self::remove()} can throw it away. While
+     * the cache lived inside the method, a request that added an address and then
+     * asked whether it was covered got the answer from before the write - which
+     * is precisely what the administration screen does when it adds an entry and
+     * redraws the list underneath it.
+     */
+    protected static $entries = null;
+
+    /**
      * Every entry, newest first.
      *
      * @return \stdClass[] keyed by id
@@ -66,26 +78,25 @@ class blocklist {
         }
 
         // One query per request: the sign-up rule can be reached twice in a submit.
-        static $entries = null;
-        if ($entries === null) {
+        if (self::$entries === null) {
             try {
-                $entries = $DB->get_fieldset_select(self::TABLE, 'ip', '');
+                self::$entries = $DB->get_fieldset_select(self::TABLE, 'ip', '');
             } catch (\Throwable $e) {
                 // The table is missing because the code was deployed without running
                 // the upgrade. That is an admin's problem to fix, but it must not be
                 // the reason nobody can register in the meantime.
                 debugging('local_profilefields: could not read the registration deny list: '
                     . $e->getMessage(), DEBUG_DEVELOPER);
-                $entries = [];
+                self::$entries = [];
             }
         }
-        if (!$entries) {
+        if (!self::$entries) {
             return false;
         }
 
         // address_in_subnet() takes the whole comma-separated list in one call and
         // handles every notation the column accepts, IPv6 included.
-        return address_in_subnet($ip, implode(',', $entries));
+        return address_in_subnet($ip, implode(',', self::$entries));
     }
 
     /**
@@ -128,6 +139,8 @@ class blocklist {
             'timecreated'  => time(),
         ]);
 
+        self::$entries = null;
+
         return true;
     }
 
@@ -141,6 +154,8 @@ class blocklist {
         global $DB;
 
         $DB->delete_records(self::TABLE, ['id' => $id]);
+
+        self::$entries = null;
     }
 
     /**

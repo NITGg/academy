@@ -191,13 +191,21 @@ class profile_field_phone extends profile_field_base {
             // is an error; an admin editing someone else may legitimately leave it.
             if ($this->is_required() && ($this->userid == 0 || isguestuser()
                     || $this->userid == ($GLOBALS['USER']->id ?? 0))) {
-                $errors[$this->inputname] = get_string('required');
+                $errors[$this->inputname] = self::message('errphoneempty', 'required');
             }
             return $errors;
         }
 
+        // Digits only, said in the specification's words rather than as a length
+        // complaint. Reached when the box holds something that is not a number at
+        // all - normalise_number() strips the separators people legitimately type.
+        if (preg_match('/[^0-9]/', $number)) {
+            $errors[$this->inputname] = self::message('errphonedigits', 'invalidphone');
+            return $errors;
+        }
+
         if ($iso === '' || dialcodes::code($iso) === '') {
-            $errors[$this->inputname] = get_string('selectacountry');
+            $errors[$this->inputname] = self::message('errcountryempty', 'selectacountry');
             return $errors;
         }
         // Length, per country where we know it. A number that is the right shape can
@@ -245,6 +253,32 @@ class profile_field_phone extends profile_field_base {
         }
 
         return $errors;
+    }
+
+    /**
+     * The academy's wording for a message, falling back to Moodle's.
+     *
+     * AC-4.1.15 fixes the sentence shown for each way this field can be wrong, and
+     * acceptance is tested on that sentence - "Please enter your phone number."
+     * rather than the bare "Required" a form rule produces. Those sentences live in
+     * local_profilefields, because they are shared with the other boxes on the same
+     * screen and had to be written once.
+     *
+     * That plugin is not a dependency of this field type, though: the field is
+     * usable on a site that does not run the academy's plugins, and there it should
+     * keep speaking Moodle's own language rather than showing a raw string key.
+     * Hence the fallback.
+     *
+     * @param string $key the academy string, in local_profilefields
+     * @param string $fallback the core string to use when that is unavailable
+     * @return string
+     */
+    protected static function message(string $key, string $fallback): string {
+        if (get_string_manager()->string_exists($key, 'local_profilefields')) {
+            return get_string($key, 'local_profilefields');
+        }
+
+        return get_string($fallback);
     }
 
     /**

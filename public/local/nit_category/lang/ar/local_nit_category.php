@@ -55,3 +55,46 @@ $string['currenticon'] = 'الأيقونة بجوار الاسم';
 $string['noicon'] = 'لا توجد أيقونة لهذا التصنيف.';
 
 $string['privacy:metadata'] = 'إضافة تصنيفات NIT تخزّن صور التصنيفات فقط، ولا تخزّن أي بيانات شخصية.';
+
+// ── دليل الكورسات (catalogue.php) ───────────────────────────────────────────────
+$string['catalogue'] = 'دليل الكورسات';
+$string['breadcrumb'] = 'مسار التصفّح';
+$string['searchcourses'] = 'ابحث في الكورسات';
+$string['coursesinscope'] = '{$a} كورس';
+$string['coursesfound'] = '{$a} كورس';
+$string['filters'] = 'التصفية';
+$string['clearall'] = 'مسح الكل';
+$string['applyfilters'] = 'تطبيق التصفية';
+$string['showall'] = 'عرض الكل ({$a})';
+$string['showfewer'] = 'عرض أقل';
+$string['from'] = 'من';
+$string['to'] = 'إلى';
+$string['price'] = 'السعر';
+$string['freeonly'] = 'الكورسات المجانية فقط';
+$string['sortby'] = 'ترتيب';
+$string['sortpopular'] = 'الأكثر رواجًا';
+$string['sortnewest'] = 'الأحدث';
+$string['sortname'] = 'الاسم (أ–ي)';
+$string['sortpricelow'] = 'السعر: من الأقل للأعلى';
+$string['sortpricehigh'] = 'السعر: من الأعلى للأقل';
+$string['nomatches'] = 'لا توجد كورسات مطابقة لهذه التصفية';
+$string['nomatcheshint'] = 'جرّب إزالة أحد عوامل التصفية أو البحث بكلمة أعم.';
+$string['pagination'] = 'صفحات النتائج';
+$string['perpage'] = 'عدد الكورسات في الصفحة:';
+
+// نصوص البطاقة — نفس ألفاظ صفحة التصنيف حتى يقرأ الكورس بالطريقة نفسها في الصفحتين.
+$string['enrolled'] = 'مُسجَّل';
+$string['purchased'] = 'تم الشراء';
+$string['insubscription'] = 'ضمن اشتراكك';
+$string['free'] = 'مجانًا';
+$string['coursedetails'] = 'تفاصيل الكورس';
+$string['enrol'] = 'التحاق';
+$string['buynow'] = 'اشترِ الآن';
+$string['defaultcurrency'] = 'ج.م';
+
+// الإعدادات.
+$string['catalogueheading'] = 'دليل الكورسات';
+$string['cataloguedesc'] = 'يبني دليل الكورسات في /local/nit_category/catalogue.php عوامل التصفية من الحقول المخصّصة للكورسات الموجودة فعلًا في الموقع: حقول الاختيار والنص القصير تصبح قوائم اختيار متعدّد، وحقل الاختيار الثنائي يصبح مفتاحًا واحدًا، والحقل الرقمي يصبح نطاقًا من/إلى. ولا يظهر عامل التصفية إلا إذا كانت الكورسات المعروضة تحمل ذلك الحقل بالفعل، فلا حاجة لضبط أي شيء هنا حتى تعمل الصفحة.';
+$string['excludefilterfields'] = 'حقول لا تُستخدم في التصفية أبدًا';
+$string['excludefilterfields_desc'] = 'الأسماء المختصرة للحقول المخصّصة، مفصولة بفواصل، التي يتجاهلها الدليل حتى لو كان نوعها صالحًا للتصفية. اتركه فارغًا لعرض كل الحقول المناسبة.';
+$string['onecourse'] = 'كورس واحد';

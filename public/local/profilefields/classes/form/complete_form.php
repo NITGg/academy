@@ -190,10 +190,17 @@ class complete_form extends moodleform {
             }
         }
 
+        // AC-4.1.15 again. This page is the sign-up form asked late, so the boxes
+        // it does show have to fail with the same sentences the sign-up form uses;
+        // a learner who arrived through Google must not meet a different rulebook.
+        // signup_fields() only inspects keys that are present, so the subset this
+        // form carries is safe to hand it whole.
+        $errors = array_merge($errors, \local_profilefields\validation::signup_fields($data));
+
         // An unticked advcheckbox submits 0 rather than nothing, so a 'required'
         // rule never fires on it - the sign-up form checks it the same way.
         if (!empty($missing['consent']) && empty($data[signup::CONSENT])) {
-            $errors[signup::CONSENT] = get_string('consentrequired', 'local_profilefields');
+            $errors[signup::CONSENT] = get_string('errtermsempty', 'local_profilefields');
         }
 
         // Custom fields carry their own validation (uniqueness, phone format, ...).

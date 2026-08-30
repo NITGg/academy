@@ -122,19 +122,28 @@ class hook_callbacks {
     ): void {
         global $CFG, $PAGE;
 
-        if (empty($PAGE) || $PAGE->pagetype !== 'login-signup') {
+        if (empty($PAGE)) {
             return;
         }
 
-        $policy = [
-            // With the policy switched off there is no floor to clear, so the
-            // meter scores purely on length and variety.
-            'minlength'   => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpasswordlength,
-            'digits'      => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpassworddigits,
-            'lower'       => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpasswordlower,
-            'upper'       => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpasswordupper,
-            'nonalphanum' => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpasswordnonalphanum,
+        self::load_form_gate();
+
+        // AC-4.4.1 asks for the same reveal toggle and the same per-rule messages
+        // on the "set a new password" screen as on sign-up. The module finds the
+        // password box by element type, so the only thing these screens needed was
+        // to be told to load it.
+        $passwordpages = [
+            'login-signup',
+            'login-forgot_password',
+            'login-change_password',
+            'local-profilefields-complete',
         ];
+
+        if (!in_array($PAGE->pagetype, $passwordpages, true)) {
+            return;
+        }
+
+        $policy = self::password_policy();
 
         $strings = [
             'strength'     => get_string('passwordstrength', 'theme_nit'),
@@ -151,6 +160,123 @@ class hook_callbacks {
 
         $PAGE->requires->js_call_amd('theme_nit/passwordstrength', 'init', [
             ['policy' => $policy, 'strings' => $strings],
+        ]);
+    }
+
+    /**
+     * The minimums the strength meter should score against.
+     *
+     * Not simply `$CFG->minpassword*`. local_profilefields moves the whole rule
+     * set into its own `check_password_policy()` function and zeroes core's
+     * minimums, because AC-4.1.6 wants one message in the specification's wording
+     * where core would print several in its own. Reading $CFG here would therefore
+     * show the learner a meter with no floor at all, cheerfully calling "abc"
+     * acceptable right up until the server refused it.
+     *
+     * So: when that plugin is in charge, mirror its rules. Otherwise fall back to
+     * whatever core is configured with, which is what a site without the plugin is
+     * actually enforcing.
+     *
+     * @return array{minlength: int, digits: int, lower: int, upper: int, nonalphanum: int}
+     */
+    protected static function password_policy(): array {
+        global $CFG;
+
+        if (class_exists('\local_profilefields\validation')) {
+            return [
+                'minlength'   => \local_profilefields\validation::PASSWORD_MIN,
+                'digits'      => 1,
+                'lower'       => 1,
+                'upper'       => 1,
+                // AC-4.1.6 lists four rules and a symbol is not among them.
+                'nonalphanum' => 0,
+            ];
+        }
+
+        // With the policy switched off there is no floor to clear, so the meter
+        // scores purely on length and variety.
+        return [
+            'minlength'   => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpasswordlength,
+            'digits'      => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpassworddigits,
+            'lower'       => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpasswordlower,
+            'upper'       => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpasswordupper,
+            'nonalphanum' => empty($CFG->passwordpolicy) ? 0 : (int) $CFG->minpasswordnonalphanum,
+        ];
+    }
+
+    /**
+     * The screens whose submit button waits for a complete form, and the form on
+     * each of them.
+     *
+     * AC-4.1.1 asks for this on the sign-up screen. It was extended to the rest
+     * of the academy's own journey - the same learner meeting the same behaviour
+     * everywhere is worth more than one screen behaving specially - but it stops
+     * there, deliberately.
+     *
+     * What is NOT in this list is the point of it. Moodle's administrative and
+     * authoring forms (course settings, the question bank, activity editing) are
+     * full of fields that are marked required while a condition hides them, and a
+     * gate on those would leave an administrator with a dead button and nothing to
+     * read. That failure would not show up in testing; it would show up months
+     * later, to the one person who cannot work around it.
+     *
+     * A plugin form of ours can also opt in without appearing here, by carrying
+     * `data-nit-gate` in its own markup - which is the better route whenever the
+     * markup is ours to change.
+     *
+     * @return array<string, string> page type => CSS selector for the form on it
+     */
+    protected static function gated_pages(): array {
+        return [
+            // Sign-up (AC-4.1.1) and the Google/Apple completion of it (AC-4.3.9).
+            'login-signup'                    => '#page-content form, .signupform form',
+            'local-profilefields-complete'    => '#region-main form',
+            // Login, and the two steps of a password reset.
+            'login-index'                     => '#login form, form#login',
+            'login-forgot_password'           => '#region-main form',
+            'login-change_password'           => '#region-main form',
+            // The learner's own profile.
+            'user-edit'                       => '#region-main form',
+            'user-editadvanced'               => '#region-main form',
+            // Checkout.
+            'local-payments-checkout'         => '#region-main form, form.nit-checkout',
+        ];
+    }
+
+    /**
+     * Hand the form-gate module its instructions, on the pages that want it.
+     *
+     * Switched off by default from the sign-up settings page, so that a site
+     * meeting a form we have not anticipated can turn the behaviour off in one
+     * click rather than waiting for a deployment.
+     *
+     * @return void
+     */
+    protected static function load_form_gate(): void {
+        global $PAGE;
+
+        if (!get_config('local_profilefields', 'gatebuttons')) {
+            return;
+        }
+
+        $pages = self::gated_pages();
+        if (!isset($pages[$PAGE->pagetype])) {
+            return;
+        }
+
+        $PAGE->requires->js_call_amd('theme_nit/formgate', 'init', [
+            [
+                'forms' => explode(', ', $pages[$PAGE->pagetype]),
+                // The Terms and Conditions box carries no required rule - it is an
+                // advcheckbox validated server-side in local_profilefields - so the
+                // module cannot find it the way it finds the rest. AC-4.1.1 names it
+                // explicitly, so it is named explicitly here.
+                'extraRequired' => [
+                    'input[name="localprofilefieldsconsent"]',
+                    'input[name="policyagreed"]',
+                ],
+                'hint' => get_string('gatehint', 'theme_nit'),
+            ],
         ]);
     }
 }

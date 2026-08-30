@@ -89,6 +89,36 @@ class output_callbacks {
             ? \theme_nit\output\format_topics_renderer::CHIP_SEP
             : '@@|@@';
 
+        // Which fields may become chips: ONLY custom fields of type "text".
+        //
+        // Every custom-field type is asked for by name here rather than sniffed in the
+        // browser, because more than one of them renders as <input type="text"> and they
+        // are NOT interchangeable. A "Number" field (customfield_number) is a `float`
+        // form element: it looks like a text input but MoodleQuickForm_float::validateSubmitValue()
+        // rejects anything unformat_float() cannot read. Chipping such a field made the
+        // saved value either a bilingual "{mlang en}40{mlang}{mlang ar}٤٠{mlang}" string or
+        // several values joined by CHIP_SEP — neither is a number — so saving a course with,
+        // say, "Total Number of Hours" filled in always failed with "You must enter a number
+        // here." Date, select and checkbox fields are equally not free text.
+        //
+        // A text field is the only one whose stored value is an arbitrary string, which is
+        // what the bilingual chip syntax needs, so that is the whole allow list.
+        $chipnames = [];
+        try {
+            foreach (\core_course\customfield\course_handler::create()->get_fields() as $field) {
+                if ($field->get('type') === 'text') {
+                    $chipnames[] = 'customfield_' . $field->get('shortname');
+                }
+            }
+        } catch (\Throwable $e) {
+            // Custom fields unavailable (mid-upgrade, broken field definition): leave the
+            // form exactly as core rendered it rather than guessing.
+            return;
+        }
+        if (empty($chipnames)) {
+            return;
+        }
+
         // Widget styling. Uses the brand palette so it matches the site (with plain
         // fallbacks for a non-NIT theme). The course-edit form paints `.felement
         // input` with !important, so the typing field's colour/border rules are
@@ -115,19 +145,20 @@ class output_callbacks {
 .nit-chips .nit-chips__add:hover{background:color-mix(in srgb, var(--nit-brand-primary,#C0392B) 86%, #000) !important}
 CSS;
 
-        // Every short-text custom field renders as <input type="text" id="id_customfield_*">.
-        // Long text (textarea/editor), select, checkbox and date fields are other
-        // elements, so this type+prefix selector picks out exactly the short-text ones.
+        // The widget attaches only to the element names PHP put in $chipnames above —
+        // the "text" custom fields. Everything else on the form (including the number
+        // fields, which also render as <input type="text">) is left untouched.
         //
         // Each chip is one bilingual item: the teacher fills an English and an Arabic
         // field, and we compose the {mlang en}…{mlang}{mlang ar}…{mlang} string for
         // them — they never type mlang syntax by hand. A one-language item is stored
-        // as plain text (so numeric fields such as "hours" stay a bare number), which
-        // {@see \theme_nit\output\format_topics_renderer::acad_ml()} still reads back.
+        // as plain text, which {@see \theme_nit\output\format_topics_renderer::acad_ml()}
+        // still reads back.
         $js = <<<'JS'
 require([], function() {
-    var SEP = {$this_sep_placeholder};
-    var L   = {$this_labels_placeholder};
+    var SEP   = {$this_sep_placeholder};
+    var L     = {$this_labels_placeholder};
+    var NAMES = {$this_names_placeholder};
 
     if (!document.getElementById('nit-chips-css')) {
         var st = document.createElement('style');
@@ -322,8 +353,13 @@ require([], function() {
 
     function init() {
         var form = document.querySelector('form.mform') || document;
-        var inputs = form.querySelectorAll('input[type="text"][id^="id_customfield_"]');
-        Array.prototype.forEach.call(inputs, build);
+        // Addressed by the exact form element name (customfield_<shortname>) that PHP
+        // vetted as a text field. Matching on the `name` attribute rather than the `id`
+        // also sidesteps Moodle's id mangling of unusual shortnames.
+        NAMES.forEach(function(name) {
+            var input = form.querySelector('input[type="text"][name="' + name + '"]');
+            if (input) { build(input); }
+        });
     }
 
     if (document.readyState === 'loading') {
@@ -349,6 +385,7 @@ JS;
         $js = str_replace('{$this_css_placeholder}', json_encode($css), $js);
         $js = str_replace('{$this_sep_placeholder}', json_encode($sep), $js);
         $js = str_replace('{$this_labels_placeholder}', json_encode($labels), $js);
+        $js = str_replace('{$this_names_placeholder}', json_encode(array_values($chipnames)), $js);
 
         $PAGE->requires->js_amd_inline($js);
     }

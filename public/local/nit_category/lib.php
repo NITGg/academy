@@ -405,3 +405,96 @@ function local_nit_category_pluginfile($course, $cm, $context, $filearea, $args,
     \core\session\manager::write_close(); // Unlock the session while the file streams.
     send_stored_file($file, 60 * 60, 0, $forcedownload, $options);
 }
+
+/**
+ * Whether the commerce stack behind the course cards' Buy buttons is installed.
+ *
+ * @return bool
+ */
+function local_nit_category_has_checkout(): bool {
+    global $CFG;
+    return class_exists('\local_payments\price_resolver')
+        && file_exists($CFG->dirroot . '/local/nit_commerce/lib.php')
+        && class_exists('\local_nit_commerce\discount_manager');
+}
+
+/**
+ * Load the shared checkout modal for a page that prints course cards.
+ *
+ * Call before the page's header; {@see local_nit_category_checkout_footer()} then wires
+ * the buttons up once the cards exist.
+ *
+ * @return bool false when the commerce plugins are absent, so the caller can skip Buy buttons
+ */
+function local_nit_category_require_checkout(): bool {
+    global $CFG, $PAGE;
+
+    if (!local_nit_category_has_checkout()) {
+        return false;
+    }
+    require_once($CFG->dirroot . '/local/nit_commerce/lib.php');
+    $PAGE->requires->js(new moodle_url('/local/nit_commerce/checkout_modal.js'), true);
+    return true;
+}
+
+/**
+ * Wire every [data-nit-buy-course] button on the page to the checkout modal.
+ *
+ * Printed after the cards. One delegated listener covers the whole page, so it does not
+ * care how many cards there are or which page rendered them — the category page and the
+ * catalogue share this so a Buy button behaves identically on both.
+ *
+ * @return void
+ */
+function local_nit_category_checkout_footer(): void {
+    global $CFG;
+
+    if (!local_nit_category_has_checkout()) {
+        return;
+    }
+    require_once($CFG->dirroot . '/local/nit_commerce/lib.php');
+
+    $costr = local_nit_commerce_string_map([
+        'co_title', 'co_intro', 'co_total', 'co_offer', 'co_coupon', 'co_apply', 'co_discount',
+        'co_secure', 'co_proceed', 'co_cancel', 'co_loading', 'co_coupon_failed', 'co_currency',
+    ]);
+    echo html_writer::script('window.NIT_CO = ' . json_encode([
+        'wwwroot'  => $CFG->wwwroot,
+        'sesskey'  => sesskey(),
+        'commerce' => '/local/nit_commerce/api.php',
+        'str'      => $costr,
+        'loggedin' => isloggedin() && !isguestuser(),
+    ]) . ';');
+    echo html_writer::script(<<<'JS'
+(function () {
+    function init() {
+        if (!window.NitCheckout || !window.NIT_CO) { return; }
+        NitCheckout.init(window.NIT_CO);
+        document.addEventListener('click', function (ev) {
+            var btn = ev.target.closest('[data-nit-buy-course]');
+            if (!btn) { return; }
+            ev.preventDefault();
+            if (!window.NIT_CO.loggedin) { window.location.href = window.NIT_CO.wwwroot + '/login/index.php'; return; }
+            var id = btn.getAttribute('data-courseid');
+            NitCheckout.open({
+                // The clicked button locates the page's Brand Colors group
+                // (.nit-brand-2/3) so the modal opens in the same palette.
+                trigger: btn,
+                itemType: 'course',
+                itemId: parseInt(id, 10),
+                name: btn.getAttribute('data-name'),
+                price: parseFloat(btn.getAttribute('data-price')) || 0,
+                currency: btn.getAttribute('data-currency') || '',
+                proceed: function (code) {
+                    window.location.href = window.NIT_CO.wwwroot + '/local/payments/checkout.php?courseid=' + id +
+                        '&sesskey=' + encodeURIComponent(window.NIT_CO.sesskey) + '&coupon_code=' + encodeURIComponent(code);
+                }
+            });
+        });
+    }
+    if (document.readyState !== 'loading') { init(); }
+    else { document.addEventListener('DOMContentLoaded', init); }
+})();
+JS
+    );
+}

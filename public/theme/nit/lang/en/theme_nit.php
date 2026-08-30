@@ -156,3 +156,6 @@ $string['passwordstrengthgood'] = 'Good password';
 $string['passwordstrengthstrong'] = 'Strong password';
 $string['showpassword'] = 'Show password';
 $string['hidepassword'] = 'Hide password';
+
+// AC-4.1.1 - the submit button waits for a complete form.
+$string['gatehint'] = 'Please complete every required field first.';

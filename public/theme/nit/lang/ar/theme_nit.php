@@ -143,3 +143,6 @@ $string['passwordstrengthgood'] = 'كلمة مرور جيدة';
 $string['passwordstrengthstrong'] = 'كلمة مرور قوية';
 $string['showpassword'] = 'إظهار كلمة المرور';
 $string['hidepassword'] = 'إخفاء كلمة المرور';
+
+// AC-4.1.1 - زر الإرسال ينتظر اكتمال النموذج.
+$string['gatehint'] = 'يرجى إكمال جميع الحقول المطلوبة أولًا.';

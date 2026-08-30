@@ -1,0 +1,96 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_nit_offers/bar
+
+    A one-line announcement bar for the offers currently running on the site.
+
+    Every row is rendered; the active one is shown and the rest wait behind it, so
+    switching offers is a class change with no re-render and no layout jump. All of
+    the horizontal layout uses logical properties, so the bar mirrors itself in
+    Arabic without a second stylesheet.
+
+    Context variables required for this template:
+    * barid — unique DOM id for this block instance
+    * fingerprint — id of the current offer set, remembered by the dismiss button
+    * tone — brand colour role tinting the bar (accent | primary | success | warning)
+    * flag — the small pill at the start of the bar, e.g. "Offer"
+    * rotate — cycle automatically between rows
+    * multiple — more than one row (renders the dots)
+    * dismissible — render the close button
+    * dismisslabel — accessible name for that button
+    * showlabel — accessible name pattern for a dot, with {index} already applied
+    * rows — the offers: index, first, headline, badge, meta, scope, url, linktext
+
+    Example context (json):
+    {
+        "barid": "nitoff-1",
+        "fingerprint": "a1b2c3d4e5f6",
+        "tone": "accent",
+        "flag": "Offer",
+        "rotate": true,
+        "multiple": false,
+        "dismissible": true,
+        "dismisslabel": "Dismiss this announcement",
+        "rows": [
+            {
+                "index": 1,
+                "first": true,
+                "headline": "Autumn intake — 25% off Logistics courses",
+                "badge": "-25%",
+                "meta": "Ends 30 September",
+                "scope": "Applies to: All courses",
+                "url": "https://example.com/catalogue",
+                "linktext": "See courses"
+            }
+        ]
+    }
+}}
+<div id="{{barid}}" class="nitoff nitoff--{{tone}}{{#multiple}} nitoff--multi{{/multiple}}"
+     data-nitoff data-fingerprint="{{fingerprint}}"{{#rotate}} data-rotate="1"{{/rotate}}>
+    <div class="nitoff__inner">
+        <span class="nitoff__flag">{{flag}}</span>
+
+        <div class="nitoff__track">
+            {{#rows}}
+            <div class="nitoff__item{{#first}} is-active{{/first}}" data-nitoff-item data-index="{{index}}">
+                <span class="nitoff__headline">{{{headline}}}</span>
+                {{#badge}}<span class="nitoff__badge">{{badge}}</span>{{/badge}}
+                {{#meta}}<span class="nitoff__meta">{{meta}}</span>{{/meta}}
+                {{#scope}}<span class="nitoff__scope">{{scope}}</span>{{/scope}}
+                {{#url}}<a class="nitoff__cta" href="{{url}}">{{linktext}}</a>{{/url}}
+            </div>
+            {{/rows}}
+        </div>
+
+        {{#multiple}}
+        <div class="nitoff__dots" role="tablist">
+            {{#rows}}
+            <button type="button" class="nitoff__dot{{#first}} is-active{{/first}}" data-nitoff-dot
+                    data-index="{{index}}" role="tab" aria-selected="{{#first}}true{{/first}}{{^first}}false{{/first}}"
+                    aria-label="{{showlabel}} {{index}}"></button>
+            {{/rows}}
+        </div>
+        {{/multiple}}
+
+        {{#dismissible}}
+        <button type="button" class="nitoff__close" data-nitoff-close aria-label="{{dismisslabel}}">
+            <span aria-hidden="true">&times;</span>
+        </button>
+        {{/dismissible}}
+    </div>
+</div>

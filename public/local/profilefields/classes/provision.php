@@ -66,14 +66,23 @@ class provision {
             'phone' => [
                 'name' => 'Phone', 'namestr' => 'fieldphone',
                 'datatype' => 'phone',
-                'required' => 1, 'forceunique' => 1, 'locked' => 0,
+                // AC-4.1.5: "no uniqueness rule ... The same number may appear on
+                // any number of accounts." Two learners sharing a household phone,
+                // or a parent enrolling two children, are ordinary cases and used
+                // to be refused. Still mandatory, and the dialling code still
+                // decides the country of record (AC-4.1.4).
+                'required' => 1, 'forceunique' => 0, 'locked' => 0,
                 'signup' => 1, 'visible' => PROFILE_VISIBLE_ALL,
             ],
             'nationality' => [
                 'name' => 'Nationality', 'namestr' => 'fieldnationality',
                 'datatype' => 'menu', 'options' => 'countries',
+                // AC-4.1.14: "Nationality is not collected at sign-up. It is an
+                // optional profile attribute only." It is distinct from the country
+                // of record and has no effect on pricing (AC-4.5.8), so asking for
+                // it at the door only lengthens the form.
                 'required' => 0, 'forceunique' => 0, 'locked' => 0,
-                'signup' => 1, 'visible' => PROFILE_VISIBLE_ALL,
+                'signup' => 0, 'visible' => PROFILE_VISIBLE_ALL,
             ],
             'gender' => [
                 'name' => 'Gender', 'namestr' => 'fieldgender',
@@ -201,8 +210,12 @@ class provision {
      */
     public static function ensure_signup_order(): void {
         if (empty(manager::signup_order())) {
+            // The order of AC-4.1's screen-elements table. Nationality is absent
+            // rather than last: AC-4.1.14 keeps it off this form entirely, and a
+            // token for a field that is not on the form would silently do nothing
+            // while looking like it was meant to.
             manager::set_signup_order([
-                'firstname', 'lastname', 'email', 'cf:phone', 'cf:nationality', 'password',
+                'firstname', 'lastname', 'email', 'password', 'cf:phone',
             ]);
         }
     }

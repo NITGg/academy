@@ -1,0 +1,625 @@
+/* Course catalogue (local/nit_category/catalogue.php).
+ *
+ * Colours are read from the theme_nit brand palette through the eight --c* slots the page
+ * sets inline, the same mapping the category page uses — so both pages re-skin together and
+ * are correct in light and dark without a second set of rules. Every horizontal property is
+ * logical (inline-start/end), so the whole page mirrors itself in Arabic.
+ */
+
+.nitcat {
+    background: var(--cbg1);
+    color: var(--ctext1);
+    width: 100vw;
+    max-width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    padding-bottom: 48px;
+    min-height: 100vh;
+}
+
+.nitcat__form {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 clamp(16px, 4vw, 40px);
+}
+
+/* ── Page head ─────────────────────────────────────────────────────────────────── */
+
+.nitcat__head {
+    padding: 28px 0 20px;
+}
+
+.nitcat__crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ctext2);
+    margin-bottom: 14px;
+}
+
+.nitcat__crumbs a {
+    color: var(--ctext2);
+}
+
+.nitcat__crumbs a:hover {
+    color: var(--ctext1);
+}
+
+.nitcat__title {
+    font-size: clamp(24px, 3vw, 34px);
+    font-weight: 800;
+    color: var(--ctext1);
+    margin: 0 0 8px;
+}
+
+.nitcat__intro {
+    color: var(--ctext2);
+    font-size: 14px;
+    line-height: 1.7;
+    max-width: 70ch;
+    margin-bottom: 6px;
+}
+
+.nitcat__total {
+    color: var(--ctext2);
+    font-size: 13px;
+    margin: 0 0 18px;
+}
+
+.nitcat__search {
+    display: flex;
+    gap: 10px;
+    max-width: 620px;
+}
+
+.nitcat__search input {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: var(--cbg2);
+    border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent);
+    color: var(--ctext1);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font: inherit;
+}
+
+.nitcat__search input::placeholder {
+    color: var(--ctext2);
+    opacity: 1;
+}
+
+.nitcat__search input:focus {
+    outline: none;
+    border-color: var(--cbg4);
+}
+
+/* ── Two-column body ───────────────────────────────────────────────────────────── */
+
+.nitcat__body {
+    display: grid;
+    grid-template-columns: 264px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+}
+
+.nitcat__side {
+    position: sticky;
+    top: 16px;
+    background: var(--cbg2);
+    border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent);
+    border-radius: 16px;
+    padding: 18px;
+    /* The panel scrolls inside itself rather than growing the page: with a dozen custom
+       fields discovered, the filter column can easily be taller than the results. */
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+}
+
+.nitcat__sidehead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.nitcat__sidetitle {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--ctext1);
+}
+
+.nitcat__clear {
+    font-size: 12px;
+    color: var(--ctext3);
+    text-decoration: underline;
+}
+
+.nitcat__group {
+    border: 0;
+    border-top: 1px solid color-mix(in srgb, var(--cborder) 40%, transparent);
+    margin: 0;
+    padding: 14px 0 0;
+}
+
+.nitcat__group:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.nitcat__group legend {
+    float: none;
+    width: auto;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ctext2);
+    margin-bottom: 8px;
+    padding: 0;
+}
+
+.nitcat__opts {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nitcat__opt {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    padding: 5px 6px;
+    border-radius: 7px;
+    font-size: 13px;
+    color: var(--ctext1);
+    cursor: pointer;
+}
+
+.nitcat__opt:hover {
+    background: color-mix(in srgb, var(--ctext1) 6%, transparent);
+}
+
+.nitcat__opt input {
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: var(--cbg4);
+}
+
+.nitcat__optlabel {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nitcat__optcount {
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: var(--ctext2);
+    background: color-mix(in srgb, var(--ctext1) 8%, transparent);
+    border-radius: 50px;
+    padding: 1px 8px;
+}
+
+/* Long option lists fold after the first few; the "Show all" button unfolds them. */
+.nitcat__opt.is-extra {
+    display: none;
+}
+
+.nitcat__group.is-open .nitcat__opt.is-extra {
+    display: flex;
+}
+
+.nitcat__more {
+    border: 0;
+    background: none;
+    padding: 4px 6px;
+    font: inherit;
+    font-size: 12px;
+    color: var(--ctext3);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.nitcat__range {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.nitcat__range label {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 0;
+}
+
+.nitcat__rangelab {
+    font-size: 11px;
+    color: var(--ctext2);
+}
+
+.nitcat__range input {
+    width: 100%;
+    background: var(--cbg1);
+    border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent);
+    color: var(--ctext1);
+    border-radius: 8px;
+    padding: 7px 9px;
+    font: inherit;
+    font-size: 13px;
+}
+
+.nitcat__range input:focus {
+    outline: none;
+    border-color: var(--cbg4);
+}
+
+.nitcat__apply {
+    width: 100%;
+    margin-top: 16px;
+}
+
+/* ── Results ───────────────────────────────────────────────────────────────────── */
+
+.nitcat__main {
+    min-width: 0;
+}
+
+.nitcat__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.nitcat__count {
+    font-size: 15px;
+    color: var(--ctext1);
+}
+
+.nitcat__sort {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 13px;
+    color: var(--ctext2);
+}
+
+.nitcat__sort select {
+    background: var(--cbg2);
+    border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent);
+    color: var(--ctext1);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font: inherit;
+    font-size: 13px;
+}
+
+.nitcat__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.nitcat__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: color-mix(in srgb, var(--caccent) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--caccent) 40%, transparent);
+    color: var(--ctext1);
+    border-radius: 50px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.nitcat__chip:hover {
+    background: color-mix(in srgb, var(--caccent) 26%, transparent);
+    color: var(--ctext1);
+}
+
+.nitcat__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+    gap: 20px;
+    align-items: stretch;
+}
+
+/* ── Course card ───────────────────────────────────────────────────────────────── */
+
+.nitcat-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--cbg2);
+    border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.nitcat-card:hover {
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+    transform: translateY(-2px);
+}
+
+.nitcat-card__media {
+    display: block;
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--cbg3);
+    overflow: hidden;
+}
+
+.nitcat-card__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* No picture: the tile keeps the card's proportions and shows the course name, which is
+   more useful than a grey rectangle. */
+.nitcat-card__noimage {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ctext2);
+}
+
+.nitcat-card__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    padding: 16px 18px 18px;
+}
+
+.nitcat-card__cat {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ctext3);
+    margin-bottom: 6px;
+}
+
+.nitcat-card__title {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.4;
+    margin: 0 0 10px;
+}
+
+.nitcat-card__title a {
+    color: var(--ctext1);
+}
+
+.nitcat-card__title a:hover {
+    color: var(--ctext3);
+}
+
+.nitcat-card__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.nitcat-card__chip {
+    display: inline-flex;
+    align-items: center;
+    background: color-mix(in srgb, var(--ctext1) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cborder) 45%, transparent);
+    color: var(--ctext2);
+    border-radius: 50px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nitcat-card__meta {
+    font-size: 12px;
+    color: var(--ctext2);
+    margin-bottom: 10px;
+}
+
+.nitcat-card__foot {
+    margin-top: auto;
+    padding-top: 14px;
+}
+
+/* Reserved height so the buttons sit on the same line in every card, whatever the
+   status row has to say. */
+.nitcat-card__status {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 30px;
+    margin-bottom: 12px;
+}
+
+.nitcat-card__free {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--csuccess);
+}
+
+.nitcat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 50px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.nitcat-badge--ok {
+    background: color-mix(in srgb, var(--csuccess) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--csuccess) 45%, transparent);
+    color: var(--csuccess);
+}
+
+.nitcat-badge--sub {
+    background: color-mix(in srgb, var(--caccent) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--caccent) 45%, transparent);
+    color: var(--ctext3);
+}
+
+.nitcat-price-was {
+    font-size: 13px;
+    color: var(--ctext2);
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.nitcat-price-now {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ctext1);
+}
+
+.nitcat-price-off {
+    background: var(--cbg4);
+    color: var(--ctext4);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 50px;
+}
+
+.nitcat-price-note {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ctext2);
+}
+
+/* ── Empty state, paging ───────────────────────────────────────────────────────── */
+
+.nitcat__empty {
+    text-align: center;
+    background: var(--cbg2);
+    border: 1px dashed color-mix(in srgb, var(--cborder) 60%, transparent);
+    border-radius: 16px;
+    padding: 48px 24px;
+}
+
+.nitcat__emptyicon {
+    font-size: 30px;
+    margin-bottom: 10px;
+}
+
+.nitcat__emptytitle {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ctext1);
+    margin: 0 0 6px;
+}
+
+.nitcat__emptyhint {
+    font-size: 13px;
+    color: var(--ctext2);
+    margin: 0 0 18px;
+}
+
+.nitcat__pager {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 28px;
+}
+
+.nitcat__page {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent);
+    border-radius: 8px;
+    background: var(--cbg2);
+    color: var(--ctext1);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.nitcat__page:hover {
+    border-color: var(--cbg4);
+    color: var(--ctext1);
+}
+
+.nitcat__page.is-current {
+    background: var(--cbg4);
+    border-color: var(--cbg4);
+    color: var(--ctext4);
+}
+
+.nitcat__perpage {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ctext2);
+    margin-top: 12px;
+}
+
+.nitcat__perpage a {
+    color: var(--ctext3);
+    text-decoration: underline;
+    margin-inline-start: 6px;
+}
+
+.nitcat__perpage strong {
+    color: var(--ctext1);
+    margin-inline-start: 6px;
+}
+
+/* ── Narrow screens ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 991px) {
+    .nitcat__body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Stacked above the results, the panel must not be sticky or scroll on its own —
+       it is just the first section of the page. */
+    .nitcat__side {
+        position: static;
+        max-height: none;
+        overflow: visible;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nitcat-card {
+        transition: none;
+    }
+
+    .nitcat-card:hover {
+        transform: none;
+    }
+}

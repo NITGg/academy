@@ -55,3 +55,46 @@ $string['currenticon'] = 'Icon next to the name';
 $string['noicon'] = 'No icon set for this category.';
 
 $string['privacy:metadata'] = 'The NIT Categories plugin stores category images only. It stores no personal data.';
+
+// ── Course catalogue (catalogue.php) ────────────────────────────────────────────
+$string['catalogue'] = 'Course catalogue';
+$string['breadcrumb'] = 'You are here';
+$string['searchcourses'] = 'Search courses';
+$string['coursesinscope'] = '{$a} courses';
+$string['coursesfound'] = '{$a} courses';
+$string['filters'] = 'Filters';
+$string['clearall'] = 'Clear all';
+$string['applyfilters'] = 'Apply filters';
+$string['showall'] = 'Show all {$a}';
+$string['showfewer'] = 'Show fewer';
+$string['from'] = 'From';
+$string['to'] = 'To';
+$string['price'] = 'Price';
+$string['freeonly'] = 'Free courses only';
+$string['sortby'] = 'Sort';
+$string['sortpopular'] = 'Most popular';
+$string['sortnewest'] = 'Newest';
+$string['sortname'] = 'Name (A–Z)';
+$string['sortpricelow'] = 'Price: low to high';
+$string['sortpricehigh'] = 'Price: high to low';
+$string['nomatches'] = 'No courses match these filters';
+$string['nomatcheshint'] = 'Try removing a filter or searching for something broader.';
+$string['pagination'] = 'Result pages';
+$string['perpage'] = 'Courses per page:';
+
+// Card wording — shared with the category page so a course reads the same on both.
+$string['enrolled'] = 'Enrolled';
+$string['purchased'] = 'Purchased';
+$string['insubscription'] = 'In your subscription';
+$string['free'] = 'Free';
+$string['coursedetails'] = 'Course details';
+$string['enrol'] = 'Enroll';
+$string['buynow'] = 'Buy now';
+$string['defaultcurrency'] = 'EGP';
+
+// Settings.
+$string['catalogueheading'] = 'Course catalogue';
+$string['cataloguedesc'] = 'The catalogue at /local/nit_category/catalogue.php builds its filters from the course custom fields that exist on this site: select fields and short-text fields become checkbox lists, checkbox fields become a single toggle, and number fields become a from/to range. A filter only appears when courses in view actually carry that field, so nothing has to be configured here for the page to work.';
+$string['excludefilterfields'] = 'Fields never offered as filters';
+$string['excludefilterfields_desc'] = 'Custom-field short names, separated by commas, that the catalogue should ignore even though their type would otherwise make a usable filter. Leave empty to offer every suitable field.';
+$string['onecourse'] = '1 course';

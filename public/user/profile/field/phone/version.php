@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'profilefield_phone';   // Full name of the plugin.
-$plugin->version   = 2026082601;             // The current plugin version (YYYYMMDDXX).
+$plugin->version   = 2026083000;             // The current plugin version (YYYYMMDDXX).
 $plugin->requires  = 2024100700;             // Moodle 4.5 LTS baseline.
 $plugin->supported = [405, 502];             // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.1.0';
+$plugin->release   = '1.2.0';

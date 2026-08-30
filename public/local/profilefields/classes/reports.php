@@ -51,6 +51,15 @@ class reports {
     /** @var string The IP deny list editor. */
     const TAB_BLACKLIST = 'blacklist';
 
+    /**
+     * @var string The exemption list (AC-4.6.6).
+     *
+     * Sits beside the deny list rather than inside it because the two answer
+     * opposite questions, and a single screen showing both with a "kind" column
+     * would make it far too easy to add an address to the wrong one.
+     */
+    const TAB_ALLOWLIST = 'allowlist';
+
     /** @var int Rows per page on the attempts tab. */
     const PERPAGE = 30;
 
@@ -60,7 +69,7 @@ class reports {
      * @return string[]
      */
     public static function tabs(): array {
-        return [self::TAB_ATTEMPTS, self::TAB_BLACKLIST];
+        return [self::TAB_ATTEMPTS, self::TAB_BLACKLIST, self::TAB_ALLOWLIST];
     }
 
     /**
@@ -112,6 +121,15 @@ class reports {
                 null, notification::NOTIFY_SUCCESS);
         }
 
+        // "Remove", from a row of the exemption list.
+        $unallow = optional_param('unallow', 0, PARAM_INT);
+        if ($unallow && confirm_sesskey()) {
+            allowlist::remove($unallow);
+            redirect(self::url(self::TAB_ALLOWLIST),
+                get_string('blockipremoved', 'local_profilefields'),
+                null, notification::NOTIFY_SUCCESS);
+        }
+
         // The add form on the deny-list tab.
         if ($tab === self::TAB_BLACKLIST) {
             if ($data = self::block_form()->get_data()) {
@@ -121,6 +139,37 @@ class reports {
                     null, notification::NOTIFY_SUCCESS);
             }
         }
+
+        // The add form on the exemption tab.
+        if ($tab === self::TAB_ALLOWLIST) {
+            if ($data = self::allow_form()->get_data()) {
+                allowlist::add((string) $data->ip, (string) ($data->note ?? ''));
+                redirect(self::url(self::TAB_ALLOWLIST),
+                    get_string('blockipadded', 'local_profilefields', s($data->ip)),
+                    null, notification::NOTIFY_SUCCESS);
+            }
+        }
+    }
+
+    /**
+     * The one instance of the add-to-exemption-list form this request uses.
+     *
+     * Same reasoning as {@see self::block_form()}: process() and render() have to
+     * share the object or validation errors are drawn away.
+     *
+     * The action URL is what distinguishes the two forms' submissions, since they
+     * are the same class - each posts back to its own tab.
+     *
+     * @return blockip_form
+     */
+    protected static function allow_form(): blockip_form {
+        static $form = null;
+
+        if ($form === null) {
+            $form = new blockip_form(self::url(self::TAB_ALLOWLIST), ['mode' => 'allow']);
+        }
+
+        return $form;
     }
 
     /**
@@ -157,10 +206,14 @@ class reports {
                 get_string('tabattempts', 'local_profilefields')),
             new tabobject(self::TAB_BLACKLIST, self::url(self::TAB_BLACKLIST),
                 get_string('tabblacklist', 'local_profilefields')),
+            new tabobject(self::TAB_ALLOWLIST, self::url(self::TAB_ALLOWLIST),
+                get_string('ipallowlist', 'local_profilefields')),
         ], $tab);
 
         if ($tab === self::TAB_BLACKLIST) {
             self::render_blacklist();
+        } else if ($tab === self::TAB_ALLOWLIST) {
+            self::render_allowlist();
         } else {
             self::render_attempts();
         }
@@ -344,6 +397,54 @@ class reports {
         foreach ($entries as $entry) {
             $remove = html_writer::link(
                 self::url(self::TAB_BLACKLIST, ['unblock' => $entry->id, 'sesskey' => sesskey()]),
+                get_string('remove'),
+                ['class' => 'btn btn-sm btn-outline-danger']);
+
+            $table->data[] = [
+                html_writer::tag('code', s($entry->ip)),
+                s($entry->note),
+                userdate($entry->timecreated, get_string('strftimedatetimeshort', 'langconfig')),
+                $remove,
+            ];
+        }
+
+        echo html_writer::table($table);
+    }
+
+    // -----------------------------------------------------------------
+    // Exemption tab (AC-4.6.6).
+    // -----------------------------------------------------------------
+
+    /**
+     * Render the addresses exempt from the location check.
+     *
+     * @return void
+     */
+    protected static function render_allowlist(): void {
+        echo html_writer::tag('p', get_string('ipallowlistintro', 'local_profilefields'),
+            ['class' => 'text-muted']);
+
+        self::allow_form()->display();
+
+        $entries = allowlist::all();
+        if (!$entries) {
+            echo html_writer::div(get_string('ipallowlistempty', 'local_profilefields'),
+                'alert alert-info mt-3');
+            return;
+        }
+
+        $table = new \html_table();
+        $table->attributes['class'] = 'generaltable mt-3';
+        $table->head = [
+            get_string('colip', 'local_profilefields'),
+            get_string('colnote', 'local_profilefields'),
+            get_string('coladded', 'local_profilefields'),
+            get_string('colactions', 'local_profilefields'),
+        ];
+
+        foreach ($entries as $entry) {
+            $remove = html_writer::link(
+                self::url(self::TAB_ALLOWLIST, ['unallow' => $entry->id, 'sesskey' => sesskey()]),
                 get_string('remove'),
                 ['class' => 'btn btn-sm btn-outline-danger']);
 

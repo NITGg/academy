@@ -31,4 +31,12 @@ $callbacks = [
         'hook'     => \core\hook\output\before_http_headers::class,
         'callback' => \local_profilefields\hook_callbacks::class . '::before_http_headers',
     ],
+    [
+        // Put AC-4.2's expiry and resend limits around core's confirmation flow.
+        // after_config is the last moment before page code runs, which is where
+        // /login/confirm.php and /login/index.php make the decisions we need to
+        // get in front of.
+        'hook'     => \core\hook\after_config::class,
+        'callback' => \local_profilefields\hook_callbacks::class . '::after_config',
+    ],
 ];

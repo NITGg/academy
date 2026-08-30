@@ -1,0 +1,217 @@
+/* Offers announcement bar.
+ *
+ * Colours come entirely from the theme_nit brand palette (--nit-brand-*), so the bar
+ * re-skins with the rest of the site and is correct in light and dark without a second
+ * set of rules. Every horizontal property is logical (inline-start/end), so the bar
+ * mirrors itself in Arabic. Plain fallbacks keep it presentable under a stock theme.
+ */
+
+/* The bar is meant to sit flush on the page, so when the block header is hidden — core
+ * marks that instance ".no-header" — the surrounding block card is stripped back to
+ * nothing and the bar becomes the block. */
+.block.block_nit_offers.no-header,
+.block.block_nit_offers.no-header .card-body {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+}
+
+.nitoff {
+    --nitoff-tint: var(--nit-brand-accent, #d9a05b);
+    --nitoff-text: var(--nit-brand-textprimary, #1d2125);
+    --nitoff-muted: var(--nit-brand-textsecondary, #6a737d);
+    --nitoff-surface: var(--nit-brand-surface, #ffffff);
+    --nitoff-bg: color-mix(in srgb, var(--nitoff-tint) 13%, var(--nitoff-surface));
+    --nitoff-border: color-mix(in srgb, var(--nitoff-tint) 34%, transparent);
+    --nitoff-on-tint: var(--nit-brand-hovertext, #ffffff);
+
+    background: var(--nitoff-bg);
+    border: 1px solid var(--nitoff-border);
+    border-radius: 10px;
+    color: var(--nitoff-text);
+    overflow: hidden;
+}
+
+.nitoff--primary { --nitoff-tint: var(--nit-brand-primary, #c0392b); }
+.nitoff--success { --nitoff-tint: var(--nit-brand-success, #2e7d32); }
+.nitoff--warning { --nitoff-tint: var(--nit-brand-warning, #d9a05b); }
+
+.nitoff__inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 18px;
+    min-height: 46px;
+}
+
+/* The "OFFER" flag: an outlined pill, so it reads as a label rather than a second
+   button competing with the link at the end of the bar. */
+.nitoff__flag {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid color-mix(in srgb, var(--nitoff-tint) 65%, transparent);
+    border-radius: 50px;
+    padding: 3px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1.5;
+    color: color-mix(in srgb, var(--nitoff-tint) 78%, var(--nitoff-text));
+    white-space: nowrap;
+}
+
+/* Every offer is rendered into the same grid cell, so the bar is as tall as its
+   tallest row and switching offers never nudges the page. */
+.nitoff__track {
+    flex: 1 1 auto;
+    display: grid;
+    min-width: 0;
+}
+
+.nitoff__item {
+    grid-area: 1 / 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    min-width: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.35s ease;
+}
+
+.nitoff__item.is-active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.nitoff__headline {
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.45;
+    color: var(--nitoff-text);
+}
+
+.nitoff__badge {
+    display: inline-flex;
+    align-items: center;
+    background: var(--nitoff-tint);
+    color: var(--nitoff-on-tint);
+    border-radius: 50px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.6;
+    white-space: nowrap;
+}
+
+.nitoff__meta,
+.nitoff__scope {
+    font-size: 0.82rem;
+    color: var(--nitoff-muted);
+    line-height: 1.5;
+}
+
+/* The scope can be a long list of course names; it is the least important thing in
+   the row, so it is the first to go when the bar gets narrow. */
+.nitoff__scope {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 34ch;
+}
+
+.nitoff__cta {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--nitoff-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    white-space: nowrap;
+}
+
+.nitoff__cta:hover,
+.nitoff__cta:focus {
+    color: color-mix(in srgb, var(--nitoff-tint) 70%, var(--nitoff-text));
+}
+
+.nitoff__dots {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nitoff__dot {
+    width: 7px;
+    height: 7px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--nitoff-text) 28%, transparent);
+    cursor: pointer;
+    transition: background 0.2s ease, width 0.2s ease;
+}
+
+.nitoff__dot.is-active {
+    width: 18px;
+    border-radius: 50px;
+    background: var(--nitoff-tint);
+}
+
+.nitoff__close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--nitoff-muted);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.nitoff__close:hover,
+.nitoff__close:focus {
+    background: color-mix(in srgb, var(--nitoff-text) 10%, transparent);
+    color: var(--nitoff-text);
+}
+
+/* The editing-time notice shown to someone placing the block while nothing is running. */
+.nitoff-empty {
+    border: 1px dashed var(--nit-brand-borderprimary, #ced4da);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    color: var(--nit-brand-textsecondary, #6a737d);
+}
+
+@media (max-width: 767px) {
+    .nitoff__inner {
+        gap: 10px;
+        padding: 10px 12px;
+    }
+
+    .nitoff__scope {
+        display: none;
+    }
+
+    .nitoff__headline {
+        font-size: 0.9rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nitoff__item,
+    .nitoff__dot {
+        transition: none;
+    }
+}

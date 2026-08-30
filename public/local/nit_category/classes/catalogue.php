@@ -1,0 +1,879 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+namespace local_nit_category;
+
+use core_course_category;
+use core_course\customfield\course_handler;
+
+/**
+ * The course catalogue: which courses match, and which filters to offer for them.
+ *
+ * The problem this solves is that no two courses here are described the same way — one
+ * carries a level and a duration, another carries neither, a third has fields the others
+ * have never heard of. So the filter list is NOT written down anywhere: it is derived from
+ * the course custom fields that actually exist, and each filter is derived from the values
+ * the matching courses actually hold. Add a custom field in Site administration and a
+ * filter for it appears here on the next page load; leave it empty on every course and no
+ * filter appears at all.
+ *
+ * Each custom-field type becomes the kind of filter it can honestly support:
+ *
+ *   select    -> a checkbox list of its configured options
+ *   text      -> a checkbox list of the distinct values courses hold (our short-text
+ *                fields are chip lists, so one course can sit under several options)
+ *   checkbox  -> a single yes/no toggle ("Carries a certificate")
+ *   number    -> a from/to range ("Duration, hours")
+ *   textarea  -> nothing: prose is searched, not faceted
+ *   date      -> nothing: no course-shopping question is asked in dates today
+ *
+ * Values within one filter are OR-ed (Foundation *or* Intermediate) and filters are AND-ed
+ * across each other, which is what a shopper means by ticking several boxes.
+ *
+ * @package    local_nit_category
+ * @copyright  2026 NIT
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class catalogue {
+
+    /** @var string A checkbox list of values. */
+    const KIND_OPTIONS = 'options';
+    /** @var string A single on/off toggle. */
+    const KIND_BOOL = 'bool';
+    /** @var string A numeric from/to range. */
+    const KIND_RANGE = 'range';
+
+    /** @var int Cards per page unless the visitor picks otherwise. */
+    const DEFAULT_PERPAGE = 12;
+    /** @var int[] Page sizes offered. */
+    const PERPAGE_OPTIONS = [12, 24, 48];
+
+    /** @var int Options listed in a filter group before the rest fold behind "Show all". */
+    const OPTIONS_VISIBLE = 6;
+
+    /** @var int Most options one filter group will ever list. */
+    const OPTIONS_MAX = 40;
+
+    /**
+     * @var int Longest a value may be and still be treated as a label.
+     *
+     * Short-text fields are free typing, and several of ours hold prose: "Intended Learning
+     * Outcomes" holds "Analyze supply-chain data to drive operational decisions", which is a
+     * sentence about one course, not a category shared with others. A tick box needs a label,
+     * so a value past this length is kept for searching and for the course page but is never
+     * offered as a filter or printed on a card.
+     */
+    const MAX_OPTION_LENGTH = 32;
+
+    /** @var int And a label is a phrase, not a clause — the same test counted in words. */
+    const MAX_OPTION_WORDS = 5;
+
+    /** @var int Root category, or 0 for the whole site. */
+    private $rootid;
+
+    /** @var array[] Filter definitions, keyed by custom-field shortname. */
+    private $filters = [];
+
+    /** @var array[] One row per candidate course. */
+    private $rows = [];
+
+    /** @var array The filter values in force, keyed by filter name. */
+    private $active = [];
+
+    /**
+     * @param int $rootid category to browse within (recursively), or 0 for every course
+     */
+    public function __construct(int $rootid = 0) {
+        $this->rootid = $rootid;
+        $this->filters = $this->discover_filters();
+        $this->rows = $this->load_rows();
+    }
+
+    // =========================================================================
+    // Filter discovery.
+    // =========================================================================
+
+    /**
+     * Turn the site's course custom fields into filter definitions.
+     *
+     * Only fields visible to everyone are considered: the catalogue is a shop window, so a
+     * field an admin restricted to teachers must not become a public facet that leaks its
+     * values through the option list.
+     *
+     * @return array[] definition per shortname
+     */
+    private function discover_filters(): array {
+        $excluded = $this->excluded_shortnames();
+        $filters = [];
+
+        try {
+            $fields = course_handler::create()->get_fields();
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        foreach ($fields as $field) {
+            $shortname = (string) $field->get('shortname');
+            // The shortname becomes a URL parameter, so anything that would not survive the
+            // round trip is skipped rather than silently mangled into another field's name.
+            if ($shortname === '' || $shortname !== clean_param($shortname, PARAM_ALPHANUMEXT)) {
+                continue;
+            }
+            if (isset($excluded[\core_text::strtolower($shortname)])) {
+                continue;
+            }
+            // Missing means "visible to all", the same default core_course\customfield\
+            // course_handler::can_view() applies — a field created before the setting
+            // existed must not silently disappear from the catalogue.
+            $visibility = $field->get_configdata_property('visibility') ?? course_handler::VISIBLETOALL;
+            if ((int) $visibility !== course_handler::VISIBLETOALL) {
+                continue;
+            }
+
+            $type = (string) $field->get('type');
+            $kind = null;
+            $options = [];
+            if ($type === 'select') {
+                $kind = self::KIND_OPTIONS;
+                // Index 0 is the "not set" placeholder core prepends; it is not an option.
+                // get_options() formats its labels, so they come back to plain text here —
+                // see text_util::plain() for why the catalogue escapes only at output.
+                $options = array_map([text_util::class, 'plain'],
+                    array_filter($field->get_options(), static fn($label) => trim((string) $label) !== ''));
+            } else if ($type === 'text') {
+                $kind = self::KIND_OPTIONS;   // Options are collected from the courses below.
+            } else if ($type === 'checkbox') {
+                $kind = self::KIND_BOOL;
+            } else if ($type === 'number') {
+                $kind = self::KIND_RANGE;
+            }
+            if ($kind === null) {
+                continue;
+            }
+
+            $filters[$shortname] = [
+                'shortname' => $shortname,
+                // Formatted names arrive HTML-escaped; the page escapes once at output.
+                'name'      => text_util::plain($field->get_formatted_name()),
+                'type'      => $type,
+                'kind'      => $kind,
+                'options'   => $options,
+                'sortorder' => (int) $field->get('sortorder'),
+            ];
+        }
+
+        uasort($filters, static fn($a, $b) => $a['sortorder'] <=> $b['sortorder']);
+        return $filters;
+    }
+
+    /**
+     * Shortnames an admin has asked the catalogue to leave alone.
+     *
+     * @return array<string, true> lower-cased shortnames
+     */
+    private function excluded_shortnames(): array {
+        $raw = (string) get_config('local_nit_category', 'excludefilterfields');
+        $out = [];
+        foreach (preg_split('/[\s,]+/', $raw, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $name) {
+            $out[\core_text::strtolower(trim($name))] = true;
+        }
+        return $out;
+    }
+
+    // =========================================================================
+    // Loading.
+    // =========================================================================
+
+    /**
+     * Every course the viewer may see under the root category, with the values the filters
+     * need already attached.
+     *
+     * Custom-field values for the whole candidate set are fetched in ONE query rather than
+     * per course: a catalogue asks about every course on the page and every course behind
+     * the facet counts, so the per-course version of this is a few hundred queries.
+     *
+     * @return array[]
+     */
+    private function load_rows(): array {
+        global $DB;
+
+        $root = $this->rootid ? core_course_category::get($this->rootid, IGNORE_MISSING, true) : core_course_category::top();
+        if (!$root) {
+            return [];
+        }
+        $courses = $root->get_courses(['recursive' => true, 'sort' => ['sortorder' => 1], 'summary' => true]);
+        if (empty($courses)) {
+            return [];
+        }
+
+        $ids = array_map(static fn($c) => (int) $c->id, array_values($courses));
+        $values = $this->load_field_values($ids);
+        $created = $DB->get_records_list('course', 'id', $ids, '', 'id, timecreated, category');
+        $popularity = $this->load_popularity($ids);
+
+        $rows = [];
+        foreach ($courses as $course) {
+            $id = (int) $course->id;
+            $category = core_course_category::get((int) $course->category, IGNORE_MISSING, true);
+            $rows[] = [
+                'id'          => $id,
+                'course'      => $course,
+                'catid'       => (int) $course->category,
+                'catname'     => $category ? text_util::plain($category->get_formatted_name()) : '',
+                'values'      => $values[$id] ?? [],
+                'timecreated' => (int) ($created[$id]->timecreated ?? 0),
+                'popularity'  => (int) ($popularity[$id] ?? 0),
+                'haystack'    => $this->haystack($course, $values[$id] ?? []),
+            ];
+        }
+        return $rows;
+    }
+
+    /**
+     * Read every filterable field value for a set of courses in one go.
+     *
+     * @param int[] $courseids
+     * @return array<int, array<string, array>> course id -> shortname -> value bundle
+     */
+    private function load_field_values(array $courseids): array {
+        global $DB;
+
+        if (empty($courseids) || empty($this->filters)) {
+            return [];
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'c');
+        $params['component'] = 'core_course';
+        $params['area'] = 'course';
+
+        $sql = "SELECT d.id, d.instanceid, f.shortname, f.type, d.intvalue, d.decvalue, d.charvalue, d.value
+                  FROM {customfield_data} d
+                  JOIN {customfield_field} f ON f.id = d.fieldid
+                 WHERE d.component = :component AND d.area = :area AND d.instanceid $insql";
+
+        $out = [];
+        foreach ($DB->get_records_sql($sql, $params) as $record) {
+            $shortname = (string) $record->shortname;
+            if (!isset($this->filters[$shortname])) {
+                continue;
+            }
+            $bundle = $this->bundle($this->filters[$shortname], $record);
+            if ($bundle !== null) {
+                $out[(int) $record->instanceid][$shortname] = $bundle;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Turn one stored value into the shape its filter compares against.
+     *
+     * @param array $filter the filter definition
+     * @param \stdClass $record a customfield_data row
+     * @return array|null null when the course simply has no value for this field
+     */
+    private function bundle(array $filter, \stdClass $record): ?array {
+        if ($filter['type'] === 'select') {
+            $index = (int) $record->intvalue;
+            $label = $filter['options'][$index] ?? '';
+            if (trim($label) === '') {
+                return null;
+            }
+            return ['labels' => [$label], 'keys' => [text_util::key($label)]];
+        }
+
+        if ($filter['type'] === 'text') {
+            // A short-text field is a chip list: one course legitimately holds several
+            // values, and every one of them is a filter option.
+            $labels = text_util::values($record->charvalue !== null && $record->charvalue !== ''
+                ? $record->charvalue : $record->value);
+            if (empty($labels)) {
+                return null;
+            }
+            return ['labels' => $labels, 'keys' => array_map([text_util::class, 'key'], $labels)];
+        }
+
+        if ($filter['type'] === 'checkbox') {
+            return ['bool' => (bool) $record->intvalue];
+        }
+
+        if ($filter['type'] === 'number') {
+            if ($record->decvalue === null || $record->decvalue === '') {
+                return null;
+            }
+            return ['number' => (float) $record->decvalue];
+        }
+
+        return null;
+    }
+
+    /**
+     * Enrolment counts, used by the "Most popular" sort.
+     *
+     * @param int[] $courseids
+     * @return array<int, int>
+     */
+    private function load_popularity(array $courseids): array {
+        global $DB;
+
+        [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'c');
+        $sql = "SELECT e.courseid, COUNT(DISTINCT ue.userid) AS learners
+                  FROM {user_enrolments} ue
+                  JOIN {enrol} e ON e.id = ue.enrolid
+                 WHERE e.courseid $insql
+              GROUP BY e.courseid";
+        $out = [];
+        foreach ($DB->get_records_sql($sql, $params) as $record) {
+            $out[(int) $record->courseid] = (int) $record->learners;
+        }
+        return $out;
+    }
+
+    /**
+     * The text one course is searched against: its name, its summary and its own field
+     * values, so typing "certificate" or "forklift" finds a course however it was described.
+     *
+     * @param \core_course_list_element $course
+     * @param array $values the course's field bundles
+     * @return string lower-cased
+     */
+    private function haystack($course, array $values): string {
+        $parts = [$course->get_formatted_name()];
+        if ($course->has_summary()) {
+            $parts[] = html_to_text((string) $course->summary, 0, false);
+        }
+        foreach ($values as $bundle) {
+            foreach ($bundle['labels'] ?? [] as $label) {
+                $parts[] = $label;
+            }
+        }
+        return \core_text::strtolower(implode(' ', $parts));
+    }
+
+    // =========================================================================
+    // Applying the request.
+    // =========================================================================
+
+    /**
+     * Read the filters out of the current request.
+     *
+     * @return void
+     */
+    public function read_request(): void {
+        $active = [];
+
+        $search = trim(optional_param('q', '', PARAM_TEXT));
+        if ($search !== '') {
+            $active['q'] = $search;
+        }
+
+        $categories = optional_param_array('cat', [], PARAM_INT);
+        $categories = array_values(array_filter(array_map('intval', $categories)));
+        if (!empty($categories)) {
+            $active['cat'] = $categories;
+        }
+
+        if (optional_param('free', 0, PARAM_BOOL)) {
+            $active['free'] = true;
+        }
+        $pricemin = optional_param('pricemin', '', PARAM_RAW_TRIMMED);
+        $pricemax = optional_param('pricemax', '', PARAM_RAW_TRIMMED);
+        if (is_numeric($pricemin)) {
+            $active['pricemin'] = (float) $pricemin;
+        }
+        if (is_numeric($pricemax)) {
+            $active['pricemax'] = (float) $pricemax;
+        }
+
+        foreach ($this->filters as $shortname => $filter) {
+            if ($filter['kind'] === self::KIND_OPTIONS) {
+                $picked = optional_param_array('f_' . $shortname, [], PARAM_TEXT);
+                $picked = array_values(array_filter(array_map([text_util::class, 'key'], $picked),
+                    static fn($k) => $k !== ''));
+                if (!empty($picked)) {
+                    $active[$shortname] = $picked;
+                }
+            } else if ($filter['kind'] === self::KIND_BOOL) {
+                if (optional_param('f_' . $shortname, 0, PARAM_BOOL)) {
+                    $active[$shortname] = true;
+                }
+            } else if ($filter['kind'] === self::KIND_RANGE) {
+                $min = optional_param('min_' . $shortname, '', PARAM_RAW_TRIMMED);
+                $max = optional_param('max_' . $shortname, '', PARAM_RAW_TRIMMED);
+                $range = [];
+                if (is_numeric($min)) {
+                    $range['min'] = (float) $min;
+                }
+                if (is_numeric($max)) {
+                    $range['max'] = (float) $max;
+                }
+                if (!empty($range)) {
+                    $active[$shortname] = $range;
+                }
+            }
+        }
+
+        $this->active = $active;
+    }
+
+    /**
+     * The filters currently in force.
+     *
+     * @return array
+     */
+    public function active(): array {
+        return $this->active;
+    }
+
+    /**
+     * The filter definitions, in field order.
+     *
+     * @return array[]
+     */
+    public function filters(): array {
+        return $this->filters;
+    }
+
+    /**
+     * How many courses are in scope before any filter is applied.
+     *
+     * @return int
+     */
+    public function total(): int {
+        return count($this->rows);
+    }
+
+    /**
+     * The courses matching every active filter.
+     *
+     * @return array[]
+     */
+    public function matches(): array {
+        return $this->filter_rows($this->rows, $this->active);
+    }
+
+    /**
+     * Apply a set of filters to a set of rows.
+     *
+     * @param array[] $rows
+     * @param array $active
+     * @return array[]
+     */
+    private function filter_rows(array $rows, array $active): array {
+        $needsprice = isset($active['free']) || isset($active['pricemin']) || isset($active['pricemax']);
+
+        return array_values(array_filter($rows, function (array $row) use ($active, $needsprice) {
+            if (isset($active['q']) && !$this->matches_search($row, $active['q'])) {
+                return false;
+            }
+            if (isset($active['cat']) && !in_array($row['catid'], $active['cat'], true)) {
+                return false;
+            }
+            if ($needsprice && !$this->matches_price($row, $active)) {
+                return false;
+            }
+            foreach ($this->filters as $shortname => $filter) {
+                if (!isset($active[$shortname])) {
+                    continue;
+                }
+                if (!$this->matches_field($row, $filter, $active[$shortname])) {
+                    return false;
+                }
+            }
+            return true;
+        }));
+    }
+
+    /**
+     * Every word typed must appear somewhere in the course, so extra words narrow the
+     * result the way a search box is expected to.
+     *
+     * @param array $row
+     * @param string $search
+     * @return bool
+     */
+    private function matches_search(array $row, string $search): bool {
+        foreach (preg_split('/\s+/u', \core_text::strtolower($search), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
+            if (strpos($row['haystack'], $word) === false) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Price filters read the amount the viewer would actually pay, offers included — the
+     * number printed on the card. Filtering on the pre-discount price would hide a course
+     * from a budget its own card says it fits.
+     *
+     * @param array $row
+     * @param array $active
+     * @return bool
+     */
+    private function matches_price(array $row, array $active): bool {
+        $info = pricing::info($row['id']);
+
+        if (!empty($active['free'])) {
+            return !$info['haspricing'];
+        }
+        if (!$info['haspricing']) {
+            // A free course sits at zero, so it belongs in any range that starts at zero.
+            $price = 0.0;
+        } else if (!empty($info['countryrequired'])) {
+            // No price exists for this viewer at all; a range filter cannot honestly keep it.
+            return false;
+        } else {
+            $price = pricing::effective_price($info);
+        }
+
+        if (isset($active['pricemin']) && $price < $active['pricemin']) {
+            return false;
+        }
+        if (isset($active['pricemax']) && $price > $active['pricemax']) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Whether one course satisfies one custom-field filter.
+     *
+     * @param array $row
+     * @param array $filter
+     * @param mixed $wanted
+     * @return bool
+     */
+    private function matches_field(array $row, array $filter, $wanted): bool {
+        $bundle = $row['values'][$filter['shortname']] ?? null;
+
+        if ($filter['kind'] === self::KIND_OPTIONS) {
+            if ($bundle === null) {
+                return false;
+            }
+            // OR within a filter: any ticked value is enough.
+            return (bool) array_intersect($wanted, $bundle['keys'] ?? []);
+        }
+
+        if ($filter['kind'] === self::KIND_BOOL) {
+            return $bundle !== null && !empty($bundle['bool']);
+        }
+
+        if ($filter['kind'] === self::KIND_RANGE) {
+            if ($bundle === null || !isset($bundle['number'])) {
+                return false;
+            }
+            $number = (float) $bundle['number'];
+            if (isset($wanted['min']) && $number < $wanted['min']) {
+                return false;
+            }
+            if (isset($wanted['max']) && $number > $wanted['max']) {
+                return false;
+            }
+            return true;
+        }
+
+        return true;
+    }
+
+    // =========================================================================
+    // Facets.
+    // =========================================================================
+
+    /**
+     * The option lists to draw, with a count beside each.
+     *
+     * A filter's own selection is left out when counting its options — otherwise ticking
+     * "Foundation" would drop every other level to zero and the group would become a
+     * dead end. Every OTHER active filter still applies, so the counts tell the truth
+     * about what one more tick would give you.
+     *
+     * @return array[] one entry per filter, in field order
+     */
+    public function facets(): array {
+        $out = [];
+
+        foreach ($this->filters as $shortname => $filter) {
+            $others = $this->active;
+            unset($others[$shortname]);
+            $scope = $this->filter_rows($this->rows, $others);
+
+            if ($filter['kind'] === self::KIND_BOOL) {
+                $count = 0;
+                foreach ($scope as $row) {
+                    if (!empty($row['values'][$shortname]['bool'])) {
+                        $count++;
+                    }
+                }
+                // Nothing in scope carries this flag: a toggle that can only empty the page
+                // is not a filter, it is a trap.
+                if ($count === 0 && empty($this->active[$shortname])) {
+                    continue;
+                }
+                $out[] = $filter + [
+                    'count'    => $count,
+                    'selected' => !empty($this->active[$shortname]),
+                ];
+                continue;
+            }
+
+            if ($filter['kind'] === self::KIND_RANGE) {
+                $numbers = [];
+                foreach ($scope as $row) {
+                    if (isset($row['values'][$shortname]['number'])) {
+                        $numbers[] = (float) $row['values'][$shortname]['number'];
+                    }
+                }
+                if (count($numbers) < 2 && !isset($this->active[$shortname])) {
+                    // One value (or none) is not a range worth offering — unless a range is
+                    // already in force, in which case hiding the group would hide the only
+                    // control that can undo it.
+                    continue;
+                }
+                $out[] = $filter + [
+                    'bound_min' => $numbers ? min($numbers) : 0.0,
+                    'bound_max' => $numbers ? max($numbers) : 0.0,
+                    'min'       => $this->active[$shortname]['min'] ?? null,
+                    'max'       => $this->active[$shortname]['max'] ?? null,
+                ];
+                continue;
+            }
+
+            // Options: count the courses behind every value that is actually in use, so a
+            // select option no course has chosen never appears.
+            $counts = [];
+            $labels = [];
+            foreach ($scope as $row) {
+                $bundle = $row['values'][$shortname] ?? null;
+                if ($bundle === null) {
+                    continue;
+                }
+                foreach ($bundle['keys'] as $i => $key) {
+                    $label = $bundle['labels'][$i] ?? $key;
+                    if (!self::is_label($label)) {
+                        continue;
+                    }
+                    $counts[$key] = ($counts[$key] ?? 0) + 1;
+                    $labels[$key] = $labels[$key] ?? $label;
+                }
+            }
+
+            // A value the visitor has already ticked stays listed even when nothing else in
+            // scope carries it, so the tick can always be undone from where it was made.
+            foreach (($this->active[$shortname] ?? []) as $key) {
+                $counts[$key] = $counts[$key] ?? 0;
+                $labels[$key] = $labels[$key] ?? $key;
+            }
+            if (empty($counts)) {
+                continue;
+            }
+
+            // Already-ticked values first — they must survive the cap below, or a filter
+            // could not be unticked from the panel that set it — then most-used, then
+            // alphabetically, so the useful ticks are the visible ones.
+            $picked = array_flip($this->active[$shortname] ?? []);
+            uksort($counts, static function ($a, $b) use ($counts, $labels, $picked) {
+                $sa = isset($picked[$a]) ? 1 : 0;
+                $sb = isset($picked[$b]) ? 1 : 0;
+                if ($sa !== $sb) {
+                    return $sb <=> $sa;
+                }
+                if ($counts[$a] !== $counts[$b]) {
+                    return $counts[$b] <=> $counts[$a];
+                }
+                return \core_collator::compare($labels[$a], $labels[$b]);
+            });
+
+            // A short-text field is free typing, so it can hold a phrase no other course
+            // will ever repeat. When nothing in the field is shared between courses, it is
+            // prose rather than a category and every "filter" it offers would return one
+            // course — the search box already does that better. A select field is exempt:
+            // its options are a deliberate list, however sparsely used.
+            if ($filter['type'] === 'text' && empty($this->active[$shortname])
+                    && count($counts) > self::OPTIONS_VISIBLE && max($counts) < 2) {
+                continue;
+            }
+
+            $options = [];
+            foreach ($counts as $key => $count) {
+                $options[] = [
+                    'key'      => $key,
+                    'label'    => $labels[$key],
+                    'count'    => $count,
+                    'selected' => in_array($key, $this->active[$shortname] ?? [], true),
+                ];
+                // Sorted by count, so the cap keeps the values that actually group courses
+                // and drops the long tail nobody would scroll to.
+                if (count($options) >= self::OPTIONS_MAX) {
+                    break;
+                }
+            }
+            $out[] = $filter + ['values' => $options];
+        }
+
+        return $out;
+    }
+
+    /**
+     * The categories present in the result set, with counts — the same facet treatment as
+     * any custom field, so browsing by category is one more tick rather than a separate page.
+     *
+     * @return array[]
+     */
+    public function category_facet(): array {
+        $others = $this->active;
+        unset($others['cat']);
+        $scope = $this->filter_rows($this->rows, $others);
+
+        $counts = [];
+        $names = [];
+        foreach ($scope as $row) {
+            $counts[$row['catid']] = ($counts[$row['catid']] ?? 0) + 1;
+            $names[$row['catid']] = $row['catname'];
+        }
+        foreach (($this->active['cat'] ?? []) as $catid) {
+            if (!isset($counts[$catid])) {
+                $category = core_course_category::get($catid, IGNORE_MISSING, true);
+                $counts[$catid] = 0;
+                $names[$catid] = $category ? $category->get_formatted_name() : (string) $catid;
+            }
+        }
+        if (count($counts) < 2 && empty($this->active['cat'])) {
+            // Everything sits in one category: the filter would be decoration.
+            return [];
+        }
+
+        uksort($counts, static function ($a, $b) use ($counts, $names) {
+            if ($counts[$a] !== $counts[$b]) {
+                return $counts[$b] <=> $counts[$a];
+            }
+            return \core_collator::compare($names[$a], $names[$b]);
+        });
+
+        $out = [];
+        foreach ($counts as $catid => $count) {
+            $out[] = [
+                'key'      => (string) $catid,
+                'label'    => $names[$catid],
+                'count'    => $count,
+                'selected' => in_array((int) $catid, $this->active['cat'] ?? [], true),
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Whether a stored value is short enough to work as a tick-box label or a card chip.
+     *
+     * @param string $value
+     * @return bool
+     */
+    public static function is_label(string $value): bool {
+        $value = trim($value);
+        if ($value === '' || \core_text::strlen($value) > self::MAX_OPTION_LENGTH) {
+            return false;
+        }
+        // Length alone is a blunt test across two scripts — Arabic says the same thing in
+        // fewer characters — so the word count backs it up.
+        return count(preg_split('/\s+/u', $value, -1, PREG_SPLIT_NO_EMPTY) ?: []) <= self::MAX_OPTION_WORDS;
+    }
+
+    /**
+     * The chips and the meta line one card prints.
+     *
+     * Both are read from the same field values the filters were built from, and through the
+     * same is_label() test, so a card never advertises something the panel cannot filter on
+     * — and never prints a paragraph in a pill.
+     *
+     * @param array $row a row from {@see self::matches()}
+     * @return array{chips: string[], meta: string[]}
+     */
+    public function card_labels(array $row): array {
+        $chips = [];
+        $meta = [];
+
+        foreach ($this->filters as $shortname => $filter) {
+            $bundle = $row['values'][$shortname] ?? null;
+            if ($bundle === null) {
+                continue;
+            }
+            if ($filter['kind'] === self::KIND_OPTIONS) {
+                foreach ($bundle['labels'] as $label) {
+                    if (self::is_label($label)) {
+                        $chips[] = $label;
+                    }
+                }
+            } else if ($filter['kind'] === self::KIND_BOOL && !empty($bundle['bool'])) {
+                $chips[] = $filter['name'];
+            } else if ($filter['kind'] === self::KIND_RANGE && isset($bundle['number'])) {
+                // A bare number on a card says nothing, so a numeric field is printed as
+                // "<field name>: <value>" on its own line rather than squeezed into a chip.
+                $meta[] = $filter['name'] . ': ' . text_util::number($bundle['number']);
+            }
+        }
+
+        return [
+            'chips' => array_slice(array_values(array_unique($chips)), 0, 4),
+            'meta'  => array_slice($meta, 0, 2),
+        ];
+    }
+
+    // =========================================================================
+    // Sorting.
+    // =========================================================================
+
+    /**
+     * The sort keys the catalogue offers.
+     *
+     * @return array<string, string> key => label
+     */
+    public static function sort_options(): array {
+        return [
+            'popular'  => get_string('sortpopular', 'local_nit_category'),
+            'newest'   => get_string('sortnewest', 'local_nit_category'),
+            'name'     => get_string('sortname', 'local_nit_category'),
+            'pricelow' => get_string('sortpricelow', 'local_nit_category'),
+            'pricehigh' => get_string('sortpricehigh', 'local_nit_category'),
+        ];
+    }
+
+    /**
+     * Order a result set.
+     *
+     * @param array[] $rows
+     * @param string $sort one of {@see self::sort_options()}
+     * @return array[]
+     */
+    public static function sort(array $rows, string $sort): array {
+        if ($sort === 'newest') {
+            usort($rows, static fn($a, $b) => $b['timecreated'] <=> $a['timecreated']);
+        } else if ($sort === 'name') {
+            usort($rows, static fn($a, $b) => \core_collator::compare(
+                $a['course']->get_formatted_name(), $b['course']->get_formatted_name()));
+        } else if ($sort === 'pricelow' || $sort === 'pricehigh') {
+            $prices = [];
+            foreach ($rows as $row) {
+                $prices[$row['id']] = pricing::effective_price(pricing::info($row['id']));
+            }
+            usort($rows, static function ($a, $b) use ($prices, $sort) {
+                $cmp = $prices[$a['id']] <=> $prices[$b['id']];
+                return $sort === 'pricelow' ? $cmp : -$cmp;
+            });
+        } else {
+            usort($rows, static fn($a, $b) => $b['popularity'] <=> $a['popularity']);
+        }
+        return $rows;
+    }
+}

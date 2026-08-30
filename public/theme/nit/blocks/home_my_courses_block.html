@@ -52,10 +52,24 @@
               <p
                 style="font-size: 13px; color: var(--nit-brand-textsecondary); line-height: 1.7; margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
                 {{summary}}</p>
+              <!-- PROGRESS (AC-4.7.8) — hidden on courses that do not track completion -->
+              <div style="display: none; margin: 14px 0 0;" data-nit-my-course-progress="">
+                <div
+                  style="display: flex; justify-content: space-between; font-size: 11px; color: var(--nit-brand-textsecondary); margin: 0 0 6px;">
+                  <span>{mlang en}Progress{mlang}{mlang ar}التقدّم{mlang}</span>
+                  <span data-nit-my-course-percent="">0%</span>
+                </div>
+                <div
+                  style="height: 6px; border-radius: 50px; overflow: hidden; background: color-mix(in srgb, var(--nit-brand-textprimary) 12%, transparent);">
+                  <div
+                    style="height: 100%; width: 0; border-radius: 50px; background: var(--nit-brand-success); transition: width .4s ease;"
+                    data-nit-my-course-bar=""></div>
+                </div>
+              </div>
               <a class="nit-btn-solid"
                 style="display: block; width: 100%; box-sizing: border-box; margin-top: auto; text-align: center; background: var(--nit-brand-primary); color: var(--nit-brand-textprimary); font-weight: bold; padding: 10px 12px; border-radius: 8px; text-decoration: none;"
-                href="{{url}}" data-nit-btn="">{mlang en}Continue{mlang}{mlang
-                ar}متابعة{mlang}</a>
+                href="{{url}}" data-nit-btn="">{mlang en}Resume{mlang}{mlang
+                ar}استئناف{mlang}</a>
             </div>
           </div>
         </div>
@@ -89,6 +103,146 @@
       st.id = 'nit-hoverfx-style';
       st.textContent = css;
       (document.head || document.documentElement).appendChild(st);
+    })();
+  </script>
+  <script>
+    // ------------------------------------------------------------------
+    // AC-4.7.7 to AC-4.7.9: the learner's own courses, with progress and a
+    // Resume that returns to the last position.
+    //
+    // Three states, and the specification is specific about all three:
+    //
+    // - a guest sees nothing at all - "no such block and no placeholder in its
+    //   position" (AC-4.7.7) - so the whole section is removed, not emptied;
+    // - a learner with no active enrolment sees the single invitation already
+    //   in the markup (AC-4.7.9);
+    // - otherwise one card per course, expired enrolments excluded, which the
+    //   feed has already done.
+    // ------------------------------------------------------------------
+    (function() {
+      var box = document.querySelector('[data-nit-my-courses]');
+      if (!box || box.dataset.nitLoaded) {
+        return;
+      }
+      box.dataset.nitLoaded = '1';
+
+      var tpl = box.querySelector('[data-nit-my-course-card]');
+      var empty = box.querySelector('[data-nit-my-courses-empty]');
+      if (!tpl) {
+        return;
+      }
+
+      var root = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : '';
+      var lang = (document.documentElement.getAttribute('lang') || 'en').split('-')[0];
+      var limit = parseInt(box.dataset.limit || '12', 10);
+      var section = box.closest('[data-nit-section]') || box.parentElement;
+
+      // Whether anyone is logged in at all. M.cfg.sesskey is present for a
+      // session; a guest has none, and asking the server would mean a request
+      // whose only possible answer is "nothing".
+      var loggedin = !!(window.M && M.cfg && M.cfg.sesskey);
+      if (!loggedin) {
+        if (section) {
+          section.style.display = 'none';
+        }
+        return;
+      }
+
+      var fill = function(node, row) {
+        node.querySelectorAll('[href]').forEach(function(a) {
+          // The button says Resume, so it goes to the resume point rather than
+          // to the course front page (AC-4.7.8).
+          a.setAttribute('href',
+            a.getAttribute('href').replace('{{url}}', row.resumeurl || row.url || '#'));
+        });
+
+        var img = node.querySelector('[data-nit-my-course-image]');
+        if (img && row.image) {
+          img.style.backgroundImage = 'url("' + row.image + '")';
+        }
+
+        var walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null);
+        var textnode;
+        while ((textnode = walker.nextNode())) {
+          if (textnode.nodeValue.indexOf('{{') === -1) {
+            continue;
+          }
+          textnode.nodeValue = textnode.nodeValue
+            .replace('{{fullname}}', row.fullname || '')
+            .replace('{{teacher}}', row.teacher || '')
+            .replace('{{summary}}', row.summary || '');
+        }
+
+        // A null progress means the course tracks no completion. Leaving the bar
+        // hidden is deliberate: a bar reading 0% on a course somebody is halfway
+        // through looks like lost work rather than an absent feature.
+        var wrap = node.querySelector('[data-nit-my-course-progress]');
+        if (wrap && row.progress !== null && row.progress !== undefined) {
+          var pct = Math.max(0, Math.min(100, parseInt(row.progress, 10) || 0));
+          wrap.style.display = '';
+          var bar = node.querySelector('[data-nit-my-course-bar]');
+          var label = node.querySelector('[data-nit-my-course-percent]');
+          if (bar) {
+            bar.style.width = pct + '%';
+          }
+          if (label) {
+            label.textContent = pct + '%';
+          }
+        }
+
+        // The teacher line is decoration; an empty one leaves a stray icon.
+        if (!row.teacher) {
+          var byline = node.querySelector('[data-nit-my-course-image]');
+          node.querySelectorAll('div').forEach(function(d) {
+            if (d !== byline && d.textContent.trim() === '👤') {
+              d.style.display = 'none';
+            }
+          });
+        }
+
+        node.style.display = '';
+        node.removeAttribute('data-nit-my-course-card');
+      };
+
+      fetch(root + '/local/nit_category/home.php?function=get_my_courses'
+          + '&limit=' + encodeURIComponent(limit)
+          + '&alang=' + encodeURIComponent(lang), {
+          headers: {Accept: 'application/json'},
+          credentials: 'same-origin'
+        })
+        .then(function(r) {
+          return r.json();
+        })
+        .then(function(res) {
+          if (!res || res.status !== 'success') {
+            if (section) {
+              section.style.display = 'none';
+            }
+            return;
+          }
+
+          if (!res.data || !res.data.length) {
+            // AC-4.7.9: one invitation to browse the catalogue, in place of the
+            // list. Already written into the markup, just hidden.
+            if (empty) {
+              empty.style.display = '';
+            } else if (section) {
+              section.style.display = 'none';
+            }
+            return;
+          }
+
+          res.data.forEach(function(row) {
+            var node = tpl.cloneNode(true);
+            fill(node, row);
+            box.appendChild(node);
+          });
+        })
+        .catch(function() {
+          if (section) {
+            section.style.display = 'none';
+          }
+        });
     })();
   </script>
 </div>

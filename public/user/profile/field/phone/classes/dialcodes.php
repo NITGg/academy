@@ -295,7 +295,7 @@ class dialcodes {
      * @return string ISO alpha-2 country code, or ''
      */
     public static function country_from_ip(bool $allowonline = false): string {
-        global $CFG;
+        global $CFG, $SESSION;
 
         $ip = getremoteaddr();
         if (empty($ip) || !filter_var($ip, FILTER_VALIDATE_IP,
@@ -304,17 +304,67 @@ class dialcodes {
             return '';
         }
 
-        // 1) Moodle's configured GeoIP source, if any.
+        // AC-4.6.9: "cached for the duration of the session and does not add more
+        // than 300 ms to page rendering". A static cache only ever held the answer
+        // for one request, so a visitor paid the lookup again on every page. The
+        // session is the unit the specification names, and the address is part of
+        // the key so that a visitor who changes network is re-resolved rather than
+        // priced from where they used to be (AC-4.6.7).
+        $cachekey = 'phone_country_' . $ip . ($allowonline ? '_online' : '');
+        if (isset($SESSION->{$cachekey})) {
+            self::$servicedown = !empty($SESSION->{$cachekey . '_down'});
+
+            return (string) $SESSION->{$cachekey};
+        }
+
+        self::$servicedown = false;
+
+        // 1) Moodle's configured GeoIP source, if any. A local .mmdb file is a disk
+        // read rather than a network call, which is the only way the 300 ms in
+        // AC-4.6.9 is comfortably met - see the class note on geoip2file.
         if (!empty($CFG->geoip2file) || !empty($CFG->geopluginapikey)) {
             $iso = self::country_from_moodle($ip);
             if ($iso !== '') {
+                $SESSION->{$cachekey} = $iso;
+
                 return $iso;
             }
         }
 
         // 2) Free online lookup - needs no admin setup, but is an external call, so
         // only for the opt-in check that asks for it.
-        return $allowonline ? self::country_from_online($ip) : '';
+        $iso = $allowonline ? self::country_from_online($ip) : '';
+
+        // Only a settled answer is worth caching. A failure caused by the lookup
+        // hosts being unreachable is a transient state of ours, and pinning it to
+        // the session would keep refusing this visitor long after the outage ended.
+        if (!self::$servicedown) {
+            $SESSION->{$cachekey} = $iso;
+        }
+
+        return $iso;
+    }
+
+    /**
+     * @var bool Whether the last lookup failed because no source could be reached.
+     *
+     * The difference between "we asked and nobody could place this address" and
+     * "we could not ask anybody" is invisible in the return value - both are '' -
+     * but AC-4.6.10 gives them different messages and only one of them is an
+     * incident. This flag carries that distinction out to the caller, which reads
+     * it through {@see self::service_was_down()} immediately after the lookup.
+     */
+    protected static $servicedown = false;
+
+    /**
+     * Did the most recent lookup fail because every source was unreachable?
+     *
+     * Only meaningful directly after a call to {@see self::country_from_ip()}.
+     *
+     * @return bool
+     */
+    public static function service_was_down(): bool {
+        return self::$servicedown;
     }
 
     /**
@@ -369,11 +419,23 @@ class dialcodes {
         ];
 
         $iso = '';
+        $reached = false;
+
         foreach ($endpoints as $endpoint) {
-            $body = download_file_content($endpoint['url'], null, null, false, 4, 4, false, null, false);
+            // One second, not four. This runs on the sign-up submit, and with two
+            // endpoints tried in turn a four-second timeout meant a bad network day
+            // cost the learner eight seconds and then refused them anyway - against
+            // a specification that allows 300 ms. One second is long enough for a
+            // service that is answering and short enough that one that is not stops
+            // being the learner's problem.
+            $body = download_file_content($endpoint['url'], null, null, false, 1, 1, false, null, false);
             if (!is_string($body)) {
                 continue;
             }
+
+            // We got bytes back, so the host is alive. Whether it could place this
+            // particular address is a separate question, answered below.
+            $reached = true;
             $data = json_decode($body, true);
             if (!is_array($data) || empty($data[$endpoint['key']])) {
                 continue;
@@ -384,6 +446,10 @@ class dialcodes {
                 break;
             }
         }
+
+        // Nothing answered at all. That is an outage on our side of the question,
+        // not a fact about this visitor, and AC-4.6.10 treats the two differently.
+        self::$servicedown = ($iso === '' && !$reached);
 
         return $cache[$ip] = $iso;
     }

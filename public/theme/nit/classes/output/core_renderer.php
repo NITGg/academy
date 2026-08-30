@@ -45,6 +45,32 @@ class core_renderer extends \theme_boost\output\core_renderer {
     }
 
     /**
+     * Render the login form, telling the template whether to offer "Remember me".
+     *
+     * AC-4.3.5 puts a checkbox on this screen that core has no concept of. The
+     * markup lives in theme_nit's override of core/loginform; this supplies the
+     * one flag that decides whether it is drawn, because a Mustache template
+     * cannot read a plugin setting on its own.
+     *
+     * Everything else about the context is core's - the parent builds it and this
+     * adds one property - so a login screen change in a future Moodle release
+     * arrives here intact.
+     *
+     * @param \core_auth\output\login $form the login form renderable
+     * @return string HTML
+     */
+    public function render_login(\core_auth\output\login $form): string {
+        $context = $form->export_for_template($this);
+
+        // Guarded on the plugin being installed at all: theme_nit has to keep
+        // rendering a login page on a site that does not run local_profilefields.
+        $context->nitrememberme = class_exists('\local_profilefields\rememberme')
+            && \local_profilefields\rememberme::enabled();
+
+        return $this->render_from_template('core/loginform', $context);
+    }
+
+    /**
      * Render the standalone navbar language menu for every user.
      *
      * Core exposes the standalone language menu (primary::export_for_template)

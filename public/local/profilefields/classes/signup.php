@@ -378,19 +378,41 @@ JS;
             return $verdicts[$iso];
         }
 
+        // AC-4.6.6: an exempt address is never compared to a country. Checked
+        // before the lookup, not after - the point of an exemption is to skip the
+        // check, and running it anyway would still cost the visitor the network
+        // call this is meant to spare them.
+        if (allowlist::exempts()) {
+            return $verdicts[$iso] = null;
+        }
+
         // Allow the free online fallback here: this runs once, on submit, only when
         // the admin turned the check on.
         $ipiso = \profilefield_phone\dialcodes::country_from_ip(true);
 
         if ($ipiso === '') {
-            // Nothing resolved the address - no geo-IP source, a lookup that failed,
-            // or a private/reserved address such as a LAN client behind no proxy. The
-            // rule cannot be applied, and whether that means "let them through" or
-            // "turn them away" is a policy question, so it is an admin setting rather
-            // than a silent default. Note that a site behind a reverse proxy needs
-            // $CFG->getremoteaddrconf set so getremoteaddr() returns the real client
-            // address; otherwise every visitor looks like the proxy and resolves to
-            // nothing.
+            // AC-4.6.10: every source was unreachable. That is an outage, not a
+            // fact about this visitor, so it gets its own message ("temporarily
+            // unavailable" rather than "your country does not match") and raises an
+            // alert - nobody can register while it lasts, and without the alert the
+            // first anyone would know is a support ticket. Registration is refused
+            // either way; browsing and pricing keep working on the default price,
+            // because nothing on those paths consults this method.
+            if (\profilefield_phone\dialcodes::service_was_down()) {
+                blocklog::record(blocklog::REASON_SERVICEDOWN, $iso);
+                self::alert_service_down();
+
+                return $verdicts[$iso] = get_string('ipservicedown', 'local_profilefields');
+            }
+
+            // Nothing resolved the address - no geo-IP source, a lookup that
+            // declined to place it, or a private/reserved address such as a LAN
+            // client behind no proxy. The rule cannot be applied, and whether that
+            // means "let them through" or "turn them away" is a policy question, so
+            // it is an admin setting rather than a silent default. Note that a site
+            // behind a reverse proxy needs $CFG->getremoteaddrconf set so
+            // getremoteaddr() returns the real client address; otherwise every
+            // visitor looks like the proxy and resolves to nothing.
             if (!manager::block_unresolved_ip()) {
                 return $verdicts[$iso] = null;
             }
@@ -407,6 +429,57 @@ JS;
         blocklog::record(blocklog::REASON_MISMATCH, $iso, $ipiso);
 
         return $verdicts[$iso] = get_string('ipmismatch', 'local_profilefields');
+    }
+
+    /**
+     * Raise the operational alert AC-4.6.10 asks for when geolocation is down.
+     *
+     * Delivered as an admin notification rather than an email: it is the standard
+     * channel for "the site needs attention", it reaches whoever is actually
+     * administering rather than an address configured once and forgotten, and it
+     * shows on the notifications page where the rest of the site's health lives.
+     *
+     * Throttled to one alert an hour through a config flag. An outage produces one
+     * refusal per visitor attempting to register, and a busy hour would otherwise
+     * bury the administrator in identical notices about a single fault - which is
+     * a reliable way to make the next alert be ignored.
+     *
+     * @return void
+     */
+    protected static function alert_service_down(): void {
+        $last = (int) get_config(manager::COMPONENT, 'servicedownalerted');
+
+        if ($last > (time() - HOURSECS)) {
+            return;
+        }
+
+        set_config('servicedownalerted', time(), manager::COMPONENT);
+
+        try {
+            $message = get_string('servicedownalert', 'local_profilefields');
+
+            foreach (get_admins() as $admin) {
+                $notification = new \core\message\message();
+                $notification->component = 'moodle';
+                $notification->name = 'errors';
+                $notification->userfrom = \core_user::get_noreply_user();
+                $notification->userto = $admin;
+                $notification->subject = get_string('reasonservicedown', 'local_profilefields');
+                $notification->fullmessage = $message;
+                $notification->fullmessageformat = FORMAT_PLAIN;
+                $notification->fullmessagehtml = \html_writer::tag('p', s($message));
+                $notification->smallmessage = get_string('reasonservicedown', 'local_profilefields');
+                $notification->notification = 1;
+
+                message_send($notification);
+            }
+        } catch (\Throwable $e) {
+            // A failure to raise the alarm must not become a second failure on top
+            // of the one being reported: the visitor is already being refused, and
+            // throwing here would turn that refusal into a white screen.
+            debugging('local_profilefields: could not raise the geolocation alert: '
+                . $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 
     /**

@@ -16,6 +16,7 @@
 
 namespace local_profilefields\form;
 
+use local_profilefields\allowlist;
 use local_profilefields\blocklist;
 use moodleform;
 
@@ -34,14 +35,28 @@ require_once($CFG->libdir . '/formslib.php');
 class blockip_form extends moodleform {
 
     /**
-     * Two boxes: what to block, and why.
+     * Whether this instance is adding to the exemption list rather than the deny list.
+     *
+     * The two lists take the same two boxes and validate identically, so one form
+     * serves both; only the tab it posts to, its button label and which list it
+     * checks for duplicates change.
+     *
+     * @return bool
+     */
+    protected function is_allow_mode(): bool {
+        return ($this->_customdata['mode'] ?? '') === 'allow';
+    }
+
+    /**
+     * Two boxes: which address, and why.
      *
      * @return void
      */
     protected function definition() {
         $mform = $this->_form;
+        $allow = $this->is_allow_mode();
 
-        $mform->addElement('hidden', 'tab', 'blacklist');
+        $mform->addElement('hidden', 'tab', $allow ? 'allowlist' : 'blacklist');
         $mform->setType('tab', PARAM_ALPHA);
 
         $mform->addElement('text', 'ip', get_string('blockipaddress', 'local_profilefields'),
@@ -54,7 +69,8 @@ class blockip_form extends moodleform {
             ['size' => 48]);
         $mform->setType('note', PARAM_TEXT);
 
-        $this->add_action_buttons(false, get_string('blockipadd', 'local_profilefields'));
+        $this->add_action_buttons(false, get_string(
+            $allow ? 'ipallowlistadd' : 'blockipadd', 'local_profilefields'));
     }
 
     /**
@@ -70,11 +86,17 @@ class blockip_form extends moodleform {
     public function validation($data, $files) {
         $errors = parent::validation($data, $files);
 
-        $ip = blocklist::normalise((string) $data['ip']);
+        $allow = $this->is_allow_mode();
+
+        $ip = $allow
+            ? allowlist::normalise((string) $data['ip'])
+            : blocklist::normalise((string) $data['ip']);
+
         if ($ip === '') {
             $errors['ip'] = get_string('blockipinvalid', 'local_profilefields');
-        } else if (blocklist::listed($ip)) {
-            $errors['ip'] = get_string('blockipduplicate', 'local_profilefields');
+        } else if ($allow ? allowlist::listed($ip) : blocklist::listed($ip)) {
+            $errors['ip'] = get_string(
+                $allow ? 'alreadyallowed' : 'blockipduplicate', 'local_profilefields');
         }
 
         return $errors;

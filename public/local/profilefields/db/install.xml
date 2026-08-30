@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/profilefields/db" VERSION="2026082900" COMMENT="Sign-up guard: the log of refused registration attempts and the IP deny list that feeds it."
+<XMLDB PATH="local/profilefields/db" VERSION="2026083000" COMMENT="Sign-up guard: the log of refused registration attempts and the IP deny list that feeds it."
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -37,6 +37,67 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="ip_uix" UNIQUE="true" FIELDS="ip"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_profilefields_allow" COMMENT="Addresses exempt from the registration location check (AC-4.6.6) - the academy's own offices and testing. Same entry format as the deny list.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="ip" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="e.g. 1.2.3.4, 1.2.3.0/24, 1.2.3. or 1.2.3.4-16"/>
+        <FIELD NAME="note" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Free-text note for whoever reads the list later."/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="ip_uix" UNIQUE="true" FIELDS="ip"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_profilefields_remember" COMMENT="Persistent sign-in tokens for AC-4.3.5. One row per trusted device. Split into a selector that is looked up and a validator that is compared as a hash, so a stolen database yields no usable token and the lookup cannot be timed.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="selector" TYPE="char" LENGTH="32" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="The half of the cookie used to find the row. Not a secret."/>
+        <FIELD NAME="validator" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="SHA-256 of the secret half of the cookie. The secret itself is never stored."/>
+        <FIELD NAME="useragent" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Hash of the browser the token was issued to; a mismatch refuses the token."/>
+        <FIELD NAME="lastip" TYPE="char" LENGTH="45" NOTNULL="true" DEFAULT="" SEQUENCE="false"/>
+        <FIELD NAME="expires" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="selector_uix" UNIQUE="true" FIELDS="selector"/>
+        <INDEX NAME="expires_idx" UNIQUE="false" FIELDS="expires"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_profilefields_request" COMMENT="Requests to change a field only an administrator may set - the country of record and the phone country code (AC-4.5.4). Each row is also the audit entry for the decision.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="field" TYPE="char" LENGTH="50" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="country|phonecountry"/>
+        <FIELD NAME="oldvalue" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false"/>
+        <FIELD NAME="newvalue" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false"/>
+        <FIELD NAME="reason" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Why the learner says the change is needed."/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending|approved|rejected"/>
+        <FIELD NAME="decidedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="decisionnote" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timedecided" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="status_idx" UNIQUE="false" FIELDS="status"/>
+        <INDEX NAME="timecreated_idx" UNIQUE="false" FIELDS="timecreated"/>
       </INDEXES>
     </TABLE>
   </TABLES>

@@ -156,6 +156,9 @@ class blocked_attempts extends table_sql {
             blocklog::REASON_MISMATCH   => 'badge bg-warning text-dark',
             blocklog::REASON_UNRESOLVED => 'badge bg-secondary',
             blocklog::REASON_BLOCKED    => 'badge bg-danger',
+            // Red, like an outright block: rows carrying this are not visitors
+            // doing anything wrong, they are registrations the site lost.
+            blocklog::REASON_SERVICEDOWN => 'badge bg-danger',
         ];
 
         $key = 'reason' . $row->reason;

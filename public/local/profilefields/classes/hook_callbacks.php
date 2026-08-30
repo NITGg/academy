@@ -82,7 +82,20 @@ class hook_callbacks {
         global $PAGE, $USER;
 
         try {
-            if (during_initial_install() || !completion::enabled()) {
+            if (during_initial_install()) {
+                return;
+            }
+
+            // AC-4.2.8 words the screen shown straight after sign-up, and core's
+            // is a plain notice with none of it - no masked address, no countdown
+            // on the resend, no way to correct a typo. This is the first moment we
+            // can replace it: auth_email::user_signup() has created the account and
+            // sent the mail, and is now opening the page to print that notice.
+            if (self::redirect_new_signup()) {
+                return;
+            }
+
+            if (!completion::enabled()) {
                 return;
             }
             // Never interrupt a request that cannot show a form: AJAX, web services,
@@ -173,5 +186,222 @@ class hook_callbacks {
         }
 
         return false;
+    }
+
+    /**
+     * Send a learner who has just signed up to our own confirmation notice.
+     *
+     * The id is left in the session by {@see observer::user_created()} and is
+     * consumed here whatever the outcome, so a stale value cannot survive to
+     * hijack a later page load.
+     *
+     * @return bool true when the request has been redirected away
+     */
+    protected static function redirect_new_signup(): bool {
+        global $SESSION;
+
+        $id = (int) ($SESSION->local_profilefields_justsignedup ?? 0);
+        if (!$id) {
+            return false;
+        }
+
+        unset($SESSION->local_profilefields_justsignedup);
+
+        // Only on the page that would otherwise print core's notice. Anything
+        // else - an account created by an administrator, by the app's web
+        // service, by a CLI upload - keeps its own flow.
+        if (self::script_path() !== '/login/signup.php') {
+            return false;
+        }
+
+        redirect(new \moodle_url('/local/profilefields/verify.php', ['id' => $id]));
+
+        return true;
+    }
+
+    /**
+     * The request path, with any wwwroot subdirectory stripped off.
+     *
+     * @return string e.g. "/login/confirm.php"
+     */
+    protected static function script_path(): string {
+        global $CFG;
+
+        $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+        $root = (string) parse_url($CFG->wwwroot, PHP_URL_PATH);
+
+        if ($root !== '' && strpos($path, $root) === 0) {
+            $path = substr($path, strlen($root));
+        }
+
+        return $path;
+    }
+
+    /**
+     * Apply AC-4.2's rules to core's confirmation flow, before core runs.
+     *
+     * `after_config` is dispatched at the end of setup.php - the session is up,
+     * `$DB` is live, and not a line of the page has run yet. That is the only
+     * moment at which we can still decide that `/login/confirm.php` should not
+     * confirm and that `/login/index.php` should not send: both make their move
+     * in page code, and a later hook would be arguing with a decision already
+     * taken.
+     *
+     * Two interceptions, and nothing else on any other URL:
+     *
+     * - **an expired link** (AC-4.2.10, AC-4.2.11). Core has no expiry at all; it
+     *   compares the secret and confirms. Caught here and turned into the
+     *   specification's message plus a way to ask for a new one.
+     *
+     * - **a resend** (AC-4.2.2, AC-4.2.3, AC-4.2.4). Refused when the account is
+     *   inside its cooldown or over its hourly ceiling; otherwise the secret is
+     *   rotated first, so the mail core is about to send carries a new link and
+     *   every earlier one stops working.
+     *
+     * Fails open, like the sibling callback above: an exception here must not be
+     * able to make the login page unreachable.
+     *
+     * @param \core\hook\after_config $hook
+     * @return void
+     */
+    public static function after_config(\core\hook\after_config $hook): void {
+        try {
+            if (during_initial_install() || CLI_SCRIPT || AJAX_SCRIPT || WS_SERVER) {
+                return;
+            }
+
+            $path = self::script_path();
+
+            if ($path === '/login/confirm.php') {
+                self::guard_confirm_link();
+                return;
+            }
+
+            if ($path === '/login/index.php' && optional_param('resendconfirmemail', false, PARAM_BOOL)) {
+                self::guard_resend();
+                return;
+            }
+
+            self::resume_remembered_session();
+        } catch (\Throwable $e) {
+            debugging('local_profilefields verification guard: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+    }
+
+    /**
+     * Rebuild a session from a "Remember me" cookie, when there is one to use.
+     *
+     * This is the half of AC-4.3.5 that makes the 30 days visible. The session
+     * itself still expires after the configured 24 hours - the specification asks
+     * for that, and it is a site-wide setting we do not want to move - so what the
+     * learner experiences as "still signed in" is this: the session is gone, the
+     * cookie is not, and a new session is built from it before the page notices.
+     *
+     * Why here. `after_config` runs at the end of setup.php, with the session
+     * started and $DB live, and before any page code has decided whether the
+     * visitor is logged in. `require_login()` runs later and would already have
+     * redirected to the login screen.
+     *
+     * The cost on a normal request is one array lookup: no cookie, no work. Only a
+     * visitor who is signed out *and* holding a token reaches the database.
+     *
+     * @return void
+     */
+    protected static function resume_remembered_session(): void {
+        global $DB;
+
+        if (isloggedin() || !rememberme::enabled()) {
+            return;
+        }
+
+        // Pages that must not acquire a session as a side effect: the login screen
+        // is mid-authentication, and logout has just deliberately ended one - being
+        // silently signed back in there would look like the site refusing to let go.
+        $path = self::script_path();
+        if (in_array($path, ['/login/logout.php', '/login/confirm.php'], true)) {
+            return;
+        }
+
+        $user = rememberme::resume();
+        if (!$user) {
+            return;
+        }
+
+        // complete_user_login() expects the record get_complete_user_data() builds
+        // - custom fields, preferences, the lot - not the bare row the token check
+        // needed.
+        $full = get_complete_user_data('id', $user->id);
+        if (!$full) {
+            return;
+        }
+
+        complete_user_login($full);
+    }
+
+    /**
+     * Refuse a confirmation link that has passed its 24 hours (AC-4.2.11).
+     *
+     * Only expiry is judged here. Whether the secret is even correct, and whether
+     * the account was already confirmed, stay core's business - it answers both
+     * well, and duplicating them would mean two implementations of "is this link
+     * genuine?" that could disagree.
+     *
+     * @return void
+     */
+    protected static function guard_confirm_link(): void {
+        $user = verification::user_from_link(
+            optional_param('data', '', PARAM_RAW),
+            optional_param('s', '', PARAM_RAW)
+        );
+
+        // Nothing to judge: no such account, or one that is already confirmed and
+        // is about to be told so by core in the words of AC-4.2.13.
+        if (!$user || !empty($user->confirmed) || !verification::link_expired($user)) {
+            return;
+        }
+
+        redirect(
+            new \moodle_url('/local/profilefields/verify.php', ['id' => $user->id, 'expired' => 1])
+        );
+    }
+
+    /**
+     * Let a resend through, hold it back, or freshen the secret before it goes.
+     *
+     * @return void
+     */
+    protected static function guard_resend(): void {
+        global $DB, $CFG;
+
+        $username = trim(optional_param('username', '', PARAM_RAW));
+        if ($username === '') {
+            return;
+        }
+
+        $user = $DB->get_record('user', [
+            'username' => $username,
+            'mnethostid' => $CFG->mnet_localhost_id,
+            'deleted' => 0,
+        ]);
+
+        // An address that is already confirmed has nothing to resend, and one we
+        // do not recognise must not learn that it is unrecognised from how fast
+        // this page answers.
+        if (!$user || !empty($user->confirmed)) {
+            return;
+        }
+
+        $refusal = verification::refuse_resend($user);
+        if ($refusal !== null) {
+            redirect(
+                new \moodle_url('/local/profilefields/verify.php', ['id' => $user->id]),
+                $refusal,
+                null,
+                \core\output\notification::NOTIFY_WARNING
+            );
+        }
+
+        // AC-4.2.4: the mail core is about to send must invalidate its predecessors.
+        verification::rotate_secret($user);
     }
 }

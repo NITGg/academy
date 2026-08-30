@@ -605,11 +605,121 @@ class page {
         ];
         echo html_writer::tag('table', implode('', $rows), ['class' => 'generaltable w-100']);
 
+        echo self::security_section();
+        echo self::rememberme_section();
+        echo self::verification_section();
+
         echo html_writer::tag('div',
             html_writer::tag('button', get_string('savechanges'),
                 ['type' => 'submit', 'class' => 'btn btn-primary']),
             ['class' => 'mt-3']);
         echo html_writer::end_tag('form');
+    }
+
+    /**
+     * Lock-out, session length and the submit-button gate.
+     *
+     * The first three write straight into core settings that live under Site
+     * administration > Security > Site security settings. They are repeated here
+     * because an administrator asking "what governs the login screen?" should not
+     * have to know that half the answer is in our page and half in Moodle's - and
+     * because AC-4.3.2 and AC-4.3.5 name values (5 attempts, 15 minutes, 24 hours)
+     * that someone has to be able to check without hunting.
+     *
+     * Nothing is duplicated: these read and write $CFG directly, so a change made
+     * in Moodle's own page shows up here and the reverse, with no second copy to
+     * fall out of step.
+     *
+     * @return string HTML
+     */
+    protected static function security_section(): string {
+        global $CFG;
+
+        $rows = [
+            self::number_row('lockoutthreshold', (int) ($CFG->lockoutthreshold ?? 0),
+                get_string('lockoutthreshold', 'local_profilefields'),
+                get_string('lockoutthreshold_desc', 'local_profilefields'), 0, 20),
+            self::number_row('lockoutminutes', (int) round(($CFG->lockoutduration ?? 1800) / MINSECS),
+                get_string('lockoutduration', 'local_profilefields'),
+                get_string('lockoutduration_desc', 'local_profilefields'), 1, 1440),
+            self::number_row('sessionhours', (int) round(($CFG->sessiontimeout ?? 8 * HOURSECS) / HOURSECS),
+                get_string('sessiontimeoutlabel', 'local_profilefields'),
+                get_string('sessiontimeout_desc', 'local_profilefields'), 1, 720),
+            self::switch_row('gatebuttons', (bool) get_config(manager::COMPONENT, 'gatebuttons'),
+                get_string('gatebuttons', 'local_profilefields'),
+                get_string('gatebuttons_desc', 'local_profilefields')),
+        ];
+
+        return html_writer::tag('h3', get_string('securityheading', 'local_profilefields'), ['class' => 'mt-4 h5']) .
+            html_writer::tag('p', get_string('securityintro', 'local_profilefields'), ['class' => 'text-muted']) .
+            html_writer::tag('table', implode('', $rows), ['class' => 'generaltable w-100']);
+    }
+
+    /**
+     * The "Remember me" token settings (AC-4.3.5).
+     *
+     * @return string HTML
+     */
+    protected static function rememberme_section(): string {
+        $rows = [
+            self::switch_row('remembermeenabled', (bool) get_config(manager::COMPONENT, 'remembermeenabled'),
+                get_string('remembermeenabled', 'local_profilefields'),
+                get_string('remembermeenabled_desc', 'local_profilefields')),
+            self::number_row('remembermedays', (int) (get_config(manager::COMPONENT, 'remembermedays') ?: 30),
+                get_string('remembermedays', 'local_profilefields'),
+                get_string('remembermedays_desc', 'local_profilefields'), 1, 365),
+        ];
+
+        return html_writer::tag('h3', get_string('rememberme', 'local_profilefields'), ['class' => 'mt-4 h5']) .
+            html_writer::tag('table', implode('', $rows), ['class' => 'generaltable w-100']);
+    }
+
+    /**
+     * Confirmation-link lifetime and resend limits (AC-4.2.2, 4.2.3, 4.2.10).
+     *
+     * @return string HTML
+     */
+    protected static function verification_section(): string {
+        $rows = [
+            self::number_row('linkttlhours', (int) (get_config(manager::COMPONENT, 'linkttlhours') ?: 24),
+                get_string('linkttl', 'local_profilefields'),
+                get_string('linkttl_desc', 'local_profilefields'), 1, 168),
+            self::number_row('resendcooldown', (int) (get_config(manager::COMPONENT, 'resendcooldown') ?: 60),
+                get_string('resendcooldown', 'local_profilefields'),
+                get_string('resendcooldown_desc', 'local_profilefields'), 0, 600),
+            self::number_row('resendmax', (int) (get_config(manager::COMPONENT, 'resendmax') ?: 5),
+                get_string('resendmax', 'local_profilefields'),
+                get_string('resendmax_desc', 'local_profilefields'), 1, 50),
+        ];
+
+        return html_writer::tag('h3', get_string('verifyheading', 'local_profilefields'), ['class' => 'mt-4 h5']) .
+            html_writer::tag('p', get_string('verifyintro', 'local_profilefields'), ['class' => 'text-muted']) .
+            html_writer::tag('table', implode('', $rows), ['class' => 'generaltable w-100']);
+    }
+
+    /**
+     * A labelled whole-number box, shaped like the switch rows beside it.
+     *
+     * @param string $name form field name
+     * @param int $value current value
+     * @param string $label
+     * @param string $desc the sentence under the label
+     * @param int $min lowest accepted value
+     * @param int $max highest accepted value
+     * @return string HTML for one table row
+     */
+    protected static function number_row(string $name, int $value, string $label, string $desc,
+            int $min, int $max): string {
+        $input = html_writer::empty_tag('input', [
+            'type' => 'number', 'name' => $name, 'value' => $value,
+            'min' => $min, 'max' => $max, 'class' => 'form-control', 'style' => 'width:6rem',
+        ]);
+
+        return html_writer::tag('tr',
+            html_writer::tag('td',
+                html_writer::tag('div', html_writer::span($label, 'fw-semibold'), []) .
+                html_writer::span($desc, 'text-muted small')) .
+            html_writer::tag('td', $input, ['class' => 'text-center', 'style' => 'width:6rem']));
     }
 
     /**
@@ -623,6 +733,45 @@ class page {
         set_config('registerauth', optional_param('selfregister', 0, PARAM_BOOL) ? 'email' : '');
         set_config('guestloginbutton', optional_param('guestlogin', 0, PARAM_BOOL) ? 1 : 0);
         set_config('rememberusername', optional_param('rememberusername', 0, PARAM_BOOL) ? 1 : 0);
+
+        // Core settings, written unprefixed so Moodle's own security page and this
+        // one are reading and writing the same value rather than two copies.
+        // Stored in seconds; shown in the unit an administrator thinks in.
+        set_config('lockoutthreshold', self::posted_number('lockoutthreshold', 0, 20, 5));
+        set_config('lockoutduration', self::posted_number('lockoutminutes', 1, 1440, 15) * MINSECS);
+        set_config('sessiontimeout', self::posted_number('sessionhours', 1, 720, 24) * HOURSECS);
+
+        // Ours.
+        set_config('gatebuttons', optional_param('gatebuttons', 0, PARAM_BOOL) ? 1 : 0, manager::COMPONENT);
+        set_config('remembermeenabled', optional_param('remembermeenabled', 0, PARAM_BOOL) ? 1 : 0,
+            manager::COMPONENT);
+        set_config('remembermedays', self::posted_number('remembermedays', 1, 365, 30), manager::COMPONENT);
+        set_config('linkttlhours', self::posted_number('linkttlhours', 1, 168, 24), manager::COMPONENT);
+        set_config('resendcooldown', self::posted_number('resendcooldown', 0, 600, 60), manager::COMPONENT);
+        set_config('resendmax', self::posted_number('resendmax', 1, 50, 5), manager::COMPONENT);
+    }
+
+    /**
+     * A posted whole number, clamped to the range the box advertised.
+     *
+     * The browser enforces `min`/`max` on a number input, but a hand-made POST
+     * does not have to, and a lock-out duration of zero or a session length of
+     * minus one would be a live outage rather than a bad setting.
+     *
+     * @param string $name form field name
+     * @param int $min lowest accepted value
+     * @param int $max highest accepted value
+     * @param int $default used when nothing usable was posted
+     * @return int
+     */
+    protected static function posted_number(string $name, int $min, int $max, int $default): int {
+        $value = optional_param($name, null, PARAM_INT);
+
+        if ($value === null) {
+            return $default;
+        }
+
+        return max($min, min($max, $value));
     }
 
     // -----------------------------------------------------------------

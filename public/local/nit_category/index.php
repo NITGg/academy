@@ -191,13 +191,7 @@ $description  = format_text($category->description, $category->descriptionformat
 $categoryname = $category->get_formatted_name();
 
 // NIT: checkout modal + course offer/price support (guarded — degrade if the plugins are absent).
-$nitcheckout = class_exists('\local_payments\price_resolver')
-    && file_exists($CFG->dirroot . '/local/nit_commerce/lib.php')
-    && class_exists('\local_nit_commerce\discount_manager');
-if ($nitcheckout) {
-    require_once($CFG->dirroot . '/local/nit_commerce/lib.php');
-    $PAGE->requires->js(new moodle_url('/local/nit_commerce/checkout_modal.js'), true);
-}
+$nitcheckout = local_nit_category_require_checkout();
 // Per-course state for a card: enrolment, purchase, subscription coverage, pricing, offer.
 //
 // This is the ONE place a card's price is resolved. It used to be resolved twice — here for
@@ -833,51 +827,8 @@ echo $OUTPUT->header();
 </div>
 
 <?php
-// NIT: wire the course Buy buttons to the shared checkout modal (coupon + auto offer → Kashier).
-if ($nitcheckout) {
-    $costr = local_nit_commerce_string_map([
-        'co_title', 'co_intro', 'co_total', 'co_offer', 'co_coupon', 'co_apply', 'co_discount',
-        'co_secure', 'co_proceed', 'co_cancel', 'co_loading', 'co_coupon_failed', 'co_currency',
-    ]);
-    echo html_writer::script('window.NIT_CO = ' . json_encode([
-        'wwwroot'  => $CFG->wwwroot,
-        'sesskey'  => sesskey(),
-        'commerce' => '/local/nit_commerce/api.php',
-        'str'      => $costr,
-        'loggedin' => isloggedin() && !isguestuser(),
-    ]) . ';');
-    echo html_writer::script(<<<'JS'
-(function () {
-    function init() {
-        if (!window.NitCheckout || !window.NIT_CO) { return; }
-        NitCheckout.init(window.NIT_CO);
-        document.addEventListener('click', function (ev) {
-            var btn = ev.target.closest('[data-nit-buy-course]');
-            if (!btn) { return; }
-            ev.preventDefault();
-            if (!window.NIT_CO.loggedin) { window.location.href = window.NIT_CO.wwwroot + '/login/index.php'; return; }
-            var id = btn.getAttribute('data-courseid');
-            NitCheckout.open({
-                // The clicked button locates the page's Brand Colors group
-                // (.nit-brand-2/3) so the modal opens in the same palette.
-                trigger: btn,
-                itemType: 'course',
-                itemId: parseInt(id, 10),
-                name: btn.getAttribute('data-name'),
-                price: parseFloat(btn.getAttribute('data-price')) || 0,
-                currency: btn.getAttribute('data-currency') || '',
-                proceed: function (code) {
-                    window.location.href = window.NIT_CO.wwwroot + '/local/payments/checkout.php?courseid=' + id +
-                        '&sesskey=' + encodeURIComponent(window.NIT_CO.sesskey) + '&coupon_code=' + encodeURIComponent(code);
-                }
-            });
-        });
-    }
-    if (document.readyState !== 'loading') { init(); }
-    else { document.addEventListener('DOMContentLoaded', init); }
-})();
-JS
-    );
-}
+// NIT: wire the course Buy buttons to the shared checkout modal (coupon + auto offer -> Kashier).
+// Shared with the catalogue page so a Buy button behaves identically on both.
+local_nit_category_checkout_footer();
 
 echo $OUTPUT->footer();

@@ -46,6 +46,40 @@ function local_profilefields_extend_signup_form($mform) {
 }
 
 /**
+ * The password rules of AC-4.1.6, applied wherever Moodle checks a password.
+ *
+ * `get_password_policy_errors()` collects `check_password_policy()` out of every
+ * plugin, and it is the single point every path goes through: sign-up, the
+ * password reset, the change-password screen, an account an administrator
+ * creates, a CLI upload, our own web services. Implementing the rule here rather
+ * than in each form is what makes the specification's sentence the answer
+ * everywhere instead of only on the screens we happened to remember.
+ *
+ * This is the *only* implementation. Moodle's own four minimums are set to zero
+ * on upgrade so that core contributes nothing here - see db/upgrade.php, and the
+ * note there about why. If they were left at their usual values a weak password
+ * would come back with core's wording and ours stacked one above the other,
+ * saying the same thing twice in two different voices.
+ *
+ * @param string $password the candidate password
+ * @param stdClass|null $user the account it is for, where there is one
+ * @return string the message for the first broken rule, or '' when it passes
+ */
+function local_profilefields_check_password_policy($password, $user = null) {
+    if (during_initial_install()) {
+        return '';
+    }
+
+    // The guest account is exempt from the policy in core and must stay exempt
+    // here, or the site cannot create it.
+    if ($user !== null && isguestuser($user)) {
+        return '';
+    }
+
+    return (string) \local_profilefields\validation::password((string) $password);
+}
+
+/**
  * Server-side validation for the sign-up form additions.
  *
  * Covers the inline policy-consent checkbox (an unticked advcheckbox submits 0,
@@ -76,11 +110,15 @@ function local_profilefields_validate_extend_signup_form($data) {
         return $blocked;
     }
 
-    $errors = [];
+    // AC-4.1.15 and AC-4.1.6: the specification words the message for each way a
+    // field can be wrong, and acceptance is tested on that wording. Ours run
+    // first so that the merges below can still override a field, and core's own
+    // messages are replaced rather than added to - see validation::signup_fields.
+    $errors = \local_profilefields\validation::signup_fields($data);
 
     if (\local_profilefields\manager::consent_enabled()
             && empty($data[\local_profilefields\signup::CONSENT])) {
-        $errors[\local_profilefields\signup::CONSENT] = get_string('consentrequired', 'local_profilefields');
+        $errors[\local_profilefields\signup::CONSENT] = get_string('errtermsempty', 'local_profilefields');
     }
 
     if (\local_profilefields\manager::ip_match_phone()) {

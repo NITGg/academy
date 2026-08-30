@@ -95,7 +95,7 @@
         style="display: flex; align-items: center; flex-wrap: wrap; gap: 25px;">
         <a class="nit-btn-solid"
           style="background: var(--nit-brand-primary); border: 1px solid var(--nit-brand-borderprimary); color: var(--nit-brand-textprimary); width: 220px; height: 60px; border-radius: 8px; font-size: 18px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;"
-          href="/moodle-new/course/index.php" data-nit-btn=""
+          href="/moodle-new/course/index.php" data-nit-btn="" data-nit-hero-cta=""
           data-nit-scrollto="[data-nit-categories]"> {mlang en}Start
           Now{mlang} {mlang ar}ابدأ الان{mlang} </a>
         <a
@@ -334,6 +334,61 @@
           closeModal();
         }
       });
+    })();
+  </script>
+  <script>
+    // ------------------------------------------------------------------
+    // AC-4.7.3: "For an authenticated learner the hero call to action changes
+    // to 'Continue learning' and links to the most recently accessed course."
+    //
+    // A guest keeps the button exactly as it is rendered above, so the page is
+    // correct before this runs and correct if it never does - the button is a
+    // working link to the catalogue either way.
+    //
+    // Note the hard-coded /moodle-new/ in the href above. It is left alone here
+    // because this only ever replaces the whole value with one the server built.
+    // ------------------------------------------------------------------
+    (function() {
+      var cta = document.querySelector('[data-nit-hero-cta]');
+      if (!cta || cta.dataset.nitLoaded) {
+        return;
+      }
+      cta.dataset.nitLoaded = '1';
+
+      // No session, no "continue" - and no request either, since the only
+      // possible answer is that there is nothing to continue.
+      if (!(window.M && M.cfg && M.cfg.sesskey)) {
+        return;
+      }
+
+      var root = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : '';
+      var lang = (document.documentElement.getAttribute('lang') || 'en').split('-')[0];
+      var label = lang === 'ar' ? 'متابعة التعلّم' : 'Continue learning';
+
+      fetch(root + '/local/nit_category/home.php?function=get_continue'
+          + '&alang=' + encodeURIComponent(lang), {
+          headers: {Accept: 'application/json'},
+          credentials: 'same-origin'
+        })
+        .then(function(r) {
+          return r.json();
+        })
+        .then(function(res) {
+          if (!res || res.status !== 'success' || !res.data || !res.data.url) {
+            return;
+          }
+
+          cta.textContent = label;
+          cta.setAttribute('href', res.data.url);
+          cta.setAttribute('title', res.data.fullname || '');
+
+          // The scroll-to-categories behaviour belongs to "Start Now". Once the
+          // button opens a course, intercepting the click would stop it working.
+          cta.removeAttribute('data-nit-scrollto');
+        })
+        .catch(function() {
+          // Leave the catalogue link in place.
+        });
     })();
   </script>
 </div>

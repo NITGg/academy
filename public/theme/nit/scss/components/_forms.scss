@@ -168,3 +168,16 @@ textarea.form-control[readonly][disabled] {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
 }
+
+// =============================================================================
+// AC-4.1.1: a submit button held down until its form is complete.
+//
+// theme_nit/formgate sets `disabled` and adds this class. Bootstrap already
+// fades a disabled button, but it leaves the cursor as a pointer, which reads
+// as "this button is broken" rather than "this button is waiting". The tooltip
+// the module attaches says which, and `not-allowed` is what invites the user to
+// hover long enough to read it.
+// =============================================================================
+.nit-gate-blocked {
+    cursor: not-allowed;
+}

@@ -25,5 +25,5 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_category';
-$plugin->version   = 2026082402;        // YYYYMMDDXX — per-category image + icon.
+$plugin->version   = 2026082900;        // YYYYMMDDXX — course catalogue with custom-field filters.
 $plugin->requires  = 2022041900;

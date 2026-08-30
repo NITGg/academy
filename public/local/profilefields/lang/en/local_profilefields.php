@@ -61,10 +61,18 @@ $string['ipmatchphone'] = 'Require the sign-up country to match the visitor\'s l
 $string['ipmatchphone_desc'] = 'When on, a new account is only created if the visitor\'s IP address resolves to the same country as the phone number they entered. Users on a VPN or roaming would be blocked, so use with care.';
 $string['ipmatchonline'] = 'No setup needed: this uses a free online lookup to find the visitor\'s country. For faster, self-hosted lookups you can install a local GeoIP database in <a href="{$a}">Location &gt; IP address lookup</a>, and it will be used instead.';
 $string['ipmatchgeoip'] = 'A local GeoIP database is configured, so it is used for the lookup.';
-$string['ipmismatch'] = 'Your location does not match the country of the phone number you entered.';
+// AC-4.6.4 fixes this sentence, and adds a rule about what it may not contain:
+// "The message does not disclose the country the system detected." Naming the
+// detected country would tell someone probing the check exactly which country to
+// claim next, which is the circumvention GEO-3 exists to prevent.
+$string['ipmismatch'] = 'Registration could not be completed. The country you selected does not match your current location. Please select the country you are registering from, or contact support.';
 $string['blockunresolvedip'] = 'Also refuse sign-up when the location cannot be determined';
 $string['blockunresolvedip_desc'] = 'Applies while the check above is on. With this on, an address the lookup cannot place in any country is refused instead of let through. Note that a site behind a reverse proxy must have $CFG->getremoteaddrconf set, or every visitor looks like the proxy and nobody can be placed.';
-$string['ipunresolved'] = 'We could not determine your location, so the account could not be created. If you are using a VPN or a proxy, please turn it off and try again.';
+// GEO-5 refuses an address nothing could place "as though the check had failed",
+// so it says exactly what a failed check says. Telling the visitor their location
+// could not be determined would be more informative and would also be a hint that
+// a VPN defeats the check rather than triggering it.
+$string['ipunresolved'] = 'Registration could not be completed. The country you selected does not match your current location. Please select the country you are registering from, or contact support.';
 $string['ipblocked'] = 'New accounts cannot be created from your current network.';
 $string['seereports'] = 'See the refused attempts in Register reports';
 
@@ -203,3 +211,146 @@ $string['privacy:metadata:local_profilefields_log:declared'] = 'The country the 
 $string['privacy:metadata:local_profilefields_log:detected'] = 'The country the IP address was resolved to.';
 $string['privacy:metadata:local_profilefields_log:reason'] = 'Why the attempt was refused.';
 $string['privacy:metadata:local_profilefields_log:timecreated'] = 'When the attempt was made.';
+
+// -----------------------------------------------------------------------------
+// SRS chapter 4 wording.
+//
+// The specification fixes the exact sentence shown for each failure, in each
+// language, and acceptance is tested against that sentence. They are gathered
+// here rather than spread across the classes that raise them so that a change
+// agreed with EAAC is a one-line edit in two files.
+// -----------------------------------------------------------------------------
+
+// AC-4.1.6 / AC-4.4.1 - password complexity, one message per broken rule.
+$string['pwtooshort'] = 'Your password must be at least 8 characters long.';
+$string['pwnoupper'] = 'Your password must contain at least one uppercase letter.';
+$string['pwnolower'] = 'Your password must contain at least one lowercase letter.';
+$string['pwnodigit'] = 'Your password must contain at least one number.';
+
+// AC-4.1.15 - field-level validation.
+$string['errfirstnameempty'] = 'Please enter your first name.';
+$string['errlastnameempty'] = 'Please enter your last name.';
+$string['errnamelength'] = 'This name must be between 2 and 50 characters.';
+$string['errnamechars'] = 'Only letters, spaces, hyphens and apostrophes are allowed.';
+$string['erremailempty'] = 'Please enter your email address.';
+$string['erremailformat'] = 'Please enter a valid email address, for example name@example.com.';
+$string['errcountryempty'] = 'Please select your country.';
+$string['errphoneempty'] = 'Please enter your phone number.';
+$string['errphonedigits'] = 'Please enter digits only.';
+$string['errtermsempty'] = 'Please accept the Terms and Conditions to continue.';
+
+// AC-4.1.2 - the email is already registered.
+$string['emailexistsloginhint'] = 'An account already exists for this email address. {$a}';
+$string['emailexistsloginlink'] = 'Log in';
+
+// AC-4.2 - email address verification (link channel).
+$string['verifysent'] = 'An email should have been sent to your address at {$a}';
+$string['verifysentdetail'] = 'It contains easy instructions to complete your registration.';
+$string['verifyresendtoomany'] = 'Too many requests. Please try again in one hour.';
+$string['verifylinkexpired'] = 'This confirmation link is no longer valid. Please request a new one.';
+$string['verifyalreadydone'] = 'Your account is already confirmed. Please log in.';
+$string['verifyresend'] = 'Resend email';
+$string['verifyresendwait'] = 'Resend email ({$a}s)';
+$string['verifyresent'] = 'A new confirmation email has been sent.';
+$string['verifychangeemail'] = 'Change email address';
+$string['verifychangeemailsaved'] = 'Your email address has been updated and a new confirmation email sent.';
+$string['verifyemailtaken'] = 'An account already exists for this email address.';
+
+// AC-4.3 - login.
+$string['loginbadcredentials'] = 'The email address or password is incorrect.';
+$string['loginlockedout'] = 'Too many failed attempts. Your account is locked for 15 minutes.';
+$string['loginsuspended'] = 'This account has been suspended. Please contact support.';
+$string['loginunverified'] = 'Please confirm your email address to continue. We have sent you a new confirmation email.';
+
+// AC-4.4 - password reset.
+$string['resetsamepassword'] = 'Please choose a password you have not used before.';
+$string['resetuseprovider'] = 'This account signs in with {$a}. Please use that button on the login screen.';
+$string['resetdonesubject'] = 'Your password has been changed';
+$string['resetdonebody'] = 'Hi {$a->firstname},
+
+The password for your account on {$a->sitename} has just been changed, and every device that was signed in has been signed out.
+
+If this was not you, please contact support immediately.';
+
+// AC-4.5 - profile and account settings.
+$string['countryofrecord'] = 'Country of record';
+$string['countryofrecordhelp'] = 'This determines the prices you are shown. Only an administrator can change it.';
+$string['requestchange'] = 'Request a change';
+$string['requestchangeintro'] = 'Tell us what should change and why. An administrator will review your request.';
+$string['requestchangesent'] = 'Your request has been sent. An administrator will review it shortly.';
+$string['requestchangepending'] = 'You already have a change request awaiting review.';
+$string['lockedmessages'] = 'Transactional and security messages cannot be turned off.';
+$string['deleteaccount'] = 'Delete my account';
+$string['deleteaccountwarning'] = 'Deleting your account removes your access to every course you have purchased and to the certificates you have earned. This cannot be undone.';
+$string['deleteaccountconfirm'] = 'Enter your password to confirm';
+$string['deleteaccountdone'] = 'Your account has been deleted.';
+$string['deleteaccountwrongpassword'] = 'That password is not correct.';
+
+// AC-4.6 - geographic consistency.
+$string['ipservicedown'] = 'Registration is temporarily unavailable. Please try again shortly.';
+$string['ipallowlist'] = 'Allowed addresses';
+$string['ipallowlistintro'] = 'Addresses listed here skip the location check entirely - for the academy\'s own offices and for testing. One entry per row: a single address, a CIDR block, a partial address or a range.';
+$string['ipallowlistempty'] = 'No address is exempt from the location check.';
+$string['ipallowlistadd'] = 'Exempt an address';
+$string['alreadyallowed'] = 'Already exempt';
+$string['reasonservicedown'] = 'Geolocation service unavailable';
+$string['servicedownalert'] = 'The geolocation service could not be reached, so registration is being refused. Browsing and pricing have fallen back to the default price. Check the network path to the lookup services, or configure a local GeoIP2 database under Location settings.';
+
+// AC-4.3.5 - remember me.
+$string['rememberme'] = 'Remember me';
+$string['remembermedesc'] = 'Keeps you signed in on this device for 30 days.';
+$string['remembermeenabled'] = 'Offer "Remember me" on the login screen';
+$string['remembermeenabled_desc'] = 'Adds a "Remember me" checkbox to the login screen. A learner who ticks it stays signed in on that device for the period below, even after the ordinary session has expired. The token is single-use and is replaced on every visit, and it is destroyed on logout, on a password change and when the account is suspended.';
+$string['remembermedays'] = 'Remember me for';
+$string['remembermedays_desc'] = 'How long a "Remember me" token stays valid. The specification asks for 30 days.';
+$string['remembermestolen'] = 'Sign-in on {$a} was refused';
+$string['remembermestolenbody'] = 'Hi {$a->firstname},
+
+Someone tried to sign in to your account on {$a->sitename} using an out-of-date "Remember me" token. As a precaution we have signed out every device and you will need to sign in again.
+
+If this was not you, please change your password.';
+
+// Security settings mirrored from core.
+$string['securityheading'] = 'Sign-in security';
+$string['securityintro'] = 'These settings belong to Moodle itself; they are repeated here so that everything governing the sign-in screen sits in one place. Saving on this page writes straight to the core setting.';
+$string['lockoutthreshold'] = 'Failed attempts before lock-out';
+$string['lockoutthreshold_desc'] = 'The specification asks for 5. Zero switches lock-out off entirely.';
+$string['lockoutduration'] = 'Lock-out lasts';
+$string['lockoutduration_desc'] = 'The specification asks for 15 minutes. Moodle emails the account holder an unlock link as soon as the lock is applied.';
+$string['sessiontimeoutlabel'] = 'Sign out after inactivity';
+$string['sessiontimeout_desc'] = 'The specification asks for 24 hours. This is a site-wide setting and affects every user.';
+$string['gatebuttons'] = 'Disable submit buttons until the form is valid';
+$string['gatebuttons_desc'] = 'Applies to this academy\'s own screens only - sign-up, login, profile, password reset and checkout. Moodle\'s administrative forms are deliberately left alone, because their fields are often conditional and a gated button would strand the administrator with no explanation.';
+
+// Verification limits.
+$string['verifyheading'] = 'Email confirmation';
+$string['verifyintro'] = 'How long a confirmation link stays usable, and how often a new one may be asked for.';
+$string['linkttl'] = 'Confirmation link expires after';
+$string['linkttl_desc'] = 'The specification asks for 24 hours. Requesting a new link always invalidates every link issued before it.';
+$string['resendcooldown'] = 'Wait between resends';
+$string['resendcooldown_desc'] = 'The specification asks for 60 seconds, shown to the learner as a live countdown.';
+$string['resendmax'] = 'Maximum resends per hour';
+$string['resendmax_desc'] = 'The specification asks for 5. The sixth request in one hour is refused.';
+
+// Privacy - the tables added for chapter 4.
+$string['privacy:metadata:local_profilefields_remember'] = 'The "Remember me" tokens that keep a learner signed in on a device they have chosen to trust.';
+$string['privacy:metadata:local_profilefields_remember:userid'] = 'The account the token signs in.';
+$string['privacy:metadata:local_profilefields_remember:lastip'] = 'The address the token was last used from.';
+$string['privacy:metadata:local_profilefields_remember:useragent'] = 'A hash of the browser the token was issued to, so a token presented by a different browser is refused.';
+$string['privacy:metadata:local_profilefields_remember:expires'] = 'When the token stops working.';
+$string['privacy:metadata:local_profilefields_remember:timecreated'] = 'When the token was issued.';
+$string['privacy:metadata:local_profilefields_request'] = 'Requests to change a profile field the learner may not edit themselves, and the administrator decision on each.';
+$string['privacy:metadata:local_profilefields_request:userid'] = 'The learner who asked for the change.';
+$string['privacy:metadata:local_profilefields_request:field'] = 'Which field the request is about.';
+$string['privacy:metadata:local_profilefields_request:oldvalue'] = 'The value held before the request.';
+$string['privacy:metadata:local_profilefields_request:newvalue'] = 'The value the learner asked for.';
+$string['privacy:metadata:local_profilefields_request:reason'] = 'The reason the learner gave.';
+$string['privacy:metadata:local_profilefields_request:decidedby'] = 'The administrator who approved or refused the request.';
+$string['privacy:metadata:local_profilefields_request:decisionnote'] = 'The reason the administrator gave for their decision.';
+$string['privacy:metadata:local_profilefields_request:timecreated'] = 'When the request was made.';
+
+$string['taskpurgetokens'] = 'Purge expired remember-me tokens';
+
+// Shown when the server refuses a resend that arrived inside the cooldown -
+// normally prevented by the disabled button, so this is the no-JavaScript path.
+$string['verifyresendtoosoon'] = 'Please wait {$a} seconds before requesting another email.';

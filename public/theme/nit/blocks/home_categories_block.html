@@ -87,4 +87,110 @@
 
     })();
   </script>
+  <script>
+    // ------------------------------------------------------------------
+    // AC-4.7.6: "The category grid displays the live course count per category."
+    //
+    // The markup above ships a single hidden card carrying {{placeholder}}
+    // markers. This clones it once per category and fills it. Without this the
+    // strip renders empty, because block_nit_section prints its HTML verbatim -
+    // there is no template engine behind it, so nothing else would ever replace
+    // a {{name}}.
+    //
+    // Same shape as the coupons and packages blocks on this page, deliberately:
+    // one fetch, one clone-and-fill, and the section removes itself rather than
+    // sitting there empty if there is nothing to show.
+    // ------------------------------------------------------------------
+    (function() {
+      var box = document.querySelector('[data-nit-categories]');
+      if (!box || box.dataset.nitLoaded) {
+        return;
+      }
+      box.dataset.nitLoaded = '1';
+
+      var tpl = box.querySelector('[data-nit-category-card]');
+      if (!tpl) {
+        return;
+      }
+
+      var root = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : '';
+      var lang = (document.documentElement.getAttribute('lang') || 'en').split('-')[0];
+      var limit = parseInt(box.dataset.limit || '12', 10);
+
+      // The whole section, so an empty grid takes its heading with it rather
+      // than leaving a title over nothing.
+      var section = box.closest('[data-nit-section]') || box.parentElement;
+
+      var fill = function(node, row) {
+        // Attributes first: href="{{url}}" is a marker like any other, but it
+        // lives in an attribute rather than in text.
+        node.querySelectorAll('[href]').forEach(function(a) {
+          a.setAttribute('href', a.getAttribute('href').replace('{{url}}', row.url || '#'));
+        });
+
+        var img = node.querySelector('[data-nit-category-image]');
+        if (img) {
+          if (row.image) {
+            img.style.backgroundImage = 'url("' + row.image + '")';
+          } else if (row.icon && row.icon.indexOf('http') !== 0) {
+            // An emoji rather than an uploaded file: it is text, not a picture.
+            img.textContent = row.icon;
+            img.style.fontSize = '64px';
+            img.style.display = 'flex';
+            img.style.alignItems = 'center';
+            img.style.justifyContent = 'center';
+          } else if (row.icon) {
+            img.style.backgroundImage = 'url("' + row.icon + '")';
+          }
+        }
+
+        // Text markers. Walking text nodes rather than rewriting innerHTML keeps
+        // a category name containing < or & from being parsed as markup.
+        var walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null);
+        var textnode;
+        while ((textnode = walker.nextNode())) {
+          if (textnode.nodeValue.indexOf('{{') === -1) {
+            continue;
+          }
+          textnode.nodeValue = textnode.nodeValue
+            .replace('{{name}}', row.name || '')
+            .replace('{{coursecount}}', row.coursecount == null ? '' : row.coursecount);
+        }
+
+        node.style.display = '';
+        node.removeAttribute('data-nit-category-card');
+      };
+
+      fetch(root + '/local/nit_category/home.php?function=get_categories'
+          + '&limit=' + encodeURIComponent(limit)
+          + '&alang=' + encodeURIComponent(lang), {
+          headers: {Accept: 'application/json'},
+          credentials: 'same-origin'
+        })
+        .then(function(r) {
+          return r.json();
+        })
+        .then(function(res) {
+          if (!res || res.status !== 'success' || !res.data || !res.data.length) {
+            if (section) {
+              section.style.display = 'none';
+            }
+            return;
+          }
+
+          res.data.forEach(function(row) {
+            var node = tpl.cloneNode(true);
+            fill(node, row);
+            box.appendChild(node);
+          });
+        })
+        .catch(function() {
+          // A front page missing one strip is fine; a front page showing a
+          // broken one is not.
+          if (section) {
+            section.style.display = 'none';
+          }
+        });
+    })();
+  </script>
 </div>

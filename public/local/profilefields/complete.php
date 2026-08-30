@@ -128,6 +128,15 @@ if ($data = $form->get_data()) {
     profile_load_custom_fields($USER);
     unset($SESSION->fullysetupstrict);
 
+    // AC-4.1.16: registration is only now finished for this account, and no event
+    // marks the moment - the learner was already logged in when they arrived. The
+    // observer that welcomes password accounts on first login declines to act
+    // while completion is outstanding, so this is the call that sends the letter
+    // to a learner who registered through Google.
+    if (class_exists('\local_academy\observer')) {
+        \local_academy\observer::welcome_once($USER);
+    }
+
     \core\notification::success(get_string('completedone', 'local_profilefields'));
 
     redirect($returnurl !== '' ? new moodle_url($returnurl) : new moodle_url('/'));

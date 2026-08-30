@@ -47,6 +47,18 @@ class blocklog {
     /** @var string The address is on the deny list. */
     const REASON_BLOCKED = 'blocked';
 
+    /**
+     * @var string Every geolocation source was unreachable.
+     *
+     * Distinct from REASON_UNRESOLVED, and the distinction is the whole point of
+     * AC-4.6.10. "Unresolved" is about one address the services declined to place -
+     * a private range, a brand-new allocation - and is a property of that visitor.
+     * "Service down" is a property of *us*: nothing is being placed for anybody,
+     * and every registration on the site is failing until someone notices. They
+     * need different messages and only one of them deserves an alert.
+     */
+    const REASON_SERVICEDOWN = 'servicedown';
+
     /** @var string Refused on the web sign-up form. */
     const ORIGIN_SIGNUP = 'signup';
 
@@ -62,7 +74,8 @@ class blocklog {
      * @return string[]
      */
     public static function reasons(): array {
-        return [self::REASON_MISMATCH, self::REASON_UNRESOLVED, self::REASON_BLOCKED];
+        return [self::REASON_MISMATCH, self::REASON_UNRESOLVED, self::REASON_BLOCKED,
+            self::REASON_SERVICEDOWN];
     }
 
     /**
