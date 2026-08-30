@@ -14,11 +14,27 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Fawaterk (Fawaterak) payment provider.
  *
- * Hosted checkout via POST /api/v2/createInvoiceLink. The invoice id we get back
- * is stored as the transaction's provider_session_id and is what verify_payment()
- * and the webhook handler use to re-read the invoice server-side.
+ * Payments go server-to-server through POST /api/v2/invoiceInitPay, which charges
+ * one chosen method; POST /api/v2/createInvoiceLink (Fawaterk's own hosted page)
+ * is the fallback. Either way the invoice id we get back is stored as the
+ * transaction's provider_session_id, and that is what verify_payment() and the
+ * webhook handler use to re-read the invoice server-side.
  *
- * Fawaterk has no per-request webhook URL — it is configured once in the Fawaterk
+ * Two separate credentials, both from the dashboard's Integrations page, doing
+ * two different jobs — mixing them up is the usual reason nothing works:
+ *
+ *  - OAuth 2.0 client id + secret ("Create machine-to-machine credentials")
+ *    authenticate API calls, via a client_credentials grant on /oauth/token.
+ *    This is Fawaterk's recommended path and the default here. The legacy
+ *    alternative is sending the HASH API key straight through as the bearer.
+ *  - The HASH API key ("Iframe/Webhook integrations settings") is the secret
+ *    Fawaterk signs webhook hashKeys with. It is needed even in OAuth mode,
+ *    because webhooks are not authenticated with an access token.
+ *
+ * Sandbox and live are separate Fawaterk accounts with separate credentials for
+ * both of the above.
+ *
+ * Fawaterk has no per-request webhook URL — it is configured once in the
  * dashboard and must end in "_json" to get a JSON body, so point it at
  * {wwwroot}/local/payments/webhook_json.php
  */
@@ -31,12 +47,178 @@ class gateway extends base_provider {
     const SANDBOX_URL = 'https://staging.fawaterk.com';
 
     /**
-     * The vendor key is trimmed: it is long enough that people paste it with a
-     * trailing newline, and Fawaterk then answers "Invalid Token" for what looks
-     * like a correct key.
+     * The HASH API key from "Iframe/Webhook integrations settings".
+     *
+     * Two jobs: it is the secret Fawaterk signs webhook hashKeys with (always),
+     * and it is the bearer token when auth_mode is the legacy static key.
+     *
+     * Trimmed because it is long enough that people paste it with a trailing
+     * newline, and Fawaterk then answers "Invalid Token" for a correct key.
      */
     private function get_vendor_key(): string {
         return trim((string) $this->get_setting('vendor_key', ''));
+    }
+
+    /**
+     * Which credential set to authenticate API calls with.
+     *
+     * oauth  — client_credentials grant against /oauth/token (recommended; this
+     *          is what the dashboard's Integrations page issues).
+     * apikey — the HASH API key sent directly as the bearer (legacy v2 style).
+     */
+    private function get_auth_mode(): string {
+        return $this->get_setting('auth_mode', 'oauth') === 'apikey' ? 'apikey' : 'oauth';
+    }
+
+    private function get_client_id(): string {
+        return trim((string) $this->get_setting('client_id', ''));
+    }
+
+    private function get_client_secret(): string {
+        return trim((string) $this->get_setting('client_secret', ''));
+    }
+
+    /**
+     * Token endpoint. Defaults to /oauth/token on whichever host the current
+     * mode uses, so switching sandbox/live moves it automatically.
+     */
+    private function get_token_url(): string {
+        $override = trim((string) $this->get_setting('token_url', ''));
+        return $override !== '' ? $override : $this->get_api_base() . '/oauth/token';
+    }
+
+    /**
+     * Cache key for the current credentials, so a key change or a sandbox
+     * switch can never hand back the previous account's token.
+     */
+    private function token_cache_key(): string {
+        return $this->plugin_name . '_' . substr(sha1(
+            $this->get_token_url() . '|' . $this->get_client_id() . '|' . $this->get_client_secret()
+        ), 0, 20);
+    }
+
+    /**
+     * Bearer token for API calls.
+     *
+     * @param bool $forcerefresh Skip the cache (used once after a 401).
+     * @return string Empty when no token could be obtained.
+     */
+    private function get_access_token(bool $forcerefresh = false): string {
+        if ($this->get_auth_mode() === 'apikey') {
+            return $this->get_vendor_key();
+        }
+
+        $cache = \cache::make('local_payments', 'provider_oauth_tokens');
+        $key = $this->token_cache_key();
+
+        if (!$forcerefresh) {
+            $stored = $cache->get($key);
+            // Renew a minute early — a token that expires mid-request is a
+            // failed checkout for whoever is holding the page.
+            if (is_array($stored) && !empty($stored['token']) && ($stored['expires'] ?? 0) > time() + MINSECS) {
+                return $stored['token'];
+            }
+        }
+
+        $token = $this->request_access_token();
+        if ($token === null) {
+            return '';
+        }
+
+        $cache->set($key, $token);
+        return $token['token'];
+    }
+
+    /**
+     * POST /oauth/token — client_credentials grant.
+     *
+     * Sent form-encoded, which every OAuth 2 server accepts; the response is
+     * the standard {access_token, token_type, expires_in}.
+     *
+     * @return array|null ['token' => string, 'expires' => int] or null on failure.
+     */
+    private function request_access_token(): ?array {
+        $clientid = $this->get_client_id();
+        $clientsecret = $this->get_client_secret();
+
+        if ($clientid === '' || $clientsecret === '') {
+            $this->log('error', 'Fawaterk OAuth is selected but the client id/secret are not set');
+            return null;
+        }
+
+        $result = $this->http_form_request($this->get_token_url(), [
+            'grant_type' => 'client_credentials',
+            'client_id' => $clientid,
+            'client_secret' => $clientsecret,
+        ]);
+
+        $body = is_array($result['body']) ? $result['body'] : [];
+        $token = (string) ($body['access_token'] ?? '');
+
+        if ($result['http_code'] < 200 || $result['http_code'] >= 300 || $token === '') {
+            $this->log('error', 'Fawaterk OAuth token request failed', [
+                'http_code' => $result['http_code'],
+                'token_url' => $this->get_token_url(),
+                // error/error_description are the standard OAuth failure fields.
+                'error' => $body['error'] ?? '',
+                'error_description' => $body['error_description'] ?? ($body['message'] ?? ''),
+            ]);
+            return null;
+        }
+
+        $lifetime = (int) ($body['expires_in'] ?? 0);
+        if ($lifetime <= 0) {
+            $lifetime = HOURSECS;
+        }
+
+        return ['token' => $token, 'expires' => time() + $lifetime];
+    }
+
+    /**
+     * Form-encoded POST. base_provider::http_request only speaks JSON, and the
+     * OAuth token endpoint wants a form body.
+     */
+    private function http_form_request(string $url, array $fields, int $timeout = 30): array {
+        global $CFG;
+        require_once($CFG->libdir . '/filelib.php');
+
+        $curl = new \curl();
+        $curl->setopt([
+            'CURLOPT_TIMEOUT' => $timeout,
+            'CURLOPT_RETURNTRANSFER' => true,
+        ]);
+        $curl->setHeader('Content-Type: application/x-www-form-urlencoded');
+        $curl->setHeader('Accept: application/json');
+
+        $response = $curl->post($url, http_build_query($fields, '', '&'));
+
+        return [
+            'http_code' => $curl->get_info()['http_code'] ?? 0,
+            'body' => json_decode($response, true) ?? [],
+            'raw' => $response,
+            'error' => $curl->get_errno() ? $curl->error : '',
+        ];
+    }
+
+    /**
+     * Authenticated API call, with one retry after a 401.
+     *
+     * A cached token can be revoked or invalidated server-side before its stated
+     * expiry, and the only way to find out is to be rejected — so drop it and
+     * try once with a fresh one rather than failing a real payment.
+     */
+    private function api_request(string $method, string $url, $body = null): array {
+        $result = $this->http_request($method, $url, $this->get_auth_headers(), $body);
+
+        if ($result['http_code'] === 401 && $this->get_auth_mode() === 'oauth') {
+            $this->log('info', 'Fawaterk returned 401; refreshing the OAuth token and retrying once');
+            $token = $this->get_access_token(true);
+            if ($token !== '') {
+                $result = $this->http_request($method, $url, $this->get_auth_headers(), $body);
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -51,7 +233,7 @@ class gateway extends base_provider {
 
     private function get_auth_headers(): array {
         return [
-            'Authorization' => 'Bearer ' . $this->get_vendor_key(),
+            'Authorization' => 'Bearer ' . $this->get_access_token(),
             'Accept' => 'application/json',
         ];
     }
@@ -217,6 +399,14 @@ class gateway extends base_provider {
 
         $methods = $this->get_payment_methods();
         if (empty($methods)) {
+            // Auto-selection is on but the account listed nothing — almost always
+            // the credentials, occasionally Fawaterk being down. Degrade to the
+            // hosted page rather than blocking the sale, but say so loudly: the
+            // resulting error mentions createInvoiceLink, which reads like the
+            // hosted page was the intended flow when it never was.
+            $this->log('warning', 'Fawaterk auto-selection found no payment methods; '
+                . 'falling back to the hosted invoice page. Check the vendor key with '
+                . 'cli/fawaterk_diagnose.php.');
             return 0;
         }
         if (count($methods) === 1) {
@@ -251,8 +441,7 @@ class gateway extends base_provider {
             'transaction_id' => $request->transaction_id,
         ]);
 
-        $result = $this->http_request('POST', "{$base}/api/v2/createInvoiceLink",
-            $this->get_auth_headers(), $body);
+        $result = $this->api_request('POST', "{$base}/api/v2/createInvoiceLink", $body);
 
         $error = $this->check_api_error($result, 'invoice creation', $request->transaction_id);
         if ($error !== null) {
@@ -299,8 +488,7 @@ class gateway extends base_provider {
             'transaction_id' => $request->transaction_id,
         ]);
 
-        $result = $this->http_request('POST', "{$base}/api/v2/invoiceInitPay",
-            $this->get_auth_headers(), $body);
+        $result = $this->api_request('POST', "{$base}/api/v2/invoiceInitPay", $body);
 
         $error = $this->check_api_error($result, 'payment initiation', $request->transaction_id);
         if ($error !== null) {
@@ -453,7 +641,7 @@ class gateway extends base_provider {
 
     private function fetch_payment_methods(): array {
         $base = $this->get_api_base();
-        $result = $this->http_request('GET', "{$base}/api/v2/getPaymentmethods", $this->get_auth_headers());
+        $result = $this->api_request('GET', "{$base}/api/v2/getPaymentmethods");
 
         if ($result['http_code'] < 200 || $result['http_code'] >= 300
                 || (($result['body']['status'] ?? '') !== 'success')) {
@@ -498,8 +686,7 @@ class gateway extends base_provider {
         }
 
         $base = $this->get_api_base();
-        $result = $this->http_request('GET', "{$base}/api/v2/getInvoiceData/{$invoiceid}",
-            $this->get_auth_headers());
+        $result = $this->api_request('GET', "{$base}/api/v2/getInvoiceData/{$invoiceid}");
 
         if ($result['http_code'] < 200 || $result['http_code'] >= 300) {
             $this->log('error', 'Fawaterk getInvoiceData failed', [
@@ -785,12 +972,15 @@ class gateway extends base_provider {
         // cause, because staging and live are separate accounts with separate
         // keys and mixing them up is by far the most common setup mistake.
         if (stripos($text, 'token') !== false || stripos($text, 'vendor') !== false) {
-            $mode = $this->is_sandbox() ? 'sandbox' : 'live';
-            $other = $this->is_sandbox() ? 'live' : 'sandbox';
+            $env = $this->is_sandbox() ? 'sandbox' : 'live';
+            $credential = $this->get_auth_mode() === 'oauth'
+                ? 'the OAuth client id/secret'
+                : 'the HASH API key';
             $text .= sprintf(
-                ' — Fawaterk rejected the vendor key. This provider is in %s mode and calls %s,'
-                . ' so the key must be the %s account\'s API key; a %s key will always fail here.',
-                $mode, $this->get_api_base(), $mode, $other
+                ' — Fawaterk rejected the credentials. This provider is in %s mode and calls %s,'
+                . ' so %s must belong to the %s account: sandbox and live are separate accounts'
+                . ' with separate credentials. Run cli/fawaterk_diagnose.php to see which is in use.',
+                $env, $this->get_api_base(), $credential, $env
             );
         }
 

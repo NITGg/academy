@@ -30,11 +30,32 @@ the account reports no usable method.
 
 **Site admin → Plugins → Local plugins → Payments → Provider settings → Fawaterk**
 
+Fawaterk issues **two separate credential sets**, both on the dashboard's
+**Integrations** page, doing two different jobs. Mixing them up is the usual
+reason nothing works:
+
+| Dashboard section | What it gives you | What it's for |
+|---|---|---|
+| *machine-to-machine credentials* | Client ID + secret, and a token URL (`/oauth/token`) | authenticating API calls — **the recommended method** |
+| *Iframe/Webhook integrations settings* | HASH API key, providerKey | the HASH API key is the secret Fawaterk signs webhook `hashKey`s with |
+
+The HASH API key is required **whichever** authentication method you pick —
+webhooks are signed with it, not with an access token, and an unverifiable
+webhook means no payment ever completes.
+
+> **Sandbox and live are separate Fawaterk accounts with separate credentials for
+> both sets.** `app.fawaterk.com` is the live dashboard. Credentials copied from
+> there while *Sandbox mode* is on are rejected with
+> `{"token":["Invalid Token or inactive vendor."]}`.
+
 | Setting | Notes |
 |---------|-------|
 | Sandbox mode | On → `https://staging.fawaterk.com`, off → `https://app.fawaterk.com` |
-| Vendor key (API key) | Bearer token for every API call **and** the HMAC secret for webhook signatures |
-| Provider key | Only needed for Fawaterk's JS iframe; leave empty |
+| Authentication method | `OAuth 2.0 client credentials` (default, recommended) or the legacy static key |
+| OAuth client ID / secret | From *Integrations → machine-to-machine credentials*. The secret is shown once. |
+| OAuth token URL | Leave empty — defaults to `/oauth/token` on the current mode's host |
+| HASH API key | From *Iframe/Webhook integrations settings*. Verifies webhook signatures; also the bearer in legacy mode. |
+| providerKey | Only needed for Fawaterk's JS iframe, which this plugin doesn't use |
 | Live / Sandbox API base URL | Overridable in case Fawaterk moves hosts |
 | Charge a method directly | On by default — server-to-server. Off = always use the hosted page. |
 | Payment method priority | Comma-separated method ids, best first. Default `2,4,3` (card, Meeza, Fawry). |
@@ -304,6 +325,7 @@ Webhook bodies (including ones that failed signature checks) are in
 | Symptom | Usual cause |
 |---------|-------------|
 | `HTTP 400` on checkout | A rejected field. The message now includes Fawaterk's own validation text — read it. Most often: a currency the account doesn't support, a phone that isn't `01XXXXXXXXX`, or a missing address. Phone and address already fall back to the configured placeholders. |
-| `{"token":["Invalid Token or inactive vendor."]}` | Fawaterk rejecting the vendor key — note it answers **400**, not 401. Staging and live are separate accounts with separate keys, so a live key with sandbox mode on (or the reverse) always fails. Run `fawaterk_diagnose.php` to see which mode and key are in play. Also possible: the vendor account isn't activated yet. |
+| `{"token":["Invalid Token or inactive vendor."]}` | Fawaterk rejecting the credentials — note it answers **400**, not 401. Nearly always credentials from the wrong environment: `app.fawaterk.com` is the *live* dashboard, so its client id/secret and HASH API key fail while sandbox mode is on. Run `fawaterk_diagnose.php` to see which mode and credentials are in play. Also check the OAuth client still shows **Active** on the Integrations page. |
+| Everything worked, then stopped | The OAuth client was revoked, or its secret rotated. Tokens are cached until they expire, so a revocation can surface minutes later. `fawaterk_diagnose.php --purge-cache` forces a fresh handshake. |
 | Payment succeeds but no enrolment | The webhook isn't arriving. Check the dashboard URL ends in `webhook_json.php`, and look for `signature_valid = 0` rows — that means the vendor key in Moodle differs from the one signing the webhook. |
 | `no redirect URL or reference` | The account doesn't have that `payment_method_id` enabled. Re-fetch the method list. |

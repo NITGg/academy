@@ -18,4 +18,11 @@ $definitions = [
         'simplekeys' => true,
         'ttl' => 3600, // 1 hour.
     ],
+    // OAuth access tokens for providers that use a client_credentials grant.
+    // No TTL here on purpose: the token carries its own expiry and we honour
+    // that, rather than guessing a cache lifetime that could outlive it.
+    'provider_oauth_tokens' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+    ],
 ];

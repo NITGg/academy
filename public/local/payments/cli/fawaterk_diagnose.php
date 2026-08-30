@@ -63,30 +63,74 @@ if (!$record) {
     cli_error('No fawaterk provider row. Run admin/cli/upgrade.php first.');
 }
 
+/**
+ * Show a secret without printing it: enough to tell two keys apart, not enough
+ * to use. A diagnostic that leaks credentials into shell history is worse than
+ * no diagnostic.
+ */
+function fawaterk_mask(string $value): string {
+    if ($value === '') {
+        return 'NOT SET';
+    }
+    if (strlen($value) <= 12) {
+        return str_repeat('*', strlen($value)) . ' (' . strlen($value) . ' chars)';
+    }
+    return substr($value, 0, 6) . str_repeat('*', 6) . substr($value, -4)
+        . ' (' . strlen($value) . ' chars)';
+}
+
 $sandbox = (bool) get_config('paymentprovider_fawaterk', 'sandbox_mode');
+$authmode = get_config('paymentprovider_fawaterk', 'auth_mode') === 'apikey' ? 'apikey' : 'oauth';
 $key = trim((string) get_config('paymentprovider_fawaterk', 'vendor_key'));
+$clientid = trim((string) get_config('paymentprovider_fawaterk', 'client_id'));
+$clientsecret = trim((string) get_config('paymentprovider_fawaterk', 'client_secret'));
 $base = $sandbox
     ? (get_config('paymentprovider_fawaterk', 'sandbox_url') ?: 'https://staging.fawaterk.com')
     : (get_config('paymentprovider_fawaterk', 'base_url') ?: 'https://app.fawaterk.com');
+$tokenurl = trim((string) get_config('paymentprovider_fawaterk', 'token_url')) ?: ($base . '/oauth/token');
 
 cli_writeln('Fawaterk configuration');
 cli_writeln('  enabled in Moodle : ' . ($record->enabled ? 'yes' : 'NO — enable it under Manage providers'));
 cli_writeln('  mode              : ' . ($sandbox ? 'SANDBOX' : 'LIVE'));
 cli_writeln('  api base          : ' . $base);
-cli_writeln('  vendor key        : ' . ($key === ''
-    ? 'NOT SET'
-    : substr($key, 0, 6) . str_repeat('*', max(0, strlen($key) - 10)) . substr($key, -4)
-      . ' (' . strlen($key) . ' chars)'));
+cli_writeln('  auth method       : ' . ($authmode === 'oauth'
+    ? 'OAuth 2.0 client credentials' : 'static HASH API key (legacy)'));
+if ($authmode === 'oauth') {
+    cli_writeln('  token url         : ' . $tokenurl);
+    cli_writeln('  client id         : ' . ($clientid === '' ? 'NOT SET' : $clientid));
+    cli_writeln('  client secret     : ' . fawaterk_mask($clientsecret));
+}
+cli_writeln('  HASH API key      : ' . fawaterk_mask($key) . ($key === ''
+    ? ' — webhooks cannot be verified without this' : ''));
 cli_writeln('  webhook to set    : ' . $CFG->wwwroot . '/local/payments/webhook_json.php');
 cli_writeln('');
 
+// The live dashboard is app.fawaterk.com. Credentials copied from there while
+// sandbox mode is on are the single most common reason for "Invalid Token".
+if ($sandbox) {
+    cli_writeln('NOTE: sandbox mode is ON, so every credential above must come from the');
+    cli_writeln('      STAGING account. Credentials copied from app.fawaterk.com are live');
+    cli_writeln('      credentials and will be rejected here.');
+    cli_writeln('');
+}
+
+if ($authmode === 'oauth' && ($clientid === '' || $clientsecret === '')) {
+    cli_error('OAuth is selected but the client id/secret are not set. '
+        . 'Get them from the Fawaterk dashboard → Integrations.');
+}
+if ($authmode === 'apikey' && $key === '') {
+    cli_error('The static key method is selected but no HASH API key is set.');
+}
 if ($key === '') {
-    cli_error('No vendor key configured. Set it under Provider settings → Fawaterk.');
+    cli_writeln('WARNING: no HASH API key. API calls may work, but webhooks will fail');
+    cli_writeln('         signature checks and no payment will ever be completed.');
+    cli_writeln('');
 }
 
 if ($options['purge-cache']) {
     \cache::make('local_payments', 'provider_payment_methods')->purge();
-    cli_writeln('Cached method list purged.');
+    \cache::make('local_payments', 'provider_oauth_tokens')->purge();
+    cli_writeln('Cached method list and access tokens purged.');
     cli_writeln('');
 }
 
@@ -96,12 +140,19 @@ $methods = $gateway->get_payment_methods();
 if (empty($methods)) {
     cli_writeln('FAILED — no payment methods came back.');
     cli_writeln('');
-    cli_writeln('The exact API response is in local_payments_logs. The usual causes:');
-    cli_writeln('  1. The key belongs to the other environment. This provider is in '
-        . ($sandbox ? 'SANDBOX' : 'LIVE') . ' mode, so it must be the '
-        . ($sandbox ? 'staging' : 'live') . ' account\'s API key.');
-    cli_writeln('  2. The Fawaterk vendor account is not activated yet.');
-    cli_writeln('  3. The key was pasted with stray characters (it is trimmed, but check for gaps).');
+    cli_writeln('The exact API response is in local_payments_logs (look for the most recent');
+    cli_writeln('error rows). The usual causes:');
+    cli_writeln('  1. The credentials belong to the other environment. This provider is in '
+        . ($sandbox ? 'SANDBOX' : 'LIVE') . ' mode,');
+    cli_writeln('     so they must come from the ' . ($sandbox ? 'staging' : 'live') . ' account.');
+    if ($authmode === 'oauth') {
+        cli_writeln('  2. The OAuth client was revoked, or the secret is wrong. Check that the');
+        cli_writeln('     client still shows as Active on the Integrations page.');
+        cli_writeln('  3. The token URL is wrong for this account: ' . $tokenurl);
+    } else {
+        cli_writeln('  2. The Fawaterk vendor account is not activated yet.');
+        cli_writeln('  3. Consider switching to OAuth — it is the method Fawaterk recommends.');
+    }
     exit(1);
 }
 

@@ -20,7 +20,56 @@ if ($hassiteconfig) {
         1
     ));
 
-    // Vendor key (API key) — Bearer token and webhook HMAC secret.
+    // ── API authentication ──────────────────────────────────────────────────
+    $settings->add(new admin_setting_heading(
+        'paymentprovider_fawaterk/authheading',
+        get_string('auth_heading', 'paymentprovider_fawaterk'),
+        get_string('auth_heading_desc', 'paymentprovider_fawaterk')
+    ));
+
+    $settings->add(new admin_setting_configselect(
+        'paymentprovider_fawaterk/auth_mode',
+        get_string('auth_mode', 'paymentprovider_fawaterk'),
+        get_string('auth_mode_desc', 'paymentprovider_fawaterk'),
+        'oauth',
+        [
+            'oauth' => get_string('auth_mode_oauth', 'paymentprovider_fawaterk'),
+            'apikey' => get_string('auth_mode_apikey', 'paymentprovider_fawaterk'),
+        ]
+    ));
+
+    // OAuth client credentials (Integrations → machine-to-machine credentials).
+    $settings->add(new admin_setting_configtext(
+        'paymentprovider_fawaterk/client_id',
+        get_string('client_id', 'paymentprovider_fawaterk'),
+        get_string('client_id_desc', 'paymentprovider_fawaterk'),
+        '',
+        PARAM_RAW_TRIMMED
+    ));
+
+    $settings->add(new admin_setting_configpasswordunmask(
+        'paymentprovider_fawaterk/client_secret',
+        get_string('client_secret', 'paymentprovider_fawaterk'),
+        get_string('client_secret_desc', 'paymentprovider_fawaterk'),
+        ''
+    ));
+
+    $settings->add(new admin_setting_configtext(
+        'paymentprovider_fawaterk/token_url',
+        get_string('token_url', 'paymentprovider_fawaterk'),
+        get_string('token_url_desc', 'paymentprovider_fawaterk'),
+        '',
+        PARAM_URL
+    ));
+
+    // ── Iframe / webhook credentials ────────────────────────────────────────
+    $settings->add(new admin_setting_heading(
+        'paymentprovider_fawaterk/hashheading',
+        get_string('hash_heading', 'paymentprovider_fawaterk'),
+        get_string('hash_heading_desc', 'paymentprovider_fawaterk')
+    ));
+
+    // HASH API key — signs webhook hashKeys always; also the bearer in apikey mode.
     $settings->add(new admin_setting_configpasswordunmask(
         'paymentprovider_fawaterk/vendor_key',
         get_string('vendor_key', 'paymentprovider_fawaterk'),
@@ -28,12 +77,13 @@ if ($hassiteconfig) {
         ''
     ));
 
-    // Provider key — only needed for the JS iframe plugin, kept for completeness.
-    $settings->add(new admin_setting_configpasswordunmask(
+    // providerKey — only needed for the JS iframe, kept for completeness.
+    $settings->add(new admin_setting_configtext(
         'paymentprovider_fawaterk/provider_key',
         get_string('provider_key', 'paymentprovider_fawaterk'),
         get_string('provider_key_desc', 'paymentprovider_fawaterk'),
-        ''
+        '',
+        PARAM_RAW_TRIMMED
     ));
 
     // Live API base URL.
