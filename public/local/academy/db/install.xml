@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <XMLDB PATH="local/academy/db" VERSION="2026070404"
-       COMMENT="Academy: quiz answers + mobile password-reset OTPs.">
+       COMMENT="Academy: quiz answers, mobile password-reset OTPs, and issued-certificate name snapshots.">
   <TABLES>
     <TABLE NAME="academy_password_otps" COMMENT="One-time codes for the mobile password-reset (forgot password) flow">
       <FIELDS>
@@ -38,6 +38,22 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="attempt_question_idx" UNIQUE="true" FIELDS="attemptid, questionid"/>
+        <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="academy_certificate_names" COMMENT="Holder name captured when a certificate was issued, so renaming a profile cannot alter an already-earned certificate (AC-4.5.1)">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="issueid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="customcert_issues.id this name belongs to"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="fullname" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="fullname() as it read at the moment of issue"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="issueid_idx" UNIQUE="true" FIELDS="issueid"/>
         <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
       </INDEXES>
     </TABLE>

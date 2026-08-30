@@ -36,6 +36,25 @@ or a plugin **external function**. Moodle almost always has one.
 should be migrated to `theme/nit/templates/core/login_panel.mustache` so
 `theme/boost` returns to stock.
 
+## Check on every Moodle upgrade
+
+Two places deliberately shadow code we do not own. Neither edits it, so neither
+breaks an upgrade — but neither inherits an upstream change either. Re-read the
+original against ours whenever Moodle or `mod_customcert` moves:
+
+- **`public/local/academy/classes/login_manager.php`** mirrors `login/token.php`
+  step for step (it exists so the app can be told an account is *blocked* rather
+  than just "invalid login" — see AC-4.3.4). If core adds a guard to `token.php`,
+  add it here. Diff them:
+  `git diff --no-index public/login/token.php public/local/academy/classes/login_manager.php`
+  is noise, so just read both — `token.php` is ~110 lines.
+- **`public/mod/customcert/element/nitstudentname/`** is a `customcertelement`
+  subplugin (additive; it modifies no upstream file). It prints the name captured
+  at issue time instead of the live one, because `mod_customcert`'s element
+  registry hard-codes the bundled types and cannot be overridden in place. If
+  upstream ever makes `studentname` snapshot-aware, drop ours and convert the
+  rows back.
+
 ## How to verify no core was touched
 
 List everything changed on top of the Moodle base import, excluding our plugins

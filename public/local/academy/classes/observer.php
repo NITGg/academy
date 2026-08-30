@@ -33,6 +33,10 @@ class observer {
     public static function user_loggedin(\core\event\user_loggedin $event): void {
         global $DB;
 
+        // A successful sign-in ends any block, so a stale "your account is
+        // locked" notice must not outlive it on the next page.
+        lockout::clear();
+
         $user = $DB->get_record('user', ['id' => $event->objectid]);
         if (!$user || !empty($user->deleted) || isguestuser($user)) {
             return;
@@ -128,5 +132,34 @@ class observer {
         $message->contexturlname    = $sitename;
 
         message_send($message);
+    }
+
+    /**
+     * Remember, for the login page, whether this failed attempt left the account
+     * locked (AC-4.3.4).
+     *
+     * The work is in \local_academy\lockout because the app login endpoint needs
+     * the same judgement and the same wording; this is only the wiring.
+     *
+     * @param \core\event\user_login_failed $event
+     * @return void
+     */
+    public static function user_login_failed(\core\event\user_login_failed $event): void {
+        lockout::note_failed_attempt($event);
+    }
+
+    /**
+     * Copy the holder's name the moment a certificate is issued (AC-4.5.1).
+     *
+     * mod_customcert stores nothing but userid, template and code, and redraws
+     * the PDF from the live user record on every download - so without this a
+     * profile rename silently rewrites every certificate the person already
+     * holds. The work is in \local_academy\certificate_names; this is the wiring.
+     *
+     * @param \mod_customcert\event\issue_created $event
+     * @return void
+     */
+    public static function certificate_issued(\core\event\base $event): void {
+        certificate_names::capture((int) $event->objectid, (int) $event->relateduserid);
     }
 }

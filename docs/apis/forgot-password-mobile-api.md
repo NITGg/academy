@@ -48,12 +48,15 @@ Method: **POST**
 ```
 
 Errors (`status:"fail"`): `Please enter a valid email address.` ·
-`Too many code requests. Please wait a few minutes and try again.` (max 3 per 15 min).
+`Too many code requests. Please wait a few minutes and try again.` — the limit is
+**5 requests per 15 minutes** by default, and is set by an administrator (see
+[Administrator settings](#administrator-settings) below).
 
 ### 2) `verify_password_otp`
 
 Checks the code. Returns a single-use **`resettoken`** (valid 10 minutes) used in
-step 3. Max **5** wrong attempts before the code locks.
+step 3. **5** wrong attempts burn the code by default; the limit is an
+administrator setting (see [Administrator settings](#administrator-settings)).
 
 | Param | Type | Notes |
 |-------|------|-------|
@@ -185,3 +188,26 @@ Future<void> changePassword(String userToken, String current, String next) =>
 2. SMTP configured (so the code email sends) — done.
 3. The forgot-password endpoints live on `api.php`, authenticated by the shared
    **Registration API** token; `change_password` uses the user's own token.
+
+---
+
+## Administrator settings
+
+The four limits in this flow are not hard-coded. They live at
+**Site administration › Plugins › Local plugins › Academy**, under
+*Password reset codes*:
+
+| Setting | Default | Governs |
+|---------|---------|---------|
+| Maximum reset requests | **5** | how many codes one email address may request per window (`request_password_otp` → *Too many code requests*) |
+| Reset request window | **15 minutes** | the period that limit is counted over |
+| Maximum incorrect code entries | **5** | wrong entries before the code is burnt (`verify_password_otp` → *Too many incorrect attempts*) |
+| Code validity | **10 minutes** | how long a code stays usable, and the `expiresin` returned by step 1 |
+
+The request limit is counted **per email address**, including addresses with no
+account, so how quickly the endpoint refuses never reveals whether an account
+exists.
+
+> Account lockout after repeated failed **sign-ins** is a different thing and is
+> configured elsewhere — Site administration › Security › Site security settings.
+> See [login-mobile-api.md](login-mobile-api.md).

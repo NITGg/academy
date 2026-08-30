@@ -128,6 +128,24 @@ try {
             academy_respond(['status' => 'success', 'data' => \local_academy\quiz_manager::get_my_attempts($quizid, $userid)]);
             break;
 
+        // ── Login ───────────────────────────────────────────────────────────────────
+        // Pre-login: call with the shared Registration API token. Does what
+        // /login/token.php does - that file is core, untouched, and still works
+        // for older app builds - but reports a blocked account as blocked
+        // (AC-4.3.4) instead of as a bad password. See \local_academy\login_manager.
+        case 'login':
+            academy_require_post();
+            $loginusername = required_param('username', PARAM_USERNAME);
+            $loginpassword = required_param('password', PARAM_RAW);
+            $loginservice  = required_param('service', PARAM_ALPHANUMEXT);
+            try {
+                $data = \local_academy\login_manager::login($loginusername, $loginpassword, $loginservice);
+            } catch (\moodle_exception $e) {
+                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+            }
+            academy_respond(['status' => 'success', 'data' => $data]);
+            break;
+
         // ── Password reset (OTP) + change password ──────────────────────────────────
         // Forgot-password endpoints are pre-login: call them with the shared
         // Registration API token. change_password is post-login: call it with the

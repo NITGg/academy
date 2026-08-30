@@ -67,6 +67,20 @@ class core_renderer extends \theme_boost\output\core_renderer {
         $context->nitrememberme = class_exists('\local_profilefields\rememberme')
             && \local_profilefields\rememberme::enabled();
 
+        // AC-4.3.4: core settles on the generic "invalid login" wording before
+        // the account state is re-read, so the attempt that actually trips the
+        // lockout still reports nothing but a bad password. local_academy watched
+        // that failure happen and left the finished sentence behind for us - the
+        // judgement and the wording are its, this only puts the text on the page.
+        // Guarded on the plugin, so a site without it still renders a login form.
+        if (class_exists('\local_academy\lockout')) {
+            $notice = \local_academy\lockout::take_pending_notice();
+            if ($notice !== null) {
+                $context->error = $notice;
+                $context->errortitle = '';
+            }
+        }
+
         return $this->render_from_template('core/loginform', $context);
     }
 
