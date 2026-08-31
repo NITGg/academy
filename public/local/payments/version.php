@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_payments';
-$plugin->version   = 2026083110;   // Fix broken course nav and ambiguous ORDER BY.
+$plugin->version   = 2026083111;   // Invoice: resolve {mlang}, and ship the PDF over the web service.
 $plugin->requires  = 2024100700; // Moodle 4.5+
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_STABLE;

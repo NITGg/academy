@@ -87,14 +87,20 @@ class invoice_document {
         if ($itemname === '') {
             $itemname = (string) ($meta['subscription_name'] ?? $meta['course_name'] ?? $s('invoice_item'));
         }
+        // Course and plan names are stored bilingually in one field. Nothing
+        // resolves that on the way into a PDF, so the invoice printed the raw
+        // {mlang} markup until this was here.
+        $itemname = multilang::resolve($itemname, $lang);
 
         $amount = (float) $transaction->amount;
         $original = (float) ($transaction->original_amount ?? $amount);
         $discount = max(0, $original - $amount);
 
-        $sellername = trim((string) get_config('local_payments', 'invoice_seller_name'));
+        // The seller block and the footer are free-text settings, so they can be
+        // written bilingually too.
+        $sellername = trim(multilang::resolve(get_config('local_payments', 'invoice_seller_name'), $lang));
         if ($sellername === '') {
-            $sellername = format_string($SITE->fullname);
+            $sellername = multilang::resolve(format_string($SITE->fullname), $lang);
         }
 
         return [
@@ -106,7 +112,7 @@ class invoice_document {
             'order_id' => $transaction->order_id,
             'status' => $transaction->status,
             'seller_name' => $sellername,
-            'seller_details' => trim((string) get_config('local_payments', 'invoice_seller_details')),
+            'seller_details' => trim(multilang::resolve(get_config('local_payments', 'invoice_seller_details'), $lang)),
             'buyer_name' => $buyer ? fullname($buyer) : '',
             'buyer_email' => $buyer->email ?? '',
             'buyer_phone' => trim((string) (($buyer->phone1 ?? '') ?: ($buyer->phone2 ?? ''))),
@@ -118,7 +124,7 @@ class invoice_document {
             'amount' => $amount,
             'payment_method' => (string) ($transaction->payment_method_type ?: ''),
             'paid_date' => userdate($transaction->timemodified ?: $transaction->timecreated),
-            'footer_note' => trim((string) get_config('local_payments', 'invoice_footer')),
+            'footer_note' => trim(multilang::resolve(get_config('local_payments', 'invoice_footer'), $lang)),
         ];
     }
 
