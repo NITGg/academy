@@ -26,6 +26,16 @@ $capabilities = [
             'editingteacher' => CAP_ALLOW,
         ],
     ],
+    // Course-context, so a teacher sees the payments for the course they teach
+    // and nothing else. The site-wide list needs viewalltransactions instead.
+    'local/payments:viewcoursepayments' => [
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => [
+            'manager' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+        ],
+    ],
     'local/payments:viewreports' => [
         'captype' => 'read',
         'contextlevel' => CONTEXT_SYSTEM,

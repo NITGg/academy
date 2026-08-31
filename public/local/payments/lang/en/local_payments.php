@@ -218,3 +218,12 @@ $string['invoice_footer'] = 'Invoice: footer note';
 $string['invoice_footer_desc'] = 'Printed in small text at the bottom of every invoice. Leave empty for a simple thank-you.';
 $string['invoice_logo'] = 'Invoice: logo';
 $string['invoice_logo_desc'] = 'Printed in the top corner of every invoice PDF. PNG or JPG; it is scaled to 18mm tall, so a wide logo is fine but a tall one will be small. Leave empty for a text-only header.';
+
+// Payment lists for staff.
+$string['alltransactions'] = 'All payments';
+$string['coursepayments'] = 'Course payments';
+$string['searchpayments'] = 'Student name, email or order ID';
+$string['allstatuses'] = 'Any status';
+$string['student'] = 'Student';
+$string['provider'] = 'Gateway';
+$string['payments:viewcoursepayments'] = 'View the payments made for a course';

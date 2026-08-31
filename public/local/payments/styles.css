@@ -646,3 +646,21 @@
     padding: 0.15rem 0.5rem;
     white-space: nowrap;
 }
+
+/* ── Staff payment list filters ─────────────────────────────────────────── */
+
+.lp-txn-filters {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.lp-txn-filters .form-control {
+    max-width: 22rem;
+    min-width: 12rem;
+}
+
+.lp-txn-filters .form-select {
+    width: auto;
+}

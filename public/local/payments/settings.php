@@ -104,6 +104,14 @@ if ($hassiteconfig) {
         new moodle_url('/local/payments/report.php')
     ));
 
+    // Every payment, with who made it — the detail behind the report totals.
+    $ADMIN->add('local_payments_category', new admin_externalpage(
+        'local_payments_transactions',
+        get_string('alltransactions', 'local_payments'),
+        new moodle_url('/local/payments/transactions.php'),
+        'local/payments:viewalltransactions'
+    ));
+
     // Payment provider sub-plugins: Moodle's admin/settings/plugins.php has no
     // built-in handling for our custom "paymentprovider" sub-plugin type, so we
     // must discover and load each provider's settings.php ourselves (same

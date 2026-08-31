@@ -17,6 +17,19 @@ function local_payments_extend_navigation_course(\navigation_node $navigation, \
             new \pix_icon('i/payment', '')
         );
     }
+
+    if (has_capability('local/payments:viewcoursepayments', $context)) {
+        $url = new \moodle_url('/local/payments/transactions.php', ['courseid' => $course->id]);
+        $navigation->add(
+            get_string('coursepayments', 'local_payments'),
+            $url,
+            
+avigation_node::TYPE_SETTING,
+            null,
+            'local_payments_coursepayments',
+            new \pix_icon('i/report', '')
+        );
+    }
 }
 
 /**

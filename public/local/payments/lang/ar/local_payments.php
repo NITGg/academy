@@ -210,3 +210,12 @@ $string['invoice_footer'] = 'الفاتورة: ملاحظة التذييل';
 $string['invoice_footer_desc'] = 'تُطبع بخط صغير أسفل كل فاتورة. اتركها فارغة لعبارة شكر بسيطة.';
 $string['invoice_logo'] = 'الفاتورة: الشعار';
 $string['invoice_logo_desc'] = 'يُطبع في أعلى زاوية كل فاتورة. بصيغة PNG أو JPG؛ يُضبط ارتفاعه على 18 مم، لذا الشعار العريض مناسب أما الطويل فسيظهر صغيراً. اتركه فارغاً لترويسة نصية فقط.';
+
+// Payment lists for staff.
+$string['alltransactions'] = 'كل المدفوعات';
+$string['coursepayments'] = 'مدفوعات المقرر';
+$string['searchpayments'] = 'اسم الطالب أو بريده أو رقم الطلب';
+$string['allstatuses'] = 'كل الحالات';
+$string['student'] = 'الطالب';
+$string['provider'] = 'بوابة الدفع';
+$string['payments:viewcoursepayments'] = 'عرض المدفوعات الخاصة بمقرر';
