@@ -48,6 +48,10 @@ class create_subscription_checkout extends external_api {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
+        // The order here is the argument order of execute(): the web-service layer
+        // drops the keys (array_values) and calls positionally, so a parameter
+        // declared here and missing from that signature shifts every later value
+        // into the wrong argument.
         return new external_function_parameters([
             'subscriptionid' => new external_value(PARAM_INT, 'Plan id to buy'),
             'type'           => new external_value(PARAM_ALPHANUM, 'normal | b2b', VALUE_DEFAULT, 'normal'),
@@ -72,13 +76,14 @@ class create_subscription_checkout extends external_api {
      * @param string $couponcode
      * @param string $country
      * @param string $lang
+     * @param string $alang
      * @param string $returnurl
      * @param int $paymentmethodid
      * @return array
      */
     public static function execute(int $subscriptionid, string $type = 'normal', int $seats = 0,
-            string $couponcode = '', string $country = '', string $lang = 'en', string $returnurl = '',
-            int $paymentmethodid = 0): array {
+            string $couponcode = '', string $country = '', string $lang = 'en', string $alang = '',
+            string $returnurl = '', int $paymentmethodid = 0): array {
         global $USER, $CFG;
 
         $params = self::validate_parameters(self::execute_parameters(), [
@@ -88,6 +93,7 @@ class create_subscription_checkout extends external_api {
             'coupon_code'    => $couponcode,
             'country'        => $country,
             'lang'           => $lang,
+            'alang'          => $alang,
             'return_url'     => $returnurl,
             'payment_method_id' => $paymentmethodid,
         ]);
@@ -107,7 +113,7 @@ class create_subscription_checkout extends external_api {
                 $params['subscriptionid'],
                 $USER->id,
                 !empty($params['country']) ? $params['country'] : null,
-                $params['lang'],
+                $params['alang'] !== '' ? $params['alang'] : $params['lang'],
                 $params['type'],
                 $params['seats'],
                 $params['coupon_code'],
