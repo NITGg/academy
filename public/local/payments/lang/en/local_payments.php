@@ -227,3 +227,21 @@ $string['allstatuses'] = 'Any status';
 $string['student'] = 'Student';
 $string['provider'] = 'Gateway';
 $string['payments:viewcoursepayments'] = 'View the payments made for a course';
+
+// Payment history: filters and status labels.
+$string['searchmypayments'] = 'Order or invoice number';
+$string['allcourses'] = 'All courses';
+$string['datefrom'] = 'From';
+$string['dateto'] = 'To';
+$string['nopaymentsmatch'] = 'No payments match this filter.';
+$string['status_pending'] = 'Pending';
+$string['status_completed'] = 'Completed';
+$string['status_failed'] = 'Failed';
+$string['status_cancelled'] = 'Cancelled';
+$string['status_expired'] = 'Expired';
+$string['status_timed_out'] = 'Timed out';
+$string['status_refunded'] = 'Refunded';
+$string['status_partially_refunded'] = 'Partially refunded';
+$string['status_voided'] = 'Voided';
+$string['status_chargeback'] = 'Chargeback';
+$string['status_duplicate'] = 'Duplicate';

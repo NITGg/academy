@@ -138,7 +138,10 @@ class invoice_document {
         if ($logo !== null) {
             $height = 18;
             $width = self::logo_width($logo, $height);
-            $x = $rtl ? $pdf->getPageWidth() - 15 - $width : 15;
+            // TCPDF starts a cell at the reading edge — left in English, right in
+            // Arabic — so the logo goes to the other one. Reversed, it was drawn
+            // straight on top of the word "Invoice".
+            $x = $rtl ? 15 : $pdf->getPageWidth() - 15 - $width;
             // '@' tells TCPDF the string is the image itself rather than a path.
             $pdf->Image('@' . $logo['content'], $x, 12, $width, $height, '', '', '', true);
             // Reserve the strip the logo occupies so the title does not run under it.
