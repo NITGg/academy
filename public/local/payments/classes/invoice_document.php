@@ -138,10 +138,15 @@ class invoice_document {
         if ($logo !== null) {
             $height = 18;
             $width = self::logo_width($logo, $height);
-            // TCPDF starts a cell at the reading edge — left in English, right in
-            // Arabic — so the logo goes to the other one. Reversed, it was drawn
-            // straight on top of the word "Invoice".
-            $x = $rtl ? 15 : $pdf->getPageWidth() - 15 - $width;
+            // The logo goes to the corner opposite the reading edge: the title
+            // starts at the left in English and at the right in Arabic.
+            //
+            // The two cases are not symmetric, because TCPDF reads $x as the
+            // image's LEFT edge in LTR and its RIGHT edge in RTL
+            // ($ximg = $this->rtl ? $x - $w : $x). Passing the same left-edge
+            // coordinate in both put the Arabic logo at 15 - width, i.e. off the
+            // side of the page.
+            $x = $rtl ? 15 + $width : $pdf->getPageWidth() - 15 - $width;
             // '@' tells TCPDF the string is the image itself rather than a path.
             $pdf->Image('@' . $logo['content'], $x, 12, $width, $height, '', '', '', true);
             // Reserve the strip the logo occupies so the title does not run under it.
