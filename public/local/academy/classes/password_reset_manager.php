@@ -268,6 +268,16 @@ class password_reset_manager {
 
         update_internal_user_password($user, $newpassword);
 
+        // AC-4.4.7: a reset signs the account out of every device, so whoever
+        // still holds the old password holds nothing. \local_academy\observer
+        // does this for every password change site-wide (it listens for the event
+        // update_internal_user_password() just fired, which is the only way to
+        // reach the two paths that live in core files); the call is repeated here
+        // because this is the one path core has no equivalent of, and the reset
+        // endpoint should not depend on an observer registration to be safe. It
+        // costs nothing - session_terminator only acts once per user per request.
+        session_terminator::terminate((int) $user->id);
+
         // Invalidate every code/token for this user.
         $DB->delete_records('academy_password_otps', ['userid' => $user->id]);
 
@@ -295,6 +305,12 @@ class password_reset_manager {
         }
 
         update_internal_user_password($user, $newpassword);
+
+        // AC-4.5.2: same guarantee as the reset above, and it includes the token
+        // this very call arrived on. The app signs itself out locally the moment
+        // this returns, so sparing its token would only mean the one device that
+        // knows the password changed is the one device left holding access.
+        session_terminator::terminate((int) $user->id);
 
         return ['changed' => true];
     }

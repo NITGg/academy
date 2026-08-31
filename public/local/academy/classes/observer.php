@@ -162,4 +162,63 @@ class observer {
     public static function certificate_issued(\core\event\base $event): void {
         certificate_names::capture((int) $event->objectid, (int) $event->relateduserid);
     }
+
+    /**
+     * Sign the account out of every device whenever its password changes
+     * (AC-4.3.10, AC-4.4.7, AC-4.5.2).
+     *
+     * This one observer covers all four ways a password can change, because all
+     * four end at update_internal_user_password(), which is what fires this
+     * event: the profile screen on the website, the app's change_password call,
+     * the OTP reset, and an administrator resetting it from the user edit form.
+     * Two of those live in core files we do not edit, so an event is not merely
+     * the tidy way to do this - it is the only way that reaches all four.
+     *
+     * Doing it here rather than by turning on $CFG->passwordchangetokendeletion
+     * also means it is not an administrator setting away from being off again,
+     * and it covers the browser half and the token half together.
+     *
+     * One caveat, which core lives with in the same spot: the event also fires
+     * when a password is merely re-hashed with a newer algorithm, which happens
+     * on the first successful login of an account whose hash predates Moodle 4.3
+     * (and after a pepper rotation). Nothing distinguishes that from a real
+     * change at this point, so such an account is signed out once - on the login
+     * that upgrades its hash, after which the hash is current and it never
+     * happens again. Core's own token deletion in update_internal_user_password()
+     * sits inside the same branch and accepts the same one-off.
+     *
+     * @param \core\event\user_password_updated $event
+     * @return void
+     */
+    public static function user_password_updated(\core\event\user_password_updated $event): void {
+        session_terminator::password_changed((int) $event->relateduserid);
+    }
+
+    /**
+     * Sign a blocked account out of every device the moment it is blocked
+     * (AC-4.24.4: "Blocking takes effect immediately: active sessions are
+     * terminated").
+     *
+     * Core already destroys browser sessions on the two screens that suspend an
+     * account, but it leaves the web-service tokens alone - so without this a
+     * blocked learner is locked out of the website and carries on in the app.
+     * (Nothing extra is needed for a *deleted* account: delete_user() clears both
+     * stores itself.)
+     *
+     * The event carries no before/after, so this asks the question the AC is
+     * really about - is the account blocked now? - rather than trying to detect
+     * the transition. Re-running it on a later edit of an already-blocked account
+     * costs one empty delete and changes nothing.
+     *
+     * @param \core\event\user_updated $event
+     * @return void
+     */
+    public static function user_updated(\core\event\user_updated $event): void {
+        global $DB;
+
+        $userid = (int) $event->objectid;
+        if ($DB->record_exists('user', ['id' => $userid, 'suspended' => 1, 'deleted' => 0])) {
+            session_terminator::blocked($userid);
+        }
+    }
 }

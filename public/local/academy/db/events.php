@@ -29,4 +29,22 @@ $observers = [
         'eventname' => '\mod_customcert\event\issue_created',
         'callback'  => '\local_academy\observer::certificate_issued',
     ],
+
+    // AC-4.3.10 / AC-4.4.7 / AC-4.5.2: a password change signs the account out
+    // everywhere - browser sessions and app tokens alike. Every route to a new
+    // password (profile screen, app endpoint, OTP reset, administrator reset)
+    // passes through update_internal_user_password(), which fires this, so one
+    // observer covers all four - including the two that live in core files.
+    [
+        'eventname' => '\core\event\user_password_updated',
+        'callback'  => '\local_academy\observer::user_password_updated',
+    ],
+
+    // AC-4.24.4: blocking takes effect immediately. Core destroys the browser
+    // sessions of an account it suspends but keeps its web-service tokens alive,
+    // which would leave a blocked learner still signed in on the app.
+    [
+        'eventname' => '\core\event\user_updated',
+        'callback'  => '\local_academy\observer::user_updated',
+    ],
 ];

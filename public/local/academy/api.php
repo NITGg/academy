@@ -24,11 +24,15 @@ ob_start();
 
 /**
  * Emit a JSON envelope and stop, dropping any stray output first.
+ *
+ * @param mixed $payload the envelope to encode
+ * @param int $http the HTTP status to send with it
  */
-function academy_respond($payload) {
+function academy_respond($payload, int $http = 200) {
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
+    http_response_code($http);
     echo json_encode($payload);
     exit;
 }
@@ -45,11 +49,20 @@ function academy_respond($payload) {
  * Without the code a client has to match on the message text, so improving a
  * sentence - or a user simply having a different language - silently breaks it.
  *
+ * The HTTP status matters for exactly one class of failure. A token that no
+ * longer exists - because a password change or a block deleted it (AC-4.3.10,
+ * AC-4.5.2, AC-4.24.4) - must come back as 401, because that is the signal the
+ * app's generic handler watches for to drop its session and show the login
+ * screen. Everything else stays 200 with the envelope carrying the detail, so
+ * "you may not do that" and "no such function" are not mistaken for "you are
+ * signed out" and do not throw a working session away.
+ *
  * @param string $errorcode stable machine-readable code
  * @param string $message translated, ready to show
+ * @param int $http HTTP status; 401 only when the caller's credentials are dead
  */
-function academy_fail(string $errorcode, string $message) {
-    academy_respond(['status' => 'fail', 'error' => $message, 'errorcode' => $errorcode]);
+function academy_fail(string $errorcode, string $message, int $http = 200) {
+    academy_respond(['status' => 'fail', 'error' => $message, 'errorcode' => $errorcode], $http);
 }
 
 /**
@@ -79,13 +92,21 @@ $token    = optional_param('token', '', PARAM_ALPHANUM);
 
 // ── Authenticate via web-service token (sets $USER to the token's user) ──
 if (empty($token)) {
-    academy_fail('authrequired', get_string('err_authrequired', 'local_academy'));
+    academy_fail('authrequired', get_string('err_authrequired', 'local_academy'), 401);
 }
 // Full web-service token validation (expiry, IP restriction, service enabled,
 // account state) — not just a raw token→user lookup.
+//
+// 401, not 200: this is where a device finds out it has been signed out. A
+// password change or a block deletes every one of the user's rows in
+// external_tokens (\local_academy\session_terminator), so the next call any
+// other device makes lands here, and the app's 401 handler ends the session and
+// returns to the login screen with "your session has expired". Same story as the
+// errorcode:"invalidtoken" envelope /webservice/rest/server.php returns — this
+// endpoint just speaks HTTP as well, because it is not a Moodle WS endpoint.
 $USER = \local_academy\token_auth::validate($token);
 if (!$USER) {
-    academy_fail('invalidtoken', get_string('err_invalidtoken', 'local_academy'));
+    academy_fail('invalidtoken', get_string('err_invalidtoken', 'local_academy'), 401);
 }
 \core\session\manager::set_user($USER);
 $userid = (int) $USER->id;
@@ -300,6 +321,9 @@ try {
         // Admin: full teacher directory with filters + pagination (manageplatform).
         case 'get_all_teachers':
             if (!has_capability('local/academy:manageplatform', context_system::instance())) {
+                // Deliberately not 401: the token is fine, the permission is not.
+                // A 401 here would have the app throw away a perfectly good
+                // session because a learner asked for an admin-only list.
                 academy_fail('authrequired', get_string('err_authrequired', 'local_academy'));
             }
             $filters = [];

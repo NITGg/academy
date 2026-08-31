@@ -4,11 +4,14 @@
  *
  * Protocol mirrors local_academy:
  *   GET|POST /local/vdocipher/api.php?function=<name>&token=<wstoken>&...
- *   → {"status":"success","data":...} | {"status":"fail","error":"..."}
+ *   → {"status":"success","data":...}
+ *   → {"status":"fail","error":"<translated>","errorcode":"<stable code>"}
  *
  * The token is validated by \local_academy\token_auth (expiry, IP, service
  * enabled, account state) and $USER is set to its owner. All CRUD functions
  * additionally require local/vdocipher:manage in the relevant course context.
+ *
+ * A dead token is answered with HTTP 401 — see vdocipher_fail() below.
  */
 
 define('NO_MOODLE_COOKIES', true);
@@ -19,13 +22,40 @@ ob_start();
 
 /**
  * Emit a JSON envelope and stop, dropping any stray output first.
+ *
+ * @param mixed $payload the envelope to encode
+ * @param int $http the HTTP status to send with it
  */
-function vdocipher_respond($payload) {
+function vdocipher_respond($payload, int $http = 200) {
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
+    http_response_code($http);
     echo json_encode($payload);
     exit;
+}
+
+/**
+ * Emit a failure and stop.
+ *
+ * The 401 is the part that matters beyond tidiness. A password change or a block
+ * deletes every one of the user's web-service tokens
+ * (\local_academy\session_terminator), and this endpoint is one of the places a
+ * device with a dead token will next call. Answering 401 is what lets the app's
+ * generic handler end the session and return to the login screen, exactly as it
+ * does for the errorcode:"invalidtoken" envelope from Moodle's own WS endpoint.
+ * Anything that is not a credentials problem stays 200.
+ *
+ * The `errorcode` is new here and matches the vocabulary local_academy's api.php
+ * already uses, so one table of codes covers both endpoints; `error` stays the
+ * translated sentence for a person to read.
+ *
+ * @param string $errorcode stable machine-readable code
+ * @param string $message translated, ready to show
+ * @param int $http HTTP status; 401 only when the caller's credentials are dead
+ */
+function vdocipher_fail(string $errorcode, string $message, int $http = 200) {
+    vdocipher_respond(['status' => 'fail', 'error' => $message, 'errorcode' => $errorcode], $http);
 }
 
 /**
@@ -33,7 +63,7 @@ function vdocipher_respond($payload) {
  */
 function vdocipher_require_post() {
     if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-        vdocipher_respond(['status' => 'fail', 'error' => get_string('err_postrequired', 'local_academy')]);
+        vdocipher_fail('postrequired', get_string('err_postrequired', 'local_academy'));
     }
 }
 
@@ -42,11 +72,11 @@ $token    = optional_param('token', '', PARAM_ALPHANUM);
 
 // ── Authenticate via web-service token (sets $USER to the token's user) ──
 if (empty($token)) {
-    vdocipher_respond(['status' => 'fail', 'error' => get_string('err_authrequired', 'local_academy')]);
+    vdocipher_fail('authrequired', get_string('err_authrequired', 'local_academy'), 401);
 }
 $USER = \local_academy\token_auth::validate($token);
 if (!$USER) {
-    vdocipher_respond(['status' => 'fail', 'error' => get_string('err_invalidtoken', 'local_academy')]);
+    vdocipher_fail('invalidtoken', get_string('err_invalidtoken', 'local_academy'), 401);
 }
 \core\session\manager::set_user($USER);
 
@@ -107,14 +137,16 @@ try {
             break;
 
         default:
-            vdocipher_respond(['status' => 'fail', 'error' => get_string('err_unknownfunction', 'local_academy')]);
+            vdocipher_fail('unknownfunction', get_string('err_unknownfunction', 'local_academy'));
     }
 } catch (\required_capability_exception $e) {
-    vdocipher_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+    // Not 401: the token is good, the permission is missing. Only a dead token
+    // may tell the app to sign out.
+    vdocipher_fail('nopermissions', $e->getMessage());
 } catch (\local_vdocipher\api_exception $e) {
     // VdoCipher-side or mapping errors are safe and useful to surface to teachers.
-    vdocipher_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+    vdocipher_fail('vdocipherapi', $e->getMessage());
 } catch (\Throwable $e) {
     debugging('local_vdocipher api error: ' . $e->getMessage(), DEBUG_DEVELOPER);
-    vdocipher_respond(['status' => 'fail', 'error' => get_string('err_internal', 'local_academy')]);
+    vdocipher_fail('internalerror', get_string('err_internal', 'local_academy'));
 }
