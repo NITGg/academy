@@ -42,7 +42,19 @@ class manager {
                 }
             }
 
-            return self::instantiate_provider($provider_record);
+            $provider = self::instantiate_provider($provider_record);
+
+            // The gateway itself has the last word on currency. A provider row can
+            // list a currency the gateway account does not actually settle in, and
+            // a gateway that silently converts would charge a different amount than
+            // the one we recorded — which our own amount check then rejects, after
+            // the buyer has paid. Better to not select it at all.
+            $gatewaycurrencies = $provider->supported_currencies();
+            if (!empty($gatewaycurrencies) && !in_array($currency, $gatewaycurrencies)) {
+                continue;
+            }
+
+            return $provider;
         }
 
         throw new \moodle_exception('noproviderfound', 'local_payments', '', null,
@@ -852,10 +864,19 @@ class manager {
         if (abs($expected - $received) > 0.01 || $currencymismatch) {
             self::log_entry($transaction->provider_id, $transaction->id, 'error',
                 "Amount/currency mismatch: expected={$expected} {$transaction->currency}, received={$received}");
+            // Spell out both sides. When the currencies differ this is almost
+            // always the gateway having converted the order rather than anything
+            // malicious, and that reads as nonsense unless both are shown.
+            $reason = $currencymismatch
+                ? "Currency mismatch: charged {$received} {$result->currency}, expected "
+                    . "{$expected} {$transaction->currency}. The gateway most likely converted "
+                    . "the order; it should only be offered for currencies it settles in."
+                : "Amount mismatch: expected {$expected}, got {$received}";
+
             $DB->update_record('local_payments_transactions', (object) [
                 'id' => $transaction->id,
                 'status' => status_machine::FAILED,
-                'reject_reason' => "Amount mismatch: expected {$expected}, got {$received}",
+                'reject_reason' => substr($reason, 0, 255),
                 'timemodified' => time(),
             ]);
             return false;

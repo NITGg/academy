@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_payments';
-$plugin->version   = 2026083100;   // fawaterk_diagnose --transaction.
+$plugin->version   = 2026083101;   // Gateway has the last word on currency; Fawaterk defaults to EGP.
 $plugin->requires  = 2024100700; // Moodle 4.5+
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_STABLE;

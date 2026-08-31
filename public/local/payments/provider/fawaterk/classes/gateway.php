@@ -1178,8 +1178,24 @@ class gateway extends base_provider {
         return false;
     }
 
+    /**
+     * Currencies this Fawaterk account settles in natively.
+     *
+     * Defaults to EGP alone, and that default matters: a Fawaterk account set up
+     * for EGP will happily accept an invoice in another currency and convert it,
+     * so a 4.50 USD order becomes 240.435 EGP. We would then be verifying our
+     * 4.50 against their 240.435 and failing a payment the buyer actually made.
+     * Only list a currency here once the account genuinely settles in it.
+     */
     public function supported_currencies(): array {
-        return ['EGP', 'USD', 'SAR', 'AED'];
+        $configured = (string) $this->get_setting('currencies', 'EGP');
+        $list = array_filter(array_map(
+            static function ($code) {
+                return strtoupper(trim($code));
+            },
+            explode(',', $configured)
+        ));
+        return !empty($list) ? array_values($list) : ['EGP'];
     }
 
     public function supported_countries(): array {
