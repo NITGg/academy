@@ -40,7 +40,8 @@ require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/clilib.php');
 
 [$options, $unrecognised] = cli_get_params(
-    ['help' => false, 'purge-cache' => false, 'logs' => false, 'webhooks' => false],
+    ['help' => false, 'purge-cache' => false, 'logs' => false, 'webhooks' => false,
+        'transaction' => false],
     ['h' => 'help']
 );
 
@@ -58,6 +59,12 @@ Options:
                   to see what Fawaterk actually objected to.
   --webhooks[=N]  Print the last N received webhooks (default 10) and exit,
                   including whether the signature verified.
+  --transaction[=ID]
+                  Ask Fawaterk what happened to one payment and exit. ID is a
+                  Moodle order id (PAY-…) or a Fawaterk intent key; with no ID
+                  the most recent Fawaterk transaction is used. Prints the
+                  attempt history, which is where a card decline actually says
+                  why it declined.
   -h, --help      Print this help.
 ");
     exit(0);
@@ -172,6 +179,102 @@ if ($key === '') {
     cli_writeln('WARNING: no HASH API key. API calls may work, but webhooks will fail');
     cli_writeln('         signature checks and no payment will ever be completed.');
     cli_writeln('');
+}
+
+if ($options['transaction'] !== false) {
+    $wanted = is_string($options['transaction']) ? trim($options['transaction']) : '';
+
+    if ($wanted !== '') {
+        $txn = $DB->get_record('local_payments_transactions', ['order_id' => $wanted]);
+        if (!$txn) {
+            $txn = $DB->get_record('local_payments_transactions',
+                ['provider_id' => $record->id, 'provider_session_id' => $wanted], '*', IGNORE_MULTIPLE);
+        }
+        if (!$txn) {
+            cli_error("No transaction found for '{$wanted}'. Pass a Moodle order id (PAY-…) "
+                . 'or a Fawaterk intent key.');
+        }
+    } else {
+        $recent = $DB->get_records('local_payments_transactions', ['provider_id' => $record->id],
+            'id DESC', '*', 0, 1);
+        $txn = reset($recent) ?: null;
+        if (!$txn) {
+            cli_error('No Fawaterk transactions yet.');
+        }
+    }
+
+    cli_writeln('What Moodle recorded');
+    cli_writeln('  order id      : ' . $txn->order_id);
+    cli_writeln('  status        : ' . $txn->status);
+    cli_writeln('  amount        : ' . $txn->amount . ' ' . $txn->currency);
+    cli_writeln('  intent key    : ' . ($txn->provider_session_id ?: '(none — creation failed)'));
+    cli_writeln('  created       : ' . userdate($txn->timecreated));
+    cli_writeln('  expires       : ' . ($txn->expires_at ? userdate($txn->expires_at) : '-'));
+    if (!empty($txn->reject_reason)) {
+        cli_writeln('  reject reason : ' . $txn->reject_reason);
+    }
+    // Written from the failed webhook — the gateway's own words for a decline.
+    if (!empty($txn->provider_response_message) || !empty($txn->provider_response_code)) {
+        cli_writeln('  gateway said  : ' . trim(($txn->provider_response_code ?? '') . ' '
+            . ($txn->provider_response_message ?? '')));
+    } else if ($txn->status === \local_payments\status_machine::FAILED) {
+        cli_writeln('  gateway said  : (nothing recorded — the Failed webhook is probably not');
+        cli_writeln('                   configured in the Fawaterk dashboard, so the decline');
+        cli_writeln('                   reason never reached us)');
+    }
+    cli_writeln('');
+
+    if (empty($txn->provider_session_id)) {
+        cli_error('This transaction never got a Fawaterk reference, so there is nothing to ask '
+            . 'about. Run --logs to see why creation failed.');
+    }
+
+    cli_writeln('What Fawaterk says');
+    $gateway = new \paymentprovider_fawaterk\gateway($record);
+    $info = $gateway->get_transaction($txn->provider_session_id);
+
+    if (!$info->found || empty($info->raw_response)) {
+        cli_error('Fawaterk returned nothing for this transaction. Run --logs for the API response.');
+    }
+
+    $raw = $info->raw_response;
+    cli_writeln('  status        : ' . ($raw['status_text'] ?? $info->status));
+    cli_writeln('  paid          : ' . (!empty($raw['paid']) ? 'YES' : 'no'));
+    cli_writeln('  total         : ' . ($raw['total'] ?? '-') . ' ' . ($raw['currency'] ?? ''));
+    cli_writeln('  method        : ' . (($raw['payment_method'] ?? '') ?: '(none chosen yet)'));
+    cli_writeln('  paid at       : ' . ($raw['paid_at'] ?? '-'));
+    cli_writeln('  due date      : ' . ($raw['due_date'] ?? '-'));
+    cli_writeln('  link          : ' . ($raw['transaction_link'] ?? '-'));
+    cli_writeln('');
+
+    // This is the part worth having: each attempt and how it ended. A declined
+    // card shows up here and nowhere else on our side.
+    $history = $raw['transaction_history'] ?? [];
+    if (empty($history)) {
+        cli_writeln('  No payment attempts recorded yet.');
+        cli_writeln('');
+        cli_writeln('  If the payment page showed a failure, the attempt did not reach');
+        cli_writeln('  Fawaterk\'s transaction record — usually the card was rejected by the');
+        cli_writeln('  gateway before capture, or the method is not activated on the account.');
+    } else {
+        cli_writeln('  Attempts:');
+        foreach ($history as $i => $attempt) {
+            $method = $attempt['method']['name'] ?? ($attempt['method'] ?? '?');
+            cli_writeln(sprintf('    %d. %s  %s  status=%s  ref=%s  %s',
+                $i + 1,
+                $attempt['date'] ?? '-',
+                is_array($method) ? json_encode($method) : $method,
+                $attempt['status'] ?? '?',
+                $attempt['reference'] ?? '-',
+                $attempt['amount'] ?? ''
+            ));
+        }
+    }
+
+    cli_writeln('');
+    cli_writeln('Full response:');
+    cli_writeln(json_encode($raw, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+    exit(0);
 }
 
 if ($options['purge-cache']) {

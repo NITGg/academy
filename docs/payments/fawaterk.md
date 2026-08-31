@@ -123,6 +123,19 @@ What has arrived and whether each signature verified. This separates "Fawaterk
 never called us" from "it called and we rejected it" — worth checking after the
 first real payment, since the webhook is what does the enrolling.
 
+```bash
+docker compose exec moodle php public/local/payments/cli/fawaterk_diagnose.php --transaction=PAY-2026-12345678
+```
+
+Asks Fawaterk what happened to one payment: its status, whether it is paid, and
+the **attempt history** — which is where a declined card says why. Takes a Moodle
+order id or a Fawaterk intent key; with no argument it uses the most recent
+transaction. Use this when a payment says "failed" and you need the reason.
+
+> A decline reason only reaches Moodle if the **Failed webhook** is configured in
+> the Fawaterk dashboard. Without it the order is marked failed with nothing
+> attached, and `--transaction` is the only way to see what the gateway said.
+
 To syntax-check the plugin after a deploy (silence means clean):
 
 ```bash
