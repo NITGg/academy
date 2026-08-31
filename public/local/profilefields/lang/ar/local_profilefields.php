@@ -271,7 +271,6 @@ $string['resetdonebody'] = 'مرحبًا {$a->firstname}،
 
 // AC-4.5 - الملف الشخصي وإعدادات الحساب.
 $string['countryofrecord'] = 'دولة السجل';
-$string['countryofrecordhelp'] = 'هذه الدولة تحدّد الأسعار المعروضة لك. لا يمكن تغييرها إلا عن طريق المسؤول.';
 $string['requestchange'] = 'طلب تعديل';
 $string['requestchangeintro'] = 'أخبرنا بما ينبغي تعديله وسببه، وسيقوم أحد المسؤولين بمراجعة طلبك.';
 $string['requestchangesent'] = 'تم إرسال طلبك. سيقوم أحد المسؤولين بمراجعته قريبًا.';
@@ -401,11 +400,9 @@ $string['changeemailtitle'] = 'تغيير البريد الإلكتروني';
 $string['emailchangehelp'] = 'تغييره يُرسل رابط تأكيد إلى العنوان الجديد. ولا يسري التغيير إلا عند فتح ذلك الرابط.';
 $string['changeemailsent'] = 'تم إرسال رابط تأكيد إلى {$a}. ولا يتغير عنوانك إلا عند فتح ذلك الرابط.';
 $string['changesaved'] = 'تم حفظ التغييرات.';
+$string['countryhelp'] = 'هذه الدولة تحدّد الأسعار المعروضة لك.';
 $string['nationalityhelp'] = 'تُجمع هنا فقط، ولا تُطلب عند التسجيل. يمكن تركها فارغة دون قيد. ولا تؤثر على الأسعار.';
 $string['preferredlanguagehelp'] = 'تُطبَّق على الويب والجوال عند تحميل الصفحة التالية.';
-$string['countryandtelephone'] = 'الدولة والهاتف';
-$string['phonecountrycode'] = 'رمز دولة الهاتف';
-$string['phonenumber'] = 'رقم الهاتف';
 $string['notset'] = 'غير محدَّد';
 $string['lockedfield'] = 'لا يمكن تغيير هذا إلا بواسطة المسؤول.';
 $string['passwordlastchanged'] = 'آخر تغيير {$a}';

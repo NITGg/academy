@@ -1087,15 +1087,9 @@ class page {
      * @return string plain text
      */
     protected static function core_label(string $name): string {
-        $meta = manager::core_fields()[$name] ?? null;
-        if ($meta === null) {
-            return $name;
-        }
-        $override = trim((string) (manager::get_config()[$name]['label'] ?? ''));
-        if ($override !== '') {
-            return format_string($override);
-        }
-        return get_string($meta['label'], $meta['labelcomponent'] ?? 'moodle');
+        // Delegated: the account screen renders the same fields under the same
+        // names, so the rename an administrator types here has to reach it too.
+        return manager::core_label($name);
     }
 
     /**

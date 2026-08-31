@@ -141,6 +141,10 @@ if ($section === account::SECTION_SECURITY) {
 
     $form = new changeemail_form($url, ['user' => $USER]);
 
+    // The same reveal control the delete pane gets: this form asks for the
+    // account password too, and it is the one box on it that cannot be re-read.
+    account::password_toggle();
+
     if ($form->is_cancelled()) {
         redirect(account::url(account::SECTION_PROFILE));
 
@@ -171,13 +175,11 @@ if ($section === account::SECTION_SECURITY) {
 
     $filemanageroptions = account_profile_form::filemanager_options();
 
-    // What the administrator allows a learner to edit, from the "user can edit"
-    // column of Site administration -> Profile fields. Read here so the form and
-    // the save below agree about it.
-    $locks = [];
-    foreach (['firstname', 'lastname', 'email'] as $field) {
-        $locks[$field] = core_locks::is_locked($field);
-    }
+    // Which core fields this screen offers, and which of them the administrator
+    // has closed - read from Site administration -> Profile fields. The form asks
+    // the same method, so what is drawn and what is accepted cannot drift apart,
+    // and a field that is not on the form cannot be set by adding it to the POST.
+    $corefields = account::core_fields();
 
     $user = clone $USER;
     profile_load_data($user);
@@ -189,9 +191,7 @@ if ($section === account::SECTION_SECURITY) {
     $form = new account_profile_form($url, [
         'user' => $user,
         'picture' => $OUTPUT->user_picture($USER, ['size' => 100, 'link' => false]),
-        'lockedgroup' => account::locked_group($USER),
         'canchangeemail' => account::can_verify_password($USER),
-        'locks' => $locks,
     ]);
 
     $form->set_data($user);
@@ -206,13 +206,14 @@ if ($section === account::SECTION_SECURITY) {
         $usernew->id = $USER->id;
         $usernew->lang = $data->lang;
 
-        // A locked name keeps whatever the clone already carries. Skipping it here
-        // as well as leaving it off the form means a hand-crafted POST cannot set
-        // a field the administrator has closed.
-        foreach (['firstname', 'lastname'] as $field) {
-            if (empty($locks[$field]) && isset($data->{$field})) {
-                $usernew->{$field} = trim($data->{$field});
+        // A locked field keeps whatever the clone already carries. Skipping it here
+        // as well as leaving it off the form means a hand-crafted POST cannot set a
+        // field the administrator has closed.
+        foreach ($corefields as $field => $locked) {
+            if ($locked || $field === 'email' || !isset($data->{$field})) {
+                continue;
             }
+            $usernew->{$field} = is_string($data->{$field}) ? trim($data->{$field}) : $data->{$field};
         }
 
         // The email is never taken from this form - it has no email box. Saying so
@@ -220,6 +221,9 @@ if ($section === account::SECTION_SECURITY) {
         // for if a stale value ever reaches it.
         $usernew->email = $USER->email;
 
+        // Custom profile fields. get_data() returns only elements the form actually
+        // registered, so a field drawn as a locked value has nothing here and a
+        // hidden one cannot be smuggled in.
         foreach ((array) $data as $field => $value) {
             if (strpos($field, 'profile_field_') === 0) {
                 $usernew->$field = $value;
@@ -228,7 +232,7 @@ if ($section === account::SECTION_SECURITY) {
 
         profile_api::save($USER, $usernew);
 
-        if (empty($CFG->disableuserimages)) {
+        if (account_profile_form::picture_enabled()) {
             $usernew->imagefile = $data->imagefile;
             $usernew->deletepicture = !empty($data->deletepicture);
             core_user::update_picture($usernew, $filemanageroptions);

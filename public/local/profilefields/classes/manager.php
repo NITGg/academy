@@ -514,6 +514,32 @@ class manager {
     }
 
     /**
+     * The label to draw for a core field.
+     *
+     * The administrator may rename a field on the management page. That name is
+     * the one every screen should use - the sign-up form already does
+     * ({@see signup::apply()}), and the account screen and the management table
+     * ask here rather than each deciding for itself what a renamed field is
+     * called.
+     *
+     * @param string $name core field name
+     * @return string plain text
+     */
+    public static function core_label(string $name): string {
+        $meta = self::core_fields()[$name] ?? null;
+        if ($meta === null) {
+            return $name;
+        }
+
+        $override = trim((string) (self::get_config()[$name]['label'] ?? ''));
+        if ($override !== '') {
+            return format_string($override);
+        }
+
+        return get_string($meta['label'], $meta['labelcomponent'] ?? 'moodle');
+    }
+
+    /**
      * Where a single core field is configured to appear.
      *
      * @param string $name core field name

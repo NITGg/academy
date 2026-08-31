@@ -99,6 +99,10 @@ if ($form->is_cancelled()) {
         null, \core\output\notification::NOTIFY_SUCCESS);
 }
 
+// The confirmation box is a password box, and a password box with no reveal
+// control is one you cannot check before committing to something irreversible.
+account::password_toggle();
+
 echo $OUTPUT->header();
 
 // WF-5.3 is a pane of the account screen, not a page of its own, so it draws

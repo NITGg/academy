@@ -41,7 +41,15 @@
 // Chrome-bearing anchors opt out (:not(...)) — buttons, nav/menu items,
 // dropdown entries, pagination, tabs, list-group rows, cards and badges own
 // their own hover treatment, and an underline would look wrong on them.
-a:not(.btn):not(.nav-link):not(.navbar-brand):not(.dropdown-item):not(.page-link):not(.list-group-item):not(.badge):not(.card):not([role="button"]):not([role="tab"]):not([role="menuitem"]) {
+//
+// `.nit-link-plain` is the escape hatch for our own components. The chain above
+// lists Bootstrap chrome classes, and a component of ours that is not one of them
+// (the account screen side navigation, for instance) has no way out otherwise:
+// this rule carries eleven :not()s, so no amount of nesting in a component file
+// can out-specify it, and the component ends up underlined and recoloured on
+// hover on top of the state it drew for itself. Adding the class in the
+// component markup is the one place that decision belongs.
+a:not(.btn):not(.nav-link):not(.navbar-brand):not(.dropdown-item):not(.page-link):not(.list-group-item):not(.badge):not(.card):not(.nit-link-plain):not([role="button"]):not([role="tab"]):not([role="menuitem"]) {
     &:hover,
     &:focus,
     &:active {

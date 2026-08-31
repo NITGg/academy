@@ -71,6 +71,18 @@ class account {
     const OWN_SECTIONS = [self::SECTION_PROFILE, self::SECTION_SECURITY];
 
     /**
+     * The core user fields this screen can draw, in the order it draws them.
+     *
+     * The same list the management page offers a lock for
+     * ({@see core_locks::LOCKABLE}), in the order somebody reads their own
+     * details - so "what an administrator can lock" and "what this screen shows"
+     * cannot drift apart.
+     *
+     * @var string[]
+     */
+    const CORE_FIELDS = ['firstname', 'lastname', 'email', 'city', 'country'];
+
+    /**
      * The URL of one of this plugin's own panes.
      *
      * @param string $section one of the SECTION_* constants
@@ -196,7 +208,14 @@ class account {
         $links = '';
 
         foreach (self::nav($active) as $item) {
-            $classes = 'nit-account__navlink';
+            // `nit-link-plain` opts the entry out of the site-wide link treatment in
+            // theme_nit (scss/post.scss), which underlines and recolours every
+            // content link on hover. These entries are navigation, not prose: they
+            // draw their own hover fill and their own current-page state, and the
+            // underline landed on top of both. That rule carries eleven :not()s, so
+            // it cannot be out-specified from a component stylesheet - opting out in
+            // the markup is the way it is meant to be answered.
+            $classes = 'nit-account__navlink nit-link-plain';
             if ($item['active']) {
                 $classes .= ' nit-account__navlink--active';
             }
@@ -231,6 +250,34 @@ class account {
         echo html_writer::start_div('nit-account');
         echo self::nav_html($active);
         echo html_writer::start_div('nit-account__body');
+    }
+
+    /**
+     * Put a reveal toggle on the password box of a pane that has one.
+     *
+     * Two panes ask for a password - changing the address, and deleting the
+     * account - and neither had a reveal control of its own. What the reader got
+     * instead was whatever the browser draws by itself: Edge paints a black eye
+     * inside the box (`::-ms-reveal`) that appears only once there is something
+     * to reveal and takes no notice of the site being dark, so it reads as a
+     * black smudge that comes and goes; Chrome and Firefox draw nothing at all,
+     * so the same page has a reveal control on one browser and not on the next.
+     *
+     * Core's own control instead - the same one the sign-in screens use, which
+     * theme_nit styles into the field (scss/components/_account.scss). That
+     * stylesheet also hides the browser's native button inside this screen, so
+     * there is never a second, unstyled eye beside ours.
+     *
+     * `core/togglesensitive` keeps the element id in module state, so it drives
+     * one field per page - which is what these panes have.
+     *
+     * @param string $elementid the input's DOM id
+     * @return void
+     */
+    public static function password_toggle(string $elementid = 'id_password'): void {
+        global $PAGE;
+
+        $PAGE->requires->js_call_amd('core/togglesensitive', 'init', [$elementid]);
     }
 
     /**
@@ -350,94 +397,145 @@ class account {
     }
 
     /**
-     * The raw stored value of the telephone profile field, or '' when there is none.
+     * Which core fields this screen shows right now, and whether each is locked.
      *
-     * @param int $userid
-     * @return string in the phone field's own "ISO:number" form
+     * Both halves are read from the management page rather than decided here.
+     * *Whether a field appears* is Site administration -> Profile fields, Sign-up
+     * tab - the field's placement, which is what `manager::on_profile()` answers.
+     * *Whether it can be typed into* is the Profile tab of the same page, stored
+     * as core's own per-auth field lock. The form and the save path both ask this
+     * one method, so they cannot disagree about a field a hand-crafted POST tries
+     * to set.
+     *
+     * @return array<string,bool> field name => true when the learner may not edit it
      */
-    public static function phone_value(int $userid): string {
-        global $DB;
+    public static function core_fields(): array {
+        $fields = [];
 
-        $sql = "SELECT d.data
-                  FROM {user_info_data} d
-                  JOIN {user_info_field} f ON f.id = d.fieldid
-                 WHERE d.userid = :userid AND f.shortname = :shortname";
+        foreach (self::CORE_FIELDS as $name) {
+            if (!manager::on_profile($name)) {
+                continue;
+            }
+            $fields[$name] = core_locks::is_locked($name);
+        }
 
-        return (string) $DB->get_field_sql($sql, ['userid' => $userid, 'shortname' => 'phone']);
+        return $fields;
     }
 
     /**
-     * The read-only "Country and telephone" group of WF-5.1.
+     * The custom profile fields this screen draws, in the site's own field order.
      *
-     * Three values a learner may see but not set. AC-4.5.3 makes the country of
-     * record an administrator's to change, because it is what decides the prices
-     * charged, and the telephone's dialling code is the field that country was
-     * derived from at registration - so it is locked for the same reason, one step
-     * upstream.
+     * Everything an administrator has not set to "Hidden", so a field created on
+     * Site administration -> User profile fields appears here without this plugin
+     * being told about it. Ordered by profile-field category and then by position
+     * within it, which is the order every other profile page uses.
+     *
+     * @param int $userid whose values to load
+     * @return \profile_field_base[] keyed by form element name
+     */
+    public static function profile_fields(int $userid): array {
+        global $CFG;
+        require_once($CFG->dirroot . '/user/profile/lib.php');
+
+        $fields = [];
+
+        foreach (profile_get_user_fields_with_data($userid) as $field) {
+            // PROFILE_VISIBLE_NONE is what the management page writes for "Hidden".
+            // Deliberately not is_visible(): that also turns away a field marked
+            // "visible to me only", and the one person it is visible to is exactly
+            // the one looking at this screen.
+            if ((int) $field->field->visible === (int) PROFILE_VISIBLE_NONE) {
+                continue;
+            }
+            $fields[$field->inputname] = $field;
+        }
+
+        return $fields;
+    }
+
+    /**
+     * The label to draw for a core field.
+     *
+     * An administrator may rename a field on the management page; the name they
+     * chose is the name the learner should see here too, not core's.
+     *
+     * @param string $name core field name
+     * @return string plain text
+     */
+    public static function core_label(string $name): string {
+        return manager::core_label($name);
+    }
+
+    /**
+     * The current value of a core field, ready to show as read-only text.
      *
      * @param \stdClass $user the account being shown
-     * @return string HTML
+     * @param string $name core field name
+     * @return string plain text, '' when the field is empty
      */
-    public static function locked_group(\stdClass $user): string {
-        $notset = get_string('notset', 'local_profilefields');
+    public static function core_display(\stdClass $user, string $name): string {
+        $value = trim((string) ($user->{$name} ?? ''));
 
-        // Country of record, with its flag when the phone plugin can supply one.
+        if ($name !== 'country' || $value === '') {
+            return $value;
+        }
+
+        // A country is stored as its ISO code, which is not what anybody calls it.
+        $iso = strtoupper($value);
         $countries = get_string_manager()->get_list_of_countries(true);
-        $iso = strtoupper((string) $user->country);
-        $countryname = $countries[$iso] ?? $notset;
-        if ($iso !== '' && class_exists('\profilefield_phone\dialcodes')) {
-            $countryname = \profilefield_phone\dialcodes::flag($iso) . ' ' . $countryname;
+        $name = $countries[$iso] ?? $iso;
+
+        // The phone field ships a flag per country; use it when it is installed so
+        // the row reads the same as the dialling-code menu it was derived from.
+        if (class_exists('\profilefield_phone\dialcodes')) {
+            $name = \profilefield_phone\dialcodes::flag($iso) . ' ' . $name;
         }
 
-        // The telephone is one custom field storing "ISO:number", so the dialling
-        // code and the subscriber number are two views of one stored value.
-        $dialcode = '';
-        $number = '';
-        $phone = self::phone_value((int) $user->id);
-        if ($phone !== '') {
-            [$phoneiso, $number] = array_pad(explode(':', $phone, 2), 2, '');
-            if ($phoneiso !== '' && class_exists('\profilefield_phone\dialcodes')) {
-                $dialcode = '+' . \profilefield_phone\dialcodes::code(strtoupper($phoneiso));
-            }
-        }
-
-        $fields = html_writer::div(
-            self::locked_field(get_string('countryofrecord', 'local_profilefields'), $countryname)
-            . self::locked_field(get_string('phonecountrycode', 'local_profilefields'), $dialcode),
-            'nit-account__lockedrow')
-            . self::locked_field(get_string('phonenumber', 'local_profilefields'), $number);
-
-        return html_writer::div(
-            html_writer::tag('h3', get_string('countryandtelephone', 'local_profilefields'),
-                ['class' => 'nit-account__subtitle'])
-            . html_writer::div(
-                $fields
-                . html_writer::div(get_string('countryofrecordhelp', 'local_profilefields'),
-                    'nit-account__help'),
-                'nit-account__locked'),
-            'nit-account__lockedgroup');
+        return $name;
     }
 
     /**
-     * One labelled value a learner may read but not change.
+     * A value the learner may read but not change.
      *
-     * @param string $label the localised field label
-     * @param string $value the value, or '' to show "Not set"
+     * One shape for every locked field on the screen, wherever the lock comes
+     * from. Before this there were three different ways of saying it - a padlock
+     * beside the name, a sentence in its own wording under the e-mail address, a
+     * dashed box for the country - and three ways of saying one thing reads as
+     * three different rules rather than one.
+     *
+     * @param string $value the current value
+     * @param bool $ishtml true when $value is already-safe HTML rather than text
      * @return string HTML
      */
-    protected static function locked_field(string $label, string $value): string {
-        $shown = ($value !== '') ? $value : get_string('notset', 'local_profilefields');
+    public static function locked_value(string $value, bool $ishtml = false): string {
+        $shown = trim($value) !== ''
+            ? ($ishtml ? $value : s($value))
+            : html_writer::span(get_string('notset', 'local_profilefields'), 'nit-account__notset');
 
         return html_writer::div(
-            html_writer::tag('span', $label, ['class' => 'nit-account__lockedlabel'])
-            . html_writer::div(
-                html_writer::span($shown, 'nit-account__lockedvalue')
-                . html_writer::span('', 'nit-account__lock', [
-                    'aria-hidden' => 'true',
-                    'title' => get_string('lockedfield', 'local_profilefields'),
-                ]),
-                'nit-account__lockedbox'),
-            'nit-account__lockedfield');
+            html_writer::span($shown, 'nit-account__lockedvalue')
+            . html_writer::span('', 'nit-account__lock', [
+                'aria-hidden' => 'true',
+                'title' => get_string('lockedfield', 'local_profilefields'),
+            ]),
+            'nit-account__lockedbox');
+    }
+
+    /**
+     * The one sentence that explains a locked field, printed under its value.
+     *
+     * The padlock is what a glance picks up; this is the answer to "why can I not
+     * type here", and it is the same answer, in the same words, in the same place,
+     * for every locked field on the screen. A field whose reason is genuinely a
+     * different one - an address that belongs to a Google account rather than to
+     * an administrator - passes its own string id.
+     *
+     * @param string $reason string id in this plugin
+     * @return string HTML
+     */
+    public static function locked_note(string $reason = 'lockedfield'): string {
+        return html_writer::div(get_string($reason, 'local_profilefields'),
+            'nit-account__help nit-account__help--locked');
     }
 
     /**

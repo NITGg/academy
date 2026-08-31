@@ -18,6 +18,7 @@ namespace local_profilefields\form;
 
 use html_writer;
 use local_profilefields\account;
+use local_profilefields\manager;
 use local_profilefields\validation;
 use moodleform;
 
@@ -28,17 +29,28 @@ require_once($CFG->libdir . '/formslib.php');
 require_once($CFG->dirroot . '/user/profile/lib.php');
 
 /**
- * WF-5.1 - the learner's own personal details, country and telephone.
+ * WF-5.1 - the learner's own personal details.
  *
- * The screen is deliberately much smaller than core's `/user/edit.php`. The SRS
- * table for this screen names nine rows and no more, so the form carries those
- * nine and nothing else; a learner opening their account should not have to
- * scroll past forum digest preferences to correct a surname.
+ * The form holds no list of its own of what a profile contains. Every row on it
+ * comes from Site administration -> Profile fields:
  *
- * Three of the rows cannot be typed into, and they are `static` elements rather
- * than disabled inputs. A disabled input still posts nothing but still *looks*
- * like somewhere you could type, and AC-4.5.3 wants the country of record to read
- * as a fact about the account rather than as a field that is refusing you.
+ *  - the Sign-up tab decides *whether* a field appears here at all (its
+ *    placement) and what it is called (the label override);
+ *  - the Profile tab decides *whether it can be typed into* (the "user can edit"
+ *    column, which for core fields is Moodle's own per-auth field lock and for
+ *    custom fields is `user_info_field.locked`);
+ *  - a custom field created on Site administration -> User profile fields
+ *    appears here on its next page load, drawn by the field plugin itself.
+ *
+ * That is the point of it: the screen used to name its nine rows in code, so a
+ * field an administrator added, renamed or unlocked never showed up here and the
+ * management page quietly meant nothing to this screen.
+ *
+ * A field the reader may not change is never drawn as a disabled input. A
+ * disabled input posts nothing but still looks like somewhere you could type,
+ * and this screen answers "you cannot change this" exactly one way wherever it
+ * has to: the value, a padlock, and one sentence underneath
+ * ({@see account::locked_value()} and {@see account::locked_note()}).
  *
  * @package    local_profilefields
  * @copyright  2026 NIT
@@ -72,24 +84,19 @@ class account_profile_form extends moodleform {
     }
 
     /**
-     * A field the administrator has marked as not user-editable.
+     * Whether the profile picture control is drawn at all.
      *
-     * Shown the same way as the country of record: the value, readable, with a
-     * padlock - so the learner sees what is held rather than an input that will
-     * not accept anything.
+     * Two switches, either of which is enough to leave it off: the site-wide
+     * `$CFG->disableuserimages`, and "Picture of user" set to Hidden on the
+     * management page. account.php asks the same question before it saves an
+     * upload, so a control that was never drawn cannot be posted into.
      *
-     * @param string $value the current value
-     * @return string HTML
+     * @return bool
      */
-    protected static function locked_value(string $value): string {
-        return html_writer::div(
-            html_writer::span($value !== '' ? s($value)
-                : get_string('notset', 'local_profilefields'), 'nit-account__lockedvalue')
-            . html_writer::span('', 'nit-account__lock', [
-                'aria-hidden' => 'true',
-                'title' => get_string('lockedfield', 'local_profilefields'),
-            ]),
-            'nit-account__lockedbox');
+    public static function picture_enabled(): bool {
+        global $CFG;
+
+        return empty($CFG->disableuserimages) && manager::on_profile('picture');
     }
 
     /**
@@ -98,15 +105,32 @@ class account_profile_form extends moodleform {
      * @return void
      */
     protected function definition(): void {
-        global $USER;
-
         $mform = $this->_form;
         $user = $this->_customdata['user'];
 
         $mform->addElement('hidden', 'id', $user->id);
         $mform->setType('id', PARAM_INT);
 
-        // --- Picture -------------------------------------------------------
+        $this->add_picture($user);
+        $this->add_core_fields($user);
+        $this->add_profile_fields($user);
+        $this->add_language();
+
+        $this->add_action_buttons(true, get_string('savechanges'));
+    }
+
+    /**
+     * The profile picture: the current one, then the control that replaces it.
+     *
+     * @param \stdClass $user the account being shown
+     * @return void
+     */
+    protected function add_picture(\stdClass $user): void {
+        if (!self::picture_enabled()) {
+            return;
+        }
+
+        $mform = $this->_form;
 
         $mform->addElement('static', 'currentpicture', '',
             html_writer::div($this->_customdata['picture'], 'nit-account__avatar'));
@@ -120,106 +144,218 @@ class account_profile_form extends moodleform {
             $mform->addElement('advcheckbox', 'deletepicture', get_string('deletepicture'));
             $mform->setDefault('deletepicture', 0);
         }
+    }
 
-        // --- Name ----------------------------------------------------------
+    /**
+     * The core user fields, exactly as the management page has them configured.
+     *
+     * @param \stdClass $user the account being shown
+     * @return void
+     */
+    protected function add_core_fields(\stdClass $user): void {
+        $mform = $this->_form;
 
-        // Whether these can be typed into is the administrator's call, made on
-        // Site administration -> Profile fields ("user can edit"). A locked field
-        // is shown as its value with a padlock, never as an input that silently
-        // discards what is typed into it.
-        $locks = (array) ($this->_customdata['locks'] ?? []);
-
-        foreach (['firstname' => get_string('firstname'), 'lastname' => get_string('lastname')] as $name => $label) {
-            if (!empty($locks[$name])) {
-                $mform->addElement('static', $name . 'locked', $label,
-                    self::locked_value((string) $user->{$name}));
+        foreach (account::core_fields() as $name => $locked) {
+            // The address is the one core field that is never a plain box - see
+            // add_email() for why.
+            if ($name === 'email') {
+                $this->add_email($user, $locked);
                 continue;
             }
 
-            $mform->addElement('text', $name, $label, ['maxlength' => 100]);
-            $mform->setType($name, PARAM_NOTAGS);
+            $label = account::core_label($name);
+
+            if ($locked) {
+                $mform->addElement('static', $name . 'locked', $label,
+                    account::locked_value(account::core_display($user, $name))
+                    . account::locked_note());
+            } else if ($name === 'country') {
+                // Core's own list, so the stored ISO code and the menu can never
+                // disagree about what a country is called.
+                $mform->addElement('select', 'country', $label,
+                    ['' => get_string('selectacountry')] + get_string_manager()->get_list_of_countries());
+            } else {
+                $mform->addElement('text', $name, $label, ['maxlength' => 100]);
+                $mform->setType($name, PARAM_NOTAGS);
+            }
+
+            // "Required" is the administrator's call on the two core fields that
+            // offer the choice (city and country). The rest are required by Moodle
+            // itself and are checked in validation() rather than announced here.
+            if (!$locked && self::is_required($name)) {
+                $mform->addRule($name, get_string('required'), 'required', null, 'client');
+            }
+
+            $this->add_core_help($name);
+        }
+    }
+
+    /**
+     * The sentence a core field owes the reader, under the field it is about.
+     *
+     * Two rows carry one: a corrected name does not reissue a certificate already
+     * held, and the country of record is what decides the prices quoted. Both are
+     * things somebody would otherwise only find out afterwards.
+     *
+     * @param string $name core field name
+     * @return void
+     */
+    protected function add_core_help(string $name): void {
+        $help = [
+            'lastname' => 'namehelp',
+            'country' => 'countryhelp',
+        ];
+
+        if (isset($help[$name])) {
+            $this->_form->addElement('static', $name . 'help', '',
+                get_string($help[$name], 'local_profilefields'));
+        }
+    }
+
+    /**
+     * The e-mail row.
+     *
+     * Read-only with a button beside it, never a box to type over: changing an
+     * address is a two-step act with a password and a confirmation link, and a
+     * field you can type into promises that "Save changes" is enough.
+     *
+     * Two independent reasons it may not be changeable at all, and they are not
+     * the same reason, so they do not get the same sentence: the administrator has
+     * locked the field, or the account signs in through Google and has no local
+     * password to confirm a change with. Both are drawn the same way as every
+     * other locked field on the screen - only the explanation differs.
+     *
+     * @param \stdClass $user the account being shown
+     * @param bool $locked true when the administrator has locked the field
+     * @return void
+     */
+    protected function add_email(\stdClass $user, bool $locked): void {
+        $mform = $this->_form;
+        $label = account::core_label('email');
+
+        if ($locked || empty($this->_customdata['canchangeemail'])) {
+            $mform->addElement('static', 'emaillocked', $label,
+                account::locked_value((string) $user->email)
+                . account::locked_note($locked ? 'lockedfield' : 'emailchangeexternal'));
+            return;
         }
 
-        // AC-4.5.1, said where it matters: a learner correcting a spelling should
-        // know it will not reissue the certificate they already hold.
-        $mform->addElement('static', 'namehelp', '',
-            get_string('namehelp', 'local_profilefields'));
+        $control = html_writer::link(
+            (new \moodle_url(account::url(account::SECTION_PROFILE), ['changeemail' => 1]))->out(false),
+            get_string('changeemailbutton', 'local_profilefields'),
+            ['class' => 'btn btn-secondary nit-account__inlinebtn']);
 
-        // --- Email ---------------------------------------------------------
-
-        // Read-only with a button beside it, not an editable box. Changing an
-        // address is a two-step act with a password and a confirmation link, and a
-        // field you can type over promises that "Save changes" is enough.
-        //
-        // No button at all on an account that signs in through Google: its address
-        // belongs to the Google account, and offering a change we would then refuse
-        // for want of a password is worse than not offering it.
-        // Two independent reasons the address may not be changeable: the account
-        // has no local password to confirm with, or the administrator has locked
-        // the field. Either one is enough to take the button away.
-        $canchange = (bool) $this->_customdata['canchangeemail'] && empty($locks['email']);
-
-        $control = $canchange
-            ? html_writer::link(
-                (new \moodle_url(account::url(account::SECTION_PROFILE), ['changeemail' => 1]))->out(false),
-                get_string('changeemailbutton', 'local_profilefields'),
-                ['class' => 'btn btn-secondary nit-account__inlinebtn'])
-            : '';
-
-        $mform->addElement('static', 'emailrow', get_string('email'),
+        $mform->addElement('static', 'emailrow', $label,
             html_writer::div(
                 html_writer::span(s($user->email), 'nit-account__readvalue') . $control,
                 'nit-account__inlinerow'));
-
-        if ($canchange) {
-            $emailhelp = 'emailchangehelp';
-        } else if (!empty($locks['email'])) {
-            // Say which of the two reasons it is. "Your address comes from Google"
-            // on an account that signs in with a password would just be wrong.
-            $emailhelp = 'emailchangelocked';
-        } else {
-            $emailhelp = 'emailchangeexternal';
-        }
-
         $mform->addElement('static', 'emailhelp', '',
-            get_string($emailhelp, 'local_profilefields'));
+            get_string('emailchangehelp', 'local_profilefields'));
+    }
 
-        // --- Nationality ---------------------------------------------------
+    /**
+     * Every custom profile field the site shows, drawn by the field plugin itself.
+     *
+     * Rendered by the field rather than as hand-built controls, so the option
+     * list, the default, the validation and the save path stay the field's own -
+     * which is also why a field type this plugin has never heard of works here.
+     *
+     * @param \stdClass $user the account being shown
+     * @return void
+     */
+    protected function add_profile_fields(\stdClass $user): void {
+        $mform = $this->_form;
+        $canoverride = has_capability('moodle/user:update', \context_system::instance());
+        $category = null;
 
-        // Rendered by the profile field itself rather than as a hand-built select,
-        // so the option list, the default and the save path stay the field's own.
-        // AC-4.5.5 keeps it optional, so any "required" flag an administrator has
-        // set on it is overridden below.
-        foreach (profile_get_user_fields_with_data($user->id) as $field) {
-            if (($field->field->shortname ?? '') !== 'nationality') {
+        foreach (account::profile_fields((int) $user->id) as $inputname => $field) {
+            // A heading whenever the profile-field category changes, the way
+            // /user/edit.php breaks the same fields up. This screen shows every
+            // field the administrator has not hidden - on this site that is
+            // twenty-six of them across two categories - and twenty-six controls
+            // in one undifferentiated column is a page nobody reads to the end.
+            // The headings are the site's own category names, so an administrator
+            // reorganising the fields reorganises this screen with them.
+            $name = (string) $field->get_category_name();
+            if ($name !== '' && $name !== $category) {
+                $category = $name;
+                $mform->addElement('static', 'cat_' . $field->field->categoryid, '',
+                    \html_writer::tag('h3', format_string($name),
+                        ['class' => 'nit-account__subtitle']));
+            }
+
+            if ($field->is_locked() && !$canoverride) {
+                // Core answers a locked field by freezing its control, which leaves
+                // a greyed-out box that still reads as somewhere you could type.
+                // Said the one way this screen says it instead.
+                $mform->addElement('static', $inputname . 'locked',
+                    format_string($field->field->name),
+                    account::locked_value((string) $field->display_data(), true)
+                    . account::locked_note());
                 continue;
             }
-            $field->edit_field($mform);
-            $name = $field->inputname;
-            if ($mform->elementExists($name)) {
-                $mform->addElement('static', 'nationalityhelp', '',
-                    get_string('nationalityhelp', 'local_profilefields'));
+
+            if (!$field->edit_field($mform)) {
+                continue;
             }
-            break;
+
+            $this->add_profile_field_help($field, $inputname);
+        }
+    }
+
+    /**
+     * The sentence a custom field owes the reader, where there is one.
+     *
+     * Only nationality has one today, and it answers the question the field
+     * invites: whether saying where you are from changes what you are charged.
+     * Anything else an administrator adds appears with its own label and no
+     * commentary, which is the right default for a field this plugin has never
+     * seen.
+     *
+     * @param \profile_field_base $field the field just added
+     * @param string $inputname its form element name
+     * @return void
+     */
+    protected function add_profile_field_help($field, string $inputname): void {
+        $mform = $this->_form;
+
+        if (($field->field->shortname ?? '') !== 'nationality' || !$mform->elementExists($inputname)) {
+            return;
         }
 
-        // --- Preferred language --------------------------------------------
+        $mform->addElement('static', 'nationalityhelp', '',
+            get_string('nationalityhelp', 'local_profilefields'));
+    }
+
+    /**
+     * The interface language.
+     *
+     * A preference rather than a profile field, so it is not on the management
+     * page and is always offered.
+     *
+     * @return void
+     */
+    protected function add_language(): void {
+        $mform = $this->_form;
 
         $mform->addElement('select', 'lang', get_string('preferredlanguage'),
             get_string_manager()->get_list_of_translations());
         $mform->addElement('static', 'langhelp', '',
             get_string('preferredlanguagehelp', 'local_profilefields'));
-
-        // --- Country and telephone (locked) --------------------------------
-
-        $mform->addElement('static', 'lockedgroup', '',
-            $this->_customdata['lockedgroup']);
-
-        $this->add_action_buttons(true, get_string('savechanges'));
     }
 
     /**
-     * Check the name fields.
+     * Whether the administrator has made a core field required.
+     *
+     * @param string $name core field name
+     * @return bool
+     */
+    protected static function is_required(string $name): bool {
+        return !empty(manager::get_config()[$name]['required']);
+    }
+
+    /**
+     * Check the fields this form actually offered.
      *
      * Delegated to the same call the sign-up form makes, rather than repeating the
      * character class and the length here. A name that could not be typed at
@@ -227,7 +363,9 @@ class account_profile_form extends moodleform {
      * that rule would eventually disagree about which characters an Arabic name
      * may contain.
      *
-     * The email address is not checked here - it is not on this form. It is
+     * A locked field has no input on the form, so there is nothing submitted to
+     * check and nothing the reader could do about a complaint if there were. The
+     * e-mail address is not checked here either - it is not on this form; it is
      * changed through {@see changeemail_form}, which validates it there.
      *
      * @param array $data submitted values
@@ -237,13 +375,10 @@ class account_profile_form extends moodleform {
     public function validation($data, $files): array {
         $errors = parent::validation($data, $files);
 
-        // A locked name has no input on the form, so there is nothing submitted to
-        // check and nothing the learner could do about a complaint if there were.
-        $locks = (array) ($this->_customdata['locks'] ?? []);
         $check = [];
-        foreach (['firstname', 'lastname'] as $name) {
-            if (empty($locks[$name])) {
-                $check[$name] = (string) ($data[$name] ?? '');
+        foreach (account::core_fields() as $name => $locked) {
+            if (!$locked && $name !== 'email' && array_key_exists($name, $data)) {
+                $check[$name] = (string) $data[$name];
             }
         }
 

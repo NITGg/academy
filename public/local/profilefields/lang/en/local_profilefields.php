@@ -274,7 +274,6 @@ If this was not you, please contact support immediately.';
 
 // AC-4.5 - profile and account settings.
 $string['countryofrecord'] = 'Country of record';
-$string['countryofrecordhelp'] = 'This determines the prices you are shown. Only an administrator can change it.';
 $string['requestchange'] = 'Request a change';
 $string['requestchangeintro'] = 'Tell us what should change and why. An administrator will review your request.';
 $string['requestchangesent'] = 'Your request has been sent. An administrator will review it shortly.';
@@ -405,11 +404,9 @@ $string['changeemailtitle'] = 'Change email address';
 $string['emailchangehelp'] = 'Changing it sends a confirmation link to the new address. The change takes effect only when that link is opened.';
 $string['changeemailsent'] = 'A confirmation link has been sent to {$a}. Your address changes only when that link is opened.';
 $string['changesaved'] = 'Your changes have been saved.';
+$string['countryhelp'] = 'This determines the prices you are shown.';
 $string['nationalityhelp'] = 'Collected here only, never at sign-up. May be left empty indefinitely. No effect on pricing.';
 $string['preferredlanguagehelp'] = 'Applied across web and mobile on the next page load.';
-$string['countryandtelephone'] = 'Country and telephone';
-$string['phonecountrycode'] = 'Phone country code';
-$string['phonenumber'] = 'Phone number';
 $string['notset'] = 'Not set';
 $string['lockedfield'] = 'Only an administrator can change this.';
 $string['passwordlastchanged'] = 'Last changed {$a}';
