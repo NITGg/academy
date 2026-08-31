@@ -112,8 +112,14 @@ Two more options, both reading through Moodle's DB layer so they work without a
 docker compose exec moodle php public/local/payments/cli/fawaterk_diagnose.php --logs
 ```
 
-The full response body of every failed API call — what Fawaterk actually
-objected to.
+The exact response body of every failed API call, byte for byte — including a
+non-JSON one, which is what an HTML error page or a proxy timeout looks like and
+which decodes to nothing at all.
+
+To capture successful calls too — the request Moodle sent alongside the response
+it got — turn on *Log every API call* in the provider settings. The
+`Authorization` header is never recorded; the request body is, and it carries the
+buyer's name, email, phone and address, so turn it back off when you are done.
 
 ```bash
 docker compose exec moodle php public/local/payments/cli/fawaterk_diagnose.php --webhooks

@@ -168,6 +168,14 @@ if ($hassiteconfig) {
         PARAM_TEXT
     ));
 
+    // Verbose API logging for debugging. Failures are logged either way.
+    $settings->add(new admin_setting_configcheckbox(
+        'paymentprovider_fawaterk/log_api_calls',
+        get_string('log_api_calls', 'paymentprovider_fawaterk'),
+        get_string('log_api_calls_desc', 'paymentprovider_fawaterk'),
+        0
+    ));
+
     // Let Fawaterk email the invoice to the buyer.
     $settings->add(new admin_setting_configcheckbox(
         'paymentprovider_fawaterk/send_email',

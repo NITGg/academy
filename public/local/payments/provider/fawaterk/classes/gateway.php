@@ -154,8 +154,15 @@ class gateway extends base_provider {
             $this->log('error', 'Fawaterk OAuth token request failed', [
                 'http_code' => $result['http_code'],
                 'token_url' => $this->get_token_url(),
+                'client_id' => $clientid,
                 'error' => $body['error'] ?? '',
                 'error_description' => $body['error_description'] ?? ($body['message'] ?? ''),
+                // Raw, because an OAuth server that is unhappy for an unexpected
+                // reason often says so outside the standard error fields — or in
+                // HTML, which decodes to nothing at all. The request is not
+                // logged here: it is three fields, one of them the secret.
+                'response_raw' => $this->truncate_for_log($result['raw'] ?? ''),
+                'curl_error' => $result['error'] ?? '',
             ]);
             return null;
         }
@@ -208,6 +215,46 @@ class gateway extends base_provider {
      * way to find out is to be rejected, so drop it and try once more rather
      * than failing a real payment.
      */
+    /**
+     * Cap a body for the log table. Long enough for a full Fawaterk response,
+     * short enough that a stray HTML error page cannot bloat the row.
+     */
+    private function truncate_for_log(?string $raw): string {
+        $raw = (string) $raw;
+        if ($raw === '') {
+            return '(empty body)';
+        }
+        return \core_text::strlen($raw) > 4000
+            ? \core_text::substr($raw, 0, 4000) . ' …[truncated]'
+            : $raw;
+    }
+
+    /**
+     * Record a call verbatim. Off by default — on a busy site every checkout
+     * would write a row — but failures are logged regardless, because the exact
+     * response is the only thing that explains a rejection.
+     *
+     * The Authorization header is never included. The request body is, because
+     * the whole point is to see what Fawaterk was asked to validate, and that
+     * body carries the buyer's name, email, phone and address.
+     */
+    private function log_api_call(string $method, string $url, $body, array $result): void {
+        $failed = ($result['http_code'] < 200 || $result['http_code'] >= 300)
+            || (is_array($result['body']) && ($result['body']['status'] ?? '') !== 'success');
+
+        if (!$failed && !$this->get_setting('log_api_calls', 0)) {
+            return;
+        }
+
+        $this->log($failed ? 'error' : 'info', "Fawaterk API {$method} " . parse_url($url, PHP_URL_PATH), [
+            'url' => $url,
+            'request' => $body !== null ? $this->truncate_for_log(json_encode($body)) : '(no body)',
+            'http_code' => $result['http_code'],
+            'curl_error' => $result['error'] ?? '',
+            'response_raw' => $this->truncate_for_log($result['raw'] ?? ''),
+        ]);
+    }
+
     private function api_request(string $method, string $url, $body = null): array {
         $headers = $this->get_auth_headers();
 
@@ -226,6 +273,8 @@ class gateway extends base_provider {
                 $result = $this->http_request($method, $url, $this->get_auth_headers(), $body);
             }
         }
+
+        $this->log_api_call($method, $url, $body, $result);
 
         return $result;
     }
@@ -637,7 +686,7 @@ class gateway extends base_provider {
         if ($result['http_code'] < 200 || $result['http_code'] >= 300) {
             $this->log('error', "Fawaterk {$what} failed", [
                 'http_code' => $result['http_code'],
-                'response' => $body ?: $result['raw'],
+                'response_raw' => $this->truncate_for_log($result['raw'] ?? ''),
                 'transaction_id' => $transactionid,
             ]);
             return checkout_response::failure(
@@ -649,7 +698,7 @@ class gateway extends base_provider {
 
         if (($body['status'] ?? '') !== 'success') {
             $this->log('error', "Fawaterk {$what} returned a non-success status", [
-                'response' => $body,
+                'response_raw' => $this->truncate_for_log($result['raw'] ?? ''),
                 'transaction_id' => $transactionid,
             ]);
             return checkout_response::failure('Fawaterk error: ' . $this->stringify_error($body), $body);
@@ -724,7 +773,7 @@ class gateway extends base_provider {
                 || (($result['body']['status'] ?? '') !== 'success')) {
             $this->log('error', 'Fawaterk payment method listing failed', [
                 'http_code' => $result['http_code'],
-                'response' => $result['body'],
+                'response_raw' => $this->truncate_for_log($result['raw'] ?? ''),
             ]);
             return [];
         }
@@ -786,6 +835,7 @@ class gateway extends base_provider {
             $this->log('error', 'Fawaterk transaction lookup failed', [
                 'reference' => $provider_reference,
                 'http_code' => $result['http_code'],
+                'response_raw' => $this->truncate_for_log($result['raw'] ?? ''),
             ]);
             return null;
         }
