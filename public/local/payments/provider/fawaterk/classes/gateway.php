@@ -964,6 +964,12 @@ class gateway extends base_provider {
             'status' => 'SUCCESS',
             'amount' => $confirmed['amount'],
             'currency' => $confirmed['currency'],
+            // getTransactionData reports the account's base-currency figure: an
+            // order charged as USD 4.50 comes back as 240.435 EGP. The webhook
+            // states what was actually paid, in the currency the buyer saw, so
+            // carry both and let the manager match on either.
+            'reported_amount' => (float) ($data['paidAmount'] ?? 0),
+            'reported_currency' => (string) ($data['paidCurrency'] ?? ''),
             'payment_method' => $method ?: $confirmed['method'],
             'metadata' => $meta,
         ]);
@@ -1179,16 +1185,15 @@ class gateway extends base_provider {
     }
 
     /**
-     * Currencies this Fawaterk account settles in natively.
+     * Currencies this Fawaterk account can be offered for.
      *
-     * Defaults to EGP alone, and that default matters: a Fawaterk account set up
-     * for EGP will happily accept an invoice in another currency and convert it,
-     * so a 4.50 USD order becomes 240.435 EGP. We would then be verifying our
-     * 4.50 against their 240.435 and failing a payment the buyer actually made.
-     * Only list a currency here once the account genuinely settles in it.
+     * The buyer is charged in the currency of the order — a USD order renders as
+     * "Pay USD 4.50" on the payment page. Only Fawaterk's own reporting converts
+     * to the account's base currency, which the webhook handling accounts for.
+     * Narrow this if an account genuinely cannot take one of these.
      */
     public function supported_currencies(): array {
-        $configured = (string) $this->get_setting('currencies', 'EGP');
+        $configured = (string) $this->get_setting('currencies', 'EGP,USD,SAR,AED');
         $list = array_filter(array_map(
             static function ($code) {
                 return strtoupper(trim($code));

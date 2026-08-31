@@ -385,26 +385,24 @@ the dashboard. The v3 refund webhook *is* signed, so an approved refund is
 matched back to its order by Fawaterk's numeric transaction id — which is
 recorded when the payment completes — and applied automatically.
 
-**Currency — read this before pricing anything in USD.** Fawaterk does *not*
-reject an order in a currency the account doesn't settle in. It accepts it and
-**silently converts**: a 4.50 USD order was recorded by Fawaterk as
-`240.435 EGP`. Two things then go wrong.
+**Currency, and why the API disagrees with itself.** The buyer is charged in the
+order's own currency: a 4.50 USD order renders as `Pay - USD 4.50` on the payment
+page. But `getTransactionData` reports the same payment in the account's base
+currency — `total: 240.435, currency: EGP`.
 
-The converted figure is what `getTransactionData` reports, so Moodle compares its
-own 4.50 against their 240.435, and the amount check — the thing that protects
-against a tampered webhook — rejects a payment the buyer genuinely made. Money
-taken, no enrolment. The conversion also produces amounts like `240.435`, which
-is three decimal places and not a valid EGP amount; that is a plausible cause of
-the card processor answering *"service is currently unavailable"*.
+Both are true, and only one of them matches the order. So the paid webhook
+carries both figures: the API total, and the `paidAmount`/`paidCurrency` the
+webhook itself states. The amount check accepts a match on **either**. That is
+not a loosening — the check only ever compares against the amount we already
+expect, so a tampered figure can make it fail but never pass for a wrong number,
+and the payment must still be confirmed `paid` by the API before any of it runs.
 
-So the *Settlement currencies* setting defaults to **EGP alone**, and Fawaterk is
-only offered for the currencies listed there. A course priced in anything else
-falls through to another provider, or fails at checkout with "no provider found"
-— which is the right outcome, because the alternative is a broken payment.
+Without this, a genuinely paid USD order is rejected as an amount mismatch and
+the buyer is never enrolled.
 
-Widen the list only once the account genuinely settles in that currency, and
-confirm it by checking that `--transaction` reports the same total and currency
-that Moodle recorded.
+*Settlement currencies* lists what Fawaterk may be offered for. Narrow it only if
+an account genuinely cannot take one of them; a course priced in a currency that
+is not listed falls through to another provider.
 
 ---
 
@@ -432,7 +430,7 @@ Webhook bodies (including ones that failed signature checks) are in
 | The payment page says **"Setup in Progress — we are completing the final configuration for this invoice's payment methods"** | Nothing to fix on this side. The Fawaterk account has no payment methods activated, which is also why `getTrPaymentmethods` returns `[]`. Ask Fawaterk to enable the methods (card, Fawry, Meeza…) for the vendor account. Until they do, every transaction is created successfully but cannot be paid. |
 | The due date on the payment page is days away | Fawaterk's default is 2 days; *Payment link validity* now sets it explicitly. The Moodle order may expire sooner — that is fine, a payment confirmed afterwards still fulfils. |
 | `Sorry, service is currently unavailable, please try again later` on the card form | Fawaterk's card processor refusing the attempt before it becomes an attempt — `--transaction` shows an empty history, so nothing reached their transaction record. Check, in order: (1) is the order in a currency the account settles in? A converted amount like `240.435` has three decimals and is not a valid EGP amount; (2) is card actually activated on that Fawaterk account — the same thing that makes `getTrPaymentmethods` return `[]`; (3) ask Fawaterk, quoting the `transaction_id` from `--transaction`. |
-| Order marked failed with `Currency mismatch: charged X EGP, expected Y USD` | The gateway converted the order. Restrict *Settlement currencies* to what the account settles in — see **Currency** above. |
+| Order marked failed with `Amount mismatch: expected 4.5 USD; gateway reported 240.435 EGP` | The API reported the base-currency figure and the webhook did not carry a matching one. Check `--transaction`; if the paid webhook is not arriving at all, that is the real problem — see the webhook rows above. |
 | Everything worked, then stopped | The OAuth client was revoked, or its secret rotated. Tokens are cached until they expire, so a revocation can surface minutes later. `fawaterk_diagnose.php --purge-cache` forces a fresh handshake. |
 | Payment succeeds but no enrolment | The webhook isn't arriving. Check the dashboard URL ends in `webhook_json.php`, and look for `signature_valid = 0` rows — that means the vendor key in Moodle differs from the one signing the webhook. |
 | `no redirect URL or reference` | The account doesn't have that `payment_method_id` enabled. Re-fetch the method list. |

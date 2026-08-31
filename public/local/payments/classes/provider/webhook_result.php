@@ -12,8 +12,18 @@ class webhook_result {
     public string $provider_txn_id;
     public string $order_reference;
     public string $status;
+    /** Authoritative figures, re-read from the provider API. */
     public float $amount;
     public string $currency;
+    /**
+     * What the webhook body itself claimed was paid.
+     *
+     * Kept separately because a provider can report the two differently — one in
+     * the currency the buyer was charged, the other in the account's base
+     * currency — and either may be the one that matches our order.
+     */
+    public float $reported_amount;
+    public string $reported_currency;
     public string $payment_method;
     public string $channel;
     public string $response_code;
@@ -35,6 +45,8 @@ class webhook_result {
         $this->status = $data['status'] ?? '';
         $this->amount = (float) ($data['amount'] ?? 0);
         $this->currency = $data['currency'] ?? '';
+        $this->reported_amount = (float) ($data['reported_amount'] ?? 0);
+        $this->reported_currency = $data['reported_currency'] ?? '';
         $this->payment_method = $data['payment_method'] ?? '';
         $this->channel = $data['channel'] ?? '';
         $this->response_code = $data['response_code'] ?? '';

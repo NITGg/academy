@@ -128,7 +128,7 @@ if ($hassiteconfig) {
         'paymentprovider_fawaterk/currencies',
         get_string('currencies', 'paymentprovider_fawaterk'),
         get_string('currencies_desc', 'paymentprovider_fawaterk'),
-        'EGP',
+        'EGP,USD,SAR,AED',
         PARAM_TEXT
     ));
 
