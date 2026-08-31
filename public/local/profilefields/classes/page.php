@@ -466,11 +466,11 @@ class page {
         $out .= html_writer::tag('p', get_string('consentenable_desc', 'local_profilefields'),
             ['class' => 'text-muted small mt-1']);
 
-        $docs = policies::signup_documents();
+        $docs = policies::signup_document_records();
         if (!empty($docs)) {
             $items = '';
-            foreach ($docs as $name => $url) {
-                $items .= html_writer::tag('li', html_writer::link($url, s($name), ['target' => '_blank']));
+            foreach ($docs as $doc) {
+                $items .= html_writer::tag('li', html_writer::link($doc->url, s($doc->name), ['target' => '_blank']));
             }
             $out .= html_writer::tag('p', get_string('termsdocsfound', 'local_profilefields'));
             $out .= html_writer::tag('ul', $items);

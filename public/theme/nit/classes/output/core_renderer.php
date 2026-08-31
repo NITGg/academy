@@ -67,6 +67,16 @@ class core_renderer extends \theme_boost\output\core_renderer {
         $context->nitrememberme = class_exists('\local_profilefields\rememberme')
             && \local_profilefields\rememberme::enabled();
 
+        // §4.3 draws the reveal toggle inside the password box at every width,
+        // the way the sign-up screen already does - a learner mistypes a password
+        // on a laptop too. The site setting still decides WHETHER there is a
+        // toggle (an administrator who turned it off still gets no toggle); its
+        // "small screens only" option is a placement, and the placement on this
+        // screen is the theme's.
+        if (!empty($context->togglepassword)) {
+            $context->smallscreensonly = false;
+        }
+
         // AC-4.3.4: core settles on the generic "invalid login" wording before
         // the account state is re-read, so the attempt that actually trips the
         // lockout still reports nothing but a bad password. local_academy watched

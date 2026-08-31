@@ -96,12 +96,6 @@ if ($data = $form->get_data()) {
         }
     }
 
-    // The terms checkbox records the same flag `auth_email_signup_user()` sets
-    // when a site policy is defined - see local_profilefields\signup_api.
-    if (!empty($missing['consent']) && !empty($data->{signup::CONSENT})) {
-        $usernew->policyagreed = 1;
-    }
-
     if (count((array) $usernew) > 1) {
         // user_update_user() rather than a raw update_record(): it stamps
         // timemodified and fires \core\event\user_updated, which anything watching
@@ -128,11 +122,17 @@ if ($data = $form->get_data()) {
     profile_load_custom_fields($USER);
     unset($SESSION->fullysetupstrict);
 
-    // The Google path collects the same Terms tick as the sign-up form, so it has
-    // to leave the same record - otherwise tool_policy asks this learner again on
-    // their very next page, having seen no acceptance.
+    // The Google path collects the same Terms tick as the sign-up form, so it
+    // leaves the same three records the form leaves: our own permanent marker of
+    // the tick, the `policyagreed` flag, and the versioned tool_policy row - which
+    // can be filed immediately here, because this learner is already logged in.
+    //
+    // Through policies::agree() rather than by hand, and *after* the session copy
+    // has been refreshed above: agree() ends up inside tool_policy, which rewrites
+    // both `$USER->policyagreed` and the column, and an assignment of our own
+    // afterwards would put a stale value back over it.
     if (!empty($missing['consent']) && !empty($data->{signup::CONSENT})) {
-        \local_profilefields\policies::record_acceptance((int) $USER->id);
+        \local_profilefields\policies::agree((int) $USER->id);
     }
 
     // AC-4.1.16: registration is only now finished for this account, and no event

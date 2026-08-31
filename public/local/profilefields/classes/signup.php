@@ -703,6 +703,19 @@ JS;
             return;
         }
 
+        // A site can have the password policy switched on and still have nothing
+        // to say about it - every rule left at zero makes print_password_policy()
+        // return an empty string. Core adds the element on the setting alone, so
+        // what lands on the form is an empty row: no label, no text, and the full
+        // height of a field. Drop it rather than leave a blank gap in the middle
+        // of the form, but only when it really is empty - the moment the site
+        // states a rule, the hint comes back under the password box.
+        if (trim(html_to_text((string) $policy->toHtml(), 0, false)) === '') {
+            $mform->_elements = $rest;
+            self::rebuild_index($mform);
+            return;
+        }
+
         foreach ($rest as $i => $element) {
             if ((string) $element->getName() === 'password') {
                 array_splice($rest, $i + 1, 0, [$policy]);

@@ -167,3 +167,14 @@ $string['createaccount'] = 'Create your account';
 $string['createaccountsub'] = 'Start learning with the academy.';
 $string['or'] = 'or';
 $string['continuewith'] = 'Continue with {$a}';
+
+// SRS §4.3 log-in screen furniture. The heading, its supporting line and the
+// two links core has no string for; the provider label above is shared with the
+// sign-up screen, and the field labels come from core.
+$string['welcomeback'] = 'Welcome back';
+$string['welcomebacksub'] = 'Log in to continue learning';
+$string['loginemail'] = 'Email address';
+$string['loginemailplaceholder'] = 'name@example.com';
+$string['forgotyourpassword'] = 'Forgot your password?';
+$string['noaccount'] = 'Don\'t have an account?';
+$string['signupnow'] = 'Sign up';

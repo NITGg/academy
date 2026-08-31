@@ -259,7 +259,11 @@ class completion {
 
         return [
             'fields'  => self::order_by_signup($fields),
-            'consent' => manager::consent_enabled() && empty($user->policyagreed),
+            // Not `empty($user->policyagreed)`: that column is tool_policy's to
+            // recompute, and it recomputes it to 0 for anyone who has not accepted
+            // every current policy version - including ones this site never shows.
+            // policies::has_agreed() reads our own record of the tick as well.
+            'consent' => manager::consent_enabled() && !policies::has_agreed($user),
         ];
     }
 

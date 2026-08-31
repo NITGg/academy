@@ -157,9 +157,16 @@
 // right under the box it describes.
 // =============================================================================
 .localprofilefields-passwordpolicy {
-    // The password row's own .mb-3 gap would leave the hint floating a full
-    // field apart from its field; close it back up to a hint-sized gap.
+    // The row above it reserves a line for its error message; the hint belongs
+    // against the box, not below an empty message slot.
     margin-top: -0.75rem;
+
+    // ...but on the sign-up screen that slot is deliberately always in the flow
+    // (see _authpages.scss) and the row gap is already tight, so the same pull
+    // would drag the hint on top of the message it has to sit under.
+    .nit-auth & {
+        margin-top: 0;
+    }
 
     // Nothing to label. With .full-width-labels the empty column still claims a
     // line of its own, so take it out rather than leave the blank strip.

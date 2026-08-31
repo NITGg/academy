@@ -88,7 +88,7 @@ class update_profile extends external_api {
      * @return array
      */
     public static function execute($fields, $userid = 0, $descriptionformat = FORMAT_HTML, $consent = 0): array {
-        global $DB, $USER;
+        global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'fields' => $fields,
@@ -148,12 +148,15 @@ class update_profile extends external_api {
 
         // The terms checkbox. Only ever moves from "not agreed" to "agreed", and
         // only for the profile's own owner - nobody consents on someone else's
-        // behalf. This is the flag auth_email_signup_user() sets on a normal
-        // sign-up; the account being updated here simply never went through one.
+        // behalf. policies::agree() is the one place that records a tick, so the
+        // app leaves exactly what the web form leaves: our own marker of it, the
+        // `policyagreed` flag, and - since this caller is logged in - the versioned
+        // tool_policy row. Setting the flag by hand here left no audit row at all,
+        // and tool_policy would have recomputed the flag away at the first chance.
         if (!empty($params['consent']) && \local_profilefields\manager::consent_enabled()
-                && empty($user->policyagreed) && (int) $user->id === (int) $USER->id) {
-            $DB->set_field('user', 'policyagreed', 1, ['id' => $user->id]);
-            $USER->policyagreed = 1;
+                && !\local_profilefields\policies::has_agreed($user)
+                && (int) $user->id === (int) $USER->id) {
+            \local_profilefields\policies::agree((int) $user->id);
         }
 
         // This is the app's half of /local/profilefields/complete.php: when the call

@@ -25,6 +25,7 @@
  *   php public/local/profilefields/cli/ws_add_signup_functions.php --token=THE_WSTOKEN
  *   php public/local/profilefields/cli/ws_add_signup_functions.php --token=THE_WSTOKEN --add
  *   php public/local/profilefields/cli/ws_add_signup_functions.php --service=moodle_mobile_app --add
+ *   php public/local/profilefields/cli/ws_add_signup_functions.php --sync
  *
  * Without --add nothing is written; it only reports. Adding is idempotent.
  *
@@ -38,28 +39,37 @@ define('CLI_SCRIPT', true);
 require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/clilib.php');
 require_once($CFG->dirroot . '/webservice/lib.php');
-
 [$options, $unrecognized] = cli_get_params(
-    ['token' => '', 'service' => '', 'add' => false, 'help' => false],
+    ['token' => '', 'service' => '', 'add' => false, 'sync' => false, 'help' => false],
     ['h' => 'help']
 );
 
 /** @var string[] The functions the mobile sign-up and profile flows need. */
-$wanted = [
-    'local_profilefields_get_signup_form',
-    'local_profilefields_signup_user',
-    'local_profilefields_resend_confirmation',
-    'local_profilefields_get_policy_documents',
-    'local_profilefields_get_profile',
-    'local_profilefields_get_profile_form',
-    'local_profilefields_update_profile',
-];
+$wanted = \local_profilefields\ws_registry::all();
+
+// --sync is the same repair the plugin now runs on every upgrade: complete each
+// family of functions on whichever services already use part of it, without
+// needing to know which service that is. Use it when an upgrade has already been
+// run by hand, or to check what the upgrade would do.
+if (!empty($options['sync'])) {
+    $missing = \local_profilefields\ws_registry::sync(true);
+    if (empty($missing)) {
+        echo "Every service using these functions already has all of them. Nothing to do.\n";
+        exit(0);
+    }
+    foreach ($missing as $row) {
+        echo "  [ADDED]  {$row['function']} -> \"{$row['servicename']}\" (service id {$row['serviceid']})\n";
+    }
+    echo "\n>>> Done. Now purge caches:\n    php admin/cli/purge_caches.php\n";
+    exit(0);
+}
 
 if ($options['help'] || ($options['token'] === '' && $options['service'] === '')) {
     echo "Put the sign-up and profile web-service functions on the service a token uses.\n\n";
     echo "  --token=WSTOKEN     the token the app calls with (the service is read from it)\n";
     echo "  --service=NAME|ID   the service, when you know it instead of a token\n";
-    echo "  --add               actually add the missing functions (otherwise report only)\n\n";
+    echo "  --add               actually add the missing functions (otherwise report only)\n";
+    echo "  --sync              repair every service already using these functions (no token needed)\n\n";
     echo "Functions handled: " . implode(', ', $wanted) . "\n";
     exit(0);
 }

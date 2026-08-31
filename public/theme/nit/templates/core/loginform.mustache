@@ -15,141 +15,95 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template core/loginform
+    @template theme_nit/core/loginform
 
-    Moodle template for the login page.
+    NIT override of core/loginform - the §4.3 log-in screen.
 
-    Context variables required for this template:
-    * autofocusform: Auto focus on form ?,
-    * canloginasguest - Is guest login allowed?,
-    * canloginbyemail - Is login by email allowed?,
-    * cansignup - Signup allowed?,
-    * showloginform - Hide the standard login form if it not necessary (only OAuth2 for example)
-    * cookieshelpicon - cookies help icon details
-    * error - Any errors in the form?,
-    * info - Info notification to display,
-    * forgotpasswordurl - Forgot password url,
-    * hasidentityproviders - Flag, set to true to hide identity providers,
-    * hasinstructions - Flag, set to true to show instructions,
-    * identityproviders - List of identiy providers,
-    * instructions - Instructions,
-    * instructionsformat - Format of instructions,
-    * loginurl - Login url,
-    * signupurl - Signup url,
-    * errorformatted - Formatted error,
-    * logourl - Flag, logo url,
-    * sitename - Name of site.,
-    * logintoken - Random token to protect login request.,
-    * maintenance - Maintenance message
+    Core stacks the screen as a list: hidden labels with placeholders standing in
+    for them, the password reset link under the button, then a run of headed
+    sections - "Is this your first time here?", "Some courses may allow guest
+    access", the identity providers under a heading of their own. §4.3 asks for
+    one card instead: labelled boxes, "Remember me" and the reset link sharing a
+    line, one full-width action, and the providers below an "or" rule - the same
+    shape the sign-up screen already has, so the two halves of one journey stop
+    looking like two different products.
 
-    Example context (json):
-    {
-        "autofocusform": false,
-        "canloginasguest": "1",
-        "canloginbyemail": false,
-        "cansignup": true,
-        "showloginform": true,
-        "cookieshelpicon": {
-            "heading": "Cookies must be enabled in your browser",
-            "text": "<div class=\"no-overflow\">Two cookies are used on this site. Both died..</div>",
-            "icon": {
-                "attributes": [
-                    {
-                        "name": "class",
-                        "value": ""
-                    },
-                    {
-                        "name": "alt",
-                        "value": "Help with Cookies must be enabled in your browser"
-                    },
-                    {
-                        "name": "title",
-                        "value": "Help with Cookies must be enabled in your browser"
-                    },
-                    {
-                        "name": "src",
-                        "value": "http://localhost/stable_master/theme/image.php?theme=boost&component=core&image=help"
-                    }
-                ]
-            },
-            "linktext": null,
-            "title": "Help with Cookies must be enabled in your browser",
-            "url": "http://localhost/stable_master/help.php?component=core&identifier=cookiesenabled&lang=en",
-            "ltr": true
-        },
-        "error": "",
-        "info": "",
-        "forgotpasswordurl": "http://localhost/stable_master/login/forgot_password.php",
-        "hasidentityproviders": false,
-        "hasinstructions": true,
-        "identityproviders": [],
-        "instructions": "For full access to this site, you first need to create an account.",
-        "instructionsformat": "1",
-        "loginurl": "http://localhost/stable_master/login/index.php",
-        "signupurl": "http://localhost/stable_master/login/signup.php",
-        "cookieshelpiconformatted": "",
-        "errorformatted": "",
-        "logourl": false,
-        "sitename": "Beer & Chips",
-        "logintoken": "randomstring",
-        "maintenance": "For full access to this site, you need to login in as an admin.",
-        "languagemenu": "Choose language",
-        "togglepassword": true,
-        "smallscreensonly": true
-    }
+    Everything core puts on the page is still here (guest access, the language
+    menu, the cookies notice, an administrator's own instructions), only demoted
+    to where it belongs on a screen whose one job is to let a returning learner
+    back in.
+
+    The context is core's, plus what theme_nit\output\core_renderer::render_login()
+    adds:
+
+    * nitrememberme - whether local_profilefields offers the 30-day "Remember me"
+
+    Everything else is core's - see lib/templates/loginform.mustache for the full
+    list and an example context.
 }}
 
-<div class="loginform">
-    {{#logourl}}
-        <div id="loginlogo" class="login-logo">
-            <img id="logoimage" src="{{logourl}}" class="img-fluid" alt="{{sitename}}"/>
-            <h1 class="login-heading visually-hidden">{{#str}} loginto, core, {{sitename}} {{/str}}</h1>
-        </div>
-    {{/logourl}}
-    {{^logourl}}
-        <h1 class="login-heading mb-4">{{#str}} loginto, core, {{sitename}} {{/str}}</h1>
-    {{/logourl}}
+<div class="loginform nit-auth nit-auth-card">
+    <div class="nit-auth-head">
+        {{#logourl}}
+            <div id="loginlogo" class="login-logo">
+                <img id="logoimage" src="{{logourl}}" class="img-fluid" alt="{{sitename}}"/>
+            </div>
+        {{/logourl}}
+        <h1 class="nit-auth-title">{{#str}} welcomeback, theme_nit {{/str}}</h1>
+        <p class="nit-auth-sub">{{#str}} welcomebacksub, theme_nit {{/str}}</p>
+    </div>
+
     {{#maintenance}}
         <div class="alert alert-danger login-maintenance">
             {{{maintenance}}}
         </div>
     {{/maintenance}}
-    {{#error}}
-        <div class="alert alert-danger" id="loginerrormessage" role="alert">{{error}}</div>
-    {{/error}}
     {{#info}}
         <div class="alert alert-info" id="logininfomessage" role="status">{{info}}</div>
     {{/info}}
+
     {{#showloginform}}
         <form class="login-form" action="{{loginurl}}" method="post" id="login">
             <input id="anchor" type="hidden" name="anchor" value="">
             <script>document.getElementById('anchor').value = location.hash;</script>
             <input type="hidden" name="logintoken" value="{{logintoken}}">
-            <div class="login-form-username mb-3">
-                <label for="username" class="visually-hidden">
+
+            {{!
+                Labels are shown, not hidden behind a placeholder: a placeholder
+                disappears the moment there is something in the box, which is
+                exactly when a mistyped address needs the label to still be there.
+            }}
+            <div class="nit-auth-field login-form-username">
+                <label for="username" class="nit-auth-label">
                     {{^canloginbyemail}}
                         {{#str}} username {{/str}}
                     {{/canloginbyemail}}
                     {{#canloginbyemail}}
-                        {{#str}} usernameemail {{/str}}
+                        {{#str}} loginemail, theme_nit {{/str}}
                     {{/canloginbyemail}}
                 </label>
                 <input type="text" name="username" id="username" {{!
-                    !}}class="form-control form-control-lg" {{!
+                    !}}class="form-control" {{!
                     !}}value="{{username}}" {{!
                     !}}placeholder="{{^canloginbyemail}}{{#cleanstr}}username{{/cleanstr}}{{/canloginbyemail}}{{!
-                    !}}{{#canloginbyemail}}{{#cleanstr}}usernameemail{{/cleanstr}}{{/canloginbyemail}}" {{!
+                    !}}{{#canloginbyemail}}{{#cleanstr}}loginemailplaceholder, theme_nit{{/cleanstr}}{{/canloginbyemail}}" {{!
                     !}}autocomplete="username">
             </div>
-            <div class="login-form-password mb-3">
-                <label for="password" class="visually-hidden">{{#str}} password {{/str}}</label>
+
+            <div class="nit-auth-field login-form-password">
+                <label for="password" class="nit-auth-label">{{#str}} password {{/str}}</label>
                 <input type="password" name="password" id="password" value="" {{!
-                    !}}class="form-control form-control-lg" {{!
-                    !}}placeholder="{{#cleanstr}}password{{/cleanstr}}" {{!
+                    !}}class="form-control" {{!
+                    !}}placeholder="••••••••" {{!
                     !}}autocomplete="current-password">
             </div>
+
             {{!
-                AC-4.3.5: "Remember me". Rendered only when the feature is switched
+                One line for the two things a returning learner reaches for before
+                the button: the box that keeps them signed in, and the way out when
+                the password will not come back to them.
+
+                AC-4.3.5: "Remember me" is rendered only when the feature is switched
                 on under Sign-up and profile field layout > Login page, so that
                 turning it off there removes the promise as well as the mechanism -
                 a box that no longer keeps you signed in is worse than no box.
@@ -158,75 +112,94 @@
                 which issues the 30-day token. Moodle's own "Remember username" is
                 a different and much smaller thing: it refills this username box,
                 and does not extend anything.
+
+                What the box actually promises is a sentence too long for this line,
+                so it is attached to the checkbox rather than printed beside it -
+                still read out, still not in the way.
             }}
-            {{#nitrememberme}}
-            <div class="login-form-rememberme mb-3 form-check text-start">
-                <input type="checkbox" class="form-check-input" name="nitrememberme"
-                       id="nitrememberme" value="1">
-                <label class="form-check-label" for="nitrememberme">
-                    {{#str}}rememberme, local_profilefields{{/str}}
-                </label>
-                <div class="form-text">{{#str}}remembermedesc, local_profilefields{{/str}}</div>
+            <div class="nit-auth-meta">
+                {{#nitrememberme}}
+                    <div class="login-form-rememberme form-check">
+                        <input type="checkbox" class="form-check-input" name="nitrememberme" {{!
+                            !}}id="nitrememberme" value="1" aria-describedby="nitremembermedesc">
+                        <label class="form-check-label" for="nitrememberme">
+                            {{#str}}rememberme, local_profilefields{{/str}}
+                        </label>
+                        <span id="nitremembermedesc" class="visually-hidden">{{!
+                            !}}{{#str}}remembermedesc, local_profilefields{{/str}}</span>
+                    </div>
+                {{/nitrememberme}}
+                <a class="nit-auth-forgot" href="{{forgotpasswordurl}}">{{#str}}forgotyourpassword, theme_nit{{/str}}</a>
             </div>
-            {{/nitrememberme}}
+
             {{#recaptcha}}
-                <div class="login-form-recaptcha mb-3">
+                <div class="login-form-recaptcha">
                     {{{recaptcha}}}
                 </div>
             {{/recaptcha}}
-            <div class="login-form-submit mb-3">
-                <button class="btn btn-primary btn-lg" type="submit" id="loginbtn">{{#str}}login{{/str}}</button>
+
+            <div class="login-form-submit">
+                <button class="btn btn-primary nit-auth-submit" type="submit" id="loginbtn">{{#str}}login{{/str}}</button>
             </div>
-            <div class="login-form-forgotpassword mb-3">
-                <a href="{{forgotpasswordurl}}">{{#str}}forgotaccount{{/str}}</a>
-            </div>
+
+            {{!
+                Under the button, not above the form: this is the answer to the
+                press, and it is where the eye already is when the page comes back.
+            }}
+            {{#error}}
+                <div class="alert alert-danger nit-auth-error" id="loginerrormessage" role="alert">{{error}}</div>
+            {{/error}}
         </form>
     {{/showloginform}}
+
     {{#hasidentityproviders}}
-        <div class="login-divider"></div>
-        <div class="login-identityproviders">
-            <h2 class="login-heading">{{#str}} potentialidps, auth {{/str}}</h2>
+        <div class="nit-auth-divider" role="separator">
+            <span>{{#str}} or, theme_nit {{/str}}</span>
+        </div>
+        <div class="nit-auth-providers">
             {{#identityproviders}}
-                <a class="btn login-identityprovider-btn w-100" href="{{url}}">
+                <a class="btn nit-auth-provider" href="{{url}}">
                     {{#iconurl}}
-                        <img src="{{iconurl}}" alt="" width="24" height="24"/>
+                        <img src="{{iconurl}}" alt="" width="20" height="20"/>
                     {{/iconurl}}
-                    {{name}}
+                    <span>{{#str}} continuewith, theme_nit, {{name}} {{/str}}</span>
                 </a>
             {{/identityproviders}}
         </div>
     {{/hasidentityproviders}}
-    {{#hasinstructions}}
-        <div class="login-divider"></div>
-        <div class="login-instructions {{#cansignup}}mb-3{{/cansignup}}">
-            <h2 class="login-heading">{{#str}}firsttime{{/str}}</h2>
-            {{{instructions}}}
-        </div>
-    {{/hasinstructions}}
+
     {{#cansignup}}
-        <div class="login-signup">
-            <a class="btn btn-secondary" href="{{signupurl}}">{{#str}}startsignup{{/str}}</a>
-        </div>
+        <p class="nit-auth-foot">
+            <span>{{#str}}noaccount, theme_nit{{/str}}</span>
+            <a href="{{signupurl}}">{{#str}}signupnow, theme_nit{{/str}}</a>
+        </p>
     {{/cansignup}}
+
+    {{!
+        An administrator's own sign-up instructions are site content and are not
+        ours to drop - but they are not the heading of this screen either, so they
+        are kept as a footnote rather than the section core makes of them.
+    }}
+    {{#hasinstructions}}
+        <div class="nit-auth-instructions">{{{instructions}}}</div>
+    {{/hasinstructions}}
+
     {{#canloginasguest}}
-        <div class="login-divider"></div>
-        <h2 class="login-heading">{{#str}}someallowguest{{/str}}</h2>
-        <form action="{{loginurl}}" method="post" id="guestlogin">
+        <form action="{{loginurl}}" method="post" id="guestlogin" class="nit-auth-guest">
             <input type="hidden" name="logintoken" value="{{logintoken}}">
             <input type="hidden" name="username" value="guest" />
             <input type="hidden" name="password" value="guest" />
-            <button class="btn btn-secondary" type="submit" id="loginguestbtn">{{#str}}loginguest{{/str}}</button>
+            <button class="btn nit-auth-guest-btn" type="submit" id="loginguestbtn">{{#str}}loginguest{{/str}}</button>
         </form>
     {{/canloginasguest}}
-    <div class="login-divider"></div>
-    <div class="d-flex">
+
+    <div class="nit-auth-utility">
         {{#languagemenu}}
             <div class="login-languagemenu">
                 {{>core/action_menu}}
             </div>
-            <div class="divider border-start align-self-center mx-3"></div>
         {{/languagemenu}}
-        <button type="button" class="btn btn-secondary" {{!
+        <button type="button" class="btn nit-auth-utility-btn" {{!
         }} data-modal="alert"{{!
         }} data-modal-title-str='["cookiesenabled", "core"]' {{!
         }} data-modal-content-str='["cookiesenabled_help_html", "core"]'{{!

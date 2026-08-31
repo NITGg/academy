@@ -154,3 +154,13 @@ $string['createaccount'] = 'أنشئ حسابك';
 $string['createaccountsub'] = 'ابدأ التعلّم مع الأكاديمية.';
 $string['or'] = 'أو';
 $string['continuewith'] = 'المتابعة باستخدام {$a}';
+
+// نصوص شاشة الدخول (§4.3): العنوان والسطر المساند والرابطان اللذان لا نصّ
+// لهما في النواة. تسمية المزوّد مشتركة مع شاشة التسجيل، وتسميات الحقول من النواة.
+$string['welcomeback'] = 'أهلاً بعودتك';
+$string['welcomebacksub'] = 'سجّل الدخول لمواصلة التعلّم';
+$string['loginemail'] = 'البريد الإلكتروني';
+$string['loginemailplaceholder'] = 'name@example.com';
+$string['forgotyourpassword'] = 'هل نسيت كلمة المرور؟';
+$string['noaccount'] = 'ليس لديك حساب؟';
+$string['signupnow'] = 'إنشاء حساب';

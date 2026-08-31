@@ -229,5 +229,44 @@ function xmldb_local_profilefields_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026083000, 'local', 'profilefields');
     }
 
+    if ($oldversion < 2026083103) {
+        // Back-fill the record of the sign-up terms tick for accounts that were
+        // caught by the bug this version fixes.
+        //
+        // Until now the tick lived only in the `policyagreed` column, which belongs
+        // to tool_policy: it recomputes it from its own acceptance table, and it
+        // counts every current policy version aimed at logged-in users, while the
+        // sign-up checkbox only ever accepted the ones aimed at guests. One document
+        // outside that subset was enough for the recompute - which runs the moment
+        // the confirmation link logs the learner in - to put the flag back to 0, and
+        // the completion gate then asked for the terms a second time.
+        //
+        // The fix keeps our own record of the tick, so accounts that agreed before
+        // this upgrade need one written for them. A tool_policy acceptance row is
+        // the evidence: whether it was filed by our sign-up flow or by tool_policy's
+        // own page, this person has been shown a policy and has agreed to it.
+        if ($dbman->table_exists('tool_policy_acceptances')) {
+            $agreed = $DB->get_fieldset_sql("
+                    SELECT DISTINCT a.userid
+                      FROM {tool_policy_acceptances} a
+                      JOIN {user} u ON u.id = a.userid
+                     WHERE a.status = 1 AND u.deleted = 0");
+            foreach ($agreed as $userid) {
+                set_user_preference(\local_profilefields\policies::PREF_AGREED, 1, (int) $userid);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026083103, 'local', 'profilefields');
+    }
+
+    // Not a versioned step, and deliberately so: it has to run on every upgrade,
+    // because the thing it repairs is created by an upgrade. Registering a new
+    // web-service function does not put it on the hand-made service a site's own
+    // token uses, so each new function is one forgotten admin click away from
+    // answering `accessexception` - see local_profilefields\ws_registry for the
+    // whole story. This puts that click back where it belongs: in the code that
+    // added the function.
+    \local_profilefields\ws_registry::sync();
+
     return true;
 }

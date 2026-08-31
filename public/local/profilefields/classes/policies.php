@@ -51,6 +51,24 @@ class policies {
     const PREF_PENDING = 'local_profilefields_consentpending';
 
     /**
+     * User preference: this account ticked the sign-up terms box. Ever.
+     *
+     * `policyagreed` cannot be that record on its own, because it is not ours: it is
+     * a derived column that tool_policy recomputes from its acceptance table every
+     * time `\tool_policy\api::update_policyagreed()` runs, and that call overwrites
+     * whatever we put there. A single policy version the sign-up checkbox does not
+     * cover is enough to make it recompute to 0 - which is exactly how a learner who
+     * ticked the box ended up being asked for it a second time the moment the
+     * confirmation link logged them in.
+     *
+     * So the tick is written down here as well, once, and never recomputed. It is
+     * what {@see has_agreed()} - and through it the completion gate - actually reads.
+     *
+     * @var string
+     */
+    const PREF_AGREED = 'local_profilefields_consented';
+
+    /**
      * Whether the tool_policy plugin is installed.
      *
      * @return bool
@@ -62,8 +80,23 @@ class policies {
     /**
      * The policy documents a person signing up should see.
      *
-     * Only current versions aimed at guests (or everyone) are relevant to sign-up.
-     * Returns an empty array when tool_policy is absent or defines no such document.
+     * Every current version, whatever audience it was authored for. That is wider
+     * than it looks at first - a document marked "Authenticated users" is not shown
+     * to guests by tool_policy's own pages - and it is deliberate, for two reasons.
+     *
+     * The person filling in the sign-up form is about to *become* an authenticated
+     * user, so a policy aimed at logged-in users is one of the terms they are
+     * agreeing to; and this site keeps `sitepolicyhandler` on "Default" (see
+     * settings.php), which means tool_policy's acceptance page never runs and this
+     * checkbox is the only place anyone is ever asked.
+     *
+     * Narrowing it to the guest audience is what broke the flow: the tick then
+     * accepted a *subset* of what `\tool_policy\api::update_policyagreed()` judges
+     * on - it counts every current version aimed at logged-in users or at everyone -
+     * so the first acceptance we filed made tool_policy recompute `policyagreed`
+     * back to 0 and the completion gate asked for the terms all over again.
+     *
+     * Returns an empty array when tool_policy is absent or defines no document.
      *
      * Each entry carries the identifiers as well as the link, because a client that
      * renders the document itself (a mobile app with no browser view) needs the
@@ -78,7 +111,8 @@ class policies {
         }
 
         try {
-            $versions = \tool_policy\api::list_current_versions(\tool_policy\policy_version::AUDIENCE_GUESTS);
+            // No audience argument: list_current_versions() then filters nothing.
+            $versions = \tool_policy\api::list_current_versions();
         } catch (\Throwable $e) {
             return [];
         }
@@ -102,36 +136,28 @@ class policies {
     }
 
     /**
-     * The same documents as name => view URL, for building the checkbox label.
-     *
-     * @return array<string,string> document name => absolute URL
-     */
-    public static function signup_documents(): array {
-        $docs = [];
-        foreach (self::signup_document_records() as $doc) {
-            $docs[$doc->name] = $doc->url;
-        }
-        return $docs;
-    }
-
-    /**
      * The label for the consent checkbox, with the policy names as links.
      *
      * Falls back to plain wording when no documents are configured yet, so the
      * checkbox still makes sense while an admin is still writing the policies.
      *
+     * Built from the records rather than from a name => url map, because two
+     * policies are allowed to share a name and a map would silently drop one -
+     * leaving the learner ticking a box for a document the label never showed them,
+     * which `record_acceptance()` would then accept on their behalf.
+     *
      * @return string HTML
      */
     public static function consent_label(): string {
-        $docs = self::signup_documents();
+        $docs = self::signup_document_records();
 
         if (empty($docs)) {
             return get_string('consentlabelplain', 'local_profilefields');
         }
 
         $links = [];
-        foreach ($docs as $name => $url) {
-            $links[] = \html_writer::link($url, s($name), ['target' => '_blank', 'rel' => 'noopener']);
+        foreach ($docs as $doc) {
+            $links[] = \html_writer::link($doc->url, s($doc->name), ['target' => '_blank', 'rel' => 'noopener']);
         }
 
         // "I agree to X and Y" - a localisable list separator and connector.
@@ -229,6 +255,10 @@ class policies {
             return;
         }
 
+        // Ours, and permanent. Written before anything else, because everything
+        // below can end up inside tool_policy, and tool_policy owns `policyagreed`.
+        set_user_preference(self::PREF_AGREED, 1, $userid);
+
         $DB->set_field('user', 'policyagreed', 1, ['id' => $userid]);
         if ((int) ($USER->id ?? 0) === $userid) {
             $USER->policyagreed = 1;
@@ -242,6 +272,32 @@ class policies {
         }
 
         set_user_preference(self::PREF_PENDING, 1, $userid);
+    }
+
+    /**
+     * Has this account already agreed to the terms?
+     *
+     * Two records, either of which is a yes. `policyagreed` is the flag the rest of
+     * Moodle uses, and it answers for an account that agreed through core's own site
+     * policy handler rather than through our checkbox. The preference is the tick on
+     * our checkbox, and it is the one that survives: `policyagreed` is recomputed by
+     * tool_policy and can be flipped back to 0 by a policy version this site never
+     * puts in front of anybody.
+     *
+     * Asking a learner to agree twice is the bug this guards against, so the test is
+     * deliberately generous - a stale "yes" is a far smaller failure than a gate that
+     * will not let go.
+     *
+     * @param stdClass $user
+     * @return bool
+     */
+    public static function has_agreed(\stdClass $user): bool {
+        if (empty($user->id)) {
+            return false;
+        }
+
+        return !empty($user->policyagreed)
+            || (bool) get_user_preferences(self::PREF_AGREED, 0, $user->id);
     }
 
     /**
