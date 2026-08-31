@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_payments';
-$plugin->version   = 2026083107;   // One source of truth for provider countries/currencies.
+$plugin->version   = 2026083108;   // Invoice: site-logo fallback, LTR isolation for Arabic.
 $plugin->requires  = 2024100700; // Moodle 4.5+
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_STABLE;

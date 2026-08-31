@@ -143,9 +143,12 @@ class invoice_document {
         $pdf->Cell($titlewidth, 12, $s('invoice_title'), 0, 1);
 
         $pdf->SetFont(self::FONT, '', 10);
-        $pdf->Cell($titlewidth, 6, $s('invoice_number') . ': ' . $data['invoice_number'], 0, 1);
-        $pdf->Cell($titlewidth, 6, $s('invoice_date') . ': ' . $data['invoice_date'], 0, 1);
-        $pdf->Cell($titlewidth, 6, $s('orderid') . ': ' . $data['order_id'], 0, 1);
+        $pdf->Cell($titlewidth, 6, $s('invoice_number') . ': '
+            . self::ltr($data['invoice_number'], $rtl), 0, 1);
+        $pdf->Cell($titlewidth, 6, $s('invoice_date') . ': '
+            . self::ltr($data['invoice_date'], $rtl), 0, 1);
+        $pdf->Cell($titlewidth, 6, $s('orderid') . ': '
+            . self::ltr($data['order_id'], $rtl), 0, 1);
 
         // Clear the logo strip before the next block starts.
         if ($logo !== null && $pdf->GetY() < 34) {
@@ -155,30 +158,51 @@ class invoice_document {
     }
 
     /**
-     * The configured invoice logo, as raw bytes plus its pixel size.
+     * The logo to print, as raw bytes plus its pixel size.
+     *
+     * Falls back to the site logo when no invoice-specific one is uploaded, so an
+     * invoice is branded out of the box. The dedicated setting stays useful: a
+     * site logo is often designed for a dark header and can be invisible on
+     * white paper.
      *
      * @return array|null ['content' => string, 'w' => int, 'h' => int]
      */
     private static function logo(): ?array {
-        $fs = get_file_storage();
-        $files = $fs->get_area_files(\context_system::instance()->id, 'local_payments',
-            'invoice_logo', 0, 'itemid', false);
-        if (empty($files)) {
-            return null;
-        }
-
-        $file = reset($files);
-        $content = $file->get_content();
-        if ($content === '') {
-            return null;
-        }
-
-        $size = @getimagesizefromstring($content);
-        return [
-            'content' => $content,
-            'w' => $size ? (int) $size[0] : 0,
-            'h' => $size ? (int) $size[1] : 0,
+        $contextid = \context_system::instance()->id;
+        $candidates = [
+            ['local_payments', 'invoice_logo'],
+            ['core_admin', 'logo'],
+            ['core_admin', 'logocompact'],
         ];
+
+        $fs = get_file_storage();
+        foreach ($candidates as [$component, $filearea]) {
+            $files = $fs->get_area_files($contextid, $component, $filearea, 0, 'itemid', false);
+            if (empty($files)) {
+                continue;
+            }
+
+            $file = reset($files);
+            $content = $file->get_content();
+            if ($content === '') {
+                continue;
+            }
+
+            // TCPDF can only place raster images this way; an SVG site logo has
+            // to be skipped rather than drawn as garbage.
+            $size = @getimagesizefromstring($content);
+            if ($size === false) {
+                continue;
+            }
+
+            return [
+                'content' => $content,
+                'w' => (int) $size[0],
+                'h' => (int) $size[1],
+            ];
+        }
+
+        return null;
     }
 
     /**
@@ -196,17 +220,17 @@ class invoice_document {
         $s = $data['s'];
         $align = $rtl ? 'R' : 'L';
 
-        $seller = '<b>' . s($data['seller_name']) . '</b>';
+        $seller = '<b>' . s(self::ltr($data['seller_name'], $rtl)) . '</b>';
         if ($data['seller_details'] !== '') {
             $seller .= '<br/>' . nl2br(s($data['seller_details']));
         }
 
-        $buyer = '<b>' . s($data['buyer_name']) . '</b>';
+        $buyer = '<b>' . s(self::ltr($data['buyer_name'], $rtl)) . '</b>';
         if ($data['buyer_email'] !== '') {
-            $buyer .= '<br/>' . s($data['buyer_email']);
+            $buyer .= '<br/>' . s(self::ltr($data['buyer_email'], $rtl));
         }
         if ($data['buyer_phone'] !== '') {
-            $buyer .= '<br/>' . s($data['buyer_phone']);
+            $buyer .= '<br/>' . s(self::ltr($data['buyer_phone'], $rtl));
         }
 
         $pdf->SetFont(self::FONT, 'B', 11);
@@ -236,8 +260,9 @@ class invoice_document {
         $pdf->Cell($amountwidth, 9, $s('amount'), 1, 1, $rtl ? 'L' : 'R', true);
 
         $pdf->SetFont(self::FONT, '', 10);
-        $pdf->Cell($descwidth, 9, $data['item_name'], 1, 0, $rtl ? 'R' : 'L');
-        $pdf->Cell($amountwidth, 9, self::money($data['original'], $data['currency']), 1, 1,
+        $pdf->Cell($descwidth, 9, self::ltr($data['item_name'], $rtl), 1, 0, $rtl ? 'R' : 'L');
+        $pdf->Cell($amountwidth, 9,
+            self::ltr(self::money($data['original'], $data['currency']), $rtl), 1, 1,
             $rtl ? 'L' : 'R');
     }
 
@@ -253,24 +278,28 @@ class invoice_document {
         };
 
         if ($data['discount'] > 0.001) {
-            $line($s('invoice_subtotal'), self::money($data['original'], $data['currency']), false);
+            $line($s('invoice_subtotal'),
+                self::ltr(self::money($data['original'], $data['currency']), $rtl), false);
 
             $label = $s('invoice_discount');
             if ($data['coupon'] !== '') {
-                $label .= ' (' . $data['coupon'] . ')';
+                $label .= ' (' . self::ltr($data['coupon'], $rtl) . ')';
             }
-            $line($label, '-' . self::money($data['discount'], $data['currency']), false);
+            $line($label,
+                self::ltr('-' . self::money($data['discount'], $data['currency']), $rtl), false);
         }
 
-        $line($s('invoice_total'), self::money($data['amount'], $data['currency']), true);
+        $line($s('invoice_total'),
+            self::ltr(self::money($data['amount'], $data['currency']), $rtl), true);
         $pdf->Ln(4);
 
         $pdf->SetFont(self::FONT, '', 10);
         if ($data['payment_method'] !== '') {
-            $pdf->Cell(0, 6, $s('paymentmethod') . ': ' . $data['payment_method'], 0, 1,
-                $rtl ? 'R' : 'L');
+            $pdf->Cell(0, 6, $s('paymentmethod') . ': '
+                . self::ltr($data['payment_method'], $rtl), 0, 1, $rtl ? 'R' : 'L');
         }
-        $pdf->Cell(0, 6, $s('invoice_paid_on') . ': ' . $data['paid_date'], 0, 1, $rtl ? 'R' : 'L');
+        $pdf->Cell(0, 6, $s('invoice_paid_on') . ': '
+            . self::ltr($data['paid_date'], $rtl), 0, 1, $rtl ? 'R' : 'L');
     }
 
     private static function write_footer(\pdf $pdf, array $data): void {
@@ -291,5 +320,34 @@ class invoice_document {
      */
     private static function money(float $amount, string $currency): string {
         return number_format($amount, 2, '.', ',') . ' ' . $currency;
+    }
+
+    /**
+     * Keep a left-to-right value readable inside right-to-left text.
+     *
+     * Left alone, the bidi algorithm reorders the runs either side of the neutral
+     * hyphens in something like INV-2026-0000022, which renders as
+     * 2026-0000022-INV — the same characters in the wrong order, which is worse
+     * than useless on a number somebody has to quote back to support.
+     *
+     * The fix is to mark the value as a self-contained left-to-right run. This
+     * uses the older embedding controls (U+202A / U+202C) rather than the newer
+     * isolates: TCPDF implements the pre-6.3 bidi algorithm and does not
+     * recognise LRI/PDI.
+     *
+     * Strings that already contain right-to-left characters are left alone —
+     * forcing those to LTR would break the very text this protects.
+     */
+    private static function ltr(string $text, bool $rtl): string {
+        if (!$rtl || $text === '') {
+            return $text;
+        }
+
+        // Hebrew, Arabic, Arabic Supplement/Extended and the presentation forms.
+        if (preg_match('/[\x{0590}-\x{08FF}\x{FB1D}-\x{FDFF}\x{FE70}-\x{FEFF}]/u', $text)) {
+            return $text;
+        }
+
+        return "\u{202A}" . $text . "\u{202C}";
     }
 }
