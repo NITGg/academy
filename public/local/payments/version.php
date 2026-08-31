@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_payments';
-$plugin->version   = 2026083106;   // Multi-currency: Fawaterk normalises its reporting, not the charge.
+$plugin->version   = 2026083107;   // One source of truth for provider countries/currencies.
 $plugin->requires  = 2024100700; // Moodle 4.5+
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_STABLE;

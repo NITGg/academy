@@ -132,6 +132,15 @@ if ($hassiteconfig) {
         PARAM_TEXT
     ));
 
+    // Countries this account will be offered for.
+    $settings->add(new admin_setting_configtext(
+        'paymentprovider_fawaterk/countries',
+        get_string('countries', 'paymentprovider_fawaterk'),
+        get_string('countries_desc', 'paymentprovider_fawaterk'),
+        'EG,SA,AE',
+        PARAM_TEXT
+    ));
+
     // How long Fawaterk keeps the transaction itself payable.
     $settings->add(new admin_setting_configtext(
         'paymentprovider_fawaterk/due_date_days',

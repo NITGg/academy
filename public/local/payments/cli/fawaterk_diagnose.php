@@ -207,6 +207,13 @@ if ($options['transaction'] !== false) {
     cli_writeln('  order id      : ' . $txn->order_id);
     cli_writeln('  status        : ' . $txn->status);
     cli_writeln('  amount        : ' . $txn->amount . ' ' . $txn->currency);
+    // Fawaterk books every payment in EGP whatever it charged, so show both when
+    // they differ — this is the pair people compare against a Fawaterk statement.
+    $txnmeta = json_decode($txn->metadata ?? '{}', true) ?: [];
+    if (!empty($txnmeta['settled'])) {
+        cli_writeln('  settled as    : ' . $txnmeta['settled']['amount'] . ' '
+            . $txnmeta['settled']['currency'] . '  (gateway reporting currency)');
+    }
     cli_writeln('  intent key    : ' . ($txn->provider_session_id ?: '(none — creation failed)'));
     cli_writeln('  created       : ' . userdate($txn->timecreated));
     cli_writeln('  expires       : ' . ($txn->expires_at ? userdate($txn->expires_at) : '-'));

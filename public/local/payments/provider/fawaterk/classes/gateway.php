@@ -1255,17 +1255,29 @@ class gateway extends base_provider {
      * genuinely cannot take one of them.
      */
     public function supported_currencies(): array {
-        $configured = (string) $this->get_setting('currencies', 'EGP,USD,SAR,AED');
-        $list = array_filter(array_map(
+        return self::split_codes((string) $this->get_setting('currencies', 'EGP,USD,SAR,AED'), 'EGP');
+    }
+
+    /**
+     * Countries this account will be offered for. Configurable for the same
+     * reason as the currency list: an account's reach is an account fact, not
+     * something that should need a code change.
+     */
+    public function supported_countries(): array {
+        return self::split_codes((string) $this->get_setting('countries', 'EG,SA,AE'), 'EG');
+    }
+
+    /**
+     * Split a comma-separated setting into upper-case codes, falling back when
+     * someone empties the field entirely.
+     */
+    private static function split_codes(string $configured, string $fallback): array {
+        $list = array_values(array_filter(array_map(
             static function ($code) {
                 return strtoupper(trim($code));
             },
             explode(',', $configured)
-        ));
-        return !empty($list) ? array_values($list) : ['EGP'];
-    }
-
-    public function supported_countries(): array {
-        return ['EG', 'SA', 'AE'];
+        )));
+        return !empty($list) ? $list : [$fallback];
     }
 }

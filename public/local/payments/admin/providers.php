@@ -51,6 +51,12 @@ $providers = $DB->get_records('local_payments_providers', null, 'priority ASC');
 if (empty($providers)) {
     echo $OUTPUT->notification('No payment providers registered.', 'warning');
 } else {
+    echo html_writer::div(
+        'Countries and currencies are read from the settings of each provider, which is '
+        . 'where routing decisions come from. Use the Settings link on the row to change them.',
+        'alert alert-info'
+    );
+
     $table = new html_table();
     $table->head = ['Provider', 'Plugin', 'Enabled', 'Priority', 'Countries', 'Currencies', 'Actions'];
     $table->attributes['class'] = 'generaltable';
@@ -70,8 +76,20 @@ if (empty($providers)) {
             ? '<span class="badge text-bg-success">Enabled</span>'
             : '<span class="badge text-bg-secondary">Disabled</span>';
 
-        $countries = $p->supported_countries === '*' ? 'All' : $p->supported_countries;
-        $currencies = $p->supported_currencies === '*' ? 'All' : $p->supported_currencies;
+        // Show what the gateway will actually accept — that is what routing uses.
+        // The columns on this row are seed data and are not editable anywhere, so
+        // printing them would show a value that has no effect.
+        $countries = 'All';
+        $currencies = 'All';
+        try {
+            $gateway = \local_payments\manager::get_provider_by_id((int) $p->id);
+            $countries = implode(', ', $gateway->supported_countries()) ?: 'All';
+            $currencies = implode(', ', $gateway->supported_currencies()) ?: 'All';
+        } catch (\Throwable $e) {
+            // A provider row whose plugin is missing still has to render, so the
+            // page stays usable enough to disable it.
+            $countries = $currencies = '-';
+        }
 
         $actions = html_writer::link($toggle_url, $p->enabled ? 'Disable' : 'Enable', ['class' => 'btn btn-sm btn-outline-secondary me-1']);
         $actions .= html_writer::link($up_url, '↑', ['class' => 'btn btn-sm btn-outline-secondary me-1']);

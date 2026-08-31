@@ -24,37 +24,10 @@ class manager {
         $providers = $DB->get_records('local_payments_providers', ['enabled' => 1], 'priority ASC');
 
         foreach ($providers as $provider_record) {
-            // Check country support.
-            $countries = $provider_record->supported_countries;
-            if ($countries !== '*' && !empty($countries)) {
-                $supported = json_decode($countries, true) ?? [];
-                if (!empty($supported) && !in_array($country, $supported)) {
-                    continue;
-                }
-            }
-
-            // Check currency support.
-            $currencies = $provider_record->supported_currencies;
-            if ($currencies !== '*' && !empty($currencies)) {
-                $supported = json_decode($currencies, true) ?? [];
-                if (!empty($supported) && !in_array($currency, $supported)) {
-                    continue;
-                }
-            }
-
             $provider = self::instantiate_provider($provider_record);
-
-            // The gateway itself has the last word on currency. A provider row can
-            // list a currency the gateway account does not actually settle in, and
-            // a gateway that silently converts would charge a different amount than
-            // the one we recorded — which our own amount check then rejects, after
-            // the buyer has paid. Better to not select it at all.
-            $gatewaycurrencies = $provider->supported_currencies();
-            if (!empty($gatewaycurrencies) && !in_array($currency, $gatewaycurrencies)) {
-                continue;
+            if (self::provider_supports($provider, $country, $currency)) {
+                return $provider;
             }
-
-            return $provider;
         }
 
         throw new \moodle_exception('noproviderfound', 'local_payments', '', null,
@@ -77,6 +50,40 @@ class manager {
         global $DB;
         $record = $DB->get_record('local_payments_providers', ['id' => $id], '*', MUST_EXIST);
         return self::instantiate_provider($record);
+    }
+
+    /**
+     * Can this gateway take this country and currency?
+     *
+     * The gateway is the only authority. Each provider also has
+     * supported_countries / supported_currencies columns on its database row,
+     * seeded at install and with no screen to edit them — so consulting those as
+     * well meant a stale row could silently veto a currency the plugin settings
+     * allowed, with nothing in the interface to explain why. The row is now
+     * display and seed data only; what a gateway will accept is configured in
+     * that provider's own settings.
+     *
+     * An empty list from a gateway means no restriction.
+     *
+     * @param provider_interface $provider
+     * @param string $country ISO 3166-1 alpha-2
+     * @param string $currency ISO 4217
+     * @return bool
+     */
+    public static function provider_supports(provider_interface $provider, string $country,
+            string $currency): bool {
+
+        $countries = $provider->supported_countries();
+        if (!empty($countries) && $country !== '' && !in_array($country, $countries)) {
+            return false;
+        }
+
+        $currencies = $provider->supported_currencies();
+        if (!empty($currencies) && !in_array($currency, $currencies)) {
+            return false;
+        }
+
+        return true;
     }
 
     private static function instantiate_provider(\stdClass $record): provider_interface {
@@ -1207,15 +1214,10 @@ class manager {
         $available = [];
 
         foreach ($providers as $p) {
-            $countries = ($p->supported_countries === '*' || empty($p->supported_countries))
-                ? [] : (json_decode($p->supported_countries, true) ?? []);
-            $currencies = ($p->supported_currencies === '*' || empty($p->supported_currencies))
-                ? [] : (json_decode($p->supported_currencies, true) ?? []);
-
-            if (!empty($countries) && !in_array($country, $countries)) {
-                continue;
-            }
-            if (!empty($currencies) && !in_array($currency, $currencies)) {
+            // Same authority as get_provider(): what the gateway says, not what
+            // the seeded row says. Otherwise this list and the provider actually
+            // chosen at checkout could disagree.
+            if (!self::provider_supports(self::instantiate_provider($p), $country, $currency)) {
                 continue;
             }
 
