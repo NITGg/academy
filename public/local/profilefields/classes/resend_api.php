@@ -74,6 +74,27 @@ class resend_api {
     /** @var string The one machine-readable failure this function has. */
     const ERROR_THROTTLED = 'toomanyrequests';
 
+    /** @var int The wait to report when even reading the configured one failed. */
+    const FALLBACK_COOLDOWN = 60;
+
+    /**
+     * The wait between sends, without ever being the thing that fails.
+     *
+     * Every exit from this class reports a `retryafter`, the one taken when
+     * something has gone wrong included, so the number must be available even then
+     * - which means not reading it out of the database on the path that exists
+     * because the database may be what broke.
+     *
+     * @return int seconds
+     */
+    protected static function cooldown(): int {
+        try {
+            return verification::cooldown();
+        } catch (\Throwable $e) {
+            return self::FALLBACK_COOLDOWN;
+        }
+    }
+
     /**
      * Send another confirmation link to this address, if that is the right thing to do.
      *
@@ -83,11 +104,40 @@ class resend_api {
     public static function resend(string $email): array {
         // Refused outright when the site does not do email self-registration: there
         // are then no unconfirmed accounts of this kind for anyone to ask about.
-        // The same exception the sibling sign-up functions raise, and it says
-        // nothing about any particular address.
+        // The same exception the sibling sign-up functions raise, and it depends on
+        // nothing but site configuration, so every caller gets it or none does.
         signup_api::require_signup_enabled();
 
-        $email = core_text::strtolower(trim($email));
+        try {
+            return self::attempt(core_text::strtolower(trim($email)));
+        } catch (\Throwable $e) {
+            // Whatever went wrong must not become the one reply that only ever
+            // happens on one side of the branch. The two halves of this function
+            // do not fail alike: only a real account reaches the mail transport,
+            // and only an unknown address reaches the cache - so a mail server
+            // that throws instead of returning false, or a cache definition that
+            // a deploy forgot to rebuild, would each single out exactly one class
+            // of address. That is a sharper enumeration oracle than any this
+            // class was written to close, and it would arrive dressed as an
+            // unrelated bug.
+            //
+            // The cost of catching is that while something *is* broken the decoy
+            // tally may stop counting, so unknown addresses go unthrottled until
+            // it is fixed. That is a degraded state, logged here; an exception
+            // would be a disclosure.
+            debugging('local_profilefields resend_confirmation failed: ' . $e->getMessage(), DEBUG_NORMAL);
+
+            return self::sent(self::cooldown());
+        }
+    }
+
+    /**
+     * The body of {@see self::resend()}, everything that is allowed to fail.
+     *
+     * @param string $email trimmed, lower-cased address
+     * @return array
+     */
+    protected static function attempt(string $email): array {
         $user = self::unconfirmed_account($email);
 
         if ($user === null) {
@@ -121,7 +171,7 @@ class resend_api {
         // accept. And it is the only way this reply can be identical to the decoy
         // below, which has no mail to send and would otherwise always answer with a
         // rounder number than a real send does.
-        return self::sent(verification::cooldown());
+        return self::sent(self::cooldown());
     }
 
     /**
@@ -237,7 +287,7 @@ class resend_api {
         // An address that is not an address at all cannot be anybody's, and giving
         // it a tally would let a caller fill the cache with garbage keys.
         if ($email === '' || !validate_email($email)) {
-            return self::sent(verification::cooldown());
+            return self::sent(self::cooldown());
         }
 
         $cache = cache::make(manager::COMPONENT, self::CACHE);
@@ -253,7 +303,7 @@ class resend_api {
         $sends[] = time();
         $cache->set($key, $sends);
 
-        return self::sent(verification::cooldown());
+        return self::sent(self::cooldown());
     }
 
     /**
