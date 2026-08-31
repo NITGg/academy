@@ -497,6 +497,83 @@ class manager {
     }
 
     /**
+     * Decide whether a gateway's figures confirm the amount we quoted.
+     *
+     * There are three ways a payment can legitimately be reported:
+     *  - exactly what we asked for;
+     *  - the same value stated a second way (some gateways send the charged
+     *    figure on the webhook and the base-currency figure over the API);
+     *  - converted, when the gateway settles in its own currency. That last one
+     *    cannot be reconciled against our quote at all, so it is only accepted
+     *    from a provider that declares it converts — otherwise a wrong amount
+     *    would look like a right one.
+     *
+     * Nothing here ever accepts an arbitrary number: the first two compare
+     * against the amount we already expect, so a tampered figure can make the
+     * check fail but never pass for the wrong value.
+     *
+     * @return array {ok: bool, converted: bool, message: string}
+     */
+    private static function verify_amount(\stdClass $transaction, provider_interface $provider,
+            float $amount, string $currency, float $reported_amount = 0,
+            string $reported_currency = ''): array {
+
+        $expected = (float) $transaction->amount;
+        $expectedcurrency = (string) $transaction->currency;
+
+        $matches = static function (float $value, string $code) use ($expected, $expectedcurrency): bool {
+            if (abs($expected - $value) > 0.01) {
+                return false;
+            }
+            // Currency is only enforced when the result carries one, so a
+            // provider that omits it cannot break payments; a right-number,
+            // wrong-currency message is still rejected.
+            return $code === '' || strcasecmp($code, $expectedcurrency) === 0;
+        };
+
+        if ($matches($amount, $currency) || ($reported_amount > 0 && $matches($reported_amount, $reported_currency))) {
+            return ['ok' => true, 'converted' => false, 'message' => ''];
+        }
+
+        $differentcurrency = $currency !== '' && strcasecmp($currency, $expectedcurrency) !== 0;
+        if ($differentcurrency && $amount > 0 && $provider->allows_currency_conversion()) {
+            return [
+                'ok' => true,
+                'converted' => true,
+                'message' => "Settled as {$amount} {$currency} for an order quoted at "
+                    . "{$expected} {$expectedcurrency}",
+            ];
+        }
+
+        $message = "Amount mismatch: expected {$expected} {$expectedcurrency}; "
+            . "gateway reported {$amount} {$currency}";
+        if ($reported_amount > 0) {
+            $message .= " and {$reported_amount} {$reported_currency}";
+        }
+        if ($differentcurrency) {
+            $message .= '. The gateway settled in a different currency; if that is expected, '
+                . 'allow conversion in the provider settings or price in a currency it settles in.';
+        }
+
+        return ['ok' => false, 'converted' => false, 'message' => $message];
+    }
+
+    /**
+     * Note what the gateway actually settled, when that differs from the quote.
+     * The order keeps the price the buyer agreed to; the settled figure is
+     * recorded beside it so reconciliation has something to work from.
+     */
+    private static function record_settlement(\stdClass $transaction, float $amount, string $currency): void {
+        global $DB;
+
+        $meta = json_decode($transaction->metadata ?? '{}', true) ?: [];
+        $meta['settled'] = ['amount' => $amount, 'currency' => $currency];
+
+        $DB->set_field('local_payments_transactions', 'metadata', json_encode($meta),
+            ['id' => $transaction->id]);
+    }
+
+    /**
      * How long an order must stay open, given how the buyer was told to pay.
      *
      * A card payment happens in the next few minutes, so the normal checkout TTL
@@ -854,52 +931,29 @@ class manager {
         }
 
         // Verify the amount matches what we asked to be charged.
-        //
-        // A gateway can legitimately state the same payment two ways: the figure
-        // the buyer was charged, and the same value in the account's base
-        // currency (Fawaterk reports a USD 4.50 charge as 240.435 EGP). Either is
-        // a valid confirmation, so accept a match on either — this only ever
-        // compares against the amount we already expect, so a tampered figure
-        // can make the check fail but never pass for the wrong number.
-        $expected = (float) $transaction->amount;
-        $received = $result->amount;
+        $check = self::verify_amount(
+            $transaction,
+            self::get_provider_by_id((int) $transaction->provider_id),
+            $result->amount,
+            (string) $result->currency,
+            $result->reported_amount,
+            (string) $result->reported_currency
+        );
 
-        $matches = function (float $amount, string $currency) use ($expected, $transaction): bool {
-            if (abs($expected - $amount) > 0.01) {
-                return false;
-            }
-            // Currency is only enforced when the result carries one, so a provider
-            // that omits it cannot break payments; a right-number, wrong-currency
-            // message is still rejected.
-            return empty($currency)
-                || strcasecmp($currency, (string) $transaction->currency) === 0;
-        };
-
-        $verified = $matches($received, (string) $result->currency)
-            || ($result->reported_amount > 0
-                && $matches($result->reported_amount, (string) $result->reported_currency));
-
-        if (!$verified) {
-            self::log_entry($transaction->provider_id, $transaction->id, 'error',
-                "Amount/currency mismatch: expected={$expected} {$transaction->currency}, "
-                . "api={$received} {$result->currency}, "
-                . "webhook={$result->reported_amount} {$result->reported_currency}");
-
-            // Spell out every figure. "expected 4.5, got 240.435" reads as
-            // nonsense until you can see that one is USD and the other EGP.
-            $reason = "Amount mismatch: expected {$expected} {$transaction->currency}; "
-                . "gateway reported {$received} {$result->currency}";
-            if ($result->reported_amount > 0) {
-                $reason .= " and {$result->reported_amount} {$result->reported_currency}";
-            }
-
+        if (!$check['ok']) {
+            self::log_entry($transaction->provider_id, $transaction->id, 'error', $check['message']);
             $DB->update_record('local_payments_transactions', (object) [
                 'id' => $transaction->id,
                 'status' => status_machine::FAILED,
-                'reject_reason' => substr($reason, 0, 255),
+                'reject_reason' => substr($check['message'], 0, 255),
                 'timemodified' => time(),
             ]);
             return false;
+        }
+
+        if ($check['converted']) {
+            self::log_entry($transaction->provider_id, $transaction->id, 'info', $check['message']);
+            self::record_settlement($transaction, $result->amount, (string) $result->currency);
         }
 
         if (!status_machine::can_transition($transaction->status, status_machine::COMPLETED)) {
@@ -1054,10 +1108,14 @@ class manager {
         $result = $provider->verify_payment($transaction->provider_session_id);
 
         if ($result->verified) {
-            // Double-check amount and (when present) currency.
-            $currencymismatch = !empty($result->currency)
-                && strcasecmp((string) $result->currency, (string) $transaction->currency) !== 0;
-            if (abs((float) $transaction->amount - $result->amount) > 0.01 || $currencymismatch) {
+            // Same check the webhook runs — the buyer can land here first, and an
+            // order that the webhook would have accepted must not be refused just
+            // because the browser got back before the callback did.
+            $check = self::verify_amount($transaction, $provider, $result->amount,
+                (string) $result->currency);
+
+            if (!$check['ok']) {
+                self::log_entry($transaction->provider_id, $transaction->id, 'error', $check['message']);
                 return (object) [
                     'success' => false,
                     'status' => 'amount_mismatch',
@@ -1065,6 +1123,11 @@ class manager {
                     'item_type' => $item_type,
                     'enrolled' => false,
                 ];
+            }
+
+            if ($check['converted']) {
+                self::log_entry($transaction->provider_id, $transaction->id, 'info', $check['message']);
+                self::record_settlement($transaction, $result->amount, (string) $result->currency);
             }
 
             if (status_machine::can_transition($transaction->status, status_machine::COMPLETED)) {

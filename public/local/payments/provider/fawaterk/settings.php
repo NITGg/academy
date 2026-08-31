@@ -128,8 +128,16 @@ if ($hassiteconfig) {
         'paymentprovider_fawaterk/currencies',
         get_string('currencies', 'paymentprovider_fawaterk'),
         get_string('currencies_desc', 'paymentprovider_fawaterk'),
-        'EGP,USD,SAR,AED',
+        'EGP',
         PARAM_TEXT
+    ));
+
+    // Accept a payment Fawaterk settled in its own currency.
+    $settings->add(new admin_setting_configcheckbox(
+        'paymentprovider_fawaterk/accept_converted',
+        get_string('accept_converted', 'paymentprovider_fawaterk'),
+        get_string('accept_converted_desc', 'paymentprovider_fawaterk'),
+        0
     ));
 
     // How long Fawaterk keeps the transaction itself payable.
@@ -166,6 +174,14 @@ if ($hassiteconfig) {
         get_string('default_address_desc', 'paymentprovider_fawaterk'),
         'N/A',
         PARAM_TEXT
+    ));
+
+    // Verbose API logging for debugging. Failures are logged either way.
+    $settings->add(new admin_setting_configcheckbox(
+        'paymentprovider_fawaterk/log_api_calls',
+        get_string('log_api_calls', 'paymentprovider_fawaterk'),
+        get_string('log_api_calls_desc', 'paymentprovider_fawaterk'),
+        0
     ));
 
     // Let Fawaterk email the invoice to the buyer.

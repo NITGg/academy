@@ -112,8 +112,14 @@ Two more options, both reading through Moodle's DB layer so they work without a
 docker compose exec moodle php public/local/payments/cli/fawaterk_diagnose.php --logs
 ```
 
-The full response body of every failed API call — what Fawaterk actually
-objected to.
+The exact response body of every failed API call, byte for byte — including a
+non-JSON one, which is what an HTML error page or a proxy timeout looks like and
+which decodes to nothing at all.
+
+To capture successful calls too — the request Moodle sent alongside the response
+it got — turn on *Log every API call* in the provider settings. The
+`Authorization` header is never recorded; the request body is, and it carries the
+buyer's name, email, phone and address, so turn it back off when you are done.
 
 ```bash
 docker compose exec moodle php public/local/payments/cli/fawaterk_diagnose.php --webhooks
@@ -385,24 +391,33 @@ the dashboard. The v3 refund webhook *is* signed, so an approved refund is
 matched back to its order by Fawaterk's numeric transaction id — which is
 recorded when the payment completes — and applied automatically.
 
-**Currency, and why the API disagrees with itself.** The buyer is charged in the
-order's own currency: a 4.50 USD order renders as `Pay - USD 4.50` on the payment
-page. But `getTransactionData` reports the same payment in the account's base
-currency — `total: 240.435, currency: EGP`.
+**Currency — Fawaterk converts, and the payment page hides it.** A 4.50 USD order
+is shown to the buyer as `Pay - USD 4.50`, which makes it look like USD is
+supported. It is not: the transaction settles as **240.44 EGP**, and the attempt
+history says so outright:
 
-Both are true, and only one of them matches the order. So the paid webhook
-carries both figures: the API total, and the `paidAmount`/`paidCurrency` the
-webhook itself states. The amount check accepts a match on **either**. That is
-not a loosening — the check only ever compares against the amount we already
-expect, so a tampered figure can make it fail but never pass for a wrong number,
-and the payment must still be confirmed `paid` by the API before any of it runs.
+```jsonc
+"transaction_history": [
+  { "amount": "240.44 EGP", "currency": "EGP", "status": "SUCCESS" }
+]
+```
 
-Without this, a genuinely paid USD order is rejected as an amount mismatch and
-the buyer is never enrolled.
+So the order we quoted at 4.50 USD and the payment Fawaterk took are different
+amounts in different currencies, at a rate nobody agreed. Our amount check —
+the guard against a tampered webhook — then refuses to confirm it, and the buyer
+is left paid but not enrolled.
 
-*Settlement currencies* lists what Fawaterk may be offered for. Narrow it only if
-an account genuinely cannot take one of them; a course priced in a currency that
-is not listed falls through to another provider.
+*Settlement currencies* therefore defaults to **EGP alone**. A course priced in
+anything else is not offered Fawaterk: it falls through to another provider, or
+fails at checkout with "no provider found", which is safer than charging an
+amount nobody quoted. **Price in EGP for Egypt and this never arises.**
+
+If you must sell in another currency through an EGP account, turn on *Accept
+payments Fawaterk converted* and add the currency to the list. That accepts
+Fawaterk's rate for money the site did not price; the order keeps the price the
+buyer agreed to and the settled figure is recorded in its metadata for
+reconciliation. It is off by default because it is a commercial decision, not a
+technical one.
 
 ---
 

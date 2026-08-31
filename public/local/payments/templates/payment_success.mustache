@@ -23,4 +23,16 @@
             {{#str}}viewhistory, local_payments{{/str}}
         </a>
     </div>
+
+    {{#can_download}}
+        <div class="mt-3 lp-invoice-actions justify-content-center">
+            <span class="text-muted me-1">{{#str}}invoice_download, local_payments{{/str}}</span>
+            <a href="{{invoice_url_en}}" class="btn btn-sm btn-outline-primary">
+                {{#str}}invoice_lang_en, local_payments{{/str}}
+            </a>
+            <a href="{{invoice_url_ar}}" class="btn btn-sm btn-outline-primary">
+                {{#str}}invoice_lang_ar, local_payments{{/str}}
+            </a>
+        </div>
+    {{/can_download}}
 </div>

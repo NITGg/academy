@@ -106,6 +106,10 @@ abstract class base_provider implements provider_interface {
         return false;
     }
 
+    public function allows_currency_conversion(): bool {
+        return false;
+    }
+
     public function get_payment_methods(): array {
         return [];
     }
