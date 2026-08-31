@@ -43,11 +43,12 @@ $STR = local_nit_commerce_string_map(array(
     'ui_refresh', 'ui_loading', 'ui_save', 'ui_cancel', 'ui_active', 'ui_activate', 'ui_deactivate',
     'ui_edit', 'ui_delete', 'ui_never', 'ui_optional', 'ui_pager_info',
     'pkg_col_status', 'pkg_col_actions', 'sub_inactive',
+    'ofr_col_name', 'pkg_field_name_en', 'pkg_field_name_ar',
     'cpn_new', 'cpn_none', 'cpn_col_code', 'cpn_col_type', 'cpn_col_value', 'cpn_col_scope',
     'cpn_col_usage', 'cpn_col_dates', 'cpn_field_code', 'cpn_field_dtype', 'cpn_field_value',
     'cpn_field_max', 'cpn_field_utype', 'cpn_field_limit', 'cpn_field_start', 'cpn_field_end',
     'cpn_field_scope', 'cpn_type_percent', 'cpn_type_fixed', 'cpn_usage_once', 'cpn_usage_multiple',
-    'cpn_scope_courses', 'cpn_scope_packages', 'cpn_scope_subscriptions', 'cpn_scope_programs', 'cpn_scope_all',
+    'cpn_scope_courses', 'cpn_scope_subscriptions', 'cpn_scope_all',
     'cpn_scope_specific', 'cpn_created', 'cpn_updated', 'cpn_activated', 'cpn_deactivated',
     'cpn_deleted', 'cpn_confirm_delete', 'cpn_edit_titled', 'cpn_scope_required', 'cpn_unlimited',
     'cpn_used_count',
@@ -79,6 +80,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         <thead>
             <tr>
                 <th><?php echo $STR['cpn_col_code']; ?></th>
+                <th><?php echo $STR['ofr_col_name']; ?></th>
                 <th><?php echo $STR['cpn_col_type']; ?></th>
                 <th><?php echo $STR['cpn_col_value']; ?></th>
                 <th><?php echo $STR['cpn_col_scope']; ?></th>
@@ -88,7 +90,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 <th><?php echo $STR['pkg_col_actions']; ?></th>
             </tr>
         </thead>
-        <tbody><tr><td colspan="8"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
+        <tbody><tr><td colspan="9"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
     </table>
     <div id="cpn-table-pager" class="acad-pager"></div>
 
@@ -96,6 +98,14 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         <div class="card-body">
             <h4 id="cpn-form-title" class="card-title"><?php echo $STR['cpn_new']; ?></h4>
             <input type="hidden" id="c-id">
+            <div class="form-group">
+                <label for="c-name-en"><?php echo $STR['pkg_field_name_en']; ?></label>
+                <input type="text" class="form-control" id="c-name-en" dir="ltr">
+            </div>
+            <div class="form-group">
+                <label for="c-name-ar"><?php echo $STR['pkg_field_name_ar']; ?></label>
+                <input type="text" class="form-control" id="c-name-ar" dir="rtl">
+            </div>
             <div class="form-group">
                 <label for="c-code"><?php echo $STR['cpn_field_code']; ?></label>
                 <input type="text" class="form-control" id="c-code" dir="ltr">
@@ -146,9 +156,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 <?php
                 $scopetypes = array(
                     'course'       => $STR['cpn_scope_courses'],
-                    'package'      => $STR['cpn_scope_packages'],
                     'subscription' => $STR['cpn_scope_subscriptions'],
-                    'program'      => $STR['cpn_scope_programs'],
                 );
                 foreach ($scopetypes as $t => $label) {
                     echo '<div class="scope-block mb-2" data-type="' . $t . '">';
@@ -218,6 +226,38 @@ echo html_writer::script(<<<'JS'
         });
     }
 
+    // -- Multilang helpers (same one-field {mlang} approach as manage_offers.php) --
+    function parseMultilang(value){
+        var out = { en:'', ar:'' }, raw = String(value == null ? '' : value), m, found = false;
+        var re2 = /\{\s*mlang\s+([a-zA-Z0-9_-]+)\s*\}([\s\S]*?)\{\s*mlang\s*\}/g;
+        while ((m = re2.exec(raw)) !== null){
+            found = true;
+            var c = m[1].toLowerCase();
+            if (c.indexOf('ar') === 0){ out.ar = m[2].trim(); } else if (c.indexOf('en') === 0){ out.en = m[2].trim(); }
+        }
+        if (found){ return out; }
+        var re1 = /<span[^>]*\blang\s*=\s*"([a-zA-Z0-9_-]+)"[^>]*>([\s\S]*?)<\/span>/g;
+        while ((m = re1.exec(raw)) !== null){
+            found = true;
+            var c1 = m[1].toLowerCase();
+            if (c1.indexOf('ar') === 0){ out.ar = m[2].trim(); } else if (c1.indexOf('en') === 0){ out.en = m[2].trim(); }
+        }
+        if (!found){ out.en = raw; }
+        return out;
+    }
+    function buildMultilang(en, ar){
+        en = String(en == null ? '' : en).trim();
+        ar = String(ar == null ? '' : ar).trim();
+        if (en && ar){ return '{mlang en}' + en + '{mlang}{mlang ar}' + ar + '{mlang}'; }
+        // Tag an Arabic-only name so re-editing puts it back in the Arabic box, not the English one.
+        if (ar){ return '{mlang ar}' + ar + '{mlang}'; }
+        return en;
+    }
+    function displayName(value){
+        var v = parseMultilang(value);
+        return [v.en, v.ar].filter(function(x){ return x; }).join(' / ') || value || '';
+    }
+
     function toInput(ts){
         if (!ts){ return ''; }
         var d = new Date(ts * 1000), p = function(n){ return (n<10?'0':'')+n; };
@@ -248,6 +288,7 @@ echo html_writer::script(<<<'JS'
                 : '<button class="btn btn-sm btn-success" data-act="activate" data-id="'+c.id+'">'+esc(str('ui_activate'))+'</button>';
             tr.innerHTML =
                 '<td><code>'+esc(c.code)+'</code></td>'+
+                '<td>'+esc(displayName(c.name_raw || c.name))+'</td>'+
                 '<td>'+esc(dtype(c.discount_type))+'</td>'+
                 '<td>'+esc(valueLabel(c))+(c.max_discount!=null?' <small class="text-muted">(max '+esc(c.max_discount)+')</small>':'')+'</td>'+
                 '<td>'+scopeLabel(c)+'</td>'+
@@ -266,10 +307,10 @@ echo html_writer::script(<<<'JS'
 
     function load(){
         var tbody = $('cpn-table').querySelector('tbody');
-        tbody.innerHTML = '<tr><td colspan="8">'+esc(str('ui_loading'))+'</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9">'+esc(str('ui_loading'))+'</td></tr>';
         api('get_coupons').then(function(rows){
             if (!rows.length){
-                tbody.innerHTML = '<tr><td colspan="8">'+esc(str('cpn_none'))+'</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9">'+esc(str('cpn_none'))+'</td></tr>';
                 $('cpn-table-pager').innerHTML = '';
                 return;
             }
@@ -363,9 +404,12 @@ echo html_writer::script(<<<'JS'
     }
 
     function showForm(c){
+        var nm = parseMultilang(c ? (c.name_raw || c.name) : '');
         $('cpn-form-title').textContent = c ? strf('cpn_edit_titled', c.code) : str('cpn_new');
         $('c-id').value    = c ? c.id : '';
         $('c-code').value  = c ? c.code : '';
+        $('c-name-en').value = nm.en;
+        $('c-name-ar').value = nm.ar;
         $('c-dtype').value = c ? c.discount_type : 'percent';
         $('c-value').value = c ? c.discount_value : '';
         $('c-max').value   = (c && c.max_discount != null) ? c.max_discount : '';
@@ -385,6 +429,7 @@ echo html_writer::script(<<<'JS'
         var id = $('c-id').value;
         var params = {
             code: $('c-code').value,
+            name: buildMultilang($('c-name-en').value, $('c-name-ar').value),
             discount_type: $('c-dtype').value,
             discount_value: $('c-value').value || 0,
             max_discount: $('c-max').value === '' ? '' : $('c-max').value,

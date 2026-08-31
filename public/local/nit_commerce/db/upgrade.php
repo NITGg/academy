@@ -15,18 +15,34 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the sign-up / profile field layout.
+ * Database upgrade steps for local_nit_commerce.
  *
- * @package    local_profilefields
+ * @package    local_nit_commerce
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_profilefields';
-$plugin->version   = 2026083102;        // YYYYMMDDXX.
-$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
-$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.8.0';
+/**
+ * Upgrade the plugin database.
+ *
+ * @param int $oldversion the currently installed version
+ * @return bool
+ */
+function xmldb_local_nit_commerce_upgrade($oldversion) {
+    global $DB;
+    $dbman = $DB->get_manager();
+
+    if ($oldversion < 2026083100) {
+        // Bilingual display name for coupons, stored as {mlang} markup like nit_offer.name.
+        $table = new xmldb_table('nit_coupon');
+        $field = new xmldb_field('name', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'code');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026083100, 'local', 'nit_commerce');
+    }
+
+    return true;
+}

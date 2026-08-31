@@ -38,23 +38,44 @@ identical to `token.php`. Use `token` for every subsequent API call.
 ### Failure
 
 ```json
-{ "status": "fail", "error": "<message to show the user>" }
+{ "status": "fail",
+  "error": "<message to show the user>",
+  "errorcode": "<stable code to branch on>" }
 ```
 
-| Situation | `error` |
-|-----------|---------|
-| Wrong password, or no such account | `Invalid login, please try again` |
-| **Account blocked after repeated failures** | `Your account has been temporarily blocked after 5 failed sign-in attempts. Please try again in 15 mins, or use the unlock link we have just emailed you.` |
-| Email address not yet confirmed | `usernotconfirmed` wording |
-| Account suspended / site in maintenance | core wording |
-| `GET` used instead of `POST` | `This action requires POST` |
+**Show `error`. Branch on `errorcode`.** The message is translated and will be
+reworded whenever the copy improves, so matching on its text breaks the first
+time that happens — or the first time a user has a different language. The code
+never changes.
 
-Wrong password and unknown account deliberately return the **same** message, so
-the endpoint never reveals which usernames exist. The blocked message appears
-only after a real failed attempt on a real account — the same trade-off core
-already makes on the web login page.
+| `errorcode` | When | `error` (English) |
+|-------------|------|-------------------|
+| `invalidlogin` | wrong password, **or** no such account | Invalid login, please try again |
+| `accountlocked` | blocked after repeated failed attempts | Your account has been temporarily blocked after 5 failed sign-in attempts. Please try again in 15 mins, or use the unlock link we have just emailed you. |
+| `usernotconfirmed` | password correct, email not confirmed yet | Your account has not been confirmed yet. Please open the confirmation link we emailed you, then sign in again. |
+| `passwordisexpired` | password past its expiry | core wording |
+| `noguest` | the guest account | core wording |
+| `sitemaintenance` | site in maintenance, no maintenance access | core wording |
+| `servicenotavailable` | `service` unknown or disabled | core wording |
+| `enablewsdescription` | web services switched off site-wide | core wording |
+| `restoredaccountresetpassword` | restored account, must reset first | core wording |
+| `invalidtoken` / `authrequired` | the Registration API token is missing or bad | Invalid token |
+| `postrequired` | `GET` used instead of `POST` | This action requires POST |
 
-Messages follow the request language: add `&lang=ar` for Arabic.
+These are the same code values `/login/token.php` reports in its own `errorcode`
+field, so one table covers both endpoints. `accountlocked` is the one addition —
+`token.php` has no such case, which is the reason this endpoint exists.
+
+Two behaviours worth knowing:
+
+- Wrong password and unknown account both return `invalidlogin`, so the endpoint
+  never reveals which usernames exist.
+- An **unconfirmed** account with the **wrong** password also returns
+  `invalidlogin`, not `usernotconfirmed`. The account state is only disclosed
+  once the password has been proved correct.
+
+Messages follow the request language: add `&lang=ar` for Arabic. The
+`errorcode` is identical in every language.
 
 ## When the blocked message appears
 
@@ -85,7 +106,7 @@ Change the URL and read the response envelope; nothing else differs.
 | URL | `/login/token.php` | `/local/academy/api.php?function=login` |
 | Extra param | — | `token` (Registration API token) |
 | Success shape | `{"token":…,"privatetoken":…}` | `{"status":"success","data":{…}}` |
-| Failure shape | `{"error":…,"errorcode":…}` | `{"status":"fail","error":…}` |
+| Failure shape | `{"error":…,"errorcode":…}` | `{"status":"fail","error":…,"errorcode":…}` |
 | Blocked account | `Invalid login, please try again` | the real reason |
 
 `token.php` is untouched and still works, so older builds of the app keep

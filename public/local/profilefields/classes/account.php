@@ -244,6 +244,48 @@ class account {
     }
 
     /**
+     * Can this account prove who it is with a password it holds here?
+     *
+     * An account created through Google signs in with `oauth2` and has no local
+     * password at all. Every screen on this page that asks for one - changing the
+     * address, changing the password - is therefore a dead end for that account:
+     * `validate_internal_user_password()` cannot succeed against a password that
+     * does not exist, so the form would refuse every attempt without ever saying
+     * why. Those screens ask this first and say what is actually going on instead.
+     *
+     * @param \stdClass $user
+     * @return bool
+     */
+    public static function can_verify_password(\stdClass $user): bool {
+        global $DB;
+
+        if (empty($user->id) || empty($user->auth)) {
+            return false;
+        }
+
+        try {
+            $auth = get_auth_plugin($user->auth);
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        // is_internal() is the auth API's own answer to "is the password mine to
+        // check" - true for manual and email, false for oauth2, LDAP and the rest.
+        if (!$auth->is_internal()) {
+            return false;
+        }
+
+        // Read the hash rather than trust the object. `$USER` never carries one:
+        // \core\session\manager::set_user() unsets it on the way into the session,
+        // so testing `$user->password` here would answer "no local password" for
+        // every account on the site, including the manual ones this is meant to
+        // let through.
+        $hash = (string) $DB->get_field('user', 'password', ['id' => $user->id]);
+
+        return $hash !== '' && $hash !== AUTH_PASSWORD_NOT_CACHED;
+    }
+
+    /**
      * When this account's password was last changed, or 0 when that is not known.
      *
      * Read from core's password history, which is the only record Moodle keeps of

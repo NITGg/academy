@@ -30,6 +30,7 @@
 
 require_once(__DIR__ . '/../../config.php');
 
+use local_profilefields\account;
 use local_profilefields\accountdeletion;
 use local_profilefields\form\deleteaccount_form;
 
@@ -51,7 +52,7 @@ $PAGE->set_heading(get_string('deleteaccount', 'local_profilefields'));
 // An administrator has to keep their account: a site that can be left with nobody
 // able to administer it is a worse outcome than an inconvenient account.
 if (!accountdeletion::allowed($USER)) {
-    redirect(new moodle_url('/user/preferences.php'),
+    redirect(account::url(),
         get_string('deleteaccountrefused', 'local_profilefields'),
         null, \core\output\notification::NOTIFY_ERROR);
 }
@@ -59,7 +60,7 @@ if (!accountdeletion::allowed($USER)) {
 $form = new deleteaccount_form($url);
 
 if ($form->is_cancelled()) {
-    redirect(new moodle_url('/user/preferences.php'));
+    redirect(account::url());
 
 } else if ($form->get_data()) {
     // Take a copy before the record is scrambled, so the goodbye can still be
@@ -99,6 +100,17 @@ if ($form->is_cancelled()) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('deleteaccount', 'local_profilefields'));
+
+// WF-5.3 is a pane of the account screen, not a page of its own, so it draws
+// itself inside the same navigation box as the rest of it.
+account::open(account::SECTION_DELETE);
+
+echo html_writer::start_div('nit-account__card nit-account__card--danger');
+echo html_writer::tag('h2', get_string('deleteaccount', 'local_profilefields'),
+    ['class' => 'nit-account__cardtitle']);
 $form->display();
+echo html_writer::end_div();
+
+account::close();
+
 echo $OUTPUT->footer();

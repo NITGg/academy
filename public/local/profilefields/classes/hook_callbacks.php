@@ -95,6 +95,15 @@ class hook_callbacks {
                 return;
             }
 
+            // WF-5.1: /user/profile.php is core's block-based public profile, and
+            // the account screen the wireframes describe is a different thing
+            // entirely - editable fields, a password, a way to leave. Rather than
+            // rebuild core's page into something it is not, the learner's own
+            // profile URL is sent to ours. Everybody else's profile is left alone.
+            if (self::redirect_own_profile()) {
+                return;
+            }
+
             if (!completion::enabled()) {
                 return;
             }
@@ -215,6 +224,78 @@ class hook_callbacks {
         }
 
         redirect(new \moodle_url('/local/profilefields/verify.php', ['id' => $id]));
+
+        return true;
+    }
+
+    /**
+     * Send a learner looking at their own profile to the account screen.
+     *
+     * Narrow on purpose. Only the learner's *own* profile moves: `?id=` naming
+     * somebody else is core's public profile page and stays that way, which is
+     * also what AC-4.5.11 needs, since the public instructor profile is a
+     * different screen with a different set of fields.
+     *
+     * Four other ways out, all of them cases where core's page is the right
+     * answer and a redirect would be taking something away:
+     *
+     * - `?course=` - the profile as seen from inside a course carries that
+     *   course's roles, groups and activity reports, none of which the account
+     *   screen has;
+     * - `?edit=` / `?reset=` - somebody is arranging the blocks on the page;
+     * - `?core=1` - a deliberate escape hatch, so an administrator can still
+     *   reach the stock page without turning the redirect off site-wide;
+     * - the mobile app's WebView, which has its own account screens.
+     *
+     * @return bool true when the request has been redirected away
+     */
+    protected static function redirect_own_profile(): bool {
+        global $USER, $PAGE;
+
+        if (self::script_path() !== '/user/profile.php') {
+            return false;
+        }
+
+        if (CLI_SCRIPT || AJAX_SCRIPT || WS_SERVER || NO_MOODLE_COOKIES) {
+            return false;
+        }
+
+        // Not while logged in as somebody else: the point of that session is to
+        // see what they see, and their account screen is not ours to open.
+        if (!isloggedin() || isguestuser() || \core\session\manager::is_loggedinas()) {
+            return false;
+        }
+
+        if (self::is_app_request()) {
+            return false;
+        }
+
+        if (!empty($PAGE) && in_array($PAGE->pagelayout,
+                ['embedded', 'maintenance', 'redirect', 'print'], true)) {
+            return false;
+        }
+
+        if (optional_param('core', 0, PARAM_BOOL)) {
+            return false;
+        }
+
+        $courseid = optional_param('course', SITEID, PARAM_INT);
+        if ($courseid != SITEID) {
+            return false;
+        }
+
+        if (optional_param('edit', null, PARAM_BOOL) !== null
+                || optional_param('reset', null, PARAM_BOOL) !== null) {
+            return false;
+        }
+
+        // No id at all means "mine", which is how the wireframe's link is written.
+        $id = optional_param('id', 0, PARAM_INT);
+        if ($id !== 0 && $id !== (int) $USER->id) {
+            return false;
+        }
+
+        redirect(account::url());
 
         return true;
     }

@@ -118,6 +118,7 @@ $string['acad_modulen'] = 'الوحدة {$a}';
 $string['acad_nitems'] = '{$a} عناصر';
 $string['acad_moduledetails'] = 'تفاصيل الوحدة';
 $string['acad_included'] = 'ما الذي تتضمّنه';
+$string['acad_videolength'] = 'مدة الفيديو';
 $string['acad_instructors'] = 'المدرّبون';
 $string['acad_instructorrole'] = 'مدرّب';
 $string['acad_offeredby'] = 'مقدَّم من';

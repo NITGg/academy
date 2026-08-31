@@ -131,6 +131,7 @@ $string['acad_modulen'] = 'Module {$a}';
 $string['acad_nitems'] = '{$a} items';
 $string['acad_moduledetails'] = 'Module details';
 $string['acad_included'] = 'What\'s included';
+$string['acad_videolength'] = 'Video length';
 $string['acad_instructors'] = 'Instructors';
 $string['acad_instructorrole'] = 'Instructor';
 $string['acad_offeredby'] = 'Offered by';

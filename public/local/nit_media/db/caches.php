@@ -15,18 +15,26 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the sign-up / profile field layout.
+ * MUC cache definitions for local_nit_media.
  *
- * @package    local_profilefields
+ * @package    local_nit_media
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_profilefields';
-$plugin->version   = 2026083102;        // YYYYMMDDXX.
-$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
-$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.8.0';
+$definitions = [
+    // Video playing times, in seconds. Two kinds of key share the store because
+    // both answer the same question at different costs: "hash_<contenthash>" is
+    // the parse result for a set of bytes, "cm_<cmid>_<cacherev>" is the same
+    // number reached without the file query. Both are immutable for their key,
+    // so nothing here is ever invalidated - see \local_nit_media\duration.
+    'duration' => [
+        'mode'                   => \core_cache\store::MODE_APPLICATION,
+        'simplekeys'             => true,
+        'simpledata'             => true,
+        'staticacceleration'     => true,
+        'staticaccelerationsize' => 100,
+    ],
+];

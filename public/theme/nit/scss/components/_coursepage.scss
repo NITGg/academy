@@ -591,6 +591,16 @@ body:has(.acad-cr) .acad-cr__act-name { flex: 1; min-width: 0; color: var(--cr-i
 body:has(.acad-cr) .acad-cr__act-name a { color: var(--cr-ink); }
 body:has(.acad-cr) .acad-cr__act-name a:hover { color: var(--cr-link); }
 body:has(.acad-cr) .acad-cr__act-type { color: var(--cr-muted); white-space: nowrap; font-size: 13px; }
+/* Playing time, for the rows that have one. Tabular figures so the colons line
+   up down the list; LTR because a clock reading is not mirrored in Arabic. */
+body:has(.acad-cr) .acad-cr__act-dur {
+    color: var(--cr-muted);
+    white-space: nowrap;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+    unicode-bidi: isolate;
+}
 body:has(.acad-cr) .acad-cr__act-locked { color: var(--cr-muted); font-size: 14px; padding: 8px 0; }
 
 /* ---- Instructor rail ----------------------------------------------------- */

@@ -41,13 +41,13 @@ class login_manager {
         global $CFG, $DB, $USER;
 
         if (empty($CFG->enablewebservices)) {
-            throw new \moodle_exception('enablewsdescription', 'webservice');
+            throw self::fail('enablewsdescription', 'enablewsdescription', 'webservice');
         }
 
         $username = trim(\core_text::strtolower($username));
 
         if (is_restored_user($username)) {
-            throw new \moodle_exception('restoredaccountresetpassword', 'webservice');
+            throw self::fail('restoredaccountresetpassword', 'restoredaccountresetpassword', 'webservice');
         }
 
         // Third argument false = do NOT ignore the lockout, so this endpoint is
@@ -64,25 +64,28 @@ class login_manager {
 
         if (!empty($CFG->maintenance_enabled)
                 && !has_capability('moodle/site:maintenanceaccess', $systemcontext, $user)) {
-            throw new \moodle_exception('sitemaintenance', 'admin');
+            throw self::fail('sitemaintenance', 'sitemaintenance', 'admin');
         }
 
         if (isguestuser($user)) {
-            // Component stated explicitly - it is 'error' by default and that is
-            // where this string happens to live, but see failure_exception()
-            // below for why leaving it implicit is a trap on this code path.
-            throw new \moodle_exception('noguest', 'error');
+            throw self::fail('noguest', 'noguest', 'error');
         }
 
         if (empty($user->confirmed)) {
-            throw new \moodle_exception('usernotconfirmed', 'moodle', '', $user->username);
+            // Our own wording, not core's. Core's 'usernotconfirmed' reads
+            // "Could not confirm {$a}", which belongs to a failed confirmation
+            // link rather than to a sign-in, and it lives in lang/en/moodle.php
+            // where moodle_exception cannot reach it (see fail() below). The
+            // errorcode stays 'usernotconfirmed' so clients keep branching on the
+            // same value they already do.
+            throw self::fail('usernotconfirmed', 'err_usernotconfirmed', 'local_academy');
         }
 
         $userauth = get_auth_plugin($user->auth);
         if (!empty($userauth->config->expiration) && $userauth->config->expiration == 1) {
             $days2expire = $userauth->password_expire($user->username);
             if ((int) $days2expire < 0) {
-                throw new \moodle_exception('passwordisexpired', 'webservice');
+                throw self::fail('passwordisexpired', 'passwordisexpired', 'webservice');
             }
         }
 
@@ -95,7 +98,7 @@ class login_manager {
 
         $servicerecord = $DB->get_record('external_services', ['shortname' => $service, 'enabled' => 1]);
         if (empty($servicerecord)) {
-            throw new \moodle_exception('servicenotavailable', 'webservice');
+            throw self::fail('servicenotavailable', 'servicenotavailable', 'webservice');
         }
 
         // Core mints the token: same table, same reuse and expiry rules, so the
@@ -138,16 +141,51 @@ class login_manager {
             return lockout::exception($user);
         }
 
-        // Our own copy of core's wording rather than core's 'invalidlogin', and
-        // not by preference: moodle_exception rewrites the component 'moodle' and
-        // 'core' to 'error' in its constructor, and 'invalidlogin' lives in
-        // lang/en/moodle.php - so through this class the string can never
-        // resolve, and getMessage() would hand the app the literal text
-        // "error/invalidlogin". token.php gets away with it because core renders
-        // the exception through the error handler; the JSON dispatcher reads
-        // getMessage() directly. Keep err_invalidlogin worded identically to
-        // core's invalidlogin.
-        return new \moodle_exception('err_invalidlogin', 'local_academy');
+        // Our own copy of core's wording rather than core's 'invalidlogin' - see
+        // fail() for why core's cannot be reached from here. Keep
+        // err_invalidlogin worded identically to core's invalidlogin.
+        return self::fail('invalidlogin', 'err_invalidlogin', 'local_academy');
+    }
+
+    /**
+     * Build a failure the JSON envelope can describe completely.
+     *
+     * Two things are separated on purpose:
+     *
+     * - the **message**, which is for a person to read and is therefore
+     *   translated and free to be reworded at any time;
+     * - the **errorcode**, which is for the app to branch on and must therefore
+     *   never change once clients depend on it.
+     *
+     * Clients used to have to parse the message to tell one failure from
+     * another, which meant any rewording silently broke them. The codes below are
+     * the ones /login/token.php puts in its own `errorcode` field, so a client can
+     * use one table for both endpoints.
+     *
+     * The indirection also works around a trap that has bitten this file twice:
+     * moodle_exception rewrites the components 'moodle' and 'core' to 'error' in
+     * its constructor, so any core string that lives in lang/en/moodle.php -
+     * 'invalidlogin' and 'usernotconfirmed' among them - can never be resolved
+     * through it, and getMessage() returns the literal "error/invalidlogin"
+     * instead. Core gets away with it because its error handler renders the
+     * exception by hand; a JSON dispatcher reading getMessage() does not. Those
+     * two cases therefore carry our own translated string with the core errorcode
+     * pinned back on.
+     *
+     * @param string $apicode stable machine-readable code for the client
+     * @param string $identifier lang string identifier for the human message
+     * @param string $component component the identifier lives in
+     * @param mixed $a placeholder data for the string
+     * @return \moodle_exception
+     */
+    private static function fail(string $apicode, string $identifier, string $component, $a = null): \moodle_exception {
+        $exception = new \moodle_exception($identifier, $component, '', $a);
+
+        // Set after construction: moodle_exception uses errorcode to find the
+        // string, so it cannot be the client-facing code until the lookup is done.
+        $exception->errorcode = $apicode;
+
+        return $exception;
     }
 
     /**

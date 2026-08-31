@@ -43,6 +43,14 @@ class lockout {
     const SESSION_FLAG = 'local_academy_lockoutnotice';
 
     /**
+     * The machine-readable code the API reports for a blocked account.
+     *
+     * Part of the published API contract: clients branch on it, so it is fixed
+     * even though the sentence beside it is free to be reworded or retranslated.
+     */
+    const ERRORCODE = 'accountlocked';
+
+    /**
      * Is this account locked out right now?
      *
      * Thin wrapper over core so callers do not have to remember to require
@@ -142,7 +150,15 @@ class lockout {
     public static function exception(\stdClass $user): \moodle_exception {
         [$key, $a] = self::wording($user);
 
-        return new \moodle_exception($key, 'local_academy', '', $a);
+        $exception = new \moodle_exception($key, 'local_academy', '', $a);
+
+        // One code for both wordings. A client branching on "is this account
+        // blocked?" must not have to know that the message differs depending on
+        // whether the block expires by itself, and must not break when the
+        // sentence is reworded. 'accountlocked' is what core calls this state.
+        $exception->errorcode = self::ERRORCODE;
+
+        return $exception;
     }
 
     /**

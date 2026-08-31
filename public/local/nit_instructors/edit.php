@@ -106,7 +106,20 @@ if ($form->is_cancelled()) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('background', 'local_nit_instructors'));
+
+// WF-5.6 draws this as one more pane of the account screen, so it borrows that
+// screen's navigation box rather than printing a page of its own. Guarded:
+// local_profilefields is a separate install, and an instructor must still be able
+// to edit their background on a site that does not have it.
+$inshell = class_exists('\local_profilefields\account');
+if ($inshell) {
+    \local_profilefields\account::open(\local_profilefields\account::SECTION_BACKGROUND);
+    echo html_writer::start_div('nit-account__card');
+    echo html_writer::tag('h2', get_string('background', 'local_nit_instructors'),
+        ['class' => 'nit-account__cardtitle']);
+} else {
+    echo $OUTPUT->heading(get_string('background', 'local_nit_instructors'));
+}
 
 echo output::status_banner((int) $USER->id);
 
@@ -117,5 +130,10 @@ echo html_writer::div(
     'mb-3');
 
 $form->display();
+
+if ($inshell) {
+    echo html_writer::end_div();
+    \local_profilefields\account::close();
+}
 
 echo $OUTPUT->footer();

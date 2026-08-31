@@ -101,16 +101,27 @@ class account_profile_form extends moodleform {
         // Read-only with a button beside it, not an editable box. Changing an
         // address is a two-step act with a password and a confirmation link, and a
         // field you can type over promises that "Save changes" is enough.
+        //
+        // No button at all on an account that signs in through Google: its address
+        // belongs to the Google account, and offering a change we would then refuse
+        // for want of a password is worse than not offering it.
+        $canchange = (bool) $this->_customdata['canchangeemail'];
+
+        $control = $canchange
+            ? html_writer::link(
+                (new \moodle_url(account::url(account::SECTION_PROFILE), ['changeemail' => 1]))->out(false),
+                get_string('changeemailbutton', 'local_profilefields'),
+                ['class' => 'btn btn-secondary nit-account__inlinebtn'])
+            : '';
+
         $mform->addElement('static', 'emailrow', get_string('email'),
             html_writer::div(
-                html_writer::span(s($user->email), 'nit-account__readvalue')
-                . html_writer::link(
-                    account::url(account::SECTION_PROFILE)->out(false) . '&amp;changeemail=1',
-                    get_string('changeemailbutton', 'local_profilefields'),
-                    ['class' => 'btn btn-secondary nit-account__inlinebtn']),
+                html_writer::span(s($user->email), 'nit-account__readvalue') . $control,
                 'nit-account__inlinerow'));
-        $mform->addElement('static', 'emailhelp', '',
-            get_string('emailchangehelp', 'local_profilefields'));
+
+        $mform->addElement('static', 'emailhelp', '', $canchange
+            ? get_string('emailchangehelp', 'local_profilefields')
+            : get_string('emailchangeexternal', 'local_profilefields'));
 
         // --- Nationality ---------------------------------------------------
 

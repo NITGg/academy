@@ -8,7 +8,13 @@ POST /local/academy/api.php?function=<name>
 ```
 
 Responses are always `{"status":"success","data":{...}}` or
-`{"status":"fail","error":"<message>"}`. Show the `error` message to the user.
+`{"status":"fail","error":"<message>","errorcode":"<code>"}`.
+
+**Show `error`. Branch on `errorcode`.** The message is translated and may be
+reworded; the code is stable. The codes here are the lang-string identifiers
+(`err_invalidemail`, `err_toomanyrequests`, `err_otpexpired`, `err_otplocked`,
+`err_otpinvalid`, `err_resetexpired`, `err_weakpassword`, `err_wrongpassword`,
+`err_authnochange`).
 
 **Auth:**
 - **Forgot-password** endpoints (`request_password_otp`, `verify_password_otp`,

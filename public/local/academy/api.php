@@ -4,7 +4,13 @@
  *
  * Protocol (unchanged from the old academy):
  *   GET|POST /local/academy/api.php?function=<name>&token=<wstoken>&...
- *   → {"status":"success","data":...} | {"status":"fail","error":"..."}
+ *   → {"status":"success","data":...}
+ *   → {"status":"fail","error":"<translated>","errorcode":"<stable code>"}
+ *
+ * Show `error`; branch on `errorcode`. The message is translated and may be
+ * reworded at any time, so a client that matches on its text breaks the first
+ * time the copy improves or the user switches language. The codes match the ones
+ * /login/token.php reports, so one table covers both endpoints.
  *
  * The token is validated against Moodle's external_tokens table and $USER is set
  * to the token's owner; state-changing calls require POST.
@@ -28,11 +34,43 @@ function academy_respond($payload) {
 }
 
 /**
+ * Emit a failure and stop.
+ *
+ * Every failure carries two things, and the split is the point:
+ *
+ * - `error` is for a person to read. It is translated, follows the request
+ *   language, and is free to be reworded whenever the copy improves.
+ * - `errorcode` is for the client to branch on. It never changes.
+ *
+ * Without the code a client has to match on the message text, so improving a
+ * sentence - or a user simply having a different language - silently breaks it.
+ *
+ * @param string $errorcode stable machine-readable code
+ * @param string $message translated, ready to show
+ */
+function academy_fail(string $errorcode, string $message) {
+    academy_respond(['status' => 'fail', 'error' => $message, 'errorcode' => $errorcode]);
+}
+
+/**
+ * Emit a failure described by a thrown moodle_exception.
+ *
+ * The exception already carries both halves: getMessage() is the translated
+ * sentence and errorcode is the stable code (which the throwing code may have
+ * pinned deliberately - see \local_academy\login_manager::fail()).
+ *
+ * @param \moodle_exception $e
+ */
+function academy_fail_exception(\moodle_exception $e) {
+    academy_fail((string) $e->errorcode, $e->getMessage());
+}
+
+/**
  * Reject non-POST requests for state-changing calls.
  */
 function academy_require_post() {
     if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-        academy_respond(['status' => 'fail', 'error' => get_string('err_postrequired', 'local_academy')]);
+        academy_fail('postrequired', get_string('err_postrequired', 'local_academy'));
     }
 }
 
@@ -41,13 +79,13 @@ $token    = optional_param('token', '', PARAM_ALPHANUM);
 
 // ── Authenticate via web-service token (sets $USER to the token's user) ──
 if (empty($token)) {
-    academy_respond(['status' => 'fail', 'error' => get_string('err_authrequired', 'local_academy')]);
+    academy_fail('authrequired', get_string('err_authrequired', 'local_academy'));
 }
 // Full web-service token validation (expiry, IP restriction, service enabled,
 // account state) — not just a raw token→user lookup.
 $USER = \local_academy\token_auth::validate($token);
 if (!$USER) {
-    academy_respond(['status' => 'fail', 'error' => get_string('err_invalidtoken', 'local_academy')]);
+    academy_fail('invalidtoken', get_string('err_invalidtoken', 'local_academy'));
 }
 \core\session\manager::set_user($USER);
 $userid = (int) $USER->id;
@@ -89,7 +127,7 @@ try {
             $raw       = required_param('answers', PARAM_RAW);
             $answers   = json_decode($raw, true);
             if (!is_array($answers)) {
-                academy_respond(['status' => 'fail', 'error' => 'answers must be a JSON array']);
+                academy_fail('invalidanswers', 'answers must be a JSON array');
             }
             academy_respond(['status' => 'success', 'data' => \local_academy\quiz_manager::submit_attempt($attemptid, $userid, $answers)]);
             break;
@@ -141,7 +179,7 @@ try {
             try {
                 $data = \local_academy\login_manager::login($loginusername, $loginpassword, $loginservice);
             } catch (\moodle_exception $e) {
-                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+                academy_fail_exception($e);
             }
             academy_respond(['status' => 'success', 'data' => $data]);
             break;
@@ -158,7 +196,7 @@ try {
             try {
                 $data = \local_academy\password_reset_manager::request_otp($email);
             } catch (\moodle_exception $e) {
-                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+                academy_fail_exception($e);
             }
             academy_respond(['status' => 'success', 'data' => $data]);
             break;
@@ -171,7 +209,7 @@ try {
             try {
                 $data = \local_academy\password_reset_manager::verify_otp($email, $otp);
             } catch (\moodle_exception $e) {
-                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+                academy_fail_exception($e);
             }
             academy_respond(['status' => 'success', 'data' => $data]);
             break;
@@ -184,7 +222,7 @@ try {
             try {
                 $data = \local_academy\password_reset_manager::reset_password($resettoken, $newpassword);
             } catch (\moodle_exception $e) {
-                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+                academy_fail_exception($e);
             }
             academy_respond(['status' => 'success', 'data' => $data]);
             break;
@@ -197,7 +235,7 @@ try {
             try {
                 $data = \local_academy\password_reset_manager::change_password($userid, $current, $newpassword);
             } catch (\moodle_exception $e) {
-                academy_respond(['status' => 'fail', 'error' => $e->getMessage()]);
+                academy_fail_exception($e);
             }
             academy_respond(['status' => 'success', 'data' => $data]);
             break;
@@ -236,13 +274,13 @@ try {
             academy_require_post();
             $courseid = required_param('courseid', PARAM_INT);
             if (!class_exists('\local_payments\price_resolver')) {
-                academy_respond(['status' => 'fail', 'error' => 'Payments module not available']);
+                academy_fail('paymentsunavailable', 'Payments module not available');
             }
             if ($courseid == SITEID || !$DB->record_exists('course', ['id' => $courseid, 'visible' => 1])) {
-                academy_respond(['status' => 'fail', 'error' => 'Course not available']);
+                academy_fail('coursenotavailable', 'Course not available');
             }
             if (\local_payments\price_resolver::has_pricing($courseid)) {
-                academy_respond(['status' => 'fail', 'error' => 'This course is not free']);
+                academy_fail('coursenotfree', 'This course is not free');
             }
             $enrolled = \local_payments\enrollment_handler::enrol_user($userid, (int) $courseid, 5);
             academy_respond([
@@ -262,7 +300,7 @@ try {
         // Admin: full teacher directory with filters + pagination (manageplatform).
         case 'get_all_teachers':
             if (!has_capability('local/academy:manageplatform', context_system::instance())) {
-                academy_respond(['status' => 'fail', 'error' => get_string('err_authrequired', 'local_academy')]);
+                academy_fail('authrequired', get_string('err_authrequired', 'local_academy'));
             }
             $filters = [];
             foreach (['courseid', 'categoryid', 'page', 'perpage'] as $f) {
@@ -288,7 +326,7 @@ try {
             try {
                 $teacher = \local_academy\teacher_manager::get_teacher($teacherid);
             } catch (\moodle_exception $e) {
-                academy_respond(['status' => 'fail', 'error' => get_string('err_teachernotfound', 'local_academy')]);
+                academy_fail('teachernotfound', get_string('err_teachernotfound', 'local_academy'));
             }
             academy_respond(['status' => 'success', 'data' => $teacher]);
             break;
@@ -300,11 +338,11 @@ try {
             break;
 
         default:
-            academy_respond(['status' => 'fail', 'error' => get_string('err_unknownfunction', 'local_academy')]);
+            academy_fail('unknownfunction', get_string('err_unknownfunction', 'local_academy'));
     }
 } catch (\Throwable $e) {
     // Log the real cause for developers, but never leak internal exception text
     // (DB errors, paths, stack internals) to the client.
     debugging('local_academy api error: ' . $e->getMessage(), DEBUG_DEVELOPER);
-    academy_respond(['status' => 'fail', 'error' => get_string('err_internal', 'local_academy')]);
+    academy_fail('internalerror', get_string('err_internal', 'local_academy'));
 }

@@ -30,6 +30,10 @@
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->dirroot . '/user/editlib.php');
 require_once($CFG->dirroot . '/user/profile/lib.php');
+// file_prepare_draft_area() below. setup.php only loads filelib on a proxied
+// site, so a page that calls it has to ask for it rather than inherit it from
+// whatever else happened to be included first.
+require_once($CFG->libdir . '/filelib.php');
 
 use local_profilefields\account;
 use local_profilefields\form\account_profile_form;
@@ -84,24 +88,46 @@ if ($section === account::SECTION_SECURITY) {
         ? get_string('passwordlastchanged', 'local_profilefields', userdate($changed, get_string('strftimedate')))
         : get_string('passwordlastchangedunknown', 'local_profilefields');
 
+    // An account that signs in through Google has no password here to change, so
+    // it is told where its password actually lives instead of being sent to a
+    // core screen that would turn it away.
+    $canchange = account::can_verify_password($USER);
+
+    $control = $canchange
+        ? html_writer::link(
+            new moodle_url('/login/change_password.php'),
+            get_string('changepassword'),
+            ['class' => 'btn btn-secondary nit-account__inlinebtn'])
+        : '';
+
     $before = account::card(
         get_string('password'),
         html_writer::div(
             html_writer::div(
-                html_writer::div($when, 'nit-account__readvalue')
-                . html_writer::link(
-                    new moodle_url('/login/change_password.php'),
-                    get_string('changepassword'),
-                    ['class' => 'btn btn-secondary nit-account__inlinebtn']),
+                html_writer::div($canchange ? $when
+                    : get_string('passwordexternal', 'local_profilefields'),
+                    'nit-account__readvalue')
+                . $control,
                 'nit-account__inlinerow')
-            . html_writer::div(get_string('passwordchangehelp', 'local_profilefields'),
-                'nit-account__help'),
+            . ($canchange
+                ? html_writer::div(get_string('passwordchangehelp', 'local_profilefields'),
+                    'nit-account__help')
+                : ''),
             ''
         )
     );
 
 } else if ($changeemail) {
     // ------------------------------------------------- WF-5.1, "Change" email
+
+    // The button that leads here is not drawn for an account without a local
+    // password, but the URL can still be typed. Refused here rather than handed a
+    // form whose password box it could never satisfy.
+    if (!account::can_verify_password($USER)) {
+        redirect(account::url(account::SECTION_PROFILE),
+            get_string('emailchangeexternal', 'local_profilefields'), null,
+            \core\output\notification::NOTIFY_ERROR);
+    }
 
     $cardtitle = get_string('changeemailtitle', 'local_profilefields');
     $cardlead = get_string('emailchangehelp', 'local_profilefields');
@@ -154,6 +180,7 @@ if ($section === account::SECTION_SECURITY) {
         'user' => $user,
         'picture' => $OUTPUT->user_picture($USER, ['size' => 100, 'link' => false]),
         'lockedgroup' => account::locked_group($USER),
+        'canchangeemail' => account::can_verify_password($USER),
     ]);
 
     $form->set_data($user);

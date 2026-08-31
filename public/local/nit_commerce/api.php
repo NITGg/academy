@@ -115,6 +115,7 @@ try {
         case 'create_coupon':
             $id = coupon_manager::create_coupon([
                 'code'           => required_param('code', PARAM_TEXT),
+                'name'           => optional_param('name', '', PARAM_TEXT),
                 'discount_type'  => optional_param('discount_type', 'percent', PARAM_ALPHA),
                 'discount_value' => optional_param('discount_value', 0, PARAM_FLOAT),
                 'max_discount'   => optional_param('max_discount', '', PARAM_RAW_TRIMMED),
@@ -131,6 +132,7 @@ try {
         case 'update_coupon':
             coupon_manager::update_coupon(required_param('id', PARAM_INT), [
                 'code'           => required_param('code', PARAM_TEXT),
+                'name'           => optional_param('name', '', PARAM_TEXT),
                 'discount_type'  => optional_param('discount_type', 'percent', PARAM_ALPHA),
                 'discount_value' => optional_param('discount_value', 0, PARAM_FLOAT),
                 'max_discount'   => optional_param('max_discount', '', PARAM_RAW_TRIMMED),

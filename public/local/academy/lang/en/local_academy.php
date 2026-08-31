@@ -65,3 +65,4 @@ $string['settings_otpttl_desc'] = 'How long a reset code remains usable after it
 // \local_academy\login_manager::failure_exception() for why core's own string
 // cannot be reached through moodle_exception.
 $string['err_invalidlogin'] = 'Invalid login, please try again';
+$string['err_usernotconfirmed'] = 'Your account has not been confirmed yet. Please open the confirmation link we emailed you, then sign in again.';

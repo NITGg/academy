@@ -46,7 +46,7 @@ class coupon_manager {
     /**
      * Create a coupon.
      *
-     * @param array $data code, discount_type, discount_value, max_discount, usage_type, usage_limit,
+     * @param array $data code, name, discount_type, discount_value, max_discount, usage_type, usage_limit,
      *                     startdate, enddate, active, items[]
      * @param int $userid admin
      * @return int new coupon id
@@ -61,6 +61,7 @@ class coupon_manager {
         $now = time();
         $record = new \stdClass();
         $record->code           = $code;
+        $record->name           = self::normalize_name($data['name'] ?? '');
         $record->discount_type  = discount_manager::normalize_discount_type($data['discount_type'] ?? 'percent');
         $record->discount_value = self::validate_value($record->discount_type, $data['discount_value'] ?? 0);
         $record->max_discount   = self::validate_max($data['max_discount'] ?? null);
@@ -98,6 +99,9 @@ class coupon_manager {
                 throw new \moodle_exception('err_couponcodetaken', 'local_nit_commerce');
             }
             $update->code = $code;
+        }
+        if (array_key_exists('name', $data)) {
+            $update->name = self::normalize_name($data['name']);
         }
         if (array_key_exists('discount_type', $data)) {
             $update->discount_type = discount_manager::normalize_discount_type($data['discount_type']);
@@ -269,6 +273,9 @@ class coupon_manager {
         return array(
             'id'             => (int)$record->id,
             'code'           => $record->code,
+            // 'name' is localised for display; 'name_raw' keeps the stored {mlang} markup for editing.
+            'name'           => format_string(discount_manager::resolve_mlang((string)$record->name)),
+            'name_raw'       => (string)$record->name,
             'discount_type'  => $record->discount_type,
             'discount_value' => (float)$record->discount_value,
             'max_discount'   => $record->max_discount === null ? null : (float)$record->max_discount,
@@ -307,6 +314,16 @@ class coupon_manager {
             ));
         }
         $transaction->allow_commit();
+    }
+
+    /**
+     * Normalize a display name (trim). Optional - an empty name is stored as an empty string.
+     *
+     * @param string $name may carry {mlang} markup
+     * @return string
+     */
+    private static function normalize_name($name) {
+        return \core_text::substr(trim((string)$name), 0, 255);
     }
 
     /**

@@ -48,8 +48,15 @@ class deleteaccount_form extends moodleform {
     protected function definition(): void {
         $mform = $this->_form;
 
+        // WF-5.3 words the panel in three parts: what is about to happen, then
+        // AC-4.5.4's sentence, then the two things that survive it. The last part
+        // matters most to whoever is hesitating - a learner who thinks deleting
+        // the account revokes the certificate they earned will not click, and
+        // that would be the wrong reason to stay.
         $mform->addElement('html', \html_writer::div(
-            get_string('deleteaccountwarning', 'local_profilefields'),
+            \html_writer::tag('strong', get_string('deleteaccountcannotbeundone', 'local_profilefields'))
+            . \html_writer::div(get_string('deleteaccountwarning', 'local_profilefields'), 'mt-1')
+            . \html_writer::div(get_string('deleteaccountretained', 'local_profilefields'), 'mt-1'),
             'alert alert-danger'
         ));
 

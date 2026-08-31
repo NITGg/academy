@@ -990,11 +990,42 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $o .= html_writer::div(
                 $ico .
                 html_writer::div($name, 'acad-cr__act-name') .
+                $this->acad_act_duration($cm) .
                 html_writer::tag('span', s((string) $cm->modfullname), ['class' => 'acad-cr__act-type']),
                 'acad-cr__act'
             );
         }
         return $o;
+    }
+
+    /**
+     * Playing time badge for an activity row, when the activity plays a video.
+     *
+     * The length a learner cares about is already in the file - it just never
+     * reaches the course page, because Moodle only learns it when the browser
+     * loads the video on mod/resource/view.php. local_nit_media reads it out of
+     * the container header instead, so the row can say "0:07" up front.
+     *
+     * Guarded by class_exists so the theme still renders on a site where that
+     * plugin is absent: the row then looks exactly as it did before.
+     *
+     * @param \cm_info $cm
+     * @return string HTML, or '' when there is no video or no readable length
+     */
+    protected function acad_act_duration($cm): string {
+        if (!class_exists('\local_nit_media\duration')) {
+            return '';
+        }
+
+        $seconds = \local_nit_media\duration::for_cm($cm);
+        if ($seconds === null) {
+            return '';
+        }
+
+        return html_writer::tag('span', \local_nit_media\duration::format($seconds), [
+            'class' => 'acad-cr__act-dur',
+            'title' => get_string('acad_videolength', 'theme_nit'),
+        ]);
     }
 
     /**
