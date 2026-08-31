@@ -62,6 +62,15 @@ defined('MOODLE_INTERNAL') || die();
  * tie up a request thread - or queuing the mail. It is noted here rather than
  * silently ignored.
  *
+ * That one gap has a second face worth knowing about, because it looks like a
+ * different bug. A real send is stamped when the secret is rotated, which is
+ * before the mail transport is called, so the seconds the transport spends are
+ * already gone by the time the *next* call is judged: two calls in a row come
+ * back with `retryafter` 56 where an unknown address gives 60. It is the same
+ * measurement an attacker could take with a stopwatch on the first call, in a
+ * form that does not need one - not new information, and it closes only when the
+ * timing does.
+ *
  * @package    local_profilefields
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -113,13 +122,18 @@ class resend_api {
         } catch (\Throwable $e) {
             // Whatever went wrong must not become the one reply that only ever
             // happens on one side of the branch. The two halves of this function
-            // do not fail alike: only a real account reaches the mail transport,
-            // and only an unknown address reaches the cache - so a mail server
-            // that throws instead of returning false, or a cache definition that
-            // a deploy forgot to rebuild, would each single out exactly one class
-            // of address. That is a sharper enumeration oracle than any this
-            // class was written to close, and it would arrive dressed as an
-            // unrelated bug.
+            // do not fail alike - only a real account reaches the mail transport,
+            // only an unknown address reaches the cache - so a fault on either
+            // side singles out exactly one class of address. That is a sharper
+            // enumeration oracle than any this class was written to close, and it
+            // would arrive dressed as an unrelated bug rather than as a leak.
+            //
+            // The mail transport is the realistic one: a misconfigured SMTP host
+            // throws out of email_to_user() rather than returning false, and only
+            // an address with an account can get that far. (The cache side is
+            // hardier than it looks - a definition missing after a deploy does not
+            // raise anything, because the cache factory falls back to an ad-hoc
+            // one. Caught here anyway: the point is not to enumerate the faults.)
             //
             // The cost of catching is that while something *is* broken the decoy
             // tally may stop counting, so unknown addresses go unthrottled until
