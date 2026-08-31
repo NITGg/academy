@@ -391,33 +391,32 @@ the dashboard. The v3 refund webhook *is* signed, so an approved refund is
 matched back to its order by Fawaterk's numeric transaction id — which is
 recorded when the payment completes — and applied automatically.
 
-**Currency — Fawaterk converts, and the payment page hides it.** A 4.50 USD order
-is shown to the buyer as `Pay - USD 4.50`, which makes it look like USD is
-supported. It is not: the transaction settles as **240.44 EGP**, and the attempt
-history says so outright:
+**Currency — multi-currency works, but the reporting is always EGP.** The buyer is
+charged in whichever currency the order uses: a 4.50 USD order shows as
+`Pay - USD 4.50` and is authorised in USD.
+
+Fawaterk then reports it back converted into EGP, because EGP is their settlement
+currency. The spec says so outright:
 
 ```jsonc
-"transaction_history": [
-  { "amount": "240.44 EGP", "currency": "EGP", "status": "SUCCESS" }
-]
+"total":    "Transaction total converted to EGP."
+"currency": "Returned currency is EGP after conversion."
 ```
 
-So the order we quoted at 4.50 USD and the payment Fawaterk took are different
-amounts in different currencies, at a rate nobody agreed. Our amount check —
-the guard against a tampered webhook — then refuses to confirm it, and the buyer
-is left paid but not enrolled.
+So `getTransactionData` on a USD order returns `total: 240.435, currency: EGP`.
+That is the same payment expressed in their books, not a different charge — and
+comparing it to the order will always disagree for any non-EGP currency.
 
-*Settlement currencies* therefore defaults to **EGP alone**. A course priced in
-anything else is not offered Fawaterk: it falls through to another provider, or
-fails at checkout with "no provider found", which is safer than charging an
-amount nobody quoted. **Price in EGP for Egypt and this never arises.**
+The gateway therefore declares `reports_normalised_amounts()`, and the amount
+check skips the comparison when the reported currency differs from the order.
+That is not a hole: the amount is fixed when the transaction is created — the
+buyer can only pay what was put on it — and the gateway has already confirmed
+*that* transaction as paid, over an authenticated call. The amount is guaranteed
+by creation rather than by reporting. When the currencies **do** match, the
+figures are compared as normal.
 
-If you must sell in another currency through an EGP account, turn on *Accept
-payments Fawaterk converted* and add the currency to the list. That accepts
-Fawaterk's rate for money the site did not price; the order keeps the price the
-buyer agreed to and the settled figure is recorded in its metadata for
-reconciliation. It is off by default because it is a commercial decision, not a
-technical one.
+The EGP figure is recorded in the transaction metadata as `settled`, so
+reconciling against a Fawaterk statement has something to work from.
 
 ---
 

@@ -77,15 +77,22 @@ interface provider_interface {
     public function get_payment_methods(): array;
 
     /**
-     * Whether this gateway may settle in a currency other than the order's.
+     * Whether the amounts this gateway reports back are normalised.
      *
-     * A gateway that converts reports a total we cannot reconcile against the
-     * amount we quoted, so accepting one is a deliberate choice: it means
-     * trusting the gateway's rate for money we did not price.
+     * Some gateways report every transaction converted into their own settlement
+     * currency regardless of what the buyer was charged — Fawaterk documents
+     * getTransactionData's total as "converted to EGP". Comparing that figure to
+     * the order is meaningless: it will differ whenever the order is not in the
+     * settlement currency, and matching it would prove nothing.
+     *
+     * For such a gateway the amount is guaranteed at creation instead: we made
+     * the session with our own amount, and the gateway confirming that session
+     * as paid is the confirmation. Only say true when that is genuinely how the
+     * provider behaves.
      *
      * @return bool
      */
-    public function allows_currency_conversion(): bool;
+    public function reports_normalised_amounts(): bool;
 
     public function supports_refund(): bool;
     public function supports_void(): bool;

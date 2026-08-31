@@ -1235,28 +1235,27 @@ class gateway extends base_provider {
     }
 
     /**
-     * Whether this account may settle in its own currency instead of the order's.
+     * Fawaterk reports in EGP whatever the order was charged in.
      *
-     * Off by default. Fawaterk really does convert: a 4.50 USD order is shown to
-     * the buyer as "Pay USD 4.50" but settles as 240.44 EGP, and the attempt
-     * history confirms EGP is what was charged. Turning this on means accepting
-     * Fawaterk's rate for money we did not price, so it is a decision rather
-     * than a default.
+     * Not a setting — it is documented behaviour of the API. getTransactionData
+     * describes `total` as "Transaction total converted to EGP" and `currency`
+     * as "Returned currency is EGP after conversion". A 4.50 USD order is
+     * presented to the buyer as "Pay USD 4.50" and reported back as 240.44 EGP;
+     * the two are the same payment, expressed differently.
      */
-    public function allows_currency_conversion(): bool {
-        return (bool) $this->get_setting('accept_converted', 0);
+    public function reports_normalised_amounts(): bool {
+        return true;
     }
 
     /**
      * Currencies Fawaterk may be offered for.
      *
-     * EGP alone by default, because that is what an Egyptian account settles in
-     * and anything else gets converted at a rate we did not agree. Add another
-     * only if the account genuinely settles in it, or if you have deliberately
-     * enabled conversion above.
+     * The buyer is charged in the order's currency, so multi-currency pricing
+     * works; only the reporting is normalised. Narrow this list if an account
+     * genuinely cannot take one of them.
      */
     public function supported_currencies(): array {
-        $configured = (string) $this->get_setting('currencies', 'EGP');
+        $configured = (string) $this->get_setting('currencies', 'EGP,USD,SAR,AED');
         $list = array_filter(array_map(
             static function ($code) {
                 return strtoupper(trim($code));

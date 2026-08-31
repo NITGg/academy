@@ -106,7 +106,7 @@ abstract class base_provider implements provider_interface {
         return false;
     }
 
-    public function allows_currency_conversion(): bool {
+    public function reports_normalised_amounts(): bool {
         return false;
     }
 

@@ -128,16 +128,8 @@ if ($hassiteconfig) {
         'paymentprovider_fawaterk/currencies',
         get_string('currencies', 'paymentprovider_fawaterk'),
         get_string('currencies_desc', 'paymentprovider_fawaterk'),
-        'EGP',
+        'EGP,USD,SAR,AED',
         PARAM_TEXT
-    ));
-
-    // Accept a payment Fawaterk settled in its own currency.
-    $settings->add(new admin_setting_configcheckbox(
-        'paymentprovider_fawaterk/accept_converted',
-        get_string('accept_converted', 'paymentprovider_fawaterk'),
-        get_string('accept_converted_desc', 'paymentprovider_fawaterk'),
-        0
     ));
 
     // How long Fawaterk keeps the transaction itself payable.

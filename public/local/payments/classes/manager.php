@@ -502,15 +502,20 @@ class manager {
      * There are three ways a payment can legitimately be reported:
      *  - exactly what we asked for;
      *  - the same value stated a second way (some gateways send the charged
-     *    figure on the webhook and the base-currency figure over the API);
-     *  - converted, when the gateway settles in its own currency. That last one
-     *    cannot be reconciled against our quote at all, so it is only accepted
-     *    from a provider that declares it converts — otherwise a wrong amount
-     *    would look like a right one.
+     *    figure on the webhook and a base-currency figure over the API);
+     *  - normalised into the gateway's own settlement currency, which cannot be
+     *    compared to our order at all.
      *
-     * Nothing here ever accepts an arbitrary number: the first two compare
-     * against the amount we already expect, so a tampered figure can make the
-     * check fail but never pass for the wrong value.
+     * That last case is not a hole. The amount is fixed when we create the
+     * gateway session — the buyer can only pay what we put on it — and by the
+     * time this runs the gateway has already confirmed *that session* as paid,
+     * against credentials only we hold. The amount is guaranteed by creation
+     * rather than by reporting, so re-checking a converted figure would prove
+     * nothing. It is still only accepted from a provider that declares it
+     * normalises, so a genuinely wrong amount from a normal provider fails.
+     *
+     * The first two comparisons are against the amount we already expect, so a
+     * tampered figure can make the check fail but never pass for a wrong value.
      *
      * @return array {ok: bool, converted: bool, message: string}
      */
@@ -536,12 +541,12 @@ class manager {
         }
 
         $differentcurrency = $currency !== '' && strcasecmp($currency, $expectedcurrency) !== 0;
-        if ($differentcurrency && $amount > 0 && $provider->allows_currency_conversion()) {
+        if ($differentcurrency && $amount > 0 && $provider->reports_normalised_amounts()) {
             return [
                 'ok' => true,
                 'converted' => true,
-                'message' => "Settled as {$amount} {$currency} for an order quoted at "
-                    . "{$expected} {$expectedcurrency}",
+                'message' => "Order of {$expected} {$expectedcurrency} confirmed paid; the gateway "
+                    . "reports it normalised as {$amount} {$currency}",
             ];
         }
 
@@ -550,18 +555,15 @@ class manager {
         if ($reported_amount > 0) {
             $message .= " and {$reported_amount} {$reported_currency}";
         }
-        if ($differentcurrency) {
-            $message .= '. The gateway settled in a different currency; if that is expected, '
-                . 'allow conversion in the provider settings or price in a currency it settles in.';
-        }
 
         return ['ok' => false, 'converted' => false, 'message' => $message];
     }
 
     /**
-     * Note what the gateway actually settled, when that differs from the quote.
-     * The order keeps the price the buyer agreed to; the settled figure is
-     * recorded beside it so reconciliation has something to work from.
+     * Note the figure the gateway reported, when it differs from the quote.
+     * The order keeps the price the buyer agreed to; the gateway's own number is
+     * recorded beside it so reconciliation against their statements has
+     * something to work from.
      */
     private static function record_settlement(\stdClass $transaction, float $amount, string $currency): void {
         global $DB;
