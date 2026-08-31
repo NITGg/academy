@@ -1,5 +1,31 @@
 {{!
     Payment history table template.
+
+    Context variables required for this template:
+    * has_transactions - Whether there is anything to draw
+    * transactions - Rows: order_id, course_name, amount, status, status_class,
+      payment_method, invoice_number, date, can_download, invoice_url_en,
+      invoice_url_ar
+
+    Example context (json):
+    {
+        "has_transactions": true,
+        "transactions": [
+            {
+                "order_id": "PAY-2026-04471382",
+                "course_name": "Advanced Accounting",
+                "amount": "350.00 EGP",
+                "status": "completed",
+                "status_class": "text-bg-success",
+                "payment_method": "Visa-Mastercard",
+                "invoice_number": "INV-2026-0000042",
+                "date": "30 August 2026",
+                "can_download": true,
+                "invoice_url_en": "#",
+                "invoice_url_ar": "#"
+            }
+        ]
+    }
 }}
 {{#has_transactions}}
 <div class="table-responsive">
@@ -13,6 +39,7 @@
                 <th>{{#str}}paymentmethod, local_payments{{/str}}</th>
                 <th>{{#str}}invoice, local_payments{{/str}}</th>
                 <th>{{#str}}date, local_payments{{/str}}</th>
+                <th>{{#str}}invoice_download, local_payments{{/str}}</th>
             </tr>
         </thead>
         <tbody>
@@ -25,6 +52,23 @@
                 <td>{{payment_method}}</td>
                 <td>{{invoice_number}}</td>
                 <td>{{date}}</td>
+                <td>
+                    {{#can_download}}
+                        <div class="lp-invoice-actions">
+                            <a href="{{invoice_url_en}}"
+                               class="btn btn-sm btn-outline-primary"
+                               title="{{#str}}invoice_download_en, local_payments{{/str}}">
+                                {{#str}}invoice_lang_en, local_payments{{/str}}
+                            </a>
+                            <a href="{{invoice_url_ar}}"
+                               class="btn btn-sm btn-outline-primary"
+                               title="{{#str}}invoice_download_ar, local_payments{{/str}}">
+                                {{#str}}invoice_lang_ar, local_payments{{/str}}
+                            </a>
+                        </div>
+                    {{/can_download}}
+                    {{^can_download}}<span class="text-muted">&mdash;</span>{{/can_download}}
+                </td>
             </tr>
             {{/transactions}}
         </tbody>

@@ -630,3 +630,19 @@
         text-align: center;
     }
 }
+
+/* ── Invoice download buttons ───────────────────────────────────────────── */
+
+.lp-invoice-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+/* The history table is already wide; keep the two language buttons compact so
+   the column does not force a horizontal scroll on a laptop. */
+.lp-invoice-actions .btn {
+    padding: 0.15rem 0.5rem;
+    white-space: nowrap;
+}

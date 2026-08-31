@@ -85,12 +85,19 @@ try {
         echo $OUTPUT->header();
 
         $course = $DB->get_record('course', ['id' => $result->courseid], 'id, fullname');
+        $paid = $DB->get_record('local_payments_transactions', ['order_id' => $order_id], 'id');
         $templatedata = [
             'success'      => true,
             'course_name'  => $course->fullname ?? '',
             'course_url'   => (new moodle_url('/course/view.php', ['id' => $result->courseid]))->out(false),
             'order_id'     => $order_id,
             'history_url'  => (new moodle_url('/local/payments/history.php'))->out(false),
+            // Straight after paying is when people actually want the receipt.
+            'can_download' => (bool) $paid,
+            'invoice_url_en' => $paid ? (new moodle_url('/local/payments/invoice.php',
+                ['transaction_id' => $paid->id, 'lang' => 'en']))->out(false) : '',
+            'invoice_url_ar' => $paid ? (new moodle_url('/local/payments/invoice.php',
+                ['transaction_id' => $paid->id, 'lang' => 'ar']))->out(false) : '',
         ];
         echo $OUTPUT->render_from_template('local_payments/payment_success', $templatedata);
     } else {

@@ -69,6 +69,13 @@ if (empty($transactions)) {
             default: $status_class = 'text-bg-secondary';
         }
 
+        // Only a payment that went through has an invoice worth downloading.
+        $downloadable = in_array($txn->status, [
+            \local_payments\status_machine::COMPLETED,
+            \local_payments\status_machine::REFUNDED,
+            \local_payments\status_machine::PARTIALLY_REFUNDED,
+        ], true);
+
         $rows[] = [
             'order_id' => $txn->order_id,
             'course_name' => $coursename ?: '-',
@@ -78,6 +85,14 @@ if (empty($transactions)) {
             'payment_method' => $txn->payment_method_type ?? '-',
             'invoice_number' => $invoice->invoice_number ?? '-',
             'date' => userdate($txn->timecreated),
+            'can_download' => $downloadable,
+            // Both languages are offered outright rather than following the
+            // interface language: a student reads the site in Arabic but may
+            // well need the English copy to claim it back from an employer.
+            'invoice_url_en' => (new moodle_url('/local/payments/invoice.php',
+                ['transaction_id' => $txn->id, 'lang' => 'en']))->out(false),
+            'invoice_url_ar' => (new moodle_url('/local/payments/invoice.php',
+                ['transaction_id' => $txn->id, 'lang' => 'ar']))->out(false),
         ];
     }
 
