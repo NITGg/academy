@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_payments';
-$plugin->version   = 2026083109;   // Staff payment lists: per-course for teachers, site-wide for admins.
+$plugin->version   = 2026083110;   // Fix broken course nav and ambiguous ORDER BY.
 $plugin->requires  = 2024100700; // Moodle 4.5+
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_STABLE;

@@ -34,7 +34,10 @@ class transactions_table extends \table_sql {
 
         $this->courseid = $courseid;
 
-        $columns = ['timecreated', 'order_id', 'student', 'amount', 'status', 'provider',
+        // Deliberately not called "timecreated": user and course both have a
+        // column of that name, so sorting on it produces an ambiguous ORDER BY
+        // and the query dies. Every column here has to be unique across the join.
+        $columns = ['paidon', 'order_id', 'student', 'amount', 'status', 'provider',
             'payment_method_type', 'invoice'];
         $headers = [
             get_string('date', 'local_payments'),
@@ -56,7 +59,7 @@ class transactions_table extends \table_sql {
         $this->define_columns($columns);
         $this->define_headers($headers);
 
-        $this->sortable(true, 'timecreated', SORT_DESC);
+        $this->sortable(true, 'paidon', SORT_DESC);
         // These render from several fields, so there is no single column to sort on.
         $this->no_sorting('student');
         $this->no_sorting('invoice');
@@ -74,7 +77,7 @@ class transactions_table extends \table_sql {
         $userfields = \core_user\fields::for_name()->get_sql('u', false, '', '', false)->selects;
 
         $fields = "t.id, t.order_id, t.amount, t.currency, t.status, t.payment_method_type,
-                   t.timecreated, t.courseid, t.userid,
+                   t.timecreated AS paidon, t.courseid, t.userid,
                    u.email {$userfields},
                    c.fullname AS coursename,
                    p.display_name AS provider";
@@ -113,10 +116,10 @@ class transactions_table extends \table_sql {
         $this->set_count_sql("SELECT COUNT(1) FROM {$from} WHERE " . implode(' AND ', $where), $params);
     }
 
-    public function col_timecreated($row) {
+    public function col_paidon($row) {
         return $this->is_downloading()
-            ? userdate($row->timecreated, get_string('strftimedatetimeshort', 'langconfig'))
-            : userdate($row->timecreated);
+            ? userdate($row->paidon, get_string('strftimedatetimeshort', 'langconfig'))
+            : userdate($row->paidon);
     }
 
     public function col_order_id($row) {

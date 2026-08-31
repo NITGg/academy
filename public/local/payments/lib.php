@@ -23,8 +23,7 @@ function local_payments_extend_navigation_course(\navigation_node $navigation, \
         $navigation->add(
             get_string('coursepayments', 'local_payments'),
             $url,
-            
-avigation_node::TYPE_SETTING,
+            \navigation_node::TYPE_SETTING,
             null,
             'local_payments_coursepayments',
             new \pix_icon('i/report', '')
