@@ -123,6 +123,15 @@ if ($hassiteconfig) {
         PARAM_TEXT
     ));
 
+    // Currencies the Fawaterk account settles in natively.
+    $settings->add(new admin_setting_configtext(
+        'paymentprovider_fawaterk/currencies',
+        get_string('currencies', 'paymentprovider_fawaterk'),
+        get_string('currencies_desc', 'paymentprovider_fawaterk'),
+        'EGP,USD,SAR,AED',
+        PARAM_TEXT
+    ));
+
     // How long Fawaterk keeps the transaction itself payable.
     $settings->add(new admin_setting_configtext(
         'paymentprovider_fawaterk/due_date_days',

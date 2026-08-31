@@ -385,9 +385,24 @@ the dashboard. The v3 refund webhook *is* signed, so an approved refund is
 matched back to its order by Fawaterk's numeric transaction id — which is
 recorded when the payment completes — and applied automatically.
 
-**Currency.** The provider row allows `EGP, USD, SAR, AED`, but the Fawaterk
-*account* decides what it will actually accept. A currency the account doesn't
-support comes back as an HTTP 400 at `createInvoiceLink` / `invoiceInitPay`.
+**Currency, and why the API disagrees with itself.** The buyer is charged in the
+order's own currency: a 4.50 USD order renders as `Pay - USD 4.50` on the payment
+page. But `getTransactionData` reports the same payment in the account's base
+currency — `total: 240.435, currency: EGP`.
+
+Both are true, and only one of them matches the order. So the paid webhook
+carries both figures: the API total, and the `paidAmount`/`paidCurrency` the
+webhook itself states. The amount check accepts a match on **either**. That is
+not a loosening — the check only ever compares against the amount we already
+expect, so a tampered figure can make it fail but never pass for a wrong number,
+and the payment must still be confirmed `paid` by the API before any of it runs.
+
+Without this, a genuinely paid USD order is rejected as an amount mismatch and
+the buyer is never enrolled.
+
+*Settlement currencies* lists what Fawaterk may be offered for. Narrow it only if
+an account genuinely cannot take one of them; a course priced in a currency that
+is not listed falls through to another provider.
 
 ---
 
@@ -414,6 +429,8 @@ Webhook bodies (including ones that failed signature checks) are in
 | `{"cartTotal":["Amount must be bigger than 5 EGP"]}` (HTTP 422) | Fawaterk enforces a 5 EGP floor per invoice. Any course or plan priced below that cannot be sold through it. |
 | The payment page says **"Setup in Progress — we are completing the final configuration for this invoice's payment methods"** | Nothing to fix on this side. The Fawaterk account has no payment methods activated, which is also why `getTrPaymentmethods` returns `[]`. Ask Fawaterk to enable the methods (card, Fawry, Meeza…) for the vendor account. Until they do, every transaction is created successfully but cannot be paid. |
 | The due date on the payment page is days away | Fawaterk's default is 2 days; *Payment link validity* now sets it explicitly. The Moodle order may expire sooner — that is fine, a payment confirmed afterwards still fulfils. |
+| `Sorry, service is currently unavailable, please try again later` on the card form | Fawaterk's card processor refusing the attempt before it becomes an attempt — `--transaction` shows an empty history, so nothing reached their transaction record. Check, in order: (1) is the order in a currency the account settles in? A converted amount like `240.435` has three decimals and is not a valid EGP amount; (2) is card actually activated on that Fawaterk account — the same thing that makes `getTrPaymentmethods` return `[]`; (3) ask Fawaterk, quoting the `transaction_id` from `--transaction`. |
+| Order marked failed with `Amount mismatch: expected 4.5 USD; gateway reported 240.435 EGP` | The API reported the base-currency figure and the webhook did not carry a matching one. Check `--transaction`; if the paid webhook is not arriving at all, that is the real problem — see the webhook rows above. |
 | Everything worked, then stopped | The OAuth client was revoked, or its secret rotated. Tokens are cached until they expire, so a revocation can surface minutes later. `fawaterk_diagnose.php --purge-cache` forces a fresh handshake. |
 | Payment succeeds but no enrolment | The webhook isn't arriving. Check the dashboard URL ends in `webhook_json.php`, and look for `signature_valid = 0` rows — that means the vendor key in Moodle differs from the one signing the webhook. |
 | `no redirect URL or reference` | The account doesn't have that `payment_method_id` enabled. Re-fetch the method list. |

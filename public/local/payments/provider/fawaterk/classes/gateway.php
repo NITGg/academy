@@ -964,6 +964,12 @@ class gateway extends base_provider {
             'status' => 'SUCCESS',
             'amount' => $confirmed['amount'],
             'currency' => $confirmed['currency'],
+            // getTransactionData reports the account's base-currency figure: an
+            // order charged as USD 4.50 comes back as 240.435 EGP. The webhook
+            // states what was actually paid, in the currency the buyer saw, so
+            // carry both and let the manager match on either.
+            'reported_amount' => (float) ($data['paidAmount'] ?? 0),
+            'reported_currency' => (string) ($data['paidCurrency'] ?? ''),
             'payment_method' => $method ?: $confirmed['method'],
             'metadata' => $meta,
         ]);
@@ -1178,8 +1184,23 @@ class gateway extends base_provider {
         return false;
     }
 
+    /**
+     * Currencies this Fawaterk account can be offered for.
+     *
+     * The buyer is charged in the currency of the order — a USD order renders as
+     * "Pay USD 4.50" on the payment page. Only Fawaterk's own reporting converts
+     * to the account's base currency, which the webhook handling accounts for.
+     * Narrow this if an account genuinely cannot take one of these.
+     */
     public function supported_currencies(): array {
-        return ['EGP', 'USD', 'SAR', 'AED'];
+        $configured = (string) $this->get_setting('currencies', 'EGP,USD,SAR,AED');
+        $list = array_filter(array_map(
+            static function ($code) {
+                return strtoupper(trim($code));
+            },
+            explode(',', $configured)
+        ));
+        return !empty($list) ? array_values($list) : ['EGP'];
     }
 
     public function supported_countries(): array {

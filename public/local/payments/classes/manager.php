@@ -42,7 +42,19 @@ class manager {
                 }
             }
 
-            return self::instantiate_provider($provider_record);
+            $provider = self::instantiate_provider($provider_record);
+
+            // The gateway itself has the last word on currency. A provider row can
+            // list a currency the gateway account does not actually settle in, and
+            // a gateway that silently converts would charge a different amount than
+            // the one we recorded — which our own amount check then rejects, after
+            // the buyer has paid. Better to not select it at all.
+            $gatewaycurrencies = $provider->supported_currencies();
+            if (!empty($gatewaycurrencies) && !in_array($currency, $gatewaycurrencies)) {
+                continue;
+            }
+
+            return $provider;
         }
 
         throw new \moodle_exception('noproviderfound', 'local_payments', '', null,
@@ -841,21 +853,50 @@ class manager {
             return true;
         }
 
-        // Verify amount matches.
+        // Verify the amount matches what we asked to be charged.
+        //
+        // A gateway can legitimately state the same payment two ways: the figure
+        // the buyer was charged, and the same value in the account's base
+        // currency (Fawaterk reports a USD 4.50 charge as 240.435 EGP). Either is
+        // a valid confirmation, so accept a match on either — this only ever
+        // compares against the amount we already expect, so a tampered figure
+        // can make the check fail but never pass for the wrong number.
         $expected = (float) $transaction->amount;
         $received = $result->amount;
-        // Reject if amount OR currency mismatches. Currency is only enforced when
-        // the gateway result carries one (guarded so it can't break payments where
-        // the field is absent) — a right-number, wrong-currency message is rejected.
-        $currencymismatch = !empty($result->currency)
-            && strcasecmp((string) $result->currency, (string) $transaction->currency) !== 0;
-        if (abs($expected - $received) > 0.01 || $currencymismatch) {
+
+        $matches = function (float $amount, string $currency) use ($expected, $transaction): bool {
+            if (abs($expected - $amount) > 0.01) {
+                return false;
+            }
+            // Currency is only enforced when the result carries one, so a provider
+            // that omits it cannot break payments; a right-number, wrong-currency
+            // message is still rejected.
+            return empty($currency)
+                || strcasecmp($currency, (string) $transaction->currency) === 0;
+        };
+
+        $verified = $matches($received, (string) $result->currency)
+            || ($result->reported_amount > 0
+                && $matches($result->reported_amount, (string) $result->reported_currency));
+
+        if (!$verified) {
             self::log_entry($transaction->provider_id, $transaction->id, 'error',
-                "Amount/currency mismatch: expected={$expected} {$transaction->currency}, received={$received}");
+                "Amount/currency mismatch: expected={$expected} {$transaction->currency}, "
+                . "api={$received} {$result->currency}, "
+                . "webhook={$result->reported_amount} {$result->reported_currency}");
+
+            // Spell out every figure. "expected 4.5, got 240.435" reads as
+            // nonsense until you can see that one is USD and the other EGP.
+            $reason = "Amount mismatch: expected {$expected} {$transaction->currency}; "
+                . "gateway reported {$received} {$result->currency}";
+            if ($result->reported_amount > 0) {
+                $reason .= " and {$result->reported_amount} {$result->reported_currency}";
+            }
+
             $DB->update_record('local_payments_transactions', (object) [
                 'id' => $transaction->id,
                 'status' => status_machine::FAILED,
-                'reject_reason' => "Amount mismatch: expected {$expected}, got {$received}",
+                'reject_reason' => substr($reason, 0, 255),
                 'timemodified' => time(),
             ]);
             return false;
