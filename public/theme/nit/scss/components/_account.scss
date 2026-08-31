@@ -28,6 +28,18 @@
 // Arabic build mirrors without an [dir="rtl"] block.
 // =============================================================================
 
+// Boost caps a 'standard' page at $course-content-maxwidth, which is a reading
+// width for one column of prose. This screen is two columns — a 13rem list and a
+// pane — and one of those panes is the eight-column payment history, so the table
+// was left scrolling sideways inside about 830px while the window had room to
+// spare. The cap is lifted for this screen only, and only where there is width
+// to give: below the breakpoint the layout is already full-bleed.
+@media (min-width: 769px) {
+    body:has(.nit-account) #page.drawers .main-inner {
+        max-width: min(1320px, 100%);
+    }
+}
+
 .nit-account {
     display: grid;
     // The nav box is a fixed column that the wireframe draws narrow; the pane

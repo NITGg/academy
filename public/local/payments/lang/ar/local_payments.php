@@ -219,3 +219,21 @@ $string['allstatuses'] = 'كل الحالات';
 $string['student'] = 'الطالب';
 $string['provider'] = 'بوابة الدفع';
 $string['payments:viewcoursepayments'] = 'عرض المدفوعات الخاصة بمقرر';
+
+// Payment history: filters and status labels.
+$string['searchmypayments'] = 'رقم الطلب أو رقم الفاتورة';
+$string['allcourses'] = 'كل الدورات';
+$string['datefrom'] = 'من';
+$string['dateto'] = 'إلى';
+$string['nopaymentsmatch'] = 'لا توجد مدفوعات مطابقة لهذه التصفية.';
+$string['status_pending'] = 'قيد الانتظار';
+$string['status_completed'] = 'مكتمل';
+$string['status_failed'] = 'فشل';
+$string['status_cancelled'] = 'ملغي';
+$string['status_expired'] = 'منتهي الصلاحية';
+$string['status_timed_out'] = 'انتهت المهلة';
+$string['status_refunded'] = 'مسترد';
+$string['status_partially_refunded'] = 'مسترد جزئياً';
+$string['status_voided'] = 'ملغى';
+$string['status_chargeback'] = 'رد مالي';
+$string['status_duplicate'] = 'مكرر';

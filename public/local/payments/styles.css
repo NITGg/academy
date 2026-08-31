@@ -664,3 +664,20 @@
 .lp-txn-filters .form-select {
     width: auto;
 }
+
+/* Two bare date boxes side by side do not say which end of the range each one
+   is, so each carries its label inline rather than above the bar. */
+.lp-txn-filters__label {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.375rem;
+    margin: 0;
+    white-space: nowrap;
+}
+
+/* The text search wants room; a date box is a fixed-width control and the
+   min-width above would stretch it to twice what it needs. */
+.lp-txn-filters .lp-txn-filters__date {
+    min-width: 0;
+    width: auto;
+}
