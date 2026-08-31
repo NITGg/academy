@@ -216,3 +216,5 @@ $string['invoice_seller_details'] = 'Invoice: seller details';
 $string['invoice_seller_details_desc'] = 'Address, tax registration number, and anything else that must appear under the seller name. One item per line.';
 $string['invoice_footer'] = 'Invoice: footer note';
 $string['invoice_footer_desc'] = 'Printed in small text at the bottom of every invoice. Leave empty for a simple thank-you.';
+$string['invoice_logo'] = 'Invoice: logo';
+$string['invoice_logo_desc'] = 'Printed in the top corner of every invoice PDF. PNG or JPG; it is scaled to 18mm tall, so a wide logo is fine but a tall one will be small. Leave empty for a text-only header.';

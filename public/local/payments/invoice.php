@@ -6,6 +6,8 @@
  * the button can offer both without the page having to switch language first.
  */
 require_once(__DIR__ . '/../../config.php');
+// send_file() lives in filelib, which a plain page does not pull in.
+require_once($CFG->libdir . '/filelib.php');
 
 $transactionid = required_param('transaction_id', PARAM_INT);
 $lang = optional_param('lang', '', PARAM_ALPHA);

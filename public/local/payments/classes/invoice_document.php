@@ -42,7 +42,7 @@ class invoice_document {
         $pdf->setRTL($rtl);
         $pdf->AddPage();
 
-        self::write_header($pdf, $data);
+        self::write_header($pdf, $data, $rtl);
         self::write_parties($pdf, $data, $rtl);
         self::write_items($pdf, $data, $rtl);
         self::write_totals($pdf, $data, $rtl);
@@ -122,17 +122,74 @@ class invoice_document {
         ];
     }
 
-    private static function write_header(\pdf $pdf, array $data): void {
+    private static function write_header(\pdf $pdf, array $data, bool $rtl): void {
         $s = $data['s'];
 
+        // The logo sits in the corner opposite the reading direction, so it never
+        // collides with the title in either language.
+        $logo = self::logo();
+        $titlewidth = 0;
+        if ($logo !== null) {
+            $height = 18;
+            $width = self::logo_width($logo, $height);
+            $x = $rtl ? $pdf->getPageWidth() - 15 - $width : 15;
+            // '@' tells TCPDF the string is the image itself rather than a path.
+            $pdf->Image('@' . $logo['content'], $x, 12, $width, $height, '', '', '', true);
+            // Reserve the strip the logo occupies so the title does not run under it.
+            $titlewidth = $pdf->getPageWidth() - 30 - $width - 5;
+        }
+
         $pdf->SetFont(self::FONT, 'B', 20);
-        $pdf->Cell(0, 12, $s('invoice_title'), 0, 1);
+        $pdf->Cell($titlewidth, 12, $s('invoice_title'), 0, 1);
 
         $pdf->SetFont(self::FONT, '', 10);
-        $pdf->Cell(0, 6, $s('invoice_number') . ': ' . $data['invoice_number'], 0, 1);
-        $pdf->Cell(0, 6, $s('invoice_date') . ': ' . $data['invoice_date'], 0, 1);
-        $pdf->Cell(0, 6, $s('orderid') . ': ' . $data['order_id'], 0, 1);
+        $pdf->Cell($titlewidth, 6, $s('invoice_number') . ': ' . $data['invoice_number'], 0, 1);
+        $pdf->Cell($titlewidth, 6, $s('invoice_date') . ': ' . $data['invoice_date'], 0, 1);
+        $pdf->Cell($titlewidth, 6, $s('orderid') . ': ' . $data['order_id'], 0, 1);
+
+        // Clear the logo strip before the next block starts.
+        if ($logo !== null && $pdf->GetY() < 34) {
+            $pdf->SetY(34);
+        }
         $pdf->Ln(4);
+    }
+
+    /**
+     * The configured invoice logo, as raw bytes plus its pixel size.
+     *
+     * @return array|null ['content' => string, 'w' => int, 'h' => int]
+     */
+    private static function logo(): ?array {
+        $fs = get_file_storage();
+        $files = $fs->get_area_files(\context_system::instance()->id, 'local_payments',
+            'invoice_logo', 0, 'itemid', false);
+        if (empty($files)) {
+            return null;
+        }
+
+        $file = reset($files);
+        $content = $file->get_content();
+        if ($content === '') {
+            return null;
+        }
+
+        $size = @getimagesizefromstring($content);
+        return [
+            'content' => $content,
+            'w' => $size ? (int) $size[0] : 0,
+            'h' => $size ? (int) $size[1] : 0,
+        ];
+    }
+
+    /**
+     * Width that keeps the logo's aspect ratio at a fixed height, capped so a
+     * very wide banner cannot push the invoice title off the page.
+     */
+    private static function logo_width(array $logo, float $height): float {
+        if (empty($logo['w']) || empty($logo['h'])) {
+            return $height; // Unknown dimensions: assume square.
+        }
+        return min($height * ($logo['w'] / $logo['h']), 60);
     }
 
     private static function write_parties(\pdf $pdf, array $data, bool $rtl): void {

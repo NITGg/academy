@@ -76,6 +76,17 @@ interface provider_interface {
      */
     public function get_payment_methods(): array;
 
+    /**
+     * Whether this gateway may settle in a currency other than the order's.
+     *
+     * A gateway that converts reports a total we cannot reconcile against the
+     * amount we quoted, so accepting one is a deliberate choice: it means
+     * trusting the gateway's rate for money we did not price.
+     *
+     * @return bool
+     */
+    public function allows_currency_conversion(): bool;
+
     public function supports_refund(): bool;
     public function supports_void(): bool;
     public function supports_recurring(): bool;

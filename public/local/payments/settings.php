@@ -55,6 +55,15 @@ if ($hassiteconfig) {
     ));
 
     // What appears on the invoice PDF as the issuer.
+    $settings->add(new admin_setting_configstoredfile(
+        'local_payments/invoice_logo',
+        get_string('invoice_logo', 'local_payments'),
+        get_string('invoice_logo_desc', 'local_payments'),
+        'invoice_logo',
+        0,
+        ['maxfiles' => 1, 'accepted_types' => ['.png', '.jpg', '.jpeg']]
+    ));
+
     $settings->add(new admin_setting_configtext(
         'local_payments/invoice_seller_name',
         get_string('invoice_seller_name', 'local_payments'),

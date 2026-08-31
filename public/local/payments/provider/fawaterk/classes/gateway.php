@@ -1235,15 +1235,28 @@ class gateway extends base_provider {
     }
 
     /**
-     * Currencies this Fawaterk account can be offered for.
+     * Whether this account may settle in its own currency instead of the order's.
      *
-     * The buyer is charged in the currency of the order — a USD order renders as
-     * "Pay USD 4.50" on the payment page. Only Fawaterk's own reporting converts
-     * to the account's base currency, which the webhook handling accounts for.
-     * Narrow this if an account genuinely cannot take one of these.
+     * Off by default. Fawaterk really does convert: a 4.50 USD order is shown to
+     * the buyer as "Pay USD 4.50" but settles as 240.44 EGP, and the attempt
+     * history confirms EGP is what was charged. Turning this on means accepting
+     * Fawaterk's rate for money we did not price, so it is a decision rather
+     * than a default.
+     */
+    public function allows_currency_conversion(): bool {
+        return (bool) $this->get_setting('accept_converted', 0);
+    }
+
+    /**
+     * Currencies Fawaterk may be offered for.
+     *
+     * EGP alone by default, because that is what an Egyptian account settles in
+     * and anything else gets converted at a rate we did not agree. Add another
+     * only if the account genuinely settles in it, or if you have deliberately
+     * enabled conversion above.
      */
     public function supported_currencies(): array {
-        $configured = (string) $this->get_setting('currencies', 'EGP,USD,SAR,AED');
+        $configured = (string) $this->get_setting('currencies', 'EGP');
         $list = array_filter(array_map(
             static function ($code) {
                 return strtoupper(trim($code));
