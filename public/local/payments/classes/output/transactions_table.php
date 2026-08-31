@@ -74,11 +74,13 @@ class transactions_table extends \table_sql {
     protected function build_sql(int $courseid, string $status, string $search): void {
         global $DB;
 
+        // The false at the end asks for the select list without a leading comma,
+        // so this has to supply its own separator on both sides of it.
         $userfields = \core_user\fields::for_name()->get_sql('u', false, '', '', false)->selects;
 
         $fields = "t.id, t.order_id, t.amount, t.currency, t.status, t.payment_method_type,
                    t.timecreated AS paidon, t.courseid, t.userid,
-                   u.email {$userfields},
+                   u.email, {$userfields},
                    c.fullname AS coursename,
                    p.display_name AS provider";
 
