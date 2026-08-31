@@ -105,7 +105,7 @@ class changeemail_form extends moodleform {
         // An account created through Google has no password to check, and it is
         // also already confirmed, so it never reaches this form. Anything else
         // without a usable password is refused rather than waved through.
-        if (!validate_internal_user_password($user, (string) ($data['password'] ?? ''))) {
+        if (!\local_profilefields\account::verify_password((int) $user->id, (string) ($data['password'] ?? ''))) {
             $errors['password'] = get_string('deleteaccountwrongpassword', 'local_profilefields');
         }
 

@@ -70,36 +70,63 @@
 
 .nit-account__navlink {
     display: block;
+    position: relative;
     padding: 0.5rem 0.75rem;
     border-radius: 0.375rem;
     font-size: 0.9375rem;
     line-height: 1.35;
     color: var(--nit-brand-textsecondary);
     text-decoration: none;
+    transition: background-color 0.12s ease, color 0.12s ease;
 
+    // The brand's own designed hover pair, which is what the rest of the theme
+    // uses (see components/_courseindex.scss). The first version of this file
+    // invented its own wash — color-mix(primary 10%, transparent) — and 10% of a
+    // mid-tone primary over a near-black surface is very nearly nothing, so
+    // hovering looked broken rather than subtle.
     &:hover,
     &:focus {
-        color: var(--nit-brand-textprimary);
-        background-color: color-mix(in srgb, var(--nit-brand-primary) 10%, transparent);
+        background-color: var(--nit-brand-hoverbackground);
+        color: var(--nit-brand-hovertext);
         text-decoration: none;
     }
 
     &:focus-visible {
-        outline: 2px solid var(--nit-brand-accent);
+        outline: 2px solid var(--nit-brand-accenttext);
         outline-offset: 1px;
     }
 }
 
-// The current entry. The wireframe fills it solid, which is also the only state
-// that has to survive being the one item a colour-blind reader must find.
+// The current entry. The wireframe fills it solid, and it is also the one item a
+// reader has to be able to pick out, so it carries two signals rather than one:
+// the fill, and a bar down the leading edge for anyone who cannot rely on colour.
 .nit-account__navlink--active {
-    background-color: var(--nit-brand-primary);
+    // Primary *darkened*, not Primary itself. --nit-brand-on-primary resolves to
+    // Text primary, which is near-white in all three brand groups, and raw
+    // Primary sits at roughly 3.3:1 to 3.6:1 behind it — under the 4.5:1 that
+    // body-size text needs. Mixing 22% black into the fill lifts every group past
+    // 4.5:1 while staying inside the palette. Safe in all three because all three
+    // are dark-surface groups with a mid-tone primary; a light-primary group
+    // would want this the other way round.
+    background-color: color-mix(in srgb, var(--nit-brand-primary) 78%, #000);
     color: var(--nit-brand-on-primary);
     font-weight: 600;
 
+    &::before {
+        content: "";
+        position: absolute;
+        inset-block: 0.35rem;
+        inset-inline-start: 0;
+        width: 3px;
+        border-radius: 3px;
+        background-color: var(--nit-brand-accenttext);
+    }
+
+    // Hover must not undo the current state - an item that lightens back to the
+    // ordinary hover wash reads as "no longer selected" under the cursor.
     &:hover,
     &:focus {
-        background-color: var(--nit-brand-primary);
+        background-color: color-mix(in srgb, var(--nit-brand-primary) 70%, #000);
         color: var(--nit-brand-on-primary);
     }
 }
@@ -114,15 +141,28 @@
     border-start-end-radius: 0;
     color: var(--nit-brand-error);
 
+    // Same reasoning as the hover above: a 10% wash of the error colour over a
+    // near-black surface was invisible. 22% of the error hue reads clearly on
+    // every group's surface and still says "danger" rather than "selected".
     &:hover,
     &:focus {
         color: var(--nit-brand-error);
-        background-color: color-mix(in srgb, var(--nit-brand-error) 10%, transparent);
+        background-color: color-mix(in srgb, var(--nit-brand-error) 22%, transparent);
     }
 
     &.nit-account__navlink--active {
-        background-color: var(--nit-brand-error);
+        background-color: color-mix(in srgb, var(--nit-brand-error) 78%, #000);
         color: var(--nit-brand-on-primary);
+
+        &::before {
+            background-color: var(--nit-brand-error);
+        }
+
+        &:hover,
+        &:focus {
+            background-color: color-mix(in srgb, var(--nit-brand-error) 70%, #000);
+            color: var(--nit-brand-on-primary);
+        }
     }
 }
 

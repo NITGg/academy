@@ -88,7 +88,7 @@ class deleteaccount_form extends moodleform {
 
         $errors = parent::validation($data, $files);
 
-        if (!validate_internal_user_password($USER, (string) ($data['password'] ?? ''))) {
+        if (!\local_profilefields\account::verify_password((int) $USER->id, (string) ($data['password'] ?? ''))) {
             $errors['password'] = get_string('deleteaccountwrongpassword', 'local_profilefields');
         }
 

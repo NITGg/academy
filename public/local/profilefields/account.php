@@ -36,6 +36,7 @@ require_once($CFG->dirroot . '/user/profile/lib.php');
 require_once($CFG->libdir . '/filelib.php');
 
 use local_profilefields\account;
+use local_profilefields\core_locks;
 use local_profilefields\form\account_profile_form;
 use local_profilefields\form\changeemail_form;
 use local_profilefields\profile_api;
@@ -123,6 +124,12 @@ if ($section === account::SECTION_SECURITY) {
     // The button that leads here is not drawn for an account without a local
     // password, but the URL can still be typed. Refused here rather than handed a
     // form whose password box it could never satisfy.
+    if (core_locks::is_locked('email')) {
+        redirect(account::url(account::SECTION_PROFILE),
+            get_string('emailchangelocked', 'local_profilefields'), null,
+            \core\output\notification::NOTIFY_ERROR);
+    }
+
     if (!account::can_verify_password($USER)) {
         redirect(account::url(account::SECTION_PROFILE),
             get_string('emailchangeexternal', 'local_profilefields'), null,
@@ -162,12 +169,15 @@ if ($section === account::SECTION_SECURITY) {
 
     $cardtitle = get_string('navprofile', 'local_profilefields');
 
-    $filemanageroptions = [
-        'maxbytes' => account_profile_form::PICTURE_MAXBYTES,
-        'subdirs' => 0,
-        'maxfiles' => 1,
-        'accepted_types' => ['web_image'],
-    ];
+    $filemanageroptions = account_profile_form::filemanager_options();
+
+    // What the administrator allows a learner to edit, from the "user can edit"
+    // column of Site administration -> Profile fields. Read here so the form and
+    // the save below agree about it.
+    $locks = [];
+    foreach (['firstname', 'lastname', 'email'] as $field) {
+        $locks[$field] = core_locks::is_locked($field);
+    }
 
     $user = clone $USER;
     profile_load_data($user);
@@ -181,6 +191,7 @@ if ($section === account::SECTION_SECURITY) {
         'picture' => $OUTPUT->user_picture($USER, ['size' => 100, 'link' => false]),
         'lockedgroup' => account::locked_group($USER),
         'canchangeemail' => account::can_verify_password($USER),
+        'locks' => $locks,
     ]);
 
     $form->set_data($user);
@@ -193,9 +204,16 @@ if ($section === account::SECTION_SECURITY) {
         // field that is not on this form cannot be set by adding it to the POST.
         $usernew = clone $USER;
         $usernew->id = $USER->id;
-        $usernew->firstname = trim($data->firstname);
-        $usernew->lastname = trim($data->lastname);
         $usernew->lang = $data->lang;
+
+        // A locked name keeps whatever the clone already carries. Skipping it here
+        // as well as leaving it off the form means a hand-crafted POST cannot set
+        // a field the administrator has closed.
+        foreach (['firstname', 'lastname'] as $field) {
+            if (empty($locks[$field]) && isset($data->{$field})) {
+                $usernew->{$field} = trim($data->{$field});
+            }
+        }
 
         // The email is never taken from this form - it has no email box. Saying so
         // explicitly stops profile_api::save() from starting a change nobody asked
@@ -214,6 +232,14 @@ if ($section === account::SECTION_SECURITY) {
             $usernew->imagefile = $data->imagefile;
             $usernew->deletepicture = !empty($data->deletepicture);
             core_user::update_picture($usernew, $filemanageroptions);
+
+            // update_picture() writes user.picture straight to the database with
+            // set_field(), so nothing tells the session about it - and
+            // profile_api::save() above has already refreshed $USER from the row
+            // as it was a moment earlier. Without this the upload succeeds, the
+            // file is stored, and the avatar on the very next page is still the
+            // old one, which reads as "the upload did nothing".
+            $USER->picture = (int) $DB->get_field('user', 'picture', ['id' => $USER->id]);
         }
 
         redirect(account::url(account::SECTION_PROFILE),

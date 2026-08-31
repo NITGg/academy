@@ -416,6 +416,7 @@ $string['passwordlastchanged'] = 'Last changed {$a}';
 $string['passwordlastchangedunknown'] = 'This site does not record when passwords were last changed.';
 $string['passwordchangehelp'] = 'Requires the current password, and terminates all other active sessions.';
 $string['emailchangeexternal'] = 'Your email address comes from the account you sign in with, so it cannot be changed here.';
+$string['emailchangelocked'] = 'Only an administrator can change your email address.';
 $string['passwordexternal'] = 'You sign in through an external account, so there is no password held here.';
 $string['deleteaccountcannotbeundone'] = 'This cannot be undone';
 $string['deleteaccountretained'] = 'Financial records are retained. Certificates already issued remain publicly verifiable.';

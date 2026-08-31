@@ -412,6 +412,7 @@ $string['passwordlastchanged'] = 'آخر تغيير {$a}';
 $string['passwordlastchangedunknown'] = 'هذا الموقع لا يسجّل تاريخ آخر تغيير لكلمة المرور.';
 $string['passwordchangehelp'] = 'يتطلب كلمة المرور الحالية، ويُنهي جميع الجلسات النشطة الأخرى.';
 $string['emailchangeexternal'] = 'بريدك الإلكتروني يأتي من الحساب الذي تسجّل الدخول به، لذا لا يمكن تغييره من هنا.';
+$string['emailchangelocked'] = 'لا يمكن تغيير بريدك الإلكتروني إلا بواسطة المسؤول.';
 $string['passwordexternal'] = 'أنت تسجّل الدخول عبر حساب خارجي، لذا لا توجد كلمة مرور محفوظة هنا.';
 $string['deleteaccountcannotbeundone'] = 'لا يمكن التراجع عن هذا الإجراء';
 $string['deleteaccountretained'] = 'تُحفظ السجلات المالية. وتظل الشهادات الصادرة قابلة للتحقق العلني.';

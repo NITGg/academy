@@ -286,6 +286,43 @@ class account {
     }
 
     /**
+     * Check a password the learner has just typed against the one on the account.
+     *
+     * Always go through this rather than calling `validate_internal_user_password()`
+     * with `$USER`. That function reads `$user->password`, and `$USER` never has
+     * one - \core\session\manager::set_user() unsets it on the way into the
+     * session. Passing `$USER` therefore hands core a null where it declares a
+     * string, and PHP 8 raises
+     *
+     *   password_is_legacy_hash(): Argument #1 ($password) must be of type string,
+     *   null given
+     *
+     * which is a fatal page error, not a failed password check. The record is
+     * re-read here so the hash is actually present.
+     *
+     * @param int $userid whose password to check
+     * @param string $password the plain text they typed
+     * @return bool
+     */
+    public static function verify_password(int $userid, string $password): bool {
+        global $DB;
+
+        if ($userid <= 0 || $password === '') {
+            return false;
+        }
+
+        $record = $DB->get_record('user', ['id' => $userid], '*', IGNORE_MISSING);
+
+        // An account with no local password (oauth2, or a broken row) cannot be
+        // verified. Refused rather than passed to core, which would throw.
+        if (!$record || $record->password === null || $record->password === '') {
+            return false;
+        }
+
+        return validate_internal_user_password($record, $password);
+    }
+
+    /**
      * When this account's password was last changed, or 0 when that is not known.
      *
      * Read from core's password history, which is the only record Moodle keeps of

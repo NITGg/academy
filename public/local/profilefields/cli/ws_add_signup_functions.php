@@ -40,7 +40,7 @@ require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/clilib.php');
 require_once($CFG->dirroot . '/webservice/lib.php');
 [$options, $unrecognized] = cli_get_params(
-    ['token' => '', 'service' => '', 'add' => false, 'sync' => false, 'help' => false],
+    ['token' => '', 'service' => '', 'add' => false, 'addall' => false, 'sync' => false, 'help' => false],
     ['h' => 'help']
 );
 
@@ -68,7 +68,8 @@ if ($options['help'] || ($options['token'] === '' && $options['service'] === '')
     echo "Put the sign-up and profile web-service functions on the service a token uses.\n\n";
     echo "  --token=WSTOKEN     the token the app calls with (the service is read from it)\n";
     echo "  --service=NAME|ID   the service, when you know it instead of a token\n";
-    echo "  --add               actually add the missing functions (otherwise report only)\n";
+    echo "  --add               complete the families this service already uses\n";
+    echo "  --addall            also add a family the service does not use yet (a decision, not a repair)\n";
     echo "  --sync              repair every service already using these functions (no token needed)\n\n";
     echo "Functions handled: " . implode(', ', $wanted) . "\n";
     exit(0);
@@ -112,36 +113,63 @@ if (!empty($service->requiredcapability)) {
     echo "  ....    The service requires capability '{$service->requiredcapability}'.\n";
 }
 
-// 2. What is already there?
+// 2. What is already there - family by family, because that is how they are used.
+// A service that carries no member of a family is not "broken": the sign-up family
+// belongs on a pre-login registration service, the profile family on the service
+// the app calls with a real user's token, and a site is perfectly entitled to keep
+// them apart. Reporting the absent family as a failure is how somebody ends up
+// putting update_profile on a shared registration token.
 $existing = $DB->get_records_menu('external_services_functions',
     ['externalserviceid' => $service->id], '', 'id, functionname');
 $existing = array_flip($existing);
 
-echo "\n---- Sign-up and profile functions on this service ----\n";
-$missing = [];
-foreach ($wanted as $name) {
-    $installed = $DB->record_exists('external_functions', ['name' => $name]);
-    if (!$installed) {
-        echo $bad . "{$name}: NOT INSTALLED. Run admin/cli/upgrade.php first "
-            . "(the plugin version must be bumped for new functions to register).\n";
+$labels = [
+    'signup' => 'Sign-up functions (pre-login: describe the form, submit it, policies, resend)',
+    'profile' => 'Profile functions (signed-in: read the profile, edit form, save, completion)',
+];
+
+$missing = [];   // Families this service uses, minus the members it has not got.
+$unused = [];    // Families this service does not use at all.
+
+foreach (\local_profilefields\ws_registry::families() as $familyname => $family) {
+    echo "\n---- {$labels[$familyname]} ----\n";
+
+    $inuse = array_filter($family, fn($name) => isset($existing[$name]));
+    if (empty($inuse)) {
+        echo "  ....    Not used by this service - none of these are on it, so none are missing.\n";
+        echo "  ....    " . implode(', ', $family) . "\n";
+        $unused[$familyname] = $family;
         continue;
     }
-    if (isset($existing[$name])) {
-        echo $ok . "{$name}: already on the service\n";
-    } else {
-        echo $bad . "{$name}: missing from the service - this is what causes accessexception\n";
-        $missing[] = $name;
+
+    foreach ($family as $name) {
+        if (!$DB->record_exists('external_functions', ['name' => $name])) {
+            echo $bad . "{$name}: NOT INSTALLED. Run admin/cli/upgrade.php first "
+                . "(the plugin version must be bumped for new functions to register).\n";
+            continue;
+        }
+        if (isset($existing[$name])) {
+            echo $ok . "{$name}: already on the service\n";
+        } else {
+            echo $bad . "{$name}: missing from a family this service DOES use - "
+                . "this is what causes accessexception\n";
+            $missing[] = $name;
+        }
     }
 }
 
 // 3. Fix, if asked to.
 if (empty($missing)) {
-    echo "\nNothing to add.\n";
+    echo "\nNothing to add: every family this service uses is complete.\n";
+    if (!empty($unused)) {
+        echo "The families listed as unused are a deliberate choice, not a fault. Add one only if\n";
+        echo "this service is genuinely meant to serve it - via the admin UI, or --addall.\n";
+    }
     exit(0);
 }
 
 if (!$options['add']) {
-    echo "\n    Re-run with --add to put the missing function(s) on this service.\n";
+    echo "\n    Re-run with --add to complete the families this service already uses.\n";
     echo "    (Same thing by hand: Site administration > Server > Web services >\n";
     echo "     External services > \"{$service->name}\" > Functions > Add functions.)\n";
     exit(0);
@@ -150,6 +178,23 @@ if (!$options['add']) {
 foreach ($missing as $name) {
     $webservice->add_external_function_to_service($name, $service->id);
     echo $ok . "Added {$name}\n";
+}
+
+// --addall is the deliberate "this service should serve that family too" case. It
+// is separate from --add on purpose: widening what a token can reach is a decision,
+// not a repair.
+if (!empty($options['addall'])) {
+    foreach ($unused as $family) {
+        foreach ($family as $name) {
+            if (!$DB->record_exists('external_functions', ['name' => $name])
+                    || $DB->record_exists('external_services_functions',
+                        ['externalserviceid' => $service->id, 'functionname' => $name])) {
+                continue;
+            }
+            $webservice->add_external_function_to_service($name, $service->id);
+            echo $ok . "Added {$name} (previously unused family)\n";
+        }
+    }
 }
 
 echo "\n>>> Done. Purge caches, then retry the REST call:\n";

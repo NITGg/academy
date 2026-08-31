@@ -25,6 +25,19 @@ $transactions = $DB->get_records_select(
 $total = $DB->count_records('local_payments_transactions', ['userid' => $USER->id]);
 
 echo $OUTPUT->header();
+
+// The Invoices entry of the account screen points here, so this page draws itself
+// inside that screen's navigation box rather than as a page of its own. Guarded:
+// local_profilefields is a separate install, and the payment history has to keep
+// working on a site without it.
+$inshell = class_exists('\local_profilefields\account');
+if ($inshell) {
+    \local_profilefields\account::open('invoices');
+    echo html_writer::start_div('nit-account__card');
+    echo html_writer::tag('h2', get_string('paymenthistory', 'local_payments'),
+        ['class' => 'nit-account__cardtitle']);
+}
+
 if (empty($transactions)) {
     echo $OUTPUT->notification(get_string('nopayments', 'local_payments'), 'info');
 } else {
@@ -74,6 +87,11 @@ if (empty($transactions)) {
     ];
     echo $OUTPUT->render_from_template('local_payments/payment_history', $templatedata);
     echo $OUTPUT->paging_bar($total, $page, $perpage, new moodle_url('/local/payments/history.php'));
+}
+
+if ($inshell) {
+    echo html_writer::end_div();
+    \local_profilefields\account::close();
 }
 
 echo $OUTPUT->footer();

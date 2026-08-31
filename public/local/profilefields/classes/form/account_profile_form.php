@@ -50,6 +50,49 @@ class account_profile_form extends moodleform {
     const PICTURE_MAXBYTES = 2097152;
 
     /**
+     * The picture upload's settings.
+     *
+     * Defined once because the same array has to be handed to three different
+     * calls - file_prepare_draft_area(), the filemanager element, and
+     * core_user::update_picture() - and a value that differs between them is a
+     * file that uploads and then quietly fails to become an avatar.
+     *
+     * @return array
+     */
+    public static function filemanager_options(): array {
+        return [
+            'maxbytes' => self::PICTURE_MAXBYTES,
+            'subdirs' => 0,
+            'maxfiles' => 1,
+            // The SRS screen table says "JPG or PNG", and the help text under the
+            // control repeats it, so the control refuses anything else rather than
+            // accepting a GIF the pipeline will drop later.
+            'accepted_types' => ['.jpg', '.jpeg', '.png'],
+        ];
+    }
+
+    /**
+     * A field the administrator has marked as not user-editable.
+     *
+     * Shown the same way as the country of record: the value, readable, with a
+     * padlock - so the learner sees what is held rather than an input that will
+     * not accept anything.
+     *
+     * @param string $value the current value
+     * @return string HTML
+     */
+    protected static function locked_value(string $value): string {
+        return html_writer::div(
+            html_writer::span($value !== '' ? s($value)
+                : get_string('notset', 'local_profilefields'), 'nit-account__lockedvalue')
+            . html_writer::span('', 'nit-account__lock', [
+                'aria-hidden' => 'true',
+                'title' => get_string('lockedfield', 'local_profilefields'),
+            ]),
+            'nit-account__lockedbox');
+    }
+
+    /**
      * Build the form.
      *
      * @return void
@@ -69,12 +112,7 @@ class account_profile_form extends moodleform {
             html_writer::div($this->_customdata['picture'], 'nit-account__avatar'));
 
         $mform->addElement('filemanager', 'imagefile',
-            get_string('profilepicture', 'local_profilefields'), null, [
-                'maxbytes' => self::PICTURE_MAXBYTES,
-                'subdirs' => 0,
-                'maxfiles' => 1,
-                'accepted_types' => ['web_image'],
-            ]);
+            get_string('profilepicture', 'local_profilefields'), null, self::filemanager_options());
         $mform->addElement('static', 'picturehelp', '',
             get_string('picturehelp', 'local_profilefields'));
 
@@ -85,11 +123,22 @@ class account_profile_form extends moodleform {
 
         // --- Name ----------------------------------------------------------
 
-        $mform->addElement('text', 'firstname', get_string('firstname'), ['maxlength' => 100]);
-        $mform->setType('firstname', PARAM_NOTAGS);
+        // Whether these can be typed into is the administrator's call, made on
+        // Site administration -> Profile fields ("user can edit"). A locked field
+        // is shown as its value with a padlock, never as an input that silently
+        // discards what is typed into it.
+        $locks = (array) ($this->_customdata['locks'] ?? []);
 
-        $mform->addElement('text', 'lastname', get_string('lastname'), ['maxlength' => 100]);
-        $mform->setType('lastname', PARAM_NOTAGS);
+        foreach (['firstname' => get_string('firstname'), 'lastname' => get_string('lastname')] as $name => $label) {
+            if (!empty($locks[$name])) {
+                $mform->addElement('static', $name . 'locked', $label,
+                    self::locked_value((string) $user->{$name}));
+                continue;
+            }
+
+            $mform->addElement('text', $name, $label, ['maxlength' => 100]);
+            $mform->setType($name, PARAM_NOTAGS);
+        }
 
         // AC-4.5.1, said where it matters: a learner correcting a spelling should
         // know it will not reissue the certificate they already hold.
@@ -105,7 +154,10 @@ class account_profile_form extends moodleform {
         // No button at all on an account that signs in through Google: its address
         // belongs to the Google account, and offering a change we would then refuse
         // for want of a password is worse than not offering it.
-        $canchange = (bool) $this->_customdata['canchangeemail'];
+        // Two independent reasons the address may not be changeable: the account
+        // has no local password to confirm with, or the administrator has locked
+        // the field. Either one is enough to take the button away.
+        $canchange = (bool) $this->_customdata['canchangeemail'] && empty($locks['email']);
 
         $control = $canchange
             ? html_writer::link(
@@ -119,9 +171,18 @@ class account_profile_form extends moodleform {
                 html_writer::span(s($user->email), 'nit-account__readvalue') . $control,
                 'nit-account__inlinerow'));
 
-        $mform->addElement('static', 'emailhelp', '', $canchange
-            ? get_string('emailchangehelp', 'local_profilefields')
-            : get_string('emailchangeexternal', 'local_profilefields'));
+        if ($canchange) {
+            $emailhelp = 'emailchangehelp';
+        } else if (!empty($locks['email'])) {
+            // Say which of the two reasons it is. "Your address comes from Google"
+            // on an account that signs in with a password would just be wrong.
+            $emailhelp = 'emailchangelocked';
+        } else {
+            $emailhelp = 'emailchangeexternal';
+        }
+
+        $mform->addElement('static', 'emailhelp', '',
+            get_string($emailhelp, 'local_profilefields'));
 
         // --- Nationality ---------------------------------------------------
 
@@ -176,9 +237,16 @@ class account_profile_form extends moodleform {
     public function validation($data, $files): array {
         $errors = parent::validation($data, $files);
 
-        return $errors + validation::signup_fields([
-            'firstname' => (string) ($data['firstname'] ?? ''),
-            'lastname' => (string) ($data['lastname'] ?? ''),
-        ]);
+        // A locked name has no input on the form, so there is nothing submitted to
+        // check and nothing the learner could do about a complaint if there were.
+        $locks = (array) ($this->_customdata['locks'] ?? []);
+        $check = [];
+        foreach (['firstname', 'lastname'] as $name) {
+            if (empty($locks[$name])) {
+                $check[$name] = (string) ($data[$name] ?? '');
+            }
+        }
+
+        return $errors + validation::signup_fields($check);
     }
 }
