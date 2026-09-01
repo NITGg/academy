@@ -115,8 +115,7 @@ $STR = local_nit_subscriptions_string_map(array(
     'pkg_col_actions', 'pkg_field_name', 'pkg_field_price', 'pkg_col_user', 'sub_col_subscription',
     'pkg_field_name_en', 'pkg_field_name_ar', 'pkg_field_desc_en', 'pkg_field_desc_ar',
     'pkg_field_currency', 'sub_field_refundhours', 'sub_field_refundfee',
-    'sub_field_refundfeetype', 'sub_feetype_fixed', 'sub_feetype_percent',
-    'sub_refundfee_help', 'sub_price_refundhours', 'sub_price_refundfee',
+    'sub_refundfee_help',
     'sub_prices_heading', 'sub_prices_help', 'sub_price_add', 'sub_price_country',
     'sub_price_currency', 'sub_price_amount', 'sub_price_active', 'sub_price_remove',
     'sub_price_pickcountry',
@@ -252,8 +251,6 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                     <span><?php echo $STR['sub_price_country']; ?></span>
                     <span><?php echo $STR['sub_price_currency']; ?></span>
                     <span><?php echo $STR['sub_price_amount']; ?></span>
-                    <span><?php echo $STR['sub_price_refundhours']; ?></span>
-                    <span><?php echo $STR['sub_price_refundfee']; ?></span>
                     <span><?php echo $STR['sub_price_active']; ?></span>
                     <span></span>
                 </div>
@@ -268,15 +265,8 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 <input type="number" class="form-control" id="f-refundhours" min="0" placeholder="0">
             </div>
             <div class="form-group">
-                <label for="f-refundfeetype"><?php echo $STR['sub_field_refundfeetype']; ?></label>
-                <select class="form-control" id="f-refundfeetype">
-                    <option value="fixed"><?php echo $STR['sub_feetype_fixed']; ?></option>
-                    <option value="percent"><?php echo $STR['sub_feetype_percent']; ?></option>
-                </select>
-            </div>
-            <div class="form-group">
                 <label for="f-refundfee"><?php echo $STR['sub_field_refundfee']; ?></label>
-                <input type="number" class="form-control" id="f-refundfee" min="0" step="0.01" placeholder="0.00">
+                <input type="number" class="form-control" id="f-refundfee" min="0" max="100" step="0.01" placeholder="0.00">
                 <small class="text-muted"><?php echo $STR['sub_refundfee_help']; ?></small>
             </div>
             <div class="form-check mb-3">
@@ -398,11 +388,11 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         .sub-prices-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
         .sub-prices-help { font-size: 0.8rem; margin: 0.35rem 0 0.6rem; }
         .sub-prices-cols, .sub-price-row {
-            display: grid; grid-template-columns: 1fr 0.9fr 0.8fr 0.7fr 0.7fr auto auto;
+            display: grid; grid-template-columns: 1fr 0.9fr 0.8fr auto auto;
             gap: 0.5rem; align-items: center;
         }
         .sub-prices-cols { font-size: 0.75rem; font-weight: 600; color: var(--nit-brand-textsecondary); margin-bottom: 0.35rem; }
-        .sub-prices-cols span:nth-child(6) { text-align: center; }
+        .sub-prices-cols span:nth-child(4) { text-align: center; }
         .sub-price-row { margin-bottom: 0.5rem; }
         .sub-price-row select, .sub-price-row input[type="number"] { padding: 0.25rem 0.4rem; height: auto; }
         .sub-price-row .sub-price-active { display: flex; justify-content: center; }
@@ -720,12 +710,6 @@ echo html_writer::script(<<<'JS'
             '<select class="form-control sub-price-cur">' + currencyOptions(p.currency || 'EGP') + '</select>' +
             '<input type="number" class="form-control sub-price-val" min="0" step="0.01" value="' +
                 (p.price != null ? esc(p.price) : '') + '">' +
-            // The refund terms for this currency, beside the price they qualify.
-            // Blank follows the plan; 0 is a deliberate no-window or full refund.
-            '<input type="number" class="form-control sub-price-rhours" min="0" placeholder="-" value="' +
-                (p.refund_hours != null ? esc(p.refund_hours) : '') + '">' +
-            '<input type="number" class="form-control sub-price-rfee" min="0" step="0.01" placeholder="-" value="' +
-                (p.refund_fee != null ? esc(p.refund_fee) : '') + '">' +
             '<span class="sub-price-active"><input type="checkbox" class="sub-price-on"' +
                 ((p.is_active == null || Number(p.is_active)) ? ' checked' : '') + '></span>' +
             '<button type="button" class="sub-price-del" title="' + esc(str('sub_price_remove')) + '">&times;</button>';
@@ -750,8 +734,6 @@ echo html_writer::script(<<<'JS'
                 country: country,
                 currency: row.querySelector('.sub-price-cur').value,
                 price: price,
-                refund_hours: row.querySelector('.sub-price-rhours').value,
-                refund_fee: row.querySelector('.sub-price-rfee').value,
                 is_active: row.querySelector('.sub-price-on').checked ? 1 : 0
             });
         });
@@ -772,7 +754,6 @@ echo html_writer::script(<<<'JS'
         $('f-days').value     = sub ? sub.duration_days : '';
         $('f-refundhours').value = (sub && sub.refund_hours !== null && sub.refund_hours !== undefined) ? sub.refund_hours : '';
         $('f-refundfee').value   = (sub && sub.refund_fee !== null && sub.refund_fee !== undefined) ? sub.refund_fee : '';
-        $('f-refundfeetype').value = (sub && sub.refund_feetype) ? sub.refund_feetype : 'fixed';
         fillPrices(sub ? sub.prices : []);
         $('f-active').checked = sub ? (sub.status === 'active') : true;
         $('sub-form-card').style.display = 'block';
@@ -789,7 +770,6 @@ echo html_writer::script(<<<'JS'
             duration_days: $('f-days').value,
             refund_hours: $('f-refundhours').value,
             refund_fee: $('f-refundfee').value,
-            refund_feetype: $('f-refundfeetype').value,
             prices: JSON.stringify(collectPrices())
         };
         var p;

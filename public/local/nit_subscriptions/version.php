@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_subscriptions';
-$plugin->version   = 2026090130;        // Expiry reminders + renew-before-expiry.
+$plugin->version   = 2026090140;        // Refund fee is a percentage; expiry reminders + renew-before-expiry.
 $plugin->requires  = 2024100700;
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;

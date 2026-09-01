@@ -14,26 +14,19 @@ defined('MOODLE_INTERNAL') || die();
  *    Zero means there is no self-service window at all.
  *  - the fee, which the platform keeps. Zero means a full refund.
  *
- * Both live **with the price**, because that is where the currency already is.
- * A course sold at 36 EGP and 450 USD cannot share one flat fee, and a number
- * stated anywhere else has to carry its own currency and be skipped when it does
- * not match — a rule nobody should have to remember. On a price row it simply
- * cannot mismatch.
+ * The fee is always a **percentage of the amount paid**, and that one decision
+ * is what lets both numbers live on the course or the plan rather than on every
+ * price row. A percentage needs no currency, so a course sold at 36 EGP and 450
+ * USD needs one number instead of two; and it follows what was actually charged,
+ * so a coupon that halves the price halves the fee, where a flat amount would
+ * quietly become a third of the sale.
  *
- * The site settings are the fallback for anything without a price row, and their
- * fee is a percentage for the same reason: a percentage of the amount paid is
- * currency-safe by construction.
+ * The site settings are the fallback for an item that sets nothing of its own.
  *
  * Outside the window — or when the window is zero — nothing is refused
  * outright: the buyer asks, and a human decides. {@see refund_manager}.
  */
 class refund_policy {
-
-    /** @var string Fee is a flat amount in the price row's own currency. */
-    const FEE_FIXED = 'fixed';
-
-    /** @var string Fee is a percentage of the amount paid. */
-    const FEE_PERCENT = 'percent';
 
     /** @var string[] Item types with settings of their own. */
     const TYPES = ['course', 'subscription'];
@@ -92,93 +85,78 @@ class refund_policy {
     }
 
     /**
-     * The price row this payment was made under.
+     * The terms set on this specific course or plan, if any.
      *
-     * For a course the transaction records the exact rule that priced it, so a
-     * price edited after the sale cannot change what that sale is worth back.
-     * A subscription has no such link, so it is matched on plan and currency,
-     * falling back to the plan itself the way its pricing already does.
-     *
-     * @param \stdClass $transaction
-     * @return \stdClass|null A row carrying refund_hours and refund_fee, if any.
+     * @param string $itemtype
+     * @param int $itemid
+     * @return \stdClass|null Carrying hours and feepercent, either of which may be null.
      */
-    private static function price_row(\stdClass $transaction): ?\stdClass {
+    public static function item_terms(string $itemtype, int $itemid): ?\stdClass {
         global $DB;
 
-        $itemtype = self::item_type($transaction);
-
-        if ($itemtype === 'course') {
-            if (empty($transaction->price_id)) {
-                return null;
-            }
-            $row = $DB->get_record('local_payments_course_prices', ['id' => $transaction->price_id],
-                'id, refund_hours, refund_feetype, refund_fee');
-            return $row ?: null;
+        if ($itemid <= 0) {
+            return null;
         }
 
+        // Subscriptions keep their terms on the plan, beside the plan's other
+        // terms, because that is the screen a plan is edited on. Everything else
+        // uses our own table, since we do not own the course record.
         if ($itemtype === 'subscription') {
-            $planid = self::item_id($transaction);
-            if (!$planid) {
+            $plan = $DB->get_record('nit_subscription', ['id' => $itemid],
+                'id, refund_hours, refund_fee');
+            if (!$plan) {
                 return null;
             }
-
-            // The country row that priced it, matched on the currency actually
-            // charged, then the plan's own terms.
-            $row = $DB->get_record_select('nit_sub_price',
-                'subscriptionid = :planid AND currency = :currency AND is_active = 1',
-                ['planid' => $planid, 'currency' => $transaction->currency],
-                'id, refund_hours, refund_feetype, refund_fee', IGNORE_MULTIPLE);
-            if ($row && ($row->refund_hours !== null || $row->refund_fee !== null)) {
-                return $row;
-            }
-
-            $plan = $DB->get_record('nit_subscription', ['id' => $planid],
-                'id, refund_hours, refund_feetype, refund_fee');
-            return $plan ?: null;
+            return (object) [
+                'hours' => $plan->refund_hours,
+                'feepercent' => $plan->refund_fee,
+            ];
         }
 
-        return null;
+        $row = $DB->get_record('local_payments_refund_terms',
+            ['itemtype' => $itemtype, 'itemid' => $itemid], 'hours, feepercent');
+
+        return $row ?: null;
     }
 
     /**
      * The policy in force for one transaction.
      *
+     * The fee is always a percentage of what was actually paid. That is not a
+     * limitation, it is what makes one number correct everywhere: it needs no
+     * currency, so a course priced in EGP and USD needs only one; and it follows
+     * the amount charged, so a coupon that halves the price halves the fee
+     * instead of turning a flat 10 into a third of the sale.
+     *
      * @param \stdClass $transaction
-     * @return object {hours:int, fee:float, fromprice:bool, itemtype:string}
+     * @return object {hours:int, fee:float, fromitem:bool, itemtype:string}
      */
     public static function for_transaction(\stdClass $transaction): object {
         $itemtype = self::item_type($transaction);
         $site = self::site_policy($itemtype);
         $paid = round((float) $transaction->amount, 2);
 
-        $row = self::price_row($transaction);
+        $terms = self::item_terms($itemtype, self::item_id($transaction));
 
-        // Null on a price row means "nothing set here", which is different from
-        // zero: zero is a deliberate no-window or full refund.
-        $hours = ($row && $row->refund_hours !== null)
-            ? max(0, (int) $row->refund_hours)
+        // Null means "nothing set here", which is different from zero: zero is a
+        // deliberate no-window or full refund.
+        $hours = ($terms && $terms->hours !== null)
+            ? max(0, (int) $terms->hours)
             : $site->hours;
 
-        if ($row && $row->refund_fee !== null) {
-            // A flat amount is stated in the row's own currency, which is the
-            // currency charged — that is why it can live here at all. A
-            // percentage needs no currency.
-            $value = max(0, (float) $row->refund_fee);
-            $fee = (($row->refund_feetype ?? self::FEE_FIXED) === self::FEE_PERCENT)
-                ? round($paid * $value / 100, 2)
-                : round($value, 2);
-            $fromprice = true;
-        } else {
-            $fee = $site->feepercent > 0 ? round($paid * $site->feepercent / 100, 2) : 0.0;
-            $fromprice = false;
-        }
+        $percent = ($terms && $terms->feepercent !== null)
+            ? max(0, (float) $terms->feepercent)
+            : $site->feepercent;
+
+        $fee = $percent > 0 ? round($paid * $percent / 100, 2) : 0.0;
 
         return (object) [
             'itemtype' => $itemtype,
             'hours' => $hours,
+            'feepercent' => $percent,
             // A fee larger than the payment would mean billing somebody for asking.
             'fee' => min($fee, $paid),
-            'fromprice' => $fromprice,
+            'fromitem' => (bool) $terms,
         ];
     }
 
@@ -192,7 +170,8 @@ class refund_policy {
      * @param \stdClass $transaction
      * @return object {
      *     paid:float, fee:float, net:float, currency:string, hours:int,
-     *     deadline:int, withinwindow:bool, fromprice:bool, itemtype:string
+     *     feepercent:float, deadline:int, withinwindow:bool, fromitem:bool,
+     *     itemtype:string
      * }
      */
     public static function quote(\stdClass $transaction): object {
@@ -212,7 +191,8 @@ class refund_policy {
             'net' => round(max(0, $paid - $policy->fee), 2),
             'currency' => $transaction->currency,
             'hours' => $policy->hours,
-            'fromprice' => $policy->fromprice,
+            'feepercent' => $policy->feepercent,
+            'fromitem' => $policy->fromitem,
             'deadline' => $deadline,
             'withinwindow' => $deadline > 0 && time() <= $deadline,
         ];
@@ -231,7 +211,10 @@ class refund_policy {
 
         $a = (object) [
             'hours' => $quote->hours,
-            'fee' => format_float($quote->fee, 2, true, true) . ' ' . $quote->currency,
+            // Both, because the percentage is the policy and the amount is what
+            // this particular buyer would actually get back.
+            'fee' => format_float($quote->feepercent, 2, true, true) . '% ('
+                . format_float($quote->fee, 2, true, true) . ' ' . $quote->currency . ')',
         ];
 
         return $quote->fee > 0

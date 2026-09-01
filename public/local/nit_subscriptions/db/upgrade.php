@@ -139,6 +139,33 @@ function xmldb_local_nit_subscriptions_upgrade($oldversion) {
     }
 
     if ($oldversion < 2026090130) {
+        // The fee is a percentage now, which is what lets one number sit on the
+        // plan and stay right for every currency it sells in: it carries no
+        // currency to mismatch, and it follows whatever was actually charged, so
+        // a discount shrinks the fee with the price. That leaves the fee type and
+        // the per-country refund columns with nothing to do.
+        $plan = new xmldb_table('nit_subscription');
+        $field = new xmldb_field('refund_feetype');
+        if ($dbman->field_exists($plan, $field)) {
+            $dbman->drop_field($plan, $field);
+        }
+
+        // Move any flat fee off the plan rather than reading it as a percentage,
+        // where 150 EGP would silently become 150%.
+        $DB->set_field('nit_subscription', 'refund_fee', null, []);
+
+        $prices = new xmldb_table('nit_sub_price');
+        foreach (['refund_hours', 'refund_feetype', 'refund_fee'] as $name) {
+            $field = new xmldb_field($name);
+            if ($dbman->field_exists($prices, $field)) {
+                $dbman->drop_field($prices, $field);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026090130, 'local', 'nit_subscriptions');
+    }
+
+    if ($oldversion < 2026090140) {
         // Expiry reminders. The row is the receipt: it exists only once a reminder has actually
         // gone out, which is what stops the hourly task re-sending the same warning every hour.
         // Keyed on the deadline as well as the lead time, so a renewal — which moves the
@@ -162,7 +189,28 @@ function xmldb_local_nit_subscriptions_upgrade($oldversion) {
             $dbman->create_table($table);
         }
 
-        upgrade_plugin_savepoint(true, 2026090130, 'local', 'nit_subscriptions');
+        // The refund-percentage step above shipped as 2026090130 on one branch while this
+        // reminder table shipped as 2026090130 on the other, so a site upgraded before the
+        // merge recorded that savepoint having run only one of the two. Re-apply the column
+        // drops here; they are guarded, so a site that already did them pays nothing.
+        $plan = new xmldb_table('nit_subscription');
+        $feetype = new xmldb_field('refund_feetype');
+        if ($dbman->field_exists($plan, $feetype)) {
+            // The column still being here is what tells us the fee is a flat amount, so
+            // nulling it is right. On an already-migrated site it holds percentages to keep.
+            $DB->set_field('nit_subscription', 'refund_fee', null, []);
+            $dbman->drop_field($plan, $feetype);
+        }
+
+        $prices = new xmldb_table('nit_sub_price');
+        foreach (['refund_hours', 'refund_feetype', 'refund_fee'] as $name) {
+            $field = new xmldb_field($name);
+            if ($dbman->field_exists($prices, $field)) {
+                $dbman->drop_field($prices, $field);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026090140, 'local', 'nit_subscriptions');
     }
 
     return true;

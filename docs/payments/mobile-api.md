@@ -209,10 +209,10 @@ wsfunction = local_payments_get_refund_options    // params: transaction_id
   "action": "refund",
   "reason_required": false,
   "message": "",
-  "paid": 36.0, "fee": 3.6, "net": 32.4, "currency": "EGP",
+  "paid": 36.0, "fee": 3.6, "fee_percent": 10.0, "net": 32.4, "currency": "EGP",
   "window_hours": 48,
   "deadline": 1756900000,
-  "policy": "Refundable within 48 hours of purchase, less a 3.60 EGP fee."
+  "policy": "Refundable within 48 hours of purchase, less a 10.00% (3.60 EGP) fee."
 }
 ```
 
@@ -225,8 +225,10 @@ Switch on `action` — one field, rather than three booleans to combine:
 | `pending` | "Waiting on a decision" — already asked. |
 | `none` | Nothing. `message` says why, already translated. |
 
-Show `net` as the headline figure; `paid` and `fee` explain it. `policy` is a
-ready-made sentence if you would rather not compose one.
+Show `net` as the headline figure; `paid` and `fee` explain it. The fee is always
+a percentage of what was paid — `fee_percent` is that percentage, `fee` is what it
+comes to for this payment — so nothing needs converting per currency. `policy` is
+a ready-made sentence if you would rather not compose one.
 
 ### Do it
 

@@ -84,7 +84,13 @@ if ($course) {
 }
 $table->data[] = [get_string('refund_paid', 'local_payments'), $money($quote->paid)];
 if ($quote->fee > 0) {
-    $table->data[] = [get_string('refund_fee', 'local_payments'), '-' . $money($quote->fee)];
+    // Name the percentage as well as the money: the number is the policy, the
+    // amount is only what it comes to for this one payment.
+    $table->data[] = [
+        get_string('refund_feerow', 'local_payments',
+            format_float($quote->feepercent, 2, true, true)),
+        '-' . $money($quote->fee),
+    ];
 }
 $table->data[] = [
     html_writer::tag('strong', get_string('refund_youget', 'local_payments')),

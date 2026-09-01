@@ -38,7 +38,7 @@ Two consequences worth knowing:
 | `payment_method_id` | Result |
 |---------------------|--------|
 | a method id | charges that method directly (server-to-server) |
-| `0` (default) | auto-selects a method — see [web checkout](#11-web-checkout-has-no-picker) |
+| `0` (default) | auto-selects a method — see [web checkout](#11-which-method-the-web-checkout-uses) |
 | `-1` | Fawaterk's hosted page, where it asks for the method itself |
 
 ---
@@ -151,10 +151,18 @@ docker compose exec moodle sh -c 'find . -name "*.php" -path "*local/payments*" 
 Then **Manage providers** → enable *Fawaterk* (and set its priority above Kashier
 if it should be the default pick).
 
-### 1.1 Web checkout has no picker
+### 1.1 Which method the web checkout uses
 
-The web checkout never asks the buyer to choose. It calls the gateway with no
-method, and the gateway picks one:
+By default the web checkout does not ask: it calls the gateway with no method
+and the gateway picks one, so the buyer goes straight to paying.
+
+To offer the choice instead, turn on *Payments → **Ask which payment method to
+use***. The picker only appears when the gateway reports more than one method,
+so it never becomes a pointless extra click on an account that has only cards.
+Whichever the buyer picks is checked against the live list before it is charged;
+a stale id falls back to auto-selection rather than a gateway error.
+
+When nothing is chosen, the gateway picks:
 
 - **one method enabled** → that one.
 - **two or more** → the first one named in *Payment method priority* that the
@@ -162,10 +170,10 @@ method, and the gateway picks one:
   nothing in the list matches.
 - **the account lists none** → the first id in *Payment method priority*
   anyway. An empty list does not mean the account can't take payments:
-  `getPaymentmethods` reports what's configured for the hosted iframe, and the
-  live account here returns `[]` while `invoiceInitPay` charges card (id 2)
-  perfectly well. Trusting the enumeration over the configured preference would
-  silently push every checkout onto the hosted page.
+  `getPaymentmethods` reports what's configured for the hosted iframe, and an
+  account with nothing activated returns `[]` while `invoiceInitPay` charges
+  card (id 2) perfectly well. Trusting the enumeration over the configured
+  preference would silently push every checkout onto the hosted page.
 - **auto-selection off, or no priority configured** → the Fawaterk hosted page.
 
 The account's method list is cached for an hour, so purge caches after enabling a

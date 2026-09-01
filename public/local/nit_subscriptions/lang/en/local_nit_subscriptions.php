@@ -225,13 +225,8 @@ $string['countryrequired_desc'] = 'Prices are set per country. Add your country 
 $string['countryrequired_action'] = 'Add your country';
 $string['sub_refund_rule'] = 'Refund policy';
 $string['sub_field_refundhours'] = 'Refund window (hours)';
-$string['sub_field_refundfee'] = 'Refund fee';
-$string['sub_field_refundfeetype'] = 'Refund fee type';
-$string['sub_feetype_fixed'] = 'Flat amount (in the plan currency)';
-$string['sub_feetype_percent'] = 'Percentage of the amount paid';
-$string['sub_refundfee_help'] = 'Applies to the plan default price. Country prices below can set their own, in their own currency.';
-$string['sub_price_refundhours'] = 'Refund hrs';
-$string['sub_price_refundfee'] = 'Refund fee';
+$string['sub_field_refundfee'] = 'Refund fee (%)';
+$string['sub_refundfee_help'] = 'A percentage of whatever the buyer paid, so one number covers every currency and follows any discount. Leave both blank to use the site refund policy.';
 
 // Public plan-details page (/local/nit_subscriptions/plan.php) and the "View details"
 // button the home-page plan cards link to it with.
