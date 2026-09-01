@@ -43,6 +43,12 @@
     margin-bottom: 0.5rem;
 }
 
+/* A chip strip above a plain text box: the widget already spaces its children,
+   so the strip does not add its own gap on top. */
+.nitml > .nitml-tabs {
+    margin-bottom: 0;
+}
+
 .nitml-tab {
     position: relative;
     display: inline-flex;

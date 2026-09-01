@@ -64,6 +64,17 @@ class element extends base_element implements
     validatable_element_interface
 {
     /**
+     * The name currently being drawn, or null when not drawing one.
+     *
+     * Set for the duration of render() only, so get_font() can see what it is
+     * about to be asked to draw. mod_customcert asks an element for its font
+     * without telling it the content, and here the two have to be decided together.
+     *
+     * @var string|null
+     */
+    protected ?string $rendering = null;
+
+    /**
      * Build the configuration form for this element.
      *
      * @param MoodleQuickForm $mform
@@ -84,11 +95,52 @@ class element extends base_element implements
     public function render(pdf $pdf, bool $preview, stdClass $user, ?element_renderer $renderer = null): void {
         $name = $this->name_for($preview, $user);
 
-        if ($renderer) {
-            $renderer->render_content($this, $name);
-        } else {
-            element_helper::render_content($pdf, $this, $name);
+        // Both branches below ask this element for its font (see get_font()), so
+        // the name has to be reachable from there while they run. Cleared in a
+        // finally so a throw cannot leave the element stuck in rendering mode -
+        // the same instance also draws the drag-and-drop preview.
+        $this->rendering = $name;
+
+        try {
+            if ($renderer) {
+                $renderer->render_content($this, $name);
+            } else {
+                element_helper::render_content($pdf, $this, $name);
+            }
+        } finally {
+            $this->rendering = null;
         }
+    }
+
+    /**
+     * The font to print the name in.
+     *
+     * A template laid out in Times prints an Arabic name as a row of empty boxes.
+     * Not an encoding fault and not a right-to-left fault - TCPDF shapes and
+     * reorders Arabic correctly on its own - but the five PostScript core fonts
+     * carry 256 glyphs each and not one of them is an Arabic letter, so every
+     * letter lands on .notdef.
+     *
+     * Whoever positioned the template picked the font against English sample data,
+     * where every font works; the mismatch surfaces later, on a real learner, on a
+     * PDF nobody reviews. So rather than rely on it being noticed, the name is
+     * drawn in a font that can draw it.
+     *
+     * Only while a name is actually being printed: the designer keeps seeing the
+     * font they chose, and a Latin name is never redirected. The decision itself
+     * lives in \local_academy\pdf_fonts, which reads each font's own width map
+     * rather than assuming anything about it.
+     *
+     * @return string|null
+     */
+    public function get_font(): ?string {
+        $font = parent::get_font();
+
+        if ($this->rendering === null || !class_exists('\local_academy\pdf_fonts')) {
+            return $font;
+        }
+
+        return \local_academy\pdf_fonts::for_text($font, $this->rendering);
     }
 
     /**
