@@ -118,7 +118,37 @@ try {
         $costr = local_nit_commerce_string_map([
             'co_title', 'co_intro', 'co_total', 'co_offer', 'co_coupon', 'co_apply', 'co_discount',
             'co_secure', 'co_proceed', 'co_cancel', 'co_loading', 'co_coupon_failed', 'co_currency',
+            'co_method', 'co_method_code',
         ]);
+
+        // The methods the gateway will actually accept, so the buyer picks here
+        // rather than on a second screen — the same place the app asks, which is
+        // the only reason the two flows feel like one product. Cached for an
+        // hour, so this is not an API call per page view.
+        $comethods = [];
+        if (get_config('local_payments', 'show_method_picker')) {
+            try {
+                $offer = \local_payments\manager::get_provider_payment_methods(
+                    $pricing->country, $pricing->currency);
+                if ($offer->supports_payment_methods) {
+                    foreach ($offer->methods as $method) {
+                        $comethods[] = [
+                            'id' => $method['id'],
+                            'name' => (current_language() === 'ar' && $method['name_ar'] !== '')
+                                ? $method['name_ar'] : $method['name_en'],
+                            'logo' => $method['logo'],
+                            // A method that hands back a code instead of a page
+                            // is a different experience, so say so on the card.
+                            'is_reference' => !$method['redirect'],
+                        ];
+                    }
+                }
+            } catch (\Throwable $e) {
+                // A gateway that will not list its methods is not a reason to
+                // block the sale: fall through with none and let it choose.
+                $comethods = [];
+            }
+        }
         echo html_writer::script('window.NIT_CO = ' . json_encode([
             'wwwroot'  => $CFG->wwwroot,
             'sesskey'  => sesskey(),
@@ -128,6 +158,7 @@ try {
             'name'     => format_string($course->fullname),
             'price'    => (float) $pricing->price,
             'currency' => (string) $pricing->currency,
+            'methods'  => $comethods,
         ]) . ';');
         echo html_writer::script(<<<'JS'
 (function () {
@@ -149,8 +180,14 @@ try {
                 name: window.NIT_CO.name,
                 price: window.NIT_CO.price,
                 currency: window.NIT_CO.currency,
-                proceed: function (code) {
-                    window.location.href = href + (href.indexOf('?') >= 0 ? '&' : '?') + 'coupon_code=' + encodeURIComponent(code);
+                methods: window.NIT_CO.methods,
+                proceed: function (code, methodId) {
+                    var url = href + (href.indexOf('?') >= 0 ? '&' : '?') +
+                        'coupon_code=' + encodeURIComponent(code);
+                    // 0 means the modal offered no choice; checkout then picks
+                    // one itself rather than showing its own picker screen.
+                    if (methodId) { url += '&payment_method_id=' + encodeURIComponent(methodId); }
+                    window.location.href = url;
                 }
             });
         });

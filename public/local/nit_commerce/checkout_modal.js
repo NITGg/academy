@@ -3,13 +3,20 @@
  *
  * A page mints its config + strings, then calls NitCheckout.open({...}) from a Buy button. The modal
  * previews the price (auto offer + optional coupon) via /local/nit_commerce/api.php?function=preview_discount
- * and, on Proceed, calls the caller's proceed(couponCode) to start the real Kashier checkout.
+ * and, on Proceed, calls the caller's proceed(couponCode, methodId) to start the real checkout.
+ *
+ * Pass `methods` to have the buyer choose how to pay here, in the same sheet as
+ * the price and the coupon, which is where the mobile app asks. Two or more are
+ * needed for the strip to appear: one method is not a choice. proceed() then
+ * receives the chosen id, or 0 when nothing was offered and the gateway should
+ * pick for itself.
  *
  * Usage (from a server page):
  *   window.NIT_CO = { wwwroot: M.cfg.wwwroot, sesskey: M.cfg.sesskey,
  *                     commerce: '/local/nit_commerce/api.php', str: {...} };
  *   NitCheckout.open({ itemType:'course', itemId:10, name:'...', subtitle:'',
- *                      proceed: function(code){ location = checkoutUrl + '&coupon_code=' + code; } });
+ *                      methods: [{id:2, name:'Visa', logo:'…', is_reference:false}],
+ *                      proceed: function(code, methodId){ location = checkoutUrl + '&coupon_code=' + code; } });
  */
 (function (w) {
   'use strict';
@@ -97,6 +104,15 @@
     els.offerRow.style.display = 'none';
     box.appendChild(els.offerRow);
 
+    // Payment methods, as a horizontal strip of cards. Same position and shape
+    // as the app's purchase sheet, so a student who has used one recognises the
+    // other. Hidden entirely when the gateway offers no choice worth making.
+    els.methodsWrap = el('div', 'margin:14px 0 4px; display:none;');
+    els.methodsWrap.appendChild(el('div', 'font-size:13px; color:' + C.muted + '; margin-bottom:8px;', S('co_method')));
+    els.methods = el('div', 'display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;');
+    els.methodsWrap.appendChild(els.methods);
+    box.appendChild(els.methodsWrap);
+
     // Coupon input + apply.
     var cRow = el('div', 'display:flex; align-items:center; gap:8px; margin:12px 0;');
     cRow.appendChild(el('span', 'font-size:14px; color:' + C.muted + '; flex:0 0 auto;', S('co_coupon')));
@@ -153,9 +169,59 @@
     els.proceed.addEventListener('click', function () {
       if (!current) { return; }
       els.proceed.disabled = true;
-      try { current.proceed(els.coupon.value.trim()); }
+      try { current.proceed(els.coupon.value.trim(), els.methodid || 0); }
       catch (e) { els.proceed.disabled = false; els.error.textContent = String(e && e.message || e); els.error.style.display = ''; }
     });
+  }
+
+  // Draw the method cards and remember which one is picked. Returns nothing;
+  // the choice lives in els.methodid until proceed() reads it.
+  function methods(list) {
+    els.methods.innerHTML = '';
+    els.methodid = 0;
+
+    // One method is not a choice: showing it would be a decision the buyer
+    // cannot make differently. Let the gateway take it silently, as before.
+    if (!list || list.length < 2) {
+      els.methodsWrap.style.display = 'none';
+      return;
+    }
+
+    var cards = [];
+    function select(i) {
+      els.methodid = Number(list[i].id) || 0;
+      cards.forEach(function (c, n) {
+        c.style.borderColor = (n === i) ? C.accent : C.line;
+        c.style.background = (n === i) ? 'color-mix(in srgb, ' + C.accent + ' 12%, transparent)' : C.surface;
+      });
+    }
+
+    list.forEach(function (m, i) {
+      var card = el('button', 'flex:0 0 auto; min-width:132px; background:' + C.surface + '; border:1px solid ' + C.line +
+        '; border-radius:10px; padding:10px; cursor:pointer; text-align:center; color:' + C.ink + ';');
+      card.type = 'button';
+
+      if (m.logo) {
+        var img = el('img', 'height:22px; max-width:100%; object-fit:contain; display:block; margin:0 auto 6px;');
+        img.src = m.logo;
+        img.alt = '';
+        // A broken logo should cost the card its image, not its label.
+        img.addEventListener('error', function () { img.style.display = 'none'; });
+        card.appendChild(img);
+      }
+
+      card.appendChild(el('div', 'font-size:12px; line-height:1.35;', m.name || ''));
+      if (m.is_reference) {
+        card.appendChild(el('div', 'font-size:11px; color:' + C.muted + '; margin-top:2px;', S('co_method_code')));
+      }
+
+      card.addEventListener('click', function () { select(i); });
+      cards.push(card);
+      els.methods.appendChild(card);
+    });
+
+    select(0);
+    els.methodsWrap.style.display = '';
   }
 
   function row(label, valueEl) {
@@ -213,6 +279,7 @@
       var base = money(item.price || 0) + ' ' + cur();
       els.original.textContent = base; els.final.textContent = base; els.discount.textContent = '0.00 ' + cur();
       els.offerRow.style.display = 'none';
+      methods(item.methods);
       modal.style.display = 'flex';
       preview(''); // Auto-apply any offer + fetch the true base.
     },

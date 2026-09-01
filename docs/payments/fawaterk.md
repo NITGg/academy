@@ -157,10 +157,20 @@ By default the web checkout does not ask: it calls the gateway with no method
 and the gateway picks one, so the buyer goes straight to paying.
 
 To offer the choice instead, turn on *Payments → **Ask which payment method to
-use***. The picker only appears when the gateway reports more than one method,
-so it never becomes a pointless extra click on an account that has only cards.
-Whichever the buyer picks is checked against the live list before it is charged;
-a stale id falls back to auto-selection rather than a gateway error.
+use***. It appears in two places, and which one a buyer sees depends only on how
+they got there:
+
+- **In the checkout modal** on the course page — a strip of method cards between
+  the total and the coupon box. This is the one that matters: it is the same
+  position and shape the mobile app uses, so the two flows read as one product.
+- **On its own screen** for anything that links straight to `checkout.php`
+  without the modal (a course card, a saved link). Same choice, one step later.
+
+Either way the picker only appears when the gateway reports more than one
+method — one method is not a choice, and asking about it is a click that
+teaches nothing. Whichever the buyer picks is checked against the live list
+before it is charged; a stale id falls back to auto-selection rather than a
+gateway error.
 
 When nothing is chosen, the gateway picks:
 
