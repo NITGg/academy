@@ -109,7 +109,7 @@
     // other. Hidden entirely when the gateway offers no choice worth making.
     els.methodsWrap = el('div', 'margin:14px 0 4px; display:none;');
     els.methodsWrap.appendChild(el('div', 'font-size:13px; color:' + C.muted + '; margin-bottom:8px;', S('co_method')));
-    els.methods = el('div', 'display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;');
+    els.methods = el('div', 'display:grid; grid-template-columns:repeat(auto-fit, minmax(104px, 1fr)); gap:8px;');
     els.methodsWrap.appendChild(els.methods);
     box.appendChild(els.methodsWrap);
 
@@ -197,7 +197,7 @@
     }
 
     list.forEach(function (m, i) {
-      var card = el('button', 'flex:0 0 auto; min-width:132px; background:' + C.surface + '; border:1px solid ' + C.line +
+      var card = el('button', 'background:' + C.surface + '; border:1px solid ' + C.line +
         '; border-radius:10px; padding:10px; cursor:pointer; text-align:center; color:' + C.ink + ';');
       card.type = 'button';
 

@@ -499,15 +499,15 @@
 }
 
 .nitplan__methodslist {
-    display: flex;
+    /* A grid, not a scroller: equal cards that wrap on a narrow dialog rather
+       than a native scrollbar slicing the third method in half. Same layout as
+       the course checkout modal, so the two dialogs read as one design. */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
     gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 4px;
 }
 
 .nitplan__method {
-    flex: 0 0 auto;
-    min-width: 132px;
     background: var(--cbg2);
     border: 1px solid var(--cborder);
     border-radius: 10px;

@@ -186,7 +186,7 @@
         methods.forEach(function(m, i) {
           var card = document.createElement('button');
           card.type = 'button';
-          card.style.cssText = 'flex: 0 0 auto; min-width: 132px; border-radius: 10px;' +
+          card.style.cssText = 'border-radius: 10px;' +
             ' border: 1px solid color-mix(in srgb, var(--nit-brand-textprimary) 15%, transparent);' +
             ' background: var(--nit-brand-surface); color: var(--nit-brand-textprimary);' +
             ' padding: 10px; cursor: pointer; text-align: center; font-size: 12px;' +
