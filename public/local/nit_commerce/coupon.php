@@ -25,7 +25,8 @@
  * the code is actually worth before they go looking for something to spend it on.
  *
  * The coupon is read from the same {@see coupon_manager::get_available_coupons()} list the home
- * block reads, so a coupon that is inactive, not started or expired has no page here either.
+ * block reads, so a coupon this visitor could not redeem — inactive, out of window, used up,
+ * or priced in another currency — has no page here either.
  *
  * @package    local_nit_commerce
  * @copyright  2026 NIT
@@ -85,11 +86,9 @@ if (!$coupon) {
     die();
 }
 
-// Coupons carry no currency of their own — a fixed discount is stated in the site's default.
-$currency = (string) get_config('local_payments', 'default_currency');
-if ($currency === '' || $currency === '0') {
-    $currency = get_string('co_currency', 'local_nit_commerce');
-}
+// Coupons carry no currency of their own — a fixed discount is stated in the site's default,
+// which is also the currency the list above required the visitor to be priced in.
+$currency = coupon_manager::default_currency();
 
 $ispercent = ($coupon['discount_type'] === 'percent');
 $valuenum = (float) $coupon['discount_value'];

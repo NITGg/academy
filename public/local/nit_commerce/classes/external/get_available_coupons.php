@@ -92,6 +92,7 @@ class get_available_coupons extends external_api {
                 'enddate'        => new external_value(PARAM_INT, 'Valid-until unix time (0 = never expires)'),
                 'status'         => new external_value(PARAM_ALPHA, 'active | inactive'),
                 'usage_count'    => new external_value(PARAM_INT, 'How many times it has been redeemed'),
+                'currency'       => new external_value(PARAM_TEXT, "ISO 4217 the fixed amount is in ('' for a percentage)"),
                 'applies_to'     => new external_multiple_structure(
                     new external_single_structure([
                         'item_type' => new external_value(PARAM_ALPHA, 'course | package | subscription | program'),

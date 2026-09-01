@@ -212,22 +212,104 @@ class coupon_manager {
     }
 
     /**
-     * Active, in-window coupons for students to browse.
+     * The coupons a visitor may actually use, newest first (AC-4.7.10).
      *
+     * Every test here is one the checkout would apply anyway — this list exists so the
+     * catalogue never advertises a code that {@see discount_manager::validate_coupon()}
+     * would then refuse. A coupon that fails any of them is left out of the list rather
+     * than returned greyed out: there is nothing a visitor can do with it, and a wall of
+     * dead cards is worse than a shorter wall of live ones.
+     *
+     * The tests: active; inside its start/end window; still has redemptions left, globally
+     * and for this user; and, when it takes a fixed amount off, denominated in the currency
+     * this visitor is quoted in (AC-4.6) — 50 EGP off means nothing to a buyer paying USD.
+     *
+     * @param int|null $userid whose redemption history to respect; defaults to the current user
      * @return array
      */
-    public static function get_available_coupons() {
-        global $DB;
+    public static function get_available_coupons($userid = null) {
+        global $DB, $USER;
+
+        $userid = $userid === null ? (int) $USER->id : (int) $userid;
+        if ($userid > 0 && isguestuser($userid)) {
+            $userid = 0;
+        }
+
         $now = time();
+        $currency = self::visitor_currency();
+        $sitecurrency = self::default_currency();
+
+        // One query for this user's history, rather than one per coupon.
+        $usedbyuser = array();
+        if ($userid > 0) {
+            $usedbyuser = array_flip($DB->get_fieldset_select('nit_coupon_usage', 'DISTINCT couponid',
+                'userid = :userid', array('userid' => $userid)));
+        }
+
         $rows = array_values($DB->get_records('nit_coupon', array('status' => self::STATUS_ACTIVE), 'timecreated DESC'));
         $out = array();
         foreach ($rows as $r) {
             if ($r->startdate > 0 && $now < $r->startdate) { continue; }
             if ($r->enddate > 0 && $now > $r->enddate) { continue; }
-            $out[] = self::format($r);
+
+            // Fixed amounts are stated in the site's currency; a visitor priced in another
+            // one cannot spend them. Percentages travel, so they are never filtered here.
+            if ($r->discount_type !== 'percent'
+                    && $currency !== '' && $sitecurrency !== '' && $currency !== $sitecurrency) {
+                continue;
+            }
+
+            // Redemptions left: a one-time coupon is spent after the first, a capped one
+            // after its cap, and either is spent for this user once they have used it.
+            $used = $DB->count_records('nit_coupon_usage', array('couponid' => $r->id));
+            if ($r->usage_type === self::USAGE_ONCE && $used >= 1) { continue; }
+            if ((int)$r->usage_limit > 0 && $used >= (int)$r->usage_limit) { continue; }
+            if (isset($usedbyuser[$r->id])) { continue; }
+
+            $out[] = self::format($r, $used);
         }
         return $out;
     }
+
+    /**
+     * The currency a fixed-amount coupon is written in. Coupons carry none of their own, so
+     * it is the currency the site prices in — {@see ocal_paymentsprice_resolver::default_currency()},
+     * which prefers what the default price rows actually say over the untouched admin setting.
+     *
+     * @return string ISO 4217 (uppercase), or '' when the site names none
+     */
+    public static function default_currency() {
+        $currency = '';
+        if (class_exists('\local_payments\price_resolver')
+                && method_exists('\local_payments\price_resolver', 'default_currency')) {
+            $currency = \local_payments\price_resolver::default_currency();
+        }
+        if ($currency === '') {
+            $currency = (string) get_config('local_payments', 'default_currency');
+        }
+        if ($currency === '' || $currency === '0') {
+            $currency = (string) get_string('co_currency', 'local_nit_commerce');
+        }
+        return strtoupper(trim($currency));
+    }
+
+    /**
+     * The currency this visitor is quoted in, or '' when nothing can say.
+     *
+     * Delegated to local_payments, which owns the country → price → currency rules; the
+     * guard is there because nit_commerce is installable without it, and a site with no
+     * payments plugin has no per-country currency to disagree with.
+     *
+     * @return string ISO 4217 (uppercase), or ''
+     */
+    private static function visitor_currency() {
+        if (!class_exists('\local_payments\price_resolver')
+                || !method_exists('\local_payments\price_resolver', 'visitor_currency')) {
+            return '';
+        }
+        return \local_payments\price_resolver::visitor_currency();
+    }
+
 
     /**
      * Whether the coupon has any redemption records.
@@ -261,9 +343,10 @@ class coupon_manager {
      * Shape a record for the API: cast types + attach scope items and usage count.
      *
      * @param \stdClass $record
+     * @param int|null $used redemption count, when the caller has already counted it
      * @return array
      */
-    private static function format($record) {
+    private static function format($record, $used = null) {
         global $DB;
         $items = array_values($DB->get_records('nit_coupon_item', array('couponid' => $record->id)));
         $applies = array();
@@ -290,7 +373,12 @@ class coupon_manager {
             'startdate'      => (int)$record->startdate,
             'enddate'        => (int)$record->enddate,
             'status'         => $record->status,
-            'usage_count'    => $DB->count_records('nit_coupon_usage', array('couponid' => $record->id)),
+            'usage_count'    => $used === null
+                ? $DB->count_records('nit_coupon_usage', array('couponid' => $record->id))
+                : (int)$used,
+            // Coupons carry no currency of their own: a fixed amount is stated in the site's,
+            // and a percentage is stated in none, so it reports none.
+            'currency'       => $record->discount_type === 'percent' ? '' : self::default_currency(),
             'applies_to'     => $applies,
         );
     }

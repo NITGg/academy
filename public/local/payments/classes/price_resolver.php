@@ -92,6 +92,106 @@ class price_resolver {
     }
 
     /**
+     * The currency this visitor is quoted in, under the same country rules prices use.
+     *
+     * Prices carry the currency, not the country: the visitor's currency is simply the one
+     * on the active price rows that would be picked for them. Course prices answer first,
+     * subscription prices second (a site may sell only plans), and the admin default
+     * currency last. The answer is a property of the visitor rather than of any one item,
+     * which is why it takes no course id — callers with no item at all (the coupon
+     * catalogue, for one) still need to know which currency the visitor thinks in.
+     *
+     * @param int|null $userid defaults to the current user
+     * @param string|null $app_country country hint from the mobile app
+     * @return string ISO 4217 (uppercase), or '' when the site names no currency anywhere
+     */
+    public static function visitor_currency(?int $userid = null, ?string $app_country = null): string {
+        global $DB, $USER;
+
+        $userid = $userid ?? $USER->id;
+
+        static $cache = [];
+        $key = $userid . '|' . (string) $app_country;
+        if (array_key_exists($key, $cache)) {
+            return $cache[$key];
+        }
+
+        $country = country_detector::detect_for_pricing($userid, $app_country);
+        $currency = '';
+
+        if ($country !== '') {
+            $currency = (string) $DB->get_field_select(
+                'local_payments_course_prices',
+                'currency',
+                'country = :country AND is_active = 1',
+                ['country' => $country],
+                IGNORE_MULTIPLE
+            );
+
+            if ($currency === '' && $DB->get_manager()->table_exists('nit_sub_price')) {
+                $currency = (string) $DB->get_field_select(
+                    'nit_sub_price',
+                    'currency',
+                    'country = :country',
+                    ['country' => $country],
+                    IGNORE_MULTIPLE
+                );
+            }
+        }
+
+        // No country, or a country nobody priced for: the visitor lands on the default
+        // rows, so their currency is the one those rows are written in.
+        if ($currency === '') {
+            $currency = self::default_currency();
+        }
+
+        $cache[$key] = strtoupper(trim($currency));
+
+        return $cache[$key];
+    }
+
+    /**
+     * The currency the site prices in when no country of its own applies.
+     *
+     * The default price rows answer before the admin setting on purpose: the setting ships
+     * with a value nobody chose (USD), so a site that prices every default row in EGP and
+     * never opened the payments settings page would otherwise be described as a dollar
+     * site — and anything comparing currencies (which coupons a visitor can spend, say)
+     * would conclude that nothing matches anything.
+     *
+     * @return string ISO 4217 (uppercase), or '' when the site names none at all
+     */
+    public static function default_currency(): string {
+        global $DB;
+
+        static $currency = null;
+        if ($currency !== null) {
+            return $currency;
+        }
+
+        $fromrows = (string) $DB->get_field_select(
+            'local_payments_course_prices',
+            'currency',
+            'is_default = 1 AND is_active = 1',
+            [],
+            IGNORE_MULTIPLE
+        );
+
+        if ($fromrows === '' && $DB->get_manager()->table_exists('nit_subscription')) {
+            $fromrows = (string) $DB->get_field_select('nit_subscription', 'currency', 'status = :status',
+                ['status' => 'active'], IGNORE_MULTIPLE);
+        }
+
+        if ($fromrows === '') {
+            $fromrows = (string) get_config('local_payments', 'default_currency');
+        }
+
+        $currency = strtoupper(trim($fromrows));
+
+        return $currency;
+    }
+
+    /**
      * Is this viewer barred from seeing prices because their profile has no country?
      *
      * Thin passthrough so display code (templates, category cards, the theme) can ask the

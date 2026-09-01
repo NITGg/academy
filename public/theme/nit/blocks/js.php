@@ -43,12 +43,18 @@ define('ABORT_AFTER_CONFIG', true);
 
 require(__DIR__ . '/../../../config.php');
 
-$name = optional_param('name', '', PARAM_ALPHANUMEXT);
+// ABORT_AFTER_CONFIG loads lib/configonlylib.php and nothing else, so the
+// ordinary optional_param() does not exist here — calling it is a fatal error,
+// and the script this file exists to serve never arrives. min_optional_param()
+// is the equivalent from that minimal library; SAFEDIR is its PARAM_ALPHANUMEXT
+// (it strips everything outside [a-zA-Z0-9_-]).
+$name = min_optional_param('name', '', 'SAFEDIR');
 
-// PARAM_ALPHANUMEXT already rules out slashes and dots, so the name cannot
-// climb out of this directory; the whitelist below is the real gate anyway.
+// SAFEDIR already rules out slashes and dots, so the name cannot climb out of
+// this directory; the whitelist below is the real gate anyway.
 $allowed = [
     'home_subscriptions',
+    'home_my_course',
 ];
 
 if (!in_array($name, $allowed, true)) {
