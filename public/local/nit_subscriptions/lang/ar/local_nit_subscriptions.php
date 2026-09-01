@@ -106,3 +106,5 @@ $string['sub_renew_endsin']     = 'ينتهي خلال {$a} يوم';
 $string['sub_renew_note']       = 'التجديد الآن يمدّد خطتك من يوم انتهائها الحالي — لن تفقد أيًّا من المدة المتبقية.';
 $string['sub_renew_confirm']    = 'تأكيد التجديد';
 $string['sub_renew_newexpiry']  = 'تاريخ الانتهاء الجديد';
+$string['plan_accessuntil']  = 'الوصول حتى {$a}';
+$string['plan_includesrenewal'] = 'يشمل التجديد الذي دفعته بالفعل';

@@ -113,12 +113,20 @@ $activedaysleft = 0;
 $hasotheractive = false;
 $renewdue = false;
 $renewedexpiry = 0;
+$isrenewed = false;
+$activeexpiry = 0;
 if (isloggedin() && !isguestuser()) {
     $active = subscription_purchase_manager::get_active_subscription($USER->id);
     if ($active) {
+        // Quote the purchase that runs LONGEST on this plan, not the most recently activated
+        // one — after a renewal they can differ, and the wrong one understates the time the
+        // user has paid for. See subscription_purchase_manager::longest_active().
+        $active = subscription_purchase_manager::longest_active($USER->id, (int) $active->subscriptionid)
+            ?: $active;
         $activeplanid = (int) $active->subscriptionid;
-        $activedaysleft = ((int) $active->expires_at > 0)
-            ? max(0, (int) ceil(((int) $active->expires_at - time()) / DAYSECS)) : 0;
+        $activeexpiry = (int) $active->expires_at;
+        $activedaysleft = ($activeexpiry > 0)
+            ? max(0, (int) ceil(($activeexpiry - time()) / DAYSECS)) : 0;
         $hasotheractive = ($activeplanid !== $id);
 
         // The same window the home-page card uses, so the two never disagree about whether
@@ -128,6 +136,18 @@ if (isloggedin() && !isguestuser()) {
             $renewdue = \local_nit_subscriptions\reminder_manager::renew_due($active);
             $renewedexpiry = ((int) $active->expires_at > 0 && (int) $active->duration_days > 0)
                 ? (int) $active->expires_at + ((int) $active->duration_days * DAYSECS) : 0;
+
+            // More than one live purchase on this plan means the days-left figure spans the
+            // period running now AND a renewal already paid for. The number cannot explain
+            // that on its own, so the page prints the end date and says so — see the same
+            // reasoning in api.php's get_my_active_subscription.
+            $stacked = 0;
+            foreach (subscription_purchase_manager::get_active_subscriptions($USER->id) as $p) {
+                if ((int) $p->subscriptionid === $activeplanid) {
+                    $stacked++;
+                }
+            }
+            $isrenewed = ($stacked > 1);
         }
     }
 }
@@ -267,6 +287,17 @@ echo $OUTPUT->header();
                   ? s(get_string('plan_daysleft', 'local_nit_subscriptions', $activedaysleft))
                   : s(get_string('plan_activenow', 'local_nit_subscriptions')) ?>
             </div>
+            <?php if ($activeexpiry > 0): ?>
+              <!-- The days-left figure never stands alone: on a renewed plan it covers the
+                   period running now plus the one already paid for behind it, which the
+                   number cannot say for itself. -->
+              <p class="nitplan__note">
+                <?= s(get_string('plan_accessuntil', 'local_nit_subscriptions',
+                    userdate($activeexpiry, get_string('strftimedaydate')))) ?><?php
+                  if ($isrenewed): ?> — <?= s(get_string('plan_includesrenewal', 'local_nit_subscriptions')) ?><?php
+                  endif; ?>
+              </p>
+            <?php endif; ?>
           <?php elseif ($hasotheractive): ?>
             <button type="button" class="nitplan__cta" disabled>
               <?= s(get_string('sub_buy', 'local_nit_subscriptions')) ?>

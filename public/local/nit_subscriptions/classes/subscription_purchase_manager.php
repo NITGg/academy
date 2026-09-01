@@ -232,6 +232,37 @@ class subscription_purchase_manager {
     }
 
     /**
+     * The live purchase that decides how long the user's access actually runs.
+     *
+     * {@see get_active_subscription()} answers "which subscription is theirs" by activation
+     * order, which is the right question for most callers. It is the WRONG question for
+     * anything that quotes a deadline: once a renewal is stacked on top of a running period
+     * the user holds two live rows for the same plan, and the one activated last is not
+     * necessarily the one that runs longest — a renewal activated in the same second as
+     * another purchase ties on timeactivated and the tie breaks arbitrarily. Reporting that
+     * row's date would understate the time the user has already paid for.
+     *
+     * @param int $userid
+     * @param int $subscriptionid restrict to one plan; 0 = any
+     * @return \stdClass|null the active purchase with the latest expiry, or null
+     */
+    public static function longest_active($userid, $subscriptionid = 0) {
+        $best = null;
+        foreach (self::get_active_subscriptions($userid) as $purchase) {
+            if ($subscriptionid && (int) $purchase->subscriptionid !== (int) $subscriptionid) {
+                continue;
+            }
+            // An open-ended purchase (expires_at 0) outruns every dated one.
+            if ($best === null
+                    || (int) $purchase->expires_at === 0
+                    || ((int) $best->expires_at !== 0 && (int) $purchase->expires_at > (int) $best->expires_at)) {
+                $best = $purchase;
+            }
+        }
+        return $best;
+    }
+
+    /**
      * Whether the user already holds an active NORMAL subscription (only one allowed at a time).
      *
      * @param int $userid

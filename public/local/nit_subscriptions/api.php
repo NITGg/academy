@@ -206,6 +206,15 @@ try {
                 'name' => '', 'days_left' => 0, 'price_paid' => 0,
                 'renew_due' => false, 'renew_window_days' => 0, 'renewed_expires_at' => 0];
             if ($active) {
+                // Which of the user's live purchases on this plan governs their access is the
+                // one that runs LONGEST, not the one activated most recently. Those are usually
+                // the same row, but a renewal activated in the same second as another purchase
+                // ties on timeactivated — and get_active_subscription() breaks that tie
+                // arbitrarily, which would have this screen quote the shorter of the two and
+                // under-report the days the user has actually paid for.
+                $active = subscription_purchase_manager::longest_active($USER->id, (int) $active->subscriptionid)
+                    ?: $active;
+
                 $name = $DB->get_field('nit_subscription', 'name', ['id' => $active->subscriptionid]);
                 $daysleft = ((int) $active->expires_at > 0)
                     ? max(0, (int) ceil(((int) $active->expires_at - time()) / DAYSECS)) : 0;
@@ -218,10 +227,26 @@ try {
                 $renewdue = \local_nit_subscriptions\reminder_manager::renew_due($active);
                 $duration = (int) $active->duration_days;
 
+                // "2 days left" on a renewed plan is a true number that reads like a wrong one:
+                // it is what remains of the period running now PLUS the period stacked behind
+                // it. A user who just renewed a 1-day plan sees 2 and cannot tell where it came
+                // from. So the card is given the parts as well as the total — how many periods
+                // are stacked, when the one running now ends, and the final date — and says so.
+                $stacked = [];
+                foreach (subscription_purchase_manager::get_active_subscriptions($USER->id) as $p) {
+                    if ((int) $p->subscriptionid === (int) $active->subscriptionid) {
+                        $stacked[] = (int) $p->expires_at;
+                    }
+                }
+                sort($stacked);
+                $currentends = $stacked ? $stacked[0] : (int) $active->expires_at;
+
                 $data = [
                     'has_active'     => true,
                     'subscriptionid' => (int) $active->subscriptionid,
                     'expires_at'     => (int) $active->expires_at,
+                    'expires_text'   => ((int) $active->expires_at > 0)
+                        ? userdate((int) $active->expires_at, get_string('strftimedaydate')) : '',
                     'name'           => $name !== false ? format_string(subscription_manager::resolve_mlang($name)) : '',
                     'days_left'      => $daysleft,
                     'price_paid'     => (float) $active->price_paid,
@@ -229,6 +254,13 @@ try {
                     'renew_window_days' => $reminders['days'] ? max($reminders['days']) : 0,
                     'renewed_expires_at' => ((int) $active->expires_at > 0 && $duration > 0)
                         ? (int) $active->expires_at + ($duration * DAYSECS) : 0,
+                    // More than one live purchase on this plan means a renewal is already
+                    // queued behind the period running now.
+                    'periods'        => count($stacked),
+                    'renewed'        => count($stacked) > 1,
+                    'current_ends_at' => $currentends,
+                    'current_days_left' => ($currentends > 0)
+                        ? max(0, (int) ceil(($currentends - time()) / DAYSECS)) : 0,
                 ];
             }
             nit_subscriptions_respond(['status' => 'success', 'data' => $data]);

@@ -300,3 +300,5 @@ $string['sub_renew_endsin']     = 'Ends in {$a} day(s)';
 $string['sub_renew_note']       = 'Renewing now extends your plan from the day it currently ends — you lose none of the time you have left.';
 $string['sub_renew_confirm']    = 'Confirm your renewal';
 $string['sub_renew_newexpiry']  = 'New end date';
+$string['plan_accessuntil']  = 'Access until {$a}';
+$string['plan_includesrenewal'] = 'includes the renewal you already paid for';
