@@ -217,11 +217,11 @@ if (empty($transactions)) {
         $refundpending = false;
         $refundable = false;
         $refundinstant = false;
-        if (\local_paymentsefund_policy::enabled()
+        if (\local_payments\refund_policy::enabled()
                 && $txn->status === \local_payments\status_machine::COMPLETED) {
-            $refundpending = (bool) \local_paymentsefund_manager::open_request((int) $txn->id);
+            $refundpending = (bool) \local_payments\refund_manager::open_request((int) $txn->id);
             $refundable = !$refundpending;
-            $refundinstant = \local_paymentsefund_policy::quote($txn)->withinwindow;
+            $refundinstant = \local_payments\refund_policy::quote($txn)->withinwindow;
         }
 
         // Only a payment that went through has an invoice worth downloading.

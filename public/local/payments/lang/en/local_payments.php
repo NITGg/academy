@@ -319,3 +319,9 @@ $string['refund_msg_rejected_body'] = 'Your refund request for order {$a->order}
 $string['refund_policy_norwindow'] = 'No automatic refunds. You can still ask for one, and our team will decide.';
 $string['refund_policy_windowfree'] = 'Full refund within {$a->hours} hours of purchase.';
 $string['refund_policy_windowfee'] = 'Refundable within {$a->hours} hours of purchase, less a {$a->fee} fee.';
+
+// Refunds, staff-initiated from the payments list.
+$string['refund_staff_title'] = 'Refund this payment';
+$string['refund_staff_warning'] = 'This refunds the buyer immediately and removes their access. The money leaves the gateway at once and cannot be recalled from here.';
+$string['refund_staff_applyfee'] = 'Charge the policy refund fee of {$a}. Leave unticked for a full refund.';
+$string['refund_staff_button'] = 'Refund now';

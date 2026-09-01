@@ -311,3 +311,9 @@ $string['refund_msg_rejected_body'] = 'لم تتم الموافقة على طل�
 $string['refund_policy_norwindow'] = 'لا يوجد استرداد تلقائي. يمكنك تقديم طلب وسيبتّ فيه فريقنا.';
 $string['refund_policy_windowfree'] = 'استرداد كامل خلال {$a->hours} ساعة من الشراء.';
 $string['refund_policy_windowfee'] = 'قابل للاسترداد خلال {$a->hours} ساعة من الشراء، بعد خصم رسوم {$a->fee}.';
+
+// Refunds, staff-initiated from the payments list.
+$string['refund_staff_title'] = 'استرداد هذه الدفعة';
+$string['refund_staff_warning'] = 'سيتم رد المبلغ إلى المشتري فوراً وإلغاء وصوله. يغادر المبلغ البوابة على الفور ولا يمكن التراجع عنه من هنا.';
+$string['refund_staff_applyfee'] = 'خصم رسوم الاسترداد المقررة وقدرها {$a}. اترك الخيار بدون تحديد لاسترداد كامل.';
+$string['refund_staff_button'] = 'تنفيذ الاسترداد';
