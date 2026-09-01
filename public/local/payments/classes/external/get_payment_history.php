@@ -55,7 +55,9 @@ class get_payment_history extends external_api {
 
         $result = [];
         foreach ($transactions as $txn) {
-            $coursename = $DB->get_field('course', 'fullname', ['id' => $txn->courseid]);
+            // Not just the course: a subscription sale has no courseid, so the
+            // app was showing a blank name against every plan purchase.
+            $itemname = \local_payments\item_name::of($txn);
             $provider_name = $DB->get_field('local_payments_providers', 'display_name', ['id' => $txn->provider_id]);
 
             $invoice = $DB->get_record('local_payments_invoices', ['transaction_id' => $txn->id]);
@@ -64,7 +66,11 @@ class get_payment_history extends external_api {
                 'transaction_id' => (int) $txn->id,
                 'order_id' => $txn->order_id,
                 'courseid' => (int) $txn->courseid,
-                'course_name' => $coursename ?: '',
+                'item_type' => \local_payments\refund_policy::item_type($txn),
+                'item_name' => $itemname,
+                // Kept so an app built against the old field keeps working; it
+                // is the same string, and empty for a subscription as before.
+                'course_name' => $txn->courseid ? $itemname : '',
                 'amount' => (float) $txn->amount,
                 'original_amount' => (float) ($txn->original_amount ?? $txn->amount),
                 'currency' => $txn->currency,
@@ -85,7 +91,12 @@ class get_payment_history extends external_api {
                 'transaction_id' => new external_value(PARAM_INT, 'Transaction ID'),
                 'order_id' => new external_value(PARAM_TEXT, 'Order ID'),
                 'courseid' => new external_value(PARAM_INT, 'Course ID'),
-                'course_name' => new external_value(PARAM_TEXT, 'Course name'),
+                'item_type' => new external_value(PARAM_ALPHANUMEXT,
+                    'course or subscription — what was bought'),
+                'item_name' => new external_value(PARAM_TEXT,
+                    'Name of the course or plan, in the current language'),
+                'course_name' => new external_value(PARAM_TEXT,
+                    'Deprecated: same as item_name for a course, empty for a subscription'),
                 'amount' => new external_value(PARAM_FLOAT, 'Amount paid'),
                 'original_amount' => new external_value(PARAM_FLOAT, 'Original amount'),
                 'currency' => new external_value(PARAM_TEXT, 'Currency'),

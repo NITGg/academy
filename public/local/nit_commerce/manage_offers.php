@@ -34,7 +34,8 @@ global $OUTPUT, $CFG, $PAGE;
 
 $PAGE->set_title(get_string('manageoffers', 'local_nit_commerce'));
 $PAGE->set_heading(get_string('manageoffers', 'local_nit_commerce'));
-$PAGE->requires->js(new moodle_url('/local/nit_commerce/ui.js'), true);
+$PAGE->requires->js(new moodle_url('/local/nit_commerce/ui.js',
+    ['v' => get_config('local_nit_commerce', 'version')]), true);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('manageoffers', 'local_nit_commerce'));

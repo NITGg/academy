@@ -185,7 +185,8 @@ if ((int) $coupon['usage_limit'] > 0) {
 $description = trim(strip_tags((string) $coupon['description'])) !== '' ? $coupon['description'] : '';
 $name = ($coupon['name'] !== '') ? $coupon['name'] : $coupon['code'];
 
-$PAGE->requires->js(new moodle_url('/local/nit_commerce/coupon.js'), true);
+$PAGE->requires->js(new moodle_url('/local/nit_commerce/coupon.js',
+    ['v' => get_config('local_nit_commerce', 'version')]), true);
 
 echo $OUTPUT->header();
 ?>

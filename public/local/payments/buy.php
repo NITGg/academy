@@ -83,7 +83,8 @@ $nitcommercelib = $CFG->dirroot . '/local/nit_commerce/lib.php';
 $nitcheckout = file_exists($nitcommercelib);
 if ($nitcheckout) {
     require_once($nitcommercelib);
-    $PAGE->requires->js(new moodle_url('/local/nit_commerce/checkout_modal.js'), true);
+    $PAGE->requires->js(new moodle_url('/local/nit_commerce/checkout_modal.js',
+    ['v' => get_config('local_nit_commerce', 'version')]), true);
 }
 
 echo $OUTPUT->header();
