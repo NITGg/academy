@@ -212,6 +212,18 @@ if (empty($transactions)) {
             default: $status_class = 'text-bg-secondary';
         }
 
+        // Refunds: offered only on a completed payment, and only when nothing is
+        // already in flight for it.
+        $refundpending = false;
+        $refundable = false;
+        $refundinstant = false;
+        if (\local_paymentsefund_policy::enabled()
+                && $txn->status === \local_payments\status_machine::COMPLETED) {
+            $refundpending = (bool) \local_paymentsefund_manager::open_request((int) $txn->id);
+            $refundable = !$refundpending;
+            $refundinstant = \local_paymentsefund_policy::quote($txn)->withinwindow;
+        }
+
         // Only a payment that went through has an invoice worth downloading.
         $downloadable = in_array($txn->status, [
             \local_payments\status_machine::COMPLETED,
@@ -232,6 +244,16 @@ if (empty($transactions)) {
             'invoice_number' => $invoice->invoice_number ?? '-',
             'date' => userdate($txn->timecreated),
             'can_download' => $downloadable,
+            // The button says what will happen: an instant refund inside the
+            // window, a request outside it. Deciding here rather than on the
+            // refund page keeps the promise on the button honest.
+            'can_refund' => $refundable,
+            'refund_url' => (new moodle_url('/local/payments/refund.php',
+                ['transaction_id' => $txn->id]))->out(false),
+            'refund_label' => $refundinstant
+                ? get_string('refund_now_button', 'local_payments')
+                : get_string('refund_ask_button', 'local_payments'),
+            'refund_pending' => $refundpending,
             // Both languages are offered outright rather than following the
             // interface language: a student reads the site in Arabic but may
             // well need the English copy to claim it back from an employer.

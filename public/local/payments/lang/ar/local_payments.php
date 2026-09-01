@@ -237,3 +237,77 @@ $string['status_partially_refunded'] = 'مسترد جزئياً';
 $string['status_voided'] = 'ملغى';
 $string['status_chargeback'] = 'رد مالي';
 $string['status_duplicate'] = 'مكرر';
+
+// Refunds.
+$string['refund_heading'] = 'الاسترداد';
+$string['refund_heading_desc'] = 'المدة المتاحة للمشتري لتغيير رأيه، وتكلفة ذلك. لكل نوع تبيعه نافذته الخاصة لأنها غير متكافئة: الاشتراك يبدأ فوراً، أما المقرر فيُستهلك على مدى أسابيع. وخارج النافذة يظل بإمكان المشتري تقديم طلب يبتّ فيه أحد الموظفين.';
+$string['refund_enabled'] = 'السماح بالاسترداد';
+$string['refund_enabled_desc'] = 'متوقف افتراضياً. عند إيقافه لا يظهر أي زر استرداد ولا يمكن تقديم أي طلب.';
+$string['refund_group_course'] = 'الاسترداد: المقررات';
+$string['refund_group_course_desc'] = 'ينطبق على شراء المقرر لمرة واحدة.';
+$string['refund_group_subscription'] = 'الاسترداد: الاشتراكات';
+$string['refund_group_subscription_desc'] = 'ينطبق على خطط الاشتراك، بما فيها شراء المقاعد للشركات.';
+$string['refund_group_default'] = 'الاسترداد: كل ما عدا ذلك';
+$string['refund_group_default_desc'] = 'يُستخدم لأي نوع شراء آخر — الباقات اليوم، وأي شيء يُضاف لاحقاً. فلا يبقى أي شيء يقبل الدفع بلا سياسة.';
+$string['refund_hours'] = 'نافذة الاسترداد (بالساعات)';
+$string['refund_hours_desc'] = 'عدد الساعات من لحظة اكتمال الدفع التي يستطيع خلالها المشتري استرداد المبلغ بنفسه دون تدخل الموظفين. بالساعات لا بالأيام حتى يمكن التعبير عن «أول 24 ساعة» و«أول أسبوعين» (336) معاً. <b>اضبطها على 0 لإلغاء النافذة التلقائية</b> — عندها يقدّم المشتري طلباً يبتّ فيه أحد الموظفين.';
+$string['refund_feetype'] = 'نوع الرسوم';
+$string['refund_feetype_desc'] = 'النسبة المئوية تتبع السعر وتصلح مع تعدد العملات؛ أما المبلغ الثابت فهو الأنسب لرسوم بنكية ثابتة لكنه محدد بعملة واحدة.';
+$string['refund_feetype_percent'] = 'نسبة مئوية من المبلغ المدفوع';
+$string['refund_feetype_fixed'] = 'مبلغ ثابت';
+$string['refund_fee'] = 'رسوم الاسترداد';
+$string['refund_fee_desc'] = 'ما تحتفظ به المنصة عند تنفيذ الاسترداد. <b>القيمة 0 تعني استرداداً كاملاً.</b> وأي رسوم تتجاوز المبلغ المدفوع تُخفَّض إليه، فلا يُحاسَب أحد على مجرد الطلب.';
+
+// Refunds, buyer-facing.
+$string['refund_column'] = 'الاسترداد';
+$string['refund_request'] = 'استرداد';
+$string['refund_now_title'] = 'استرداد هذه الدفعة';
+$string['refund_ask_title'] = 'طلب استرداد';
+$string['refund_now_button'] = 'استرداد';
+$string['refund_ask_button'] = 'طلب استرداد';
+$string['refund_now_notice'] = 'هذه الدفعة داخل نافذة الاسترداد التي تنتهي {$a}. يتم الاسترداد فوراً ويُلغى الوصول.';
+$string['refund_ask_notice_closed'] = 'انتهت نافذة الاسترداد التلقائي لهذه الدفعة في {$a}، لذا سيُحال طلبك إلى فريقنا للبتّ فيه. وسنُعلمك بالنتيجة في الحالتين.';
+$string['refund_ask_notice_nowindow'] = 'لا توجد نافذة استرداد تلقائي لهذا الشراء، لذا سيُحال طلبك إلى فريقنا للبتّ فيه. وسنُعلمك بالنتيجة في الحالتين.';
+$string['refund_paid'] = 'المبلغ المدفوع';
+$string['refund_youget'] = 'المبلغ المسترد';
+$string['refund_after_fee'] = 'بعد رسوم {$a}';
+$string['refund_reason_optional'] = 'السبب (اختياري)';
+$string['refund_reason_required'] = 'ما سبب طلبك للاسترداد؟';
+$string['refund_requested'] = 'تم إرسال طلب الاسترداد. سنُعلمك بالقرار.';
+$string['refund_done'] = 'تم استرداد {$a->amount}. من المتوقع وصوله إلى حسابك خلال أيام عمل قليلة.';
+$string['refund_rejected'] = 'تم رفض الطلب وإبلاغ المشتري.';
+
+// Refunds, staff-facing.
+$string['refund_requests'] = 'طلبات الاسترداد';
+$string['refund_norequests'] = 'لا يوجد شيء هنا.';
+$string['refund_decide'] = 'القرار';
+$string['refund_decision'] = 'بتّ بواسطة';
+$string['refund_approve'] = 'موافقة';
+$string['refund_reject'] = 'رفض';
+$string['refund_note_placeholder'] = 'ملاحظة للمشتري';
+$string['refund_status_pending'] = 'بانتظار القرار';
+$string['refund_status_approved'] = 'تمت الموافقة';
+$string['refund_status_rejected'] = 'مرفوض';
+
+// Refunds, refusals.
+$string['refund_err_disabled'] = 'خدمة الاسترداد غير متاحة حالياً.';
+$string['refund_err_notrefundable'] = 'لا يمكن استرداد هذه الدفعة. فالاسترداد متاح للدفعات المكتملة فقط ولمرة واحدة.';
+$string['refund_err_alreadyasked'] = 'يوجد بالفعل طلب استرداد لهذه الدفعة بانتظار القرار.';
+$string['refund_err_windowclosed'] = 'انتهت نافذة الاسترداد لهذه الدفعة. يرجى تقديم طلب استرداد بدلاً من ذلك.';
+$string['refund_err_needreason'] = 'يرجى ذكر سبب طلب الاسترداد.';
+$string['refund_err_decided'] = 'تم البتّ في هذا الطلب من قبل.';
+$string['refund_err_gateway'] = 'بوابة الدفع المستخدمة في هذه الدفعة لا تدعم الاسترداد التلقائي. نفّذ الاسترداد من لوحة تحكم البوابة.';
+$string['refund_err_gatewayfailed'] = 'رفضت بوابة الدفع عملية الاسترداد. لم يُخصم أي شيء؛ راجع سجلات المدفوعات.';
+$string['refund_err_noreference'] = 'لا يوجد مرجع مسجَّل لهذه الدفعة لدى البوابة، لذا يتعذر استردادها تلقائياً.';
+
+// Refunds, notifications.
+$string['messageprovider:refund_decision'] = 'قرارات طلبات الاسترداد';
+$string['refund_msg_approved_subject'] = 'تمت الموافقة على طلب الاسترداد';
+$string['refund_msg_approved_body'] = 'تمت الموافقة على استرداد مبلغ الطلب {$a->order} والمبلغ في طريقه إليك. ملاحظة: {$a->note}';
+$string['refund_msg_rejected_subject'] = 'بخصوص طلب الاسترداد';
+$string['refund_msg_rejected_body'] = 'لم تتم الموافقة على طلب استرداد مبلغ الطلب {$a->order}. السبب: {$a->note}';
+
+// Refunds, the policy as a sentence (refund_policy::describe).
+$string['refund_policy_norwindow'] = 'لا يوجد استرداد تلقائي. يمكنك تقديم طلب وسيبتّ فيه فريقنا.';
+$string['refund_policy_windowfree'] = 'استرداد كامل خلال {$a->hours} ساعة من الشراء.';
+$string['refund_policy_windowfee'] = 'قابل للاسترداد خلال {$a->hours} ساعة من الشراء، بعد خصم رسوم {$a->fee}.';

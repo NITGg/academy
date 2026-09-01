@@ -251,5 +251,36 @@
       </INDEXES>
     </TABLE>
 
+    <!-- ================================================================== -->
+    <!-- Refund requests -->
+    <!-- ================================================================== -->
+    <TABLE NAME="local_payments_refund_reqs" COMMENT="Refunds a buyer asked for outside the self-service window">
+      <FIELDS>
+        <FIELD NAME="id"             TYPE="int"    LENGTH="10"  NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="transaction_id" TYPE="int"    LENGTH="10"  NOTNULL="true"/>
+        <FIELD NAME="userid"         TYPE="int"    LENGTH="10"  NOTNULL="true" COMMENT="Who asked - the buyer"/>
+        <FIELD NAME="status"         TYPE="char"   LENGTH="20"  NOTNULL="true" DEFAULT="pending" COMMENT="pending, approved, rejected, cancelled"/>
+        <FIELD NAME="reason"         TYPE="text"   NOTNULL="false" COMMENT="Why the buyer wants the money back"/>
+        <FIELD NAME="quoted_amount"  TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="false" COMMENT="Amount paid, as quoted when asked"/>
+        <FIELD NAME="quoted_fee"     TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="false" COMMENT="Fee under the policy in force when asked"/>
+        <FIELD NAME="currency"       TYPE="char"   LENGTH="3"   NOTNULL="false"/>
+        <FIELD NAME="decided_by"     TYPE="int"    LENGTH="10"  NOTNULL="false"/>
+        <FIELD NAME="decision_note"  TYPE="text"   NOTNULL="false" COMMENT="Shown to the buyer with the decision"/>
+        <FIELD NAME="refund_id"      TYPE="int"    LENGTH="10"  NOTNULL="false" COMMENT="The refund row an approval produced"/>
+        <FIELD NAME="timecreated"    TYPE="int"    LENGTH="10"  NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="timemodified"   TYPE="int"    LENGTH="10"  NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_transaction_id" TYPE="foreign" FIELDS="transaction_id" REFTABLE="local_payments_transactions" REFFIELDS="id"/>
+        <KEY NAME="fk_userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_status_time" UNIQUE="false" FIELDS="status, timecreated"/>
+        <INDEX NAME="idx_txn_status" UNIQUE="false" FIELDS="transaction_id, status"/>
+        <INDEX NAME="idx_user_time" UNIQUE="false" FIELDS="userid, timecreated"/>
+      </INDEXES>
+    </TABLE>
+
   </TABLES>
 </XMLDB>

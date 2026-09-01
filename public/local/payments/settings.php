@@ -54,6 +54,65 @@ if ($hassiteconfig) {
         1
     ));
 
+    // ── Refunds ─────────────────────────────────────────────────────────────
+    $settings->add(new admin_setting_heading(
+        'local_payments/refund_heading',
+        get_string('refund_heading', 'local_payments'),
+        get_string('refund_heading_desc', 'local_payments')
+    ));
+
+    $settings->add(new admin_setting_configcheckbox(
+        'local_payments/refund_enabled',
+        get_string('refund_enabled', 'local_payments'),
+        get_string('refund_enabled_desc', 'local_payments'),
+        0
+    ));
+
+    $feetypes = [
+        \local_payments\refund_policy::FEE_PERCENT => get_string('refund_feetype_percent', 'local_payments'),
+        \local_payments\refund_policy::FEE_FIXED => get_string('refund_feetype_fixed', 'local_payments'),
+    ];
+
+    // One block per thing we sell, plus a default block that catches whatever is
+    // added later without needing a code change.
+    $blocks = [
+        'course' => 'refund_group_course',
+        'subscription' => 'refund_group_subscription',
+        'default' => 'refund_group_default',
+    ];
+
+    foreach ($blocks as $key => $labelkey) {
+        $settings->add(new admin_setting_heading(
+            'local_payments/refund_block_' . $key,
+            get_string($labelkey, 'local_payments'),
+            get_string($labelkey . '_desc', 'local_payments')
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            'local_payments/refund_hours_' . $key,
+            get_string('refund_hours', 'local_payments'),
+            get_string('refund_hours_desc', 'local_payments'),
+            '0',
+            PARAM_INT
+        ));
+
+        $settings->add(new admin_setting_configselect(
+            'local_payments/refund_feetype_' . $key,
+            get_string('refund_feetype', 'local_payments'),
+            get_string('refund_feetype_desc', 'local_payments'),
+            \local_payments\refund_policy::FEE_PERCENT,
+            $feetypes
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            'local_payments/refund_fee_' . $key,
+            get_string('refund_fee', 'local_payments'),
+            get_string('refund_fee_desc', 'local_payments'),
+            '0',
+            PARAM_FLOAT
+        ));
+    }
+
     // What appears on the invoice PDF as the issuer.
     $settings->add(new admin_setting_configstoredfile(
         'local_payments/invoice_logo',
@@ -102,6 +161,14 @@ if ($hassiteconfig) {
         'local_payments_reports',
         get_string('reports', 'local_payments'),
         new moodle_url('/local/payments/report.php')
+    ));
+
+    // The refund requests waiting on a human.
+    $ADMIN->add('local_payments_category', new admin_externalpage(
+        'local_payments_refund_requests',
+        get_string('refund_requests', 'local_payments'),
+        new moodle_url('/local/payments/refund_requests.php'),
+        'local/payments:managerefunds'
     ));
 
     // Every payment, with who made it — the detail behind the report totals.

@@ -22,6 +22,36 @@ function xmldb_local_payments_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026083000, 'local', 'payments');
     }
 
+    if ($oldversion < 2026083120) {
+        // Refund requests: what a buyer asks for once the self-service window has
+        // closed, and what staff decide about it.
+        $table = new xmldb_table('local_payments_refund_reqs');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('transaction_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'pending');
+            $table->add_field('reason', XMLDB_TYPE_TEXT, null, null, null, null, null);
+            $table->add_field('quoted_amount', XMLDB_TYPE_NUMBER, '10, 2', null, null, null, null);
+            $table->add_field('quoted_fee', XMLDB_TYPE_NUMBER, '10, 2', null, null, null, null);
+            $table->add_field('currency', XMLDB_TYPE_CHAR, '3', null, null, null, null);
+            $table->add_field('decided_by', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+            $table->add_field('decision_note', XMLDB_TYPE_TEXT, null, null, null, null, null);
+            $table->add_field('refund_id', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_key('fk_transaction_id', XMLDB_KEY_FOREIGN, ['transaction_id'],
+                'local_payments_transactions', ['id']);
+            $table->add_key('fk_userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+            $table->add_index('idx_status_time', XMLDB_INDEX_NOTUNIQUE, ['status', 'timecreated']);
+            $table->add_index('idx_txn_status', XMLDB_INDEX_NOTUNIQUE, ['transaction_id', 'status']);
+            $table->add_index('idx_user_time', XMLDB_INDEX_NOTUNIQUE, ['userid', 'timecreated']);
+            $dbman->create_table($table);
+        }
+        upgrade_plugin_savepoint(true, 2026083120, 'local', 'payments');
+    }
+
     return true;
 }
 

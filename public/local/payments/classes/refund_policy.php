@@ -1,0 +1,165 @@
+<?php
+namespace local_payments;
+
+defined('MOODLE_INTERNAL') || die();
+
+/**
+ * How long a buyer has to change their mind, and what it costs them.
+ *
+ * The policy is set per item type, because the things this platform sells are not
+ * comparable: a course is bought once and consumed slowly, a subscription bills
+ * for a period that starts immediately. Anything else that takes a payment —
+ * packages today, whatever is added tomorrow — falls back to the default
+ * settings rather than being refused a policy.
+ *
+ * Two numbers make up a policy:
+ *
+ *  - the window, in hours from the moment the payment completed. Hours rather
+ *    than days because the sensible answer for a subscription is often "the
+ *    first 24" and for a course "the first two weeks", and one unit covers both.
+ *    Zero means there is no self-service window at all.
+ *  - the fee, which the platform keeps. Zero means a full refund. It is either a
+ *    flat amount or a percentage of what was paid; a flat amount is the honest
+ *    shape for a bank charge, a percentage the honest shape for a restocking
+ *    fee, and multi-currency pricing makes the percentage the safer default.
+ *
+ * Outside the window — or when the window is zero — nothing is refused outright:
+ * the buyer asks, and a human decides. {@see refund_manager}.
+ */
+class refund_policy {
+
+    /** @var string Fee is a flat amount in the transaction's currency. */
+    const FEE_FIXED = 'fixed';
+
+    /** @var string Fee is a percentage of the amount paid. */
+    const FEE_PERCENT = 'percent';
+
+    /** @var string[] Item types with settings of their own. */
+    const TYPES = ['course', 'subscription'];
+
+    /**
+     * What was bought, as the settings name it.
+     *
+     * @param \stdClass $transaction
+     * @return string 'course', 'subscription', or the raw type for anything else.
+     */
+    public static function item_type(\stdClass $transaction): string {
+        $meta = json_decode($transaction->metadata ?? '{}', true) ?: [];
+        $type = (string) ($meta['item_type'] ?? '');
+        if ($type === '') {
+            // A row from before item_type was recorded is a course purchase:
+            // nothing else existed then.
+            $type = 'course';
+        }
+        return $type;
+    }
+
+    /**
+     * The policy in force for one transaction.
+     *
+     * @param \stdClass $transaction
+     * @return object {hours:int, feetype:string, feevalue:float, itemtype:string}
+     */
+    public static function for_transaction(\stdClass $transaction): object {
+        return self::for_item_type(self::item_type($transaction));
+    }
+
+    /**
+     * The policy in force for an item type.
+     *
+     * @param string $itemtype
+     * @return object {hours:int, feetype:string, feevalue:float, itemtype:string}
+     */
+    public static function for_item_type(string $itemtype): object {
+        // An item type with no settings of its own uses the default block, which
+        // is what makes "any other thing we sell" work without a code change.
+        $suffix = in_array($itemtype, self::TYPES, true) ? $itemtype : 'default';
+
+        $feetype = (string) get_config('local_payments', 'refund_feetype_' . $suffix);
+
+        return (object) [
+            'itemtype' => $itemtype,
+            'hours' => max(0, (int) get_config('local_payments', 'refund_hours_' . $suffix)),
+            'feetype' => $feetype === self::FEE_FIXED ? self::FEE_FIXED : self::FEE_PERCENT,
+            'feevalue' => max(0, (float) get_config('local_payments', 'refund_fee_' . $suffix)),
+        ];
+    }
+
+    /** Are refunds offered on this site at all? */
+    public static function enabled(): bool {
+        return (bool) get_config('local_payments', 'refund_enabled');
+    }
+
+    /**
+     * What this transaction is worth back, under the policy in force now.
+     *
+     * The money is always quoted, even when the window has closed: the buyer
+     * asking for a refund is entitled to know what they would get, and staff
+     * deciding on the request need the same number in front of them.
+     *
+     * @param \stdClass $transaction
+     * @return object {
+     *     paid:float, fee:float, net:float, currency:string, hours:int,
+     *     deadline:int, withinwindow:bool, feetype:string, feevalue:float,
+     *     itemtype:string
+     * }
+     */
+    public static function quote(\stdClass $transaction): object {
+        $policy = self::for_transaction($transaction);
+
+        $paid = round((float) $transaction->amount, 2);
+
+        if ($policy->feevalue <= 0) {
+            $fee = 0.0;
+        } else if ($policy->feetype === self::FEE_FIXED) {
+            $fee = round($policy->feevalue, 2);
+        } else {
+            $fee = round($paid * $policy->feevalue / 100, 2);
+        }
+
+        // A fee larger than the payment would mean billing somebody for asking.
+        $fee = min($fee, $paid);
+
+        // The clock starts when the payment completed, which is timemodified on
+        // a transaction that reached COMPLETED — timecreated is when checkout
+        // opened, and an offline method can settle hours later.
+        $paidat = (int) ($transaction->timemodified ?: $transaction->timecreated);
+        $deadline = $policy->hours > 0 ? $paidat + ($policy->hours * HOURSECS) : 0;
+
+        return (object) [
+            'itemtype' => $policy->itemtype,
+            'paid' => $paid,
+            'fee' => $fee,
+            'net' => round(max(0, $paid - $fee), 2),
+            'currency' => $transaction->currency,
+            'hours' => $policy->hours,
+            'feetype' => $policy->feetype,
+            'feevalue' => $policy->feevalue,
+            'deadline' => $deadline,
+            'withinwindow' => $deadline > 0 && time() <= $deadline,
+        ];
+    }
+
+    /**
+     * The policy as a sentence, for a buyer about to pay or about to ask.
+     *
+     * @param object $quote from {@see self::quote()}
+     * @return string
+     */
+    public static function describe(object $quote): string {
+        if ($quote->hours <= 0) {
+            return get_string('refund_policy_norwindow', 'local_payments');
+        }
+
+        $a = (object) [
+            'hours' => $quote->hours,
+            'fee' => $quote->feetype === self::FEE_PERCENT
+                ? format_float($quote->feevalue, 2, true, true) . '%'
+                : format_float($quote->feevalue, 2, true, true) . ' ' . $quote->currency,
+        ];
+
+        return $quote->fee > 0
+            ? get_string('refund_policy_windowfee', 'local_payments', $a)
+            : get_string('refund_policy_windowfree', 'local_payments', $a);
+    }
+}

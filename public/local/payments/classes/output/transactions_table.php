@@ -76,7 +76,11 @@ class transactions_table extends \table_sql {
 
         // The false at the end asks for the select list without a leading comma,
         // so this has to supply its own separator on both sides of it.
-        $userfields = \core_user\fields::for_name()->get_sql('u', false, '', '', false)->selects;
+        // Leave the fifth argument alone. It is $leadingcomma and defaults to
+        // true; passing false drops the separator and the select list becomes
+        // "u.email u.firstname, ..." — a syntax error, reported only as
+        // "Error reading from database".
+        $userfields = \core_user\fields::for_name()->get_sql('u')->selects;
 
         $fields = "t.id, t.order_id, t.amount, t.currency, t.status, t.payment_method_type,
                    t.timecreated AS paidon, t.courseid, t.userid,

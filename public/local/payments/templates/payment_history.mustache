@@ -40,6 +40,7 @@
                 <th>{{#str}}invoice, local_payments{{/str}}</th>
                 <th>{{#str}}date, local_payments{{/str}}</th>
                 <th>{{#str}}invoice_download, local_payments{{/str}}</th>
+                <th>{{#str}}refund_column, local_payments{{/str}}</th>
             </tr>
         </thead>
         <tbody>
@@ -68,6 +69,19 @@
                         </div>
                     {{/can_download}}
                     {{^can_download}}<span class="text-muted">&mdash;</span>{{/can_download}}
+                </td>
+                <td>
+                    {{#refund_pending}}
+                        <span class="badge text-bg-warning">
+                            {{#str}}refund_status_pending, local_payments{{/str}}
+                        </span>
+                    {{/refund_pending}}
+                    {{#can_refund}}
+                        <a href="{{refund_url}}" class="btn btn-sm btn-outline-danger">{{refund_label}}</a>
+                    {{/can_refund}}
+                    {{^can_refund}}
+                        {{^refund_pending}}<span class="text-muted">&mdash;</span>{{/refund_pending}}
+                    {{/can_refund}}
                 </td>
             </tr>
             {{/transactions}}

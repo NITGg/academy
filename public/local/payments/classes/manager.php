@@ -1241,7 +1241,7 @@ class manager {
         return hash('sha256', $userid . '-' . $courseid . '-' . time() . '-' . random_int(1, 999999));
     }
 
-    private static function audit_log(?int $transaction_id, ?int $userid, string $action,
+    public static function audit_log(?int $transaction_id, ?int $userid, string $action,
             string $old_value = '', string $new_value = ''): void {
         global $DB;
         $DB->insert_record('local_payments_audit_logs', (object) [
@@ -1256,7 +1256,7 @@ class manager {
         ]);
     }
 
-    private static function log_entry(?int $provider_id, ?int $transaction_id, string $level, string $message): void {
+    public static function log_entry(?int $provider_id, ?int $transaction_id, string $level, string $message): void {
         global $DB;
         $DB->insert_record('local_payments_logs', (object) [
             'provider_id' => $provider_id,

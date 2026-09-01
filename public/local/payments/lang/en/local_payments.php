@@ -245,3 +245,77 @@ $string['status_partially_refunded'] = 'Partially refunded';
 $string['status_voided'] = 'Voided';
 $string['status_chargeback'] = 'Chargeback';
 $string['status_duplicate'] = 'Duplicate';
+
+// Refunds.
+$string['refund_heading'] = 'Refunds';
+$string['refund_heading_desc'] = 'How long a buyer has to change their mind, and what it costs them. Each thing you sell gets its own window because they are not comparable: a subscription starts billing at once, a course is consumed over weeks. Outside the window the buyer can still ask, and a member of staff decides.';
+$string['refund_enabled'] = 'Allow refunds';
+$string['refund_enabled_desc'] = 'Off by default. With this off, no refund button appears anywhere and no request can be made.';
+$string['refund_group_course'] = 'Refunds: courses';
+$string['refund_group_course_desc'] = 'Applies to a one-off course purchase.';
+$string['refund_group_subscription'] = 'Refunds: subscriptions';
+$string['refund_group_subscription_desc'] = 'Applies to subscription plans, including B2B seat purchases.';
+$string['refund_group_default'] = 'Refunds: everything else';
+$string['refund_group_default_desc'] = 'Used for any other kind of purchase &mdash; packages today, whatever is added later. Nothing that takes a payment is left without a policy.';
+$string['refund_hours'] = 'Refund window (hours)';
+$string['refund_hours_desc'] = 'Hours from the moment the payment completed during which the buyer can refund themselves, with no staff involvement. Hours rather than days so that both "the first 24 hours" and "the first two weeks" (336) are expressible. <b>Set 0 for no automatic window</b> &mdash; the buyer then has to ask, and a member of staff decides.';
+$string['refund_feetype'] = 'Fee type';
+$string['refund_feetype_desc'] = 'A percentage tracks the price and works across currencies; a flat amount is the honest shape for a fixed bank charge, but is stated in one currency only.';
+$string['refund_feetype_percent'] = 'Percentage of the amount paid';
+$string['refund_feetype_fixed'] = 'Flat amount';
+$string['refund_fee'] = 'Refund fee';
+$string['refund_fee_desc'] = 'What the platform keeps when a refund is given. <b>0 means a full refund.</b> A fee larger than the payment is capped at the payment, so nobody is billed for asking.';
+
+// Refunds, buyer-facing.
+$string['refund_column'] = 'Refund';
+$string['refund_request'] = 'Refund';
+$string['refund_now_title'] = 'Refund this payment';
+$string['refund_ask_title'] = 'Ask for a refund';
+$string['refund_now_button'] = 'Refund';
+$string['refund_ask_button'] = 'Request refund';
+$string['refund_now_notice'] = 'This payment is inside its refund window, which closes {$a}. The refund is made straight away and access is removed.';
+$string['refund_ask_notice_closed'] = 'The automatic refund window for this payment closed on {$a}, so this goes to our team to decide. You will be notified either way.';
+$string['refund_ask_notice_nowindow'] = 'This purchase has no automatic refund window, so your request goes to our team to decide. You will be notified either way.';
+$string['refund_paid'] = 'You paid';
+$string['refund_youget'] = 'Refund amount';
+$string['refund_after_fee'] = 'after a {$a} fee';
+$string['refund_reason_optional'] = 'Reason (optional)';
+$string['refund_reason_required'] = 'Why are you asking for a refund?';
+$string['refund_requested'] = 'Your refund request has been sent. We will let you know what is decided.';
+$string['refund_done'] = 'Refunded {$a->amount}. It should reach your account within a few working days.';
+$string['refund_rejected'] = 'The request was declined and the buyer has been told.';
+
+// Refunds, staff-facing.
+$string['refund_requests'] = 'Refund requests';
+$string['refund_norequests'] = 'Nothing here.';
+$string['refund_decide'] = 'Decision';
+$string['refund_decision'] = 'Decided by';
+$string['refund_approve'] = 'Approve';
+$string['refund_reject'] = 'Decline';
+$string['refund_note_placeholder'] = 'Note for the buyer';
+$string['refund_status_pending'] = 'Awaiting a decision';
+$string['refund_status_approved'] = 'Approved';
+$string['refund_status_rejected'] = 'Declined';
+
+// Refunds, refusals.
+$string['refund_err_disabled'] = 'Refunds are not currently offered.';
+$string['refund_err_notrefundable'] = 'This payment cannot be refunded. Only a completed payment can be, and only once.';
+$string['refund_err_alreadyasked'] = 'There is already a refund request for this payment, waiting on a decision.';
+$string['refund_err_windowclosed'] = 'The refund window for this payment has closed. Please request a refund instead.';
+$string['refund_err_needreason'] = 'Please say why you are asking for a refund.';
+$string['refund_err_decided'] = 'That request has already been decided.';
+$string['refund_err_gateway'] = 'The payment gateway used for this payment cannot process refunds automatically. Raise it in the gateway dashboard instead.';
+$string['refund_err_gatewayfailed'] = 'The payment gateway refused the refund. Nothing has been taken back; check the payment logs.';
+$string['refund_err_noreference'] = 'This payment has no gateway reference recorded, so it cannot be refunded automatically.';
+
+// Refunds, notifications.
+$string['messageprovider:refund_decision'] = 'Refund request decisions';
+$string['refund_msg_approved_subject'] = 'Your refund has been approved';
+$string['refund_msg_approved_body'] = 'Your refund for order {$a->order} has been approved and the money is on its way back to you. Note: {$a->note}';
+$string['refund_msg_rejected_subject'] = 'About your refund request';
+$string['refund_msg_rejected_body'] = 'Your refund request for order {$a->order} was not approved. Reason: {$a->note}';
+
+// Refunds, the policy as a sentence (refund_policy::describe).
+$string['refund_policy_norwindow'] = 'No automatic refunds. You can still ask for one, and our team will decide.';
+$string['refund_policy_windowfree'] = 'Full refund within {$a->hours} hours of purchase.';
+$string['refund_policy_windowfee'] = 'Refundable within {$a->hours} hours of purchase, less a {$a->fee} fee.';
