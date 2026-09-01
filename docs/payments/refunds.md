@@ -171,6 +171,32 @@ displayable as-is.
 
 ---
 
+## Looking into one
+
+```bash
+php public/local/payments/cli/refund_log.php --order=PAY-2026-62327662
+```
+
+A refund touches four tables and the interesting part is usually in whichever one
+you are not looking at: the money in `local_payments_refunds`, the ask in
+`local_payments_refund_reqs`, the outcome on the transaction, and the reason it
+went wrong in `local_payments_logs`. That command prints all four for one payment
+in the order they happened, plus what the policy would quote today.
+
+| Command | Use |
+|---|---|
+| `refund_log.php` | The last 10 refunds, any status. |
+| `refund_log.php --failed` | Only the ones that did not complete — start here when somebody says a refund did not work. |
+| `refund_log.php --requests` | Requests still waiting on a decision. |
+| `refund_log.php --order=PAY-…` | Everything about one payment. |
+
+The line worth knowing on sight is **`Refunded, but no subscription purchase was
+found`**. It means the money went back and access did not: the gateway succeeded
+and the cancellation did not, so the student is still subscribed. Cancel them by
+hand from *Manage subscriptions*, and treat it as a bug rather than a one-off.
+
+---
+
 ## Testing it
 
 1. *Payments → Refunds* → **Allow refunds** on. Set **Refunds: courses** window
