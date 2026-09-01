@@ -45,6 +45,35 @@ class core_renderer extends \theme_boost\output\core_renderer {
     }
 
     /**
+     * The site footer band (AC-4.7.13).
+     *
+     * Called from theme_nit's override of theme_boost/footer as
+     * `{{{ output.nit_site_footer }}}` - a Mustache template cannot read a plugin
+     * setting on its own, so the one line the override adds to Boost's markup
+     * comes through here. Returns an empty string when the footer is switched off
+     * or its content plugin is absent, so the page is simply drawn without it.
+     *
+     * @return string HTML
+     */
+    public function nit_site_footer(): string {
+        // The maintenance layout also renders Boost's footer partial, and it is
+        // used during install and upgrade - when the database is mid-migration or
+        // not there at all. Boost's own config.php spells out that this layout
+        // must make no database or cache calls, and reading the footer's content
+        // is exactly that, so it is the one page the band is left off.
+        if ($this->page->pagelayout === 'maintenance' || during_initial_install()) {
+            return '';
+        }
+
+        $context = theme_nit_get_site_footer_context();
+        if ($context === null) {
+            return '';
+        }
+
+        return $this->render_from_template('theme_nit/site_footer', $context);
+    }
+
+    /**
      * Render the login form, telling the template whether to offer "Remember me".
      *
      * AC-4.3.5 puts a checkbox on this screen that core has no concept of. The

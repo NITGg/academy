@@ -144,6 +144,19 @@ function theme_nit_colour_palette(): array {
         'cat_style3_bg2'   => ['group' => 'Categories', 'subgroup' => 'Style 3', 'label' => 'BG 2', 'default' => '#1a182d'],
         'cat_style3_bg3'   => ['group' => 'Categories', 'subgroup' => 'Style 3', 'label' => 'BG 3', 'default' => '#201e34'],
         'cat_style3_bg4'   => ['group' => 'Categories', 'subgroup' => 'Style 3', 'label' => 'BG 4', 'default' => '#8478cf'],
+
+        // --- Footer : the site-wide band (AC-4.7.13) ---------------------------
+        // A band of its own rather than the Neutrals ground: the design gives the
+        // footer a darker navy than the page and a warm accent for the column
+        // headings and social icons, and neither exists elsewhere in the slate
+        // palette. Defaults are the design's own values so an untouched install
+        // renders the footer exactly as drawn; they are editable like every other
+        // token on the gallery page.
+        'footerbg'         => ['group' => 'Footer', 'label' => 'Footer background', 'default' => '#001540'],
+        'footerheading'    => ['group' => 'Footer', 'label' => 'Footer column heading', 'default' => '#ff2255'],
+        'footertext'       => ['group' => 'Footer', 'label' => 'Footer text', 'default' => '#ffffff'],
+        'footericon'       => ['group' => 'Footer', 'label' => 'Footer icon / social', 'default' => '#ff2945'],
+        'footerborder'     => ['group' => 'Footer', 'label' => 'Footer hairline', 'default' => '#6e6ee399'],
     ];
 }
 
@@ -1620,4 +1633,92 @@ function theme_nit_get_categories(int $limit = 4): array {
     }
 
     return $categories;
+}
+
+/**
+ * The site footer (AC-4.7.13), as template context.
+ *
+ * The footer appears on every page, so this runs on every page: it is a handful
+ * of get_config() reads, all of which Moodle's config cache already holds in
+ * memory, so there is nothing here worth a cache of its own.
+ *
+ * The content comes from local_profilefields (the Footer tab of the Site pages
+ * manager), guarded on the plugin being installed at all - theme_nit has to keep
+ * rendering a page on a site that does not run it. Everything an administrator
+ * typed goes through format_string(), which escapes it AND applies the multilang
+ * filter, so one field can carry both languages via {mlang} markup.
+ *
+ * @return array|null template context for theme_nit/site_footer, or null when the
+ *                    footer is switched off or the content plugin is absent
+ */
+function theme_nit_get_site_footer_context(): ?array {
+    if (!class_exists('\local_profilefields\footer')) {
+        return null;
+    }
+
+    $data = \local_profilefields\footer::config();
+    if (empty($data['enabled'])) {
+        return null;
+    }
+
+    $context = context_system::instance();
+    $opts = ['context' => $context];
+
+    $rows = [];
+    foreach ($data['contact']['rows'] as $row) {
+        $rows[] = [
+            'icon'    => $row['icon'],
+            'text'    => format_string($row['text'], true, $opts),
+            'url'     => $row['url'],
+            'haslink' => $row['url'] !== '',
+        ];
+    }
+
+    $columns = [];
+    foreach ($data['columns'] as $column) {
+        $links = [];
+        foreach ($column['links'] as $link) {
+            $links[] = [
+                'label' => format_string($link['label'], true, $opts),
+                // Already through clean_param(PARAM_URL) on save; out() here so a
+                // site path such as /course/ becomes a real link under any wwwroot.
+                'url'   => (new moodle_url($link['url']))->out(false),
+            ];
+        }
+        $columns[] = [
+            'heading'    => format_string($column['heading'], true, $opts),
+            'hasheading' => trim($column['heading']) !== '',
+            'links'      => $links,
+        ];
+    }
+
+    $social = [];
+    foreach ($data['social'] as $item) {
+        $social[] = [
+            'icon'    => $item['icon'],
+            'url'     => $item['url'],
+            // The aria-label on an icon-only link: the network's own name, which
+            // is a brand and the same in both languages.
+            'network' => ucfirst($item['network']),
+        ];
+    }
+
+    // The administrator's own logo, else the one the theme ships. The site logo is
+    // deliberately not a fallback: it is drawn for the light navbar, and this band
+    // is dark, so it would often be invisible.
+    $logourl = $data['logourl'] !== ''
+        ? $data['logourl']
+        : (new moodle_url('/theme/nit/pix/footer-logo.png'))->out(false);
+
+    return [
+        'hascontact'     => trim($data['contact']['heading']) !== '' || !empty($rows),
+        'contactheading' => format_string($data['contact']['heading'], true, $opts),
+        'contactrows'    => $rows,
+        'columns'        => $columns,
+        'haslogo'        => $logourl !== '',
+        'logourl'        => $logourl,
+        'hassocial'      => !empty($social),
+        'social'         => $social,
+        'copyright'      => format_string($data['copyright'], true, $opts),
+    ];
 }

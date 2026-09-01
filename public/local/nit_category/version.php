@@ -25,5 +25,5 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_category';
-$plugin->version   = 2026082901;        // YYYYMMDDXX — course catalogue with custom-field filters.
+$plugin->version   = 2026090100;        // YYYYMMDDXX — My-courses feed gains lesson, hours and price.
 $plugin->requires  = 2022041900;

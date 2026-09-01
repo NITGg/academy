@@ -176,6 +176,8 @@ class home {
             }
 
             $context = \context_course::instance($course->id);
+            $resume = self::resume_point($course, $USER);
+            $activities = self::activities($course, (int) $resume['cmid']);
 
             $rows[] = [
                 'id' => (int) $course->id,
@@ -187,7 +189,12 @@ class home {
                 'image' => self::course_image($course, $context),
                 'progress' => self::progress($course, $USER),
                 'url' => (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false),
-                'resumeurl' => self::resume_url($course, $USER),
+                'resumeurl' => $resume['url'],
+                // The card's second line: which lesson Resume would open.
+                'subtitle' => $activities['lesson'],
+                'lessons' => $activities['count'],
+                'hours' => self::hours((int) $course->id),
+                'price' => self::price_label((int) $course->id),
             ];
 
             if (count($rows) >= $limit) {
@@ -279,14 +286,21 @@ class home {
      * A resume that lands on the course page is a small disappointment; one that
      * 404s is a bug report.
      *
+     * The module id comes back with the URL because the card names the lesson it
+     * would open ("Lesson 4: Grammar rules"), and asking the log twice for the
+     * same answer would be two queries for one fact.
+     *
      * @param \stdClass $course
      * @param \stdClass $user
-     * @return string
+     * @return array{url: string, cmid: int} cmid 0 when the log cannot answer
      */
-    protected static function resume_url(\stdClass $course, \stdClass $user): string {
+    protected static function resume_point(\stdClass $course, \stdClass $user): array {
         global $DB;
 
-        $fallback = (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false);
+        $fallback = [
+            'url' => (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false),
+            'cmid' => 0,
+        ];
 
         try {
             $manager = get_log_manager();
@@ -320,9 +334,120 @@ class home {
                 return $fallback;
             }
 
-            return (new moodle_url('/mod/' . $cm->modname . '/view.php', ['id' => $cm->id]))->out(false);
+            return [
+                'url' => (new moodle_url('/mod/' . $cm->modname . '/view.php', ['id' => $cm->id]))->out(false),
+                'cmid' => (int) $cm->id,
+            ];
         } catch (\Throwable $e) {
             return $fallback;
+        }
+    }
+
+    /**
+     * How many lessons the course holds, and which one Resume would open.
+     *
+     * Both answers come out of one `get_fast_modinfo()` pass because they are the
+     * same walk over the same list. "Lesson" here means an activity the learner can
+     * actually open: `has_view()` filters out labels and other page decorations,
+     * which are modules to Moodle but not to anybody counting their lessons.
+     *
+     * The numbering is the learner's own - the fourth lesson they can see, not the
+     * fourth row in the database - so a hidden or restricted activity does not
+     * leave a gap in the count.
+     *
+     * @param \stdClass $course
+     * @param int $resumecmid the module {@see self::resume_point()} found, or 0
+     * @return array{count: int, lesson: string} lesson is '' when there is nothing to name
+     */
+    protected static function activities(\stdClass $course, int $resumecmid): array {
+        $out = ['count' => 0, 'lesson' => ''];
+
+        try {
+            $modinfo = get_fast_modinfo($course);
+        } catch (\Throwable $e) {
+            return $out;
+        }
+
+        $number = 0;
+        foreach ($modinfo->get_cms() as $cm) {
+            if (!$cm->uservisible || !$cm->has_view()) {
+                continue;
+            }
+            $out['count']++;
+
+            if ($resumecmid && (int) $cm->id === $resumecmid) {
+                $number = $out['count'];
+                $out['lesson'] = get_string('homelesson', 'local_nit_category', (object) [
+                    'num' => $number,
+                    'name' => format_string($cm->name, true, ['context' => $cm->context]),
+                ]);
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * The course's advertised length in hours, from the site's own custom field.
+     *
+     * `total_number_of_hours` is the field the catalogue already filters on, so the
+     * card and the catalogue quote the same number. Null when the course does not
+     * carry it, or when the field is hidden from this viewer - the card leaves the
+     * stat out rather than printing a zero the course never claimed.
+     *
+     * @param int $courseid
+     * @return int|null
+     */
+    protected static function hours(int $courseid): ?int {
+        try {
+            // No second argument, so this is only the fields this viewer may see.
+            $data = \core_course\customfield\course_handler::create()->get_instance_data($courseid);
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        foreach ($data as $datum) {
+            if ((string) $datum->get_field()->get('shortname') !== 'total_number_of_hours') {
+                continue;
+            }
+            if (!$datum->get('id')) {
+                // The field exists on the site but this course never filled it in.
+                return null;
+            }
+            $value = (int) $datum->get_value();
+
+            return $value > 0 ? $value : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * What the course costs, already formatted, or '' when there is no price to print.
+     *
+     * The discounted amount when an offer is running, because that is the price the
+     * catalogue and the checkout would both quote - a card is not the place to
+     * disagree with the till.
+     *
+     * @param int $courseid
+     * @return string
+     */
+    protected static function price_label(int $courseid): string {
+        try {
+            if (!pricing::available()) {
+                return '';
+            }
+
+            $info = pricing::info($courseid);
+            if (empty($info['haspricing'])) {
+                return '';
+            }
+
+            $amount = pricing::effective_price($info);
+
+            return $amount > 0 ? pricing::money($amount, (string) $info['currency']) : '';
+        } catch (\Throwable $e) {
+            return '';
         }
     }
 

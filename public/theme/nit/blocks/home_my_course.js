@@ -3,20 +3,25 @@
 // Served by js.php beside it, so a fix here ships with a git pull; the block in
 // the database only has to be re-pasted when its markup changes.
 //
-// AC-4.7.7 to AC-4.7.9, and the one rule the block exists for: it is drawn only
-// for a learner who is actually enrolled in something. The paste hides itself
-// while it is parsed, so the three states are:
+// The one rule the block exists for: it is drawn only for a learner who is
+// actually enrolled in something. The paste hides itself while it is parsed, so
+// the three states are:
 //
 // - guest, or nobody signed in: the feed answers with an empty list and the
 //   block stays hidden — no block and no placeholder in its position;
 // - signed in with no active enrolment: hidden as well, unless the block is set
-//   to data-empty="show", which draws the wireframe's "browse the catalogue"
-//   card in place of the grid;
-// - otherwise one card per course, most recently accessed first, each with the
-//   completion bar and a Resume that returns to the last position.
+//   to data-empty="show", which draws a "browse the catalogue" card in place of
+//   the grid;
+// - otherwise one card per course, most recently accessed first.
+//
+// Every part of a card is optional. The design shows a lesson line, a lesson
+// count, a duration, a price and a progress bar, and the feed returns each of
+// them only when the course actually carries it — so each is hidden rather than
+// filled with a zero that the course never claimed.
 //
 // Every visible string lives in the markup, because the paste runs through the
-// multilang filter and this file does not.
+// multilang filter and this file does not. The one exception is the lesson line,
+// which the feed builds server-side in the language the block asked for.
 
 (function() {
   var root = (document.currentScript && document.currentScript.closest(
@@ -58,40 +63,69 @@
   link('[data-nit-mc-browse]', root.getAttribute('data-browse'));
 
   /**
+   * Fill a stat (icon + number + label) and reveal it, or leave it hidden.
+   *
+   * @param {Element} node the card
+   * @param {string} wrapper selector for the whole stat
+   * @param {string} value selector for the number inside it
+   * @param {*} amount from the feed
+   */
+  var stat = function(node, wrapper, value, amount) {
+    var box = node.querySelector(wrapper);
+    var number = node.querySelector(value);
+    var count = parseInt(amount, 10);
+    if (!box || !number || !(count > 0)) {
+      return;
+    }
+    number.textContent = count;
+    // The markup hides it with display:none, so restoring '' would give a span
+    // its inline default and lose the row's alignment.
+    box.style.display = 'inline-flex';
+  };
+
+  /**
    * Fill one cloned card from one feed row.
    *
    * @param {Element} node the clone
    * @param {Object} row one course
    */
   var fill = function(node, row) {
-    var courseurl = row.url || '#';
+    // The whole card is the Resume action: it opens the last position, or the
+    // course page when the log cannot say where that was.
+    var card = node.querySelector('[data-nit-mc-resume]');
+    if (card) {
+      card.setAttribute('href', row.resumeurl || row.url || '#');
+    }
 
     var title = node.querySelector('[data-nit-mc-title]');
     if (title) {
       // textContent, not innerHTML: the course name is user-entered.
       title.textContent = row.fullname || '';
-      title.setAttribute('href', courseurl);
+    }
+
+    var subtitle = node.querySelector('[data-nit-mc-subtitle]');
+    if (subtitle && row.subtitle) {
+      subtitle.textContent = row.subtitle;
+      subtitle.style.display = '';
     }
 
     var image = node.querySelector('[data-nit-mc-image]');
-    if (image) {
-      image.setAttribute('href', courseurl);
-      if (row.image) {
-        image.style.backgroundImage = 'url("' + String(row.image).replace(/"/g,
-          '%22') + '")';
-      }
+    if (image && row.image) {
+      image.style.backgroundImage = 'url("' + String(row.image).replace(/"/g,
+        '%22') + '")';
     }
 
-    // The teacher line is decoration; an empty one would leave a stray gap.
-    var teacher = node.querySelector('[data-nit-mc-teacher]');
-    if (teacher && row.teacher) {
-      teacher.textContent = row.teacher;
-      teacher.style.display = '';
+    stat(node, '[data-nit-mc-stat-lessons]', '[data-nit-mc-lessons]', row.lessons);
+    stat(node, '[data-nit-mc-stat-hours]', '[data-nit-mc-hours]', row.hours);
+
+    var price = node.querySelector('[data-nit-mc-price]');
+    if (price && row.price) {
+      price.textContent = row.price;
+      price.style.display = '';
     }
 
     // A null progress means the course tracks no completion at all. The bar
     // still draws — empty — but the label says so rather than claiming 0%.
-    var bar = node.querySelector('[data-nit-mc-bar]');
     var label = node.querySelector('[data-nit-mc-label]');
     var untracked = node.querySelector('[data-nit-mc-untracked]');
     if (row.progress === null || row.progress === undefined) {
@@ -103,23 +137,17 @@
       }
     } else {
       var pct = Math.max(0, Math.min(100, parseInt(row.progress, 10) || 0));
+      var bar = node.querySelector('[data-nit-mc-bar]');
+      var percent = node.querySelector('[data-nit-mc-percent]');
       if (bar) {
         bar.style.width = pct + '%';
       }
-      var percent = node.querySelector('[data-nit-mc-percent]');
       if (percent) {
         percent.textContent = pct;
       }
     }
 
-    // The button says Resume, so it goes to the resume point rather than to the
-    // course front page (AC-4.7.8).
-    var resume = node.querySelector('[data-nit-mc-resume]');
-    if (resume) {
-      resume.setAttribute('href', row.resumeurl || courseurl);
-    }
-
-    node.style.display = 'flex';
+    node.style.display = '';
     node.removeAttribute('data-nit-mc-card');
   };
 
@@ -136,7 +164,7 @@
     if (empty && loggedin && root.getAttribute('data-empty') === 'show') {
       grid.style.display = 'none';
       empty.style.display = '';
-      // "View all" over an empty list is a link to a second empty page.
+      // "More" over an empty list is a link to a second empty page.
       var viewall = root.querySelector('[data-nit-mc-viewall]');
       if (viewall) {
         viewall.style.display = 'none';

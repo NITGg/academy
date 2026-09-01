@@ -190,3 +190,6 @@ $string['signupnow'] = 'إنشاء حساب';
 // تحتاج لولا ذلك ثلاث أو أربع نقرات داخل شجرة إدارة الموقع.
 $string['navmanagement'] = 'الإدارة';
 $string['navgallery'] = 'معرض التصميم';
+
+// Site footer (AC-4.7.13).
+$string['sitelogo'] = 'شعار الموقع';

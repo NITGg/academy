@@ -98,3 +98,6 @@ $string['cataloguedesc'] = 'The catalogue at /local/nit_category/catalogue.php b
 $string['excludefilterfields'] = 'Fields never offered as filters';
 $string['excludefilterfields_desc'] = 'Custom-field short names, separated by commas, that the catalogue should ignore even though their type would otherwise make a usable filter. Leave empty to offer every suitable field.';
 $string['onecourse'] = '1 course';
+
+// Home-page "My courses" card (theme_nit home_my_course_block).
+$string['homelesson'] = 'Lesson {$a->num}: {$a->name}';

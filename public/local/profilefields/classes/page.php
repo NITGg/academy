@@ -23,7 +23,7 @@ use tabobject;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The three-tab management screen: register, login, profile.
+ * The management screen: register, login, profile, password reset, footer.
  *
  * Each tab is a plain table of toggles that reads from, and writes back to, the
  * native Moodle settings behind each field (see manager, custom_fields, core_locks
@@ -49,13 +49,17 @@ class page {
     /** @var string Password-reset tab. */
     const TAB_PASSWORDRESET = 'passwordreset';
 
+    /** @var string Site-footer tab. */
+    const TAB_FOOTER = 'footer';
+
     /**
      * The valid tab identifiers.
      *
      * @return string[]
      */
     public static function tabs(): array {
-        return [self::TAB_REGISTER, self::TAB_LOGIN, self::TAB_PROFILE, self::TAB_PASSWORDRESET];
+        return [self::TAB_REGISTER, self::TAB_LOGIN, self::TAB_PROFILE,
+            self::TAB_PASSWORDRESET, self::TAB_FOOTER];
     }
 
     /**
@@ -112,6 +116,9 @@ class page {
                 case self::TAB_PASSWORDRESET:
                     self::save_passwordreset();
                     break;
+                case self::TAB_FOOTER:
+                    footer::save();
+                    break;
             }
             redirect(self::url($tab), get_string('changessaved'),
                 null, \core\output\notification::NOTIFY_SUCCESS);
@@ -136,6 +143,8 @@ class page {
                 get_string('tabprofile', 'local_profilefields')),
             new tabobject(self::TAB_PASSWORDRESET, self::url(self::TAB_PASSWORDRESET),
                 get_string('tabpasswordreset', 'local_profilefields')),
+            new tabobject(self::TAB_FOOTER, self::url(self::TAB_FOOTER),
+                get_string('tabfooter', 'local_profilefields')),
         ];
         echo $OUTPUT->tabtree($rows, $tab);
 
@@ -148,6 +157,9 @@ class page {
                 break;
             case self::TAB_PASSWORDRESET:
                 self::render_passwordreset();
+                break;
+            case self::TAB_FOOTER:
+                self::render_footer();
                 break;
             case self::TAB_REGISTER:
             default:
@@ -1012,6 +1024,165 @@ class page {
         if ($changed) {
             profile_purge_user_fields_cache();
         }
+    }
+
+    // -----------------------------------------------------------------
+    // Footer tab (AC-4.7.13).
+    // -----------------------------------------------------------------
+
+    /**
+     * Render the footer tab.
+     *
+     * The footer is drawn by theme_nit; what it says is edited here. It sits on
+     * this page rather than in the theme settings because it is content - an
+     * address, a phone number, six links - and content an administrator changes
+     * belongs with the other content controls, not behind Appearance.
+     *
+     * @return void
+     */
+    protected static function render_footer(): void {
+        echo html_writer::tag('p', get_string('tabfooter_intro', 'local_profilefields'),
+            ['class' => 'text-muted']);
+
+        echo html_writer::start_tag('form', [
+            'method' => 'post', 'action' => self::url(self::TAB_FOOTER)->out(false),
+        ]);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'save', 'value' => 1]);
+
+        echo html_writer::tag('table',
+            self::switch_row('footerenabled', footer::enabled(),
+                get_string('footerenabled', 'local_profilefields'),
+                get_string('footerenabled_desc', 'local_profilefields')),
+            ['class' => 'generaltable w-100']);
+
+        echo self::footer_contact_section();
+        echo self::footer_links_section();
+        echo self::footer_brand_section();
+
+        echo html_writer::tag('div',
+            html_writer::tag('button', get_string('savechanges'),
+                ['type' => 'submit', 'class' => 'btn btn-primary']),
+            ['class' => 'mt-3']);
+        echo html_writer::end_tag('form');
+    }
+
+    /**
+     * The contact column: its heading and the four icon rows under it.
+     *
+     * @return string HTML
+     */
+    protected static function footer_contact_section(): string {
+        $rows = self::footer_text_row('footercontactheading', footer::get('contactheading'),
+            get_string('footercontactheading', 'local_profilefields'),
+            get_string('footercontactheading_desc', 'local_profilefields'));
+
+        foreach (array_keys(footer::contactrows()) as $name) {
+            $rows .= self::footer_text_row('footer' . $name, footer::get($name),
+                get_string('footer' . $name, 'local_profilefields'),
+                get_string('footer' . $name . '_desc', 'local_profilefields'),
+                $name === 'address');
+        }
+
+        return html_writer::tag('h3', get_string('footercontactheadingsection', 'local_profilefields'),
+                ['class' => 'mt-4 h5']) .
+            html_writer::tag('table', $rows, ['class' => 'generaltable w-100']);
+    }
+
+    /**
+     * The two link columns - between them, the six static pages of AC-4.21.1.
+     *
+     * @return string HTML
+     */
+    protected static function footer_links_section(): string {
+        $rows = '';
+
+        foreach (['col2', 'col3'] as $col) {
+            $rows .= self::footer_text_row('footer' . $col . 'heading', footer::get($col . 'heading'),
+                get_string('footer' . $col . 'heading', 'local_profilefields'),
+                get_string('footercolheading_desc', 'local_profilefields'));
+            $rows .= self::footer_text_row('footer' . $col . 'links', footer::get($col . 'links'),
+                get_string('footer' . $col . 'links', 'local_profilefields'),
+                get_string('footercollinks_desc', 'local_profilefields'), true, 6);
+        }
+
+        return html_writer::tag('h3', get_string('footerlinkssection', 'local_profilefields'),
+                ['class' => 'mt-4 h5']) .
+            html_writer::tag('p', get_string('footerlinkssection_desc', 'local_profilefields'),
+                ['class' => 'text-muted']) .
+            html_writer::tag('table', $rows, ['class' => 'generaltable w-100']);
+    }
+
+    /**
+     * The logo, the social links and the copyright line.
+     *
+     * @return string HTML
+     */
+    protected static function footer_brand_section(): string {
+        $rows = self::footer_text_row('footerlogourl', footer::get('logourl'),
+            get_string('footerlogourl', 'local_profilefields'),
+            get_string('footerlogourl_desc', 'local_profilefields'));
+
+        foreach (array_keys(footer::networks()) as $network) {
+            $rows .= self::footer_text_row('footersocial' . $network, footer::get('social' . $network),
+                get_string('footersocial' . $network, 'local_profilefields'),
+                get_string('footersocialurl_desc', 'local_profilefields'));
+        }
+
+        $rows .= self::footer_text_row('footercopyrightyear', footer::get('copyrightyear'),
+            get_string('footercopyrightyear', 'local_profilefields'),
+            get_string('footercopyrightyear_desc', 'local_profilefields'));
+        $rows .= self::footer_text_row('footercopyright', footer::get('copyright'),
+            get_string('footercopyright', 'local_profilefields'),
+            get_string('footercopyright_desc', 'local_profilefields'));
+
+        // What the sentence actually comes out as once {year} is filled in - the
+        // placeholder is the one part of this tab that is not what you see.
+        $preview = html_writer::tag('tr',
+            html_writer::tag('td', html_writer::span(
+                get_string('footercopyrightpreview', 'local_profilefields'), 'fw-semibold')) .
+            html_writer::tag('td', html_writer::span(s(footer::copyright()), 'text-muted')));
+
+        return html_writer::tag('h3', get_string('footerbrandsection', 'local_profilefields'),
+                ['class' => 'mt-4 h5']) .
+            html_writer::tag('table', $rows . $preview, ['class' => 'generaltable w-100']);
+    }
+
+    /**
+     * A label + description cell next to a text input or textarea (footer tab).
+     *
+     * The footer tab is all free text, so it needs a row shape the toggle-based
+     * switch_row() cannot give: a full-width field rather than a checkbox column.
+     *
+     * @param string $name form field name
+     * @param string $value current value
+     * @param string $label
+     * @param string $desc
+     * @param bool $multiline render a textarea instead of a single-line input
+     * @param int $rows textarea height, when multiline
+     * @return string HTML
+     */
+    protected static function footer_text_row(string $name, string $value, string $label,
+            string $desc, bool $multiline = false, int $rows = 3): string {
+
+        if ($multiline) {
+            $field = html_writer::tag('textarea', s($value), [
+                'name' => $name, 'id' => 'id_' . $name, 'rows' => $rows,
+                'class' => 'form-control', 'spellcheck' => 'false',
+            ]);
+        } else {
+            $field = html_writer::empty_tag('input', [
+                'type' => 'text', 'name' => $name, 'id' => 'id_' . $name,
+                'value' => $value, 'class' => 'form-control',
+            ]);
+        }
+
+        return html_writer::tag('tr',
+            html_writer::tag('td',
+                html_writer::tag('label', $label, ['for' => 'id_' . $name, 'class' => 'fw-semibold mb-0']) .
+                html_writer::div($desc, 'text-muted small'),
+                ['style' => 'width:32%']) .
+            html_writer::tag('td', $field));
     }
 
     // -----------------------------------------------------------------

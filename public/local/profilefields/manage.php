@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Sign-up, login and profile field layout - a three-tab control panel.
+ * Site pages manager - the register, login, profile, password-reset and footer tabs.
  *
  * @package    local_profilefields
  * @copyright  2026 NIT

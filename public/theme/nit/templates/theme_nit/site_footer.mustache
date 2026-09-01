@@ -1,0 +1,114 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template theme_nit/site_footer
+
+    The EAAC site footer (AC-4.7.13) - a dark band under every page, laid out in
+    columns whose links run vertically, carrying the logo, the static-page links,
+    the social media links and the copyright line.
+
+    Everything in it is content, and content is edited by an administrator on the
+    Footer tab of the Site pages manager (local_profilefields). This template only
+    knows how a column looks; theme_nit_get_site_footer_context() turns that
+    plugin's data into the context below.
+
+    Context variables required for this template:
+    * hascontact - the contact column has a heading or at least one row
+    * contactheading - heading above the contact rows
+    * contactrows - [{icon, text, url, haslink}]
+    * columns - [{heading, hasheading, links: [{label, url}]}]
+    * haslogo / logourl - the footer logo
+    * hassocial / social - [{icon, url, network}]
+    * copyright - the copyright line, year already substituted
+
+    Example context (json):
+    {
+        "hascontact": true,
+        "contactheading": "Contact information",
+        "contactrows": [
+            {"icon": "fa-solid fa-phone", "text": "+603 4820 7595", "url": "tel:+60348207595", "haslink": true}
+        ],
+        "columns": [
+            {"heading": "Explore", "hasheading": true, "links": [{"label": "About us", "url": "/about"}]}
+        ],
+        "haslogo": true,
+        "logourl": "https://example.com/theme/nit/pix/footer-logo.png",
+        "hassocial": true,
+        "social": [{"icon": "fa-brands fa-facebook-f", "url": "https://facebook.com/eaac", "network": "Facebook"}],
+        "copyright": "© 2026 EAAC. All rights reserved."
+    }
+}}
+<footer class="nit-sitefooter" role="contentinfo">
+    <div class="nit-sitefooter__inner container-fluid">
+        <div class="nit-sitefooter__cols">
+            {{#hascontact}}
+                <section class="nit-sitefooter__col nit-sitefooter__col--contact">
+                    <h2 class="nit-sitefooter__heading">{{{contactheading}}}</h2>
+                    <ul class="nit-sitefooter__contact">
+                        {{#contactrows}}
+                            <li class="nit-sitefooter__contactrow">
+                                <span class="nit-sitefooter__contacticon" aria-hidden="true">
+                                    <i class="{{icon}}"></i>
+                                </span>
+                                {{#haslink}}
+                                    <a class="nit-sitefooter__contacttext" href="{{url}}" dir="auto">{{{text}}}</a>
+                                {{/haslink}}
+                                {{^haslink}}
+                                    <span class="nit-sitefooter__contacttext" dir="auto">{{{text}}}</span>
+                                {{/haslink}}
+                            </li>
+                        {{/contactrows}}
+                    </ul>
+                </section>
+            {{/hascontact}}
+
+            {{#columns}}
+                <section class="nit-sitefooter__col">
+                    {{#hasheading}}
+                        <h2 class="nit-sitefooter__heading">{{{heading}}}</h2>
+                    {{/hasheading}}
+                    <ul class="nit-sitefooter__links">
+                        {{#links}}
+                            <li><a href="{{url}}" dir="auto">{{{label}}}</a></li>
+                        {{/links}}
+                    </ul>
+                </section>
+            {{/columns}}
+
+            <section class="nit-sitefooter__col nit-sitefooter__col--brand">
+                {{#haslogo}}
+                    <img class="nit-sitefooter__logo" src="{{logourl}}" alt="{{#str}}sitelogo, theme_nit{{/str}}">
+                {{/haslogo}}
+                {{#hassocial}}
+                    <ul class="nit-sitefooter__social">
+                        {{#social}}
+                            <li>
+                                <a href="{{url}}" aria-label="{{network}}" rel="noopener noreferrer" target="_blank">
+                                    <i class="{{icon}}" aria-hidden="true"></i>
+                                </a>
+                            </li>
+                        {{/social}}
+                    </ul>
+                {{/hassocial}}
+            </section>
+        </div>
+
+        {{#copyright}}
+            <p class="nit-sitefooter__copyright" dir="auto">{{{copyright}}}</p>
+        {{/copyright}}
+    </div>
+</footer>

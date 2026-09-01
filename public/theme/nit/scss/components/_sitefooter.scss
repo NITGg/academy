@@ -1,0 +1,255 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+// =============================================================================
+// NIT site footer (AC-4.7.13) — the dark band under every page.
+//
+// Colours come from the Footer group of the editable palette (--nit-footer*,
+// published in foundation/_root.scss), so the band is retuned on the gallery
+// page like everything else rather than carrying hard-coded hexes.
+//
+// Direction: no `left`/`right` anywhere. The columns are a grid, which reverses
+// itself under `dir="rtl"`, and every offset is a logical property — so the
+// Arabic site gets the contact column on the right and the logo on the left
+// with no RTL-specific rules.
+// =============================================================================
+
+.nit-sitefooter {
+    position: relative;
+    overflow: hidden;
+    padding: 4.5rem 0 2rem;
+    background-color: var(--nit-footerbg);
+    color: var(--nit-footertext);
+
+    // On the account screens the band is a direct child of #page-wrapper, which
+    // is a full-height flex column - so without this the footer is a shrinkable
+    // flex item and gets squashed to a sliver on any page shorter than the
+    // viewport. `overflow: hidden` (needed for the arc) then clips the columns
+    // away entirely rather than letting them spill.
+    flex: 0 0 auto;
+
+    // The hairline arc across the top of the band. In the design this is a wide,
+    // very shallow curve; an ellipse far wider than the viewport, clipped by the
+    // band's own overflow, is the same shape without shipping an SVG that would
+    // have to be re-exported every time the colour changed.
+    &::before {
+        content: "";
+        position: absolute;
+        inset-inline: -25%;
+        top: -4rem;
+        height: 9rem;
+        border-top: 1px solid var(--nit-footerborder);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    // Edge-to-edge inside Boost's page wrapper: #page.drawers pads its children
+    // by 3rem from md up (theme/boost/scss/moodle/layout.scss), which would inset
+    // the band and leave the page background showing down both sides.
+    #page.drawers > & {
+        margin-inline: 0;
+
+        @include media-breakpoint-up(md) {
+            margin-inline: -3rem;
+        }
+    }
+}
+
+.nit-sitefooter__inner {
+    max-width: 71.25rem; // 1140px content column, as drawn.
+    margin-inline: auto;
+    padding-inline: 1.5rem;
+}
+
+.nit-sitefooter__cols {
+    display: grid;
+    gap: 3rem 4rem;
+    // One column on a phone, two on a tablet, then the drawn shape: a wide
+    // contact column, two narrow link columns, and the brand block.
+    grid-template-columns: minmax(0, 1fr);
+
+    @include media-breakpoint-up(sm) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr);
+    }
+}
+
+.nit-sitefooter__col {
+    min-width: 0;
+    text-align: center;
+}
+
+.nit-sitefooter__heading {
+    margin-bottom: 1.5rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--nit-footerheading);
+}
+
+// -----------------------------------------------------------------------------
+// Link columns.
+// -----------------------------------------------------------------------------
+
+.nit-sitefooter__links {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    a {
+        font-size: 0.875rem;
+        line-height: 1.6;
+        color: var(--nit-footertext);
+        text-decoration: none;
+
+        &:hover,
+        &:focus-visible {
+            color: var(--nit-footerheading);
+            text-decoration: underline;
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Contact column — an icon and a line of text per row.
+// -----------------------------------------------------------------------------
+
+.nit-sitefooter__contact {
+    display: flex;
+    flex-direction: column;
+    gap: 1.0625rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    // The rows read as a block of prose, not as a centred list like the link
+    // columns: an address wraps over three lines and centring it is unreadable.
+    text-align: start;
+}
+
+.nit-sitefooter__contactrow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.nit-sitefooter__contacticon {
+    flex: 0 0 1.5rem;
+    width: 1.5rem;
+    // Optically centres the 24px icon box against the first line of 26px text.
+    line-height: 1.625rem;
+    text-align: center;
+    color: var(--nit-footericon);
+
+    i {
+        font-size: 1rem;
+    }
+}
+
+.nit-sitefooter__contacttext {
+    font-size: 0.875rem;
+    line-height: 1.857; // 26px on 14px, as drawn.
+    color: var(--nit-footertext);
+    text-decoration: none;
+    // A long address has to wrap inside its column rather than push the grid.
+    overflow-wrap: anywhere;
+
+    &:is(a):hover,
+    &:is(a):focus-visible {
+        color: var(--nit-footerheading);
+        text-decoration: underline;
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Brand column — the logo and the social row.
+// -----------------------------------------------------------------------------
+
+.nit-sitefooter__col--brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.625rem;
+}
+
+.nit-sitefooter__logo {
+    // The drawn box is 285.7 x 100. Height is fixed and width is free, so a
+    // replacement logo of any aspect ratio keeps the row height the design set
+    // instead of stretching.
+    width: auto;
+    max-width: 100%;
+    height: 6.25rem;
+    object-fit: contain;
+}
+
+.nit-sitefooter__social {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        border: 1px solid transparent;
+        border-radius: 50%;
+        color: var(--nit-footericon);
+        text-decoration: none;
+
+        i {
+            font-size: 1.375rem;
+            line-height: 1;
+        }
+
+        &:hover,
+        &:focus-visible {
+            border-color: var(--nit-footerborder);
+            color: var(--nit-footertext);
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Copyright line.
+// -----------------------------------------------------------------------------
+
+.nit-sitefooter__copyright {
+    margin: 3rem 0 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--nit-footerborder);
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--nit-footertext);
+    opacity: 0.75;
+}
+
+// Print: a band of solid navy across every printed page is a waste of toner and
+// tells the reader nothing they can click.
+@media print {
+    .nit-sitefooter {
+        display: none;
+    }
+}

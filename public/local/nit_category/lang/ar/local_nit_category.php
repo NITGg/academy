@@ -98,3 +98,6 @@ $string['cataloguedesc'] = 'يبني دليل الكورسات في /local/nit_c
 $string['excludefilterfields'] = 'حقول لا تُستخدم في التصفية أبدًا';
 $string['excludefilterfields_desc'] = 'الأسماء المختصرة للحقول المخصّصة، مفصولة بفواصل، التي يتجاهلها الدليل حتى لو كان نوعها صالحًا للتصفية. اتركه فارغًا لعرض كل الحقول المناسبة.';
 $string['onecourse'] = 'كورس واحد';
+
+// Home-page "My courses" card (theme_nit home_my_course_block).
+$string['homelesson'] = 'الدرس {$a->num} : {$a->name}';

@@ -1,4 +1,10 @@
-<!-- NIT — "My Course" home-page block (WF-2.1 "My courses", AC-4.7.7 to AC-4.7.9).
+<!-- NIT — "My Course" home-page block.
+     Built from the Figma design "Frame 1707480689" (file اياك, node 479:1077):
+     a section heading with a "More" chevron link, then wide cards — a text
+     column (course name, the lesson Resume would open, a stats row of
+     lessons / hours / price, and a progress bar with the percentage under it)
+     beside the course thumbnail.
+
      Paste into an HTML block on the FRONT PAGE (Site home) and title the block
      "My Course". Markup only: the behaviour lives in
      theme/nit/blocks/home_my_course.js, served by js.php beside it, so a fix
@@ -11,92 +17,140 @@
      itself the moment it is parsed and is only revealed once the feed has
      answered with at least one course.
 
-     The wireframe's "no active enrolment" card is in the markup and switched
-     off: set data-empty="show" on the wrapper below to draw it for signed-in
-     users with nothing enrolled, instead of hiding the block from them.
+     Set data-empty="show" on the wrapper below to draw a "browse the catalogue"
+     card for signed-in users with nothing enrolled, instead of hiding the block
+     from them.
 
      Data comes from /local/nit_category/home.php?function=get_my_courses,
-     which already excludes expired (lapsed subscription) enrolments.
+     which already excludes expired (lapsed subscription) enrolments. Every
+     piece of a card is optional: a course with no lesson count, no hours, no
+     price or no completion tracking simply drops that bit.
 
-     Colours read from the Brand Colors palette (theme/nit gallery); shades
-     derive via color-mix from those same brand variables (no hard-coded
-     colours). Optional: if it can't find the API, set data-base to your Moodle
-     URL, e.g. data-base="https://academy2026.nitg-eg.com/moodle-new" -->
+     Colours read from the Brand Colors palette (theme/nit gallery), mapping the
+     design's tokens onto it: the card's blue-violet border and the red progress
+     fill both become --nit-brand-accent, #94a3bb subtitles become
+     --nit-brand-textsecondary, the #091540 card becomes --nit-brand-surface.
+     Optional: if it can't find the API, set data-base to your Moodle URL,
+     e.g. data-base="https://academy2026.nitg-eg.com/moodle-new" -->
 <div dir="auto" data-nit-mycourse="" data-limit="6" data-empty="hide"
   data-endpoint="/local/nit_category/home.php" data-base=""
   data-viewall="/my/courses.php" data-browse="/local/nit_category/catalogue.php"
-  style="background: var(--nit-brand-background); padding: 56px 16px;">
-  <div style="max-width: 1200px; margin: 0 auto;">
-    <!-- HEADER — title inline-start, "View all" inline-end -->
+  style="background: var(--nit-brand-background); padding: 65px clamp(16px, 5vw, 80px);">
+  <div style="max-width: 1288px; margin: 0 auto;">
+    <!-- HEADER — heading at the inline-start of the reading direction, the
+         "More" link with its chevron at the inline-end. -->
     <div
-      style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 0 0 24px;">
+      style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 0 0 41px;">
       <h2
-        style="font-size: clamp(22px,3vw,30px); font-weight: 800; margin: 0; color: var(--nit-brand-textprimary);">
-        {mlang en}My courses{mlang}{mlang ar}كورساتي{mlang}</h2>
+        style="font-size: clamp(24px,3.2vw,36px); font-weight: 600; margin: 0; color: var(--nit-brand-textprimary);">
+        {mlang en}Continue learning{mlang}{mlang ar}متابعة تعليمي{mlang}</h2>
       <a
-        style="font-size: 14px; font-weight: bold; color: var(--nit-brand-accenttext); text-decoration: underline; white-space: nowrap;"
-        href="#" data-nit-mc-viewall="">{mlang en}View all{mlang}{mlang ar}عرض
-        الكل{mlang}</a>
+        style="display: inline-flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; color: var(--nit-brand-textprimary); text-decoration: none; white-space: nowrap;"
+        href="#" data-nit-mc-viewall=""><span>{mlang en}More{mlang}{mlang
+        ar}المزيد{mlang}</span> <span
+          style="display: inline-flex; color: var(--nit-brand-accent);"
+          data-nit-mc-chevron="" aria-hidden="true"><svg width="24" height="24"
+            viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path
+              d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" /></svg></span></a>
     </div>
-    <!-- COURSE GRID (populated by the script; three across on a desktop) -->
+    <!-- COURSE GRID (populated by the script; two across on a desktop) -->
     <div
-      style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; align-items: stretch;"
+      style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(480px, 100%), 1fr)); gap: 40px; align-items: stretch;"
       data-nit-mc-grid=""><!-- CARD TEMPLATE (hidden; cloned once per course) -->
-      <div style="display: none; flex-direction: column;" data-nit-mc-card="">
-        <div class="nit-mc-card"
-          style="width: 100%; height: 100%; box-sizing: border-box; background: var(--nit-brand-surface); border: 1px solid color-mix(in srgb, var(--nit-brand-textprimary) 8%, transparent); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column;">
-          <!-- THUMBNAIL -->
-          <a
-            style="display: block; width: 100%; aspect-ratio: 16 / 9; background: color-mix(in srgb, var(--nit-brand-surface) 86%, var(--nit-brand-textprimary)) center / cover no-repeat; text-decoration: none;"
-            href="#" data-nit-mc-image="" aria-hidden="true" tabindex="-1"> </a>
-          <!-- BODY -->
+      <div style="display: none;" data-nit-mc-card="">
+        <a class="nit-mc-card"
+          style="width: 100%; height: 100%; box-sizing: border-box; background: var(--nit-brand-surface); border: 1.68px solid color-mix(in srgb, var(--nit-brand-accent) 70%, transparent); border-radius: 12px; overflow: hidden; display: flex; align-items: center; gap: 0; padding: 32px 12px; text-decoration: none;"
+          href="#" data-nit-mc-resume="">
+          <!-- TEXT COLUMN -->
           <div
-            style="padding: 18px; display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 4px;">
-            <a
-              style="font-size: 17px; font-weight: bold; line-height: 1.4; color: var(--nit-brand-textprimary); text-decoration: none; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"
-              href="#" data-nit-mc-title=""> </a>
-            <div
-              style="display: none; font-size: 12px; color: var(--nit-brand-accenttext);"
-              data-nit-mc-teacher=""> </div>
-            <!-- PROGRESS + RESUME, pinned to the bottom so cards line up -->
-            <div style="margin-top: auto; padding-top: 16px;">
+            style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 16px; padding: 0 16px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
               <div
-                style="height: 6px; border-radius: 50px; overflow: hidden; background: color-mix(in srgb, var(--nit-brand-textprimary) 12%, transparent);"
-                role="presentation">
-                <div
-                  style="height: 100%; width: 0; border-radius: 50px; background: var(--nit-brand-success); transition: width .4s ease;"
-                  data-nit-mc-bar=""></div>
-              </div>
+                style="font-size: 18px; font-weight: 500; line-height: 1.4; color: var(--nit-brand-textprimary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"
+                data-nit-mc-title=""> </div>
+              <!-- Which lesson Resume would open; hidden when the log cannot say. -->
               <div
-                style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 10px 0 0;">
+                style="display: none; font-size: 16px; font-weight: 500; line-height: 1.4; color: var(--nit-brand-textsecondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                data-nit-mc-subtitle=""> </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <!-- STATS ROW — lessons and hours together, price opposite. Each
+                   stat is icon, number, label, so the reading direction puts the
+                   icon on the outside in both Arabic and English. -->
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 17px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <span style="display: none; align-items: center; gap: 6px;"
+                    data-nit-mc-stat-lessons=""><span
+                      style="display: inline-flex; flex: 0 0 14px; color: color-mix(in srgb, var(--nit-brand-textsecondary) 80%, transparent);"><svg
+                        width="14" height="14" viewBox="0 0 14 14" fill="none"
+                        xmlns="http://www.w3.org/2000/svg"><path
+                          d="M7 4.08333V12.25M7 4.08333C7 3.46449 6.75415 2.871 6.31653 2.43342C5.87891 1.99583 5.28537 1.75 4.66648 1.75H1.74958C1.59486 1.75 1.44647 1.81146 1.33707 1.92085C1.22766 2.03025 1.1662 2.17862 1.1662 2.33333V9.91667C1.1662 10.0714 1.22766 10.2197 1.33707 10.3291C1.44647 10.4385 1.59486 10.5 1.74958 10.5H5.24986C5.71403 10.5 6.15918 10.6844 6.4874 11.0126C6.81561 11.3408 7 11.7859 7 12.25M7 4.08333C7 3.46449 7.24585 2.871 7.68347 2.43342C8.12109 1.99583 8.71463 1.75 9.33352 1.75H12.2504C12.4051 1.75 12.5535 1.81146 12.6629 1.92085C12.7723 2.03025 12.8338 2.17862 12.8338 2.33333V9.91667C12.8338 10.0714 12.7723 10.2197 12.6629 10.3291C12.5535 10.4385 12.4051 10.5 12.2504 10.5H8.75014C8.28597 10.5 7.84082 10.6844 7.5126 11.0126C7.18439 11.3408 7 11.7859 7 12.25"
+                          stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round" /></svg></span> <b
+                      style="font-size: 13px; font-weight: 700; color: var(--nit-brand-textprimary);"
+                      data-nit-mc-lessons="">0</b> <span
+                      style="font-size: 12px; color: color-mix(in srgb, var(--nit-brand-textsecondary) 80%, transparent);">{mlang
+                      en}lessons{mlang}{mlang ar}دروس{mlang}</span></span>
+                  <span style="display: none; align-items: center; gap: 6px;"
+                    data-nit-mc-stat-hours=""><span
+                      style="display: inline-flex; flex: 0 0 14px; color: color-mix(in srgb, var(--nit-brand-textsecondary) 80%, transparent);"><svg
+                        width="14" height="14" viewBox="0 0 14 14" fill="none"
+                        xmlns="http://www.w3.org/2000/svg"><path
+                          d="M7 3.49972V7L9.33352 8.16676M12.8338 7C12.8338 10.2219 10.2219 12.8338 7 12.8338C3.77808 12.8338 1.1662 10.2219 1.1662 7C1.1662 3.77808 3.77808 1.1662 7 1.1662C10.2219 1.1662 12.8338 3.77808 12.8338 7Z"
+                          stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round" /></svg></span> <b
+                      style="font-size: 13px; font-weight: 700; color: var(--nit-brand-textprimary);"
+                      data-nit-mc-hours="">0</b> <span
+                      style="font-size: 12px; color: color-mix(in srgb, var(--nit-brand-textsecondary) 80%, transparent);">{mlang
+                      en}hours{mlang}{mlang ar}ساعة{mlang}</span></span>
+                </div>
+                <!-- direction/isolate: "400.00 EGP" is an amount followed by its
+                     currency in both languages. Left to the bidi algorithm on an
+                     Arabic page the neutral run flips and it reads "EGP 400.00". -->
                 <span
-                  style="font-size: 12px; color: var(--nit-brand-textsecondary);">
-                  <span data-nit-mc-label=""><span
-                      data-nit-mc-percent="">0</span>% {mlang
-                    en}complete{mlang}{mlang ar}مكتمل{mlang}</span>
+                  style="display: none; font-size: 13px; font-weight: 700; color: var(--nit-brand-textprimary); white-space: nowrap; direction: ltr; unicode-bidi: isolate;"
+                  data-nit-mc-price=""> </span>
+              </div>
+              <!-- PROGRESS — the fill grows from the start of the reading
+                   direction, so it runs right-to-left in Arabic as designed. -->
+              <div>
+                <div
+                  style="height: 8px; border-radius: 8px; overflow: hidden; background: color-mix(in srgb, var(--nit-brand-textsecondary) 60%, transparent);">
+                  <div
+                    style="height: 100%; width: 0; border-radius: 8px; background: var(--nit-brand-accent); transition: width .4s ease;"
+                    data-nit-mc-bar=""></div>
+                </div>
+                <div
+                  style="margin: 10px 0 0; text-align: center; font-size: 18px; font-weight: 500; color: var(--nit-brand-textprimary);">
+                  <!-- Same reason as the price: the design reads "30 %", and
+                       without the isolate an Arabic page reorders it to "% 30". -->
+                  <span style="direction: ltr; unicode-bidi: isolate;"
+                    data-nit-mc-label=""><span
+                      data-nit-mc-percent="">0</span> %</span>
                   <!-- Shown instead of the percentage on a course that tracks no
                        completion: a bar reading 0% on a course somebody is halfway
                        through looks like lost work rather than an absent feature. -->
-                  <span style="display: none;" data-nit-mc-untracked="">{mlang
-                    en}Progress not tracked{mlang}{mlang ar}التقدّم غير
-                    مُتتبَّع{mlang}</span>
-                </span>
-                <a class="nit-btn-solid"
-                  style="flex: 0 0 auto; background: var(--nit-brand-primary); color: var(--nit-brand-textprimary); font-weight: bold; font-size: 14px; padding: 8px 18px; border-radius: 8px; text-decoration: none; white-space: nowrap;"
-                  href="#" data-nit-mc-resume="">{mlang en}Resume{mlang}{mlang
-                  ar}استئناف{mlang}</a>
+                  <span style="display: none; font-size: 14px; color: var(--nit-brand-textsecondary);"
+                    data-nit-mc-untracked="">{mlang en}Progress not
+                    tracked{mlang}{mlang ar}التقدّم غير مُتتبَّع{mlang}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+          <!-- THUMBNAIL -->
+          <span
+            style="flex: 0 0 250px; width: 250px; max-width: 42%; height: 216px; border-radius: 8px; box-shadow: 0 8px 22px 0 rgba(0,0,0,.25); background: color-mix(in srgb, var(--nit-brand-surface) 86%, var(--nit-brand-textprimary)) center / cover no-repeat;"
+            data-nit-mc-image="" aria-hidden="true"></span>
+        </a>
       </div>
     </div>
     <!-- EMPTY STATE — off by default (data-empty="hide" above); it replaces the
          grid rather than sitting beside it. -->
     <div
-      style="display: none; text-align: center; padding: 40px 20px; border: 1px dashed color-mix(in srgb, var(--nit-brand-textprimary) 20%, transparent); border-radius: 16px; color: var(--nit-brand-textsecondary);"
+      style="display: none; text-align: center; padding: 40px 20px; border: 1.68px dashed color-mix(in srgb, var(--nit-brand-accent) 40%, transparent); border-radius: 12px; color: var(--nit-brand-textsecondary);"
       data-nit-mc-empty="">
-      <p style="margin: 0 0 16px; font-size: 15px;">{mlang en}You have no active
+      <p style="margin: 0 0 16px; font-size: 16px;">{mlang en}You have no active
         enrolment yet.{mlang}{mlang ar}ليس لديك أي تسجيل نشط بعد.{mlang}</p>
       <a class="nit-btn-solid"
         style="display: inline-block; background: var(--nit-brand-primary); color: var(--nit-brand-textprimary); font-weight: bold; padding: 10px 22px; border-radius: 8px; text-decoration: none;"
@@ -137,7 +191,14 @@
         '.nit-mc-card:hover{transform:translateY(-4px);border-color:var(--nit-brand-accent)!important;box-shadow:0 16px 40px rgba(0,0,0,.35)}' +
         '.nit-mc-card:hover [data-nit-mc-title]{color:var(--nit-brand-accenttext)!important}' +
         '[data-nit-mc-viewall]:hover{color:var(--nit-brand-hovertext)!important}' +
-        '@media (max-width:520px){[data-nit-mc-grid]{grid-template-columns:1fr!important}}';
+        // The chevron points the way the text runs, so it is mirrored in Arabic.
+        '[dir="rtl"] [data-nit-mc-chevron]{transform:scaleX(-1)}' +
+        // Below the design width the thumbnail moves above the text rather than
+        // squeezing the course name into a column two words wide.
+        '@media (max-width:560px){' +
+        '.nit-mc-card{flex-direction:column-reverse!important;align-items:stretch!important;padding:12px!important}' +
+        '.nit-mc-card [data-nit-mc-image]{flex:0 0 auto!important;width:100%!important;max-width:none!important;height:160px!important;margin:0 0 16px}' +
+        '.nit-mc-card>div{padding:0 4px!important}}';
       var st = document.createElement('style');
       st.id = 'nit-mycourse-style';
       st.textContent = css;

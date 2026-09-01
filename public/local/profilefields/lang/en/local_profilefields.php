@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'Sign-up and profile fields';
-$string['managefields'] = 'Sign-up and profile field layout';
+$string['managefields'] = 'Site pages manager';
 
 // Tabs.
 $string['tabregister'] = 'Register page';
@@ -439,3 +439,49 @@ $string['ifieldyoutube'] = 'YouTube';
 $string['ifieldawards'] = 'Awards';
 $string['ifieldyearsofexperience'] = 'Years of experience';
 $string['ifieldresume'] = 'Resume';
+
+// Footer tab (AC-4.7.13).
+$string['tabfooter'] = 'Footer';
+$string['tabfooter_intro'] = 'The footer that appears at the bottom of every page: the contact column, the link columns, the logo, the social media links and the copyright line. Any field here accepts multilingual text, e.g. {mlang en}Courses{mlang}{mlang ar}الدورات{mlang}.';
+$string['footerenabled'] = 'Show the footer';
+$string['footerenabled_desc'] = 'Turn this off to hide the footer on every page.';
+
+$string['footercontactheadingsection'] = 'Contact column';
+$string['footercontactheading'] = 'Column heading';
+$string['footercontactheading_desc'] = 'The heading above the address and contact details.';
+$string['footeraddress'] = 'Address';
+$string['footeraddress_desc'] = 'The postal address. Leave empty to hide this line.';
+$string['footerphone'] = 'Phone';
+$string['footerphone_desc'] = 'Shown as a tap-to-call link on phones.';
+$string['footerhours'] = 'Answering hours';
+$string['footerhours_desc'] = 'When someone calling will get an answer, e.g. "8 to 20".';
+$string['footeremail'] = 'Email';
+$string['footeremail_desc'] = 'Shown as a mailto link when it is a valid address.';
+
+$string['footerlinkssection'] = 'Link columns';
+$string['footerlinkssection_desc'] = 'Two columns of links. Between them they carry the six static pages of the site. One link per line, written as <code>Label|url</code> - the URL may be a full address or a site path such as <code>/course/</code>. A line without a URL is dropped.';
+$string['footercol2heading'] = 'Column 2 heading';
+$string['footercol2links'] = 'Column 2 links';
+$string['footercol3heading'] = 'Column 3 heading';
+$string['footercol3links'] = 'Column 3 links';
+$string['footercolheading_desc'] = 'The heading above this column.';
+$string['footercollinks_desc'] = 'One per line: <code>Label|url</code>';
+
+$string['footerbrandsection'] = 'Logo, social media and copyright';
+$string['footerlogourl'] = 'Logo URL';
+$string['footerlogourl_desc'] = 'The logo drawn in the footer. Leave empty to use the one the theme ships. The footer band is dark, so use a logo that reads on a dark background.';
+$string['footersocialurl_desc'] = 'Full address of the page. Leave empty to hide this icon.';
+$string['footersocialfacebook'] = 'Facebook';
+$string['footersocialinstagram'] = 'Instagram';
+$string['footersociallinkedin'] = 'LinkedIn';
+$string['footersocialtwitter'] = 'X (Twitter)';
+$string['footersocialyoutube'] = 'YouTube';
+$string['footersocialtiktok'] = 'TikTok';
+$string['footersocialwhatsapp'] = 'WhatsApp';
+$string['footersocialtelegram'] = 'Telegram';
+$string['footercopyrightyear'] = 'Copyright year';
+$string['footercopyrightyear_desc'] = 'A year, or a range such as 2020-2026.';
+$string['footercopyright'] = 'Copyright line';
+$string['footercopyright_desc'] = 'Use {year} where the year should appear. Leave empty for the default sentence.';
+$string['footercopyrightdefault'] = '© {year} EAAC. All rights reserved.';
+$string['footercopyrightpreview'] = 'Shown as';

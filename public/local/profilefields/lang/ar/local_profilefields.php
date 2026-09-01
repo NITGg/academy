@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'حقول التسجيل والملف الشخصي';
-$string['managefields'] = 'تنظيم حقول التسجيل والملف الشخصي';
+$string['managefields'] = 'إدارة صفحات الموقع';
 
 // Tabs.
 $string['tabregister'] = 'صفحة التسجيل';
@@ -432,3 +432,49 @@ $string['ifieldyoutube'] = 'YouTube';
 $string['ifieldawards'] = 'الجوائز';
 $string['ifieldyearsofexperience'] = 'سنوات الخبرة';
 $string['ifieldresume'] = 'السيرة الذاتية';
+
+// Footer tab (AC-4.7.13).
+$string['tabfooter'] = 'التذييل';
+$string['tabfooter_intro'] = 'التذييل الذي يظهر أسفل كل صفحة: عمود بيانات الاتصال، وأعمدة الروابط، والشعار، وروابط التواصل الاجتماعي، وسطر حقوق النشر. كل حقل هنا يقبل نصًا متعدد اللغات، مثل: {mlang en}Courses{mlang}{mlang ar}الدورات{mlang}.';
+$string['footerenabled'] = 'إظهار التذييل';
+$string['footerenabled_desc'] = 'أوقف هذا لإخفاء التذييل من كل الصفحات.';
+
+$string['footercontactheadingsection'] = 'عمود بيانات الاتصال';
+$string['footercontactheading'] = 'عنوان العمود';
+$string['footercontactheading_desc'] = 'العنوان الذي يظهر فوق العنوان البريدي وبيانات الاتصال.';
+$string['footeraddress'] = 'العنوان';
+$string['footeraddress_desc'] = 'العنوان البريدي. اتركه فارغًا لإخفاء هذا السطر.';
+$string['footerphone'] = 'الهاتف';
+$string['footerphone_desc'] = 'يظهر كرابط اتصال مباشر على الهواتف.';
+$string['footerhours'] = 'ساعات الرد';
+$string['footerhours_desc'] = 'مواعيد الرد على المتصلين، مثل: «من 8 إلى 20».';
+$string['footeremail'] = 'البريد الإلكتروني';
+$string['footeremail_desc'] = 'يظهر كرابط مراسلة إذا كان عنوانًا صحيحًا.';
+
+$string['footerlinkssection'] = 'أعمدة الروابط';
+$string['footerlinkssection_desc'] = 'عمودان من الروابط، يحملان بينهما صفحات الموقع الثابتة الست. رابط واحد في كل سطر بالصيغة <code>الاسم|الرابط</code> — ويمكن أن يكون الرابط عنوانًا كاملًا أو مسارًا داخل الموقع مثل <code>/course/</code>. السطر بلا رابط يُهمَل.';
+$string['footercol2heading'] = 'عنوان العمود الثاني';
+$string['footercol2links'] = 'روابط العمود الثاني';
+$string['footercol3heading'] = 'عنوان العمود الثالث';
+$string['footercol3links'] = 'روابط العمود الثالث';
+$string['footercolheading_desc'] = 'العنوان الذي يظهر فوق هذا العمود.';
+$string['footercollinks_desc'] = 'سطر لكل رابط: <code>الاسم|الرابط</code>';
+
+$string['footerbrandsection'] = 'الشعار والتواصل الاجتماعي وحقوق النشر';
+$string['footerlogourl'] = 'رابط الشعار';
+$string['footerlogourl_desc'] = 'الشعار الذي يظهر في التذييل. اتركه فارغًا لاستخدام الشعار المرفق بالقالب. خلفية التذييل داكنة، فاستخدم شعارًا يظهر بوضوح عليها.';
+$string['footersocialurl_desc'] = 'العنوان الكامل للصفحة. اتركه فارغًا لإخفاء هذه الأيقونة.';
+$string['footersocialfacebook'] = 'Facebook';
+$string['footersocialinstagram'] = 'Instagram';
+$string['footersociallinkedin'] = 'LinkedIn';
+$string['footersocialtwitter'] = 'X (تويتر)';
+$string['footersocialyoutube'] = 'YouTube';
+$string['footersocialtiktok'] = 'TikTok';
+$string['footersocialwhatsapp'] = 'WhatsApp';
+$string['footersocialtelegram'] = 'Telegram';
+$string['footercopyrightyear'] = 'سنة حقوق النشر';
+$string['footercopyrightyear_desc'] = 'سنة واحدة، أو مدى مثل 2020-2026.';
+$string['footercopyright'] = 'سطر حقوق النشر';
+$string['footercopyright_desc'] = 'ضع {year} في الموضع الذي تريد ظهور السنة فيه. اتركه فارغًا للجملة الافتراضية.';
+$string['footercopyrightdefault'] = '© {year} إياك. جميع الحقوق محفوظة.';
+$string['footercopyrightpreview'] = 'سيظهر هكذا';

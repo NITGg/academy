@@ -204,3 +204,6 @@ $string['signupnow'] = 'Sign up';
 // otherwise sit three or four clicks down the Site administration tree.
 $string['navmanagement'] = 'Management';
 $string['navgallery'] = 'Design gallery';
+
+// Site footer (AC-4.7.13).
+$string['sitelogo'] = 'Site logo';
