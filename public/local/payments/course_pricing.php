@@ -206,4 +206,16 @@ if (empty($prices)) {
     echo html_writer::table($table);
 }
 
+// The refund policy sits beside the price: both are terms of the same sale, and
+// whoever sets one is the person who should be setting the other.
+echo html_writer::div(
+    html_writer::link(
+        new moodle_url('/local/payments/refund_rule.php',
+            ['itemtype' => 'course', 'itemid' => $courseid]),
+        get_string('refund_rule_link', 'local_payments'),
+        ['class' => 'btn btn-outline-secondary']
+    ),
+    'mt-3'
+);
+
 echo $OUTPUT->footer();

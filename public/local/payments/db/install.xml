@@ -282,5 +282,23 @@
       </INDEXES>
     </TABLE>
 
+    <TABLE NAME="local_payments_refund_rules" COMMENT="Per-item refund policy, overriding the site settings">
+      <FIELDS>
+        <FIELD NAME="id"           TYPE="int"    LENGTH="10"  NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="itemtype"     TYPE="char"   LENGTH="30"  NOTNULL="true" COMMENT="course, subscription, or whatever else is sold"/>
+        <FIELD NAME="itemid"       TYPE="int"    LENGTH="10"  NOTNULL="true" COMMENT="Course id, plan id, and so on"/>
+        <FIELD NAME="hours"        TYPE="int"    LENGTH="10"  NOTNULL="true" DEFAULT="0" COMMENT="Self-service window; 0 means request only"/>
+        <FIELD NAME="feetype"      TYPE="char"   LENGTH="10"  NOTNULL="true" DEFAULT="percent"/>
+        <FIELD NAME="feevalue"     TYPE="number" LENGTH="10"  DECIMALS="2" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="timemodified" TYPE="int"    LENGTH="10"  NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_item" UNIQUE="true" FIELDS="itemtype, itemid"/>
+      </INDEXES>
+    </TABLE>
+
   </TABLES>
 </XMLDB>

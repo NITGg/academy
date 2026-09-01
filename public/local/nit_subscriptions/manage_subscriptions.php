@@ -109,6 +109,7 @@ echo html_writer::div($pricingnote, 'alert alert-info',
 $STR = local_nit_subscriptions_string_map(array(
     'sub_plans_heading', 'sub_new', 'ui_refresh', 'ui_loading', 'ui_save', 'ui_cancel', 'ui_active',
     'ui_activate', 'ui_deactivate', 'ui_edit', 'ui_delete', 'ui_never', 'ui_optional',
+    'sub_refund_rule',
     'pkg_col_id', 'pkg_col_name', 'pkg_col_price', 'sub_col_days', 'sub_col_courses', 'pkg_col_status',
     'pkg_col_actions', 'pkg_field_name', 'pkg_field_price', 'pkg_col_user', 'sub_col_subscription',
     'pkg_field_name_en', 'pkg_field_name_ar', 'pkg_field_desc_en', 'pkg_field_desc_ar',
@@ -138,6 +139,11 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
     'currencies' => array('EGP', 'USD', 'EUR', 'GBP', 'SAR', 'AED', 'KWD', 'BHD', 'QAR', 'OMR'),
 )) . ';');
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
+// Refund terms live in local_payments; the link is built here so the plan id can
+// be appended per row.
+echo html_writer::script('window.ACADEMY_REFUNDRULEURL = ' . json_encode(
+    (new moodle_url('/local/payments/refund_rule.php', ['itemtype' => 'subscription']))->out(false)
+) . ';');
 ?>
 <div id="academy-sub-app">
     <div id="sub-message" class="alert" style="display:none"></div>
@@ -372,6 +378,8 @@ echo html_writer::script(<<<'JS'
 (function () {
     var CFG = window.ACADEMY_SUB;
     var STR = window.ACADEMY_STR || {};
+    // Emitted server-side so wwwroot is never guessed in JavaScript.
+    var REFUNDRULEURL = window.ACADEMY_REFUNDRULEURL || '';
     function str(k){return (k in STR)?STR[k]:k;}
     function strf(k,params){var s=str(k);if(params==null){return s;}if(typeof params!=='object'){return s.replace(/\{\$a\}/g,params);}return s.replace(/\{\$a->(\w+)\}/g,function(m,name){return (name in params)?params[name]:m;});}
     function sstat(s){return str('sstat_'+s)!=='sstat_'+s?str('sstat_'+s):(s==='inactive'?str('sub_inactive'):(s==='active'?str('ui_active'):s));}
@@ -481,7 +489,12 @@ echo html_writer::script(<<<'JS'
                 '<td>' +
                     '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="' + s.id + '">' + esc(str('ui_edit')) + '</button> ' +
                     toggle + ' ' +
-                    '<button class="btn btn-sm btn-danger" data-act="delete" data-id="' + s.id + '">' + esc(str('ui_delete')) + '</button>' +
+                    '<button class="btn btn-sm btn-danger" data-act="delete" data-id="' + s.id + '">' + esc(str('ui_delete')) + '</button> ' +
+                    // Refund terms are part of the plan, so they are edited from
+                    // the row that defines it rather than a separate screen
+                    // somebody has to know exists.
+                    '<a class="btn btn-sm btn-outline-secondary" href="' + REFUNDRULEURL +
+                        '&itemid=' + encodeURIComponent(s.id) + '">' + esc(str('sub_refund_rule')) + '</a>' +
                 '</td>';
             tr._sub = s;
             tbody.appendChild(tr);

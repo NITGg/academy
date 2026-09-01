@@ -61,7 +61,57 @@ class refund_policy {
      * @return object {hours:int, feetype:string, feevalue:float, itemtype:string}
      */
     public static function for_transaction(\stdClass $transaction): object {
-        return self::for_item_type(self::item_type($transaction));
+        return self::for_item(self::item_type($transaction), self::item_id($transaction));
+    }
+
+    /**
+     * Which course or plan this payment was for.
+     *
+     * @param \stdClass $transaction
+     * @return int 0 when the purchase is not tied to a specific item.
+     */
+    public static function item_id(\stdClass $transaction): int {
+        $meta = json_decode($transaction->metadata ?? '{}', true) ?: [];
+        $itemid = (int) ($meta['item_id'] ?? 0);
+
+        // Rows from before item_id was recorded are course purchases.
+        return $itemid ?: (int) ($transaction->courseid ?? 0);
+    }
+
+    /**
+     * The policy for one specific course or plan.
+     *
+     * An override on the item wins over the settings for its type. That is the
+     * point of it: a flagship course can refuse automatic refunds while
+     * everything else allows them, without anyone touching site settings that
+     * apply to hundreds of other courses.
+     *
+     * @param string $itemtype
+     * @param int $itemid
+     * @return object {hours:int, feetype:string, feevalue:float, itemtype:string, overridden:bool}
+     */
+    public static function for_item(string $itemtype, int $itemid): object {
+        global $DB;
+
+        $policy = self::for_item_type($itemtype);
+        $policy->overridden = false;
+
+        if ($itemid <= 0) {
+            return $policy;
+        }
+
+        $rule = $DB->get_record('local_payments_refund_rules',
+            ['itemtype' => $itemtype, 'itemid' => $itemid]);
+        if (!$rule) {
+            return $policy;
+        }
+
+        $policy->hours = max(0, (int) $rule->hours);
+        $policy->feetype = $rule->feetype === self::FEE_FIXED ? self::FEE_FIXED : self::FEE_PERCENT;
+        $policy->feevalue = max(0, (float) $rule->feevalue);
+        $policy->overridden = true;
+
+        return $policy;
     }
 
     /**
@@ -128,6 +178,7 @@ class refund_policy {
 
         return (object) [
             'itemtype' => $policy->itemtype,
+            'overridden' => !empty($policy->overridden),
             'paid' => $paid,
             'fee' => $fee,
             'net' => round(max(0, $paid - $fee), 2),

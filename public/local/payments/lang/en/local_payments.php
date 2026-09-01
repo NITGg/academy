@@ -325,3 +325,17 @@ $string['refund_staff_title'] = 'Refund this payment';
 $string['refund_staff_warning'] = 'This refunds the buyer immediately and removes their access. The money leaves the gateway at once and cannot be recalled from here.';
 $string['refund_staff_applyfee'] = 'Charge the policy refund fee of {$a}. Leave unticked for a full refund.';
 $string['refund_staff_button'] = 'Refund now';
+
+// Refunds, per-item override.
+$string['refund_rule_title'] = 'Refund policy';
+$string['refund_rule_link'] = 'Refund policy for this course';
+$string['refund_rule_heading'] = 'Refund policy: {$a}';
+$string['refund_rule_sitedefault'] = 'Without an override here, this follows the site setting: {$a}';
+$string['refund_rule_summary'] = '{$a->hours} hour window, fee {$a->fee}';
+$string['refund_rule_nofee'] = 'none';
+$string['refund_rule_hours_help'] = 'Hours after payment during which the buyer can refund themselves. 0 means they must ask instead, and a member of staff decides.';
+$string['refund_rule_fee_help'] = 'What is kept from the refund. 0 gives the money back in full.';
+$string['refund_rule_saved'] = 'Refund policy saved for this item.';
+$string['refund_rule_cleared'] = 'Override removed. This item now follows the site settings.';
+$string['refund_rule_clear'] = 'Remove override';
+$string['refund_rule_offsitewide'] = 'Refunds are switched off site-wide, so nothing set here takes effect until that changes.';

@@ -211,3 +211,4 @@ $string['task_expire_subscriptions'] = 'Expire finished subscriptions and unenro
 $string['countryrequired'] = 'Set your country to see the price';
 $string['countryrequired_desc'] = 'Prices are set per country. Add your country to your profile to see this plan\'s price and subscribe.';
 $string['countryrequired_action'] = 'Add your country';
+$string['sub_refund_rule'] = 'Refund policy';
