@@ -21,7 +21,7 @@
 (function (w) {
   'use strict';
 
-  var cfg = null, modal = null, els = {}, current = null;
+  var cfg = null, modal = null, els = {}, current = null, methodCache = null;
 
   function S(k) { return (cfg && cfg.str && cfg.str[k] != null) ? cfg.str[k] : k; }
   function money(n) { return (Math.round(Number(n) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -224,6 +224,26 @@
     els.methodsWrap.style.display = '';
   }
 
+  // Ask the server what the gateway takes, once per page.
+  function loadMethods(currency) {
+    if (methodCache) {
+      methods(methodCache);
+      return;
+    }
+    fetch(cfg.wwwroot + cfg.commerce + '?function=get_payment_methods&currency=' +
+        encodeURIComponent(currency || '') + '&sesskey=' + encodeURIComponent(cfg.sesskey),
+        { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        methodCache = (res && res.status === 'success' && res.data) ? res.data : [];
+        methods(methodCache);
+      })
+      .catch(function () {
+        // No list means no question, which is where this started.
+        methods([]);
+      });
+  }
+
   function row(label, valueEl) {
     var r = el('div', 'display:flex; justify-content:space-between; font-size:14px; color:' + C.muted + '; margin-bottom:10px;');
     r.appendChild(el('span', '', label));
@@ -279,7 +299,14 @@
       var base = money(item.price || 0) + ' ' + cur();
       els.original.textContent = base; els.final.textContent = base; els.discount.textContent = '0.00 ' + cur();
       els.offerRow.style.display = 'none';
-      methods(item.methods);
+      // A caller that already knows the list saves the round trip; one that does
+      // not still gets the picker rather than silently skipping the question.
+      if (item.methods) {
+        methods(item.methods);
+      } else {
+        methods([]);
+        loadMethods(item.currency);
+      }
       modal.style.display = 'flex';
       preview(''); // Auto-apply any offer + fetch the true base.
     },

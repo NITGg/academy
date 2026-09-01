@@ -433,7 +433,8 @@ function local_nit_category_require_checkout(): bool {
         return false;
     }
     require_once($CFG->dirroot . '/local/nit_commerce/lib.php');
-    $PAGE->requires->js(new moodle_url('/local/nit_commerce/checkout_modal.js'), true);
+    $PAGE->requires->js(new moodle_url('/local/nit_commerce/checkout_modal.js',
+        ['v' => get_config('local_nit_commerce', 'version')]), true);
     return true;
 }
 
@@ -485,9 +486,13 @@ function local_nit_category_checkout_footer(): void {
                 name: btn.getAttribute('data-name'),
                 price: parseFloat(btn.getAttribute('data-price')) || 0,
                 currency: btn.getAttribute('data-currency') || '',
-                proceed: function (code) {
-                    window.location.href = window.NIT_CO.wwwroot + '/local/payments/checkout.php?courseid=' + id +
+                proceed: function (code, methodId) {
+                    var url = window.NIT_CO.wwwroot + '/local/payments/checkout.php?courseid=' + id +
                         '&sesskey=' + encodeURIComponent(window.NIT_CO.sesskey) + '&coupon_code=' + encodeURIComponent(code);
+                    // 0 means the modal offered no choice, and the gateway then
+                    // picks one itself rather than showing its own page.
+                    if (methodId) { url += '&payment_method_id=' + encodeURIComponent(methodId); }
+                    window.location.href = url;
                 }
             });
         });
