@@ -337,17 +337,6 @@ $string['choose_method'] = 'How would you like to pay?';
 $string['continue_to_payment'] = 'Continue to payment';
 $string['method_gives_code'] = 'You will get a code to pay with';
 
-// Payment method picker on the web checkout.
-$string['show_method_picker'] = 'Ask which payment method to use';
-$string['show_method_picker_desc'] = 'Show the buyer the payment methods before checkout. Off by default, in which case the gateway is charged directly using the first method in its priority list &mdash; which is why only cards appear. Turn this on to offer Fawry, Meeza and wallets alongside cards. It is only shown when the gateway actually offers more than one method, so it never becomes a pointless click.';
-$string['choose_method'] = 'How would you like to pay?';
-$string['continue_to_payment'] = 'Continue to payment';
-$string['method_gives_code'] = 'You will get a code to pay with';
-
-// The site-wide default refund fee.
-$string['refund_feepercent'] = 'Default refund fee (%)';
-$string['refund_feepercent_desc'] = 'A percentage of the amount paid, kept when a refund is given. Used when the course or plan does not set a fee of its own. It is a percentage rather than a flat amount on purpose: one number then covers every currency an item is priced in, and it follows the amount actually charged, so a coupon that halves the price halves the fee. 0 refunds in full.';
-
 // Refund terms for one course, set on its pricing page.
 $string['refund_terms_heading'] = 'Refund policy for this course';
 $string['refund_terms_intro'] = 'Leave both blank to use the site policy, which is currently a {$a->hours} hour window with a {$a->fee}% fee.';

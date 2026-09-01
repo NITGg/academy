@@ -368,7 +368,16 @@ class gateway extends base_provider {
         if ($methodid < 0) {
             $methodid = 0;
         } else if ($methodid === 0) {
-            // Nothing chosen (the web checkout, which has no picker): pick one.
+            // Nothing chosen: pick one ourselves rather than hand over the
+            // hosted page, which is what makes the charge server-to-server.
+            $methodid = $this->resolve_auto_method();
+        } else if (!$this->method_is_live($methodid)) {
+            // A chosen id arrives from a form or a mobile client, so it can be
+            // stale — a method the account had last week, or one switched off
+            // since the list was cached. Fawaterk would reject it with an error
+            // the buyer cannot act on; falling back charges them instead.
+            $this->log('warning', 'Fawaterk was asked for payment method ' . $methodid
+                . ', which the account does not currently offer; choosing one instead.');
             $methodid = $this->resolve_auto_method();
         }
 
@@ -800,6 +809,26 @@ class gateway extends base_provider {
         }
 
         return $methods;
+    }
+
+    /**
+     * Whether the account currently offers this method.
+     *
+     * An empty list is not a "no": the listing reports what the hosted iframe is
+     * configured for, and an account can charge a method it does not enumerate.
+     * Only a populated list that omits the id is evidence against it.
+     *
+     * @param int $methodid
+     * @return bool
+     */
+    private function method_is_live(int $methodid): bool {
+        $methods = $this->get_payment_methods();
+
+        if (empty($methods)) {
+            return true;
+        }
+
+        return in_array($methodid, array_map('intval', array_column($methods, 'id')), true);
     }
 
     public function supports_payment_methods(): bool {
