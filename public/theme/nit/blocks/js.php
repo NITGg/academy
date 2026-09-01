@@ -19,40 +19,35 @@
  *
  * The blocks in this directory are pasted into Moodle HTML blocks, which means
  * the copy that actually runs lives in the database. Anything inline in that
- * paste — markup, styles, and until now several hundred lines of JavaScript —
- * can only be changed by pasting it again. A fix committed to the repository
- * simply never reached the site, which is a bad way to find out.
+ * paste can only be changed by pasting it again, so a fix committed to the
+ * repository never reaches the site. The paste therefore keeps the markup and
+ * loads its behaviour from here, where a git pull is enough.
  *
- * So the paste keeps the markup and loads its behaviour from here. The script
- * ships with the rest of the code and deploys with a git pull, and the block in
- * the database only has to be re-pasted when its markup changes.
+ * Deliberately no Moodle bootstrap. This serves one of a fixed list of files
+ * from its own directory to anyone who can see the home page, so there is
+ * nothing for a session to decide — and loading Moodle would mean taking the
+ * session lock on every page that shows the block.
  *
  * Revalidated rather than cached outright: the browser keeps the file and asks
- * whether it has changed, which costs one 304 and means a deploy is live at
- * once. A hard cache would put us straight back into "the fix did not ship".
+ * whether it changed, which costs one 304 and makes a deploy live at once. A
+ * hard cache would put us back in "the fix did not ship".
  *
  * @package    theme_nit
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-// A static asset with no user-specific content: no session, so this never
-// blocks on the session lock while a page is loading.
-define('NO_MOODLE_COOKIES', true);
-define('ABORT_AFTER_CONFIG', true);
-
-require(__DIR__ . '/../../../config.php');
-
-$name = optional_param('name', '', PARAM_ALPHANUMEXT);
-
-// PARAM_ALPHANUMEXT already rules out slashes and dots, so the name cannot
-// climb out of this directory; the whitelist below is the real gate anyway.
+// The whitelist is the security boundary: only these names resolve, so the
+// name can never be read as a path.
 $allowed = [
     'home_subscriptions',
 ];
 
+$name = isset($_GET['name']) ? (string) $_GET['name'] : '';
+
 if (!in_array($name, $allowed, true)) {
     header('HTTP/1.1 404 Not Found');
+    header('Content-Type: text/plain; charset=utf-8');
     die('Unknown block script.');
 }
 
@@ -60,11 +55,11 @@ $file = __DIR__ . '/' . $name . '.js';
 
 if (!is_readable($file)) {
     header('HTTP/1.1 404 Not Found');
+    header('Content-Type: text/plain; charset=utf-8');
     die('Block script missing.');
 }
 
-$mtime = filemtime($file);
-$etag = '"' . md5($name . $mtime . filesize($file)) . '"';
+$etag = '"' . md5($name . filemtime($file) . filesize($file)) . '"';
 
 header('Content-Type: application/javascript; charset=utf-8');
 header('ETag: ' . $etag);
