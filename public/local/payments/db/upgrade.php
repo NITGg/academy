@@ -63,6 +63,7 @@ function xmldb_local_payments_upgrade($oldversion) {
             $table->add_field('hours', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
             $table->add_field('feetype', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'percent');
             $table->add_field('feevalue', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('feecurrency', XMLDB_TYPE_CHAR, '3', null, null);
             $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
             $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
             $table->add_index('idx_item', XMLDB_INDEX_UNIQUE, ['itemtype', 'itemid']);

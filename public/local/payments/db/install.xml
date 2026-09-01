@@ -290,6 +290,7 @@
         <FIELD NAME="hours"        TYPE="int"    LENGTH="10"  NOTNULL="true" DEFAULT="0" COMMENT="Self-service window; 0 means request only"/>
         <FIELD NAME="feetype"      TYPE="char"   LENGTH="10"  NOTNULL="true" DEFAULT="percent"/>
         <FIELD NAME="feevalue"     TYPE="number" LENGTH="10"  DECIMALS="2" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="feecurrency"  TYPE="char"   LENGTH="3"   NOTNULL="false" COMMENT="Which currency a flat fee is stated in"/>
         <FIELD NAME="timemodified" TYPE="int"    LENGTH="10"  NOTNULL="true" DEFAULT="0"/>
       </FIELDS>
       <KEYS>

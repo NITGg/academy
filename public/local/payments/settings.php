@@ -111,6 +111,16 @@ if ($hassiteconfig) {
             '0',
             PARAM_FLOAT
         ));
+
+        // Only meaningful for a flat fee, and it matters: this site prices in
+        // more than one currency, so a bare "10" is ambiguous.
+        $settings->add(new admin_setting_configtext(
+            'local_payments/refund_feecurrency_' . $key,
+            get_string('refund_feecurrency', 'local_payments'),
+            get_string('refund_feecurrency_desc', 'local_payments'),
+            get_config('local_payments', 'default_currency') ?: 'EGP',
+            PARAM_ALPHA
+        ));
     }
 
     // What appears on the invoice PDF as the issuer.

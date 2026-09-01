@@ -62,6 +62,7 @@ if ($action === 'save' && confirm_sesskey()) {
                 ? \local_payments\refund_policy::FEE_FIXED
                 : \local_payments\refund_policy::FEE_PERCENT,
         'feevalue' => max(0, optional_param('feevalue', 0, PARAM_FLOAT)),
+        'feecurrency' => strtoupper(optional_param('feecurrency', '', PARAM_ALPHA)),
         'timemodified' => time(),
     ];
 
@@ -91,7 +92,9 @@ $describe = static function (object $p): string {
         ? get_string('refund_rule_nofee', 'local_payments')
         : ($p->feetype === \local_payments\refund_policy::FEE_PERCENT
             ? format_float($p->feevalue, 2, true, true) . '%'
-            : format_float($p->feevalue, 2, true, true));
+            // A flat fee is meaningless without its currency, which is the whole
+            // reason the field exists.
+            : format_float($p->feevalue, 2, true, true) . ' ' . $p->feecurrency);
     return get_string('refund_rule_summary', 'local_payments',
         (object) ['hours' => $p->hours, 'fee' => $fee]);
 };
@@ -104,6 +107,8 @@ echo $OUTPUT->notification(
 $hours = $existing ? (int) $existing->hours : (int) $sitepolicy->hours;
 $feetype = $existing ? $existing->feetype : $sitepolicy->feetype;
 $feevalue = $existing ? (float) $existing->feevalue : (float) $sitepolicy->feevalue;
+$feecurrency = $existing && !empty($existing->feecurrency)
+    ? $existing->feecurrency : $sitepolicy->feecurrency;
 
 echo html_writer::start_tag('form', ['method' => 'post', 'action' => $pageurl->out(false)]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
@@ -139,6 +144,21 @@ echo html_writer::empty_tag('input', [
     'class' => 'form-control', 'style' => 'max-width:12rem',
 ]);
 echo html_writer::tag('div', get_string('refund_rule_fee_help', 'local_payments'),
+    ['class' => 'form-text']);
+echo html_writer::end_div();
+
+// A flat fee is a number in a currency. This site sells in more than one, so
+// leaving that implicit means "10" quietly meaning ten of whatever the buyer
+// happened to pay in.
+echo html_writer::start_div('mb-3');
+echo html_writer::tag('label', get_string('refund_feecurrency', 'local_payments'),
+    ['for' => 'lp-rule-feecurrency', 'class' => 'form-label']);
+echo html_writer::empty_tag('input', [
+    'type' => 'text', 'maxlength' => 3, 'id' => 'lp-rule-feecurrency',
+    'name' => 'feecurrency', 'value' => $feecurrency,
+    'class' => 'form-control', 'style' => 'max-width:8rem; text-transform:uppercase',
+]);
+echo html_writer::tag('div', get_string('refund_rule_feecurrency_help', 'local_payments'),
     ['class' => 'form-text']);
 echo html_writer::end_div();
 

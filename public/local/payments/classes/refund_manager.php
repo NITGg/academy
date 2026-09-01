@@ -299,11 +299,13 @@ class refund_manager {
             ];
         }
 
-        // A fee means the buyer did not get everything back, so the order is
-        // partially refunded even though we are done with it.
-        $newstatus = ($quote->fee > 0)
-            ? status_machine::PARTIALLY_REFUNDED
-            : status_machine::REFUNDED;
+        // Refunded, fee or no fee. "Partially refunded" means part of the
+        // purchase still stands — one seat of three given back, say — and reads
+        // to anyone scanning a list as though the student still has something.
+        // They do not: access is removed either way. The fee is a deduction from
+        // the refund, not a portion of the order left in force, and it is
+        // recorded on the refund row where it belongs.
+        $newstatus = status_machine::REFUNDED;
 
         if (status_machine::can_transition($transaction->status, $newstatus)) {
             $DB->update_record('local_payments_transactions', (object) [
