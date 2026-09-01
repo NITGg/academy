@@ -40,6 +40,7 @@
         <FIELD NAME="currency"     TYPE="char"   LENGTH="3"  NOTNULL="true" COMMENT="ISO 4217"/>
         <FIELD NAME="price"        TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true"/>
         <FIELD NAME="sale_price"   TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="false"/>
+        <FIELD NAME="refund_fee"   TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="false" COMMENT="Flat refund fee in this rule's currency; NULL falls back to the course or site policy"/>
         <FIELD NAME="start_date"   TYPE="int"    LENGTH="10" NOTNULL="false" COMMENT="Sale start timestamp"/>
         <FIELD NAME="end_date"     TYPE="int"    LENGTH="10" NOTNULL="false" COMMENT="Sale end timestamp"/>
         <FIELD NAME="is_default"   TYPE="int"    LENGTH="1"  NOTNULL="true" DEFAULT="0"/>

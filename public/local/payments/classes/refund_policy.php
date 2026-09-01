@@ -139,6 +139,31 @@ class refund_policy {
     }
 
     /**
+     * The refund fee set on the price rule this payment was made under.
+     *
+     * The transaction records which rule priced it, so this is the exact row the
+     * buyer paid against rather than whichever rule matches today — a price
+     * changed after the sale must not change what the sale is worth back.
+     *
+     * @param \stdClass $transaction
+     * @return float|null Null when the rule sets no fee, so the policy applies.
+     */
+    private static function price_rule_fee(\stdClass $transaction): ?float {
+        global $DB;
+
+        if (empty($transaction->price_id)) {
+            return null;
+        }
+
+        $fee = $DB->get_field('local_payments_course_prices', 'refund_fee',
+            ['id' => $transaction->price_id]);
+
+        // False means no such row; null means the row sets no fee. Both fall
+        // back, and only a real number overrides.
+        return ($fee === false || $fee === null) ? null : max(0, (float) $fee);
+    }
+
+    /**
      * A three-letter code, falling back to the site default when unset.
      */
     private static function normalise_currency(string $code): string {
@@ -174,15 +199,24 @@ class refund_policy {
 
         $paid = round((float) $transaction->amount, 2);
 
-        // A percentage is currency-safe: 10% of 36 EGP and 10% of 450 USD are
-        // both 10%. A flat amount is not — "10" is 10 EGP to one buyer and 10
-        // USD to another, and this platform genuinely prices in both. So a flat
-        // fee names its currency, and is simply not charged against a payment in
-        // a different one. Erring toward the buyer is the only safe direction:
-        // the alternative is inventing an exchange rate nobody agreed.
+        // The fee, in order of preference.
+        //
+        // First the price rule the buyer actually paid under. That rule names
+        // its own currency, so a fee set there is unambiguous by construction —
+        // 10 on the Egypt/EGP row is ten pounds, and cannot be mistaken for ten
+        // dollars. This is the right place for a flat fee on a course, and it
+        // wins over anything set further out.
+        //
+        // Otherwise the item or site policy. A percentage there is currency-safe
+        // — 10% of 36 EGP and 10% of 450 USD are both 10%. A flat amount there
+        // is not, so it names a currency and is skipped against a payment in a
+        // different one rather than being converted at a rate nobody agreed.
         $feecurrencymismatch = false;
+        $feefromprice = self::price_rule_fee($transaction);
 
-        if ($policy->feevalue <= 0) {
+        if ($feefromprice !== null) {
+            $fee = round($feefromprice, 2);
+        } else if ($policy->feevalue <= 0) {
             $fee = 0.0;
         } else if ($policy->feetype === self::FEE_FIXED) {
             if (strcasecmp($policy->feecurrency, (string) $transaction->currency) === 0) {
@@ -209,6 +243,7 @@ class refund_policy {
             'overridden' => !empty($policy->overridden),
             'feecurrency' => $policy->feecurrency,
             'feecurrencymismatch' => $feecurrencymismatch,
+            'feefromprice' => $feefromprice !== null,
             'paid' => $paid,
             'fee' => $fee,
             'net' => round(max(0, $paid - $fee), 2),

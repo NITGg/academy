@@ -342,5 +342,13 @@ $string['refund_rule_offsitewide'] = 'Refunds are switched off site-wide, so not
 
 // Refunds, the currency a flat fee is stated in.
 $string['refund_feecurrency'] = 'Flat fee currency';
-$string['refund_feecurrency_desc'] = 'Which currency a flat fee is stated in. Ignored when the fee is a percentage. This matters because the same course can be priced in more than one currency: a flat fee of 10 is a very different charge to somebody who paid in EGP than to somebody who paid in USD. A flat fee is only charged against payments in this currency &mdash; against any other, no fee is taken, because inventing an exchange rate nobody agreed to is worse than waiving it.';
+$string['refund_feecurrency_desc'] = 'Which currency a flat fee here is stated in. Ignored when the fee is a percentage. <b>For courses, prefer setting the fee on the price rule instead</b> &mdash; a price rule already declares its currency, so a fee there cannot be ten of something the buyer did not pay in. A flat fee set here is only charged against payments in this currency; against any other, no fee is taken, because inventing an exchange rate nobody agreed to is worse than waiving it.';
 $string['refund_rule_feecurrency_help'] = 'Only used for a flat fee. Payments made in a different currency are refunded in full rather than having a fee converted at a rate nobody agreed.';
+
+// Refund fee set on a price rule.
+$string['price_refund_fee'] = 'Refund fee';
+$string['price_refund_fee_help'] = 'What is kept if this purchase is refunded, in this rule&apos;s own currency. A rule priced in EGP takes an EGP fee; one priced in USD takes a USD fee. That is why the fee sits here rather than in a single site-wide box: the same course sold at 36 EGP and 450 USD cannot share one flat number.
+
+Leave it empty to use the course or site refund policy instead, which is usually a percentage. Enter 0 to refund this price in full, which is not the same as leaving it empty.
+
+The refund window &mdash; how long a buyer has &mdash; is not set here. It is the same however they paid, so it lives on the course refund policy.';

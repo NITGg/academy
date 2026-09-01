@@ -50,6 +50,14 @@ class course_pricing_form extends \moodleform {
         $mform->addRule('price', null, 'required', null, 'client');
         $mform->addRule('price', null, 'numeric', null, 'client');
 
+        // Refund fee, in this rule's own currency. Sitting here is the whole
+        // point: the row already says which currency the number is in, so the
+        // fee can never be ten of something the buyer did not pay in.
+        $mform->addElement('text', 'refund_fee', get_string('price_refund_fee', 'local_payments'));
+        $mform->setType('refund_fee', PARAM_FLOAT);
+        $mform->addRule('refund_fee', null, 'numeric', null, 'client');
+        $mform->addHelpButton('refund_fee', 'price_refund_fee', 'local_payments');
+
         // Is default. The first price added to a course is the default by default.
         global $DB;
         $hasprices = $DB->record_exists('local_payments_course_prices', ['courseid' => $courseid]);

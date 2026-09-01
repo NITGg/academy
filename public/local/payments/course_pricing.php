@@ -69,6 +69,10 @@ if ($action === 'edit' || $action === 'add') {
             'country' => $formdata->country,
             'currency' => $formdata->currency,
             'price' => $formdata->price,
+            // Blank means "no rule here", which is different from a zero fee:
+            // zero is a deliberate full refund, blank falls back to the policy.
+            'refund_fee' => ($formdata->refund_fee === '' || $formdata->refund_fee === null)
+                ? null : max(0, (float) $formdata->refund_fee),
             'is_default' => ($isfirst || !empty($formdata->is_default)) ? 1 : 0,
             'is_active' => !empty($formdata->is_active) ? 1 : 0,
             'timemodified' => time(),
