@@ -54,6 +54,14 @@ if ($hassiteconfig) {
         1
     ));
 
+    // Whether the web checkout asks which method to use.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_payments/show_method_picker',
+        get_string('show_method_picker', 'local_payments'),
+        get_string('show_method_picker_desc', 'local_payments'),
+        0
+    ));
+
     // ── Refunds ─────────────────────────────────────────────────────────────
     $settings->add(new admin_setting_heading(
         'local_payments/refund_heading',

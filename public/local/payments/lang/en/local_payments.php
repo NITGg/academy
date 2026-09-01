@@ -358,3 +358,11 @@ $string['price_refund_hours'] = 'Refund window (hours)';
 $string['price_refund_hours_help'] = 'How long a buyer who paid this price has to refund themselves, counted from when the payment completed. Leave empty to follow the site refund policy. Enter 0 to allow no automatic refund at this price, in which case the buyer has to ask and a member of staff decides.';
 $string['refund_feepercent'] = 'Default refund fee (%)';
 $string['refund_feepercent_desc'] = 'A percentage of the amount paid, kept when a refund is given. Used when the price rule does not set a fee of its own. It is a percentage rather than a flat amount on purpose: a percentage is the same policy in every currency, whereas a flat amount would mean two different charges to buyers paying in EGP and USD. Set a flat amount on the price rule instead, where the currency is already known. 0 refunds in full.';
+
+// Payment method picker on the web checkout.
+$string['show_method_picker'] = 'Ask which payment method to use';
+$string['show_method_picker_desc'] = 'Show the buyer the payment methods before checkout. Off by default, in which case the gateway is charged directly using the first method in its priority list — which is why only cards appear. Turn this on to offer Fawry, Meeza and wallets alongside cards. It is only shown when the gateway actually offers more than one method, so it never becomes a pointless click.';
+$string['choose_method'] = 'How would you like to pay?';
+$string['continue_to_payment'] = 'Continue to payment';
+$string['method_gives_code'] = 'You will get a code to pay with';
+$string['price_refund_feetype'] = 'Refund fee type';

@@ -56,6 +56,16 @@ class course_pricing_form extends \moodleform {
         $mform->setType('refund_hours', PARAM_INT);
         $mform->addHelpButton('refund_hours', 'price_refund_hours', 'local_payments');
 
+        // Percentage or flat. A flat amount here is in this rule's own currency,
+        // which is the whole reason the fee belongs on the price row.
+        $mform->addElement('select', 'refund_feetype',
+            get_string('price_refund_feetype', 'local_payments'), [
+                \local_payments\refund_policy::FEE_FIXED =>
+                    get_string('refund_feetype_fixed', 'local_payments'),
+                \local_payments\refund_policy::FEE_PERCENT =>
+                    get_string('refund_feetype_percent', 'local_payments'),
+            ]);
+
         // Refund fee, in this rule's own currency. Sitting here is the whole
         // point: the row already says which currency the number is in, so the
         // fee can never be ten of something the buyer did not pay in.
