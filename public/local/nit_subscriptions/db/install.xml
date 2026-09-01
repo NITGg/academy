@@ -16,6 +16,8 @@
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="refund_hours" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Default refund window for this plan"/>
+        <FIELD NAME="refund_fee" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="false" SEQUENCE="false" COMMENT="Default refund fee, in the plan's own currency"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -50,6 +52,8 @@
         <FIELD NAME="country" TYPE="char" LENGTH="2" NOTNULL="true" SEQUENCE="false" COMMENT="ISO 3166-1 alpha-2 (a real country; the default lives on nit_subscription)"/>
         <FIELD NAME="currency" TYPE="char" LENGTH="3" NOTNULL="true" SEQUENCE="false" COMMENT="ISO 4217"/>
         <FIELD NAME="price" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="refund_hours" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Refund window for this price; NULL follows the plan"/>
+        <FIELD NAME="refund_fee" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="false" SEQUENCE="false" COMMENT="Refund fee in this row's currency; NULL follows the plan"/>
         <FIELD NAME="is_active" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="created_by" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>

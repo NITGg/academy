@@ -40,7 +40,8 @@
         <FIELD NAME="currency"     TYPE="char"   LENGTH="3"  NOTNULL="true" COMMENT="ISO 4217"/>
         <FIELD NAME="price"        TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true"/>
         <FIELD NAME="sale_price"   TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="false"/>
-        <FIELD NAME="refund_fee"   TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="false" COMMENT="Flat refund fee in this rule's currency; NULL falls back to the course or site policy"/>
+        <FIELD NAME="refund_hours" TYPE="int"    LENGTH="10" NOTNULL="false" COMMENT="Refund window for this price; NULL falls back to the site policy"/>
+        <FIELD NAME="refund_fee"   TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="false" COMMENT="Refund fee in this rule's currency; NULL falls back to the site policy"/>
         <FIELD NAME="start_date"   TYPE="int"    LENGTH="10" NOTNULL="false" COMMENT="Sale start timestamp"/>
         <FIELD NAME="end_date"     TYPE="int"    LENGTH="10" NOTNULL="false" COMMENT="Sale end timestamp"/>
         <FIELD NAME="is_default"   TYPE="int"    LENGTH="1"  NOTNULL="true" DEFAULT="0"/>
@@ -280,25 +281,6 @@
         <INDEX NAME="idx_status_time" UNIQUE="false" FIELDS="status, timecreated"/>
         <INDEX NAME="idx_txn_status" UNIQUE="false" FIELDS="transaction_id, status"/>
         <INDEX NAME="idx_user_time" UNIQUE="false" FIELDS="userid, timecreated"/>
-      </INDEXES>
-    </TABLE>
-
-    <TABLE NAME="local_payments_refund_rules" COMMENT="Per-item refund policy, overriding the site settings">
-      <FIELDS>
-        <FIELD NAME="id"           TYPE="int"    LENGTH="10"  NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="itemtype"     TYPE="char"   LENGTH="30"  NOTNULL="true" COMMENT="course, subscription, or whatever else is sold"/>
-        <FIELD NAME="itemid"       TYPE="int"    LENGTH="10"  NOTNULL="true" COMMENT="Course id, plan id, and so on"/>
-        <FIELD NAME="hours"        TYPE="int"    LENGTH="10"  NOTNULL="true" DEFAULT="0" COMMENT="Self-service window; 0 means request only"/>
-        <FIELD NAME="feetype"      TYPE="char"   LENGTH="10"  NOTNULL="true" DEFAULT="percent"/>
-        <FIELD NAME="feevalue"     TYPE="number" LENGTH="10"  DECIMALS="2" NOTNULL="true" DEFAULT="0"/>
-        <FIELD NAME="feecurrency"  TYPE="char"   LENGTH="3"   NOTNULL="false" COMMENT="Which currency a flat fee is stated in"/>
-        <FIELD NAME="timemodified" TYPE="int"    LENGTH="10"  NOTNULL="true" DEFAULT="0"/>
-      </FIELDS>
-      <KEYS>
-        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-      </KEYS>
-      <INDEXES>
-        <INDEX NAME="idx_item" UNIQUE="true" FIELDS="itemtype, itemid"/>
       </INDEXES>
     </TABLE>
 

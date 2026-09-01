@@ -42,6 +42,22 @@ $functions = [
         'ajax'        => true,
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    'local_payments_get_refund_options' => [
+        'classname'   => 'local_payments\external\get_refund_options',
+        'methodname'  => 'execute',
+        'description' => 'What refund the buyer can have on a payment, and what it is worth.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+    'local_payments_submit_refund' => [
+        'classname'   => 'local_payments\external\submit_refund',
+        'methodname'  => 'execute',
+        'description' => 'Refund a payment, or ask for one when the window has closed.',
+        'type'        => 'write',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
     'local_payments_get_payment_history' => [
         'classname'   => 'local_payments\external\get_payment_history',
         'methodname'  => 'execute',

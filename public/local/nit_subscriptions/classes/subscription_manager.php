@@ -81,6 +81,11 @@ class subscription_manager {
         $record->price         = $price;
         $record->currency      = $currency;
         $record->duration_days = $duration;
+        // Null is meaningful here: it means the plan follows the site policy.
+        $record->refund_hours = isset($data['refund_hours']) && $data['refund_hours'] !== null
+            ? (int) $data['refund_hours'] : null;
+        $record->refund_fee = isset($data['refund_fee']) && $data['refund_fee'] !== null
+            ? (float) $data['refund_fee'] : null;
         $record->status        = !empty($data['active']) ? self::STATUS_ACTIVE : self::STATUS_INACTIVE;
         $record->b2b_enabled   = $b2benabled;
         $record->timecreated   = $now;
@@ -136,6 +141,15 @@ class subscription_manager {
         if (array_key_exists('currency', $data)) {
             $update->currency = self::normalize_currency($data['currency']);
         }
+        foreach (['refund_hours', 'refund_fee'] as $refundfield) {
+            if (array_key_exists($refundfield, $data)) {
+                $update->$refundfield = $data[$refundfield] === null
+                    ? null
+                    : ($refundfield === 'refund_hours'
+                        ? (int) $data[$refundfield] : (float) $data[$refundfield]);
+            }
+        }
+
         if (array_key_exists('duration_days', $data)) {
             $duration = (int)$data['duration_days'];
             if ($duration <= 0) {

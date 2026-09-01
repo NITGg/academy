@@ -352,3 +352,9 @@ $string['price_refund_fee_help'] = 'What is kept if this purchase is refunded, i
 Leave it empty to use the course or site refund policy instead, which is usually a percentage. Enter 0 to refund this price in full, which is not the same as leaving it empty.
 
 The refund window &mdash; how long a buyer has &mdash; is not set here. It is the same however they paid, so it lives on the course refund policy.';
+
+// Refund terms set on a price rule.
+$string['price_refund_hours'] = 'Refund window (hours)';
+$string['price_refund_hours_help'] = 'How long a buyer who paid this price has to refund themselves, counted from when the payment completed. Leave empty to follow the site refund policy. Enter 0 to allow no automatic refund at this price, in which case the buyer has to ask and a member of staff decides.';
+$string['refund_feepercent'] = 'Default refund fee (%)';
+$string['refund_feepercent_desc'] = 'A percentage of the amount paid, kept when a refund is given. Used when the price rule does not set a fee of its own. It is a percentage rather than a flat amount on purpose: a percentage is the same policy in every currency, whereas a flat amount would mean two different charges to buyers paying in EGP and USD. Set a flat amount on the price rule instead, where the currency is already known. 0 refunds in full.';

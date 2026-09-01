@@ -97,5 +97,31 @@ function xmldb_local_nit_subscriptions_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026082400, 'local', 'nit_subscriptions');
     }
 
+    if ($oldversion < 2026090110) {
+        // Refund terms beside the price, matching how courses do it. Null means
+        // "not set here", which is different from zero: zero is a deliberate
+        // no-window or full refund.
+        foreach ([
+            ['nit_subscription', 'price'],
+            ['nit_sub_price', 'price'],
+        ] as [$tablename, $after]) {
+            $table = new xmldb_table($tablename);
+
+            $hours = new xmldb_field('refund_hours', XMLDB_TYPE_INTEGER, '10', null, null, null,
+                null, $after);
+            if (!$dbman->field_exists($table, $hours)) {
+                $dbman->add_field($table, $hours);
+            }
+
+            $fee = new xmldb_field('refund_fee', XMLDB_TYPE_NUMBER, '10, 2', null, null, null,
+                null, 'refund_hours');
+            if (!$dbman->field_exists($table, $fee)) {
+                $dbman->add_field($table, $fee);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026090110, 'local', 'nit_subscriptions');
+    }
+
     return true;
 }

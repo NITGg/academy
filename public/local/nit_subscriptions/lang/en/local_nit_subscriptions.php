@@ -224,3 +224,5 @@ $string['countryrequired'] = 'Set your country to see the price';
 $string['countryrequired_desc'] = 'Prices are set per country. Add your country to your profile to see this plan\'s price and subscribe.';
 $string['countryrequired_action'] = 'Add your country';
 $string['sub_refund_rule'] = 'Refund policy';
+$string['sub_field_refundhours'] = 'Refund window (hours)';
+$string['sub_field_refundfee'] = 'Refund fee';

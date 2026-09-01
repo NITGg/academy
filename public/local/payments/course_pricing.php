@@ -71,6 +71,8 @@ if ($action === 'edit' || $action === 'add') {
             'price' => $formdata->price,
             // Blank means "no rule here", which is different from a zero fee:
             // zero is a deliberate full refund, blank falls back to the policy.
+            'refund_hours' => ($formdata->refund_hours === '' || $formdata->refund_hours === null)
+                ? null : max(0, (int) $formdata->refund_hours),
             'refund_fee' => ($formdata->refund_fee === '' || $formdata->refund_fee === null)
                 ? null : max(0, (float) $formdata->refund_fee),
             'is_default' => ($isfirst || !empty($formdata->is_default)) ? 1 : 0,
@@ -209,17 +211,5 @@ if (empty($prices)) {
 
     echo html_writer::table($table);
 }
-
-// The refund policy sits beside the price: both are terms of the same sale, and
-// whoever sets one is the person who should be setting the other.
-echo html_writer::div(
-    html_writer::link(
-        new moodle_url('/local/payments/refund_rule.php',
-            ['itemtype' => 'course', 'itemid' => $courseid]),
-        get_string('refund_rule_link', 'local_payments'),
-        ['class' => 'btn btn-outline-secondary']
-    ),
-    'mt-3'
-);
 
 echo $OUTPUT->footer();
