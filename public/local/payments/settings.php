@@ -68,13 +68,9 @@ if ($hassiteconfig) {
         0
     ));
 
-    $feetypes = [
-        \local_payments\refund_policy::FEE_PERCENT => get_string('refund_feetype_percent', 'local_payments'),
-        \local_payments\refund_policy::FEE_FIXED => get_string('refund_feetype_fixed', 'local_payments'),
-    ];
-
     // One block per thing we sell, plus a default block that catches whatever is
-    // added later without needing a code change.
+    // added later without needing a code change. These are the fallback: a price
+    // row that sets its own window or fee wins over anything here.
     $blocks = [
         'course' => 'refund_group_course',
         'subscription' => 'refund_group_subscription',
@@ -96,30 +92,15 @@ if ($hassiteconfig) {
             PARAM_INT
         ));
 
-        $settings->add(new admin_setting_configselect(
-            'local_payments/refund_feetype_' . $key,
-            get_string('refund_feetype', 'local_payments'),
-            get_string('refund_feetype_desc', 'local_payments'),
-            \local_payments\refund_policy::FEE_PERCENT,
-            $feetypes
-        ));
-
+        // A percentage, not a flat amount. A percentage of the amount paid is
+        // the same policy in every currency; a flat amount is not, and belongs
+        // on the price row that names its currency.
         $settings->add(new admin_setting_configtext(
             'local_payments/refund_fee_' . $key,
-            get_string('refund_fee', 'local_payments'),
-            get_string('refund_fee_desc', 'local_payments'),
+            get_string('refund_feepercent', 'local_payments'),
+            get_string('refund_feepercent_desc', 'local_payments'),
             '0',
             PARAM_FLOAT
-        ));
-
-        // Only meaningful for a flat fee, and it matters: this site prices in
-        // more than one currency, so a bare "10" is ambiguous.
-        $settings->add(new admin_setting_configtext(
-            'local_payments/refund_feecurrency_' . $key,
-            get_string('refund_feecurrency', 'local_payments'),
-            get_string('refund_feecurrency_desc', 'local_payments'),
-            get_config('local_payments', 'default_currency') ?: 'EGP',
-            PARAM_ALPHA
         ));
     }
 

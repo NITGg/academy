@@ -108,6 +108,10 @@ try {
                 'price'         => required_param('price', PARAM_FLOAT),
                 'currency'      => optional_param('currency', 'EGP', PARAM_ALPHA),
                 'duration_days' => required_param('duration_days', PARAM_INT),
+                // Blank means "follow the site policy"; 0 is a deliberate
+                // no-window or full refund, so the two cannot be conflated.
+                'refund_hours'  => nit_subscriptions_optional_number('refund_hours'),
+                'refund_fee'    => nit_subscriptions_optional_number('refund_fee'),
                 'active'        => optional_param('active', 1, PARAM_INT),
                 'b2b_enabled'   => optional_param('b2b_enabled', 0, PARAM_INT),
                 'seat_options'  => nit_subscriptions_seat_options(),
@@ -123,6 +127,10 @@ try {
                 'price'         => required_param('price', PARAM_FLOAT),
                 'currency'      => optional_param('currency', 'EGP', PARAM_ALPHA),
                 'duration_days' => required_param('duration_days', PARAM_INT),
+                // Blank means "follow the site policy"; 0 is a deliberate
+                // no-window or full refund, so the two cannot be conflated.
+                'refund_hours'  => nit_subscriptions_optional_number('refund_hours'),
+                'refund_fee'    => nit_subscriptions_optional_number('refund_fee'),
                 'status'        => optional_param('status', 'active', PARAM_ALPHA),
                 'b2b_enabled'   => optional_param('b2b_enabled', 0, PARAM_INT),
                 'seat_options'  => nit_subscriptions_seat_options(),
@@ -259,6 +267,20 @@ try {
     }
 } catch (\Throwable $e) {
     nit_subscriptions_respond(['status' => 'error', 'error' => $e->getMessage()]);
+}
+
+/**
+ * A number the caller may legitimately leave blank.
+ *
+ * Distinguishes "not set" from zero, which matters for the refund fields: blank
+ * follows the site policy, zero is a deliberate no-window or full refund.
+ *
+ * @param string $name
+ * @return float|null
+ */
+function nit_subscriptions_optional_number(string $name): ?float {
+    $raw = trim((string) optional_param($name, '', PARAM_RAW_TRIMMED));
+    return $raw === '' ? null : max(0, (float) $raw);
 }
 
 /**

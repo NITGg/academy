@@ -72,6 +72,40 @@ function xmldb_local_payments_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090100, 'local', 'payments');
     }
 
+    if ($oldversion < 2026090102) {
+        // The refund fee belongs beside the price, because that is where the
+        // currency already is. A flat fee stated anywhere else has to carry its
+        // own currency and be skipped when it does not match; here it cannot
+        // mismatch, because the row it sits on defines the currency.
+        $table = new xmldb_table('local_payments_course_prices');
+        $field = new xmldb_field('refund_fee', XMLDB_TYPE_NUMBER, '10, 2', null, null, null, null,
+            'sale_price');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026090102, 'local', 'payments');
+    }
+
+    if ($oldversion < 2026090110) {
+        // The refund window joins the fee on the price row. Keeping them apart
+        // meant two screens for one policy, and the fee needed a currency field
+        // that a price row already provides.
+        $table = new xmldb_table('local_payments_course_prices');
+        $field = new xmldb_field('refund_hours', XMLDB_TYPE_INTEGER, '10', null, null, null, null,
+            'sale_price');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // The separate per-item override table is redundant now.
+        $rules = new xmldb_table('local_payments_refund_rules');
+        if ($dbman->table_exists($rules)) {
+            $dbman->drop_table($rules);
+        }
+
+        upgrade_plugin_savepoint(true, 2026090110, 'local', 'payments');
+    }
+
     return true;
 }
 
