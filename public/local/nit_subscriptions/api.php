@@ -330,6 +330,43 @@ try {
             break;
 
         // ── Public: available plans for the home-page block ──
+        // Which methods the gateway will take, so the home-page block can ask
+        // before charging instead of handing the visitor to the gateway's own
+        // page. The plan page and the course checkout ask the same question;
+        // this is the third surface that needed the same answer.
+        case 'get_payment_methods':
+            if (!isloggedin() || isguestuser()) {
+                // Only somebody who can actually buy needs this.
+                nit_subscriptions_respond(['status' => 'success', 'data' => []]);
+            }
+
+            $methods = [];
+            if (class_exists('\local_payments\manager')) {
+                try {
+                    $offer = \local_payments\manager::get_provider_payment_methods(
+                        optional_param('country', '', PARAM_ALPHA),
+                        optional_param('currency', 'EGP', PARAM_ALPHA));
+                    if ($offer->supports_payment_methods) {
+                        foreach ($offer->methods as $method) {
+                            $methods[] = [
+                                'id' => (int) $method['id'],
+                                'name' => (current_language() === 'ar' && $method['name_ar'] !== '')
+                                    ? $method['name_ar'] : $method['name_en'],
+                                'logo' => (string) $method['logo'],
+                                'is_reference' => !$method['redirect'],
+                            ];
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // A gateway that will not list its methods is not a reason
+                    // to block a sale: an empty list means "do not ask".
+                    $methods = [];
+                }
+            }
+
+            nit_subscriptions_respond(['status' => 'success', 'data' => $methods]);
+            break;
+
         case 'get_available_subscriptions':
             $country = optional_param('country', '', PARAM_ALPHA);
             // `viewer` rides ALONGSIDE `data`, never inside it: the home-page block needs to

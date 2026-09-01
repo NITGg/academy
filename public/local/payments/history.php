@@ -180,27 +180,22 @@ if (empty($transactions)) {
     echo $OUTPUT->notification(
         get_string($hasfilters ? 'nopaymentsmatch' : 'nopayments', 'local_payments'), 'info');
 } else {
-    // Batch-load course names + invoices once, instead of a query per row (N+1).
-    $courseids = [];
+    // Batch-load item names + invoices once, instead of a query per row (N+1).
     $txnids = [];
     foreach ($transactions as $txn) {
-        $courseids[(int) $txn->courseid] = true;
         $txnids[] = (int) $txn->id;
     }
-    $coursenames = $courseids
-        ? $DB->get_records_list('course', 'id', array_keys($courseids), '', 'id, fullname')
-        : [];
+    // What each payment bought. Not just the course: a subscription sale has no
+    // course, and naming one by its courseid printed a dash where the buyer
+    // expected to see the plan they had paid for.
+    $itemnames = \local_payments\item_name::for_many($transactions);
     $invoices = $txnids
         ? $DB->get_records_list('local_payments_invoices', 'transaction_id', $txnids, '', 'transaction_id, invoice_number')
         : [];
 
     $rows = [];
     foreach ($transactions as $txn) {
-        // Course names are stored bilingually in one field; printed raw they
-        // show their own {mlang} markup.
-        $coursename = isset($coursenames[$txn->courseid])
-            ? \local_payments\multilang::resolve($coursenames[$txn->courseid]->fullname)
-            : '';
+        $itemname = $itemnames[(int) $txn->id] ?? '';
         $invoice = $invoices[$txn->id] ?? null;
 
         $status_class = '';
@@ -233,7 +228,7 @@ if (empty($transactions)) {
 
         $rows[] = [
             'order_id' => $txn->order_id,
-            'course_name' => $coursename ?: '-',
+            'item_name' => $itemname ?: '-',
             'amount' => number_format((float) $txn->amount, 2) . ' ' . $txn->currency,
             // The badge said "completed" in the middle of an Arabic page: the
             // status is a machine value and needs a translated label like

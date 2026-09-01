@@ -65,7 +65,7 @@ class transactions_table extends \table_sql {
         // The course column is noise when every row is the same course.
         if (!$courseid) {
             array_splice($columns, 3, 0, ['coursename']);
-            array_splice($headers, 3, 0, [get_string('course', 'local_payments')]);
+            array_splice($headers, 3, 0, [get_string('item_column', 'local_payments')]);
         }
 
         $this->define_columns($columns);
@@ -96,8 +96,10 @@ class transactions_table extends \table_sql {
 
         $userfields = \core_user\fields::for_name()->get_sql('u')->selects;
 
+        // t.metadata carries the item type and id, which is the only way a
+        // subscription sale can be named: it has no courseid to join on.
         $fields = "t.id, t.order_id, t.amount, t.currency, t.status, t.payment_method_type,
-                   t.timecreated AS paidon, t.courseid, t.userid,
+                   t.timecreated AS paidon, t.courseid, t.userid, t.metadata,
                    u.email {$userfields},
                    c.fullname AS coursename,
                    p.display_name AS providername";
@@ -164,14 +166,24 @@ class transactions_table extends \table_sql {
     }
 
     public function col_coursename($row) {
-        $name = $row->coursename ?? '';
+        // Not just the course: a subscription sale has no courseid, so this
+        // column used to be a dash on every plan purchase — on the one screen
+        // where staff go to find out what somebody paid for.
+        $name = \local_payments\item_name::of($row);
+
         if ($name === '') {
-            // A subscription or package is not tied to a course.
             return $this->is_downloading() ? '-' : \html_writer::tag('span', '-', ['class' => 'text-muted']);
         }
+
         if ($this->is_downloading()) {
             return format_string($name);
         }
+
+        // Only a course has somewhere to link to.
+        if (empty($row->courseid)) {
+            return format_string($name);
+        }
+
         return \html_writer::link(new \moodle_url('/course/view.php', ['id' => $row->courseid]),
             format_string($name));
     }

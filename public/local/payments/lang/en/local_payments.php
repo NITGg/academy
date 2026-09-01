@@ -343,3 +343,6 @@ $string['refund_terms_saved'] = 'Refund policy saved for this course.';
 $string['refund_terms_offsitewide'] = 'Refunds are switched off site-wide, so nothing set here takes effect until that changes.';
 $string['refund_terms_help'] = 'The fee is a percentage of whatever the buyer actually paid, so one number covers every currency this course is priced in and follows any discount they used. Set the window to 0 to allow no automatic refund &mdash; the buyer then has to ask, and a member of staff decides.';
 $string['refund_feerow'] = 'Refund fee ({$a}%)';
+
+// The 'Course' column also lists subscriptions, so it names neither.
+$string['item_column'] = 'Item';

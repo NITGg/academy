@@ -228,7 +228,8 @@ $jsconfig = json_encode([
 $canbuy = !$countryblocked && isloggedin() && !isguestuser()
     && ((!$iscurrent && !$hasotheractive) || $renewdue);
 if ($canbuy) {
-    $PAGE->requires->js(new moodle_url('/local/nit_subscriptions/plan.js'), true);
+    $PAGE->requires->js(new moodle_url('/local/nit_subscriptions/plan.js',
+    ['v' => get_config('local_nit_subscriptions', 'version')]), true);
 }
 
 echo $OUTPUT->header();

@@ -36,7 +36,8 @@ global $OUTPUT, $CFG, $PAGE;
 
 $PAGE->set_title(get_string('managecourses', 'local_nit_subscriptions'));
 $PAGE->set_heading(get_string('managecourses', 'local_nit_subscriptions'));
-$PAGE->requires->js(new moodle_url('/local/nit_subscriptions/ui.js'), true);
+$PAGE->requires->js(new moodle_url('/local/nit_subscriptions/ui.js',
+    ['v' => get_config('local_nit_subscriptions', 'version')]), true);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managecourses', 'local_nit_subscriptions'));

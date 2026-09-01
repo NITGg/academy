@@ -3,7 +3,7 @@
 
     Context variables required for this template:
     * has_transactions - Whether there is anything to draw
-    * transactions - Rows: order_id, course_name, amount, status, status_class,
+    * transactions - Rows: order_id, item_name, amount, status, status_class,
       payment_method, invoice_number, date, can_download, invoice_url_en,
       invoice_url_ar
 
@@ -13,7 +13,7 @@
         "transactions": [
             {
                 "order_id": "PAY-2026-04471382",
-                "course_name": "Advanced Accounting",
+                "item_name": "Advanced Accounting",
                 "amount": "350.00 EGP",
                 "status": "completed",
                 "status_class": "text-bg-success",
@@ -33,7 +33,7 @@
         <thead>
             <tr>
                 <th>{{#str}}orderid, local_payments{{/str}}</th>
-                <th>{{#str}}course, local_payments{{/str}}</th>
+                <th>{{#str}}item_column, local_payments{{/str}}</th>
                 <th>{{#str}}amount, local_payments{{/str}}</th>
                 <th>{{#str}}status, local_payments{{/str}}</th>
                 <th>{{#str}}paymentmethod, local_payments{{/str}}</th>
@@ -47,7 +47,7 @@
             {{#transactions}}
             <tr>
                 <td><code>{{order_id}}</code></td>
-                <td>{{course_name}}</td>
+                <td>{{item_name}}</td>
                 <td>{{amount}}</td>
                 <td><span class="badge {{status_class}}">{{status}}</span></td>
                 <td>{{payment_method}}</td>

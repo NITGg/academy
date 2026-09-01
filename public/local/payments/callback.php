@@ -84,11 +84,13 @@ try {
         $PAGE->set_title(get_string('payment_success', 'local_payments'));
         echo $OUTPUT->header();
 
-        $course = $DB->get_record('course', ['id' => $result->courseid], 'id, fullname');
-        $paid = $DB->get_record('local_payments_transactions', ['order_id' => $order_id], 'id');
+        $paid = $DB->get_record('local_payments_transactions', ['order_id' => $order_id]);
+        // Names are stored bilingually in one field and filter_multilang2 is not
+        // installed, so printed raw they show their own {mlang} markup — which
+        // is what the buyer saw on the one screen that thanks them.
         $templatedata = [
             'success'      => true,
-            'course_name'  => $course->fullname ?? '',
+            'course_name'  => $paid ? \local_payments\item_name::of($paid) : '',
             'course_url'   => (new moodle_url('/course/view.php', ['id' => $result->courseid]))->out(false),
             'order_id'     => $order_id,
             'history_url'  => (new moodle_url('/local/payments/history.php'))->out(false),
