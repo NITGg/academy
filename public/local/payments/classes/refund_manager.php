@@ -90,6 +90,34 @@ class refund_manager {
     }
 
     /**
+     * A refund a member of staff decided on directly, from the payments list.
+     *
+     * The window does not apply: it exists to bound what a buyer may do without
+     * asking, and staff are the people who would have been asked. The fee is
+     * optional for the same reason — most staff-initiated refunds are fixing
+     * something, and charging a cancellation fee for our own mistake is not a
+     * position anyone wants to be in.
+     *
+     * The caller is responsible for the capability check.
+     *
+     * @param \stdClass $transaction
+     * @param string $reason
+     * @param bool $applyfee Charge the policy fee anyway.
+     * @return object {success:bool, message:string}
+     */
+    public static function staff_refund(\stdClass $transaction, string $reason,
+            bool $applyfee = false): object {
+        $quote = refund_policy::quote($transaction);
+
+        if (!$applyfee) {
+            $quote->fee = 0.0;
+            $quote->net = $quote->paid;
+        }
+
+        return self::execute($transaction, $quote, $reason, 'staff');
+    }
+
+    /**
      * Ask for a refund the policy does not grant automatically.
      *
      * The quote is stored on the request. The policy may change between asking
@@ -271,11 +299,13 @@ class refund_manager {
             ];
         }
 
-        // A fee means the buyer did not get everything back, so the order is
-        // partially refunded even though we are done with it.
-        $newstatus = ($quote->fee > 0)
-            ? status_machine::PARTIALLY_REFUNDED
-            : status_machine::REFUNDED;
+        // Refunded, fee or no fee. "Partially refunded" means part of the
+        // purchase still stands — one seat of three given back, say — and reads
+        // to anyone scanning a list as though the student still has something.
+        // They do not: access is removed either way. The fee is a deduction from
+        // the refund, not a portion of the order left in force, and it is
+        // recorded on the refund row where it belongs.
+        $newstatus = status_machine::REFUNDED;
 
         if (status_machine::can_transition($transaction->status, $newstatus)) {
             $DB->update_record('local_payments_transactions', (object) [

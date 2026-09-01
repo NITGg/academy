@@ -22,6 +22,9 @@ class transactions_table extends \table_sql {
     /** @var int Course this is scoped to, or 0 for the whole site. */
     protected int $courseid;
 
+    /** @var bool Whether the viewer may refund from this list. */
+    protected bool $canrefund = false;
+
     /**
      * @param string $uniqueid
      * @param int $courseid 0 for every course.
@@ -37,7 +40,7 @@ class transactions_table extends \table_sql {
         // Deliberately not called "timecreated": user and course both have a
         // column of that name, so sorting on it produces an ambiguous ORDER BY
         // and the query dies. Every column here has to be unique across the join.
-        $columns = ['paidon', 'order_id', 'student', 'amount', 'status', 'provider',
+        $columns = ['paidon', 'order_id', 'student', 'amount', 'status', 'providername',
             'payment_method_type', 'invoice'];
         $headers = [
             get_string('date', 'local_payments'),
@@ -49,6 +52,15 @@ class transactions_table extends \table_sql {
             get_string('paymentmethod', 'local_payments'),
             get_string('invoice', 'local_payments'),
         ];
+
+        // Refunding is an action, not a report, so the column is only drawn for
+        // somebody who is allowed to take it.
+        $this->canrefund = \local_payments\refund_policy::enabled()
+            && has_capability('local/payments:managerefunds', \context_system::instance());
+        if ($this->canrefund) {
+            $columns[] = 'refund';
+            $headers[] = get_string('refund_column', 'local_payments');
+        }
 
         // The course column is noise when every row is the same course.
         if (!$courseid) {
@@ -63,6 +75,7 @@ class transactions_table extends \table_sql {
         // These render from several fields, so there is no single column to sort on.
         $this->no_sorting('student');
         $this->no_sorting('invoice');
+        $this->no_sorting('refund');
         $this->collapsible(false);
 
         $this->build_sql($courseid, $status, $search);
@@ -70,23 +83,24 @@ class transactions_table extends \table_sql {
 
     /**
      * One query for both modes; the filters only ever add conditions.
+     *
+     * Public and static so a CLI can run exactly what the page runs. "Error
+     * reading from database" is all Moodle shows a user, and guessing at a query
+     * from that is how an afternoon disappears.
+     *
+     * @return array [fields, from, where, params]
      */
-    protected function build_sql(int $courseid, string $status, string $search): void {
+    public static function build_query(int $courseid = 0, string $status = '',
+            string $search = ''): array {
         global $DB;
 
-        // The false at the end asks for the select list without a leading comma,
-        // so this has to supply its own separator on both sides of it.
-        // Leave the fifth argument alone. It is $leadingcomma and defaults to
-        // true; passing false drops the separator and the select list becomes
-        // "u.email u.firstname, ..." — a syntax error, reported only as
-        // "Error reading from database".
         $userfields = \core_user\fields::for_name()->get_sql('u')->selects;
 
         $fields = "t.id, t.order_id, t.amount, t.currency, t.status, t.payment_method_type,
                    t.timecreated AS paidon, t.courseid, t.userid,
-                   u.email, {$userfields},
+                   u.email {$userfields},
                    c.fullname AS coursename,
-                   p.display_name AS provider";
+                   p.display_name AS providername";
 
         $from = "{local_payments_transactions} t
                  JOIN {user} u ON u.id = t.userid
@@ -118,8 +132,14 @@ class transactions_table extends \table_sql {
             $where[] = '(' . implode(' OR ', $like) . ')';
         }
 
-        $this->set_sql($fields, $from, implode(' AND ', $where), $params);
-        $this->set_count_sql("SELECT COUNT(1) FROM {$from} WHERE " . implode(' AND ', $where), $params);
+        return [$fields, $from, implode(' AND ', $where), $params];
+    }
+
+    protected function build_sql(int $courseid, string $status, string $search): void {
+        [$fields, $from, $where, $params] = self::build_query($courseid, $status, $search);
+
+        $this->set_sql($fields, $from, $where, $params);
+        $this->set_count_sql("SELECT COUNT(1) FROM {$from} WHERE {$where}", $params);
     }
 
     public function col_paidon($row) {
@@ -179,8 +199,13 @@ class transactions_table extends \table_sql {
             ['class' => 'badge ' . ($classes[$row->status] ?? 'text-bg-secondary')]);
     }
 
-    public function col_provider($row) {
-        return $row->provider ?? '-';
+    /**
+     * Named for the SQL alias, not for the concept. A column whose name does not
+     * match a field in the select list produces an ORDER BY on a column that
+     * does not exist the moment somebody clicks the header to sort by it.
+     */
+    public function col_providername($row) {
+        return $row->providername ?? '-';
     }
 
     public function col_payment_method_type($row) {
@@ -207,5 +232,35 @@ class transactions_table extends \table_sql {
         }
 
         return \html_writer::div($links, 'lp-invoice-actions');
+    }
+    public function col_refund($row) {
+        if ($this->is_downloading()) {
+            return '';
+        }
+
+        if ($row->status !== 'completed') {
+            // Already refunded, or never paid: nothing to give back.
+            return \html_writer::tag('span', '—', ['class' => 'text-muted']);
+        }
+
+        $pending = \local_payments\refund_manager::open_request((int) $row->id);
+        if ($pending) {
+            // Send it to the queue rather than round it: deciding there records
+            // the decision against the request the buyer is waiting on.
+            return \html_writer::link(
+                new \moodle_url('/local/payments/refund_requests.php'),
+                get_string('refund_status_pending', 'local_payments'),
+                ['class' => 'badge text-bg-warning text-decoration-none']
+            );
+        }
+
+        return \html_writer::link(
+            new \moodle_url('/local/payments/staff_refund.php', [
+                'transaction_id' => $row->id,
+                'returnto' => $this->baseurl->out_as_local_url(false),
+            ]),
+            get_string('refund_now_button', 'local_payments'),
+            ['class' => 'btn btn-sm btn-outline-danger']
+        );
     }
 }

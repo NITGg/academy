@@ -52,6 +52,26 @@ function xmldb_local_payments_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026083120, 'local', 'payments');
     }
 
+    if ($oldversion < 2026090100) {
+        // Per-item refund policy. A flagship course can refuse automatic refunds
+        // while everything else allows them, without that being a code change.
+        $table = new xmldb_table('local_payments_refund_rules');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+            $table->add_field('itemtype', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL);
+            $table->add_field('itemid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+            $table->add_field('hours', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('feetype', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'percent');
+            $table->add_field('feevalue', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('feecurrency', XMLDB_TYPE_CHAR, '3', null, null);
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_index('idx_item', XMLDB_INDEX_UNIQUE, ['itemtype', 'itemid']);
+            $dbman->create_table($table);
+        }
+        upgrade_plugin_savepoint(true, 2026090100, 'local', 'payments');
+    }
+
     return true;
 }
 

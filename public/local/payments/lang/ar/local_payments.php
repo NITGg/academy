@@ -311,3 +311,28 @@ $string['refund_msg_rejected_body'] = 'لم تتم الموافقة على طل�
 $string['refund_policy_norwindow'] = 'لا يوجد استرداد تلقائي. يمكنك تقديم طلب وسيبتّ فيه فريقنا.';
 $string['refund_policy_windowfree'] = 'استرداد كامل خلال {$a->hours} ساعة من الشراء.';
 $string['refund_policy_windowfee'] = 'قابل للاسترداد خلال {$a->hours} ساعة من الشراء، بعد خصم رسوم {$a->fee}.';
+
+// Refunds, staff-initiated from the payments list.
+$string['refund_staff_title'] = 'استرداد هذه الدفعة';
+$string['refund_staff_warning'] = 'سيتم رد المبلغ إلى المشتري فوراً وإلغاء وصوله. يغادر المبلغ البوابة على الفور ولا يمكن التراجع عنه من هنا.';
+$string['refund_staff_applyfee'] = 'خصم رسوم الاسترداد المقررة وقدرها {$a}. اترك الخيار بدون تحديد لاسترداد كامل.';
+$string['refund_staff_button'] = 'تنفيذ الاسترداد';
+
+// Refunds, per-item override.
+$string['refund_rule_title'] = 'سياسة الاسترداد';
+$string['refund_rule_link'] = 'سياسة الاسترداد لهذا المقرر';
+$string['refund_rule_heading'] = 'سياسة الاسترداد: {$a}';
+$string['refund_rule_sitedefault'] = 'بدون تخصيص هنا، يتبع هذا العنصر إعداد الموقع: {$a}';
+$string['refund_rule_summary'] = 'نافذة {$a->hours} ساعة، الرسوم {$a->fee}';
+$string['refund_rule_nofee'] = 'لا توجد';
+$string['refund_rule_hours_help'] = 'عدد الساعات بعد الدفع التي يمكن للمشتري خلالها استرداد المبلغ بنفسه. القيمة 0 تعني أن عليه تقديم طلب يبتّ فيه أحد الموظفين.';
+$string['refund_rule_fee_help'] = 'المبلغ الذي يُخصم من الاسترداد. القيمة 0 تعني رد المبلغ كاملاً.';
+$string['refund_rule_saved'] = 'تم حفظ سياسة الاسترداد لهذا العنصر.';
+$string['refund_rule_cleared'] = 'تم حذف التخصيص. يتبع هذا العنصر الآن إعدادات الموقع.';
+$string['refund_rule_clear'] = 'حذف التخصيص';
+$string['refund_rule_offsitewide'] = 'خدمة الاسترداد متوقفة على مستوى الموقع، لذا لن يسري أي إعداد هنا حتى يتم تفعيلها.';
+
+// Refunds, the currency a flat fee is stated in.
+$string['refund_feecurrency'] = 'عملة الرسوم الثابتة';
+$string['refund_feecurrency_desc'] = 'العملة التي تُحدَّد بها الرسوم الثابتة. تُتجاهَل عندما تكون الرسوم نسبة مئوية. وهذا مهم لأن المقرر نفسه قد يُسعَّر بأكثر من عملة: فرسوم ثابتة قدرها 10 تعني مبلغاً مختلفاً تماماً لمن دفع بالجنيه عمّن دفع بالدولار. لا تُخصم الرسوم الثابتة إلا من المدفوعات بهذه العملة؛ وما عداها يُسترد كاملاً، لأن افتراض سعر صرف لم يوافق عليه أحد أسوأ من التنازل عن الرسوم.';
+$string['refund_rule_feecurrency_help'] = 'تُستخدم مع الرسوم الثابتة فقط. المدفوعات بعملة أخرى تُسترد كاملة بدلاً من تحويل الرسوم بسعر صرف لم يوافق عليه أحد.';

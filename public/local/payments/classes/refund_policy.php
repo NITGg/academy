@@ -61,7 +61,58 @@ class refund_policy {
      * @return object {hours:int, feetype:string, feevalue:float, itemtype:string}
      */
     public static function for_transaction(\stdClass $transaction): object {
-        return self::for_item_type(self::item_type($transaction));
+        return self::for_item(self::item_type($transaction), self::item_id($transaction));
+    }
+
+    /**
+     * Which course or plan this payment was for.
+     *
+     * @param \stdClass $transaction
+     * @return int 0 when the purchase is not tied to a specific item.
+     */
+    public static function item_id(\stdClass $transaction): int {
+        $meta = json_decode($transaction->metadata ?? '{}', true) ?: [];
+        $itemid = (int) ($meta['item_id'] ?? 0);
+
+        // Rows from before item_id was recorded are course purchases.
+        return $itemid ?: (int) ($transaction->courseid ?? 0);
+    }
+
+    /**
+     * The policy for one specific course or plan.
+     *
+     * An override on the item wins over the settings for its type. That is the
+     * point of it: a flagship course can refuse automatic refunds while
+     * everything else allows them, without anyone touching site settings that
+     * apply to hundreds of other courses.
+     *
+     * @param string $itemtype
+     * @param int $itemid
+     * @return object {hours:int, feetype:string, feevalue:float, itemtype:string, overridden:bool}
+     */
+    public static function for_item(string $itemtype, int $itemid): object {
+        global $DB;
+
+        $policy = self::for_item_type($itemtype);
+        $policy->overridden = false;
+
+        if ($itemid <= 0) {
+            return $policy;
+        }
+
+        $rule = $DB->get_record('local_payments_refund_rules',
+            ['itemtype' => $itemtype, 'itemid' => $itemid]);
+        if (!$rule) {
+            return $policy;
+        }
+
+        $policy->hours = max(0, (int) $rule->hours);
+        $policy->feetype = $rule->feetype === self::FEE_FIXED ? self::FEE_FIXED : self::FEE_PERCENT;
+        $policy->feevalue = max(0, (float) $rule->feevalue);
+        $policy->feecurrency = self::normalise_currency((string) ($rule->feecurrency ?? ''));
+        $policy->overridden = true;
+
+        return $policy;
     }
 
     /**
@@ -82,7 +133,21 @@ class refund_policy {
             'hours' => max(0, (int) get_config('local_payments', 'refund_hours_' . $suffix)),
             'feetype' => $feetype === self::FEE_FIXED ? self::FEE_FIXED : self::FEE_PERCENT,
             'feevalue' => max(0, (float) get_config('local_payments', 'refund_fee_' . $suffix)),
+            'feecurrency' => self::normalise_currency(
+                (string) get_config('local_payments', 'refund_feecurrency_' . $suffix)),
         ];
+    }
+
+    /**
+     * A three-letter code, falling back to the site default when unset.
+     */
+    private static function normalise_currency(string $code): string {
+        $code = strtoupper(trim($code));
+        if (preg_match('/^[A-Z]{3}$/', $code)) {
+            return $code;
+        }
+        $default = strtoupper(trim((string) get_config('local_payments', 'default_currency')));
+        return preg_match('/^[A-Z]{3}$/', $default) ? $default : 'EGP';
     }
 
     /** Are refunds offered on this site at all? */
@@ -109,10 +174,23 @@ class refund_policy {
 
         $paid = round((float) $transaction->amount, 2);
 
+        // A percentage is currency-safe: 10% of 36 EGP and 10% of 450 USD are
+        // both 10%. A flat amount is not — "10" is 10 EGP to one buyer and 10
+        // USD to another, and this platform genuinely prices in both. So a flat
+        // fee names its currency, and is simply not charged against a payment in
+        // a different one. Erring toward the buyer is the only safe direction:
+        // the alternative is inventing an exchange rate nobody agreed.
+        $feecurrencymismatch = false;
+
         if ($policy->feevalue <= 0) {
             $fee = 0.0;
         } else if ($policy->feetype === self::FEE_FIXED) {
-            $fee = round($policy->feevalue, 2);
+            if (strcasecmp($policy->feecurrency, (string) $transaction->currency) === 0) {
+                $fee = round($policy->feevalue, 2);
+            } else {
+                $fee = 0.0;
+                $feecurrencymismatch = true;
+            }
         } else {
             $fee = round($paid * $policy->feevalue / 100, 2);
         }
@@ -128,6 +206,9 @@ class refund_policy {
 
         return (object) [
             'itemtype' => $policy->itemtype,
+            'overridden' => !empty($policy->overridden),
+            'feecurrency' => $policy->feecurrency,
+            'feecurrencymismatch' => $feecurrencymismatch,
             'paid' => $paid,
             'fee' => $fee,
             'net' => round(max(0, $paid - $fee), 2),
@@ -155,7 +236,7 @@ class refund_policy {
             'hours' => $quote->hours,
             'fee' => $quote->feetype === self::FEE_PERCENT
                 ? format_float($quote->feevalue, 2, true, true) . '%'
-                : format_float($quote->feevalue, 2, true, true) . ' ' . $quote->currency,
+                : format_float($quote->feevalue, 2, true, true) . ' ' . $quote->feecurrency,
         ];
 
         return $quote->fee > 0
