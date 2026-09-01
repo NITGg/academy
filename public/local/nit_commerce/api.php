@@ -217,6 +217,37 @@ try {
             break;
 
         // ── Checkout: preview the discounted price (offer auto + optional coupon code) ──
+        // The payment methods the gateway will take. It lives here because the
+        // checkout modal already talks to this endpoint, and every dialog that
+        // opens the modal then gets the choice without its own wiring — which is
+        // how the category and catalogue Buy buttons came to be missing it.
+        case 'get_payment_methods':
+            $methods = [];
+            if (class_exists('\local_payments\manager')) {
+                try {
+                    $offer = \local_payments\manager::get_provider_payment_methods(
+                        optional_param('country', '', PARAM_ALPHA),
+                        optional_param('currency', 'EGP', PARAM_ALPHA));
+                    if ($offer->supports_payment_methods) {
+                        foreach ($offer->methods as $method) {
+                            $methods[] = [
+                                'id' => (int) $method['id'],
+                                'name' => (current_language() === 'ar' && $method['name_ar'] !== '')
+                                    ? $method['name_ar'] : $method['name_en'],
+                                'logo' => (string) $method['logo'],
+                                'is_reference' => !$method['redirect'],
+                            ];
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // A gateway that will not list its methods is not a reason to
+                    // block a sale: an empty list means "do not ask".
+                    $methods = [];
+                }
+            }
+            nit_commerce_respond(['status' => 'success', 'data' => $methods]);
+            break;
+
         case 'preview_discount':
             $itemtype = required_param('item_type', PARAM_ALPHA);
             $itemid   = required_param('item_id', PARAM_INT);
