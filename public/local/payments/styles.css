@@ -533,6 +533,33 @@
     max-width: 34rem;
 }
 
+/* ── Standalone payment screens ─────────────────────────────────────────── */
+/*                                                                          */
+/* The token block at the top of this file is scoped to the two price       */
+/* components, so the screens below — which came later and live on a page   */
+/* of their own — were resolving var(--lp-surface, #fff) and                */
+/* var(--lp-muted, #6b7280) to their fallbacks: a white card carrying the   */
+/* dark theme's near-white body text, which is the washed-out screen this   */
+/* fixes. theme/nit/scss/components/_category.scss records the same trap    */
+/* hit from the other direction.                                            */
+/*                                                                          */
+/* So take the colours from the theme's Brand Colors roles, and keep the    */
+/* original light values as fallbacks: nothing here assumes theme_nit is    */
+/* installed, and a site on Boost still gets the design it had.             */
+
+.local-payments-reference,
+.lp-methods,
+.lp-refund-terms {
+    --lp-surface: var(--nit-brand-surface, #fff);
+    --lp-ink: var(--nit-brand-textprimary, #1a1a2e);
+    --lp-muted: var(--nit-brand-textsecondary, #6b7280);
+    --lp-line: var(--nit-brand-borderprimary, rgba(107, 114, 128, 0.2));
+
+    /* Explicit, because inheriting the page's text colour onto a surface    */
+    /* this file paints is exactly how the two ended up fighting.            */
+    color: var(--lp-ink);
+}
+
 /* ── Offline payment reference (Fawry / Meeza codes) ────────────────────── */
 
 .local-payments-reference {
@@ -542,16 +569,18 @@
 }
 
 .lp-ref-card {
-    background: var(--lp-surface, #fff);
-    border: 1px solid rgba(107, 114, 128, 0.2);
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
     border-radius: 0.75rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    color: var(--lp-ink);
     max-width: 34rem;
     padding: 2rem;
     width: 100%;
 }
 
 .lp-ref-title {
+    color: var(--lp-ink);
     font-size: 1.35rem;
     margin: 0 0 0.5rem;
 }
@@ -565,8 +594,8 @@
    and easy to read aloud digit by digit at a counter. */
 .lp-ref-code {
     align-items: center;
-    background: rgba(107, 114, 128, 0.08);
-    border: 1px dashed rgba(107, 114, 128, 0.4);
+    background: color-mix(in srgb, var(--lp-ink) 7%, transparent);
+    border: 1px dashed color-mix(in srgb, var(--lp-ink) 32%, transparent);
     border-radius: 0.5rem;
     display: flex;
     gap: 1rem;
@@ -576,6 +605,7 @@
 }
 
 .lp-ref-code-value {
+    color: var(--lp-ink);
     font-family: var(--font-monospace, monospace);
     font-size: 1.75rem;
     font-weight: 700;
@@ -597,6 +627,7 @@
 }
 
 .lp-ref-meta dd {
+    color: var(--lp-ink);
     font-weight: 600;
     margin: 0;
     text-align: end;
@@ -706,7 +737,7 @@
    choice on a phone. */
 .lp-method {
     align-items: center;
-    border: 1px solid rgba(107, 114, 128, 0.3);
+    border: 1px solid var(--lp-line);
     border-radius: 0.5rem;
     cursor: pointer;
     display: flex;
@@ -716,7 +747,7 @@
 }
 
 .lp-method:hover {
-    border-color: rgba(107, 114, 128, 0.6);
+    border-color: color-mix(in srgb, var(--lp-ink) 45%, transparent);
 }
 
 .lp-method:has(input:checked) {

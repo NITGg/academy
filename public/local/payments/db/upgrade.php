@@ -173,6 +173,15 @@ function xmldb_local_payments_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090130, 'local', 'payments');
     }
 
+    if ($oldversion < 2026090133) {
+        // The web checkout no longer asks an admin whether to offer the choice:
+        // the mobile web service always hands the app every method, so a setting
+        // that could switch the web off made one gateway behave two ways.
+        unset_config('show_method_picker', 'local_payments');
+
+        upgrade_plugin_savepoint(true, 2026090133, 'local', 'payments');
+    }
+
     return true;
 }
 

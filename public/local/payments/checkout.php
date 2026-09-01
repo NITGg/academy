@@ -35,7 +35,11 @@ try {
     // Offer the choice before taking the money, when there is a choice to offer
     // and the buyer has not already made it. One method is not a choice, and a
     // gateway with its own picker does not need ours.
-    if (!$methodid && get_config('local_payments', 'show_method_picker')) {
+    //
+    // Not behind a setting: the mobile web service hands the app every method
+    // unconditionally, so gating the web on a checkbox meant the same gateway
+    // asked on one platform and decided for the buyer on the other.
+    if (!$methodid) {
         $pricing = \local_payments\price_resolver::resolve($courseid, $USER->id);
         $offer = \local_payments\manager::get_provider_payment_methods(
             $pricing->country, $pricing->currency);
