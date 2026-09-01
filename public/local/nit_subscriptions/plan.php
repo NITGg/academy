@@ -163,8 +163,38 @@ $description = trim(strip_tags((string) $plan['description'])) !== '' ? $plan['d
 
 // Everything plan.js needs, handed over on the wrapper rather than printed as a script block:
 // it keeps the page free of inline script (CSP-safe) and the file cacheable.
+// The gateway's payment methods, so this dialog can ask which one to charge
+// instead of handing the visitor to the gateway's own page. Same question the
+// course checkout and the app ask, in the same place: beside the price.
+$planmethods = [];
+if (class_exists('\local_payments\manager')) {
+    try {
+        $offer = \local_payments\manager::get_provider_payment_methods(
+            (string) ($plan['country'] ?? ''), (string) $plan['currency']);
+        if ($offer->supports_payment_methods) {
+            foreach ($offer->methods as $method) {
+                $planmethods[] = [
+                    'id' => $method['id'],
+                    'name' => (current_language() === 'ar' && $method['name_ar'] !== '')
+                        ? $method['name_ar'] : $method['name_en'],
+                    'logo' => $method['logo'],
+                    'is_reference' => !$method['redirect'],
+                ];
+            }
+        }
+    } catch (\Throwable $e) {
+        // Never block a sale over the method list: fall through with none and
+        // let the gateway choose, which is what happened before it was asked.
+        $planmethods = [];
+    }
+}
+
 $jsconfig = json_encode([
     'planid'       => $id,
+    'methods'      => $planmethods,
+    'methodlabel'  => get_string('co_method', 'local_nit_commerce'),
+    'methodcode'   => get_string('co_method_code', 'local_nit_commerce'),
+    'referenceurl' => (new moodle_url('/local/payments/reference.php'))->out(false),
     'currency'     => (string) $plan['currency'],
     'subsurl'      => (new moodle_url('/local/nit_subscriptions/api.php'))->out(false),
     'commerceurl'  => (new moodle_url('/local/nit_commerce/api.php'))->out(false),
@@ -359,6 +389,11 @@ echo $OUTPUT->header();
         <div class="nitplan__row" data-nitplan-offerrow hidden>
           <span><?= s(get_string('plan_offer', 'local_nit_subscriptions')) ?></span>
           <strong class="nitplan__good" data-nitplan-offer>—</strong>
+        </div>
+
+        <div class="nitplan__methods" data-nitplan-methods hidden>
+          <span class="nitplan__methodslabel" data-nitplan-methodslabel></span>
+          <div class="nitplan__methodslist" data-nitplan-methodslist></div>
         </div>
 
         <div class="nitplan__coupon">
