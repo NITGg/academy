@@ -85,6 +85,22 @@ $THEME->layouts['frontpage'] = [
 ];
 
 // -----------------------------------------------------------------------------
+// Account screens (log in, sign up, reset, confirm) — same shape as Boost's, but
+// the layout has to be ours to build the left panel's context.
+//
+// `core/login_panel` is rendered as a Mustache PARTIAL inside `core/login_layout`,
+// so it sees only what the layout file put in the context and can fetch nothing
+// itself. The site logo and the admin-written quote drawn over the panel picture
+// therefore have to be added by a layout we own. Same regions and options as
+// Boost's entry — see theme/nit/layout/login.php, which is a copy of Boost's with
+// that one addition.
+$THEME->layouts['login'] = [
+    'file' => 'login.php',
+    'regions' => [],
+    'options' => ['langmenu' => true],
+];
+
+// -----------------------------------------------------------------------------
 // NIT full-width page — an edge-to-edge canvas that keeps the top navbar and
 // footer but drops the content column max-width, the page heading, and the
 // secondary navigation tabs. Used by NIT-owned marketing/catalog pages such as

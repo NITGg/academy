@@ -120,6 +120,43 @@ class gallery implements renderable, templatable {
             ];
         }
 
+        // Account screens: the picture beside each of the two cards, plus the
+        // quote drawn over it. The picture URL is the live one the compiled CSS
+        // uses (theme_nit_auth_background_scss reads the same slot), so the
+        // thumbnail on this tab is the thing itself and not a re-derivation of it.
+        $theme = \theme_config::load('nit');
+        $authimages = [];
+        foreach (\theme_nit_auth_image_slots() as $key => $slot) {
+            $filename = \get_config('theme_nit', $slot['setting']);
+            $hasimage = is_string($filename) && $filename !== '';
+            $authimages[] = [
+                'key' => $key,
+                'input' => $slot['input'],
+                'label' => \get_string($slot['strkey'], 'theme_nit'),
+                'description' => \get_string($slot['deskey'], 'theme_nit'),
+                'hasimage' => $hasimage,
+                'filename' => $hasimage ? ltrim($filename, '/') : '',
+                'url' => $hasimage
+                    ? (string) $theme->setting_file_url($slot['setting'], $slot['filearea'])
+                    : '',
+            ];
+        }
+
+        // One quote + attribution pair per language. `rtl` lets the template turn
+        // the Arabic boxes round, so what an admin types looks like what a learner
+        // will read.
+        $authtexts = [];
+        foreach (\theme_nit_auth_text_langs() as $lang => $meta) {
+            $stored = \theme_nit_auth_text($lang);
+            $authtexts[] = [
+                'lang' => $lang,
+                'label' => \get_string($meta['strkey'], 'theme_nit'),
+                'rtl' => $meta['rtl'],
+                'quote' => $stored['quote'],
+                'author' => $stored['author'],
+            ];
+        }
+
         return [
             'sesskey' => sesskey(),
             'actionurl' => (new \moodle_url('/theme/nit/gallery.php'))->out(false),
@@ -127,6 +164,8 @@ class gallery implements renderable, templatable {
             'categorygroups' => $categorygroups,
             'hascategorygroups' => !empty($categorygroups),
             'fonts' => $fonts,
+            'authimages' => $authimages,
+            'authtexts' => $authtexts,
             'stats' => [
                 ['label' => 'Active learners', 'value' => '1,284', 'trend' => '+12%', 'up' => true],
                 ['label' => 'Course completions', 'value' => '842', 'trend' => '+5%', 'up' => true],

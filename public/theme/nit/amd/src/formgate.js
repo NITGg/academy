@@ -166,6 +166,17 @@ const isAnswered = (el, form) => {
  * - `aria-required`, which the autocomplete and date selectors use;
  * - a `.fitem` wrapper containing the red required marker.
  *
+ * The third signal has a trap in it. `fitem` marks a single field's row, but
+ * core also puts it on every section `<fieldset>` (lib/formslib.php, where
+ * `$fieldsetclasses = ['clearfix', 'fitem']`), and a section wraps every row
+ * inside it. Scanning those too means one required field anywhere in a section
+ * drags the whole section in as required — which on `/user/editadvanced.php`
+ * pulled in New password, City, Country, Description and, fatally, the
+ * Suspended and "Force password change" checkboxes: a checkbox only counts as
+ * answered when it is ticked, so the button could not be released without
+ * suspending the account. Section fieldsets are therefore skipped; a field's
+ * own row is always a `div` or a `label`, never a `fieldset`.
+ *
  * `extra` covers controls the specification treats as mandatory but Moodle does
  * not mark, the Terms and Conditions checkbox being the reason this parameter
  * exists: it is an advcheckbox with no required rule, because it is validated
@@ -180,7 +191,7 @@ const requiredIn = (form, extra) => {
 
     form.querySelectorAll('[required], [aria-required="true"]').forEach((el) => found.add(el));
 
-    form.querySelectorAll('.fitem').forEach((item) => {
+    form.querySelectorAll('.fitem:not(fieldset)').forEach((item) => {
         if (!item.querySelector('.form-label-addon .text-danger')) {
             return;
         }

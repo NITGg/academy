@@ -1303,8 +1303,8 @@ function theme_nit_get_extra_scss($theme) {
     // Admin-uploaded, per-language custom fonts (edited on the gallery page).
     $scss .= theme_nit_font_scss($theme);
 
-    // Admin-uploaded picture beside the log-in / sign-up cards.
-    $scss .= theme_nit_login_background_scss($theme);
+    // Admin-uploaded pictures beside the log-in / sign-up cards.
+    $scss .= theme_nit_auth_background_scss($theme);
 
     if (!empty($theme->settings->scss)) {
         $scss .= $theme->settings->scss;
@@ -1314,71 +1314,226 @@ function theme_nit_get_extra_scss($theme) {
 }
 
 /**
- * The picture beside the log-in and sign-up cards, from the theme setting.
+ * The two pictures beside the account screens: one for log-in, one for sign-up.
+ *
+ * Both live in a system-context file area of their own and are uploaded on the
+ * gallery page's "Log-in & sign-up" tab (theme/nit/gallery.php), stored exactly
+ * the way the per-language fonts are — fixed basename, config `theme_nit/<setting>`
+ * holding the filename — so theme_config::setting_file_url() and
+ * theme_nit_pluginfile() serve them with no extra plumbing.
+ *
+ * `selector` is what separates the two. Every screen in this journey renders on
+ * the same `pagelayout-login` layout, so the log-in picture is written against
+ * the layout (which covers forgotten-password and the rest of the flow) and the
+ * sign-up one against that page's body id. An id outranks the class, so sign-up
+ * overrides log-in wherever both are set, and inherits it wherever it is not —
+ * which is the behaviour there was before the pictures were split in two.
+ *
+ * The `login` slot deliberately keeps the `loginbackgroundimage` name Boost uses:
+ * the setting started life as a Boost-shaped stored file and a site that already
+ * has one uploaded keeps it.
+ *
+ * @return array<string, array{setting:string, filearea:string, input:string,
+ *     basename:string, strkey:string, deskey:string, selector:string}>
+ */
+function theme_nit_auth_image_slots(): array {
+    return [
+        'login' => [
+            'setting'  => 'loginbackgroundimage',
+            'filearea' => 'loginbackgroundimage',
+            'input'    => 'authimage_login',
+            'basename' => 'login-background',
+            'strkey'   => 'authimagelogin',
+            'deskey'   => 'authimagelogin_desc',
+            'selector' => 'body.pagelayout-login #page .login-layout-left',
+        ],
+        'signup' => [
+            'setting'  => 'signupbackgroundimage',
+            'filearea' => 'signupbackgroundimage',
+            'input'    => 'authimage_signup',
+            'basename' => 'signup-background',
+            'strkey'   => 'authimagesignup',
+            'deskey'   => 'authimagesignup_desc',
+            'selector' => 'body#page-login-signup.pagelayout-login #page .login-layout-left',
+        ],
+    ];
+}
+
+/**
+ * The languages the account-screen quote is written in.
+ *
+ * The same two the site's fonts are chosen per (theme_nit_font_slots()), and for
+ * the same reason: a learner who switched the interface to Arabic should not be
+ * read to in English by the one piece of copy on the screen that an administrator
+ * wrote rather than translated.
+ *
+ * @return array<string, array{strkey:string, rtl:bool}>
+ */
+function theme_nit_auth_text_langs(): array {
+    return [
+        'en' => ['strkey' => 'fonten', 'rtl' => false],
+        'ar' => ['strkey' => 'fontar', 'rtl' => true],
+    ];
+}
+
+/**
+ * The quote and its attribution for one language, as stored.
+ *
+ * Raw values — no formatting, no escaping. For display use
+ * theme_nit_auth_panel_content(), which resolves the language and formats.
+ *
+ * @param string $lang language key from theme_nit_auth_text_langs()
+ * @return array{quote:string, author:string}
+ */
+function theme_nit_auth_text(string $lang): array {
+    return [
+        'quote'  => (string) get_config('theme_nit', 'authpanelquote_' . $lang),
+        'author' => (string) get_config('theme_nit', 'authpanelauthor_' . $lang),
+    ];
+}
+
+/**
+ * What the left panel of the account screens shows over the picture.
+ *
+ * Two things, both of which used to be baked into the photograph itself — which
+ * meant re-exporting an image to correct a typo, and a logo that went stale the
+ * moment the site's did.
+ *
+ * The logo is the navbar's, read through the same two renderer methods the navbar
+ * template uses, so there is one logo on the site and not two. `get_logo_url()`
+ * is the fallback: `should_display_navbar_logo()` is false on a site that has set
+ * only the full logo and no compact one, and a blank corner is a worse answer
+ * than the logo that is actually configured.
+ *
+ * The quote is resolved to the interface language, falling back to English and
+ * then to whichever language has been filled in — an administrator who wrote only
+ * one of the two gets that one everywhere rather than an empty card.
+ *
+ * @param renderer_base $output the renderer, for the logo URLs
+ * @return array template context for theme_nit/core/login_panel
+ */
+function theme_nit_auth_panel_content($output): array {
+    global $SITE;
+
+    $logourl = $output->get_compact_logo_url(null, 120);
+    if (empty($logourl)) {
+        $logourl = $output->get_logo_url(null, 120);
+    }
+
+    $langs = theme_nit_auth_text_langs();
+    $current = current_language();
+
+    // Preference order: the interface language, then English, then anything that
+    // has been written at all.
+    $order = array_unique(array_merge(
+        array_key_exists($current, $langs) ? [$current] : [],
+        ['en'],
+        array_keys($langs)
+    ));
+
+    $quote = '';
+    $author = '';
+    foreach ($order as $lang) {
+        if (!array_key_exists($lang, $langs)) {
+            continue;
+        }
+        $text = theme_nit_auth_text($lang);
+        if (trim($text['quote']) !== '') {
+            $quote = $text['quote'];
+            $author = $text['author'];
+            break;
+        }
+    }
+
+    $context = context_system::instance();
+
+    return [
+        'haslogo'  => !empty($logourl),
+        'logourl'  => !empty($logourl) ? $logourl->out(false) : '',
+        'sitename' => format_string($SITE->fullname, true, ['context' => $context, 'escape' => false]),
+        // format_string() escapes and runs the multilang filter, so a bilingual
+        // site can also write one field with {mlang} markup instead of two.
+        'hasquote'  => (trim($quote) !== ''),
+        'quote'     => format_string($quote, true, ['context' => $context]),
+        'hasauthor' => (trim($author) !== ''),
+        'author'    => format_string($author, true, ['context' => $context]),
+    ];
+}
+
+/**
+ * CSS for the account-screen pictures.
  *
  * Boost writes a `.login-layout-left` rule of its own from theme_boost_get_extra_scss(),
  * which still runs here — theme_config::get_extra_scss_code() calls the parent's
  * callback and then the child's. What it cannot do is find a picture on its own:
  * theme_config::setting_file_url() builds its URL from the ACTIVE theme's name,
  * so with NIT running it looks up `theme_nit/loginbackgroundimage` and, until
- * this setting existed, found nothing and fell back to Boost's bundled
- * AI-generated photo. That fallback is what the log-in page has been showing,
- * watermark and all — and it is why the fix is a setting on THIS theme rather
- * than an upload against Boost's, which nothing would ever read.
+ * that setting existed, found nothing and fell back to Boost's bundled
+ * AI-generated photo. That fallback is what the log-in page had been showing,
+ * watermark and all — and it is why the pictures belong to THIS theme rather than
+ * to an upload against Boost's setting, which nothing would ever read.
  *
- * With the setting filled, Boost's own rule picks the picture up. Two things it
- * does not do are left to this function:
+ * With a picture uploaded, Boost's own rule picks the log-in one up. Three things
+ * it does not do are left here:
  *
+ *  - the sign-up picture. Boost has no concept of a second one.
  *  - centre the crop. Boost sets `background-position: center` only for its
  *    default photo; an uploaded one gets the CSS initial value, which pins a
  *    cover-sized image to its top-left corner and cuts off everything else.
- *  - `content: none` on the watermark. Boost drops the "AI-generated image"
- *    caption once a picture is uploaded, so this is a guard rather than a fix:
- *    it keeps a stale rule from a previously-compiled sheet from captioning
- *    somebody's own photograph.
+ *  - `content: none` on the watermark, per slot. Boost drops the "AI-generated
+ *    image" caption once the log-in picture is uploaded, but it knows nothing
+ *    about the sign-up one — so a site that sets only sign-up would otherwise
+ *    caption its own photograph.
  *
- * Both callbacks write the same selector at the same specificity and this one is
- * emitted second, so it wins on cascade order. Nothing in Boost is edited or
- * disabled; its rule is simply the one underneath.
+ * Boost's rule and the log-in rule here are the same selector at the same
+ * specificity, and this one is emitted second, so it wins on cascade order.
+ * Nothing in Boost is edited or disabled; its rule is simply the one underneath.
  *
- * Emitted only when a picture has actually been uploaded — with the setting
- * empty, Boost's default stands, watermark included, because the caption is true
- * of that image.
+ * A slot with nothing uploaded emits nothing, so log-in falls back to Boost's
+ * default (watermark included, because the caption is true of that image) and
+ * sign-up falls back to log-in.
  *
  * @param theme_config $theme the theme config object (carries the settings)
- * @return string SCSS, or '' when no picture has been uploaded
+ * @return string SCSS, possibly empty
  */
-function theme_nit_login_background_scss($theme): string {
-    $url = $theme->setting_file_url('loginbackgroundimage', 'loginbackgroundimage');
-    if (empty($url)) {
-        return '';
+function theme_nit_auth_background_scss($theme): string {
+    $scss = '';
+
+    foreach (theme_nit_auth_image_slots() as $slot) {
+        $url = $theme->setting_file_url($slot['setting'], $slot['filearea']);
+        if (empty($url)) {
+            continue;
+        }
+
+        // setting_file_url() returns a protocol-relative pluginfile URL string.
+        // It is built from the file name the admin uploaded, so it can carry
+        // quotes and parentheses that would end the CSS url() early.
+        $safe = addcslashes((string) $url, "'\\");
+        $sel = $slot['selector'];
+
+        $scss .= "\n{$sel} {"
+            . " background-image: url('{$safe}');"
+            . " background-size: cover;"
+            . " background-position: center;"
+            . " }\n"
+            // The caption belongs to Boost's default photo, and that photo is gone.
+            . "{$sel}::after { content: none; }\n";
     }
 
-    // setting_file_url() returns a protocol-relative pluginfile URL string. It is
-    // built from the file name the admin uploaded, so it can carry quotes and
-    // parentheses that would end the CSS url() early.
-    $safe = addcslashes((string) $url, "'\\");
-
-    return "\n"
-        . "body.pagelayout-login #page .login-layout-left {"
-        . " background-image: url('{$safe}');"
-        . " background-size: cover;"
-        . " background-position: center;"
-        . " }\n"
-        // The caption belongs to Boost's default photo, and that photo is gone.
-        . "body.pagelayout-login #page .login-layout-left::after { content: none; }\n";
+    return $scss;
 }
 
 /**
- * Serve the theme's admin-uploaded font and login-background files via pluginfile.php.
+ * Serve the theme's admin-uploaded fonts and account-screen pictures via pluginfile.php.
  *
- * Mirrors theme_boost_pluginfile(): the uploaded fonts live in a system-context
- * file area per language slot (see theme_nit_font_slots()), and the theme
- * revision — not the itemid — busts the cache. The gallery page (site:config
- * only) is the sole writer; this endpoint is a public, cache-able read of the
- * self-hosted font, exactly like the site logo. The login background picture
- * (Appearance → NIT settings) is served the same way and for the same reason:
- * a URL that a logged-out visitor can fetch, from our own domain.
+ * Mirrors theme_boost_pluginfile(): each upload lives in a system-context file
+ * area of its own — one per language for the fonts (theme_nit_font_slots()), one
+ * per screen for the pictures (theme_nit_auth_image_slots()) — and the theme
+ * revision, not the itemid, busts the cache. The gallery page (site:config only)
+ * is the sole writer; this endpoint is a public, cache-able read of a self-hosted
+ * file, exactly like the site logo. Public matters for the pictures in
+ * particular: whoever is looking at the log-in screen is by definition not
+ * logged in yet.
  *
  * @param stdClass $course
  * @param stdClass $cm
@@ -1390,8 +1545,10 @@ function theme_nit_login_background_scss($theme): string {
  * @return bool
  */
 function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
-    $areas = array_map(static fn($slot) => $slot['filearea'], theme_nit_font_slots());
-    $areas[] = 'loginbackgroundimage';
+    $areas = array_merge(
+        array_map(static fn($slot) => $slot['filearea'], theme_nit_font_slots()),
+        array_map(static fn($slot) => $slot['filearea'], theme_nit_auth_image_slots())
+    );
 
     if ($context->contextlevel == CONTEXT_SYSTEM && in_array($filearea, $areas, true)) {
         $theme = theme_config::load('nit');

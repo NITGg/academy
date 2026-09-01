@@ -17,10 +17,74 @@
 {{!
     @template theme_nit/core/login_panel
 
-    NIT override of core/login_panel.
+    NIT override of core/login_panel — what is drawn OVER the picture beside the
+    account screens.
 
-    NIT uses a single-column login (no split-screen marketing panel), so this
-    override intentionally renders nothing for the left panel. Keeping it here —
-    rather than editing theme/boost's core template in place — means Moodle
-    upgrades never conflict with, or silently revert, this customisation.
+    Core fills this panel with a welcome heading, a tagline and three invented
+    statistics. None of that is ours, so none of it is here. What is here is the
+    two things that were previously baked into the photograph itself: the site
+    logo, and a quote.
+
+    Baked in, both went stale — a typo meant re-exporting an image, and the logo
+    stayed whatever it was on the day the picture was made. Drawn here instead,
+    the logo IS the site's logo (the navbar's, resolved in PHP so there is one
+    logo on the site and not two) and the quote is a field an administrator edits
+    on the gallery page's "Log-in & sign-up" tab.
+
+    Both are optional: with no logo configured and no quote written, this renders
+    an empty panel and the picture is the whole of it — which is what it was
+    before.
+
+    Kept as a theme override rather than an edit to theme/boost's copy, so Moodle
+    upgrades never conflict with, or silently revert, this.
+
+    Context variables required for this template:
+    * nitpanel.haslogo - whether there is a logo to draw
+    * nitpanel.logourl - its URL
+    * nitpanel.sitename - the site's full name, for the logo's alt text
+    * nitpanel.hasquote - whether a quote has been written
+    * nitpanel.quote - the quote, already format_string()'d
+    * nitpanel.hasauthor - whether an attribution line was written with it
+    * nitpanel.author - that line, already format_string()'d
+
+    All of it is built by theme_nit_auth_panel_content(), called from
+    theme/nit/layout/login.php — a partial cannot fetch its own data.
+
+    Example context (json):
+    {
+        "nitpanel": {
+            "haslogo": true,
+            "logourl": "https://example.com/pluginfile.php/1/core_admin/logocompact/logo.png",
+            "sitename": "EAAC Learning Platform",
+            "hasquote": true,
+            "quote": "The beautiful thing about learning is that no one can take it away from you.",
+            "hasauthor": true,
+            "author": "Brian Herbert &middot; Educational Leader"
+        }
+    }
 }}
+<div class="nit-authpanel">
+    <div class="nit-authpanel-brand">
+        {{#nitpanel.haslogo}}
+            <img src="{{nitpanel.logourl}}" alt="{{nitpanel.sitename}}" class="nit-authpanel-logo">
+        {{/nitpanel.haslogo}}
+    </div>
+
+    {{#nitpanel.hasquote}}
+        {{!
+            A figure, not a bare div: the attribution is a caption of the quote and
+            not a second sentence of it, which is the distinction figcaption exists
+            to make and the one a screen reader needs to hear.
+        }}
+        <figure class="nit-authpanel-quote">
+            <blockquote class="nit-authpanel-quote-text">{{{nitpanel.quote}}}</blockquote>
+            {{#nitpanel.hasauthor}}
+                <figcaption class="nit-authpanel-quote-author">
+                    {{! Decoration standing in for the em dash - not read out. }}
+                    <span class="nit-authpanel-rule" aria-hidden="true"></span>
+                    <span>{{{nitpanel.author}}}</span>
+                </figcaption>
+            {{/nitpanel.hasauthor}}
+        </figure>
+    {{/nitpanel.hasquote}}
+</div>

@@ -196,6 +196,116 @@ if (($data = data_submitted()) && confirm_sesskey()) {
         redirect($pageurl, get_string('fontssaved', 'theme_nit'), null,
             \core\output\notification::NOTIFY_SUCCESS);
     }
+
+    // -------------------------------------------------------------------------
+    // Account screens: the picture beside the log-in and sign-up cards, and the
+    // quote drawn over it.
+    //
+    // The pictures are stored exactly like the fonts above — system context,
+    // itemid 0, config `theme_nit/<setting>` = the filename — so the standard
+    // theme plumbing (theme_nit_pluginfile) serves them and the extra SCSS
+    // (theme_nit_auth_background_scss) paints them. The quote is plain config,
+    // read at render time by theme_nit_auth_panel_content(); it changes no CSS,
+    // but the pictures do, so the cache purge below covers both.
+    //
+    // This lives on the gallery page rather than in settings.php because it is a
+    // branding decision, and every other branding decision — the palette, the
+    // fonts, the category styles — is made here, next to what it changes.
+    // -------------------------------------------------------------------------
+    if (!empty($data->saveauth)) {
+        $errors = [];
+        $remove = optional_param_array('removeauthimage', [], PARAM_BOOL);
+
+        foreach (theme_nit_auth_image_slots() as $key => $slot) {
+            $label = get_string($slot['strkey'], 'theme_nit');
+
+            // "Remove" wins over an upload in the same post: an admin who ticked
+            // the box and also chose a file meant the box, or they would not have
+            // had to tick it.
+            if (!empty($remove[$key])) {
+                $fs->delete_area_files($syscontext->id, 'theme_nit', $slot['filearea']);
+                unset_config($slot['setting'], 'theme_nit');
+                continue;
+            }
+
+            $field = $slot['input'];
+
+            // No file chosen for this slot → keep whatever is already stored.
+            if (empty($_FILES[$field]['name']) ||
+                    ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+
+            $upload = $_FILES[$field];
+
+            // Guard against upload failures and non-uploaded (spoofed) paths.
+            if ($upload['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($upload['tmp_name'])) {
+                $errors[] = get_string('authimageuploaderror', 'theme_nit', $label);
+                continue;
+            }
+
+            $ext = strtolower(pathinfo($upload['name'], PATHINFO_EXTENSION));
+            if ($ext === 'jpeg') {
+                $ext = 'jpg';
+            }
+            if (!in_array($ext, ['jpg', 'png', 'webp'], true)) {
+                $errors[] = get_string('authimageinvalidtype', 'theme_nit', $label);
+                continue;
+            }
+
+            // Verify the file really is the raster image its name claims, rather
+            // than trusting the extension: getimagesize() parses the header and
+            // returns false for anything it cannot read as an image. SVG is
+            // deliberately not offered — it is a document that can carry script,
+            // and a background photograph is never one.
+            $info = @getimagesize($upload['tmp_name']);
+            $allowedtypes = [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP];
+            if ($info === false || !in_array($info[2], $allowedtypes, true)) {
+                $errors[] = get_string('authimageinvalidtype', 'theme_nit', $label);
+                continue;
+            }
+
+            // Fixed, predictable filename per slot (only the extension varies),
+            // replacing any previous file in the area.
+            $filename = clean_param($slot['basename'] . '.' . $ext, PARAM_FILE);
+            $fs->delete_area_files($syscontext->id, 'theme_nit', $slot['filearea']);
+            $fs->create_file_from_pathname((object) [
+                'contextid' => $syscontext->id,
+                'component' => 'theme_nit',
+                'filearea'  => $slot['filearea'],
+                'itemid'    => 0,
+                'filepath'  => '/',
+                'filename'  => $filename,
+            ], $upload['tmp_name']);
+            set_config($slot['setting'], '/' . $filename, 'theme_nit');
+        }
+
+        // The quote and its attribution, one pair per language. PARAM_TEXT, not
+        // PARAM_RAW: this is a sentence, and it is printed through format_string()
+        // — which would strip any markup anyway.
+        foreach (theme_nit_auth_text_langs() as $lang => $meta) {
+            foreach (['quote', 'author'] as $part) {
+                $value = trim(optional_param('auth' . $part . '_' . $lang, '', PARAM_TEXT));
+                if ($value === '') {
+                    unset_config('authpanel' . $part . '_' . $lang, 'theme_nit');
+                } else {
+                    set_config('authpanel' . $part . '_' . $lang, $value, 'theme_nit');
+                }
+            }
+        }
+
+        theme_reset_all_caches();
+
+        // Back to the tab the form was submitted from, rather than to the first
+        // tab on the page (see the hash handler below).
+        $authurl = new moodle_url('/theme/nit/gallery.php', null, 'nit-tab-authscreens');
+        if ($errors) {
+            redirect($authurl, implode(' ', $errors), null,
+                \core\output\notification::NOTIFY_ERROR);
+        }
+        redirect($authurl, get_string('authscreenssaved', 'theme_nit'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
+    }
 }
 
 $gallery = new \theme_nit\output\gallery();
@@ -218,6 +328,24 @@ require([], function() {
             }
         });
     });
+});
+JS);
+
+// Open the tab named in the URL fragment. Every editor on this page saves by
+// POST-and-redirect, which without this always lands the admin back on the first
+// tab - so a font upload, or a change to the account screens, appeared to have
+// gone nowhere. Clicking the button rather than driving Bootstrap directly keeps
+// this working through a Bootstrap major version.
+$PAGE->requires->js_amd_inline(<<<'JS'
+require([], function() {
+    var hash = window.location.hash;
+    if (!hash || !/^#[\w-]+$/.test(hash)) {
+        return;
+    }
+    var button = document.querySelector('#nit-gallery-tabs [data-bs-target="' + hash + '"]');
+    if (button && !button.classList.contains('active')) {
+        button.click();
+    }
 });
 JS);
 

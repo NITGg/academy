@@ -64,6 +64,105 @@
     color: var(--nit-accentgold, #{$nit-gold-500});
 }
 
+// =============================================================================
+// What NIT draws over the panel picture: the site logo, and a quote.
+//
+// Both used to be part of the photograph. That meant re-exporting an image to
+// fix a typo, and a logo frozen at whatever it was the day the picture was made.
+// They are markup now (theme_nit/core/login_panel), which is also what lets the
+// quote be translated and the logo be the one real logo the navbar shows.
+//
+// The panel itself is Boost's: `.login-layout-left` is a 100vh sticky flex box
+// with 3rem of padding that centres a single content box, and it is hidden below
+// `lg` — so none of this exists on a phone, where the picture does not either.
+// =============================================================================
+.login-layout-left {
+    // Centring is for one box in the middle; this panel has a top and a bottom.
+    align-items: stretch;
+    justify-content: flex-start;
+}
+
+.nit-authpanel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    // Logo at the top, quote at the bottom, the picture between them. `space-between`
+    // and not two margins, so the panel is right with either one of them missing.
+    justify-content: space-between;
+    gap: 2rem;
+    width: 100%;
+    min-width: 0;
+    // Above `.login-layout-left::after`, the watermark Boost stamps on its own
+    // default photo — which is still there on a site that has not uploaded one.
+    position: relative;
+    z-index: 1;
+}
+
+.nit-authpanel-logo {
+    max-height: 3rem;
+    max-width: min(100%, 16rem);
+    width: auto;
+    // The panel is a photograph and the logo is usually white-on-transparent;
+    // a soft shadow keeps it off a light patch of sky or wall.
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+
+.nit-authpanel-quote {
+    margin: 0;
+    max-width: 34rem;
+    padding: 1.5rem 1.75rem;
+    border-radius: 1rem;
+    // The card is the legibility device: a photograph has no contrast ratio you
+    // can rely on, so the text sits on a surface with one instead of on the
+    // picture. Nearly opaque rather than fully, so it still reads as glass over
+    // the image; `color-mix` degrades to the surface colour where it is not
+    // supported, which is the safe direction.
+    background: color-mix(in srgb, var(--nit-brand-surface) 94%, transparent);
+    border: 1px solid color-mix(in srgb, var(--nit-brand-textprimary) 14%, transparent);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+    color: var(--nit-brand-textprimary);
+
+    @supports (backdrop-filter: blur(6px)) {
+        backdrop-filter: blur(6px);
+    }
+}
+
+.nit-authpanel-quote-text {
+    margin: 0;
+    // Big enough to be the thing you read on this half of the screen, capped so a
+    // long quote on a wide monitor does not turn into a headline.
+    font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+    font-weight: 600;
+    line-height: 1.45;
+    text-wrap: pretty;
+    // An administrator who breaks the quote into lines meant those lines; the
+    // field is plain text, so this is the only thing that can honour them.
+    white-space: pre-line;
+    // Boost gives blockquotes a coloured side rule. Inside a card that is already
+    // the quotation mark, a second one is noise.
+    border: 0;
+    padding: 0;
+}
+
+.nit-authpanel-quote-author {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.9rem;
+    font-size: 0.85rem;
+    color: var(--nit-brand-textsecondary);
+}
+
+// Stands in for the em dash an attribution usually opens with — a rule rather
+// than a character, so it takes the accent colour without being read out.
+.nit-authpanel-rule {
+    flex: 0 0 auto;
+    width: 1.25rem;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--nit-brand-accent, #{$nit-gold-500});
+}
+
 // Sign-up page: "Already have an account? Log in" prompt below the form.
 .signup-haveaccount {
     padding-top: 1rem;

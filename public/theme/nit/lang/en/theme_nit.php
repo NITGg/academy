@@ -27,8 +27,6 @@ defined('MOODLE_INTERNAL') || die();
 $string['pluginname'] = 'NIT';
 $string['choosereadme'] = 'NIT is a Boost-based theme foundation for the NIT LMS Framework. This M2 release provides the theme skeleton and asset pipeline; the design system and branding arrive in later milestones.';
 $string['configtitle'] = 'NIT settings';
-$string['loginbackgroundimage'] = 'Log-in page picture';
-$string['loginbackgroundimage_desc'] = 'The picture shown beside the log-in and sign-up cards. Leave this empty to keep Moodle\'s bundled default photo (which carries an "AI-generated image" caption). A wide, landscape image works best — it is cropped to fill the panel from the centre, so keep anything important away from the edges.';
 $string['frontpagecachettl'] = 'Front page cache lifetime';
 $string['frontpagecachettl_desc'] = 'How long the Site home caches its course cards and site counters before recomputing them from the database. Higher values reduce database load on the busiest page but make the numbers slightly staler. Set to 0 to disable caching (recompute on every request).';
 $string['foundation'] = 'Foundation';
@@ -68,6 +66,7 @@ $string['tab_brandcolours'] = 'Brand Colors';
 $string['tab_categorystyles'] = 'Category styles';
 $string['tab_colours'] = 'Colours';
 $string['tab_fonts'] = 'Fonts';
+$string['tab_authscreens'] = 'Log-in &amp; sign-up';
 $string['tab_components'] = 'Components';
 
 // Fonts (edited on the gallery page). One self-hosted font file per site
@@ -89,6 +88,26 @@ $string['fontssaved'] = 'Fonts saved. The theme CSS has been rebuilt.';
 $string['fontsreset'] = 'Fonts removed. The site is back to the default system font.';
 $string['fontinvalidtype'] = 'The {$a} was ignored: only .ttf and .otf font files are accepted.';
 $string['fontuploaderror'] = 'The {$a} could not be uploaded. Please try again.';
+
+// Account screens (edited on the gallery page): the picture beside the log-in
+// and sign-up cards, and the quote drawn over it.
+$string['authscreens_desc'] = 'The picture beside the log-in and sign-up cards, and the quote drawn over it. The site logo is drawn there too — it is the same logo the navigation bar shows (Site administration → Appearance → Logos), so it never needs setting twice and never goes stale. Nothing here appears below 992px wide: the panel is hidden on phones and tablets, where the form fills the screen.';
+$string['authimagelogin'] = 'Log-in page picture';
+$string['authimagelogin_desc'] = 'Shown on the log-in screen — and on the rest of the account flow (forgotten password, e-mail confirmation) unless a sign-up picture below overrides it. Leave empty to keep Moodle\'s bundled default photo, which carries an "AI-generated image" caption.';
+$string['authimagesignup'] = 'Sign-up page picture';
+$string['authimagesignup_desc'] = 'Shown on the create-account screen only. Leave empty to use the log-in picture there as well.';
+$string['authimageactive'] = 'In use';
+$string['authimagenone'] = 'No picture uploaded.';
+$string['authimageremove'] = 'Remove this picture when saving';
+$string['authimageinvalidtype'] = 'The {$a} was ignored: only .jpg, .png and .webp images are accepted.';
+$string['authimageuploaderror'] = 'The {$a} could not be uploaded. Please try again.';
+$string['authquote'] = 'Quote';
+$string['authquote_desc'] = 'Drawn in a card at the foot of the picture. Write it in each site language — a learner reading the site in Arabic should not be shown English here. Either language may be left empty; whichever is filled in is used for both. Leave both empty and no card is drawn at all. Type any quotation marks you want — none are added for you.';
+$string['authquotetext'] = 'Quote text';
+$string['authquoteauthor'] = 'Attribution';
+$string['authquoteauthorplaceholder'] = 'Brian Herbert · Educational Leader';
+$string['saveauthscreens'] = 'Save log-in &amp; sign-up';
+$string['authscreenssaved'] = 'Log-in and sign-up screens saved. The theme CSS has been rebuilt.';
 
 // Sign-up page: prompt sending existing users to the login page.
 $string['alreadyhaveaccount'] = 'Already have an account?';
