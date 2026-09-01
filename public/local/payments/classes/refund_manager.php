@@ -336,15 +336,35 @@ class refund_manager {
      * owns the notion of an active purchase.
      */
     private static function revoke_access(\stdClass $transaction): void {
+        global $DB;
+
         $itemtype = refund_policy::item_type($transaction);
 
         if ($itemtype === 'subscription') {
-            if (class_exists('\local_nit_subscriptions\subscription_purchase_manager')
-                    && method_exists('\local_nit_subscriptions\subscription_purchase_manager',
-                        'revoke_for_transaction')) {
-                \local_nit_subscriptions\subscription_purchase_manager::revoke_for_transaction(
-                    (int) $transaction->id);
+            $class = '\local_nit_subscriptions\subscription_purchase_manager';
+
+            // The purchase records the gateway order it was fulfilled from, which
+            // is the only link back from a refunded payment to the access it
+            // bought.
+            $purchase = $DB->get_record('nit_sub_purchase',
+                ['reference' => $transaction->order_id], 'id', IGNORE_MULTIPLE);
+
+            if ($purchase && class_exists($class)) {
+                // Same path an admin cancellation takes, so a refund leaves the
+                // student in exactly the state a cancellation would.
+                $class::unsubscribe((int) $purchase->id);
+                return;
             }
+
+            // Never fail silently here. A refund that leaves the subscription
+            // running has given the money back and kept nothing in return, and
+            // the only sign of it is a student who is still subscribed.
+            manager::log_entry((int) $transaction->provider_id, (int) $transaction->id, 'error',
+                $purchase
+                    ? 'Refunded, but local_nit_subscriptions is unavailable so the subscription '
+                        . 'is still active. Cancel it by hand.'
+                    : 'Refunded, but no subscription purchase was found for order '
+                        . $transaction->order_id . '. Check whether access is still active.');
             return;
         }
 
