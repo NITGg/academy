@@ -462,6 +462,7 @@ $string['footerlinkurl'] = 'عنوان الرابط';
 $string['footerlinklabel'] = 'النص ({$a})';
 $string['footerlinkbadurl'] = 'لم يُحفَظ الرابط {$a->row}: «{$a->url}» ليس عنوانًا يقبله موودل.';
 $string['footerlinknolabel'] = 'لم يُحفَظ الرابط {$a}: لا بد من نص بلغة واحدة على الأقل.';
+$string['footerlinknourl'] = 'لم يُحفَظ الرابط {$a}: لا بد من عنوان للرابط.';
 
 $string['footersocialsection'] = 'التواصل الاجتماعي';
 $string['footersocialurl_desc'] = 'العنوان الكامل للصفحة. اتركه فارغًا لإخفاء هذه الأيقونة.';

@@ -750,6 +750,11 @@
 .nitcats-card__cta svg {
     flex: 0 0 auto;
     display: block;
+    /* An <svg> with no fill falls back to black rather than to the text colour around it,
+       and the presentation attribute in the markup is not something to rely on. currentColor
+       keeps the arrow on whatever the footer's text is doing, hover included, rather than
+       pinning a second copy of the token to keep in step by hand. */
+    fill: currentColor;
 }
 
 /* The arrow points the way the language reads. */

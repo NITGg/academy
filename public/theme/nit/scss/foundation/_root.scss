@@ -128,6 +128,10 @@
     --nit-footericonhover: var(--nit-brand-accent-vivid);
     --nit-footerhover: var(--nit-brand-accenttext-vivid);
     --nit-footerborder: var(--nit-brand-borderprimary);
+    // The arc across the top of the band is the only thing separating the footer
+    // from the page above it, so it reads from the lighter of the two border
+    // roles - the primary hairline all but vanishes against the brand ground.
+    --nit-footerarc: var(--nit-brand-bordersecondary);
 
     // Legacy aliases kept for existing consumers (stat-tile, welcome_panel).
     // In the brand era these card surfaces are the brand surface (dark), not the

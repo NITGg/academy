@@ -469,6 +469,7 @@ $string['footerlinkurl'] = 'Link address';
 $string['footerlinklabel'] = 'Text ({$a})';
 $string['footerlinkbadurl'] = 'Link {$a->row} was not saved: "{$a->url}" is not an address Moodle accepts.';
 $string['footerlinknolabel'] = 'Link {$a} was not saved: it needs text in at least one language.';
+$string['footerlinknourl'] = 'Link {$a} was not saved: it needs an address.';
 
 $string['footersocialsection'] = 'Social media';
 $string['footersocialurl_desc'] = 'Full address of the page. Leave empty to hide this icon.';

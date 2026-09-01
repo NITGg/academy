@@ -414,6 +414,13 @@ class footer {
                     continue;
                 }
 
+                if ($rawurl === '') {
+                    // Text typed with nowhere to send anyone: worth saying so,
+                    // because the row would otherwise just be gone next time.
+                    $problems[] = get_string('footerlinknourl', 'local_profilefields', $i + 1);
+                    continue;
+                }
+
                 $url = clean_param($rawurl, PARAM_URL);
                 if ($url === '') {
                     $problems[] = get_string('footerlinkbadurl', 'local_profilefields',
