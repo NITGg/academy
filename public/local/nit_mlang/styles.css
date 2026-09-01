@@ -36,17 +36,25 @@
     width: 100%;
 }
 
+/* Side by side rather than one under the other, for the fields the server marks
+   inline. `flex: 1 1 14rem` is what makes it fold back to a stack on a narrow
+   screen instead of squeezing two unusable boxes onto one line. */
+.nitml--inline {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.nitml--inline .nitml__row {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+
 .nitml-tabs {
     display: flex;
     flex-wrap: wrap;
     gap: 0.3rem;
     margin-bottom: 0.5rem;
-}
-
-/* A chip strip above a plain text box: the widget already spaces its children,
-   so the strip does not add its own gap on top. */
-.nitml > .nitml-tabs {
-    margin-bottom: 0;
 }
 
 .nitml-tab {

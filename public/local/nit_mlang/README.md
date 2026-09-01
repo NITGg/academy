@@ -74,10 +74,11 @@ else the field appears. Text areas join them only when the second switch is on.
 Other datatypes are left alone: a menu's options are translated on the field
 definition, and a date or a file has no text.
 
-These fields are drawn as a language **chip strip above one box**, not as the
-stacked pair the rest of the site uses. The profile form was the one place asked
-for that shape, so it is the one place that has it: the server sends the list as
-`chipfields`, and a text field outside it keeps exactly the control it had.
+These fields keep the ordinary two boxes, but **side by side** rather than one
+under the other — the profile form was the one place asked for that layout, so it
+is the one place that has it. The server sends the list as `inlinefields`, the JS
+adds `nitml--inline` to those widgets and nothing else, and the boxes fold back
+into a stack on a narrow screen. A text field outside that list is untouched.
 
 Two things work differently here, both deliberately:
 

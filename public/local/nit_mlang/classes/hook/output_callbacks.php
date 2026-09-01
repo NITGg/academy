@@ -98,11 +98,11 @@ class output_callbacks {
             'textexcludes'   => registry::text_excludes(),
             'editorexcludes' => registry::editor_excludes(),
             'editors'        => $editors,
-            // Text fields drawn as a language chip strip rather than the site-wide
-            // stacked pair. Only the custom profile fields: the profile form is the
-            // one place asked for the chip shape, and the rest of the site keeps
-            // the control it already had.
-            'chipfields'     => $profile['text'],
+            // Text fields whose two language boxes sit side by side rather than one
+            // under the other. Only the custom profile fields: that is the form the
+            // layout was asked for, and every other text field on the site keeps the
+            // arrangement it already had.
+            'inlinefields'   => $profile['text'],
             // Editors that get a language tab strip whether or not the global
             // "Include rich text editors" switch is on. That switch is off on this
             // site because a hand-authored HTML block is a single bilingual

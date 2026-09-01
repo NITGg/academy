@@ -279,9 +279,10 @@ define('local_nit_mlang/fields', [], function() {
      * place — it simply receives the composed value instead of being typed into.
      *
      * @param {HTMLInputElement} input
+     * @param {Boolean} inline true to sit the language boxes side by side instead
      * @return {void}
      */
-    function enhanceText(input) {
+    function enhanceText(input, inline) {
         input.setAttribute('data-nitml', '1');
 
         // The field's own length limit belongs on each language box, not on the
@@ -295,7 +296,7 @@ define('local_nit_mlang/fields', [], function() {
         var extras = parsed.extras;
 
         var widget = document.createElement('div');
-        widget.className = 'nitml';
+        widget.className = 'nitml' + (inline ? ' nitml--inline' : '');
         widget.setAttribute('data-nitml-widget', 'text');
 
         var sync = function(silent) {
@@ -338,143 +339,6 @@ define('local_nit_mlang/fields', [], function() {
             row.appendChild(field);
             widget.appendChild(row);
         });
-
-        input.classList.add('nitml-source');
-        input.parentNode.insertBefore(widget, input.nextSibling);
-        sync(true);
-    }
-
-    /**
-     * Give one plain text input a language chip strip instead of a stack.
-     *
-     * The stacked pair above is the site-wide shape and stays that way. This is
-     * the shape used where a form already reads as chips — today the custom
-     * profile fields the server names in `chipfields` — so that part of the site
-     * keeps looking like itself rather than gaining a second visual language.
-     *
-     * One box is shown at a time, the language whose chip is selected, and a chip
-     * carries a dot once its language has content, so a missing translation is
-     * visible without clicking through. Same markup and same classes as the editor
-     * strip below, so there is one set of styles for both.
-     *
-     * @param {HTMLInputElement} input
-     * @return {void}
-     */
-    function enhanceTextTabs(input) {
-        input.setAttribute('data-nitml', '1');
-
-        // The field's own length limit belongs on the language box, not on the
-        // hidden original: the composed value is two or three languages plus the
-        // {mlang} markup, and is legitimately longer than any one of them.
-        var maxlength = input.getAttribute('maxlength');
-        input.removeAttribute('maxlength');
-
-        var parsed = parse(input.value);
-        var values = parsed.values;
-        var extras = parsed.extras;
-        var current = cfg.langs[0].code;
-
-        var widget = document.createElement('div');
-        widget.className = 'nitml';
-        widget.setAttribute('data-nitml-widget', 'text');
-
-        var tabs = document.createElement('div');
-        tabs.className = 'nitml-tabs';
-        tabs.setAttribute('role', 'tablist');
-        tabs.setAttribute('aria-label', cfg.strings.translations);
-
-        var field = document.createElement('input');
-        field.type = 'text';
-        field.className = 'form-control nitml__input';
-        field.setAttribute('autocomplete', 'off');
-        if (input.placeholder) {
-            field.placeholder = input.placeholder;
-        }
-        if (maxlength) {
-            field.setAttribute('maxlength', maxlength);
-        }
-        if (input.hasAttribute('autofocus')) {
-            field.setAttribute('autofocus', 'autofocus');
-            input.removeAttribute('autofocus');
-        }
-
-        var buttons = {};
-
-        /**
-         * The language entry for a code.
-         *
-         * @param {String} code
-         * @return {Object}
-         */
-        var langOf = function(code) {
-            for (var i = 0; i < cfg.langs.length; i++) {
-                if (cfg.langs[i].code === code) {
-                    return cfg.langs[i];
-                }
-            }
-            return cfg.langs[0];
-        };
-
-        var sync = function(silent) {
-            values[current] = field.value;
-            publish(input, compose(values, extras), silent === true);
-            cfg.langs.forEach(function(lang) {
-                buttons[lang.code].classList.toggle(
-                    'nitml-tab--filled',
-                    !isBlank(values[lang.code])
-                );
-            });
-        };
-
-        var select = function(code) {
-            if (code === current) {
-                return;
-            }
-            // Keep whatever was typed in the language being left behind. The
-            // composed value does not change, so no change event is raised.
-            sync();
-            current = code;
-
-            var lang = langOf(current);
-            field.value = values[current] || '';
-            field.setAttribute('dir', lang.dir);
-            field.setAttribute('lang', lang.code);
-            field.setAttribute('aria-label', lang.name + ' (' + lang.code + ')');
-
-            cfg.langs.forEach(function(entry) {
-                var active = entry.code === current;
-                buttons[entry.code].classList.toggle('nitml-tab--active', active);
-                buttons[entry.code].setAttribute('aria-selected', active ? 'true' : 'false');
-            });
-            field.focus();
-        };
-
-        cfg.langs.forEach(function(lang) {
-            var button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'nitml-tab' + (lang.code === current ? ' nitml-tab--active' : '');
-            button.textContent = lang.name + ' (' + lang.code + ')';
-            button.setAttribute('role', 'tab');
-            button.setAttribute('lang', lang.code);
-            button.setAttribute('aria-selected', lang.code === current ? 'true' : 'false');
-            button.addEventListener('click', function() {
-                select(lang.code);
-            });
-            buttons[lang.code] = button;
-            tabs.appendChild(button);
-        });
-
-        var first = langOf(current);
-        field.value = values[current] || '';
-        field.setAttribute('dir', first.dir);
-        field.setAttribute('lang', first.code);
-        field.setAttribute('aria-label', first.name + ' (' + first.code + ')');
-        field.addEventListener('input', function() {
-            sync();
-        });
-
-        widget.appendChild(tabs);
-        widget.appendChild(field);
 
         input.classList.add('nitml-source');
         input.parentNode.insertBefore(widget, input.nextSibling);
@@ -654,13 +518,10 @@ define('local_nit_mlang/fields', [], function() {
                 isExcluded(input.name, cfg.textexcludes)) {
                 return;
             }
-            // A chip field keeps the same widget the rest of that form already
-            // uses; everything else keeps the site-wide stacked pair.
-            if (matchesAny(input.name, cfg.chipfields || [])) {
-                enhanceTextTabs(input);
-                return;
-            }
-            enhanceText(input);
+            // An "inline" field puts its two language boxes side by side rather
+            // than one under the other. Only the custom profile fields the server
+            // names: the rest of the site keeps the layout it already had.
+            enhanceText(input, matchesAny(input.name, cfg.inlinefields || []));
         });
 
         // Nothing to do on the editor side when both the global switch is off and
