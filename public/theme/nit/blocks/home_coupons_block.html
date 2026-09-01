@@ -30,36 +30,55 @@
         style="display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; gap: 20px; width: 100%; overflow-x: auto; overflow-y: hidden; padding: 8px 4px 20px; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--nit-brand-accent) var(--nit-brand-surface); -webkit-overflow-scrolling: touch;"
         data-nit-coupons-scroller=""><!-- CARD TEMPLATE -->
         <div
-          style="display: none; flex: 0 0 320px; width: 320px; min-width: 320px; max-width: 320px; scroll-snap-align: start; align-self: stretch;"
+          style="display: none; flex: 0 0 340px; width: 340px; min-width: 340px; max-width: 340px; scroll-snap-align: start; align-self: stretch;"
           data-nit-coupons-card="">
           <div
-            style="box-sizing: border-box; width: 100%; min-height: 150px; height: 100%; display: flex; align-items: stretch; background: var(--nit-brand-surface); border: 1px dashed color-mix(in srgb, var(--nit-brand-accent) 55%, transparent); border-radius: 16px; overflow: hidden;">
-            <!-- VALUE -->
+            style="box-sizing: border-box; width: 100%; height: 100%; display: flex; flex-direction: column; background: var(--nit-brand-surface); border: 1px solid color-mix(in srgb, var(--nit-brand-accent) 32%, transparent); border-radius: 18px; overflow: hidden; box-shadow: 0 14px 34px rgba(0,0,0,.22);">
+            <!-- VALUE BAND: the discount, and next to it the coupon's own name (the new
+                 name/description fields) rather than the raw code — the code has its own chip
+                 below, where it can be copied. -->
             <div
-              style="flex: 0 0 104px; background: linear-gradient(135deg, color-mix(in srgb, var(--nit-brand-accent) 72%, #000), var(--nit-brand-accent)); color: var(--nit-brand-textprimary); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 8px;">
-              <strong style="font-size: 26px; line-height: 1; font-weight: 800;"
-                data-nit-value=""> {{value}} </strong> <span
-                style="font-size: 11px; font-weight: bold; margin-top: 4px;"
-                data-nit-valuelabel=""> {{valuelabel}} </span></div>
+              style="display: flex; align-items: center; gap: 14px; padding: 18px 20px; background: linear-gradient(135deg, color-mix(in srgb, var(--nit-brand-accent) 78%, #000), var(--nit-brand-accent)); color: var(--nit-brand-on-primary, #fff);">
+              <div
+                style="flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; line-height: 1;">
+                <strong style="font-size: 31px; font-weight: 800; letter-spacing: -1px;"
+                  data-nit-value="">{{value}}</strong> <span
+                  style="font-size: 10px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; opacity: .92; margin-top: 5px;"
+                  data-nit-valuelabel="">{{valuelabel}}</span></div>
+              <div style="flex: 1 1 auto; min-width: 0;">
+                <p
+                  style="margin: 0; font-size: 16px; font-weight: 800; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                  data-nit-name="">{{name}}</p>
+                <p
+                  style="display: none; margin: 4px 0 0; font-size: 11.5px; font-weight: 600; opacity: .9;"
+                  data-nit-max="">{{max}}</p>
+              </div>
+            </div>
+            <!-- Perforation, so the card reads as a torn-off ticket. -->
+            <div
+              style="height: 0; border-top: 2px dashed color-mix(in srgb, var(--nit-brand-textprimary) 14%, transparent);">
+            </div>
             <!-- BODY -->
             <div
-              style="flex: 1; min-width: 0; padding: 16px; display: flex; flex-direction: column; gap: 7px;">
+              style="flex: 1 1 auto; min-width: 0; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;">
+              <p
+                style="display: none; margin: 0; font-size: 13px; line-height: 1.7; color: var(--nit-brand-textsecondary); overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"
+                data-nit-desc="">{{description}}</p>
               <button
-                style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; font-family: monospace; font-weight: bold; font-size: 16px; color: var(--nit-brand-textprimary); background: color-mix(in srgb, var(--nit-brand-textprimary) 6%, transparent); border: 1px solid color-mix(in srgb, var(--nit-brand-accent) 40%, transparent); border-radius: 8px; padding: 6px 12px; cursor: pointer;"
-                type="button" data-nit-copy="" data-code="{{code}}"> {{code}}
-                <span aria-hidden="true">⧉</span> </button>
-              <p data-nit-scope=""
-                style="font-size: 12px; color: var(--nit-brand-textsecondary); margin: 0;">
-                {{scope}}</p>
-              <p data-nit-usage=""
-                style="font-size: 12px; color: var(--nit-brand-textsecondary); margin: 0;">
-                {{usage}}</p>
-              <p data-nit-max=""
-                style="font-size: 12px; color: var(--nit-brand-success); margin: 0;">
-                {{max}}</p>
-              <p data-nit-dates=""
-                style="font-size: 11px; color: var(--nit-brand-textsecondary); margin: 0;">
-                {{dates}}</p>
+                style="align-self: stretch; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: bold; font-size: 16px; letter-spacing: 1px; color: var(--nit-brand-textprimary); background: color-mix(in srgb, var(--nit-brand-textprimary) 6%, transparent); border: 1px dashed color-mix(in srgb, var(--nit-brand-accent) 50%, transparent); border-radius: 10px; padding: 10px 14px; cursor: pointer;"
+                type="button" data-nit-copy="" data-code="{{code}}"><span
+                  data-nit-codetext="">{{code}}</span> <span aria-hidden="true">⧉</span></button>
+              <!-- Meta chips. What the coupon applies to is NOT here any more: one truncated
+                   line could not carry it. It is on the details page in full. -->
+              <div style="display: flex; flex-wrap: wrap; gap: 7px;"><span
+                  style="display: none; font-size: 11.5px; font-weight: 600; color: var(--nit-brand-textsecondary); background: color-mix(in srgb, var(--nit-brand-textprimary) 6%, transparent); border-radius: 50px; padding: 4px 11px;"
+                  data-nit-usage="">{{usage}}</span> <span
+                  style="display: none; font-size: 11.5px; font-weight: 600; color: var(--nit-brand-textsecondary); background: color-mix(in srgb, var(--nit-brand-textprimary) 6%, transparent); border-radius: 50px; padding: 4px 11px;"
+                  data-nit-dates="">{{dates}}</span></div>
+              <a class="nit-btn-ghost"
+                style="display: block; box-sizing: border-box; margin-top: auto; background: transparent; border: 1px solid var(--nit-brand-bordersecondary); color: var(--nit-brand-textprimary); padding: 11px; border-radius: 10px; font-weight: bold; font-size: 13.5px; text-align: center; text-decoration: none;"
+                href="#" data-nit-details="">{mlang en}View details{mlang}{mlang
+                ar}عرض التفاصيل{mlang}</a>
             </div>
           </div>
         </div>
@@ -112,6 +131,13 @@
             } [c];
           }
         );
+      }
+
+      /* The description arrives as rendered HTML; the card wants a plain clamped line. */
+      function strip(html) {
+        var d = document.createElement('div');
+        d.innerHTML = html || '';
+        return (d.textContent || '').trim();
       }
 
       function num(n) {
@@ -207,14 +233,10 @@
               num(c.discount_value) + '%' :
               num(c.discount_value);
 
-            var scope =
-              c.applies_to && c.applies_to.length ?
-              c.applies_to
-              .map(function(a) {
-                return a.label;
-              })
-              .join(', ') :
-              '';
+            /* Name and description are the coupon's own fields; a coupon that has
+               neither still needs a heading, and its code is the honest one. */
+            var name = (c.name || '').trim() || c.code;
+            var description = strip(c.description || '');
 
             var s = fmt(c.startdate);
             var e = fmt(c.enddate);
@@ -263,7 +285,8 @@
                 isPct ? pctLabel : egpLabel
               )
               .replace(/\{\{code\}\}/g, esc(c.code))
-              .replace(/\{\{scope\}\}/g, esc(scope))
+              .replace(/\{\{name\}\}/g, esc(name))
+              .replace(/\{\{description\}\}/g, esc(description))
               .replace(/\{\{usage\}\}/g, esc(usage))
               .replace(/\{\{max\}\}/g, esc(max))
               .replace(/\{\{dates\}\}/g, esc(dates));
@@ -289,31 +312,29 @@
 
             wrap.innerHTML = html;
 
-            if (!scope) {
-              var sc =
-                wrap.querySelector('[data-nit-scope]');
+            /* Every optional line starts hidden in the template and is switched on only
+               when the coupon actually has one, so a sparse coupon leaves no empty gaps. */
+            function show(sel, on, how) {
+              var el = wrap.querySelector(sel);
 
-              if (sc) {
-                sc.style.display = 'none';
+              if (el && on) {
+                el.style.display = how;
               }
             }
 
-            if (!max) {
-              var mx =
-                wrap.querySelector('[data-nit-max]');
+            show('[data-nit-desc]', !!description, '-webkit-box');
+            show('[data-nit-max]', !!max, 'block');
+            show('[data-nit-usage]', !!usage, 'inline-block');
+            show('[data-nit-dates]', !!dates, 'inline-block');
 
-              if (mx) {
-                mx.style.display = 'none';
-              }
-            }
+            var details =
+              wrap.querySelector('[data-nit-details]');
 
-            if (!dates) {
-              var dt =
-                wrap.querySelector('[data-nit-dates]');
-
-              if (dt) {
-                dt.style.display = 'none';
-              }
+            if (details) {
+              details.href =
+                base +
+                '/local/nit_commerce/coupon.php?id=' +
+                encodeURIComponent(c.id);
             }
 
             var btn =

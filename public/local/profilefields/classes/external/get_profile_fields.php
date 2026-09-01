@@ -48,14 +48,16 @@ class get_profile_fields extends external_api {
             $result[] = [
                 'id'           => (int) $field->id,
                 'shortname'    => $field->shortname,
-                'name'         => $field->name,
+                // Both are display strings that may hold {mlang} markup, so they go
+                // out resolved to the caller's language - never as raw markup.
+                'name'         => format_string($field->name),
                 'datatype'     => $field->datatype,
                 'description'  => $field->description ?? '',
                 'required'     => (bool) $field->required,
                 'visible'      => (int) $field->visible,
                 'defaultvalue' => $field->defaultdata ?? '',
                 'categoryid'   => (int) $field->categoryid,
-                'categoryname' => $field->categoryname,
+                'categoryname' => format_string($field->categoryname),
                 'options'      => $options,
             ];
         }

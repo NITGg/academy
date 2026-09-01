@@ -151,4 +151,86 @@ class core_renderer extends \theme_boost\output\core_renderer {
         }
         return $this->render_from_template('theme_boost/language_menu', $langmenu);
     }
+
+    /**
+     * Render the "Management" group of the navbar gear menu.
+     *
+     * The academy's day-to-day management screens (coupons, offers,
+     * subscriptions, the job form, the design gallery, site media) each live
+     * under a different branch of Site administration, so reaching any one of
+     * them is three or four clicks down a tree. They are the screens an
+     * administrator opens every day, so the gear menu carries them directly, as
+     * a second group beneath core's Navigation list.
+     *
+     * Every row is gated on the same capability the page itself requires, so a
+     * user who could not open the page never sees the link; a row whose plugin
+     * is not installed on the site is skipped entirely (its capability would
+     * not exist to ask about). Returns '' when nothing survives that filter -
+     * the group, heading and all, then simply is not there.
+     *
+     * @return string HTML, or '' when the user may see none of the links
+     */
+    public function navbar_management_menu(): string {
+        $syscontext = \context_system::instance();
+
+        // [component, capability, url, label string identifier, string component].
+        $candidates = [
+            ['local_nit_commerce', 'local/nit_commerce:managecoupons',
+                '/local/nit_commerce/manage_coupons.php', 'managecoupons', 'local_nit_commerce'],
+            ['local_nit_commerce', 'local/nit_commerce:manageoffers',
+                '/local/nit_commerce/manage_offers.php', 'manageoffers', 'local_nit_commerce'],
+            ['local_nit_subscriptions', 'local/nit_subscriptions:managesubscriptions',
+                '/local/nit_subscriptions/manage_subscriptions.php', 'managesubscriptions', 'local_nit_subscriptions'],
+            ['local_jobform', 'local/jobform:manage',
+                '/local/jobform/manage.php', 'managejobform', 'local_jobform'],
+            ['theme_nit', 'moodle/site:config',
+                '/theme/nit/gallery.php', 'navgallery', 'theme_nit'],
+            ['local_nit_media', 'moodle/site:config',
+                '/admin/settings.php', 'pluginname', 'local_nit_media'],
+        ];
+
+        // Reading $PAGE->url on a page that never set one raises a developer
+        // notice, and highlighting the current row is not worth that: without a
+        // URL, nothing is simply marked active.
+        $currentpath = $this->page->has_set_url() ? $this->page->url->get_path() : null;
+        $currentsection = $this->page->has_set_url() ? $this->page->url->get_param('section') : null;
+        $items = [];
+
+        foreach ($candidates as [$component, $capability, $path, $identifier, $stringcomponent]) {
+            // A site that does not run one of these plugins still gets a menu:
+            // the row is skipped rather than asking about a capability that the
+            // access definitions never installed.
+            if (\core_component::get_component_directory($component) === null) {
+                continue;
+            }
+            if (!has_capability($capability, $syscontext)) {
+                continue;
+            }
+
+            // Site media has no page of its own - it is an admin settings
+            // section, so it needs the query string that selects it.
+            $params = $component === 'local_nit_media' ? ['section' => 'local_nit_media_settings'] : [];
+            $url = new \moodle_url($path, $params);
+
+            // /admin/settings.php is every settings page, so the section is what
+            // tells them apart; for a page of its own the path is enough.
+            $isactive = $currentpath === $url->get_path()
+                && (empty($params['section']) || $currentsection === $params['section']);
+
+            $items[] = [
+                'text' => get_string($identifier, $stringcomponent),
+                'url' => $url->out(false),
+                'isactive' => $isactive,
+            ];
+        }
+
+        if (empty($items)) {
+            return '';
+        }
+
+        return $this->render_from_template('theme_nit/navbar_management_menu', [
+            'heading' => get_string('navmanagement', 'theme_nit'),
+            'items' => $items,
+        ]);
+    }
 }

@@ -43,6 +43,54 @@ class provision {
     /** @var string Shortname of the category the recommended fields live in. */
     const CATEGORY = 'academy_details';
 
+    /** @var string Lang string holding both spellings of this plugin's category heading. */
+    const CATEGORY_STRING = 'academycategory';
+
+    /**
+     * Every profile field category heading this plugin knows in both languages.
+     *
+     * A category heading is printed through `format_string()`, so one row can hold
+     * both spellings as `{mlang}` markup and each reader sees their own. The rows
+     * themselves are ordinary data - "Instructor Fields" was built by hand on the
+     * site, not by this plugin - so nothing here creates or deletes a category. It
+     * only recognises one by its heading and writes that heading in both languages.
+     *
+     * @var string[] lang string keys, each holding the English and Arabic spelling
+     */
+    const CATEGORY_STRINGS = [
+        'academycategory',
+        'instructorcategory',
+    ];
+
+    /**
+     * Instructor profile fields whose label this plugin knows in both languages.
+     *
+     * Same story as the categories above: the fields were created by hand on the
+     * site with a label in one language, which then shows in that language to
+     * every reader whatever their own is. Mapped by shortname - the one part of a
+     * field that is a code and never changes - to the lang string holding the pair.
+     *
+     * @var array shortname => lang string key
+     */
+    const INSTRUCTOR_FIELDS = [
+        'coverimage'        => 'ifieldcoverimage',
+        'biography'         => 'ifieldbiography',
+        'qualifications'    => 'ifieldqualifications',
+        'certificates'      => 'ifieldcertificates',
+        'experience'        => 'ifieldexperience',
+        'specialization'    => 'ifieldspecialization',
+        'languages'         => 'ifieldlanguages',
+        'linkedin'          => 'ifieldlinkedin',
+        'website'           => 'ifieldwebsite',
+        'facebook'          => 'ifieldfacebook',
+        'instagram'         => 'ifieldinstagram',
+        'twitter'           => 'ifieldtwitter',
+        'youtube'           => 'ifieldyoutube',
+        'awards'            => 'ifieldawards',
+        'yearsofexperience' => 'ifieldyearsofexperience',
+        'resume'            => 'ifieldresume',
+    ];
+
     /**
      * The recommended fields, in display order.
      *
@@ -223,14 +271,24 @@ class provision {
     /**
      * The category id for the recommended fields, creating it if needed.
      *
+     * Matched by *meaning*, not by the exact stored string: the heading is a
+     * display name, so it may already carry `{mlang}` markup or have been created
+     * under either language. `category_key()` recognises all three shapes, which
+     * is what keeps a second run from making a duplicate category next to the one
+     * that is already there.
+     *
      * @return int
      */
     protected static function ensure_category(): int {
         global $DB;
 
-        $name = get_string('academycategory', 'local_profilefields');
-        if ($id = $DB->get_field('user_info_category', 'id', ['name' => $name])) {
-            return (int) $id;
+        $name = self::label(self::CATEGORY_STRING);
+
+        $existing = $DB->get_records('user_info_category', null, 'sortorder ASC', 'id, name');
+        foreach ($existing as $row) {
+            if (self::category_key((string) $row->name) === self::CATEGORY_STRING) {
+                return (int) $row->id;
+            }
         }
 
         $sortorder = (int) $DB->get_field_sql('SELECT MAX(sortorder) FROM {user_info_category}') + 1;
@@ -297,6 +355,7 @@ class provision {
         global $DB;
 
         $repaired = self::repair_names();
+        $repaired = self::repair_labels() || $repaired;
 
         foreach (self::fields() as $shortname => $spec) {
             if ($spec['datatype'] !== 'datetime') {
@@ -370,6 +429,153 @@ class provision {
      */
     protected static function is_numeric_or_empty($value): bool {
         return $value === null || $value === '' || is_numeric($value);
+    }
+
+    /**
+     * Write the category headings and the instructor field labels in both languages.
+     *
+     * The bug this fixes is visible on any Arabic profile page: the fields inside
+     * "Additional details" read in Arabic, because this plugin created them with
+     * `{mlang}` markup, while the heading above them - and every label in the
+     * "Instructor Fields" group, which was built by hand on the site - stays in
+     * whichever single language it was typed in.
+     *
+     * A row is only touched when its stored text still *is* one of the two
+     * spellings we know. A heading an administrator has since reworded, or has
+     * already written as an `{mlang}` pair themselves, is left exactly as it is:
+     * this repairs a label that was never bilingual, it does not overrule one.
+     *
+     * Reversible in the same sense as `repair_names()`: on a site with no
+     * multilang filter to resolve the markup, `label()` returns the plain English
+     * spelling and an existing pair is collapsed back to it rather than shown raw.
+     *
+     * @return bool true if any heading or label was rewritten
+     */
+    public static function repair_labels(): bool {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/user/profile/definelib.php');
+
+        $changed = false;
+
+        foreach ($DB->get_records('user_info_category', null, 'sortorder ASC', 'id, name') as $row) {
+            $key = self::category_key((string) $row->name);
+            if ($key === null) {
+                continue;
+            }
+            $name = self::label($key);
+            if ($name === (string) $row->name) {
+                continue;
+            }
+            $DB->set_field('user_info_category', 'name', $name, ['id' => $row->id]);
+            $changed = true;
+        }
+
+        foreach (self::INSTRUCTOR_FIELDS as $shortname => $key) {
+            $field = $DB->get_record('user_info_field', ['shortname' => $shortname], 'id, name');
+            if (!$field || !self::is_spelling_of((string) $field->name, $key)) {
+                continue;
+            }
+            $name = self::label($key);
+            if ($name === (string) $field->name) {
+                continue;
+            }
+            $DB->set_field('user_info_field', 'name', $name, ['id' => $field->id]);
+            $changed = true;
+        }
+
+        if ($changed) {
+            profile_purge_user_fields_cache();
+        }
+
+        return $changed;
+    }
+
+    /**
+     * Which known category a stored heading is, if it is one of them.
+     *
+     * @param string $stored the `user_info_category.name` as it is in the database
+     * @return string|null the lang string key, or null when we do not know this heading
+     */
+    protected static function category_key(string $stored): ?string {
+        foreach (self::CATEGORY_STRINGS as $key) {
+            if (self::is_spelling_of($stored, $key)) {
+                return $key;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Is this stored label one of the spellings of `$key`, in any shape?
+     *
+     * Three shapes count: the English spelling, the Arabic one, and an `{mlang}`
+     * pair whose parts are those two. Anything else - a reworded heading, a third
+     * language, a pair somebody has edited - is not ours to rewrite.
+     *
+     * @param string $stored the label as it is in the database
+     * @param string $key lang string key holding the two spellings
+     * @return bool
+     */
+    protected static function is_spelling_of(string $stored, string $key): bool {
+        $candidates = [$stored];
+        if (preg_match_all('/\{mlang\s+[^}]+\}(.*?)\{mlang\}/s', $stored, $matches)) {
+            $candidates = $matches[1];
+        }
+        $candidates = array_filter(array_map('trim', $candidates), function ($candidate) {
+            return $candidate !== '';
+        });
+        if (!$candidates) {
+            return false;
+        }
+
+        $known = array_map(function ($spelling) {
+            return \core_text::strtolower(trim($spelling));
+        }, self::spellings($key));
+
+        foreach ($candidates as $candidate) {
+            if (!in_array(\core_text::strtolower($candidate), $known, true)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * The English and Arabic spellings of one lang string.
+     *
+     * @param string $key lang string key
+     * @return string[] the two spellings, deduplicated
+     */
+    protected static function spellings(string $key): array {
+        $manager = get_string_manager();
+        if (!$manager->string_exists($key, 'local_profilefields')) {
+            return [];
+        }
+        return array_values(array_unique(array_filter([
+            trim($manager->get_string($key, 'local_profilefields', null, 'en')),
+            trim($manager->get_string($key, 'local_profilefields', null, 'ar')),
+        ])));
+    }
+
+    /**
+     * One label, bilingual when there is a filter to resolve it.
+     *
+     * @param string $key lang string key holding the English and Arabic spellings
+     * @return string the `{mlang}` pair, or the plain English spelling
+     */
+    protected static function label(string $key): string {
+        $spellings = self::spellings($key);
+        if (!$spellings) {
+            return '';
+        }
+        $en = $spellings[0];
+
+        // A bilingual {mlang} label only makes sense when a multilang filter will
+        // actually render it; otherwise the raw tags would show to every user.
+        if (!self::multilang_active() || count($spellings) < 2) {
+            return $en;
+        }
+        return '{mlang en}' . $en . '{mlang}{mlang ar}' . $spellings[1] . '{mlang}';
     }
 
     /**

@@ -416,3 +416,26 @@ $string['emailchangelocked'] = 'Only an administrator can change your email addr
 $string['passwordexternal'] = 'You sign in through an external account, so there is no password held here.';
 $string['deleteaccountcannotbeundone'] = 'This cannot be undone';
 $string['deleteaccountretained'] = 'Financial records are retained. Certificates already issued remain publicly verifiable.';
+
+// Profile field group headings and the instructor field labels, written in both
+// languages by provision::repair_labels(). The Arabic file supplies the other half
+// of each pair; a label whose two spellings are identical (a brand name) is stored
+// plain, with no {mlang} markup.
+$string['instructorcategory'] = 'Instructor Fields';
+
+$string['ifieldcoverimage'] = 'Cover image';
+$string['ifieldbiography'] = 'Biography';
+$string['ifieldqualifications'] = 'Qualifications';
+$string['ifieldcertificates'] = 'Certificates';
+$string['ifieldexperience'] = 'Experience';
+$string['ifieldspecialization'] = 'Specialization';
+$string['ifieldlanguages'] = 'Languages';
+$string['ifieldlinkedin'] = 'LinkedIn';
+$string['ifieldwebsite'] = 'Website';
+$string['ifieldfacebook'] = 'Facebook';
+$string['ifieldinstagram'] = 'Instagram';
+$string['ifieldtwitter'] = 'Twitter';
+$string['ifieldyoutube'] = 'YouTube';
+$string['ifieldawards'] = 'Awards';
+$string['ifieldyearsofexperience'] = 'Years of experience';
+$string['ifieldresume'] = 'Resume';

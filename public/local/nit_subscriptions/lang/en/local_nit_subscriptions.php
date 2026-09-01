@@ -232,3 +232,76 @@ $string['sub_feetype_percent'] = 'Percentage of the amount paid';
 $string['sub_refundfee_help'] = 'Applies to the plan default price. Country prices below can set their own, in their own currency.';
 $string['sub_price_refundhours'] = 'Refund hrs';
 $string['sub_price_refundfee'] = 'Refund fee';
+
+// Public plan-details page (/local/nit_subscriptions/plan.php) and the "View details"
+// button the home-page plan cards link to it with.
+$string['plan_details']        = 'Plan details';
+$string['plan_viewdetails']    = 'View details';
+$string['plan_allplans']       = 'Subscription plans';
+$string['plan_notavailable']   = 'This subscription plan is not available.';
+$string['plan_about']          = 'About this plan';
+$string['plan_included']       = 'Courses included in this plan';
+$string['plan_included_none']  = 'No courses have been attached to this plan yet.';
+$string['plan_included_count'] = '{$a} courses unlocked';
+$string['plan_included_one']   = '1 course unlocked';
+$string['plan_perdays']        = 'for {$a} days';
+$string['plan_duration']       = 'Duration';
+$string['plan_days']           = '{$a} days';
+$string['plan_b2b']            = 'Available for teams';
+$string['plan_seats']          = 'Team pricing';
+$string['plan_seats_intro']    = 'Buy several seats at once and pay less per seat.';
+$string['plan_seats_col']      = 'Seats';
+$string['plan_seats_save']     = 'You save';
+$string['plan_seats_price']    = 'Total';
+$string['plan_current']        = 'Your current plan';
+$string['plan_daysleft']       = '{$a} days left';
+$string['plan_activenow']      = 'Active';
+$string['plan_otheractive']    = 'You already have an active subscription, so this plan cannot be bought right now.';
+$string['plan_opencourse']     = 'Open';
+$string['plan_price_from']     = 'Price';
+$string['plan_login_tosubscribe'] = 'Log in to subscribe';
+$string['plan_offer']          = 'Offer';
+
+// ── Renewal reminders ───────────────────────────────────────────────────────────
+// Admin tab that decides how long before a subscription runs out the subscriber is
+// warned — and, on the same window, when the Renew button appears on their plan card.
+$string['messageprovider:subscriptionreminder'] = 'Subscription about to expire';
+$string['task_send_subscription_reminders'] = 'Send subscription expiry reminders';
+
+$string['tab_plans']     = 'Plans & pricing';
+$string['tab_courses']   = 'Course availability';
+$string['tab_users']     = 'User subscriptions';
+$string['tab_reminders'] = 'Renewal reminders';
+
+$string['rem_heading']   = 'Renewal reminders';
+$string['rem_desc']      = 'Warn subscribers before their plan runs out, and let them renew early. A reminder goes out once for each lead time below, and the Renew button appears on their plan card from the earliest one onwards.';
+$string['rem_enabled']   = 'Send expiry reminders';
+$string['rem_enabled_help'] = 'Turn this off to stop all reminders and hide the Renew button. Nothing else is lost — the lead times stay saved.';
+$string['rem_days']      = 'Send a reminder this many days before the plan ends';
+$string['rem_days_help'] = 'Add one entry per warning, for example 7, 3 and 1. Between 1 and {$a} days.';
+$string['rem_days_add']  = 'Add a lead time';
+$string['rem_days_none'] = 'No lead times yet — add at least one.';
+$string['rem_day_unit']  = 'days before expiry';
+$string['rem_remove']    = 'Remove';
+$string['rem_save']      = 'Save and apply now';
+$string['rem_applied']   = 'Saved. {$a->sent} reminder(s) sent now; {$a->cleared} old reminder record(s) cleared.';
+$string['rem_preview']   = 'Right now this would notify {$a->due} of {$a->active} active subscriber(s).';
+$string['rem_window_note'] = 'The Renew button uses the largest lead time: {$a} days before the plan ends.';
+$string['rem_window_off']  = 'Reminders are off, so no Renew button is shown.';
+$string['rem_recalc_note'] = 'Saving re-checks every live subscription straight away: anyone the new window covers is notified now, and reminder records for lead times you removed are cleared so they can fire again if you add them back.';
+$string['rem_col_days']  = 'Lead time';
+
+$string['err_reminderdaysrequired'] = 'Add at least one lead time, or switch reminders off.';
+
+// The notification itself. {$a->plan}, {$a->days} and {$a->expires} are filled in per recipient.
+$string['reminder_msg_subject'] = 'Your subscription "{$a->plan}" ends in {$a->days} day(s)';
+$string['reminder_msg_body']    = 'Your subscription "{$a->plan}" ends on {$a->expires} — that is {$a->days} day(s) from now. Renew before then and the new period starts the day the current one ends, so you lose no time.';
+$string['reminder_msg_small']   = 'Your subscription ends in {$a->days} day(s).';
+$string['reminder_msg_action']  = 'Renew your subscription';
+
+// Renewing, on the plan card and the plan page.
+$string['sub_renew']            = 'Renew now';
+$string['sub_renew_endsin']     = 'Ends in {$a} day(s)';
+$string['sub_renew_note']       = 'Renewing now extends your plan from the day it currently ends — you lose none of the time you have left.';
+$string['sub_renew_confirm']    = 'Confirm your renewal';
+$string['sub_renew_newexpiry']  = 'New end date';

@@ -37,4 +37,16 @@ $tasks = [
         'month'     => '*',
         'dayofweek' => '*',
     ],
+    [
+        // Warn subscribers whose plan is about to run out, at the lead times set on the
+        // "Renewal reminders" tab. Hourly, and offset from the expiry job above so the two
+        // never contend for the same rows.
+        'classname' => 'local_nit_subscriptions\task\send_subscription_reminders',
+        'blocking'  => 0,
+        'minute'    => '22',
+        'hour'      => '*',
+        'day'       => '*',
+        'month'     => '*',
+        'dayofweek' => '*',
+    ],
 ];

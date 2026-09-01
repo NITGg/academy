@@ -1,0 +1,529 @@
+/* Public plan-details page (local/nit_subscriptions/plan.php).
+ *
+ * Colours come from the theme_nit brand palette through the slots the page sets inline, the
+ * same mapping the course catalogue uses — so the two pages re-skin together and are correct
+ * in light and dark without a second set of rules. Every horizontal property is logical
+ * (inline-start/end), so the whole page mirrors itself in Arabic.
+ */
+
+.nitplan {
+    background: var(--cbg1);
+    color: var(--ctext1);
+    width: 100vw;
+    max-width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    padding-bottom: 56px;
+    min-height: 100vh;
+}
+
+.nitplan__wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 clamp(16px, 4vw, 40px);
+}
+
+.nitplan [hidden] {
+    display: none !important;
+}
+
+/* ── Breadcrumbs ───────────────────────────────────────────────────────────────── */
+
+.nitplan__crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ctext2);
+    padding: 26px 0 18px;
+}
+
+.nitplan__crumbs a {
+    color: var(--ctext2);
+    text-decoration: none;
+}
+
+.nitplan__crumbs a:hover {
+    color: var(--ctext1);
+    text-decoration: underline;
+}
+
+/* ── Hero ──────────────────────────────────────────────────────────────────────── */
+
+.nitplan__hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: clamp(20px, 3vw, 40px);
+    align-items: start;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--cborder);
+}
+
+.nitplan__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.nitplan__badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    padding: 5px 12px;
+    border-radius: 50px;
+    border: 1px solid color-mix(in srgb, var(--caccent) 35%, transparent);
+    background: color-mix(in srgb, var(--caccent) 12%, transparent);
+    color: var(--ctext3);
+}
+
+.nitplan__badge--ok,
+.nitplan__badge--offer {
+    border-color: color-mix(in srgb, var(--csuccess) 45%, transparent);
+    background: color-mix(in srgb, var(--csuccess) 15%, transparent);
+    color: var(--csuccess);
+}
+
+/* "-10%" is all neutral characters, so an Arabic page would otherwise print it "10%-".
+   The label is generated, never translated, and is always this shape. */
+.nitplan__badge--offer {
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
+.nitplan__badge--b2b {
+    border-color: color-mix(in srgb, var(--ctext1) 22%, transparent);
+    background: color-mix(in srgb, var(--ctext1) 8%, transparent);
+    color: var(--ctext1);
+}
+
+.nitplan__title {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--ctext1);
+    margin: 0 0 14px;
+}
+
+.nitplan__intro {
+    color: var(--ctext2);
+    font-size: 15px;
+    line-height: 1.85;
+    max-width: 68ch;
+}
+
+.nitplan__intro p:last-child {
+    margin-bottom: 0;
+}
+
+.nitplan__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    list-style: none;
+    margin: 22px 0 0;
+    padding: 0;
+}
+
+.nitplan__facts li {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 150px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--cborder);
+    background: var(--cbg2);
+}
+
+.nitplan__factlabel {
+    font-size: 12px;
+    color: var(--ctext2);
+}
+
+.nitplan__facts strong {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ctext1);
+}
+
+/* ── Price panel ───────────────────────────────────────────────────────────────── */
+
+.nitplan__buy {
+    position: sticky;
+    top: 90px;
+    background: var(--cbg2);
+    border: 1px solid color-mix(in srgb, var(--caccent) 28%, transparent);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, .28);
+    text-align: center;
+}
+
+.nitplan__pricebox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 18px;
+}
+
+.nitplan__was {
+    font-size: 15px;
+    color: var(--ctext2);
+    text-decoration: line-through;
+}
+
+.nitplan__now {
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--ctext3);
+}
+
+.nitplan__per {
+    font-size: 13px;
+    color: var(--ctext2);
+}
+
+.nitplan__cta {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--cbg4);
+    border: 1px solid var(--cbg4);
+    color: var(--nit-brand-on-primary, var(--ctext1));
+    border-radius: 10px;
+    padding: 13px 18px;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+
+.nitplan__cta:hover:not(:disabled):not(.nitplan__cta--owned) {
+    background: var(--nit-brand-primary-hover, var(--cbg4));
+    color: var(--nit-brand-on-primary, var(--ctext1));
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .32);
+}
+
+.nitplan__cta:disabled {
+    opacity: .5;
+    cursor: default;
+}
+
+.nitplan__cta--owned {
+    background: color-mix(in srgb, var(--csuccess) 15%, transparent);
+    border-color: color-mix(in srgb, var(--csuccess) 45%, transparent);
+    color: var(--csuccess);
+    cursor: default;
+}
+
+.nitplan__cta--inline {
+    width: auto;
+    display: inline-block;
+}
+
+.nitplan__note,
+.nitplan__secure,
+.nitplan__countrymsg {
+    font-size: 12px;
+    color: var(--ctext2);
+    margin: 12px 0 0;
+    line-height: 1.6;
+}
+
+.nitplan__countryshort {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ctext3);
+    margin: 0 0 6px;
+}
+
+/* ── Sections ──────────────────────────────────────────────────────────────────── */
+
+.nitplan__section {
+    padding: 36px 0 0;
+}
+
+.nitplan__h2 {
+    font-size: clamp(19px, 2.4vw, 24px);
+    font-weight: 800;
+    color: var(--ctext1);
+    margin: 0 0 6px;
+}
+
+.nitplan__empty {
+    color: var(--ctext2);
+    font-size: 14px;
+    margin: 0 0 16px;
+}
+
+/* ── Included courses ──────────────────────────────────────────────────────────── */
+
+.nitplan__courses {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+}
+
+.nitplan__course {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--cborder);
+    background: var(--cbg2);
+    transition: border-color .2s ease, transform .2s ease;
+}
+
+.nitplan__course:hover {
+    border-color: var(--caccent);
+    transform: translateY(-2px);
+}
+
+.nitplan__tick {
+    flex: 0 0 auto;
+    color: var(--csuccess);
+    font-weight: 700;
+}
+
+.nitplan__coursename {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--ctext1);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.nitplan__coursename:hover {
+    color: var(--ctext3);
+    text-decoration: underline;
+}
+
+.nitplan__courseopen {
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ctext3);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+/* ── Seat tiers ────────────────────────────────────────────────────────────────── */
+
+.nitplan__seats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.nitplan__seat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 18px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--cborder);
+    background: var(--cbg2);
+    text-align: center;
+}
+
+.nitplan__seatcount {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--ctext1);
+    line-height: 1;
+}
+
+.nitplan__seatlabel {
+    font-size: 12px;
+    color: var(--ctext2);
+}
+
+.nitplan__seatprice {
+    margin-top: 6px;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--ctext3);
+}
+
+.nitplan__seatsave {
+    font-size: 12px;
+    color: var(--csuccess);
+}
+
+/* ── Checkout dialog ───────────────────────────────────────────────────────────── */
+
+.nitplan__modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1055;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: color-mix(in srgb, var(--cbg1) 76%, transparent);
+}
+
+.nitplan__dialog {
+    width: 100%;
+    max-width: 460px;
+    background: var(--cbg2);
+    border: 1px solid color-mix(in srgb, var(--caccent) 24%, transparent);
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+    padding: 24px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.nitplan__dialogtitle {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--ctext1);
+    margin: 0 0 8px;
+}
+
+.nitplan__dialogintro {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ctext2);
+    margin: 0 0 18px;
+}
+
+.nitplan__summary {
+    border: 1px solid var(--cborder);
+    border-radius: 12px;
+    background: var(--cbg1);
+    padding: 16px;
+}
+
+.nitplan__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--ctext2);
+    margin-bottom: 10px;
+}
+
+.nitplan__row strong {
+    color: var(--ctext1);
+}
+
+.nitplan__row--total {
+    margin-bottom: 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--cborder);
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.nitplan__row--total span {
+    color: var(--ctext1);
+}
+
+.nitplan__row--total strong {
+    color: var(--ctext3);
+}
+
+.nitplan__good {
+    color: var(--csuccess) !important;
+}
+
+.nitplan__coupon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 14px 0 10px;
+}
+
+.nitplan__coupon label {
+    flex: 0 0 auto;
+    font-size: 14px;
+    color: var(--ctext2);
+    margin: 0;
+}
+
+.nitplan__coupon input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    background: var(--cbg2);
+    border: 1px solid var(--cborder);
+    border-radius: 8px;
+    color: var(--ctext1);
+    padding: 8px 10px;
+    font-size: 14px;
+}
+
+.nitplan__coupon button {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 1px solid var(--cborder);
+    color: var(--ctext1);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.nitplan__coupon button:hover {
+    background: var(--nit-brand-hoverbackground, var(--cbg3));
+    color: var(--nit-brand-hovertext, var(--ctext1));
+}
+
+.nitplan__err {
+    color: var(--cerror);
+    font-size: 12.5px;
+    margin: 8px 0 0;
+}
+
+.nitplan__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.nitplan__ghost {
+    background: transparent;
+    border: 1px solid var(--cborder);
+    color: var(--ctext1);
+    border-radius: 10px;
+    padding: 11px 18px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.nitplan__ghost:hover {
+    background: var(--nit-brand-hoverbackground, var(--cbg3));
+    color: var(--nit-brand-hovertext, var(--ctext1));
+}
+
+/* ── Narrow screens ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+    .nitplan__hero {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .nitplan__buy {
+        position: static;
+    }
+}

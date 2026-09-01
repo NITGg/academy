@@ -26,7 +26,8 @@
         or the other).
       * The language menu sits on the left, right after the brand.
       * The horizontal primary navigation is collapsed into a single gear-icon
-        dropdown (built from `mobileprimarynav`).
+        dropdown (built from `mobileprimarynav`), which carries a second,
+        NIT-only group of management links (output.navbar_management_menu).
       * Right cluster order: notifications (navbar_plugin_output), gear nav,
         user menu. Search + edit switch are kept but only render when present.
 
@@ -103,6 +104,12 @@
                         wrapper is `:empty` when core returns no switch — CSS then
                         hides it, so no stray row on pages without editing. }}
                     <div class="nit-navmenu-editswitch">{{{ output.edit_switch }}}</div>
+
+                    {{! NIT: second group — the management screens an administrator
+                        opens daily, each otherwise three or four clicks down the
+                        Site administration tree. Empty (nothing drawn, heading
+                        included) for a user without the capabilities. }}
+                    {{{ output.navbar_management_menu }}}
                 </div>
             </div>
 

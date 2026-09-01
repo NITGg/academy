@@ -199,3 +199,8 @@ $string['loginemailplaceholder'] = 'name@example.com';
 $string['forgotyourpassword'] = 'Forgot your password?';
 $string['noaccount'] = 'Don\'t have an account?';
 $string['signupnow'] = 'Sign up';
+
+// Navbar gear menu — the second group, holding the management screens that
+// otherwise sit three or four clicks down the Site administration tree.
+$string['navmanagement'] = 'Management';
+$string['navgallery'] = 'Design gallery';

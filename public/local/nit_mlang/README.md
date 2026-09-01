@@ -60,11 +60,38 @@ Both lists can be extended by an administrator in
 a newly added field never needs a code change. The page type to use in a rule is
 in the `<body>` class of the page.
 
+## Custom profile field *values* (`classes/profilefields.php`)
+
+The registry above is about site content — a course name, an activity title. A
+custom user profile field is different: whether its *value* is prose or an
+identifier is data an administrator typed, not something a shipped list can know.
+A specialisation and a biography want two languages; a passport number does not.
+
+So that choice is made per **category**, in *Bilingual profile field categories* on
+the settings page. Tick a category and every `text` and `textarea` field in it is
+edited with one box per language, on `/user/editadvanced.php`, on the account page,
+and anywhere else the field appears. Other datatypes are left alone: a menu's
+options are translated on the field definition, and a date or a file has no text.
+
+Two things work differently here, both deliberately:
+
+* **The capability does not gate it.** The field holds the person's own data, not
+  the site's, so an instructor without `local/nit_mlang:edit` still gets the two
+  boxes — but only on a profile screen (`profilefields::PAGETYPES`), and only for
+  these fields. Nothing from the registry reaches them.
+* **A `textarea` field is enhanced even when "Include rich text editors" is off.**
+  That switch is off site-wide because a hand-authored HTML block is one bilingual
+  document that breaks when it is split; a biography is ordinary prose.
+
+The category headings themselves are a separate matter — they are stored strings
+like any other, and `local_profilefields\provision::repair_labels()` writes the
+ones this academy uses as `{mlang}` pairs.
+
 ## Who sees it
 
 Only holders of `local/nit_mlang:edit` — editing teachers, course creators and
 managers by default. A student writing a forum post keeps the ordinary single
-field.
+field. The one exception is a bilingual profile field, above.
 
 ## Where the seam is
 

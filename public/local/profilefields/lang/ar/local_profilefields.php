@@ -412,3 +412,23 @@ $string['emailchangelocked'] = 'لا يمكن تغيير بريدك الإلكت
 $string['passwordexternal'] = 'أنت تسجّل الدخول عبر حساب خارجي، لذا لا توجد كلمة مرور محفوظة هنا.';
 $string['deleteaccountcannotbeundone'] = 'لا يمكن التراجع عن هذا الإجراء';
 $string['deleteaccountretained'] = 'تُحفظ السجلات المالية. وتظل الشهادات الصادرة قابلة للتحقق العلني.';
+
+// عناوين مجموعات حقول الملف الشخصي وأسماء حقول المدرّب.
+$string['instructorcategory'] = 'بيانات المدرّب';
+
+$string['ifieldcoverimage'] = 'صورة الغلاف';
+$string['ifieldbiography'] = 'نبذة تعريفية';
+$string['ifieldqualifications'] = 'المؤهلات';
+$string['ifieldcertificates'] = 'الشهادات';
+$string['ifieldexperience'] = 'الخبرات';
+$string['ifieldspecialization'] = 'التخصص';
+$string['ifieldlanguages'] = 'اللغات';
+$string['ifieldlinkedin'] = 'LinkedIn';
+$string['ifieldwebsite'] = 'الموقع الإلكتروني';
+$string['ifieldfacebook'] = 'Facebook';
+$string['ifieldinstagram'] = 'Instagram';
+$string['ifieldtwitter'] = 'Twitter';
+$string['ifieldyoutube'] = 'YouTube';
+$string['ifieldawards'] = 'الجوائز';
+$string['ifieldyearsofexperience'] = 'سنوات الخبرة';
+$string['ifieldresume'] = 'السيرة الذاتية';

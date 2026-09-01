@@ -284,6 +284,12 @@ define('local_nit_mlang/fields', [], function() {
     function enhanceText(input) {
         input.setAttribute('data-nitml', '1');
 
+        // The field's own length limit belongs on each language box, not on the
+        // hidden original: the composed value is two or three languages plus the
+        // {mlang} markup, and is legitimately longer than any one of them.
+        var maxlength = input.getAttribute('maxlength');
+        input.removeAttribute('maxlength');
+
         var parsed = parse(input.value);
         var values = parsed.values;
         var extras = parsed.extras;
@@ -314,6 +320,9 @@ define('local_nit_mlang/fields', [], function() {
             field.setAttribute('aria-label', label.textContent);
             if (input.placeholder) {
                 field.placeholder = input.placeholder;
+            }
+            if (maxlength) {
+                field.setAttribute('maxlength', maxlength);
             }
             if (index === 0 && input.hasAttribute('autofocus')) {
                 field.setAttribute('autofocus', 'autofocus');
@@ -511,7 +520,10 @@ define('local_nit_mlang/fields', [], function() {
             enhanceText(input);
         });
 
-        if (!cfg.editors) {
+        // Nothing to do on the editor side when both the global switch is off and
+        // the server named no editor explicitly. Worth the check: this runs again
+        // on every DOM mutation.
+        if (!cfg.editors && !(cfg.forceeditors && cfg.forceeditors.length)) {
             return;
         }
 
@@ -523,7 +535,15 @@ define('local_nit_mlang/fields', [], function() {
             // The editor element submits as `<name>[text]`; rules are written
             // against the form element's own name, so strip the suffix.
             var base = textarea.name.replace(/\[text\]$/, '');
-            if (isExcluded(base, cfg.editorexcludes)) {
+            // A forced editor is one the server named explicitly — an instructor's
+            // Biography and the like. It ignores both the global "include rich text
+            // editors" switch and the exclusion list, because it was not matched by
+            // a pattern that either of those could have over-reached on.
+            if (matchesAny(base, cfg.forceeditors || [])) {
+                enhanceEditor(textarea);
+                return;
+            }
+            if (!cfg.editors || isExcluded(base, cfg.editorexcludes)) {
                 return;
             }
             enhanceEditor(textarea);

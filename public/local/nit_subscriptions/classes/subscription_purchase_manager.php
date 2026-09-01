@@ -107,17 +107,26 @@ class subscription_purchase_manager {
         $sub = $DB->get_record('nit_subscription', ['id' => $subscriptionid], '*', MUST_EXIST);
         $isb2b = ($type === 'b2b');
 
-        // Business rule: one active NORMAL subscription per user. If a duplicate
-        // payment reaches fulfilment (two checkouts paid before either fulfilled),
-        // do NOT grant a second — return the existing subscription and log so an
-        // admin can refund the duplicate charge. (Catches the sequential case; the
-        // rare truly-simultaneous cross-checkout case may still slip through, but
-        // no money is lost — the buyer paid — only the one-subscription rule.)
-        if (!$isb2b && self::has_active_normal($userid)) {
-            debugging("local_nit_subscriptions: duplicate active-normal subscription payment for user {$userid}"
-                . " (reference {$reference}) — no second subscription granted; refund required.", DEBUG_NORMAL);
+        // Business rule: one active NORMAL subscription per user — with one exception, a
+        // RENEWAL of the very plan they already hold. That case is not a duplicate payment,
+        // it is the same plan bought for a second period, and it is handled below by starting
+        // the new period where the old one ends rather than today (see $startsat).
+        //
+        // Anything else — a second payment for a DIFFERENT plan while one is still live — is
+        // still refused: do NOT grant a second, return the existing subscription and log it so
+        // an admin can refund the duplicate charge. (Catches the sequential case; the rare
+        // truly-simultaneous cross-checkout case may still slip through, but no money is lost
+        // — the buyer paid — only the one-subscription rule.)
+        $renewalof = null;
+        if (!$isb2b) {
             $active = self::get_active_subscription($userid);
-            if ($active) {
+            $activeisnormal = $active && (!isset($active->type) || $active->type === 'normal');
+
+            if ($activeisnormal && (int) $active->subscriptionid === (int) $sub->id) {
+                $renewalof = $active;
+            } else if ($activeisnormal) {
+                debugging("local_nit_subscriptions: duplicate active-normal subscription payment for user {$userid}"
+                    . " (reference {$reference}) — no second subscription granted; refund required.", DEBUG_NORMAL);
                 return self::summary($active);
             }
         }
@@ -132,7 +141,14 @@ class subscription_purchase_manager {
         }
 
         $now = time();
-        $expiresat = $now + ((int) $sub->duration_days * DAYSECS);
+
+        // A renewal is bought for the period AFTER the one still running, not for the next N
+        // days from today. Somebody who renews with 10 days left keeps those 10 days and the
+        // new period is added on the end — which is the whole reason to renew early rather
+        // than wait for the plan to lapse. A first purchase (or a renewal of something that
+        // has already run out) simply starts now.
+        $startsat = ($renewalof && (int) $renewalof->expires_at > $now) ? (int) $renewalof->expires_at : $now;
+        $expiresat = $startsat + ((int) $sub->duration_days * DAYSECS);
 
         $purchase = new \stdClass();
         $purchase->subscriptionid   = $sub->id;
@@ -150,6 +166,14 @@ class subscription_purchase_manager {
         $purchase->expires_at       = $expiresat;
         $purchase->timecreated      = $now;
         $purchase->id = $DB->insert_record('nit_sub_purchase', $purchase);
+
+        // On a renewal the student is already enrolled in the plan's courses, with an
+        // enrolment that ends on the OLD date. Push those end dates out now, so access runs
+        // straight through the changeover instead of lapsing on the old date and being
+        // re-granted the next time they open a course.
+        if ($renewalof) {
+            self::extend_access_to((int) $sub->id, $userid, $expiresat);
+        }
 
         // "Your subscription is active" — the admin-editable email under
         // Site administration › Plugins › Local plugins › Purchase &
@@ -277,6 +301,35 @@ class subscription_purchase_manager {
         $plugin->enrol_user($instance, $userid, $instance->roleid, time(), $timeend);
 
         return true;
+    }
+
+    /**
+     * Push every enrolment a plan granted this user out to a later deadline (renewal).
+     *
+     * Only touches enrolments this plugin could have created — a dated manual one — and only
+     * ever lengthens them, so a course the student bought outright or was enrolled in by a
+     * teacher is never affected.
+     *
+     * @param int $subscriptionid the plan whose courses to extend
+     * @param int $userid
+     * @param int $until unix time the access should now end
+     * @return void
+     */
+    public static function extend_access_to($subscriptionid, $userid, $until) {
+        global $DB;
+
+        foreach (subscription_manager::courses_for_subscription((int) $subscriptionid) as $courseid) {
+            if (!$DB->record_exists('course', ['id' => (int) $courseid])) {
+                continue;
+            }
+            try {
+                self::extend_enrolment_end((int) $courseid, (int) $userid, (int) $until);
+            } catch (\Throwable $e) {
+                // One broken course must not cost the student the renewal they just paid for.
+                debugging('local_nit_subscriptions: extending enrolment in course ' . (int) $courseid
+                    . ' failed: ' . $e->getMessage(), DEBUG_NORMAL);
+            }
+        }
     }
 
     /**

@@ -25,6 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 use local_nit_mlang\langs;
+use local_nit_mlang\profilefields;
 use local_nit_mlang\registry;
 
 if ($hassiteconfig) {
@@ -71,6 +72,20 @@ if ($hassiteconfig) {
         get_string('editors', 'local_nit_mlang'),
         get_string('editors_desc', 'local_nit_mlang'),
         1
+    ));
+
+    // Which custom profile field categories hold translatable *values*. Ticking a
+    // category turns every text field and text area in it into one input per
+    // language on the profile form, for the person filling it in - so an
+    // instructor writes their specialisation and biography once in each language
+    // and every reader sees their own. Categories holding identifiers (a passport
+    // number, a national ID) are left alone.
+    $settings->add(new admin_setting_configmultiselect(
+        'local_nit_mlang/' . profilefields::SETTING,
+        get_string('profilecategories', 'local_nit_mlang'),
+        get_string('profilecategories_desc', 'local_nit_mlang'),
+        [],
+        profilefields::categories()
     ));
 
     // How to read a field name and a page type off a page — the two things the

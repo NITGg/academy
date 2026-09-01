@@ -394,6 +394,20 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
             opacity: 0.9;
         }
 
+        // Second group (management links). Per-row borders separate the items
+        // inside it, so the group only needs one rule of its own: the line that
+        // closes off the Navigation group above it. Its own last row drops the
+        // border, the way the last row of the panel already does.
+        .nit-navmenu-group {
+            border-top: 1px solid $nit-navpanel-divider;
+            margin-top: 4px;
+            padding-top: 4px;
+
+            .dropdown-header {
+                margin-top: 4px;
+            }
+        }
+
         // Relocated edit-mode toggle — styled as a panel row (label + switch).
         // The wrapper is `:empty` on pages without editing, so it collapses away.
         .nit-navmenu-editswitch {

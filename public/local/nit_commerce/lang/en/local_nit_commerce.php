@@ -158,3 +158,30 @@ $string['co_loading']       = 'Loading…';
 $string['co_coupon_failed'] = 'Could not apply coupon.';
 $string['co_currency']      = 'EGP';
 $string['co_buy']           = 'Buy now';
+
+// Public coupon-details page (/local/nit_commerce/coupon.php) and the "View details"
+// button the home-page coupon cards link to it with.
+$string['cpn_details']       = 'Coupon details';
+$string['cpn_viewdetails']   = 'View details';
+$string['cpn_allcoupons']    = 'Available coupons';
+$string['cpn_notavailable']  = 'This coupon is not available.';
+$string['cpn_about']         = 'About this coupon';
+$string['cpn_code_label']    = 'Coupon code';
+$string['cpn_copy']          = 'Copy code';
+$string['cpn_copied']        = 'Copied';
+$string['cpn_off_percent']   = '{$a}% off';
+$string['cpn_off_fixed']     = '{$a} off';
+$string['cpn_where']         = 'Where you can use it';
+$string['cpn_where_none']    = 'No items are attached to this coupon yet.';
+$string['cpn_courses_under'] = 'Courses included in {$a}';
+$string['cpn_browse_all']    = 'Browse the catalogue';
+$string['cpn_view_plan']     = 'View plan';
+$string['cpn_open_course']   = 'Open';
+$string['cpn_terms']         = 'Terms';
+$string['cpn_uses_left']     = '{$a} uses left';
+$string['cpn_uses_none']     = 'Fully redeemed';
+$string['cpn_no_expiry']     = 'No expiry date';
+$string['cpn_starts']        = 'Starts';
+$string['cpn_expires']       = 'Expires';
+$string['cpn_howto']         = 'Enter this code at checkout to get the discount.';
+$string['cpn_stub_off']      = 'OFF';

@@ -18,6 +18,7 @@ namespace local_nit_mlang\hook;
 
 use core\hook\output\before_standard_head_html_generation;
 use local_nit_mlang\langs;
+use local_nit_mlang\profilefields;
 use local_nit_mlang\registry;
 
 /**
@@ -59,24 +60,50 @@ class output_callbacks {
             return;
         }
 
-        // Content authors only: a student filling in a forum subject must keep the
-        // ordinary single field.
         try {
             $context = $PAGE->context ?: \context_system::instance();
         } catch (\Throwable $e) {
             $context = \context_system::instance();
         }
-        if (!has_capability('local/nit_mlang:edit', $context)) {
-            return;
+        $pagetype = (string) $PAGE->pagetype;
+
+        // Custom profile fields sitting in a category an administrator marked as
+        // translatable. These hold a person's own data rather than site content,
+        // so they are collected separately from the site-wide registry and reach
+        // people the registry never would.
+        $profile = profilefields::inputs();
+
+        if (has_capability('local/nit_mlang:edit', $context)) {
+            // Content authors: the whole registry, plus any translatable profile
+            // field (an administrator editing somebody's profile is on this path).
+            $textfields   = array_merge(registry::text_fields(), $profile['text']);
+            $editors      = self::setting('editors');
+            $forceeditors = $profile['editor'];
+        } else {
+            // Everybody else: nothing but their own profile, and only on a screen
+            // where a profile is edited — a student filling in a forum subject
+            // must still get the ordinary single field.
+            if ((!$profile['text'] && !$profile['editor']) || !profilefields::is_profile_page($pagetype)) {
+                return;
+            }
+            $textfields   = $profile['text'];
+            $editors      = false;
+            $forceeditors = $profile['editor'];
         }
 
         $PAGE->requires->js_call_amd('local_nit_mlang/fields', 'init', [[
-            'pagetype'       => (string) $PAGE->pagetype,
+            'pagetype'       => $pagetype,
             'langs'          => $languages,
-            'textfields'     => registry::text_fields(),
+            'textfields'     => $textfields,
             'textexcludes'   => registry::text_excludes(),
             'editorexcludes' => registry::editor_excludes(),
-            'editors'        => self::setting('editors'),
+            'editors'        => $editors,
+            // Editors that get a language tab strip whether or not the global
+            // "Include rich text editors" switch is on. That switch is off on this
+            // site because a hand-authored HTML block is a single bilingual
+            // document that breaks when it is split in two; an instructor's
+            // Biography is ordinary prose and has the opposite need.
+            'forceeditors'   => $forceeditors,
             'strings'        => [
                 'translations' => get_string('translations', 'local_nit_mlang'),
             ],

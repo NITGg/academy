@@ -71,3 +71,9 @@ $string['extraexcludes_desc'] = '<p><b>Removes</b> fields from the feature, so t
 <p>Already excluded:</p><pre>{$a}</pre>';
 
 $string['translations'] = 'Translations';
+
+$string['profilecategories'] = 'Bilingual profile field categories';
+$string['profilecategories_desc'] = '<p>Custom user profile fields whose <b>value</b> is a display string rather than an identifier. Tick a category and every <i>Text input</i> and <i>Text area</i> field in it is edited with one box per installed language — on the profile edit page, on the account page, and wherever else the field appears. What the person types is stored as {mlang} markup, so every reader sees it in their own language.</p>
+<p>Only text fields and text areas are affected. A menu, a checkbox, a date or an uploaded file has nothing to translate; a menu\'s options are translated on the field definition instead.</p>
+<p>Leave a category unticked when it holds identifiers — a passport number and a national ID have no Arabic spelling, and splitting them in two would only invite a mismatch.</p>
+<p>This is the one place in the plugin where somebody without the local/nit_mlang:edit capability is given the per-language boxes: the field holds their own data, not the site\'s, and only the profile screens are affected.</p>';

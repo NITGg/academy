@@ -259,6 +259,16 @@ function xmldb_local_profilefields_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026083103, 'local', 'profilefields');
     }
 
+    if ($oldversion < 2026090100) {
+        // Write the profile field group headings, and the instructor field labels,
+        // in both languages. Until now "Additional details" and "Instructor Fields"
+        // stayed in English on an Arabic page, because a heading is stored as one
+        // string and both were typed in one language - see provision::repair_labels().
+        \local_profilefields\provision::repair_labels();
+
+        upgrade_plugin_savepoint(true, 2026090100, 'local', 'profilefields');
+    }
+
     // Not a versioned step, and deliberately so: it has to run on every upgrade,
     // because the thing it repairs is created by an upgrade. Registering a new
     // web-service function does not put it on the hand-made service a site's own

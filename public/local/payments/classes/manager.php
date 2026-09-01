@@ -379,10 +379,24 @@ class manager {
                 $amount = (float) $price['final'];
             }
         } else {
-            // A user may hold only one active NORMAL subscription at a time.
+            // A user may hold only one active NORMAL subscription at a time — except when they
+            // are RENEWING the plan they already hold, and only once that plan is close enough
+            // to its end for the renewal window to be open. The window is the admin's
+            // "Renewal reminders" setting, so the button a student sees and the checkout this
+            // method will accept can never disagree. Fulfilment adds the new period to the end
+            // of the current one; see subscription_purchase_manager::insert_purchase().
             if (class_exists('\local_nit_subscriptions\subscription_purchase_manager')
                     && \local_nit_subscriptions\subscription_purchase_manager::has_active_normal($userid)) {
-                throw new \moodle_exception('error', 'moodle', '', null, 'You already have an active subscription');
+
+                $active = \local_nit_subscriptions\subscription_purchase_manager::get_active_subscription($userid);
+                $isrenewal = $active
+                    && (int) $active->subscriptionid === (int) $subscriptionid
+                    && class_exists('\local_nit_subscriptions\reminder_manager')
+                    && \local_nit_subscriptions\reminder_manager::renew_due($active);
+
+                if (!$isrenewal) {
+                    throw new \moodle_exception('error', 'moodle', '', null, 'You already have an active subscription');
+                }
             }
             // Apply coupon/offer (normal purchase only) on the resolved base price.
             $disc = self::apply_nit_discount('subscription', $subscriptionid, $userid, $basePrice, $coupon_code);

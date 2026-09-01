@@ -75,7 +75,8 @@ try {
     // Writes must be POST + sesskey.
     $writes = ['create_subscription', 'update_subscription', 'activate_subscription',
         'deactivate_subscription', 'delete_subscription', 'set_subscription_courses',
-        'create_subscription_checkout', 'unsubscribe_user', 'revoke_course_purchase'];
+        'create_subscription_checkout', 'unsubscribe_user', 'revoke_course_purchase',
+        'save_reminder_settings'];
     if (in_array($function, $writes, true)) {
         if (!$ispost) {
             throw new \moodle_exception('err_postrequired', 'local_nit_subscriptions');
@@ -87,7 +88,8 @@ try {
     $adminfns = ['get_subscriptions', 'create_subscription', 'update_subscription',
         'activate_subscription', 'deactivate_subscription', 'delete_subscription',
         'get_categories_with_courses', 'set_subscription_courses', 'get_all_user_subscriptions',
-        'unsubscribe_user', 'get_all_course_purchases', 'revoke_course_purchase'];
+        'unsubscribe_user', 'get_all_course_purchases', 'revoke_course_purchase',
+        'get_reminder_settings', 'save_reminder_settings', 'preview_reminder_settings'];
     if (in_array($function, $adminfns, true)) {
         require_capability('local/nit_subscriptions:managesubscriptions', $context);
     }
@@ -203,11 +205,21 @@ try {
         case 'get_my_active_subscription':
             $active = subscription_purchase_manager::get_active_subscription($USER->id);
             $data = ['has_active' => false, 'subscriptionid' => 0, 'expires_at' => 0,
-                'name' => '', 'days_left' => 0, 'price_paid' => 0];
+                'name' => '', 'days_left' => 0, 'price_paid' => 0,
+                'renew_due' => false, 'renew_window_days' => 0, 'renewed_expires_at' => 0];
             if ($active) {
                 $name = $DB->get_field('nit_subscription', 'name', ['id' => $active->subscriptionid]);
                 $daysleft = ((int) $active->expires_at > 0)
                     ? max(0, (int) ceil(((int) $active->expires_at - time()) / DAYSECS)) : 0;
+
+                // Renewing is offered on exactly the window that triggers the expiry reminder,
+                // so the button and the notification can never disagree. The date it quotes is
+                // the one fulfilment will actually set: the current deadline plus another full
+                // period, never "today plus a period".
+                $reminders = \local_nit_subscriptions\reminder_manager::get_settings();
+                $renewdue = \local_nit_subscriptions\reminder_manager::renew_due($active);
+                $duration = (int) $active->duration_days;
+
                 $data = [
                     'has_active'     => true,
                     'subscriptionid' => (int) $active->subscriptionid,
@@ -215,9 +227,39 @@ try {
                     'name'           => $name !== false ? format_string(subscription_manager::resolve_mlang($name)) : '',
                     'days_left'      => $daysleft,
                     'price_paid'     => (float) $active->price_paid,
+                    'renew_due'      => $renewdue,
+                    'renew_window_days' => $reminders['days'] ? max($reminders['days']) : 0,
+                    'renewed_expires_at' => ((int) $active->expires_at > 0 && $duration > 0)
+                        ? (int) $active->expires_at + ($duration * DAYSECS) : 0,
                 ];
             }
             nit_subscriptions_respond(['status' => 'success', 'data' => $data]);
+            break;
+
+        // ── Admin: expiry-reminder settings (the "Renewal reminders" tab) ──
+        case 'get_reminder_settings':
+            $settings = \local_nit_subscriptions\reminder_manager::get_settings();
+            $settings['preview'] = \local_nit_subscriptions\reminder_manager::preview($settings['days']);
+            $settings['max_days'] = \local_nit_subscriptions\reminder_manager::MAX_DAYS;
+            $settings['max_entries'] = \local_nit_subscriptions\reminder_manager::MAX_ENTRIES;
+            nit_subscriptions_respond(['status' => 'success', 'data' => $settings]);
+            break;
+
+        // How many people the days currently typed into the form would reach, without saving.
+        case 'preview_reminder_settings':
+            $days = array_filter(explode(',', optional_param('days', '', PARAM_SEQUENCE)), 'strlen');
+            nit_subscriptions_respond(['status' => 'success',
+                'data' => \local_nit_subscriptions\reminder_manager::preview($days)]);
+            break;
+
+        // Saving does not just store the numbers: it re-runs the whole calculation, so anyone
+        // the new window now covers is notified immediately rather than at the next cron.
+        case 'save_reminder_settings':
+            $days = array_filter(explode(',', optional_param('days', '', PARAM_SEQUENCE)), 'strlen');
+            $result = \local_nit_subscriptions\reminder_manager::save_settings(
+                (bool) optional_param('enabled', 0, PARAM_BOOL), $days);
+            $result['preview'] = \local_nit_subscriptions\reminder_manager::preview($result['days']);
+            nit_subscriptions_respond(['status' => 'success', 'data' => $result]);
             break;
 
         // ── Student: my subscriptions (active first) for a "My subscriptions" screen ──

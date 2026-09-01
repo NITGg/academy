@@ -185,3 +185,8 @@ $string['loginemailplaceholder'] = 'name@example.com';
 $string['forgotyourpassword'] = 'هل نسيت كلمة المرور؟';
 $string['noaccount'] = 'ليس لديك حساب؟';
 $string['signupnow'] = 'إنشاء حساب';
+
+// قائمة الترس في الشريط العلوي — المجموعة الثانية، وتضم شاشات الإدارة التي
+// تحتاج لولا ذلك ثلاث أو أربع نقرات داخل شجرة إدارة الموقع.
+$string['navmanagement'] = 'الإدارة';
+$string['navgallery'] = 'معرض التصميم';

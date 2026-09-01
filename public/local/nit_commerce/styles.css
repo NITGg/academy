@@ -1,0 +1,338 @@
+/* Public coupon-details page (local/nit_commerce/coupon.php).
+ *
+ * Colours come from the theme_nit brand palette through the slots the page sets inline, the
+ * same mapping the catalogue and the plan page use — so all three re-skin together and are
+ * correct in light and dark without a second set of rules. Every horizontal property is
+ * logical (inline-start/end), so the page mirrors itself in Arabic.
+ */
+
+.nitcpn {
+    background: var(--cbg1);
+    color: var(--ctext1);
+    width: 100vw;
+    max-width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    padding-bottom: 56px;
+    min-height: 100vh;
+}
+
+.nitcpn__wrap {
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 0 clamp(16px, 4vw, 40px);
+}
+
+/* ── Breadcrumbs ───────────────────────────────────────────────────────────────── */
+
+.nitcpn__crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ctext2);
+    padding: 26px 0 18px;
+}
+
+.nitcpn__crumbs a {
+    color: var(--ctext2);
+    text-decoration: none;
+}
+
+.nitcpn__crumbs a:hover {
+    color: var(--ctext1);
+    text-decoration: underline;
+}
+
+/* ── The ticket ────────────────────────────────────────────────────────────────────
+   A perforated stub on the inline-start edge carrying the value, the rest carrying the
+   name, the description and the code. The notches are two radial gradients rather than
+   pseudo-elements, so they sit on the seam in both writing directions. */
+
+.nitcpn__ticket {
+    display: flex;
+    align-items: stretch;
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--cbg2);
+    border: 1px solid color-mix(in srgb, var(--caccent) 32%, transparent);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, .26);
+}
+
+.nitcpn__stub {
+    flex: 0 0 clamp(120px, 22%, 180px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 28px 14px;
+    text-align: center;
+    background:
+        linear-gradient(150deg,
+            color-mix(in srgb, var(--caccent) 78%, #000),
+            var(--caccent));
+    color: var(--nit-brand-on-primary, #fff);
+    border-inline-end: 2px dashed color-mix(in srgb, var(--cbg2) 70%, transparent);
+}
+
+.nitcpn__stubvalue {
+    font-size: clamp(30px, 5vw, 46px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -1px;
+}
+
+.nitcpn__stubvalue small {
+    font-size: .55em;
+    font-weight: 800;
+}
+
+.nitcpn__stublabel {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: .92;
+}
+
+.nitcpn__body {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: clamp(20px, 3vw, 30px);
+}
+
+.nitcpn__title {
+    font-size: clamp(22px, 3.2vw, 32px);
+    font-weight: 800;
+    line-height: 1.25;
+    color: var(--ctext1);
+    margin: 0 0 6px;
+}
+
+.nitcpn__value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ctext3);
+    margin: 0 0 12px;
+}
+
+.nitcpn__intro {
+    color: var(--ctext2);
+    font-size: 14.5px;
+    line-height: 1.85;
+    max-width: 62ch;
+    margin-bottom: 18px;
+}
+
+.nitcpn__intro p:last-child {
+    margin-bottom: 0;
+}
+
+/* ── Code chip ─────────────────────────────────────────────────────────────────── */
+
+.nitcpn__codewrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.nitcpn__codelabel {
+    font-size: 12px;
+    color: var(--ctext2);
+}
+
+.nitcpn__code {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--ctext1);
+    background: color-mix(in srgb, var(--ctext1) 6%, transparent);
+    border: 1px dashed color-mix(in srgb, var(--caccent) 55%, transparent);
+    border-radius: 10px;
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: background .2s ease, border-color .2s ease, color .2s ease;
+}
+
+.nitcpn__code:hover {
+    background: var(--nit-brand-hoverbackground, var(--cbg3));
+    color: var(--nit-brand-hovertext, var(--ctext1));
+}
+
+.nitcpn__code.is-copied {
+    border-color: var(--csuccess);
+    color: var(--csuccess);
+}
+
+.nitcpn__codeicon {
+    font-size: 15px;
+    opacity: .8;
+}
+
+.nitcpn__howto {
+    font-size: 12.5px;
+    color: var(--ctext2);
+    margin: 10px 0 0;
+}
+
+/* ── Sections ──────────────────────────────────────────────────────────────────── */
+
+.nitcpn__section {
+    padding: 36px 0 0;
+}
+
+.nitcpn__h2 {
+    font-size: clamp(19px, 2.4vw, 24px);
+    font-weight: 800;
+    color: var(--ctext1);
+    margin: 0 0 14px;
+}
+
+.nitcpn__empty {
+    color: var(--ctext2);
+    font-size: 14px;
+    margin: 0;
+}
+
+/* ── Terms ─────────────────────────────────────────────────────────────────────── */
+
+.nitcpn__terms {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 12px;
+}
+
+.nitcpn__terms li {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--cborder);
+    background: var(--cbg2);
+}
+
+.nitcpn__termlabel {
+    font-size: 12px;
+    color: var(--ctext2);
+}
+
+.nitcpn__terms strong {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ctext1);
+}
+
+.nitcpn__termnote {
+    font-size: 12px;
+    color: var(--csuccess);
+}
+
+.nitcpn__termnote--out {
+    color: var(--cerror);
+}
+
+/* ── Scope groups ──────────────────────────────────────────────────────────────── */
+
+.nitcpn__group {
+    border: 1px solid var(--cborder);
+    border-radius: 16px;
+    background: var(--cbg2);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+}
+
+.nitcpn__grouphead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.nitcpn__grouptitle {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ctext1);
+    margin: 0;
+}
+
+.nitcpn__grouplink {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ctext3);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.nitcpn__grouplink:hover {
+    text-decoration: underline;
+}
+
+.nitcpn__grouphint {
+    font-size: 12.5px;
+    color: var(--ctext2);
+    margin: 12px 0 0;
+}
+
+.nitcpn__items {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 8px 18px;
+}
+
+.nitcpn__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    min-width: 0;
+}
+
+.nitcpn__item a {
+    color: var(--ctext1);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nitcpn__item a:hover {
+    color: var(--ctext3);
+    text-decoration: underline;
+}
+
+.nitcpn__tick {
+    flex: 0 0 auto;
+    color: var(--csuccess);
+    font-weight: 700;
+}
+
+/* ── Narrow screens ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+    .nitcpn__ticket {
+        flex-direction: column;
+    }
+
+    .nitcpn__stub {
+        flex: 0 0 auto;
+        flex-direction: row;
+        gap: 10px;
+        padding: 18px 14px;
+        border-inline-end: 0;
+        border-block-end: 2px dashed color-mix(in srgb, var(--cbg2) 70%, transparent);
+    }
+}
