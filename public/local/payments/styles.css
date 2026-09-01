@@ -681,3 +681,67 @@
     min-width: 0;
     width: auto;
 }
+
+/* ── Payment method picker ──────────────────────────────────────────────── */
+
+.lp-methods {
+    margin: 0 auto;
+    max-width: 34rem;
+    padding: 1.5rem 1rem;
+}
+
+.lp-methods__summary {
+    color: var(--lp-muted, #6b7280);
+    margin-bottom: 1.25rem;
+}
+
+.lp-methods__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* The whole row is the target, not just the radio — this is a thumb-sized
+   choice on a phone. */
+.lp-method {
+    align-items: center;
+    border: 1px solid rgba(107, 114, 128, 0.3);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0.85rem 1rem;
+}
+
+.lp-method:hover {
+    border-color: rgba(107, 114, 128, 0.6);
+}
+
+.lp-method:has(input:checked) {
+    border-color: var(--nit-brand-primary, #0d6efd);
+    box-shadow: 0 0 0 1px var(--nit-brand-primary, #0d6efd);
+}
+
+.lp-method__logo {
+    height: 1.75rem;
+    object-fit: contain;
+    width: 2.75rem;
+}
+
+.lp-method__name {
+    display: flex;
+    flex-direction: column;
+}
+
+.lp-method__hint {
+    color: var(--lp-muted, #6b7280);
+    font-size: 0.8rem;
+}
+
+.lp-methods__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}

@@ -27,8 +27,56 @@ $PAGE->set_context($context);
 $PAGE->set_title(get_string('buycourse', 'local_payments'));
 $PAGE->set_pagelayout('standard');
 
+// Which method to charge. 0 means "not chosen yet"; the gateway decides whether
+// that means asking the buyer or picking one itself.
+$methodid = optional_param('payment_method_id', 0, PARAM_INT);
+
 try {
-    $result = \local_payments\manager::create_checkout($courseid, $USER->id, null, $lang, $couponcode);
+    // Offer the choice before taking the money, when there is a choice to offer
+    // and the buyer has not already made it. One method is not a choice, and a
+    // gateway with its own picker does not need ours.
+    if (!$methodid && get_config('local_payments', 'show_method_picker')) {
+        $pricing = \local_payments\price_resolver::resolve($courseid, $USER->id);
+        $offer = \local_payments\manager::get_provider_payment_methods(
+            $pricing->country, $pricing->currency);
+
+        if ($offer->supports_payment_methods && count($offer->methods) > 1) {
+            $PAGE->set_title(get_string('choose_method', 'local_payments'));
+            echo $OUTPUT->header();
+
+            $methods = [];
+            foreach ($offer->methods as $i => $method) {
+                $methods[] = [
+                    'id' => $method['id'],
+                    'name' => (current_language() === 'ar' && $method['name_ar'] !== '')
+                        ? $method['name_ar'] : $method['name_en'],
+                    'logo' => $method['logo'],
+                    // A method that hands back a code behaves differently enough
+                    // that the buyer should know before choosing it.
+                    'is_reference' => !$method['redirect'],
+                    'checked' => ($i === 0),
+                ];
+            }
+
+            echo $OUTPUT->render_from_template('local_payments/method_picker', [
+                'course_name' => format_string($course->fullname),
+                'amount_formatted' => format_float((float) $pricing->price, 2, true, true)
+                    . ' ' . $pricing->currency,
+                'action' => (new moodle_url('/local/payments/checkout.php'))->out(false),
+                'sesskey' => sesskey(),
+                'courseid' => $courseid,
+                'coupon_code' => $couponcode,
+                'methods' => $methods,
+                'cancel_url' => (new moodle_url('/course/view.php', ['id' => $courseid]))->out(false),
+            ]);
+
+            echo $OUTPUT->footer();
+            exit;
+        }
+    }
+
+    $result = \local_payments\manager::create_checkout($courseid, $USER->id, null, $lang,
+        $couponcode, $methodid);
 
     // Card-style methods hand back a page to send the buyer to. Offline methods
     // (Fawry, Meeza) hand back a code instead — there is nothing to redirect to,

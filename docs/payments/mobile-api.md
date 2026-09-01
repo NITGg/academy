@@ -193,6 +193,65 @@ Only completed and refunded orders have one; anything else returns an error page
 
 ---
 
+## 6. Refunds
+
+Two calls. Full detail, including where staff configure the policy, is in
+[refunds.md](refunds.md) — this is what the app needs.
+
+### Ask what is on offer
+
+```
+wsfunction = local_payments_get_refund_options    // params: transaction_id
+```
+
+```jsonc
+{
+  "action": "refund",
+  "reason_required": false,
+  "message": "",
+  "paid": 36.0, "fee": 3.6, "net": 32.4, "currency": "EGP",
+  "window_hours": 48,
+  "deadline": 1756900000,
+  "policy": "Refundable within 48 hours of purchase, less a 3.60 EGP fee."
+}
+```
+
+Switch on `action` — one field, rather than three booleans to combine:
+
+| `action` | Show |
+|---|---|
+| `refund` | A **Refund** button. Reason optional. |
+| `request` | A **Request refund** button. Reason **required**. |
+| `pending` | "Waiting on a decision" — already asked. |
+| `none` | Nothing. `message` says why, already translated. |
+
+Show `net` as the headline figure; `paid` and `fee` explain it. `policy` is a
+ready-made sentence if you would rather not compose one.
+
+### Do it
+
+```
+wsfunction = local_payments_submit_refund         // params: transaction_id, reason
+```
+
+```jsonc
+{ "outcome": "refunded", "message": "Refunded 32.40 EGP…", "amount": 32.4, "currency": "EGP" }
+```
+
+`outcome` is `refunded`, `requested`, or `failed`.
+
+**One endpoint for both routes, on purpose.** Which one applies depends on a
+window that can close between drawing the screen and pressing the button, so the
+server decides and tells you what it did. Do not pick an endpoint from a cached
+`action`, and do not hide the button because a countdown expired locally — call
+and let the server answer.
+
+After `refunded`, the buyer has lost access: refresh whatever you cache about
+enrolment. After `requested`, nothing changes yet; they are notified when a
+decision is made.
+
+---
+
 ## The whole flow
 
 ```

@@ -73,6 +73,9 @@ if ($action === 'edit' || $action === 'add') {
             // zero is a deliberate full refund, blank falls back to the policy.
             'refund_hours' => ($formdata->refund_hours === '' || $formdata->refund_hours === null)
                 ? null : max(0, (int) $formdata->refund_hours),
+            'refund_feetype' => ($formdata->refund_feetype === \local_payments\refund_policy::FEE_PERCENT)
+                ? \local_payments\refund_policy::FEE_PERCENT
+                : \local_payments\refund_policy::FEE_FIXED,
             'refund_fee' => ($formdata->refund_fee === '' || $formdata->refund_fee === null)
                 ? null : max(0, (float) $formdata->refund_fee),
             'is_default' => ($isfirst || !empty($formdata->is_default)) ? 1 : 0,

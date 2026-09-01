@@ -29,6 +29,12 @@ defined('MOODLE_INTERNAL') || die();
  */
 class refund_policy {
 
+    /** @var string Fee is a flat amount in the price row's own currency. */
+    const FEE_FIXED = 'fixed';
+
+    /** @var string Fee is a percentage of the amount paid. */
+    const FEE_PERCENT = 'percent';
+
     /** @var string[] Item types with settings of their own. */
     const TYPES = ['course', 'subscription'];
 
@@ -106,7 +112,7 @@ class refund_policy {
                 return null;
             }
             $row = $DB->get_record('local_payments_course_prices', ['id' => $transaction->price_id],
-                'id, refund_hours, refund_fee');
+                'id, refund_hours, refund_feetype, refund_fee');
             return $row ?: null;
         }
 
@@ -121,13 +127,13 @@ class refund_policy {
             $row = $DB->get_record_select('nit_sub_price',
                 'subscriptionid = :planid AND currency = :currency AND is_active = 1',
                 ['planid' => $planid, 'currency' => $transaction->currency],
-                'id, refund_hours, refund_fee', IGNORE_MULTIPLE);
+                'id, refund_hours, refund_feetype, refund_fee', IGNORE_MULTIPLE);
             if ($row && ($row->refund_hours !== null || $row->refund_fee !== null)) {
                 return $row;
             }
 
             $plan = $DB->get_record('nit_subscription', ['id' => $planid],
-                'id, refund_hours, refund_fee');
+                'id, refund_hours, refund_feetype, refund_fee');
             return $plan ?: null;
         }
 
@@ -154,8 +160,13 @@ class refund_policy {
             : $site->hours;
 
         if ($row && $row->refund_fee !== null) {
-            // Stated in the row's own currency, which is the currency charged.
-            $fee = max(0, round((float) $row->refund_fee, 2));
+            // A flat amount is stated in the row's own currency, which is the
+            // currency charged — that is why it can live here at all. A
+            // percentage needs no currency.
+            $value = max(0, (float) $row->refund_fee);
+            $fee = (($row->refund_feetype ?? self::FEE_FIXED) === self::FEE_PERCENT)
+                ? round($paid * $value / 100, 2)
+                : round($value, 2);
             $fromprice = true;
         } else {
             $fee = $site->feepercent > 0 ? round($paid * $site->feepercent / 100, 2) : 0.0;

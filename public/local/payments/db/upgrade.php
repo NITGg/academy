@@ -106,6 +106,20 @@ function xmldb_local_payments_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090110, 'local', 'payments');
     }
 
+    if ($oldversion < 2026090120) {
+        // A fee can be a percentage or a flat amount again. Dropping the choice
+        // was over-correction: the ambiguity was never the flat option, it was a
+        // flat number with no currency. On a price row there is a currency, so
+        // both kinds are unambiguous here.
+        $table = new xmldb_table('local_payments_course_prices');
+        $field = new xmldb_field('refund_feetype', XMLDB_TYPE_CHAR, '10', null, null, null, null,
+            'refund_hours');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026090120, 'local', 'payments');
+    }
+
     return true;
 }
 

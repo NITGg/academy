@@ -25,17 +25,24 @@ because that is where the currency already is.
 | Field | Meaning |
 |---|---|
 | **Refund window (hours)** | Hours from payment during which the buyer can refund themselves. Blank = follow the site policy. `0` = they must ask. |
-| **Refund fee** | Kept from the refund, **in this rule's currency**. Blank = follow the site policy. `0` = full refund. |
+| **Refund fee type** | Flat amount or percentage of the amount paid. |
+| **Refund fee** | Kept from the refund. A flat amount is **in this rule's currency**; a percentage needs none. Blank = follow the site policy. `0` = full refund. |
 
 Blank and zero are different, and the distinction matters: blank falls back, zero
 is a deliberate choice.
 
 ### Subscriptions
 
-*Manage subscriptions → add/edit a plan* — the same two fields on the plan, used
-for every currency the plan sells in. Per-country plan price rows can carry their
-own values too (the columns exist), though the inline country-price editor does
-not expose them yet.
+*Manage subscriptions → add/edit a plan*
+
+- **On the plan** — window, fee type and fee, applying to the plan's own default
+  price.
+- **On each country price row** — its own **Refund hrs** and **Refund fee**,
+  in that row's currency. Blank follows the plan.
+
+A plan selling at USD 33, EGP 54 and EUR 33 cannot share one flat fee, which is
+why the country rows carry their own. A percentage on the plan works for all of
+them at once, if that is the policy you want.
 
 ### Everything else
 

@@ -1,0 +1,67 @@
+{{!
+    @template local_payments/method_picker
+
+    Shown before checkout when the gateway offers a choice of payment method.
+    Only drawn when there is a genuine choice: one method goes straight through,
+    because a picker with a single option is a click that teaches nothing.
+
+    Context variables required for this template:
+    * course_name - What is being bought
+    * amount_formatted - Price with currency, ready to print
+    * action - Where the form posts
+    * sesskey - Session key
+    * courseid - Course being bought
+    * coupon_code - Coupon carried through the picker
+    * methods - id, name, logo, is_reference, checked
+    * cancel_url - Back to the course
+
+    Example context (json):
+    {
+        "course_name": "Advanced Accounting",
+        "amount_formatted": "350.00 EGP",
+        "action": "#",
+        "sesskey": "abc123",
+        "courseid": 9,
+        "coupon_code": "",
+        "cancel_url": "#",
+        "methods": [
+            {"id": 2, "name": "Visa-Mastercard", "logo": "", "is_reference": false, "checked": true},
+            {"id": 3, "name": "Fawry", "logo": "", "is_reference": true, "checked": false}
+        ]
+    }
+}}
+<div class="lp-methods">
+    <h3 class="lp-methods__title">{{#str}} choose_method, local_payments {{/str}}</h3>
+
+    <p class="lp-methods__summary">
+        {{course_name}} &mdash; <strong>{{amount_formatted}}</strong>
+    </p>
+
+    <form method="post" action="{{action}}">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="courseid" value="{{courseid}}">
+        <input type="hidden" name="coupon_code" value="{{coupon_code}}">
+
+        <div class="lp-methods__list">
+            {{#methods}}
+                <label class="lp-method">
+                    <input type="radio" name="payment_method_id" value="{{id}}" {{#checked}}checked{{/checked}}>
+                    {{#logo}}<img src="{{logo}}" alt="" class="lp-method__logo">{{/logo}}
+                    <span class="lp-method__name">
+                        {{name}}
+                        {{#is_reference}}
+                            <span class="lp-method__hint">{{#str}} method_gives_code, local_payments {{/str}}</span>
+                        {{/is_reference}}
+                    </span>
+                </label>
+            {{/methods}}
+        </div>
+
+        <div class="lp-methods__actions">
+            <button type="submit" class="btn btn-primary btn-lg">
+                {{#str}} continue_to_payment, local_payments {{/str}}
+            </button>
+            <a href="{{cancel_url}}" class="btn btn-outline-secondary">{{#str}} cancel {{/str}}</a>
+        </div>
+    </form>
+</div>

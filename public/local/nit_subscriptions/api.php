@@ -112,6 +112,7 @@ try {
                 // no-window or full refund, so the two cannot be conflated.
                 'refund_hours'  => nit_subscriptions_optional_number('refund_hours'),
                 'refund_fee'    => nit_subscriptions_optional_number('refund_fee'),
+                'refund_feetype' => optional_param('refund_feetype', 'fixed', PARAM_ALPHA),
                 'active'        => optional_param('active', 1, PARAM_INT),
                 'b2b_enabled'   => optional_param('b2b_enabled', 0, PARAM_INT),
                 'seat_options'  => nit_subscriptions_seat_options(),
@@ -131,6 +132,7 @@ try {
                 // no-window or full refund, so the two cannot be conflated.
                 'refund_hours'  => nit_subscriptions_optional_number('refund_hours'),
                 'refund_fee'    => nit_subscriptions_optional_number('refund_fee'),
+                'refund_feetype' => optional_param('refund_feetype', 'fixed', PARAM_ALPHA),
                 'status'        => optional_param('status', 'active', PARAM_ALPHA),
                 'b2b_enabled'   => optional_param('b2b_enabled', 0, PARAM_INT),
                 'seat_options'  => nit_subscriptions_seat_options(),
