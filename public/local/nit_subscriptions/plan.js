@@ -174,6 +174,80 @@
             }
         });
 
+        // Which method the visitor picked. 0 means the dialog never asked, and
+        // the gateway then chooses for itself exactly as it used to.
+        var methodid = 0;
+
+        /**
+         * Draw the payment methods, if there is a choice worth making.
+         *
+         * One method is not a choice, so the strip stays hidden and the gateway
+         * is charged directly — same rule as the course checkout and the app.
+         *
+         * @return {void}
+         */
+        var buildMethods = function() {
+            var wrap = q('[data-nitplan-methods]');
+            var list = q('[data-nitplan-methodslist]');
+            var label = q('[data-nitplan-methodslabel]');
+            var methods = (cfg.methods || []);
+            if (!wrap || !list || methods.length < 2) {
+                return;
+            }
+
+            if (label) {
+                label.textContent = cfg.methodlabel || '';
+            }
+            list.textContent = '';
+
+            var cards = [];
+            var select = function(i) {
+                methodid = Number(methods[i].id) || 0;
+                cards.forEach(function(c, n) {
+                    c.classList.toggle('is-selected', n === i);
+                    c.setAttribute('aria-pressed', n === i ? 'true' : 'false');
+                });
+            };
+
+            methods.forEach(function(m, i) {
+                var card = document.createElement('button');
+                card.type = 'button';
+                card.className = 'nitplan__method';
+
+                if (m.logo) {
+                    var img = document.createElement('img');
+                    img.src = m.logo;
+                    img.alt = '';
+                    // A broken logo costs the card its picture, not its label.
+                    img.addEventListener('error', function() {
+                        img.style.display = 'none';
+                    });
+                    card.appendChild(img);
+                }
+
+                var name = document.createElement('span');
+                name.textContent = m.name || '';
+                card.appendChild(name);
+
+                if (m.is_reference) {
+                    var hint = document.createElement('small');
+                    hint.textContent = cfg.methodcode || '';
+                    card.appendChild(hint);
+                }
+
+                card.addEventListener('click', function() {
+                    select(i);
+                });
+                cards.push(card);
+                list.appendChild(card);
+            });
+
+            select(0);
+            wrap.removeAttribute('hidden');
+        };
+
+        buildMethods();
+
         var apply = q('[data-nitplan-apply]');
         if (apply) {
             apply.addEventListener('click', function() {
@@ -194,7 +268,8 @@
                     sesskey: cfg.sesskey,
                     subscriptionid: cfg.planid,
                     coupon_code: input ? String(input.value || '').trim() : '',
-                    return_url: cfg.returnurl
+                    return_url: cfg.returnurl,
+                    payment_method_id: methodid
                 });
 
                 fetch(cfg.subsurl, {
@@ -206,9 +281,21 @@
                         return r.json();
                     })
                     .then(function(res) {
-                        if (res && res.status === 'success' && res.data && res.data.checkout_url) {
-                            window.location.href = res.data.checkout_url;
-                            return;
+                        var data = (res && res.status === 'success' && res.data) ? res.data : null;
+                        if (data) {
+                            // Fawry, Meeza and the wallets answer with a code
+                            // instead of a page, so there is nothing to redirect
+                            // to — the code screen is the result.
+                            var pd = data.payment_data || {};
+                            if (pd.type === 'reference' && data.transaction_id) {
+                                window.location.href = cfg.referenceurl + '?id=' +
+                                    encodeURIComponent(data.transaction_id);
+                                return;
+                            }
+                            if (data.checkout_url) {
+                                window.location.href = data.checkout_url;
+                                return;
+                            }
                         }
                         throw new Error((res && res.error) || 'checkout failed');
                     })

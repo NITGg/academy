@@ -483,6 +483,62 @@
     color: var(--csuccess) !important;
 }
 
+/* Payment methods, between the total and the coupon box — the same position
+   the course checkout and the app use, so the three read as one product. Uses
+   the page's own --c* slots (plan.php maps them to the Brand Colors roles) so
+   it re-skins with everything else on this page. */
+.nitplan__methods {
+    margin: 14px 0 4px;
+}
+
+.nitplan__methodslabel {
+    display: block;
+    font-size: 13px;
+    color: var(--ctext2);
+    margin-bottom: 8px;
+}
+
+.nitplan__methodslist {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.nitplan__method {
+    flex: 0 0 auto;
+    min-width: 132px;
+    background: var(--cbg2);
+    border: 1px solid var(--cborder);
+    border-radius: 10px;
+    color: var(--ctext1);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px;
+    font-size: 12px;
+    line-height: 1.35;
+    text-align: center;
+}
+
+.nitplan__method img {
+    height: 22px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.nitplan__method small {
+    color: var(--ctext2);
+    font-size: 11px;
+}
+
+.nitplan__method.is-selected {
+    border-color: var(--caccent);
+    background: color-mix(in srgb, var(--caccent) 12%, transparent);
+}
+
 .nitplan__coupon {
     display: flex;
     align-items: center;
