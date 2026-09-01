@@ -115,14 +115,65 @@
         }
     }
 
-    // The "show password" eye toggle sits flush with the field — keep it Surface.
+    // ---------------------------------------------------------------------
+    // The "show password" eye toggle
+    //
+    // theme_nit's _authpages.scss already lifts this button into the password
+    // box and makes it transparent, but core Boost's login.scss reaches it at
+    // four classes — `.login-container .login-form .toggle-sensitive-wrapper
+    // .toggle-sensitive-btn` — where _authpages can only reach three. So core
+    // wins on the resting colour, and its `:focus` / `:focus-visible` rule (five)
+    // wins outright: it repaints the button `$gray-100` with a blue glow the
+    // moment it is focused, which is the white box with a dark eye in it that
+    // appears as soon as anyone clicks the eye on the dark card.
+    //
+    // Matched selector for selector here so there is something at the same
+    // specificity, later in the stream, to answer it — no `!important`.
+    //
+    // Transparent, not Surface: an icon sitting on the field rather than a
+    // control beside it, so whatever paints the field — including the browser's
+    // own autofill wash — runs unbroken underneath instead of stopping at a
+    // rectangle two shades off.
+    // ---------------------------------------------------------------------
     .login-form .toggle-sensitive-wrapper .toggle-sensitive-btn {
-        --bs-btn-bg: var(--nit-brand-surface);
-        --bs-btn-hover-bg: var(--nit-brand-surface);
-        --bs-btn-active-bg: var(--nit-brand-surface);
-        --bs-btn-border-color: var(--nit-brand-borderprimary);
-        --bs-btn-hover-border-color: var(--nit-brand-borderprimary);
+        --bs-btn-bg: transparent;
+        --bs-btn-hover-bg: transparent;
+        --bs-btn-active-bg: transparent;
+        --bs-btn-border-color: transparent;
+        --bs-btn-hover-border-color: transparent;
+        --bs-btn-color: var(--nit-brand-textsecondary);
+        --bs-btn-hover-color: var(--nit-brand-textprimary);
+        --bs-btn-active-color: var(--nit-brand-textprimary);
+        background-color: transparent;
+        border-inline-start: none;
         color: var(--nit-brand-textsecondary);
+
+        // The Font Awesome glyph is the whole button; it only ever inherits.
+        .icon {
+            color: inherit;
+        }
+
+        &:hover,
+        &:active {
+            background-color: transparent;
+            color: var(--nit-brand-textprimary);
+        }
+
+        // Core's focus state, answered: no fill, no Bootstrap glow. The ring is
+        // an outline instead — it paints outside the button, so it is legible
+        // over the field rather than sitting on top of it.
+        &:focus,
+        &:focus-visible {
+            background-color: transparent;
+            border-color: transparent;
+            box-shadow: none;
+            color: var(--nit-brand-textprimary);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--nit-brand-primary);
+            outline-offset: 1px;
+        }
     }
 
     // "Log in with Google" / "Log in as guest" (.login-identityprovider-btn,

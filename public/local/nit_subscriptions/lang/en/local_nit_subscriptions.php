@@ -62,6 +62,8 @@ $string['ui_never']        = 'Never';
 $string['ui_optional']     = '(optional)';
 $string['ui_remove']       = 'Remove';
 $string['ui_search']       = 'Search';
+$string['ui_showmore']           = '+{$a} more';
+$string['ui_showless']           = 'Show less';
 $string['ui_pager_info']   = 'Showing {from}–{to} of {total}';
 
 // Package-shared column/field labels reused by the subscriptions page.
@@ -135,6 +137,16 @@ $string['sub_save_courses']        = 'Save courses to subscription';
 $string['sub_courses_search']      = 'Search courses…';
 $string['sub_selectall']           = 'Select all';
 $string['sub_clear']               = 'Clear';
+$string['sub_ca_pickplan']        = 'Pick a subscription plan above to choose which courses it unlocks.';
+$string['sub_ca_counter']         = '{$a->selected} of {$a->total} courses selected';
+$string['sub_ca_unsaved']         = 'Unsaved changes';
+$string['sub_ca_reset']           = 'Reset';
+$string['sub_ca_onlyselected']    = 'Selected only';
+$string['sub_ca_nomatch']         = 'No courses match this filter.';
+$string['sub_ca_catall']          = 'All';
+$string['sub_ca_catnone']         = 'None';
+$string['sub_ca_discard']         = 'You have unsaved course changes for this plan. Switch anyway and lose them?';
+$string['sub_ca_catcount']        = '{$a->selected}/{$a->total}';
 
 // User subscriptions.
 $string['sub_usersubs_heading']    = 'User Subscriptions';

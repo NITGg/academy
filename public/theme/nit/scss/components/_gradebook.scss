@@ -1,0 +1,189 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+// =============================================================================
+// Gradebook - Grader report (/grade/report/grader/index.php).
+//
+// The grader table is painted by two core stylesheets that we must out-cascade
+// (both land BEFORE the theme SCSS in the aggregated sheet, so matching their
+// selector at equal specificity is enough):
+//
+//   1. grade/report/grader/styles.css - plugin CSS with raw hexes (#ccc
+//      borders, #495057 overridden grades, #ffe3a0 "just saved" cells, `red`
+//      excluded markers, #666 input borders, #fff dropdown footer).
+//   2. theme/boost/scss/moodle/grade.scss - paints the header / category /
+//      average cells $gray-100 (#f8f9fa).
+//
+// (2) is what breaks the page on the dark brand: Bootstrap colours the table
+// text from `--bs-table-color`, which theme_nit binds to the Text-primary role
+// (near-white), so the column headers, the category header and the "Overall
+// average" row render near-white on near-white - measured 1.06:1, i.e. an
+// invisible header band. Every colour below is re-pointed at a Brand-Colors
+// role so the whole report tracks the palette (and re-skins inside
+// .nit-brand-2 / .nit-brand-3, which a baked SCSS value could not).
+//
+// Role mapping: data cells = Background (the page ground, matching the core
+// use of body-bg); header / category / average cells = Surface (the raised
+// plane core expresses as gray-100); borders = Border primary; pass / fail =
+// Success / Error; the just-saved flash = a Warning tint.
+// =============================================================================
+
+.path-grade-report-grader {
+
+    .gradeparent {
+
+        // ---------------------------------------------------------------
+        // Grid: the table frame and every cell border. Also replaces the
+        // plugin stylesheet `1px solid #ccc`.
+        // ---------------------------------------------------------------
+        table,
+        .cell {
+            border-color: var(--nit-brand-borderprimary);
+        }
+
+        // ---------------------------------------------------------------
+        // Data cells (and their floating clones). These must stay OPAQUE -
+        // the first column and the heading row are position:sticky, so a
+        // translucent cell would let the scrolled content bleed through.
+        // ---------------------------------------------------------------
+        tr .cell,
+        .floater .cell {
+            background-color: var(--nit-brand-background);
+            color: var(--nit-brand-textprimary);
+        }
+
+        // ---------------------------------------------------------------
+        // Header band: column headers, the category header and the
+        // "Overall average" footer. One step up from the page ground so the
+        // structure core intends survives on the brand.
+        // ---------------------------------------------------------------
+        .heading .cell,
+        .cell.category,
+        .avg .cell {
+            background-color: var(--nit-brand-surface);
+            color: var(--nit-brand-textprimary);
+        }
+
+        // Sort / grade-item links inside the header band keep the link role.
+        .heading .cell a,
+        .cell.category a {
+            color: var(--nit-brand-accenttext);
+
+            &:hover,
+            &:focus {
+                color: var(--nit-brand-hovertext);
+            }
+        }
+
+        // Row hover - the report is read across a row, so give it the brand
+        // hover ground. Higher specificity than `tr .cell` above, so the
+        // sticky name column follows the rest of the row.
+        tr.userrow:hover .cell {
+            background-color: var(--nit-brand-hoverbackground);
+        }
+
+        // ---------------------------------------------------------------
+        // Status colours inside cells.
+        // ---------------------------------------------------------------
+
+        // A grade saved by AJAX flashes this cell. Core hard-codes #ffe3a0;
+        // mix the Warning role into the cell ground instead (mixing with the
+        // ground, not `transparent`, keeps the sticky cells opaque). Matches
+        // the deliberately over-specific core selector.
+        //
+        // The tint is deliberately kept low: the cell can contain a `.gradefail`
+        // value, and the Error role only clears 4.5:1 while the flashed ground
+        // stays close to the page background (measured 4.81:1 at 12%, 3.74:1 at
+        // 22%). Success and Text-primary clear it comfortably at this level.
+        tr:nth-child(n) td.ajaxoverridden:nth-child(n) {
+            background-color: color-mix(in srgb, var(--nit-brand-warning) 12%, var(--nit-brand-background));
+            color: var(--nit-brand-textprimary);
+        }
+
+        // "Excluded" marker - core paints it literal `red`.
+        .excludedfloater {
+            color: var(--nit-brand-error);
+        }
+
+        // ---------------------------------------------------------------
+        // Editing mode. The numeric grade inputs carry `.form-control` and
+        // are already branded; these two are not, and core leaves them as raw
+        // browser fields (white box, black text) on the dark brand.
+        // ---------------------------------------------------------------
+        .text {
+            background-color: var(--nit-brand-surface);
+            color: var(--nit-brand-textprimary);
+            border-color: var(--nit-brand-bordersecondary);
+        }
+
+        .overriddengrade {
+            background-color: transparent;
+            color: var(--nit-brand-textprimary);
+        }
+    }
+
+    // The "Search users" results panel pins a footer strip to the bottom of
+    // the dropdown; core paints that strip solid white so it can hide the
+    // scrolling list behind it. Same job, brand surface.
+    .usersearchdropdown {
+        .unsearchablecontentcontainer {
+            background-color: var(--nit-brand-surface);
+        }
+
+        .footer {
+            border-top-color: var(--nit-brand-borderprimary);
+        }
+    }
+}
+
+// Pass / fail grades. Boost already resolves these to $success / $danger, but
+// as baked hexes; binding them to the custom properties keeps them correct
+// inside a .nit-brand-2 / .nit-brand-3 scope too.
+.path-grade-report-grader,
+.path-grade-report-user {
+    .gradepass {
+        color: var(--nit-brand-success);
+    }
+
+    .gradefail {
+        color: var(--nit-brand-error);
+    }
+}
+
+// The user search / group search dropdowns are shared by every gradebook
+// report (grader, user, single view), so brand them once here.
+.search-widget .dropdown-menu {
+    .dropdown-item span.email {
+        color: var(--nit-brand-textsecondary);
+    }
+
+    .dropdown-item:hover span,
+    .dropdown-item:active span {
+        color: var(--nit-brand-hovertext);
+    }
+
+    .unsearchablecontentcontainer {
+        border-top-color: var(--nit-brand-borderprimary);
+    }
+}
+
+// Initials avatars in the participant column. Core ships a light grey chip
+// (#e9ecef behind #343a40 text), which reads as a pale island on the dark
+// brand. Scoped to the gradebook so the rest of the site is untouched.
+.path-grade .userinitials {
+    background-color: color-mix(in srgb, var(--nit-brand-primary) 22%, var(--nit-brand-surface));
+    color: var(--nit-brand-textprimary);
+    border: 1px solid var(--nit-brand-borderprimary);
+}

@@ -44,5 +44,17 @@ function xmldb_local_nit_commerce_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026083100, 'local', 'nit_commerce');
     }
 
+    if ($oldversion < 2026090100) {
+        // Bilingual display description for coupons and offers, stored as {mlang} markup like the names.
+        foreach (['nit_coupon' => 'name', 'nit_offer' => 'name'] as $tablename => $after) {
+            $table = new xmldb_table($tablename);
+            $field = new xmldb_field('description', XMLDB_TYPE_TEXT, null, null, null, null, null, $after);
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026090100, 'local', 'nit_commerce');
+    }
+
     return true;
 }

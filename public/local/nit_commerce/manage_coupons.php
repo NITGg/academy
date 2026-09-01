@@ -44,6 +44,7 @@ $STR = local_nit_commerce_string_map(array(
     'ui_edit', 'ui_delete', 'ui_never', 'ui_optional', 'ui_pager_info',
     'pkg_col_status', 'pkg_col_actions', 'sub_inactive',
     'ofr_col_name', 'pkg_field_name_en', 'pkg_field_name_ar',
+    'pkg_field_desc_en', 'pkg_field_desc_ar', 'ui_showmore', 'ui_showless',
     'cpn_new', 'cpn_none', 'cpn_col_code', 'cpn_col_type', 'cpn_col_value', 'cpn_col_scope',
     'cpn_col_usage', 'cpn_col_dates', 'cpn_field_code', 'cpn_field_dtype', 'cpn_field_value',
     'cpn_field_max', 'cpn_field_utype', 'cpn_field_limit', 'cpn_field_start', 'cpn_field_end',
@@ -76,6 +77,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         <button id="cpn-refresh" class="btn btn-secondary"><?php echo $STR['ui_refresh']; ?></button>
     </div>
 
+    <div class="acad-table-wrap">
     <table class="table table-striped" id="cpn-table">
         <thead>
             <tr>
@@ -83,15 +85,16 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 <th><?php echo $STR['ofr_col_name']; ?></th>
                 <th><?php echo $STR['cpn_col_type']; ?></th>
                 <th><?php echo $STR['cpn_col_value']; ?></th>
-                <th><?php echo $STR['cpn_col_scope']; ?></th>
+                <th class="col-tags"><?php echo $STR['cpn_col_scope']; ?></th>
                 <th><?php echo $STR['cpn_col_usage']; ?></th>
-                <th><?php echo $STR['cpn_col_dates']; ?></th>
+                <th class="col-tight"><?php echo $STR['cpn_col_dates']; ?></th>
                 <th><?php echo $STR['pkg_col_status']; ?></th>
-                <th><?php echo $STR['pkg_col_actions']; ?></th>
+                <th class="col-tight"><?php echo $STR['pkg_col_actions']; ?></th>
             </tr>
         </thead>
         <tbody><tr><td colspan="9"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
     </table>
+    </div>
     <div id="cpn-table-pager" class="acad-pager"></div>
 
     <div id="cpn-form-card" class="card" style="display:none; max-width:640px;">
@@ -105,6 +108,14 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <div class="form-group">
                 <label for="c-name-ar"><?php echo $STR['pkg_field_name_ar']; ?></label>
                 <input type="text" class="form-control" id="c-name-ar" dir="rtl">
+            </div>
+            <div class="form-group">
+                <label for="c-desc-en"><?php echo $STR['pkg_field_desc_en']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
+                <textarea class="form-control" id="c-desc-en" rows="2" dir="ltr"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="c-desc-ar"><?php echo $STR['pkg_field_desc_ar']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
+                <textarea class="form-control" id="c-desc-ar" rows="2" dir="rtl"></textarea>
             </div>
             <div class="form-group">
                 <label for="c-code"><?php echo $STR['cpn_field_code']; ?></label>
@@ -269,8 +280,15 @@ echo html_writer::script(<<<'JS'
     function dtype(t){ return t === 'fixed' ? str('cpn_type_fixed') : str('cpn_type_percent'); }
     function valueLabel(c){ return c.discount_type === 'percent' ? (c.discount_value + '%') : c.discount_value; }
     function scopeLabel(c){
-        if (!c.applies_to || !c.applies_to.length){ return '<span class="text-muted">—</span>'; }
-        return c.applies_to.map(function(a){ return esc(a.label); }).join(', ');
+        return AcademyUI.tagList((c.applies_to || []).map(function(a){ return a.label; }),
+            { more: str('ui_showmore'), less: str('ui_showless') });
+    }
+    // Name over its description, both resolved from the stored {mlang} markup.
+    function titleCell(name, description){
+        var title = displayName(name);
+        var sub = description ? displayName(description) : '';
+        return '<div class="acad-cell-title">' + esc(title) + '</div>' +
+            (sub ? '<div class="acad-cell-sub">' + esc(sub) + '</div>' : '');
     }
     function usageLabel(c){
         if (c.usage_type === 'once'){ return str('cpn_usage_once') + ' (' + c.usage_count + ')'; }
@@ -288,18 +306,18 @@ echo html_writer::script(<<<'JS'
                 : '<button class="btn btn-sm btn-success" data-act="activate" data-id="'+c.id+'">'+esc(str('ui_activate'))+'</button>';
             tr.innerHTML =
                 '<td><code>'+esc(c.code)+'</code></td>'+
-                '<td>'+esc(displayName(c.name_raw || c.name))+'</td>'+
+                '<td>'+titleCell(c.name_raw || c.name, c.description_raw || c.description)+'</td>'+
                 '<td>'+esc(dtype(c.discount_type))+'</td>'+
                 '<td>'+esc(valueLabel(c))+(c.max_discount!=null?' <small class="text-muted">(max '+esc(c.max_discount)+')</small>':'')+'</td>'+
-                '<td>'+scopeLabel(c)+'</td>'+
+                '<td class="col-tags">'+scopeLabel(c)+'</td>'+
                 '<td>'+esc(usageLabel(c))+'</td>'+
                 '<td>'+esc(fmtDate(c.startdate))+' → '+esc(fmtDate(c.enddate))+'</td>'+
                 '<td>'+esc(c.status === 'active' ? str('ui_active') : str('sub_inactive'))+'</td>'+
-                '<td>'+
+                '<td class="col-tight"><div class="acad-actions">'+
                     '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="'+c.id+'">'+esc(str('ui_edit'))+'</button> '+
                     toggle+' '+
                     '<button class="btn btn-sm btn-danger" data-act="delete" data-id="'+c.id+'">'+esc(str('ui_delete'))+'</button>'+
-                '</td>';
+                '</div></td>';
             tr._c = c;
             tbody.appendChild(tr);
         });
@@ -405,11 +423,14 @@ echo html_writer::script(<<<'JS'
 
     function showForm(c){
         var nm = parseMultilang(c ? (c.name_raw || c.name) : '');
+        var ds = parseMultilang(c ? (c.description_raw || c.description || '') : '');
         $('cpn-form-title').textContent = c ? strf('cpn_edit_titled', c.code) : str('cpn_new');
         $('c-id').value    = c ? c.id : '';
         $('c-code').value  = c ? c.code : '';
         $('c-name-en').value = nm.en;
         $('c-name-ar').value = nm.ar;
+        $('c-desc-en').value = ds.en;
+        $('c-desc-ar').value = ds.ar;
         $('c-dtype').value = c ? c.discount_type : 'percent';
         $('c-value').value = c ? c.discount_value : '';
         $('c-max').value   = (c && c.max_discount != null) ? c.max_discount : '';
@@ -430,6 +451,7 @@ echo html_writer::script(<<<'JS'
         var params = {
             code: $('c-code').value,
             name: buildMultilang($('c-name-en').value, $('c-name-ar').value),
+            description: buildMultilang($('c-desc-en').value, $('c-desc-ar').value),
             discount_type: $('c-dtype').value,
             discount_value: $('c-value').value || 0,
             max_discount: $('c-max').value === '' ? '' : $('c-max').value,

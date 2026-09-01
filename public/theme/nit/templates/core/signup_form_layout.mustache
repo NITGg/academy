@@ -32,7 +32,13 @@
         ]
     }
 }}
-<div class="signupform nit-auth">
+{{!
+    `nit-auth-card` is the same card the log-in screen sits in. The two screens
+    are one journey and a learner crosses between them by a link at the bottom of
+    each; without it, sign-up read as a bare form floating on the page while
+    log-in read as a card, which is two products rather than two steps.
+}}
+<div class="signupform nit-auth nit-auth-card">
     <div class="nit-auth-head">
         <h1 class="nit-auth-title">{{#str}} createaccount, theme_nit {{/str}}</h1>
         <p class="nit-auth-sub">{{#str}} createaccountsub, theme_nit {{/str}}</p>

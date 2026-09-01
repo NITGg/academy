@@ -1,0 +1,123 @@
+// NIT commerce / subscriptions admin screens.
+//
+// These pages list plans, coupons and offers in plain Bootstrap tables, and each
+// row carries a set of small labels — the courses a plan covers, the items a
+// discount applies to. Rendered as one comma-joined run those cells grow without
+// limit and crush every other column, so the JS (AcademyUI.tagList in each
+// plugin's ui.js) emits a few chips plus a "+N more" toggle and the rules below
+// give that markup its look. Scoped to our own app wrappers so nothing else on
+// the site inherits them.
+
+#academy-coupon-app,
+#academy-offer-app,
+#academy-sub-app {
+
+    // ── Tables ──
+    // The horizontal scroller is the safety net: even with the chips capped, a
+    // narrow viewport should scroll the table rather than the whole page.
+    .acad-table-wrap {
+        overflow-x: auto;
+        margin-bottom: 1rem;
+    }
+
+    .table {
+        margin-bottom: 0;
+
+        td,
+        th {
+            vertical-align: middle;
+        }
+
+        // Columns whose content must never wrap mid-value.
+        .col-tight {
+            white-space: nowrap;
+        }
+
+        // The label column: wide enough to be useful, capped so it cannot bully
+        // the rest of the row.
+        .col-tags {
+            min-width: 13rem;
+            max-width: 24rem;
+        }
+    }
+
+    // Name (+ optional description) in one cell.
+    .acad-cell-title {
+        font-weight: 600;
+    }
+
+    .acad-cell-sub {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        max-width: 26rem;
+        margin-top: 0.15rem;
+        font-size: 0.8rem;
+        font-weight: 400;
+        line-height: 1.35;
+        color: var(--nit-brand-textsecondary);
+    }
+
+    // Keep row actions on one line instead of letting three buttons wrap into
+    // three rows and stretch every other cell vertically.
+    .acad-actions {
+        display: flex;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+        gap: 0.25rem;
+        align-items: center;
+    }
+
+    // ── Compact label lists ──
+    .acad-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        align-items: center;
+    }
+
+    .acad-tag {
+        display: inline-block;
+        max-width: 14rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0.1rem 0.55rem;
+        border: 1px solid color-mix(in srgb, var(--nit-brand-primary) 32%, transparent);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--nit-brand-primary) 12%, transparent);
+        color: var(--nit-brand-textprimary);
+        font-size: 0.78rem;
+        line-height: 1.5;
+    }
+
+    // Everything past the visible cap stays out of the layout until expanded.
+    .acad-tag--extra {
+        display: none;
+    }
+
+    .acad-tags.is-open .acad-tag--extra {
+        display: inline-block;
+    }
+
+    .acad-tags__toggle {
+        padding: 0.1rem 0.55rem;
+        border: 1px dashed var(--nit-brand-borderprimary);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--nit-brand-textsecondary);
+        font-size: 0.78rem;
+        line-height: 1.5;
+        cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+        &:hover,
+        &:focus-visible {
+            border-style: solid;
+            border-color: var(--nit-brand-primary);
+            background: var(--nit-brand-hoverbackground);
+            color: var(--nit-brand-hovertext);
+        }
+    }
+}

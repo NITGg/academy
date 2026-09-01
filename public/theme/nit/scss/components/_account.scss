@@ -232,8 +232,13 @@
 }
 
 // A value the learner reads, with its button on the same line — the email row.
+//
+// Full width outright: the row is a flex item of core's `.felement`, so left to
+// itself it shrinks to its contents and the address sits in a box a third the
+// width of every real input above and below it.
 .nit-account__inlinerow {
     display: flex;
+    width: 100%;
     align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
@@ -322,11 +327,28 @@
 }
 
 // -----------------------------------------------------------------------------
-// The forms inside a pane
+// The forms inside a pane — WF-5.1's layout
 //
 // A moodleform in a card should read as the card's own fields, so the chrome it
 // brings with it — its own border, its heading, the fieldset rule — is taken off
 // rather than nested inside the card's.
+//
+// Everything below is layout only. The form still builds exactly the elements it
+// built before, in the same order, and posts exactly the same names; what changes
+// is where they sit. Three things the wireframe does that Boost's default form
+// does not:
+//
+//   1. The label goes above its field, small and muted. Boost puts it in a 25%
+//      column down the leading edge, which on a card this narrow leaves the
+//      inputs starting a third of the way across and the help sentences floating
+//      in the gap.
+//   2. First and last name share a row.
+//   3. The picture — avatar, its control, its caption — is a narrow column beside
+//      the fields rather than a full-width block above them.
+//
+// (2) and (3) are done by making the form a grid and pinning those few rows to
+// columns; every other row spans the field columns, so a field the administrator
+// adds tomorrow lands in the right place without being named here.
 // -----------------------------------------------------------------------------
 
 .nit-account__card {
@@ -342,9 +364,40 @@
         margin-block-start: 0;
     }
 
+    // ---- The label above its field -----------------------------------------
+    //
+    // The stacking itself is core's: the form calls set_display_vertical(), which
+    // adds `full-width-labels` and lets Boost take both Bootstrap columns to full
+    // width. Only the type is ours — a label is a caption for the field under it,
+    // so it is small and muted rather than the same size and weight as the value.
+    .mform .fitem {
+        margin-block-end: 1rem;
+    }
+
+    .mform .fitem > .col-md-3 {
+        align-items: center;
+        gap: 0.375rem;
+        padding-block: 0 0.3125rem;
+        min-height: 0;
+    }
+
     .mform .col-form-label {
         color: var(--nit-brand-textsecondary);
         font-size: 0.8125rem;
+        line-height: 1.3;
+    }
+
+    .mform .form-label-addon {
+        font-size: 0.75rem;
+    }
+
+    // A `static` element is drawn inside `.form-control-static`, which is a flex
+    // item of the cell and so shrinks to its contents. Every static on this screen
+    // stands in for a field — the address with its Change button, a locked value,
+    // a help caption — so each should occupy the row the way a real input does
+    // rather than stopping halfway across it.
+    .mform .felement > .form-control-static {
+        width: 100%;
     }
 
     // The static rows that carry help text are labelless; without this they keep
@@ -357,6 +410,198 @@
     .fitem.femptylabel .col-md-9 {
         flex: 0 0 100%;
         max-width: 100%;
+    }
+
+    // ---- The help sentences -------------------------------------------------
+    //
+    // Each one belongs to the field above it, so it is drawn as a caption of that
+    // field — small, muted, tucked up against it — rather than as another row of
+    // body text at the same size as the values themselves.
+    //
+    // Matched on the element id rather than on `.femptylabel`: the avatar and the
+    // category headings are labelless statics too, and neither is a caption.
+    // Every help row this form adds is named `<field>help`, which is the whole
+    // rule and needs no `:has()`.
+    .mform .fitem[id$="help"] {
+        margin-block: -0.5rem 1rem;
+
+        .form-control-static {
+            font-size: 0.8125rem;
+            line-height: 1.45;
+            color: var(--nit-brand-textsecondary);
+        }
+    }
+
+    // A profile-field category opens a section rather than closing one, so it
+    // takes the space and the rule instead. Named `cat_<categoryid>` by
+    // account_profile_form::add_profile_fields().
+    .mform .fitem[id^="fitem_id_cat_"] {
+        margin-block: 1.5rem 1rem;
+        padding-block-start: 1.25rem;
+        border-block-start: 1px solid var(--nit-brand-borderprimary);
+
+        .nit-account__subtitle {
+            margin: 0;
+        }
+    }
+
+    // ---- The action row -----------------------------------------------------
+    .mform #fgroup_id_buttonar {
+        margin-block-start: 1.5rem;
+        padding-block-start: 1.25rem;
+        border-block-start: 1px solid var(--nit-brand-borderprimary);
+    }
+
+    // Core's "Required" footnote under the buttons — a key to the markers beside
+    // the labels, so it is set as a caption like the rest of the small print.
+    .mform .fdescription.required {
+        margin-block: 0.5rem 0;
+        font-size: 0.8125rem;
+        color: var(--nit-brand-textsecondary);
+    }
+
+    // ---- The profile picture ------------------------------------------------
+    //
+    // The wireframe draws this as an avatar, one small control under it, and a
+    // three-line caption. What Boost draws is a full file manager: a toolbar of
+    // four buttons and three view modes, a path bar, a size-limit line, a
+    // drag-and-drop panel the height of a paragraph, and a list of accepted file
+    // types — for a control that accepts exactly one square image.
+    //
+    // The chrome that has no meaning here is taken off rather than the manager
+    // replaced: it is still core's file manager, still posts the same draft item
+    // id, and still shows the file once one is picked. Gone are the folder,
+    // download and delete buttons (there are no folders, the picture is already
+    // on the page, and "Delete picture" is its own checkbox), the view switcher
+    // and path bar, and the two lines that repeat what the caption underneath
+    // already says.
+    #fitem_id_imagefile {
+        .fp-restrictions,
+        .fp-btn-mkdir,
+        .fp-btn-download,
+        .fp-btn-delete,
+        .fp-viewbar,
+        .fp-pathbar,
+        .filetypes-descriptions-intro,
+        .form-filetypes-descriptions {
+            display: none;
+        }
+
+        .fp-navbar {
+            margin: 0;
+            padding: 0;
+            background: none;
+            border: 0;
+        }
+
+        // The one button left is the wireframe's "Change".
+        .fp-btn-add a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.3125rem 0.875rem;
+            border-radius: 0.375rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            background-color: var(--nit-brand-secondary);
+            border: 1px solid var(--nit-brand-bordersecondary);
+            color: var(--nit-brand-textprimary);
+
+            &:hover,
+            &:focus {
+                background-color: var(--nit-brand-hoverbackground);
+                color: var(--nit-brand-hovertext);
+                border-color: var(--nit-brand-accenttext);
+            }
+        }
+
+        // The drop panel keeps working — it just stops being the tallest thing on
+        // the screen while it is empty. `.fm-empty-container` is what core shows
+        // when no file has been picked; once one is, `.fp-content` fills and the
+        // panel grows around it.
+        //
+        // Both min-heights have to go: Boost floors the container at 140px and
+        // its content at 157px, which is what reserved a paragraph of empty space
+        // under the avatar even with the drop message hidden.
+        .filemanager-container,
+        .filemanager .fp-content {
+            min-height: 0;
+        }
+
+        .filemanager-container {
+            margin-block-start: 0.5rem;
+            background: none;
+            border: 0;
+        }
+
+        .fm-empty-container {
+            display: none;
+        }
+    }
+
+    // The caption under it, straight from the wireframe: three short lines rather
+    // than one that runs the width of the card.
+    #fitem_id_picturehelp .form-control-static {
+        max-width: 7.5rem;
+    }
+
+    // ---- Two columns, as the wireframe draws them ---------------------------
+    //
+    // A media query, not a container query, even though the width that actually
+    // decides this is the card's. @container is what the layout wants and it
+    // compiles fine - but Moodle builds the Arabic stylesheet by running the
+    // compiled CSS through rtlcss, and rtlcss does not know the at-rule: it eats
+    // the first selector inside it, leaves those declarations loose in the
+    // at-rule, and drops every rule after them. The Arabic build silently loses
+    // the whole two-column layout. Checked against a real RTL build, not assumed.
+    //
+    // 576px is the narrowest viewport at which the card still has room for two
+    // name fields beside the picture - in the wide layout (a 13rem navigation box
+    // beside the pane) and in the stacked one below 769px, where the card takes
+    // the full width instead.
+    //
+    // Below it nothing here applies: the card is one column and the picture sits
+    // above the fields, which is what the rules above already do.
+    @media (min-width: 576px) {
+        .mform {
+            display: grid;
+            // Picture column, then two equal field columns.
+            grid-template-columns: 7.5rem minmax(0, 1fr) minmax(0, 1fr);
+            column-gap: 1.25rem;
+            // Dense, so the fields beside the picture start at the top row rather
+            // than below the three rows the picture occupies.
+            grid-auto-flow: row dense;
+            align-items: start;
+        }
+
+        // The default for everything the form prints, including any field added
+        // from the management page tomorrow: the full width of the field area.
+        //
+        // Every child, not just `.fitem` — core also emits the "Required" footnote
+        // (`.fdescription`) as a bare div, and with only the fitems placed it was
+        // the one thing left to auto-place, so it landed in the picture column
+        // halfway up the card looking like a warning about the avatar.
+        .mform > * {
+            grid-column: 2 / -1;
+        }
+
+        // The picture block, pinned down the leading edge in the order it is
+        // built: the avatar, the control, the caption, and the delete box when
+        // the account has a picture to delete.
+        #fitem_id_currentpicture { grid-column: 1; grid-row: 1; }
+        #fitem_id_imagefile      { grid-column: 1; grid-row: 2; }
+        #fitem_id_picturehelp    { grid-column: 1; grid-row: 3; }
+        #fitem_id_deletepicture  { grid-column: 1; grid-row: 4; }
+
+        // A first and last name are one name; the wireframe puts them on one line.
+        #fitem_id_firstname { grid-column: 2; }
+        #fitem_id_lastname  { grid-column: 3; }
+
+        // The caption sits under the avatar, so it does not want the negative top
+        // margin that pulls a help line up under its field.
+        #fitem_id_picturehelp {
+            margin-block: 0.25rem 0;
+        }
     }
 }
 

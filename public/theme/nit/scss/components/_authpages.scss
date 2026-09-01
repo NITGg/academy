@@ -171,6 +171,75 @@
         width: 100%;
     }
 
+    // ---------------------------------------------------------------------
+    // Browser autofill
+    //
+    // When Chrome/Edge fill a saved email and password they repaint the box
+    // themselves: a pale blue-white background and near-black text, applied by
+    // the UA at a level no ordinary `background-color` can reach. On a dark card
+    // that turns two fields into two white slabs - the field that was filled
+    // stops matching the field beside it, which is exactly the pair a learner is
+    // looking at.
+    //
+    // The background cannot be set, but it can be covered: a very large inset
+    // box-shadow paints over it in the surface colour, and `-webkit-text-fill-
+    // color` is the one property that beats the UA's text colour. The absurd
+    // transition delay is the standard defence against the fade the UA plays on
+    // the background when the field is focused - there is no event to hook, only
+    // an animation to outlast.
+    //
+    // `:autofill` is the standard selector (Firefox, and Chromium since 108);
+    // `:-webkit-autofill` is kept for older Chromium and Safari. They must be in
+    // separate rules - a browser that does not know one selector throws the
+    // whole list away.
+    //
+    // `.form-control` is written twice on purpose. Core Boost's login.scss owns
+    // this box at `.login-container .login-form .form-control` and clears its
+    // shadow (`box-shadow: none`), then puts Bootstrap's focus glow back at
+    // `&:focus` - four classes, where a plain `.nit-auth .form-control:autofill`
+    // only reaches three. Either would wipe out the cover and let the wash back
+    // through, and the focused state is exactly when a learner is looking. The
+    // repeat costs one class and settles both.
+    // ---------------------------------------------------------------------
+    .form-control.form-control:autofill,
+    .form-control.form-control:autofill:hover,
+    .form-control.form-control:autofill:focus,
+    .form-control.form-control:autofill:active {
+        box-shadow: 0 0 0 100vmax var(--nit-brand-surface) inset;
+        -webkit-text-fill-color: var(--nit-brand-textprimary);
+        caret-color: var(--nit-brand-textprimary);
+        transition: background-color 100000s ease-in-out 0s;
+    }
+
+    .form-control.form-control:-webkit-autofill,
+    .form-control.form-control:-webkit-autofill:hover,
+    .form-control.form-control:-webkit-autofill:focus,
+    .form-control.form-control:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 100vmax var(--nit-brand-surface) inset;
+        box-shadow: 0 0 0 100vmax var(--nit-brand-surface) inset;
+        -webkit-text-fill-color: var(--nit-brand-textprimary);
+        caret-color: var(--nit-brand-textprimary);
+        transition: background-color 100000s ease-in-out 0s;
+    }
+
+    // The inset shadow above covers the whole box, and Bootstrap's focus ring is
+    // a box-shadow - so the ring has to be redrawn as an outline, which paints
+    // outside the box and is therefore out of the cover's reach.
+    .form-control.form-control:autofill:focus,
+    .form-control.form-control:-webkit-autofill:focus {
+        outline: 2px solid var(--nit-brand-primary);
+        outline-offset: -1px;
+    }
+
+    // A `<select>` (the phone country box) gets autofilled too, and Chrome paints
+    // that one with a background it will let us set - so it does not need the
+    // shadow, only the colours.
+    .form-select:autofill,
+    .form-select:-webkit-autofill {
+        background-color: var(--nit-brand-surface);
+        -webkit-text-fill-color: var(--nit-brand-textprimary);
+    }
+
     // The action buttons come out of moodleform inside their own fitem; the
     // label column beside them is empty and only adds a gap.
     #fgroup_id_buttonar .col-form-label,
@@ -313,8 +382,7 @@
 
         // Each button is wrapped in a `span`, which would otherwise shrink-wrap
         // and take the button's width down with it.
-        [data-fieldtype="submit"],
-        [data-fieldtype="cancel"] {
+        [data-fieldtype="submit"] {
             display: block;
         }
 
@@ -324,7 +392,7 @@
             display: none !important;
         }
 
-        // The primary action fills the column; Cancel sits under it, quiet.
+        // The one action on the screen fills the column.
         input[type="submit"],
         button[type="submit"] {
             width: 100%;
@@ -332,12 +400,28 @@
             font-weight: 600;
         }
 
+        // ---------------------------------------------------------------
+        // Cancel is taken off the sign-up screen
+        //
+        // It went back to the log-in page, which is already reachable from
+        // "Already have an account? Log in" at the bottom of the card - so it
+        // was a second, greyer way to do the one thing the footer link already
+        // does, sitting directly under the primary action where it could only
+        // compete with it.
+        //
+        // Removed here rather than in the form: `moodleform::add_action_buttons()`
+        // adds the pair *after* `core_login_extend_signup_form()` has run, so
+        // there is no plugin callback late enough to unset the element without
+        // editing core. `display: none` is not merely visual - the button leaves
+        // the tab order and the accessibility tree with it - and implicit
+        // submission is unaffected, because `add_action_buttons()` puts
+        // `submitbutton` first in the group and the browser's default button is
+        // the first submit in the document.
+        // ---------------------------------------------------------------
+        [data-fieldtype="cancel"],
         #id_cancel,
         [name="cancel"] {
-            width: 100%;
-            background: transparent;
-            border-color: transparent;
-            color: var(--nit-brand-textsecondary);
+            display: none;
         }
     }
 
@@ -479,14 +563,37 @@
         display: block;
         width: 100%;
 
+        // `.input-group` squares off the end corners of every child but the last,
+        // and the password box is never the last - the toggle is. So the box was
+        // rounded at the start and square at the end while the email box above it
+        // was rounded at both, which is the "two different fields" look.
+        //
+        // Bootstrap makes that rule six classes deep
+        // (`.input-group:not(.has-validation) > :not(:last-child):not(.dropdown-toggle):not(.dropdown-menu):not(.form-floating)`),
+        // so a plain `.form-control` inside this wrapper loses to it. Matched
+        // here on specificity rather than with `!important`: the `:not()`s cost
+        // nothing on their own, so repeating the two that matter is enough to
+        // come out ahead.
         .form-control {
             // Room for the eye, on whichever side the language puts it.
             width: 100%;
             padding-inline-end: 2.75rem;
-            // `.input-group` squares off the corner the addon used to cover.
             border-radius: var(--bs-border-radius, 0.375rem);
         }
 
+        &.input-group:not(.has-validation) > .form-control:not(:last-child):not(.dropdown-toggle) {
+            border-radius: var(--bs-border-radius, 0.375rem);
+        }
+
+        // The eye is an icon over the field, not a control beside it: no fill of
+        // its own, so the field's background - whatever paints it, autofill
+        // included - runs unbroken underneath.
+        //
+        // `.btn-secondary` is what core puts on this button, and Bootstrap's
+        // button colours are all `--bs-btn-*` variables, so the fill has to be
+        // unset through those rather than with `background`. `color` still has to
+        // be set outright: `.btn` reads `--bs-btn-color`, and the icon inside is
+        // a Font Awesome glyph that simply inherits it.
         .toggle-sensitive-btn {
             position: absolute;
             inset-inline-end: 0.25rem;
@@ -496,17 +603,36 @@
             z-index: 4;
             border: 0;
             padding: 0.35rem 0.5rem;
+            border-radius: var(--bs-border-radius, 0.375rem);
             box-shadow: none;
             --bs-btn-bg: transparent;
             --bs-btn-hover-bg: transparent;
             --bs-btn-active-bg: transparent;
             --bs-btn-border-color: transparent;
             --bs-btn-hover-border-color: transparent;
+            --bs-btn-color: var(--nit-brand-textsecondary);
+            --bs-btn-hover-color: var(--nit-brand-textprimary);
+            --bs-btn-active-color: var(--nit-brand-textprimary);
+            background: transparent;
             color: var(--nit-brand-textsecondary);
 
+            .icon {
+                color: inherit;
+                margin: 0;
+            }
+
             &:hover,
-            &:focus {
+            &:focus,
+            &:active {
+                background: transparent;
                 color: var(--nit-brand-textprimary);
+            }
+
+            // The button has no fill to carry a focus state, so the ring is the
+            // only thing that says it is focused.
+            &:focus-visible {
+                outline: 2px solid var(--nit-brand-primary);
+                outline-offset: 1px;
             }
         }
     }
@@ -585,23 +711,17 @@
         }
     }
 
+    // Guest access sits in the utility line now, and a `<form>` is the only way
+    // to POST it. `display: contents` takes the wrapper out of the layout so the
+    // button becomes a direct flex item of the line and lines up with the
+    // language menu and the cookies notice instead of forming a box of its own.
+    //
+    // Safe here because the form is a single button with three hidden inputs:
+    // `display: contents` is only a problem when the element it is applied to
+    // carries semantics the layout has to keep, and a form's submission
+    // behaviour is not a layout property.
     .nit-auth-guest {
-        margin-top: 1rem;
-    }
-
-    .nit-auth-guest-btn {
-        width: 100%;
-        font-size: 0.9rem;
-        font-weight: 600;
-        border: 1px solid color-mix(in srgb, var(--nit-brand-textprimary) 18%, transparent);
-        background: transparent;
-        color: var(--nit-brand-textsecondary);
-
-        &:hover,
-        &:focus {
-            background: var(--nit-brand-hoverbackground);
-            color: var(--nit-brand-hovertext);
-        }
+        display: contents;
     }
 
     .nit-auth-utility {

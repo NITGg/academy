@@ -28,8 +28,8 @@ defined('MOODLE_INTERNAL') || die();
  * right of it, so the list is defined once, here, rather than being repeated by
  * every page that needs to appear inside it. A page joins the screen by calling
  * {@see self::open()} before its own output and {@see self::close()} after -
- * which is how `/local/nit_instructors/edit.php` shows the same navigation
- * without this plugin having to own the instructor form.
+ * which is how `/local/payments/history.php` shows the same navigation without
+ * this plugin having to own the payment history.
  *
  * Three of the entries lead somewhere that already exists (`/my/courses.php`, the
  * certificate list, the payment history). Those are links, not panes: rebuilding
@@ -52,21 +52,13 @@ class account {
     const SECTION_DELETE = 'delete';
 
     /**
-     * @var string WF-5.6 - the instructor's Academic and Professional Background.
-     *
-     * Not a pane of this plugin: the section is named here only so the entry can
-     * be marked current while `local_nit_instructors` renders it.
-     */
-    const SECTION_BACKGROUND = 'background';
-
-    /**
      * @var string[] The panes account.php itself serves.
      *
      * Delete is not among them. It already has a page of its own, and that page
      * owns the deletion, the goodbye mail and the sign-out; giving account.php a
      * second copy of that sequence would be two places to get an irreversible act
-     * wrong. Like the instructor background, it joins the screen by wrapping
-     * itself in {@see self::open()} instead.
+     * wrong. It joins the screen by wrapping itself in {@see self::open()}
+     * instead.
      */
     const OWN_SECTIONS = [self::SECTION_PROFILE, self::SECTION_SECURITY];
 
@@ -95,43 +87,13 @@ class account {
     }
 
     /**
-     * Is the Academic and Professional Background entry shown for this account?
-     *
-     * AC-4.5.6: "shown only on accounts holding the instructor role. It is absent
-     * from a learner's profile screen entirely, not merely disabled." So this
-     * decides whether the entry exists at all, not whether it is greyed out.
-     *
-     * The check is delegated to `local_nit_instructors`, which reads the site's own
-     * `$CFG->coursecontact` roles - the answer has to be the same one the
-     * background page itself gives, or a learner could be shown an entry that then
-     * refuses them. Guarded with class_exists() because that plugin is a separate
-     * install and this screen has to work without it.
-     *
-     * @param int $userid
-     * @return bool
-     */
-    public static function is_instructor(int $userid): bool {
-        if (!class_exists('\local_nit_instructors\profile')) {
-            return false;
-        }
-
-        try {
-            return \local_nit_instructors\profile::is_instructor($userid);
-        } catch (\Throwable $e) {
-            // A half-installed plugin must not take the account screen down.
-            debugging('local_profilefields: instructor check failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
-            return false;
-        }
-    }
-
-    /**
      * The navigation entries, in the order the wireframe lists them.
      *
      * @param string $active the SECTION_* constant of the entry to mark current
      * @return array<int, array{key: string, label: string, url: string, active: bool, danger: bool}>
      */
     public static function nav(string $active): array {
-        global $USER, $CFG;
+        global $CFG;
 
         $items = [];
 
@@ -168,14 +130,6 @@ class account {
                 'key' => 'invoices',
                 'label' => get_string('navinvoices', 'local_profilefields'),
                 'url' => (new moodle_url('/local/payments/history.php'))->out(false),
-            ];
-        }
-
-        if (self::is_instructor((int) $USER->id)) {
-            $items[] = [
-                'key' => self::SECTION_BACKGROUND,
-                'label' => get_string('navbackground', 'local_profilefields'),
-                'url' => (new moodle_url('/local/nit_instructors/edit.php'))->out(false),
             ];
         }
 

@@ -28,7 +28,6 @@ $string['pluginname'] = 'Instructor background';
 
 // The group itself (AC-4.5.9).
 $string['background'] = 'Academic and Professional Background';
-$string['editbackground'] = 'Edit my background';
 $string['viewpublic'] = 'View my public profile';
 $string['nobackground'] = 'This instructor has not added a background yet.';
 $string['notaninstructor'] = 'This page is for instructors only.';

@@ -108,6 +108,17 @@ class account_profile_form extends moodleform {
         $mform = $this->_form;
         $user = $this->_customdata['user'];
 
+        // Labels above their fields, not in a column down the leading edge, which
+        // is how WF-5.1 draws them. Core's own switch for it - it adds
+        // `full-width-labels` to the form, and Boost has the rules ready. Worth
+        // saying because the temptation is to override the Bootstrap columns from
+        // the theme instead, and that fights a `:not(.full-width-labels)` rule
+        // core already wrote for exactly this case.
+        //
+        // The pane is about 550px wide inside the account screen, so this is the
+        // "narrow container" the method is documented for.
+        $this->set_display_vertical();
+
         $mform->addElement('hidden', 'id', $user->id);
         $mform->setType('id', PARAM_INT);
 

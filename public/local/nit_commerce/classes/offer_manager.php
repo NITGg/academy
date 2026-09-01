@@ -43,7 +43,7 @@ class offer_manager {
     /**
      * Create an offer.
      *
-     * @param array $data name, discount_type, discount_value, startdate, enddate, active, items[]
+     * @param array $data name, description, discount_type, discount_value, startdate, enddate, active, items[]
      * @param int $userid admin
      * @return int new offer id
      */
@@ -56,6 +56,7 @@ class offer_manager {
         $now = time();
         $record = new \stdClass();
         $record->name           = $name;
+        $record->description    = trim((string)($data['description'] ?? ''));
         $record->discount_type  = discount_manager::normalize_discount_type($data['discount_type'] ?? 'percent');
         $record->discount_value = self::validate_value($record->discount_type, $data['discount_value'] ?? 0);
         list($record->startdate, $record->enddate) = self::validate_dates($data['startdate'] ?? 0, $data['enddate'] ?? 0);
@@ -90,6 +91,9 @@ class offer_manager {
                 throw new \moodle_exception('err_offernamerequired', 'local_nit_commerce');
             }
             $update->name = $name;
+        }
+        if (array_key_exists('description', $data)) {
+            $update->description = trim((string)$data['description']);
         }
         if (array_key_exists('discount_type', $data)) {
             $update->discount_type = discount_manager::normalize_discount_type($data['discount_type']);
@@ -254,6 +258,8 @@ class offer_manager {
             // 'name' is localised for display; 'name_raw' keeps the stored {mlang} markup for editing.
             'name'           => format_string(discount_manager::resolve_mlang($record->name)),
             'name_raw'       => $record->name,
+            'description'    => format_string(discount_manager::resolve_mlang((string)$record->description)),
+            'description_raw' => (string)$record->description,
             'discount_type'  => $record->discount_type,
             'discount_value' => (float)$record->discount_value,
             'startdate'      => (int)$record->startdate,

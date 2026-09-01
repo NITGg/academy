@@ -390,7 +390,6 @@ $string['navsecurity'] = 'الأمان';
 $string['navmylearning'] = 'تعلُّمي';
 $string['navcertificates'] = 'الشهادات';
 $string['navinvoices'] = 'الفواتير';
-$string['navbackground'] = 'الخلفية الأكاديمية';
 $string['navdelete'] = 'حذف حسابي';
 $string['profilepicture'] = 'الصورة الشخصية';
 $string['picturehelp'] = 'JPG أو PNG، بحد أقصى 2 ميجابايت، مقصوصة مربعة.';

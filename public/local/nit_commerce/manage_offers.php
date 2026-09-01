@@ -51,6 +51,7 @@ $STR = local_nit_commerce_string_map(array(
     'ofr_activated', 'ofr_deactivated', 'ofr_deleted', 'ofr_confirm_delete', 'ofr_edit_titled',
     'ofr_delete_title',
     'pkg_field_name_en', 'pkg_field_name_ar',
+    'pkg_field_desc_en', 'pkg_field_desc_ar', 'ui_showmore', 'ui_showless',
     'err_sessionexpired', 'err_requestfailed',
 ));
 echo html_writer::script('window.ACADEMY_CFG = ' . json_encode(array(
@@ -75,20 +76,22 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         <button id="ofr-refresh" class="btn btn-secondary"><?php echo $STR['ui_refresh']; ?></button>
     </div>
 
+    <div class="acad-table-wrap">
     <table class="table table-striped" id="ofr-table">
         <thead>
             <tr>
                 <th><?php echo $STR['ofr_col_name']; ?></th>
                 <th><?php echo $STR['cpn_col_type']; ?></th>
                 <th><?php echo $STR['cpn_col_value']; ?></th>
-                <th><?php echo $STR['cpn_col_scope']; ?></th>
-                <th><?php echo $STR['cpn_col_dates']; ?></th>
+                <th class="col-tags"><?php echo $STR['cpn_col_scope']; ?></th>
+                <th class="col-tight"><?php echo $STR['cpn_col_dates']; ?></th>
                 <th><?php echo $STR['pkg_col_status']; ?></th>
-                <th><?php echo $STR['pkg_col_actions']; ?></th>
+                <th class="col-tight"><?php echo $STR['pkg_col_actions']; ?></th>
             </tr>
         </thead>
         <tbody><tr><td colspan="7"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
     </table>
+    </div>
     <div id="ofr-table-pager" class="acad-pager"></div>
 
     <div id="ofr-form-card" class="card" style="display:none; max-width:640px;">
@@ -102,6 +105,14 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <div class="form-group">
                 <label for="o-name-ar"><?php echo $STR['pkg_field_name_ar']; ?></label>
                 <input type="text" class="form-control" id="o-name-ar" dir="rtl">
+            </div>
+            <div class="form-group">
+                <label for="o-desc-en"><?php echo $STR['pkg_field_desc_en']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
+                <textarea class="form-control" id="o-desc-en" rows="2" dir="ltr"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="o-desc-ar"><?php echo $STR['pkg_field_desc_ar']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
+                <textarea class="form-control" id="o-desc-ar" rows="2" dir="rtl"></textarea>
             </div>
             <div class="form-row">
                 <div class="form-group col-md-6">
@@ -256,7 +267,9 @@ echo html_writer::script(<<<'JS'
         en = String(en == null ? '' : en).trim();
         ar = String(ar == null ? '' : ar).trim();
         if (en && ar){ return '{mlang en}' + en + '{mlang}{mlang ar}' + ar + '{mlang}'; }
-        return en || ar;
+        // Tag an Arabic-only value so re-editing puts it back in the Arabic box, not the English one.
+        if (ar) { return '{mlang ar}' + ar + '{mlang}'; }
+        return en;
     }
     function displayName(value){
         var v = parseMultilang(value);
@@ -273,8 +286,15 @@ echo html_writer::script(<<<'JS'
     function dtype(t){ return t === 'fixed' ? str('cpn_type_fixed') : str('cpn_type_percent'); }
     function valueLabel(o){ return o.discount_type === 'percent' ? (o.discount_value + '%') : o.discount_value; }
     function scopeLabel(o){
-        if (!o.applies_to || !o.applies_to.length){ return '<span class="text-muted">—</span>'; }
-        return o.applies_to.map(function(a){ return esc(a.label); }).join(', ');
+        return AcademyUI.tagList((o.applies_to || []).map(function(a){ return a.label; }),
+            { more: str('ui_showmore'), less: str('ui_showless') });
+    }
+    // Name over its description, both resolved from the stored {mlang} markup.
+    function titleCell(name, description){
+        var title = displayName(name);
+        var sub = description ? displayName(description) : '';
+        return '<div class="acad-cell-title">' + esc(title) + '</div>' +
+            (sub ? '<div class="acad-cell-sub">' + esc(sub) + '</div>' : '');
     }
 
     function renderRows(items){
@@ -286,17 +306,17 @@ echo html_writer::script(<<<'JS'
                 ? '<button class="btn btn-sm btn-warning" data-act="deactivate" data-id="'+o.id+'">'+esc(str('ui_deactivate'))+'</button>'
                 : '<button class="btn btn-sm btn-success" data-act="activate" data-id="'+o.id+'">'+esc(str('ui_activate'))+'</button>';
             tr.innerHTML =
-                '<td>'+esc(displayName(o.name_raw || o.name))+'</td>'+
+                '<td>'+titleCell(o.name_raw || o.name, o.description_raw || o.description)+'</td>'+
                 '<td>'+esc(dtype(o.discount_type))+'</td>'+
                 '<td>'+esc(valueLabel(o))+'</td>'+
-                '<td>'+scopeLabel(o)+'</td>'+
+                '<td class="col-tags">'+scopeLabel(o)+'</td>'+
                 '<td>'+esc(fmtDate(o.startdate))+' → '+esc(fmtDate(o.enddate))+'</td>'+
                 '<td>'+esc(o.status === 'active' ? str('ui_active') : str('sub_inactive'))+'</td>'+
-                '<td>'+
+                '<td class="col-tight"><div class="acad-actions">'+
                     '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="'+o.id+'">'+esc(str('ui_edit'))+'</button> '+
                     toggle+' '+
                     '<button class="btn btn-sm btn-danger" data-act="delete" data-id="'+o.id+'">'+esc(str('ui_delete'))+'</button>'+
-                '</td>';
+                '</div></td>';
             tr._o = o;
             tbody.appendChild(tr);
         });
@@ -421,10 +441,13 @@ echo html_writer::script(<<<'JS'
 
     function showForm(o){
         var nm = parseMultilang(o ? (o.name_raw || o.name) : '');
+        var ds = parseMultilang(o ? (o.description_raw || o.description || '') : '');
         $('ofr-form-title').textContent = o ? strf('ofr_edit_titled', displayName(o.name_raw || o.name)) : str('ofr_new');
         $('o-id').value    = o ? o.id : '';
         $('o-name-en').value = nm.en;
         $('o-name-ar').value = nm.ar;
+        $('o-desc-en').value = ds.en;
+        $('o-desc-ar').value = ds.ar;
         $('o-dtype').value = o ? o.discount_type : 'percent';
         $('o-value').value = o ? o.discount_value : '';
         $('o-start').value = toInput(o ? o.startdate : 0);
@@ -441,6 +464,7 @@ echo html_writer::script(<<<'JS'
         var id = $('o-id').value;
         var params = {
             name: buildMultilang($('o-name-en').value, $('o-name-ar').value),
+            description: buildMultilang($('o-desc-en').value, $('o-desc-ar').value),
             discount_type: $('o-dtype').value,
             discount_value: $('o-value').value || 0,
             startdate: fromInput($('o-start').value),

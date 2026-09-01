@@ -58,6 +58,29 @@ if ($ADMIN->fulltree) {
             )
     ));
 
+    // The picture beside the log-in and sign-up cards.
+    //
+    // Boost has a setting of this name too, and uploading there does nothing:
+    // theme_config::setting_file_url() builds the pluginfile URL from the ACTIVE
+    // theme's name, so while NIT is in use every lookup — Boost's own included —
+    // goes to theme_nit's file area. With nothing there, Boost falls back to its
+    // bundled AI-generated photo, which is what the log-in page has been showing.
+    // The setting therefore has to live here, on the theme that is running. See
+    // theme_nit_login_background_scss(), which centres the crop and clears the
+    // watermark.
+    $loginbg = new admin_setting_configstoredfile(
+        'theme_nit/loginbackgroundimage',
+        get_string('loginbackgroundimage', 'theme_nit'),
+        get_string('loginbackgroundimage_desc', 'theme_nit'),
+        'loginbackgroundimage',
+        0,
+        ['maxfiles' => 1, 'accepted_types' => ['web_image']]
+    );
+    // The URL is baked into the compiled CSS, so a new picture is only a new
+    // picture once the theme CSS is rebuilt.
+    $loginbg->set_updatedcallback('theme_reset_all_caches');
+    $settings->add($loginbg);
+
     // Performance: how long the Site home caches its course cards + site
     // counters before recomputing them (see theme_nit_get_courses /
     // theme_nit_get_site_stats in lib.php). Higher = less DB load but staler

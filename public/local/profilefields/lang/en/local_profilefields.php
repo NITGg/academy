@@ -394,7 +394,6 @@ $string['navsecurity'] = 'Security';
 $string['navmylearning'] = 'My learning';
 $string['navcertificates'] = 'Certificates';
 $string['navinvoices'] = 'Invoices';
-$string['navbackground'] = 'Academic background';
 $string['navdelete'] = 'Delete my account';
 $string['profilepicture'] = 'Profile picture';
 $string['picturehelp'] = 'JPG or PNG, max 2 MB, cropped square.';

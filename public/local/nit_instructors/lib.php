@@ -81,13 +81,12 @@ function local_nit_instructors_myprofile_navigation(
     $content = \local_nit_instructors\output::group($version, (int) $user->id);
 
     if ($iscurrentuser) {
+        // The banner and the background as it stands, and no "edit" link: the
+        // self-service edit page has been withdrawn, so there is nowhere for one to
+        // lead. An instructor still sees where their background stands; it is now
+        // corrected for them rather than by them.
         $content = \local_nit_instructors\output::status_banner((int) $user->id)
-            . $content
-            . html_writer::div(
-                html_writer::link(
-                    new moodle_url('/local/nit_instructors/edit.php'),
-                    get_string('editbackground', 'local_nit_instructors')),
-                'mt-2');
+            . $content;
     } else {
         $content .= html_writer::div(
             html_writer::link(

@@ -81,6 +81,8 @@ class get_available_coupons extends external_api {
                 'code'           => new external_value(PARAM_TEXT, 'Coupon code the student enters at checkout'),
                 'name'           => new external_value(PARAM_TEXT, 'Display name in the requested language (may be empty)'),
                 'name_raw'       => new external_value(PARAM_RAW, 'Display name with the stored {mlang} markup'),
+                'description'    => new external_value(PARAM_RAW, 'Description in the requested language (may be empty)'),
+                'description_raw' => new external_value(PARAM_RAW, 'Description with the stored {mlang} markup'),
                 'discount_type'  => new external_value(PARAM_ALPHA, 'percent | fixed'),
                 'discount_value' => new external_value(PARAM_FLOAT, 'Percent (0-100) or fixed amount'),
                 'max_discount'   => new external_value(PARAM_FLOAT, 'Cap on the applied discount, or null', VALUE_OPTIONAL),

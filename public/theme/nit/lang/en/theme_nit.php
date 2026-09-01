@@ -27,6 +27,8 @@ defined('MOODLE_INTERNAL') || die();
 $string['pluginname'] = 'NIT';
 $string['choosereadme'] = 'NIT is a Boost-based theme foundation for the NIT LMS Framework. This M2 release provides the theme skeleton and asset pipeline; the design system and branding arrive in later milestones.';
 $string['configtitle'] = 'NIT settings';
+$string['loginbackgroundimage'] = 'Log-in page picture';
+$string['loginbackgroundimage_desc'] = 'The picture shown beside the log-in and sign-up cards. Leave this empty to keep Moodle\'s bundled default photo (which carries an "AI-generated image" caption). A wide, landscape image works best — it is cropped to fill the panel from the centre, so keep anything important away from the edges.';
 $string['frontpagecachettl'] = 'Front page cache lifetime';
 $string['frontpagecachettl_desc'] = 'How long the Site home caches its course cards and site counters before recomputing them from the database. Higher values reduce database load on the busiest page but make the numbers slightly staler. Set to 0 to disable caching (recompute on every request).';
 $string['foundation'] = 'Foundation';

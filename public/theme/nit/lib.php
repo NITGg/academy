@@ -1303,6 +1303,9 @@ function theme_nit_get_extra_scss($theme) {
     // Admin-uploaded, per-language custom fonts (edited on the gallery page).
     $scss .= theme_nit_font_scss($theme);
 
+    // Admin-uploaded picture beside the log-in / sign-up cards.
+    $scss .= theme_nit_login_background_scss($theme);
+
     if (!empty($theme->settings->scss)) {
         $scss .= $theme->settings->scss;
     }
@@ -1311,13 +1314,71 @@ function theme_nit_get_extra_scss($theme) {
 }
 
 /**
- * Serve the theme's admin-uploaded font files via pluginfile.php.
+ * The picture beside the log-in and sign-up cards, from the theme setting.
+ *
+ * Boost writes a `.login-layout-left` rule of its own from theme_boost_get_extra_scss(),
+ * which still runs here — theme_config::get_extra_scss_code() calls the parent's
+ * callback and then the child's. What it cannot do is find a picture on its own:
+ * theme_config::setting_file_url() builds its URL from the ACTIVE theme's name,
+ * so with NIT running it looks up `theme_nit/loginbackgroundimage` and, until
+ * this setting existed, found nothing and fell back to Boost's bundled
+ * AI-generated photo. That fallback is what the log-in page has been showing,
+ * watermark and all — and it is why the fix is a setting on THIS theme rather
+ * than an upload against Boost's, which nothing would ever read.
+ *
+ * With the setting filled, Boost's own rule picks the picture up. Two things it
+ * does not do are left to this function:
+ *
+ *  - centre the crop. Boost sets `background-position: center` only for its
+ *    default photo; an uploaded one gets the CSS initial value, which pins a
+ *    cover-sized image to its top-left corner and cuts off everything else.
+ *  - `content: none` on the watermark. Boost drops the "AI-generated image"
+ *    caption once a picture is uploaded, so this is a guard rather than a fix:
+ *    it keeps a stale rule from a previously-compiled sheet from captioning
+ *    somebody's own photograph.
+ *
+ * Both callbacks write the same selector at the same specificity and this one is
+ * emitted second, so it wins on cascade order. Nothing in Boost is edited or
+ * disabled; its rule is simply the one underneath.
+ *
+ * Emitted only when a picture has actually been uploaded — with the setting
+ * empty, Boost's default stands, watermark included, because the caption is true
+ * of that image.
+ *
+ * @param theme_config $theme the theme config object (carries the settings)
+ * @return string SCSS, or '' when no picture has been uploaded
+ */
+function theme_nit_login_background_scss($theme): string {
+    $url = $theme->setting_file_url('loginbackgroundimage', 'loginbackgroundimage');
+    if (empty($url)) {
+        return '';
+    }
+
+    // setting_file_url() returns a protocol-relative pluginfile URL string. It is
+    // built from the file name the admin uploaded, so it can carry quotes and
+    // parentheses that would end the CSS url() early.
+    $safe = addcslashes((string) $url, "'\\");
+
+    return "\n"
+        . "body.pagelayout-login #page .login-layout-left {"
+        . " background-image: url('{$safe}');"
+        . " background-size: cover;"
+        . " background-position: center;"
+        . " }\n"
+        // The caption belongs to Boost's default photo, and that photo is gone.
+        . "body.pagelayout-login #page .login-layout-left::after { content: none; }\n";
+}
+
+/**
+ * Serve the theme's admin-uploaded font and login-background files via pluginfile.php.
  *
  * Mirrors theme_boost_pluginfile(): the uploaded fonts live in a system-context
  * file area per language slot (see theme_nit_font_slots()), and the theme
  * revision — not the itemid — busts the cache. The gallery page (site:config
  * only) is the sole writer; this endpoint is a public, cache-able read of the
- * self-hosted font, exactly like the site logo.
+ * self-hosted font, exactly like the site logo. The login background picture
+ * (Appearance → NIT settings) is served the same way and for the same reason:
+ * a URL that a logged-out visitor can fetch, from our own domain.
  *
  * @param stdClass $course
  * @param stdClass $cm
@@ -1329,9 +1390,10 @@ function theme_nit_get_extra_scss($theme) {
  * @return bool
  */
 function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
-    $fontareas = array_map(static fn($slot) => $slot['filearea'], theme_nit_font_slots());
+    $areas = array_map(static fn($slot) => $slot['filearea'], theme_nit_font_slots());
+    $areas[] = 'loginbackgroundimage';
 
-    if ($context->contextlevel == CONTEXT_SYSTEM && in_array($filearea, $fontareas, true)) {
+    if ($context->contextlevel == CONTEXT_SYSTEM && in_array($filearea, $areas, true)) {
         $theme = theme_config::load('nit');
         // Theme files must be cache-able by both browsers and proxies by default.
         if (!array_key_exists('cacheability', $options)) {

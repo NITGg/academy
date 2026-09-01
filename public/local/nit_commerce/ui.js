@@ -118,6 +118,61 @@
         };
     }
 
+    // ── Compact list cell ────────────────────────────────────────────────────
+    // A table cell holding many small labels (courses a plan covers, items a
+    // discount applies to) stretches its column and squeezes every other one.
+    // Render a few, then a "+N more" toggle that reveals the rest in place.
+    var TAG_LIMIT = 3;
+
+    function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+    }
+
+    /**
+     * HTML for a compact, expandable list of labels.
+     *
+     * @param {Array} labels plain strings
+     * @param {Object} opts {empty: '—', limit: 3, more: '+{$a} more', less: 'Show less'}
+     * @return {string}
+     */
+    function tagList(labels, opts) {
+        opts = opts || {};
+        var limit = opts.limit || TAG_LIMIT;
+        var items = (labels || []).filter(function (l) { return l != null && l !== ''; });
+        if (!items.length) {
+            return '<span class="text-muted">' + escapeHtml(opts.empty || '—') + '</span>';
+        }
+        var hidden = Math.max(0, items.length - limit);
+        var html = '<div class="acad-tags' + (hidden ? ' has-more' : '') + '">';
+        items.forEach(function (label, i) {
+            html += '<span class="acad-tag' + (i >= limit ? ' acad-tag--extra' : '') + '">' +
+                escapeHtml(label) + '</span>';
+        });
+        if (hidden) {
+            var more = String(opts.more || '+{$a} more').replace(/\{\$a\}/g, hidden);
+            html += '<button type="button" class="acad-tags__toggle"' +
+                ' data-more="' + escapeHtml(more) + '"' +
+                ' data-less="' + escapeHtml(opts.less || 'Show less') + '">' +
+                escapeHtml(more) + '</button>';
+        }
+        return html + '</div>';
+    }
+
+    // One delegated listener covers every tag list on the page, including rows
+    // the paginator re-renders later.
+    document.addEventListener('click', function (ev) {
+        var btn = ev.target.closest ? ev.target.closest('.acad-tags__toggle') : null;
+        if (!btn) { return; }
+        ev.preventDefault();
+        var box = btn.parentNode;
+        var open = box.classList.toggle('is-open');
+        btn.textContent = open ? btn.getAttribute('data-less') : btn.getAttribute('data-more');
+    });
+
+
     w.AcademyUI = w.AcademyUI || {};
     w.AcademyUI.paginate = paginate;
+    w.AcademyUI.tagList = tagList;
 })(window);

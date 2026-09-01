@@ -126,6 +126,10 @@ $STR = local_nit_subscriptions_string_map(array(
     'sstat_active', 'sstat_expired', 'sstat_cancelled', 'sstat_pending', 'sstat_payment_failed',
     'ui_pager_info',
     'ui_search', 'sub_courses_search', 'sub_selectall', 'sub_clear',
+    'ui_showmore', 'ui_showless',
+    'sub_ca_pickplan', 'sub_ca_counter', 'sub_ca_unsaved', 'sub_ca_reset',
+    'sub_ca_onlyselected', 'sub_ca_nomatch', 'sub_ca_catall', 'sub_ca_catnone', 'sub_ca_discard',
+    'sub_ca_catcount',
     'err_sessionexpired', 'err_requestfailed',
 ));
 
@@ -149,15 +153,17 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         <button id="sub-refresh" class="btn btn-secondary"><?php echo $STR['ui_refresh']; ?></button>
     </div>
 
+    <div class="acad-table-wrap">
     <table class="table table-striped" id="sub-table">
         <thead>
             <tr>
                 <th><?php echo $STR['pkg_col_id']; ?></th><th><?php echo $STR['pkg_col_name']; ?></th><th><?php echo $STR['pkg_col_price']; ?></th><th><?php echo $STR['sub_col_days']; ?></th>
-                <th><?php echo $STR['sub_col_courses']; ?></th><th><?php echo $STR['pkg_col_status']; ?></th><th><?php echo $STR['pkg_col_actions']; ?></th>
+                <th class="col-tags"><?php echo $STR['sub_col_courses']; ?></th><th><?php echo $STR['pkg_col_status']; ?></th><th class="col-tight"><?php echo $STR['pkg_col_actions']; ?></th>
             </tr>
         </thead>
         <tbody><tr><td colspan="7"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
     </table>
+    </div>
     <div id="sub-table-pager" class="acad-pager"></div>
 
     <div id="sub-form-card" class="card" style="display:none; max-width:640px;">
@@ -276,6 +282,45 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         }
         .category-card .card-body { padding: 1.25rem; display: flex; flex-wrap: wrap; }
         .category-card.ca-empty { display: none; }
+        .ca-toolbar .ca-toggle {
+            display: inline-flex; align-items: center; gap: 0.4rem; margin: 0;
+            font-size: 0.85rem; color: var(--nit-brand-textsecondary); cursor: pointer; user-select: none;
+        }
+        .ca-toolbar .ca-toggle input { width: 1rem; height: 1rem; cursor: pointer; }
+        .ca-emptystate {
+            padding: 2rem 1.25rem; margin-bottom: 1.25rem; text-align: center;
+            border: 1px dashed var(--nit-brand-borderprimary); border-radius: 0.6rem;
+            background: color-mix(in srgb,var(--nit-brand-background) 40%,var(--nit-brand-surface));
+            color: var(--nit-brand-textsecondary);
+        }
+        /* Sticks to the bottom of the viewport so Save is reachable from anywhere in a long list. */
+        .ca-savebar {
+            position: sticky; bottom: 0; z-index: 5;
+            display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem;
+            padding: 0.75rem 1.1rem; margin-bottom: 1.5rem;
+            border: 1px solid var(--nit-brand-borderprimary); border-radius: 0.6rem;
+            background: var(--nit-brand-surface);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.18);
+        }
+        .ca-savebar .ca-counter { font-size: 0.9rem; color: var(--nit-brand-textsecondary); }
+        .ca-savebar #courses-reset { margin-inline-start: auto; }
+        .ca-pill {
+            font-size: 0.75rem; font-weight: 600; padding: 0.1rem 0.6rem; border-radius: 999px;
+            background: color-mix(in srgb,var(--nit-brand-warning) 18%,transparent);
+            border: 1px solid color-mix(in srgb,var(--nit-brand-warning) 45%,transparent);
+            color: var(--nit-brand-textprimary);
+        }
+        /* Per-category bulk controls, in the card header next to the count. */
+        .category-card .cat-tools { display: flex; align-items: center; gap: 0.4rem; }
+        .category-card .cat-bulk {
+            border: 1px solid var(--nit-brand-borderprimary); border-radius: 999px;
+            background: transparent; color: var(--nit-brand-textsecondary);
+            font-size: 0.75rem; line-height: 1.5; padding: 0.05rem 0.55rem; cursor: pointer;
+        }
+        .category-card .cat-bulk:hover {
+            background: var(--nit-brand-hoverbackground); color: var(--nit-brand-hovertext);
+            border-color: var(--nit-brand-primary);
+        }
         .academy-modal-backdrop {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: color-mix(in srgb,var(--nit-brand-background) 50%,transparent);
@@ -317,16 +362,35 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 </select>
             </div>
             <div class="ca-field ca-search">
-                <label for="course-search">&nbsp;</label>
+                <label for="course-search"><?php echo $STR['ui_search']; ?></label>
                 <input type="search" id="course-search" class="form-control" placeholder="<?php echo s($STR['sub_courses_search']); ?>">
             </div>
             <div class="ca-actions">
+                <label class="ca-toggle" for="ca-only-selected">
+                    <input type="checkbox" id="ca-only-selected">
+                    <?php echo $STR['sub_ca_onlyselected']; ?>
+                </label>
                 <button id="courses-select-all" type="button" class="btn btn-outline-secondary btn-sm"><?php echo $STR['sub_selectall']; ?></button>
                 <button id="courses-clear" type="button" class="btn btn-outline-secondary btn-sm"><?php echo $STR['sub_clear']; ?></button>
-                <button id="save-course-selection" class="btn btn-primary"><?php echo $STR['sub_save_courses']; ?></button>
             </div>
         </div>
-        <div id="categories-container" class="mb-4"></div>
+
+        <!-- Until a plan is picked there is nothing to tick against, so say so instead
+             of showing a live-looking grid whose checkboxes go nowhere. -->
+        <div id="ca-empty" class="ca-emptystate"><?php echo $STR['sub_ca_pickplan']; ?></div>
+
+        <div id="ca-body" style="display:none;">
+            <div id="categories-container" class="mb-2"></div>
+            <p id="ca-nomatch" class="text-muted" style="display:none;"><?php echo $STR['sub_ca_nomatch']; ?></p>
+
+            <!-- Sticky so Save stays reachable however far down the course list you are. -->
+            <div class="ca-savebar">
+                <span id="ca-counter" class="ca-counter"></span>
+                <span id="ca-dirty" class="ca-pill" style="display:none;"><?php echo $STR['sub_ca_unsaved']; ?></span>
+                <button id="courses-reset" type="button" class="btn btn-outline-secondary btn-sm" disabled><?php echo $STR['sub_ca_reset']; ?></button>
+                <button id="save-course-selection" class="btn btn-primary" disabled><?php echo $STR['sub_save_courses']; ?></button>
+            </div>
+        </div>
     </div>
 
     <!-- ── User Subscriptions ── -->
@@ -448,7 +512,9 @@ echo html_writer::script(<<<'JS'
         en = String(en == null ? '' : en).trim();
         ar = String(ar == null ? '' : ar).trim();
         if (en && ar) { return '{mlang en}' + en + '{mlang}{mlang ar}' + ar + '{mlang}'; }
-        return en || ar;
+        // Tag an Arabic-only value so re-editing puts it back in the Arabic box, not the English one.
+        if (ar) { return '{mlang ar}' + ar + '{mlang}'; }
+        return en;
     }
 
     function displayName(value) {
@@ -457,8 +523,16 @@ echo html_writer::script(<<<'JS'
     }
 
     function courseNames(sub) {
-        if (!sub.courses || !sub.courses.length) { return '<span class="text-muted">—</span>'; }
-        return sub.courses.map(function (c) { return esc(c.fullname); }).join(', ');
+        return AcademyUI.tagList((sub.courses || []).map(function (c) { return c.fullname; }),
+            { more: str('ui_showmore'), less: str('ui_showless') });
+    }
+
+    // Plan name over its description, both resolved from the stored {mlang} markup.
+    function titleCell(name, description) {
+        var title = displayName(name);
+        var sub = description ? displayName(description) : '';
+        return '<div class="acad-cell-title">' + esc(title) + '</div>' +
+            (sub ? '<div class="acad-cell-sub">' + esc(sub) + '</div>' : '');
     }
 
     var ALL_SUBS = [];
@@ -473,16 +547,16 @@ echo html_writer::script(<<<'JS'
                 : '<button class="btn btn-sm btn-success" data-act="activate" data-id="' + s.id + '">' + esc(str('ui_activate')) + '</button>';
             tr.innerHTML =
                 '<td>' + esc(s.id) + '</td>' +
-                '<td>' + esc(displayName(s.name)) + '</td>' +
+                '<td>' + titleCell(s.name, s.description) + '</td>' +
                 '<td>' + esc(s.price) + '</td>' +
                 '<td>' + esc(s.duration_days) + '</td>' +
-                '<td>' + courseNames(s) + '</td>' +
+                '<td class="col-tags">' + courseNames(s) + '</td>' +
                 '<td>' + esc(sstat(s.status)) + '</td>' +
-                '<td>' +
+                '<td class="col-tight"><div class="acad-actions">' +
                     '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="' + s.id + '">' + esc(str('ui_edit')) + '</button> ' +
                     toggle + ' ' +
                     '<button class="btn btn-sm btn-danger" data-act="delete" data-id="' + s.id + '">' + esc(str('ui_delete')) + '</button>' +
-                '</td>';
+                '</div></td>';
             tr._sub = s;
             tbody.appendChild(tr);
         });
@@ -638,6 +712,32 @@ echo html_writer::script(<<<'JS'
     $('sub-price-add').addEventListener('click', function () { addPriceRow({}); });
 
     // ── Course access ──
+    // The grid only makes sense against a chosen plan, so everything below keys off
+    // SAVED_IDS: the set of courses the selected plan currently has in the database.
+    // The live checkboxes are the working copy; the difference between the two is
+    // what drives the counter, the "unsaved changes" pill and the Save/Reset buttons.
+    var SAVED_IDS = null;
+
+    function allCheckboxes() {
+        return Array.prototype.slice.call(document.querySelectorAll('.course-checkbox'));
+    }
+
+    function checkedIdSet() {
+        var out = {};
+        allCheckboxes().forEach(function (cb) { if (cb.checked) { out[cb.value] = true; } });
+        return out;
+    }
+
+    function sameIdSet(a, b) {
+        if (!a || !b) { return false; }
+        var ka = Object.keys(a), kb = Object.keys(b);
+        return ka.length === kb.length && ka.every(function (k) { return b[k]; });
+    }
+
+    function isDirty() {
+        return SAVED_IDS !== null && !sameIdSet(checkedIdSet(), SAVED_IDS);
+    }
+
     function loadCategories() {
         api('get_categories_with_courses').then(function(categories) {
             var container = $('categories-container');
@@ -647,9 +747,13 @@ echo html_writer::script(<<<'JS'
             }
             var html = '';
             categories.forEach(function(cat) {
-                html += '<div class="card category-card">';
+                html += '<div class="card category-card" data-cat-id="' + esc(cat.id) + '">';
                 html += '<div class="card-header"><strong>' + esc(cat.name) + '</strong>' +
-                    '<span class="cat-count">' + cat.courses.length + '</span></div>';
+                    '<span class="cat-tools">' +
+                        '<span class="cat-count">0/' + cat.courses.length + '</span>' +
+                        '<button type="button" class="cat-bulk" data-bulk="all">' + esc(str('sub_ca_catall')) + '</button>' +
+                        '<button type="button" class="cat-bulk" data-bulk="none">' + esc(str('sub_ca_catnone')) + '</button>' +
+                    '</span></div>';
                 html += '<div class="card-body">';
                 cat.courses.forEach(function(c) {
                     html += '<label class="course-chip" data-course-name="' + esc(String(c.fullname).toLowerCase()) + '">' +
@@ -660,21 +764,50 @@ echo html_writer::script(<<<'JS'
             });
             container.innerHTML = html;
             $('course-selector-area').style.display = 'block';
-            filterCourses();
+            applySubscriptionCourseSelection();
         }).catch(function(e) { msg(e.message, 'danger'); });
     }
 
+    // Search text and the "selected only" toggle are one filter; a category with no
+    // surviving chip hides entirely so the page does not fill with empty cards.
     function filterCourses() {
         var q = ($('course-search').value || '').trim().toLowerCase();
+        var onlySelected = $('ca-only-selected').checked;
+        var shown = 0;
         document.querySelectorAll('#categories-container .category-card').forEach(function(card) {
             var visible = 0;
             card.querySelectorAll('.course-chip').forEach(function(chip) {
                 var match = !q || (chip.getAttribute('data-course-name') || '').indexOf(q) !== -1;
+                if (match && onlySelected) { match = chip.querySelector('.course-checkbox').checked; }
                 chip.style.display = match ? '' : 'none';
                 if (match) { visible++; }
             });
             card.classList.toggle('ca-empty', visible === 0);
+            shown += visible;
         });
+        $('ca-nomatch').style.display = (shown === 0 && SAVED_IDS) ? '' : 'none';
+    }
+
+    // Counter, per-category tallies, dirty pill and button states — everything that
+    // reflects the current tick marks rather than changing them.
+    function refreshCourseState() {
+        var boxes = allCheckboxes();
+        var selected = boxes.filter(function (cb) { return cb.checked; }).length;
+        $('ca-counter').textContent = strf('sub_ca_counter', { selected: selected, total: boxes.length });
+
+        document.querySelectorAll('#categories-container .category-card').forEach(function (card) {
+            var inCat = card.querySelectorAll('.course-checkbox').length;
+            var on = card.querySelectorAll('.course-checkbox:checked').length;
+            var label = card.querySelector('.cat-count');
+            if (label) {
+                label.textContent = strf('sub_ca_catcount', { selected: on, total: inCat });
+            }
+        });
+
+        var dirty = isDirty();
+        $('ca-dirty').style.display = dirty ? '' : 'none';
+        $('save-course-selection').disabled = !dirty;
+        $('courses-reset').disabled = !dirty;
     }
 
     function populateSubscriptionDropdown() {
@@ -687,35 +820,75 @@ echo html_writer::script(<<<'JS'
             }
         });
         select.value = prevValue;
+        lastTarget = select.value;
         applySubscriptionCourseSelection();
     }
 
+    // Reset the working copy to whatever the chosen plan has saved.
     function applySubscriptionCourseSelection() {
         var subId = $('target-subscription').value;
-        var checkedIds = {};
-        if (subId) {
-            var sub = ALL_SUBS.find(function(s) { return String(s.id) === String(subId); });
-            if (sub && sub.courses) {
-                sub.courses.forEach(function(c) { checkedIds[c.id] = true; });
-            }
+        if (!subId) {
+            SAVED_IDS = null;
+            allCheckboxes().forEach(function (cb) { cb.checked = false; });
+            $('ca-empty').style.display = '';
+            $('ca-body').style.display = 'none';
+            refreshCourseState();
+            return;
         }
-        document.querySelectorAll('.course-checkbox').forEach(function(cb) {
-            cb.checked = !!checkedIds[parseInt(cb.value, 10)];
-        });
+        var sub = ALL_SUBS.find(function(s) { return String(s.id) === String(subId); });
+        SAVED_IDS = {};
+        ((sub && sub.courses) || []).forEach(function(c) { SAVED_IDS[String(c.id)] = true; });
+        allCheckboxes().forEach(function(cb) { cb.checked = !!SAVED_IDS[cb.value]; });
+        $('ca-empty').style.display = 'none';
+        $('ca-body').style.display = '';
+        filterCourses();
+        refreshCourseState();
     }
 
-    $('target-subscription').addEventListener('change', applySubscriptionCourseSelection);
+    var lastTarget = '';
+    $('target-subscription').addEventListener('change', function () {
+        // Switching plans throws the working copy away, so ask first when it differs.
+        if (isDirty() && !confirm(str('sub_ca_discard'))) {
+            this.value = lastTarget;
+            return;
+        }
+        lastTarget = this.value;
+        applySubscriptionCourseSelection();
+    });
+
     $('course-search').addEventListener('input', filterCourses);
-    $('courses-select-all').addEventListener('click', function() {
-        document.querySelectorAll('.course-chip').forEach(function(chip) {
-            if (chip.style.display !== 'none') { chip.querySelector('.course-checkbox').checked = true; }
-        });
+    $('ca-only-selected').addEventListener('change', filterCourses);
+
+    // Ticking a chip only changes the working copy; the state readout follows it.
+    $('categories-container').addEventListener('change', function (ev) {
+        if (ev.target.classList.contains('course-checkbox')) {
+            refreshCourseState();
+            if ($('ca-only-selected').checked) { filterCourses(); }
+        }
     });
-    $('courses-clear').addEventListener('click', function() {
-        document.querySelectorAll('.course-chip').forEach(function(chip) {
-            if (chip.style.display !== 'none') { chip.querySelector('.course-checkbox').checked = false; }
+
+    // Per-category All / None, limited to the chips the current filter leaves visible.
+    $('categories-container').addEventListener('click', function (ev) {
+        var btn = ev.target.closest('.cat-bulk');
+        if (!btn) { return; }
+        var on = btn.getAttribute('data-bulk') === 'all';
+        btn.closest('.category-card').querySelectorAll('.course-chip').forEach(function (chip) {
+            if (chip.style.display !== 'none') { chip.querySelector('.course-checkbox').checked = on; }
         });
+        refreshCourseState();
+        if ($('ca-only-selected').checked) { filterCourses(); }
     });
+
+    function bulkVisible(on) {
+        document.querySelectorAll('.course-chip').forEach(function(chip) {
+            if (chip.style.display !== 'none') { chip.querySelector('.course-checkbox').checked = on; }
+        });
+        refreshCourseState();
+        if ($('ca-only-selected').checked) { filterCourses(); }
+    }
+    $('courses-select-all').addEventListener('click', function() { bulkVisible(true); });
+    $('courses-clear').addEventListener('click', function() { bulkVisible(false); });
+    $('courses-reset').addEventListener('click', applySubscriptionCourseSelection);
 
     $('save-course-selection').addEventListener('click', function() {
         var subId = $('target-subscription').value;
@@ -732,6 +905,7 @@ echo html_writer::script(<<<'JS'
             courseids: JSON.stringify(courseIds)
         }, 'POST').then(function() {
             msg(str('sub_courses_assigned'), 'success');
+            // loadSubs() refreshes ALL_SUBS, which re-seeds SAVED_IDS from the server.
             loadSubs();
         }).catch(function(e) { msg(e.message, 'danger'); });
     });

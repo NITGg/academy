@@ -42,10 +42,14 @@ $string['ui_delete']       = 'Delete';
 $string['ui_never']        = 'Never';
 $string['ui_optional']     = '(optional)';
 $string['ui_pager_info']   = 'Showing {from}–{to} of {total}';
+$string['ui_showmore']     = '+{$a} more';
+$string['ui_showless']     = 'Show less';
 $string['pkg_col_status']  = 'Status';
 $string['pkg_col_actions'] = 'Actions';
 $string['pkg_field_name_en'] = 'Name (English)';
 $string['pkg_field_name_ar'] = 'Name (Arabic)';
+$string['pkg_field_desc_en'] = 'Description (English)';
+$string['pkg_field_desc_ar'] = 'Description (Arabic)';
 $string['sub_inactive']    = 'Inactive';
 
 // Discount scope "all of type" labels.

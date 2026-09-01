@@ -46,7 +46,7 @@ class coupon_manager {
     /**
      * Create a coupon.
      *
-     * @param array $data code, name, discount_type, discount_value, max_discount, usage_type, usage_limit,
+     * @param array $data code, name, description, discount_type, discount_value, max_discount, usage_type, usage_limit,
      *                     startdate, enddate, active, items[]
      * @param int $userid admin
      * @return int new coupon id
@@ -62,6 +62,7 @@ class coupon_manager {
         $record = new \stdClass();
         $record->code           = $code;
         $record->name           = self::normalize_name($data['name'] ?? '');
+        $record->description    = self::normalize_description($data['description'] ?? '');
         $record->discount_type  = discount_manager::normalize_discount_type($data['discount_type'] ?? 'percent');
         $record->discount_value = self::validate_value($record->discount_type, $data['discount_value'] ?? 0);
         $record->max_discount   = self::validate_max($data['max_discount'] ?? null);
@@ -102,6 +103,9 @@ class coupon_manager {
         }
         if (array_key_exists('name', $data)) {
             $update->name = self::normalize_name($data['name']);
+        }
+        if (array_key_exists('description', $data)) {
+            $update->description = self::normalize_description($data['description']);
         }
         if (array_key_exists('discount_type', $data)) {
             $update->discount_type = discount_manager::normalize_discount_type($data['discount_type']);
@@ -276,6 +280,8 @@ class coupon_manager {
             // 'name' is localised for display; 'name_raw' keeps the stored {mlang} markup for editing.
             'name'           => format_string(discount_manager::resolve_mlang((string)$record->name)),
             'name_raw'       => (string)$record->name,
+            'description'    => format_string(discount_manager::resolve_mlang((string)$record->description)),
+            'description_raw' => (string)$record->description,
             'discount_type'  => $record->discount_type,
             'discount_value' => (float)$record->discount_value,
             'max_discount'   => $record->max_discount === null ? null : (float)$record->max_discount,
@@ -324,6 +330,16 @@ class coupon_manager {
      */
     private static function normalize_name($name) {
         return \core_text::substr(trim((string)$name), 0, 255);
+    }
+
+    /**
+     * Normalize a display description (trim). Optional; stored as plain text with {mlang} markup.
+     *
+     * @param string $description
+     * @return string
+     */
+    private static function normalize_description($description) {
+        return trim((string)$description);
     }
 
     /**

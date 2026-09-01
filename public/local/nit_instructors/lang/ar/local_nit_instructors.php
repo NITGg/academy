@@ -28,7 +28,6 @@ $string['pluginname'] = 'الخلفية المهنية للمدرّس';
 
 // المجموعة نفسها (AC-4.5.9).
 $string['background'] = 'الخلفية الأكاديمية والمهنية';
-$string['editbackground'] = 'تعديل خلفيتي';
 $string['viewpublic'] = 'عرض ملفي العام';
 $string['nobackground'] = 'لم يضِف هذا المدرّس خلفيته بعد.';
 $string['notaninstructor'] = 'هذه الصفحة للمدرّسين فقط.';

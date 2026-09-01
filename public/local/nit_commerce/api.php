@@ -116,6 +116,7 @@ try {
             $id = coupon_manager::create_coupon([
                 'code'           => required_param('code', PARAM_TEXT),
                 'name'           => optional_param('name', '', PARAM_TEXT),
+                'description'    => optional_param('description', '', PARAM_TEXT),
                 'discount_type'  => optional_param('discount_type', 'percent', PARAM_ALPHA),
                 'discount_value' => optional_param('discount_value', 0, PARAM_FLOAT),
                 'max_discount'   => optional_param('max_discount', '', PARAM_RAW_TRIMMED),
@@ -133,6 +134,7 @@ try {
             coupon_manager::update_coupon(required_param('id', PARAM_INT), [
                 'code'           => required_param('code', PARAM_TEXT),
                 'name'           => optional_param('name', '', PARAM_TEXT),
+                'description'    => optional_param('description', '', PARAM_TEXT),
                 'discount_type'  => optional_param('discount_type', 'percent', PARAM_ALPHA),
                 'discount_value' => optional_param('discount_value', 0, PARAM_FLOAT),
                 'max_discount'   => optional_param('max_discount', '', PARAM_RAW_TRIMMED),
@@ -169,6 +171,7 @@ try {
         case 'create_offer':
             $id = offer_manager::create_offer([
                 'name'           => required_param('name', PARAM_TEXT),
+                'description'    => optional_param('description', '', PARAM_TEXT),
                 'discount_type'  => optional_param('discount_type', 'percent', PARAM_ALPHA),
                 'discount_value' => optional_param('discount_value', 0, PARAM_FLOAT),
                 'startdate'      => optional_param('startdate', 0, PARAM_INT),
@@ -182,6 +185,7 @@ try {
         case 'update_offer':
             offer_manager::update_offer(required_param('id', PARAM_INT), [
                 'name'           => required_param('name', PARAM_TEXT),
+                'description'    => optional_param('description', '', PARAM_TEXT),
                 'discount_type'  => optional_param('discount_type', 'percent', PARAM_ALPHA),
                 'discount_value' => optional_param('discount_value', 0, PARAM_FLOAT),
                 'startdate'      => optional_param('startdate', 0, PARAM_INT),

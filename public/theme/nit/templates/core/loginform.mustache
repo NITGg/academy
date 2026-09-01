@@ -184,21 +184,33 @@
         <div class="nit-auth-instructions">{{{instructions}}}</div>
     {{/hasinstructions}}
 
-    {{#canloginasguest}}
-        <form action="{{loginurl}}" method="post" id="guestlogin" class="nit-auth-guest">
-            <input type="hidden" name="logintoken" value="{{logintoken}}">
-            <input type="hidden" name="username" value="guest" />
-            <input type="hidden" name="password" value="guest" />
-            <button class="btn nit-auth-guest-btn" type="submit" id="loginguestbtn">{{#str}}loginguest{{/str}}</button>
-        </form>
-    {{/canloginasguest}}
+    {{!
+        The utility line: the three things that are on this screen because the
+        page needs them somewhere, not because a returning learner came for them
+        - the language switcher, guest access and the cookies notice.
 
+        Guest access sits here rather than as a full-width button of its own. It
+        is not a second way to sign in - it is a way to look around without an
+        account - so a button the size of "Log in" was reading as an alternative
+        to it. Same weight as the language menu beside it, and still a real POST
+        (guest login needs the logintoken), just no longer shaped like the
+        primary action.
+    }}
     <div class="nit-auth-utility">
         {{#languagemenu}}
             <div class="login-languagemenu">
                 {{>core/action_menu}}
             </div>
         {{/languagemenu}}
+        {{#canloginasguest}}
+            <form action="{{loginurl}}" method="post" id="guestlogin" class="nit-auth-guest">
+                <input type="hidden" name="logintoken" value="{{logintoken}}">
+                <input type="hidden" name="username" value="guest" />
+                <input type="hidden" name="password" value="guest" />
+                <button class="btn nit-auth-utility-btn" type="submit" id="loginguestbtn">{{!
+                    !}}{{#str}}loginguest{{/str}}</button>
+            </form>
+        {{/canloginasguest}}
         <button type="button" class="btn nit-auth-utility-btn" {{!
         }} data-modal="alert"{{!
         }} data-modal-title-str='["cookiesenabled", "core"]' {{!
