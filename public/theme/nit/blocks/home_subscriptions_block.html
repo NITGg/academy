@@ -130,6 +130,14 @@
           data-nit-m-offerrow="">{mlang en}Offer{mlang}{mlang
           ar}عرض{mlang}<strong style="color: var(--nit-brand-success);"
             data-nit-m-offer="">—</strong></div>
+        <div style="display: none; margin: 14px 0 4px;"
+          data-nit-m-methods="">
+          <div
+            style="font-size: 13px; color: var(--nit-brand-textsecondary); margin-bottom: 8px;">{mlang
+            en}Payment method{mlang}{mlang ar}طريقة الدفع{mlang}</div>
+          <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;"
+            data-nit-m-methodslist=""></div>
+        </div>
         <div
           style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
           <span
@@ -325,6 +333,105 @@
           });
       }
 
+      // Which method the visitor picked, and the list the gateway offers. 0
+      // means the dialog never asked, and the gateway then chooses for itself
+      // exactly as it used to.
+      var methodId = 0;
+      var methodList = null;
+
+      // One method is not a choice, so the strip stays hidden and the charge
+      // goes straight through — same rule as the course checkout and the app.
+      function paintMethods(methods) {
+        var wrap = q('[data-nit-m-methods]');
+        var list = q('[data-nit-m-methodslist]');
+        methodId = 0;
+        if (!wrap || !list) {
+          return;
+        }
+        if (!methods || methods.length < 2) {
+          wrap.style.display = 'none';
+          return;
+        }
+
+        list.innerHTML = '';
+        var cards = [];
+        var select = function(i) {
+          methodId = Number(methods[i].id) || 0;
+          cards.forEach(function(c, n) {
+            var on = (n === i);
+            c.style.borderColor = on ? 'var(--nit-brand-accent)' :
+              'color-mix(in srgb, var(--nit-brand-textprimary) 15%, transparent)';
+            c.style.background = on ?
+              'color-mix(in srgb, var(--nit-brand-accent) 12%, transparent)' :
+              'var(--nit-brand-surface)';
+            c.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+        };
+
+        methods.forEach(function(m, i) {
+          var card = document.createElement('button');
+          card.type = 'button';
+          card.style.cssText = 'flex: 0 0 auto; min-width: 132px; border-radius: 10px;' +
+            ' border: 1px solid color-mix(in srgb, var(--nit-brand-textprimary) 15%, transparent);' +
+            ' background: var(--nit-brand-surface); color: var(--nit-brand-textprimary);' +
+            ' padding: 10px; cursor: pointer; text-align: center; font-size: 12px;' +
+            ' line-height: 1.35;';
+
+          if (m.logo) {
+            var img = document.createElement('img');
+            img.src = m.logo;
+            img.alt = '';
+            img.style.cssText = 'height: 22px; max-width: 100%; object-fit: contain;' +
+              ' display: block; margin: 0 auto 6px;';
+            // A broken logo costs the card its picture, not its label.
+            img.addEventListener('error', function() {
+              img.style.display = 'none';
+            });
+            card.appendChild(img);
+          }
+
+          var name = document.createElement('div');
+          name.textContent = m.name || '';
+          card.appendChild(name);
+
+          card.addEventListener('click', function() {
+            select(i);
+          });
+          cards.push(card);
+          list.appendChild(card);
+        });
+
+        select(0);
+        wrap.style.display = '';
+      }
+
+      // Fetched once and reused: the server caches the gateway's answer for an
+      // hour, and the list does not change between two plans on one page.
+      function loadMethods(currency) {
+        if (methodList) {
+          paintMethods(methodList);
+          return;
+        }
+        fetch(subsUrl + '?function=get_payment_methods&currency=' +
+            encodeURIComponent(currency || 'EGP') + '&sesskey=' +
+            encodeURIComponent(sesskey), {
+            headers: {
+              'Accept': 'application/json'
+            }
+          })
+          .then(function(r) {
+            return r.json();
+          })
+          .then(function(res) {
+            methodList = (res && res.status === 'success' && res.data) ? res.data : [];
+            paintMethods(methodList);
+          })
+          .catch(function() {
+            // No list means no question, which is where this started.
+            paintMethods([]);
+          });
+      }
+
       function openModal(sub) {
         current = sub;
         setTxt('[data-nit-m-name]', sub.name);
@@ -339,6 +446,8 @@
         }
         setDisp('[data-nit-m-couponerr]', 'none');
         setDisp('[data-nit-m-error]', 'none');
+        paintMethods(methodList);
+        loadMethods(sub.currency);
         modal.style.display = 'flex';
         previewSub('');
       }
@@ -383,7 +492,8 @@
               sesskey: sesskey,
               subscriptionid: current.id,
               coupon_code: getVal('[data-nit-m-coupon]'),
-              return_url: window.location.href
+              return_url: window.location.href,
+              payment_method_id: methodId
             });
             fetch(subsUrl, {
                 method: 'POST',
@@ -396,9 +506,17 @@
                 return r.json();
               })
               .then(function(res) {
-                if (res && res.status === 'success' && res.data && res
-                  .data.checkout_url) {
-                  window.location.href = res.data.checkout_url;
+                var data = (res && res.status === 'success' && res.data) ?
+                  res.data : null;
+                var pd = (data && data.payment_data) || {};
+                if (data && pd.type === 'reference' && data.transaction_id) {
+                  // Fawry, Meeza and the wallets answer with a code and no
+                  // page, so the code screen is the result.
+                  window.location.href = base +
+                    '/local/payments/reference.php?id=' +
+                    encodeURIComponent(data.transaction_id);
+                } else if (data && data.checkout_url) {
+                  window.location.href = data.checkout_url;
                 } else {
                   throw new Error((res && res.error) ||
                     'checkout failed');
