@@ -93,9 +93,12 @@ class registry {
         // Role shortnames are code (editingteacher, student, ...).
         'admin-roles-*|shortname',
         // Custom-field and user-profile-field shortnames are code.
+        // The `name` beside them is not: on admin-user-profile-index it is the
+        // profile field's (and category's) display label, printed through
+        // format_string() everywhere it appears, so it keeps the per-language
+        // inputs like every other display name.
         '*customfield*|shortname',
         'admin-user-profile*|shortname',
-        'admin-user-profile*|name',
         // Technical admin screens whose "name" is printed raw, not format_string()'d.
         'admin-webservice-*|*',
         'admin-mnet-*|*',

@@ -181,3 +181,77 @@ textarea.form-control[readonly][disabled] {
 .nit-gate-blocked {
     cursor: not-allowed;
 }
+
+// =============================================================================
+// Browser autofill
+//
+// When Chrome/Edge fill a saved value they repaint the box themselves: a pale
+// blue-white background and near-black text, applied by the UA at a level no
+// ordinary `background-color` can reach. On the dark brand that turns the
+// filled field into a white slab that stops matching the field beside it.
+//
+// This is not only a login-page problem. Any form Chrome reads as a credential
+// form gets the treatment — most visibly `/user/editadvanced.php`, where
+// core tags the field `autocomplete="username"` (user_edit_map_field_purpose)
+// and the form also carries a new-password box, so the browser fills and
+// washes the Username field while every other field stays on brand. Hence the
+// rule lives here, unscoped, rather than on the auth card only.
+//
+// The background cannot be set, but it can be covered: a very large inset
+// box-shadow paints over it in the surface colour, and `-webkit-text-fill-
+// color` is the one property that beats the UA's text colour. The absurd
+// transition delay is the standard defence against the fade the UA plays on
+// the background when the field is focused - there is no event to hook, only
+// an animation to outlast.
+//
+// `:autofill` is the standard selector (Firefox, and Chromium since 108);
+// `:-webkit-autofill` is kept for older Chromium and Safari. They must be in
+// separate rules - a browser that does not know one selector throws the
+// whole list away.
+//
+// `.form-control` is written twice on purpose. Core Boost's login.scss owns
+// that box at `.login-container .login-form .form-control` and clears its
+// shadow (`box-shadow: none`), then puts Bootstrap's focus glow back at
+// `&:focus` - four classes, where a plain `.form-control:autofill` reaches
+// two. Either would wipe out the cover and let the wash back through, and the
+// focused state is exactly when someone is looking. The repeat costs one class
+// and settles both.
+// =============================================================================
+.form-control.form-control:autofill,
+.form-control.form-control:autofill:hover,
+.form-control.form-control:autofill:focus,
+.form-control.form-control:autofill:active {
+    box-shadow: 0 0 0 100vmax var(--nit-brand-surface) inset;
+    -webkit-text-fill-color: var(--nit-brand-textprimary);
+    caret-color: var(--nit-brand-textprimary);
+    transition: background-color 100000s ease-in-out 0s;
+}
+
+.form-control.form-control:-webkit-autofill,
+.form-control.form-control:-webkit-autofill:hover,
+.form-control.form-control:-webkit-autofill:focus,
+.form-control.form-control:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 100vmax var(--nit-brand-surface) inset;
+    box-shadow: 0 0 0 100vmax var(--nit-brand-surface) inset;
+    -webkit-text-fill-color: var(--nit-brand-textprimary);
+    caret-color: var(--nit-brand-textprimary);
+    transition: background-color 100000s ease-in-out 0s;
+}
+
+// The inset shadow above covers the whole box, and Bootstrap's focus ring is
+// a box-shadow - so the ring has to be redrawn as an outline, which paints
+// outside the box and is therefore out of the cover's reach.
+.form-control.form-control:autofill:focus,
+.form-control.form-control:-webkit-autofill:focus {
+    outline: 2px solid var(--nit-brand-primary);
+    outline-offset: -1px;
+}
+
+// A `<select>` gets autofilled too (a country box, for instance), and Chrome
+// paints that one with a background it will let us set - so it does not need
+// the shadow, only the colours.
+.form-select:autofill,
+.form-select:-webkit-autofill {
+    background-color: var(--nit-brand-surface);
+    -webkit-text-fill-color: var(--nit-brand-textprimary);
+}
