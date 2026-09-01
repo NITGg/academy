@@ -276,7 +276,8 @@ class account_profile_form extends moodleform {
      */
     protected function add_profile_fields(\stdClass $user): void {
         $mform = $this->_form;
-        $canoverride = has_capability('moodle/user:update', \context_system::instance());
+        // One rule for every lock on this screen, core field and custom field alike.
+        $canoverride = account::can_override_locks();
         $category = null;
 
         foreach (account::profile_fields((int) $user->id) as $inputname => $field) {

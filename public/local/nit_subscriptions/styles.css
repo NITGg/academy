@@ -275,10 +275,16 @@
     gap: 12px;
 }
 
+/* Positioned, because the link inside covers the card with a stretched ::after rather than
+   by being sized to it. local_payments' course_cards.js runs on every page and injects a
+   price badge as a SIBLING of any /course/view.php link it finds — including these. Sizing
+   the anchor to the card would leave the badge fighting it for width; overlaying instead
+   means the whole card stays clickable no matter what gets appended next to the link. */
 .nitplan__course {
+    position: relative;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
     padding: 14px 16px;
     border-radius: 12px;
     border: 1px solid var(--cborder);
@@ -289,6 +295,41 @@
 .nitplan__course:hover {
     border-color: var(--caccent);
     transform: translateY(-2px);
+}
+
+/* The link carries the padding, so the whole card is the hit area rather than just the
+   words inside it. No underline on hover — the card lifts and its border lights up, which
+   is the affordance; an underline on top of that just looks like a defect. */
+/* Takes a full row of its own, so an injected price badge wraps underneath rather than
+   squeezing the title. No underline on hover — the card lifts and its border lights up,
+   which is the affordance; an underline on top of that just reads as a defect. */
+.nitplan__courselink {
+    flex: 1 1 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.nitplan__courselink:hover,
+.nitplan__courselink:focus {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* The actual hit area: the whole card, including any badge sitting below the title. */
+.nitplan__courselink::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+}
+
+.nitplan__courselink:focus-visible::after {
+    outline: 2px solid var(--caccent);
+    outline-offset: -2px;
 }
 
 .nitplan__tick {
@@ -303,12 +344,10 @@
     color: var(--ctext1);
     font-size: 14px;
     font-weight: 600;
-    text-decoration: none;
 }
 
-.nitplan__coursename:hover {
+.nitplan__courselink:hover .nitplan__coursename {
     color: var(--ctext3);
-    text-decoration: underline;
 }
 
 .nitplan__courseopen {
@@ -316,7 +355,6 @@
     font-size: 12px;
     font-weight: 700;
     color: var(--ctext3);
-    text-decoration: none;
     white-space: nowrap;
 }
 
@@ -526,4 +564,13 @@
     .nitplan__buy {
         position: static;
     }
+}
+
+/* An injected price badge sits on its own line under the course title, and stays out of the
+   overlay's way. Purely informative here — what the course costs on its own, next to the
+   plan that includes it — so it needs no clicks of its own. */
+.nitplan__course .lp-card-badge {
+    flex: 1 1 100%;
+    margin: 8px 0 0;
+    pointer-events: none;
 }

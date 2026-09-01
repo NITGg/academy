@@ -68,10 +68,11 @@ identifier is data an administrator typed, not something a shipped list can know
 A specialisation and a biography want two languages; a passport number does not.
 
 So that choice is made per **category**, in *Bilingual profile field categories* on
-the settings page. Tick a category and every `text` and `textarea` field in it is
+the settings page. Tick a category and every `text` ("Text input") field in it is
 edited with one box per language, on `/user/editadvanced.php`, on the account page,
-and anywhere else the field appears. Other datatypes are left alone: a menu's
-options are translated on the field definition, and a date or a file has no text.
+and anywhere else the field appears. Text areas join them only when the second
+switch is on. Other datatypes are left alone: a menu's options are translated on the field definition, and a date or a
+file has no text.
 
 Two things work differently here, both deliberately:
 
@@ -79,9 +80,12 @@ Two things work differently here, both deliberately:
   the site's, so an instructor without `local/nit_mlang:edit` still gets the two
   boxes — but only on a profile screen (`profilefields::PAGETYPES`), and only for
   these fields. Nothing from the registry reaches them.
-* **A `textarea` field is enhanced even when "Include rich text editors" is off.**
-  That switch is off site-wide because a hand-authored HTML block is one bilingual
-  document that breaks when it is split; a biography is ordinary prose.
+* **A `textarea` field is opt-in, and is enhanced even when "Include rich text
+  editors" is off.** A ticked category covers its `text` ("Text input") fields
+  only, because a text area gets a language tab strip rather than stacked boxes —
+  a different control. Turn on *Include text areas in those categories* to cover
+  a biography as well; the global editors switch is off site-wide for
+  hand-authored HTML blocks, which is a different problem.
 
 The category headings themselves are a separate matter — they are stored strings
 like any other, and `local_profilefields\provision::repair_labels()` writes the

@@ -88,6 +88,13 @@ if ($hassiteconfig) {
         profilefields::categories()
     ));
 
+    $settings->add(new admin_setting_configcheckbox(
+        'local_nit_mlang/' . profilefields::SETTING_TEXTAREAS,
+        get_string('profiletextareas', 'local_nit_mlang'),
+        get_string('profiletextareas_desc', 'local_nit_mlang'),
+        0
+    ));
+
     // How to read a field name and a page type off a page — the two things the
     // settings below are written in terms of.
     $settings->add(new admin_setting_heading(

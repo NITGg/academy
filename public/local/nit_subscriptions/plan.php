@@ -111,6 +111,8 @@ if (!$plan) {
 $activeplanid = 0;
 $activedaysleft = 0;
 $hasotheractive = false;
+$renewdue = false;
+$renewedexpiry = 0;
 if (isloggedin() && !isguestuser()) {
     $active = subscription_purchase_manager::get_active_subscription($USER->id);
     if ($active) {
@@ -118,6 +120,15 @@ if (isloggedin() && !isguestuser()) {
         $activedaysleft = ((int) $active->expires_at > 0)
             ? max(0, (int) ceil(((int) $active->expires_at - time()) / DAYSECS)) : 0;
         $hasotheractive = ($activeplanid !== $id);
+
+        // The same window the home-page card uses, so the two never disagree about whether
+        // this plan can be renewed today — both ask reminder_manager, and so does the
+        // checkout that would take the money.
+        if (!$hasotheractive) {
+            $renewdue = \local_nit_subscriptions\reminder_manager::renew_due($active);
+            $renewedexpiry = ((int) $active->expires_at > 0 && (int) $active->duration_days > 0)
+                ? (int) $active->expires_at + ((int) $active->duration_days * DAYSECS) : 0;
+        }
     }
 }
 $iscurrent = ($activeplanid === $id);
@@ -164,7 +175,8 @@ $jsconfig = json_encode([
 
 // Only a visitor who can actually buy needs the checkout script — and it has to be required
 // before the header goes out, which is why every decision above is made before this point.
-$canbuy = !$countryblocked && !$iscurrent && !$hasotheractive && isloggedin() && !isguestuser();
+$canbuy = !$countryblocked && isloggedin() && !isguestuser()
+    && ((!$iscurrent && !$hasotheractive) || $renewdue);
 if ($canbuy) {
     $PAGE->requires->js(new moodle_url('/local/nit_subscriptions/plan.js'), true);
 }
@@ -234,7 +246,22 @@ echo $OUTPUT->header();
                 (int) $plan['duration_days'])) ?></span>
           </div>
 
-          <?php if ($iscurrent): ?>
+          <?php if ($iscurrent && $renewdue): ?>
+            <!-- Close enough to the end that renewing is offered. The new period is added to
+                 the current one, so the button is never a reason to wait for the plan to lapse. -->
+            <button type="button" class="nitplan__cta" data-nitplan-buy>
+              ↻ <?= s(get_string('sub_renew', 'local_nit_subscriptions')) ?>
+            </button>
+            <p class="nitplan__note">
+              <?= $activedaysleft > 0
+                  ? s(get_string('sub_renew_endsin', 'local_nit_subscriptions', $activedaysleft)) . ' — ' : '' ?>
+              <?= s(get_string('sub_renew_note', 'local_nit_subscriptions')) ?>
+              <?php if ($renewedexpiry > 0): ?>
+                <br><strong><?= s(get_string('sub_renew_newexpiry', 'local_nit_subscriptions')) ?>:</strong>
+                <?= s(userdate($renewedexpiry, get_string('strftimedaydate'))) ?>
+              <?php endif; ?>
+            </p>
+          <?php elseif ($iscurrent): ?>
             <div class="nitplan__cta nitplan__cta--owned">
               <?= $activedaysleft > 0
                   ? s(get_string('plan_daysleft', 'local_nit_subscriptions', $activedaysleft))
@@ -270,11 +297,15 @@ echo $OUTPUT->header();
           <?php foreach ($courses as $course): ?>
             <?php $courseurl = new moodle_url('/course/view.php', ['id' => $course->id]); ?>
             <li class="nitplan__course">
-              <span class="nitplan__tick" aria-hidden="true">✓</span>
-              <a class="nitplan__coursename" href="<?= s($courseurl->out()) ?>"><?= s(format_string($course->fullname)) ?></a>
-              <a class="nitplan__courseopen" href="<?= s($courseurl->out()) ?>"
-                 aria-label="<?= s(format_string($course->fullname)) ?>"><?=
-                s(get_string('plan_opencourse', 'local_nit_subscriptions')) ?> ›</a>
+              <!-- One link filling the whole card, rather than a link on the title and another
+                   on "Open": the card looked clickable everywhere but only was in two places,
+                   and screen readers had to hear the same destination announced twice. -->
+              <a class="nitplan__courselink" href="<?= s($courseurl->out()) ?>">
+                <span class="nitplan__tick" aria-hidden="true">✓</span>
+                <span class="nitplan__coursename"><?= s(format_string($course->fullname)) ?></span>
+                <span class="nitplan__courseopen" aria-hidden="true"><?=
+                  s(get_string('plan_opencourse', 'local_nit_subscriptions')) ?> ›</span>
+              </a>
             </li>
           <?php endforeach; ?>
         </ul>
@@ -311,8 +342,10 @@ echo $OUTPUT->header();
   <div class="nitplan__modal" data-nitplan-modal hidden>
     <div class="nitplan__dialog" role="dialog" aria-modal="true"
          aria-label="<?= s(get_string('sub_confirm_title', 'local_nit_subscriptions')) ?>">
-      <h3 class="nitplan__dialogtitle"><?= s(get_string('sub_confirm_title', 'local_nit_subscriptions')) ?></h3>
-      <p class="nitplan__dialogintro"><?= s(get_string('sub_confirm_intro', 'local_nit_subscriptions')) ?></p>
+      <h3 class="nitplan__dialogtitle"><?= s(get_string(
+        $renewdue ? 'sub_renew_confirm' : 'sub_confirm_title', 'local_nit_subscriptions')) ?></h3>
+      <p class="nitplan__dialogintro"><?= s(get_string(
+        $renewdue ? 'sub_renew_note' : 'sub_confirm_intro', 'local_nit_subscriptions')) ?></p>
 
       <div class="nitplan__summary">
         <div class="nitplan__row">

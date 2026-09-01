@@ -300,8 +300,25 @@ try {
         // ── Public: available plans for the home-page block ──
         case 'get_available_subscriptions':
             $country = optional_param('country', '', PARAM_ALPHA);
-            nit_subscriptions_respond(['status' => 'success',
-                'data' => nit_subscriptions_available($country !== '' ? $country : null)]);
+            // `viewer` rides ALONGSIDE `data`, never inside it: the home-page block needs to
+            // know whether this visitor can actually buy, while the mobile app and the
+            // external function keep reading exactly the list shape they always have.
+            //
+            // The block cannot work this out for itself. Moodle only puts `notloggedin` on the
+            // body when nobody is signed in at all, and a GUEST *is* signed in — so a guest
+            // looked like a buyer to the block and got the checkout dialog instead of the
+            // login page. The server is the only honest source for this.
+            nit_subscriptions_respond([
+                'status' => 'success',
+                'data'   => nit_subscriptions_available($country !== '' ? $country : null),
+                'viewer' => [
+                    'loggedin'      => (bool) (isloggedin() && !isguestuser()),
+                    'isguest'       => (bool) isguestuser(),
+                    'can_subscribe' => (bool) (isloggedin() && !isguestuser()
+                        && has_capability('local/nit_subscriptions:subscribe', $context)),
+                    'loginurl'      => (new moodle_url('/login/index.php'))->out(false),
+                ],
+            ]);
             break;
 
         default:

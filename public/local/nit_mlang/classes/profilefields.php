@@ -45,10 +45,22 @@ class profilefields {
     /** @var string Config setting holding the chosen category ids, comma separated. */
     const SETTING = 'profilecategories';
 
+    /** @var string Config setting: whether text areas in those categories count too. */
+    const SETTING_TEXTAREAS = 'profiletextareas';
+
     /** @var string The prefix core gives every custom profile field on a form. */
     const PREFIX = 'profile_field_';
 
-    /** @var string[] Profile field datatypes that hold translatable free text. */
+    /**
+     * Profile field datatypes that can hold translatable free text.
+     *
+     * `text` is the "Text input" field type and is always in scope. `textarea` is
+     * a rich text editor, which gets a language tab strip rather than stacked
+     * boxes - a visibly different control - so it is opt-in per site through
+     * SETTING_TEXTAREAS rather than arriving with the category.
+     *
+     * @var string[]
+     */
     const DATATYPES = ['text', 'textarea'];
 
     /**
@@ -129,9 +141,16 @@ class profilefields {
             return $empty;
         }
 
+        // "Text input" is always in scope; a text area is a different control and
+        // is only in scope when the site has asked for it.
+        $datatypes = ['text'];
+        if (get_config('local_nit_mlang', self::SETTING_TEXTAREAS)) {
+            $datatypes[] = 'textarea';
+        }
+
         try {
             [$catsql, $catparams] = $DB->get_in_or_equal($categoryids, SQL_PARAMS_NAMED, 'cat');
-            [$typesql, $typeparams] = $DB->get_in_or_equal(self::DATATYPES, SQL_PARAMS_NAMED, 'type');
+            [$typesql, $typeparams] = $DB->get_in_or_equal($datatypes, SQL_PARAMS_NAMED, 'type');
             $records = $DB->get_records_select(
                 'user_info_field',
                 "categoryid $catsql AND datatype $typesql",
