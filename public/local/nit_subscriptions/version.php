@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_subscriptions';
-$plugin->version   = 2026090120;        // Per-currency refund terms on plan and country prices.
+$plugin->version   = 2026090130;        // Refund fee is a percentage, kept on the plan.
 $plugin->requires  = 2024100700;
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;

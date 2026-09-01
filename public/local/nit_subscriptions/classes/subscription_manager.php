@@ -84,9 +84,10 @@ class subscription_manager {
         // Null is meaningful here: it means the plan follows the site policy.
         $record->refund_hours = isset($data['refund_hours']) && $data['refund_hours'] !== null
             ? (int) $data['refund_hours'] : null;
+        // A percentage of the amount paid, so it needs no currency of its own and
+        // stays correct across every price row on the plan.
         $record->refund_fee = isset($data['refund_fee']) && $data['refund_fee'] !== null
-            ? (float) $data['refund_fee'] : null;
-        $record->refund_feetype = (($data['refund_feetype'] ?? '') === 'percent') ? 'percent' : 'fixed';
+            ? self::clamp_percent($data['refund_fee']) : null;
         $record->status        = !empty($data['active']) ? self::STATUS_ACTIVE : self::STATUS_INACTIVE;
         $record->b2b_enabled   = $b2benabled;
         $record->timecreated   = $now;
@@ -142,16 +143,13 @@ class subscription_manager {
         if (array_key_exists('currency', $data)) {
             $update->currency = self::normalize_currency($data['currency']);
         }
-        if (array_key_exists('refund_feetype', $data)) {
-            $update->refund_feetype = ($data['refund_feetype'] === 'percent') ? 'percent' : 'fixed';
-        }
-
         foreach (['refund_hours', 'refund_fee'] as $refundfield) {
             if (array_key_exists($refundfield, $data)) {
                 $update->$refundfield = $data[$refundfield] === null
                     ? null
                     : ($refundfield === 'refund_hours'
-                        ? (int) $data[$refundfield] : (float) $data[$refundfield]);
+                        ? max(0, (int) $data[$refundfield])
+                        : self::clamp_percent($data[$refundfield]));
             }
         }
 
@@ -641,20 +639,11 @@ class subscription_manager {
             if ($price <= 0) {
                 throw new \moodle_exception('err_pricepositive', 'local_nit_subscriptions');
             }
-            // Refund terms are per row because a plan sells in several currencies
-            // at once: one flat fee could never be right for all of them. Blank
-            // means "follow the plan", which is not the same as zero.
-            $rhours = trim((string) ($row['refund_hours'] ?? ''));
-            $rfee = trim((string) ($row['refund_fee'] ?? ''));
-
             $clean[] = (object) [
                 'subscriptionid' => $subscriptionid,
                 'country'        => $country,
                 'currency'       => self::normalize_currency($row['currency'] ?? 'EGP'),
                 'price'          => $price,
-                'refund_hours'   => $rhours === '' ? null : max(0, (int) $rhours),
-                'refund_feetype' => 'fixed',
-                'refund_fee'     => $rfee === '' ? null : max(0, (float) $rfee),
                 'is_active'      => !empty($row['is_active']) ? 1 : 0,
                 'created_by'     => (int) $userid,
                 'timecreated'    => $now,
@@ -668,6 +657,16 @@ class subscription_manager {
             $DB->insert_record('nit_sub_price', $record);
         }
         $transaction->allow_commit();
+    }
+
+    /**
+     * A refund fee as a sane percentage.
+     *
+     * @param mixed $value
+     * @return float Between 0 and 100.
+     */
+    private static function clamp_percent($value): float {
+        return max(0.0, min(100.0, (float) $value));
     }
 
     /**

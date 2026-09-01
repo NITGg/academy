@@ -259,12 +259,6 @@ $string['refund_group_default'] = 'Refunds: everything else';
 $string['refund_group_default_desc'] = 'Used for any other kind of purchase &mdash; packages today, whatever is added later. Nothing that takes a payment is left without a policy.';
 $string['refund_hours'] = 'Refund window (hours)';
 $string['refund_hours_desc'] = 'Hours from the moment the payment completed during which the buyer can refund themselves, with no staff involvement. Hours rather than days so that both "the first 24 hours" and "the first two weeks" (336) are expressible. <b>Set 0 for no automatic window</b> &mdash; the buyer then has to ask, and a member of staff decides.';
-$string['refund_feetype'] = 'Fee type';
-$string['refund_feetype_desc'] = 'A percentage tracks the price and works across currencies; a flat amount is the honest shape for a fixed bank charge, but is stated in one currency only.';
-$string['refund_feetype_percent'] = 'Percentage of the amount paid';
-$string['refund_feetype_fixed'] = 'Flat amount';
-$string['refund_fee'] = 'Refund fee';
-$string['refund_fee_desc'] = 'What the platform keeps when a refund is given. <b>0 means a full refund.</b> A fee larger than the payment is capped at the payment, so nobody is billed for asking.';
 
 // Refunds, buyer-facing.
 $string['refund_column'] = 'Refund';
@@ -327,35 +321,12 @@ $string['refund_staff_applyfee'] = 'Charge the policy refund fee of {$a}. Leave 
 $string['refund_staff_button'] = 'Refund now';
 
 // Refunds, per-item override.
-$string['refund_rule_title'] = 'Refund policy';
-$string['refund_rule_link'] = 'Refund policy for this course';
-$string['refund_rule_heading'] = 'Refund policy: {$a}';
-$string['refund_rule_sitedefault'] = 'Without an override here, this follows the site setting: {$a}';
-$string['refund_rule_summary'] = '{$a->hours} hour window, fee {$a->fee}';
-$string['refund_rule_nofee'] = 'none';
-$string['refund_rule_hours_help'] = 'Hours after payment during which the buyer can refund themselves. 0 means they must ask instead, and a member of staff decides.';
-$string['refund_rule_fee_help'] = 'What is kept from the refund. 0 gives the money back in full.';
-$string['refund_rule_saved'] = 'Refund policy saved for this item.';
-$string['refund_rule_cleared'] = 'Override removed. This item now follows the site settings.';
-$string['refund_rule_clear'] = 'Remove override';
-$string['refund_rule_offsitewide'] = 'Refunds are switched off site-wide, so nothing set here takes effect until that changes.';
 
 // Refunds, the currency a flat fee is stated in.
-$string['refund_feecurrency'] = 'Flat fee currency';
-$string['refund_feecurrency_desc'] = 'Which currency a flat fee here is stated in. Ignored when the fee is a percentage. <b>For courses, prefer setting the fee on the price rule instead</b> &mdash; a price rule already declares its currency, so a fee there cannot be ten of something the buyer did not pay in. A flat fee set here is only charged against payments in this currency; against any other, no fee is taken, because inventing an exchange rate nobody agreed to is worse than waiving it.';
-$string['refund_rule_feecurrency_help'] = 'Only used for a flat fee. Payments made in a different currency are refunded in full rather than having a fee converted at a rate nobody agreed.';
 
 // Refund fee set on a price rule.
-$string['price_refund_fee'] = 'Refund fee';
-$string['price_refund_fee_help'] = 'What is kept if this purchase is refunded, in this rule&apos;s own currency. A rule priced in EGP takes an EGP fee; one priced in USD takes a USD fee. That is why the fee sits here rather than in a single site-wide box: the same course sold at 36 EGP and 450 USD cannot share one flat number.
-
-Leave it empty to use the course or site refund policy instead, which is usually a percentage. Enter 0 to refund this price in full, which is not the same as leaving it empty.
-
-The refund window &mdash; how long a buyer has &mdash; is not set here. It is the same however they paid, so it lives on the course refund policy.';
 
 // Refund terms set on a price rule.
-$string['price_refund_hours'] = 'Refund window (hours)';
-$string['price_refund_hours_help'] = 'How long a buyer who paid this price has to refund themselves, counted from when the payment completed. Leave empty to follow the site refund policy. Enter 0 to allow no automatic refund at this price, in which case the buyer has to ask and a member of staff decides.';
 $string['refund_feepercent'] = 'Default refund fee (%)';
 $string['refund_feepercent_desc'] = 'A percentage of the amount paid, kept when a refund is given. Used when the price rule does not set a fee of its own. It is a percentage rather than a flat amount on purpose: a percentage is the same policy in every currency, whereas a flat amount would mean two different charges to buyers paying in EGP and USD. Set a flat amount on the price rule instead, where the currency is already known. 0 refunds in full.';
 
@@ -365,4 +336,23 @@ $string['show_method_picker_desc'] = 'Show the buyer the payment methods before 
 $string['choose_method'] = 'How would you like to pay?';
 $string['continue_to_payment'] = 'Continue to payment';
 $string['method_gives_code'] = 'You will get a code to pay with';
-$string['price_refund_feetype'] = 'Refund fee type';
+
+// Payment method picker on the web checkout.
+$string['show_method_picker'] = 'Ask which payment method to use';
+$string['show_method_picker_desc'] = 'Show the buyer the payment methods before checkout. Off by default, in which case the gateway is charged directly using the first method in its priority list &mdash; which is why only cards appear. Turn this on to offer Fawry, Meeza and wallets alongside cards. It is only shown when the gateway actually offers more than one method, so it never becomes a pointless click.';
+$string['choose_method'] = 'How would you like to pay?';
+$string['continue_to_payment'] = 'Continue to payment';
+$string['method_gives_code'] = 'You will get a code to pay with';
+
+// The site-wide default refund fee.
+$string['refund_feepercent'] = 'Default refund fee (%)';
+$string['refund_feepercent_desc'] = 'A percentage of the amount paid, kept when a refund is given. Used when the course or plan does not set a fee of its own. It is a percentage rather than a flat amount on purpose: one number then covers every currency an item is priced in, and it follows the amount actually charged, so a coupon that halves the price halves the fee. 0 refunds in full.';
+
+// Refund terms for one course, set on its pricing page.
+$string['refund_terms_heading'] = 'Refund policy for this course';
+$string['refund_terms_intro'] = 'Leave both blank to use the site policy, which is currently a {$a->hours} hour window with a {$a->fee}% fee.';
+$string['refund_terms_inherit'] = 'Site policy';
+$string['refund_terms_saved'] = 'Refund policy saved for this course.';
+$string['refund_terms_offsitewide'] = 'Refunds are switched off site-wide, so nothing set here takes effect until that changes.';
+$string['refund_terms_help'] = 'The fee is a percentage of whatever the buyer actually paid, so one number covers every currency this course is priced in and follows any discount they used. Set the window to 0 to allow no automatic refund &mdash; the buyer then has to ask, and a member of staff decides.';
+$string['refund_feerow'] = 'Refund fee ({$a}%)';

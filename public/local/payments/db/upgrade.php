@@ -120,6 +120,59 @@ function xmldb_local_payments_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090120, 'local', 'payments');
     }
 
+    if ($oldversion < 2026090130) {
+        // Refund terms move off the price row and become percentage-only.
+        //
+        // A percentage settles both problems the per-price fields existed for. It
+        // needs no currency, so one number covers every price of an item; and it
+        // follows the amount actually paid, so a coupon that halves the price
+        // halves the fee instead of turning a flat 10 into a third of the sale.
+        $table = new xmldb_table('local_payments_refund_terms');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+            $table->add_field('itemtype', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL);
+            $table->add_field('itemid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+            $table->add_field('hours', XMLDB_TYPE_INTEGER, '10', null, null);
+            $table->add_field('feepercent', XMLDB_TYPE_NUMBER, '6, 2', null, null);
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_index('idx_item', XMLDB_INDEX_UNIQUE, ['itemtype', 'itemid']);
+            $dbman->create_table($table);
+        }
+
+        // Carry over any window already set on a default price row, so a course
+        // configured before this does not silently revert to the site policy.
+        // The old flat fees are not carried: they were amounts in a currency and
+        // there is no honest way to turn one into a percentage of every price.
+        $prices = new xmldb_table('local_payments_course_prices');
+        $hoursfield = new xmldb_field('refund_hours');
+        if ($dbman->field_exists($prices, $hoursfield)) {
+            $rows = $DB->get_records_select('local_payments_course_prices',
+                'refund_hours IS NOT NULL AND is_default = 1', null, '', 'courseid, refund_hours');
+            foreach ($rows as $row) {
+                if (!$DB->record_exists('local_payments_refund_terms',
+                        ['itemtype' => 'course', 'itemid' => $row->courseid])) {
+                    $DB->insert_record('local_payments_refund_terms', (object) [
+                        'itemtype' => 'course',
+                        'itemid' => $row->courseid,
+                        'hours' => $row->refund_hours,
+                        'feepercent' => null,
+                        'timemodified' => time(),
+                    ]);
+                }
+            }
+        }
+
+        foreach (['refund_hours', 'refund_feetype', 'refund_fee'] as $name) {
+            $field = new xmldb_field($name);
+            if ($dbman->field_exists($prices, $field)) {
+                $dbman->drop_field($prices, $field);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026090130, 'local', 'payments');
+    }
+
     return true;
 }
 

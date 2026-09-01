@@ -138,5 +138,32 @@ function xmldb_local_nit_subscriptions_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090120, 'local', 'nit_subscriptions');
     }
 
+    if ($oldversion < 2026090130) {
+        // The fee is a percentage now, which is what lets one number sit on the
+        // plan and stay right for every currency it sells in: it carries no
+        // currency to mismatch, and it follows whatever was actually charged, so
+        // a discount shrinks the fee with the price. That leaves the fee type and
+        // the per-country refund columns with nothing to do.
+        $plan = new xmldb_table('nit_subscription');
+        $field = new xmldb_field('refund_feetype');
+        if ($dbman->field_exists($plan, $field)) {
+            $dbman->drop_field($plan, $field);
+        }
+
+        // Move any flat fee off the plan rather than reading it as a percentage,
+        // where 150 EGP would silently become 150%.
+        $DB->set_field('nit_subscription', 'refund_fee', null, []);
+
+        $prices = new xmldb_table('nit_sub_price');
+        foreach (['refund_hours', 'refund_feetype', 'refund_fee'] as $name) {
+            $field = new xmldb_field($name);
+            if ($dbman->field_exists($prices, $field)) {
+                $dbman->drop_field($prices, $field);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026090130, 'local', 'nit_subscriptions');
+    }
+
     return true;
 }

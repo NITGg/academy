@@ -745,3 +745,16 @@
     flex-wrap: wrap;
     gap: 0.75rem;
 }
+
+/* ── Course refund terms, on the pricing page ───────────────────────────── */
+
+.lp-refund-terms {
+    align-items: flex-end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.lp-refund-terms__field {
+    max-width: 14rem;
+}

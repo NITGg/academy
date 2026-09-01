@@ -15,34 +15,34 @@ defend to a student, so it is not one the code can express.
 
 ## Where the policy lives
 
-Two numbers: **a window in hours** and **a fee**. Both sit *with the price*,
-because that is where the currency already is.
+Two numbers: **a window in hours** and **a fee**, and the fee is always a
+**percentage of the amount paid**.
+
+That one decision is what lets both numbers sit on the course or the plan instead
+of on every price row. A percentage carries no currency, so a course sold at 36
+EGP and 450 USD needs one number, not two; and it follows what was actually
+charged, so a coupon that halves the price halves the fee. A flat `10` would have
+meant ten pounds to one buyer and ten dollars to another — a fiftyfold difference
+out of a single setting — and would quietly become a third of a discounted sale.
 
 ### Courses
 
-*Course → Course pricing → edit a price rule*
+*Course → Course pricing* → the **Refund policy for this course** form at the
+bottom of the page, under the price rules.
 
 | Field | Meaning |
 |---|---|
 | **Refund window (hours)** | Hours from payment during which the buyer can refund themselves. Blank = follow the site policy. `0` = they must ask. |
-| **Refund fee type** | Flat amount or percentage of the amount paid. |
-| **Refund fee** | Kept from the refund. A flat amount is **in this rule's currency**; a percentage needs none. Blank = follow the site policy. `0` = full refund. |
+| **Default refund fee (%)** | Percentage of what the buyer paid, kept from the refund. Blank = follow the site policy. `0` = full refund. |
 
 Blank and zero are different, and the distinction matters: blank falls back, zero
 is a deliberate choice.
 
 ### Subscriptions
 
-*Manage subscriptions → add/edit a plan*
-
-- **On the plan** — window, fee type and fee, applying to the plan's own default
-  price.
-- **On each country price row** — its own **Refund hrs** and **Refund fee**,
-  in that row's currency. Blank follows the plan.
-
-A plan selling at USD 33, EGP 54 and EUR 33 cannot share one flat fee, which is
-why the country rows carry their own. A percentage on the plan works for all of
-them at once, if that is the policy you want.
+*Manage subscriptions → add/edit a plan* — the same two fields, on the plan.
+They cover every country price row the plan has, because a percentage is the same
+policy in all of them.
 
 ### Everything else
 
@@ -51,29 +51,25 @@ them at once, if that is the policy you want.
 | Setting | Notes |
 |---|---|
 | Allow refunds | Master switch. Off by default; with it off no refund button appears anywhere. |
-| Refunds: courses / subscriptions / everything else | Window + **default refund fee (%)** |
+| Refunds: courses / subscriptions / everything else | Window + **default refund fee (%)**, used by anything that sets nothing of its own. |
 
-The site-level fee is a **percentage**, deliberately. A percentage of the amount
-paid is the same policy in every currency; a flat amount is not. Set flat amounts
-on the price rule, where the currency is already known.
-
-### Why the fee is not one site-wide number
-
-The same course sells at **36 EGP** and **450 USD**. A flat fee of `10` would
-mean ten pounds to one buyer and ten dollars to another — about a fiftyfold
-difference — from a single setting. On a price rule the number cannot be
-ambiguous, because the row it sits on names the currency.
+The third block is what makes "any other thing we sell" work without a code
+change: an item type with no settings of its own falls through to it.
 
 ---
 
 ## Resolution order
 
-1. The **price rule** the buyer actually paid under (found through the
-   transaction's own `price_id`, so editing a price after a sale cannot change
-   what that sale is worth back).
+1. The **course or plan** the payment was for — its own terms, if it sets any.
+   Each of the two numbers falls back on its own, so a course can set a window
+   and still take the site's fee.
 2. The **site policy** for that item type.
 3. The **default** block, for anything that is neither a course nor a
    subscription.
+
+The fee is computed against the amount on the transaction, so a sale is always
+worth back what the policy said at the time it was *refunded*, on the money that
+actually changed hands — discount included.
 
 ---
 
@@ -130,6 +126,7 @@ params     = transaction_id
   "message": "",
   "paid": 36.0,
   "fee": 3.6,
+  "fee_percent": 10.0,
   "net": 32.4,
   "currency": "EGP",
   "window_hours": 48,
@@ -147,7 +144,8 @@ Switch on `action` — one field rather than three booleans to combine:
 | `pending` | "Waiting on a decision" — they have already asked. |
 | `none` | Nothing. `message` says why, already translated. |
 
-Show `net` as the headline figure; `paid` and `fee` explain it. `policy` is a
+Show `net` as the headline figure; `paid` and `fee` explain it, and `fee_percent`
+is the policy behind the fee if you want to state it as a rule. `policy` is a
 ready-made sentence if you would rather not compose one.
 
 ### Do it
@@ -179,9 +177,12 @@ displayable as-is.
    to `48`, fee `10`%.
 2. Buy a course, then open *Payment history* → **Refund**. You should get 90%
    back, be unenrolled, and see the order as `refunded`.
-3. Now set that course's price rule to **Refund window `0`** and buy again. The
-   button becomes **Request refund** and a reason is required.
+3. Now open that course's *Course pricing* page and set **Refund window `0`** in
+   the form at the bottom, then buy again. The button becomes **Request refund**
+   and a reason is required.
 4. *Payments → Refund requests* → approve it. The buyer gets a notification.
+5. Repeat 2 with the course priced in a second currency. The same `10` should
+   still hold back a tenth — that is the point of a percentage.
 
-Step 3 is the one worth doing: it proves the per-price override beats the site
-setting, which is the whole point of putting the fields there.
+Step 3 proves the course override beats the site setting; step 5 proves the one
+number is genuinely currency-free.

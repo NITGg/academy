@@ -69,15 +69,6 @@ if ($action === 'edit' || $action === 'add') {
             'country' => $formdata->country,
             'currency' => $formdata->currency,
             'price' => $formdata->price,
-            // Blank means "no rule here", which is different from a zero fee:
-            // zero is a deliberate full refund, blank falls back to the policy.
-            'refund_hours' => ($formdata->refund_hours === '' || $formdata->refund_hours === null)
-                ? null : max(0, (int) $formdata->refund_hours),
-            'refund_feetype' => ($formdata->refund_feetype === \local_payments\refund_policy::FEE_PERCENT)
-                ? \local_payments\refund_policy::FEE_PERCENT
-                : \local_payments\refund_policy::FEE_FIXED,
-            'refund_fee' => ($formdata->refund_fee === '' || $formdata->refund_fee === null)
-                ? null : max(0, (float) $formdata->refund_fee),
             'is_default' => ($isfirst || !empty($formdata->is_default)) ? 1 : 0,
             'is_active' => !empty($formdata->is_active) ? 1 : 0,
             'timemodified' => time(),
@@ -101,6 +92,41 @@ if ($action === 'edit' || $action === 'add') {
     $form->display();
     echo $OUTPUT->footer();
     exit;
+}
+
+// Refund terms for the whole course. They sit on this page rather than a screen
+// of their own because they are terms of the same sale as the price — but not on
+// each price row, because a percentage is the same number whatever the currency.
+if (optional_param('saveterms', 0, PARAM_BOOL) && confirm_sesskey()) {
+    $rawhours = trim(optional_param('refund_hours', '', PARAM_RAW_TRIMMED));
+    $rawfee = trim(optional_param('refund_feepercent', '', PARAM_RAW_TRIMMED));
+
+    $terms = (object) [
+        'itemtype' => 'course',
+        'itemid' => $courseid,
+        // Blank means "follow the site policy"; 0 is a deliberate choice.
+        'hours' => $rawhours === '' ? null : max(0, (int) $rawhours),
+        'feepercent' => $rawfee === '' ? null : max(0, min(100, (float) $rawfee)),
+        'timemodified' => time(),
+    ];
+
+    $existingterms = $DB->get_record('local_payments_refund_terms',
+        ['itemtype' => 'course', 'itemid' => $courseid]);
+
+    if ($terms->hours === null && $terms->feepercent === null) {
+        // Nothing set at all is the same as having no override.
+        if ($existingterms) {
+            $DB->delete_records('local_payments_refund_terms', ['id' => $existingterms->id]);
+        }
+    } else if ($existingterms) {
+        $terms->id = $existingterms->id;
+        $DB->update_record('local_payments_refund_terms', $terms);
+    } else {
+        $DB->insert_record('local_payments_refund_terms', $terms);
+    }
+
+    redirect(new moodle_url('/local/payments/course_pricing.php', ['courseid' => $courseid]),
+        get_string('refund_terms_saved', 'local_payments'));
 }
 
 // List prices.
@@ -214,5 +240,60 @@ if (empty($prices)) {
 
     echo html_writer::table($table);
 }
+
+// ── Refund terms ────────────────────────────────────────────────────────────
+$terms = $DB->get_record('local_payments_refund_terms',
+    ['itemtype' => 'course', 'itemid' => $courseid]);
+$sitepolicy = \local_payments\refund_policy::site_policy('course');
+
+echo html_writer::tag('h3', get_string('refund_terms_heading', 'local_payments'),
+    ['class' => 'mt-5']);
+
+if (!\local_payments\refund_policy::enabled()) {
+    echo $OUTPUT->notification(get_string('refund_terms_offsitewide', 'local_payments'), 'warning');
+}
+
+echo html_writer::tag('p', get_string('refund_terms_intro', 'local_payments',
+    (object) ['hours' => $sitepolicy->hours, 'fee' => format_float($sitepolicy->feepercent, 2, true, true)]),
+    ['class' => 'text-muted']);
+
+echo html_writer::start_tag('form', [
+    'method' => 'post',
+    'action' => (new moodle_url('/local/payments/course_pricing.php', ['courseid' => $courseid]))->out(false),
+    'class' => 'lp-refund-terms',
+]);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'saveterms', 'value' => 1]);
+
+echo html_writer::start_div('lp-refund-terms__field');
+echo html_writer::tag('label', get_string('refund_hours', 'local_payments'),
+    ['for' => 'lp-terms-hours', 'class' => 'form-label']);
+echo html_writer::empty_tag('input', [
+    'type' => 'number', 'min' => 0, 'id' => 'lp-terms-hours', 'name' => 'refund_hours',
+    'value' => ($terms && $terms->hours !== null) ? $terms->hours : '',
+    'placeholder' => get_string('refund_terms_inherit', 'local_payments'),
+    'class' => 'form-control',
+]);
+echo html_writer::end_div();
+
+echo html_writer::start_div('lp-refund-terms__field');
+echo html_writer::tag('label', get_string('refund_feepercent', 'local_payments'),
+    ['for' => 'lp-terms-fee', 'class' => 'form-label']);
+echo html_writer::empty_tag('input', [
+    'type' => 'number', 'min' => 0, 'max' => 100, 'step' => '0.01',
+    'id' => 'lp-terms-fee', 'name' => 'refund_feepercent',
+    'value' => ($terms && $terms->feepercent !== null)
+        ? format_float((float) $terms->feepercent, 2, false) : '',
+    'placeholder' => get_string('refund_terms_inherit', 'local_payments'),
+    'class' => 'form-control',
+]);
+echo html_writer::end_div();
+
+echo html_writer::tag('button', get_string('savechanges'),
+    ['type' => 'submit', 'class' => 'btn btn-primary']);
+echo html_writer::end_tag('form');
+
+echo html_writer::tag('p', get_string('refund_terms_help', 'local_payments'),
+    ['class' => 'form-text']);
 
 echo $OUTPUT->footer();
