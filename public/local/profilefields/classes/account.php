@@ -351,29 +351,6 @@ class account {
     }
 
     /**
-     * Whether the viewer may edit a field the site has locked.
-     *
-     * The lock is Moodle's per-auth field lock, and core applies it on
-     * `/user/edit.php` to everybody - which is why an administrator who wants to
-     * correct a locked field goes to `/user/editadvanced.php`, where core does not
-     * apply it at all. This screen replaces both for the account's owner, so it has
-     * to answer the question core answers by having two pages: somebody who can
-     * update user accounts is the administrator the padlock is telling everyone
-     * else to go and ask, and telling them "only an administrator can change this"
-     * about their own account leaves them nowhere to go.
-     *
-     * Read at the system context because this screen only ever edits the viewer's
-     * own account. It is the same rule the custom profile fields on this form
-     * already used, now asked in one place so the two halves of the screen cannot
-     * disagree.
-     *
-     * @return bool
-     */
-    public static function can_override_locks(): bool {
-        return has_capability('moodle/user:update', \context_system::instance());
-    }
-
-    /**
      * Which core fields this screen shows right now, and whether each is locked.
      *
      * Both halves are read from the management page rather than decided here.
@@ -382,21 +359,27 @@ class account {
      * *Whether it can be typed into* is the Profile tab of the same page, stored
      * as core's own per-auth field lock. The form and the save path both ask this
      * one method, so they cannot disagree about a field a hand-crafted POST tries
-     * to set. A viewer who can update user accounts is never told a field is
-     * locked - see can_override_locks(); the lock is a rule about learners, and
-     * this screen is also the administrator's own account page.
+     * to set.
+     *
+     * The lock applies to everybody, an administrator looking at their own account
+     * included - which is exactly what core does on `/user/edit.php`. An
+     * administrator who has to correct a locked field does it where core intends,
+     * on `/user/editadvanced.php`, reached from Site administration -> Users ->
+     * Browse list of users. That route only works if the profile page is reachable
+     * for one's own account too, which is why
+     * `hook_callbacks::redirect_own_profile()` leaves `/user/profile.php?id=...`
+     * alone whoever the id names.
      *
      * @return array<string,bool> field name => true when the learner may not edit it
      */
     public static function core_fields(): array {
         $fields = [];
-        $override = self::can_override_locks();
 
         foreach (self::CORE_FIELDS as $name) {
             if (!manager::on_profile($name)) {
                 continue;
             }
-            $fields[$name] = !$override && core_locks::is_locked($name);
+            $fields[$name] = core_locks::is_locked($name);
         }
 
         return $fields;

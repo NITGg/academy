@@ -229,12 +229,15 @@ class hook_callbacks {
     }
 
     /**
-     * Send a learner looking at their own profile to the account screen.
+     * Send a learner following the bare "my profile" link to the account screen.
      *
-     * Narrow on purpose. Only the learner's *own* profile moves: `?id=` naming
-     * somebody else is core's public profile page and stays that way, which is
-     * also what AC-4.5.11 needs, since the public instructor profile is a
-     * different screen with a different set of fields.
+     * Narrow on purpose. Only `/user/profile.php` with no `id` at all moves - the
+     * link in the user menu, and the one the wireframe draws. Any `?id=` is a
+     * request for *that* profile page and stays on core's, whoever the id names:
+     * somebody else because AC-4.5.11 wants the public instructor profile there,
+     * and yourself because that is the link on your own row of Site
+     * administration -> Users -> Browse list of users, and an administrator has to
+     * be able to reach "Edit profile" from it like they can for anybody else.
      *
      * Four other ways out, all of them cases where core's page is the right
      * answer and a redirect would be taking something away:
@@ -250,7 +253,7 @@ class hook_callbacks {
      * @return bool true when the request has been redirected away
      */
     protected static function redirect_own_profile(): bool {
-        global $USER, $PAGE;
+        global $PAGE;
 
         if (self::script_path() !== '/user/profile.php') {
             return false;
@@ -289,9 +292,15 @@ class hook_callbacks {
             return false;
         }
 
-        // No id at all means "mine", which is how the wireframe's link is written.
-        $id = optional_param('id', 0, PARAM_INT);
-        if ($id !== 0 && $id !== (int) $USER->id) {
+        // Only the bare link means "mine". A link that *names* an id is a request
+        // for that person's profile page, and it has to answer the same way when
+        // the person happens to be you - because that is the link every row of
+        // Site administration -> Users -> Browse list of users carries, including
+        // the administrator's own row. Bouncing that one row to the account screen
+        // put an administrator wanting to correct a locked field on the one page
+        // that tells them to go and ask an administrator, with no way through to
+        // "Edit profile" and /user/editadvanced.php, where core lets them.
+        if (optional_param('id', 0, PARAM_INT) !== 0) {
             return false;
         }
 
