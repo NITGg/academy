@@ -337,3 +337,11 @@ $string['refund_terms_help'] = 'الرسوم نسبة مئوية مما دفعه
 $string['refund_feerow'] = 'رسوم الاسترداد ({$a}%)';
 
 $string['item_column'] = 'العنصر';
+
+// Free-course registration and subscription-covered enrolment.
+$string['registerfree']            = 'سجّل مجانًا';
+$string['freecourseintro']         = 'هذا الكورس مجاني. اضغط بالأسفل للتسجيل وبدء التعلّم.';
+$string['freeenrolled']            = 'تم تسجيلك بنجاح. نتمنى لك تجربة ممتعة!';
+$string['covered_by_subscription'] = 'مشمول ضمن اشتراكك';
+$string['enroll']                  = 'التحق بالكورس';
+$string['renew_subscription']      = 'جدّد اشتراكك';

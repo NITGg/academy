@@ -23,8 +23,11 @@
 
      Data comes from /local/nit_category/home.php?function=get_my_courses,
      which already excludes expired (lapsed subscription) enrolments. Every
-     piece of a card is optional: a course with no lesson count, no hours, no
-     price or no completion tracking simply drops that bit.
+     piece of a card is optional: a course with no thumbnail, no lesson line, no
+     lesson/language/hour count, no price or no completion tracking has that bit
+     REMOVED from the page by the script — not merely hidden, because this markup
+     is pasted through a rich-text editor that may not keep an inline
+     display:none.
 
      Colours read from the Brand Colors palette (theme/nit gallery), mapping the
      design's tokens onto it: the card's blue-violet border and the red progress
@@ -93,6 +96,19 @@
                       style="font-size: 12px; color: color-mix(in srgb, var(--nit-brand-textsecondary) 80%, transparent);">{mlang
                       en}lessons{mlang}{mlang ar}دروس{mlang}</span></span>
                   <span style="display: none; align-items: center; gap: 6px;"
+                    data-nit-mc-stat-languages=""><span
+                      style="display: inline-flex; flex: 0 0 14px; color: color-mix(in srgb, var(--nit-brand-textsecondary) 80%, transparent);"><svg
+                        width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12"
+                          r="10" stroke="currentColor" stroke-width="3.4" /><path
+                          d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                          stroke="currentColor" stroke-width="3.4"
+                          stroke-linecap="round" /></svg></span> <b
+                      style="font-size: 13px; font-weight: 700; color: var(--nit-brand-textprimary);"
+                      data-nit-mc-languages="">0</b> <span
+                      style="font-size: 12px; color: color-mix(in srgb, var(--nit-brand-textsecondary) 80%, transparent);">{mlang
+                      en}languages{mlang}{mlang ar}لغات{mlang}</span></span>
+                  <span style="display: none; align-items: center; gap: 6px;"
                     data-nit-mc-stat-hours=""><span
                       style="display: inline-flex; flex: 0 0 14px; color: color-mix(in srgb, var(--nit-brand-textsecondary) 80%, transparent);"><svg
                         width="14" height="14" viewBox="0 0 14 14" fill="none"
@@ -138,10 +154,14 @@
               </div>
             </div>
           </div>
-          <!-- THUMBNAIL -->
-          <span
-            style="flex: 0 0 250px; width: 250px; max-width: 42%; height: 216px; border-radius: 8px; box-shadow: 0 8px 22px 0 rgba(0,0,0,.25); background: color-mix(in srgb, var(--nit-brand-surface) 86%, var(--nit-brand-textprimary)) center / cover no-repeat;"
-            data-nit-mc-image="" aria-hidden="true"></span>
+          <!-- THUMBNAIL. A div holding a non-breaking space, not an empty span:
+               Moodle's rich-text editor strips empty inline elements when the
+               block is saved, which is why the first version of this block showed
+               no images at all on the live site. font-size 0 keeps the space from
+               affecting the box. -->
+          <div
+            style="flex: 0 0 250px; width: 250px; max-width: 42%; height: 216px; border-radius: 8px; font-size: 0; line-height: 0; box-shadow: 0 8px 22px 0 rgba(0,0,0,.25); background: color-mix(in srgb, var(--nit-brand-surface) 86%, var(--nit-brand-textprimary)) center / cover no-repeat;"
+            data-nit-mc-image="" aria-hidden="true">&nbsp;</div>
         </a>
       </div>
     </div>

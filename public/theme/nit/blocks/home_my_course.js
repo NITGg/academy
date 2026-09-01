@@ -14,10 +14,11 @@
 //   the grid;
 // - otherwise one card per course, most recently accessed first.
 //
-// Every part of a card is optional. The design shows a lesson line, a lesson
-// count, a duration, a price and a progress bar, and the feed returns each of
-// them only when the course actually carries it — so each is hidden rather than
-// filled with a zero that the course never claimed.
+// Every part of a card is optional. The design shows a lesson line, counts of
+// lessons, languages and hours, a price and a progress bar, and the feed returns
+// each only when the course actually carries it — so each is REMOVED from the
+// document rather than filled with a zero the course never claimed. Removed, not
+// hidden: see drop() for why an inline display:none cannot be relied on here.
 //
 // Every visible string lives in the markup, because the paste runs through the
 // multilang filter and this file does not. The one exception is the lesson line,
@@ -63,7 +64,25 @@
   link('[data-nit-mc-browse]', root.getAttribute('data-browse'));
 
   /**
-   * Fill a stat (icon + number + label) and reveal it, or leave it hidden.
+   * Drop a part of the card that has no data behind it.
+   *
+   * Removed from the document, not hidden. The markup is pasted through Moodle's
+   * rich-text editor, which is free to rewrite it on save - and an inline
+   * `display:none` is exactly the kind of thing it drops. A stat whose number was
+   * never filled in then reappears as a bare icon, which is what happened on the
+   * live site. A node that is not there cannot come back.
+   *
+   * @param {Element} node
+   * @return {void}
+   */
+  var drop = function(node) {
+    if (node && node.parentNode) {
+      node.parentNode.removeChild(node);
+    }
+  };
+
+  /**
+   * Fill a stat (icon + number + label) and reveal it, or drop it entirely.
    *
    * @param {Element} node the card
    * @param {string} wrapper selector for the whole stat
@@ -72,9 +91,13 @@
    */
   var stat = function(node, wrapper, value, amount) {
     var box = node.querySelector(wrapper);
-    var number = node.querySelector(value);
+    if (!box) {
+      return;
+    }
+    var number = box.querySelector(value);
     var count = parseInt(amount, 10);
-    if (!box || !number || !(count > 0)) {
+    if (!number || !(count > 0)) {
+      drop(box);
       return;
     }
     number.textContent = count;
@@ -107,21 +130,31 @@
     if (subtitle && row.subtitle) {
       subtitle.textContent = row.subtitle;
       subtitle.style.display = '';
+    } else {
+      drop(subtitle);
     }
 
+    // No course image means no thumbnail box at all, rather than a grey panel
+    // taking up 250px on the strength of a picture nobody uploaded. The text
+    // then runs the width of the card.
     var image = node.querySelector('[data-nit-mc-image]');
     if (image && row.image) {
       image.style.backgroundImage = 'url("' + String(row.image).replace(/"/g,
         '%22') + '")';
+    } else {
+      drop(image);
     }
 
     stat(node, '[data-nit-mc-stat-lessons]', '[data-nit-mc-lessons]', row.lessons);
+    stat(node, '[data-nit-mc-stat-languages]', '[data-nit-mc-languages]', row.languages);
     stat(node, '[data-nit-mc-stat-hours]', '[data-nit-mc-hours]', row.hours);
 
     var price = node.querySelector('[data-nit-mc-price]');
     if (price && row.price) {
       price.textContent = row.price;
       price.style.display = '';
+    } else {
+      drop(price);
     }
 
     // A null progress means the course tracks no completion at all. The bar
@@ -129,13 +162,12 @@
     var label = node.querySelector('[data-nit-mc-label]');
     var untracked = node.querySelector('[data-nit-mc-untracked]');
     if (row.progress === null || row.progress === undefined) {
-      if (label) {
-        label.style.display = 'none';
-      }
+      drop(label);
       if (untracked) {
         untracked.style.display = '';
       }
     } else {
+      drop(untracked);
       var pct = Math.max(0, Math.min(100, parseInt(row.progress, 10) || 0));
       var bar = node.querySelector('[data-nit-mc-bar]');
       var percent = node.querySelector('[data-nit-mc-percent]');
@@ -198,6 +230,11 @@
         fill(node, row);
         grid.appendChild(node);
       });
+
+      // Same reason as drop(): the template is only hidden by an inline style
+      // the editor may not have kept, and a seventh blank card at the end of the
+      // grid is what that looks like. Its clones are already made.
+      drop(tpl);
 
       show();
     })

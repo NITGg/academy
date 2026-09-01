@@ -191,5 +191,3 @@ $string['signupnow'] = 'إنشاء حساب';
 $string['navmanagement'] = 'الإدارة';
 $string['navgallery'] = 'معرض التصميم';
 
-// Site footer (AC-4.7.13).
-$string['sitelogo'] = 'شعار الموقع';

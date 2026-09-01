@@ -113,14 +113,21 @@
     --nit-cat-style3-bg3: #{$nit-c-cat_style3_bg3};
     --nit-cat-style3-bg4: #{$nit-c-cat_style3_bg4};
 
-    // Footer band (AC-4.7.13). Published from the palette rather than aliased
-    // onto the brand roles: the footer is a fixed dark band under every page,
-    // including the light marketing sections, so it keeps its own ground.
-    --nit-footerbg: #{$nit-c-footerbg};
-    --nit-footerheading: #{$nit-c-footerheading};
-    --nit-footertext: #{$nit-c-footertext};
-    --nit-footericon: #{$nit-c-footericon};
-    --nit-footerborder: #{$nit-c-footerborder};
+    // Footer band (AC-4.7.13) — aliased onto the Brand Colors layer exactly like
+    // the navbar above it, so the band is the site's brand and not a second
+    // palette to keep in step. A `.nit-brand-2/3` group switch recolours it with
+    // everything else, and editing a brand role on the gallery page moves it.
+    // Column headings and the social glyphs split the same way the navbar does:
+    // headings read from the text-facing "Accent Text" role, the icons from the
+    // non-text "Accent" role, so the two stay independently tunable.
+    --nit-footerbg: var(--nit-brand-background);
+    --nit-footerheading: var(--nit-brand-accenttext);
+    --nit-footertext: var(--nit-brand-textprimary);
+    --nit-footermuted: var(--nit-brand-textsecondary);
+    --nit-footericon: var(--nit-brand-accent);
+    --nit-footericonhover: var(--nit-brand-accent-vivid);
+    --nit-footerhover: var(--nit-brand-accenttext-vivid);
+    --nit-footerborder: var(--nit-brand-borderprimary);
 
     // Legacy aliases kept for existing consumers (stat-tile, welcome_panel).
     // In the brand era these card surfaces are the brand surface (dark), not the

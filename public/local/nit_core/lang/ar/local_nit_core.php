@@ -24,7 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'NIT Core';
+$string['pluginname'] = 'إعدادات NIT الأساسية';
 
 // Privacy.
 $string['privacy:metadata'] = 'إضافة NIT Core هي طبقة SDK ولا تخزّن أي بيانات شخصية بنفسها.';

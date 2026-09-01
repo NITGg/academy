@@ -103,6 +103,11 @@ class page {
 
         // Save the toggles for the active tab.
         if (optional_param('save', 0, PARAM_BOOL) && confirm_sesskey()) {
+            // Anything a tab could keep only partly. Everything saved, but the
+            // administrator is told what did not stick instead of watching a row
+            // disappear with a green "changes saved" over it.
+            $problems = [];
+
             switch ($tab) {
                 case self::TAB_REGISTER:
                     self::save_register();
@@ -117,9 +122,15 @@ class page {
                     self::save_passwordreset();
                     break;
                 case self::TAB_FOOTER:
-                    footer::save();
+                    $problems = footer::save();
                     break;
             }
+
+            if (!empty($problems)) {
+                redirect(self::url($tab), implode(' ', $problems),
+                    null, \core\output\notification::NOTIFY_WARNING);
+            }
+
             redirect(self::url($tab), get_string('changessaved'),
                 null, \core\output\notification::NOTIFY_SUCCESS);
         }
@@ -1038,6 +1049,11 @@ class page {
      * address, a phone number, six links - and content an administrator changes
      * belongs with the other content controls, not behind Appearance.
      *
+     * Every piece of prose gets one box per language, side by side, rather than a
+     * single box the administrator has to fill with {mlang} markup: the markup is
+     * invisible to anyone who has not been told about it, and renders as literal
+     * text the moment the multilang filter is off.
+     *
      * @return void
      */
     protected static function render_footer(): void {
@@ -1058,7 +1074,8 @@ class page {
 
         echo self::footer_contact_section();
         echo self::footer_links_section();
-        echo self::footer_brand_section();
+        echo self::footer_social_section();
+        echo self::footer_copyright_section();
 
         echo html_writer::tag('div',
             html_writer::tag('button', get_string('savechanges'),
@@ -1073,19 +1090,20 @@ class page {
      * @return string HTML
      */
     protected static function footer_contact_section(): string {
-        $rows = self::footer_text_row('footercontactheading', footer::get('contactheading'),
+        $rows = self::footer_lang_row('contactheading',
             get_string('footercontactheading', 'local_profilefields'),
             get_string('footercontactheading_desc', 'local_profilefields'));
 
         foreach (array_keys(footer::contactrows()) as $name) {
-            $rows .= self::footer_text_row('footer' . $name, footer::get($name),
-                get_string('footer' . $name, 'local_profilefields'),
-                get_string('footer' . $name . '_desc', 'local_profilefields'),
-                $name === 'address');
+            $label = get_string('footer' . $name, 'local_profilefields');
+            $desc = get_string('footer' . $name . '_desc', 'local_profilefields');
+
+            $rows .= in_array($name, footer::translatable(), true)
+                ? self::footer_lang_row($name, $label, $desc, $name === 'address')
+                : self::footer_plain_row('footer' . $name, footer::get($name), $label, $desc);
         }
 
-        return html_writer::tag('h3', get_string('footercontactheadingsection', 'local_profilefields'),
-                ['class' => 'mt-4 h5']) .
+        return self::footer_heading('footercontactheadingsection') .
             html_writer::tag('table', $rows, ['class' => 'generaltable w-100']);
     }
 
@@ -1095,94 +1113,193 @@ class page {
      * @return string HTML
      */
     protected static function footer_links_section(): string {
-        $rows = '';
+        $out = self::footer_heading('footerlinkssection') .
+            html_writer::tag('p', get_string('footerlinkssection_desc', 'local_profilefields'),
+                ['class' => 'text-muted']);
 
         foreach (['col2', 'col3'] as $col) {
-            $rows .= self::footer_text_row('footer' . $col . 'heading', footer::get($col . 'heading'),
-                get_string('footer' . $col . 'heading', 'local_profilefields'),
-                get_string('footercolheading_desc', 'local_profilefields'));
-            $rows .= self::footer_text_row('footer' . $col . 'links', footer::get($col . 'links'),
-                get_string('footer' . $col . 'links', 'local_profilefields'),
-                get_string('footercollinks_desc', 'local_profilefields'), true, 6);
+            $out .= html_writer::tag('table',
+                self::footer_lang_row($col . 'heading',
+                    get_string('footer' . $col . 'heading', 'local_profilefields'),
+                    get_string('footercolheading_desc', 'local_profilefields')),
+                ['class' => 'generaltable w-100 mt-3']);
+            $out .= self::footer_link_table($col);
         }
 
-        return html_writer::tag('h3', get_string('footerlinkssection', 'local_profilefields'),
-                ['class' => 'mt-4 h5']) .
-            html_writer::tag('p', get_string('footerlinkssection_desc', 'local_profilefields'),
-                ['class' => 'text-muted']) .
+        return $out;
+    }
+
+    /**
+     * One column's links, as a table of rows rather than a text area.
+     *
+     * The rows are plain inputs and the spare ones at the bottom are always
+     * rendered, so adding a link needs no JavaScript and no knowledge of a
+     * `Label|url` syntax - which is what the text area it replaces demanded, and
+     * what made a typo look like the field refusing to save.
+     *
+     * @param string $col 'col2' or 'col3'
+     * @return string HTML
+     */
+    protected static function footer_link_table(string $col): string {
+        $links = footer::links($col);
+
+        $head = html_writer::tag('tr',
+            html_writer::tag('th', '', ['style' => 'width:3rem']) .
+            html_writer::tag('th', get_string('footerlinkurl', 'local_profilefields')) .
+            implode('', array_map(static function (string $lang): string {
+                return html_writer::tag('th',
+                    get_string('footerlinklabel', 'local_profilefields',
+                        get_string('lang' . $lang, 'local_profilefields')));
+            }, footer::langs())));
+
+        $body = '';
+        for ($i = 0; $i < footer::MAXLINKS; $i++) {
+            $link = $links[$i] ?? null;
+
+            $cells = html_writer::tag('td',
+                html_writer::span($i + 1, 'text-muted small'), ['class' => 'align-middle']);
+            $cells .= html_writer::tag('td', html_writer::empty_tag('input', [
+                'type' => 'text',
+                'name' => 'footer' . $col . 'url_' . $i,
+                'value' => $link['url'] ?? '',
+                'class' => 'form-control',
+                'dir' => 'ltr',
+                'placeholder' => '/course/',
+            ]));
+
+            foreach (footer::langs() as $lang) {
+                $cells .= html_writer::tag('td', html_writer::empty_tag('input', [
+                    'type' => 'text',
+                    'name' => 'footer' . $col . 'label_' . $i . '_' . $lang,
+                    'value' => $link[$lang] ?? '',
+                    'class' => 'form-control',
+                    'dir' => $lang === 'ar' ? 'rtl' : 'ltr',
+                ]));
+            }
+
+            // Spare rows are dimmed so it is obvious where the list ends and
+            // where there is room to add to it.
+            $body .= html_writer::tag('tr', $cells, $link === null ? ['class' => 'opacity-75'] : []);
+        }
+
+        return html_writer::tag('table', $head . $body, ['class' => 'generaltable w-100']);
+    }
+
+    /**
+     * The social media links.
+     *
+     * @return string HTML
+     */
+    protected static function footer_social_section(): string {
+        $rows = '';
+        foreach (array_keys(footer::networks()) as $network) {
+            $rows .= self::footer_plain_row('footersocial' . $network, footer::get('social' . $network),
+                get_string('footersocial' . $network, 'local_profilefields'),
+                get_string('footersocialurl_desc', 'local_profilefields'), 'ltr');
+        }
+
+        return self::footer_heading('footersocialsection') .
             html_writer::tag('table', $rows, ['class' => 'generaltable w-100']);
     }
 
     /**
-     * The logo, the social links and the copyright line.
+     * The copyright year and sentence.
      *
      * @return string HTML
      */
-    protected static function footer_brand_section(): string {
-        $rows = self::footer_text_row('footerlogourl', footer::get('logourl'),
-            get_string('footerlogourl', 'local_profilefields'),
-            get_string('footerlogourl_desc', 'local_profilefields'));
-
-        foreach (array_keys(footer::networks()) as $network) {
-            $rows .= self::footer_text_row('footersocial' . $network, footer::get('social' . $network),
-                get_string('footersocial' . $network, 'local_profilefields'),
-                get_string('footersocialurl_desc', 'local_profilefields'));
-        }
-
-        $rows .= self::footer_text_row('footercopyrightyear', footer::get('copyrightyear'),
+    protected static function footer_copyright_section(): string {
+        $rows = self::footer_plain_row('footercopyrightyear', footer::get('copyrightyear'),
             get_string('footercopyrightyear', 'local_profilefields'),
-            get_string('footercopyrightyear_desc', 'local_profilefields'));
-        $rows .= self::footer_text_row('footercopyright', footer::get('copyright'),
+            get_string('footercopyrightyear_desc', 'local_profilefields'), 'ltr');
+
+        $rows .= self::footer_lang_row('copyright',
             get_string('footercopyright', 'local_profilefields'),
             get_string('footercopyright_desc', 'local_profilefields'));
 
         // What the sentence actually comes out as once {year} is filled in - the
         // placeholder is the one part of this tab that is not what you see.
-        $preview = html_writer::tag('tr',
+        $rows .= html_writer::tag('tr',
             html_writer::tag('td', html_writer::span(
                 get_string('footercopyrightpreview', 'local_profilefields'), 'fw-semibold')) .
             html_writer::tag('td', html_writer::span(s(footer::copyright()), 'text-muted')));
 
-        return html_writer::tag('h3', get_string('footerbrandsection', 'local_profilefields'),
-                ['class' => 'mt-4 h5']) .
-            html_writer::tag('table', $rows . $preview, ['class' => 'generaltable w-100']);
+        return self::footer_heading('footercopyrightsection') .
+            html_writer::tag('table', $rows, ['class' => 'generaltable w-100']);
     }
 
     /**
-     * A label + description cell next to a text input or textarea (footer tab).
+     * A section heading on the footer tab.
      *
-     * The footer tab is all free text, so it needs a row shape the toggle-based
-     * switch_row() cannot give: a full-width field rather than a checkbox column.
-     *
-     * @param string $name form field name
-     * @param string $value current value
-     * @param string $label
-     * @param string $desc
-     * @param bool $multiline render a textarea instead of a single-line input
-     * @param int $rows textarea height, when multiline
+     * @param string $key language string key
      * @return string HTML
      */
-    protected static function footer_text_row(string $name, string $value, string $label,
-            string $desc, bool $multiline = false, int $rows = 3): string {
+    protected static function footer_heading(string $key): string {
+        return html_writer::tag('h3', get_string($key, 'local_profilefields'), ['class' => 'mt-4 h5']);
+    }
 
-        if ($multiline) {
-            $field = html_writer::tag('textarea', s($value), [
-                'name' => $name, 'id' => 'id_' . $name, 'rows' => $rows,
-                'class' => 'form-control', 'spellcheck' => 'false',
-            ]);
-        } else {
-            $field = html_writer::empty_tag('input', [
-                'type' => 'text', 'name' => $name, 'id' => 'id_' . $name,
-                'value' => $value, 'class' => 'form-control',
-            ]);
+    /**
+     * A translatable field: one labelled box per language, side by side.
+     *
+     * @param string $name config suffix, without the `footer` prefix or language
+     * @param string $label
+     * @param string $desc
+     * @param bool $multiline render text areas instead of single-line inputs
+     * @return string HTML
+     */
+    protected static function footer_lang_row(string $name, string $label, string $desc,
+            bool $multiline = false): string {
+
+        $boxes = '';
+        foreach (footer::langs() as $lang) {
+            $id = 'id_footer' . $name . '_' . $lang;
+            $attrs = [
+                'name' => 'footer' . $name . '_' . $lang,
+                'id' => $id,
+                'class' => 'form-control',
+                'dir' => $lang === 'ar' ? 'rtl' : 'ltr',
+            ];
+
+            $field = $multiline
+                ? html_writer::tag('textarea', s(footer::raw($name, $lang)), $attrs + ['rows' => 3])
+                : html_writer::empty_tag('input',
+                    ['type' => 'text', 'value' => footer::raw($name, $lang)] + $attrs);
+
+            $boxes .= html_writer::div(
+                html_writer::tag('label', get_string('lang' . $lang, 'local_profilefields'),
+                    ['for' => $id, 'class' => 'form-label small text-muted mb-1']) . $field,
+                'flex-fill');
         }
+
+        return html_writer::tag('tr',
+            html_writer::tag('td',
+                html_writer::span($label, 'fw-semibold') .
+                html_writer::div($desc, 'text-muted small'),
+                ['style' => 'width:28%']) .
+            html_writer::tag('td', html_writer::div($boxes, 'd-flex flex-wrap gap-3')));
+    }
+
+    /**
+     * A field that is the same in every language: one box.
+     *
+     * @param string $name form field name (the full config name)
+     * @param string $value
+     * @param string $label
+     * @param string $desc
+     * @param string $dir text direction for the input
+     * @return string HTML
+     */
+    protected static function footer_plain_row(string $name, string $value, string $label,
+            string $desc, string $dir = 'auto'): string {
 
         return html_writer::tag('tr',
             html_writer::tag('td',
                 html_writer::tag('label', $label, ['for' => 'id_' . $name, 'class' => 'fw-semibold mb-0']) .
                 html_writer::div($desc, 'text-muted small'),
-                ['style' => 'width:32%']) .
-            html_writer::tag('td', $field));
+                ['style' => 'width:28%']) .
+            html_writer::tag('td', html_writer::empty_tag('input', [
+                'type' => 'text', 'name' => $name, 'id' => 'id_' . $name,
+                'value' => $value, 'class' => 'form-control', 'dir' => $dir,
+            ])));
     }
 
     // -----------------------------------------------------------------

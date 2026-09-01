@@ -269,6 +269,17 @@ function xmldb_local_profilefields_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090100, 'local', 'profilefields');
     }
 
+    if ($oldversion < 2026090103) {
+        // The footer's first shape stored one box per field, filled with {mlang}
+        // markup, and its link columns as `Label|url` text. Both are now per
+        // language - `footeraddress_en` / `footeraddress_ar`, and links as JSON -
+        // so carry anything already typed across rather than blanking a footer
+        // that was configured before this upgrade.
+        \local_profilefields\footer::migrate_single_language_values();
+
+        upgrade_plugin_savepoint(true, 2026090103, 'local', 'profilefields');
+    }
+
     // Not a versioned step, and deliberately so: it has to run on every upgrade,
     // because the thing it repairs is created by an upgrade. Registering a new
     // web-service function does not put it on the hand-made service a site's own

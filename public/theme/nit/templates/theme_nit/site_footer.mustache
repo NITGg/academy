@@ -31,7 +31,7 @@
     * contactheading - heading above the contact rows
     * contactrows - [{icon, text, url, haslink}]
     * columns - [{heading, hasheading, links: [{label, url}]}]
-    * haslogo / logourl - the footer logo
+    * haslogo / logourl / sitename - the site logo, read the way the navbar reads it
     * hassocial / social - [{icon, url, network}]
     * copyright - the copyright line, year already substituted
 
@@ -47,6 +47,7 @@
         ],
         "haslogo": true,
         "logourl": "https://example.com/theme/nit/pix/footer-logo.png",
+        "sitename": "EAAC Learning",
         "hassocial": true,
         "social": [{"icon": "fa-brands fa-facebook-f", "url": "https://facebook.com/eaac", "network": "Facebook"}],
         "copyright": "© 2026 EAAC. All rights reserved."
@@ -91,7 +92,7 @@
 
             <section class="nit-sitefooter__col nit-sitefooter__col--brand">
                 {{#haslogo}}
-                    <img class="nit-sitefooter__logo" src="{{logourl}}" alt="{{#str}}sitelogo, theme_nit{{/str}}">
+                    <img class="nit-sitefooter__logo" src="{{logourl}}" alt="{{sitename}}">
                 {{/haslogo}}
                 {{#hassocial}}
                     <ul class="nit-sitefooter__social">

@@ -14,11 +14,13 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 // =============================================================================
-// NIT site footer (AC-4.7.13) — the dark band under every page.
+// NIT site footer (AC-4.7.13) — the band under every page.
 //
-// Colours come from the Footer group of the editable palette (--nit-footer*,
-// published in foundation/_root.scss), so the band is retuned on the gallery
-// page like everything else rather than carrying hard-coded hexes.
+// Every colour is a --nit-footer* custom property, and each of those is an alias
+// of a Brand Colors role (see foundation/_root.scss). Nothing here is a hex, so
+// the footer follows the site brand the way the navbar does: change a brand role
+// on the gallery page, or drop the band inside a `.nit-brand-2/3` group switch,
+// and it recolours with the rest of the site.
 //
 // Direction: no `left`/`right` anywhere. The columns are a grid, which reverses
 // itself under `dir="rtl"`, and every offset is a logical property — so the
@@ -40,16 +42,20 @@
     // away entirely rather than letting them spill.
     flex: 0 0 auto;
 
-    // The hairline arc across the top of the band. In the design this is a wide,
-    // very shallow curve; an ellipse far wider than the viewport, clipped by the
-    // band's own overflow, is the same shape without shipping an SVG that would
-    // have to be re-exported every time the colour changed.
+    // The hairline arc across the top of the band — the one thing separating the
+    // footer from the page above it, since both sit on the same brand ground.
+    //
+    // In the design it is a wide, very shallow curve. An ellipse far wider than
+    // the viewport gives the same shape without shipping an SVG that would have
+    // to be re-exported every time the brand moved. `top` has to keep the
+    // ellipse's crown INSIDE the band: `overflow: hidden` clips anything above
+    // 0, so a negative top hides the very part of the curve that is the arc.
     &::before {
         content: "";
         position: absolute;
-        inset-inline: -25%;
-        top: -4rem;
-        height: 9rem;
+        inset-inline: -30%;
+        top: 0;
+        height: 16rem;
         border-top: 1px solid var(--nit-footerborder);
         border-radius: 50%;
         pointer-events: none;
@@ -122,7 +128,7 @@
 
         &:hover,
         &:focus-visible {
-            color: var(--nit-footerheading);
+            color: var(--nit-footerhover);
             text-decoration: underline;
         }
     }
@@ -173,7 +179,7 @@
 
     &:is(a):hover,
     &:is(a):focus-visible {
-        color: var(--nit-footerheading);
+        color: var(--nit-footerhover);
         text-decoration: underline;
     }
 }
@@ -227,7 +233,7 @@
         &:hover,
         &:focus-visible {
             border-color: var(--nit-footerborder);
-            color: var(--nit-footertext);
+            color: var(--nit-footericonhover);
         }
     }
 }
@@ -242,8 +248,10 @@
     border-top: 1px solid var(--nit-footerborder);
     font-size: 0.875rem;
     text-align: center;
-    color: var(--nit-footertext);
-    opacity: 0.75;
+    // The muted brand role rather than opacity on the primary one: opacity fades
+    // the text towards the background whatever the brand is, which on a light
+    // group would drop it below the contrast floor.
+    color: var(--nit-footermuted);
 }
 
 // Print: a band of solid navy across every printed page is a waste of toner and

@@ -25,5 +25,5 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_category';
-$plugin->version   = 2026090100;        // YYYYMMDDXX — My-courses feed gains lesson, hours and price.
+$plugin->version   = 2026090101;        // YYYYMMDDXX — All-categories page; bilingual, Arabic-tolerant search.
 $plugin->requires  = 2022041900;

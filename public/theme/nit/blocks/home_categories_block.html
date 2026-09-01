@@ -83,6 +83,21 @@
             </svg> </div>
         </a></div>
     </div>
+    <!-- The grid above is a preview: data-limit caps it at twelve. This is the way out of
+         it, to local/nit_category/categories.php — the same card in a grid that wraps, with
+         the catalogue's filter panel and a bilingual search box over it.
+
+         It is hidden until the feed answers, and stays hidden when the feed comes back
+         empty, so the front page never offers a door into an empty room. The href is
+         written relative to the site root by the script below, because this block is pasted
+         in as static HTML and cannot know the wwwroot until it runs. -->
+    <div style="display: none; text-align: center; margin-top: 40px;"
+      data-nit-categories-all="">
+      <a class="nit-btn-ghost"
+        style="display: inline-block; padding: 12px 32px; border-radius: 10px; border: 1px solid var(--nit-brand-primary); background: transparent; color: var(--nit-brand-textprimary); font-size: 16px; font-weight: 500; line-height: 1.6; text-decoration: none !important;"
+        href="#"> {mlang en}View all categories{mlang} {mlang ar}عرض كل
+        التصنيفات{mlang} </a>
+    </div>
   </div>
   <script>
     // Card polish for this section only, in its own guarded style element: the
@@ -212,6 +227,25 @@
         node.removeAttribute('data-nit-category-card');
       };
 
+      // Show "View all categories", once there is actually something to view.
+      //
+      // Either script may have filled this grid — see the note at the top of the file —
+      // so the test is whether cards are on the page, not which script put them there.
+      // The template counts as one child and is never a card, hence > 1. The href is set
+      // here rather than in the markup because a pasted-in block cannot know the wwwroot
+      // until something runs.
+      var reveal = function() {
+        var all = (section || document).querySelector('[data-nit-categories-all]');
+        if (!all || box.children.length < 2) {
+          return;
+        }
+        var link = all.querySelector('a');
+        if (link) {
+          link.setAttribute('href', root + '/local/nit_category/categories.php');
+        }
+        all.style.display = '';
+      };
+
       fetch(root + '/local/nit_category/home.php?function=get_categories'
           + '&limit=' + encodeURIComponent(limit)
           + '&alang=' + encodeURIComponent(lang), {
@@ -223,6 +257,13 @@
         })
         .then(function(res) {
           if (!res || res.status !== 'success' || !res.data || !res.data.length) {
+            // Nothing from the feed — but theme_nit's front-page engine may have filled
+            // the grid from window.NIT_CATEGORIES already, so the section only goes away
+            // when it is genuinely empty.
+            if (box.children.length > 1) {
+              reveal();
+              return;
+            }
             if (section) {
               section.style.display = 'none';
             }
@@ -234,10 +275,16 @@
             fill(node, row);
             box.appendChild(node);
           });
+          reveal();
         })
         .catch(function() {
           // A front page missing one strip is fine; a front page showing a
-          // broken one is not.
+          // broken one is not. Same exception as above: a grid the other script
+          // already filled is not broken, so it keeps its cards and its link.
+          if (box.children.length > 1) {
+            reveal();
+            return;
+          }
           if (section) {
             section.style.display = 'none';
           }

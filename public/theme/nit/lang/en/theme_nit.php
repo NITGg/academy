@@ -205,5 +205,3 @@ $string['signupnow'] = 'Sign up';
 $string['navmanagement'] = 'Management';
 $string['navgallery'] = 'Design gallery';
 
-// Site footer (AC-4.7.13).
-$string['sitelogo'] = 'Site logo';

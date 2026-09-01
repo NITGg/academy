@@ -99,5 +99,22 @@ $string['excludefilterfields'] = 'حقول لا تُستخدم في التصفي
 $string['excludefilterfields_desc'] = 'الأسماء المختصرة للحقول المخصّصة، مفصولة بفواصل، التي يتجاهلها الدليل حتى لو كان نوعها صالحًا للتصفية. اتركه فارغًا لعرض كل الحقول المناسبة.';
 $string['onecourse'] = 'كورس واحد';
 
+// ── كل التصنيفات (categories.php) ───────────────────────────────────────────────
+// الصفحة التي يقود إليها شريط التصنيفات في الصفحة الرئيسية: البطاقة نفسها، وكل
+// التصنيفات، وعوامل تصفية الدليل مطبَّقة على ما بداخل كل تصنيف.
+$string['allcategories'] = 'كل التصنيفات';
+$string['allcategoriesintro'] = 'تصفّح كل المجالات. صفِّ حسب ما بداخل التصنيف — والعدد على كل بطاقة يتبع تصفيتك.';
+$string['searchcategories'] = 'ابحث في التصنيفات والكورسات';
+$string['categoriesfound'] = '{$a} تصنيف';
+$string['onecategory'] = 'تصنيف واحد';
+$string['ofcategories'] = 'من {$a}';
+$string['includesubcategories'] = 'إظهار التصنيفات الفرعية';
+$string['categorydepth'] = 'مدى ما يُعرض من الشجرة';
+$string['sortmostcourses'] = 'الأكثر كورسات';
+$string['viewmore'] = 'المزيد';
+$string['nocategories'] = 'لا توجد تصنيفات مطابقة لهذه التصفية';
+$string['nocategorieshint'] = 'جرّب إزالة أحد عوامل التصفية أو البحث بكلمة أعم.';
+$string['nocategorieshintsubs'] = 'جرّب إزالة أحد عوامل التصفية، أو البحث بكلمة أعم، أو البحث داخل التصنيفات الفرعية.';
+
 // Home-page "My courses" card (theme_nit home_my_course_block).
 $string['homelesson'] = 'الدرس {$a->num} : {$a->name}';

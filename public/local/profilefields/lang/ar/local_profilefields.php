@@ -435,9 +435,11 @@ $string['ifieldresume'] = 'السيرة الذاتية';
 
 // Footer tab (AC-4.7.13).
 $string['tabfooter'] = 'التذييل';
-$string['tabfooter_intro'] = 'التذييل الذي يظهر أسفل كل صفحة: عمود بيانات الاتصال، وأعمدة الروابط، والشعار، وروابط التواصل الاجتماعي، وسطر حقوق النشر. كل حقل هنا يقبل نصًا متعدد اللغات، مثل: {mlang en}Courses{mlang}{mlang ar}الدورات{mlang}.';
+$string['tabfooter_intro'] = 'التذييل الذي يظهر أسفل كل صفحة: عمود بيانات الاتصال، وأعمدة الروابط، وروابط التواصل الاجتماعي، وسطر حقوق النشر. النصوص تُكتب مرة لكل لغة — املأ الخانتين ليرى كل زائر التذييل بلغته. الخانة الفارغة تعود إلى الإنجليزية، ثم إلى اللغة التي كُتبت فعلًا.';
 $string['footerenabled'] = 'إظهار التذييل';
 $string['footerenabled_desc'] = 'أوقف هذا لإخفاء التذييل من كل الصفحات.';
+$string['langen'] = 'English';
+$string['langar'] = 'العربية';
 
 $string['footercontactheadingsection'] = 'عمود بيانات الاتصال';
 $string['footercontactheading'] = 'عنوان العمود';
@@ -445,25 +447,25 @@ $string['footercontactheading_desc'] = 'العنوان الذي يظهر فوق 
 $string['footeraddress'] = 'العنوان';
 $string['footeraddress_desc'] = 'العنوان البريدي. اتركه فارغًا لإخفاء هذا السطر.';
 $string['footerphone'] = 'الهاتف';
-$string['footerphone_desc'] = 'يظهر كرابط اتصال مباشر على الهواتف.';
+$string['footerphone_desc'] = 'يظهر كرابط اتصال مباشر على الهواتف. هو نفسه في اللغتين.';
 $string['footerhours'] = 'ساعات الرد';
-$string['footerhours_desc'] = 'مواعيد الرد على المتصلين، مثل: «من 8 إلى 20».';
+$string['footerhours_desc'] = 'مواعيد الرد على المتصلين، مثل: من 8 إلى 20.';
 $string['footeremail'] = 'البريد الإلكتروني';
 $string['footeremail_desc'] = 'يظهر كرابط مراسلة إذا كان عنوانًا صحيحًا.';
 
 $string['footerlinkssection'] = 'أعمدة الروابط';
-$string['footerlinkssection_desc'] = 'عمودان من الروابط، يحملان بينهما صفحات الموقع الثابتة الست. رابط واحد في كل سطر بالصيغة <code>الاسم|الرابط</code> — ويمكن أن يكون الرابط عنوانًا كاملًا أو مسارًا داخل الموقع مثل <code>/course/</code>. السطر بلا رابط يُهمَل.';
+$string['footerlinkssection_desc'] = 'عمودان من الروابط، يحملان بينهما صفحات الموقع الثابتة الست. املأ صفًا لإضافة رابط، وامسح رابطه لحذفه. ويمكن أن يكون العنوان رابطًا كاملًا أو مسارًا داخل الموقع مثل <code>/course/</code>.';
 $string['footercol2heading'] = 'عنوان العمود الثاني';
-$string['footercol2links'] = 'روابط العمود الثاني';
 $string['footercol3heading'] = 'عنوان العمود الثالث';
-$string['footercol3links'] = 'روابط العمود الثالث';
 $string['footercolheading_desc'] = 'العنوان الذي يظهر فوق هذا العمود.';
-$string['footercollinks_desc'] = 'سطر لكل رابط: <code>الاسم|الرابط</code>';
+$string['footerlinkurl'] = 'عنوان الرابط';
+$string['footerlinklabel'] = 'النص ({$a})';
+$string['footerlinkbadurl'] = 'لم يُحفَظ الرابط {$a->row}: «{$a->url}» ليس عنوانًا يقبله موودل.';
+$string['footerlinknolabel'] = 'لم يُحفَظ الرابط {$a}: لا بد من نص بلغة واحدة على الأقل.';
 
-$string['footerbrandsection'] = 'الشعار والتواصل الاجتماعي وحقوق النشر';
-$string['footerlogourl'] = 'رابط الشعار';
-$string['footerlogourl_desc'] = 'الشعار الذي يظهر في التذييل. اتركه فارغًا لاستخدام الشعار المرفق بالقالب. خلفية التذييل داكنة، فاستخدم شعارًا يظهر بوضوح عليها.';
+$string['footersocialsection'] = 'التواصل الاجتماعي';
 $string['footersocialurl_desc'] = 'العنوان الكامل للصفحة. اتركه فارغًا لإخفاء هذه الأيقونة.';
+$string['footersocialbadurl'] = 'لم يُحفَظ {$a->network}: «{$a->url}» ليس عنوانًا يقبله موودل.';
 $string['footersocialfacebook'] = 'Facebook';
 $string['footersocialinstagram'] = 'Instagram';
 $string['footersociallinkedin'] = 'LinkedIn';
@@ -472,6 +474,8 @@ $string['footersocialyoutube'] = 'YouTube';
 $string['footersocialtiktok'] = 'TikTok';
 $string['footersocialwhatsapp'] = 'WhatsApp';
 $string['footersocialtelegram'] = 'Telegram';
+
+$string['footercopyrightsection'] = 'حقوق النشر';
 $string['footercopyrightyear'] = 'سنة حقوق النشر';
 $string['footercopyrightyear_desc'] = 'سنة واحدة، أو مدى مثل 2020-2026.';
 $string['footercopyright'] = 'سطر حقوق النشر';

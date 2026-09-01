@@ -65,7 +65,7 @@ class core_renderer extends \theme_boost\output\core_renderer {
             return '';
         }
 
-        $context = theme_nit_get_site_footer_context();
+        $context = theme_nit_get_site_footer_context($this);
         if ($context === null) {
             return '';
         }

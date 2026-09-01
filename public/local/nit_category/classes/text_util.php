@@ -137,4 +137,112 @@ class text_util {
         $float = (float) $value;
         return ($float == (int) $float) ? (string) (int) $float : rtrim(rtrim(number_format($float, 2, '.', ''), '0'), '.');
     }
+
+    /**
+     * Every language variant of a possibly-bilingual value, joined into one string.
+     *
+     * {@see self::ml()} answers "what should the reader see", which is one language.
+     * Searching asks the opposite question — AC-4.8.2 requires that typing an Arabic word
+     * finds a course whose Arabic title is stored, even while the interface is in English
+     * — so this keeps every block instead of choosing between them.
+     *
+     * @param string|null $raw the stored value
+     * @return string '' when there is nothing to search
+     */
+    public static function ml_all(?string $raw): string {
+        if ($raw === null || trim($raw) === '') {
+            return '';
+        }
+        if (stripos($raw, '{mlang') === false) {
+            return trim($raw);
+        }
+
+        if (!preg_match_all('/\{mlang\s+([^}]+)\}(.*?)\{mlang\}/is', $raw, $matches, PREG_SET_ORDER)) {
+            return trim($raw);
+        }
+
+        $parts = [];
+        foreach ($matches as $block) {
+            $parts[] = $block[2];
+        }
+        // Text sitting outside any {mlang} block belongs to every language, so it is kept
+        // too — a title written as "ISO 9001 {mlang ar}الجودة{mlang}" must match on "ISO".
+        $outside = preg_replace('/\{mlang\s+[^}]+\}.*?\{mlang\}/is', ' ', $raw);
+        if (trim((string) $outside) !== '') {
+            $parts[] = $outside;
+        }
+
+        return trim(preg_replace('/\s+/u', ' ', implode(' ', $parts)) ?? '');
+    }
+
+    /**
+     * Fold text to the form a search compares against (AC-4.8.3).
+     *
+     * Arabic is written with optional marks and with letters that people spell more than
+     * one way, so the literal string a learner types is very often not the literal string
+     * an administrator stored. "إدارة" and "ادارة" are the same word; so are "دورة" and
+     * "دوره". Both sides of the comparison are folded through here, so the search box
+     * behaves the way an Arabic reader expects rather than demanding exact orthography.
+     *
+     * The folding is deliberately lossy and one-way. It is only ever used for matching —
+     * never for anything that is displayed — because it destroys correct spelling.
+     *
+     * @param string|null $raw
+     * @return string lower-cased, folded, whitespace-collapsed
+     */
+    public static function normalise(?string $raw): string {
+        if ($raw === null) {
+            return '';
+        }
+        $text = \core_text::strtolower(trim($raw));
+        if ($text === '') {
+            return '';
+        }
+
+        // Harakat, tatweel and the Quranic annotation marks: decoration over the letters,
+        // and almost never typed into a search box even when they are present in the data.
+        $text = preg_replace('/[\x{0610}-\x{061A}\x{064B}-\x{065F}\x{0640}\x{0670}\x{06D6}-\x{06ED}]/u', '', $text) ?? $text;
+
+        // The letters with more than one accepted spelling. Each group folds to the form
+        // people reach for first on a keyboard.
+        $text = strtr($text, [
+            // Alef with any hamza or madda, plus the wasla and the Quranic variants.
+            "\u{0622}" => "\u{0627}", "\u{0623}" => "\u{0627}", "\u{0625}" => "\u{0627}",
+            "\u{0671}" => "\u{0627}", "\u{0672}" => "\u{0627}", "\u{0673}" => "\u{0627}",
+            "\u{0675}" => "\u{0627}",
+            // Hamza carried on waw or yeh, and the bare hamza.
+            "\u{0624}" => "\u{0648}", "\u{0626}" => "\u{064A}", "\u{0621}" => '',
+            // Alef maqsura, routinely typed as a plain yeh.
+            "\u{0649}" => "\u{064A}",
+            // Taa marbuta, routinely typed as a haa.
+            "\u{0629}" => "\u{0647}",
+            // Farsi/Urdu forms that reach us from copied text.
+            "\u{06CC}" => "\u{064A}", "\u{06A9}" => "\u{0643}",
+            // Arabic-Indic and extended Arabic-Indic digits.
+            "\u{0660}" => '0', "\u{0661}" => '1', "\u{0662}" => '2', "\u{0663}" => '3',
+            "\u{0664}" => '4', "\u{0665}" => '5', "\u{0666}" => '6', "\u{0667}" => '7',
+            "\u{0668}" => '8', "\u{0669}" => '9',
+            "\u{06F0}" => '0', "\u{06F1}" => '1', "\u{06F2}" => '2', "\u{06F3}" => '3',
+            "\u{06F4}" => '4', "\u{06F5}" => '5', "\u{06F6}" => '6', "\u{06F7}" => '7',
+            "\u{06F8}" => '8', "\u{06F9}" => '9',
+            // Arabic punctuation that would otherwise glue itself to a word.
+            "\u{060C}" => ' ', "\u{061B}" => ' ', "\u{061F}" => ' ', "\u{06D4}" => ' ',
+        ]);
+
+        return trim(preg_replace('/\s+/u', ' ', $text) ?? '');
+    }
+
+    /**
+     * Split a typed query into the folded words every match must contain.
+     *
+     * @param string|null $query
+     * @return string[] possibly empty
+     */
+    public static function search_words(?string $query): array {
+        $folded = self::normalise($query);
+        if ($folded === '') {
+            return [];
+        }
+        return preg_split('/\s+/u', $folded, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    }
 }

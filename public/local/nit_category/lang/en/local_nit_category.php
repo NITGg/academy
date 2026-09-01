@@ -99,5 +99,23 @@ $string['excludefilterfields'] = 'Fields never offered as filters';
 $string['excludefilterfields_desc'] = 'Custom-field short names, separated by commas, that the catalogue should ignore even though their type would otherwise make a usable filter. Leave empty to offer every suitable field.';
 $string['onecourse'] = '1 course';
 
+// ── All categories (categories.php) ─────────────────────────────────────────────
+// The page behind the home page's category strip: the same card, every category, and
+// the catalogue's filters applied to what each category holds.
+$string['allcategories'] = 'All categories';
+$string['allcategoriesintro'] = 'Browse every subject area. Filter by what is inside a category — the count on each card follows your filters.';
+$string['searchcategories'] = 'Search categories and courses';
+$string['categoriesfound'] = '{$a} categories';
+$string['onecategory'] = '1 category';
+$string['ofcategories'] = 'of {$a}';
+$string['includesubcategories'] = 'Include subcategories';
+$string['categorydepth'] = 'How much of the tree to show';
+$string['sortmostcourses'] = 'Most courses';
+// The card footer's label, matching the block's own wording rather than restating it.
+$string['viewmore'] = 'More';
+$string['nocategories'] = 'No categories match these filters';
+$string['nocategorieshint'] = 'Try removing a filter or searching for something broader.';
+$string['nocategorieshintsubs'] = 'Try removing a filter, searching for something broader, or looking inside the subcategories.';
+
 // Home-page "My courses" card (theme_nit home_my_course_block).
 $string['homelesson'] = 'Lesson {$a->num}: {$a->name}';

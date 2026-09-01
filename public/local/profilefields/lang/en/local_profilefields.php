@@ -442,9 +442,11 @@ $string['ifieldresume'] = 'Resume';
 
 // Footer tab (AC-4.7.13).
 $string['tabfooter'] = 'Footer';
-$string['tabfooter_intro'] = 'The footer that appears at the bottom of every page: the contact column, the link columns, the logo, the social media links and the copyright line. Any field here accepts multilingual text, e.g. {mlang en}Courses{mlang}{mlang ar}الدورات{mlang}.';
+$string['tabfooter_intro'] = 'The footer that appears at the bottom of every page: the contact column, the link columns, the social media links and the copyright line. Text is written once per language - fill in both boxes and each visitor sees the footer in their own language. A box left empty falls back to English, and then to whichever language was filled in.';
 $string['footerenabled'] = 'Show the footer';
 $string['footerenabled_desc'] = 'Turn this off to hide the footer on every page.';
+$string['langen'] = 'English';
+$string['langar'] = 'العربية';
 
 $string['footercontactheadingsection'] = 'Contact column';
 $string['footercontactheading'] = 'Column heading';
@@ -452,25 +454,25 @@ $string['footercontactheading_desc'] = 'The heading above the address and contac
 $string['footeraddress'] = 'Address';
 $string['footeraddress_desc'] = 'The postal address. Leave empty to hide this line.';
 $string['footerphone'] = 'Phone';
-$string['footerphone_desc'] = 'Shown as a tap-to-call link on phones.';
+$string['footerphone_desc'] = 'Shown as a tap-to-call link on phones. The same in both languages.';
 $string['footerhours'] = 'Answering hours';
-$string['footerhours_desc'] = 'When someone calling will get an answer, e.g. "8 to 20".';
+$string['footerhours_desc'] = 'When someone calling will get an answer, e.g. 8 to 20.';
 $string['footeremail'] = 'Email';
 $string['footeremail_desc'] = 'Shown as a mailto link when it is a valid address.';
 
 $string['footerlinkssection'] = 'Link columns';
-$string['footerlinkssection_desc'] = 'Two columns of links. Between them they carry the six static pages of the site. One link per line, written as <code>Label|url</code> - the URL may be a full address or a site path such as <code>/course/</code>. A line without a URL is dropped.';
+$string['footerlinkssection_desc'] = 'Two columns of links - between them, the six static pages of the site. Fill in a row to add a link and clear its URL to remove one. The URL may be a full address or a site path such as <code>/course/</code>.';
 $string['footercol2heading'] = 'Column 2 heading';
-$string['footercol2links'] = 'Column 2 links';
 $string['footercol3heading'] = 'Column 3 heading';
-$string['footercol3links'] = 'Column 3 links';
 $string['footercolheading_desc'] = 'The heading above this column.';
-$string['footercollinks_desc'] = 'One per line: <code>Label|url</code>';
+$string['footerlinkurl'] = 'Link address';
+$string['footerlinklabel'] = 'Text ({$a})';
+$string['footerlinkbadurl'] = 'Link {$a->row} was not saved: "{$a->url}" is not an address Moodle accepts.';
+$string['footerlinknolabel'] = 'Link {$a} was not saved: it needs text in at least one language.';
 
-$string['footerbrandsection'] = 'Logo, social media and copyright';
-$string['footerlogourl'] = 'Logo URL';
-$string['footerlogourl_desc'] = 'The logo drawn in the footer. Leave empty to use the one the theme ships. The footer band is dark, so use a logo that reads on a dark background.';
+$string['footersocialsection'] = 'Social media';
 $string['footersocialurl_desc'] = 'Full address of the page. Leave empty to hide this icon.';
+$string['footersocialbadurl'] = '{$a->network} was not saved: "{$a->url}" is not an address Moodle accepts.';
 $string['footersocialfacebook'] = 'Facebook';
 $string['footersocialinstagram'] = 'Instagram';
 $string['footersociallinkedin'] = 'LinkedIn';
@@ -479,6 +481,8 @@ $string['footersocialyoutube'] = 'YouTube';
 $string['footersocialtiktok'] = 'TikTok';
 $string['footersocialwhatsapp'] = 'WhatsApp';
 $string['footersocialtelegram'] = 'Telegram';
+
+$string['footercopyrightsection'] = 'Copyright';
 $string['footercopyrightyear'] = 'Copyright year';
 $string['footercopyrightyear_desc'] = 'A year, or a range such as 2020-2026.';
 $string['footercopyright'] = 'Copyright line';

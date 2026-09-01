@@ -146,6 +146,7 @@ class catalogue {
             $type = (string) $field->get('type');
             $kind = null;
             $options = [];
+            $optionsraw = [];
             if ($type === 'select') {
                 $kind = self::KIND_OPTIONS;
                 // Index 0 is the "not set" placeholder core prepends; it is not an option.
@@ -153,6 +154,16 @@ class catalogue {
                 // see text_util::plain() for why the catalogue escapes only at output.
                 $options = array_map([text_util::class, 'plain'],
                     array_filter($field->get_options(), static fn($label) => trim((string) $label) !== ''));
+
+                // The same list before formatting. get_options() runs format_string(), which
+                // resolves {mlang} to the *current* language — so a level stored as an
+                // English/Arabic pair loses half of itself there. AC-4.8.2 needs both halves,
+                // so the raw configdata is read again here purely for searching. Split
+                // exactly as the select field itself splits it, and offset by one so the
+                // indexes line up with the stored intvalue.
+                $config = (string) $field->get_configdata_property('options');
+                $optionsraw = array_merge([''],
+                    preg_split("/\s*\n\s*/", trim($config), -1, PREG_SPLIT_NO_EMPTY) ?: []);
             } else if ($type === 'text') {
                 $kind = self::KIND_OPTIONS;   // Options are collected from the courses below.
             } else if ($type === 'checkbox') {
@@ -171,6 +182,7 @@ class catalogue {
                 'type'      => $type,
                 'kind'      => $kind,
                 'options'   => $options,
+                'optionsraw' => $optionsraw,
                 'sortorder' => (int) $field->get('sortorder'),
             ];
         }
@@ -236,7 +248,8 @@ class catalogue {
                 'values'      => $values[$id] ?? [],
                 'timecreated' => (int) ($created[$id]->timecreated ?? 0),
                 'popularity'  => (int) ($popularity[$id] ?? 0),
-                'haystack'    => $this->haystack($course, $values[$id] ?? []),
+                'haystack'    => $this->haystack($course, $values[$id] ?? [],
+                    $category ? (string) $category->name : ''),
             ];
         }
         return $rows;
@@ -292,18 +305,29 @@ class catalogue {
             if (trim($label) === '') {
                 return null;
             }
-            return ['labels' => [$label], 'keys' => [text_util::key($label)]];
+            // 'search' is every language of the value, 'labels' is the one the reader sees.
+            // They are kept apart because one is compared and the other is printed.
+            return [
+                'labels' => [$label],
+                'keys'   => [text_util::key($label)],
+                'search' => text_util::ml_all($filter['optionsraw'][$index] ?? $label),
+            ];
         }
 
         if ($filter['type'] === 'text') {
             // A short-text field is a chip list: one course legitimately holds several
             // values, and every one of them is a filter option.
-            $labels = text_util::values($record->charvalue !== null && $record->charvalue !== ''
-                ? $record->charvalue : $record->value);
+            $raw = $record->charvalue !== null && $record->charvalue !== ''
+                ? $record->charvalue : $record->value;
+            $labels = text_util::values($raw);
             if (empty($labels)) {
                 return null;
             }
-            return ['labels' => $labels, 'keys' => array_map([text_util::class, 'key'], $labels)];
+            return [
+                'labels' => $labels,
+                'keys'   => array_map([text_util::class, 'key'], $labels),
+                'search' => text_util::ml_all((string) $raw),
+            ];
         }
 
         if ($filter['type'] === 'checkbox') {
@@ -343,24 +367,41 @@ class catalogue {
     }
 
     /**
-     * The text one course is searched against: its name, its summary and its own field
-     * values, so typing "certificate" or "forklift" finds a course however it was described.
+     * The text one course is searched against: its name, its summary, its category and its
+     * own field values, so typing "certificate" or "forklift" finds a course however it was
+     * described.
+     *
+     * Everything goes in raw rather than formatted, then through text_util::ml_all(), so
+     * both halves of a bilingual value are present at once (AC-4.8.2) — get_formatted_name()
+     * would have thrown one of them away before we ever saw it. The result is folded with
+     * text_util::normalise() so that the stored spelling and the typed spelling meet in the
+     * middle (AC-4.8.3); the query is folded the same way in matches_search().
      *
      * @param \core_course_list_element $course
      * @param array $values the course's field bundles
-     * @return string lower-cased
+     * @param string $catname the enclosing category's raw name
+     * @return string folded for comparison, never for display
      */
-    private function haystack($course, array $values): string {
-        $parts = [$course->get_formatted_name()];
+    private function haystack($course, array $values, string $catname = ''): string {
+        $parts = [text_util::ml_all((string) $course->fullname)];
+        if ($catname !== '') {
+            $parts[] = text_util::ml_all($catname);
+        }
         if ($course->has_summary()) {
-            $parts[] = html_to_text((string) $course->summary, 0, false);
+            $parts[] = text_util::ml_all(html_to_text((string) $course->summary, 0, false));
         }
         foreach ($values as $bundle) {
+            // The bilingual original where the bundle carries one, otherwise the labels,
+            // which is all a checkbox or a number ever has.
+            if (!empty($bundle['search'])) {
+                $parts[] = $bundle['search'];
+                continue;
+            }
             foreach ($bundle['labels'] ?? [] as $label) {
                 $parts[] = $label;
             }
         }
-        return \core_text::strtolower(implode(' ', $parts));
+        return text_util::normalise(implode(' ', $parts));
     }
 
     // =========================================================================
@@ -457,6 +498,23 @@ class catalogue {
     }
 
     /**
+     * The rows passing every active filter except the search box.
+     *
+     * The categories page needs both answers at once: which courses the ticked filters
+     * leave (that is the number a category card prints), and which of those also match
+     * what was typed (that is whether the card is shown at all). A category whose own
+     * name matches the search is shown with its filtered count even though none of its
+     * courses mention the typed word — see category_browser.
+     *
+     * @return array[]
+     */
+    public function matches_ignoring_search(): array {
+        $active = $this->active;
+        unset($active['q']);
+        return $this->filter_rows($this->rows, $active);
+    }
+
+    /**
      * The courses matching every active filter.
      *
      * @return array[]
@@ -506,7 +564,10 @@ class catalogue {
      * @return bool
      */
     private function matches_search(array $row, string $search): bool {
-        foreach (preg_split('/\s+/u', \core_text::strtolower($search), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
+        // Folded the same way the haystack was, so an Arabic word typed without its
+        // diacritics — or with the other accepted spelling of an alef — still meets the
+        // stored value. See text_util::normalise().
+        foreach (text_util::search_words($search) as $word) {
             if (strpos($row['haystack'], $word) === false) {
                 return false;
             }

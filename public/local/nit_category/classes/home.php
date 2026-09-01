@@ -178,6 +178,7 @@ class home {
             $context = \context_course::instance($course->id);
             $resume = self::resume_point($course, $USER);
             $activities = self::activities($course, (int) $resume['cmid']);
+            $fields = self::custom_fields((int) $course->id);
 
             $rows[] = [
                 'id' => (int) $course->id,
@@ -193,7 +194,8 @@ class home {
                 // The card's second line: which lesson Resume would open.
                 'subtitle' => $activities['lesson'],
                 'lessons' => $activities['count'],
-                'hours' => self::hours((int) $course->id),
+                'languages' => $fields['languages'],
+                'hours' => $fields['hours'],
                 'price' => self::price_label((int) $course->id),
             ];
 
@@ -398,28 +400,62 @@ class home {
      * @param int $courseid
      * @return int|null
      */
-    protected static function hours(int $courseid): ?int {
+    protected static function custom_fields(int $courseid): array {
+        $out = ['hours' => null, 'languages' => null];
+
         try {
             // No second argument, so this is only the fields this viewer may see.
             $data = \core_course\customfield\course_handler::create()->get_instance_data($courseid);
         } catch (\Throwable $e) {
-            return null;
+            return $out;
         }
 
         foreach ($data as $datum) {
-            if ((string) $datum->get_field()->get('shortname') !== 'total_number_of_hours') {
+            // No row id means the field exists on the site but this course never
+            // filled it in - which is not the same as a zero.
+            if (!$datum->get('id')) {
                 continue;
             }
-            if (!$datum->get('id')) {
-                // The field exists on the site but this course never filled it in.
-                return null;
-            }
-            $value = (int) $datum->get_value();
 
-            return $value > 0 ? $value : null;
+            switch ((string) $datum->get_field()->get('shortname')) {
+                case 'total_number_of_hours':
+                    $hours = (int) $datum->get_value();
+                    $out['hours'] = $hours > 0 ? $hours : null;
+                    break;
+
+                case 'language':
+                    $out['languages'] = self::count_languages((string) $datum->get_value());
+                    break;
+            }
         }
 
-        return null;
+        return $out;
+    }
+
+    /**
+     * How many languages a course is taught in, from a free-text field listing them.
+     *
+     * `language` is a text field, so a course says "Arabic, English" rather than
+     * holding a number - and the card wants the number. Splitting on the Arabic
+     * comma as well as the Latin one matters here: an Arabic-language site fills
+     * this field in Arabic, and "العربية، الإنجليزية" split on ',' alone would
+     * count as one.
+     *
+     * @param string $value the field's raw value
+     * @return int|null null when the course names no language at all
+     */
+    protected static function count_languages(string $value): ?int {
+        $value = trim(strip_tags($value));
+        if ($value === '') {
+            return null;
+        }
+
+        $parts = array_filter(
+            array_map('trim', (array) preg_split('/[,\x{060C}\x{061B};\/|]+/u', $value)),
+            static fn($part) => $part !== ''
+        );
+
+        return count($parts) > 0 ? count($parts) : null;
     }
 
     /**
