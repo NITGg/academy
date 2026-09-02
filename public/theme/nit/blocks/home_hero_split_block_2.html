@@ -20,12 +20,22 @@
      module 404'd, and nothing on the site could be clicked: no navbar menus, no
      block editing, no way back in except by URL. Two smaller hazards were found
      on the way: the "Convert URLs into links" filter rewrites a bare URL in
-     block content into an <a href>, which inside a script is a syntax error;
-     and the editor deletes any element holding nothing of its own, so an empty
-     span never comes back from a save.
+     block content into a link element, which inside a script is a syntax
+     error; and the editor deletes any element holding nothing of its own, so
+     an empty span never comes back from a save.
 
-     So: no logic here, no bare URLs in script, no empty elements. A fix to the
-     behaviour ships with a git pull; only a markup change needs a re-paste.
+     A third one bit this very comment. NEVER write a tag - a less-than sign
+     followed by a letter and closed by a greater-than sign - anywhere in these
+     comments. HTML Purifier reads it as real markup even inside a comment, and
+     the damage is not local: it threw away the first 6140 bytes of this file,
+     which is the whole comment plus the wrapper, the heading and the intro
+     paragraph, and left the block starting at the first link. The symptom is a
+     hero with buttons and artwork but no headline. Name tags in words instead
+     - "a link element", "an empty span" - the way the comment above does.
+
+     So: no logic here, no bare URLs in script, no empty elements, no tags in
+     comments. A fix to the behaviour ships with a git pull; only a markup
+     change needs a re-paste.
 
      WHERE THE CATEGORIES COME FROM - window.NIT_CATEGORIES, which theme_nit's
      front-page layout already prints. It lists every top-level category
@@ -71,31 +81,32 @@
     style="max-width: 1230px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 40px 20px;"
     data-nit-hero-split="">
 
-    <!-- Text column -->
+    <!-- Text column. Flat on purpose: the heading, the paragraph and the button
+         row are siblings rather than sitting in a nested wrapper, because the
+         editor has been seen unwrapping a div that only held other divs, which
+         left the heading in a container the layout no longer styled. One level
+         less nesting is one less thing for it to rearrange. -->
     <div
-      style="flex: 1 1 380px; min-width: 0; max-width: 500px; display: flex; flex-direction: column; align-items: flex-start; gap: 34px;">
-      <div
-        style="display: flex; flex-direction: column; align-items: flex-start; gap: 16px; width: 100%;">
-        <h1
-          style="font-size: clamp(34px,4.4vw,60px); font-weight: 700; line-height: 1.5; margin: 0; align-self: flex-start; width: fit-content; max-width: 100%; text-align: center;">
-          <span style="display: block; color: var(--nit-brand-textprimary);">
-            {mlang en}Learn Today{mlang} {mlang ar}تعلّــــم اليوم{mlang} </span>
-          <span style="display: block; color: var(--nit-brand-accenttext);">
-            {mlang en}Advance Tomorrow{mlang} {mlang ar}تقــدّم غدًا{mlang}
-          </span>
-        </h1>
-        <p
-          style="font-size: 18px; font-weight: 500; line-height: 1.9; color: var(--nit-brand-textsecondary); max-width: 470px; margin: 0; text-align: start;">
-          {mlang en} Enjoy a unique learning experience that gives you the
-          skills of the future. Join more than 10,000 learners and start
-          empowering your professional future with outstanding experts today.
-          {mlang} {mlang ar} استمتع بتجربة تعليمية فريدة تمنحك مهارات المستقبل.
-          انضم لأكثر من ١٠,٠٠٠ طالب وطالبة وابدأ رحلة تمكين مستقبلك المهني مع
-          خبراء متميزين اليوم. {mlang}</p>
-      </div>
+      style="flex: 1 1 380px; min-width: 0; max-width: 500px; display: flex; flex-direction: column; align-items: flex-start; gap: 16px;">
+      <h1
+        style="font-size: clamp(34px,4.4vw,60px); font-weight: 700; line-height: 1.5; margin: 0; align-self: flex-start; width: fit-content; max-width: 100%; text-align: center;">
+        <span style="display: block; color: var(--nit-brand-textprimary);">
+          {mlang en}Learn Today{mlang} {mlang ar}تعلّــــم اليوم{mlang} </span>
+        <span style="display: block; color: var(--nit-brand-accenttext);">
+          {mlang en}Advance Tomorrow{mlang} {mlang ar}تقــدّم غدًا{mlang}
+        </span>
+      </h1>
+      <p
+        style="font-size: 18px; font-weight: 500; line-height: 1.9; color: var(--nit-brand-textsecondary); max-width: 470px; margin: 0; text-align: start;">
+        {mlang en} Enjoy a unique learning experience that gives you the
+        skills of the future. Join more than 10,000 learners and start
+        empowering your professional future with outstanding experts today.
+        {mlang} {mlang ar} استمتع بتجربة تعليمية فريدة تمنحك مهارات المستقبل.
+        انضم لأكثر من ١٠,٠٠٠ طالب وطالبة وابدأ رحلة تمكين مستقبلك المهني مع
+        خبراء متميزين اليوم. {mlang}</p>
 
       <div
-        style="display: flex; align-items: center; flex-wrap: wrap; gap: 25px;">
+        style="display: flex; align-items: center; flex-wrap: wrap; gap: 25px; margin-top: 18px;">
         <a class="nit-btn-solid"
           style="background: var(--nit-brand-primary); border: 1px solid var(--nit-brand-borderprimary); color: var(--nit-brand-textprimary); width: 220px; height: 60px; border-radius: 8px; font-size: 18px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;"
           href="/moodle-new/course/index.php" data-nit-btn="" data-nit-hero-cta=""
