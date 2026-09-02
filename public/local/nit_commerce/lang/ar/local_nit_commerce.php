@@ -192,3 +192,75 @@ $string['co_loading']       = 'جارٍ التحميل…';
 $string['co_coupon_failed'] = 'تعذّر تطبيق الكوبون.';
 $string['co_currency']      = 'ج.م';
 $string['co_buy']           = 'اشترِ الآن';
+
+// ── تقرير استخدام الكوبونات (AC-4.12.8) ──
+$string['tab_manage']          = 'الكوبونات';
+$string['tab_reports']         = 'التقارير';
+$string['rep_title']           = 'عمليات استخدام الكوبونات';
+$string['rep_intro']           = 'كل كوبون تم استخدامه فعليًا، مع المتدرب والطلب والتاريخ وقيمة الخصم.';
+$string['rep_none']            = 'لا توجد عمليات استخدام مطابقة لهذه الفلاتر.';
+$string['rep_filter_coupon']   = 'الكوبون';
+$string['rep_filter_all']      = 'كل الكوبونات';
+$string['rep_filter_item']     = 'نوع العنصر';
+$string['rep_filter_anyitem']  = 'كل الأنواع';
+$string['rep_filter_from']     = 'من';
+$string['rep_filter_to']       = 'إلى';
+$string['rep_filter_state']    = 'الطلبات';
+$string['rep_state_confirmed'] = 'المدفوعة فقط';
+$string['rep_state_pending']   = 'محجوزة (غير مدفوعة)';
+$string['rep_state_all']       = 'الكل';
+$string['rep_search']          = 'ابحث بالكود أو المتدرب أو رقم الطلب';
+$string['rep_apply']           = 'تطبيق';
+$string['rep_reset']           = 'إعادة تعيين';
+$string['rep_export']          = 'تصدير CSV';
+$string['rep_col_date']        = 'التاريخ';
+$string['rep_col_code']        = 'الكود';
+$string['rep_col_learner']     = 'المتدرب';
+$string['rep_col_order']       = 'الطلب';
+$string['rep_col_orderstatus'] = 'حالة الطلب';
+$string['rep_col_item']        = 'العنصر';
+$string['rep_col_original']    = 'السعر';
+$string['rep_col_discount']    = 'الخصم';
+$string['rep_col_paid']        = 'المدفوع';
+$string['rep_col_redemptions'] = 'مرات الاستخدام';
+$string['rep_col_learners']    = 'عدد المتدربين';
+$string['rep_col_last']        = 'آخر استخدام';
+$string['rep_total']           = 'الإجمالي';
+$string['rep_kpi_redemptions'] = 'مرات الاستخدام';
+$string['rep_kpi_learners']    = 'المتدربون';
+$string['rep_kpi_discounted']  = 'إجمالي الخصم';
+$string['rep_kpi_net']         = 'صافي التحصيل';
+$string['rep_bycoupon']        = 'حسب الكوبون';
+$string['rep_alldetail']       = 'كل عمليات الاستخدام';
+$string['rep_held']            = 'محجوز';
+$string['rep_noorder']         = 'بدون طلب';
+$string['rep_heldnote']        = 'الصفوف المحجوزة هي مقاعد حجزها طلب لم يُدفع بعد. تُحتسب ضمن حد الاستخدام إلى أن يكتمل الدفع أو يتم تحرير الحجز.';
+
+// ── تقرير استخدام العروض (AC-4.13.7) ──
+// صفحة إدارة العروض أصبحت تبويبين: العروض نفسها، وهذا التقرير.
+$string['tab_offers']          = 'العروض';
+$string['ofr_rep_title']       = 'استخدام العروض';
+$string['ofr_rep_intro']       = 'عدد مرات استخدام كل عرض والطلبات التي طُبّق عليها، مع المتدرب والتاريخ وقيمة الخصم.';
+$string['ofr_rep_none']        = 'لا توجد عمليات استخدام مطابقة لهذه الفلاتر.';
+$string['rep_filter_offer']    = 'العرض';
+$string['rep_filter_alloffers'] = 'كل العروض';
+$string['rep_col_usages']      = 'مرات الاستخدام';
+$string['rep_col_offer']       = 'العرض';
+$string['rep_byoffer']         = 'حسب العرض';
+$string['rep_allorders']       = 'كل الطلبات';
+
+$string['ofr_rep_heldnote']    = 'الصفوف المحجوزة تخص طلبات لم تُدفع بعد. تظهر حتى يمكن مطابقة أرقام العرض مع بوابة الدفع، لكنها ليست مبيعات إلى أن يكتمل الدفع.';
+
+$string['ofr_col_usage']       = 'الاستخدام';
+$string['ofr_rep_open']        = 'عرض الطلبات';
+$string['ofr_lowest_note']     = 'عندما يغطي أكثر من عرض العنصر نفسه، يُطبَّق العرض الذي يمنح المتدرب أقل سعر — ولا تُجمع العروض معًا أبدًا.';
+
+// الكوبون مقابل العرض: يُطبَّق الأكبر فقط (AC-4.12.6).
+$string['co_offer_won']     = 'الكود صحيح، لكن العرض الحالي يوفّر لك أكثر، لذلك تم تطبيق العرض.';
+$string['co_coupon_won']    = 'الكود يوفّر لك أكثر من العرض الحالي، لذلك تم تطبيق الكود بدلًا منه.';
+$string['co_notcombined']   = 'لا يتم جمع العروض مع الكوبونات — تحصل دائمًا على الخصم الأكبر بينهما.';
+
+// تغيّر السعر بين فتح هذه النافذة والضغط على المتابعة (AC-4.13.6) — غالبًا بسبب انتهاء عرض.
+// يتم استبدال {old} و{new} داخل النافذة نفسها، لا عبر get_string.
+$string['co_pricechanged']  = 'تغيّر السعر أثناء فتح هذه النافذة: كان {old} وأصبح {new}. لم يتم خصم أي مبلغ — اضغط مرة أخرى للمتابعة بالسعر الجديد.';
+$string['co_confirm_price'] = 'تأكيد السعر الجديد';

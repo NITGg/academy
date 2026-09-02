@@ -322,6 +322,211 @@ class coupon_manager {
         return $DB->record_exists('nit_coupon_usage', array('couponid' => $id));
     }
 
+    // ── Reporting (AC-4.12.8) ──
+
+    /**
+     * The redemption log: one row per coupon actually spent, carrying the learner, the order, the
+     * date and the amount discounted — the four things AC-4.12.8 requires be recorded, joined to
+     * the names a human needs to read them.
+     *
+     * Rows in {@see nit_coupon_usage} double as reservations for checkouts that are still pending,
+     * which is what makes the cap atomic. That is right for counting but wrong for a report: an
+     * abandoned checkout would read as a redemption until the cleanup task swept it. So each row
+     * is labelled with the state of the order that owns it, and the caller can ask for confirmed
+     * redemptions only (the default), pending ones, or both.
+     *
+     * @param array $filters couponid, userid, itemtype, from, to (unix), state
+     *                       (confirmed|pending|all), q (code / learner search)
+     * @param int $limitfrom
+     * @param int $limitnum 0 = no limit
+     * @return array {rows: array, total: int, totals: array}
+     */
+    public static function get_redemptions(array $filters = array(), $limitfrom = 0, $limitnum = 0) {
+        global $DB;
+
+        $hastx = $DB->get_manager()->table_exists('local_payments_transactions');
+        $userfields = \core_user\fields::for_name()->get_sql('u', false, '', '', false)->selects;
+
+        // The transaction is the "order": it carries the reference the buyer and finance both
+        // quote, the currency, and the status that says whether the money actually arrived.
+        $txjoin = $hastx ? 'LEFT JOIN {local_payments_transactions} t ON t.id = cu.transactionid' : '';
+        $txcols = $hastx
+            ? 't.order_id, t.status AS txstatus, t.currency, t.amount AS txamount, t.timecreated AS txtime'
+            : "'' AS order_id, '' AS txstatus, '' AS currency, 0 AS txamount, 0 AS txtime";
+
+        $where = array('1 = 1');
+        $params = array();
+
+        if (!empty($filters['couponid'])) {
+            $where[] = 'cu.couponid = :couponid';
+            $params['couponid'] = (int) $filters['couponid'];
+        }
+        if (!empty($filters['userid'])) {
+            $where[] = 'cu.userid = :userid';
+            $params['userid'] = (int) $filters['userid'];
+        }
+        if (!empty($filters['itemtype'])) {
+            $where[] = 'cu.item_type = :itemtype';
+            $params['itemtype'] = (string) $filters['itemtype'];
+        }
+        if (!empty($filters['from'])) {
+            $where[] = 'cu.timecreated >= :fromtime';
+            $params['fromtime'] = (int) $filters['from'];
+        }
+        if (!empty($filters['to'])) {
+            // Inclusive of the whole "to" day: the caller passes the day's end.
+            $where[] = 'cu.timecreated <= :totime';
+            $params['totime'] = (int) $filters['to'];
+        }
+
+        // Confirmed = the owning order was paid. A row with no transaction at all (a manual or
+        // zero-value grant) counts as confirmed too: nothing is pending on it.
+        $state = (string) ($filters['state'] ?? 'confirmed');
+        if ($hastx && $state !== 'all') {
+            if ($state === 'pending') {
+                $where[] = "(t.id IS NOT NULL AND t.status <> 'completed')";
+            } else {
+                $where[] = "(t.id IS NULL OR t.status = 'completed')";
+            }
+        }
+
+        if (!empty($filters['q'])) {
+            $q = '%' . $DB->sql_like_escape(trim((string) $filters['q'])) . '%';
+            $like = array(
+                $DB->sql_like('c.code', ':q1', false),
+                $DB->sql_like('u.firstname', ':q2', false),
+                $DB->sql_like('u.lastname', ':q3', false),
+                $DB->sql_like('u.email', ':q4', false),
+            );
+            if ($hastx) {
+                $like[] = $DB->sql_like('t.order_id', ':q5', false);
+                $params['q5'] = $q;
+            }
+            $where[] = '(' . implode(' OR ', $like) . ')';
+            $params['q1'] = $params['q2'] = $params['q3'] = $params['q4'] = $q;
+        }
+
+        $wheresql = implode(' AND ', $where);
+        $from = "FROM {nit_coupon_usage} cu
+                 JOIN {nit_coupon} c ON c.id = cu.couponid
+            LEFT JOIN {user} u ON u.id = cu.userid
+                 {$txjoin}
+                WHERE {$wheresql}";
+
+        $total = (int) $DB->count_records_sql("SELECT COUNT(1) {$from}", $params);
+
+        // Site-wide figures for the filtered set, so the page can show what the coupons cost
+        // without paging through every row to add it up.
+        $sums = $DB->get_record_sql(
+            "SELECT COALESCE(SUM(cu.discount_amount), 0) AS discounted,
+                    COALESCE(SUM(cu.original_amount), 0) AS gross,
+                    COALESCE(SUM(cu.final_amount), 0) AS net,
+                    COUNT(DISTINCT cu.userid) AS learners
+               {$from}", $params);
+
+        $sql = "SELECT cu.id, cu.couponid, cu.userid, cu.transactionid, cu.item_type, cu.item_id,
+                       cu.original_amount, cu.discount_amount, cu.final_amount, cu.timecreated,
+                       c.code, c.name AS couponname, c.discount_type, c.discount_value,
+                       u.email, {$userfields}, {$txcols}
+                {$from}
+             ORDER BY cu.timecreated DESC, cu.id DESC";
+
+        $records = $DB->get_records_sql($sql, $params, $limitfrom, $limitnum);
+
+        $rows = array();
+        foreach ($records as $r) {
+            $status = $hastx ? (string) $r->txstatus : '';
+            $rows[] = array(
+                'id'              => (int) $r->id,
+                'couponid'        => (int) $r->couponid,
+                'code'            => (string) $r->code,
+                'coupon_name'     => format_string(discount_manager::resolve_mlang((string) $r->couponname)),
+                'discount_type'   => (string) $r->discount_type,
+                'discount_value'  => (float) $r->discount_value,
+                'userid'          => (int) $r->userid,
+                'learner'         => $r->userid ? fullname($r) : '',
+                'email'           => (string) ($r->email ?? ''),
+                'transactionid'   => (int) $r->transactionid,
+                'order_id'        => (string) ($r->order_id ?? ''),
+                // '' when there is no order behind the row at all; the UI reads that as
+                // "recorded, nothing pending".
+                'order_status'    => $status,
+                'confirmed'       => ($status === '' || $status === 'completed'),
+                'currency'        => (string) ($r->currency ?? '') ?: self::default_currency(),
+                'item_type'       => (string) $r->item_type,
+                'item_id'         => (int) $r->item_id,
+                'item_label'      => discount_manager::item_label((string) $r->item_type, (int) $r->item_id),
+                'original_amount' => round((float) $r->original_amount, 2),
+                'discount_amount' => round((float) $r->discount_amount, 2),
+                'final_amount'    => round((float) $r->final_amount, 2),
+                'timecreated'     => (int) $r->timecreated,
+                'date'            => userdate((int) $r->timecreated, get_string('strftimedatetimeshort')),
+            );
+        }
+
+        return array(
+            'rows'   => $rows,
+            'total'  => $total,
+            'totals' => array(
+                'redemptions' => $total,
+                'learners'    => (int) ($sums->learners ?? 0),
+                'gross'       => round((float) ($sums->gross ?? 0), 2),
+                'discounted'  => round((float) ($sums->discounted ?? 0), 2),
+                'net'         => round((float) ($sums->net ?? 0), 2),
+                'currency'    => self::default_currency(),
+            ),
+        );
+    }
+
+    /**
+     * Per-coupon totals for the report's summary table: how many times each coupon was spent,
+     * by how many learners, and what it cost in discount.
+     *
+     * @param array $filters same shape as {@see self::get_redemptions()} (couponid/from/to/state)
+     * @return array
+     */
+    public static function get_redemption_summary(array $filters = array()) {
+        // Reuse the row reader so the two views can never disagree about what "confirmed" means.
+        $data = self::get_redemptions($filters, 0, 0);
+        $bycoupon = array();
+        foreach ($data['rows'] as $row) {
+            $id = $row['couponid'];
+            if (!isset($bycoupon[$id])) {
+                $bycoupon[$id] = array(
+                    'couponid'    => $id,
+                    'code'        => $row['code'],
+                    'coupon_name' => $row['coupon_name'],
+                    'redemptions' => 0,
+                    'gross'       => 0.0,
+                    'discounted'  => 0.0,
+                    'net'         => 0.0,
+                    'learners'    => array(),
+                    'last'        => 0,
+                );
+            }
+            $bycoupon[$id]['redemptions']++;
+            $bycoupon[$id]['gross']      += $row['original_amount'];
+            $bycoupon[$id]['discounted'] += $row['discount_amount'];
+            $bycoupon[$id]['net']        += $row['final_amount'];
+            $bycoupon[$id]['learners'][$row['userid']] = true;
+            $bycoupon[$id]['last'] = max($bycoupon[$id]['last'], $row['timecreated']);
+        }
+        $out = array();
+        foreach ($bycoupon as $entry) {
+            $entry['learners']   = count($entry['learners']);
+            $entry['gross']      = round($entry['gross'], 2);
+            $entry['discounted'] = round($entry['discounted'], 2);
+            $entry['net']        = round($entry['net'], 2);
+            $entry['last_date']  = $entry['last'] ? userdate($entry['last'], get_string('strftimedatetimeshort')) : '';
+            $out[] = $entry;
+        }
+        // Biggest spend first — the coupon that cost the most is the one worth looking at.
+        usort($out, function ($a, $b) {
+            return $b['discounted'] <=> $a['discounted'];
+        });
+        return $out;
+    }
+
     // ── Helpers ──
 
     /**

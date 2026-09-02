@@ -103,10 +103,14 @@ class manager {
      * @param string $display_lang
      * @param string $coupon_code
      * @param int $payment_method_id Provider payment method to charge directly (0 = hosted picker).
+     * @param float $quoted_amount the price the buyer was shown when they opened checkout, or -1
+     *        when the caller has no quote to check (AC-4.13.6).
      * @return object {order_id, checkout_url, expires_at, provider, transaction_id, payment_data}
+     * @throws price_changed_exception if the price moved since the buyer was quoted
      */
     public static function create_checkout(int $courseid, ?int $userid = null, ?string $app_country = null,
-            string $display_lang = 'en', string $coupon_code = '', int $payment_method_id = 0): object {
+            string $display_lang = 'en', string $coupon_code = '', int $payment_method_id = 0,
+            float $quoted_amount = -1): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
@@ -119,6 +123,11 @@ class manager {
         $disc = self::apply_nit_discount('course', $courseid, $userid, (float) $pricing->price, $coupon_code);
         $amount = $disc['amount'];
         $discountmeta = $disc['discount'];
+
+        // AC-4.13.6: the buyer agreed to a number on the confirmation screen; this is the first
+        // point at which we know what that number is worth now. Checked before anything is
+        // created, so a mismatch costs the buyer a confirmation and nothing else.
+        self::assert_quote($quoted_amount, $amount, (string) $pricing->currency);
 
         // Check for duplicate pending payment.
         $existing = $DB->get_record_select(
@@ -221,7 +230,9 @@ class manager {
                 'item_type' => 'course',
                 'item_id' => $courseid,
                 'discount' => $discountmeta,
-                'coupon_code' => $coupon_code,
+                // The code that was actually honoured, not the one typed: a coupon beaten by a bigger
+                // offer (AC-4.12.6) takes nothing off, and naming it on the invoice would be a lie.
+                'coupon_code' => (string) ($discountmeta['coupon_code'] ?? ''),
                 'payment_method_id' => $payment_method_id,
             ]),
             'expires_at' => $expires_at,
@@ -321,12 +332,16 @@ class manager {
      * @param int $seats B2B seat capacity
      * @param string $coupon_code optional coupon entered at checkout
      * @param string $return_url page the checkout was launched from
+     * @param int $payment_method_id Provider payment method to charge directly (0 = hosted picker).
+     * @param float $quoted_amount the price the buyer was shown when they opened checkout, or -1
+     *        when the caller has no quote to check (AC-4.13.6).
      * @return object {order_id, checkout_url, expires_at, provider, transaction_id}
+     * @throws price_changed_exception if the price moved since the buyer was quoted
      */
     public static function create_subscription_checkout(int $subscriptionid, ?int $userid = null,
             ?string $app_country = null, string $display_lang = 'en', string $type = 'normal',
             int $seats = 0, string $coupon_code = '', string $return_url = '',
-            int $payment_method_id = 0): object {
+            int $payment_method_id = 0, float $quoted_amount = -1): object {
         global $DB, $USER, $CFG;
 
         $userid = $userid ?? $USER->id;
@@ -404,6 +419,10 @@ class manager {
             $discountmeta = $disc['discount'];
         }
 
+        // AC-4.13.6: an offer on this plan can lapse while the buyer is still on the plan page.
+        // Checked for the B2B branch too — a seat tier can be re-priced just as easily.
+        self::assert_quote($quoted_amount, $amount, $currency);
+
         $originalamount = $basePrice;
 
         $provider = self::get_provider($country, $currency);
@@ -439,7 +458,8 @@ class manager {
                 'sub_type' => $isb2b ? 'b2b' : 'normal',
                 'seats' => $b2bseats,
                 'discount' => $discountmeta,
-                'coupon_code' => $coupon_code,
+                // The code that was actually honoured, not the one typed — see the course flow above.
+                'coupon_code' => (string) ($discountmeta['coupon_code'] ?? ''),
                 'return_url' => $return_url,
                 'payment_method_id' => $payment_method_id,
             ]),
@@ -662,6 +682,38 @@ class manager {
     }
 
     /**
+     * Refuse to open a checkout at a price the buyer was not shown (AC-4.13.6).
+     *
+     * A checkout screen quotes a number, and between that screen and this call an offer can reach
+     * its end date, an admin can deactivate a campaign, or a coupon can hit its cap. The buyer
+     * consented to the old number, so the new one may not simply be charged: the caller is sent
+     * back to show the revised price and take a fresh confirmation.
+     *
+     * A caller with no quote passes -1 and is not checked — the mobile app's own purchase flow and
+     * any server-side call have not shown anyone a price to hold us to. The quote itself is never
+     * used as the amount to charge (that is always the freshly resolved figure), so a caller who
+     * sends a wrong one can only make themselves see an extra confirmation.
+     *
+     * The tolerance is half a minor unit: the quote crosses a URL as a decimal string and comes
+     * back through PARAM_FLOAT, and a rounding difference is not a price change.
+     *
+     * @param float $quoted the price the buyer was shown, or -1 for "no quote"
+     * @param float $amount the price that would be charged now
+     * @param string $currency ISO 4217, for the message
+     * @return void
+     * @throws price_changed_exception
+     */
+    private static function assert_quote(float $quoted, float $amount, string $currency): void {
+        if ($quoted < 0) {
+            return;
+        }
+        if (abs(round($amount, 2) - round($quoted, 2)) < 0.005) {
+            return;
+        }
+        throw new price_changed_exception($quoted, $amount, $currency);
+    }
+
+    /**
      * Resolve the charged amount for a NIT commerce discount (coupon/offer), for checkout.
      *
      * @param string $item_type course | package | subscription
@@ -677,15 +729,25 @@ class manager {
             return ['amount' => $base, 'discount' => null];
         }
         $resolved = \local_nit_commerce\discount_manager::resolve($item_type, $item_id, $userid, $coupon_code, $base);
+
+        // A coupon and an offer never combine: the larger wins and the loser resolves to a zero
+        // amount (AC-4.12.6). resolve() still names the loser so the checkout can explain itself,
+        // but the transaction must only carry what was actually honoured — a coupon id recorded
+        // against a zero discount would show up in the redemption report as a spend that never
+        // happened, and on the invoice as a code that took nothing off.
+        $couponapplied = ((float) ($resolved['coupon_discount'] ?? 0)) > 0;
+
         return [
             'amount' => (float) $resolved['final'],
             'discount' => [
                 'original'        => $resolved['original'],
                 'offers'          => $resolved['offers'] ?? [],
-                'coupon_id'       => $resolved['coupon_id'] ?? 0,
-                'coupon_code'     => $resolved['coupon_code'] ?? '',
+                'coupon_id'       => $couponapplied ? ($resolved['coupon_id'] ?? 0) : 0,
+                'coupon_code'     => $couponapplied ? ($resolved['coupon_code'] ?? '') : '',
                 'coupon_discount' => $resolved['coupon_discount'] ?? 0,
+                'offer_id'        => ($resolved['offer_discount'] ?? 0) > 0 ? ($resolved['offer_id'] ?? 0) : 0,
                 'offer_discount'  => $resolved['offer_discount'] ?? 0,
+                'applied'         => $resolved['applied'] ?? 'none',
                 'discount'        => $resolved['discount'] ?? 0,
                 'final'           => $resolved['final'],
             ],

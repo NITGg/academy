@@ -182,6 +182,24 @@ function xmldb_local_payments_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090133, 'local', 'payments');
     }
 
+    if ($oldversion < 2026090210) {
+        // AC-4.9.5: free preview lessons — the activities a visitor may open before enrolling.
+        $table = new xmldb_table('local_payments_free_preview');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('cmid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('cmid', XMLDB_INDEX_UNIQUE, ['cmid']);
+        $table->add_index('courseid', XMLDB_INDEX_NOTUNIQUE, ['courseid']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026090210, 'local', 'payments');
+    }
+
     return true;
 }
 

@@ -95,16 +95,22 @@
       }
 
       // ── Modal ──
+
+      // The total this dialog last painted. It is the figure the buyer agrees to by pressing
+      // Proceed, and the one the checkout is asked to honour (AC-4.13.6). Null until the first
+      // preview lands — before that the buyer has been shown nothing to hold us to.
+      var quoted = null;
+
       function previewSub(code) {
         if (!current) {
-          return;
+          return Promise.reject(new Error('no plan'));
         }
         var url = commerceUrl +
           '?function=preview_discount&item_type=subscription&item_id=' +
           current.id +
           '&coupon_code=' + encodeURIComponent(code || '') + '&sesskey=' +
           encodeURIComponent(sesskey);
-        fetch(url, {
+        return fetch(url, {
             headers: {
               'Accept': 'application/json'
             }
@@ -123,6 +129,9 @@
               ' ' + curLabel());
             setTxt('[data-nit-m-final]', money(d.final != null ? d.final :
               current.price) + ' ' + curLabel());
+            quoted = (d.final != null) ? Number(d.final) : null;
+            // Several live offers can cover the same plan; only the one leaving the lowest price
+            // is applied (AC-4.13.4), so the applied one is the one named below.
             var offerDisc = Number(d.offer_discount || 0);
             if (offerDisc > 0) {
               var oname = (d.offers && d.offers[0] && d.offers[0].name) ? d
@@ -139,12 +148,16 @@
             } else {
               setDisp('[data-nit-m-couponerr]', 'none');
             }
+            return d;
           })
-          .catch(function() {
+          .catch(function(e) {
             setTxt('[data-nit-m-couponerr]',
               '{mlang en}Could not apply coupon.{mlang}{mlang ar}تعذّر تطبيق الكوبون.{mlang}'
             );
             setDisp('[data-nit-m-couponerr]', '');
+            // Rethrown so the Proceed handler can tell "the price has not moved" apart from
+            // "we could not ask".
+            throw e;
           });
       }
 
@@ -264,7 +277,11 @@
         paintMethods(methodList);
         loadMethods(sub.currency);
         modal.style.display = 'flex';
-        previewSub('');
+        // A freshly opened dialog has quoted nothing yet.
+        quoted = null;
+        previewSub('').catch(function() {
+          return null;
+        });
       }
 
       function closeModal() {
@@ -296,19 +313,18 @@
         }
         var proceedBtn = q('[data-nit-m-proceed]');
         if (proceedBtn) {
-          proceedBtn.addEventListener('click', function() {
-            if (!current) {
-              return;
-            }
-            var btn = this;
-            btn.disabled = true;
+          // Open the gateway checkout at the price this dialog had on screen.
+          var launch = function(btn, amount) {
             var body = new URLSearchParams({
               function: 'create_subscription_checkout',
               sesskey: sesskey,
               subscriptionid: current.id,
               coupon_code: getVal('[data-nit-m-coupon]'),
               return_url: window.location.href,
-              payment_method_id: methodId
+              payment_method_id: methodId,
+              // The exact figure the buyer agreed to. The server refuses to charge a different
+              // one and answers with code 'price_changed' instead (AC-4.13.6).
+              quoted_amount: (amount == null || amount < 0) ? -1 : Number(amount).toFixed(2)
             });
             fetch(subsUrl, {
                 method: 'POST',
@@ -332,6 +348,18 @@
                     encodeURIComponent(data.transaction_id);
                 } else if (data && data.checkout_url) {
                   window.location.href = data.checkout_url;
+                } else if (res && res.code === 'price_changed') {
+                  // The price moved between our own re-check and the checkout being opened.
+                  // Nothing was created, so repaint at the new price and ask again rather than
+                  // charging an amount this dialog never showed. The server's message is already
+                  // in the visitor's language.
+                  quoted = Number(res.amount);
+                  previewSub(getVal('[data-nit-m-coupon]')).catch(function() {
+                    return null;
+                  });
+                  btn.disabled = false;
+                  setTxt('[data-nit-m-error]', res.error);
+                  setDisp('[data-nit-m-error]', '');
                 } else {
                   throw new Error((res && res.error) ||
                     'checkout failed');
@@ -342,6 +370,43 @@
                 setTxt('[data-nit-m-error]', e.message);
                 setDisp('[data-nit-m-error]', '');
               });
+          };
+
+          proceedBtn.addEventListener('click', function() {
+            if (!current) {
+              return;
+            }
+            var btn = this;
+            btn.disabled = true;
+            setDisp('[data-nit-m-error]', 'none');
+
+            // AC-4.13.6: the price on screen was resolved when this dialog opened, and an offer
+            // on the plan can have reached its end date since. Re-price first; if the number
+            // moved, show it and wait for a second, deliberate press before charging.
+            var was = quoted;
+            previewSub(getVal('[data-nit-m-coupon]')).then(function(d) {
+              var now = (d && d.final != null) ? Number(d.final) : was;
+              if (was != null && now != null && Math.abs(now - was) >= 0.005) {
+                btn.disabled = false;
+                // Written out per language rather than as {mlang} markup: this text goes into
+                // textContent at runtime, where nothing is left to resolve the tags.
+                var ar = (document.documentElement.lang || '').toLowerCase().indexOf('ar') === 0;
+                setTxt('[data-nit-m-error]', ar
+                  ? ('تغيّر السعر أثناء فتح هذه النافذة: كان ' + money(was) + ' ' + curLabel() +
+                    ' وأصبح ' + money(now) + ' ' + curLabel() +
+                    '. لم يتم خصم أي مبلغ — اضغط مرة أخرى للمتابعة بالسعر الجديد.')
+                  : ('The price changed while this window was open: it was ' + money(was) + ' ' +
+                    curLabel() + ' and is now ' + money(now) + ' ' + curLabel() +
+                    '. Nothing has been charged — press again to continue at the new price.'));
+                setDisp('[data-nit-m-error]', '');
+                return;
+              }
+              launch(btn, now);
+            }).catch(function() {
+              // Could not re-price (offline, session gone). Do not strand a buyer who is trying
+              // to pay: go on with what they were shown — the server checks it again anyway.
+              launch(btn, was);
+            });
           });
         }
       }

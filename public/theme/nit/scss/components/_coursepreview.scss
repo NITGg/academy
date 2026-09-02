@@ -72,15 +72,14 @@ body.local-payments-preview {
     padding-bottom: 76px;
 
     // ---- The lock ----------------------------------------------------------
-    // Every route into an activity goes dead: the curriculum accordion on the
-    // branded course landing page (format_topics_renderer's .acad-cr bands, which
-    // is what this site actually shows), the stock course-format activity cards
-    // behind it, and the same activities in the course index drawer.
-    .acad-cr,
+    // Every route into an activity goes dead: the stock course-format activity
+    // cards behind the branded page, and the same activities in the course index
+    // drawer. Neither of those is rendered per-activity by us, so the whole set
+    // is killed here — a free preview lesson is still reachable from the
+    // curriculum accordion below, which is what the site actually shows.
     .course-content,
     #course-index,
     .courseindex {
-        .acad-cr__act-name a,
         .activityname a,
         a.aalink,
         .activity-altcontent a,
@@ -90,18 +89,6 @@ body.local-payments-preview {
             cursor: not-allowed;
             color: var(--nit-brand-textsecondary) !important;
             text-decoration: none !important;
-        }
-    }
-
-    // Padlock + a dimmed row, so the state reads as "locked", not "broken".
-    .acad-cr__act {
-        opacity: 0.92;
-
-        .acad-cr__act-name::after {
-            content: "🔒";
-            margin-inline-start: 8px;
-            font-size: 0.85em;
-            opacity: 0.75;
         }
     }
 
@@ -125,6 +112,86 @@ body.local-payments-preview {
         .activity-completion,
         .activity-actions {
             display: none;
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Free preview lessons (AC-4.9.5) — the curriculum accordion.
+//
+// Which rows are locked is decided in PHP, not here: theme_nit's
+// format_topics_renderer asks local_payments\free_preview which activities the
+// teacher published as samples, then stamps each row .is-free or .is-locked.
+// That is why these rules sit outside body.local-payments-preview — the state is
+// on the row itself, so a course nobody has bought and a course a student is
+// halfway through both style correctly from the same markup.
+//
+// Colours come from the --cr-* alias layer declared in _coursepage.scss, so the
+// rows track the Brand Colors palette (and a category's group switch) like the
+// rest of the page. The `body:has(.acad-cr)` prefix is that file's convention and
+// is also what wins over its own .acad-cr__act-name rules.
+// -----------------------------------------------------------------------------
+
+body:has(.acad-cr) {
+
+    // The row wraps, so the "enrol to unlock" line can sit under the name rather
+    // than squeezing the type label off the end.
+    .acad-cr__act.is-locked {
+        flex-wrap: wrap;
+        opacity: 0.92;
+
+        .acad-cr__act-name {
+            color: var(--cr-muted);
+            cursor: default;
+        }
+
+        .acad-cr__act-lock {
+            display: inline-flex;
+            align-items: center;
+            margin-inline-start: 8px;
+            color: var(--cr-muted);
+            vertical-align: -2px;
+
+            .acad-cr__ico {
+                width: 1em;
+                height: 1em;
+            }
+        }
+
+        .acad-cr__act-lockmsg {
+            flex-basis: 100%;
+            // Clear the icon column, so the prompt lines up with the lesson name.
+            margin-inline-start: 32px;
+            color: var(--cr-muted);
+            font-size: 13px;
+            font-weight: 400;
+            line-height: 1.45;
+        }
+    }
+
+    // A free preview is a live link — the one row on a locked course that is.
+    .acad-cr__act.is-free {
+        .acad-cr__act-name a {
+            pointer-events: auto;
+            cursor: pointer;
+            color: var(--cr-link);
+        }
+
+        // Soft badge rather than a solid brand fill: the primary red only clears
+        // ~3.5:1 behind near-white text, which is under the bar for a label.
+        .acad-cr__act-free {
+            display: inline-block;
+            margin-inline-start: 8px;
+            padding: 1px 9px;
+            border: 1px solid var(--cr-pill-brd);
+            border-radius: 999px;
+            background: var(--cr-pill);
+            color: var(--cr-link);
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.7;
+            white-space: nowrap;
+            vertical-align: 1px;
         }
     }
 }

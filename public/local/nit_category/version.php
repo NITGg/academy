@@ -25,5 +25,5 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_category';
-$plugin->version   = 2026090102;        // YYYYMMDDXX — My-courses page; languages stat on the card.
+$plugin->version   = 2026090103;        // YYYYMMDDXX — checkout modal carries the quoted price.
 $plugin->requires  = 2022041900;

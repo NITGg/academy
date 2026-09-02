@@ -31,6 +31,17 @@ $string['preview_notice'] = 'You are previewing this course. The activities unlo
 $string['preview_unlock'] = 'Unlock this course';
 $string['preview_login'] = 'Log in to continue';
 $string['preview_locked'] = 'This activity is locked until you have access to the course.';
+
+// Free preview lessons (AC-4.9.5).
+$string['freepreview'] = 'Free preview';
+$string['freepreview_label'] = 'Let visitors play this lesson before enrolling';
+$string['freepreview_help'] = 'Tick this to make the activity a free sample of the course.
+
+Anyone reading the course page — including visitors who are not logged in — can open and play it, and it shows on the course page as a normal link with a **Free preview** badge instead of a padlock.
+
+Every activity that is not ticked stays locked until the student enrols or buys the course. Hidden activities are never previewable, whatever this setting says.';
+$string['freepreview_badge'] = 'Free preview';
+$string['freepreview_lockedlesson'] = 'Enrol in this course to unlock this lesson.';
 $string['manageproviders'] = 'Manage payment providers';
 $string['providersettings'] = 'Provider settings';
 $string['reports'] = 'Payment reports';
@@ -334,6 +345,16 @@ $string['refund_feepercent_desc'] = 'A percentage of the amount paid, kept when 
 $string['choose_method'] = 'How would you like to pay?';
 $string['continue_to_payment'] = 'Continue to payment';
 $string['method_gives_code'] = 'You will get a code to pay with';
+
+// The price moved between opening checkout and confirming it (AC-4.13.6) — usually an automatic
+// offer that reached its end date while the buyer was still deciding.
+$string['pricechanged_title'] = 'The price has changed';
+$string['pricechanged_up'] = 'An offer on this item ended while you were checking out, so the price is no longer the one you were shown. Nothing has been charged. Please confirm the new price to continue.';
+$string['pricechanged_down'] = 'The price of this item changed while you were checking out, and it is now lower than the one you were shown. Nothing has been charged. Please confirm the new price to continue.';
+$string['pricechanged_was'] = 'You were shown';
+$string['pricechanged_now'] = 'Price now';
+$string['pricechanged_confirm'] = 'Confirm and continue';
+$string['pricechanged_desc'] = 'The price changed while you were checking out: it was {$a->old} and is now {$a->new}. Nothing has been charged — please confirm the new price to continue.';
 
 // Refund terms for one course, set on its pricing page.
 $string['refund_terms_heading'] = 'Refund policy for this course';

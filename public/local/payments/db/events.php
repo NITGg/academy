@@ -15,21 +15,22 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for NIT Subscriptions (course-access subscription plans).
+ * Event observers for local_payments.
  *
- * @package    local_nit_subscriptions
- * @copyright  2026 NIT
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    local_payments
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_nit_subscriptions';
-$plugin->version   = 2026090201;        // AC-4.13.6: plan checkout carries the quoted price.
-$plugin->requires  = 2024100700;
-$plugin->supported = [405, 502];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.1.0';
-$plugin->dependencies = [
-    'local_nit_core' => 2026080404,
+$observers = [
+    // Forget the free-preview flag of a deleted activity. Course module ids are reused, and
+    // a new activity inheriting a stale row would silently be free to the whole internet.
+    [
+        'eventname' => '\core\event\course_module_deleted',
+        'callback'  => '\local_payments\event\observer::course_module_deleted',
+    ],
+    [
+        'eventname' => '\core\event\course_deleted',
+        'callback'  => '\local_payments\event\observer::course_deleted',
+    ],
 ];

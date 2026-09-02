@@ -184,12 +184,16 @@ class preview_discount extends external_api {
             'offer_id'        => (int) ($r['offer_id'] ?? 0),
             'offer_name'      => (string) ($r['offer_name'] ?? ''),
             'offer_discount'  => (float) ($r['offer_discount'] ?? 0),
-            'coupon_id'       => (int) ($r['coupon_id'] ?? 0),
-            'coupon_code'     => (string) ($r['coupon_code'] ?? ''),
-            'coupon_discount' => (float) ($r['coupon_discount'] ?? 0),
-            'discount'        => (float) ($r['discount'] ?? 0),
-            'final'           => (float) ($r['final'] ?? 0),
-            'coupon_error'    => (string) ($r['coupon_error'] ?? ''),
+            'coupon_id'         => (int) ($r['coupon_id'] ?? 0),
+            'coupon_code'       => (string) ($r['coupon_code'] ?? ''),
+            'coupon_discount'   => (float) ($r['coupon_discount'] ?? 0),
+            'applied'           => (string) ($r['applied'] ?? 'none'),
+            'offer_candidate'   => (float) ($r['offer_candidate'] ?? 0),
+            'coupon_candidate'  => (float) ($r['coupon_candidate'] ?? 0),
+            'coupon_superseded' => !empty($r['coupon_superseded']),
+            'discount'          => (float) ($r['discount'] ?? 0),
+            'final'             => (float) ($r['final'] ?? 0),
+            'coupon_error'      => (string) ($r['coupon_error'] ?? ''),
         ];
     }
 
@@ -209,14 +213,26 @@ class preview_discount extends external_api {
                 ]),
                 'Automatic offers applied (best one; offers do not stack)'
             ),
-            'offer_id'        => new external_value(PARAM_INT, 'Applied offer id (0 = none)'),
-            'offer_name'      => new external_value(PARAM_TEXT, 'Applied offer name'),
-            'offer_discount'  => new external_value(PARAM_FLOAT, 'Total offer discount'),
-            'coupon_id'       => new external_value(PARAM_INT, 'Applied coupon id (0 = none)'),
-            'coupon_code'     => new external_value(PARAM_TEXT, 'Applied coupon code'),
-            'coupon_discount' => new external_value(PARAM_FLOAT, 'Coupon discount (on top of offer)'),
-            'discount'        => new external_value(PARAM_FLOAT, 'Total discount (offer + coupon)'),
-            'final'           => new external_value(PARAM_FLOAT, 'Final price to charge'),
+            'offer_id'        => new external_value(PARAM_INT,
+                'Offer id (0 = none). Named even when the coupon beat it, so the app can explain the outcome'),
+            'offer_name'      => new external_value(PARAM_TEXT, 'Offer name'),
+            'offer_discount'  => new external_value(PARAM_FLOAT,
+                'Offer discount ACTUALLY applied — 0 when the coupon won'),
+            'coupon_id'       => new external_value(PARAM_INT,
+                'Coupon id (0 = none). Named even when the offer beat it'),
+            'coupon_code'     => new external_value(PARAM_TEXT, 'Coupon code'),
+            'coupon_discount' => new external_value(PARAM_FLOAT,
+                'Coupon discount ACTUALLY applied — 0 when the offer won'),
+            // Coupon and offer never combine and never stack: the larger amount wins, a tie goes
+            // to the offer (AC-4.12.6). These three say which won and by how much, so a client can
+            // tell "your code is invalid" apart from "your code lost to a better offer".
+            'applied'           => new external_value(PARAM_ALPHA, 'Which discount won: offer | coupon | none'),
+            'offer_candidate'   => new external_value(PARAM_FLOAT, 'What the offer would take off on its own'),
+            'coupon_candidate'  => new external_value(PARAM_FLOAT, 'What the coupon would take off on its own'),
+            'coupon_superseded' => new external_value(PARAM_BOOL,
+                'True when the coupon was valid and in scope but the offer discounted more'),
+            'discount'        => new external_value(PARAM_FLOAT, 'Total discount applied (the winner only)'),
+            'final'           => new external_value(PARAM_FLOAT, 'Final price to charge, never below zero'),
             'coupon_error'    => new external_value(PARAM_TEXT, 'Why the coupon was rejected (empty if none/valid)'),
         ]);
     }

@@ -187,3 +187,75 @@ $string['cpn_starts']        = 'Starts';
 $string['cpn_expires']       = 'Expires';
 $string['cpn_howto']         = 'Enter this code at checkout to get the discount.';
 $string['cpn_stub_off']      = 'OFF';
+
+// ── Coupon redemption report (AC-4.12.8) ──
+$string['tab_manage']          = 'Coupons';
+$string['tab_reports']         = 'Reports';
+$string['rep_title']           = 'Coupon redemptions';
+$string['rep_intro']           = 'Every coupon actually spent, with the learner, the order, the date and the amount discounted.';
+$string['rep_none']            = 'No redemptions match these filters.';
+$string['rep_filter_coupon']   = 'Coupon';
+$string['rep_filter_all']      = 'All coupons';
+$string['rep_filter_item']     = 'Item type';
+$string['rep_filter_anyitem']  = 'Any item type';
+$string['rep_filter_from']     = 'From';
+$string['rep_filter_to']       = 'To';
+$string['rep_filter_state']    = 'Orders';
+$string['rep_state_confirmed'] = 'Paid only';
+$string['rep_state_pending']   = 'Held (unpaid)';
+$string['rep_state_all']       = 'All';
+$string['rep_search']          = 'Search code, learner or order';
+$string['rep_apply']           = 'Apply';
+$string['rep_reset']           = 'Reset';
+$string['rep_export']          = 'Export CSV';
+$string['rep_col_date']        = 'Date';
+$string['rep_col_code']        = 'Code';
+$string['rep_col_learner']     = 'Learner';
+$string['rep_col_order']       = 'Order';
+$string['rep_col_orderstatus'] = 'Order status';
+$string['rep_col_item']        = 'Item';
+$string['rep_col_original']    = 'Price';
+$string['rep_col_discount']    = 'Discounted';
+$string['rep_col_paid']        = 'Paid';
+$string['rep_col_redemptions'] = 'Redemptions';
+$string['rep_col_learners']    = 'Learners';
+$string['rep_col_last']        = 'Last used';
+$string['rep_total']           = 'Total';
+$string['rep_kpi_redemptions'] = 'Redemptions';
+$string['rep_kpi_learners']    = 'Learners';
+$string['rep_kpi_discounted']  = 'Total discounted';
+$string['rep_kpi_net']         = 'Net collected';
+$string['rep_bycoupon']        = 'By coupon';
+$string['rep_alldetail']       = 'Every redemption';
+$string['rep_held']            = 'Held';
+$string['rep_noorder']         = 'No order';
+$string['rep_heldnote']        = 'Held rows are seats reserved by a checkout that has not been paid. They count against the usage limit until the payment completes or the reservation is released.';
+
+// ── Offer usage report (AC-4.13.7) ──
+// The manage-offers page is two tabs: the offers themselves, and this.
+$string['tab_offers']          = 'Offers';
+$string['ofr_rep_title']       = 'Offer usage';
+$string['ofr_rep_intro']       = 'How many times each offer was used and the orders it was applied to, with the learner, the date and the amount it took off.';
+$string['ofr_rep_none']        = 'No offer usage matches these filters.';
+$string['rep_filter_offer']    = 'Offer';
+$string['rep_filter_alloffers'] = 'All offers';
+$string['rep_col_usages']      = 'Times used';
+$string['rep_col_offer']       = 'Offer';
+$string['rep_byoffer']         = 'By offer';
+$string['rep_allorders']       = 'Every order';
+
+$string['ofr_rep_heldnote']    = 'Held rows belong to a checkout that has not been paid. They are shown so an offer\'s numbers can be reconciled against the gateway, but they are not sales until the payment completes.';
+
+$string['ofr_col_usage']       = 'Usage';
+$string['ofr_rep_open']        = 'View orders';
+$string['ofr_lowest_note']     = 'Where more than one offer covers the same item, the one giving the learner the lowest price is the one applied — offers are never combined.';
+
+// Coupon vs offer: only the larger discount is applied (AC-4.12.6).
+$string['co_offer_won']     = 'Your code is valid, but the current offer saves you more, so the offer was applied.';
+$string['co_coupon_won']    = 'Your code saves more than the current offer, so the code was applied instead.';
+$string['co_notcombined']   = 'Offers and coupons are not combined — you always get the larger of the two.';
+
+// The price moved between this sheet opening and Proceed being pressed (AC-4.13.6) — normally an
+// offer that reached its end date. {old}/{new} are filled in by the modal, not by get_string.
+$string['co_pricechanged']  = 'The price changed while this window was open: it was {old} and is now {new}. Nothing has been charged — press again to continue at the new price.';
+$string['co_confirm_price'] = 'Confirm new price';

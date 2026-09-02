@@ -12,6 +12,7 @@
     * sesskey - Session key
     * courseid - Course being bought
     * coupon_code - Coupon carried through the picker
+    * quoted_amount - The price the buyer was quoted, carried through so the confirmation still applies (AC-4.13.6)
     * methods - id, name, logo, is_reference, checked
     * cancel_url - Back to the course
 
@@ -23,6 +24,7 @@
         "sesskey": "abc123",
         "courseid": 9,
         "coupon_code": "",
+        "quoted_amount": "-1",
         "cancel_url": "#",
         "methods": [
             {"id": 2, "name": "Visa-Mastercard", "logo": "", "is_reference": false, "checked": true},
@@ -41,6 +43,7 @@
         <input type="hidden" name="sesskey" value="{{sesskey}}">
         <input type="hidden" name="courseid" value="{{courseid}}">
         <input type="hidden" name="coupon_code" value="{{coupon_code}}">
+        <input type="hidden" name="quoted_amount" value="{{quoted_amount}}">
 
         <div class="lp-methods__list">
             {{#methods}}

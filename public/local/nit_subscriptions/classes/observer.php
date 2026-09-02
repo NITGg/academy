@@ -49,5 +49,36 @@ class observer {
             (int) $event->relateduserid,
             (int) $event->courseid
         );
+
+        // The enrolment is gone, so the note about where it came from goes with it (AC-4.10.5).
+        enrolment_source::forget((int) $event->objectid);
+    }
+
+    /**
+     * A user was enrolled anywhere in Moodle — record why (AC-4.10.5).
+     *
+     * This has to happen here rather than inside each purchase flow, because the one fact that
+     * cannot be recovered later is who performed the enrolment: the event carries the actor, and
+     * that is what separates an administrator grant from a learner's own free registration.
+     *
+     * Never allowed to break an enrolment. Enrolling is the thing the learner paid for; losing
+     * the note about why is a reporting gap, while a fatal here would be a refund.
+     *
+     * @param \core\event\user_enrolment_created $event
+     * @return void
+     */
+    public static function user_enrolment_created(\core\event\user_enrolment_created $event): void {
+        try {
+            enrolment_source::record(
+                (int) $event->objectid,
+                (int) $event->relateduserid,
+                (int) $event->courseid,
+                (int) $event->userid,
+                (string) ($event->other['enrol'] ?? '')
+            );
+        } catch (\Throwable $e) {
+            debugging('local_nit_subscriptions: could not record enrolment source: '
+                . $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 }

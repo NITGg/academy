@@ -31,6 +31,13 @@ $PAGE->set_pagelayout('standard');
 // that means asking the buyer or picking one itself.
 $methodid = optional_param('payment_method_id', 0, PARAM_INT);
 
+// AC-4.13.6: the price the checkout modal actually showed this buyer. Anything below zero (the
+// default, and what an older link carries) means "no quote" — the checkout then proceeds at
+// whatever the price is now, exactly as before. When a quote IS supplied and the price has since
+// moved (an offer that lapsed while the modal was open), manager::create_checkout() refuses and
+// this page shows the revised figure for a fresh confirmation instead of charging it.
+$quoted = optional_param('quoted_amount', -1, PARAM_FLOAT);
+
 try {
     // Offer the choice before taking the money, when there is a choice to offer
     // and the buyer has not already made it. One method is not a choice, and a
@@ -70,6 +77,7 @@ try {
                 'sesskey' => sesskey(),
                 'courseid' => $courseid,
                 'coupon_code' => $couponcode,
+                'quoted_amount' => $quoted,
                 'methods' => $methods,
                 'cancel_url' => (new moodle_url('/course/view.php', ['id' => $courseid]))->out(false),
             ]);
@@ -80,7 +88,7 @@ try {
     }
 
     $result = \local_payments\manager::create_checkout($courseid, $USER->id, null, $lang,
-        $couponcode, $methodid);
+        $couponcode, $methodid, $quoted);
 
     // Card-style methods hand back a page to send the buyer to. Offline methods
     // (Fawry, Meeza) hand back a code instead — there is nothing to redirect to,
@@ -104,6 +112,31 @@ try {
     }
 
     redirect(new moodle_url($result->checkout_url));
+} catch (\local_payments\price_changed_exception $e) {
+    // AC-4.13.6: the offer behind the quoted price lapsed (or the price changed some other way)
+    // while the buyer was on the confirmation screen. Nothing has been created and nothing has
+    // been charged — show what it costs now against what they were told, and take the decision
+    // again. Confirming re-posts the same checkout with the revised figure as the agreed one, so
+    // if it moves a second time this screen simply comes back.
+    $PAGE->set_title(get_string('pricechanged_title', 'local_payments'));
+    echo $OUTPUT->header();
+    echo $OUTPUT->render_from_template('local_payments/price_changed', [
+        'item_name' => format_string($course->fullname),
+        'old_amount_formatted' => format_float($e->quoted, 2, true, true) . ' ' . $e->currency,
+        'new_amount_formatted' => format_float($e->amount, 2, true, true) . ' ' . $e->currency,
+        'increase' => $e->amount > $e->quoted,
+        'action' => (new moodle_url('/local/payments/checkout.php'))->out(false),
+        'sesskey' => sesskey(),
+        'fields' => [
+            ['name' => 'courseid', 'value' => $courseid],
+            ['name' => 'coupon_code', 'value' => $couponcode],
+            ['name' => 'payment_method_id', 'value' => $methodid],
+            ['name' => 'lang', 'value' => $lang],
+            ['name' => 'quoted_amount', 'value' => format_float($e->amount, 2, false)],
+        ],
+        'cancel_url' => (new moodle_url('/course/view.php', ['id' => $courseid]))->out(false),
+    ]);
+    echo $OUTPUT->footer();
 } catch (\local_payments\country_required_exception $e) {
     // No profile country = no price = nothing to charge. Send them to fill it in rather than
     // to the course they cannot buy yet.

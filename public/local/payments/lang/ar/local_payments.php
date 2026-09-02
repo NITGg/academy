@@ -26,6 +26,17 @@ $string['preview_notice'] = 'أنت تشاهد معاينة لهذا الكور�
 $string['preview_unlock'] = 'افتح هذا الكورس';
 $string['preview_login'] = 'سجّل الدخول للمتابعة';
 $string['preview_locked'] = 'هذا النشاط مقفل حتى تحصل على صلاحية الوصول إلى الكورس.';
+
+// Free preview lessons (AC-4.9.5).
+$string['freepreview'] = 'معاينة مجانية';
+$string['freepreview_label'] = 'السماح للزوار بمشاهدة هذا الدرس قبل الاشتراك';
+$string['freepreview_help'] = 'فعِّل هذا الخيار لجعل النشاط عيّنة مجانية من الدورة.
+
+يستطيع أي زائر يقرأ صفحة الدورة — حتى غير المسجَّل دخولاً — فتحه ومشاهدته، ويظهر في صفحة الدورة كرابط عادي مع شارة **معاينة مجانية** بدلاً من القفل.
+
+يبقى كل نشاط غير مُفعَّل مقفلاً حتى يشترك الطالب في الدورة أو يشتريها. أما الأنشطة المخفية فلا تُعرض للمعاينة مهما كان هذا الإعداد.';
+$string['freepreview_badge'] = 'معاينة مجانية';
+$string['freepreview_lockedlesson'] = 'اشترك في هذه الدورة لفتح هذا الدرس.';
 $string['manageproviders'] = 'إدارة مزودي الدفع';
 $string['providersettings'] = 'إعدادات المزود';
 $string['reports'] = 'تقارير المدفوعات';
@@ -326,6 +337,15 @@ $string['refund_feepercent_desc'] = 'نسبة مئوية من المبلغ ال�
 $string['choose_method'] = 'كيف تحب أن تدفع؟';
 $string['continue_to_payment'] = 'المتابعة إلى الدفع';
 $string['method_gives_code'] = 'ستحصل على كود للدفع به';
+
+// تغيّر السعر بين فتح صفحة الدفع وتأكيدها (AC-4.13.6) — غالباً بسبب انتهاء عرض تلقائي أثناء التصفح.
+$string['pricechanged_title'] = 'تغيّر السعر';
+$string['pricechanged_up'] = 'انتهى عرض على هذا العنصر أثناء إتمامك للشراء، لذا لم يعد السعر هو المعروض عليك. لم يتم خصم أي مبلغ. من فضلك أكّد السعر الجديد للمتابعة.';
+$string['pricechanged_down'] = 'تغيّر سعر هذا العنصر أثناء إتمامك للشراء، وأصبح أقل من السعر المعروض عليك. لم يتم خصم أي مبلغ. من فضلك أكّد السعر الجديد للمتابعة.';
+$string['pricechanged_was'] = 'السعر المعروض عليك';
+$string['pricechanged_now'] = 'السعر الآن';
+$string['pricechanged_confirm'] = 'تأكيد ومتابعة';
+$string['pricechanged_desc'] = 'تغيّر السعر أثناء إتمامك للشراء: كان {$a->old} وأصبح {$a->new}. لم يتم خصم أي مبلغ — من فضلك أكّد السعر الجديد للمتابعة.';
 
 // Refund terms for one course, set on its pricing page.
 $string['refund_terms_heading'] = 'سياسة الاسترداد لهذا المقرر';

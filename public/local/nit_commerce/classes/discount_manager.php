@@ -236,59 +236,125 @@ class discount_manager {
     // ── Resolution (used by checkout — retained for when the purchase flow is wired) ──
 
     /**
-     * The single best automatic offer for an item, or null.
+     * Every live, in-scope automatic offer for an item, ranked best-for-the-learner first.
+     *
+     * "Live" means active and inside its own start/end window at $now; "in scope" means one of its
+     * {@see nit_offer_item} rows targets this item (or all items of its type). Several offers can
+     * legitimately cover the same item at once — a site-wide "all courses" promotion, a campaign on
+     * this one course, a launch offer on the package it belongs to — and they never stack.
      *
      * @param string $itemtype
      * @param int $itemid
-     * @param float $base base price
+     * @param float $base base price the offers are measured against
      * @param int|null $now timestamp (defaults to time())
-     * @return object|null
+     * @return array of objects {id, name, discount_type, discount_value, discount, final, enddate}
      */
-    public static function best_offer($itemtype, $itemid, $base, $now = null) {
+    public static function matching_offers($itemtype, $itemid, $base, $now = null) {
         global $DB;
         $now = $now ?? time();
+        $base = round(max(0.0, (float)$base), 2);
         $offers = $DB->get_records('nit_offer', array('status' => 'active'));
-        $best = null;
+        $out = array();
         foreach ($offers as $offer) {
             if ($offer->startdate > 0 && $now < $offer->startdate) { continue; }
             if ($offer->enddate > 0 && $now > $offer->enddate) { continue; }
             $items = $DB->get_records('nit_offer_item', array('offerid' => $offer->id));
             if (!self::scope_matches($items, $itemtype, $itemid)) { continue; }
             $discount = self::discount_amount($offer->discount_type, $offer->discount_value, null, $base);
-            if ($best === null || $discount > $best->discount) {
-                $best = (object) array(
-                    'id'             => (int)$offer->id,
-                    // Resolve {mlang} to the current language for display (the {mlang} filter is not
-                    // installed here), so the offer name shows translated in the checkout modal.
-                    'name'           => format_string(self::resolve_mlang($offer->name)),
-                    'discount_type'  => $offer->discount_type,
-                    'discount_value' => (float)$offer->discount_value,
-                    'discount'       => $discount,
-                );
-            }
+            $out[] = (object) array(
+                'id'             => (int)$offer->id,
+                // Resolve {mlang} to the current language for display (the {mlang} filter is not
+                // installed here), so the offer name shows translated in the checkout modal.
+                'name'           => format_string(self::resolve_mlang($offer->name)),
+                'discount_type'  => $offer->discount_type,
+                'discount_value' => (float)$offer->discount_value,
+                'discount'       => $discount,
+                'final'          => round(max(0.0, $base - $discount), 2),
+                'enddate'        => (int)$offer->enddate,
+            );
         }
+        usort($out, array(self::class, 'compare_offers'));
+        return $out;
+    }
+
+    /**
+     * Rank two competing offers: the one leaving the learner paying least comes first (AC-4.13.4).
+     *
+     * Both sides were measured against the same base price, so a percentage and a fixed amount are
+     * compared as the MONEY each takes off this item — not rate against rate. 20% of 300 (60) beats
+     * a flat 50 and loses to a flat 100; on a 200 item those same two offers swap places, which is
+     * exactly why the comparison is on final prices rather than on headline numbers.
+     *
+     * The remaining two steps only ever run on an exact tie in price, and exist so that the same
+     * item always resolves to the SAME offer: the price the buyer was shown, the offer named on the
+     * checkout screen and the row written to {@see nit_offer_usage} have to agree, and a tie broken
+     * by whatever order the database happened to return would make the report impossible to
+     * reconcile. Of two offers worth exactly the same, the one ending sooner is spent first (an
+     * open-ended offer, 0, is treated as ending last — it will still be there tomorrow); a still
+     * exact tie falls to the lower id, i.e. the offer created first.
+     *
+     * @param object $a
+     * @param object $b
+     * @return int
+     */
+    private static function compare_offers($a, $b) {
+        $cmp = $a->final <=> $b->final;
+        if ($cmp !== 0) {
+            return $cmp;
+        }
+        $aend = $a->enddate > 0 ? $a->enddate : PHP_INT_MAX;
+        $bend = $b->enddate > 0 ? $b->enddate : PHP_INT_MAX;
+        if ($aend !== $bend) {
+            return $aend <=> $bend;
+        }
+        return $a->id <=> $b->id;
+    }
+
+    /**
+     * The automatic offer that leaves the learner with the lowest price for an item, or null when
+     * none is live and in scope (AC-4.13.4).
+     *
+     * @param string $itemtype
+     * @param int $itemid
+     * @param float $base base price
+     * @param int|null $now timestamp (defaults to time())
+     * @return object|null the winner, with `candidates` = how many offers competed for this item
+     */
+    public static function best_offer($itemtype, $itemid, $base, $now = null) {
+        $matches = self::matching_offers($itemtype, $itemid, $base, $now);
+        if (!$matches) {
+            return null;
+        }
+        $best = $matches[0];
+        $best->candidates = count($matches);
         return $best;
     }
 
     /**
-     * The best automatic-offer discount for an item. Offers do NOT stack.
+     * The best automatic-offer discount for an item. Offers do NOT stack: where several cover the
+     * same item, only the one giving the lowest price to the learner is applied (AC-4.13.4).
      *
      * @param string $itemtype
      * @param int $itemid
      * @param float $base
      * @param int|null $now
-     * @return array {offers: array of {id, name, discount}, total: float}
+     * @return array {offers: array of {id, name, discount}, total: float, candidates: int}
      */
     public static function offers_discount($itemtype, $itemid, $base, $now = null) {
         $base = round(max(0.0, (float)$base), 2);
-        $best = self::best_offer($itemtype, $itemid, $base, $now);
+        $matches = self::matching_offers($itemtype, $itemid, $base, $now);
+        $best = $matches ? $matches[0] : null;
         if (!$best || $best->discount <= 0) {
-            return array('offers' => array(), 'total' => 0.0);
+            // Offers that matched but take nothing off (a 0% campaign, or a fixed amount that
+            // rounds away) still count as candidates: the number reported is "how many covered
+            // this item", which is the question asked, not "how many were worth applying".
+            return array('offers' => array(), 'total' => 0.0, 'candidates' => count($matches));
         }
         $total = min(round((float)$best->discount, 2), $base);
         return array(
-            'offers' => array(array('id' => (int)$best->id, 'name' => $best->name, 'discount' => $total)),
-            'total'  => $total,
+            'offers'     => array(array('id' => (int)$best->id, 'name' => $best->name, 'discount' => $total)),
+            'total'      => $total,
+            'candidates' => count($matches),
         );
     }
 
@@ -312,6 +378,7 @@ class discount_manager {
         $total = $od['total'];
         $pct = $base > 0 ? round($total / $base * 100) : 0;
         return array(
+            'id'             => (int) $od['offers'][0]['id'],
             'name'           => format_string($od['offers'][0]['name']),
             'discount_type'  => self::DISCOUNT_PERCENT,
             'discount_value' => $pct,
@@ -319,6 +386,8 @@ class discount_manager {
             'original'       => $base,
             'final'          => round(max(0.0, $base - $total), 2),
             'label'          => '-' . rtrim(rtrim(number_format($pct, 2), '0'), '.') . '%',
+            // How many live offers covered this item; the winner is the one named above.
+            'candidates'     => (int) ($od['candidates'] ?? 1),
         );
     }
 
@@ -375,8 +444,20 @@ class discount_manager {
     }
 
     /**
-     * Compute the charged price for an item, applying the best offer automatically and an optional
-     * coupon code on top.
+     * Compute the charged price for an item: the best automatic offer and the entered coupon
+     * compete, and the larger of the two wins outright (AC-4.12.6).
+     *
+     * The two are deliberately NOT combined and NOT applied one after the other. Both are measured
+     * against the same undiscounted base, so "larger" is a straight comparison of two amounts in
+     * the same currency — a 20% offer and a "50 off" coupon are compared as the money each
+     * actually takes off this item, not as a rate against a rate. A tie goes to the offer, so a
+     * coupon is spent only when it genuinely beats what the buyer would have got for free. The
+     * loser is still reported (so the checkout can explain itself) but carries a zero amount,
+     * which is what keeps {@see self::reserve_usage()} and {@see self::do_record_usage()} from
+     * recording a redemption against it.
+     *
+     * The order can never fall below zero (AC-4.12.7): {@see self::discount_amount()} caps each
+     * candidate at the base price, and the final subtraction is clamped again.
      *
      * @param string $itemtype course | package | subscription
      * @param int $itemid
@@ -393,40 +474,96 @@ class discount_manager {
         $base = round(max(0.0, $base), 2);
 
         $result = array(
-            'original'        => $base,
-            'offers'          => array(),
-            'offer_id'        => 0,
-            'offer_name'      => '',
-            'offer_discount'  => 0.0,
-            'coupon_id'       => 0,
-            'coupon_code'     => '',
-            'coupon_discount' => 0.0,
-            'discount'        => 0.0,
-            'final'           => $base,
+            'original'          => $base,
+            'offers'            => array(),
+            'offer_id'          => 0,
+            'offer_name'        => '',
+            'offer_discount'    => 0.0,
+            'coupon_id'         => 0,
+            'coupon_code'       => '',
+            'coupon_discount'   => 0.0,
+            // Which of the two won, and what each would have taken off on its own. The checkout
+            // reads these to explain a coupon that was perfectly valid but simply beaten.
+            'applied'           => 'none',
+            'offer_candidate'   => 0.0,
+            'coupon_candidate'  => 0.0,
+            'coupon_superseded' => false,
+            // How many live offers covered this item. More than one means they competed and the
+            // cheapest won (AC-4.13.4); the checkout says so rather than leaving the buyer to
+            // wonder why a promotion they read about is not the one on screen.
+            'offer_candidates'  => 0,
+            'discount'          => 0.0,
+            'final'             => $base,
         );
 
+        // Candidate 1: the best automatic offer, measured against the undiscounted base. Where
+        // several offers cover this item, offers_discount() has already picked the one that
+        // leaves the learner paying least (AC-4.13.4) — they never stack.
         $od = self::offers_discount($itemtype, $itemid, $base, $now);
-        $running = $base;
-        if ($od['total'] > 0) {
-            $result['offers']         = $od['offers'];
-            $result['offer_discount'] = $od['total'];
-            $result['offer_id']       = $od['offers'][0]['id'];
-            $result['offer_name']     = format_string($od['offers'][0]['name']);
-            $running = round($running - $od['total'], 2);
-        }
+        $offeramount = round((float) $od['total'], 2);
+        $result['offer_candidates'] = (int) ($od['candidates'] ?? 0);
 
+        // Candidate 2: the entered coupon, measured against the SAME undiscounted base — never
+        // against an offer-reduced running total, because the two never compound.
+        $coupon = null;
+        $couponamount = 0.0;
         $couponcode = trim((string)$couponcode);
         if ($couponcode !== '') {
             $coupon = self::validate_coupon($couponcode, $itemtype, $itemid, $userid, $now);
-            $cdiscount = self::discount_amount($coupon->discount_type, $coupon->discount_value,
-                $coupon->max_discount, $running);
-            $result['coupon_id']       = (int)$coupon->id;
-            $result['coupon_code']     = $coupon->code;
-            $result['coupon_discount'] = $cdiscount;
-            $running = round($running - $cdiscount, 2);
+            $couponamount = self::discount_amount($coupon->discount_type, $coupon->discount_value,
+                $coupon->max_discount, $base);
         }
 
-        $result['final']    = round(max(0.0, $running), 2);
+        $result['offer_candidate']  = $offeramount;
+        $result['coupon_candidate'] = $couponamount;
+
+        // Strictly greater: an equal-value coupon loses, so the offer is applied (AC-4.12.6).
+        $couponwins = ($coupon !== null) && ($couponamount > $offeramount) && ($couponamount > 0);
+
+        if ($couponwins) {
+            $result['coupon_id']       = (int)$coupon->id;
+            $result['coupon_code']     = $coupon->code;
+            $result['coupon_discount'] = $couponamount;
+            $result['applied']         = 'coupon';
+            // The beaten offer is named for display only: no amount and no 'offers' row, so no
+            // offer usage is recorded for a purchase the offer did not discount.
+            if ($offeramount > 0) {
+                $result['offer_id']   = (int) $od['offers'][0]['id'];
+                $result['offer_name'] = format_string($od['offers'][0]['name']);
+            }
+            $applied = $couponamount;
+
+        } else if ($offeramount > 0) {
+            $result['offers']         = $od['offers'];
+            $result['offer_discount'] = $offeramount;
+            $result['offer_id']       = (int) $od['offers'][0]['id'];
+            $result['offer_name']     = format_string($od['offers'][0]['name']);
+            $result['applied']        = 'offer';
+            if ($coupon !== null) {
+                // Valid and in scope, just beaten. Named with a zero amount so the checkout can
+                // say why it did nothing, and so no redemption is recorded against it.
+                $result['coupon_id']         = (int)$coupon->id;
+                $result['coupon_code']       = $coupon->code;
+                $result['coupon_superseded'] = true;
+            }
+            $applied = $offeramount;
+
+        } else if ($coupon !== null && $couponamount > 0) {
+            // No offer on this item — the coupon stands alone.
+            $result['coupon_id']       = (int)$coupon->id;
+            $result['coupon_code']     = $coupon->code;
+            $result['coupon_discount'] = $couponamount;
+            $result['applied']         = 'coupon';
+            $applied = $couponamount;
+
+        } else {
+            $applied = 0.0;
+        }
+
+        // AC-4.12.7: a discount larger than the order value produces a zero-value order, never a
+        // negative one. discount_amount() already capped each candidate at $base; this is the belt
+        // to that braces, and it absorbs any rounding drift as well.
+        $result['final']    = round(max(0.0, $base - $applied), 2);
         $result['discount'] = round($base - $result['final'], 2);
         return $result;
     }
@@ -520,6 +657,8 @@ class discount_manager {
         global $DB;
         $now = time();
         $transactionid = (int)$transactionid;
+        $couponid = (int) ($resolved['coupon_id'] ?? 0);
+        $hascoupon = $couponid > 0 && ($resolved['coupon_discount'] ?? 0) > 0;
 
         // Idempotency lock: a single transaction can be fulfilled twice when the
         // gateway webhook and the browser-redirect callback race. Serialise on the
@@ -531,9 +670,28 @@ class discount_manager {
             $lock = $lockfactory->get_lock('record_usage_' . $transactionid, 10);
         }
 
+        // AC-4.12.9: the counter is COUNT(nit_coupon_usage), so "incrementing it" IS this insert.
+        // Normally the row already exists — reserve_usage() wrote it under the same coupon lock at
+        // checkout — and the existence check below simply confirms it. But a fulfilment that
+        // arrives with no reservation (a flow that skipped reserve_usage, or a reservation the
+        // cleanup task released while the gateway was still deciding) would otherwise insert
+        // outside any lock, and two of those could both land past a cap. Take the same per-coupon
+        // lock reserve_usage() uses so every path that can add to the count is serialised on it.
+        // A lock we cannot get is not a reason to lose a fulfilment the buyer has already paid
+        // for: record it anyway. Refusing here would drop the redemption from the report while
+        // the money stands, which is a worse failure than a cap overshot by one.
+        $couponlock = null;
+        if ($hascoupon) {
+            $couponlock = \core\lock\lock_config::get_lock_factory('local_nit_commerce')
+                ->get_lock('coupon_reserve_' . $couponid, 10);
+        }
+
         try {
             self::do_record_usage($DB, $resolved, $userid, $transactionid, $itemtype, $itemid, $now);
         } finally {
+            if ($couponlock) {
+                $couponlock->release();
+            }
             if ($lock) {
                 $lock->release();
             }

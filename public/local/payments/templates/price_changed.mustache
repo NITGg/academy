@@ -1,0 +1,71 @@
+{{!
+    @template local_payments/price_changed
+
+    Shown when the price moved between the buyer opening checkout and confirming it (AC-4.13.6) —
+    almost always an automatic offer that reached its end date while they were deciding. Nothing
+    has been charged and no gateway session exists at this point; the buyer either accepts the
+    revised price, which re-submits the same checkout with the new figure as the agreed one, or
+    walks away.
+
+    The old price is struck through rather than merely mentioned, because the one thing this screen
+    has to make unmissable is that the number is not the one they were looking at a moment ago.
+
+    Context variables required for this template:
+    * item_name - What is being bought
+    * old_amount_formatted - The price the buyer was quoted, with currency
+    * new_amount_formatted - The price now, with currency
+    * increase - true when the new price is higher (drives the wording + colour)
+    * action - Where the confirmation form posts
+    * sesskey - Session key
+    * fields - Hidden fields to carry through: {name, value}
+    * cancel_url - Back to where they came from
+
+    Example context (json):
+    {
+        "item_name": "Advanced Accounting",
+        "old_amount_formatted": "210.00 EGP",
+        "new_amount_formatted": "350.00 EGP",
+        "increase": true,
+        "action": "#",
+        "sesskey": "abc123",
+        "cancel_url": "#",
+        "fields": [
+            {"name": "courseid", "value": "9"},
+            {"name": "coupon_code", "value": ""}
+        ]
+    }
+}}
+<div class="lp-pricechanged">
+    <h3 class="lp-pricechanged__title">{{#str}} pricechanged_title, local_payments {{/str}}</h3>
+
+    <p class="lp-pricechanged__lead">
+        {{#increase}}{{#str}} pricechanged_up, local_payments {{/str}}{{/increase}}
+        {{^increase}}{{#str}} pricechanged_down, local_payments {{/str}}{{/increase}}
+    </p>
+
+    <div class="lp-pricechanged__box">
+        <div class="lp-pricechanged__item">{{item_name}}</div>
+        <div class="lp-pricechanged__row">
+            <span class="lp-pricechanged__label">{{#str}} pricechanged_was, local_payments {{/str}}</span>
+            <s class="lp-pricechanged__old">{{old_amount_formatted}}</s>
+        </div>
+        <div class="lp-pricechanged__row lp-pricechanged__row--now">
+            <span class="lp-pricechanged__label">{{#str}} pricechanged_now, local_payments {{/str}}</span>
+            <strong class="lp-pricechanged__new">{{new_amount_formatted}}</strong>
+        </div>
+    </div>
+
+    <form method="post" action="{{action}}">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        {{#fields}}
+            <input type="hidden" name="{{name}}" value="{{value}}">
+        {{/fields}}
+
+        <div class="lp-pricechanged__actions">
+            <button type="submit" class="btn btn-primary btn-lg">
+                {{#str}} pricechanged_confirm, local_payments {{/str}}
+            </button>
+            <a href="{{cancel_url}}" class="btn btn-outline-secondary">{{#str}} cancel {{/str}}</a>
+        </div>
+    </form>
+</div>

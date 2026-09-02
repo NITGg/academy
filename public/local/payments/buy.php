@@ -119,7 +119,8 @@ try {
         $costr = local_nit_commerce_string_map([
             'co_title', 'co_intro', 'co_total', 'co_offer', 'co_coupon', 'co_apply', 'co_discount',
             'co_secure', 'co_proceed', 'co_cancel', 'co_loading', 'co_coupon_failed', 'co_currency',
-            'co_method', 'co_method_code',
+            'co_method', 'co_method_code', 'co_offer_won', 'co_coupon_won', 'co_notcombined',
+            'co_pricechanged', 'co_confirm_price',
         ]);
 
         // The methods the gateway will actually accept, so the buyer picks here
@@ -180,12 +181,17 @@ try {
                 price: window.NIT_CO.price,
                 currency: window.NIT_CO.currency,
                 methods: window.NIT_CO.methods,
-                proceed: function (code, methodId) {
+                proceed: function (code, methodId, quoted) {
                     var url = href + (href.indexOf('?') >= 0 ? '&' : '?') +
                         'coupon_code=' + encodeURIComponent(code);
                     // 0 means the modal offered no choice; checkout then picks
                     // one itself rather than showing its own picker screen.
                     if (methodId) { url += '&payment_method_id=' + encodeURIComponent(methodId); }
+                    // The exact total the modal had on screen. checkout.php refuses to charge a
+                    // different one and asks the buyer to confirm instead (AC-4.13.6).
+                    if (quoted != null && quoted >= 0) {
+                        url += '&quoted_amount=' + encodeURIComponent(Number(quoted).toFixed(2));
+                    }
                     window.location.href = url;
                 }
             });

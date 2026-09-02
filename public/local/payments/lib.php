@@ -140,9 +140,9 @@ function local_payments_after_require_login($courseorid = null, $autologinguest 
  *
  * Core calls this for every plugin at the end of moodleform_mod::standard_coursemodule_elements(),
  * which is the supported way to put a setting of our own on /course/modedit.php — no core file
- * is touched. The tick is inserted right after the "Availability" control inside *Common module
+ * is touched. The tick is inserted right after the "Availability" dropdown inside *Common module
  * settings*, because that is where a teacher already goes to decide who can see this activity;
- * when core moves that element the tick simply lands at the end of the form instead.
+ * on a module form that has none of the anchors it simply lands at the end instead.
  *
  * The value is written back by local_payments_coursemodule_edit_post_actions().
  *
@@ -165,7 +165,7 @@ function local_payments_coursemodule_standard_elements($formwrapper, $mform) {
     // The first anchor that exists wins; a module form that has none of them (some have no
     // groups and no availability section) just gets the tick appended.
     $placed = false;
-    foreach (['availabilityconditionsjson', 'groupmode', 'visible'] as $anchor) {
+    foreach (['cmidnumber', 'groupmode', 'groupingid', 'availabilityconditionsjson'] as $anchor) {
         if ($mform->elementExists($anchor)) {
             $mform->insertElementBefore($element, $anchor);
             $placed = true;

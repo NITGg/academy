@@ -221,6 +221,8 @@ $jsconfig = json_encode([
     'sesskey'      => sesskey(),
     'returnurl'    => $pageurl->out(false),
     'couponfailed' => get_string('co_coupon_failed', 'local_nit_commerce'),
+    // AC-4.13.6: shown when an offer on this plan lapses between the dialog opening and Proceed.
+    'pricechanged' => get_string('co_pricechanged', 'local_nit_commerce'),
 ], JSON_UNESCAPED_UNICODE);
 
 // Only a visitor who can actually buy needs the checkout script — and it has to be required

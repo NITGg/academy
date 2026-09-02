@@ -89,9 +89,9 @@ try {
     }
 
     $couponfns = ['get_coupons', 'create_coupon', 'update_coupon', 'activate_coupon',
-        'deactivate_coupon', 'delete_coupon'];
+        'deactivate_coupon', 'delete_coupon', 'get_coupon_redemptions'];
     $offerfns  = ['get_offers', 'create_offer', 'update_offer', 'activate_offer',
-        'deactivate_offer', 'delete_offer'];
+        'deactivate_offer', 'delete_offer', 'get_offer_usages'];
     if (in_array($function, $couponfns, true)) {
         require_capability('local/nit_commerce:managecoupons', $context);
     }
@@ -209,6 +209,35 @@ try {
         case 'delete_offer':
             offer_manager::delete_offer(required_param('id', PARAM_INT));
             nit_commerce_respond(['status' => 'success', 'data' => []]);
+            break;
+
+        // ── Coupon redemption report (AC-4.12.8) ──
+        // Every redemption already carries the learner, the order, the date and the amount; this
+        // is the read that makes them reportable. Paged server-side because the log only grows.
+        case 'get_coupon_redemptions':
+            $filters = nit_commerce_redemption_filters();
+            $page    = max(0, optional_param('page', 0, PARAM_INT));
+            $perpage = min(200, max(1, optional_param('perpage', 25, PARAM_INT)));
+            $data    = coupon_manager::get_redemptions($filters, $page * $perpage, $perpage);
+            $data['summary'] = coupon_manager::get_redemption_summary($filters);
+            $data['page']    = $page;
+            $data['perpage'] = $perpage;
+            nit_commerce_respond(['status' => 'success', 'data' => $data]);
+            break;
+
+        // ── Offer usage report (AC-4.13.7) ──
+        // Every application of an offer already carries the learner, the order, the date and the
+        // amount; this is the read that makes offer usage and orders reportable per offer. Paged
+        // server-side because the log only grows.
+        case 'get_offer_usages':
+            $filters = nit_commerce_offer_filters();
+            $page    = max(0, optional_param('page', 0, PARAM_INT));
+            $perpage = min(200, max(1, optional_param('perpage', 25, PARAM_INT)));
+            $data    = offer_manager::get_usages($filters, $page * $perpage, $perpage);
+            $data['summary'] = offer_manager::get_usage_summary($filters);
+            $data['page']    = $page;
+            $data['perpage'] = $perpage;
+            nit_commerce_respond(['status' => 'success', 'data' => $data]);
             break;
 
         // ── Shared: selectable scope targets ──

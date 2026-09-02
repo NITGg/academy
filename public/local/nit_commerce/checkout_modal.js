@@ -3,7 +3,15 @@
  *
  * A page mints its config + strings, then calls NitCheckout.open({...}) from a Buy button. The modal
  * previews the price (auto offer + optional coupon) via /local/nit_commerce/api.php?function=preview_discount
- * and, on Proceed, calls the caller's proceed(couponCode, methodId) to start the real checkout.
+ * and, on Proceed, calls the caller's proceed(couponCode, methodId, quotedAmount) to start the real
+ * checkout.
+ *
+ * proceed() receives a THIRD argument: the exact total this sheet had on screen when the buyer
+ * agreed to it. Pass it to the checkout as `quoted_amount` — the server refuses to open a checkout
+ * at a price the buyer was not shown and sends them to a confirmation page instead (AC-4.13.6).
+ * A caller that drops it gets the old behaviour: charged at whatever the price is now, no
+ * confirmation. Before proceed() is called at all, the modal re-checks the price itself and asks
+ * for a second press if it moved, so most changes are caught here rather than a page later.
  *
  * Pass `methods` to have the buyer choose how to pay here, in the same sheet as
  * the price and the coupon, which is where the mobile app asks. Two or more are
@@ -127,6 +135,12 @@
     els.couponErr = el('div', 'display:none; color:' + C.error + '; font-size:12px; margin:-6px 0 10px;', ' ');
     box.appendChild(els.couponErr);
 
+    // A refused code is an error; a code that simply lost to a bigger offer is not. Keeping
+    // them on separate lines is the difference between "your code is broken" and "we already
+    // gave you more" — the second is what a buyer needs when the total does not move (AC-4.12.6).
+    els.couponNote = el('div', 'display:none; color:' + C.muted + '; font-size:12px; margin:-6px 0 10px; line-height:1.5;', ' ');
+    box.appendChild(els.couponNote);
+
     box.appendChild(row(S('co_discount'), (els.discount = el('b', 'color:' + C.good + ';', '0.00 ' + cur()))));
 
     var totalRow = el('div', 'border-top:1px solid ' + C.line + '; padding-top:12px; display:flex; justify-content:space-between; font-size:16px; font-weight:800;');
@@ -143,6 +157,14 @@
 
     els.error = el('div', 'display:none; margin:12px 24px 0; color:' + C.error + '; font-size:13px;', ' ');
     card.appendChild(els.error);
+
+    // AC-4.13.6: where the revised price is explained when an offer lapses between this sheet
+    // opening and Proceed being pressed. Given its own band — a warning tucked into the error
+    // line would read as "something went wrong" rather than "the number changed, look again".
+    els.pricenote = el('div', 'display:none; margin:12px 24px 0; padding:10px 12px; border-radius:8px;' +
+      ' border:1px solid ' + C.error + '; color:' + C.ink + '; background:color-mix(in srgb, ' +
+      C.error + ' 12%, transparent); font-size:13px; line-height:1.5;', ' ');
+    card.appendChild(els.pricenote);
 
     var actions = el('div', 'display:flex; justify-content:flex-end; gap:10px; padding:18px 24px 22px;');
     els.cancel = el('button', 'background:transparent; border:1px solid ' + C.line + '; color:' + C.muted + '; border-radius:8px; padding:9px 18px; font-weight:700; cursor:pointer;', S('co_cancel'));
@@ -169,8 +191,49 @@
     els.proceed.addEventListener('click', function () {
       if (!current) { return; }
       els.proceed.disabled = true;
-      try { current.proceed(els.coupon.value.trim(), els.methodid || 0); }
-      catch (e) { els.proceed.disabled = false; els.error.textContent = String(e && e.message || e); els.error.style.display = ''; }
+      go(els.coupon.value.trim());
+    });
+  }
+
+  // Hand the buyer to the real checkout — but only at a price they have just been shown
+  // (AC-4.13.6).
+  //
+  // The figure on this sheet was resolved when the modal opened, or when a coupon was last
+  // applied. An offer can reach its end date in the minutes between that and the buyer pressing
+  // Proceed, and the price would then quietly go up on the gateway's screen. So re-resolve first:
+  // if the number moved, repaint the sheet with the new one, say what happened, and wait for a
+  // second, deliberate press. Only then is the caller's proceed() run, and it is handed the exact
+  // figure that was on screen — the server checks it again and sends the buyer back to a
+  // confirmation page if it moved once more in the meantime.
+  function go(code) {
+    var was = (current && current.quoted != null) ? Number(current.quoted) : null;
+
+    function launch(amount) {
+      try { current.proceed(code, els.methodid || 0, amount); }
+      catch (e) {
+        els.proceed.disabled = false;
+        els.error.textContent = String(e && e.message || e);
+        els.error.style.display = '';
+      }
+    }
+
+    preview(code).then(function (d) {
+      var now = (d && d.final != null) ? Number(d.final) : was;
+      // Half a minor unit: this is a price change, not float drift.
+      if (was != null && now != null && Math.abs(now - was) >= 0.005) {
+        els.pricenote.textContent = S('co_pricechanged')
+          .replace('{old}', money(was) + ' ' + cur())
+          .replace('{new}', money(now) + ' ' + cur());
+        els.pricenote.style.display = '';
+        els.proceed.textContent = S('co_confirm_price');
+        els.proceed.disabled = false;
+        return;
+      }
+      launch(now == null ? -1 : now);
+    }).catch(function () {
+      // The re-check itself failed (offline, session gone). Do not strand a buyer who is trying
+      // to pay: go on with the figure they were shown, which the server re-checks anyway.
+      launch(was == null ? -1 : was);
     });
   }
 
@@ -254,12 +317,15 @@
   function close() { if (modal) { modal.style.display = 'none'; } current = null; }
 
   // Fetch a fresh price preview (auto offer + optional coupon) and paint the modal.
+  //
+  // Resolves with the server's answer and records the painted total on `current.quoted` — that
+  // figure is the quote the buyer is being asked to agree to, and go() compares against it.
   function preview(code) {
-    if (!current) { return; }
+    if (!current) { return Promise.reject(new Error('no item')); }
     var url = cfg.wwwroot + cfg.commerce + '?function=preview_discount&item_type=' + encodeURIComponent(current.itemType) +
       '&item_id=' + encodeURIComponent(current.itemId) + '&coupon_code=' + encodeURIComponent(code || '') +
       '&sesskey=' + encodeURIComponent(cfg.sesskey);
-    fetch(url, { headers: { 'Accept': 'application/json' } })
+    return fetch(url, { headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.json(); })
       .then(function (res) {
         if (!res || res.status !== 'success') { throw new Error('preview failed'); }
@@ -267,7 +333,11 @@
         els.original.textContent = money(d.original != null ? d.original : (current.price || 0)) + ' ' + cur();
         els.final.textContent = money(d.final != null ? d.final : (current.price || 0)) + ' ' + cur();
         els.discount.textContent = money(d.discount || 0) + ' ' + cur();
-        // Offer line (auto-applied), with its name if present.
+        // The total now on screen IS the quote: this is the number the buyer agrees to by
+        // pressing Proceed, and the one go() re-checks before anything is charged (AC-4.13.6).
+        current.quoted = (d.final != null) ? Number(d.final) : null;
+        // Offer line (auto-applied), with its name if present. Several live offers can cover the
+        // same item; only the one leaving the lowest price is applied (AC-4.13.4), so name it.
         var offerDisc = Number(d.offer_discount || 0);
         if (offerDisc > 0) {
           var oname = (d.offers && d.offers[0] && d.offers[0].name) ? d.offers[0].name : (d.offer_name || '');
@@ -278,8 +348,31 @@
         }
         if (d.coupon_error) { els.couponErr.textContent = d.coupon_error; els.couponErr.style.display = ''; }
         else { els.couponErr.style.display = 'none'; }
+
+        // AC-4.12.6: only the larger of coupon and offer is applied, never both. When the buyer
+        // typed a perfectly good code and the total did not move, say which one won and why —
+        // otherwise the screen looks broken and they retype the code.
+        var note = '';
+        if (!d.coupon_error && d.coupon_superseded) {
+          note = S('co_offer_won');
+        } else if (d.applied === 'coupon' && Number(d.offer_candidate || 0) > 0) {
+          note = S('co_coupon_won');
+        }
+        if (note) {
+          els.couponNote.textContent = note + ' ' + S('co_notcombined');
+          els.couponNote.style.display = '';
+        } else {
+          els.couponNote.style.display = 'none';
+        }
+        return d;
       })
-      .catch(function () { els.couponErr.textContent = S('co_coupon_failed'); els.couponErr.style.display = ''; });
+      .catch(function (e) {
+        els.couponNote.style.display = 'none';
+        els.couponErr.textContent = S('co_coupon_failed');
+        els.couponErr.style.display = '';
+        // Rethrown so go() can tell "the price has not moved" apart from "we could not ask".
+        throw e;
+      });
   }
 
   var NitCheckout = {
@@ -289,12 +382,18 @@
       build();
       group(item.trigger);
       current = item;
+      // No quote until the first preview lands: until then the buyer has agreed to nothing, and
+      // go() must not compare against the caller's optimistic list price.
+      current.quoted = null;
       els.name.textContent = item.name || '—';
       if (item.subtitle) { els.subtitle.textContent = item.subtitle; els.subtitle.style.display = ''; }
       else { els.subtitle.style.display = 'none'; }
       els.coupon.value = '';
       els.couponErr.style.display = 'none';
+      els.couponNote.style.display = 'none';
       els.error.style.display = 'none';
+      els.pricenote.style.display = 'none';
+      els.proceed.textContent = S('co_proceed');
       els.proceed.disabled = false;
       var base = money(item.price || 0) + ' ' + cur();
       els.original.textContent = base; els.final.textContent = base; els.discount.textContent = '0.00 ' + cur();

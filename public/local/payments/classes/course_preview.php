@@ -37,7 +37,9 @@ defined('MOODLE_INTERNAL') || die();
  *   * every activity stays locked — /mod/xxx/view.php, and any file served through
  *     pluginfile.php, still run require_login() with no grant, so core bounces the visitor
  *     to /enrol/index.php, which hook_callbacks turns into the buy page (or the login page
- *     for a guest). The lock is core's, not a UI trick;
+ *     for a guest). The lock is core's, not a UI trick. The one exception is an activity a
+ *     teacher ticked as a free preview ({@see free_preview}): its view page and its files
+ *     preview too, so a shopper can watch a sample lesson (AC-4.9.5);
  *   * nothing leaks into the next request: any grant made earlier in the session is revoked
  *     at the start of every request before a new one is considered.
  *
@@ -63,6 +65,16 @@ class course_preview {
     /** @var int the course this request is previewing; 0 when the request is not a preview. */
     protected static int $courseid = 0;
 
+    /** @var int the free-preview activity this request is opening; 0 on a course page. */
+    protected static int $cmid = 0;
+
+    /**
+     * @var int the activity a URL resolved to, before setup() decided whether to grant. Kept
+     *          apart from $cmid so a request that is turned down (hidden course, already
+     *          enrolled) does not leave the page believing it is showing a free lesson.
+     */
+    protected static int $candidatecmid = 0;
+
     /**
      * The course being previewed on this request, or 0.
      *
@@ -70,6 +82,15 @@ class course_preview {
      */
     public static function active_courseid(): int {
         return self::$courseid;
+    }
+
+    /**
+     * The free-preview activity this request is opening, or 0 when it is a course page.
+     *
+     * @return int
+     */
+    public static function active_cmid(): int {
+        return self::$cmid;
     }
 
     /**
@@ -81,6 +102,33 @@ class course_preview {
         $value = get_config('local_payments', self::SETTING);
 
         return $value === false ? true : (bool) $value;
+    }
+
+    /**
+     * Is this course locked for whoever is asking — i.e. should its activities show padlocks?
+     *
+     * True for a visitor previewing the course, and equally for anyone else who got as far as
+     * the course page without real access (a course with core "guest access" switched on, an
+     * expired subscription). The one question the UI needs answered before it decides whether
+     * to draw a link or a lock.
+     *
+     * @param int $courseid
+     * @return bool
+     */
+    public static function is_locked(int $courseid): bool {
+        if (!self::is_enabled()) {
+            return false;
+        }
+        if ($courseid <= 0 || $courseid == SITEID) {
+            return false;
+        }
+
+        $context = \context_course::instance($courseid, IGNORE_MISSING);
+        if (!$context || is_siteadmin() || is_viewing($context)) {
+            return false;
+        }
+
+        return !(isloggedin() && !isguestuser() && is_enrolled($context, null, '', true));
     }
 
     /**
@@ -193,6 +241,7 @@ class course_preview {
         $USER->{self::USERKEY} = $courseid;
 
         self::$courseid = $courseid;
+        self::$cmid = self::$candidatecmid;
     }
 
     /**
@@ -217,15 +266,17 @@ class course_preview {
     }
 
     /**
-     * The course id this request is asking to read, or 0 when the URL is not a course page.
+     * The course id this request is asking to read, or 0 when the URL is not previewable.
      *
-     * Two scripts preview, and only these two: the course page itself, and the single-section
+     * Three scripts preview, and only these three: the course page itself, the single-section
      * page it links to when the format shows one section per page (otherwise half the
-     * catalogue would preview as a list of section names). Everything else — activities,
-     * files, reports — is left to core, which is what keeps them locked.
+     * catalogue would preview as a list of section names), and the view page of an activity
+     * the teacher published as a free preview (AC-4.9.5). Everything else — every other
+     * activity, its files, the reports — is left to core, which is what keeps them locked.
      *
-     * course/view.php can also be addressed by ?name= / ?idnumber=; those fall through to
-     * core's normal (login-required) behaviour rather than resolving a lookup this early.
+     * course/view.php can also be addressed by ?name= / ?idnumber=, and a handful of old
+     * modules accept ?n=<instance> instead of ?id=<cmid>; those fall through to core's normal
+     * (login-required) behaviour rather than resolving a lookup this early.
      *
      * @return int
      */
@@ -242,6 +293,8 @@ class course_preview {
             $courseid = $id;
         } else if (self::script_is($script, '/course/section.php')) {
             $courseid = (int) $DB->get_field('course_sections', 'course', ['id' => $id], IGNORE_MISSING);
+        } else if (preg_match('#/mod/[a-z0-9_]+/view\.php$#', $script)) {
+            $courseid = self::free_preview_courseid($id);
         } else {
             return 0;
         }
@@ -250,13 +303,49 @@ class course_preview {
     }
 
     /**
+     * The course of a course module flagged as a free preview, or 0 when it is not one.
+     *
+     * Records the cmid on the way through, so the rest of the request knows it is looking at
+     * a free lesson rather than the course page.
+     *
+     * @param int $cmid course_modules.id
+     * @return int
+     */
+    protected static function free_preview_courseid(int $cmid): int {
+        global $DB;
+
+        if ($cmid <= 0) {
+            return 0;
+        }
+
+        $cm = $DB->get_record('course_modules', ['id' => $cmid],
+            'id, course, visible, deletioninprogress', IGNORE_MISSING);
+        // A hidden activity is not on the course page at all, so it is not on offer either.
+        if (!$cm || empty($cm->visible) || !empty($cm->deletioninprogress)) {
+            return 0;
+        }
+        if (!free_preview::is_free((int) $cm->id, (int) $cm->course)) {
+            return 0;
+        }
+
+        self::$candidatecmid = (int) $cm->id;
+
+        return (int) $cm->course;
+    }
+
+    /**
      * The course id of a pluginfile request for a COURSE-level file, or 0.
      *
      * The preview page shows the course picture and the images inside the course and section
      * summaries; those are served by pluginfile.php, which runs its own require_login() and
      * would otherwise bounce a previewer to the login page and leave the page full of broken
-     * images. Only files that live in a course context qualify — anything in a module context
-     * is an activity's file and stays locked.
+     * images. Two kinds of file qualify:
+     *
+     *   * anything in a COURSE context — the picture and the summaries above;
+     *   * the files of an activity flagged as a free preview, because a lesson nobody can
+     *     load the video of is not playable (AC-4.9.5).
+     *
+     * Every other module context is a locked activity's file and stays locked.
      *
      * @param string $script value of $_SERVER['SCRIPT_NAME']
      * @return int
@@ -273,7 +362,15 @@ class course_preview {
         }
 
         $context = \context::instance_by_id((int) $matches[1], IGNORE_MISSING);
-        if (!$context || $context->contextlevel != CONTEXT_COURSE) {
+        if (!$context) {
+            return 0;
+        }
+
+        if ($context->contextlevel == CONTEXT_MODULE) {
+            return self::free_preview_courseid((int) $context->instanceid);
+        }
+
+        if ($context->contextlevel != CONTEXT_COURSE) {
             return 0;
         }
 

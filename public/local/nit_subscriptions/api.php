@@ -89,7 +89,8 @@ try {
         'activate_subscription', 'deactivate_subscription', 'delete_subscription',
         'get_categories_with_courses', 'set_subscription_courses', 'get_all_user_subscriptions',
         'unsubscribe_user', 'get_all_course_purchases', 'revoke_course_purchase',
-        'get_reminder_settings', 'save_reminder_settings', 'preview_reminder_settings'];
+        'get_reminder_settings', 'save_reminder_settings', 'preview_reminder_settings',
+        'get_enrolment_sources'];
     if (in_array($function, $adminfns, true)) {
         require_capability('local/nit_subscriptions:managesubscriptions', $context);
     }
@@ -199,6 +200,21 @@ try {
             nit_subscriptions_respond(['status' => 'success', 'data' => []]);
             break;
 
+        // ── Admin: enrolment sources (AC-4.10.5, the "Enrolment sources" tab) ──
+        // Every enrolment with the reason it exists — direct purchase, package, coupon, offer or
+        // administrator grant — plus per-source totals for the same filter, so the cards and the
+        // table below them can never disagree.
+        case 'get_enrolment_sources':
+            nit_subscriptions_respond(['status' => 'success',
+                'data' => \local_nit_subscriptions\enrolment_source::get_report([
+                    'source'   => optional_param('source', '', PARAM_ALPHA),
+                    'courseid' => optional_param('courseid', 0, PARAM_INT),
+                    'from'     => optional_param('from', 0, PARAM_INT),
+                    'to'       => optional_param('to', 0, PARAM_INT),
+                    'q'        => optional_param('q', '', PARAM_TEXT),
+                ])]);
+            break;
+
         // ── Student: my active subscription (for the home-block banner + button state) ──
         case 'get_my_active_subscription':
             $data = nit_subscriptions_active_summary((int) $USER->id);
@@ -263,7 +279,11 @@ try {
                 optional_param('seats', 0, PARAM_INT),
                 optional_param('coupon_code', '', PARAM_TEXT),
                 optional_param('return_url', '', PARAM_RAW_TRIMMED),
-                optional_param('payment_method_id', 0, PARAM_INT)
+                optional_param('payment_method_id', 0, PARAM_INT),
+                // AC-4.13.6: the total the plan dialog had on screen when the buyer pressed
+                // Proceed. -1 (the default, and what any older caller sends) means "no quote" and
+                // skips the check entirely.
+                optional_param('quoted_amount', -1, PARAM_FLOAT)
             );
             nit_subscriptions_respond(['status' => 'success', 'data' => $checkout]);
             break;
@@ -332,6 +352,12 @@ try {
         default:
             throw new \moodle_exception('err_unknownfunction', 'local_nit_subscriptions');
     }
+} catch (\local_payments\price_changed_exception $e) {
+    // AC-4.13.6: the plan's offer lapsed between the dialog opening and Proceed. Still an error —
+    // no checkout was created — but a kind the caller can act on, so it carries the revised
+    // figures alongside the message and the dialog asks for a fresh confirmation rather than
+    // showing a dead end.
+    nit_subscriptions_respond(['status' => 'error', 'error' => $e->getMessage()] + $e->to_array());
 } catch (\Throwable $e) {
     nit_subscriptions_respond(['status' => 'error', 'error' => $e->getMessage()]);
 }

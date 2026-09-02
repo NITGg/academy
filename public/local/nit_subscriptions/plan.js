@@ -102,10 +102,16 @@
             }
         };
 
+        // The total this dialog last painted. It is the figure the buyer agrees to by pressing
+        // Proceed, and the one the checkout is asked to honour (AC-4.13.6). Null until the first
+        // preview lands — before that the buyer has been shown nothing to hold us to.
+        var quoted = null;
+
         /**
          * Price the plan with (or without) a coupon and repaint the summary rows.
          *
          * @param {String} code coupon code, '' for the plain price
+         * @return {Promise} resolves with the server's price breakdown
          */
         var preview = function(code) {
             var url = cfg.commerceurl +
@@ -113,7 +119,7 @@
                 '&coupon_code=' + encodeURIComponent(code || '') +
                 '&sesskey=' + encodeURIComponent(cfg.sesskey);
 
-            fetch(url, {headers: {Accept: 'application/json'}})
+            return fetch(url, {headers: {Accept: 'application/json'}})
                 .then(function(r) {
                     return r.json();
                 })
@@ -125,16 +131,21 @@
                     setTxt('[data-nitplan-original]', money(d.original || 0));
                     setTxt('[data-nitplan-discount]', money(d.discount || 0));
                     setTxt('[data-nitplan-final]', money(d.final || 0));
+                    quoted = (d.final != null) ? Number(d.final) : null;
 
+                    // Several live offers can cover the same plan; only the one leaving the
+                    // lowest price is applied (AC-4.13.4), so the applied one is named here.
                     var offer = Number(d.offer_discount || 0);
                     var name = (d.offers && d.offers[0] && d.offers[0].name) ? d.offers[0].name : (d.offer_name || '');
                     toggle('[data-nitplan-offerrow]', offer > 0,
                         '-' + money(offer) + (name ? ('  (' + name + ')') : ''));
 
                     toggle('[data-nitplan-couponerr]', !!d.coupon_error, d.coupon_error || '');
+                    return d;
                 })
-                .catch(function() {
+                .catch(function(e) {
                     toggle('[data-nitplan-couponerr]', true, cfg.couponfailed);
+                    throw e;
                 });
         };
 
@@ -153,8 +164,12 @@
             toggle('[data-nitplan-couponerr]', false);
             toggle('[data-nitplan-error]', false);
             toggle('[data-nitplan-offerrow]', false);
+            // A fresh dialog has quoted nothing yet.
+            quoted = null;
             modal.removeAttribute('hidden');
-            preview('');
+            preview('').catch(function() {
+                return null;
+            });
         });
 
         var cancel = q('[data-nitplan-cancel]');
@@ -258,18 +273,24 @@
 
         var proceed = q('[data-nitplan-proceed]');
         if (proceed) {
-            proceed.addEventListener('click', function() {
-                var input = q('[data-nitplan-coupon]');
-                proceed.disabled = true;
-                toggle('[data-nitplan-error]', false);
-
+            /**
+             * Open the gateway checkout at the price on screen.
+             *
+             * @param {String} code coupon code, '' for none
+             * @param {Number} amount the total this dialog showed, or -1 when there is none
+             * @return {void}
+             */
+            var launch = function(code, amount) {
                 var body = new URLSearchParams({
                     'function': 'create_subscription_checkout',
                     sesskey: cfg.sesskey,
                     subscriptionid: cfg.planid,
-                    coupon_code: input ? String(input.value || '').trim() : '',
+                    coupon_code: code,
                     return_url: cfg.returnurl,
-                    payment_method_id: methodid
+                    payment_method_id: methodid,
+                    // The exact figure the buyer agreed to. The server refuses to charge a
+                    // different one and answers with code 'price_changed' instead (AC-4.13.6).
+                    quoted_amount: (amount == null || amount < 0) ? -1 : Number(amount).toFixed(2)
                 });
 
                 fetch(cfg.subsurl, {
@@ -297,12 +318,51 @@
                                 return;
                             }
                         }
+                        // The price moved in the moment between our own re-check and the checkout
+                        // being opened. Repaint at the new price and ask again rather than
+                        // charging it: nothing has been created, so this costs a second press.
+                        if (res && res.code === 'price_changed') {
+                            quoted = Number(res.amount);
+                            preview(code).catch(function() {
+                                return null;
+                            });
+                            proceed.disabled = false;
+                            toggle('[data-nitplan-error]', true, res.error);
+                            return;
+                        }
                         throw new Error((res && res.error) || 'checkout failed');
                     })
                     .catch(function(e) {
                         proceed.disabled = false;
                         toggle('[data-nitplan-error]', true, e.message);
                     });
+            };
+
+            proceed.addEventListener('click', function() {
+                var input = q('[data-nitplan-coupon]');
+                var code = input ? String(input.value || '').trim() : '';
+                proceed.disabled = true;
+                toggle('[data-nitplan-error]', false);
+
+                // AC-4.13.6: the price on screen was resolved when this dialog opened. An offer
+                // on the plan can have reached its end date since. Re-price first; if the number
+                // moved, repaint it and wait for a second, deliberate press before charging.
+                var was = quoted;
+                preview(code).then(function(d) {
+                    var now = (d && d.final != null) ? Number(d.final) : was;
+                    if (was != null && now != null && Math.abs(now - was) >= 0.005) {
+                        proceed.disabled = false;
+                        toggle('[data-nitplan-error]', true, cfg.pricechanged
+                            .replace('{old}', money(was) + ' ' + (cfg.currency || ''))
+                            .replace('{new}', money(now) + ' ' + (cfg.currency || '')));
+                        return;
+                    }
+                    launch(code, now);
+                }).catch(function() {
+                    // Could not re-price (offline, session gone). Do not strand a buyer trying to
+                    // pay: go on with what they were shown — the server checks it again anyway.
+                    launch(code, was);
+                });
             });
         }
     });

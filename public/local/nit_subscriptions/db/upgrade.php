@@ -213,5 +213,47 @@ function xmldb_local_nit_subscriptions_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090140, 'local', 'nit_subscriptions');
     }
 
+    if ($oldversion < 2026090200) {
+        // AC-4.10.5: record the source behind every enrolment. Moodle stores how someone was
+        // enrolled (the enrol plugin) but not why, so a bought course, a package, a coupon
+        // redemption, an offer and an administrator grant were all indistinguishable "manual"
+        // rows. One row per user_enrolments row makes the question reportable.
+        //
+        // The table starts empty on purpose: existing enrolments are classified in bounded
+        // batches by \local_nit_subscriptions\enrolment_source::backfill(), which the report
+        // page calls on each visit. Reconstructing them here would mean an unbounded query
+        // inside the upgrade, on the one code path a site cannot afford to have hang.
+        $table = new xmldb_table('nit_enrol_source');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('ueid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('source', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'other');
+            $table->add_field('itemid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('transactionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('couponid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('offerid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('code', XMLDB_TYPE_CHAR, '100', null, null, null, null);
+            $table->add_field('amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('currency', XMLDB_TYPE_CHAR, '3', null, null, null, null);
+            $table->add_field('grantedby', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('enrolplugin', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, '');
+            $table->add_field('inferred', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+
+            $table->add_index('ueid_uk', XMLDB_INDEX_UNIQUE, ['ueid']);
+            $table->add_index('user_course_idx', XMLDB_INDEX_NOTUNIQUE, ['userid', 'courseid']);
+            $table->add_index('source_time_idx', XMLDB_INDEX_NOTUNIQUE, ['source', 'timecreated']);
+            $table->add_index('courseid_idx', XMLDB_INDEX_NOTUNIQUE, ['courseid']);
+
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026090200, 'local', 'nit_subscriptions');
+    }
+
     return true;
 }

@@ -549,6 +549,7 @@
 
 .local-payments-reference,
 .lp-methods,
+.lp-pricechanged,
 .lp-refund-terms {
     --lp-surface: var(--nit-brand-surface, #fff);
     --lp-ink: var(--nit-brand-textprimary, #1a1a2e);
@@ -772,6 +773,68 @@
 }
 
 .lp-methods__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+/* ── Price changed while checking out (AC-4.13.6) ───────────────────────── */
+
+/* Same width and rhythm as the method picker: it stands in the same place in  */
+/* the flow, so it should not read as a different kind of screen.              */
+.lp-pricechanged {
+    margin: 0 auto;
+    max-width: 34rem;
+    padding: 1.5rem 1rem;
+}
+
+.lp-pricechanged__lead {
+    color: var(--lp-muted, #6b7280);
+    margin-bottom: 1.25rem;
+}
+
+.lp-pricechanged__box {
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+}
+
+.lp-pricechanged__item {
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.lp-pricechanged__row {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+}
+
+.lp-pricechanged__label {
+    color: var(--lp-muted, #6b7280);
+}
+
+/* The old figure is struck through AND muted: the single thing this screen   */
+/* must make unmissable is that the number moved.                             */
+.lp-pricechanged__old {
+    color: var(--lp-muted, #6b7280);
+}
+
+.lp-pricechanged__row--now {
+    border-top: 1px solid var(--lp-line);
+    font-size: 1.15rem;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+}
+
+.lp-pricechanged__new {
+    color: var(--nit-brand-accenttext, var(--lp-ink));
+}
+
+.lp-pricechanged__actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;

@@ -216,6 +216,11 @@ class core_renderer extends \theme_boost\output\core_renderer {
                 '/theme/nit/gallery.php', 'navgallery', 'theme_nit'],
             ['local_nit_media', 'moodle/site:config',
                 '/admin/settings.php', 'pluginname', 'local_nit_media'],
+            // Course purchases + the enrolment-source report (AC-4.10.5). Last in the group:
+            // it is the screen that gets *read* rather than edited, so it sits after the
+            // things an administrator goes to the menu to change.
+            ['local_nit_subscriptions', 'local/nit_subscriptions:managesubscriptions',
+                '/local/nit_subscriptions/manage_courses.php', 'managecourses', 'local_nit_subscriptions'],
         ];
 
         // Reading $PAGE->url on a page that never set one raises a developer

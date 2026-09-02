@@ -227,6 +227,27 @@ A name that is not on the form comes back as an exception
 (`invalid_parameter_exception`) — that is a client bug, not a user error. A
 `locked` field is accepted and silently ignored, matching the web form.
 
+**`lang` is the one exception, and it is deliberate.** The interface language is
+a preference, not a profile field: core draws its menu only while an account is
+being *created* and sends an existing user to `/user/language.php` instead, so
+`get_profile_form` cannot report it as an element. The save path still takes it
+by name, so an app can write the user's own language with nothing but
+
+```
+POST wsfunction=local_profilefields_update_profile
+     fields[0][name]=lang&fields[0][value]=ar
+```
+
+No `userid`, so no capability to get wrong — it is the calling user, the same
+self-service model as the rest of the plugin. There is no need to fetch the form
+first: a submission is a partial update, and one field on its own is a valid
+submission. The value must be a language pack the site actually has (today `en`
+and `ar` — the exact codes `get_profile` returns and
+`local_profilefields_get_account_profile` lists under `lang.options`); anything
+else comes back as `success: false` with a warning on `lang` and nothing is
+stored, rather than as an exception. A successful save fires
+`\core\event\user_updated` like any other.
+
 **Two things this call also does when it is finishing a Google sign-up.** If the
 account still owes the sign-up form answers, a save that covers *all* of them
 marks the registration complete, and the phone's "country must match your

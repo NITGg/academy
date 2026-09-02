@@ -32,4 +32,11 @@ $observers = [
         'eventname' => '\core\event\user_enrolment_deleted',
         'callback'  => '\local_nit_subscriptions\observer::user_enrolment_deleted',
     ],
+    [
+        // AC-4.10.5: every enrolment is stamped with the source that produced it — direct
+        // purchase, package, coupon, offer or administrator grant — at the moment it happens,
+        // which is the only moment the actor is still known.
+        'eventname' => '\core\event\user_enrolment_created',
+        'callback'  => '\local_nit_subscriptions\observer::user_enrolment_created',
+    ],
 ];

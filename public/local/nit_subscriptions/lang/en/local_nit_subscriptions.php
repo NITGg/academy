@@ -48,6 +48,41 @@ $string['mc_course_deleted']  = '(deleted course)';
 $string['mc_txn_notfound']    = 'Purchase not found.';
 $string['mc_not_active']      = 'This purchase is not active and cannot be revoked.';
 
+// Manage courses — the two tabs.
+$string['tab_mc_purchases'] = 'Course purchases';
+$string['tab_mc_sources']   = 'Enrolment sources';
+
+// AC-4.10.5 — enrolment sources report.
+$string['es_heading'] = 'Where enrolments came from';
+$string['es_desc']    = 'Every course enrolment with the source that produced it, so enrolment numbers can be read by channel. Direct purchases, packages, coupons and offers are taken from the payment behind the enrolment; anything nobody paid for is either an administrator grant or the learner enrolling themselves.';
+$string['es_source_purchase'] = 'Direct purchase';
+$string['es_source_package']  = 'Package';
+$string['es_source_coupon']   = 'Coupon';
+$string['es_source_offer']    = 'Offer';
+$string['es_source_admin']    = 'Administrator grant';
+$string['es_source_self']     = 'Self enrolment';
+$string['es_source_other']    = 'Other';
+$string['es_col_user']     = 'User';
+$string['es_col_course']   = 'Course';
+$string['es_col_source']   = 'Source';
+$string['es_col_detail']   = 'Details';
+$string['es_col_amount']   = 'Paid';
+$string['es_col_enrolled'] = 'Enrolled';
+$string['es_none']         = 'No enrolments to report yet.';
+$string['es_total']        = 'All enrolments';
+$string['es_filter_course']     = 'Course';
+$string['es_filter_from']       = 'From';
+$string['es_filter_to']         = 'To';
+$string['es_filter_allcourses'] = 'All courses';
+$string['es_filter_apply']      = 'Apply';
+$string['es_filter_reset']      = 'Reset';
+$string['es_search_ph']         = 'Name, email, course or coupon code';
+$string['es_export']            = 'Download CSV';
+$string['es_inferred']      = 'reconstructed';
+$string['es_inferred_help'] = 'Marked rows are for enrolments made before this record existed. The payment, package, coupon and offer behind them are read from the real transaction, so those are exact; only the name of the administrator behind a manual grant could not be recovered.';
+$string['es_truncated'] = 'Showing the {$a->shown} most recent of {$a->total} matching enrolments. Narrow the filters, or download the CSV for the full list.';
+$string['es_pending']   = '{$a} older enrolment(s) have still to be classified — reopen this tab to continue.';
+
 // Shared UI.
 $string['ui_refresh']      = 'Refresh';
 $string['ui_loading']      = 'Loading…';

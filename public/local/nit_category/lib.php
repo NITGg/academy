@@ -458,6 +458,7 @@ function local_nit_category_checkout_footer(): void {
     $costr = local_nit_commerce_string_map([
         'co_title', 'co_intro', 'co_total', 'co_offer', 'co_coupon', 'co_apply', 'co_discount',
         'co_secure', 'co_proceed', 'co_cancel', 'co_loading', 'co_coupon_failed', 'co_currency',
+        'co_offer_won', 'co_coupon_won', 'co_notcombined', 'co_pricechanged', 'co_confirm_price',
     ]);
     echo html_writer::script('window.NIT_CO = ' . json_encode([
         'wwwroot'  => $CFG->wwwroot,
@@ -486,12 +487,17 @@ function local_nit_category_checkout_footer(): void {
                 name: btn.getAttribute('data-name'),
                 price: parseFloat(btn.getAttribute('data-price')) || 0,
                 currency: btn.getAttribute('data-currency') || '',
-                proceed: function (code, methodId) {
+                proceed: function (code, methodId, quoted) {
                     var url = window.NIT_CO.wwwroot + '/local/payments/checkout.php?courseid=' + id +
                         '&sesskey=' + encodeURIComponent(window.NIT_CO.sesskey) + '&coupon_code=' + encodeURIComponent(code);
                     // 0 means the modal offered no choice, and the gateway then
                     // picks one itself rather than showing its own page.
                     if (methodId) { url += '&payment_method_id=' + encodeURIComponent(methodId); }
+                    // The exact total the modal had on screen. checkout.php refuses to charge a
+                    // different one and asks the buyer to confirm instead (AC-4.13.6).
+                    if (quoted != null && quoted >= 0) {
+                        url += '&quoted_amount=' + encodeURIComponent(Number(quoted).toFixed(2));
+                    }
                     window.location.href = url;
                 }
             });

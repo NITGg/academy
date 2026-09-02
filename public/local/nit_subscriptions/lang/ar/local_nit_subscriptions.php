@@ -133,6 +133,41 @@ $string['mc_course_deleted']  = '(كورس محذوف)';
 $string['mc_txn_notfound']    = 'عملية الشراء غير موجودة.';
 $string['mc_not_active']      = 'عملية الشراء هذه غير نشطة ولا يمكن سحبها.';
 
+// إدارة الكورسات — التبويبان.
+$string['tab_mc_purchases'] = 'مشتريات الكورسات';
+$string['tab_mc_sources']   = 'مصادر التسجيل';
+
+// AC-4.10.5 — تقرير مصادر التسجيل.
+$string['es_heading'] = 'من أين جاءت عمليات التسجيل';
+$string['es_desc']    = 'كل تسجيل في كورس مع المصدر الذي أنتجه، حتى يمكن قراءة أرقام التسجيل حسب القناة. الشراء المباشر والباقات والكوبونات والعروض تُقرأ من عملية الدفع المرتبطة بالتسجيل؛ وما لم يدفع فيه أحد يكون إما منحًا من مسؤول أو تسجيلًا ذاتيًا من المتعلم.';
+$string['es_source_purchase'] = 'شراء مباشر';
+$string['es_source_package']  = 'باقة';
+$string['es_source_coupon']   = 'كوبون';
+$string['es_source_offer']    = 'عرض';
+$string['es_source_admin']    = 'منح من مسؤول';
+$string['es_source_self']     = 'تسجيل ذاتي';
+$string['es_source_other']    = 'أخرى';
+$string['es_col_user']     = 'المستخدم';
+$string['es_col_course']   = 'الكورس';
+$string['es_col_source']   = 'المصدر';
+$string['es_col_detail']   = 'التفاصيل';
+$string['es_col_amount']   = 'المدفوع';
+$string['es_col_enrolled'] = 'تاريخ التسجيل';
+$string['es_none']         = 'لا توجد عمليات تسجيل لعرضها بعد.';
+$string['es_total']        = 'كل عمليات التسجيل';
+$string['es_filter_course']     = 'الكورس';
+$string['es_filter_from']       = 'من';
+$string['es_filter_to']         = 'إلى';
+$string['es_filter_allcourses'] = 'كل الكورسات';
+$string['es_filter_apply']      = 'تطبيق';
+$string['es_filter_reset']      = 'إعادة ضبط';
+$string['es_search_ph']         = 'الاسم أو البريد أو الكورس أو كود الكوبون';
+$string['es_export']            = 'تنزيل CSV';
+$string['es_inferred']      = 'مُستنتج';
+$string['es_inferred_help'] = 'الصفوف المعلَّمة تخص تسجيلات تمت قبل وجود هذا السجل. عملية الدفع والباقة والكوبون والعرض خلفها تُقرأ من المعاملة الفعلية، فهي دقيقة؛ ولم يتعذر استرجاع سوى اسم المسؤول صاحب المنح اليدوي.';
+$string['es_truncated'] = 'يتم عرض أحدث {$a->shown} من أصل {$a->total} تسجيل مطابق. ضيّق نطاق التصفية أو نزّل ملف CSV للقائمة كاملة.';
+$string['es_pending']   = 'ما زال هناك {$a} تسجيل قديم لم يُصنَّف بعد — أعد فتح هذا التبويب للمتابعة.';
+
 // Shared UI.
 $string['ui_refresh']      = 'تحديث';
 $string['ui_loading']      = 'جارٍ التحميل…';

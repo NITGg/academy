@@ -973,6 +973,21 @@ class format_topics_renderer extends \format_topics\output\renderer {
      * @return string
      */
     protected function acad_activities($modinfo, $cmlist) {
+        $courseid = (int) $modinfo->get_course_id();
+
+        // Is the reader looking at a course they have no access to, and if so which lessons
+        // did the teacher publish as free previews (AC-4.9.5)? Both answers come from
+        // local_payments; guarded by class_exists so the theme still renders without it,
+        // in which case every row is drawn as it always was.
+        $locked = false;
+        $free = [];
+        if (class_exists('\local_payments\course_preview')) {
+            $locked = \local_payments\course_preview::is_locked($courseid);
+            if ($locked) {
+                $free = \local_payments\free_preview::for_course($courseid);
+            }
+        }
+
         $o = '';
         foreach ($cmlist as $cmid) {
             $cm = $modinfo->cms[$cmid];
@@ -980,20 +995,44 @@ class format_topics_renderer extends \format_topics\output\renderer {
                 continue;
             }
 
+            $isfree = $locked && !empty($free[(int) $cm->id]);
+            $islocked = $locked && !$isfree;
+
             $ico = html_writer::empty_tag('img', [
                 'src' => $cm->get_icon_url(), 'alt' => '', 'class' => 'acad-cr__act-ico', 'aria-hidden' => 'true',
             ]);
-            $name = $cm->url
+
+            // A locked lesson is not a link: clicking it only bounces the visitor to the
+            // checkout, so the row says what to do instead of pretending to be playable.
+            $name = ($cm->url && !$islocked)
                 ? html_writer::link($cm->url, format_string($cm->name))
                 : format_string($cm->name);
+            if ($isfree) {
+                $name .= html_writer::tag('span', get_string('freepreview_badge', 'local_payments'),
+                    ['class' => 'acad-cr__act-free']);
+            }
+            if ($islocked) {
+                $name .= html_writer::tag('span', $this->acad_icon('lock'), [
+                    'class'       => 'acad-cr__act-lock',
+                    'title'       => get_string('freepreview_lockedlesson', 'local_payments'),
+                    'aria-hidden' => 'true',
+                ]);
+            }
 
-            $o .= html_writer::div(
-                $ico .
+            $rowclass = 'acad-cr__act';
+            $rowclass .= $isfree ? ' is-free' : ($islocked ? ' is-locked' : '');
+
+            $body = $ico .
                 html_writer::div($name, 'acad-cr__act-name') .
                 $this->acad_act_duration($cm) .
-                html_writer::tag('span', s((string) $cm->modfullname), ['class' => 'acad-cr__act-type']),
-                'acad-cr__act'
-            );
+                html_writer::tag('span', s((string) $cm->modfullname), ['class' => 'acad-cr__act-type']);
+
+            if ($islocked) {
+                $body .= html_writer::div(get_string('freepreview_lockedlesson', 'local_payments'),
+                    'acad-cr__act-lockmsg');
+            }
+
+            $o .= html_writer::div($body, $rowclass);
         }
         return $o;
     }
@@ -1115,6 +1154,7 @@ class format_topics_renderer extends \format_topics\output\renderer {
             'cert'    => '<circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="1.7"/><path d="M8 14l-1 7 5-3 5 3-1-7" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
             'people'  => '<circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M16 5.5a3.2 3.2 0 0 1 0 5M17.5 20a5.5 5.5 0 0 0-2.5-4.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
             'list'    => '<path d="M8 6h12M8 12h12M8 18h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="4" cy="6" r="1.3" fill="currentColor"/><circle cx="4" cy="12" r="1.3" fill="currentColor"/><circle cx="4" cy="18" r="1.3" fill="currentColor"/>',
+            'lock'    => '<rect x="4.5" y="10" width="15" height="10" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
         ];
         $p = $paths[$key] ?? '';
         return '<svg class="acad-cr__ico acad-cr__ico--' . $key . '" viewBox="0 0 24 24" fill="none" aria-hidden="true">'

@@ -100,23 +100,10 @@ class hook_callbacks {
      * @return bool
      */
     protected static function is_locked_course_view(\moodle_page $page): bool {
-        if (!course_preview::is_enabled()) {
-            return false;
-        }
         if (strpos((string) $page->pagetype, 'course-view') !== 0) {
             return false;
         }
 
-        $course = $page->course;
-        if (empty($course->id) || $course->id == SITEID) {
-            return false;
-        }
-
-        $context = \context_course::instance($course->id, IGNORE_MISSING);
-        if (!$context || is_siteadmin() || is_viewing($context)) {
-            return false;
-        }
-
-        return !(isloggedin() && !isguestuser() && is_enrolled($context, null, '', true));
+        return course_preview::is_locked((int) ($page->course->id ?? 0));
     }
 }
