@@ -58,6 +58,7 @@ $name = min_optional_param('name', '', 'SAFEDIR');
 $allowed = [
     'home_subscriptions',
     'home_my_course',
+    'home_hero_orbit',
 ];
 
 $name = isset($_GET['name']) ? (string) $_GET['name'] : '';

@@ -1,0 +1,214 @@
+<!-- NIT - Split hero home-page block, CONSTELLATION variant.
+     Paste into an HTML block on the FRONT PAGE (Site home).
+     Alternative to home_hero_split_block.html - keep only ONE of the two.
+
+     The artwork side replaces the exported hero-collage.png with a live
+     constellation: the EAAC logo in a double ring at the centre, and the site's
+     course categories orbiting it as irregular rounded shapes, each with an
+     icon, its name and a "go" arrow, each linking to that category.
+
+     ALL BEHAVIOUR LIVES IN theme/nit/blocks/home_hero_orbit.js, served by
+     js.php beside it. This file is markup and one four-line loader, and it has
+     to stay that way.
+
+     That is not a style preference, it is what the block survived. An earlier
+     version carried the whole ~25KB of JavaScript inline. Saved through the
+     editor the copy came back TRUNCATED in the middle of a for-loop, which
+     closed the block early, spilled the rest of the script into the page as
+     markup, and took Moodle's own footer scripts down with it - including the
+     require.config call. RequireJS then fell back to a "./" baseUrl, every AMD
+     module 404'd, and nothing on the site could be clicked: no navbar menus, no
+     block editing, no way back in except by URL. Two smaller hazards were found
+     on the way: the "Convert URLs into links" filter rewrites a bare URL in
+     block content into an <a href>, which inside a script is a syntax error;
+     and the editor deletes any element holding nothing of its own, so an empty
+     span never comes back from a save.
+
+     So: no logic here, no bare URLs in script, no empty elements. A fix to the
+     behaviour ships with a git pull; only a markup change needs a re-paste.
+
+     WHERE THE CATEGORIES COME FROM - window.NIT_CATEGORIES, which theme_nit's
+     front-page layout already prints. It lists every top-level category
+     INCLUDING ones with no courses yet, which is what a showcase needs and what
+     /local/nit_category/home.php deliberately withholds - that feed drops a
+     zero-course category because a dead link is wrong in a grid of courses.
+
+     WHICH categories, and in what order, is data-ids on the orbit element: a
+     plain list of category ids, drawn in that order. Empty it and the first six
+     the site returns are used instead. The ids are visible in the address bar
+     on course/management.php.
+
+     ICONS - data-icons on the same element.
+       "category" (default)  the icon uploaded at
+                             /local/nit_category/image.php?id=NN, then the emoji
+                             set there, then a built-in glyph.
+       "glyph"               always the built-in glyph.
+
+     COLOURS read from the Brand Colors palette (--nit-brand-*); a palette change
+     repaints the whole constellation. No literal colours anywhere.
+
+     THE VIDEO is managed from Site administration > Plugins > Local plugins >
+     Site media (/admin/settings.php?section=local_nit_media_settings). The
+     source below points at one fixed address that serves whatever is currently
+     uploaded, so changing the video never touches this file. Use an MP4 encoded
+     H.264 + AAC; a .mov or an H.265 MP4 uploads fine but will not play.
+
+     NEEDS local_nit_mlang's "Include rich text editors" switched OFF, or the
+     editor splits into one tab per language and tears this bilingual file in
+     half on save:
+       php admin/cli/cfg.php --component=local_nit_mlang --name=editors --set=0
+     The tags also need the "Multi-language content (v2)" filter enabled.
+
+     Paste into an EMPTY block. The multilang filter pairs tags in document
+     order, so one unpaired tag left from earlier content shifts every pair
+     after it and prints the first heading raw.
+
+     Images are prefixed with the /moodle-new/ sub-directory this site is
+     installed under. Change that prefix if wwwroot moves. -->
+<div dir="auto"
+  style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(20px, 5vw, 64px); overflow: hidden;">
+  <div
+    style="max-width: 1230px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 40px 20px;"
+    data-nit-hero-split="">
+
+    <!-- Text column -->
+    <div
+      style="flex: 1 1 380px; min-width: 0; max-width: 500px; display: flex; flex-direction: column; align-items: flex-start; gap: 34px;">
+      <div
+        style="display: flex; flex-direction: column; align-items: flex-start; gap: 16px; width: 100%;">
+        <h1
+          style="font-size: clamp(34px,4.4vw,60px); font-weight: 700; line-height: 1.5; margin: 0; align-self: flex-start; width: fit-content; max-width: 100%; text-align: center;">
+          <span style="display: block; color: var(--nit-brand-textprimary);">
+            {mlang en}Learn Today{mlang} {mlang ar}تعلّــــم اليوم{mlang} </span>
+          <span style="display: block; color: var(--nit-brand-accenttext);">
+            {mlang en}Advance Tomorrow{mlang} {mlang ar}تقــدّم غدًا{mlang}
+          </span>
+        </h1>
+        <p
+          style="font-size: 18px; font-weight: 500; line-height: 1.9; color: var(--nit-brand-textsecondary); max-width: 470px; margin: 0; text-align: start;">
+          {mlang en} Enjoy a unique learning experience that gives you the
+          skills of the future. Join more than 10,000 learners and start
+          empowering your professional future with outstanding experts today.
+          {mlang} {mlang ar} استمتع بتجربة تعليمية فريدة تمنحك مهارات المستقبل.
+          انضم لأكثر من ١٠,٠٠٠ طالب وطالبة وابدأ رحلة تمكين مستقبلك المهني مع
+          خبراء متميزين اليوم. {mlang}</p>
+      </div>
+
+      <div
+        style="display: flex; align-items: center; flex-wrap: wrap; gap: 25px;">
+        <a class="nit-btn-solid"
+          style="background: var(--nit-brand-primary); border: 1px solid var(--nit-brand-borderprimary); color: var(--nit-brand-textprimary); width: 220px; height: 60px; border-radius: 8px; font-size: 18px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;"
+          href="/moodle-new/course/index.php" data-nit-btn="" data-nit-hero-cta=""
+          data-nit-scrollto="[data-nit-categories]"> {mlang en}Start
+          Now{mlang} {mlang ar}ابدأ الان{mlang} </a>
+        <a
+          style="display: inline-flex; align-items: center; gap: 4px; color: var(--nit-brand-textprimary); font-size: 18px; font-weight: 600; text-decoration: none;"
+          href="#" data-nit-hero-play=""> <img
+            style="flex: 0 0 auto; width: 101px; height: 101px; margin-block: -20px; margin-inline-start: -20px;"
+            src="/moodle-new/theme/nit/pix/home/hero-play.png" alt=""
+            decoding="async" data-nit-hero-playdot=""> <span>{mlang en}See how
+            it works{mlang} {mlang ar}شاهد كيف يعمل{mlang}</span> </a>
+      </div>
+    </div>
+
+    <!-- Artwork: the category constellation, drawn by home_hero_orbit.js.
+         data-ids    which categories to draw, in order. Empty = the first six.
+         data-icons  "category" (uploaded icon, then emoji, then glyph)
+                     or "glyph" (always the built-in glyph). -->
+    <div
+      style="position: relative; flex: 1 1 520px; min-width: 0; width: 100%; max-width: 670px; aspect-ratio: 1 / 1; direction: ltr;"
+      data-nit-orbit="" data-ids="14,15,16,17,18,19" data-icons="category">
+
+      <!-- The ring the shapes sit on. Static, because its radius does not depend
+           on how many categories there are; the beads in the gaps are drawn by
+           the script, one per gap, cloned from this circle. -->
+      <svg style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;"
+        viewBox="0 0 740 740" aria-hidden="true" data-nit-orbit-ring="">
+        <circle cx="370" cy="370" r="300" fill="none" stroke-width="1.3"
+          data-nit-orbit-track=""></circle>
+        <g data-nit-orbit-beads=""></g>
+      </svg>
+
+      <!-- Centre: the logo inside a gradient ring inside a faint halo ring.
+           A real img, not an empty element painted through a CSS mask: the
+           editor deletes any element with no content of its own. -->
+      <div data-nit-orbit-core=""><img
+          src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
+          decoding="async" data-nit-orbit-logo=""></div>
+
+      <!-- Card template, cloned once per category. The {{placeholder}} markers
+           and the data-nit-orbit-* hooks are the contract with the script -
+           renaming one empties the artwork.
+
+           No icon disc and no arrow button here on purpose: both are wrappers
+           with nothing of their own inside, and the editor deletes an empty
+           span and unwraps one holding only an svg. The script builds them. The
+           d="M0 0" placeholders keep the paths from being attribute-less for
+           the same reason. -->
+      <div style="display: none;" data-nit-orbit-card=""><a
+          href="{{url}}" data-nit-orbit-node="">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none"
+            aria-hidden="true" data-nit-orbit-shape="">
+            <path d="M0 0" data-nit-shape-base=""></path>
+            <path d="M0 0" data-nit-shape-tint=""></path>
+            <path d="M0 0" data-nit-shape-line=""></path>
+          </svg>
+          <span data-nit-orbit-eyebrow="">{{eyebrow}}</span>
+          <span data-nit-orbit-name="">{{name}}</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"
+            data-nit-orbit-arrow="">
+            <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"></path>
+          </svg>
+        </a></div>
+    </div>
+  </div>
+
+  <!-- Video modal. Hidden until "See how it works" is clicked; the script moves
+       it to body on first open so no clipping ancestor can trap it. -->
+  <div style="display: none;" data-nit-hero-modal="">
+    <div
+      style="position: fixed; inset: 0; z-index: 1080; display: flex; align-items: center; justify-content: center; padding: 20px; background: color-mix(in srgb, var(--nit-brand-background) 88%, transparent);"
+      data-nit-hero-modal-backdrop="" role="dialog" aria-modal="true"
+      aria-label="{mlang en}How it works{mlang} {mlang ar}كيف يعمل{mlang}">
+      <div style="position: relative; width: 100%; max-width: 960px;">
+        <button type="button"
+          style="position: absolute; top: -52px; inset-inline-end: 0; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; border: 1px solid var(--nit-brand-borderprimary); background: var(--nit-brand-surface); color: var(--nit-brand-textprimary); font-size: 24px; line-height: 1;"
+          data-nit-hero-modal-close=""
+          aria-label="{mlang en}Close{mlang} {mlang ar}إغلاق{mlang}">&#215;</button>
+        <video
+          style="width: 100%; height: auto; display: block; border-radius: 12px; background: var(--nit-brand-background);"
+          controls preload="none" playsinline data-nit-hero-video="">
+          <source src="/moodle-new/local/nit_media/video.php" type="video/mp4">
+        </video>
+        <div
+          style="display: none; padding: 24px; border-radius: 12px; border: 1px solid var(--nit-brand-borderprimary); background: var(--nit-brand-surface); color: var(--nit-brand-textprimary); font-size: 15px; line-height: 1.7;"
+          data-nit-hero-video-error="">
+          <strong>{mlang en}The video could not be played.{mlang} {mlang ar}تعذّر
+            تشغيل الفيديو.{mlang}</strong> <span
+            style="display: block; margin-top: 8px; color: var(--nit-brand-textsecondary);">
+            {mlang en}Open the address below. If it downloads or 404s the file
+            name is wrong or missing; if it downloads fine but still will not
+            play, re-encode it as an H.264 MP4.{mlang} {mlang ar}افتح العنوان
+            التالي. لو نزّل الملف أو أعطى 404 فالاسم غلط أو الملف غير مرفوع؛ ولو
+            نزّل سليمًا ومع ذلك لا يعمل فأعد ترميزه إلى MP4 بترميز
+            H.264.{mlang} </span> <a
+            style="display: block; margin-top: 8px; word-break: break-all; color: var(--nit-brand-accenttext);"
+            href="#" target="_blank" rel="noopener"
+            data-nit-hero-video-url="">&#8230;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Loads the behaviour. Keep this short and keep the "less than" character
+    // out of it - see the note at the top of this file for what happens when
+    // real logic is pasted through the editor.
+    (function() {
+      var here = document.currentScript;
+      var base = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : '';
+      var s = document.createElement('script');
+      s.src = base + '/theme/nit/blocks/js.php?name=home_hero_orbit';
+      (here && here.parentNode ? here.parentNode : document.body).appendChild(s);
+    })();
+  </script>
+</div>
