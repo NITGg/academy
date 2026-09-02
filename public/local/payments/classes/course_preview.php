@@ -398,6 +398,8 @@ class course_preview {
     public static function banner_html(int $courseid): string {
         global $CFG;
 
+        $lapsed = 0;
+
         if (isguestuser() || !isloggedin()) {
             // A guest cannot buy or enrol: the first step is an account.
             $url = new \moodle_url('/login/index.php');
@@ -407,13 +409,53 @@ class course_preview {
             // by the student's subscription.
             $url = new \moodle_url('/local/payments/buy.php', ['courseid' => $courseid]);
             $label = get_string('preview_unlock', 'local_payments');
+
+            // Somebody who is here because their subscription ran out is not a shopper being
+            // shown a preview — they are a student locked out of their own work. Say so, and
+            // point the button straight at the plan they held rather than at the catalogue.
+            $lapsed = self::lapsed_subscription_id($courseid);
+            if ($lapsed) {
+                $url = new \moodle_url('/local/nit_subscriptions/plan.php', ['id' => $lapsed]);
+                $label = get_string('expired_renew', 'local_payments');
+            }
         }
 
+        $notice = $lapsed
+            ? get_string('expired_notice', 'local_payments')
+            : get_string('preview_notice', 'local_payments');
+
         return \html_writer::div(
-            \html_writer::span(get_string('preview_notice', 'local_payments'), 'lp-preview-text')
+            \html_writer::span($notice, 'lp-preview-text')
             . \html_writer::link($url, $label, ['class' => 'btn btn-primary btn-sm lp-preview-cta']),
-            'lp-preview-bar',
+            'lp-preview-bar' . ($lapsed ? ' lp-preview-expired' : ''),
             ['data-courseid' => $courseid]
         );
+    }
+
+    /**
+     * The subscription this viewer would renew to get back into this course, or 0.
+     *
+     * Optional dependency, on purpose: local_payments has to keep working on a site where
+     * subscriptions are not installed, exactly as it already does in the other direction
+     * (local_nit_subscriptions asks whether price_resolver exists before trusting it).
+     *
+     * @param int $courseid
+     * @return int
+     */
+    protected static function lapsed_subscription_id(int $courseid): int {
+        global $USER;
+
+        if (!class_exists('\local_nit_subscriptions\subscription_purchase_manager')) {
+            return 0;
+        }
+
+        try {
+            return (int) \local_nit_subscriptions\subscription_purchase_manager::lapsed_subscription_id(
+                $courseid, (int) $USER->id);
+        } catch (\Throwable $e) {
+            // A banner is not worth a fatal on a course page.
+            debugging('local_payments: lapsed-subscription lookup failed: ' . $e->getMessage(), DEBUG_NORMAL);
+            return 0;
+        }
     }
 }

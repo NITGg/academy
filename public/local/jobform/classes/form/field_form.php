@@ -72,6 +72,19 @@ class field_form extends \moodleform {
         $mform->addElement('advcheckbox', 'required', get_string('fieldrequired', 'local_jobform'));
         $mform->setDefault('required', 0);
 
+        // Pre-fill from the applicant's account (AC-4.20.2). Only the text-like
+        // types can take a name or an email, so hide it for the rest.
+        $mform->addElement('select', 'autofill', get_string('fieldautofill', 'local_jobform'),
+            field_types::autofill_menu());
+        $mform->setType('autofill', PARAM_ALPHA);
+        $mform->setDefault('autofill', field_types::AUTOFILL_AUTO);
+        $mform->addHelpButton('autofill', 'fieldautofill', 'local_jobform');
+        foreach (array_keys(field_types::all()) as $type) {
+            if (!field_types::supports_autofill($type)) {
+                $mform->hideIf('autofill', 'type', 'eq', $type);
+            }
+        }
+
         // --- Dropdown-only settings ---------------------------------------
         // One repeatable row PER option: its English + Arabic value and a delete
         // button grouped under a single "Option N" label, so each row clearly
@@ -207,6 +220,7 @@ class field_form extends \moodleform {
             'groupid'       => $field->groupid ?? 0,
             'type'          => $field->type,
             'required'      => $field->required,
+            'autofill'      => $config['autofill'],
             'multiple'      => $config['multiple'] ? 1 : 0,
             'fixedvalue_en' => $fixed['en'],
             'fixedvalue_ar' => $fixed['ar'],

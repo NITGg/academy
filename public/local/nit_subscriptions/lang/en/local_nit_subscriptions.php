@@ -311,6 +311,9 @@ $string['rem_days']      = 'Send a reminder this many days before the plan ends'
 $string['rem_days_help'] = 'Add one entry per warning, for example 7, 3 and 1. Between 1 and {$a} days.';
 $string['rem_days_add']  = 'Add a lead time';
 $string['rem_days_none'] = 'No lead times yet — add at least one.';
+$string['rem_onexpiry']  = 'Also send a message on the day the plan ends';
+$string['rem_onexpiry_help'] = 'Sent once the plan has actually run out, telling the subscriber their access has ended and their progress is saved. Independent of the lead times above.';
+$string['rem_window_none'] = 'No lead time before the plan ends, so no Renew button is shown — only the message on the day it ends.';
 $string['rem_day_unit']  = 'days before expiry';
 $string['rem_remove']    = 'Remove';
 $string['rem_save']      = 'Save and apply now';
@@ -328,6 +331,9 @@ $string['reminder_msg_subject'] = 'Your subscription "{$a->plan}" ends in {$a->d
 $string['reminder_msg_body']    = 'Your subscription "{$a->plan}" ends on {$a->expires} — that is {$a->days} day(s) from now. Renew before then and the new period starts the day the current one ends, so you lose no time.';
 $string['reminder_msg_small']   = 'Your subscription ends in {$a->days} day(s).';
 $string['reminder_msg_action']  = 'Renew your subscription';
+$string['reminder_msg_subject_today'] = 'Your subscription "{$a->plan}" has ended';
+$string['reminder_msg_body_today']    = 'Your subscription "{$a->plan}" ended on {$a->expires}, so the courses it covered are no longer open to you. Nothing you did has been lost — your progress, grades and certificates are saved, and renewing puts you back exactly where you left off.';
+$string['reminder_msg_small_today']   = 'Your subscription has ended — renew to pick up where you left off.';
 
 // Renewing, on the plan card and the plan page.
 $string['sub_renew']            = 'Renew now';

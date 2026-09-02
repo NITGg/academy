@@ -1,0 +1,67 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template theme_nit/navbar_site_search
+
+    The single search control in the header (AC-4.22.1). One box, searching courses
+    and subject areas together; the results page groups them and counts them.
+
+    It is a plain GET form, so it works with scripting off and every search has its
+    own address. local_nit_category/search.js adds the preview panel and the arrow-key
+    handling on top; the `data-nitsearch*` attributes below are what it binds to.
+
+    On a narrow screen the field folds behind the magnifier button and opens as a full
+    width row under the bar (`.is-expanded`), which is why the button is part of this
+    template rather than the field being duplicated for mobile.
+
+    Context variables required for this template:
+    * action - URL of the results page (local_nit_category/search.php)
+    * query - the term to prefill, '' on every page but the results page
+}}
+<div class="nit-navsearch" data-nitsearch>
+    <button type="button" class="btn nit-navbar-icon nit-navsearch__toggle d-lg-none"
+            data-nitsearch-toggle aria-expanded="false" aria-controls="nit-navsearch-form"
+            aria-label="{{#str}}searchopen, local_nit_category{{/str}}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+        </svg>
+        <span class="visually-hidden">{{#str}}searchopen, local_nit_category{{/str}}</span>
+    </button>
+
+    <form id="nit-navsearch-form" class="nit-navsearch__form" method="get" action="{{{action}}}" role="search">
+        <label class="visually-hidden" for="nit-navsearch-input">{{#str}}searchsite, local_nit_category{{/str}}</label>
+        <span class="nit-navsearch__glyph" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.2" stroke-linecap="round" focusable="false">
+                <circle cx="11" cy="11" r="7"></circle>
+                <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+            </svg>
+        </span>
+        <input type="search" id="nit-navsearch-input" name="q" value="{{query}}"
+               class="nit-navsearch__input" data-nitsearch-input
+               placeholder="{{#str}}searchplaceholder, local_nit_category{{/str}}"
+               aria-expanded="false" aria-controls="nit-navsearch-panel" autocomplete="off">
+        <button type="submit" class="nit-navsearch__submit">{{#str}}search{{/str}}</button>
+
+        {{! Filled by the script with search.php?fragment=1 — the same groups and counts
+            the results page prints, capped to the first few of each. }}
+        <div id="nit-navsearch-panel" class="nit-navsearch__panel" data-nitsearch-panel
+             role="region" aria-live="polite" aria-label="{{#str}}searchtitle, local_nit_category{{/str}}" hidden></div>
+    </form>
+</div>

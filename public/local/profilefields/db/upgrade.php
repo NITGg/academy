@@ -280,6 +280,52 @@ function xmldb_local_profilefields_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090103, 'local', 'profilefields');
     }
 
+    if ($oldversion < 2026090300) {
+        // The static pages of AC-4.21: one title and one body per page per
+        // language, and the FAQ's question list.
+        $dbman = $DB->get_manager();
+
+        $table = new xmldb_table('local_profilefields_page');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('slug', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('lang', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('title', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('content', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('contentformat', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '1');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('sluglang_uix', XMLDB_INDEX_UNIQUE, ['slug', 'lang']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        $table = new xmldb_table('local_profilefields_faq');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('sortorder', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('visible', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1');
+        $table->add_field('questionen', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('questionar', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('answeren', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('answerar', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('answerformat', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '1');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('sortorder_idx', XMLDB_INDEX_NOTUNIQUE, ['sortorder']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // The footer shipped with links to /local/nit_core/page.php, an address
+        // nothing ever answered. Now that the pages exist, send them somewhere.
+        \local_profilefields\footer::repoint_static_page_links();
+
+        upgrade_plugin_savepoint(true, 2026090300, 'local', 'profilefields');
+    }
+
     // Not a versioned step, and deliberately so: it has to run on every upgrade,
     // because the thing it repairs is created by an upgrade. Registering a new
     // web-service function does not put it on the hand-made service a site's own

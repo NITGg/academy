@@ -25,5 +25,11 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_category';
-$plugin->version   = 2026090103;        // YYYYMMDDXX — checkout modal carries the quoted price.
+$plugin->version   = 2026090211;        // YYYYMMDDXX — filter panel cut to the six of SRS 4.8, with a price slider.
 $plugin->requires  = 2022041900;
+
+// The home.php JSON feed answers in the caller's language via
+// \local_nit_core\helper\lang, which must therefore be installed.
+$plugin->dependencies = [
+    'local_nit_core' => 2026080404,
+];

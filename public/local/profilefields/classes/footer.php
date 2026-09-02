@@ -139,24 +139,71 @@ class footer {
      * The link columns, and the shipped set of links in each.
      *
      * Between them these are the six static pages of AC-4.21.1, so the footer is
-     * complete the day those pages exist and nobody has to remember to come back
-     * here and add them.
+     * complete the day this plugin is installed and nobody has to remember to come
+     * back here and add them. The addresses are the ones
+     * {@see staticpages::url()} hands out - stable whatever a page's text turns
+     * out to be, and in particular not a tool_policy view URL, which names one
+     * revision of one document and changes on the next.
      *
      * @return array<string, array<int, array{url: string, en: string, ar: string}>>
      */
     public static function defaultlinks(): array {
         return [
             'col2' => [
-                ['url' => '/local/nit_core/page.php?page=about', 'en' => 'About us', 'ar' => 'معلومات عنا'],
+                ['url' => '/local/profilefields/page.php?page=about', 'en' => 'About us', 'ar' => 'معلومات عنا'],
                 ['url' => '/course/', 'en' => 'Courses', 'ar' => 'الدورات'],
-                ['url' => '/local/nit_core/page.php?page=contact', 'en' => 'Contact us', 'ar' => 'اتصل بنا'],
+                ['url' => '/local/profilefields/page.php?page=faq', 'en' => 'FAQ', 'ar' => 'الأسئلة الشائعة'],
+                ['url' => '/local/profilefields/page.php?page=contact', 'en' => 'Contact us', 'ar' => 'اتصل بنا'],
             ],
             'col3' => [
-                ['url' => '/local/nit_core/page.php?page=terms', 'en' => 'Terms and conditions', 'ar' => 'الشروط والأحكام'],
-                ['url' => '/local/nit_core/page.php?page=privacy', 'en' => 'Privacy policy', 'ar' => 'سياسة الخصوصية'],
-                ['url' => '/local/nit_core/page.php?page=refund', 'en' => 'Refund policy', 'ar' => 'سياسة الاسترداد'],
+                ['url' => '/local/profilefields/page.php?page=terms',
+                    'en' => 'Terms and conditions', 'ar' => 'الشروط والأحكام'],
+                ['url' => '/local/profilefields/page.php?page=privacy',
+                    'en' => 'Privacy policy', 'ar' => 'سياسة الخصوصية'],
+                ['url' => '/local/profilefields/page.php?page=refund',
+                    'en' => 'Refund policy', 'ar' => 'سياسة الاسترداد'],
             ],
         ];
+    }
+
+    /**
+     * Point footer links at the static pages that now exist.
+     *
+     * The shipped links used to name `/local/nit_core/page.php`, an address that
+     * was never built - the pages of AC-4.21 had not been written yet and nit_core
+     * turned out to be the wrong home for them (it is the SDK, not a place content
+     * lives). A site that saved the footer before this upgrade has those dead
+     * addresses stored, and defaultlinks() cannot help it: stored links are
+     * respected exactly as saved, which is the right rule and the reason the dead
+     * ones would have stayed.
+     *
+     * Rewrites only that one path, and only the `page=` slugs we actually serve,
+     * so a link an administrator typed themselves is left alone. Run once from
+     * db/upgrade.php.
+     *
+     * @return void
+     */
+    public static function repoint_static_page_links(): void {
+        foreach (['col2', 'col3'] as $col) {
+            $links = self::links($col);
+            $changed = false;
+
+            foreach ($links as $index => $link) {
+                if (!preg_match('~^/local/nit_core/page\.php\?page=([a-z]+)$~', $link['url'], $m)) {
+                    continue;
+                }
+                if (!staticpages::exists($m[1])) {
+                    continue;
+                }
+                $links[$index]['url'] = '/local/profilefields/page.php?page=' . $m[1];
+                $changed = true;
+            }
+
+            if ($changed) {
+                set_config('footer' . $col . 'links',
+                    json_encode($links, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), self::COMPONENT);
+            }
+        }
     }
 
     /**

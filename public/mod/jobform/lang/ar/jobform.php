@@ -59,8 +59,22 @@ $string['nothingtodisplay'] = 'مفيش حاجة نعرضها.';
 // Student form buttons and messages.
 $string['sendform'] = 'إرسال';
 $string['savedraft'] = 'حفظ كمسودة';
-$string['formsent'] = 'تم إرسال استمارتك.';
+// AC-4.20.8 — نص التأكيد على الشاشة متفق عليه حرفيًا، منعرفوش نغيّره.
+$string['formsent'] = 'شكرًا لك. تم استلام طلبك. سيتواصل معك فريقنا في حال مطابقة ملفك لمتطلبات الوظيفة.';
 $string['draftsaved'] = 'تم حفظ المسودة.';
+
+// AC-4.20.8 — رسالة تأكيد الاستلام للمتقدّم. عنوان الرسالة متفق عليه حرفيًا.
+$string['ackemailsubject'] = 'تم استلام طلبك — EAAC';
+$string['ackemailgreeting'] = 'مرحبًا {$a}،';
+$string['ackemailbody'] = 'شكرًا لك. تم استلام طلبك. سيتواصل معك فريقنا في حال مطابقة ملفك لمتطلبات الوظيفة.';
+$string['ackemaildetails'] = 'الطلب: {$a->activity} ({$a->course})';
+$string['ackemailfooter'] = 'دي رسالة تلقائية — من فضلك متردش عليها.';
+
+// AC-4.20.8 — إشعار المراجع / المسؤول.
+$string['messageprovider:submission'] = 'وصل طلب توظيف جديد';
+$string['adminemailsubject'] = 'طلب توظيف جديد: {$a->activity}';
+$string['adminemailbody'] = '{$a->applicant} ({$a->email}) بعت طلب على "{$a->activity}" في كورس "{$a->course}".';
+$string['adminemaillink'] = 'عرض الطلب';
 
 // Validation.
 $string['errornotnumber'] = 'من فضلك اكتب رقم.';

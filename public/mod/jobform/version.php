@@ -25,11 +25,11 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_jobform';
-$plugin->version   = 2026081503;
+$plugin->version   = 2026090201;                // AC-4.20.4 phone: country dialling code control.
 $plugin->requires  = 2024100700;              // Moodle 4.5 LTS baseline.
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.4.0';
+$plugin->release   = '0.6.0';
 $plugin->dependencies = [
-    'local_jobform' => 2026081502,            // Shared field types + default template.
+    'local_jobform' => 2026090200,            // Shared field types, default template, phone helper.
 ];

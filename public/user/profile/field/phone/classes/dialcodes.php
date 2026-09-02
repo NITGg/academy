@@ -77,6 +77,35 @@ class dialcodes {
         'AE' => '971', 'GB' => '44', 'US' => '1', 'UY' => '598', 'UZ' => '998',
         'VU' => '678', 'VA' => '379', 'VE' => '58', 'VN' => '84', 'YE' => '967',
         'ZM' => '260', 'ZW' => '263',
+        // The rest of Moodle's country list. The table above was the set the
+        // academy expected to see; AC-4.20.4 asks for a control that is generic
+        // and covers *all* countries rather than an illustrative shortlist, so
+        // the remaining ISO 3166-1 entries are here: the sovereign states that
+        // were missing (Antigua and Barbuda, the Bahamas, Barbados, Dominica,
+        // Grenada, Eswatini) and the dependent territories, which run their own
+        // numbering and are where people actually live - Puerto Rico, Guam,
+        // Reunion, Greenland, the Channel Islands.
+        //
+        // Every ISO code in lang/en/countries.php now has an entry here. When
+        // Moodle adds a country, add its dialling code too, or the control quietly
+        // stops covering all countries again.
+        //
+        // Many of these share a dialling code: the whole North American plan is
+        // '1', and the French overseas departments split 262/590/594/596. That is
+        // fine - what gets stored is the ISO code, not the '+NN', so Guadeloupe
+        // and Saint Martin stay distinguishable even though both dial +590.
+        'AG' => '1',   'AI' => '1',   'AQ' => '672', 'AS' => '1',   'AW' => '297',
+        'AX' => '358', 'BB' => '1',   'BL' => '590', 'BM' => '1',   'BQ' => '599',
+        'BS' => '1',   'BV' => '47',  'CC' => '61',  'CK' => '682', 'CW' => '599',
+        'CX' => '61',  'DM' => '1',   'EH' => '212', 'FK' => '500', 'FO' => '298',
+        'GD' => '1',   'GF' => '594', 'GG' => '44',  'GI' => '350', 'GL' => '299',
+        'GP' => '590', 'GS' => '500', 'GU' => '1',   'HM' => '672', 'IM' => '44',
+        'IO' => '246', 'JE' => '44',  'KY' => '1',   'MF' => '590', 'MP' => '1',
+        'MQ' => '596', 'MS' => '1',   'NC' => '687', 'NF' => '672', 'NU' => '683',
+        'PF' => '689', 'PM' => '508', 'PN' => '64',  'PR' => '1',   'RE' => '262',
+        'SH' => '290', 'SJ' => '47',  'SX' => '1',   'SZ' => '268', 'TC' => '1',
+        'TF' => '262', 'TK' => '690', 'UM' => '1',   'VG' => '1',   'VI' => '1',
+        'WF' => '681', 'YT' => '262',
     ];
 
     /**
@@ -210,12 +239,13 @@ class dialcodes {
     }
 
     /**
-     * The list shown in the country select: ISO => "🇪🇬 +20 Egypt".
+     * The list shown in the country select: ISO => "Egypt +20 🇪🇬".
      *
-     * Countries with a known dialling code are listed, sorted by the localised
-     * name so the order follows the interface language.
+     * Every country Moodle knows is offered - CODES covers the whole of
+     * lang/en/countries.php, so the control is generic rather than a shortlist of
+     * the countries we happened to expect (AC-4.20.4). The list is sorted by the
+     * localised name, so the order follows the interface language.
      *
-     * The flag and the dialling code come before the country name on purpose: the
      * The label leads with the country NAME, and that ordering is load-bearing, not
      * cosmetic. A browser's select type-ahead ("press S to jump to Saudi Arabia")
      * matches from the first character of the option text. This label used to open

@@ -28,8 +28,9 @@
       * The horizontal primary navigation is collapsed into a single gear-icon
         dropdown (built from `mobileprimarynav`), which carries a second,
         NIT-only group of management links (output.navbar_management_menu).
-      * Right cluster order: notifications (navbar_plugin_output), gear nav,
-        user menu. Search + edit switch are kept but only render when present.
+      * Right cluster order: site search (output.navbar_site_search), notifications
+        (navbar_plugin_output), gear nav, user menu. Core's search_box is replaced by
+        ours rather than shown alongside it — AC-4.22.1 asks for a single control.
 
     Visual treatment (navy field, gold wordmark) lives in
     theme/nit/scss/components/_navbar.scss, keyed off the `nit-navbar` class.
@@ -65,10 +66,12 @@
         </div>
 
         <div id="usernavigation" class="navbar-nav ms-auto h-100 align-items-center">
-            {{# output.search_box }}
-                {{{ output.search_box }}}
-                <div class="divider border-start h-75 align-self-center mx-1"></div>
-            {{/output.search_box}}
+            {{! NIT: AC-4.22.1 — ONE search control in the header, searching courses and
+                categories together (theme_nit/navbar_site_search + local_nit_category).
+                Core's own search box is deliberately not rendered beside it: two boxes
+                that answer different questions is exactly what "a single search control"
+                rules out. }}
+            {{{ output.navbar_site_search }}}
 
             {{! NIT: the edit-mode switch was moved OUT of the bar and INTO the
                 gear/navigation dropdown below (matches the legacy clean bar). }}

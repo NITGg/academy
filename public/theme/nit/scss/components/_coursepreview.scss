@@ -67,6 +67,17 @@
     }
 }
 
+// A lapsed subscriber, not a shopper: the bar says their access ended rather than that they
+// are previewing, so it carries the accent edge and an hourglass instead of the padlock.
+// (See local_payments\course_preview::banner_html.)
+.lp-preview-bar.lp-preview-expired {
+    border-top-color: var(--nit-brand-accent);
+
+    .lp-preview-text::before {
+        content: "⏳";
+    }
+}
+
 body.local-payments-preview {
     // Room for the fixed bar, so it never sits on top of the page footer.
     padding-bottom: 76px;

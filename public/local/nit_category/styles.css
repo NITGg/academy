@@ -137,11 +137,22 @@
     text-decoration: underline;
 }
 
+/* ── Filter groups ─────────────────────────────────────────────────────────────────
+ *
+ * Six groups, in the order SRS §4.8 lists them, separated by a rule rather than boxed.
+ * The heading reads as a heading — sentence case at the body size — rather than the tiny
+ * uppercase tracking that made the panel look like a settings screen.
+ */
+
 .nitcat__group {
     border: 0;
     border-top: 1px solid color-mix(in srgb, var(--cborder) 40%, transparent);
     margin: 0;
-    padding: 14px 0 0;
+    padding: 18px 0 0;
+}
+
+.nitcat__group + .nitcat__group {
+    margin-top: 18px;
 }
 
 .nitcat__group:first-of-type {
@@ -149,16 +160,24 @@
     padding-top: 0;
 }
 
-.nitcat__group legend {
+.nitcat__group legend,
+.nitcat__grouptitle {
     float: none;
     width: auto;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--ctext2);
-    margin-bottom: 8px;
+    line-height: 1.4;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ctext1);
+    margin-bottom: 10px;
     padding: 0;
+}
+
+/* A group whose only content is one tick — "Carries a certificate" — has no heading to
+   show, so it gets the spacing a heading would have given it. */
+.nitcat__group--flat {
+    padding-top: 18px;
 }
 
 .nitcat__opts {
@@ -170,11 +189,12 @@
 .nitcat__opt {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 10px;
     margin: 0;
-    padding: 5px 6px;
-    border-radius: 7px;
-    font-size: 13px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    line-height: 1.45;
     color: var(--ctext1);
     cursor: pointer;
 }
@@ -185,20 +205,25 @@
 
 .nitcat__opt input {
     flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
     margin: 0;
     accent-color: var(--cbg4);
+    cursor: pointer;
 }
 
+/* Two lines rather than an ellipsis: "EAAC Experts in International Trade" is a real
+   category name, and truncating it to "EAAC Experts in Inter…" makes the list useless. */
 .nitcat__optlabel {
     flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
 }
 
 .nitcat__optcount {
     flex: 0 0 auto;
+    align-self: flex-start;
+    margin-top: 1px;
     font-size: 11px;
     color: var(--ctext2);
     background: color-mix(in srgb, var(--ctext1) 8%, transparent);
@@ -218,53 +243,122 @@
 .nitcat__more {
     border: 0;
     background: none;
-    padding: 4px 6px;
+    padding: 6px 8px 0;
     font: inherit;
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--ctext3);
     text-decoration: underline;
     cursor: pointer;
 }
 
-.nitcat__range {
-    display: flex;
-    gap: 10px;
-    margin-top: 6px;
+/* ── Price range ───────────────────────────────────────────────────────────────────
+ *
+ * Two range inputs stacked on one drawn track. The inputs themselves are transparent —
+ * only their thumbs are painted — so the filled bar between the handles can be a plain
+ * element underneath that both of them slide over. pointer-events juggling is what lets
+ * a click land on whichever thumb is nearest rather than always on the top input.
+ */
+
+.nitcat__price {
+    position: relative;
+    height: 46px;
+    margin-top: 4px;
 }
 
-.nitcat__range label {
-    flex: 1 1 0;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+.nitcat__pricetrack {
+    position: absolute;
+    inset-inline: 8px;
+    top: 8px;
+    height: 4px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--ctext1) 14%, transparent);
+}
+
+.nitcat__pricefill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 4px;
+    background: var(--cbg4);
+}
+
+.nitcat__pricehandle {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    width: 100%;
+    height: 20px;
     margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    /* The track is drawn above; only the thumbs take the pointer. */
+    pointer-events: none;
 }
 
-.nitcat__rangelab {
-    font-size: 11px;
+.nitcat__pricehandle:focus {
+    outline: none;
+}
+
+.nitcat__pricehandle::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    pointer-events: auto;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--cbg4);
+    border: 2px solid var(--cbg2);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+}
+
+.nitcat__pricehandle::-moz-range-thumb {
+    pointer-events: auto;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--cbg4);
+    border: 2px solid var(--cbg2);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+}
+
+.nitcat__pricehandle:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--caccent);
+    outline-offset: 2px;
+}
+
+.nitcat__pricehandle:focus-visible::-moz-range-thumb {
+    outline: 2px solid var(--caccent);
+    outline-offset: 2px;
+}
+
+.nitcat__pricehandle::-moz-range-track {
+    background: none;
+    border: 0;
+}
+
+.nitcat__priceends {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12px;
     color: var(--ctext2);
 }
 
-.nitcat__range input {
-    width: 100%;
-    background: var(--cbg1);
-    border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent);
-    color: var(--ctext1);
-    border-radius: 8px;
-    padding: 7px 9px;
-    font: inherit;
-    font-size: 13px;
-}
-
-.nitcat__range input:focus {
-    outline: none;
-    border-color: var(--cbg4);
+.nitcat__opt--free {
+    margin-top: 10px;
+    padding-inline: 0;
 }
 
 .nitcat__apply {
     width: 100%;
-    margin-top: 16px;
+    margin-top: 20px;
 }
 
 /* ── Results ───────────────────────────────────────────────────────────────────── */
@@ -786,5 +880,263 @@ html[dir="rtl"] .nitcats-card__cta svg {
 
     .nitcats-card:hover {
         transform: none;
+    }
+}
+
+/* ══ Site search (search.php + the navbar panel) ══════════════════════════════════
+ *
+ * These rules are used in two places at once: the results page, which sets the --c*
+ * slots on its .nitcat wrapper, and the panel under the header search box, which does
+ * not — it is a theme_nit popover with no wrapper of its own. So every colour here
+ * names the slot AND its brand fallback: inside the page the slot wins, inside the
+ * panel the fallback does, and one set of rules dresses both.
+ *
+ * Every horizontal property is logical, so the rows mirror themselves in Arabic.
+ */
+
+.nitsearch__wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 clamp(16px, 4vw, 40px);
+}
+
+.nitsearch__body {
+    padding-bottom: 32px;
+}
+
+/* ── A group: one kind of result, under its own heading, with its own count ─────── */
+
+.nitsearch__group {
+    margin-bottom: 28px;
+}
+
+.nitsearch__grouptitle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ctext2, var(--nit-brand-textsecondary));
+    margin: 0 0 10px;
+    padding-inline: 4px;
+}
+
+.nitsearch__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 22px;
+    padding-inline: 7px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--cbg4, var(--nit-brand-primary)) 14%, transparent);
+    color: var(--cbg4, var(--nit-brand-primary));
+}
+
+.nitsearch__rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* ── A result row ──────────────────────────────────────────────────────────────────
+ * A course and a category are drawn identically on purpose: they sit in one list under
+ * two headings, and a reader scanning it should not have to learn two layouts. */
+
+.nitsearch-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    color: inherit;
+    text-decoration: none;
+}
+
+.nitsearch-row:hover,
+.nitsearch-row:focus {
+    text-decoration: none;
+    background: color-mix(in srgb, var(--cbg4, var(--nit-brand-primary)) 8%, transparent);
+    border-color: color-mix(in srgb, var(--cborder, var(--nit-brand-borderprimary)) 60%, transparent);
+}
+
+.nitsearch-row:focus-visible {
+    outline: 2px solid var(--cbg4, var(--nit-brand-primary));
+    outline-offset: 1px;
+}
+
+.nitsearch-row__media {
+    flex: 0 0 auto;
+    width: 62px;
+    height: 44px;
+    border-radius: 8px;
+    background-color: color-mix(in srgb, var(--cbg3, var(--nit-brand-surface)) 70%, transparent);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.nitsearch-row__glyph {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.nitsearch-row__body {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nitsearch-row__context {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ctext2, var(--nit-brand-textsecondary));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nitsearch-row__title {
+    font-size: 14.5px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--ctext1, var(--nit-brand-textprimary));
+    /* Two lines at most: a long course title must not push the price out of the row. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.nitsearch-row__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 2px;
+}
+
+.nitsearch-row__chip {
+    font-size: 11px;
+    line-height: 1.6;
+    padding-inline: 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--cbg3, var(--nit-brand-surface)) 75%, transparent);
+    color: var(--ctext2, var(--nit-brand-textsecondary));
+    white-space: nowrap;
+}
+
+.nitsearch-row__trail {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    text-align: end;
+    font-size: 13px;
+}
+
+.nitsearch-row__note {
+    font-size: 12px;
+    color: var(--ctext2, var(--nit-brand-textsecondary));
+    white-space: nowrap;
+}
+
+/* ── The two links out of a result list ────────────────────────────────────────── */
+
+.nitsearch__more,
+.nitsearch__all {
+    display: block;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--cbg4, var(--nit-brand-primary));
+    text-decoration: none;
+}
+
+.nitsearch__all {
+    text-align: center;
+    background: color-mix(in srgb, var(--cbg4, var(--nit-brand-primary)) 8%, transparent);
+}
+
+.nitsearch__more:hover,
+.nitsearch__all:hover,
+.nitsearch__more:focus,
+.nitsearch__all:focus {
+    text-decoration: underline;
+    color: var(--cbg4, var(--nit-brand-primary));
+}
+
+.nitsearch__hint {
+    margin: 0;
+    padding: 18px 14px;
+    text-align: center;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--ctext2, var(--nit-brand-textsecondary));
+}
+
+/* ── Page-only pieces ──────────────────────────────────────────────────────────── */
+
+.nitsearch__refine {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    padding-top: 18px;
+    border-top: 1px solid color-mix(in srgb, var(--cborder) 45%, transparent);
+    font-size: 14px;
+    color: var(--ctext2);
+}
+
+.nitsearch__emptylinks {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* ── Inside the navbar panel the rows are tighter: it is a preview, not the page ── */
+
+.nitsearch--panel .nitsearch__group {
+    margin-bottom: 10px;
+}
+
+.nitsearch--panel .nitsearch__grouptitle {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.nitsearch--panel .nitsearch-row__media {
+    width: 50px;
+    height: 36px;
+}
+
+.nitsearch--panel .nitsearch-row__chips {
+    display: none;
+}
+
+@media (max-width: 575px) {
+    .nitsearch-row__chips {
+        display: none;
+    }
+
+    .nitsearch-row__media {
+        width: 50px;
+        height: 36px;
     }
 }

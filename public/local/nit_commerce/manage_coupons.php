@@ -76,24 +76,34 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     .acad-pager button.is-active { background:#0f6cbf; border-color:#0f6cbf; color:#fff; }
     .acad-pager button:disabled { opacity:.5; cursor:default; }
 
-    /* Report tab. Neutral greys rather than brand tokens: this is an admin screen inside Boost's
-       admin layout, and theme_nit's palette is not guaranteed to be loaded here. */
+    /* Report tab. Every colour is a Brand Colors role (theme/nit/gallery.php -> --nit-brand-*),
+       so the report recolours with the saved palette instead of sitting as a white island on the
+       site's dark ground. The roles are defined on :root by theme_nit, which puts them on admin
+       pages too. Hex fallbacks are the Group 1 seeds, used only if the theme CSS is absent. */
     .rep-filters { display:flex; flex-wrap:wrap; gap:.75rem; align-items:flex-end; margin-bottom:1rem; }
     .rep-filters .rep-field { display:flex; flex-direction:column; gap:.2rem; }
-    .rep-filters label { font-size:.8rem; color:#6a6f73; margin:0; }
+    .rep-filters label { font-size:.8rem; color:var(--nit-brand-textsecondary, #94a3b8); margin:0; }
     .rep-filters .form-control { min-width:150px; }
     .rep-kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:.75rem; margin-bottom:1.25rem; }
-    .rep-kpi { border:1px solid #dee2e6; border-radius:8px; padding:.75rem 1rem; background:#fff; }
-    .rep-kpi__label { font-size:.78rem; color:#6a6f73; text-transform:uppercase; letter-spacing:.03em; }
-    .rep-kpi__value { font-size:1.5rem; font-weight:800; color:#1d2125; line-height:1.3; }
-    .rep-kpi__value small { font-size:.8rem; font-weight:600; color:#6a6f73; }
-    .rep-sub { font-size:.85rem; color:#6a6f73; margin:.15rem 0 0; }
-    .rep-h { font-size:1.05rem; font-weight:700; margin:1.5rem 0 .5rem; }
+    /* Surface is the role for "cards background / page sections background" — these tiles are
+       exactly that, so they take it rather than a hard-coded white. */
+    .rep-kpi { border:1px solid var(--nit-brand-borderprimary, #223244); border-radius:8px;
+        padding:.75rem 1rem; background:var(--nit-brand-surface, #121e2d); }
+    .rep-kpi__label { font-size:.78rem; color:var(--nit-brand-textsecondary, #94a3b8); text-transform:uppercase; letter-spacing:.03em; }
+    .rep-kpi__value { font-size:1.5rem; font-weight:800; color:var(--nit-brand-textprimary, #eef3f9); line-height:1.3; }
+    .rep-kpi__value small { font-size:.8rem; font-weight:600; color:var(--nit-brand-textsecondary, #94a3b8); }
+    .rep-sub { font-size:.85rem; color:var(--nit-brand-textsecondary, #94a3b8); margin:.15rem 0 0; }
+    .rep-h { font-size:1.05rem; font-weight:700; margin:1.5rem 0 .5rem; color:var(--nit-brand-textprimary, #eef3f9); }
     .rep-badge { display:inline-block; font-size:.72rem; font-weight:700; border-radius:999px; padding:.1rem .5rem; }
-    .rep-badge--held { background:#fff3cd; color:#7a5b00; }
-    .rep-badge--none { background:#e9ecef; color:#495057; }
+    /* Held / no-order pills: tinted from the role rather than filled with it, so the label stays
+       readable on both a light and a dark palette. */
+    .rep-badge--held { background:color-mix(in srgb, var(--nit-brand-warning, #d8c24e) 22%, transparent);
+        color:var(--nit-brand-warning, #d8c24e); }
+    .rep-badge--none { background:color-mix(in srgb, var(--nit-brand-textsecondary, #94a3b8) 18%, transparent);
+        color:var(--nit-brand-textsecondary, #94a3b8); }
     .rep-amount { white-space:nowrap; font-variant-numeric:tabular-nums; }
-    .rep-cut { color:#a94442; font-weight:700; }
+    /* Money given away — the Error role is the palette's "negative / destructive" colour. */
+    .rep-cut { color:var(--nit-brand-error, #d07f43); font-weight:700; }
 </style>
 
 <ul class="nav nav-tabs mb-3" id="cpn-tabs" role="tablist">

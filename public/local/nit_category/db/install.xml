@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/nit_category/db" VERSION="20260902" COMMENT="Catalogue pages: the record of searches that found nothing (AC-4.22.4)."
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
+  <TABLES>
+    <TABLE NAME="local_nit_cat_searchlog" COMMENT="One row per distinct search term that returned no course and no category. Aggregated on the folded key, so spelling variants of one word are one row. Carries no user column by design.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="termkey" TYPE="char" LENGTH="191" NOTNULL="true" SEQUENCE="false" COMMENT="the term folded by text_util::normalise() - the aggregation key, never displayed"/>
+        <FIELD NAME="term" TYPE="char" LENGTH="191" NOTNULL="true" SEQUENCE="false" COMMENT="the term as first typed - what the report shows"/>
+        <FIELD NAME="lang" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="interface language at the most recent miss"/>
+        <FIELD NAME="hits" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="how many times this term has been searched with no result"/>
+        <FIELD NAME="timefirst" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timelast" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="termkey_uk" UNIQUE="true" FIELDS="termkey"/>
+        <INDEX NAME="hits_idx" UNIQUE="false" FIELDS="hits"/>
+        <INDEX NAME="timelast_idx" UNIQUE="false" FIELDS="timelast"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

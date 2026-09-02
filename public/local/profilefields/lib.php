@@ -188,3 +188,62 @@ function local_profilefields_validate_extend_signup_form($data) {
 
     return $errors;
 }
+
+/**
+ * Serve an image embedded in a static page's body (AC-4.21).
+ *
+ * The itemid is the id of the {local_profilefields_page} row the picture was
+ * uploaded into - one row per page per language - which is why those rows are
+ * created before anything is typed into them.
+ *
+ * No login check beyond the site's own: these are the pages a visitor reads
+ * before deciding to sign up, so a picture on one has to load for a visitor
+ * too. A page that is switched off keeps its files private to whoever can
+ * publish it, the same way its text does.
+ *
+ * @param stdClass $course
+ * @param stdClass $cm
+ * @param context $context
+ * @param string $filearea
+ * @param array $args
+ * @param bool $forcedownload
+ * @param array $options
+ * @return bool false when this is not ours to serve
+ */
+function local_profilefields_pluginfile($course, $cm, $context, $filearea, $args,
+        $forcedownload, array $options = []) {
+    global $CFG, $DB;
+
+    if ($context->contextlevel !== CONTEXT_SYSTEM
+            || $filearea !== \local_profilefields\staticpages::FILEAREA) {
+        return false;
+    }
+
+    if (!empty($CFG->forcelogin)) {
+        require_login();
+    }
+
+    $itemid = (int) array_shift($args);
+
+    $row = $DB->get_record(\local_profilefields\staticpages::TABLE, ['id' => $itemid], 'id, slug');
+    if (!$row) {
+        return false;
+    }
+
+    if (!\local_profilefields\staticpages::enabled($row->slug)
+            && !has_capability('moodle/site:config', $context)) {
+        return false;
+    }
+
+    $filename = array_pop($args);
+    $filepath = empty($args) ? '/' : '/' . implode('/', $args) . '/';
+
+    $file = get_file_storage()->get_file($context->id, 'local_profilefields',
+        $filearea, $itemid, $filepath, $filename);
+
+    if (!$file || $file->is_directory()) {
+        return false;
+    }
+
+    send_stored_file($file, DAYSECS, 0, $forcedownload, $options);
+}

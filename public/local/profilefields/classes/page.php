@@ -17,19 +17,27 @@
 namespace local_profilefields;
 
 use html_writer;
+use local_profilefields\form\faq_form;
+use local_profilefields\form\staticpage_form;
 use moodle_url;
 use tabobject;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * The management screen: register, login, profile, password reset, footer.
+ * The management screen: register, login, profile, password reset, footer, and the
+ * six static pages.
  *
- * Each tab is a plain table of toggles that reads from, and writes back to, the
- * native Moodle settings behind each field (see manager, custom_fields, core_locks
- * and provision). There is deliberately no parallel field store here - the page is
- * a friendlier front end onto controls Moodle already has, spread across several
- * screens, plus the sign-up-form reshaping this plugin adds.
+ * The first five tabs are plain tables of toggles that read from, and write back
+ * to, the native Moodle settings behind each field (see manager, custom_fields,
+ * core_locks and provision). There is deliberately no parallel field store there -
+ * the page is a friendlier front end onto controls Moodle already has, spread
+ * across several screens, plus the sign-up-form reshaping this plugin adds.
+ *
+ * The sixth is a second row of tabs, one per static page of AC-4.21, and those are
+ * moodleforms rather than toggle tables because their fields are rich text - see
+ * {@see \local_profilefields\staticpages} for what each page is made of, and
+ * {@see \local_profilefields\form\staticpage_form} for why they are forms.
  *
  * @package    local_profilefields
  * @copyright  2026 NIT
@@ -52,14 +60,38 @@ class page {
     /** @var string Site-footer tab. */
     const TAB_FOOTER = 'footer';
 
+    /** @var string Prefix of the six static-page tabs - 'page' . slug (AC-4.21). */
+    const TAB_PAGE_PREFIX = 'page';
+
     /**
      * The valid tab identifiers.
      *
      * @return string[]
      */
     public static function tabs(): array {
-        return [self::TAB_REGISTER, self::TAB_LOGIN, self::TAB_PROFILE,
-            self::TAB_PASSWORDRESET, self::TAB_FOOTER];
+        return array_merge(
+            [self::TAB_REGISTER, self::TAB_LOGIN, self::TAB_PROFILE,
+                self::TAB_PASSWORDRESET, self::TAB_FOOTER],
+            array_map(static function (string $slug): string {
+                return self::TAB_PAGE_PREFIX . $slug;
+            }, staticpages::slugs())
+        );
+    }
+
+    /**
+     * The static page a tab id names, if it names one.
+     *
+     * @param string $tab
+     * @return string slug, or '' when this is not a static-page tab
+     */
+    public static function tab_slug(string $tab): string {
+        if (strpos($tab, self::TAB_PAGE_PREFIX) !== 0) {
+            return '';
+        }
+
+        $slug = substr($tab, strlen(self::TAB_PAGE_PREFIX));
+
+        return staticpages::exists($slug) ? $slug : '';
     }
 
     /**
@@ -82,6 +114,15 @@ class page {
      * @return void
      */
     public static function process(string $tab): void {
+        // The static pages are moodleforms, so they carry their own submission and
+        // their own sesskey. Handled first and on their own terms - the toggle
+        // machinery below is for the hand-built tabs.
+        $slug = self::tab_slug($tab);
+        if ($slug !== '') {
+            self::process_staticpage($slug, $tab);
+            return;
+        }
+
         // Provisioning: create the recommended custom fields.
         if (optional_param('provision', 0, PARAM_BOOL)) {
             require_sesskey();
@@ -156,8 +197,15 @@ class page {
                 get_string('tabpasswordreset', 'local_profilefields')),
             new tabobject(self::TAB_FOOTER, self::url(self::TAB_FOOTER),
                 get_string('tabfooter', 'local_profilefields')),
+            self::pages_tab($tab),
         ];
         echo $OUTPUT->tabtree($rows, $tab);
+
+        $slug = self::tab_slug($tab);
+        if ($slug !== '') {
+            self::render_staticpage($slug);
+            return;
+        }
 
         switch ($tab) {
             case self::TAB_LOGIN:
@@ -1300,6 +1348,175 @@ class page {
                 'type' => 'text', 'name' => $name, 'id' => 'id_' . $name,
                 'value' => $value, 'class' => 'form-control', 'dir' => $dir,
             ])));
+    }
+
+    // -----------------------------------------------------------------
+    // Static pages (AC-4.21).
+    // -----------------------------------------------------------------
+
+    /**
+     * The "Static pages" tab, with one sub-tab per page.
+     *
+     * Six pages would be six more tabs on a bar that already has five, and the
+     * result reads as eleven unrelated screens. A second row instead: one tab that
+     * says these six belong together, and inside it the page being edited.
+     *
+     * @return tabobject
+     */
+    protected static function pages_tab(string $tab): tabobject {
+        $first = staticpages::slugs()[0];
+
+        $parent = new tabobject('pages', self::url(self::TAB_PAGE_PREFIX . $first),
+            get_string('tabpages', 'local_profilefields'));
+
+        // The subtree is attached only while a page is being edited. tabtree draws
+        // the second row for any top-level tab that has one, selected or not (see
+        // tabtree::export_for_template), so attaching it unconditionally would put
+        // six page tabs under the Register tab as well.
+        if (self::tab_slug($tab) === '') {
+            return $parent;
+        }
+
+        $parent->subtree = array_map(static function (string $slug): tabobject {
+            return new tabobject(self::TAB_PAGE_PREFIX . $slug,
+                self::url(self::TAB_PAGE_PREFIX . $slug),
+                staticpages::default_title($slug, current_language()));
+        }, staticpages::slugs());
+
+        return $parent;
+    }
+
+    /**
+     * Handle a submission on one of the static-page tabs.
+     *
+     * Two forms can be on the FAQ tab at once - the page itself and its list of
+     * questions - so each is asked whether it was the one submitted. moodleform's
+     * `_qf__<formname>` marker keeps them apart, which is why the question list is
+     * its own class rather than more elements on the page form: the two are saved
+     * independently, and an editor full of Arabic prose should not be revalidated
+     * because somebody added a question.
+     *
+     * @param string $slug the page being edited
+     * @param string $tab the tab id, for the redirect
+     * @return void
+     */
+    protected static function process_staticpage(string $slug, string $tab): void {
+        $pageform = self::staticpage_form($slug);
+        if ($data = $pageform->get_data()) {
+            staticpage_form::save($data);
+            redirect(self::url($tab), get_string('changessaved'),
+                null, \core\output\notification::NOTIFY_SUCCESS);
+        }
+
+        if (staticpages::kind($slug) !== staticpages::KIND_FAQ) {
+            return;
+        }
+
+        $faqform = self::faq_form();
+        if ($data = $faqform->get_data()) {
+            faq::save_all(faq_form::extract($data));
+            redirect(self::url($tab), get_string('changessaved'),
+                null, \core\output\notification::NOTIFY_SUCCESS);
+        }
+    }
+
+    /**
+     * The page form for this request - the same instance every time it is asked for.
+     *
+     * process() and render() have to be looking at one object. A second instance
+     * would be built from the same POST and hold the same typed values, but not the
+     * validation errors the first one found: a submission that failed validation
+     * would redraw as if nothing were wrong, with no message beside the field.
+     *
+     * @param string $slug
+     * @return staticpage_form
+     */
+    protected static function staticpage_form(string $slug): staticpage_form {
+        static $forms = [];
+
+        // Keyed by slug, not a single instance: the six pages are six different
+        // forms, and one request that touched two of them would otherwise get the
+        // first one back for both.
+        if (!isset($forms[$slug])) {
+            $forms[$slug] = new staticpage_form(
+                self::url(self::TAB_PAGE_PREFIX . $slug)->out(false), ['slug' => $slug]);
+        }
+
+        return $forms[$slug];
+    }
+
+    /**
+     * The FAQ list form for this request, for the same reason.
+     *
+     * @return faq_form
+     */
+    protected static function faq_form(): faq_form {
+        static $form = null;
+
+        if ($form === null) {
+            $form = new faq_form(
+                self::url(self::TAB_PAGE_PREFIX . 'faq')->out(false), ['items' => faq::all()]);
+        }
+
+        return $form;
+    }
+
+    /**
+     * Render one static-page tab.
+     *
+     * @param string $slug
+     * @return void
+     */
+    protected static function render_staticpage(string $slug): void {
+        global $OUTPUT;
+
+        echo html_writer::tag('p', get_string('tabpages_intro', 'local_profilefields'),
+            ['class' => 'text-muted']);
+
+        echo self::staticpage_address($slug);
+
+        // load() sets the stored values as the form's defaults. On a submission
+        // that failed validation QuickForm prefers what was posted, so nothing the
+        // administrator typed is replaced by what is in the database.
+        $pageform = self::staticpage_form($slug);
+        $pageform->load($slug);
+        $pageform->display();
+
+        if (staticpages::kind($slug) !== staticpages::KIND_FAQ) {
+            return;
+        }
+
+        echo $OUTPUT->heading(get_string('faqheading', 'local_profilefields'), 3, 'mt-5 h4');
+        echo html_writer::tag('p', get_string('faqheading_desc', 'local_profilefields'),
+            ['class' => 'text-muted']);
+
+        $faqform = self::faq_form();
+        $faqform->load(faq::all());
+        $faqform->display();
+    }
+
+    /**
+     * Where the page being edited can be seen, and whether anyone can see it.
+     *
+     * The address is on the tab because it is the thing an administrator needs
+     * next: to check the page, and to paste the link into the footer, a course
+     * summary or an email.
+     *
+     * @param string $slug
+     * @return string HTML
+     */
+    protected static function staticpage_address(string $slug): string {
+        $url = staticpages::url($slug);
+
+        $out = html_writer::link($url, $url->out(false),
+            ['class' => 'fw-semibold', 'target' => '_blank', 'rel' => 'noopener']);
+        $out = get_string('staticpageaddress', 'local_profilefields') . ' ' . $out;
+
+        if (!staticpages::enabled($slug)) {
+            $out .= html_writer::div(get_string('staticpageoffnotice', 'local_profilefields'), 'small mt-1');
+        }
+
+        return html_writer::div($out, 'alert alert-info');
     }
 
     // -----------------------------------------------------------------

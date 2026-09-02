@@ -51,6 +51,31 @@ $functions = [
         'loginrequired' => false,
         'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    // The static pages of AC-4.21 - About, Contact, Terms, Privacy, Refund, FAQ.
+    // Two calls, not one: a menu screen wants the six names and needs none of the
+    // six bodies. Pre-login like the footer, because these are the pages a visitor
+    // reads before deciding to create an account.
+    'local_profilefields_get_static_pages' => [
+        'classname'     => 'local_profilefields\external\get_static_pages',
+        'methodname'    => 'execute',
+        'description'   => 'List the site\'s published static pages - slug, kind, name and web address - already '
+            . 'resolved to one language.',
+        'type'          => 'read',
+        'ajax'          => true,
+        'loginrequired' => false,
+        'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+    'local_profilefields_get_static_page' => [
+        'classname'     => 'local_profilefields\external\get_static_page',
+        'methodname'    => 'execute',
+        'description'   => 'One static page as data: its body as HTML, plus the contact rows and social links of '
+            . 'the Contact page and the questions and answers of the FAQ. A legal page returns whichever '
+            . 'tool_policy document is mapped to it.',
+        'type'          => 'read',
+        'ajax'          => true,
+        'loginrequired' => false,
+        'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
     'local_profilefields_resend_confirmation' => [
         'classname'     => 'local_profilefields\external\resend_confirmation',
         'methodname'    => 'execute',

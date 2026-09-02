@@ -267,4 +267,42 @@ class core_renderer extends \theme_boost\output\core_renderer {
             'items' => $items,
         ]);
     }
+
+    /**
+     * Render the one search control in the header (AC-4.22.1).
+     *
+     * The navbar carries a single box, and it searches the shop window: courses and
+     * subject areas together, in both languages, whichever the interface is in. The
+     * matching, the grouping and the counts all belong to local_nit_category — this is
+     * only where the control is drawn, and where its script is asked for.
+     *
+     * The box is a plain GET form pointing at that plugin's results page, so it works
+     * with scripting off and every search has its own address; the script adds the
+     * preview panel on top of that.
+     *
+     * Returns '' when the catalogue plugin is not installed on the site: the theme is a
+     * theme, and a search box that can only 404 is worse than no search box.
+     *
+     * @return string HTML, or '' when there is nothing to search with
+     */
+    public function navbar_site_search(): string {
+        if (\core_component::get_component_directory('local_nit_category') === null) {
+            return '';
+        }
+
+        // The results page prefills the box with what was searched for, so refining a
+        // search means editing the words rather than retyping them. Read from the page
+        // URL rather than the request: only a page that declared `q` its own means it.
+        $query = '';
+        if ($this->page->has_set_url()) {
+            $query = (string) ($this->page->url->get_param('q') ?? '');
+        }
+
+        $this->page->requires->js(new \moodle_url('/local/nit_category/search.js'));
+
+        return $this->render_from_template('theme_nit/navbar_site_search', [
+            'action' => (new \moodle_url('/local/nit_category/search.php'))->out(false),
+            'query' => $query,
+        ]);
+    }
 }

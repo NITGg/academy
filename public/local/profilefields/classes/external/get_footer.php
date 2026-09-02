@@ -89,9 +89,14 @@ class get_footer extends external_api {
 
         // Before any string is read: footer::text() picks its language off
         // current_language(), and so does format_string()'s multilang filter.
+        //
+        // for_request(), not force_current_language(): the bare call writes
+        // $SESSION->forcelang, which outranks the site's own ?lang= switcher for
+        // the rest of the session, so one app fetch asking for English would pin
+        // a learner's browser session to English until they logged out.
         $chosen = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
         if ($chosen !== '') {
-            force_current_language($chosen);
+            \local_nit_core\helper\lang::for_request($chosen);
         }
 
         $data = footer::config();

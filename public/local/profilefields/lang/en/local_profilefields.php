@@ -490,3 +490,67 @@ $string['footercopyright'] = 'Copyright line';
 $string['footercopyright_desc'] = 'Use {year} where the year should appear. Leave empty for the default sentence.';
 $string['footercopyrightdefault'] = '© {year} EAAC. All rights reserved.';
 $string['footercopyrightpreview'] = 'Shown as';
+
+// Static pages (AC-4.21).
+$string['tabpages'] = 'Static pages';
+$string['tabpages_intro'] = 'The site\'s standing pages. Each one is written twice - once in English and once in Arabic - and every visitor sees the version in their own language. A box left empty falls back to English, and then to whichever language was actually filled in.';
+
+$string['staticpagename_about'] = 'About EAAC';
+$string['staticpagename_contact'] = 'Contact us';
+$string['staticpagename_terms'] = 'Terms and conditions';
+$string['staticpagename_privacy'] = 'Privacy policy';
+$string['staticpagename_refund'] = 'Refund policy';
+$string['staticpagename_faq'] = 'Frequently asked questions';
+
+$string['staticpageaddress'] = 'This page is at';
+$string['staticpageenabled'] = 'Published';
+$string['staticpageenabled_help'] = 'An unpublished page answers "page not available" to everyone except a site administrator, so its text can be checked before anybody else can read it. Links to it elsewhere on the site are left alone - unpublish a page only while you are writing it.';
+$string['staticpageenabled_label'] = 'Show this page to visitors';
+$string['staticpageoff'] = 'Not published';
+$string['staticpageoffnotice'] = 'This page is not published, so only site administrators can open it.';
+$string['staticpageedit'] = 'Edit this page';
+$string['staticpageempty'] = 'There is nothing on this page yet.';
+$string['staticpageunknown'] = 'There is no site page called "{$a}".';
+$string['staticpageunavailable'] = 'This page is not available.';
+
+$string['staticpagelangsection'] = 'Content in {$a}';
+$string['staticpagetitle'] = 'Page title ({$a})';
+$string['staticpagetitle_desc'] = 'Leave empty to use the default: {$a}';
+$string['staticpagecontent'] = 'Page content ({$a})';
+$string['staticpagefallback'] = 'Text to show if no document is chosen ({$a})';
+
+$string['staticpagepolicysection'] = 'Policy document';
+$string['staticpagepolicysection_desc'] = 'This page shows one of the site\'s policy documents, so the text a learner agrees to when signing up and the text on this page are always the same document. Write and revise the documents in <a href="{$a}">Policy settings</a>, then choose one for each language here.';
+$string['staticpagepolicy'] = 'Document to show in {$a}';
+$string['staticpagepolicynone'] = 'None - use the text typed below';
+$string['staticpagepolicyempty'] = 'No policy documents have been written yet. Add them under Site administration > Users > Privacy and policies > Manage policies, then come back and choose one for each language. Until then this page shows the text typed below.';
+
+$string['staticpagecontactsection'] = 'Map';
+$string['staticpagecontactnote'] = 'The address, phone number, opening hours, email address and social media links on this page are the ones already set on the <a href="{$a}">Footer tab</a> - they are edited in one place and shown in both. Only the map is set here.';
+$string['staticpagemapembed'] = 'Map embed URL';
+$string['staticpagemapembed_help'] = 'In Google Maps, open Share > Embed a map and copy the address inside the src="..." of the code it gives you - not the whole tag. Leave empty for no map.';
+$string['staticpagemapembediframe'] = 'Paste only the address inside src="...", not the whole <iframe> tag.';
+$string['staticpagemapembedinvalid'] = 'This does not look like an embeddable map address. It must start with https://';
+$string['staticpagemaplink'] = 'Open in Maps link';
+$string['staticpagemaplink_help'] = 'Where the "Open in Maps" link under the map goes - the ordinary share link for the location. Leave empty to hide the link.';
+$string['staticpagemaplinkinvalid'] = 'This is not a valid web address.';
+
+$string['contactdetails'] = 'Contact details';
+$string['followus'] = 'Follow us';
+$string['findus'] = 'Find us';
+$string['openinmaps'] = 'Open in Maps';
+
+$string['faqheading'] = 'Questions and answers';
+$string['faqheading_desc'] = 'Each question is asked and answered in both languages. A question left blank in one language is shown in the other rather than disappearing.';
+$string['faqitem'] = 'Question {$a}';
+$string['faqquestion'] = 'Question ({$a})';
+$string['faqanswer'] = 'Answer ({$a})';
+$string['faqsortorder'] = 'Position';
+$string['faqsortorder_help'] = 'Questions are shown in order of this number, smallest first. The numbers are renumbered in steps of ten when you save, so there is always room to slot a new question between two old ones.';
+$string['faqvisible'] = 'Shown';
+$string['faqvisible_label'] = 'Show this question on the page';
+$string['faqdelete'] = 'Delete';
+$string['faqdelete_label'] = 'Delete this question when I save';
+$string['faqaddmore'] = 'Add {no} more questions';
+$string['faqnoquestion'] = 'There is an answer here but no question. Type the question, or tick Delete.';
+$string['faqnone'] = 'No questions have been added yet.';

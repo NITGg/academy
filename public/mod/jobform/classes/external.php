@@ -33,9 +33,11 @@ use core_external\util;
 use core_course\external\helper_for_get_mods_by_courses;
 use local_jobform\field_types;
 use local_jobform\mlang;
+use local_jobform\phone;
 use mod_jobform\instance_manager;
 use mod_jobform\group_manager;
 use mod_jobform\submission_manager;
+use mod_jobform\notifier;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -281,8 +283,25 @@ class mod_jobform_external extends external_api {
                 'sortorder'  => (int) $field->sortorder,
                 'multiple'   => $config['multiple'] ? 1 : 0,
                 'fixedvalue' => mlang::resolve($config['fixedvalue']),
+                // Value taken from the account of record, for the app to pre-fill
+                // an empty field with (AC-4.20.2). '' means nothing to pre-fill.
+                'prefill'    => field_types::autofill_value(
+                    field_types::autofill_source($field), $USER),
                 'options'    => $options,
             ];
+        }
+
+        // The dialling codes the app needs to draw its own country control
+        // (AC-4.20.4). Every country, localised and in the reading order of the
+        // requested language - and sent only when this form actually asks for a
+        // phone number, because it is 249 rows the other forms would carry for
+        // nothing.
+        $dialcodes = [];
+        foreach ($fields as $field) {
+            if ($field['type'] === field_types::TYPE_PHONE) {
+                $dialcodes = phone::country_list();
+                break;
+            }
         }
 
         // Certificate gate + current submission.
@@ -314,6 +333,7 @@ class mod_jobform_external extends external_api {
             ],
             'groups'  => $groups,
             'fields'  => $fields,
+            'dialcodes' => $dialcodes,
             'submission' => [
                 'status'       => $submission ? $submission->status : '',
                 'timemodified' => $submission ? (int) $submission->timemodified : 0,
@@ -357,17 +377,27 @@ class mod_jobform_external extends external_api {
                 'sortorder'  => new external_value(PARAM_INT, 'Display order'),
                 'multiple'   => new external_value(PARAM_INT, '1 if a dropdown accepts multiple selections'),
                 'fixedvalue' => new external_value(PARAM_RAW, 'Read-only value for the "fixed" type'),
+                'prefill'    => new external_value(PARAM_RAW,
+                    'Value from the user\'s account to pre-fill the field with ("" if none)'),
                 'options'    => new external_multiple_structure(new external_single_structure([
                     'value' => new external_value(PARAM_RAW, 'Value to send back when chosen'),
                     'label' => new external_value(PARAM_RAW, 'Label in the user\'s language'),
                 ]), 'Dropdown options', VALUE_DEFAULT, []),
             ])),
+            'dialcodes' => new external_multiple_structure(new external_single_structure([
+                'iso'   => new external_value(PARAM_ALPHA, 'ISO 3166-1 alpha-2 country code, e.g. EG'),
+                'code'  => new external_value(PARAM_ALPHANUM, 'Dialling code without the "+", e.g. 20'),
+                'name'  => new external_value(PARAM_RAW, 'Country name in the user\'s language'),
+                'label' => new external_value(PARAM_RAW, 'Ready-made option label: name, code and flag'),
+            ]), 'Every country, for a "phone" field\'s dialling code control. '
+                . 'Empty when the form has no phone field.', VALUE_DEFAULT, []),
             'submission' => new external_single_structure([
                 'status'       => new external_value(PARAM_ALPHA, 'draft | submitted | empty if none'),
                 'timemodified' => new external_value(PARAM_INT, 'Last change time (0 if none)'),
                 'answers'      => new external_multiple_structure(new external_single_structure([
                     'fieldid' => new external_value(PARAM_INT, 'Field id'),
-                    'value'   => new external_value(PARAM_RAW, 'Stored value'),
+                    'value'   => new external_value(PARAM_RAW,
+                        'Stored value. A "phone" answer is "ISO:number", e.g. "EG:1012345678"'),
                 ])),
             ]),
             'warnings' => new external_warnings(),
@@ -390,7 +420,8 @@ class mod_jobform_external extends external_api {
                 'fieldid' => new external_value(PARAM_INT, 'Field id'),
                 'value'   => new external_value(PARAM_RAW,
                     'Answer value. For a multi-select send a JSON array of chosen option values, '
-                    . 'e.g. ["val1","val2"]. For a checkbox send "1" or "0". For a date send a unix timestamp.'),
+                    . 'e.g. ["val1","val2"]. For a checkbox send "1" or "0". For a date send a unix timestamp. '
+                    . 'For a phone send "ISO:number" using an iso from the dialcodes list, e.g. "EG:1012345678".'),
             ]), 'The answers to store'),
             'draft' => new external_value(PARAM_BOOL, 'True to save as a draft (skips required checks)',
                 VALUE_DEFAULT, false),
@@ -445,6 +476,11 @@ class mod_jobform_external extends external_api {
             ? submission_manager::STATUS_DRAFT
             : submission_manager::STATUS_SUBMITTED;
         $submissionid = submission_manager::save($jobform->id, $USER->id, $values, $status);
+        if ($status === submission_manager::STATUS_SUBMITTED) {
+            // AC-4.20.8: acknowledge to the applicant, notify the reviewer. Same
+            // two messages the web form sends, so the app behaves identically.
+            notifier::submission_sent($jobform, $cm, $course, $USER, $submissionid);
+        }
 
         return ['status' => true, 'submissionid' => $submissionid, 'errors' => [], 'warnings' => []];
     }
@@ -508,6 +544,27 @@ class mod_jobform_external extends external_api {
                         $values[$field->id] = (string) $raw;
                     }
                     break;
+                case field_types::TYPE_PHONE:
+                    if (!phone::available()) {
+                        // No dialling code source: the field is a plain text box on
+                        // this site, so leave what arrived alone.
+                        $values[$field->id] = trim((string) $raw);
+                        break;
+                    }
+                    // "EG:1012345678" is what gets stored, and what the app should
+                    // send (AC-4.20.4). An app that sends a plain international
+                    // number instead is understood where the country can be told
+                    // from the dialling code, so an older build keeps working.
+                    [$iso, $number] = phone::split(trim((string) $raw));
+                    if ($iso === '' && $number !== '') {
+                        // No country in what arrived. The web form preselects one
+                        // for an applicant who never opens the select, so an app
+                        // that sends a bare number gets the same treatment rather
+                        // than a refusal.
+                        $iso = phone::default_country();
+                    }
+                    $values[$field->id] = phone::compose($iso, $number);
+                    break;
                 default:
                     $values[$field->id] = trim((string) $raw);
                     break;
@@ -538,9 +595,21 @@ class mod_jobform_external extends external_api {
             } else if ($type === field_types::TYPE_URL && !preg_match('#^https?://#i', $value)) {
                 $errors[] = ['fieldid' => (int) $field->id, 'message' => get_string('errornoturl', 'mod_jobform')];
             } else if ($type === field_types::TYPE_PHONE) {
-                $digits = preg_replace('/\D+/', '', $value);
-                if (!preg_match('/^\+?[0-9\s().-]+$/', $value) || strlen($digits) < 7 || strlen($digits) > 15) {
-                    $errors[] = ['fieldid' => (int) $field->id, 'message' => get_string('errornotphone', 'mod_jobform')];
+                if (phone::available()) {
+                    // Same country-aware check the web form runs, on the value as
+                    // it was normalised above.
+                    [$iso, $number] = phone::split($value);
+                    $error = phone::validate($iso, $number, !empty($field->required));
+                    if ($error !== null) {
+                        $errors[] = ['fieldid' => (int) $field->id, 'message' => $error];
+                    }
+                } else {
+                    $digits = preg_replace('/\D+/', '', $value);
+                    if (!preg_match('/^\+?[0-9\s().-]+$/', $value)
+                            || strlen($digits) < 7 || strlen($digits) > 15) {
+                        $errors[] = ['fieldid' => (int) $field->id,
+                            'message' => get_string('errornotphone', 'mod_jobform')];
+                    }
                 }
             }
         }

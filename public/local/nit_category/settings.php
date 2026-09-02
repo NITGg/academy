@@ -41,5 +41,28 @@ if ($hassiteconfig) {
         get_string('excludefilterfields_desc', 'local_nit_category'),
         '', PARAM_TEXT));
 
+    // Which course field answers which of the six filters. The panel is a fixed list —
+    // see catalogue::filter_roles() — so this is a wiring diagram, not a way to add
+    // filters: name a field and that filter reads it, leave it blank for the default.
+    $settings->add(new admin_setting_heading('local_nit_category/filterfieldsheading',
+        get_string('filterfieldsheading', 'local_nit_category'),
+        get_string('filterfieldsdesc', 'local_nit_category')));
+
+    foreach (\local_nit_category\catalogue::filter_roles() as $role => $spec) {
+        $settings->add(new admin_setting_configtext('local_nit_category/filterfield_' . $role,
+            get_string('filterfield_' . $role, 'local_nit_category'),
+            get_string('filterfield_' . $role . '_desc', 'local_nit_category'),
+            $spec['field'], PARAM_ALPHANUMEXT));
+    }
+
     $ADMIN->add('localplugins', $settings);
+
+    // The record of searches that found nothing (AC-4.22.4). A report rather than a
+    // setting, so it gets its own entry instead of a link buried in the settings page.
+    $ADMIN->add('reports', new admin_externalpage(
+        'local_nit_category_searchlog',
+        get_string('searchlog', 'local_nit_category'),
+        new moodle_url('/local/nit_category/searchlog.php'),
+        'moodle/site:config'
+    ));
 }

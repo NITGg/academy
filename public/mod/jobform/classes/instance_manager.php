@@ -140,7 +140,8 @@ class instance_manager {
             $record->type,
             $data->options ?? '',
             !empty($data->multiple),
-            $data->fixedvalue ?? ''
+            $data->fixedvalue ?? '',
+            (string) ($data->autofill ?? field_types::AUTOFILL_AUTO)
         );
         $record->required = !empty($data->required) ? 1 : 0;
         $record->usermodified = $USER->id;

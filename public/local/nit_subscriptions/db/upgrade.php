@@ -255,5 +255,31 @@ function xmldb_local_nit_subscriptions_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090200, 'local', 'nit_subscriptions');
     }
 
+    if ($oldversion < 2026090202) {
+
+        // AC-4.16.1: the shipped reminder schedule becomes 30 / 7 / 1 days before expiry plus
+        // a message on the day it ends, and reminders ship switched ON.
+        //
+        // A site that has never opened the tab picks the new defaults up on its own (there is
+        // no stored config, so reminder_manager falls back to DEFAULT_DAYS). This step is for
+        // the sites that DO have a stored config — which, because the tab writes both keys the
+        // first time it is saved, includes every site that has merely looked at it.
+        //
+        // The line it will not cross: an admin's own schedule is left exactly as it is. Only a
+        // config still sitting on the OLD shipped default (7,3,1) is moved, because nobody
+        // chose those numbers — they were just what the plugin came with.
+        $days = get_config('local_nit_subscriptions', 'reminder_days');
+
+        if ($days !== false && \local_nit_subscriptions\reminder_manager::clean_days(explode(',', (string) $days))
+                === [7, 3, 1]) {
+            set_config('reminder_days',
+                implode(',', \local_nit_subscriptions\reminder_manager::DEFAULT_DAYS),
+                'local_nit_subscriptions');
+            set_config('reminder_enabled', 1, 'local_nit_subscriptions');
+        }
+
+        upgrade_plugin_savepoint(true, 2026090202, 'local', 'nit_subscriptions');
+    }
+
     return true;
 }

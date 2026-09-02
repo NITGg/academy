@@ -34,6 +34,7 @@ require_once($CFG->dirroot . '/local/nit_category/lib.php');
 require_once($CFG->libdir . '/filelib.php');
 
 use local_nit_category\catalogue;
+use local_nit_category\filter_panel;
 use local_nit_category\pricing;
 use local_nit_category\text_util;
 
@@ -292,116 +293,14 @@ echo $OUTPUT->header();
          group appears here only because some course in scope actually carries that
          field, which is what keeps the panel honest when courses are described
          differently from one another. -->
-    <aside class="nitcat__side">
-      <div class="nitcat__sidehead">
-        <h2 class="nitcat__sidetitle"><?= s(get_string('filters', 'local_nit_category')) ?></h2>
-        <?php if (!empty($active)): ?>
-          <a class="nitcat__clear" href="<?= s($clearall) ?>"><?= s(get_string('clearall', 'local_nit_category')) ?></a>
-        <?php endif; ?>
-      </div>
-
-      <?php if (!empty($categoryfacet)): ?>
-        <fieldset class="nitcat__group" data-nitcat-group>
-          <legend><?= s(get_string('category')) ?></legend>
-          <div class="nitcat__opts">
-            <?php foreach ($categoryfacet as $i => $option): ?>
-              <label class="nitcat__opt<?= $i >= catalogue::OPTIONS_VISIBLE ? ' is-extra' : '' ?>">
-                <input type="checkbox" name="cat[]" value="<?= s($option['key']) ?>"
-                       <?= $option['selected'] ? 'checked' : '' ?>>
-                <span class="nitcat__optlabel"><?= s($option['label']) ?></span>
-                <span class="nitcat__optcount"><?= (int) $option['count'] ?></span>
-              </label>
-            <?php endforeach; ?>
-          </div>
-          <?php if (count($categoryfacet) > catalogue::OPTIONS_VISIBLE): ?>
-            <button type="button" class="nitcat__more" data-nitcat-more
-                    data-less="<?= s(get_string('showfewer', 'local_nit_category')) ?>"><?=
-              s(get_string('showall', 'local_nit_category', count($categoryfacet))) ?></button>
-          <?php endif; ?>
-        </fieldset>
-      <?php endif; ?>
-
-      <?php foreach ($facets as $facet): ?>
-        <?php if ($facet['kind'] === catalogue::KIND_OPTIONS): ?>
-          <fieldset class="nitcat__group" data-nitcat-group>
-            <legend><?= s($facet['name']) ?></legend>
-            <div class="nitcat__opts">
-              <?php foreach ($facet['values'] as $i => $option): ?>
-                <label class="nitcat__opt<?= $i >= catalogue::OPTIONS_VISIBLE ? ' is-extra' : '' ?>">
-                  <input type="checkbox" name="f_<?= s($facet['shortname']) ?>[]" value="<?= s($option['key']) ?>"
-                         <?= $option['selected'] ? 'checked' : '' ?>>
-                  <span class="nitcat__optlabel"><?= s($option['label']) ?></span>
-                  <span class="nitcat__optcount"><?= (int) $option['count'] ?></span>
-                </label>
-              <?php endforeach; ?>
-            </div>
-            <?php if (count($facet['values']) > catalogue::OPTIONS_VISIBLE): ?>
-              <button type="button" class="nitcat__more" data-nitcat-more
-                      data-less="<?= s(get_string('showfewer', 'local_nit_category')) ?>"><?=
-                s(get_string('showall', 'local_nit_category', count($facet['values']))) ?></button>
-            <?php endif; ?>
-          </fieldset>
-
-        <?php elseif ($facet['kind'] === catalogue::KIND_BOOL): ?>
-          <fieldset class="nitcat__group nitcat__group--flat">
-            <legend class="visually-hidden"><?= s($facet['name']) ?></legend>
-            <label class="nitcat__opt">
-              <input type="checkbox" name="f_<?= s($facet['shortname']) ?>" value="1"
-                     <?= !empty($facet['selected']) ? 'checked' : '' ?>>
-              <span class="nitcat__optlabel"><?= s($facet['name']) ?></span>
-              <span class="nitcat__optcount"><?= (int) $facet['count'] ?></span>
-            </label>
-          </fieldset>
-
-        <?php else: // A numeric range. ?>
-          <fieldset class="nitcat__group">
-            <legend><?= s($facet['name']) ?></legend>
-            <div class="nitcat__range">
-              <label>
-                <span class="nitcat__rangelab"><?= s(get_string('from', 'local_nit_category')) ?></span>
-                <input type="number" inputmode="decimal" name="min_<?= s($facet['shortname']) ?>"
-                       value="<?= $facet['min'] !== null ? s(text_util::number($facet['min'])) : '' ?>"
-                       placeholder="<?= s(text_util::number($facet['bound_min'])) ?>">
-              </label>
-              <label>
-                <span class="nitcat__rangelab"><?= s(get_string('to', 'local_nit_category')) ?></span>
-                <input type="number" inputmode="decimal" name="max_<?= s($facet['shortname']) ?>"
-                       value="<?= $facet['max'] !== null ? s(text_util::number($facet['max'])) : '' ?>"
-                       placeholder="<?= s(text_util::number($facet['bound_max'])) ?>">
-              </label>
-            </div>
-          </fieldset>
-        <?php endif; ?>
-      <?php endforeach; ?>
-
-      <?php if ($hascheckout): ?>
-        <fieldset class="nitcat__group">
-          <legend><?= s(get_string('price', 'local_nit_category')) ?></legend>
-          <label class="nitcat__opt">
-            <input type="checkbox" name="free" value="1" <?= !empty($active['free']) ? 'checked' : '' ?>>
-            <span class="nitcat__optlabel"><?= s(get_string('freeonly', 'local_nit_category')) ?></span>
-          </label>
-          <div class="nitcat__range">
-            <label>
-              <span class="nitcat__rangelab"><?= s(get_string('from', 'local_nit_category')) ?></span>
-              <input type="number" inputmode="decimal" min="0" name="pricemin"
-                     value="<?= isset($active['pricemin']) ? s(text_util::number($active['pricemin'])) : '' ?>">
-            </label>
-            <label>
-              <span class="nitcat__rangelab"><?= s(get_string('to', 'local_nit_category')) ?></span>
-              <input type="number" inputmode="decimal" min="0" name="pricemax"
-                     value="<?= isset($active['pricemax']) ? s(text_util::number($active['pricemax'])) : '' ?>">
-            </label>
-          </div>
-        </fieldset>
-      <?php endif; ?>
-
-      <!-- Without scripting this is the only way to apply a tick, so it is a real button
-           and not a decoration; the script hides it and submits on change instead. -->
-      <button type="submit" class="btn btn-primary fw-bold nitcat__apply" data-nitcat-apply>
-        <?= s(get_string('applyfilters', 'local_nit_category')) ?>
-      </button>
-    </aside>
+    <?php
+    // Shared with the categories page — see local_nit_category\filter_panel. The catalogue
+    // gets the full six of SRS §4.8, Category included, because here it is a real question.
+    filter_panel::render($catalogue, $clearall, [
+        'categoryfacet' => $categoryfacet,
+        'hascheckout'   => $hascheckout,
+    ]);
+    ?>
 
     <!-- ── Results ───────────────────────────────────────────────────────────────-->
     <main class="nitcat__main">
@@ -435,7 +334,8 @@ echo $OUTPUT->header();
             <?php endif; ?>
           <?php endforeach; ?>
           <?php foreach ($facets as $facet): ?>
-            <?php if ($facet['kind'] === catalogue::KIND_OPTIONS): ?>
+            <?php // Options and duration bands are both ticked lists, so one chip each. ?>
+            <?php if ($facet['kind'] === catalogue::KIND_OPTIONS || $facet['kind'] === catalogue::KIND_BUCKETS): ?>
               <?php foreach ($facet['values'] as $option): ?>
                 <?php if ($option['selected']): ?>
                   <a class="nitcat__chip" href="<?= s($removelink('f_' . $facet['shortname'], $option['key'])) ?>">
@@ -446,12 +346,6 @@ echo $OUTPUT->header();
             <?php elseif ($facet['kind'] === catalogue::KIND_BOOL && !empty($facet['selected'])): ?>
               <a class="nitcat__chip" href="<?= s($removelink('f_' . $facet['shortname'])) ?>">
                 <span><?= s($facet['name']) ?></span><span aria-hidden="true">×</span>
-              </a>
-            <?php elseif ($facet['kind'] === catalogue::KIND_RANGE && ($facet['min'] !== null || $facet['max'] !== null)): ?>
-              <a class="nitcat__chip" href="<?= s($linkto([
-                    'min_' . $facet['shortname'] => null, 'max_' . $facet['shortname'] => null])) ?>">
-                <span><?= s($facet['name']) ?>: <?= s(text_util::number($facet['min'] ?? $facet['bound_min'])) ?>–<?=
-                    s(text_util::number($facet['max'] ?? $facet['bound_max'])) ?></span><span aria-hidden="true">×</span>
               </a>
             <?php endif; ?>
           <?php endforeach; ?>
@@ -617,6 +511,7 @@ echo $OUTPUT->header();
 </div>
 
 <?php
+$PAGE->requires->js(new moodle_url('/local/nit_category/pricerange.js'));
 $PAGE->requires->js(new moodle_url('/local/nit_category/catalogue.js'));
 local_nit_category_checkout_footer();
 

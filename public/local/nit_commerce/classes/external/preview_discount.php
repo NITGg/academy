@@ -85,7 +85,7 @@ class preview_discount extends external_api {
         self::validate_context(\context_system::instance());
         $chosen = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
         if ($chosen !== '') {
-            force_current_language($chosen);
+            \local_nit_core\helper\lang::for_request($chosen);
         }
 
         // Verify the item exists first, so a bad id returns a clear "not found" instead of a

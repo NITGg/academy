@@ -15,7 +15,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Site pages manager - the register, login, profile, password-reset and footer tabs.
+ * Site pages manager - the register, login, profile, password-reset and footer tabs,
+ * and the six static pages of AC-4.21 under "Static pages".
  *
  * @package    local_profilefields
  * @copyright  2026 NIT

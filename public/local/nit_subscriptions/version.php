@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_subscriptions';
-$plugin->version   = 2026090201;        // AC-4.13.6: plan checkout carries the quoted price.
+$plugin->version   = 2026090202;        // AC-4.16.1: 30/7/1-day + on-expiry reminders, on by default.
 $plugin->requires  = 2024100700;
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;

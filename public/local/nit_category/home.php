@@ -64,7 +64,7 @@ $PAGE->set_context(context_system::instance());
 // the session, which may not match when the page was cached.
 $alang = optional_param('alang', '', PARAM_LANG);
 if ($alang !== '') {
-    force_current_language($alang);
+    \local_nit_core\helper\lang::for_request($alang);
 }
 
 header('Content-Type: application/json; charset=utf-8');

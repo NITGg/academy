@@ -72,12 +72,31 @@ class ws_registry {
     ];
 
     /**
+     * The public site content: the footer band, and the static pages it links to.
+     *
+     * All three are `loginrequired => false` and all three answer the same
+     * question - what does this site say on the screens around the courses. A
+     * client that can draw the footer is a client that has to be able to open the
+     * Terms link in it, so a service carrying one of these should carry all of
+     * them (AC-4.21).
+     */
+    public const SITECONTENT = [
+        'local_profilefields_get_footer',
+        'local_profilefields_get_static_pages',
+        'local_profilefields_get_static_page',
+    ];
+
+    /**
      * The families, keyed by name.
      *
      * @return array<string, string[]>
      */
     public static function families(): array {
-        return ['signup' => self::SIGNUP, 'profile' => self::PROFILE];
+        return [
+            'signup' => self::SIGNUP,
+            'profile' => self::PROFILE,
+            'sitecontent' => self::SITECONTENT,
+        ];
     }
 
     /**
@@ -86,7 +105,7 @@ class ws_registry {
      * @return string[]
      */
     public static function all(): array {
-        return array_merge(self::SIGNUP, self::PROFILE);
+        return array_merge(self::SIGNUP, self::PROFILE, self::SITECONTENT);
     }
 
     /**

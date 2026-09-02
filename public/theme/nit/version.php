@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'theme_nit';
-$plugin->version   = 2026090107;        // YYYYMMDDXX.
+$plugin->version   = 2026090201;        // YYYYMMDDXX — single site-search control in the navbar (AC-4.22.1).
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline (pinned per CI matrix).
 $plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_ALPHA;    // Foundation + rendering + branding (M2–M5); pre-1.0.

@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_profilefields';
-$plugin->version   = 2026090202;        // YYYYMMDDXX - site footer web service.
+$plugin->version   = 2026090301;        // YYYYMMDDXX - the static pages of AC-4.21.
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
 $plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.12.0';
+$plugin->release   = '2.13.0';

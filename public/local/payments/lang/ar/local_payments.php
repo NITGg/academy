@@ -25,6 +25,8 @@ $string['course_preview_desc'] = 'السماح لأي زائر — حتى غير
 $string['preview_notice'] = 'أنت تشاهد معاينة لهذا الكورس. تُفتح الأنشطة بعد حصولك على صلاحية الوصول.';
 $string['preview_unlock'] = 'افتح هذا الكورس';
 $string['preview_login'] = 'سجّل الدخول للمتابعة';
+$string['expired_notice'] = 'انتهت مدة وصولك إلى هذه الدورة. جدّد اشتراكك لمتابعة ما توقفت عنده — تم حفظ تقدّمك.';
+$string['expired_renew'] = 'تجديد';
 $string['preview_locked'] = 'هذا النشاط مقفل حتى تحصل على صلاحية الوصول إلى الكورس.';
 
 // Free preview lessons (AC-4.9.5).

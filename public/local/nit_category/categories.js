@@ -245,7 +245,10 @@
             if (!target.name) {
                 return;
             }
-            if (target.type === 'checkbox' || target.tagName === 'SELECT') {
+            // Number inputs are here, not in the debounce below, because the only ones on
+            // the page are the price slider's hidden pair — pricerange.js writes them when
+            // a drag ends and fires this event, which is already the right moment.
+            if (target.type === 'checkbox' || target.type === 'number' || target.tagName === 'SELECT') {
                 window.clearTimeout(timer);
                 load(formParams(), true);
             }
@@ -255,7 +258,7 @@
         // every keystroke.
         form.addEventListener('input', function (ev) {
             var target = ev.target;
-            if (target.type !== 'number' && target.type !== 'search') {
+            if (target.type !== 'search') {
                 return;
             }
             window.clearTimeout(timer);

@@ -59,8 +59,22 @@ $string['nothingtodisplay'] = 'There is nothing to display.';
 // Student form buttons and messages.
 $string['sendform'] = 'Send';
 $string['savedraft'] = 'Save draft';
-$string['formsent'] = 'Your form has been sent.';
+// AC-4.20.8 — the wording of the on-screen confirmation is contractual; keep it verbatim.
+$string['formsent'] = 'Thank you. Your application has been received. Our team will contact you if your profile matches the role.';
 $string['draftsaved'] = 'Your draft has been saved.';
+
+// AC-4.20.8 — acknowledgement email to the applicant. The subject is contractual.
+$string['ackemailsubject'] = 'We have received your application — EAAC';
+$string['ackemailgreeting'] = 'Hi {$a},';
+$string['ackemailbody'] = 'Thank you. Your application has been received. Our team will contact you if your profile matches the role.';
+$string['ackemaildetails'] = 'Application: {$a->activity} ({$a->course})';
+$string['ackemailfooter'] = 'This is an automatic message — please do not reply to it.';
+
+// AC-4.20.8 — notification to the reviewer / administrator.
+$string['messageprovider:submission'] = 'A new job application has been received';
+$string['adminemailsubject'] = 'New job application: {$a->activity}';
+$string['adminemailbody'] = '{$a->applicant} ({$a->email}) has sent an application for "{$a->activity}" in the course "{$a->course}".';
+$string['adminemaillink'] = 'View the application';
 
 // Validation.
 $string['errornotnumber'] = 'Please enter a number.';

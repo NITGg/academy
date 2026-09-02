@@ -55,6 +55,8 @@ class catalogue {
     const KIND_BOOL = 'bool';
     /** @var string A numeric from/to range. */
     const KIND_RANGE = 'range';
+    /** @var string A number field offered as named bands — "Under 10 hours". */
+    const KIND_BUCKETS = 'buckets';
 
     /** @var int Cards per page unless the visitor picks otherwise. */
     const DEFAULT_PERPAGE = 12;
@@ -107,32 +109,55 @@ class catalogue {
     // =========================================================================
 
     /**
-     * Turn the site's course custom fields into filter definitions.
+     * The filter panel the design asks for, and nothing else.
      *
-     * Only fields visible to everyone are considered: the catalogue is a shop window, so a
-     * field an admin restricted to teachers must not become a public facet that leaks its
-     * values through the option list.
+     * This used to offer every custom field whose type made a plausible control, which is
+     * how the panel ended up listing "Intended Learning Outcomes" and "By the end of this
+     * training program, the trainee will be able to competently" next to Level. A shop
+     * window is a curated thing: SRS §4.8 names exactly six filters — category, level,
+     * price, language, duration and whether the course carries a certificate — so those
+     * six are what this builds, in that order.
+     *
+     * Category and price are not custom fields and are handled elsewhere ({@see
+     * self::category_facet()} and {@see self::matches_price()}); the four here are. Each is
+     * a *role* rather than a field name, and the field behind a role is a setting, so a
+     * site that calls its hours field something else is rewired in the admin UI rather
+     * than in this file.
+     *
+     * Only fields visible to everyone are used: a field an admin restricted to teachers
+     * must not become a public facet that leaks its values through the option list.
      *
      * @return array[] definition per shortname
      */
     private function discover_filters(): array {
         $excluded = $this->excluded_shortnames();
-        $filters = [];
 
+        // Indexed by shortname so a role can find its field without a second query.
+        $available = [];
         try {
-            $fields = course_handler::create()->get_fields();
+            foreach (course_handler::create()->get_fields() as $field) {
+                $available[\core_text::strtolower((string) $field->get('shortname'))] = $field;
+            }
         } catch (\Throwable $e) {
             return [];
         }
 
-        foreach ($fields as $field) {
-            $shortname = (string) $field->get('shortname');
-            // The shortname becomes a URL parameter, so anything that would not survive the
-            // round trip is skipped rather than silently mangled into another field's name.
-            if ($shortname === '' || $shortname !== clean_param($shortname, PARAM_ALPHANUMEXT)) {
-                continue;
+        $filters = [];
+        foreach (self::filter_roles() as $role => $spec) {
+            $shortname = trim((string) get_config('local_nit_category', 'filterfield_' . $role));
+            if ($shortname === '') {
+                $shortname = $spec['field'];
+            }
+            $field = $available[\core_text::strtolower($shortname)] ?? null;
+            if ($field === null) {
+                continue;       // The site does not have this field; the group is simply absent.
             }
             if (isset($excluded[\core_text::strtolower($shortname)])) {
+                continue;
+            }
+            // The shortname becomes a URL parameter, so anything that would not survive the
+            // round trip is skipped rather than silently mangled into another field's name.
+            if ($shortname !== clean_param($shortname, PARAM_ALPHANUMEXT)) {
                 continue;
             }
             // Missing means "visible to all", the same default core_course\customfield\
@@ -144,11 +169,15 @@ class catalogue {
             }
 
             $type = (string) $field->get('type');
-            $kind = null;
+            if (!in_array($type, $spec['types'], true)) {
+                // The field exists but cannot answer this question — a checkbox cannot hold
+                // a level. Better an absent group than one that silently matches nothing.
+                continue;
+            }
+
             $options = [];
             $optionsraw = [];
             if ($type === 'select') {
-                $kind = self::KIND_OPTIONS;
                 // Index 0 is the "not set" placeholder core prepends; it is not an option.
                 // get_options() formats its labels, so they come back to plain text here —
                 // see text_util::plain() for why the catalogue escapes only at output.
@@ -164,31 +193,128 @@ class catalogue {
                 $config = (string) $field->get_configdata_property('options');
                 $optionsraw = array_merge([''],
                     preg_split("/\s*\n\s*/", trim($config), -1, PREG_SPLIT_NO_EMPTY) ?: []);
-            } else if ($type === 'text') {
-                $kind = self::KIND_OPTIONS;   // Options are collected from the courses below.
-            } else if ($type === 'checkbox') {
-                $kind = self::KIND_BOOL;
-            } else if ($type === 'number') {
-                $kind = self::KIND_RANGE;
-            }
-            if ($kind === null) {
-                continue;
             }
 
             $filters[$shortname] = [
-                'shortname' => $shortname,
+                'shortname'  => $shortname,
+                'role'       => $role,
                 // Formatted names arrive HTML-escaped; the page escapes once at output.
-                'name'      => text_util::plain($field->get_formatted_name()),
-                'type'      => $type,
-                'kind'      => $kind,
-                'options'   => $options,
+                'name'       => $spec['label'](),
+                'type'       => $type,
+                'kind'       => $spec['kind'],
+                'options'    => $options,
                 'optionsraw' => $optionsraw,
-                'sortorder' => (int) $field->get('sortorder'),
+                'buckets'    => $spec['buckets'] ?? [],
+                'sortorder'  => $spec['order'],
             ];
         }
 
         uasort($filters, static fn($a, $b) => $a['sortorder'] <=> $b['sortorder']);
         return $filters;
+    }
+
+    /**
+     * The four custom-field filters of SRS §4.8, in the order the design shows them.
+     *
+     * `field` is the shortname assumed when the matching admin setting is empty; `types`
+     * are the field types that can answer the question; `label` is deferred because a
+     * string cannot be fetched while the class is being loaded. The panel's own wording is
+     * used rather than the field's name, so a field titled "Total Number of Hours" still
+     * appears under the heading "Duration" the design asks for.
+     *
+     * @return array[] keyed by role
+     */
+    public static function filter_roles(): array {
+        return [
+            'level' => [
+                'field' => 'level',
+                'types' => ['select', 'text'],
+                'kind'  => self::KIND_OPTIONS,
+                'order' => 20,
+                'label' => static fn() => get_string('filterlevel', 'local_nit_category'),
+            ],
+            // 30 is the price range, which is not a custom field — see the page templates.
+            'language' => [
+                'field' => 'language',
+                'types' => ['select', 'text'],
+                'kind'  => self::KIND_OPTIONS,
+                'order' => 40,
+                'label' => static fn() => get_string('filterlanguage', 'local_nit_category'),
+            ],
+            'duration' => [
+                'field' => 'total_number_of_hours',
+                'types' => ['number'],
+                'kind'  => self::KIND_BUCKETS,
+                'order' => 50,
+                'label' => static fn() => get_string('filterduration', 'local_nit_category'),
+                // Named bands rather than a from/to box. Nobody shopping for a course thinks
+                // "between 10 and 25 hours"; they think "a short one". Bounds are inclusive
+                // of min and exclusive of max, so every hour count lands in exactly one.
+                'buckets' => [
+                    'short'  => ['min' => null, 'max' => 10.0],
+                    'medium' => ['min' => 10.0, 'max' => 25.0],
+                    'long'   => ['min' => 25.0, 'max' => null],
+                ],
+            ],
+            'certificate' => [
+                'field' => 'certificate',
+                'types' => ['checkbox'],
+                'kind'  => self::KIND_BOOL,
+                'order' => 60,
+                'label' => static fn() => get_string('filtercertificate', 'local_nit_category'),
+            ],
+        ];
+    }
+
+    /**
+     * The range the price slider spans: zero to the dearest course in scope.
+     *
+     * Read from the courses rather than from a setting, so the far end of the slider is
+     * always reachable and always meaningful. Rounded up to a round number, because a
+     * slider ending at "EGP 4,850" looks like a bug even when it is the truth.
+     *
+     * @return array{min: float, max: float, currency: string}
+     */
+    public function price_bounds(): array {
+        $max = 0.0;
+        $currency = '';
+
+        foreach ($this->rows as $row) {
+            $info = pricing::info($row['id']);
+            if (empty($info['haspricing']) || !empty($info['countryrequired'])) {
+                continue;
+            }
+            $max = max($max, pricing::effective_price($info));
+            if ($currency === '' && $info['currency'] !== '') {
+                $currency = $info['currency'];
+            }
+        }
+
+        if ($max <= 0) {
+            return ['min' => 0.0, 'max' => 0.0, 'currency' => $currency];
+        }
+
+        // Up to the next 500 (or 100 when everything is cheap), so the handle can always
+        // reach past the dearest course rather than stopping exactly on it.
+        $step = $max > 1000 ? 500 : 100;
+        return ['min' => 0.0, 'max' => (float) (ceil($max / $step) * $step), 'currency' => $currency];
+    }
+
+    /**
+     * One facet by the job it does, so a template can lay the panel out in the design's
+     * order without knowing what the fields behind it are called.
+     *
+     * @param array[] $facets from {@see self::facets()}
+     * @param string $role
+     * @return array|null
+     */
+    public static function facet_by_role(array $facets, string $role): ?array {
+        foreach ($facets as $facet) {
+            if (($facet['role'] ?? '') === $role) {
+                return $facet;
+            }
+        }
+        return null;
     }
 
     /**
@@ -447,6 +573,14 @@ class catalogue {
                 if (!empty($picked)) {
                     $active[$shortname] = $picked;
                 }
+            } else if ($filter['kind'] === self::KIND_BUCKETS) {
+                // Ticked band names, not numbers — anything not a band we defined is
+                // dropped rather than trusted into a comparison.
+                $picked = optional_param_array('f_' . $shortname, [], PARAM_ALPHANUMEXT);
+                $picked = array_values(array_intersect($picked, array_keys($filter['buckets'])));
+                if (!empty($picked)) {
+                    $active[$shortname] = $picked;
+                }
             } else if ($filter['kind'] === self::KIND_BOOL) {
                 if (optional_param('f_' . $shortname, 0, PARAM_BOOL)) {
                     $active[$shortname] = true;
@@ -468,6 +602,27 @@ class catalogue {
         }
 
         $this->active = $active;
+    }
+
+    /**
+     * Set (or clear) the search term without going through the request.
+     *
+     * The header search box asks this engine the same question the catalogue page does,
+     * but sometimes about a term that is not this request's `q` — the "did this term find
+     * nothing?" check behind AC-4.22.4 asks about a term the caller is already holding.
+     * Rather than grow a second matching engine, callers hand the term to this one.
+     * See {@see site_search}.
+     *
+     * @param string $query as typed; '' removes the search
+     * @return void
+     */
+    public function set_search(string $query): void {
+        $query = trim($query);
+        if ($query === '') {
+            unset($this->active['q']);
+        } else {
+            $this->active['q'] = $query;
+        }
     }
 
     /**
@@ -632,6 +787,19 @@ class catalogue {
             return $bundle !== null && !empty($bundle['bool']);
         }
 
+        if ($filter['kind'] === self::KIND_BUCKETS) {
+            if ($bundle === null || !isset($bundle['number'])) {
+                return false;
+            }
+            // OR across the ticked bands, like any other multi-value group.
+            foreach ((array) $wanted as $key) {
+                if (self::in_bucket((float) $bundle['number'], $filter['buckets'][$key] ?? null)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         if ($filter['kind'] === self::KIND_RANGE) {
             if ($bundle === null || !isset($bundle['number'])) {
                 return false;
@@ -646,6 +814,30 @@ class catalogue {
             return true;
         }
 
+        return true;
+    }
+
+    /**
+     * Does a number fall in one band?
+     *
+     * Inclusive of the lower bound, exclusive of the upper, so 10 hours is "10 – 25" and
+     * never also "under 10" — the bands have to partition the range or the counts beside
+     * them add up to more than the result set.
+     *
+     * @param float $number
+     * @param array|null $bucket ['min' => float|null, 'max' => float|null]
+     * @return bool
+     */
+    private static function in_bucket(float $number, ?array $bucket): bool {
+        if ($bucket === null) {
+            return false;
+        }
+        if ($bucket['min'] !== null && $number < $bucket['min']) {
+            return false;
+        }
+        if ($bucket['max'] !== null && $number >= $bucket['max']) {
+            return false;
+        }
         return true;
     }
 
@@ -690,6 +882,35 @@ class catalogue {
                 continue;
             }
 
+            if ($filter['kind'] === self::KIND_BUCKETS) {
+                $picked = $this->active[$shortname] ?? [];
+                $values = [];
+                foreach ($filter['buckets'] as $key => $bucket) {
+                    $count = 0;
+                    foreach ($scope as $row) {
+                        $number = $row['values'][$shortname]['number'] ?? null;
+                        if ($number !== null && self::in_bucket((float) $number, $bucket)) {
+                            $count++;
+                        }
+                    }
+                    // All three bands, always — like a select field's options and unlike a
+                    // text field's, these are a fixed vocabulary the design promises, so
+                    // the group reads the same on every page of the catalogue. The count
+                    // beside an empty one says plainly that it will find nothing.
+                    $values[] = [
+                        'key'      => $key,
+                        'label'    => get_string('duration' . $key, 'local_nit_category'),
+                        'count'    => $count,
+                        'selected' => in_array($key, $picked, true),
+                    ];
+                }
+                if (empty($values)) {
+                    continue;
+                }
+                $out[] = $filter + ['values' => $values];
+                continue;
+            }
+
             if ($filter['kind'] === self::KIND_RANGE) {
                 $numbers = [];
                 foreach ($scope as $row) {
@@ -727,6 +948,19 @@ class catalogue {
                         continue;
                     }
                     $counts[$key] = ($counts[$key] ?? 0) + 1;
+                    $labels[$key] = $labels[$key] ?? $label;
+                }
+            }
+
+            // A select field's options are a vocabulary an administrator chose on purpose,
+            // so the whole list is offered even before any course carries a value — the
+            // four levels of AC-4.8.5 are a promise about the catalogue, not a summary of
+            // what happens to be filled in today. A text field is the opposite: its values
+            // exist only because some course holds them, so it lists what is there.
+            if ($filter['type'] === 'select') {
+                foreach ($filter['options'] as $label) {
+                    $key = text_util::key($label);
+                    $counts[$key] = $counts[$key] ?? 0;
                     $labels[$key] = $labels[$key] ?? $label;
                 }
             }
@@ -878,6 +1112,11 @@ class catalogue {
                 }
             } else if ($filter['kind'] === self::KIND_BOOL && !empty($bundle['bool'])) {
                 $chips[] = $filter['name'];
+            } else if ($filter['kind'] === self::KIND_BUCKETS && isset($bundle['number'])) {
+                // The design's card shows "16 h" as a chip beside the level, so the hours
+                // go in as a chip rather than on the meta line a bare number would need.
+                $chips[] = get_string('hoursshort', 'local_nit_category',
+                    text_util::number($bundle['number']));
             } else if ($filter['kind'] === self::KIND_RANGE && isset($bundle['number'])) {
                 // A bare number on a card says nothing, so a numeric field is printed as
                 // "<field name>: <value>" on its own line rather than squeezed into a chip.

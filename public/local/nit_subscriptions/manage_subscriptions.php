@@ -134,7 +134,8 @@ $STR = local_nit_subscriptions_string_map(array(
     'tab_plans', 'tab_courses', 'tab_users', 'tab_reminders',
     'rem_heading', 'rem_desc', 'rem_enabled', 'rem_enabled_help', 'rem_days', 'rem_days_help',
     'rem_days_add', 'rem_days_none', 'rem_day_unit', 'rem_remove', 'rem_save', 'rem_applied',
-    'rem_preview', 'rem_window_note', 'rem_window_off', 'rem_recalc_note', 'rem_col_days',
+    'rem_preview', 'rem_window_note', 'rem_window_off', 'rem_window_none', 'rem_recalc_note',
+    'rem_col_days', 'rem_onexpiry', 'rem_onexpiry_help',
     'sub_ca_pickplan', 'sub_ca_counter', 'sub_ca_unsaved', 'sub_ca_reset',
     'sub_ca_onlyselected', 'sub_ca_nomatch', 'sub_ca_catall', 'sub_ca_catnone', 'sub_ca_discard',
     'sub_ca_catcount',
@@ -496,6 +497,15 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 
                 <button type="button" id="rem-day-add"
                         class="btn btn-sm btn-outline-primary mb-3"><?php echo $STR['rem_days_add']; ?></button>
+
+                <!-- The day-of message is its own tick rather than a "0" row: it is not a
+                     lead time at all (it goes out AFTER the plan lapses), and typing 0 into
+                     a box labelled "days before expiry" reads like a mistake. -->
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="rem-onexpiry">
+                    <label class="form-check-label" for="rem-onexpiry"><?php echo $STR['rem_onexpiry']; ?></label>
+                    <div><small class="text-muted"><?php echo $STR['rem_onexpiry_help']; ?></small></div>
+                </div>
 
                 <div class="alert alert-secondary" id="rem-window" style="display:none;"></div>
                 <div class="alert alert-info" id="rem-preview" style="display:none;"></div>
@@ -1168,12 +1178,15 @@ echo html_writer::script(<<<'JS'
         return row;
     }
 
+    // The rows are "days before"; the tick is the day itself, which the server stores as a
+    // lead time of 0. Sorted descending, so 0 lands last exactly as it does server-side.
     function remDays() {
         var out = [];
         Array.prototype.forEach.call(document.querySelectorAll('#rem-days-list .rem-day'), function (el) {
             var v = parseInt(el.value, 10);
             if (v >= 1 && v <= remMax && out.indexOf(v) === -1) { out.push(v); }
         });
+        if ($('rem-onexpiry').checked) { out.push(0); }
         out.sort(function (a, b) { return b - a; });
         return out;
     }
@@ -1192,10 +1205,16 @@ echo html_writer::script(<<<'JS'
             if (placeholder) { list.removeChild(placeholder); }
         }
 
+        // The Renew button follows the largest lead time BEFORE expiry — the day-of message
+        // is sent when it is already too late to renew early, so it opens no window.
+        var lead = days.filter(function (d) { return d > 0; })[0] || 0;
+
         win.style.display = 'block';
-        win.textContent = ($('rem-enabled').checked && days.length)
-            ? strf('rem_window_note', days[0])
-            : str('rem_window_off');
+        if (!$('rem-enabled').checked) {
+            win.textContent = str('rem_window_off');
+        } else {
+            win.textContent = lead ? strf('rem_window_note', lead) : str('rem_window_none');
+        }
 
         if (!days.length) {
             $('rem-preview').style.display = 'none';
@@ -1213,9 +1232,14 @@ echo html_writer::script(<<<'JS'
         $('rem-enabled').checked = !!d.enabled;
         $('rem-days-help').textContent = strf('rem_days_help', remMax);
 
+        var days = d.days || [];
+        $('rem-onexpiry').checked = days.indexOf(0) !== -1;
+
         var list = $('rem-days-list');
         list.innerHTML = '';
-        (d.days || []).forEach(function (day) { list.appendChild(remRow(day)); });
+        days.forEach(function (day) {
+            if (day > 0) { list.appendChild(remRow(day)); }
+        });
 
         remPreview();
     }
@@ -1237,6 +1261,7 @@ echo html_writer::script(<<<'JS'
     });
 
     $('rem-enabled').addEventListener('change', remPreview);
+    $('rem-onexpiry').addEventListener('change', remPreview);
     $('rem-refresh').addEventListener('click', function () { loadReminders(true); });
 
     $('rem-save').addEventListener('click', function () {

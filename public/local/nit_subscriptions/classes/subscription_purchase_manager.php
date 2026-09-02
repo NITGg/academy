@@ -274,6 +274,63 @@ class subscription_purchase_manager {
     }
 
     /**
+     * Did this user once reach this course through a subscription that has since run out?
+     *
+     * The question the course page needs answered before it decides what to say to somebody
+     * standing outside a course: a first-time visitor is being SOLD something, while a lapsed
+     * subscriber is being asked to come BACK — and they need telling that their progress
+     * survived, which is the thing people actually worry about.
+     *
+     * Answered from the purchase history rather than from enrolments, because expiry unenrols:
+     * by the time anyone asks, the enrolment that would have proved it is gone.
+     *
+     * @param int $courseid
+     * @param int $userid
+     * @return int the plan to renew (the most recently lapsed one covering this course), or 0
+     */
+    public static function lapsed_subscription_id($courseid, $userid) {
+        global $DB;
+
+        $courseid = (int) $courseid;
+        $userid = (int) $userid;
+        if ($courseid <= 0 || $userid <= 0) {
+            return 0;
+        }
+
+        // Asked once per course per request: the course page calls this while rendering, and
+        // the answer cannot change underneath it.
+        static $cache = [];
+        $key = $courseid . ':' . $userid;
+        if (isset($cache[$key])) {
+            return $cache[$key];
+        }
+
+        $covers = function ($subscriptionid) use ($courseid) {
+            return in_array($courseid,
+                subscription_manager::courses_for_subscription((int) $subscriptionid), true);
+        };
+
+        // Still covered by something live — nothing has lapsed, whatever the history says.
+        foreach (self::get_active_subscriptions($userid) as $live) {
+            if ($covers($live->subscriptionid)) {
+                return $cache[$key] = 0;
+            }
+        }
+
+        $past = $DB->get_records('nit_sub_purchase',
+            ['userid' => $userid, 'status' => self::STATUS_EXPIRED],
+            'expires_at DESC', 'id, subscriptionid');
+
+        foreach ($past as $purchase) {
+            if ($covers($purchase->subscriptionid)) {
+                return $cache[$key] = (int) $purchase->subscriptionid;
+            }
+        }
+
+        return $cache[$key] = 0;
+    }
+
+    /**
      * Grant a user access to one course covered by their active subscription, as a
      * real Moodle enrolment that ends when the subscription expires.
      *
@@ -328,8 +385,15 @@ class subscription_purchase_manager {
 
         // Enrol as the instance's default role (student), ending when the
         // subscription expires so access lapses automatically.
+        //
+        // $recovergrades is passed explicitly rather than left to $CFG->recovergradesdefault
+        // (which core ships OFF). It matters here in a way it does not for a normal
+        // enrolment: when a subscription lapses we unenrol, and core's unenrol_user() clears
+        // the student's grades out of the course as it goes. Without this flag a renewal
+        // would return them to a course that has forgotten every mark they earned — while
+        // still showing their completion ticks, which is worse than either extreme.
         $timeend = ((int) $until > time()) ? (int) $until : 0;
-        $plugin->enrol_user($instance, $userid, $instance->roleid, time(), $timeend);
+        $plugin->enrol_user($instance, $userid, $instance->roleid, time(), $timeend, null, true);
 
         return true;
     }

@@ -85,7 +85,7 @@ class get_my_certificates extends external_api {
         self::validate_context(\context_user::instance($USER->id));
 
         if ($params['lang'] !== '') {
-            force_current_language($params['lang']);
+            \local_nit_core\helper\lang::for_request($params['lang']);
         }
 
         // A site with no certificate module has no certificates, which is an empty

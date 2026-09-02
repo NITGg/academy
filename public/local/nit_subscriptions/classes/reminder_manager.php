@@ -19,7 +19,9 @@
  *
  * One setting drives two visible behaviours, which is the point of keeping them in one class:
  *
- *  * the notification — sent once per (purchase, lead time, deadline) by the hourly task;
+ *  * the notification — sent once per (purchase, lead time, deadline) by the hourly task. A
+ *    lead time of 0 ({@see EXPIRY_DAY}) is the message on the day the plan actually ends,
+ *    sent after it has lapsed rather than before;
  *  * the Renew button — shown on the home-page plan card from the EARLIEST configured lead
  *    time onwards, i.e. as soon as the first reminder is due.
  *
@@ -57,8 +59,11 @@ class reminder_manager {
     /** @var int how many lead times may be configured at once. */
     public const MAX_ENTRIES = 10;
 
-    /** @var int[] used the first time the page is opened, before anything is saved. */
-    public const DEFAULT_DAYS = [7, 3, 1];
+    /** @var int the "on the day it ends" reminder — sent once the plan has actually run out. */
+    public const EXPIRY_DAY = 0;
+
+    /** @var int[] the schedule reminders ship with: a month, a week, a day, and the day itself. */
+    public const DEFAULT_DAYS = [30, 7, 1, self::EXPIRY_DAY];
 
     /**
      * The current configuration.
@@ -69,10 +74,12 @@ class reminder_manager {
         $enabled = get_config(self::COMPONENT, self::SETTING_ENABLED);
         $days = get_config(self::COMPONENT, self::SETTING_DAYS);
 
-        // Never configured: reminders start switched off, but with a sensible set of lead times
-        // already filled in, so turning them on is one click rather than a blank form.
+        // Never configured: reminders are ON, with the standard schedule. A subscriber who
+        // loses their courses without ever being warned is the exact failure this feature
+        // exists to prevent, so silence must be something an admin chose (by unticking the
+        // box) rather than something nobody noticed.
         if ($days === false) {
-            return ['enabled' => false, 'days' => self::DEFAULT_DAYS];
+            return ['enabled' => true, 'days' => self::DEFAULT_DAYS];
         }
 
         return [
@@ -164,19 +171,12 @@ class reminder_manager {
 
         $sent = 0;
         $failed = 0;
-        $purchases = self::live_purchases($now, max($settings['days']));
+        $purchases = self::live_purchases($now, max($settings['days']), self::grace_for($settings['days']));
 
         foreach ($purchases as $purchase) {
             $daysleft = self::days_left($purchase, $now);
 
-            foreach ($settings['days'] as $lead) {
-                // Reminders are only owed once the deadline is inside this lead time. A larger
-                // lead time that has already passed still counts — someone whose plan has four
-                // days left and who has never been told is owed the 7-day warning too, once.
-                if ($daysleft > $lead) {
-                    continue;
-                }
-
+            foreach (self::leads_due($purchase, $settings['days'], $now) as $lead) {
                 $already = $DB->record_exists('nit_sub_reminder', [
                     'purchaseid' => (int) $purchase->id,
                     'days'       => $lead,
@@ -230,12 +230,8 @@ class reminder_manager {
         }
 
         $due = 0;
-        foreach (self::live_purchases($now, max($clean)) as $purchase) {
-            $daysleft = self::days_left($purchase, $now);
-            foreach ($clean as $lead) {
-                if ($daysleft > $lead) {
-                    continue;
-                }
+        foreach (self::live_purchases($now, max($clean), self::grace_for($clean)) as $purchase) {
+            foreach (self::leads_due($purchase, $clean, $now) as $lead) {
                 $already = $DB->record_exists('nit_sub_reminder', [
                     'purchaseid' => (int) $purchase->id,
                     'days'       => $lead,
@@ -295,37 +291,119 @@ class reminder_manager {
     // ── Helpers ──
 
     /**
-     * Active, dated purchases whose deadline is at most $within days away.
+     * Dated purchases whose deadline falls inside the window we care about.
+     *
+     * $grace is what makes the expiry-day reminder possible. By the time this runs, a plan
+     * that ended today has already been closed out by the expiry task (:07 against our :22)
+     * — its row says `expired`, not `active` — so looking only at live purchases would mean
+     * the "it ended today" message could never be sent to anybody.
      *
      * @param int $now
-     * @param int $within days; 0 means every live purchase regardless of deadline
+     * @param int $within days ahead to look; 0 means no upper bound unless $grace is set,
+     *                    in which case the window ends at $now (i.e. only what has run out)
+     * @param int $grace seconds to look BACK for purchases that have just run out; 0 = none
      * @return \stdClass[]
      */
-    private static function live_purchases(int $now, int $within): array {
+    private static function live_purchases(int $now, int $within, int $grace = 0): array {
         global $DB;
 
-        $select = 'status = :status AND expires_at > :now';
-        $params = ['status' => subscription_purchase_manager::STATUS_ACTIVE, 'now' => $now];
+        $statuses = [subscription_purchase_manager::STATUS_ACTIVE];
+        if ($grace > 0) {
+            $statuses[] = subscription_purchase_manager::STATUS_EXPIRED;
+        }
+        [$insql, $params] = $DB->get_in_or_equal($statuses, SQL_PARAMS_NAMED, 'st');
 
-        if ($within > 0) {
+        $select = "status $insql AND expires_at > :floor";
+        $params['floor'] = $now - $grace;
+
+        if ($within > 0 || $grace > 0) {
             $select .= ' AND expires_at <= :until';
             $params['until'] = $now + ($within * DAYSECS);
         }
 
-        return array_values($DB->get_records_select('nit_sub_purchase', $select, $params, 'expires_at ASC'));
+        $rows = array_values($DB->get_records_select('nit_sub_purchase', $select, $params, 'expires_at ASC'));
+
+        if ($grace <= 0) {
+            return $rows;
+        }
+
+        // Somebody who renewed BEFORE their old period ran out holds both rows: the lapsed one
+        // and the live one that took over. Their access never stopped, so telling them their
+        // subscription has ended would be flatly untrue — and would arrive days after they
+        // paid to prevent exactly that.
+        return array_values(array_filter($rows, function ($row) use ($now) {
+            if (((int) $row->expires_at) > $now) {
+                return true;
+            }
+            return !subscription_purchase_manager::get_active_subscription((int) $row->userid);
+        }));
+    }
+
+    /**
+     * Which of the configured lead times this purchase has reached, receipts aside.
+     *
+     * A larger lead time that has already passed still counts — someone whose plan has four
+     * days left and who has never been told is owed the 7-day warning too, once. The one
+     * exception is a plan that has ALREADY run out: it is owed the "it ended today" message
+     * and nothing else, because firing the 30-, 7- and 1-day warnings retrospectively, all in
+     * the same minute, would be nonsense.
+     *
+     * @param \stdClass $purchase
+     * @param int[] $days the configured lead times
+     * @param int $now
+     * @return int[] the lead times owed, in configured order
+     */
+    private static function leads_due($purchase, array $days, int $now): array {
+        $expired = ((int) $purchase->expires_at) <= $now;
+        $daysleft = self::days_left($purchase, $now);
+
+        $out = [];
+        foreach ($days as $lead) {
+            if ($expired ? ($lead !== self::EXPIRY_DAY) : ($daysleft > $lead)) {
+                continue;
+            }
+            $out[] = $lead;
+        }
+
+        return $out;
+    }
+
+    /**
+     * How far back to keep looking for purchases that have just run out.
+     *
+     * A day: long enough that an hourly task (or a cron that missed a few runs) still catches
+     * the plans that ended, short enough that reviving a long-dead subscription cannot set off
+     * an "it ended today" message weeks late.
+     *
+     * @param int[] $days the configured lead times
+     * @return int seconds; 0 when the expiry-day reminder is not configured
+     */
+    private static function grace_for(array $days): int {
+        return in_array(self::EXPIRY_DAY, $days, true) ? DAYSECS : 0;
     }
 
     /**
      * Turn whatever the form sent into a clean, ordered set of lead times.
      *
      * @param array $days
-     * @return int[] unique, 1..MAX_DAYS, largest first, capped at MAX_ENTRIES
+     * @return int[] unique, 0..MAX_DAYS, largest first (so the expiry-day entry sorts last),
+     *               capped at MAX_ENTRIES
      */
     public static function clean_days(array $days): array {
         $out = [];
         foreach ($days as $day) {
-            $day = (int) trim((string) $day);
-            if ($day >= 1 && $day <= self::MAX_DAYS) {
+            $day = trim((string) $day);
+
+            // Digits only, and checked BEFORE the cast. Now that 0 is a meaningful lead time
+            // ("on the day it ends"), a plain (int) cast would turn an empty box — or the ''
+            // that explode() hands back for an empty list — into a reminder the admin never
+            // asked for, which is the one mistake this setting must not make quietly.
+            if ($day === '' || !ctype_digit($day)) {
+                continue;
+            }
+
+            $day = (int) $day;
+            if ($day >= self::EXPIRY_DAY && $day <= self::MAX_DAYS) {
                 $out[$day] = $day;
             }
         }
@@ -370,16 +448,23 @@ class reminder_manager {
             $renewurl = new \moodle_url('/local/nit_subscriptions/plan.php',
                 ['id' => (int) $purchase->subscriptionid]);
 
+            // The day it actually ends reads differently from a warning about it: past tense,
+            // no countdown, and renewal is the only thing left to offer. "0 day(s) remaining"
+            // would be both wrong and slightly insulting.
+            $key = ($daysleft <= 0) ? '_today' : '';
+
+            $body = get_string('reminder_msg_body' . $key, self::COMPONENT, $a);
+
             $message = new \core\message\message();
             $message->component         = self::COMPONENT;
             $message->name              = 'subscriptionreminder';
             $message->userfrom          = \core_user::get_noreply_user();
             $message->userto            = $user;
-            $message->subject           = get_string('reminder_msg_subject', self::COMPONENT, $a);
-            $message->fullmessage       = get_string('reminder_msg_body', self::COMPONENT, $a);
+            $message->subject           = get_string('reminder_msg_subject' . $key, self::COMPONENT, $a);
+            $message->fullmessage       = $body;
             $message->fullmessageformat = FORMAT_PLAIN;
-            $message->fullmessagehtml   = text_to_html(get_string('reminder_msg_body', self::COMPONENT, $a));
-            $message->smallmessage      = get_string('reminder_msg_small', self::COMPONENT, $a);
+            $message->fullmessagehtml   = text_to_html($body);
+            $message->smallmessage      = get_string('reminder_msg_small' . $key, self::COMPONENT, $a);
             $message->notification      = 1;
             $message->contexturl        = $renewurl->out(false);
             $message->contexturlname    = get_string('reminder_msg_action', self::COMPONENT);

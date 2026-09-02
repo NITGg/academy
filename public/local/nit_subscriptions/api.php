@@ -53,7 +53,7 @@ if ($alang === '') {
     $alang = optional_param('lang', '', PARAM_LANG);
 }
 if ($alang !== '') {
-    force_current_language($alang);
+    \local_nit_core\helper\lang::for_request($alang);
 }
 
 header('Content-Type: application/json; charset=utf-8');

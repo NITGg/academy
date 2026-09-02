@@ -30,6 +30,8 @@ $string['course_preview_desc'] = 'Let anyone — including visitors who are not 
 $string['preview_notice'] = 'You are previewing this course. The activities unlock once you have access.';
 $string['preview_unlock'] = 'Unlock this course';
 $string['preview_login'] = 'Log in to continue';
+$string['expired_notice'] = 'Your access to this course has ended. Renew to continue where you left off — your progress has been saved.';
+$string['expired_renew'] = 'Renew';
 $string['preview_locked'] = 'This activity is locked until you have access to the course.';
 
 // Free preview lessons (AC-4.9.5).

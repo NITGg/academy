@@ -96,7 +96,9 @@
             if (!target.name) {
                 return;
             }
-            if (target.type === 'checkbox' || target.tagName === 'SELECT') {
+            // Number inputs included: the price slider's hidden pair fires this when a drag
+            // ends (see pricerange.js), which is exactly when the results should change.
+            if (target.type === 'checkbox' || target.type === 'number' || target.tagName === 'SELECT') {
                 submit(form);
             }
         });
@@ -104,7 +106,7 @@
         var timer = null;
         form.addEventListener('input', function (ev) {
             var target = ev.target;
-            if (target.type !== 'number' && target.type !== 'search') {
+            if (target.type !== 'search') {
                 return;
             }
             window.clearTimeout(timer);

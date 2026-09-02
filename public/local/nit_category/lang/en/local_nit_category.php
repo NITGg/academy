@@ -121,3 +121,75 @@ $string['nocategorieshintsubs'] = 'Try removing a filter, searching for somethin
 $string['homelesson'] = 'Lesson {$a->num}: {$a->name}';
 $string['mycourses'] = 'My courses';
 $string['mycoursesunavailable'] = 'The course cards cannot be shown: the theme_nit block file is missing or unreadable.';
+
+// -- Site search (SRS 4.22) ---------------------------------------------------------------
+// One control in the header, searching courses and categories at once, with the results
+// grouped by kind and counted.
+$string['searchtitle'] = 'Search';
+$string['searchplaceholder'] = 'Search courses and categories';
+$string['searchsite'] = 'Search the site';
+$string['searchopen'] = 'Open search';
+$string['searchclose'] = 'Close search';
+$string['searchhint'] = 'Search the whole academy: course titles, subject areas and what a course covers.';
+$string['searchtooshort'] = 'Type at least {$a} letters to search.';
+$string['searchresults'] = '{$a->count} results for “{$a->query}”';
+$string['searchoneresult'] = '1 result for “{$a}”';
+$string['searchgroupcourses'] = 'Courses';
+$string['searchgroupcategories'] = 'Categories';
+$string['searchnothing'] = 'Nothing found for “{$a}”';
+$string['searchnothinghint'] = 'Check the spelling, try a single broader word, or browse the catalogue instead.';
+$string['searchseeall'] = 'See all {$a} results';
+$string['searchseeallone'] = 'See the result';
+$string['searchmoreresults'] = 'Show the other {$a}';
+$string['searchrefine'] = 'Narrow it down:';
+$string['searchrefinecourses'] = 'Filter these courses';
+$string['searchrefinecategories'] = 'Filter these categories';
+$string['searchsearching'] = 'Searching…';
+
+// -- Failed-search report (AC-4.22.4) -----------------------------------------------------
+$string['searchlog'] = 'Searches that found nothing';
+$string['searchlogintro'] = 'Every term a learner searched for that returned no course and no category. Spelling variants of one word are counted as one term. Nothing here identifies who searched.';
+$string['searchlogempty'] = 'Nothing yet: every search so far has found something.';
+$string['searchlogsummary'] = '{$a->terms} terms, searched {$a->searches} times in all.';
+$string['searchlogterm'] = 'Search term';
+$string['searchloghits'] = 'Times searched';
+$string['searchlogfirst'] = 'First searched';
+$string['searchloglast'] = 'Last searched';
+$string['searchlogsorthits'] = 'Most searched';
+$string['searchlogsortrecent'] = 'Most recent';
+$string['searchlogsortterm'] = 'Alphabetical';
+$string['searchlogdeleted'] = 'Term removed from the report.';
+$string['searchlogpurge'] = 'Empty the report';
+$string['searchlogpurgeconfirm'] = 'Remove every term from the report? This is the only record of what learners could not find.';
+$string['searchlogpurged'] = 'The report is now empty.';
+
+// -- Privacy ------------------------------------------------------------------------------
+$string['privacy:metadata'] = 'The catalogue pages store nothing about the person reading them. The record of searches that found nothing keeps the term and a count, and has no user column.';
+
+// ── Filter panel (SRS §4.8: exactly six filters, in this order) ──────────────────
+// The panel's own headings, used instead of the custom field's name so that a field
+// titled "Total Number of Hours" still appears under the heading the design asks for.
+$string['filtercategory'] = 'Category';
+$string['filterlevel'] = 'Level';
+$string['filterprice'] = 'Price range';
+$string['filterlanguage'] = 'Language';
+$string['filterduration'] = 'Duration';
+$string['filtercertificate'] = 'Carries a certificate';
+$string['durationshort'] = 'Under 10 hours';
+$string['durationmedium'] = '10 – 25 hours';
+$string['durationlong'] = 'Over 25 hours';
+$string['hoursshort'] = '{$a} h';
+$string['pricefrom'] = 'Lowest price';
+$string['priceto'] = 'Highest price';
+
+// Settings: which course field answers which filter.
+$string['filterfieldsheading'] = 'Filter fields';
+$string['filterfieldsdesc'] = 'The catalogue offers exactly the six filters of SRS §4.8 — category, level, price, language, duration and certificate. Category and price are built in; the other four read a course custom field, named below. Leave a box empty to use the default shortname; name a field that does not exist and that filter is simply left out of the panel.';
+$string['filterfield_level'] = 'Level field';
+$string['filterfield_level_desc'] = 'Short name of the course custom field holding the level. A select field gives a controlled list, which is what AC-4.8.5 requires. Default: level';
+$string['filterfield_language'] = 'Language field';
+$string['filterfield_language_desc'] = 'Short name of the course custom field holding the language of delivery. Default: language';
+$string['filterfield_duration'] = 'Duration field';
+$string['filterfield_duration_desc'] = 'Short name of the number field holding the course length in hours. It is offered as three bands — under 10, 10 to 25, over 25 — rather than as a from/to box. Default: total_number_of_hours';
+$string['filterfield_certificate'] = 'Certificate field';
+$string['filterfield_certificate_desc'] = 'Short name of the checkbox field marking a course as carrying a certificate. Default: certificate';

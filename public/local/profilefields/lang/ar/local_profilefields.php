@@ -483,3 +483,67 @@ $string['footercopyright'] = 'سطر حقوق النشر';
 $string['footercopyright_desc'] = 'ضع {year} في الموضع الذي تريد ظهور السنة فيه. اتركه فارغًا للجملة الافتراضية.';
 $string['footercopyrightdefault'] = '© {year} إياك. جميع الحقوق محفوظة.';
 $string['footercopyrightpreview'] = 'سيظهر هكذا';
+
+// Static pages (AC-4.21).
+$string['tabpages'] = 'الصفحات الثابتة';
+$string['tabpages_intro'] = 'صفحات الموقع الثابتة. تُكتب كل صفحة مرتين — مرة بالعربية ومرة بالإنجليزية — ويرى كل زائر النسخة بلغته. الخانة الفارغة تعود إلى الإنجليزية، ثم إلى اللغة التي كُتبت فعلًا.';
+
+$string['staticpagename_about'] = 'عن الأكاديمية';
+$string['staticpagename_contact'] = 'اتصل بنا';
+$string['staticpagename_terms'] = 'الشروط والأحكام';
+$string['staticpagename_privacy'] = 'سياسة الخصوصية';
+$string['staticpagename_refund'] = 'سياسة الاسترداد';
+$string['staticpagename_faq'] = 'الأسئلة الشائعة';
+
+$string['staticpageaddress'] = 'عنوان هذه الصفحة';
+$string['staticpageenabled'] = 'منشورة';
+$string['staticpageenabled_help'] = 'الصفحة غير المنشورة تُجيب "الصفحة غير متاحة" للجميع عدا مديري الموقع، ليمكن مراجعة نصها قبل أن يقرأه أحد. الروابط المؤدية إليها في بقية الموقع تبقى كما هي — لا توقف نشر صفحة إلا أثناء كتابتها.';
+$string['staticpageenabled_label'] = 'إظهار هذه الصفحة للزوار';
+$string['staticpageoff'] = 'غير منشورة';
+$string['staticpageoffnotice'] = 'هذه الصفحة غير منشورة، ولا يستطيع فتحها إلا مديرو الموقع.';
+$string['staticpageedit'] = 'تعديل هذه الصفحة';
+$string['staticpageempty'] = 'لا يوجد محتوى في هذه الصفحة بعد.';
+$string['staticpageunknown'] = 'لا توجد صفحة في الموقع باسم "{$a}".';
+$string['staticpageunavailable'] = 'هذه الصفحة غير متاحة.';
+
+$string['staticpagelangsection'] = 'المحتوى بـ{$a}';
+$string['staticpagetitle'] = 'عنوان الصفحة ({$a})';
+$string['staticpagetitle_desc'] = 'اتركه فارغًا لاستخدام الافتراضي: {$a}';
+$string['staticpagecontent'] = 'محتوى الصفحة ({$a})';
+$string['staticpagefallback'] = 'النص الذي يظهر إن لم تُختر وثيقة ({$a})';
+
+$string['staticpagepolicysection'] = 'وثيقة السياسة';
+$string['staticpagepolicysection_desc'] = 'تعرض هذه الصفحة إحدى وثائق سياسات الموقع، حتى يكون النص الذي يوافق عليه المتدرب عند التسجيل والنص المعروض هنا هو الوثيقة نفسها دائمًا. اكتب الوثائق وراجعها من <a href="{$a}">إدارة السياسات</a>، ثم اختر وثيقة لكل لغة هنا.';
+$string['staticpagepolicy'] = 'الوثيقة المعروضة بـ{$a}';
+$string['staticpagepolicynone'] = 'بدون — استخدم النص المكتوب أدناه';
+$string['staticpagepolicyempty'] = 'لم تُكتب أي وثيقة سياسات بعد. أضفها من إدارة الموقع ← المستخدمون ← الخصوصية والسياسات ← إدارة السياسات، ثم عد واختر وثيقة لكل لغة. حتى ذلك الحين تعرض هذه الصفحة النص المكتوب أدناه.';
+
+$string['staticpagecontactsection'] = 'الخريطة';
+$string['staticpagecontactnote'] = 'العنوان ورقم الهاتف وساعات العمل والبريد الإلكتروني وروابط التواصل الاجتماعي في هذه الصفحة هي نفسها المضبوطة في <a href="{$a}">تبويب التذييل</a> — تُحرَّر في مكان واحد وتظهر في الاثنين. الخريطة وحدها تُضبط من هنا.';
+$string['staticpagemapembed'] = 'رابط تضمين الخريطة';
+$string['staticpagemapembed_help'] = 'من خرائط جوجل، افتح مشاركة ← تضمين خريطة، وانسخ العنوان الموجود داخل ‎src="..."‎ من الكود المعروض — لا الوسم كاملًا. اتركه فارغًا لإخفاء الخريطة.';
+$string['staticpagemapembediframe'] = 'الصق العنوان الموجود داخل ‎src="..."‎ فقط، لا وسم ‎<iframe>‎ كاملًا.';
+$string['staticpagemapembedinvalid'] = 'هذا لا يبدو عنوان خريطة قابلة للتضمين. يجب أن يبدأ بـ https://';
+$string['staticpagemaplink'] = 'رابط "افتح في الخرائط"';
+$string['staticpagemaplink_help'] = 'وجهة رابط "افتح في الخرائط" أسفل الخريطة — رابط المشاركة المعتاد للموقع. اتركه فارغًا لإخفاء الرابط.';
+$string['staticpagemaplinkinvalid'] = 'هذا ليس عنوان ويب صحيحًا.';
+
+$string['contactdetails'] = 'بيانات الاتصال';
+$string['followus'] = 'تابعنا';
+$string['findus'] = 'موقعنا';
+$string['openinmaps'] = 'افتح في الخرائط';
+
+$string['faqheading'] = 'الأسئلة والأجوبة';
+$string['faqheading_desc'] = 'كل سؤال يُطرح ويُجاب باللغتين. السؤال المتروك فارغًا في إحدى اللغتين يظهر باللغة الأخرى بدلًا من أن يختفي.';
+$string['faqitem'] = 'السؤال {$a}';
+$string['faqquestion'] = 'السؤال ({$a})';
+$string['faqanswer'] = 'الإجابة ({$a})';
+$string['faqsortorder'] = 'الترتيب';
+$string['faqsortorder_help'] = 'تُعرض الأسئلة بترتيب هذا الرقم تصاعديًا. تُعاد ترقيمها بخطوات من عشرة عند الحفظ، ليبقى دائمًا متسع لإدراج سؤال جديد بين سؤالين قديمين.';
+$string['faqvisible'] = 'ظاهر';
+$string['faqvisible_label'] = 'إظهار هذا السؤال في الصفحة';
+$string['faqdelete'] = 'حذف';
+$string['faqdelete_label'] = 'احذف هذا السؤال عند الحفظ';
+$string['faqaddmore'] = 'أضف {no} أسئلة أخرى';
+$string['faqnoquestion'] = 'توجد إجابة هنا بلا سؤال. اكتب السؤال، أو ضع علامة على حذف.';
+$string['faqnone'] = 'لم تُضف أي أسئلة بعد.';

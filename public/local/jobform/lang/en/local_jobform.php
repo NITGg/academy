@@ -44,6 +44,12 @@ $string['fieldname_ar'] = 'Field label (Arabic)';
 $string['fieldname_ar_help'] = 'Optional. If you fill in both languages, the label is stored as a bilingual {mlang} value and each student sees it in their own language. Leave blank to use the English label for everyone.';
 $string['fieldgroup'] = 'Group';
 $string['fieldgroup_help'] = 'Optional. Pick a group so this field is shown together with the others in that group, under one heading on the form. Choose "No group" to keep the field ungrouped. Create groups with the "Add group" button.';
+$string['fieldautofill'] = 'Pre-fill from the account';
+$string['fieldautofill_help'] = 'Fills this field in for the applicant with a value taken from their own account, so they do not retype it. They can still change what is shown before sending. "Automatic" pre-fills the fields whose label reads as a full name or an email address; pick "Do not pre-fill" to switch it off for this field.';
+$string['fieldautofill_auto'] = 'Automatic (detect from the label)';
+$string['fieldautofill_none'] = 'Do not pre-fill';
+$string['fieldautofill_fullname'] = 'Full name on the account';
+$string['fieldautofill_email'] = 'Email address on the account';
 
 // Groups.
 $string['groups'] = 'Groups:';
@@ -109,6 +115,13 @@ $string['noanswers'] = 'This submission has no answers.';
 $string['deletedfield'] = '(deleted field)';
 $string['confirmdeletesubmission'] = 'Are you sure you want to permanently delete this submitted form?';
 $string['submissiondeleted'] = 'The submitted form has been deleted.';
+
+// Phone number: a country dialling code and the national number (AC-4.20.4).
+$string['phonecountry'] = 'Country dialling code';
+$string['errphonecountry'] = 'Please choose the country dialling code for your phone number.';
+$string['errphonedigits'] = 'Please enter your phone number in digits.';
+$string['errphonelength'] = 'The phone number for this country must be {$a} digits.';
+$string['errphonelengthrange'] = 'The phone number for this country must be between {$a->min} and {$a->max} digits.';
 
 // Privacy.
 $string['privacy:metadata'] = 'The Job Form manager plugin stores only the field template definitions and does not store personal data. Submitted forms are stored by the Job Form activity.';

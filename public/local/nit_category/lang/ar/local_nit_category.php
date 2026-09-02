@@ -120,3 +120,75 @@ $string['nocategorieshintsubs'] = 'جرّب إزالة أحد عوامل الت�
 $string['homelesson'] = 'الدرس {$a->num} : {$a->name}';
 $string['mycourses'] = 'كورساتي';
 $string['mycoursesunavailable'] = 'تعذّر عرض بطاقات الكورسات: ملف البلوك الخاص بقالب theme_nit غير موجود أو غير قابل للقراءة.';
+
+// ── البحث في الموقع (SRS 4.22) ──────────────────────────────────────────────────
+// عنصر بحث واحد في الشريط العلوي يبحث في الكورسات والتصنيفات معًا، والنتائج مجمَّعة
+// حسب نوعها ومعها العدد.
+$string['searchtitle'] = 'البحث';
+$string['searchplaceholder'] = 'ابحث في الكورسات والتصنيفات';
+$string['searchsite'] = 'ابحث في الموقع';
+$string['searchopen'] = 'فتح البحث';
+$string['searchclose'] = 'إغلاق البحث';
+$string['searchhint'] = 'ابحث في الأكاديمية كلها: أسماء الكورسات والمجالات وما يغطيه كل كورس.';
+$string['searchtooshort'] = 'اكتب حرفين على الأقل للبحث.';
+$string['searchresults'] = '{$a->count} نتيجة لـ «{$a->query}»';
+$string['searchoneresult'] = 'نتيجة واحدة لـ «{$a}»';
+$string['searchgroupcourses'] = 'الكورسات';
+$string['searchgroupcategories'] = 'التصنيفات';
+$string['searchnothing'] = 'لا توجد نتائج لـ «{$a}»';
+$string['searchnothinghint'] = 'راجع الإملاء، أو جرّب كلمة واحدة أعمّ، أو تصفّح الدليل.';
+$string['searchseeall'] = 'اعرض كل النتائج ({$a})';
+$string['searchseeallone'] = 'اعرض النتيجة';
+$string['searchmoreresults'] = 'اعرض الـ {$a} الأخرى';
+$string['searchrefine'] = 'ضيِّق النتائج:';
+$string['searchrefinecourses'] = 'تصفية هذه الكورسات';
+$string['searchrefinecategories'] = 'تصفية هذه التصنيفات';
+$string['searchsearching'] = 'جارٍ البحث…';
+
+// ── تقرير عمليات البحث بلا نتائج (AC-4.22.4) ────────────────────────────────────
+$string['searchlog'] = 'عمليات بحث بلا نتائج';
+$string['searchlogintro'] = 'كل كلمة بحث عنها المتدربون ولم تُرجع أي كورس أو تصنيف. صيغ الكتابة المختلفة للكلمة الواحدة تُحتسب كلمةً واحدة. لا شيء هنا يدل على هوية الباحث.';
+$string['searchlogempty'] = 'لا شيء بعد: كل عمليات البحث حتى الآن وجدت نتائج.';
+$string['searchlogsummary'] = '{$a->terms} كلمة، بحث عنها {$a->searches} مرة إجمالًا.';
+$string['searchlogterm'] = 'كلمة البحث';
+$string['searchloghits'] = 'عدد مرات البحث';
+$string['searchlogfirst'] = 'أول بحث';
+$string['searchloglast'] = 'آخر بحث';
+$string['searchlogsorthits'] = 'الأكثر بحثًا';
+$string['searchlogsortrecent'] = 'الأحدث';
+$string['searchlogsortterm'] = 'أبجديًا';
+$string['searchlogdeleted'] = 'تم حذف الكلمة من التقرير.';
+$string['searchlogpurge'] = 'إفراغ التقرير';
+$string['searchlogpurgeconfirm'] = 'هل تريد حذف كل الكلمات من التقرير؟ هذا هو السجل الوحيد لما لم يجده المتدربون.';
+$string['searchlogpurged'] = 'أصبح التقرير فارغًا.';
+
+// ── الخصوصية ────────────────────────────────────────────────────────────────────
+$string['privacy:metadata'] = 'صفحات الدليل لا تخزّن أي شيء عن قارئها. وسجل عمليات البحث بلا نتائج يحتفظ بالكلمة وعدد مرات البحث فقط، وليس فيه عمود للمستخدم.';
+
+// ── لوحة التصفية (SRS §4.8: ستة عوامل بالضبط، بهذا الترتيب) ─────────────────────
+// عناوين اللوحة نفسها، تُستخدم بدلًا من اسم الحقل المخصّص حتى يظهر حقل اسمه
+// "Total Number of Hours" تحت العنوان الذي يطلبه التصميم.
+$string['filtercategory'] = 'التصنيف';
+$string['filterlevel'] = 'المستوى';
+$string['filterprice'] = 'نطاق السعر';
+$string['filterlanguage'] = 'اللغة';
+$string['filterduration'] = 'المدة';
+$string['filtercertificate'] = 'يمنح شهادة';
+$string['durationshort'] = 'أقل من 10 ساعات';
+$string['durationmedium'] = '10 – 25 ساعة';
+$string['durationlong'] = 'أكثر من 25 ساعة';
+$string['hoursshort'] = '{$a} س';
+$string['pricefrom'] = 'أقل سعر';
+$string['priceto'] = 'أعلى سعر';
+
+// الإعدادات: أي حقل كورس يجيب عن أي عامل تصفية.
+$string['filterfieldsheading'] = 'حقول التصفية';
+$string['filterfieldsdesc'] = 'يعرض الدليل عوامل التصفية الستة في SRS §4.8 بالضبط — التصنيف والمستوى والسعر واللغة والمدة والشهادة. التصنيف والسعر مدمجان؛ والأربعة الباقية تقرأ حقلًا مخصّصًا للكورس تُسمّيه بالأسفل. اترك الخانة فارغة لاستخدام الاسم المختصر الافتراضي، وإذا سمّيت حقلًا غير موجود فلن يظهر عامل التصفية هذا في اللوحة أصلًا.';
+$string['filterfield_level'] = 'حقل المستوى';
+$string['filterfield_level_desc'] = 'الاسم المختصر لحقل الكورس المخصّص الذي يحمل المستوى. حقل الاختيار يعطي قائمة محكومة، وهو ما يتطلّبه AC-4.8.5. الافتراضي: level';
+$string['filterfield_language'] = 'حقل اللغة';
+$string['filterfield_language_desc'] = 'الاسم المختصر لحقل الكورس المخصّص الذي يحمل لغة التقديم. الافتراضي: language';
+$string['filterfield_duration'] = 'حقل المدة';
+$string['filterfield_duration_desc'] = 'الاسم المختصر للحقل الرقمي الذي يحمل طول الكورس بالساعات. يُعرض كثلاث فئات — أقل من 10، ومن 10 إلى 25، وأكثر من 25 — بدلًا من خانتَي من/إلى. الافتراضي: total_number_of_hours';
+$string['filterfield_certificate'] = 'حقل الشهادة';
+$string['filterfield_certificate_desc'] = 'الاسم المختصر لحقل الاختيار الثنائي الذي يحدّد أن الكورس يمنح شهادة. الافتراضي: certificate';

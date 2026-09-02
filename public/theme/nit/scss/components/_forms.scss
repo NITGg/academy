@@ -81,10 +81,16 @@ textarea.form-control[readonly][disabled] {
 }
 
 // =============================================================================
-// Phone profile field (profilefield_phone) — one control, not two rows.
+// Phone control — one control, not two rows.
 //
-// The field is an mform *group*: a country select ("flag + dialling code +
-// country name") and a number box, which core renders as a bare
+// Keyed off the `.profilefield-phone-*` classes, which two fields now emit: the
+// sign-up phone profile field (profilefield_phone) and a Job Form "phone"
+// question (mod_jobform, AC-4.20.4). They are the same control and are meant to
+// look the same wherever an applicant meets it, so they share the classes rather
+// than each growing its own copy of the rules below.
+//
+// The field is an mform *group*: a country select ("country name + dialling
+// code + flag") and a number box, which core renders as a bare
 // `d-flex flex-wrap` row of two independent form items. A select is as wide as
 // its longest option (≈410px here), so in a form column of ≈540px the number
 // box no longer fits beside it and wraps onto its own line — the dialling code

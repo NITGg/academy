@@ -25,6 +25,13 @@
 defined('MOODLE_INTERNAL') || die();
 
 $callbacks = [
+    // Let the navbar's ?lang=xx switcher outrank a leftover forced language. Must run before
+    // anything reads current_language(), hence after_config.
+    [
+        'hook'     => \core\hook\after_config::class,
+        'callback' => 'local_nit_core\hook\lang_callbacks::after_config',
+        'priority' => 0,
+    ],
     [
         'hook'     => \core\hook\output\before_standard_top_of_body_html_generation::class,
         'callback' => 'local_nit_core\hook\output_callbacks::add_welcome_panel',

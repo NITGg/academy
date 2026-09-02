@@ -31,6 +31,7 @@ use local_jobform\fields_ui;
 use mod_jobform\instance_manager;
 use mod_jobform\group_manager;
 use mod_jobform\submission_manager;
+use mod_jobform\notifier;
 use mod_jobform\form\entry_form;
 use mod_jobform\output\activity_submissions;
 
@@ -142,18 +143,25 @@ if ($studentmode) {
                 ? submission_manager::STATUS_DRAFT
                 : submission_manager::STATUS_SUBMITTED;
             $values = entry_form::normalize_values($data, array_values($fields));
-            submission_manager::save($jobform->id, $USER->id, $values, $status);
+            $submissionid = submission_manager::save($jobform->id, $USER->id, $values, $status);
+            if ($status === submission_manager::STATUS_SUBMITTED) {
+                // AC-4.20.8: acknowledge to the applicant, notify the reviewer.
+                notifier::submission_sent($jobform, $cm, $course, $USER, $submissionid);
+            }
             $msg = $status === submission_manager::STATUS_SUBMITTED
                 ? get_string('formsent', 'mod_jobform')
                 : get_string('draftsaved', 'mod_jobform');
             redirect($viewurl, $msg, null, \core\output\notification::NOTIFY_SUCCESS);
-        } else if ($existing) {
-            // Prime with any saved values.
-            $answers = submission_manager::get_answers($existing->id);
-            $entryform->set_data(
-                ['id' => $cm->id] + entry_form::values_to_formdata($answers, array_values($fields)));
         } else {
-            $entryform->set_data(['id' => $cm->id]);
+            // Name and email come from the account of record (AC-4.20.2); anything
+            // the applicant already saved themselves wins over it.
+            $prefill = entry_form::autofill_formdata(array_values($fields), $USER);
+            $saved = [];
+            if ($existing) {
+                $answers = submission_manager::get_answers($existing->id);
+                $saved = entry_form::values_to_formdata($answers, array_values($fields));
+            }
+            $entryform->set_data(['id' => $cm->id] + $saved + $prefill);
         }
     }
 }

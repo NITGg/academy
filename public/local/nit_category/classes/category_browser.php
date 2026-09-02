@@ -65,6 +65,9 @@ class category_browser {
     /** @var bool whether subcategories are listed alongside the main areas */
     private $subs;
 
+    /** @var bool a category must match the typed words itself, not merely hold a course that did */
+    private $ownmatchonly;
+
     /** @var string one of the SORT_* constants */
     private $sort;
 
@@ -78,11 +81,14 @@ class category_browser {
      * @param catalogue $catalogue a catalogue that has already read the request
      * @param bool $subs list subcategories as well as the main areas
      * @param string $sort one of {@see self::sort_options()}
+     * @param bool $ownmatchonly keep only categories whose own text matches the search
      */
-    public function __construct(catalogue $catalogue, bool $subs = false, string $sort = self::SORT_COURSES) {
+    public function __construct(catalogue $catalogue, bool $subs = false, string $sort = self::SORT_COURSES,
+            bool $ownmatchonly = false) {
         $this->catalogue = $catalogue;
         $this->subs = $subs;
         $this->sort = array_key_exists($sort, self::sort_options()) ? $sort : self::SORT_COURSES;
+        $this->ownmatchonly = $ownmatchonly;
     }
 
     /**
@@ -133,7 +139,7 @@ class category_browser {
      */
     private function build(): array {
         $bycategory = $this->spread($this->catalogue->matches_ignoring_search());
-        $bysearch = $this->spread($this->catalogue->matches());
+        $bysearch = $this->ownmatchonly ? [] : $this->spread($this->catalogue->matches());
         $words = text_util::search_words($this->catalogue->active()['q'] ?? '');
 
         $out = [];
@@ -157,6 +163,15 @@ class category_browser {
             $count = $filtered;
             if ($words) {
                 if (!$this->text_matches($category, $words)) {
+                    if ($this->ownmatchonly) {
+                        // The site search lists categories under their own heading
+                        // (AC-4.22.3), so a category earns its place there by matching the
+                        // typed words itself. A category that merely holds a course that
+                        // matched is not a result: that course is already listed, under
+                        // "Courses", and repeating its category as a second hit would
+                        // inflate the totals with the same answer twice.
+                        continue;
+                    }
                     // Nothing in the category's own name or description; fall back to
                     // whether any course inside it matched.
                     $count = count($bysearch[$id] ?? []);

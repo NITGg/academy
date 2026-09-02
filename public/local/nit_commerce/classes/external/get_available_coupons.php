@@ -64,7 +64,7 @@ class get_available_coupons extends external_api {
         self::validate_context(\context_system::instance());
         $chosen = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
         if ($chosen !== '') {
-            force_current_language($chosen);
+            \local_nit_core\helper\lang::for_request($chosen);
         }
         return coupon_manager::get_available_coupons();
     }

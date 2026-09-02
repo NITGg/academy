@@ -39,7 +39,7 @@ require_sesskey();
 
 $alang = optional_param('alang', '', PARAM_LANG);
 if ($alang !== '') {
-    force_current_language($alang);
+    \local_nit_core\helper\lang::for_request($alang);
 }
 
 // No paging: an export that stopped at page one would be a trap.
