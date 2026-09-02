@@ -122,6 +122,7 @@ $string['acad_enrol'] = 'التحق الآن';
 $string['acad_free'] = 'مجاني';
 $string['acad_ataglance'] = 'نظرة سريعة';
 $string['acad_nmodules'] = '{$a} وحدات';
+$string['acad_level'] = 'المستوى';
 $string['acad_duration'] = 'المدة';
 $string['acad_nhours'] = '{$a} ساعة';
 $string['acad_assessments'] = 'التقييمات';

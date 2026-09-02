@@ -754,7 +754,7 @@ class catalogue {
                 if ($counts[$a] !== $counts[$b]) {
                     return $counts[$b] <=> $counts[$a];
                 }
-                return \core_collator::compare($labels[$a], $labels[$b]);
+                return text_util::collate($labels[$a], $labels[$b]);
             });
 
             // A short-text field is free typing, so it can hold a phrase no other course
@@ -820,7 +820,7 @@ class catalogue {
             if ($counts[$a] !== $counts[$b]) {
                 return $counts[$b] <=> $counts[$a];
             }
-            return \core_collator::compare($names[$a], $names[$b]);
+            return text_util::collate($names[$a], $names[$b]);
         });
 
         $out = [];
@@ -921,7 +921,7 @@ class catalogue {
         if ($sort === 'newest') {
             usort($rows, static fn($a, $b) => $b['timecreated'] <=> $a['timecreated']);
         } else if ($sort === 'name') {
-            usort($rows, static fn($a, $b) => \core_collator::compare(
+            usort($rows, static fn($a, $b) => text_util::collate(
                 $a['course']->get_formatted_name(), $b['course']->get_formatted_name()));
         } else if ($sort === 'pricelow' || $sort === 'pricehigh') {
             $prices = [];

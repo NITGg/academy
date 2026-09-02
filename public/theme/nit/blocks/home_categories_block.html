@@ -96,10 +96,13 @@
          as static HTML cannot know the wwwroot — this site lives under /moodle-new/, so a
          root-relative path would 404. -->
     <div style="text-align: center; margin-top: 40px;" data-nit-categories-all="">
-      <a class="nit-btn-ghost"
-        style="display: inline-block; padding: 12px 32px; border-radius: 10px; border: 1px solid var(--nit-brand-primary); background: transparent; color: var(--nit-brand-textprimary); font-size: 16px; font-weight: 500; line-height: 1.6; text-decoration: none !important;"
-        href="#" data-nit-categories-link=""> {mlang en}View more categories{mlang} {mlang
-        ar}عرض المزيد من التصنيفات{mlang} </a>
+      <!-- Same button as "Browse the catalogue" in home_my_course_block.html, down to the
+           class: nit-btn-solid is what the shared hover style below keys off, so the two
+           lift and darken identically. Copied rather than referenced because a block is
+           pasted in as standalone HTML and has no stylesheet to share. -->
+      <a class="nit-btn-solid"
+        style="display: inline-flex; align-items: center; justify-content: center; background: var(--nit-brand-primary); border: 1px solid var(--nit-brand-borderprimary); color: var(--nit-brand-textprimary); font-size: 18px; font-weight: 600; padding: 15px 40px; border-radius: 8px; text-decoration: none;"
+        href="#" data-nit-categories-link="">{mlang en}More{mlang}{mlang ar}المزيد{mlang}</a>
     </div>
   </div>
   <script>

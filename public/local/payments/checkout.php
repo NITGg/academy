@@ -122,8 +122,10 @@ try {
     echo $OUTPUT->header();
     echo $OUTPUT->render_from_template('local_payments/price_changed', [
         'item_name' => format_string($course->fullname),
-        'old_amount_formatted' => format_float($e->quoted, 2, true, true) . ' ' . $e->currency,
-        'new_amount_formatted' => format_float($e->amount, 2, true, true) . ' ' . $e->currency,
+        // Cents kept, unlike the method picker: this screen is a comparison of two amounts, and a
+        // stripped ".50" would make an inequality look like a typo.
+        'old_amount_formatted' => format_float($e->quoted, 2) . ' ' . $e->currency,
+        'new_amount_formatted' => format_float($e->amount, 2) . ' ' . $e->currency,
         'increase' => $e->amount > $e->quoted,
         'action' => (new moodle_url('/local/payments/checkout.php'))->out(false),
         'sesskey' => sesskey(),

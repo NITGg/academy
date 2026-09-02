@@ -40,6 +40,9 @@
 
 .login-layout-left-content {
     color: var(--nit-navbartext, #{$nit-on-navy});
+    // Above the panel scrim (`.login-layout-left::before`), like `.nit-authpanel`.
+    position: relative;
+    z-index: 1;
     // Semi-opaque navy scrim so the copy stays legible over the panel.
     background-color: rgba($nit-navy-900, 0.65);
 
@@ -80,6 +83,48 @@
     // Centring is for one box in the middle; this panel has a top and a bottom.
     align-items: stretch;
     justify-content: flex-start;
+
+    // -------------------------------------------------------------------------
+    // The scrim over the photograph.
+    //
+    // The picture is an admin upload, so nothing here can know how bright it is:
+    // a pale photo leaves the white logo and the light quote card sitting on
+    // near-white, and the panel stops reading as the dark half of the screen. A
+    // tint on top makes the panel's darkness a property of the LAYOUT rather
+    // than of whichever image happens to be uploaded that month.
+    //
+    // A pseudo-element and not a second `background-image` layer, because Boost
+    // writes `background-image` on this same selector from
+    // theme_boost_get_extra_scss(), and theme_nit_auth_background_scss() writes
+    // it again per slot — a gradient declared here would be the thing those two
+    // overwrite. `::after` is already spoken for (Boost's "AI-generated image"
+    // watermark), so this is `::before`.
+    //
+    // Slightly stronger at the top and the bottom, where the logo and the quote
+    // card sit, and lighter across the middle so the picture is still a picture.
+    // `--nit-authpanel-scrim` is the one number to turn if it wants to be darker.
+    &::before {
+        content: "";
+        position: absolute;
+        // The panel is `position: sticky` (Boost), which is a positioned
+        // ancestor, so this anchors to the panel and not to the page.
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        // The gradient is the SHAPE of the scrim (ends darker than the middle);
+        // `opacity` is its STRENGTH, and it multiplies the whole thing — so the
+        // one knob stays one custom property. Deliberately not folded into the
+        // `rgba()` alphas: Moodle compiles this with scssphp, which evaluates
+        // `rgba()` at build time and cannot take a `var()` for a channel.
+        opacity: var(--nit-authpanel-scrim, 0.45);
+        background: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 1) 0%,
+            rgba(0, 0, 0, 0.78) 40%,
+            rgba(0, 0, 0, 0.78) 60%,
+            rgba(0, 0, 0, 1) 100%
+        );
+    }
 }
 
 .nit-authpanel {

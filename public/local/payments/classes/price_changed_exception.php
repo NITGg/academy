@@ -47,9 +47,11 @@ class price_changed_exception extends \moodle_exception {
 
         // The message is the one shown when a surface has nowhere better to put it (the mobile
         // web service, a JSON reply). Screens that can do better render their own confirmation.
+        // Cents kept (no strip-zeros): this message exists to show that two amounts differ, and
+        // "600" against "600.50" is exactly the difference it must not round away.
         parent::__construct('pricechanged_desc', 'local_payments', '', (object) [
-            'old' => format_float($this->quoted, 2, true, true) . ' ' . $currency,
-            'new' => format_float($this->amount, 2, true, true) . ' ' . $currency,
+            'old' => format_float($this->quoted, 2) . ' ' . $currency,
+            'new' => format_float($this->amount, 2) . ' ' . $currency,
         ], "quoted {$this->quoted}, now {$this->amount} {$currency}");
     }
 

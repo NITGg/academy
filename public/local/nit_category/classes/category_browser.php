@@ -365,7 +365,7 @@ class category_browser {
      */
     private function order(array $rows): array {
         if ($this->sort === self::SORT_NAME) {
-            usort($rows, static fn($a, $b) => \core_collator::compare($a['name'], $b['name']));
+            usort($rows, static fn($a, $b) => text_util::collate($a['name'], $b['name']));
             return $rows;
         }
 
@@ -375,7 +375,7 @@ class category_browser {
             if ($a['count'] !== $b['count']) {
                 return $b['count'] <=> $a['count'];
             }
-            return \core_collator::compare($a['name'], $b['name']);
+            return text_util::collate($a['name'], $b['name']);
         });
         return $rows;
     }

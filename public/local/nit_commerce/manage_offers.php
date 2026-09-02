@@ -58,7 +58,7 @@ $STR = local_nit_commerce_string_map(array(
     'pkg_field_name_en', 'pkg_field_name_ar',
     'pkg_field_desc_en', 'pkg_field_desc_ar', 'ui_showmore', 'ui_showless',
     // Report tab (AC-4.13.7).
-    'ofr_rep_none', 'ofr_col_usage', 'ofr_used_split', 'ofr_rep_open',
+    'ofr_rep_none', 'ofr_col_usage', 'ofr_rep_open',
     'rep_col_date', 'rep_col_learner', 'rep_col_order', 'rep_col_orderstatus', 'rep_col_item',
     'rep_col_original', 'rep_col_discount', 'rep_col_paid', 'rep_col_usages', 'rep_col_learners',
     'rep_col_last', 'rep_col_offer', 'rep_total', 'rep_held', 'rep_noorder', 'rep_filter_alloffers',

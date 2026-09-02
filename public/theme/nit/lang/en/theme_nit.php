@@ -135,6 +135,7 @@ $string['acad_enrol'] = 'Enroll';
 $string['acad_free'] = 'Free';
 $string['acad_ataglance'] = 'At a glance';
 $string['acad_nmodules'] = '{$a} modules';
+$string['acad_level'] = 'Level';
 $string['acad_duration'] = 'Duration';
 $string['acad_nhours'] = '{$a} hours';
 $string['acad_assessments'] = 'Assessments';

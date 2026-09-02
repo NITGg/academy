@@ -187,7 +187,14 @@
     els.cancel.addEventListener('click', close);
     modal.addEventListener('click', function (ev) { if (ev.target === modal) { close(); } });
     document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && modal.style.display !== 'none') { close(); } });
-    els.apply.addEventListener('click', function () { preview(els.coupon.value.trim()); });
+    // Applying a coupon re-prices the sheet, so any "the price changed, press again" state from a
+    // previous Proceed is about a total that is no longer on screen. Clear it, or the button would
+    // keep asking the buyer to confirm a figure they have since replaced.
+    els.apply.addEventListener('click', function () {
+      els.pricenote.style.display = 'none';
+      els.proceed.textContent = S('co_proceed');
+      preview(els.coupon.value.trim()).catch(function () { return null; });
+    });
     els.proceed.addEventListener('click', function () {
       if (!current) { return; }
       els.proceed.disabled = true;
@@ -209,6 +216,9 @@
     var was = (current && current.quoted != null) ? Number(current.quoted) : null;
 
     function launch(amount) {
+      // The re-check is asynchronous, so the sheet can have been closed (Escape, backdrop) while
+      // it was in flight. Nothing to hand off to then.
+      if (!current) { return; }
       try { current.proceed(code, els.methodid || 0, amount); }
       catch (e) {
         els.proceed.disabled = false;

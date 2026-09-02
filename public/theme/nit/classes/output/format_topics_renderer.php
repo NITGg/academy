@@ -38,6 +38,7 @@
  *        prerequisites ............. "Prerequisites" card
  *        ilos ...................... "What you'll learn" › intended learning outcomes
  *        by_the_end_of_training .... "What you'll learn" › by the end of this program
+ *        level (dropdown) .......... "Level" row in the at-a-glance card
  *
  * A field (or whole band) that has no value is simply NOT rendered — nothing is
  * ever shown as an em-dash. Short-text fields authored in the bilingual
@@ -276,8 +277,11 @@ class format_topics_renderer extends \format_topics\output\renderer {
                     continue;
                 }
                 $d->cf[$field->get('shortname')] = (object) [
-                    'type' => $field->get('type'),
-                    'raw'  => $fd->get_value(),
+                    'type'   => $field->get('type'),
+                    'raw'    => $fd->get_value(),
+                    // Human-readable form: for a select this is the option label,
+                    // because get_value() only holds the option's index.
+                    'export' => $fd->export_value(),
                 ];
             }
         } catch (\Throwable $e) {
@@ -418,6 +422,32 @@ class format_topics_renderer extends \format_topics\output\renderer {
             return false;
         }
         return (bool) $data->cf[$shortname]->raw;
+    }
+
+    /**
+     * A dropdown custom field as its option label ('' when absent or unset).
+     *
+     * A select stores the option's index, so get_value() would give "2" rather
+     * than "Level 2" — the exported value carries the label, already run through
+     * format_string() by customfield_select. Any {mlang} left in it is resolved
+     * here so the label follows the current language.
+     *
+     * @param string $shortname
+     * @param stdClass $data
+     * @return string
+     */
+    protected function acad_cf_select($shortname, $data): string {
+        if (!isset($data->cf[$shortname])) {
+            return '';
+        }
+        $label = $data->cf[$shortname]->export ?? null;
+        if (!is_string($label) || trim($label) === '') {
+            return '';
+        }
+        if (stripos($label, '{mlang') !== false) {
+            $label = $this->acad_resolve_mlang($label);
+        }
+        return trim($label);
     }
 
     /**
@@ -605,6 +635,12 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $rows[] = [$this->acad_icon('modules'),
                 get_string('acad_modules', 'theme_nit'),
                 $this->acad_count($data->modcount, 'acad_nmodule', 'acad_nmodules')];
+        }
+        // Level (dropdown).
+        $level = $this->acad_cf_select('level', $data);
+        if ($level !== '') {
+            // Already HTML-safe: customfield_select formats every option.
+            $rows[] = [$this->acad_icon('level'), get_string('acad_level', 'theme_nit'), $level];
         }
         // Duration (hours).
         $hours = $this->acad_cf_number('total_number_of_hours', $data);
@@ -1155,6 +1191,7 @@ class format_topics_renderer extends \format_topics\output\renderer {
             'people'  => '<circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M16 5.5a3.2 3.2 0 0 1 0 5M17.5 20a5.5 5.5 0 0 0-2.5-4.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
             'list'    => '<path d="M8 6h12M8 12h12M8 18h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="4" cy="6" r="1.3" fill="currentColor"/><circle cx="4" cy="12" r="1.3" fill="currentColor"/><circle cx="4" cy="18" r="1.3" fill="currentColor"/>',
             'lock'    => '<rect x="4.5" y="10" width="15" height="10" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+            'level'   => '<rect x="3" y="14" width="4" height="7" rx="1" stroke="currentColor" stroke-width="1.7"/><rect x="10" y="9" width="4" height="12" rx="1" stroke="currentColor" stroke-width="1.7"/><rect x="17" y="4" width="4" height="17" rx="1" stroke="currentColor" stroke-width="1.7"/>',
         ];
         $p = $paths[$key] ?? '';
         return '<svg class="acad-cr__ico acad-cr__ico--' . $key . '" viewBox="0 0 24 24" fill="none" aria-hidden="true">'

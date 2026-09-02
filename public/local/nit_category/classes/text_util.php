@@ -245,4 +245,54 @@ class text_util {
         }
         return preg_split('/\s+/u', $folded, -1, PREG_SPLIT_NO_EMPTY) ?: [];
     }
+
+    /**
+     * Compare two labels the way the reader's language orders them.
+     *
+     * `core_collator` has no compare() — it only offers asort()/ksort() helpers — so
+     * calling one was a fatal error waiting for a second thing to sort. It hid for a
+     * while because usort() never invokes the comparator on a one-element array, which
+     * is exactly what a development site with a single category has.
+     *
+     * This is the missing piece: PHP's own Collator, built on the locale Moodle declares
+     * in langconfig, which is the same object core_collator sorts with internally. It
+     * matters for Arabic, where byte order and alphabetical order are not the same
+     * thing.
+     *
+     * Falls back to a case-folded strcmp() when ext-intl is absent — an imperfect order
+     * is worth having where the alternative is a page that will not render.
+     *
+     * @param string $a
+     * @param string $b
+     * @return int less than, equal to, or greater than zero
+     */
+    public static function collate(string $a, string $b): int {
+        static $collator = null;
+        static $locale = null;
+
+        $current = get_string('locale', 'langconfig');
+        // Rebuilt when the language changes mid-request, which force_current_language()
+        // does on the bilingual feeds.
+        if ($collator === null || $locale !== $current) {
+            $locale = $current;
+            $collator = false;
+            if (class_exists('Collator', false)) {
+                $candidate = new \Collator($current);
+                // A negative code is a fallback warning ("asked for de_CH, used de"),
+                // which is fine. A positive one means the collator is unusable.
+                if ($candidate instanceof \Collator && $candidate->getErrorCode() <= 0) {
+                    $collator = $candidate;
+                }
+            }
+        }
+
+        if ($collator instanceof \Collator) {
+            $result = $collator->compare($a, $b);
+            if ($result !== false) {
+                return (int) $result;
+            }
+        }
+
+        return strcmp(\core_text::strtolower($a), \core_text::strtolower($b));
+    }
 }
