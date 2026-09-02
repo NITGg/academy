@@ -83,14 +83,18 @@
             </svg> </div>
         </a></div>
     </div>
-    <!-- The grid above is a preview: data-limit caps it at one row. This is the way out of
-         it, to local/nit_category/categories.php — the same card in a grid that wraps, with
-         the catalogue's filter panel and a bilingual search box over it.
+    <!-- The grid above is a preview of the subject areas; this is the way into the courses
+         themselves, at local/nit_category/catalogue.php — the catalogue of SRS §4.8, with
+         category as one filter among level, price, language, duration and certificate, and
+         a search box over it that reads Arabic and English alike.
 
-         Always shown. It is the only route to the filterable catalogue of categories, so it
-         does not depend on the feed answering: if the strip above fails to load, this is the
-         one thing on the section that still works. (When there are no categories at all the
-         script hides the whole section, and the button goes with it.)
+         Deliberately the catalogue and not the category browser: somebody who has just
+         looked at six subject areas and wants more wants courses, and picking a category is
+         one tick away there rather than another page in between.
+
+         Always shown. It does not depend on the feed answering: if the strip above fails to
+         load, this is the one thing in the section that still works. (When there are no
+         categories at all the script hides the whole section, and the button goes with it.)
 
          The href is written by the script below rather than here, because a block pasted in
          as static HTML cannot know the wwwroot — this site lives under /moodle-new/, so a
@@ -219,7 +223,7 @@
       // than after the feed answers — the button must work even if the strip does not.
       var link = document.querySelector('[data-nit-categories-link]');
       if (link) {
-        link.setAttribute('href', root + '/local/nit_category/categories.php');
+        link.setAttribute('href', root + '/local/nit_category/catalogue.php');
       }
 
       // The whole section, so an empty grid takes its heading with it rather

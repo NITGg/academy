@@ -28,17 +28,18 @@ global $CFG;
 require_once($CFG->dirroot . '/local/nit_category/lib.php');
 
 /**
- * The category grid behind categories.php.
+ * The catalogue's courses, regrouped into category cards.
  *
- * The home page shows six category cards and stops there. This is the page behind the
- * "all categories" link on that block: the same card, every category, and the catalogue's
- * filters applied to what is *inside* each category rather than to a list of courses.
+ * This began as the engine behind an all-categories grid of its own. That page was retired
+ * once the header search arrived — it answered a question nobody was asking twice — and
+ * what is left is the part that earned its keep: the "Categories" group of the site search
+ * results (see {@see site_search}).
  *
- * That is the whole idea here. Ticking "Advanced" on the catalogue removes courses; ticking
- * it here removes categories that hold no Advanced course, and rewrites the count on the
- * cards that survive to the number of Advanced courses they hold. So the filter panel is
- * the catalogue's — same discovery, same facets, same URL parameters, one engine (see
- * {@see catalogue}) — and only the grouping is new.
+ * The idea is unchanged. Ticking "Advanced" on the catalogue removes courses; here it
+ * removes categories that hold no Advanced course, and rewrites the count on the cards that
+ * survive to the number of Advanced courses they hold. So the filtering is the catalogue's
+ * — same discovery, same facets, same URL parameters, one engine (see {@see catalogue})
+ * — and only the grouping is new.
  *
  * Matching rule, in one sentence: a category is shown when at least one course inside it
  * survives the ticked filters, and either nothing was typed, or the category's own

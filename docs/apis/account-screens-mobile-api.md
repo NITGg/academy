@@ -317,7 +317,7 @@ wsfunction=local_academy_get_my_certificates&page=0&perpage=10&lang=en
 ### `local_academy_get_certificate_pdf`
 
 ```
-wsfunction=local_academy_get_certificate_pdf&certificateid=34
+wsfunction=local_academy_get_certificate_pdf&certificateid=34&lang=ar
 ```
 
 ```json
@@ -335,7 +335,24 @@ the same way `local_payments_get_invoice` returns an invoice.
 
 Only ever the caller's own certificates. An id the user holds no issue for and an
 id that does not exist give the same error (`err_nocertificateissue`), so the ids
-cannot be walked.
+cannot be walked. Pass the `certificateid` from the list — **not** the `issueid`,
+and not a guessed number; an id the account does not hold is refused.
+
+> **`lang` here is narrower than on every other call.** It localises the
+> suggested `filename` and any error, and nothing else. It does **not** choose
+> the language the certificate is written in: `mod_customcert` decides that
+> itself — the activity's own forced language if the certificate pins one,
+> otherwise **the recipient's profile language**, otherwise the site default. To
+> get an Arabic certificate, the account's language has to be Arabic; sending
+> `lang=ar` will not do it.
+
+**Undeclared parameters are rejected, not ignored.** Moodle validates the raw
+request against the function's declared parameters and throws `invalidparameter`
+("Unexpected keys (…) detected in parameter array") for anything extra — before
+the function runs, so `debuginfo` is empty on a site with debugging off. Send
+only the keys listed for each function. Both certificate functions accept
+`lang`; before plugin version `2026090202` this one did not, so an app that sent
+it to both failed here with exactly that error.
 
 > Why `local_academy_*` and not `mod_customcert_*`: `mod_customcert` is upstream
 > code we do not modify, and its one listing function

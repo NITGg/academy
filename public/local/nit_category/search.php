@@ -80,12 +80,14 @@ $PAGE->set_pagelayout('nit_fullwidth');
 $PAGE->set_title(get_string('searchtitle', 'local_nit_category'));
 $PAGE->set_heading(get_string('searchtitle', 'local_nit_category'));
 
-// The panel is a preview, so it shows a handful; the page shows a screenful. Neither
-// lists everything: a one-word term can match hundreds of courses, and every row drawn
-// costs a price lookup and a file-area query. What is left over is one link away, on the
-// page built to sort and filter that many results.
-$limit = $fragment ? 5 : 24;
-$groups = $search->is_answerable() ? $search->groups($limit) : [];
+// The panel is a preview, so it shows a handful of each. The page caps courses only:
+// a one-word term can match hundreds, every row drawn costs a price lookup and a
+// file-area query, and whatever is left over is one link away in the catalogue.
+// Categories are listed in full — they are cheap, and since the all-categories grid
+// was retired there is no second page to send an overflow to.
+$groups = $search->is_answerable()
+    ? ($fragment ? $search->groups(5, 5) : $search->groups(24, 0))
+    : [];
 $total = $search->is_answerable() ? $search->total() : 0;
 
 $countrynotice = pricing::country_notice();
@@ -221,10 +223,9 @@ $rendergroups = function () use ($groups, $search, $renderrow, $pricetag): void 
             <?php endforeach; ?>
           </div>
 
-          <?php if ($group['more'] > 0): ?>
-            <!-- The overflow goes to the page that can do something with it: the catalogue
-                 for courses, the category grid for categories, both already carrying the
-                 term and both with a filter panel. -->
+          <?php if ($group['more'] > 0 && $group['url'] !== ''): ?>
+            <!-- The overflow goes to the catalogue, which already carries the term and has
+                 the filter panel to do something with that many courses. -->
             <a class="nitsearch__more" href="<?= s($group['url']) ?>"><?=
               s(get_string('searchmoreresults', 'local_nit_category', $group['more'])) ?></a>
           <?php endif; ?>
@@ -335,9 +336,6 @@ echo $OUTPUT->header();
           <a class="btn btn-outline-primary fw-bold" href="<?=
             s((new moodle_url('/local/nit_category/catalogue.php'))->out()) ?>"><?=
             s(get_string('catalogue', 'local_nit_category')) ?></a>
-          <a class="btn btn-outline-primary fw-bold" href="<?=
-            s((new moodle_url('/local/nit_category/categories.php'))->out()) ?>"><?=
-            s(get_string('allcategories', 'local_nit_category')) ?></a>
         </div>
       </div>
     <?php else: ?>
@@ -345,14 +343,12 @@ echo $OUTPUT->header();
 
       <?php if ($total > 0): ?>
         <!-- The results are a list, on purpose: what to do with a result is a decision the
-             catalogue is built for. Rather than grow a second filter panel here, the two
-             pages that already have one are offered the same term. -->
+             catalogue is built for. Rather than grow a second filter panel here, the page
+             that already has one is offered the same term. -->
         <div class="nitsearch__refine">
           <span><?= s(get_string('searchrefine', 'local_nit_category')) ?></span>
           <a class="btn btn-outline-primary fw-bold" href="<?= s($search->catalogue_url()) ?>"><?=
             s(get_string('searchrefinecourses', 'local_nit_category')) ?></a>
-          <a class="btn btn-outline-primary fw-bold" href="<?= s($search->categories_url()) ?>"><?=
-            s(get_string('searchrefinecategories', 'local_nit_category')) ?></a>
         </div>
       <?php endif; ?>
     <?php endif; ?>

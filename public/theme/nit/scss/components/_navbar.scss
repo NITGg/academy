@@ -651,7 +651,12 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     &__panel {
         position: absolute;
         top: calc(100% + 10px);
-        inset-inline-start: 0;
+        // Anchored to the field's END edge, not its start: the box lives at the near
+        // edge of the bar (right in English, left in Arabic), so a panel wider than
+        // the field has to grow back towards the middle of the page. Anchoring it to
+        // the start edge sent it off the side of the viewport, taking the price
+        // column of every row with it. Logical, so the mirror image is automatic.
+        inset-inline-end: 0;
         z-index: 1055; // above the fixed bar's own stacking context.
         width: min(560px, calc(100vw - 2rem));
         max-height: min(70vh, 34rem);

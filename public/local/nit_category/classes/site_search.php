@@ -196,10 +196,19 @@ class site_search {
      * broader second answer. An empty group is still returned, so a caller can say "no
      * courses, 2 categories" rather than silently dropping half the question.
      *
-     * @param int $limit most rows to return per group, or 0 for all of them
-     * @return array[] one entry per group: key, label, count, rows, more, url
+     * The two groups are capped separately because they cost different things and lead
+     * different places. A course row prices itself and looks up a picture, so a broad term
+     * must not draw hundreds of them — and it need not, because the catalogue is one link
+     * away and is built to sort and filter that many. A category row is cheap and has no
+     * such page behind it, so the caller can ask for all of them and know nothing is being
+     * quietly dropped.
+     *
+     * @param int $courselimit most course rows to return, or 0 for all of them
+     * @param int $categorylimit most category rows to return, or 0 for all of them
+     * @return array[] one entry per group: key, label, count, rows, more, url ('' = the
+     *                 group has no page of its own to send the overflow to)
      */
-    public function groups(int $limit = 0): array {
+    public function groups(int $courselimit = 0, int $categorylimit = 0): array {
         $courses = $this->courses();
         $categories = $this->categories();
 
@@ -208,17 +217,19 @@ class site_search {
                 'key'   => self::GROUP_COURSES,
                 'label' => get_string('searchgroupcourses', 'local_nit_category'),
                 'count' => count($courses),
-                'rows'  => $limit > 0 ? array_slice($courses, 0, $limit) : $courses,
-                'more'  => $limit > 0 ? max(0, count($courses) - $limit) : 0,
+                'rows'  => $courselimit > 0 ? array_slice($courses, 0, $courselimit) : $courses,
+                'more'  => $courselimit > 0 ? max(0, count($courses) - $courselimit) : 0,
                 'url'   => $this->catalogue_url(),
             ],
             [
                 'key'   => self::GROUP_CATEGORIES,
                 'label' => get_string('searchgroupcategories', 'local_nit_category'),
                 'count' => count($categories),
-                'rows'  => $limit > 0 ? array_slice($categories, 0, $limit) : $categories,
-                'more'  => $limit > 0 ? max(0, count($categories) - $limit) : 0,
-                'url'   => $this->categories_url(),
+                'rows'  => $categorylimit > 0 ? array_slice($categories, 0, $categorylimit) : $categories,
+                'more'  => $categorylimit > 0 ? max(0, count($categories) - $categorylimit) : 0,
+                // Deliberately none: the all-categories grid was retired, and a category
+                // result already links straight into the courses it holds.
+                'url'   => '',
             ],
         ];
     }
@@ -284,16 +295,6 @@ class site_search {
      */
     public function catalogue_url(): string {
         return (new \moodle_url('/local/nit_category/catalogue.php', ['q' => $this->query]))->out(false);
-    }
-
-    /**
-     * The same term handed to the all-categories grid.
-     *
-     * @return string
-     */
-    public function categories_url(): string {
-        return (new \moodle_url('/local/nit_category/categories.php',
-            ['q' => $this->query, 'subs' => 1]))->out(false);
     }
 
     // =========================================================================

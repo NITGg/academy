@@ -54,22 +54,46 @@ class get_certificate_pdf extends external_api {
         return new external_function_parameters([
             'certificateid' => new external_value(PARAM_INT,
                 'The certificate activity, as local_academy_get_my_certificates reported it.'),
+            'lang' => new external_value(PARAM_LANG,
+                'Display language for the filename and for any error, e.g. en or ar (optional). '
+                . 'It does not decide the language the certificate is written in - see execute().',
+                VALUE_DEFAULT, ''),
         ]);
     }
 
     /**
      * The caller's own copy of one certificate.
      *
+     * `lang` is accepted for the same reason its sibling accepts it: a client
+     * builds this screen with one language in hand and sends it to every call.
+     * What it reaches here is narrower than it looks, and the difference matters
+     * enough to state - it localises the suggested filename (which is the
+     * template's name through `format_string()`, so a multilang name has to
+     * resolve) and any error string, and nothing else.
+     *
+     * It deliberately does not reach the document. `mod_customcert` decides that
+     * itself, in {@see mod_customcert_get_language_to_use()}: the activity's own
+     * forced language if the certificate sets one, otherwise the recipient's
+     * profile language, otherwise the site default. The request never enters
+     * that list. Honouring `lang` there would mean rendering a certificate in a
+     * language its author pinned away from, so a client that wants an Arabic
+     * certificate changes the account's language, not this parameter.
+     *
      * @param int $certificateid the customcert instance
+     * @param string $lang display language for the filename and errors
      * @return array
      */
-    public static function execute($certificateid): array {
+    public static function execute($certificateid, $lang = ''): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(),
-            ['certificateid' => $certificateid]);
+            ['certificateid' => $certificateid, 'lang' => $lang]);
 
         self::validate_context(\context_user::instance($USER->id));
+
+        if ($params['lang'] !== '') {
+            force_current_language($params['lang']);
+        }
 
         // Only ever the caller's own copy, and only one they hold - the check is
         // inside pdf(), which refuses an id no issue exists for.
