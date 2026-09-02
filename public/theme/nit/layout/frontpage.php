@@ -237,6 +237,8 @@ $templatecontext = [
     'nitcoursesnoscript' => $nitcoursesnoscript,
     // NIT: category view-models exposed as window.NIT_CATEGORIES.
     'nitcategoriesjson' => json_encode(theme_nit_get_categories(12), JSON_UNESCAPED_UNICODE),
+    // NIT: site/navbar logo URL exposed as window.NIT_LOGO for front-page section blocks.
+    'nitlogojson' => json_encode(($OUTPUT->get_compact_logo_url(null, 200) ?: $OUTPUT->get_logo_url(null, 200))?->out(false) ?: '', JSON_UNESCAPED_UNICODE),
     // NIT: full-width region payloads for theme_nit/frontpage.
     'fullwidthtop' => $fullwidthtop,
     'hasfullwidthtop' => $hasfullwidthtop,

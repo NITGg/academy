@@ -50,13 +50,10 @@
       '[data-nit-orbit-core]::after{content:"";position:absolute;inset:-26%;border-radius:50%;' +
       'border:1px solid var(--nit-brand-bordersecondary)}' +
 
-      // footer-logo.png is dark navy artwork, so it cannot simply be dropped on
-      // the dark hero. brightness(0) crushes every opaque pixel to black and
-      // invert(1) lifts it to white, which gives a reversed logo out of the one
-      // file the theme ships. It flattens the red flag detail — swap this for a
-      // real white logo if one is ever produced.
-      '[data-nit-orbit-logo]{width:82%;height:auto;display:block;position:relative;z-index:2;' +
-      'filter:brightness(0) invert(1)}' +
+      // Sized to fit comfortably within the core circle. Fallback footer-logo.png
+      // gets an invert filter in setupLogo(); real brand logos display naturally.
+      '[data-nit-orbit-logo]{width:82%;max-width:82%;height:auto;max-height:82%;object-fit:contain;' +
+      'display:block;position:relative;z-index:2}' +
 
       // ---- the ring the shapes sit on -------------------------------------
       '[data-nit-orbit-track]{stroke:var(--nit-brand-bordersecondary)}' +
@@ -147,7 +144,7 @@
       'width:100%!important;height:auto!important;padding:8px 0 22px;border-radius:0!important;' +
       'background:none!important;box-shadow:none!important}' +
       '[data-nit-orbit-core]::before,[data-nit-orbit-core]::after{display:none}' +
-      '[data-nit-orbit-logo]{width:min(70%,240px)}' +
+      '[data-nit-orbit-logo]{width:min(70%,240px);max-height:100px;object-fit:contain}' +
       '[data-nit-orbit-node]{width:100%!important;height:auto!important;aspect-ratio:1!important}' +
       '[data-nit-orbit-node]:hover{transform:none!important}' +
       // A grid cell on a phone is ~165px against ~185px in the ring, and the
@@ -720,10 +717,57 @@
       });
   }
 
+  // ------------------------------------------------------------------
+  // Centre logo: reads from the site/navbar logo (window.NIT_LOGO or
+  // .nit-navbar-logo in the DOM) so the hero constellation matches the navbar.
+  // ------------------------------------------------------------------
+  function setupLogo() {
+    var logoImg = document.querySelector('[data-nit-orbit-logo]');
+    if (!logoImg) {
+      return;
+    }
+
+    var root = (window.M && window.M.cfg && window.M.cfg.wwwroot) ? window.M.cfg.wwwroot : '';
+    var sitename = (window.M && window.M.cfg && window.M.cfg.sitename) || '';
+
+    // 1. Check window.NIT_LOGO (emitted by theme_nit frontpage layout)
+    var logoUrl = (typeof window.NIT_LOGO === 'string' && window.NIT_LOGO) ? window.NIT_LOGO : '';
+    var logoAlt = sitename;
+
+    // 2. Read directly from the navbar brand logo in the DOM
+    if (!logoUrl) {
+      var navLogo = document.querySelector('.nit-navbar-logo, .navbar-brand img, .navbar-brand-logo');
+      if (navLogo && navLogo.getAttribute('src')) {
+        logoUrl = navLogo.getAttribute('src');
+        if (navLogo.getAttribute('alt')) {
+          logoAlt = navLogo.getAttribute('alt');
+        }
+      }
+    }
+
+    // 3. Fallback to default theme logo asset if nothing else is set
+    if (!logoUrl) {
+      logoUrl = root + '/theme/nit/pix/footer-logo.png';
+    }
+
+    // Only invert the default dark navy footer-logo.png fallback; real brand logos stay untinted.
+    if (/footer-logo\.png$/i.test(logoUrl)) {
+      logoImg.style.filter = 'brightness(0) invert(1)';
+    } else {
+      logoImg.style.filter = 'none';
+    }
+
+    logoImg.src = logoUrl;
+    if (logoAlt) {
+      logoImg.alt = logoAlt;
+    }
+  }
+
   function start() {
     orbitStyle();
     hoverStyle();
     playStyle();
+    setupLogo();
     drawOrbit();
     wireHero();
     continueCta();
