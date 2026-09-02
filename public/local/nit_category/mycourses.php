@@ -61,9 +61,15 @@ $markup = is_readable($blockfile) ? (string) file_get_contents($blockfile) : '';
 if ($markup !== '') {
     // Turn the teaser into the full list. Matching on the whole attribute with
     // its value keeps this from firing on anything else in the file.
+    //
+    // data-empty is left alone: the block already ships with the AC-4.7.7
+    // invitation on, and this page wants it for the same reason the home page
+    // does - a learner who reached "My courses" with nothing enrolled should be
+    // pointed at the catalogue rather than shown a blank column. Guests never
+    // get here; they were sent to the catalogue above.
     $markup = str_replace(
-        ['data-limit="2"', 'data-empty="hide"', 'data-viewall="/local/nit_category/mycourses.php"'],
-        ['data-limit="50"', 'data-empty="show"', 'data-viewall=""'],
+        ['data-limit="2"', 'data-viewall="/local/nit_category/mycourses.php"'],
+        ['data-limit="50"', 'data-viewall=""'],
         $markup
     );
 

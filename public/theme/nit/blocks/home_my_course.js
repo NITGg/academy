@@ -3,16 +3,22 @@
 // Served by js.php beside it, so a fix here ships with a git pull; the block in
 // the database only has to be re-pasted when its markup changes.
 //
-// The one rule the block exists for: it is drawn only for a learner who is
-// actually enrolled in something. The paste hides itself while it is parsed, so
-// the three states are:
+// The one rule the block exists for: it belongs to a learner. The paste hides
+// itself while it is parsed, so the three states are:
 //
 // - guest, or nobody signed in: the feed answers with an empty list and the
 //   block stays hidden — no block and no placeholder in its position;
-// - signed in with no active enrolment: hidden as well, unless the block is set
-//   to data-empty="show", which draws a "browse the catalogue" card in place of
-//   the grid;
+// - signed in with no active enrolment (AC-4.7.7): the section is replaced by a
+//   single invitation to browse the catalogue. Replaced is the operative word —
+//   the heading, the "More" link and the grid are taken out of the document, so
+//   what remains is one card and nothing else. data-empty="hide" opts out and
+//   keeps the block away from these learners too;
 // - otherwise one card per course, most recently accessed first.
+//
+// Guest and learner are told apart by the feed, which answers with a "learner"
+// flag beside the data, because nothing on the page distinguishes them: Moodle's
+// "notloggedin" body class is absent for a guest, who is signed in as far as the
+// session is concerned but owns nothing and never should be invited to resume.
 //
 // Every part of a card is optional. The design shows a lesson line, counts of
 // lessons, languages and hours, a price and a progress bar, and the feed returns
@@ -192,22 +198,49 @@
   };
 
   /**
+   * Is the caller an authenticated learner, as opposed to a guest or a visitor?
+   *
+   * The feed says so outright. The fallback is only for a response that predates
+   * the flag: the body class it reads is set when nobody is signed in, and a
+   * guest is signed in, so on its own it would offer a guest the invitation.
+   *
+   * @param {Object} res the feed envelope
+   * @return {boolean}
+   */
+  var isLearner = function(res) {
+    if (res && typeof res.learner === 'boolean') {
+      return res.learner;
+    }
+    return !document.body.classList.contains('notloggedin');
+  };
+
+  /**
    * Nothing to list. Either stay away entirely, or draw the invitation.
    *
-   * Only a signed-in user is ever offered the empty card: for a guest the
-   * catalogue call to action belongs to the hero, not here.
+   * AC-4.7.7: for an authenticated learner holding no active enrolment the block
+   * becomes a single invitation to the catalogue. So the header row and the grid
+   * are removed rather than hidden — a "Continue learning" heading is precisely
+   * what somebody with nothing enrolled cannot act on, and "More" over an empty
+   * list is a link to a second empty page.
    *
+   * A guest gets nothing: for them the catalogue call to action belongs to the
+   * hero. Neither does anyone when the invitation has no catalogue to point at
+   * (data-browse=""), because link() has already dropped the button by then and
+   * an invitation you cannot accept is worse than no block.
+   *
+   * @param {Object} res the feed envelope
    * @return {void}
    */
-  var nothing = function() {
-    var loggedin = !document.body.classList.contains('notloggedin');
-    if (empty && loggedin && root.getAttribute('data-empty') === 'show') {
-      grid.style.display = 'none';
-      empty.style.display = '';
-      // "More" over an empty list is a link to a second empty page.
-      drop(root.querySelector('[data-nit-mc-viewall]'));
-      show();
+  var nothing = function(res) {
+    var browse = root.querySelector('[data-nit-mc-browse]');
+    if (!empty || !browse || root.getAttribute('data-empty') !== 'show' ||
+      !isLearner(res)) {
+      return;
     }
+    drop(root.querySelector('[data-nit-mc-head]'));
+    drop(grid);
+    empty.style.display = '';
+    show();
   };
 
   var url = base + (root.getAttribute('data-endpoint') ||
@@ -225,8 +258,16 @@
       return r.json();
     })
     .then(function(res) {
-      if (!res || res.status !== 'success' || !res.data || !res.data.length) {
-        nothing();
+      // An error envelope is not evidence that the learner owns nothing, so it
+      // is treated like the network failure below and leaves the block away.
+      // Inviting somebody with a shelf full of courses to go and buy their first
+      // one is a worse front page than a missing section.
+      if (!res || res.status !== 'success') {
+        return;
+      }
+
+      if (!res.data || !res.data.length) {
+        nothing(res);
         return;
       }
 
@@ -240,6 +281,12 @@
       // the editor may not have kept, and a seventh blank card at the end of the
       // grid is what that looks like. Its clones are already made.
       drop(tpl);
+
+      // And the invitation, for the same reason: it is hidden by an inline
+      // display:none too, so a paste the editor rewrote would hang "you are not
+      // enrolled in any course yet" under a grid of the courses they are
+      // enrolled in. It has no clones to make and nothing left to do here.
+      drop(empty);
 
       show();
     })

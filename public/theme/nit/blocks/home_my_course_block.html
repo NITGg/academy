@@ -10,16 +10,22 @@
      theme/nit/blocks/home_my_course.js, served by js.php beside it, so a fix
      ships with a git pull instead of needing this block to be pasted again.
 
-     Who sees it: only a learner who is actually enrolled in something. A guest,
-     and a signed-in user with no active enrolment, get no block and no
-     placeholder in its position — the whole block, its frame and its title
-     included, is removed rather than emptied. That is why the paste hides
-     itself the moment it is parsed and is only revealed once the feed has
-     answered with at least one course.
+     Who sees it (AC-4.7.7) — three audiences, three outcomes:
 
-     Set data-empty="show" on the wrapper below to draw a "browse the catalogue"
-     card for signed-in users with nothing enrolled, instead of hiding the block
-     from them.
+     - not signed in, or signed in as a guest: no block and no placeholder in
+       its position — the whole block, its frame and its title included, is
+       removed rather than emptied. For a visitor the catalogue call to action
+       belongs to the hero, not here;
+     - signed in with no active enrolment: the section is REPLACED by a single
+       invitation to browse the catalogue. Heading, "More" link and grid all go,
+       so there is no "Continue learning" over an empty list and no "More"
+       leading to a second empty page;
+     - signed in with active enrolments: one card per course.
+
+     That is why the paste hides itself the moment it is parsed — it is revealed
+     only once the feed has answered, and only ever in one of the last two
+     shapes. Set data-empty="hide" on the wrapper below to suppress the
+     invitation too, leaving a learner with nothing enrolled no block at all.
 
      Data comes from /local/nit_category/home.php?function=get_my_courses,
      which already excludes expired (lapsed subscription) enrolments. Every
@@ -35,14 +41,14 @@
      --nit-brand-textsecondary, the #091540 card becomes --nit-brand-surface.
      Optional: if it can't find the API, set data-base to your Moodle URL,
      e.g. data-base="https://academy2026.nitg-eg.com/moodle-new" -->
-<div dir="auto" data-nit-mycourse="" data-limit="2" data-empty="hide"
+<div dir="auto" data-nit-mycourse="" data-limit="2" data-empty="show"
   data-endpoint="/local/nit_category/home.php" data-base=""
   data-viewall="/local/nit_category/mycourses.php" data-browse="/local/nit_category/catalogue.php"
   style="background: var(--nit-brand-background); padding: 65px clamp(16px, 5vw, 80px);">
   <div style="max-width: 1288px; margin: 0 auto;">
     <!-- HEADER — heading at the inline-start of the reading direction, the
          "More" link with its chevron at the inline-end. -->
-    <div
+    <div data-nit-mc-head=""
       style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 0 0 41px;">
       <h2
         style="font-size: clamp(24px,3.2vw,36px); font-weight: 600; margin: 0; color: var(--nit-brand-textprimary);">
@@ -165,24 +171,46 @@
         </a>
       </div>
     </div>
-    <!-- EMPTY STATE — off by default (data-empty="hide" above); it replaces the
-         grid rather than sitting beside it. -->
+    <!-- INVITATION (AC-4.7.7) — what a signed-in learner with no active
+         enrolment gets INSTEAD of this section, not beside it: the script takes
+         the header row and the grid out of the document first, so this card is
+         all that is left. It carries its own heading for that reason — the
+         section heading it replaces says "Continue learning", which is the one
+         thing somebody with nothing enrolled cannot do.
+         Same card geometry as a course card (surface fill, accent border,
+         12px radius) so the substitution reads as part of the page rather than
+         as an error panel. -->
     <div
-      style="display: none; text-align: center; padding: 40px 20px; border: 1.68px dashed color-mix(in srgb, var(--nit-brand-accent) 40%, transparent); border-radius: 12px; color: var(--nit-brand-textsecondary);"
+      style="display: none; box-sizing: border-box; background: var(--nit-brand-surface); border: 1.68px solid color-mix(in srgb, var(--nit-brand-accent) 70%, transparent); border-radius: 12px; padding: clamp(32px, 6vw, 56px) clamp(20px, 5vw, 48px); text-align: center;"
       data-nit-mc-empty="">
-      <p style="margin: 0 0 16px; font-size: 16px;">{mlang en}You have no active
-        enrolment yet.{mlang}{mlang ar}ليس لديك أي تسجيل نشط بعد.{mlang}</p>
+      <!-- Same open-book mark as the "lessons" stat, drawn large. A div holding
+           a non-breaking space is not needed here because the editor keeps an
+           element that has an <svg> inside it. -->
+      <div style="display: inline-flex; color: var(--nit-brand-accent); margin: 0 0 20px;"
+        aria-hidden="true"><svg width="48" height="48" viewBox="0 0 14 14" fill="none"
+          xmlns="http://www.w3.org/2000/svg"><path
+            d="M7 4.08333V12.25M7 4.08333C7 3.46449 6.75415 2.871 6.31653 2.43342C5.87891 1.99583 5.28537 1.75 4.66648 1.75H1.74958C1.59486 1.75 1.44647 1.81146 1.33707 1.92085C1.22766 2.03025 1.1662 2.17862 1.1662 2.33333V9.91667C1.1662 10.0714 1.22766 10.2197 1.33707 10.3291C1.44647 10.4385 1.59486 10.5 1.74958 10.5H5.24986C5.71403 10.5 6.15918 10.6844 6.4874 11.0126C6.81561 11.3408 7 11.7859 7 12.25M7 4.08333C7 3.46449 7.24585 2.871 7.68347 2.43342C8.12109 1.99583 8.71463 1.75 9.33352 1.75H12.2504C12.4051 1.75 12.5535 1.81146 12.6629 1.92085C12.7723 2.03025 12.8338 2.17862 12.8338 2.33333V9.91667C12.8338 10.0714 12.7723 10.2197 12.6629 10.3291C12.5535 10.4385 12.4051 10.5 12.2504 10.5H8.75014C8.28597 10.5 7.84082 10.6844 7.5126 11.0126C7.18439 11.3408 7 11.7859 7 12.25"
+            stroke="currentColor" stroke-width="0.8" stroke-linecap="round" /></svg></div>
+      <h2
+        style="font-size: clamp(22px,2.6vw,28px); font-weight: 600; line-height: 1.3; margin: 0 0 12px; color: var(--nit-brand-textprimary);">
+        {mlang en}Start learning{mlang}{mlang ar}ابدأ رحلتك التعليمية{mlang}</h2>
+      <p
+        style="margin: 0 auto 28px; max-width: 520px; font-size: 16px; line-height: 1.6; color: var(--nit-brand-textsecondary);">
+        {mlang en}You are not enrolled in any course yet. Browse the catalogue
+        and pick the one to start with.{mlang}{mlang ar}لست مسجّلاً في أي دورة
+        بعد. تصفّح الكتالوج واختر الدورة التي تبدأ بها.{mlang}</p>
       <a class="nit-btn-solid"
-        style="display: inline-block; background: var(--nit-brand-primary); color: var(--nit-brand-textprimary); font-weight: bold; padding: 10px 22px; border-radius: 8px; text-decoration: none;"
+        style="display: inline-flex; align-items: center; justify-content: center; background: var(--nit-brand-primary); border: 1px solid var(--nit-brand-borderprimary); color: var(--nit-brand-textprimary); font-size: 18px; font-weight: 600; padding: 15px 40px; border-radius: 8px; text-decoration: none;"
         href="#" data-nit-mc-browse="">{mlang en}Browse the catalogue{mlang}{mlang
         ar}تصفّح الكتالوج{mlang}</a>
     </div>
   </div>
-  <!-- Hide first, ask later. The block must be absent for a guest and for a
-       learner with nothing enrolled, so it starts hidden and the script reveals
-       it only when the feed returns a course. A hard-coded /theme/... would
-       break any install in a subdirectory, so the address comes from
-       M.cfg.wwwroot, with data-base as the manual override. -->
+  <!-- Hide first, ask later. The block must be absent for a visitor and for a
+       guest, so it starts hidden and the script reveals it only once the feed
+       has answered — with the cards, or with the invitation above. A
+       hard-coded /theme/... would break any install in a subdirectory, so the
+       address comes from M.cfg.wwwroot, with data-base as the manual
+       override. -->
   <script>
     (function() {
       var here = document.currentScript;

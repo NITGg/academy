@@ -35,4 +35,10 @@ $callbacks = [
         'hook'     => \core\hook\output\before_footer_html_generation::class,
         'callback' => \theme_nit\local\hook_callbacks::class . '::before_footer_html_generation',
     ],
+    [
+        // AC-4.9.8: schema.org/Course JSON-LD (name, description, price) in the
+        // <head> of the course details page.
+        'hook'     => \core\hook\output\before_standard_head_html_generation::class,
+        'callback' => \theme_nit\local\course_seo::class . '::before_standard_head_html_generation',
+    ],
 ];

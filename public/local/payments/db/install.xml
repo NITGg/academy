@@ -299,5 +299,26 @@
       </INDEXES>
     </TABLE>
 
+
+    <!-- ================================================================== -->
+    <!-- Free preview lessons (AC-4.9.5): the activities a visitor may open  -->
+    <!-- before enrolling. A row exists only for a flagged activity.         -->
+    <!-- ================================================================== -->
+    <TABLE NAME="local_payments_free_preview" COMMENT="Course modules playable by visitors who have not enrolled yet">
+      <FIELDS>
+        <FIELD NAME="id"           TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="cmid"         TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="course_modules.id of the flagged activity"/>
+        <FIELD NAME="courseid"     TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="denormalised course id, so one query answers a whole course page"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="cmid"     UNIQUE="true"  FIELDS="cmid"/>
+        <INDEX NAME="courseid" UNIQUE="false" FIELDS="courseid"/>
+      </INDEXES>
+    </TABLE>
+
   </TABLES>
 </XMLDB>

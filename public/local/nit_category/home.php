@@ -92,8 +92,15 @@ try {
             break;
 
         case 'get_my_courses':
+            // `learner` carries what an empty list cannot: whether the caller is
+            // somebody who could hold an enrolment at all. AC-4.7.7 offers the
+            // "browse the catalogue" invitation to an authenticated learner who
+            // has none, and to nobody else - and the page cannot tell the two
+            // apart on its own, because Moodle's `notloggedin` body class is
+            // absent for a guest, who is signed in but owns nothing.
             nit_home_respond([
                 'status' => 'success',
+                'learner' => isloggedin() && !isguestuser(),
                 'data' => \local_nit_category\home::my_courses(
                     optional_param('limit', 12, PARAM_INT)
                 ),
@@ -111,8 +118,10 @@ try {
             nit_home_respond(['status' => 'error', 'error' => 'unknown_function']);
     }
 } catch (\Throwable $e) {
-    // The home page must render even when a section cannot. The block treats a
-    // non-success envelope as "show the empty state", which is a far better front
-    // page than a stack trace or a section stuck on "Loading...".
+    // The home page must render even when a section cannot. The blocks treat a
+    // non-success envelope as "stay away": a missing section is a far better
+    // front page than a stack trace, a section stuck on "Loading...", or - for
+    // the My courses block - an invitation to buy a first course shown to
+    // somebody who already owns ten.
     nit_home_respond(['status' => 'error', 'error' => $e->getMessage()]);
 }
