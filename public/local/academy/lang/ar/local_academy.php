@@ -62,3 +62,7 @@ $string['settings_otpttl_desc'] = 'المدة التي يظل فيها رمز إ
 // Login.
 $string['err_invalidlogin'] = 'بيانات الدخول غير صحيحة، من فضلك حاول مرة أخرى';
 $string['err_usernotconfirmed'] = 'لم يتم تأكيد حسابك بعد. من فضلك افتح رابط التأكيد المُرسل إلى بريدك الإلكتروني ثم سجّل الدخول مرة أخرى.';
+
+// Certificates.
+$string['err_nocertificates'] = 'الشهادات غير متاحة على هذا الموقع.';
+$string['err_nocertificateissue'] = 'لم يتم إصدار هذه الشهادة لك.';

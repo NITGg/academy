@@ -100,6 +100,28 @@ class footer {
     }
 
     /**
+     * The networks' own names, for a label a reader sees.
+     *
+     * ucfirst() on the key gives "Linkedin" and "Tiktok", which is not how those
+     * brands are written, and the key itself ("twitter") is not what the brand is
+     * called any more. Kept beside networks() so the two never drift.
+     *
+     * @return array<string, string> config suffix => brand name
+     */
+    public static function networknames(): array {
+        return [
+            'facebook'  => 'Facebook',
+            'instagram' => 'Instagram',
+            'linkedin'  => 'LinkedIn',
+            'twitter'   => 'X',
+            'youtube'   => 'YouTube',
+            'tiktok'    => 'TikTok',
+            'whatsapp'  => 'WhatsApp',
+            'telegram'  => 'Telegram',
+        ];
+    }
+
+    /**
      * The contact rows, in the order they are drawn, with their icons.
      *
      * @return array<string, string> config suffix => FontAwesome class
@@ -286,9 +308,9 @@ class footer {
      *
      * @return array{
      *     enabled: bool,
-     *     contact: array{heading: string, rows: array<int, array{icon: string, text: string, url: string}>},
-     *     columns: array<int, array{heading: string, links: array<int, array{label: string, url: string}>}>,
-     *     social: array<int, array{network: string, icon: string, url: string}>,
+     *     contact: array{heading: string, rows: array<int, array{key: string, icon: string, text: string, url: string}>},
+     *     columns: array<int, array{key: string, heading: string, links: array<int, array{label: string, url: string}>}>,
+     *     social: array<int, array{network: string, name: string, icon: string, url: string}>,
      *     copyright: string
      * }
      */
@@ -309,7 +331,7 @@ class footer {
             } else if ($name === 'phone') {
                 $url = 'tel:' . preg_replace('/[^\d+]/', '', $text);
             }
-            $rows[] = ['icon' => $icon, 'text' => $text, 'url' => $url];
+            $rows[] = ['key' => $name, 'icon' => $icon, 'text' => $text, 'url' => $url];
         }
 
         $columns = [];
@@ -327,7 +349,7 @@ class footer {
             if ($heading === '' && empty($links)) {
                 continue;
             }
-            $columns[] = ['heading' => $heading, 'links' => $links];
+            $columns[] = ['key' => $col, 'heading' => $heading, 'links' => $links];
         }
 
         $social = [];
@@ -336,7 +358,12 @@ class footer {
             if ($url === '') {
                 continue;
             }
-            $social[] = ['network' => $network, 'icon' => $icon, 'url' => $url];
+            $social[] = [
+                'network' => $network,
+                'name'    => self::networknames()[$network] ?? ucfirst($network),
+                'icon'    => $icon,
+                'url'     => $url,
+            ];
         }
 
         return [

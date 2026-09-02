@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_subscriptions';
-$plugin->version   = 2026090144;        // The plan dialog asks which payment method to charge.
+$plugin->version   = 2026090145;        // Plan-card state (my active subscription) is now a web service too.
 $plugin->requires  = 2024100700;
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;

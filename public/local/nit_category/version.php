@@ -25,5 +25,5 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_category';
-$plugin->version   = 2026090101;        // YYYYMMDDXX — All-categories page; bilingual, Arabic-tolerant search.
+$plugin->version   = 2026090102;        // YYYYMMDDXX — My-courses page; languages stat on the card.
 $plugin->requires  = 2022041900;

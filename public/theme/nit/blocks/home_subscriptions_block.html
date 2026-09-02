@@ -64,12 +64,14 @@
           <!-- Duration -->
           <p
             style="font-size: 12px; color: var(--nit-brand-textsecondary); margin: 5px 0 20px 0; flex-shrink: 0;">
-            / {{days}} {mlang en}days{mlang}{mlang ar}يوم{mlang}</p>
+            {{days}} {mlang en}days{mlang}{mlang ar}يوم{mlang}</p>
           <!-- Courses summary. The card states HOW MANY courses the plan unlocks; naming them
                is the details page's job — enumerating them here made every card as tall as the
-               longest plan and gave the reader nothing they could click. -->
+               longest plan and gave the reader nothing they could click.
+               margin-top:auto pins it to the bottom of the content column, so it lines up across
+               cards no matter what sits above it (offer row, description). -->
           <div
-            style="display: none; align-items: center; justify-content: center; gap: 7px; margin: 0 0 4px 0; padding: 9px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--nit-brand-success) 30%, transparent); background: color-mix(in srgb, var(--nit-brand-success) 10%, transparent); font-size: 13px; font-weight: 700; color: var(--nit-brand-success); flex-shrink: 0;"
+            style="display: none; align-items: center; justify-content: center; gap: 7px; margin: auto 0 4px 0; padding: 9px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--nit-brand-success) 30%, transparent); background: color-mix(in srgb, var(--nit-brand-success) 10%, transparent); font-size: 13px; font-weight: 700; color: var(--nit-brand-success); flex-shrink: 0;"
             data-nit-courses-item=""><span aria-hidden="true">✓</span> <span
               data-nit-courses-text="">{{courses}} {mlang en}courses
               included{mlang}{mlang ar}كورس مشمول{mlang}</span></div>

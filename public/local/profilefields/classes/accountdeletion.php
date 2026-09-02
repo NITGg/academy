@@ -103,7 +103,7 @@ class accountdeletion {
      * @return bool whether the account was deleted
      */
     public static function execute(stdClass $user): bool {
-        global $DB;
+        global $CFG, $DB;
 
         if (!self::allowed($user)) {
             return false;
@@ -112,6 +112,16 @@ class accountdeletion {
         // Nothing may be able to rebuild a session for this account afterwards.
         rememberme::revoke_all((int) $user->id);
         \core\session\manager::destroy_user_sessions((int) $user->id);
+
+        // Web-service tokens are the third credential, and the one core's
+        // delete_user() leaves entirely alone. It went unnoticed while this was
+        // only ever reached from a browser; now that the app can delete an
+        // account (local_profilefields_delete_account), the token the request
+        // arrived on is exactly the thing that must not survive it.
+        //
+        // webservice/lib.php is not autoloaded, hence the require here.
+        require_once($CFG->dirroot . '/webservice/lib.php');
+        \webservice::delete_user_ws_tokens((int) $user->id);
 
         // Before delete_user(), which scrambles the username these are keyed to.
         self::clear_custom_fields((int) $user->id);

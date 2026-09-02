@@ -66,6 +66,19 @@ $functions = [
         'ajax'        => true,
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    // The screen, rather than the summary: what /local/payments/history.php draws,
+    // filters and all. get_payment_history above returns a bare newest-first list
+    // with no total, no filters and no per-row state, so a paged screen cannot be
+    // built on it; it stays for clients already using it.
+    'local_payments_get_transactions' => [
+        'classname'   => 'local_payments\external\get_transactions',
+        'methodname'  => 'execute',
+        'description' => 'One filtered, paged screen of the caller\'s own payments: the rows, the total, '
+            . 'the filter options, and per row whether an invoice can be printed and a refund still taken.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
     'local_payments_get_purchased_courses' => [
         'classname'   => 'local_payments\external\get_purchased_courses',
         'methodname'  => 'execute',

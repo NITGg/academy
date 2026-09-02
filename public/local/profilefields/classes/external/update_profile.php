@@ -57,8 +57,11 @@ class update_profile extends external_api {
             'fields' => new external_multiple_structure(
                 new external_single_structure([
                     'name' => new external_value(PARAM_RAW,
-                        'The field name, exactly as local_profilefields_get_profile_form gave it '
-                        . '(e.g. firstname, city, description, profile_field_phone).'),
+                        'The field name, exactly as local_profilefields_get_profile_form or '
+                        . 'local_profilefields_get_account_profile gave it (e.g. firstname, city, '
+                        . 'description, profile_field_phone). "lang" is also accepted, although no '
+                        . 'form reports it: core shows the language menu only while creating an '
+                        . 'account, but the account screen offers it.'),
                     'value' => new external_value(PARAM_RAW,
                         'The new value. A phone field takes "EG:1012345678" or an encoded JSON object '
                         . '{"country":"EG","number":"1012345678"}; a datetime field takes a unix timestamp; '
@@ -107,6 +110,20 @@ class update_profile extends external_api {
             $submitted[$one['name']] = $one['value'];
         }
 
+        // The interface language is handled by name rather than by the form,
+        // because there is no box for it on /user/edit.php: core shows the
+        // language menu only while creating an account and sends an existing user
+        // to /user/language.php instead, so describe() cannot report it and the
+        // check below would refuse it as an unknown field. The account screen does
+        // offer it ({@see \local_profilefields\form\account_profile_form::add_language()}),
+        // so its Save has to work. Taken out here and applied after prepare_data(),
+        // where it cannot be confused with a form field.
+        $newlang = null;
+        if (array_key_exists('lang', $submitted)) {
+            $newlang = trim((string) $submitted['lang']);
+            unset($submitted['lang']);
+        }
+
         // The live form is the authority on what exists, what is required and what
         // is locked - the same object the browser would be given.
         $described = profile_api::describe($user);
@@ -123,6 +140,18 @@ class update_profile extends external_api {
 
         $usernew = profile_api::prepare_data($user, $described, $submitted, (int) $params['descriptionformat']);
 
+        // Checked against the translations actually installed: a language pack the
+        // site does not have would leave every page falling back to English, which
+        // reads as the save having broken the account.
+        $langerrors = [];
+        if ($newlang !== null) {
+            if (!array_key_exists($newlang, get_string_manager()->get_list_of_translations())) {
+                $langerrors['lang'] = get_string('invalidparameter', 'debug');
+            } else {
+                $usernew->lang = $newlang;
+            }
+        }
+
         // What the sign-up flow is still owed. Read before the save, so the answer
         // is about the account as it arrived, not as this call leaves it.
         $outstanding = \local_profilefields\completion::missing($user);
@@ -135,7 +164,7 @@ class update_profile extends external_api {
         self::apply_country_from_phone($user, $outstanding, $usernew, $submitted);
 
         $errors = profile_api::validate($user, $usernew, $described, $submitted);
-        $errors = array_merge($errors, self::signup_only_errors($user, $outstanding, $usernew));
+        $errors = array_merge($errors, self::signup_only_errors($user, $outstanding, $usernew), $langerrors);
         if (!empty($errors)) {
             return [
                 'success' => false,

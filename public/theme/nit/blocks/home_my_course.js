@@ -53,15 +53,20 @@
     root.style.display = '';
   };
 
+  // A link with nowhere to go is dropped rather than left pointing at "#". The
+  // full-list page carries the same markup as the home block, and there "More"
+  // would only lead back to itself, so it sets data-viewall="".
   var link = function(selector, path) {
     var a = root.querySelector(selector);
-    if (a && path) {
+    if (!a) {
+      return;
+    }
+    if (path) {
       a.setAttribute('href', base + path);
+    } else {
+      drop(a);
     }
   };
-
-  link('[data-nit-mc-viewall]', root.getAttribute('data-viewall'));
-  link('[data-nit-mc-browse]', root.getAttribute('data-browse'));
 
   /**
    * Drop a part of the card that has no data behind it.
@@ -80,6 +85,9 @@
       node.parentNode.removeChild(node);
     }
   };
+
+  link('[data-nit-mc-viewall]', root.getAttribute('data-viewall'));
+  link('[data-nit-mc-browse]', root.getAttribute('data-browse'));
 
   /**
    * Fill a stat (icon + number + label) and reveal it, or drop it entirely.
@@ -197,10 +205,7 @@
       grid.style.display = 'none';
       empty.style.display = '';
       // "More" over an empty list is a link to a second empty page.
-      var viewall = root.querySelector('[data-nit-mc-viewall]');
-      if (viewall) {
-        viewall.style.display = 'none';
-      }
+      drop(root.querySelector('[data-nit-mc-viewall]'));
       show();
     }
   };

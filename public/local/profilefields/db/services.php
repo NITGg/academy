@@ -37,6 +37,20 @@ $functions = [
         'loginrequired' => false,
         'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    // The site footer, from the Footer tab of the Site pages manager. Pre-login
+    // like the two above, because the footer is on the site's public pages and the
+    // app wants it on its own. Read it once at start-up and cache it; it changes
+    // only when an administrator edits that tab.
+    'local_profilefields_get_footer' => [
+        'classname'     => 'local_profilefields\external\get_footer',
+        'methodname'    => 'execute',
+        'description'   => 'The site footer as data: the contact rows, the link columns, the social links, the logo '
+            . 'and the copyright line, already resolved to one language.',
+        'type'          => 'read',
+        'ajax'          => true,
+        'loginrequired' => false,
+        'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
     'local_profilefields_resend_confirmation' => [
         'classname'     => 'local_profilefields\external\resend_confirmation',
         'methodname'    => 'execute',
@@ -103,6 +117,71 @@ $functions = [
             . 'complete, and if not, the outstanding fields (in sign-up order) plus whether the site policies '
             . 'still need accepting.',
         'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+
+    // The account screen - /local/profilefields/account.php and the two panes
+    // that hang off it. This is a different screen from /user/edit.php, which the
+    // three functions above describe: it shows only the core fields the
+    // administrator has placed on the profile, never offers the e-mail address as
+    // a box to type in, and adds a security pane and a delete pane that core has
+    // no equivalent of. Saving still goes through
+    // local_profilefields_update_profile; only the address and the deletion have
+    // writers of their own, because both of them have to ask for the password
+    // first.
+    'local_profilefields_get_account_menu' => [
+        'classname'   => 'local_profilefields\external\get_account_menu',
+        'methodname'  => 'execute',
+        'description' => 'The account screen\'s own navigation: the entries, in order, localised, and '
+            . 'only the ones whose plugin is actually installed.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+    'local_profilefields_get_account_profile' => [
+        'classname'   => 'local_profilefields\external\get_account_profile',
+        'methodname'  => 'execute',
+        'description' => 'The account screen\'s profile pane as this site draws it: the fields in their '
+            . 'sections, each with its label, value, display value, options and lock, plus the e-mail row '
+            . 'and the profile-picture control.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+    'local_profilefields_request_email_change' => [
+        'classname'   => 'local_profilefields\external\request_email_change',
+        'methodname'  => 'execute',
+        'description' => 'Start an e-mail address change behind the account password. Nothing is applied '
+            . 'until the confirmation link sent to the new address is opened.',
+        'type'        => 'write',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+    'local_profilefields_get_security' => [
+        'classname'   => 'local_profilefields\external\get_security',
+        'methodname'  => 'execute',
+        'description' => 'The security pane: whether this account has a password here to change, when it '
+            . 'last changed, what changing it costs, and the site\'s password policy.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+    'local_profilefields_get_delete_account_info' => [
+        'classname'   => 'local_profilefields\external\get_delete_account_info',
+        'methodname'  => 'execute',
+        'description' => 'Whether this account may delete itself, and the warning to show before it does.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+    'local_profilefields_delete_account' => [
+        'classname'   => 'local_profilefields\external\delete_account',
+        'methodname'  => 'execute',
+        'description' => 'Delete the calling account, behind the same password and typed confirmation the '
+            . 'web form asks for. Anonymises rather than hard-deletes, and destroys every token the '
+            . 'account held - including the caller\'s.',
+        'type'        => 'write',
         'ajax'        => true,
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],

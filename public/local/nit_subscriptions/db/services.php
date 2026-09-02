@@ -44,6 +44,14 @@ $functions = [
         'ajax'        => true,
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    'local_nit_subscriptions_get_my_active_subscription' => [
+        'classname'   => 'local_nit_subscriptions\external\get_my_active_subscription',
+        'methodname'  => 'execute',
+        'description' => 'Which plan is live for the calling user right now: plan id, days left and whether renewing is due.',
+        'type'        => 'read',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
     'local_nit_subscriptions_get_subscription_payment_history' => [
         'classname'   => 'local_nit_subscriptions\external\get_subscription_payment_history',
         'methodname'  => 'execute',

@@ -1688,8 +1688,10 @@ function theme_nit_get_site_footer_context($output): ?array {
             'icon'    => $item['icon'],
             'url'     => $item['url'],
             // The aria-label on an icon-only link: the network's own name, which
-            // is a brand and the same in both languages.
-            'network' => ucfirst($item['network']),
+            // is a brand and the same in both languages. It comes with the row so
+            // "LinkedIn" and "X" read as their brands rather than as ucfirst() of
+            // a config key.
+            'network' => $item['name'],
         ];
     }
 

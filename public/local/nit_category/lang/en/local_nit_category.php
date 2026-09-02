@@ -119,3 +119,5 @@ $string['nocategorieshintsubs'] = 'Try removing a filter, searching for somethin
 
 // Home-page "My courses" card (theme_nit home_my_course_block).
 $string['homelesson'] = 'Lesson {$a->num}: {$a->name}';
+$string['mycourses'] = 'My courses';
+$string['mycoursesunavailable'] = 'The course cards cannot be shown: the theme_nit block file is missing or unreadable.';

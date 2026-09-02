@@ -31,6 +31,7 @@
 require_once(__DIR__ . '/../../config.php');
 
 use local_profilefields\account;
+use local_profilefields\account_api;
 use local_profilefields\accountdeletion;
 use local_profilefields\form\deleteaccount_form;
 
@@ -63,32 +64,12 @@ if ($form->is_cancelled()) {
     redirect(account::url());
 
 } else if ($form->get_data()) {
-    // Take a copy before the record is scrambled, so the goodbye can still be
-    // addressed and sent - after this call the address on the row is a hash.
-    $account = clone $USER;
-
-    if (!accountdeletion::execute($account)) {
+    // The deletion and the goodbye letter both live in account_api, because the
+    // app deletes accounts too (local_profilefields_delete_account) and an
+    // irreversible act is not something to have two nearly-identical copies of.
+    if (!account_api::delete($USER)) {
         redirect($url, get_string('deleteaccountrefused', 'local_profilefields'),
             null, \core\output\notification::NOTIFY_ERROR);
-    }
-
-    // Sent to the address as it was, not as it now is. Unconditional, like the
-    // other security mail: somebody whose account was deleted by an attacker who
-    // had their session needs to hear about it, and AC-4.5.5 puts these beyond
-    // the reach of the preference screen anyway.
-    try {
-        email_to_user(
-            $account,
-            core_user::get_support_user(),
-            get_string('deleteaccountdonesubject', 'local_profilefields'),
-            get_string('deleteaccountdonebody', 'local_profilefields', (object) [
-                'firstname' => $account->firstname,
-                'sitename' => format_string(get_site()->fullname),
-            ])
-        );
-    } catch (Throwable $e) {
-        debugging('local_profilefields: could not send the account-deletion notice: '
-            . $e->getMessage(), DEBUG_DEVELOPER);
     }
 
     // The session was destroyed inside execute(); require_logout() clears what is

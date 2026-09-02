@@ -61,14 +61,63 @@
         pointer-events: none;
     }
 
-    // Edge-to-edge inside Boost's page wrapper: #page.drawers pads its children
-    // by 3rem from md up (theme/boost/scss/moodle/layout.scss), which would inset
-    // the band and leave the page background showing down both sides.
+    // Edge-to-edge inside Boost's page wrapper. `#page.drawers` insets its
+    // children twice over (theme/boost/scss/moodle/layout.scss):
+    //
+    //   md+   padding-inline: 3rem                     — room for the drawer toggles
+    //   lg+   margin-inline-start: $drawer-left-width  — when the course index is open
+    //         padding-inline-start: 1rem               (and the mirror for the block drawer)
+    //
+    // A site footer is a band across the page, not a column beside the sidebar,
+    // so each of those is cancelled again below. Everything is a logical
+    // property, so the Arabic site cancels the side the drawer is actually on.
     #page.drawers > & {
         margin-inline: 0;
 
         @include media-breakpoint-up(md) {
             margin-inline: -3rem;
+        }
+    }
+
+    // Once the band spans the whole page it runs under the open drawer, which is
+    // `position: fixed` full-height with an opaque background — so without this
+    // the sidebar paints over the left third of the footer. Sit one step above
+    // it: the drawer is z-index 1015 at lg and up.
+    //
+    // Deliberately NOT applied below lg. There the drawer is a modal over the
+    // whole page (z-index 1035, with a backdrop) and must stay on top; `#page`
+    // is not shifted at that width either, so the band is already full width.
+    @include media-breakpoint-up(lg) {
+        #page.drawers.show-drawer-left > &,
+        #page.drawers.show-drawer-right > & {
+            position: relative;
+            z-index: 1016;
+        }
+
+        #page.drawers.show-drawer-left > & {
+            margin-inline-start: calc(-1 * (#{$drawer-left-width} + 1rem));
+        }
+
+        #page.drawers.show-drawer-right > & {
+            margin-inline-end: calc(-1 * (#{$drawer-right-width} + 1rem));
+        }
+    }
+
+    // The legacy drawer path, still used by pages that have not moved to
+    // `uses-drawers`: `body.drawer-open-left #page.drawers` shifts the page the
+    // same way, but from md rather than lg, so it needs its own breakpoint -
+    // matching only the lg rule above would leave those pages inset at md.
+    //
+    // There is deliberately no `drawer-open-right` counterpart. That one shifts
+    // `body` rather than `#page` (`body.drawer-open-right { margin-right: … }`),
+    // so there is no inset on the footer's own ancestor to cancel; pulling the
+    // band out anyway would push it past the body box and raise a horizontal
+    // scrollbar on the whole page.
+    @include media-breakpoint-up(md) {
+        body.drawer-open-left #page.drawers > & {
+            margin-inline-start: calc(-1 * (#{$drawer-left-width} + 1rem));
+            position: relative;
+            z-index: 1016;
         }
     }
 }

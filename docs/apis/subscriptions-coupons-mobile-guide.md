@@ -84,9 +84,10 @@ GET  {WWWROOT}/webservice/rest/server.php
 | 1 | Available coupons | `local_nit_commerce_get_available_coupons` | GET | — |
 | 2 | Preview a discounted price | `local_nit_commerce_preview_discount` | GET | `item_type`, `item_id`, `coupon_code?` |
 | 3 | Available subscription plans | `local_nit_subscriptions_get_available_subscriptions` | GET | — |
-| 4 | Start a subscription checkout | `local_nit_subscriptions_create_subscription_checkout` | **POST** | `subscriptionid`, `type?`, `seats?`, `coupon_code?`, `country?`, `lang?`, `return_url?` |
+| 4 | Start a subscription checkout | `local_nit_subscriptions_create_subscription_checkout` | **POST** | `subscriptionid`, `type?`, `seats?`, `coupon_code?`, `country?`, `lang?`, `return_url?`, `payment_method_id?` |
 | 5 | My subscriptions | `local_nit_subscriptions_get_my_subscriptions` | GET | — |
 | 6 | My subscription payments | `local_nit_subscriptions_get_subscription_payment_history` | GET | — |
+| 7 | My live plan (card state) | `local_nit_subscriptions_get_my_active_subscription` | GET | — |
 
 Related **course-purchase** functions ship in `local_payments` (token, same mobile service):
 `local_payments_get_course_price`, `local_payments_get_course_access`, `local_payments_get_payment_methods`,
@@ -187,6 +188,8 @@ GET …&wsfunction=local_nit_subscriptions_get_available_subscriptions&moodlewsr
     "name": "365-day",
     "description": "<p>Full-year access</p>",
     "price": 365.00,
+    "currency": "EGP",
+    "country": "EG",
     "duration_days": 365,
     "status": "active",
     "courses": [
@@ -202,7 +205,13 @@ GET …&wsfunction=local_nit_subscriptions_get_available_subscriptions&moodlewsr
         "original_price": 3650.00, "discount_amount": 547.50, "b2b_price": 3102.50 }
     ],
     "offer_label": "-10%",
-    "offer_final": 328.50
+    "offer_final": 328.50,
+
+    "country_required": false,
+    "country_message": "",
+    "country_short": "",
+    "country_action": "",
+    "country_url": ""
   }
 ]
 ```
@@ -213,6 +222,13 @@ GET …&wsfunction=local_nit_subscriptions_get_available_subscriptions&moodlewsr
 - `status` is `active` (the endpoint only lists active plans).
 - Legacy fields `b2b_enabled`, `courses_count`, `seat_options`, `offer_label`, `offer_final` remain for
   backward compatibility — `seat_options` is for **B2B** (team) plans, empty for a normal plan.
+- `price`/`currency` are resolved **for this caller's country** (`country` says which one was used).
+  Pass `country=SA` to price for a specific market; otherwise the signed-in user's profile country
+  decides, and each plan can carry a different price per country.
+- `country_required: true` means the account has **no profile country**, so nothing can be priced:
+  `price`, `currency`, `offer*` and `seat_options` all come back empty. Show `country_short` where the
+  amount goes, `country_message` as the explanation, and turn the Subscribe button into
+  `country_action` pointing at `country_url` — checkout would be refused server-side anyway.
 
 ### 3.4 `local_nit_subscriptions_create_subscription_checkout` — **POST**
 
@@ -236,6 +252,7 @@ wstoken=TOKEN&wsfunction=local_nit_subscriptions_create_subscription_checkout
 | `country` | — | user's | ISO-2; affects provider selection |
 | `lang` | — | `en` | gateway display language (`en`/`ar`) |
 | `return_url` | — | `''` | where the browser should land after payment |
+| `payment_method_id` | — | `0` | charge a **specific** method (id from `local_payments_get_provider_payment_methods`). `0` opens the gateway's own method-picker page instead. |
 
 ```json
 {
@@ -246,7 +263,9 @@ wstoken=TOKEN&wsfunction=local_nit_subscriptions_create_subscription_checkout
   "transaction_id": 91,
   "amount": 359.20,
   "original_amount": 499.00,
-  "currency": "EGP"
+  "currency": "EGP",
+  "payment_data": { "type": "redirect", "redirect_url": "https://…", "reference": "",
+                    "reference_expires_at": "", "method_name": "Visa / Mastercard", "qr": "" }
 }
 ```
 **Do:** open `checkout_url` in an in-app browser / WebView. After the user pays and the gateway
@@ -262,6 +281,27 @@ subscription is created server-side by the gateway webhook, not by this call.
 Common failures (returned as exceptions): `"You already have an active subscription"` (one active
 normal plan per user), `"This subscription plan is not available"` (inactive), `"The selected capacity
 is not available"` (bad B2B `seats`).
+
+**Letting the user pick the payment method in your own UI.** Call
+`local_payments_get_provider_payment_methods` with **`courseid=0`** — that is what tells it to resolve
+by country/currency alone, for a subscription rather than a course — plus the plan's `currency` (and
+`country` if you are overriding it). It answers
+`{provider, supports_payment_methods, methods: [{id, name_en, name_ar, logo, redirect}]}`; pass the
+chosen `id` back here as `payment_method_id`. Skip the picker and send `0` when
+`supports_payment_methods` is false (the gateway shows its own) or when fewer than **two** methods come
+back — one method is not a choice. Fetch the list **once per screen**: the server caches the gateway's
+answer for an hour and it does not vary between plans.
+
+With a method chosen, the response also carries **`payment_data`**, which decides what happens next:
+
+| `payment_data.type` | What it means | What to do |
+|---------------------|---------------|------------|
+| `redirect` | The method has its own page | open `payment_data.redirect_url` |
+| `reference` | Fawry / Meeza / wallets: the gateway issues a **code**, there is no page | show `payment_data.reference` (plus `reference_expires_at`, `method_name`, and `qr` when present) as the result screen |
+| `none` | Nothing further to collect | fall back to `checkout_url` |
+
+So: `type == "reference"` → your own code screen; otherwise open `redirect_url` or `checkout_url`.
+Either way, the plan is granted only once the gateway confirms — keep polling §3.5.
 
 ### 3.5 `local_nit_subscriptions_get_my_subscriptions`
 
@@ -325,10 +365,59 @@ GET …&wsfunction=local_nit_subscriptions_get_subscription_payment_history&mood
 
 ---
 
+### 3.7 `local_nit_subscriptions_get_my_active_subscription`
+
+Which plan is live for this user **right now**, in the shape a plan card needs. This is the call that
+turns a price list into *their* price list: it says which card to mark, how many days are left, and
+whether the button should say **Renew**.
+
+Do not compute this from `get_my_subscriptions`. Three rules live on the server and are deliberately
+not client-side: which purchase governs when several are live (the one running **longest**, not the
+newest), how stacked renewals add up, and when renewing is offered (exactly the admin's reminder
+window, so the button and the expiry notification can never disagree).
+
+```
+GET …&wsfunction=local_nit_subscriptions_get_my_active_subscription&moodlewsrestformat=json
+```
+```json
+{
+  "has_active": true,
+  "subscriptionid": 1,
+  "name": "365-day",
+  "expires_at": 1821936000,
+  "expires_text": "Sunday, 1 November 2026",
+  "days_left": 60,
+  "price_paid": 295.65,
+  "renew_due": false,
+  "renew_window_days": 7,
+  "renewed_expires_at": 1824528000,
+  "periods": 2,
+  "renewed": true,
+  "current_ends_at": 1819344000,
+  "current_days_left": 30
+}
+```
+- `has_active: false` returns the **same shape with every field zeroed**, so there is nothing to
+  branch on before reading it.
+- `subscriptionid` matches an `id` from `get_available_subscriptions` — that is the card to badge.
+- `renew_due: true` → show **Renew** instead of a disabled "Active" button. Renewing calls the same
+  `create_subscription_checkout`; it **adds a period on top** of the current one rather than
+  restarting the clock, so nothing already paid for is lost. `renewed_expires_at` is the date that
+  purchase would actually buy — quote it, not "today + duration".
+- `renew_window_days` is how many days before expiry that offer opens (`0` = reminders switched off,
+  so `renew_due` is never true).
+- `renewed: true` (i.e. `periods > 1`) means a renewal is **already queued behind** the period running
+  now. `days_left` then covers both, which reads like a bug unless you say so: print `current_days_left`
+  / `current_ends_at` for the period running now and `expires_text` for the end of everything paid for.
+- Business rule: a user holds **one active normal plan at a time**, so every *other* plan card should
+  have its Subscribe button disabled while `has_active` is true.
+
+---
+
 ## 4. Typical purchase flow
 
 ```
-get_available_subscriptions              → show plan list
+get_available_subscriptions  +  get_my_active_subscription   → show plan cards, badge the live one
         │ user taps a plan
         ▼
 preview_discount(item_type=subscription, item_id, coupon_code?)   → show final price
@@ -338,6 +427,7 @@ create_subscription_checkout(subscriptionid, …)  → open checkout_url (WebVie
         │ user pays; gateway redirects back
         ▼
 poll get_my_subscriptions  → status becomes "active"  → unlock the plan's courses
+        │                       (get_my_active_subscription now badges the card)
         │
         ▼
 get_subscription_payment_history → "Payment history" screen
@@ -346,11 +436,37 @@ get_subscription_payment_history → "Payment history" screen
 The plan's courses are granted as real Moodle enrolments once payment is confirmed, so they also
 appear in the normal course-list web services (e.g. `core_enrol_get_users_courses`).
 
+### Building a subscription card
+
+The web pricing cards (`theme/nit/blocks/home_subscriptions.html`) are drawn from exactly two reads —
+`get_available_subscriptions` for the catalogue and `get_my_active_subscription` for this user's state.
+Every visual state on a card maps to a field, so the app can match the web without re-deriving anything:
+
+| Card shows | Comes from |
+|---|---|
+| Plan name, description, duration | `name`, `description`, `duration_days` |
+| Price + currency | `price`, `currency` |
+| Strikethrough old price + offer badge | `offer.original` / `offer.final` / `offer.label` (present only when an offer is running) |
+| "N courses included" | `courses_count` (names for a details screen: `courses[]`) |
+| **B2B** badge and team tiers | `b2b_enabled`, `seat_options[]` |
+| "Set your country" instead of a price | `country_required` + `country_short` / `country_message` / `country_action` / `country_url` |
+| ✓ **Your current plan** badge on one card | `get_my_active_subscription.subscriptionid` matching that card's `id` |
+| "✓ N days left" on that card's button | `days_left` (with `expires_text` underneath) |
+| **↻ Renew now** instead | `renew_due` |
+| "includes the renewal you already paid for" | `renewed` (then also print `current_days_left` / `current_ends_at`) |
+| Every **other** card's button greyed out | `has_active` — one active normal plan per user |
+| Coupon box: discount + new total | `preview_discount(item_type=subscription, item_id=<plan id>, coupon_code)` |
+| Payment-method chooser in the confirm sheet | `get_provider_payment_methods(courseid=0, currency=<plan currency>)` |
+
+Guests see the catalogue but must not reach checkout: `get_available_subscriptions` is the only call
+here that works without a login, and every other one needs a token.
+
 ---
 
 ## 5. Field/format notes
 
-- **Money** fields (`price`, `price_paid`, `amount`, `final`, …) are JSON **numbers**, currency **EGP**.
+- **Money** fields (`price`, `price_paid`, `amount`, `final`, …) are JSON **numbers**. The currency is
+  **per country**, not always EGP — read the `currency` field beside the amount rather than hard-coding it.
 - **Time** fields (`timecreated`, `timeactivated`, `expires_at`, …) are **unix seconds**.
 - `description` is HTML; `name` may contain `{mlang}` tags already resolved to the request language.
 - Language: append `&lang=ar` (or `en`) as a normal Moodle WS param to localize names/descriptions.

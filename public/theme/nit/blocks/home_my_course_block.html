@@ -35,9 +35,9 @@
      --nit-brand-textsecondary, the #091540 card becomes --nit-brand-surface.
      Optional: if it can't find the API, set data-base to your Moodle URL,
      e.g. data-base="https://academy2026.nitg-eg.com/moodle-new" -->
-<div dir="auto" data-nit-mycourse="" data-limit="6" data-empty="hide"
+<div dir="auto" data-nit-mycourse="" data-limit="2" data-empty="hide"
   data-endpoint="/local/nit_category/home.php" data-base=""
-  data-viewall="/my/courses.php" data-browse="/local/nit_category/catalogue.php"
+  data-viewall="/local/nit_category/mycourses.php" data-browse="/local/nit_category/catalogue.php"
   style="background: var(--nit-brand-background); padding: 65px clamp(16px, 5vw, 80px);">
   <div style="max-width: 1288px; margin: 0 auto;">
     <!-- HEADER — heading at the inline-start of the reading direction, the
@@ -62,12 +62,12 @@
       data-nit-mc-grid=""><!-- CARD TEMPLATE (hidden; cloned once per course) -->
       <div style="display: none;" data-nit-mc-card="">
         <a class="nit-mc-card"
-          style="width: 100%; height: 100%; box-sizing: border-box; background: var(--nit-brand-surface); border: 1.68px solid color-mix(in srgb, var(--nit-brand-accent) 70%, transparent); border-radius: 12px; overflow: hidden; display: flex; align-items: center; gap: 0; padding: 32px 12px; text-decoration: none;"
+          style="width: 100%; height: 100%; box-sizing: border-box; background: var(--nit-brand-surface); border: 1.68px solid color-mix(in srgb, var(--nit-brand-accent) 70%, transparent); border-radius: 12px; overflow: hidden; display: flex; align-items: center; gap: 0; padding: 20px 12px; text-decoration: none;"
           href="#" data-nit-mc-resume="">
           <!-- TEXT COLUMN -->
           <div
-            style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 16px; padding: 0 16px;">
-            <div style="display: flex; flex-direction: column; gap: 8px;">
+            style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 0 16px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
               <div
                 style="font-size: 18px; font-weight: 500; line-height: 1.4; color: var(--nit-brand-textprimary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"
                 data-nit-mc-title=""> </div>
@@ -76,7 +76,7 @@
                 style="display: none; font-size: 16px; font-weight: 500; line-height: 1.4; color: var(--nit-brand-textsecondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                 data-nit-mc-subtitle=""> </div>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
               <!-- STATS ROW — lessons and hours together, price opposite. Each
                    stat is icon, number, label, so the reading direction puts the
                    icon on the outside in both Arabic and English. -->
@@ -138,7 +138,7 @@
                     data-nit-mc-bar=""></div>
                 </div>
                 <div
-                  style="margin: 10px 0 0; text-align: center; font-size: 18px; font-weight: 500; color: var(--nit-brand-textprimary);">
+                  style="margin: 8px 0 0; text-align: center; font-size: 16px; font-weight: 500; color: var(--nit-brand-textprimary);">
                   <!-- Same reason as the price: the design reads "30 %", and
                        without the isolate an Arabic page reorders it to "% 30". -->
                   <span style="direction: ltr; unicode-bidi: isolate;"
@@ -160,7 +160,7 @@
                no images at all on the live site. font-size 0 keeps the space from
                affecting the box. -->
           <div
-            style="flex: 0 0 250px; width: 250px; max-width: 42%; height: 216px; border-radius: 8px; font-size: 0; line-height: 0; box-shadow: 0 8px 22px 0 rgba(0,0,0,.25); background: color-mix(in srgb, var(--nit-brand-surface) 86%, var(--nit-brand-textprimary)) center / cover no-repeat;"
+            style="flex: 0 0 200px; width: 200px; max-width: 38%; height: 150px; border-radius: 8px; font-size: 0; line-height: 0; box-shadow: 0 8px 22px 0 rgba(0,0,0,.25); background: color-mix(in srgb, var(--nit-brand-surface) 86%, var(--nit-brand-textprimary)) center / cover no-repeat;"
             data-nit-mc-image="" aria-hidden="true">&nbsp;</div>
         </a>
       </div>

@@ -24,6 +24,14 @@ The three functions below are the same profile as the website — same fields,
 same order, same labels, same locks, same validation, same error messages, and
 the same email-change confirmation.
 
+> **Building the account screen?** `/local/profilefields/account.php` is a
+> different, shorter form than `/user/edit.php` — and it comes with a security
+> pane, a certificate list, a payment history and a delete-account pane.
+> `local_profilefields_get_account_profile` describes that screen; this page's
+> `get_profile_form` describes `/user/edit.php`. See
+> [account-screens-mobile-api.md](account-screens-mobile-api.md). Saving is still
+> `local_profilefields_update_profile`, documented below.
+
 ---
 
 ## Transport
@@ -265,6 +273,13 @@ messages are already localised for the request language and are plain text (no
 HTML to strip).
 
 ### Changing the email address
+
+> **On the account screen, don't use this function for the address.** The
+> "Change" button beside the email on `/local/profilefields/account.php` asks for
+> the account password first, and `update_profile` does not —
+> `local_profilefields_request_email_change` is the one to call there. See
+> [account-screens-mobile-api.md](account-screens-mobile-api.md#local_profilefields_request_email_change--the-change-button).
+> What follows applies to `update_profile` wherever an address does reach it.
 
 When the site has *email change confirmation* on (it does), a new address is
 **not** applied straight away:
