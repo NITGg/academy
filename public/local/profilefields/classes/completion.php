@@ -232,7 +232,27 @@ class completion {
         }
 
         foreach (profile_get_user_fields_with_data($user->id) as $field) {
-            if ($field->is_locked() || !$field->get_field_config_for_external()['visible']) {
+            // Nobody can see it, so it is not on the sign-up form either -
+            // profile_get_signup_fields() filters on `visible <> 0` - and core's own
+            // gate skips it too. Asking for it here would be inventing a question.
+            if (!$field->get_field_config_for_external()['visible']) {
+                continue;
+            }
+            // `locked` means "the account holder may not change this from their
+            // profile". Core's gate honours it (profile_has_required_custom_fields_set)
+            // because the only page core would send them to, /user/edit.php, freezes
+            // the box - gating on a field the user cannot fill is a trap.
+            //
+            // It is NOT a reason to drop a *sign-up* question. Core's own sign-up form
+            // ignores the flag entirely: profile_get_signup_fields() filters on
+            // `signup` and `visible` and never reads `locked`, and is_editable()
+            // short-circuits to true for a visitor. So a locked phone is asked of
+            // everyone who fills the form in - and skipping it here meant it was asked
+            // of everyone *except* the accounts this page exists for. A Google account
+            // sailed through with no phone at all, marked complete, with no box left
+            // anywhere to supply one. This form draws the field through edit_field()
+            // and never calls edit_after_data(), so nothing freezes it here.
+            if ($field->is_locked() && !$field->is_signup_field()) {
                 continue;
             }
             // Two reasons to ask. A *required* field is the same test core runs in
