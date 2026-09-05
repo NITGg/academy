@@ -72,8 +72,14 @@ EOT;
 if ($options['status']) {
     cli_writeln('Rules enforced : ' . (rules::is_enabled() ? 'yes' : 'no'));
     cli_writeln('Site messaging : ' . (empty($CFG->messaging) ? 'off - nothing can be sent at all' : 'on'));
-    cli_writeln('Cohorts        : ' . (count(rules::get_cohort_menu()) - 1));
-    cli_writeln('Allowed pairs  : ' . count($DB->get_records('local_msgrules_rule')));
+    $modes = rules::get_modes();
+    cli_writeln('Default mode   : ' . $modes[rules::get_default_mode()]);
+    $overrides = rules::get_course_modes();
+    cli_writeln('Course overrides: ' . count($overrides));
+    foreach ($overrides as $courseid => $mode) {
+        $name = $DB->get_field('course', 'shortname', ['id' => $courseid]) ?: "(course $courseid)";
+        cli_writeln("  - $name: " . $modes[$mode]);
+    }
     cli_writeln('Blocks owned   : ' . sync::count_managed());
     exit(0);
 }
@@ -112,8 +118,8 @@ if ($options['user']) {
 
 $result = sync::rebuild(new text_progress_trace());
 cli_writeln(sprintf(
-    'Done: %d users, %d blocks added, %d removed, %d left to the user.',
-    $result['users'],
+    'Done: %d restricted students, %d blocks added, %d removed, %d left to the user.',
+    $result['students'],
     $result['added'],
     $result['removed'],
     $result['skipped']

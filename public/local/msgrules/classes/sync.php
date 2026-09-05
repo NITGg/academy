@@ -17,7 +17,7 @@
 namespace local_msgrules;
 
 /**
- * Turns the rule matrix into rows core already enforces.
+ * Turns each course's mode into rows core already enforces.
  *
  * There is no hook, callback or overridable method anywhere in the messaging subsystem:
  * \core_message\api::can_contact_user() is a closed protected static, and message/ ships
@@ -30,12 +30,12 @@ namespace local_msgrules;
  * Two consequences follow from that choice and are handled here:
  *
  *  - The rows live in a table users can edit (their own "Blocked users" list), so
- *    {@see observer::message_user_unblocked()} puts back anything the matrix still denies.
+ *    {@see observer::message_user_unblocked()} puts back anything a course still denies.
  *  - A block a user made themselves must survive a rebuild, so every row this plugin writes
  *    is recorded in local_msgrules_managed and only those rows are ever removed.
  *
  * Rows are written with the data API rather than \core_message\api::block_user() on purpose:
- * a full rebuild on a mid-sized site is hundreds of thousands of pairs, and firing that many
+ * a rebuild is one row per person a restricted student may not write to, and firing that many
  * message_user_blocked events would flood the log store to describe policy rather than
  * anything a person did.
  *
@@ -51,8 +51,8 @@ class sync {
     /**
      * Up to this many accounts, a rebuild runs in the request that asked for it.
      *
-     * Queueing everything was correct but unusable: an administrator saved the matrix, saw
-     * nothing change, and had no way to tell a wrong rule from one that cron had not picked up
+     * Queueing everything was correct but unusable: an administrator set a course's mode, saw
+     * nothing change, and had no way to tell a wrong setting from one cron had not picked up
      * yet. Below this figure the whole rebuild is well under a second, so it happens before
      * the page reloads and the screen tells the truth immediately.
      */
@@ -85,11 +85,11 @@ class sync {
     }
 
     /**
-     * Put the matrix into effect now if that is affordable, and say what happened.
+     * Put the current settings into effect now if that is affordable, and say what happened.
      *
      * Shared by the management screen and the on/off switch so both behave the same way. An
-     * administrator who saves a rule and an administrator who enables the feature are asking
-     * the same question - "is it live?" - and both deserve the same answer in the same place.
+     * administrator who changes a course and one who enables the feature are asking the same
+     * question - "is it live?" - and both deserve the same answer in the same place.
      *
      * @return string A message describing the outcome, ready to show.
      */
@@ -99,77 +99,87 @@ class sync {
             return get_string('rebuildqueued', 'local_msgrules');
         }
 
-        // A few hundred accounts is a few hundred thousand rows at the very worst; give it
-        // room rather than leaving a half-applied matrix behind on a tight default limit.
         \core_php_time_limit::raise(300);
         $result = self::rebuild();
 
         return get_string('rebuildapplied', 'local_msgrules', (object) [
-            'users'   => $result['users'],
-            'added'   => $result['added'],
-            'removed' => $result['removed'],
+            'students' => $result['students'],
+            'added'    => $result['added'],
+            'removed'  => $result['removed'],
         ]);
     }
 
     /**
-     * Everything a decision needs, read once.
+     * May this student write to this person, according to the courses they share?
      *
-     * @return array{cohorts: array, rules: array}
+     * @param array $ctx From {@see roster::build()}
+     * @param int $senderid
+     * @param int $recipientid
+     * @return bool
      */
-    public static function build_context(): array {
-        return [
-            'cohorts' => rules::get_user_cohorts(),
-            'rules'   => rules::get_rules(),
-        ];
+    private static function is_allowed(array $ctx, int $senderid, int $recipientid): bool {
+        if (!isset($ctx['restricted'][$senderid])) {
+            // Not a student on any restricted course - the plugin has no opinion about them.
+            return true;
+        }
+
+        return isset($ctx['allowed'][$senderid][$recipientid]);
     }
 
     /**
-     * Rebuild every block row on the site from the matrix.
+     * Rebuild every block row on the site from the course settings.
      *
-     * Walks recipients rather than pairs: each block row has exactly one owner, so reconciling
-     * every recipient covers every pair while never holding more than one roster in memory.
+     * Walks senders rather than pairs, and only the senders that can own a row: the students
+     * some course restricts, plus anyone the plugin has rows for from a previous run whose
+     * restriction may since have been lifted.
      *
      * @param \progress_trace|null $trace Where to report progress, for cron and the CLI.
-     * @return array{added: int, removed: int, users: int, skipped: int}
+     * @return array{added: int, removed: int, students: int, skipped: int}
      */
     public static function rebuild(?\progress_trace $trace = null): array {
+        global $DB;
+
         $trace = $trace ?? new \null_progress_trace();
 
         if (!rules::is_enabled()) {
             $trace->output('local_msgrules is disabled - removing every rule-owned block row.');
             $removed = self::remove_all_managed();
-            return ['added' => 0, 'removed' => $removed, 'users' => 0, 'skipped' => 0];
+            return ['added' => 0, 'removed' => $removed, 'students' => 0, 'skipped' => 0];
         }
 
-        $ctx = self::build_context();
-        $count = count($ctx['cohorts']);
+        $count = self::count_eligible();
         $max = rules::get_max_users();
-
         if ($count > $max) {
             // Refusing loudly beats spending an hour of cron writing millions of rows. The
-            // matrix is unchanged, so raising the ceiling and re-running is all it takes.
+            // settings are unchanged, so raising the ceiling and re-running is all it takes.
             throw new \moodle_exception('errortoomanyusers', 'local_msgrules', '', (object) [
                 'count' => $count,
                 'max'   => $max,
             ]);
         }
 
-        $totals = ['added' => 0, 'removed' => 0, 'users' => 0, 'skipped' => 0];
-        foreach (array_keys($ctx['cohorts']) as $recipientid) {
-            $result = self::reconcile_incoming((int) $recipientid, $ctx);
+        $ctx = roster::build();
+
+        // Students a course restricts now, plus anyone we already hold rows for - the second
+        // set is how a lifted restriction gets cleaned up rather than lingering forever.
+        $senders = $ctx['restricted'];
+        foreach ($DB->get_fieldset_sql('SELECT DISTINCT blockeduserid FROM {local_msgrules_managed}') as $id) {
+            $senders[(int) $id] = true;
+        }
+
+        $totals = ['added' => 0, 'removed' => 0, 'students' => count($ctx['restricted']), 'skipped' => 0];
+        foreach (array_keys($senders) as $senderid) {
+            $result = self::reconcile_outgoing((int) $senderid, $ctx);
             $totals['added'] += $result['added'];
             $totals['removed'] += $result['removed'];
             $totals['skipped'] += $result['skipped'];
-            $totals['users']++;
         }
 
-        // Accounts that stopped being eligible - promoted to site administrator, deleted, or
-        // turned into the guest - still own rows from when they were in scope.
-        $totals['removed'] += self::remove_orphans(array_keys($ctx['cohorts']));
+        $totals['removed'] += self::remove_orphans($ctx['eligible']);
 
         $trace->output(sprintf(
-            'local_msgrules: %d users, %d blocks added, %d removed, %d left to the user.',
-            $totals['users'],
+            'local_msgrules: %d restricted students, %d blocks added, %d removed, %d left to the user.',
+            $totals['students'],
             $totals['added'],
             $totals['removed'],
             $totals['skipped']
@@ -181,25 +191,23 @@ class sync {
     /**
      * Re-derive every pair one account takes part in, in both directions.
      *
-     * Used when a single user changes - a new account, or cohort membership added or removed -
-     * so a change that affects one person does not cost a whole-site rebuild.
+     * Used when one person changes - a new account, an enrolment, a role - so a change that
+     * affects one student does not cost a whole-site rebuild.
      *
      * @param int $userid
      * @return array{added: int, removed: int, skipped: int}
      */
     public static function sync_user(int $userid): array {
-        if (!rules::is_enabled()) {
+        if (!rules::is_enabled() || self::count_eligible() > rules::get_max_users()) {
             return ['added' => 0, 'removed' => 0, 'skipped' => 0];
         }
 
-        $ctx = self::build_context();
-        if (count($ctx['cohorts']) > rules::get_max_users()) {
-            // Same ceiling as a rebuild: one user against the roster is still a roster scan.
-            return ['added' => 0, 'removed' => 0, 'skipped' => 0];
-        }
+        $ctx = roster::build();
 
-        $in = self::reconcile_incoming($userid, $ctx);
+        // Their own outgoing rows, and the rows other restricted students hold against them -
+        // joining a course changes both who they may write to and who may write to them.
         $out = self::reconcile_outgoing($userid, $ctx);
+        $in = self::reconcile_incoming($userid, $ctx);
 
         return [
             'added'   => $in['added'] + $out['added'],
@@ -209,10 +217,9 @@ class sync {
     }
 
     /**
-     * Does the matrix deny this one direction?
+     * Do the course settings deny this one direction?
      *
-     * The single-pair question, for the unblock observer. Reads only the two accounts
-     * involved, so it stays cheap enough to answer inside a request.
+     * The single-pair question, for the unblock observer.
      *
      * @param int $recipientid Who would receive the message.
      * @param int $senderid Who would send it.
@@ -222,97 +229,35 @@ class sync {
         if (!rules::is_enabled() || $recipientid == $senderid) {
             return false;
         }
-
-        $sender = self::get_cohorts_for($senderid);
-        $recipient = self::get_cohorts_for($recipientid);
-        if ($sender === null || $recipient === null) {
-            // One of them is exempt (a site administrator) or gone. Either way, not ours.
+        if (is_siteadmin($senderid) || is_siteadmin($recipientid)) {
             return false;
         }
 
-        return !rules::is_allowed($sender, $recipient, rules::get_rules());
+        $ctx = roster::build();
+        if (!isset($ctx['eligible'][$senderid]) || !isset($ctx['eligible'][$recipientid])) {
+            return false;
+        }
+
+        return !self::is_allowed($ctx, $senderid, $recipientid);
     }
 
     /**
-     * The cohorts one account belongs to, or null when the rules do not apply to it.
-     *
-     * @param int $userid
-     * @return int[]|null
-     */
-    public static function get_cohorts_for(int $userid): ?array {
-        global $DB, $CFG;
-
-        if (!$userid || $userid == $CFG->siteguest || is_siteadmin($userid)) {
-            return null;
-        }
-        if (!$DB->record_exists('user', ['id' => $userid, 'deleted' => 0])) {
-            return null;
-        }
-
-        $cohorts = $DB->get_fieldset_select('cohort_members', 'cohortid', 'userid = ?', [$userid]);
-        $cohorts = array_map('intval', $cohorts);
-
-        return $cohorts ?: [rules::NOCOHORT];
-    }
-
-    /**
-     * Reconcile the block rows owned by one recipient - everybody kept out of their inbox.
-     *
-     * @param int $recipientid
-     * @param array $ctx From {@see self::build_context()}
-     * @return array{added: int, removed: int, skipped: int}
-     */
-    private static function reconcile_incoming(int $recipientid, array $ctx): array {
-        global $DB;
-
-        $desired = [];
-        if (isset($ctx['cohorts'][$recipientid])) {
-            $recipientcohorts = $ctx['cohorts'][$recipientid];
-            foreach ($ctx['cohorts'] as $senderid => $sendercohorts) {
-                if ($senderid == $recipientid) {
-                    // Self-conversations are a core feature; never stand in their way.
-                    continue;
-                }
-                if (!rules::is_allowed($sendercohorts, $recipientcohorts, $ctx['rules'])) {
-                    $desired[(int) $senderid] = true;
-                }
-            }
-        }
-
-        $managed = $DB->get_records_menu(
-            'local_msgrules_managed',
-            ['userid' => $recipientid],
-            '',
-            'blockeduserid, id'
-        );
-        $existing = array_flip($DB->get_fieldset_select(
-            'message_users_blocked',
-            'blockeduserid',
-            'userid = ?',
-            [$recipientid]
-        ));
-
-        return self::apply($recipientid, $desired, $managed, $existing, true);
-    }
-
-    /**
-     * Reconcile the block rows that keep one sender out of other people's inboxes.
+     * Reconcile the rows that keep one student out of other people's inboxes.
      *
      * @param int $senderid
-     * @param array $ctx From {@see self::build_context()}
+     * @param array $ctx From {@see roster::build()}
      * @return array{added: int, removed: int, skipped: int}
      */
     private static function reconcile_outgoing(int $senderid, array $ctx): array {
         global $DB;
 
         $desired = [];
-        if (isset($ctx['cohorts'][$senderid])) {
-            $sendercohorts = $ctx['cohorts'][$senderid];
-            foreach ($ctx['cohorts'] as $recipientid => $recipientcohorts) {
-                if ($senderid == $recipientid) {
+        if (isset($ctx['eligible'][$senderid]) && isset($ctx['restricted'][$senderid])) {
+            foreach (array_keys($ctx['eligible']) as $recipientid) {
+                if ($recipientid == $senderid) {
                     continue;
                 }
-                if (!rules::is_allowed($sendercohorts, $recipientcohorts, $ctx['rules'])) {
+                if (!self::is_allowed($ctx, $senderid, (int) $recipientid)) {
                     $desired[(int) $recipientid] = true;
                 }
             }
@@ -335,10 +280,48 @@ class sync {
     }
 
     /**
-     * Write the difference between what the matrix wants and what is on disk.
+     * Reconcile the rows in one person's inbox - everybody a course keeps out of it.
+     *
+     * @param int $recipientid
+     * @param array $ctx From {@see roster::build()}
+     * @return array{added: int, removed: int, skipped: int}
+     */
+    private static function reconcile_incoming(int $recipientid, array $ctx): array {
+        global $DB;
+
+        $desired = [];
+        if (isset($ctx['eligible'][$recipientid])) {
+            foreach (array_keys($ctx['restricted']) as $senderid) {
+                if ($senderid == $recipientid) {
+                    continue;
+                }
+                if (!self::is_allowed($ctx, (int) $senderid, $recipientid)) {
+                    $desired[(int) $senderid] = true;
+                }
+            }
+        }
+
+        $managed = $DB->get_records_menu(
+            'local_msgrules_managed',
+            ['userid' => $recipientid],
+            '',
+            'blockeduserid, id'
+        );
+        $existing = array_flip($DB->get_fieldset_select(
+            'message_users_blocked',
+            'blockeduserid',
+            'userid = ?',
+            [$recipientid]
+        ));
+
+        return self::apply($recipientid, $desired, $managed, $existing, true);
+    }
+
+    /**
+     * Write the difference between what the settings want and what is on disk.
      *
      * @param int $anchorid The account both sides of every pair share.
-     * @param array $desired [otheruserid => true] pairs the matrix denies.
+     * @param array $desired [otheruserid => true] pairs that must be blocked.
      * @param array $managed [otheruserid => managed row id] pairs this plugin already owns.
      * @param array $existing [otheruserid => anything] pairs already in message_users_blocked.
      * @param bool $anchorisrecipient True when $anchorid owns the block rows.
@@ -364,7 +347,7 @@ class sync {
             }
             if (isset($existing[$otherid])) {
                 // The user blocked this person themselves. Their row already denies the pair,
-                // and claiming it would mean deleting their decision when a rule later changes.
+                // and claiming it would mean deleting their decision when a course changes.
                 $skipped++;
                 continue;
             }
@@ -389,13 +372,13 @@ class sync {
             $DB->insert_records('local_msgrules_managed', $chunk);
         }
 
-        // Anything we own that the matrix now permits.
+        // Anything we own that the settings now permit.
         $stale = array_diff_key($managed, $desired);
         if ($stale) {
+            $anchorfield = $anchorisrecipient ? 'userid' : 'blockeduserid';
+            $otherfield = $anchorisrecipient ? 'blockeduserid' : 'userid';
             foreach (array_chunk(array_keys($stale), self::CHUNK) as $chunk) {
                 [$insql, $params] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'o');
-                $anchorfield = $anchorisrecipient ? 'userid' : 'blockeduserid';
-                $otherfield = $anchorisrecipient ? 'blockeduserid' : 'userid';
                 $params['anchor'] = $anchorid;
                 $where = "$anchorfield = :anchor AND $otherfield $insql";
                 $DB->delete_records_select('message_users_blocked', $where, $params);
@@ -439,13 +422,12 @@ class sync {
     /**
      * Delete rows for accounts that are no longer in scope.
      *
-     * @param int[] $eligible Account ids the rules still apply to.
+     * @param array<int, bool> $eligible Accounts the rules still apply to.
      * @return int Rows removed.
      */
     private static function remove_orphans(array $eligible): int {
         global $DB;
 
-        $eligible = array_flip(array_map('intval', $eligible));
         $orphans = [];
         $rs = $DB->get_recordset('local_msgrules_managed', null, 'id ASC', 'id, userid, blockeduserid');
         foreach ($rs as $row) {

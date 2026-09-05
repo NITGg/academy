@@ -24,67 +24,74 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'Messaging rules';
+$string['pluginname'] = 'Student messaging restrictions';
 $string['settings'] = 'Settings';
-$string['managematrix'] = 'Who may message whom';
+$string['managecourses'] = 'Restrictions per course';
+
+// The four modes.
+$string['modeopen'] = 'No restriction';
+$string['modepeers'] = 'Students may message each other only';
+$string['modepeersteachers'] = 'Students may message each other and the teachers';
+$string['modeteachers'] = 'Students may message the teachers only';
+$string['usedefault'] = 'Site default ({$a})';
 
 // Settings.
-$string['enabled'] = 'Enforce messaging rules';
-$string['enabled_desc'] = 'When on, a user may only start a conversation with someone the matrix below permits. '
-    . 'Turning it off restores every conversation the plugin had closed, leaving any block a user made themselves in place. '
-    . 'Draw the matrix first, then switch this on.';
+$string['enabled'] = 'Enforce these restrictions';
+$string['enabled_desc'] = 'When on, students are held to the mode set for each of their courses. '
+    . 'Turning it off restores every conversation the plugin had closed, leaving any block a user made themselves in '
+    . 'place. Choose the modes first, then switch this on.';
+$string['defaultmode'] = 'Default for all courses';
+$string['defaultmode_desc'] = 'Applies to every course that has not been given its own setting on the '
+    . '"Restrictions per course" page. Leave it at "No restriction" if you only want to restrict a course or two.';
 $string['maxusers'] = 'Maximum accounts';
-$string['maxusers_desc'] = 'A rule is stored as one block row per denied direction, so the work grows with the square of '
-    . 'the number of accounts. Above this figure a rebuild refuses to run rather than spending hours in cron. Raise it '
-    . 'deliberately, and expect a rebuild on a large site to be slow.';
+$string['maxusers_desc'] = 'A restricted student needs one row per person on the site they may not write to, so the '
+    . 'work grows with the size of the site. Above this figure a rebuild refuses to run rather than spending hours in '
+    . 'cron. Raise it deliberately.';
 
 // Management screen.
-$string['matrixintro'] = 'Tick a box to let members of the cohort in that row start a conversation with members of the '
-    . 'cohort in that column. Direction matters: allowing students to write to instructors says nothing about the reply, '
-    . 'which needs its own tick in the opposite cell.';
-$string['sendercohort'] = 'Sender';
-$string['recipientcohort'] = 'May write to';
-$string['nocohort'] = 'Not in any cohort';
-$string['nocohort_help'] = 'Covers every account that belongs to no cohort at all, including brand-new sign-ups.';
-$string['rulessaved'] = 'Rules saved.';
-$string['rebuildnow'] = 'Rebuild now';
-$string['rebuildqueued'] = 'A rebuild has been queued and will apply on the next cron run. This site is too large to '
-    . 'rebuild while you wait.';
-$string['rebuildapplied'] = 'Applied to {$a->users} accounts: {$a->added} conversations closed, {$a->removed} reopened. '
-    . 'This is live now - log in as a test account to check it.';
+$string['coursesintro'] = 'Each course decides what its own students may do. Teachers are never restricted - they can '
+    . 'always write to their students - and a student on several courses gets whatever any one of those courses allows.';
+$string['currentdefault'] = 'Courses with no setting of their own use the site default: <strong>{$a}</strong>.';
+$string['course'] = 'Course';
+$string['restriction'] = 'Students on this course may message';
+$string['searchcourses'] = 'Search courses';
+$string['nocoursesfound'] = 'No courses matched.';
+$string['rebuildnow'] = 'Reapply now';
+$string['rebuildqueued'] = 'Queued - it will apply on the next cron run. This site is too large to rebuild while you '
+    . 'wait.';
+$string['rebuildapplied'] = 'Live now: {$a->students} restricted students, {$a->added} conversations closed, '
+    . '{$a->removed} reopened. Log in as a test student to check it.';
 $string['currentstate'] = 'Current state';
-$string['managedblocks'] = 'Conversations currently closed by these rules: {$a}';
-$string['nocohortsyet'] = 'There are no cohorts on this site yet, so there is nothing to draw rules over. Create the '
-    . 'groups you want to separate under Site administration > Users > Cohorts, then come back.';
-$string['disabledwarning'] = 'These rules are not being enforced. Switch on "Enforce messaging rules" in the settings '
-    . 'once the matrix says what you want.';
-$string['messagingoffwarning'] = 'The site messaging system is switched off, so nothing can be sent anyway. These rules '
-    . 'will start to matter once messaging is enabled under Site administration > Advanced features.';
+$string['managedblocks'] = 'Conversations currently closed by these restrictions: {$a}';
+$string['disabledwarning'] = 'These restrictions are not being enforced. Switch on "Enforce these restrictions" in the '
+    . 'settings once the courses below say what you want.';
+$string['messagingoffwarning'] = 'The site messaging system is switched off, so nothing can be sent anyway. These '
+    . 'restrictions will start to matter once messaging is enabled under Site administration > Advanced features.';
 
 // Bypass diagnostics.
-$string['bypassheading'] = 'Roles that ignore these rules';
-$string['bypassintro'] = 'The rules work through the recipient\'s blocked-users list, and core lets two capabilities '
-    . 'ignore that list entirely. Anybody holding either one can message whoever they like whatever the matrix says. '
-    . 'Remove the capability from the roles below if you want the rules to apply to them.';
-$string['bypassnone'] = 'No role other than a site administrator can ignore the rules.';
+$string['bypassheading'] = 'Roles that ignore these restrictions';
+$string['bypassintro'] = 'The restrictions work through the recipient\'s blocked-users list, and core lets two '
+    . 'capabilities ignore that list entirely. Anybody holding either one can message whoever they like whatever a '
+    . 'course says. That is usually what you want for teachers; remove the capability from a role if you do not.';
+$string['bypassnone'] = 'No role other than a site administrator can ignore the restrictions.';
 $string['bypassrole'] = '{$a->role} - via {$a->capability}';
-$string['adminexempt'] = 'Site administrators are always exempt: they are never blocked, and nobody is ever blocked from '
-    . 'writing to them, so there is always a way to reach support.';
+$string['adminexempt'] = 'Site administrators are always exempt: they are never blocked, and nobody is ever blocked '
+    . 'from writing to them, so there is always a way to reach support.';
 
 // Tasks.
-$string['tasksyncblocks'] = 'Rebuild messaging rules';
-$string['tasksyncuser'] = 'Apply messaging rules to one user';
+$string['tasksyncblocks'] = 'Reapply student messaging restrictions';
+$string['tasksyncuser'] = 'Apply messaging restrictions to one user';
 
 // Errors.
 $string['errortoomanyusers'] = 'This site has {$a->count} accounts, above the configured maximum of {$a->max}. Raise '
     . '"Maximum accounts" in the plugin settings if you really want to rebuild over this many.';
 
 // Capabilities.
-$string['msgrules:manage'] = 'Manage the messaging rules matrix';
+$string['msgrules:manage'] = 'Manage student messaging restrictions';
 
 // Privacy.
 $string['privacy:metadata:local_msgrules_managed'] = 'Which of the conversation blocks in a user\'s account were placed '
-    . 'by the site messaging rules rather than by the user.';
+    . 'by the course messaging restrictions rather than by the user.';
 $string['privacy:metadata:local_msgrules_managed:userid'] = 'The user whose blocked-users list holds the entry.';
 $string['privacy:metadata:local_msgrules_managed:blockeduserid'] = 'The user being kept out of that conversation.';
-$string['privacy:metadata:local_msgrules_managed:timecreated'] = 'When the rules placed the entry.';
+$string['privacy:metadata:local_msgrules_managed:timecreated'] = 'When the restrictions placed the entry.';

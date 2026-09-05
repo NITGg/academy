@@ -27,25 +27,48 @@ defined('MOODLE_INTERNAL') || die();
 $observers = [
     [
         // The rules are enforced as rows in the recipient's own blocked-users list, which core
-        // shows them and lets them delete. Without this observer a restricted user could lift
-        // the site policy on themselves from their own message preferences, so an unblock of a
-        // pair the matrix still denies is put straight back.
+        // shows them and lets them delete. Without this observer a restricted student could
+        // lift the policy on themselves from their own message preferences, so an unblock of a
+        // pair a course still denies is put straight back.
         'eventname' => '\core\event\message_user_unblocked',
         'callback'  => '\local_msgrules\observer::message_user_unblocked',
     ],
     [
-        // Cohort membership is the input to every rule, so a change to it re-derives every
-        // pair involving that one user - cheap, since it is one user against the roster.
-        'eventname' => '\core\event\cohort_member_added',
-        'callback'  => '\local_msgrules\observer::cohort_membership_changed',
+        // Enrolment is the input to every rule: joining a course is what decides who a student
+        // may write to, and leaving it is what takes the permission away.
+        'eventname' => '\core\event\user_enrolment_created',
+        'callback'  => '\local_msgrules\observer::enrolment_changed',
     ],
     [
-        'eventname' => '\core\event\cohort_member_removed',
-        'callback'  => '\local_msgrules\observer::cohort_membership_changed',
+        'eventname' => '\core\event\user_enrolment_deleted',
+        'callback'  => '\local_msgrules\observer::enrolment_changed',
     ],
     [
-        // A new account starts in no cohort, so it needs its pairs derived immediately -
-        // otherwise it could message everyone until the nightly rebuild caught up.
+        // A suspended enrolment does not count, so a status change matters as much as adding
+        // or removing one.
+        'eventname' => '\core\event\user_enrolment_updated',
+        'callback'  => '\local_msgrules\observer::enrolment_changed',
+    ],
+    [
+        // Whether somebody counts as a teacher decides both whether they are restricted and
+        // whether students may write to them, so a role change re-derives their pairs.
+        'eventname' => '\core\event\role_assigned',
+        'callback'  => '\local_msgrules\observer::role_changed',
+    ],
+    [
+        'eventname' => '\core\event\role_unassigned',
+        'callback'  => '\local_msgrules\observer::role_changed',
+    ],
+    [
+        // A deleted course takes its override with it, otherwise the row lingers and a course
+        // created later could inherit a setting nobody chose for it.
+        'eventname' => '\core\event\course_deleted',
+        'callback'  => '\local_msgrules\observer::course_deleted',
+    ],
+    [
+        // A brand-new account is on no course, so no restricted student may write to it - but
+        // only once the rows saying so exist. Without this, every restricted student could
+        // message each new sign-up until the nightly rebuild caught up.
         'eventname' => '\core\event\user_created',
         'callback'  => '\local_msgrules\observer::user_created',
     ],

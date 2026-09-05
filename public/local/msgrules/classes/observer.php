@@ -17,7 +17,7 @@
 namespace local_msgrules;
 
 /**
- * Keeps the derived block rows in step with the things they are derived from.
+ * Keeps the derived block rows in step with enrolments, roles and courses.
  *
  * @package    local_msgrules
  * @copyright  2026 NIT
@@ -26,13 +26,13 @@ namespace local_msgrules;
 class observer {
 
     /**
-     * Put back a block the matrix still denies.
+     * Put back a block a course still requires.
      *
      * The rules are enforced through the recipient's own blocked-users list, and core shows
      * that list to the user with a button to clear each entry. Left alone, any restricted
-     * account could lift the site policy on itself from its own message preferences, so the
-     * pair goes straight back - synchronously, because the gap between the two is a window
-     * in which the message would actually go through.
+     * student could lift the policy on themselves from their own message preferences, so the
+     * pair goes straight back - synchronously, because the gap between the two would be a
+     * window in which the message actually went through.
      *
      * @param \core\event\message_user_unblocked $event
      * @return void
@@ -44,7 +44,7 @@ class observer {
         $senderid = (int) $event->relateduserid;      // The account that was let back in.
 
         if (!sync::should_block($recipientid, $senderid)) {
-            // Either the plugin is off, one of them is exempt, or the matrix now permits it -
+            // Either the plugin is off, one of them is exempt, or the courses now permit it -
             // in which case the user is welcome to their unblock. Drop our claim on the pair.
             $DB->delete_records('local_msgrules_managed', [
                 'userid'        => $recipientid,
@@ -67,25 +67,39 @@ class observer {
     }
 
     /**
-     * Re-derive one account's pairs after its cohort membership moved.
+     * Re-derive one account's pairs after an enrolment changed.
      *
-     * Queued rather than run inline: a cohort upload or a sync plugin can move hundreds of
-     * members in one request, and each move costs a pass over the roster. The adhoc queue
-     * collapses repeats for the same user, so a bulk change settles in one pass per account.
-     *
-     * @param \core\event\base $event cohort_member_added or cohort_member_removed.
+     * @param \core\event\base $event One of the user_enrolment_* events.
      * @return void
      */
-    public static function cohort_membership_changed(\core\event\base $event): void {
+    public static function enrolment_changed(\core\event\base $event): void {
         self::queue_user((int) $event->relateduserid);
     }
 
     /**
-     * Derive a brand-new account's pairs.
+     * Re-derive one account's pairs after a role was assigned or taken away.
      *
-     * A new account is in no cohort, so under a matrix that says nothing about "no cohort" it
-     * is denied everything - but only once the rows exist. Waiting for the nightly rebuild
-     * would leave it able to write to the whole site until then.
+     * Only course, category and system contexts matter - those are the ones the teacher
+     * lookup walks. A role on an activity or a block changes nothing here.
+     *
+     * @param \core\event\base $event role_assigned or role_unassigned.
+     * @return void
+     */
+    public static function role_changed(\core\event\base $event): void {
+        $context = $event->get_context();
+        if (!in_array($context->contextlevel, [CONTEXT_COURSE, CONTEXT_COURSECAT, CONTEXT_SYSTEM], true)) {
+            return;
+        }
+
+        self::queue_user((int) $event->relateduserid);
+    }
+
+    /**
+     * Derive the pairs for a brand-new account.
+     *
+     * A new account is on no course, so every restricted student on the site must be kept out
+     * of it. Those rows do not exist until somebody makes them, and waiting for the nightly
+     * rebuild would leave the account reachable by everyone until then.
      *
      * @param \core\event\user_created $event
      * @return void
@@ -95,11 +109,28 @@ class observer {
     }
 
     /**
+     * Forget a deleted course's override.
+     *
+     * @param \core\event\course_deleted $event
+     * @return void
+     */
+    public static function course_deleted(\core\event\course_deleted $event): void {
+        global $DB;
+
+        $DB->delete_records('local_msgrules_course', ['courseid' => (int) $event->objectid]);
+
+        // Its students may now be unrestricted, and their rows are nobody's job but ours.
+        if (rules::is_enabled()) {
+            task\rebuild::queue();
+        }
+    }
+
+    /**
      * Forget an account that no longer exists.
      *
-     * Core clears the deleted user's own message_users_blocked rows, so all that is left to
-     * do is drop our record of the ones we owned - in both directions, since the account was
-     * both a recipient and a sender.
+     * Core clears the deleted user's own message_users_blocked rows, so all that is left is to
+     * drop our record of the ones we owned - in both directions, since the account was both a
+     * recipient and a sender.
      *
      * @param \core\event\user_deleted $event
      * @return void
@@ -116,6 +147,10 @@ class observer {
     /**
      * Ask cron to re-derive one account, unless the plugin is switched off.
      *
+     * Queued rather than run inline: enrolling a cohort or uploading a CSV moves hundreds of
+     * people in one request, and each move costs a pass over the roster. The adhoc queue drops
+     * a duplicate that is already waiting, so a bulk change settles in one pass per account.
+     *
      * @param int $userid
      * @return void
      */
@@ -128,8 +163,6 @@ class observer {
         $task->set_custom_data(['userid' => $userid]);
         $task->set_component('local_msgrules');
 
-        // The second argument drops a duplicate that is already waiting, so a member moved
-        // between five cohorts in one upload still costs one pass.
         \core\task\manager::queue_adhoc_task($task, true);
     }
 }

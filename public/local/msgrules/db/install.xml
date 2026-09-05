@@ -1,22 +1,20 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/msgrules/db" VERSION="2026090500" COMMENT="Administrator-controlled messaging rules."
+<XMLDB PATH="local/msgrules/db" VERSION="2026090600" COMMENT="Administrator-controlled messaging rules."
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
   <TABLES>
-    <TABLE NAME="local_msgrules_rule" COMMENT="One row per ALLOWED cohort-to-cohort direction. Absence of a row means that direction is denied.">
+    <TABLE NAME="local_msgrules_course" COMMENT="Per-course override of the site-wide student messaging mode. Only courses that differ from the default are stored.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="fromcohortid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Sender cohort. 0 is the pseudo-cohort for users who belong to no cohort at all."/>
-        <FIELD NAME="tocohortid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Recipient cohort. 0 is the pseudo-cohort for users who belong to no cohort at all."/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="mode" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0 open, 1 peers only, 2 peers and teachers, 3 teachers only."/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="courseid" TYPE="foreign-unique" FIELDS="courseid" REFTABLE="course" REFFIELDS="id"/>
       </KEYS>
-      <INDEXES>
-        <INDEX NAME="fromcohortid-tocohortid" UNIQUE="true" FIELDS="fromcohortid, tocohortid"/>
-      </INDEXES>
     </TABLE>
     <TABLE NAME="local_msgrules_managed" COMMENT="The message_users_blocked rows this plugin owns, so a rebuild never touches a block a user made themselves.">
       <FIELDS>

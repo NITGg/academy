@@ -17,14 +17,10 @@
 namespace local_msgrules;
 
 /**
- * The rule matrix: which cohort may open a conversation with which other cohort.
+ * What a course allows its students to do in messaging.
  *
- * A rule row means "allowed"; a direction with no row is denied. That way the matrix reads
- * as a permission grid rather than a list of prohibitions, and a brand-new cohort starts
- * locked down instead of wide open.
- *
- * Direction matters. A row (from = Students, to = Instructors) lets a student write to an
- * instructor and says nothing about the reply; the reverse direction needs its own row.
+ * One mode per course, plus a site-wide default for every course without its own. Teachers are
+ * never restricted by this - the rule is about who a *student* may write to.
  *
  * @package    local_msgrules
  * @copyright  2026 NIT
@@ -32,20 +28,37 @@ namespace local_msgrules;
  */
 class rules {
 
+    /** @var int No restriction - students message whoever the site normally lets them. */
+    public const MODE_OPEN = 0;
+
+    /** @var int Students may write to the other students on the course, and nobody else. */
+    public const MODE_PEERS = 1;
+
+    /** @var int Students may write to the other students on the course and to its teachers. */
+    public const MODE_PEERS_AND_TEACHERS = 2;
+
+    /** @var int Students may write to the course teachers only, not to each other. */
+    public const MODE_TEACHERS_ONLY = 3;
+
     /**
-     * Pseudo-cohort for accounts that belong to no cohort at all.
+     * The four modes, for a dropdown.
      *
-     * Without it the matrix would have nothing to say about a fresh sign-up, and "no rule
-     * matched" would be indistinguishable from "this user is outside the scheme". Real cohort
-     * ids are sequence values and never 0, so the id is free to borrow.
+     * @return array [mode => label]
      */
-    public const NOCOHORT = 0;
+    public static function get_modes(): array {
+        return [
+            self::MODE_OPEN               => get_string('modeopen', 'local_msgrules'),
+            self::MODE_PEERS              => get_string('modepeers', 'local_msgrules'),
+            self::MODE_PEERS_AND_TEACHERS => get_string('modepeersteachers', 'local_msgrules'),
+            self::MODE_TEACHERS_ONLY      => get_string('modeteachers', 'local_msgrules'),
+        ];
+    }
 
     /**
      * Is the plugin switched on?
      *
-     * Off is the shipped default: installing the plugin must not silently cut every
-     * conversation on the site before an administrator has drawn the matrix.
+     * Off is the shipped default: installing must not cut a single conversation before an
+     * administrator has chosen the modes and decided to turn it on.
      *
      * @return bool
      */
@@ -54,10 +67,21 @@ class rules {
     }
 
     /**
+     * The mode used by every course that has not been given one of its own.
+     *
+     * @return int
+     */
+    public static function get_default_mode(): int {
+        $mode = get_config('local_msgrules', 'defaultmode');
+
+        return $mode === false ? self::MODE_OPEN : (int) $mode;
+    }
+
+    /**
      * The ceiling on how many accounts a rebuild will process.
      *
-     * The rules are stored as one block row per denied ordered pair, so the row count grows
-     * with the square of the roster. The guard turns "the site quietly got slow" into a
+     * A restricted student needs one block row per person on the site they may not write to,
+     * so the work grows with the roster. The guard turns "the site quietly got slow" into a
      * refusal with a number in it.
      *
      * @return int
@@ -67,155 +91,89 @@ class rules {
     }
 
     /**
-     * The allowed directions, as a nested lookup.
+     * The per-course overrides, as courseid => mode.
      *
-     * @return array [fromcohortid][tocohortid] => true
+     * Only courses that differ from the site default are stored, so this stays small however
+     * many courses the site has.
+     *
+     * @return array
      */
-    public static function get_rules(): array {
+    public static function get_course_modes(): array {
         global $DB;
 
         $out = [];
-        foreach ($DB->get_records('local_msgrules_rule') as $rule) {
-            $out[(int) $rule->fromcohortid][(int) $rule->tocohortid] = true;
+        foreach ($DB->get_records('local_msgrules_course') as $row) {
+            $out[(int) $row->courseid] = (int) $row->mode;
         }
         return $out;
     }
 
     /**
-     * Replace the whole matrix with the given set of allowed directions.
+     * The mode actually in force for one course.
      *
-     * Written as a whole rather than row by row because the management screen submits the
-     * complete grid: a direction the administrator cleared is absent from the post, and the
-     * only way to tell "cleared" from "not shown" is to treat the submission as the truth.
+     * @param int $courseid
+     * @return int
+     */
+    public static function get_course_mode(int $courseid): int {
+        $overrides = self::get_course_modes();
+
+        return $overrides[$courseid] ?? self::get_default_mode();
+    }
+
+    /**
+     * Give one course its own mode, or hand it back to the site default.
      *
-     * @param array $allowed [fromcohortid][tocohortid] => truthy
+     * @param int $courseid
+     * @param int|null $mode Null clears the override.
      * @return void
      */
-    public static function set_rules(array $allowed): void {
+    public static function set_course_mode(int $courseid, ?int $mode): void {
         global $DB;
 
-        $now = time();
-        $existing = [];
-        foreach ($DB->get_records('local_msgrules_rule') as $rule) {
-            $existing[(int) $rule->fromcohortid . ':' . (int) $rule->tocohortid] = $rule->id;
-        }
+        $existing = $DB->get_record('local_msgrules_course', ['courseid' => $courseid]);
 
-        $insert = [];
-        foreach ($allowed as $from => $tos) {
-            foreach ($tos as $to => $on) {
-                if (empty($on)) {
-                    continue;
-                }
-                $key = (int) $from . ':' . (int) $to;
-                if (isset($existing[$key])) {
-                    // Already allowed - keep the row (and its timestamp) untouched.
-                    unset($existing[$key]);
-                    continue;
-                }
-                $insert[] = (object) [
-                    'fromcohortid' => (int) $from,
-                    'tocohortid'   => (int) $to,
-                    'timemodified' => $now,
-                ];
+        if ($mode === null) {
+            if ($existing) {
+                $DB->delete_records('local_msgrules_course', ['id' => $existing->id]);
             }
+            return;
         }
 
-        // Whatever is left in $existing was allowed before and is not any more.
         if ($existing) {
-            $DB->delete_records_list('local_msgrules_rule', 'id', array_values($existing));
-        }
-        if ($insert) {
-            $DB->insert_records('local_msgrules_rule', $insert);
-        }
-    }
-
-    /**
-     * The cohorts the matrix is drawn over, with the "no cohort" pseudo-entry first.
-     *
-     * @return array [cohortid => name]
-     */
-    public static function get_cohort_menu(): array {
-        global $DB;
-
-        $menu = [self::NOCOHORT => get_string('nocohort', 'local_msgrules')];
-        $cohorts = $DB->get_records('cohort', null, 'name ASC', 'id, name, idnumber');
-        foreach ($cohorts as $cohort) {
-            $menu[(int) $cohort->id] = format_string($cohort->name);
-        }
-        return $menu;
-    }
-
-    /**
-     * Every account the rules apply to, and the cohorts each one sits in.
-     *
-     * Site administrators are left out on purpose - they are the one exemption, so they are
-     * never blocked and never blocked from. Deleted accounts and the guest account are out
-     * because neither can hold a conversation.
-     *
-     * @return array [userid => int[] cohort ids, or [self::NOCOHORT] when the user is in none]
-     */
-    public static function get_user_cohorts(): array {
-        global $DB, $CFG;
-
-        $exclude = array_map('intval', explode(',', (string) $CFG->siteadmins));
-        $exclude[] = (int) $CFG->siteguest;
-        $exclude = array_values(array_unique(array_filter($exclude)));
-
-        [$notin, $params] = $DB->get_in_or_equal($exclude, SQL_PARAMS_NAMED, 'ex', false);
-
-        $users = $DB->get_fieldset_select('user', 'id', "deleted = 0 AND id $notin", $params);
-
-        $map = [];
-        foreach ($users as $userid) {
-            $map[(int) $userid] = [];
-        }
-
-        // One pass over the membership table rather than a query per user.
-        $sql = "SELECT cm.id, cm.userid, cm.cohortid
-                  FROM {cohort_members} cm
-                  JOIN {user} u ON u.id = cm.userid AND u.deleted = 0";
-        $rs = $DB->get_recordset_sql($sql);
-        foreach ($rs as $member) {
-            $userid = (int) $member->userid;
-            if (isset($map[$userid])) {
-                $map[$userid][] = (int) $member->cohortid;
+            if ((int) $existing->mode !== $mode) {
+                $DB->update_record('local_msgrules_course', (object) [
+                    'id'           => $existing->id,
+                    'mode'         => $mode,
+                    'timemodified' => time(),
+                ]);
             }
-        }
-        $rs->close();
-
-        foreach ($map as $userid => $cohorts) {
-            if (!$cohorts) {
-                $map[$userid] = [self::NOCOHORT];
-            }
+            return;
         }
 
-        return $map;
+        $DB->insert_record('local_msgrules_course', (object) [
+            'courseid'     => $courseid,
+            'mode'         => $mode,
+            'timemodified' => time(),
+        ]);
     }
 
     /**
-     * May a member of these cohorts write to a member of those cohorts?
+     * Does any course on the site restrict its students?
      *
-     * A user in several cohorts gets the union of what those cohorts allow: one permitting
-     * rule anywhere in the pair is enough. The alternative - requiring every cohort to permit
-     * it - would mean adding somebody to a second cohort could take away access they had,
-     * which is not how administrators read a permission grid.
+     * Answers "is there any work to do at all" without walking the roster, which is the common
+     * case on a site that has the plugin installed but every course left open.
      *
-     * @param int[] $sendercohorts
-     * @param int[] $recipientcohorts
-     * @param array $rules As returned by {@see self::get_rules()}
      * @return bool
      */
-    public static function is_allowed(array $sendercohorts, array $recipientcohorts, array $rules): bool {
-        foreach ($sendercohorts as $from) {
-            if (empty($rules[$from])) {
-                continue;
-            }
-            foreach ($recipientcohorts as $to) {
-                if (!empty($rules[$from][$to])) {
-                    return true;
-                }
-            }
+    public static function has_any_restriction(): bool {
+        global $DB;
+
+        if (self::get_default_mode() !== self::MODE_OPEN) {
+            // Every course without an override is restricted, so unless every single course
+            // has been opened by hand there is something to do.
+            return true;
         }
-        return false;
+
+        return $DB->record_exists_select('local_msgrules_course', 'mode <> ?', [self::MODE_OPEN]);
     }
 }

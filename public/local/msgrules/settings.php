@@ -34,7 +34,7 @@ if ($hassiteconfig) {
     );
 
     // Off by default. Installing the plugin must not close a single conversation before an
-    // administrator has drawn the matrix and decided to turn it on.
+    // administrator has chosen the modes and decided to turn it on.
     $enabled = new admin_setting_configcheckbox(
         'local_msgrules/enabled',
         get_string('enabled', 'local_msgrules'),
@@ -43,6 +43,18 @@ if ($hassiteconfig) {
     );
     $enabled->set_updatedcallback('local_msgrules_enabled_changed');
     $settings->add($enabled);
+
+    // "All courses" lives here rather than on the per-course page: it is a site policy, and
+    // repeating it on a paginated list of courses would make it look like a per-course choice.
+    $defaultmode = new admin_setting_configselect(
+        'local_msgrules/defaultmode',
+        get_string('defaultmode', 'local_msgrules'),
+        get_string('defaultmode_desc', 'local_msgrules'),
+        \local_msgrules\rules::MODE_OPEN,
+        \local_msgrules\rules::get_modes()
+    );
+    $defaultmode->set_updatedcallback('local_msgrules_enabled_changed');
+    $settings->add($defaultmode);
 
     $settings->add(new admin_setting_configtext(
         'local_msgrules/maxusers',
@@ -56,7 +68,7 @@ if ($hassiteconfig) {
 
     $ADMIN->add('local_msgrules_cat', new admin_externalpage(
         'local_msgrules_manage',
-        get_string('managematrix', 'local_msgrules'),
+        get_string('managecourses', 'local_msgrules'),
         new moodle_url('/local/msgrules/manage.php'),
         'local/msgrules:manage'
     ));

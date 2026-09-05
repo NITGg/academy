@@ -26,9 +26,9 @@ defined('MOODLE_INTERNAL') || die();
 
 $tasks = [
     [
-        // A full rebuild of the block rows from the matrix. The observers already keep the
-        // table right as cohorts and accounts change, so this is the safety net that repairs
-        // whatever was edited straight in the database or missed while cron was down.
+        // A full rebuild of the block rows from the course settings. The observers already
+        // keep the table right as enrolments and roles change, so this is the safety net that
+        // repairs whatever was edited straight in the database or missed while cron was down.
         // Nightly and off the hour, since a rebuild reads every eligible account.
         'classname' => 'local_msgrules\task\sync_blocks',
         'blocking'  => 0,
