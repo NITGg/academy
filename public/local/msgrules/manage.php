@@ -26,88 +26,12 @@ require(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 
 use core\output\notification;
+use local_msgrules\form;
 use local_msgrules\rules;
 use local_msgrules\sync;
 
 admin_externalpage_setup('local_msgrules_manage');
 require_capability('local/msgrules:manage', context_system::instance());
-
-/**
- * Read one row's ticks back into a stored mode.
- *
- * "No restriction" wins over the three group ticks when both are posted: it is the master
- * switch, and honouring it here means a half-finished row can never lock a course by accident.
- *
- * @param string $suffix Field-name suffix identifying the row ('default' or a course id).
- * @return int
- */
-function local_msgrules_read_mode(string $suffix): int {
-    if (optional_param('open_' . $suffix, 0, PARAM_BOOL)) {
-        return rules::OPEN;
-    }
-
-    $mode = rules::ALLOW_NOBODY;
-    foreach (array_keys(rules::get_flags()) as $flag) {
-        if (optional_param('flag_' . $suffix . '_' . $flag, 0, PARAM_BOOL)) {
-            $mode |= $flag;
-        }
-    }
-
-    return $mode;
-}
-
-/**
- * Render one row of ticks: the master "no restriction" plus one per group.
- *
- * @param string $suffix Field-name suffix identifying the row.
- * @param int|null $mode The mode to show, or null for "follow the site default".
- * @param string $rowlabel Accessible prefix so each tick says which row it belongs to.
- * @return string
- */
-function local_msgrules_render_ticks(string $suffix, ?int $mode, string $rowlabel): string {
-    $out = '';
-    $inherits = $mode === null;
-    $effective = $mode ?? rules::get_default_mode();
-
-    $tick = function (string $name, string $label, bool $checked, string $extraclass = '') use ($rowlabel) {
-        $id = 'id_' . $name;
-        return html_writer::div(
-            html_writer::empty_tag('input', array_filter([
-                'type'    => 'checkbox',
-                'class'   => 'form-check-input',
-                'name'    => $name,
-                'id'      => $id,
-                'value'   => 1,
-                'checked' => $checked ? 'checked' : null,
-            ])) .
-            html_writer::tag('label', $label, [
-                'for'   => $id,
-                'class' => 'form-check-label',
-                'title' => $rowlabel . ' - ' . $label,
-            ]),
-            trim('form-check form-check-inline ' . $extraclass)
-        );
-    };
-
-    // The master switch first, then the three groups it overrides.
-    $out .= $tick('open_' . $suffix, get_string('modeopen', 'local_msgrules'),
-        !$inherits && rules::is_open($effective), 'me-4 fw-bold');
-
-    foreach (rules::get_flags() as $flag => $label) {
-        $out .= $tick('flag_' . $suffix . '_' . $flag, $label,
-            !$inherits && rules::allows($effective, $flag));
-    }
-
-    if ($inherits) {
-        // Nothing of its own: say so, and show what it currently resolves to.
-        $out .= html_writer::div(
-            get_string('followsdefault', 'local_msgrules', rules::describe($effective)),
-            'small text-muted mt-1'
-        );
-    }
-
-    return $out;
-}
 
 $search = trim(optional_param('search', '', PARAM_TEXT));
 $page = optional_param('page', 0, PARAM_INT);
@@ -135,7 +59,7 @@ $courses = $DB->get_records_sql(
 
 // ---- Saving ------------------------------------------------------------------------------
 if (optional_param('save', 0, PARAM_BOOL) && confirm_sesskey()) {
-    rules::set_default_mode(local_msgrules_read_mode('default'));
+    rules::set_default_mode(form::read_mode('default'));
 
     // Only the courses actually on this page are read. Anything else is untouched, so paging
     // through a long list does not quietly reset the courses you are not looking at.
@@ -143,7 +67,7 @@ if (optional_param('save', 0, PARAM_BOOL) && confirm_sesskey()) {
         if (optional_param('inherit_' . $courseid, 0, PARAM_BOOL)) {
             rules::set_course_mode((int) $courseid, null);
         } else {
-            rules::set_course_mode((int) $courseid, local_msgrules_read_mode((string) $courseid));
+            rules::set_course_mode((int) $courseid, form::read_mode((string) $courseid));
         }
     }
 
@@ -214,7 +138,7 @@ echo html_writer::start_tag('tbody');
 echo html_writer::start_tag('tr', ['class' => 'table-active']);
 echo html_writer::tag('th', html_writer::tag('strong', get_string('allcourses', 'local_msgrules')) .
     html_writer::div(get_string('allcourses_help', 'local_msgrules'), 'small text-muted'), ['scope' => 'row']);
-echo html_writer::tag('td', local_msgrules_render_ticks('default', rules::get_default_mode(),
+echo html_writer::tag('td', form::render_ticks('default', rules::get_default_mode(),
     get_string('allcourses', 'local_msgrules')));
 echo html_writer::end_tag('tr');
 
@@ -247,7 +171,7 @@ foreach ($courses as $course) {
 
     echo html_writer::start_tag('tr');
     echo html_writer::tag('td', $label);
-    echo html_writer::tag('td', $inherit . local_msgrules_render_ticks(
+    echo html_writer::tag('td', $inherit . form::render_ticks(
         (string) $course->id,
         $hasoverride ? $overrides[$course->id] : null,
         $name

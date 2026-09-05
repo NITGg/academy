@@ -38,13 +38,29 @@ $nit-navpanel-item:    var(--nit-navbarpaneltext, #8a9ab5);   // muted blue-grey
 $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divider.
 
 .nit-navbar {
+    // Bootstrap 5.3 colours every `.nav-link` on a bar through these three
+    // variables, and its defaults are written for a light bar (near-black at
+    // 65%). Re-pointing them at the NIT tokens is what makes the links readable
+    // on the navy field — the alternative is out-specifying `.navbar-nav
+    // .nav-link.active` on every rule, which is a fight that never ends.
+    --bs-navbar-color: var(--nit-navbartext, #{$nit-on-navy});
+    --bs-navbar-hover-color: var(--nit-navbaraccenthover, #{$nit-gold-400});
+    --bs-navbar-active-color: var(--nit-navbaraccent, #{$nit-gold-500});
+
     background-color: var(--nit-navbarbg, #{$nit-navy-900});
-    border-bottom: 1px solid var(--nit-navbarborder, #{$nit-navy-700});
     // Pronounced drop shadow so the bar separates from the content beneath it,
     // even on a dark page.
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
     // Base foreground: everything on the bar inherits light unless overridden.
     color: var(--nit-navbartext, #{$nit-on-navy});
+
+    // NIT: no line under the bar. Boost paints a $gray-300 hairline on
+    // `.navbar.fixed-top` (theme/boost/scss/moodle/navbar.scss) — two classes,
+    // so it outranks a bare `.nit-navbar` and the pale line survived against
+    // the navy field. Repeating both classes here beats it.
+    &.navbar.fixed-top {
+        border-bottom: 0;
+    }
 
     // ---- Brand: compact logo + gold wordmark --------------------------------
     .nit-navbar-brand {
@@ -63,14 +79,50 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         width: auto;
     }
 
+    // NIT: the site name is hidden on the bar — the logo carries the brand on
+    // its own. Hidden the accessible way (not display:none) so the brand link
+    // keeps a name for screen readers on installs with no compact logo.
     .nit-navbar-title {
-        color: var(--nit-navbaraccent, #{$nit-gold-500});
-        font-weight: 700;
-        font-size: 1.75rem;
-        line-height: 1.1;
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
         white-space: nowrap;
+        border: 0;
+    }
+
+    // ---- Site links: the admin-managed titles across the bar ----------------
+    // Rows come from core's "Custom menu items" setting, read by
+    // theme_nit\output\core_renderer::navbar_custom_menu(). The bar must survive
+    // an administrator adding a fifth link, so the list wraps nothing and simply
+    // gives way: it is the first thing hidden on a narrow screen (the same links
+    // are in the burger drawer there).
+    .nit-navbar-links {
+        gap: 0.15rem;
+        list-style: none;
+        padding: 0;
+    }
+
+    // Colour comes from the `--bs-navbar-*` values re-pointed at the top of this
+    // block (light, gold on hover, gold for the current page), so what is left
+    // here is only the shape of the link.
+    .nit-navbar-link {
+        font-weight: 600;
+        white-space: nowrap;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        transition: color 0.15s ease, background-color 0.15s ease;
+
+        &:hover,
+        &:focus {
+            // A wash rather than a second colour: the bar is dark, and a filled
+            // pill on hover would compete with the gold wordmark.
+            background-color: rgba(255, 255, 255, 0.08);
+            text-decoration: none;
+        }
     }
 
     // ---- Bar-level foreground: labels, links, icons all read light ----------

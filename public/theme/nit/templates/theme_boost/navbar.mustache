@@ -65,6 +65,12 @@
             {{{ output.navbar_language_menu }}}
         </div>
 
+        {{! NIT: the site's own links (Home / Courses / About / Contact) as titles
+            on the bar. Every row is read from core's "Custom menu items" setting
+            (Appearance → Advanced theme settings), so an administrator adds,
+            renames, reorders or deletes a link with no code and no release. }}
+        {{{ output.navbar_custom_menu }}}
+
         <div id="usernavigation" class="navbar-nav ms-auto h-100 align-items-center">
             {{! NIT: AC-4.22.1 — ONE search control in the header, searching courses and
                 categories together (theme_nit/navbar_site_search + local_nit_category).

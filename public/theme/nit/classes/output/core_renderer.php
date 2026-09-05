@@ -305,4 +305,128 @@ class core_renderer extends \theme_boost\output\core_renderer {
             'query' => $query,
         ]);
     }
+
+    /**
+     * Render the site's own links as titles across the navbar.
+     *
+     * The rows come from core's own setting — Site administration → Appearance →
+     * Advanced theme settings → Custom menu items ($CFG->custommenuitems) — so
+     * adding, renaming, reordering or removing a link is an administrator's job
+     * and needs no code. One line per link:
+     *
+     *     الرئيسية|/
+     *     الدورات|/local/nit_category/search.php?q=
+     *
+     * Only *this* method is needed on top of the setting, because the NIT navbar
+     * collapses core's horizontal primary navigation into the gear dropdown and
+     * never draws core's `moremenu`. Reading the setting here (rather than
+     * picking the rows back out of `mobileprimarynav`) is what keeps the bar
+     * showing the site's own links only, with Dashboard / My courses / Site
+     * administration staying in the gear where the design put them.
+     *
+     * Parsing, per-language lines (`text|url|title|ar`) and the multilang
+     * filtering are core's, mirrored from \core\navigation\output\primary so the
+     * setting behaves here exactly as its help text describes. A nested line
+     * (one leading `-`) becomes a dropdown under its parent.
+     *
+     * @return string HTML, or '' when the setting is empty
+     */
+    public function navbar_custom_menu(): string {
+        global $CFG;
+
+        if (empty($CFG->custommenuitems)) {
+            return '';
+        }
+
+        $custommenuitems = $CFG->custommenuitems;
+
+        // Same gate core uses: the labels only run through the string filters
+        // when the admin asked for it, which is what makes {mlang} spans in a
+        // menu line resolve (see local_nit_mlang / $CFG->stringfilters).
+        if (!empty($CFG->navfilter) && !empty($CFG->stringfilters)) {
+            $custommenuitems = \filter_manager::instance()
+                ->filter_string($custommenuitems, \context_system::instance());
+        }
+
+        $nodes = \core\output\custom_menu::convert_text_to_menu_nodes($custommenuitems, current_language());
+        if (empty($nodes)) {
+            return '';
+        }
+
+        // Reading $PAGE->url on a page that never set one raises a developer
+        // notice; without a URL nothing is simply marked as the current page.
+        $currentpath = $this->page->has_set_url() ? $this->page->url->get_path() : null;
+
+        $items = [];
+        foreach ($nodes as $node) {
+            $item = (array) $node->export_for_template($this);
+            // A divider ("###") is a separator inside a dropdown; on a
+            // horizontal bar it has nothing to separate, so it is dropped.
+            if (!empty($item['divider'])) {
+                continue;
+            }
+            $item['isactive'] = $this->navbar_custom_menu_is_active($item, $currentpath);
+            $items[] = $item;
+        }
+
+        if (empty($items)) {
+            return '';
+        }
+
+        return $this->render_from_template('theme_nit/navbar_custom_menu', ['items' => $items]);
+    }
+
+    /**
+     * Is this navbar link the page the visitor is on?
+     *
+     * The path has to match, and so does every parameter the link carries a
+     * value for. The parameters matter because the static pages are one script:
+     * "من نحن" and "اتصل بنا" are both /local/profilefields/page.php and differ
+     * only by `?page=`, so on a path-only test the whole pair lights up at once.
+     *
+     * A parameter the link leaves empty (`search.php?q=`) is not compared — that
+     * line means "the courses page", not "a search for nothing", so it stays
+     * marked while the visitor refines a search. Everything else about the
+     * address is ignored, so a sesskey or an anchor changes nothing.
+     *
+     * A parent is active when one of its children is: the visitor is inside that
+     * section either way.
+     *
+     * @param array $item exported custom menu node
+     * @param string|null $currentpath path of the page being viewed, if it set a URL
+     * @return bool
+     */
+    protected function navbar_custom_menu_is_active(array $item, ?string $currentpath): bool {
+        if ($currentpath === null) {
+            return false;
+        }
+
+        if (!empty($item['url'])) {
+            $itempath = parse_url($item['url'], PHP_URL_PATH);
+            if ($itempath !== null && $itempath !== false && $itempath === $currentpath) {
+                parse_str((string) parse_url($item['url'], PHP_URL_QUERY), $itemparams);
+                $matches = true;
+                foreach ($itemparams as $name => $value) {
+                    if ($value === '' || $value === null) {
+                        continue;
+                    }
+                    if ((string) $this->page->url->get_param($name) !== (string) $value) {
+                        $matches = false;
+                        break;
+                    }
+                }
+                if ($matches) {
+                    return true;
+                }
+            }
+        }
+
+        foreach ($item['children'] ?? [] as $child) {
+            if ($this->navbar_custom_menu_is_active((array) $child, $currentpath)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
