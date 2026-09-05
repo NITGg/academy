@@ -214,9 +214,14 @@ $rendergroups = function () use ($groups, $search, $renderrow, $pricetag): void 
                     'context'   => $row['parentname'],
                     'titlehtml' => s($row['name']),
                     'chips'     => [],
-                    'trailhtml' => '<span class="nitsearch-row__note">' . s($row['count'] === 1
-                        ? get_string('onecourse', 'local_nit_category')
-                        : get_string('coursesfound', 'local_nit_category', $row['count'])) . '</span>',
+                    // A subject area with nothing in it yet is still an answer to "is there
+                    // a category called X?", so it is listed — but it says so plainly
+                    // rather than printing "0 courses".
+                    'trailhtml' => '<span class="nitsearch-row__note">' . s(match (true) {
+                        $row['count'] === 0 => get_string('nocoursesyet', 'local_nit_category'),
+                        $row['count'] === 1 => get_string('onecourse', 'local_nit_category'),
+                        default => get_string('coursesfound', 'local_nit_category', $row['count']),
+                    }) . '</span>',
                 ]);
                 ?>
               <?php endif; ?>

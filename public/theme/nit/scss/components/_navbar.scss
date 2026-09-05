@@ -467,6 +467,44 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         }
     }
 
+    // ---- Gear panel: tighter rows than its two siblings ----------------------
+    // The language and profile panels hold three or four rows, so the shared
+    // 25px/20px inset and 10px rows read as generous. The gear panel is the
+    // whole primary navigation plus its child links plus the management group —
+    // a dozen rows or more on an admin's screen — and at that rhythm it ran off
+    // the bottom of a laptop viewport. Only the spacing is changed here: the
+    // colours, borders and per-row dividers stay the shared "sub-menu" look.
+    // Placed after the shared block so it wins on source order at equal
+    // specificity, and `!important` on the row padding matches the declaration
+    // it is overriding.
+    .nit-navbar-dropdown {
+        padding: 10px 12px;
+
+        .dropdown-item {
+            padding: 5px 12px !important;
+        }
+
+        .dropdown-header {
+            padding-block: 2px;
+            padding-inline: 12px;
+            margin-bottom: 2px;
+        }
+
+        // Keeps the switch row on the same rhythm as the links above it.
+        .nit-navmenu-editswitch {
+            padding: 5px 12px;
+        }
+
+        .nit-navmenu-group {
+            margin-top: 2px;
+            padding-top: 2px;
+
+            .dropdown-header {
+                margin-top: 2px;
+            }
+        }
+    }
+
     // ---- Notifications popover: match the language panel too -----------------
     // Different markup (not `.dropdown-item`s), so its header / body / footer are
     // restyled by hand onto the same dark panel. Opens on CLICK (the bell).

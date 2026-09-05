@@ -62,6 +62,7 @@ $string['breadcrumb'] = 'You are here';
 $string['searchcourses'] = 'Search courses';
 $string['coursesinscope'] = '{$a} courses';
 $string['coursesfound'] = '{$a} courses';
+$string['nocoursesyet'] = 'No courses yet';
 $string['filters'] = 'Filters';
 $string['clearall'] = 'Clear all';
 $string['applyfilters'] = 'Apply filters';

@@ -153,3 +153,19 @@ $string['kind_expiry'] = 'Access expiry reminders';
 $string['kind_expiry_desc'] = 'A warning before access to a course or package runs out.';
 $string['kind_accountsecurity'] = 'Account security alerts';
 $string['kind_accountsecurity_desc'] = 'Password changes, sign-in attempts we refused, and account lock-outs. These are often the only sign that somebody else is using your account.';
+
+// Event notifications page.
+$string['events'] = 'Event notifications';
+$string['events_intro'] = 'Every event this site can tell a learner about, and how. Tick <strong>Email</strong> to send an email when the event happens; tick <strong>Notification</strong> to show it on the bell in the header (which is also what reaches the mobile app). Unticking a channel stops it for everybody — recipients cannot switch it back on for themselves. Ticking one puts it back on by default and lets each person opt out again in their own notification preferences.';
+$string['events_event'] = 'Event';
+$string['events_filter'] = 'Find an event';
+$string['events_filter_placeholder'] = 'Type part of an event or plugin name…';
+$string['events_sendvia'] = '{$a->event}: send by {$a->channel}';
+$string['events_forced'] = 'Always sent';
+$string['events_providerdisabled'] = 'Switched off';
+$string['eventssaved'] = 'Saved. {$a} event(s) changed.';
+$string['eventsnochange'] = 'Nothing was changed.';
+$string['events_channeloff'] = 'The {$a->channel} channel is switched off for the whole site, so nothing is delivered that way whatever is ticked below. Turn it back on under <a href="{$a->url}">Notification settings</a>.';
+$string['events_seealso'] = 'These are the same settings as the site\'s <a href="{$a}">Notification settings</a> page, shown one event per row. Use that page for the finer states — allowing a channel without switching it on by default, or forcing one so nobody can opt out.';
+$string['channel_email'] = 'Email';
+$string['channel_popup'] = 'Notification';

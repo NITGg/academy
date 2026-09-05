@@ -62,6 +62,7 @@ $string['breadcrumb'] = 'مسار التصفّح';
 $string['searchcourses'] = 'ابحث في الكورسات';
 $string['coursesinscope'] = '{$a} كورس';
 $string['coursesfound'] = '{$a} كورس';
+$string['nocoursesyet'] = 'لا توجد كورسات بعد';
 $string['filters'] = 'التصفية';
 $string['clearall'] = 'مسح الكل';
 $string['applyfilters'] = 'تطبيق التصفية';

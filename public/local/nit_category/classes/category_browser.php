@@ -153,10 +153,18 @@ class category_browser {
                 continue;
             }
 
-            // An empty category is a dead card. This is counted before the search is
-            // considered so that "6 of 14" compares like with like.
+            // An empty category is a dead card on a grid meant for browsing, so the grid
+            // drops it. This is counted before the search is considered so that "6 of 14"
+            // compares like with like.
+            //
+            // The site search is asking a different question — "is there a subject area
+            // called X?" — and the honest answer about a category that plainly exists is
+            // the category, even when it happens to hold nothing the viewer may see yet.
+            // Dropping it here is what made the header box look like it searched courses
+            // only: type the name of a brand-new (or entirely hidden-course) category and
+            // the "Categories" group came back empty.
             $filtered = count($bycategory[$id] ?? []);
-            if ($filtered === 0) {
+            if ($filtered === 0 && !$this->ownmatchonly) {
                 continue;
             }
             $this->total++;
@@ -334,6 +342,15 @@ class category_browser {
      */
     private function url(int $categoryid): string {
         $active = $this->catalogue->active();
+
+        // A site-search result is the category itself, not "this category, narrowed to the
+        // word I typed". The card prints the number of courses the category holds, so it
+        // must open the page that shows that many — sending it to the catalogue carrying
+        // `q` would land on a shorter list than the card just promised.
+        if ($this->ownmatchonly) {
+            return (new moodle_url('/local/nit_category/index.php', ['id' => $categoryid]))->out(false);
+        }
+
         if (empty($active)) {
             return (new moodle_url('/local/nit_category/index.php', ['id' => $categoryid]))->out(false);
         }

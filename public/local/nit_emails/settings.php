@@ -17,7 +17,8 @@
 /**
  * Admin navigation for local_nit_emails.
  *
- * One page under Local plugins holding all three email templates.
+ * Two pages under Local plugins: the wording of the three transactional emails, and the
+ * on/off switches for every event the site can notify about.
  *
  * @package    local_nit_emails
  * @copyright  2026 NIT
@@ -31,6 +32,13 @@ if ($hassiteconfig) {
         'local_nit_emails_templates',
         get_string('pluginname', 'local_nit_emails'),
         new moodle_url('/local/nit_emails/manage.php'),
+        'local/nit_emails:manage'
+    ));
+
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_nit_emails_events',
+        get_string('events', 'local_nit_emails'),
+        new moodle_url('/local/nit_emails/events.php'),
         'local/nit_emails:manage'
     ));
 }
