@@ -18,8 +18,8 @@
  * Site administration › Plugins › Local plugins › Event notifications.
  *
  * One row per message this site sends, two columns: does it go out as an email, and does it
- * show on the notification bell. The academy's own messages lead; Moodle's stock events
- * follow in a section that starts folded away.
+ * show on the notification bell. Two tabs: the academy's own messages lead, Moodle's stock
+ * events sit behind the second tab. Both are inside one form with one Save.
  *
  * A cell is a tick only where there is really something to switch. Where an event has no
  * such channel at all the cell is empty — see {@see \local_nit_emails\event_registry} for
@@ -91,6 +91,37 @@ $sections = event_registry::sections();
 // off the box stays hidden and every row is already on the page.
 $PAGE->requires->js_amd_inline(<<<'JS'
 require([], function() {
+    var form = document.getElementById('nitev-form');
+    if (!form) {
+        return;
+    }
+
+    var linkFor = function(paneid) {
+        return form.querySelector('.nitev-tablink[data-nitev-for="' + paneid + '"]');
+    };
+
+    // Come back to the tab that was being worked on. Saving redirects, so without this an
+    // administrator who ticks something among Moodle's forty events is returned to the
+    // academy tab and has to find their place again.
+    var STORE = 'nitev-tab';
+    form.querySelectorAll('.nitev-tablink').forEach(function(link) {
+        link.addEventListener('shown.bs.tab', function() {
+            try {
+                window.sessionStorage.setItem(STORE, link.dataset.nitevFor);
+            } catch (e) {
+                return;
+            }
+        });
+    });
+    try {
+        var wanted = linkFor(window.sessionStorage.getItem(STORE) || '');
+        if (wanted && !wanted.classList.contains('active')) {
+            wanted.click();
+        }
+    } catch (e) {
+        // A browser with storage switched off simply always opens on the first tab.
+    }
+
     var box = document.getElementById('nitev-filter');
     if (!box) {
         return;
@@ -99,22 +130,49 @@ require([], function() {
 
     box.addEventListener('input', function() {
         var needle = box.value.trim().toLowerCase();
+        var counts = {};
 
-        // A search that finds nothing in the folded section is a search that looks broken,
-        // so typing opens it and clearing the box folds it back.
-        document.querySelectorAll('#nitev-form details.nitev-section').forEach(function(d) {
-            d.open = needle !== '' ? true : d.dataset.nitevOpen === '1';
-        });
-
-        document.querySelectorAll('#nitev-form .nitev-block').forEach(function(block) {
+        form.querySelectorAll('.nitev-pane').forEach(function(pane) {
             var shown = 0;
-            block.querySelectorAll('tr[data-nitev-text]').forEach(function(row) {
-                var hit = needle === '' || row.dataset.nitevText.indexOf(needle) !== -1;
-                row.hidden = !hit;
-                shown += hit ? 1 : 0;
+
+            pane.querySelectorAll('.nitev-block').forEach(function(block) {
+                var hits = 0;
+                block.querySelectorAll('tr[data-nitev-text]').forEach(function(row) {
+                    var hit = needle === '' || row.dataset.nitevText.indexOf(needle) !== -1;
+                    row.hidden = !hit;
+                    hits += hit ? 1 : 0;
+                });
+                block.hidden = hits === 0;
+                shown += hits;
             });
-            block.hidden = shown === 0;
+            counts[pane.id] = shown;
+
+            // The other tab is hidden, so its matches have to be counted on its label or
+            // they are invisible - which is what makes a search look like it found nothing.
+            var link = linkFor(pane.id);
+            var badge = link && link.querySelector('.nitev-count');
+            if (badge) {
+                badge.textContent = shown;
+                badge.hidden = needle === '';
+            }
         });
+
+        if (needle === '') {
+            return;
+        }
+
+        // And when every match is on the other tab, go there rather than leaving the reader
+        // looking at an empty table.
+        var active = form.querySelector('.nitev-pane.active');
+        if (!active || counts[active.id]) {
+            return;
+        }
+        var target = Object.keys(counts).find(function(id) {
+            return counts[id] > 0;
+        });
+        if (target && linkFor(target)) {
+            linkFor(target).click();
+        }
     });
 });
 JS);
@@ -268,19 +326,51 @@ $rendertable = function (array $blocks) use ($rendercell, $available): void {
     echo html_writer::end_div();
 };
 
+// ─────────────────────────────────────────────────────────────────────────────────────────
+// The two groups, as tabs.
+//
+// Both panes stay in the form whichever tab is on top — Bootstrap hides the other with
+// `display: none`, which leaves its checkboxes in the submitted data. That is what lets the
+// one Save button below go on writing every row in one go: the save loop walks
+// event_registry::all_rows(), and a row that had gone missing from the POST would be read as
+// "unticked" and switched off. Client-side tabs rather than a `?tab=` page load for exactly
+// that reason.
+// ─────────────────────────────────────────────────────────────────────────────────────────
+$paneid = static fn(array $section): string => 'nitev-pane-' . $section['key'];
+
+echo html_writer::start_tag('ul', ['class' => 'nav nav-tabs mb-3', 'role' => 'tablist']);
 foreach ($sections as $index => $section) {
-    // The academy's own messages are the reason anybody opens this page, so they are open.
-    // Moodle's forty-odd stock events are folded away until asked for — the first version of
-    // this page put them all on screen at once and buried the four rows that mattered.
+    // The academy's own messages are the reason anybody opens this page, so they lead.
     $isacademy = $index === 0;
 
-    echo html_writer::start_tag('details', [
-        'class' => 'nitev-section mb-4',
-        'data-nitev-open' => $isacademy ? '1' : '0',
-    ] + ($isacademy ? ['open' => 'open'] : []));
+    echo html_writer::tag('li',
+        html_writer::link('#' . $paneid($section),
+            s($section['label']) .
+            // How many rows the filter is matching in the tab you are not looking at.
+            // Empty and hidden until something is typed.
+            html_writer::tag('span', '', ['class' => 'nitev-count badge bg-secondary ms-2', 'hidden' => 'hidden']),
+            [
+                'class' => 'nav-link nitev-tablink' . ($isacademy ? ' active' : ''),
+                'id' => 'nitev-tab-' . $section['key'],
+                'data-bs-toggle' => 'tab',
+                'data-nitev-for' => $paneid($section),
+                'role' => 'tab',
+                'aria-controls' => $paneid($section),
+                'aria-selected' => $isacademy ? 'true' : 'false',
+            ]),
+        ['class' => 'nav-item', 'role' => 'presentation']);
+}
+echo html_writer::end_tag('ul');
 
-    echo html_writer::tag('summary', html_writer::tag('span', s($section['label']),
-        ['class' => 'h4 mb-0']), ['class' => 'mb-2']);
+echo html_writer::start_div('tab-content');
+foreach ($sections as $index => $section) {
+    $isacademy = $index === 0;
+
+    echo html_writer::start_div('tab-pane nitev-pane' . ($isacademy ? ' active' : ''), [
+        'id' => $paneid($section),
+        'role' => 'tabpanel',
+        'aria-labelledby' => 'nitev-tab-' . $section['key'],
+    ]);
 
     echo html_writer::tag('p', $section['intro'], ['class' => 'text-muted']);
 
@@ -290,8 +380,9 @@ foreach ($sections as $index => $section) {
     }
     $rendertable($blocks);
 
-    echo html_writer::end_tag('details');
+    echo html_writer::end_div();
 }
+echo html_writer::end_div();
 
 echo html_writer::div(
     html_writer::empty_tag('input', [

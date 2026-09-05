@@ -94,14 +94,16 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         color: inherit;
     }
 
-    // ---- Legacy match: hide extra items + space the right cluster -----------
-    // The legacy header shows only three items on the right (bell, gear,
-    // avatar). Hide the messages popover; the notifications bell stays. The
-    // edit-mode switch is NOT hidden here any more — it was relocated into the
-    // gear/navigation dropdown (styled in `.nit-navmenu-editswitch` below).
-    [data-region="popover-region-messages"] {
-        display: none !important;
-    }
+    // ---- Right cluster: spacing ---------------------------------------------
+    // The legacy header showed only three items on the right (bell, gear,
+    // avatar), and the messages popover used to be hidden here to match it. It
+    // is shown again now that the messaging system is switched on for the site:
+    // hiding it left users with no door into the message drawer even though
+    // `$CFG->messaging` was enabled. It picks up the same circular
+    // `.popover-region-toggle` treatment as the bell below, so the cluster
+    // still reads as one set. The edit-mode switch is NOT hidden here any more
+    // — it was relocated into the gear/navigation dropdown (styled in
+    // `.nit-navmenu-editswitch` below).
 
     // Breathing room between the round buttons.
     #usernavigation {

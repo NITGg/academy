@@ -150,8 +150,30 @@ if ($data = $form->get_data()) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->box_start('generalbox local-profilefields-complete');
-echo html_writer::tag('p', get_string('completeintro', 'local_profilefields'), ['class' => 'lead']);
+
+// The same card the sign-up and log-in screens sit in. This is the last step of
+// that journey, so looking like a different product would be reason enough - but
+// the wrapper earns its place for a plainer reason: theme_nit's
+// scss/components/_authpages.scss hangs the whole form layout off `.nit-auth`.
+// It unwinds moodleform's 3-column-label + 9-column-control row into
+// label-above-control, widens the controls to the form, and gives every field a
+// permanent full-width slot for its message.
+//
+// Without it this page fell back to Boost's horizontal layout: the phone group
+// was squeezed into what was left of a narrow column, and "Please enter your
+// phone number." wrapped across two cramped lines under half of it. On a theme
+// that does not ship those rules the classes are inert and the page renders as
+// the plain column it was before.
+echo html_writer::start_div('nit-auth nit-auth-card local-profilefields-complete');
+
+echo html_writer::div(
+    html_writer::tag('h1', get_string('completetitle', 'local_profilefields'),
+        ['class' => 'nit-auth-title']) .
+    html_writer::tag('p', get_string('completeintro', 'local_profilefields'),
+        ['class' => 'nit-auth-sub']),
+    'nit-auth-head'
+);
+
 $form->display();
-echo $OUTPUT->box_end();
+echo html_writer::end_div();
 echo $OUTPUT->footer();

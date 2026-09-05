@@ -168,7 +168,22 @@ const setMessage = (el, message) => {
         return;
     }
 
-    const slot = item.querySelector('.form-control-feedback, [id^="id_error"]');
+    // A control inside an mform *group* has two slots to choose from, and the
+    // narrow one is the wrong one. The phone is a group: its country select and
+    // its number box are two form items sharing one row, so the number box's own
+    // slot is only as wide as its half of that row - 140px on a phone, where
+    // "Please enter your phone number." wrapped into two cramped lines under one
+    // box while the space beside it sat empty.
+    //
+    // The group has a full-width slot of its own underneath, and it is the slot
+    // PHP writes to as well: profile_field_phone pins every error to the group's
+    // name, never to a half of it. So preferring it here is not only wider, it is
+    // what stops the message moving between before-submit and after-submit.
+    const group = item.parentElement ? item.parentElement.closest('.fitem') : null;
+    const groupslot = group ? group.querySelector('[id^="fgroup_id_error"]') : null;
+
+    const owner = groupslot ? group : item;
+    const slot = groupslot || item.querySelector('.form-control-feedback, [id^="id_error"]');
     if (!slot) {
         return;
     }
@@ -176,13 +191,13 @@ const setMessage = (el, message) => {
     if (message) {
         slot.textContent = message;
         slot.style.display = 'block';
-        item.classList.add('has-danger');
+        owner.classList.add('has-danger');
         el.classList.add('is-invalid');
         el.setAttribute('aria-invalid', 'true');
     } else {
         slot.textContent = '';
         slot.style.display = '';
-        item.classList.remove('has-danger');
+        owner.classList.remove('has-danger');
         el.classList.remove('is-invalid');
         el.removeAttribute('aria-invalid');
     }
