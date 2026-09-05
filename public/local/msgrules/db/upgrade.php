@@ -56,7 +56,7 @@ function xmldb_local_msgrules_upgrade(int $oldversion): bool {
         $table = new xmldb_table('local_msgrules_course');
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
         $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('mode', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('mode', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '-1');
         $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
         $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
         // One key, not a foreign key plus a unique index: both would want an index on the same
@@ -69,6 +69,45 @@ function xmldb_local_msgrules_upgrade(int $oldversion): bool {
         }
 
         upgrade_plugin_savepoint(true, 2026090600, 'local', 'msgrules');
+    }
+
+    if ($oldversion < 2026090700) {
+        // The single-choice mode becomes a bitmask, so an administrator can combine the groups
+        // a student may still reach ("teachers and site admins") and can also allow none of
+        // them at all. The old values map onto the new ones exactly, so settings already in
+        // place are carried over rather than reset.
+        $map = [
+            0 => \local_msgrules\rules::OPEN,                                                    // No restriction.
+            1 => \local_msgrules\rules::ALLOW_PEERS,                                             // Peers only.
+            2 => \local_msgrules\rules::ALLOW_PEERS | \local_msgrules\rules::ALLOW_TEACHERS,     // Peers + teachers.
+            3 => \local_msgrules\rules::ALLOW_TEACHERS,                                          // Teachers only.
+        ];
+
+        foreach ($DB->get_records('local_msgrules_course') as $row) {
+            $old = (int) $row->mode;
+            if (array_key_exists($old, $map)) {
+                $DB->set_field('local_msgrules_course', 'mode', $map[$old], ['id' => $row->id]);
+            }
+        }
+
+        $default = get_config('local_msgrules', 'defaultmode');
+        if ($default !== false && $default !== '' && array_key_exists((int) $default, $map)) {
+            set_config('defaultmode', $map[(int) $default], 'local_msgrules');
+        }
+
+        // The block rows were derived from the old numbers, and administrators can now allow
+        // or deny site administrators as recipients - something the previous rebuild never
+        // considered. Start from a clean slate and let the next rebuild derive them again.
+        try {
+            \local_msgrules\sync::remove_all_managed();
+            if (\local_msgrules\rules::is_enabled()) {
+                \local_msgrules\task\rebuild::queue();
+            }
+        } catch (Throwable $e) {
+            debugging('local_msgrules: could not refresh blocks: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+
+        upgrade_plugin_savepoint(true, 2026090700, 'local', 'msgrules');
     }
 
     return true;

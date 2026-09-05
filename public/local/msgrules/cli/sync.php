@@ -72,13 +72,12 @@ EOT;
 if ($options['status']) {
     cli_writeln('Rules enforced : ' . (rules::is_enabled() ? 'yes' : 'no'));
     cli_writeln('Site messaging : ' . (empty($CFG->messaging) ? 'off - nothing can be sent at all' : 'on'));
-    $modes = rules::get_modes();
-    cli_writeln('Default mode   : ' . $modes[rules::get_default_mode()]);
+    cli_writeln('All courses    : ' . rules::describe(rules::get_default_mode()));
     $overrides = rules::get_course_modes();
     cli_writeln('Course overrides: ' . count($overrides));
     foreach ($overrides as $courseid => $mode) {
         $name = $DB->get_field('course', 'shortname', ['id' => $courseid]) ?: "(course $courseid)";
-        cli_writeln("  - $name: " . $modes[$mode]);
+        cli_writeln("  - $name: " . rules::describe($mode));
     }
     cli_writeln('Blocks owned   : ' . sync::count_managed());
     exit(0);

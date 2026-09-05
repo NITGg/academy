@@ -17,10 +17,14 @@
 namespace local_msgrules;
 
 /**
- * What a course allows its students to do in messaging.
+ * Who a course lets its students write to.
  *
- * One mode per course, plus a site-wide default for every course without its own. Teachers are
- * never restricted by this - the rule is about who a *student* may write to.
+ * Stored as one integer per course. Negative means "no restriction at all"; zero or above is
+ * a bitmask of the groups a student may still reach, so an administrator can allow any
+ * combination - teachers only, admins only, teachers and admins, and so on - and an empty
+ * mask (0) means the students on that course may message nobody.
+ *
+ * Teachers are never restricted by any of this: the setting is about what a *student* may do.
  *
  * @package    local_msgrules
  * @copyright  2026 NIT
@@ -28,37 +32,91 @@ namespace local_msgrules;
  */
 class rules {
 
-    /** @var int No restriction - students message whoever the site normally lets them. */
-    public const MODE_OPEN = 0;
+    /**
+     * No restriction - students message whoever the site normally lets them.
+     *
+     * Deliberately negative rather than a fourth bit, because "unrestricted" is not one more
+     * group you may reach; it is the absence of the whole scheme, and a mask of 0 has to stay
+     * free to mean "nobody at all".
+     */
+    public const OPEN = -1;
 
-    /** @var int Students may write to the other students on the course, and nobody else. */
-    public const MODE_PEERS = 1;
+    /** @var int Restricted, with nothing allowed: these students may message nobody. */
+    public const ALLOW_NOBODY = 0;
 
-    /** @var int Students may write to the other students on the course and to its teachers. */
-    public const MODE_PEERS_AND_TEACHERS = 2;
+    /** @var int May message the other students on the course. */
+    public const ALLOW_PEERS = 1;
 
-    /** @var int Students may write to the course teachers only, not to each other. */
-    public const MODE_TEACHERS_ONLY = 3;
+    /** @var int May message the teachers of the course. */
+    public const ALLOW_TEACHERS = 2;
+
+    /** @var int May message site administrators. */
+    public const ALLOW_ADMINS = 4;
 
     /**
-     * The four modes, for a dropdown.
+     * The three groups a restricted student can be allowed to reach.
      *
-     * @return array [mode => label]
+     * @return array [flag => label]
      */
-    public static function get_modes(): array {
+    public static function get_flags(): array {
         return [
-            self::MODE_OPEN               => get_string('modeopen', 'local_msgrules'),
-            self::MODE_PEERS              => get_string('modepeers', 'local_msgrules'),
-            self::MODE_PEERS_AND_TEACHERS => get_string('modepeersteachers', 'local_msgrules'),
-            self::MODE_TEACHERS_ONLY      => get_string('modeteachers', 'local_msgrules'),
+            self::ALLOW_TEACHERS => get_string('allowteachers', 'local_msgrules'),
+            self::ALLOW_ADMINS   => get_string('allowadmins', 'local_msgrules'),
+            self::ALLOW_PEERS    => get_string('allowpeers', 'local_msgrules'),
         ];
+    }
+
+    /**
+     * Is this course outside the scheme entirely?
+     *
+     * @param int $mode
+     * @return bool
+     */
+    public static function is_open(int $mode): bool {
+        return $mode < 0;
+    }
+
+    /**
+     * Does this mode let a student reach the given group?
+     *
+     * @param int $mode
+     * @param int $flag One of the ALLOW_* constants.
+     * @return bool
+     */
+    public static function allows(int $mode, int $flag): bool {
+        return !self::is_open($mode) && ($mode & $flag) === $flag;
+    }
+
+    /**
+     * A human sentence for one mode, for the management screen and the CLI.
+     *
+     * @param int $mode
+     * @return string
+     */
+    public static function describe(int $mode): string {
+        if (self::is_open($mode)) {
+            return get_string('modeopen', 'local_msgrules');
+        }
+
+        $parts = [];
+        foreach (self::get_flags() as $flag => $label) {
+            if (self::allows($mode, $flag)) {
+                $parts[] = $label;
+            }
+        }
+
+        if (!$parts) {
+            return get_string('modenobody', 'local_msgrules');
+        }
+
+        return get_string('modeallowlist', 'local_msgrules', implode(get_string('listsep', 'langconfig') . ' ', $parts));
     }
 
     /**
      * Is the plugin switched on?
      *
      * Off is the shipped default: installing must not cut a single conversation before an
-     * administrator has chosen the modes and decided to turn it on.
+     * administrator has chosen the settings and decided to turn them on.
      *
      * @return bool
      */
@@ -74,7 +132,17 @@ class rules {
     public static function get_default_mode(): int {
         $mode = get_config('local_msgrules', 'defaultmode');
 
-        return $mode === false ? self::MODE_OPEN : (int) $mode;
+        return $mode === false || $mode === '' ? self::OPEN : (int) $mode;
+    }
+
+    /**
+     * Set the site-wide default.
+     *
+     * @param int $mode
+     * @return void
+     */
+    public static function set_default_mode(int $mode): void {
+        set_config('defaultmode', $mode, 'local_msgrules');
     }
 
     /**
@@ -168,12 +236,12 @@ class rules {
     public static function has_any_restriction(): bool {
         global $DB;
 
-        if (self::get_default_mode() !== self::MODE_OPEN) {
+        if (!self::is_open(self::get_default_mode())) {
             // Every course without an override is restricted, so unless every single course
             // has been opened by hand there is something to do.
             return true;
         }
 
-        return $DB->record_exists_select('local_msgrules_course', 'mode <> ?', [self::MODE_OPEN]);
+        return $DB->record_exists_select('local_msgrules_course', 'mode >= 0');
     }
 }

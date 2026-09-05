@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Set the student messaging restriction for each course.
+ * Set who each course lets its students message.
  *
  * @package    local_msgrules
  * @copyright  2026 NIT
@@ -32,12 +32,86 @@ use local_msgrules\sync;
 admin_externalpage_setup('local_msgrules_manage');
 require_capability('local/msgrules:manage', context_system::instance());
 
-/** @var int Value of the "no override" option. Never a real mode, so it cannot collide. */
-const LOCAL_MSGRULES_INHERIT = -1;
+/**
+ * Read one row's ticks back into a stored mode.
+ *
+ * "No restriction" wins over the three group ticks when both are posted: it is the master
+ * switch, and honouring it here means a half-finished row can never lock a course by accident.
+ *
+ * @param string $suffix Field-name suffix identifying the row ('default' or a course id).
+ * @return int
+ */
+function local_msgrules_read_mode(string $suffix): int {
+    if (optional_param('open_' . $suffix, 0, PARAM_BOOL)) {
+        return rules::OPEN;
+    }
+
+    $mode = rules::ALLOW_NOBODY;
+    foreach (array_keys(rules::get_flags()) as $flag) {
+        if (optional_param('flag_' . $suffix . '_' . $flag, 0, PARAM_BOOL)) {
+            $mode |= $flag;
+        }
+    }
+
+    return $mode;
+}
+
+/**
+ * Render one row of ticks: the master "no restriction" plus one per group.
+ *
+ * @param string $suffix Field-name suffix identifying the row.
+ * @param int|null $mode The mode to show, or null for "follow the site default".
+ * @param string $rowlabel Accessible prefix so each tick says which row it belongs to.
+ * @return string
+ */
+function local_msgrules_render_ticks(string $suffix, ?int $mode, string $rowlabel): string {
+    $out = '';
+    $inherits = $mode === null;
+    $effective = $mode ?? rules::get_default_mode();
+
+    $tick = function (string $name, string $label, bool $checked, string $extraclass = '') use ($rowlabel) {
+        $id = 'id_' . $name;
+        return html_writer::div(
+            html_writer::empty_tag('input', array_filter([
+                'type'    => 'checkbox',
+                'class'   => 'form-check-input',
+                'name'    => $name,
+                'id'      => $id,
+                'value'   => 1,
+                'checked' => $checked ? 'checked' : null,
+            ])) .
+            html_writer::tag('label', $label, [
+                'for'   => $id,
+                'class' => 'form-check-label',
+                'title' => $rowlabel . ' - ' . $label,
+            ]),
+            trim('form-check form-check-inline ' . $extraclass)
+        );
+    };
+
+    // The master switch first, then the three groups it overrides.
+    $out .= $tick('open_' . $suffix, get_string('modeopen', 'local_msgrules'),
+        !$inherits && rules::is_open($effective), 'me-4 fw-bold');
+
+    foreach (rules::get_flags() as $flag => $label) {
+        $out .= $tick('flag_' . $suffix . '_' . $flag, $label,
+            !$inherits && rules::allows($effective, $flag));
+    }
+
+    if ($inherits) {
+        // Nothing of its own: say so, and show what it currently resolves to.
+        $out .= html_writer::div(
+            get_string('followsdefault', 'local_msgrules', rules::describe($effective)),
+            'small text-muted mt-1'
+        );
+    }
+
+    return $out;
+}
 
 $search = trim(optional_param('search', '', PARAM_TEXT));
 $page = optional_param('page', 0, PARAM_INT);
-$perpage = 25;
+$perpage = 20;
 
 $pageurl = new moodle_url('/local/msgrules/manage.php', $search !== '' ? ['search' => $search] : []);
 
@@ -61,16 +135,18 @@ $courses = $DB->get_records_sql(
 
 // ---- Saving ------------------------------------------------------------------------------
 if (optional_param('save', 0, PARAM_BOOL) && confirm_sesskey()) {
+    rules::set_default_mode(local_msgrules_read_mode('default'));
+
     // Only the courses actually on this page are read. Anything else is untouched, so paging
     // through a long list does not quietly reset the courses you are not looking at.
     foreach (array_keys($courses) as $courseid) {
-        $mode = optional_param('mode_' . $courseid, LOCAL_MSGRULES_INHERIT, PARAM_INT);
-        if ($mode === LOCAL_MSGRULES_INHERIT) {
+        if (optional_param('inherit_' . $courseid, 0, PARAM_BOOL)) {
             rules::set_course_mode((int) $courseid, null);
-        } else if (array_key_exists($mode, rules::get_modes())) {
-            rules::set_course_mode((int) $courseid, $mode);
+        } else {
+            rules::set_course_mode((int) $courseid, local_msgrules_read_mode((string) $courseid));
         }
     }
+
     redirect(new moodle_url($pageurl, ['page' => $page]), sync::apply_now(), null, notification::NOTIFY_SUCCESS);
 }
 
@@ -78,9 +154,7 @@ if (optional_param('rebuild', 0, PARAM_BOOL) && confirm_sesskey()) {
     redirect(new moodle_url($pageurl, ['page' => $page]), sync::apply_now(), null, notification::NOTIFY_SUCCESS);
 }
 
-$modes = rules::get_modes();
 $overrides = rules::get_course_modes();
-$default = rules::get_default_mode();
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managecourses', 'local_msgrules'));
@@ -96,7 +170,7 @@ if (!rules::is_enabled()) {
 }
 
 echo html_writer::tag('p', get_string('coursesintro', 'local_msgrules'));
-echo html_writer::tag('p', get_string('currentdefault', 'local_msgrules', $modes[$default]));
+echo html_writer::tag('p', get_string('ticksintro', 'local_msgrules'));
 echo html_writer::tag('p', get_string('adminexempt', 'local_msgrules'), ['class' => 'text-muted']);
 
 // ---- Search -------------------------------------------------------------------------------
@@ -118,12 +192,6 @@ echo html_writer::tag('button', get_string('search'), ['type' => 'submit', 'clas
 echo html_writer::end_div();
 echo html_writer::end_tag('form');
 
-if (!$courses) {
-    echo $OUTPUT->notification(get_string('nocoursesfound', 'local_msgrules'), notification::NOTIFY_INFO);
-    echo $OUTPUT->footer();
-    die();
-}
-
 // ---- The list -----------------------------------------------------------------------------
 echo html_writer::start_tag('form', ['method' => 'post', 'action' => $pageurl->out(false)]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
@@ -140,26 +208,49 @@ echo html_writer::end_tag('tr');
 echo html_writer::end_tag('thead');
 echo html_writer::start_tag('tbody');
 
-// "Site default" is spelled out with the mode it currently resolves to, so a course row says
-// what will actually happen without the reader holding the settings page in their head.
-$options = [LOCAL_MSGRULES_INHERIT => get_string('usedefault', 'local_msgrules', $modes[$default])] + $modes;
+// The site-wide default is the first row of the same table rather than a separate settings
+// field: it is the same question with the same four ticks, and splitting it across two screens
+// was what made "which one is actually in force here" hard to answer.
+echo html_writer::start_tag('tr', ['class' => 'table-active']);
+echo html_writer::tag('th', html_writer::tag('strong', get_string('allcourses', 'local_msgrules')) .
+    html_writer::div(get_string('allcourses_help', 'local_msgrules'), 'small text-muted'), ['scope' => 'row']);
+echo html_writer::tag('td', local_msgrules_render_ticks('default', rules::get_default_mode(),
+    get_string('allcourses', 'local_msgrules')));
+echo html_writer::end_tag('tr');
+
+if (!$courses) {
+    echo html_writer::tag('tr', html_writer::tag('td', get_string('nocoursesfound', 'local_msgrules'),
+        ['colspan' => 2, 'class' => 'text-muted']));
+}
 
 foreach ($courses as $course) {
-    $selected = array_key_exists($course->id, $overrides) ? $overrides[$course->id] : LOCAL_MSGRULES_INHERIT;
     $name = format_string($course->fullname);
-    $label = html_writer::link(
-        new moodle_url('/course/view.php', ['id' => $course->id]),
-        $name
-    ) . html_writer::tag('div', format_string($course->shortname), ['class' => 'small text-muted']);
+    $hasoverride = array_key_exists($course->id, $overrides);
+    $label = html_writer::link(new moodle_url('/course/view.php', ['id' => $course->id]), $name) .
+        html_writer::div(format_string($course->shortname), 'small text-muted');
+
+    // An explicit "follow the site default" tick, so a course can be handed back rather than
+    // only ever being pinned to whatever the default happened to be when it was saved.
+    $inherit = html_writer::div(
+        html_writer::empty_tag('input', array_filter([
+            'type'    => 'checkbox',
+            'class'   => 'form-check-input',
+            'name'    => 'inherit_' . $course->id,
+            'id'      => 'id_inherit_' . $course->id,
+            'value'   => 1,
+            'checked' => $hasoverride ? null : 'checked',
+        ])) .
+        html_writer::tag('label', get_string('usedefault', 'local_msgrules'),
+            ['for' => 'id_inherit_' . $course->id, 'class' => 'form-check-label']),
+        'form-check form-check-inline mb-1'
+    );
 
     echo html_writer::start_tag('tr');
     echo html_writer::tag('td', $label);
-    echo html_writer::tag('td', html_writer::select(
-        $options,
-        'mode_' . $course->id,
-        $selected,
-        false,
-        ['class' => 'custom-select', 'aria-label' => $name]
+    echo html_writer::tag('td', $inherit . local_msgrules_render_ticks(
+        (string) $course->id,
+        $hasoverride ? $overrides[$course->id] : null,
+        $name
     ));
     echo html_writer::end_tag('tr');
 }

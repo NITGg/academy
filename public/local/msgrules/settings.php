@@ -48,17 +48,10 @@ if ($hassiteconfig) {
     $enabled->set_updatedcallback('\local_msgrules\sync::apply_now');
     $settings->add($enabled);
 
-    // "All courses" lives here rather than on the per-course page: it is a site policy, and
-    // repeating it on a paginated list of courses would make it look like a per-course choice.
-    $defaultmode = new admin_setting_configselect(
-        'local_msgrules/defaultmode',
-        get_string('defaultmode', 'local_msgrules'),
-        get_string('defaultmode_desc', 'local_msgrules'),
-        \local_msgrules\rules::MODE_OPEN,
-        \local_msgrules\rules::get_modes()
-    );
-    $defaultmode->set_updatedcallback('\local_msgrules\sync::apply_now');
-    $settings->add($defaultmode);
+    // The "all courses" default is NOT here. It asks the same question with the same four
+    // ticks as every course row, and splitting it across two screens was what made "which
+    // setting is actually in force for this course" hard to answer - so it is the first row of
+    // the per-course table instead.
 
     $settings->add(new admin_setting_configtext(
         'local_msgrules/maxusers',

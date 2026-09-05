@@ -28,21 +28,24 @@ $string['pluginname'] = 'Student messaging restrictions';
 $string['settings'] = 'Settings';
 $string['managecourses'] = 'Restrictions per course';
 
-// The four modes.
+// The ticks. "No restriction" is the master switch; the other three combine freely, and none
+// of them ticked means the students on that course may message nobody at all.
 $string['modeopen'] = 'No restriction';
-$string['modepeers'] = 'Students may message each other only';
-$string['modepeersteachers'] = 'Students may message each other and the teachers';
-$string['modeteachers'] = 'Students may message the teachers only';
-$string['usedefault'] = 'Site default ({$a})';
+$string['modenobody'] = 'Nobody - students cannot message anyone';
+$string['modeallowlist'] = 'Only: {$a}';
+$string['allowteachers'] = 'Teachers';
+$string['allowadmins'] = 'Site administrators';
+$string['allowpeers'] = 'Fellow students';
+$string['usedefault'] = 'Use the setting for all courses';
+$string['followsdefault'] = 'Currently: {$a}';
+$string['allcourses'] = 'All courses';
+$string['allcourses_help'] = 'Used by every course that has not been given its own setting below.';
 
 // Settings.
 $string['enabled'] = 'Enforce these restrictions';
 $string['enabled_desc'] = 'When on, students are held to the mode set for each of their courses. '
     . 'Turning it off restores every conversation the plugin had closed, leaving any block a user made themselves in '
     . 'place. Choose the modes first, then switch this on.';
-$string['defaultmode'] = 'Default for all courses';
-$string['defaultmode_desc'] = 'Applies to every course that has not been given its own setting on the '
-    . '"Restrictions per course" page. Leave it at "No restriction" if you only want to restrict a course or two.';
 $string['maxusers'] = 'Maximum accounts';
 $string['maxusers_desc'] = 'A restricted student needs one row per person on the site they may not write to, so the '
     . 'work grows with the size of the site. Above this figure a rebuild refuses to run rather than spending hours in '
@@ -51,7 +54,9 @@ $string['maxusers_desc'] = 'A restricted student needs one row per person on the
 // Management screen.
 $string['coursesintro'] = 'Each course decides what its own students may do. Teachers are never restricted - they can '
     . 'always write to their students - and a student on several courses gets whatever any one of those courses allows.';
-$string['currentdefault'] = 'Courses with no setting of their own use the site default: <strong>{$a}</strong>.';
+$string['ticksintro'] = 'Tick "No restriction" to leave a course alone. Otherwise tick every group its students are '
+    . 'still allowed to message - you can combine them, so ticking Teachers and Site administrators lets a student '
+    . 'reach both and nobody else. Ticking none of the three means they may message nobody at all.';
 $string['course'] = 'Course';
 $string['restriction'] = 'Students on this course may message';
 $string['searchcourses'] = 'Search courses';
@@ -75,8 +80,9 @@ $string['bypassintro'] = 'The restrictions work through the recipient\'s blocked
     . 'course says. That is usually what you want for teachers; remove the capability from a role if you do not.';
 $string['bypassnone'] = 'No role other than a site administrator can ignore the restrictions.';
 $string['bypassrole'] = '{$a->role} - via {$a->capability}';
-$string['adminexempt'] = 'Site administrators are always exempt: they are never blocked, and nobody is ever blocked '
-    . 'from writing to them, so there is always a way to reach support.';
+$string['adminexempt'] = 'Site administrators can always write to anyone, whatever these settings say. Whether a '
+    . 'student may write back to them is the "Site administrators" tick - untick it everywhere and students have no '
+    . 'way to reach support from inside Moodle.';
 
 // Tasks.
 $string['tasksyncblocks'] = 'Reapply student messaging restrictions';

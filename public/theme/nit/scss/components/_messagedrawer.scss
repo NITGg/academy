@@ -1,0 +1,159 @@
+// -----------------------------------------------------------------------------
+// Message drawer (navbar chat icon) and the full messaging app at
+// /message/index.php. Both are the same markup: core renders `.message-app`
+// inside `.drawer` for the sidebar and inside `#region-main` for the page, so
+// every rule here is written once against `.message-app` and covers both.
+//
+// Core paints this area light in two separate ways, and both have to be met:
+//
+//   1. theme/boost/scss/moodle/message.scss sets real colours from Bootstrap
+//      greys — `$message-app-bg` (a mix of $gray-300 and $body-bg), the two
+//      bubble fills, `.list-group-item:hover` on `$primary` with white text.
+//   2. The mustache templates hard-code the `.bg-white` / `.bg-light` utilities
+//      on the header, the footer, the search results, the settings panel and
+//      the loading placeholders. Those are Bootstrap utilities, so they carry
+//      their own `!important` and only lose to a more specific selector that is
+//      also `!important` — hence `.message-app .bg-white`, not `.bg-white`.
+//
+// Depth model: the drawer shell is Surface (see _drawers.scss), the scrolling
+// conversation ground is Background so it reads as recessed, and the bubbles sit
+// back up on Surface (received) or a Primary tint (sent) so the two sides of a
+// conversation are told apart by more than alignment.
+//
+// Direction-agnostic by construction: everything here is a colour, and the two
+// bubble tails are positioned by core with left/right that we do not touch, so
+// Arabic (RTL) and English (LTR) need no separate work.
+// -----------------------------------------------------------------------------
+
+.message-app {
+    background-color: var(--nit-brand-surface);
+    color: var(--nit-brand-textprimary);
+
+    // Border utilities (.border-top on the footer, .border-bottom on the header,
+    // .border on the app frame) all read this one Bootstrap variable, so routing
+    // it here fixes every divider in the drawer without a rule each.
+    --bs-border-color: var(--nit-brand-borderprimary);
+
+    // The conversation and overview lists are Bootstrap list groups. Feeding the
+    // component's own variables keeps the resting state correct; the hover pair
+    // is overridden separately below because core sets it explicitly.
+    --bs-list-group-bg: var(--nit-brand-surface);
+    --bs-list-group-color: var(--nit-brand-textprimary);
+    --bs-list-group-border-color: var(--nit-brand-borderprimary);
+    --bs-list-group-action-color: var(--nit-brand-textprimary);
+
+    // ---- Panels the templates tag with a light utility ----------------------
+    // The conversation header, the footer, the search result groups, the
+    // settings body, the group-info member list, the confirm dialogue and the
+    // "you have blocked this user" footer are all `.bg-white`; the loading
+    // placeholder is `.bg-light`. They are the same panel role — Surface.
+    .bg-white,
+    .bg-light {
+        background-color: var(--nit-brand-surface) !important;
+    }
+
+    // ---- The scrolling ground behind the bubbles ----------------------------
+    // Recessed relative to the panels so a conversation reads as content inside
+    // the drawer rather than one flat sheet.
+    .body-container {
+        background-color: var(--nit-brand-background);
+    }
+
+    // ---- Rows: conversations, contacts, search hits -------------------------
+    .list-group-item {
+        background-color: var(--nit-brand-surface);
+        color: var(--nit-brand-textprimary);
+        border-color: var(--nit-brand-borderprimary);
+    }
+
+    // Core hard-codes `color: $white; background-color: $primary` here. A raw
+    // Primary fill behind near-white text measures far short of 4.5, which is
+    // why the brand carries a dedicated hover pair - use it rather than Primary.
+    .list-group .list-group-item:hover,
+    .list-group .list-group-item:focus {
+        background-color: var(--nit-brand-hoverbackground);
+        color: var(--nit-brand-hovertext);
+    }
+
+    // Core's own `.btn-link:hover` tints with `rgba($black, .035)`, invisible on
+    // a dark ground. Same brand hover pair as every other interactive row.
+    .btn-link:hover,
+    .btn-link:focus {
+        background-color: var(--nit-brand-hoverbackground);
+        color: var(--nit-brand-hovertext);
+    }
+
+    // ---- Message bubbles ----------------------------------------------------
+    // "send" is the viewer's own message, "received" is the other person's.
+    .message {
+        &.send {
+            // A Primary tint over Surface, not a Primary fill: the fill alone
+            // does not clear 4.5 behind the brand's near-white text, and a tint
+            // still reads unmistakably as "mine" next to the plain received
+            // bubble opposite it.
+            background-color: color-mix(in srgb, var(--nit-brand-primary) 26%, var(--nit-brand-surface));
+            color: var(--nit-brand-textprimary);
+
+            .time {
+                color: var(--nit-brand-textsecondary);
+            }
+
+            .tail {
+                border-bottom-color: color-mix(in srgb, var(--nit-brand-primary) 26%, var(--nit-brand-surface));
+            }
+        }
+
+        &.received {
+            background-color: var(--nit-brand-surface);
+            color: var(--nit-brand-textprimary);
+
+            .time {
+                color: var(--nit-brand-textsecondary);
+            }
+
+            .tail {
+                border-bottom-color: var(--nit-brand-surface);
+            }
+        }
+    }
+
+    // The date separator between groups of messages, and every muted caption in
+    // the drawer (last message preview, timestamps, "no messages yet").
+    .day,
+    .text-muted {
+        color: var(--nit-brand-textsecondary) !important;
+    }
+
+    // ---- Presence dot -------------------------------------------------------
+    // Online is a status, so it takes the Success role rather than core's $green.
+    .contact-status.online .icon {
+        color: var(--nit-brand-success);
+    }
+
+    // ---- Text utilities the templates hard-code -----------------------------
+    // The drawer's close control is `.text-dark`, which is black on the dark
+    // brand. Icon glyphs in this area are non-text, so they take Accent; the
+    // close control is a labelled action and follows the text role.
+    .text-dark {
+        color: var(--nit-brand-textprimary) !important;
+    }
+
+    // Links inside the drawer ("See all", "Contacts", the settings back arrow).
+    a:not(.btn):not(.list-group-item) {
+        color: var(--nit-brand-accenttext);
+
+        &:hover,
+        &:focus {
+            color: var(--nit-brand-hovertext);
+        }
+    }
+}
+
+// The drawer shell around the app. Core gives the messages drawer a light box
+// shadow ($message-drawer-shadow) that is invisible on the dark brand; the edge
+// that actually separates it from the page is its border, which _drawers.scss
+// already points at Border-primary. Nothing more is needed here beyond making
+// sure the shell never shows a light seam above the app.
+.drawer [data-region="message-drawer"] {
+    background-color: var(--nit-brand-surface);
+}

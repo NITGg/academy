@@ -24,6 +24,11 @@ namespace local_msgrules;
  * needed for every student at once, and the inputs - enrolments and role assignments - are
  * small tables next to the number of pairs they generate.
  *
+ * Site administrators sit on both sides of a line here. They are never restricted, so they can
+ * always reach anybody; but they *are* reachable or not according to the course setting, which
+ * is the only way "students may message admins only" and "students may message nobody" can
+ * mean anything.
+ *
  * @package    local_msgrules
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -35,16 +40,20 @@ class roster {
      *
      * @return array{
      *     eligible: array<int, bool>,
+     *     admins: array<int, bool>,
      *     restricted: array<int, bool>,
      *     allowed: array<int, array<int, bool>>
-     * } eligible: every account the rules may touch. restricted: the students a mode applies
-     * to. allowed: for each restricted student, the accounts they may still write to.
+     * } eligible: every account that can be one end of a pair. admins: the site
+     * administrators among them. restricted: the students a course setting applies to.
+     * allowed: for each restricted student, the accounts they may still write to.
      */
     public static function build(): array {
         $eligible = self::get_eligible_users();
+        $admins = self::get_admins($eligible);
 
         $result = [
             'eligible'   => $eligible,
+            'admins'     => $admins,
             'restricted' => [],
             'allowed'    => [],
         ];
@@ -66,8 +75,8 @@ class roster {
             $teachesanywhere += $courseteachers;
         }
 
-        // Which students each restricted course covers, and every course those students are on
-        // (open ones included - an open course still grants its participants).
+        // Every course each account is on - open ones included, because an open course still
+        // grants its own participants to a student restricted somewhere else.
         $courselist = [];                                   // userid => [courseid => true]
         foreach ($enrolments as $courseid => $participants) {
             foreach (array_keys($participants) as $userid) {
@@ -77,12 +86,14 @@ class roster {
 
         foreach ($enrolments as $courseid => $participants) {
             $mode = $modes[$courseid] ?? rules::get_default_mode();
-            if ($mode === rules::MODE_OPEN) {
+            if (rules::is_open($mode)) {
                 continue;
             }
             foreach (array_keys($participants) as $userid) {
-                if (isset($teachesanywhere[$userid]) || isset($teachers[$courseid][$userid])) {
-                    continue;                               // Teachers are not restricted.
+                if (isset($admins[$userid]) || isset($teachesanywhere[$userid]) ||
+                        isset($teachers[$courseid][$userid])) {
+                    // Administrators and teachers are never on the receiving end of a rule.
+                    continue;
                 }
                 $result['restricted'][$userid] = true;
             }
@@ -98,22 +109,25 @@ class roster {
                 $courseteachers = $teachers[$courseid] ?? [];
                 $participants = $enrolments[$courseid] ?? [];
 
-                switch ($mode) {
-                    case rules::MODE_PEERS:
-                        // Fellow students: everyone on the course who is not teaching it.
-                        $allowed += array_diff_key($participants, $courseteachers);
-                        break;
-
-                    case rules::MODE_TEACHERS_ONLY:
-                        $allowed += $courseteachers;
-                        break;
-
-                    case rules::MODE_PEERS_AND_TEACHERS:
-                    case rules::MODE_OPEN:
-                    default:
-                        $allowed += $participants;
-                        break;
+                if (rules::is_open($mode)) {
+                    // An unrestricted course grants everybody on it, and the administrators
+                    // that an unrestricted student could always reach.
+                    $allowed += $participants;
+                    $allowed += $admins;
+                    continue;
                 }
+
+                if (rules::allows($mode, rules::ALLOW_PEERS)) {
+                    // Fellow students: everyone on the course who is not teaching it.
+                    $allowed += array_diff_key($participants, $courseteachers);
+                }
+                if (rules::allows($mode, rules::ALLOW_TEACHERS)) {
+                    $allowed += $courseteachers;
+                }
+                if (rules::allows($mode, rules::ALLOW_ADMINS)) {
+                    $allowed += $admins;
+                }
+                // Nothing ticked means exactly that: this course grants nobody.
             }
             unset($allowed[$userid]);                       // Self-conversations are core's.
             $result['allowed'][$userid] = $allowed;
@@ -123,26 +137,41 @@ class roster {
     }
 
     /**
-     * Every account the rules may touch.
+     * Every account that can be one end of a pair.
      *
-     * Site administrators are the one exemption, so they are never blocked and never blocked
-     * from - there is always a way to reach support. Deleted accounts and the guest are out
-     * because neither holds a conversation.
+     * Administrators are included - unlike teachers they can be a *recipient* the rules keep a
+     * student away from. Deleted accounts and the guest are out because neither holds a
+     * conversation.
      *
      * @return array<int, bool>
      */
     public static function get_eligible_users(): array {
         global $DB, $CFG;
 
-        $exclude = array_map('intval', explode(',', (string) $CFG->siteadmins));
-        $exclude[] = (int) $CFG->siteguest;
-        $exclude = array_values(array_unique(array_filter($exclude)));
+        $out = [];
+        $params = ['guest' => (int) $CFG->siteguest];
+        foreach ($DB->get_fieldset_select('user', 'id', 'deleted = 0 AND id <> :guest', $params) as $id) {
+            $out[(int) $id] = true;
+        }
 
-        [$notin, $params] = $DB->get_in_or_equal($exclude, SQL_PARAMS_NAMED, 'ex', false);
+        return $out;
+    }
+
+    /**
+     * The site administrators, restricted to accounts that are actually eligible.
+     *
+     * @param array<int, bool> $eligible
+     * @return array<int, bool>
+     */
+    public static function get_admins(array $eligible): array {
+        global $CFG;
 
         $out = [];
-        foreach ($DB->get_fieldset_select('user', 'id', "deleted = 0 AND id $notin", $params) as $id) {
-            $out[(int) $id] = true;
+        foreach (explode(',', (string) $CFG->siteadmins) as $id) {
+            $id = (int) $id;
+            if ($id && isset($eligible[$id])) {
+                $out[$id] = true;
+            }
         }
 
         return $out;

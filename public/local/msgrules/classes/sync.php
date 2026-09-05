@@ -66,13 +66,13 @@ class sync {
     public static function count_eligible(): int {
         global $DB, $CFG;
 
-        $exclude = array_map('intval', explode(',', (string) $CFG->siteadmins));
-        $exclude[] = (int) $CFG->siteguest;
-        $exclude = array_values(array_unique(array_filter($exclude)));
-
-        [$notin, $params] = $DB->get_in_or_equal($exclude, SQL_PARAMS_NAMED, 'ex', false);
-
-        return $DB->count_records_select('user', "deleted = 0 AND id $notin", $params);
+        // Matches roster::get_eligible_users(): administrators are counted, because they can
+        // be a recipient the rules keep a student away from.
+        return $DB->count_records_select(
+            'user',
+            'deleted = 0 AND id <> :guest',
+            ['guest' => (int) $CFG->siteguest]
+        );
     }
 
     /**
@@ -229,7 +229,9 @@ class sync {
         if (!rules::is_enabled() || $recipientid == $senderid) {
             return false;
         }
-        if (is_siteadmin($senderid) || is_siteadmin($recipientid)) {
+        if (is_siteadmin($senderid)) {
+            // An administrator is never restricted. The reverse is not true: whether a student
+            // may write *to* an administrator is exactly what the "admins" tick decides.
             return false;
         }
 
