@@ -27,6 +27,16 @@
       var loginUrl = base + '/login/index.php';
       var current = null;
 
+      // Everything this script writes lands in the page long after Moodle's multilang
+      // filter has run, so multilang markup put here reaches the screen as literal tags
+      // (which is exactly what the subscribed card used to show). Pick the language in
+      // JavaScript instead, from the <html lang> the page was rendered with.
+      var isar = (document.documentElement.lang || '').toLowerCase().indexOf('ar') === 0;
+
+      function t(en, ar) {
+        return isar ? ar : en;
+      }
+
       function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"]/g, function(c) {
           return {
@@ -152,7 +162,7 @@
           })
           .catch(function(e) {
             setTxt('[data-nit-m-couponerr]',
-              '{mlang en}Could not apply coupon.{mlang}{mlang ar}تعذّر تطبيق الكوبون.{mlang}'
+              t('Could not apply coupon.', 'تعذّر تطبيق الكوبون.')
             );
             setDisp('[data-nit-m-couponerr]', '');
             // Rethrown so the Proceed handler can tell "the price has not moved" apart from
@@ -388,16 +398,13 @@
               var now = (d && d.final != null) ? Number(d.final) : was;
               if (was != null && now != null && Math.abs(now - was) >= 0.005) {
                 btn.disabled = false;
-                // Written out per language rather than as {mlang} markup: this text goes into
-                // textContent at runtime, where nothing is left to resolve the tags.
-                var ar = (document.documentElement.lang || '').toLowerCase().indexOf('ar') === 0;
-                setTxt('[data-nit-m-error]', ar
-                  ? ('تغيّر السعر أثناء فتح هذه النافذة: كان ' + money(was) + ' ' + curLabel() +
-                    ' وأصبح ' + money(now) + ' ' + curLabel() +
-                    '. لم يتم خصم أي مبلغ — اضغط مرة أخرى للمتابعة بالسعر الجديد.')
-                  : ('The price changed while this window was open: it was ' + money(was) + ' ' +
+                setTxt('[data-nit-m-error]', t(
+                  ('The price changed while this window was open: it was ' + money(was) + ' ' +
                     curLabel() + ' and is now ' + money(now) + ' ' + curLabel() +
-                    '. Nothing has been charged — press again to continue at the new price.'));
+                    '. Nothing has been charged — press again to continue at the new price.'),
+                  ('تغيّر السعر أثناء فتح هذه النافذة: كان ' + money(was) + ' ' + curLabel() +
+                    ' وأصبح ' + money(now) + ' ' + curLabel() +
+                    '. لم يتم خصم أي مبلغ — اضغط مرة أخرى للمتابعة بالسعر الجديد.')));
                 setDisp('[data-nit-m-error]', '');
                 return;
               }
@@ -437,7 +444,7 @@
       });
 
       // ── Load plans ──
-      say('{mlang en}Loading…{mlang}{mlang ar}جاري التحميل…{mlang}');
+      say(t('Loading…', 'جاري التحميل…'));
       fetch(subsUrl + '?function=get_available_subscriptions', {
           headers: {
             'Accept': 'application/json'
@@ -462,7 +469,8 @@
           var rows = res.data || [];
           if (!rows.length) {
             say(
-              '{mlang en}No subscriptions available right now.{mlang}{mlang ar}لا توجد اشتراكات متاحة حالياً.{mlang}'
+              t('No subscriptions available right now.',
+                'لا توجد اشتراكات متاحة حالياً.')
               );
             return;
           }
@@ -576,7 +584,7 @@
         })
         .catch(function() {
           say(
-            '{mlang en}Could not load subscriptions.{mlang}{mlang ar}تعذّر تحميل الاشتراكات.{mlang}'
+            t('Could not load subscriptions.', 'تعذّر تحميل الاشتراكات.')
             );
         });
 
@@ -637,13 +645,13 @@
                     'margin: 6px 0 0; font-size: 11.5px; line-height: 1.6; color: var(--nit-brand-textsecondary);';
                   var text = '';
                   if (d.expires_text) {
-                    text =
-                      '{mlang en}Access until{mlang}{mlang ar}الوصول حتى{mlang} ' +
+                    text = t('Access until', 'الوصول حتى') + ' ' +
                       d.expires_text;
                   }
                   if (d.renewed) {
                     text = (text ? (text + ' — ') : '') +
-                      '{mlang en}includes the renewal you already paid for{mlang}{mlang ar}يشمل التجديد الذي دفعته بالفعل{mlang}';
+                      t('includes the renewal you already paid for',
+                        'يشمل التجديد الذي دفعته بالفعل');
                   }
                   p.textContent = text;
                   return text ? p : null;
@@ -652,11 +660,9 @@
                 if (btn && d.renew_due) {
                   btn.disabled = false;
                   btn.style.cursor = 'pointer';
-                  btn.textContent =
-                    '↻ {mlang en}Renew now{mlang}{mlang ar}جدّد الآن{mlang}';
+                  btn.textContent = '↻ ' + t('Renew now', 'جدّد الآن');
                   btn.title = (d.days_left > 0) ?
-                    (d.days_left +
-                      ' {mlang en}days left{mlang}{mlang ar}يوم متبقٍ{mlang}') :
+                    (d.days_left + ' ' + t('days left', 'يوم متبقٍ')) :
                     '';
                   // A short line under the button so the offer explains itself: the
                   // student is buying the NEXT period, not replacing this one.
@@ -664,9 +670,10 @@
                   note.style.cssText =
                     'margin: 6px 0 0; font-size: 11.5px; line-height: 1.6; color: var(--nit-brand-textsecondary);';
                   note.textContent = (d.expires_text ?
-                      ('{mlang en}Access until{mlang}{mlang ar}الوصول حتى{mlang} ' +
+                      (t('Access until', 'الوصول حتى') + ' ' +
                         d.expires_text + ' — ') : '') +
-                    '{mlang en}renewing adds a full period on top.{mlang}{mlang ar}التجديد يضيف فترة كاملة فوقها.{mlang}';
+                    t('renewing adds a full period on top.',
+                      'التجديد يضيف فترة كاملة فوقها.');
                   btn.parentNode.appendChild(note);
                 } else if (btn) {
                   btn.disabled = true;
@@ -677,10 +684,10 @@
                   btn.style.color = 'var(--nit-brand-success)';
                   btn.style.cursor = 'default';
                   btn.textContent = (d.days_left > 0) ?
-                    ('✓ ' + d.days_left +
-                      ' {mlang en}days left{mlang}{mlang ar}يوم متبقٍ{mlang}'
+                    ('✓ ' + d.days_left + ' ' +
+                      t('days left', 'يوم متبقٍ')
                     ) :
-                    '✓ {mlang en}Active{mlang}{mlang ar}مفعّل{mlang}';
+                    '✓ ' + t('Active', 'مفعّل');
                   var statusline = statusNote();
                   if (statusline) {
                     btn.parentNode.appendChild(statusline);
