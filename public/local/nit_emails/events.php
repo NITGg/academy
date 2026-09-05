@@ -17,9 +17,13 @@
 /**
  * Site administration › Plugins › Local plugins › Event notifications.
  *
- * One row per event the site can notify about, two ticks per row: does it send an email,
- * and does it show a notification. The ticks are the values {@see \message_send()} reads —
- * see {@see \local_nit_emails\channels} for which ones and why there is no second store.
+ * One row per message this site sends, two columns: does it go out as an email, and does it
+ * show on the notification bell. The academy's own messages lead; Moodle's stock events
+ * follow in a section that starts folded away.
+ *
+ * A cell is a tick only where there is really something to switch. Where an event has no
+ * such channel at all the cell is empty — see {@see \local_nit_emails\event_registry} for
+ * the three kinds of row and why an empty cell is not the same statement as an unticked box.
  *
  * @package    local_nit_emails
  * @copyright  2026 NIT
@@ -30,6 +34,7 @@ require(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 
 use local_nit_emails\channels;
+use local_nit_emails\event_registry;
 
 admin_externalpage_setup('local_nit_emails_events');
 require_capability('local/nit_emails:manage', context_system::instance());
@@ -40,37 +45,32 @@ $PAGE->set_title(get_string('events', 'local_nit_emails'));
 $PAGE->set_heading(get_string('events', 'local_nit_emails'));
 
 $available = channels::available();
-$groups = channels::groups();
 
 // ─────────────────────────────────────────────────────────────────────────────────────────
 // Save.
 //
-// The posted values are never trusted as a list: the events to write are the events this
-// site has, walked in the same order they were drawn, and each tick is read by the field
-// name that row owns. A checkbox that is off posts nothing, which is exactly what an
-// unticked box means here — but only for a channel the page was able to offer at all, so a
-// greyed-out column is left out of $wanted rather than being read as "switched off".
+// The rows to write are the registry's, walked in the same order they were drawn — the
+// posted data is only ever read by the field name a row owns, never trusted as a list of
+// what to change. A channel the page could not offer (its processor is switched off
+// site-wide) is left out entirely rather than being read as "unticked".
 // ─────────────────────────────────────────────────────────────────────────────────────────
 if (data_submitted() && confirm_sesskey()) {
     $changed = 0;
 
-    foreach ($groups as $group) {
-        foreach ($group['rows'] as $row) {
-            $wanted = [];
-            foreach (array_keys($available) as $channel) {
-                $wanted[$channel] = (bool) optional_param($channel . '_' . $row['field'], 0, PARAM_BOOL);
-            }
-            if ($wanted && channels::apply($row['component'], $row['name'], $wanted)) {
-                $changed++;
-            }
+    foreach (event_registry::all_rows() as $row) {
+        $posted = [];
+        foreach (array_keys($available) as $channel) {
+            $posted[$channel] = (bool) optional_param($channel . '_' . $row['id'], 0, PARAM_BOOL);
+        }
+        if (event_registry::apply($row, $posted)) {
+            $changed++;
         }
     }
 
     if ($changed) {
-        // The stored values are read through the plugin config cache and the plugin manager
+        // Message settings are read through the plugin config cache, and the plugin manager
         // caches the provider list beside them; core's own settings page resets this after
-        // every write, and skipping it here would leave the next page load reading the old
-        // answer out of the cache.
+        // every write and skipping it leaves the next page load reading the old answer.
         \core_plugin_manager::reset_caches();
     }
 
@@ -85,8 +85,10 @@ if (data_submitted() && confirm_sesskey()) {
 // Output.
 // ─────────────────────────────────────────────────────────────────────────────────────────
 
-// Filtering a sixty-row table by typing beats scrolling it. Progressive enhancement: with
-// scripting off the box simply does nothing and every row is already on the page.
+$sections = event_registry::sections();
+
+// Filtering by typing beats scrolling forty rows. Progressive enhancement: with scripting
+// off the box stays hidden and every row is already on the page.
 $PAGE->requires->js_amd_inline(<<<'JS'
 require([], function() {
     var box = document.getElementById('nitev-filter');
@@ -94,16 +96,24 @@ require([], function() {
         return;
     }
     box.closest('.nitev-filterwrap').hidden = false;
+
     box.addEventListener('input', function() {
         var needle = box.value.trim().toLowerCase();
-        document.querySelectorAll('#nitev-table tbody').forEach(function(group) {
+
+        // A search that finds nothing in the folded section is a search that looks broken,
+        // so typing opens it and clearing the box folds it back.
+        document.querySelectorAll('#nitev-form details.nitev-section').forEach(function(d) {
+            d.open = needle !== '' ? true : d.dataset.nitevOpen === '1';
+        });
+
+        document.querySelectorAll('#nitev-form .nitev-block').forEach(function(block) {
             var shown = 0;
-            group.querySelectorAll('tr[data-nitev-text]').forEach(function(row) {
+            block.querySelectorAll('tr[data-nitev-text]').forEach(function(row) {
                 var hit = needle === '' || row.dataset.nitevText.indexOf(needle) !== -1;
                 row.hidden = !hit;
                 shown += hit ? 1 : 0;
             });
-            group.hidden = shown === 0;
+            block.hidden = shown === 0;
         });
     });
 });
@@ -113,8 +123,8 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('events', 'local_nit_emails'));
 echo html_writer::div(get_string('events_intro', 'local_nit_emails'), 'alert alert-info');
 
-// A channel whose processor is switched off site-wide cannot deliver whatever this page
-// says, so say so instead of showing ticks that do nothing.
+// A channel whose processor is switched off site-wide delivers nothing whatever this page
+// says, so say so rather than showing ticks that do nothing.
 foreach (channels::channels() as $channel) {
     if (!isset($available[$channel])) {
         echo html_writer::div(
@@ -142,86 +152,146 @@ echo html_writer::empty_tag('input', [
 ]);
 echo html_writer::end_div();
 
-echo html_writer::start_div('table-responsive');
-echo html_writer::start_tag('table', ['class' => 'table generaltable', 'id' => 'nitev-table']);
+/**
+ * One cell: a live tick, a locked tick, or nothing at all.
+ *
+ * @param array $row the registry row
+ * @param string $channel
+ * @param array $available the processors that can actually deliver
+ * @return string HTML
+ */
+$rendercell = function (array $row, string $channel, array $available): string {
+    $cell = $row['channels'][$channel];
 
-echo html_writer::start_tag('thead');
-echo html_writer::start_tag('tr');
-echo html_writer::tag('th', get_string('events_event', 'local_nit_emails'), ['scope' => 'col']);
-foreach (channels::channels() as $channel) {
-    echo html_writer::tag('th', get_string('channel_' . $channel, 'local_nit_emails'),
-        ['scope' => 'col', 'class' => 'text-center', 'style' => 'width: 12rem;']);
-}
-echo html_writer::end_tag('tr');
-echo html_writer::end_tag('thead');
-
-foreach ($groups as $group) {
-    // One tbody per plugin, so the filter can hide a whole group once none of its rows match.
-    echo html_writer::start_tag('tbody');
-
-    echo html_writer::tag('tr',
-        html_writer::tag('th', s($group['label']),
-            ['colspan' => count(channels::channels()) + 1, 'scope' => 'colgroup']),
-        ['class' => 'table-active']);
-
-    foreach ($group['rows'] as $row) {
-        // What the filter box matches on: the event's own wording plus the component_name
-        // key, so an administrator can find a row by either.
-        $haystack = core_text::strtolower($row['label'] . ' ' . $row['key'] . ' ' . $group['label']);
-
-        echo html_writer::start_tag('tr', ['data-nitev-text' => $haystack]);
-
-        $labelcell = html_writer::div(s($row['label']));
-        $labelcell .= html_writer::tag('small', s($row['key']), ['class' => 'text-muted']);
-        if ($row['disabled']) {
-            $labelcell .= ' ' . html_writer::tag('span',
-                get_string('events_providerdisabled', 'local_nit_emails'),
-                ['class' => 'badge bg-secondary']);
-        }
-        echo html_writer::tag('td', $labelcell);
-
-        foreach (channels::channels() as $channel) {
-            $id = $channel . '_' . $row['field'];
-            $state = $row['states'][$channel];
-
-            $attributes = [
-                'type' => 'checkbox',
-                'name' => $id,
-                'id' => $id,
-                'value' => 1,
-                'class' => 'form-check-input',
-                // The row already names the event; the box needs its own name for a screen
-                // reader reading the column out of context.
-                'aria-label' => get_string('events_sendvia', 'local_nit_emails', [
-                    'event' => $row['label'],
-                    'channel' => get_string('channel_' . $channel, 'local_nit_emails'),
-                ]),
-            ];
-            if ($state['on']) {
-                $attributes['checked'] = 'checked';
-            }
-            if (!isset($available[$channel])) {
-                $attributes['disabled'] = 'disabled';
-            }
-
-            $cell = html_writer::empty_tag('input', $attributes);
-            if ($state['on'] && $state['locked']) {
-                // Not a state this page can set, but one core's own page can — so it is
-                // shown rather than hidden, and saving here leaves it alone.
-                $cell .= html_writer::div(get_string('events_forced', 'local_nit_emails'),
-                    'small text-muted');
-            }
-            echo html_writer::tag('td', $cell, ['class' => 'text-center']);
-        }
-
-        echo html_writer::end_tag('tr');
+    if ($cell['mode'] === event_registry::MODE_NA) {
+        // Deliberately not an unticked box: "this event has no bell" and "the bell is
+        // switched off for this event" are different statements and must not look alike.
+        return html_writer::tag('span', '—', [
+            'class' => 'text-muted',
+            'title' => get_string('events_notapplicable', 'local_nit_emails'),
+            'aria-label' => get_string('events_notapplicable', 'local_nit_emails'),
+        ]);
     }
 
-    echo html_writer::end_tag('tbody');
-}
+    $id = $channel . '_' . $row['id'];
+    $attributes = [
+        'type' => 'checkbox',
+        'name' => $id,
+        'id' => $id,
+        'value' => 1,
+        'class' => 'form-check-input',
+        'aria-label' => get_string('events_sendvia', 'local_nit_emails', [
+            'event' => $row['label'],
+            'channel' => get_string('channel_' . $channel, 'local_nit_emails'),
+        ]),
+    ];
+    if (!empty($cell['on'])) {
+        $attributes['checked'] = 'checked';
+    }
+    if ($cell['mode'] === event_registry::MODE_ALWAYS || !isset($available[$channel])) {
+        $attributes['disabled'] = 'disabled';
+    }
 
-echo html_writer::end_tag('table');
-echo html_writer::end_div();
+    $out = html_writer::empty_tag('input', $attributes);
+
+    if ($cell['mode'] === event_registry::MODE_ALWAYS) {
+        $out .= html_writer::div(get_string('events_alwayssent', 'local_nit_emails'), 'small text-muted');
+    } else if (!empty($cell['locked']) && !empty($cell['on'])) {
+        // A state this page cannot set but core's own screen can — shown rather than
+        // hidden, and saving here leaves it alone.
+        $out .= html_writer::div(get_string('events_forced', 'local_nit_emails'), 'small text-muted');
+    }
+
+    return $out;
+};
+
+/**
+ * A table of rows, optionally under sub-headings by plugin.
+ *
+ * @param array[] $blocks each: label ('' for no heading), rows[]
+ * @param callable $rendercell
+ * @param array $available
+ * @return void prints
+ */
+$rendertable = function (array $blocks) use ($rendercell, $available): void {
+    echo html_writer::start_div('table-responsive');
+    echo html_writer::start_tag('table', ['class' => 'table generaltable']);
+
+    echo html_writer::start_tag('thead');
+    echo html_writer::start_tag('tr');
+    echo html_writer::tag('th', get_string('events_event', 'local_nit_emails'), ['scope' => 'col']);
+    foreach (channels::channels() as $channel) {
+        echo html_writer::tag('th', get_string('channel_' . $channel, 'local_nit_emails'),
+            ['scope' => 'col', 'class' => 'text-center', 'style' => 'width: 11rem;']);
+    }
+    echo html_writer::end_tag('tr');
+    echo html_writer::end_tag('thead');
+
+    foreach ($blocks as $block) {
+        // One tbody per block, so the filter can fold a whole plugin away at once.
+        echo html_writer::start_tag('tbody', ['class' => 'nitev-block']);
+
+        if ($block['label'] !== '') {
+            echo html_writer::tag('tr',
+                html_writer::tag('th', s($block['label']),
+                    ['colspan' => count(channels::channels()) + 1, 'scope' => 'colgroup']),
+                ['class' => 'table-active']);
+        }
+
+        foreach ($block['rows'] as $row) {
+            // What the filter matches on: the wording, the technical key and the plugin, so
+            // a row can be found by whichever of the three the reader happens to know.
+            $haystack = core_text::strtolower($row['label'] . ' ' . $row['sub'] . ' ' . $block['label']);
+
+            echo html_writer::start_tag('tr', ['data-nitev-text' => $haystack]);
+
+            $label = html_writer::div(s($row['label']));
+            if ($row['sub'] !== '') {
+                $label .= html_writer::tag('small', s($row['sub']), ['class' => 'text-muted']);
+            }
+            if (!empty($row['link'])) {
+                $label .= ' ' . html_writer::link($row['link'], s($row['linktext']), ['class' => 'small']);
+            }
+            echo html_writer::tag('td', $label);
+
+            foreach (channels::channels() as $channel) {
+                echo html_writer::tag('td', $rendercell($row, $channel, $available), ['class' => 'text-center']);
+            }
+
+            echo html_writer::end_tag('tr');
+        }
+
+        echo html_writer::end_tag('tbody');
+    }
+
+    echo html_writer::end_tag('table');
+    echo html_writer::end_div();
+};
+
+foreach ($sections as $index => $section) {
+    // The academy's own messages are the reason anybody opens this page, so they are open.
+    // Moodle's forty-odd stock events are folded away until asked for — the first version of
+    // this page put them all on screen at once and buried the four rows that mattered.
+    $isacademy = $index === 0;
+
+    echo html_writer::start_tag('details', [
+        'class' => 'nitev-section mb-4',
+        'data-nitev-open' => $isacademy ? '1' : '0',
+    ] + ($isacademy ? ['open' => 'open'] : []));
+
+    echo html_writer::tag('summary', html_writer::tag('span', s($section['label']),
+        ['class' => 'h4 mb-0']), ['class' => 'mb-2']);
+
+    echo html_writer::tag('p', $section['intro'], ['class' => 'text-muted']);
+
+    $blocks = $section['blocks'];
+    if (!empty($section['rows'])) {
+        $blocks = [['label' => '', 'rows' => $section['rows']]];
+    }
+    $rendertable($blocks);
+
+    echo html_writer::end_tag('details');
+}
 
 echo html_writer::div(
     html_writer::empty_tag('input', [

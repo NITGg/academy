@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_jobform';
-$plugin->version   = 2026090201;                // AC-4.20.4 phone: country dialling code control.
+$plugin->version   = 2026090500;                // Applicant acknowledgement can be switched off.
 $plugin->requires  = 2024100700;              // Moodle 4.5 LTS baseline.
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;

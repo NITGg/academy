@@ -156,16 +156,31 @@ $string['kind_accountsecurity_desc'] = 'Password changes, sign-in attempts we re
 
 // Event notifications page.
 $string['events'] = 'Event notifications';
-$string['events_intro'] = 'Every event this site can tell a learner about, and how. Tick <strong>Email</strong> to send an email when the event happens; tick <strong>Notification</strong> to show it on the bell in the header (which is also what reaches the mobile app). Unticking a channel stops it for everybody — recipients cannot switch it back on for themselves. Ticking one puts it back on by default and lets each person opt out again in their own notification preferences.';
 $string['events_event'] = 'Event';
 $string['events_filter'] = 'Find an event';
 $string['events_filter_placeholder'] = 'Type part of an event or plugin name…';
 $string['events_sendvia'] = '{$a->event}: send by {$a->channel}';
 $string['events_forced'] = 'Always sent';
-$string['events_providerdisabled'] = 'Switched off';
 $string['eventssaved'] = 'Saved. {$a} event(s) changed.';
 $string['eventsnochange'] = 'Nothing was changed.';
 $string['events_channeloff'] = 'The {$a->channel} channel is switched off for the whole site, so nothing is delivered that way whatever is ticked below. Turn it back on under <a href="{$a->url}">Notification settings</a>.';
-$string['events_seealso'] = 'These are the same settings as the site\'s <a href="{$a}">Notification settings</a> page, shown one event per row. Use that page for the finer states — allowing a channel without switching it on by default, or forcing one so nobody can opt out.';
 $string['channel_email'] = 'Email';
 $string['channel_popup'] = 'Notification';
+$string['events_intro'] = 'Every message this site sends a learner, and how it reaches them. Tick <strong>Email</strong> to send an email when the event happens; tick <strong>Notification</strong> to show it on the bell in the header (which is also what reaches the mobile app). A dash means the event has no such channel at all — not that it has been switched off. Unticking a channel stops it for everybody and recipients cannot switch it back on; ticking one puts it back on by default and lets each person opt out in their own notification preferences.';
+$string['events_group_academy'] = 'The academy\'s own messages';
+$string['events_group_academy_desc'] = 'The emails and notifications this academy sends about buying a course, subscribing, registering and applying for a job. Most of these are written by our own plugins rather than by Moodle, which is why they do not appear on Moodle\'s Notification settings page.';
+$string['events_group_moodle'] = 'Moodle\'s own events';
+$string['events_group_moodle_desc'] = 'Everything Moodle and the activity modules notify about — forum posts, assignment grading, quiz submissions and so on. Left alone these behave exactly as a stock Moodle site does.';
+$string['events_sender_nitmail'] = 'Branded transactional email';
+$string['events_sender_jobform'] = 'Job Form — acknowledgement to the applicant';
+$string['events_jobformack'] = 'Job application received';
+$string['events_editwording'] = 'Edit the wording';
+$string['events_notapplicable'] = 'This event has no such channel';
+$string['events_alwayssent'] = 'Always sent';
+$string['events_alwaysnote'] = 'Account security — cannot be switched off';
+$string['events_sec_passwordreset'] = 'Password reset link';
+$string['events_sec_passwordchanged'] = 'Password was changed';
+$string['events_sec_emailchange'] = 'Confirm a new email address';
+$string['events_sec_accountdeleted'] = 'Account deleted';
+$string['events_sec_newdevice'] = 'Signed in on a new device';
+$string['events_seealso'] = 'Moodle\'s own <a href="{$a}">Notification settings</a> page holds the finer states for the events below — allowing a channel without switching it on by default, or forcing one so nobody can opt out — and the settings for each delivery method.';

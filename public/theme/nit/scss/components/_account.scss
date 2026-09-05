@@ -462,90 +462,26 @@
 
     // ---- The profile picture ------------------------------------------------
     //
-    // The wireframe draws this as an avatar, one small control under it, and a
-    // three-line caption. What Boost draws is a full file manager: a toolbar of
-    // four buttons and three view modes, a path bar, a size-limit line, a
-    // drag-and-drop panel the height of a paragraph, and a list of accepted file
-    // types — for a control that accepts exactly one square image.
+    // An ordinary field, drawn the way the other file fields on this same form
+    // are drawn: the avatar, then core's file manager left alone - the same
+    // toolbar, view bar and drop panel that "Cover image" and "Resume" get a few
+    // rows further down.
     //
-    // The chrome that has no meaning here is taken off rather than the manager
-    // replaced: it is still core's file manager, still posts the same draft item
-    // id, and still shows the file once one is picked. Gone are the folder,
-    // download and delete buttons (there are no folders, the picture is already
-    // on the page, and "Delete picture" is its own checkbox), the view switcher
-    // and path bar, and the two lines that repeat what the caption underneath
-    // already says.
-    #fitem_id_imagefile {
-        .fp-restrictions,
-        .fp-btn-mkdir,
-        .fp-btn-download,
-        .fp-btn-delete,
-        .fp-viewbar,
-        .fp-pathbar,
-        .filetypes-descriptions-intro,
-        .form-filetypes-descriptions {
-            display: none;
-        }
-
-        .fp-navbar {
-            margin: 0;
-            padding: 0;
-            background: none;
-            border: 0;
-        }
-
-        // The one button left is the wireframe's "Change".
-        .fp-btn-add a {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.375rem;
-            padding: 0.3125rem 0.875rem;
-            border-radius: 0.375rem;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            background-color: var(--nit-brand-secondary);
-            border: 1px solid var(--nit-brand-bordersecondary);
-            color: var(--nit-brand-textprimary);
-
-            &:hover,
-            &:focus {
-                background-color: var(--nit-brand-hoverbackground);
-                color: var(--nit-brand-hovertext);
-                border-color: var(--nit-brand-accenttext);
-            }
-        }
-
-        // The drop panel keeps working — it just stops being the tallest thing on
-        // the screen while it is empty. `.fm-empty-container` is what core shows
-        // when no file has been picked; once one is, `.fp-content` fills and the
-        // panel grows around it.
-        //
-        // Both min-heights have to go: Boost floors the container at 140px and
-        // its content at 157px, which is what reserved a paragraph of empty space
-        // under the avatar even with the drop message hidden.
-        .filemanager-container,
-        .filemanager .fp-content {
-            min-height: 0;
-        }
-
-        .filemanager-container {
-            margin-block-start: 0.5rem;
-            background: none;
-            border: 0;
-        }
-
-        .fm-empty-container {
-            display: none;
-        }
+    // It used to be pinned into a narrow column of its own down the leading edge
+    // with nearly all of the manager's chrome stripped off, which left one small
+    // round button. That matched the wireframe but nothing else on the page: two
+    // file fields on one form that look and behave like two unrelated controls
+    // cost more to explain than a toolbar nobody needed.
+    //
+    // The avatar is the picture already saved; the manager below it is the draft
+    // that replaces it. Core's own edit form says the same thing the same way
+    // ("Current picture", then "New picture"), so the pairing is not ours to
+    // invent.
+    #fitem_id_currentpicture .nit-account__avatar {
+        margin-block-end: 0.75rem;
     }
 
-    // The caption under it, straight from the wireframe: three short lines rather
-    // than one that runs the width of the card.
-    #fitem_id_picturehelp .form-control-static {
-        max-width: 7.5rem;
-    }
-
-    // ---- Two columns, as the wireframe draws them ---------------------------
+    // ---- Two columns --------------------------------------------------------
     //
     // A media query, not a container query, even though the width that actually
     // decides this is the card's. @container is what the layout wants and it
@@ -556,52 +492,34 @@
     // the whole two-column layout. Checked against a real RTL build, not assumed.
     //
     // 576px is the narrowest viewport at which the card still has room for two
-    // name fields beside the picture - in the wide layout (a 13rem navigation box
+    // name fields side by side - in the wide layout (a 13rem navigation box
     // beside the pane) and in the stacked one below 769px, where the card takes
     // the full width instead.
     //
-    // Below it nothing here applies: the card is one column and the picture sits
-    // above the fields, which is what the rules above already do.
+    // Below it nothing here applies: the card is one column and every field, the
+    // picture included, simply stacks.
     @media (min-width: 576px) {
         .mform {
             display: grid;
-            // Picture column, then two equal field columns.
-            grid-template-columns: 7.5rem minmax(0, 1fr) minmax(0, 1fr);
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             column-gap: 1.25rem;
-            // Dense, so the fields beside the picture start at the top row rather
-            // than below the three rows the picture occupies.
-            grid-auto-flow: row dense;
             align-items: start;
         }
 
         // The default for everything the form prints, including any field added
-        // from the management page tomorrow: the full width of the field area.
+        // from the management page tomorrow: the full width of the card.
         //
-        // Every child, not just `.fitem` — core also emits the "Required" footnote
-        // (`.fdescription`) as a bare div, and with only the fitems placed it was
-        // the one thing left to auto-place, so it landed in the picture column
-        // halfway up the card looking like a warning about the avatar.
+        // Every child, not just `.fitem` - core also emits the "Required"
+        // footnote (`.fdescription`) as a bare div, and with only the fitems
+        // placed it is left to auto-place itself into whichever half-row happens
+        // to be free.
         .mform > * {
-            grid-column: 2 / -1;
+            grid-column: 1 / -1;
         }
-
-        // The picture block, pinned down the leading edge in the order it is
-        // built: the avatar, the control, the caption, and the delete box when
-        // the account has a picture to delete.
-        #fitem_id_currentpicture { grid-column: 1; grid-row: 1; }
-        #fitem_id_imagefile      { grid-column: 1; grid-row: 2; }
-        #fitem_id_picturehelp    { grid-column: 1; grid-row: 3; }
-        #fitem_id_deletepicture  { grid-column: 1; grid-row: 4; }
 
         // A first and last name are one name; the wireframe puts them on one line.
-        #fitem_id_firstname { grid-column: 2; }
-        #fitem_id_lastname  { grid-column: 3; }
-
-        // The caption sits under the avatar, so it does not want the negative top
-        // margin that pulls a help line up under its field.
-        #fitem_id_picturehelp {
-            margin-block: 0.25rem 0;
-        }
+        #fitem_id_firstname { grid-column: 1; }
+        #fitem_id_lastname  { grid-column: 2; }
     }
 }
 
