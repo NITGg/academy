@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_msgrules';
-$plugin->version   = 2026090502;        // YYYYMMDDXX — saving or enabling applies immediately on small sites.
+$plugin->version   = 2026090503;        // YYYYMMDDXX — Arabic wording aligned with core: cohort = الزمرة.
 $plugin->requires  = 2022041900;
 $plugin->maturity  = MATURITY_STABLE;
 $plugin->release   = '1.0.0';
