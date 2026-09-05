@@ -95,19 +95,12 @@
                 </a>
                 <div class="dropdown-menu dropdown-menu-end nit-navbar-dropdown" aria-labelledby="nit-navmenu-toggle">
                     <h6 class="dropdown-header">{{#str}}navigation, core{{/str}}</h6>
-                    {{#mobileprimarynav}}
-                        {{^haschildren}}
-                            <a class="dropdown-item{{#isactive}} active{{/isactive}}" href="{{{url}}}" {{#isactive}}aria-current="true"{{/isactive}}>{{{text}}}</a>
-                        {{/haschildren}}
-                        {{#haschildren}}
-                            <a class="dropdown-item{{#isactive}} active{{/isactive}}" href="{{{url}}}">{{{text}}}</a>
-                            {{#children}}
-                                {{^divider}}
-                                    <a class="dropdown-item nit-navmenu-child{{#isactive}} active{{/isactive}}" href="{{{url}}}" {{#isactive}}aria-current="true"{{/isactive}}>{{{text}}}</a>
-                                {{/divider}}
-                            {{/children}}
-                        {{/haschildren}}
-                    {{/mobileprimarynav}}
+                    {{! NIT: core's navigation only — Home / Dashboard / My courses /
+                        Site administration. Built from $PAGE->primarynav by the
+                        renderer instead of read from `mobileprimarynav`, because
+                        core merges the custom menu items into that list and those
+                        links now have their own place: the titles on the bar. }}
+                    {{{ output.navbar_gear_nav }}}
 
                     {{! NIT: edit-mode toggle lives here (moved from the bar). The
                         wrapper is `:empty` when core returns no switch — CSS then

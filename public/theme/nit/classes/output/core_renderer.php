@@ -377,6 +377,60 @@ class core_renderer extends \theme_boost\output\core_renderer {
     }
 
     /**
+     * The core navigation rows of the gear dropdown.
+     *
+     * The gear is core's navigation and nothing else: Home, Dashboard, My
+     * courses, Site administration. It deliberately does NOT use the template's
+     * `mobileprimarynav`, because core merges the custom menu items into that
+     * list (\core\navigation\output\primary::merge_primary_and_custom) — and
+     * with the site's own links now drawn as titles on the bar, letting them
+     * through here would show every one of them twice on a desktop screen.
+     *
+     * The mobile drawer keeps the merged list: below the `md` breakpoint the bar
+     * links are hidden, so the drawer is the only place those links can be.
+     *
+     * Walks $PAGE->primarynav the same way core does, one level of children.
+     *
+     * @return string HTML, or '' when there is no navigation to show
+     */
+    public function navbar_gear_nav(): string {
+        $items = $this->navbar_primary_nav_items($this->page->primarynav);
+        if (empty($items)) {
+            return '';
+        }
+
+        return $this->render_from_template('theme_nit/navbar_gear_nav', ['items' => $items]);
+    }
+
+    /**
+     * Flatten a navigation node's children into template rows.
+     *
+     * @param \navigation_node $parent node whose children to export
+     * @return array [{text, url, isactive, children, haschildren}]
+     */
+    protected function navbar_primary_nav_items($parent): array {
+        $nodes = [];
+        foreach ($parent->children as $node) {
+            if (!$node->has_action() && empty($node->children)) {
+                continue;
+            }
+            $children = $this->navbar_primary_nav_items($node);
+            $activechildren = array_filter($children, fn($child) => !empty($child['isactive']));
+            $action = $node->action();
+
+            $nodes[] = [
+                'text' => $node->text,
+                'url' => $action ? $action->out(false) : '',
+                'isactive' => $node->isactive || !empty($activechildren),
+                'children' => $children,
+                'haschildren' => !empty($children),
+            ];
+        }
+
+        return $nodes;
+    }
+
+    /**
      * Is this navbar link the page the visitor is on?
      *
      * The path has to match, and so does every parameter the link carries a

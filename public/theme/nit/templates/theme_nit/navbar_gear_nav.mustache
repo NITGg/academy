@@ -1,0 +1,44 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template theme_nit/navbar_gear_nav
+
+    Core's navigation rows inside the gear dropdown: Home, Dashboard, My courses,
+    Site administration. Built by theme_nit\output\core_renderer::navbar_gear_nav()
+    from $PAGE->primarynav rather than from the template's `mobileprimarynav`, so
+    the custom menu items (which core merges into that list) stay where the
+    administrator put them — as titles on the bar.
+
+    Context variables required for this template:
+    * items - [{text, url, isactive, haschildren, children:[{text, url, isactive}]}]
+
+    Example context (json):
+    {
+        "items": [
+            {"text": "Home", "url": "https://example.com/", "isactive": true},
+            {"text": "Dashboard", "url": "https://example.com/my/", "isactive": false}
+        ]
+    }
+}}
+{{#items}}
+    <a class="dropdown-item{{#isactive}} active{{/isactive}}" href="{{{url}}}" {{#isactive}}aria-current="true"{{/isactive}}>{{{text}}}</a>
+    {{#haschildren}}
+        {{#children}}
+            <a class="dropdown-item nit-navmenu-child{{#isactive}} active{{/isactive}}" href="{{{url}}}" {{#isactive}}aria-current="true"{{/isactive}}>{{{text}}}</a>
+        {{/children}}
+    {{/haschildren}}
+{{/items}}
