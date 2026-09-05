@@ -24,16 +24,17 @@
     own address. local_nit_category/search.js adds the preview panel and the arrow-key
     handling on top; the `data-nitsearch*` attributes below are what it binds to.
 
-    On a narrow screen the field folds behind the magnifier button and opens as a full
-    width row under the bar (`.is-expanded`), which is why the button is part of this
-    template rather than the field being duplicated for mobile.
+    The bar carries the magnifier only: the field is folded behind it at every width
+    and opens on click (`.is-expanded`) — as a panel under the button on a wide screen,
+    as a full width row under the bar on a narrow one. One form, revealed; not a second
+    copy of the control, which would make "a single search control" true only on paper.
 
     Context variables required for this template:
     * action - URL of the results page (local_nit_category/search.php)
     * query - the term to prefill, '' on every page but the results page
 }}
 <div class="nit-navsearch" data-nitsearch>
-    <button type="button" class="btn nit-navbar-icon nit-navsearch__toggle d-lg-none"
+    <button type="button" class="btn nit-navbar-icon nit-navsearch__toggle"
             data-nitsearch-toggle aria-expanded="false" aria-controls="nit-navsearch-form"
             aria-label="{{#str}}searchopen, local_nit_category{{/str}}">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"

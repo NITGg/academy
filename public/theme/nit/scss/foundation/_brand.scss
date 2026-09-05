@@ -19,7 +19,7 @@
 // A "group" is a complete named set of the 16 semantic roles (Primary, Surface,
 // Text primary, …). Every component references a role by its ACTIVE name
 // (`--nit-brand-primary`) and, by default, resolves it from Group 1. Wrapping a
-// component in `.nit-brand-2` / `.nit-brand-3` re-points all 13 names at that
+// component in `.nit-brand-2` / `.nit-brand-3` re-points all 21 names at that
 // group's values — same variable names, different palette.
 //
 // Emission order (one combined stream): pre_scss defines `$nit-b-<gkey>-<role>`
@@ -30,12 +30,17 @@
 
 :root {
     // --- Per-group raw palettes (reference values; the switch classes read
-    //     these). 16 roles × 3 groups. -------------------------------------
+    //     these). 21 roles × 3 groups. -------------------------------------
     --nit-brand-g1-primary: #{$nit-b-g1-primary};
     --nit-brand-g1-secondary: #{$nit-b-g1-secondary};
     --nit-brand-g1-accent: #{$nit-b-g1-accent};
     --nit-brand-g1-accenttext: #{$nit-b-g1-accenttext};
     --nit-brand-g1-background: #{$nit-b-g1-background};
+    --nit-brand-g1-background2: #{$nit-b-g1-background2};
+    --nit-brand-g1-navbarbackground1: #{$nit-b-g1-navbarbackground1};
+    --nit-brand-g1-navbarbackground2: #{$nit-b-g1-navbarbackground2};
+    --nit-brand-g1-footerbackground1: #{$nit-b-g1-footerbackground1};
+    --nit-brand-g1-footerbackground2: #{$nit-b-g1-footerbackground2};
     --nit-brand-g1-surface: #{$nit-b-g1-surface};
     --nit-brand-g1-textprimary: #{$nit-b-g1-textprimary};
     --nit-brand-g1-textsecondary: #{$nit-b-g1-textsecondary};
@@ -53,6 +58,11 @@
     --nit-brand-g2-accent: #{$nit-b-g2-accent};
     --nit-brand-g2-accenttext: #{$nit-b-g2-accenttext};
     --nit-brand-g2-background: #{$nit-b-g2-background};
+    --nit-brand-g2-background2: #{$nit-b-g2-background2};
+    --nit-brand-g2-navbarbackground1: #{$nit-b-g2-navbarbackground1};
+    --nit-brand-g2-navbarbackground2: #{$nit-b-g2-navbarbackground2};
+    --nit-brand-g2-footerbackground1: #{$nit-b-g2-footerbackground1};
+    --nit-brand-g2-footerbackground2: #{$nit-b-g2-footerbackground2};
     --nit-brand-g2-surface: #{$nit-b-g2-surface};
     --nit-brand-g2-textprimary: #{$nit-b-g2-textprimary};
     --nit-brand-g2-textsecondary: #{$nit-b-g2-textsecondary};
@@ -70,6 +80,11 @@
     --nit-brand-g3-accent: #{$nit-b-g3-accent};
     --nit-brand-g3-accenttext: #{$nit-b-g3-accenttext};
     --nit-brand-g3-background: #{$nit-b-g3-background};
+    --nit-brand-g3-background2: #{$nit-b-g3-background2};
+    --nit-brand-g3-navbarbackground1: #{$nit-b-g3-navbarbackground1};
+    --nit-brand-g3-navbarbackground2: #{$nit-b-g3-navbarbackground2};
+    --nit-brand-g3-footerbackground1: #{$nit-b-g3-footerbackground1};
+    --nit-brand-g3-footerbackground2: #{$nit-b-g3-footerbackground2};
     --nit-brand-g3-surface: #{$nit-b-g3-surface};
     --nit-brand-g3-textprimary: #{$nit-b-g3-textprimary};
     --nit-brand-g3-textsecondary: #{$nit-b-g3-textsecondary};
@@ -88,6 +103,11 @@
     --nit-brand-accent: var(--nit-brand-g1-accent);
     --nit-brand-accenttext: var(--nit-brand-g1-accenttext);
     --nit-brand-background: var(--nit-brand-g1-background);
+    --nit-brand-background2: var(--nit-brand-g1-background2);
+    --nit-brand-navbarbackground1: var(--nit-brand-g1-navbarbackground1);
+    --nit-brand-navbarbackground2: var(--nit-brand-g1-navbarbackground2);
+    --nit-brand-footerbackground1: var(--nit-brand-g1-footerbackground1);
+    --nit-brand-footerbackground2: var(--nit-brand-g1-footerbackground2);
     --nit-brand-surface: var(--nit-brand-g1-surface);
     --nit-brand-textprimary: var(--nit-brand-g1-textprimary);
     --nit-brand-textsecondary: var(--nit-brand-g1-textsecondary);
@@ -136,6 +156,11 @@
     --nit-brand-accent: var(--nit-brand-g2-accent);
     --nit-brand-accenttext: var(--nit-brand-g2-accenttext);
     --nit-brand-background: var(--nit-brand-g2-background);
+    --nit-brand-background2: var(--nit-brand-g2-background2);
+    --nit-brand-navbarbackground1: var(--nit-brand-g2-navbarbackground1);
+    --nit-brand-navbarbackground2: var(--nit-brand-g2-navbarbackground2);
+    --nit-brand-footerbackground1: var(--nit-brand-g2-footerbackground1);
+    --nit-brand-footerbackground2: var(--nit-brand-g2-footerbackground2);
     --nit-brand-surface: var(--nit-brand-g2-surface);
     --nit-brand-textprimary: var(--nit-brand-g2-textprimary);
     --nit-brand-textsecondary: var(--nit-brand-g2-textsecondary);
@@ -155,6 +180,11 @@
     --nit-brand-accent: var(--nit-brand-g3-accent);
     --nit-brand-accenttext: var(--nit-brand-g3-accenttext);
     --nit-brand-background: var(--nit-brand-g3-background);
+    --nit-brand-background2: var(--nit-brand-g3-background2);
+    --nit-brand-navbarbackground1: var(--nit-brand-g3-navbarbackground1);
+    --nit-brand-navbarbackground2: var(--nit-brand-g3-navbarbackground2);
+    --nit-brand-footerbackground1: var(--nit-brand-g3-footerbackground1);
+    --nit-brand-footerbackground2: var(--nit-brand-g3-footerbackground2);
     --nit-brand-surface: var(--nit-brand-g3-surface);
     --nit-brand-textprimary: var(--nit-brand-g3-textprimary);
     --nit-brand-textsecondary: var(--nit-brand-g3-textsecondary);

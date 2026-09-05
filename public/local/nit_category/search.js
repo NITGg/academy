@@ -223,15 +223,42 @@
             }
         });
 
+        /**
+         * Fold the field back behind the magnifier, results and all.
+         */
+        function collapse() {
+            if (!toggle || !root.classList.contains('is-expanded')) {
+                return;
+            }
+            root.classList.remove('is-expanded');
+            toggle.setAttribute('aria-expanded', 'false');
+            cancel();
+            setOpen(false);
+        }
+
         // Clicking away closes the panel; clicking inside it must not, or the link under
-        // the pointer would never receive the click.
+        // the pointer would never receive the click. The field itself is folded away too:
+        // it floats over the page now, so leaving it open over whatever the visitor
+        // clicked next would sit on top of the thing they were reaching for.
         document.addEventListener('click', function (event) {
             if (!root.contains(event.target) && (!toggle || !toggle.contains(event.target))) {
                 setOpen(false);
+                collapse();
             }
         });
 
-        // On a narrow screen the box is folded behind a magnifier: the same form, revealed.
+        // Escape closes the control and puts the focus back on the magnifier, so a keyboard
+        // visitor is never left on a field that is no longer on the screen. The input and
+        // panel handlers above close the results as the event passes them, so a single
+        // press closes the whole thing rather than needing one press per layer.
+        root.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && toggle) {
+                collapse();
+                toggle.focus();
+            }
+        });
+
+        // The bar carries the magnifier only: the same form, revealed on click.
         if (toggle) {
             toggle.addEventListener('click', function (event) {
                 event.preventDefault();
@@ -240,6 +267,7 @@
                 if (open) {
                     input.focus();
                 } else {
+                    cancel();
                     setOpen(false);
                 }
             });

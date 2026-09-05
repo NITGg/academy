@@ -186,7 +186,7 @@ function theme_nit_colours_all(): array {
 }
 
 /**
- * The 16 semantic roles every Brand-Colors group is built from.
+ * The 21 semantic roles every Brand-Colors group is built from.
  *
  * This is the clean, small semantic layer that replaces the sprawling
  * theme_nit_colour_palette(): a component references a role by name (Primary,
@@ -194,7 +194,7 @@ function theme_nit_colours_all(): array {
  * and `usage` is a list of the concrete UI things that should use the colour —
  * rendered as chips on the gallery's Brand Colors tab. `default` here is only a
  * red-free FALLBACK (the Group 1 / Slate-blue values): every group overrides all
- * 16 roles in theme_nit_brand_group_defaults(), so a role default is used only if
+ * 21 roles in theme_nit_brand_group_defaults(), so a role default is used only if
  * a group ever omits a role. The Hover Background / Hover Text roles carry the
  * explicit hover colours (other opacity variants are still derived in SCSS, see
  * scss/foundation/_brand.scss).
@@ -203,29 +203,34 @@ function theme_nit_colours_all(): array {
  */
 function theme_nit_brand_roles(): array {
     return [
-        'primary'         => ['label' => 'Primary', 'usage' => ['background main button', 'checked toggles', 'progress fill', 'notification dots', 'navbar background'], 'default' => '#5488c4'],
-        'secondary'       => ['label' => 'Secondary', 'usage' => ['background secondary button'], 'default' => '#1c2a3a'],
-        'accent'          => ['label' => 'Accent', 'usage' => ['none text'], 'default' => '#5488c4'],
-        'accenttext'      => ['label' => 'Accent Text', 'usage' => ['text of links', 'important words', 'underlines'], 'default' => '#7fabdb'],
-        'background'      => ['label' => 'Background', 'usage' => ['page background'], 'default' => '#0c141f'],
-        'surface'         => ['label' => 'Surface', 'usage' => ['Cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'page sections background'], 'default' => '#121e2d'],
-        'textprimary'     => ['label' => 'Text primary', 'usage' => ['main normal text', 'text in buttons', 'text in inputs', 'navbar text', 'navbar underline'], 'default' => '#eef3f9'],
-        'textsecondary'   => ['label' => 'Text secondary', 'usage' => ['secondary normal text', 'placeholders'], 'default' => '#94a3b8'],
-        'borderprimary'   => ['label' => 'Border primary', 'usage' => ['main border color'], 'default' => '#223244'],
-        'bordersecondary' => ['label' => 'Border secondary', 'usage' => ['secondary border color'], 'default' => '#33475e'],
-        'hoverbackground' => ['label' => 'Hover Background', 'usage' => ['hover background'], 'default' => '#16222f'],
-        'hovertext'       => ['label' => 'Hover Text', 'usage' => ['hover text'], 'default' => '#7fabdb'],
-        'error'           => ['label' => 'Error', 'usage' => ['Errors', 'danger / destructive actions', 'invalid fields'], 'default' => '#d07f43'],
-        'success'         => ['label' => 'Success', 'usage' => ['Success', 'enrolled / active / paid', 'positive states'], 'default' => '#3fa877'],
-        'warning'         => ['label' => 'Warning', 'usage' => ['Warnings', 'caution', 'pending / expiring'], 'default' => '#d8c24e'],
-        'info'            => ['label' => 'Info', 'usage' => ['Neutral notices', 'tips', 'hints'], 'default' => '#5fb0c9'],
+        'primary'           => ['label' => 'Primary', 'usage' => ['background main button', 'checked toggles', 'progress fill', 'notification dots'], 'default' => '#5488c4'],
+        'secondary'         => ['label' => 'Secondary', 'usage' => ['background secondary button'], 'default' => '#1c2a3a'],
+        'accent'            => ['label' => 'Accent', 'usage' => ['none text'], 'default' => '#5488c4'],
+        'accenttext'        => ['label' => 'Accent Text', 'usage' => ['text of links', 'important words', 'underlines'], 'default' => '#7fabdb'],
+        'background'        => ['label' => 'Background', 'usage' => ['page background'], 'default' => '#0c141f'],
+        'background2'       => ['label' => 'Second background', 'usage' => ['alternate page sections', 'bands lifted off the page ground'], 'default' => '#101a27'],
+        'navbarbackground1' => ['label' => 'Navbar background 1', 'usage' => ['navbar background'], 'default' => '#0c141f'],
+        'navbarbackground2' => ['label' => 'Navbar background 2', 'usage' => ['navbar background — second colour (reserved, not consumed yet)'], 'default' => '#121e2d'],
+        'footerbackground1' => ['label' => 'Footer background 1', 'usage' => ['footer background'], 'default' => '#0c141f'],
+        'footerbackground2' => ['label' => 'Footer background 2', 'usage' => ['footer background — second colour (reserved, not consumed yet)'], 'default' => '#121e2d'],
+        'surface'           => ['label' => 'Surface', 'usage' => ['Cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'page sections background'], 'default' => '#121e2d'],
+        'textprimary'       => ['label' => 'Text primary', 'usage' => ['main normal text', 'text in buttons', 'text in inputs', 'navbar text', 'navbar underline'], 'default' => '#eef3f9'],
+        'textsecondary'     => ['label' => 'Text secondary', 'usage' => ['secondary normal text', 'placeholders'], 'default' => '#94a3b8'],
+        'borderprimary'     => ['label' => 'Border primary', 'usage' => ['main border color'], 'default' => '#223244'],
+        'bordersecondary'   => ['label' => 'Border secondary', 'usage' => ['secondary border color'], 'default' => '#33475e'],
+        'hoverbackground'   => ['label' => 'Hover Background', 'usage' => ['hover background'], 'default' => '#16222f'],
+        'hovertext'         => ['label' => 'Hover Text', 'usage' => ['hover text'], 'default' => '#7fabdb'],
+        'error'             => ['label' => 'Error', 'usage' => ['Errors', 'danger / destructive actions', 'invalid fields'], 'default' => '#d07f43'],
+        'success'           => ['label' => 'Success', 'usage' => ['Success', 'enrolled / active / paid', 'positive states'], 'default' => '#3fa877'],
+        'warning'           => ['label' => 'Warning', 'usage' => ['Warnings', 'caution', 'pending / expiring'], 'default' => '#d8c24e'],
+        'info'              => ['label' => 'Info', 'usage' => ['Neutral notices', 'tips', 'hints'], 'default' => '#5fb0c9'],
     ];
 }
 
 /**
  * The ordered Brand-Colors groups.
  *
- * A "group" is a complete named set of all 13 roles — a swappable palette.
+ * A "group" is a complete named set of all 21 roles — a swappable palette.
  * Group 1 is the site-wide default; a component can opt into another group via
  * the matching wrapper class (`.nit-brand-2`, `.nit-brand-3`), keeping the same
  * variable names but resolving them from that group's values. Groups 2 and 3
@@ -313,60 +318,75 @@ function theme_nit_brand_group_defaults(): array {
     return [
         // --- Group 1 : Slate blue (calm, cool). -------------------------------
         'g1' => [
-            'primary'         => '#5488c4',
-            'secondary'       => '#1c2a3a',
-            'accent'          => '#5488c4',
-            'accenttext'      => '#7fabdb',
-            'background'      => '#0c141f',
-            'surface'         => '#121e2d',
-            'textprimary'     => '#eef3f9',
-            'textsecondary'   => '#94a3b8',
-            'borderprimary'   => '#223244',
-            'bordersecondary' => '#33475e',
-            'hoverbackground' => '#16222f',
-            'hovertext'       => '#7fabdb',
-            'error'           => '#d07f43',
-            'success'         => '#3fa877',
-            'warning'         => '#d8c24e',
-            'info'            => '#5fb0c9',
+            'primary'           => '#5488c4',
+            'secondary'         => '#1c2a3a',
+            'accent'            => '#5488c4',
+            'accenttext'        => '#7fabdb',
+            'background'        => '#0c141f',
+            'background2'       => '#101a27',
+            'navbarbackground1' => '#0c141f',
+            'navbarbackground2' => '#121e2d',
+            'footerbackground1' => '#0c141f',
+            'footerbackground2' => '#121e2d',
+            'surface'           => '#121e2d',
+            'textprimary'       => '#eef3f9',
+            'textsecondary'     => '#94a3b8',
+            'borderprimary'     => '#223244',
+            'bordersecondary'   => '#33475e',
+            'hoverbackground'   => '#16222f',
+            'hovertext'         => '#7fabdb',
+            'error'             => '#d07f43',
+            'success'           => '#3fa877',
+            'warning'           => '#d8c24e',
+            'info'              => '#5fb0c9',
         ],
         // --- Group 2 : Teal / Deep sea (cool, restful). -----------------------
         'g2' => [
-            'primary'         => '#2f9e8f',
-            'secondary'       => '#12302e',
-            'accent'          => '#2f9e8f',
-            'accenttext'      => '#58bdad',
-            'background'      => '#0a1a1a',
-            'surface'         => '#102727',
-            'textprimary'     => '#eef5f4',
-            'textsecondary'   => '#8aa5a2',
-            'borderprimary'   => '#1f3f3d',
-            'bordersecondary' => '#2f5a56',
-            'hoverbackground' => '#143231',
-            'hovertext'       => '#6ccabb',
-            'error'           => '#d07f43',
-            'success'         => '#46b085',
-            'warning'         => '#d8c24e',
-            'info'            => '#6aa6c9',
+            'primary'           => '#2f9e8f',
+            'secondary'         => '#12302e',
+            'accent'            => '#2f9e8f',
+            'accenttext'        => '#58bdad',
+            'background'        => '#0a1a1a',
+            'background2'       => '#0d2020',
+            'navbarbackground1' => '#0a1a1a',
+            'navbarbackground2' => '#102727',
+            'footerbackground1' => '#0a1a1a',
+            'footerbackground2' => '#102727',
+            'surface'           => '#102727',
+            'textprimary'       => '#eef5f4',
+            'textsecondary'     => '#8aa5a2',
+            'borderprimary'     => '#1f3f3d',
+            'bordersecondary'   => '#2f5a56',
+            'hoverbackground'   => '#143231',
+            'hovertext'         => '#6ccabb',
+            'error'             => '#d07f43',
+            'success'           => '#46b085',
+            'warning'           => '#d8c24e',
+            'info'              => '#6aa6c9',
         ],
         // --- Group 3 : Indigo / Lavender (soft, cool violet). -----------------
         'g3' => [
-            'primary'         => '#8478cf',
-            'secondary'       => '#26243d',
-            'accent'          => '#8478cf',
-            'accenttext'      => '#a99ee2',
-            'background'      => '#11101c',
-            'surface'         => '#1a182d',
-            'textprimary'     => '#efedf7',
-            'textsecondary'   => '#9691b3',
-            'borderprimary'   => '#2d2a45',
-            'bordersecondary' => '#433d64',
-            'hoverbackground' => '#201e34',
-            'hovertext'       => '#b4a9ee',
-            'error'           => '#d07f43',
-            'success'         => '#57b39a',
-            'warning'         => '#d8c24e',
-            'info'            => '#7fa6d6',
+            'primary'           => '#8478cf',
+            'secondary'         => '#26243d',
+            'accent'            => '#8478cf',
+            'accenttext'        => '#a99ee2',
+            'background'        => '#11101c',
+            'background2'       => '#151425',
+            'navbarbackground1' => '#11101c',
+            'navbarbackground2' => '#1a182d',
+            'footerbackground1' => '#11101c',
+            'footerbackground2' => '#1a182d',
+            'surface'           => '#1a182d',
+            'textprimary'       => '#efedf7',
+            'textsecondary'     => '#9691b3',
+            'borderprimary'     => '#2d2a45',
+            'bordersecondary'   => '#433d64',
+            'hoverbackground'   => '#201e34',
+            'hovertext'         => '#b4a9ee',
+            'error'             => '#d07f43',
+            'success'           => '#57b39a',
+            'warning'           => '#d8c24e',
+            'info'              => '#7fa6d6',
         ],
     ];
 }

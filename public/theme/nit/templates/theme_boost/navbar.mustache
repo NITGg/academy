@@ -58,13 +58,6 @@
             <span class="nit-navbar-title">{{{ sitename }}}</span>
         </a>
 
-        {{! NIT: language menu on the left, right after the brand. Rendered via
-            the renderer (output.navbar_language_menu) so it shows for logged-in
-            users too — core hides the standalone menu once logged in. }}
-        <div class="nit-navbar-lang d-none d-md-flex align-items-center">
-            {{{ output.navbar_language_menu }}}
-        </div>
-
         {{! NIT: the site's own links (Home / Courses / About / Contact) as titles
             on the bar. Every row is read from core's "Custom menu items" setting
             (Appearance → Advanced theme settings), so an administrator adds,
@@ -78,6 +71,14 @@
                 that answer different questions is exactly what "a single search control"
                 rules out. }}
             {{{ output.navbar_site_search }}}
+
+            {{! NIT: language switcher — between the search control and the icons.
+                Rendered via the renderer (output.navbar_language_menu) so it shows
+                for logged-in users too: core folds the standalone menu into the
+                user menu once logged in. }}
+            <div class="nit-navbar-lang d-none d-md-flex align-items-center">
+                {{{ output.navbar_language_menu }}}
+            </div>
 
             {{! NIT: the edit-mode switch was moved OUT of the bar and INTO the
                 gear/navigation dropdown below (matches the legacy clean bar). }}

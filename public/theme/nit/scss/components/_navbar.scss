@@ -776,33 +776,41 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         text-align: start;
     }
 
-    // ---- Narrow screens: the field folds behind the magnifier ---------------
+    // ---- The bar carries the magnifier; the field opens on click ------------
     // One form, revealed — not a second copy of the control, which would make
-    // "a single search control" true only on paper.
+    // "a single search control" true only on paper. The field is folded away at
+    // every width now, so the bar reads as icons rather than as a form.
     &__toggle {
+        display: inline-flex;
+    }
+
+    &__form {
         display: none;
     }
 
+    &.is-expanded {
+        .nit-navsearch__form {
+            // Anchored to the bar itself (`.nit-navbar` is fixed, so it is the
+            // containing block): the field can then sit under the icons without
+            // the width of the cluster deciding where it lands.
+            display: flex;
+            position: absolute;
+            top: 100%;
+            inset-inline-end: 1rem;
+            width: min(340px, calc(100vw - 2rem));
+            margin-top: 0.4rem;
+            // Floating over the page now, so it needs an edge of its own.
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+        }
+    }
+
+    // A narrow screen has no room for a panel beside the icons, so the revealed
+    // field spans the bar instead, exactly as it did before.
     @include media-breakpoint-down(lg) {
-        &__toggle {
-            display: inline-flex;
-        }
-
-        &__form {
-            display: none;
-        }
-
         &.is-expanded {
             .nit-navsearch__form {
-                // Anchored to the bar itself (`.nit-navbar` is fixed, so it is the
-                // containing block), which is how it can span the full width while
-                // living inside the right-hand cluster.
-                display: flex;
-                position: absolute;
-                top: 100%;
                 inset-inline: 0.75rem;
                 width: auto;
-                margin-top: 0.4rem;
             }
 
             .nit-navsearch__panel {

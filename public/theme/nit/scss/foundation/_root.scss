@@ -44,7 +44,12 @@
     --nit-accentgolddark: #{$nit-c-accentgolddark};
     --nit-accentteal: #{$nit-c-accentteal};
 
-    --nit-navbarbg: var(--nit-brand-background);
+    // The bar has its own pair of Brand Colors roles rather than borrowing the
+    // page ground, so an admin can lift the navbar off the page without moving
+    // every other surface with it. Only colour 1 is painted today; colour 2 is
+    // published for the components that will want a second stop.
+    --nit-navbarbg: var(--nit-brand-navbarbackground1);
+    --nit-navbarbg2: var(--nit-brand-navbarbackground2);
     --nit-navbarsurface: var(--nit-brand-surface);
     --nit-navbarborder: var(--nit-brand-borderprimary);
     // Navbar TEXT accent (site name / wordmark, dropdown section headers, the
@@ -62,6 +67,7 @@
     --nit-navbarpanelborder: var(--nit-brand-borderprimary);
 
     --nit-background: var(--nit-brand-background);
+    --nit-background2: var(--nit-brand-background2);
     --nit-fill: var(--nit-brand-surface);
     --nit-textprimary: var(--nit-brand-textprimary);
     --nit-textsecondary: var(--nit-brand-textsecondary);
@@ -120,7 +126,9 @@
     // Column headings and the social glyphs split the same way the navbar does:
     // headings read from the text-facing "Accent Text" role, the icons from the
     // non-text "Accent" role, so the two stay independently tunable.
-    --nit-footerbg: var(--nit-brand-background);
+    --nit-footerbg: var(--nit-brand-footerbackground1);
+    // Second footer colour — published, not yet painted (see the navbar note).
+    --nit-footerbg2: var(--nit-brand-footerbackground2);
     --nit-footerheading: var(--nit-brand-accenttext);
     --nit-footertext: var(--nit-brand-textprimary);
     --nit-footermuted: var(--nit-brand-textsecondary);
