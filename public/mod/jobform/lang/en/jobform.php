@@ -95,3 +95,7 @@ $string['privacy:metadata:jobform_submission:status'] = 'Whether the submission 
 $string['privacy:metadata:jobform_submission:timemodified'] = 'When the submission was last changed.';
 $string['privacy:metadata:jobform_submission_data'] = 'The answers within a submission.';
 $string['privacy:metadata:jobform_submission_data:value'] = 'The value the student entered for a field.';
+
+// Admin setting: applicant acknowledgement email.
+$string['notifyapplicant'] = 'Email an acknowledgement to the applicant';
+$string['notifyapplicant_desc'] = 'Send "we have received your application" to whoever submits a job form. The separate notice to the people who review submissions is a Moodle notification and is switched on and off with the other notifications.';

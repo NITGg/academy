@@ -69,7 +69,7 @@ class notifier {
      * @return bool true when the mail was handed to the mail system
      */
     private static function email_applicant(object $jobform, object $course, object $user): bool {
-        if (!self::can_email($user)) {
+        if (!self::is_applicant_email_enabled() || !self::can_email($user)) {
             return false;
         }
 
@@ -215,6 +215,23 @@ class notifier {
             . $body
             . '<p style="margin:22px 0 0;font-size:12px;color:#888888;">' . s($sitename) . '</p>'
             . '</td></tr></table></td></tr></table></body></html>';
+    }
+
+    /**
+     * Is the applicant acknowledgement switched on?
+     *
+     * Public because the site's Event notifications screen reads it to draw the
+     * switch, and there must be exactly one answer to "does this email go out" —
+     * a second copy of the rule in the admin page is how the two drift apart.
+     *
+     * Defaults to on: an applicant who submits a form and hears nothing back
+     * assumes it failed, which is the complaint this email exists to prevent.
+     *
+     * @return bool
+     */
+    public static function is_applicant_email_enabled(): bool {
+        $value = get_config('mod_jobform', 'notifyapplicant');
+        return ($value === false || $value === null) ? true : (bool) $value;
     }
 
     /**

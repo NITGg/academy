@@ -95,3 +95,7 @@ $string['privacy:metadata:jobform_submission:status'] = 'هل الاستمارة
 $string['privacy:metadata:jobform_submission:timemodified'] = 'آخر تعديل على الاستمارة.';
 $string['privacy:metadata:jobform_submission_data'] = 'الإجابات جوه الاستمارة.';
 $string['privacy:metadata:jobform_submission_data:value'] = 'القيمة اللي الطالب كتبها في الحقل.';
+
+// Admin setting: applicant acknowledgement email.
+$string['notifyapplicant'] = 'إرسال رسالة استلام إلى مقدّم الطلب';
+$string['notifyapplicant_desc'] = 'إرسال رسالة «تم استلام طلبك» إلى كل من يرسل نموذج توظيف. أما الإشعار المنفصل الذي يصل إلى مراجعي الطلبات فهو إشعار Moodle عادي، ويُشغَّل ويُوقَف مع بقية الإشعارات.';
