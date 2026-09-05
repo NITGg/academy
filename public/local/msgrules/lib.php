@@ -36,6 +36,8 @@ defined('MOODLE_INTERNAL') || die();
  */
 function local_msgrules_enabled_changed(): void {
     // Either way the answer is a full rebuild: when enabled it derives the rows from the
-    // matrix, and when disabled it removes every row the plugin owns.
-    \local_msgrules\task\rebuild::queue();
+    // matrix, and when disabled it removes every row the plugin owns. apply_now() does it in
+    // this request on a site small enough to afford it, so flipping the switch and testing the
+    // result are not separated by a cron run.
+    \local_msgrules\sync::apply_now();
 }

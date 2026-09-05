@@ -46,9 +46,12 @@ $string['sendercohort'] = 'Sender';
 $string['recipientcohort'] = 'May write to';
 $string['nocohort'] = 'Not in any cohort';
 $string['nocohort_help'] = 'Covers every account that belongs to no cohort at all, including brand-new sign-ups.';
-$string['rulessaved'] = 'Rules saved. A rebuild has been queued and will apply on the next cron run.';
+$string['rulessaved'] = 'Rules saved.';
 $string['rebuildnow'] = 'Rebuild now';
-$string['rebuildqueued'] = 'A rebuild has been queued and will apply on the next cron run.';
+$string['rebuildqueued'] = 'A rebuild has been queued and will apply on the next cron run. This site is too large to '
+    . 'rebuild while you wait.';
+$string['rebuildapplied'] = 'Applied to {$a->users} accounts: {$a->added} conversations closed, {$a->removed} reopened. '
+    . 'This is live now - log in as a test account to check it.';
 $string['currentstate'] = 'Current state';
 $string['managedblocks'] = 'Conversations currently closed by these rules: {$a}';
 $string['nocohortsyet'] = 'There are no cohorts on this site yet, so there is nothing to draw rules over. Create the '

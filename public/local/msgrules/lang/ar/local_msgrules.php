@@ -46,9 +46,12 @@ $string['sendercohort'] = 'المُرسِل';
 $string['recipientcohort'] = 'مسموح يراسل';
 $string['nocohort'] = 'خارج أي مجموعة';
 $string['nocohort_help'] = 'بيشمل كل حساب مش تابع لأي مجموعة، ومنهم المستخدمين الجدد اللي لسه مسجّلين.';
-$string['rulessaved'] = 'تم حفظ القواعد. واتجدولت عملية إعادة بناء هتتنفّذ مع أول تشغيل للـ cron.';
-$string['rebuildnow'] = 'إعادة البناء الآن';
-$string['rebuildqueued'] = 'اتجدولت عملية إعادة بناء هتتنفّذ مع أول تشغيل للـ cron.';
+$string['rulessaved'] = 'تم حفظ القواعد.';
+$string['rebuildnow'] = 'تطبيق القواعد الآن';
+$string['rebuildqueued'] = 'اتجدولت عملية تطبيق هتتنفّذ مع أول تشغيل للـ cron. الموقع أكبر من إنه يتطبّق عليه '
+    . 'وإنت مستني.';
+$string['rebuildapplied'] = 'اتطبّقت على {$a->users} حساب: تم إغلاق {$a->added} محادثة، وفتح {$a->removed}. '
+    . 'القواعد شغّالة دلوقتي — ادخل بحساب تجريبي وجرّب.';
 $string['currentstate'] = 'الحالة الحالية';
 $string['managedblocks'] = 'عدد المحادثات المقفولة حالياً بسبب القواعد دي: {$a}';
 $string['nocohortsyet'] = 'مفيش مجموعات (Cohorts) على الموقع لحد دلوقتي، يعني مفيش حاجة نرسم عليها قواعد. '

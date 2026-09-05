@@ -220,7 +220,12 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
         .dropdown-toggle {
             border: 0;
-            font-size: 1.5rem;
+            // 1.5rem made "English (en)" the widest single thing on the bar and
+            // was the other half of the overflow. Bar-sized text keeps it
+            // legible while giving the right-hand cluster its room back.
+            font-size: 1rem;
+            padding-inline: 0.5rem;
+            white-space: nowrap;
 
             // Show a caret arrow on the BUTTON itself (the legacy header has a
             // dropdown indicator next to the language label). Moodle ships an
@@ -621,10 +626,15 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         position: relative;
         display: flex;
         align-items: center;
-        gap: 0.4rem;
-        width: clamp(210px, 24vw, 360px);
+        gap: 0.35rem;
+        // Deliberately modest: the right cluster (search + bell + messages +
+        // gear + avatar) plus the language button has to fit beside the brand
+        // lock-up on a 1280px laptop, and a wider field pushed the avatar off
+        // the bar. The results panel below is not bound to this width, so a
+        // narrow field costs nothing at read time.
+        width: clamp(170px, 16vw, 250px);
         padding-block: 0.22rem;
-        padding-inline: 0.85rem 0.25rem;
+        padding-inline: 0.7rem 0.2rem;
         border: 1px solid var(--nit-navbarborder, #{$nit-navy-700});
         border-radius: 999px;
         background-color: var(--nit-navbarsurface, #{$nit-navy-800});
@@ -676,8 +686,8 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         flex: 0 0 auto;
         border: 0;
         border-radius: 999px;
-        padding: 0.32rem 0.95rem;
-        font-size: 0.82rem;
+        padding: 0.3rem 0.7rem;
+        font-size: 0.78rem;
         font-weight: 700;
         white-space: nowrap;
         // Gold fill with the bar's own navy on top: the one pairing on this bar

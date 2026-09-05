@@ -1,0 +1,338 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+// =============================================================================
+// Calendar — brand colours.
+//
+// theme/boost/scss/moodle/calendar.scss was written for a light theme and hard
+// codes its whole palette: six pastel event fills (#e0cbe0, #ffd3bd, #d6f8cd,
+// #fee7ae, #dce7ec, #ced4da), a link/icon blue ($calendarEventColor #0d5ca1)
+// and — the one users actually hit — `$calendar-month-clickable-bg: #ededed`
+// on `.clickable:hover`, which flashes a near-white block over the dark brand
+// every time the pointer crosses a day cell.
+//
+// Boost is never edited (see CLAUDE.md). Our SCSS is concatenated after it in
+// one stream, so repeating Boost's own selector here wins on cascade order and
+// re-points each colour at a Brand Colors role. Selectors below are copied from
+// the compiled Boost output verbatim — keep them in sync on a Moodle upgrade.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Event-type roles.
+//
+// Core distinguishes six event scopes by hue. The hues themselves carry the
+// meaning, so each is mapped onto the brand role whose *job* matches, and the
+// six aliases below are what the rules consume.
+//
+// The selector list is not decoration. A custom property holding a var() is
+// substituted at computed-value time on the element that DECLARES it, and
+// descendants inherit the finished colour — so declaring these only on :root
+// would freeze them to Group 1 and a calendar inside a .nit-brand-2 / -3 region
+// would keep Group 1's hues. Re-declaring them on each calendar root makes the
+// substitution happen there instead, under whatever group wraps it. :root stays
+// as the fallback for the event summary modal, which is portalled to <body>.
+// -----------------------------------------------------------------------------
+:root,
+.maincalendar,
+.minicalendar,
+.calendar_filters {
+    --nit-cal-site: var(--nit-brand-info);              // Site-wide announcements.
+    // Category events. Lightened off Accent rather than using it neat: many
+    // palettes set Accent and Primary to the same colour, which would make a
+    // category event indistinguishable from a course one.
+    --nit-cal-category: color-mix(in srgb, var(--nit-brand-accent) 62%, var(--nit-brand-textprimary));
+    --nit-cal-course: var(--nit-brand-primary);         // Course events.
+    --nit-cal-group: var(--nit-brand-warning);          // Group events.
+    --nit-cal-user: var(--nit-brand-success);           // Events the user owns.
+    --nit-cal-other: var(--nit-brand-textsecondary);    // Everything else.
+
+    // Fill strength for an event body / duration band. A tint rather than the
+    // solid role, so the light body text on top keeps its contrast.
+    --nit-cal-fill: 20%;
+}
+
+// -----------------------------------------------------------------------------
+// Event bodies (day view, upcoming view, event summary modal).
+// -----------------------------------------------------------------------------
+.calendar_event_site {
+    background-color: color-mix(in srgb, var(--nit-cal-site) var(--nit-cal-fill), transparent);
+}
+
+.calendar_event_category {
+    background-color: color-mix(in srgb, var(--nit-cal-category) var(--nit-cal-fill), transparent);
+}
+
+.calendar_event_course {
+    background-color: color-mix(in srgb, var(--nit-cal-course) var(--nit-cal-fill), transparent);
+}
+
+.calendar_event_group {
+    background-color: color-mix(in srgb, var(--nit-cal-group) var(--nit-cal-fill), transparent);
+}
+
+.calendar_event_user {
+    background-color: color-mix(in srgb, var(--nit-cal-user) var(--nit-cal-fill), transparent);
+}
+
+.calendar_event_other {
+    background-color: color-mix(in srgb, var(--nit-cal-other) var(--nit-cal-fill), transparent);
+}
+
+// The edit / delete controls on an event are icon glyphs, not text, so they
+// read from the non-text Accent role (see the Accent vs Accent Text split).
+.calendar_event_site .commands a,
+.calendar_event_category .commands a,
+.calendar_event_course .commands a,
+.calendar_event_group .commands a,
+.calendar_event_user .commands a,
+.calendar_event_other .commands a {
+    color: var(--nit-brand-accent);
+}
+
+// -----------------------------------------------------------------------------
+// Month grid.
+// -----------------------------------------------------------------------------
+.maincalendar {
+
+    // Boost paints these from $calendarEventColor darkened 15% — a navy that
+    // disappears on the dark brand.
+    .calendar_event_category,
+    .calendar_event_course,
+    .calendar_event_site,
+    .calendar_event_group,
+    .calendar_event_user {
+        a:has(> .icon):hover {
+            color: var(--nit-brand-accent-vivid);
+        }
+    }
+
+    .calendar_event_site {
+        border-color: var(--nit-cal-site);
+    }
+
+    .calendar_event_category {
+        border-color: var(--nit-cal-category);
+    }
+
+    .calendar_event_course {
+        border-color: var(--nit-cal-course);
+    }
+
+    .calendar_event_group {
+        border-color: var(--nit-cal-group);
+    }
+
+    .calendar_event_user {
+        border-color: var(--nit-cal-user);
+    }
+
+    .calendar_event_other {
+        border-color: var(--nit-cal-other);
+    }
+
+    .calendarmonth {
+
+        td,
+        th {
+            border-color: var(--nit-brand-borderprimary);
+        }
+
+        // The event-type dots under a day number: solid role for the ring,
+        // tinted fill inside, so all six stay legible on a dark cell.
+        ul li .calendar-circle {
+            &.calendar_event_site {
+                background-color: color-mix(in srgb, var(--nit-cal-site) 45%, transparent);
+                border-color: var(--nit-cal-site);
+            }
+
+            &.calendar_event_category {
+                background-color: color-mix(in srgb, var(--nit-cal-category) 45%, transparent);
+                border-color: var(--nit-cal-category);
+            }
+
+            &.calendar_event_course {
+                background-color: color-mix(in srgb, var(--nit-cal-course) 45%, transparent);
+                border-color: var(--nit-cal-course);
+            }
+
+            &.calendar_event_group {
+                background-color: color-mix(in srgb, var(--nit-cal-group) 45%, transparent);
+                border-color: var(--nit-cal-group);
+            }
+
+            &.calendar_event_user {
+                background-color: color-mix(in srgb, var(--nit-cal-user) 45%, transparent);
+                border-color: var(--nit-cal-user);
+            }
+
+            &.calendar_event_other {
+                background-color: color-mix(in srgb, var(--nit-cal-other) 45%, transparent);
+                border-color: var(--nit-cal-other);
+            }
+        }
+
+        td {
+            // Keyboard focus ring — Boost's is a fixed blue rgba.
+            a.day:focus {
+                box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--nit-brand-primary) 40%, transparent);
+            }
+
+            // Today. --nit-brand-on-primary is near-white in every brand group
+            // while --nit-brand-primary is mid-tone, so the date sits at only
+            // ~3.3:1 on a neat primary fill. Darkening the fill 78% is the
+            // theme's established fix for a selected pill (see _account.scss);
+            // it clears 4.5:1 in all three groups and stays inside the palette.
+            &.today .day-number-circle {
+                color: var(--nit-brand-on-primary);
+                background-color: color-mix(in srgb, var(--nit-brand-primary) 78%, #000);
+            }
+        }
+
+        // THE FIX: Boost fills a hovered day cell with $calendar-month-clickable-bg
+        // (#ededed), a near-white block on the dark brand.
+        .clickable:hover {
+            background-color: var(--nit-brand-hoverbackground);
+        }
+    }
+
+    // Footer link separator bullet — decorative glyph, so Accent not Accent Text.
+    .bottom span.footer-link::after {
+        color: var(--nit-brand-accent);
+    }
+}
+
+.block .bottom span.footer-link::after {
+    color: var(--nit-brand-accent);
+}
+
+// Drag-and-drop target outline while moving an event between days.
+.calendar-controls .drop-target {
+    border-color: var(--nit-brand-primary);
+}
+
+// "Events from ..." course filter caption — Boost uses $gray-600.
+.cal_courses_flt {
+    color: var(--nit-brand-textsecondary);
+}
+
+// -----------------------------------------------------------------------------
+// Block mini-calendar (Dashboard / course page / front page).
+// -----------------------------------------------------------------------------
+.block .minicalendar {
+    td {
+        &.weekend {
+            color: var(--nit-brand-textsecondary);
+        }
+
+        // Day numbers are real text, so Accent Text.
+        a {
+            color: var(--nit-brand-accenttext);
+
+            &:hover {
+                color: var(--nit-brand-hovertext);
+            }
+        }
+
+        &.duration_global {
+            border-top-color: var(--nit-cal-site);
+            border-bottom-color: var(--nit-cal-site);
+
+            &.duration_finish {
+                background-color: color-mix(in srgb, var(--nit-cal-site) var(--nit-cal-fill), transparent);
+            }
+        }
+
+        &.duration_category {
+            border-top-color: var(--nit-cal-category);
+            border-bottom-color: var(--nit-cal-category);
+
+            &.duration_finish {
+                background-color: color-mix(in srgb, var(--nit-cal-category) var(--nit-cal-fill), transparent);
+            }
+        }
+
+        &.duration_course {
+            border-top-color: var(--nit-cal-course);
+            border-bottom-color: var(--nit-cal-course);
+
+            &.duration_finish {
+                background-color: color-mix(in srgb, var(--nit-cal-course) var(--nit-cal-fill), transparent);
+            }
+        }
+
+        &.duration_group {
+            border-top-color: var(--nit-cal-group);
+            border-bottom-color: var(--nit-cal-group);
+
+            &.duration_finish {
+                background-color: color-mix(in srgb, var(--nit-cal-group) var(--nit-cal-fill), transparent);
+            }
+        }
+
+        &.duration_user {
+            border-top-color: var(--nit-cal-user);
+            border-bottom-color: var(--nit-cal-user);
+
+            &.duration_finish {
+                background-color: color-mix(in srgb, var(--nit-cal-user) var(--nit-cal-fill), transparent);
+            }
+        }
+
+        &.duration_other {
+            border-top-color: var(--nit-cal-other);
+            border-bottom-color: var(--nit-cal-other);
+
+            &.duration_finish {
+                background-color: color-mix(in srgb, var(--nit-cal-other) var(--nit-cal-fill), transparent);
+            }
+        }
+    }
+}
+
+// Event-type key beside the mini calendar — icon glyphs, one per scope.
+.block .calendar_filters li {
+    span.calendar_event_site i {
+        color: var(--nit-cal-site);
+    }
+
+    span.calendar_event_category i {
+        color: var(--nit-cal-category);
+    }
+
+    span.calendar_event_course i {
+        color: var(--nit-cal-course);
+    }
+
+    span.calendar_event_group i {
+        color: var(--nit-cal-group);
+    }
+
+    span.calendar_event_user i {
+        color: var(--nit-cal-user);
+    }
+
+    span.calendar_event_other i {
+        color: var(--nit-cal-other);
+    }
+}
+
+// The block variant of the month grid hovers the day-number circle instead of
+// the whole cell (Boost, >= 768px). Same #ededed, same fix — but lifted a touch
+// further off the surface so a 30px circle still reads on a block background.
+@media (min-width: 768px) {
+    [data-blockregion]:not([data-blockregion="content"]) .block.block_calendar_month .maincalendar .calendartable.calendarmonth td.clickable:not(.today):hover .day-number-circle {
+        background-color: color-mix(in srgb, var(--nit-brand-textprimary) 14%, var(--nit-brand-hoverbackground));
+    }
+}

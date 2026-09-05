@@ -28,7 +28,6 @@ require_once($CFG->libdir . '/adminlib.php');
 use core\output\notification;
 use local_msgrules\rules;
 use local_msgrules\sync;
-use local_msgrules\task\rebuild;
 
 admin_externalpage_setup('local_msgrules_manage');
 require_capability('local/msgrules:manage', context_system::instance());
@@ -50,13 +49,11 @@ if (optional_param('save', 0, PARAM_BOOL) && confirm_sesskey()) {
         }
     }
     rules::set_rules($allowed);
-    rebuild::queue();
-    redirect($pageurl, get_string('rulessaved', 'local_msgrules'), null, notification::NOTIFY_SUCCESS);
+    redirect($pageurl, sync::apply_now(), null, notification::NOTIFY_SUCCESS);
 }
 
 if (optional_param('rebuild', 0, PARAM_BOOL) && confirm_sesskey()) {
-    rebuild::queue();
-    redirect($pageurl, get_string('rebuildqueued', 'local_msgrules'), null, notification::NOTIFY_SUCCESS);
+    redirect($pageurl, sync::apply_now(), null, notification::NOTIFY_SUCCESS);
 }
 
 $rules = rules::get_rules();

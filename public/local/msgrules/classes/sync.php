@@ -49,6 +49,69 @@ class sync {
     private const CHUNK = 500;
 
     /**
+     * Up to this many accounts, a rebuild runs in the request that asked for it.
+     *
+     * Queueing everything was correct but unusable: an administrator saved the matrix, saw
+     * nothing change, and had no way to tell a wrong rule from one that cron had not picked up
+     * yet. Below this figure the whole rebuild is well under a second, so it happens before
+     * the page reloads and the screen tells the truth immediately.
+     */
+    private const INLINE_LIMIT = 300;
+
+    /**
+     * How many accounts the rules apply to.
+     *
+     * @return int
+     */
+    public static function count_eligible(): int {
+        global $DB, $CFG;
+
+        $exclude = array_map('intval', explode(',', (string) $CFG->siteadmins));
+        $exclude[] = (int) $CFG->siteguest;
+        $exclude = array_values(array_unique(array_filter($exclude)));
+
+        [$notin, $params] = $DB->get_in_or_equal($exclude, SQL_PARAMS_NAMED, 'ex', false);
+
+        return $DB->count_records_select('user', "deleted = 0 AND id $notin", $params);
+    }
+
+    /**
+     * Is this site small enough to rebuild inside a web request?
+     *
+     * @return bool
+     */
+    public static function can_rebuild_inline(): bool {
+        return self::count_eligible() <= self::INLINE_LIMIT;
+    }
+
+    /**
+     * Put the matrix into effect now if that is affordable, and say what happened.
+     *
+     * Shared by the management screen and the on/off switch so both behave the same way. An
+     * administrator who saves a rule and an administrator who enables the feature are asking
+     * the same question - "is it live?" - and both deserve the same answer in the same place.
+     *
+     * @return string A message describing the outcome, ready to show.
+     */
+    public static function apply_now(): string {
+        if (!self::can_rebuild_inline()) {
+            task\rebuild::queue();
+            return get_string('rebuildqueued', 'local_msgrules');
+        }
+
+        // A few hundred accounts is a few hundred thousand rows at the very worst; give it
+        // room rather than leaving a half-applied matrix behind on a tight default limit.
+        \core_php_time_limit::raise(300);
+        $result = self::rebuild();
+
+        return get_string('rebuildapplied', 'local_msgrules', (object) [
+            'users'   => $result['users'],
+            'added'   => $result['added'],
+            'removed' => $result['removed'],
+        ]);
+    }
+
+    /**
      * Everything a decision needs, read once.
      *
      * @return array{cohorts: array, rules: array}

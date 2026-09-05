@@ -87,3 +87,7 @@ tracked.
 
 - `public/local/payments/cli/ws_diagnose.php --token=… [--fix] [--function=NAME]`
   — diagnose/repair web-service `accessexception` for a token.
+- `public/local/msgrules/cli/sync.php [--status] [--rebuild] [--user=ID] [--check=FROM,TO]`
+  — apply or inspect the messaging rules. `--check` asks **core** whether one user may
+  message another and separately reports whether our rules are the reason, which is the
+  quickest way to tell a wrong rule from a rule that has not been rebuilt yet.
