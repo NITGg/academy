@@ -1184,6 +1184,14 @@ function theme_nit_get_pre_scss($theme) {
     // Tier 2: semantic tokens mapped onto Bootstrap variables (before Bootstrap).
     $scss .= file_get_contents(__DIR__ . '/scss/tokens/_semantic.scss');
 
+    // The top bar has to be at least as tall as the logo it carries. The navbar
+    // logo height is an admin setting now (Appearance → Logos), and
+    // `$navbar-height` is what both the bar and the content offset beneath it are
+    // measured from, so it is recomputed here — after _semantic.scss set it, and
+    // before Bootstrap and Boost read it. Grow-only, so the default bar is
+    // untouched until the logo actually outgrows it. See theme_nit_logo_slots().
+    $scss .= '$navbar-height: ' . theme_nit_navbar_height() . "px;\n";
+
     // Brand overrides (M5): the SDK resolver returns the active brand's semantic
     // tokens; the theme maps them onto SCSS variables here, after the M3 defaults
     // and before Bootstrap, so the whole UI recompiles on brand. Guarded so the
@@ -1306,9 +1314,152 @@ function theme_nit_get_extra_scss($theme) {
     // Admin-uploaded pictures beside the log-in / sign-up cards.
     $scss .= theme_nit_auth_background_scss($theme);
 
+    // How large to draw the site logo, per place (Appearance → Logos).
+    $scss .= theme_nit_logo_scss();
+
     if (!empty($theme->settings->scss)) {
         $scss .= $theme->settings->scss;
     }
+
+    return $scss;
+}
+
+/**
+ * How big the site logo is drawn, in each place the site draws it.
+ *
+ * The logo file itself is uploaded on the core Logos page (Site administration →
+ * Appearance → Logos). Nothing on that page ever said how *large* to draw it, so
+ * the size lived in five hard-coded CSS rules and only a developer could change
+ * it. Each slot below now publishes its height as a CSS custom property that the
+ * matching rule reads via `var()`, and each has an admin setting sitting beside
+ * the upload it belongs to (added by theme/nit/settings.php).
+ *
+ * `default` is the height the stylesheet already used, so a site that never
+ * touches the new settings renders exactly as it did before they existed.
+ *
+ * On top of every slot sits one master multiplier — `theme_nit/logoscale`, a
+ * percentage — because "make the logo bigger" is the whole request most of the
+ * time and nobody should have to edit five numbers to answer it.
+ *
+ * @return array<string, array{setting:string, property:string, default:int}>
+ */
+function theme_nit_logo_slots(): array {
+    return [
+        // The corner of every page — theme/nit/templates/theme_boost/navbar.mustache,
+        // sized by `.nit-navbar-logo` in scss/components/_navbar.scss. This is the
+        // one an administrator means when they say "the logo".
+        'navbar' => [
+            'setting'  => 'logoheightnavbar',
+            'property' => '--nit-logo-navbar',
+            'default'  => 66,
+        ],
+        // The header of the phone-width primary drawer (Boost's
+        // primary-drawer-mobile template): the same mark, in the menu that
+        // replaces the navbar links on a small screen.
+        'drawer' => [
+            'setting'  => 'logoheightdrawer',
+            'property' => '--nit-logo-drawer',
+            'default'  => 100,
+        ],
+        // The brand column of the site footer — theme_nit/site_footer.
+        'footer' => [
+            'setting'  => 'logoheightfooter',
+            'property' => '--nit-logo-footer',
+            'default'  => 100,
+        ],
+        // Over the picture beside the account screens — core/login_panel.
+        'authpanel' => [
+            'setting'  => 'logoheightauthpanel',
+            'property' => '--nit-logo-authpanel',
+            'default'  => 48,
+        ],
+        // Inside the log-in / sign-up card itself — `.login-logo` in core/loginform.
+        'authcard' => [
+            'setting'  => 'logoheightauthcard',
+            'property' => '--nit-logo-authcard',
+            'default'  => 56,
+        ],
+    ];
+}
+
+/**
+ * The master logo multiplier, as a percentage.
+ *
+ * Clamped rather than validated away: PARAM_INT on the setting will happily
+ * accept 0 or 9999, and neither the navbar nor the footer survives that. The
+ * range is wide enough to be useful and narrow enough that no value can make
+ * the logo vanish or push the page apart.
+ *
+ * @return int percentage, 25..400
+ */
+function theme_nit_logo_scale(): int {
+    $scale = (int) get_config('theme_nit', 'logoscale');
+    if ($scale <= 0) {
+        $scale = 100;
+    }
+    return (int) min(400, max(25, $scale));
+}
+
+/**
+ * The height one logo slot is drawn at, in pixels, with the master scale applied.
+ *
+ * `get_config()` returns false until admin_apply_default_settings() has run for
+ * a newly added setting, so the slot's own default is the fallback — that is
+ * what keeps the first page load after an upgrade looking like the last one
+ * before it.
+ *
+ * @param string $slot a key of theme_nit_logo_slots()
+ * @return int height in pixels, 8..400
+ */
+function theme_nit_logo_height(string $slot): int {
+    $slots = theme_nit_logo_slots();
+    if (!isset($slots[$slot])) {
+        return 0;
+    }
+
+    $height = (int) get_config('theme_nit', $slots[$slot]['setting']);
+    if ($height <= 0) {
+        $height = $slots[$slot]['default'];
+    }
+
+    $height = (int) round($height * theme_nit_logo_scale() / 100);
+
+    return (int) min(400, max(8, $height));
+}
+
+/**
+ * How tall the top bar has to be to carry the logo it has been given.
+ *
+ * `$navbar-height` drives both the bar itself and the content offset underneath
+ * it in every Boost layout (drawer.scss, layout.scss, navbar.scss), so a logo
+ * taller than the bar would spill out of it rather than push it open. Grow-only:
+ * the bar keeps its designed 100px until the logo plus its breathing room needs
+ * more, so shrinking the logo never shrinks the header.
+ *
+ * @return int height in pixels
+ */
+function theme_nit_navbar_height(): int {
+    // 12px of clearance above and below the mark, matching the space the 66px
+    // default leaves in the 100px bar.
+    return (int) max(100, theme_nit_logo_height('navbar') + 24);
+}
+
+/**
+ * Publish the resolved logo heights as CSS custom properties.
+ *
+ * One `:root` block, one property per slot. The rules that consume them live in
+ * the component stylesheets (scss/components/_navbar.scss, _sitefooter.scss,
+ * _login.scss, _authpages.scss, _logo.scss), each keeping the original height as
+ * the `var()` fallback so a stale or half-built stylesheet still draws a logo.
+ *
+ * @return string SCSS
+ */
+function theme_nit_logo_scss(): string {
+    $scss = "\n:root {\n";
+    foreach (theme_nit_logo_slots() as $key => $slot) {
+        $scss .= '    ' . $slot['property'] . ': ' . theme_nit_logo_height($key) . "px;\n";
+    }
+    $scss .= "}\n";
 
     return $scss;
 }

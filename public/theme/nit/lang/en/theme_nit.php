@@ -206,3 +206,21 @@ $string['signupnow'] = 'Sign up';
 $string['navmanagement'] = 'Management';
 $string['navgallery'] = 'Design gallery';
 
+
+// Logo size — shown on the core Logos page (Appearance → Logos), directly under
+// the three uploads, because that is where an administrator lands when the logo
+// they just uploaded is the wrong size. See theme_nit_logo_slots() in lib.php.
+$string['logosize'] = 'Logo size';
+$string['logosize_desc'] = 'How large the logo above is drawn. <strong>Logo size</strong> is the only control most sites need: it resizes every logo on the site at once and keeps the proportions between them. The heights beneath it set each place individually, and are multiplied by it.';
+$string['logoscale'] = 'Logo size';
+$string['logoscale_desc'] = 'A percentage applied to every logo on the site — the navigation bar, the mobile menu, the footer and the log-in screens. 100% draws them at the heights below; 150% makes them half as large again. Allowed range 25–400.';
+$string['logoheightnavbar'] = 'Navigation bar logo height';
+$string['logoheightnavbar_desc'] = 'Height in pixels of the logo in the top bar of every page. The bar grows taller when the logo needs the room, so a large value here makes the whole header taller rather than spilling out of it.';
+$string['logoheightdrawer'] = 'Mobile menu logo height';
+$string['logoheightdrawer_desc'] = 'Height in pixels of the logo at the top of the slide-out menu, which is what replaces the navigation bar\'s links on a phone.';
+$string['logoheightfooter'] = 'Footer logo height';
+$string['logoheightfooter_desc'] = 'Maximum height in pixels of the logo in the site footer. A wide wordmark will hit the width of its column before it reaches this height.';
+$string['logoheightauthpanel'] = 'Log-in panel logo height';
+$string['logoheightauthpanel_desc'] = 'Maximum height in pixels of the logo drawn over the picture beside the log-in and sign-up forms.';
+$string['logoheightauthcard'] = 'Log-in form logo height';
+$string['logoheightauthcard_desc'] = 'Maximum height in pixels of the logo inside the log-in and sign-up cards, above the heading.';

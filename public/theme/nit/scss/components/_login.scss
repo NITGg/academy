@@ -150,8 +150,11 @@
 // solid badge (a white disc, a coloured tile) will still look like a sticker
 // here, and no rule in this file can lift a background out of a PNG. If the
 // panel logo looks boxed in, the box is in the image, not in the CSS.
+//
+// The cap is an admin setting (Appearance → Logos → Logo size); 3rem is the 48px
+// this rule always used, kept as the `var()` fallback.
 .nit-authpanel-logo {
-    max-height: 3rem;
+    max-height: var(--nit-logo-authpanel, 3rem);
     max-width: min(100%, 16rem);
     width: auto;
 }

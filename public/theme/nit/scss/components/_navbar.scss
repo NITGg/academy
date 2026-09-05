@@ -54,8 +54,12 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         }
     }
 
+    // Height is an admin setting (Appearance → Logos → Logo size); the literal
+    // is the height this rule always had, kept as the fallback so the mark still
+    // draws if the custom property has not been published yet. The bar grows to
+    // fit a taller logo — see theme_nit_navbar_height().
     .nit-navbar-logo {
-        height: 66px;
+        height: var(--nit-logo-navbar, 66px);
         width: auto;
     }
 

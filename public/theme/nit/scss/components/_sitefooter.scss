@@ -249,10 +249,13 @@
     // administrator can replace with any shape. Cap both edges and let the
     // browser keep the aspect ratio: a wide wordmark fills the drawn box, a
     // square mark sits inside it, and neither is stretched.
+    //
+    // The cap is an admin setting (Appearance → Logos → Logo size); 6.25rem is
+    // the 100px this rule always used, kept as the `var()` fallback.
     width: auto;
     height: auto;
     max-width: 100%;
-    max-height: 6.25rem;
+    max-height: var(--nit-logo-footer, 6.25rem);
     object-fit: contain;
 }
 

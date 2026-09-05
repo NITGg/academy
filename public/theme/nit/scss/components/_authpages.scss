@@ -454,11 +454,14 @@
 }
 
 .nit-auth {
+    // The cap is an admin setting (Appearance → Logos → Logo size); 3.5rem is
+    // the 56px this rule always used, kept as the `var()` fallback.
     .login-logo {
         margin-bottom: 1rem;
 
         img {
-            max-height: 3.5rem;
+            max-height: var(--nit-logo-authcard, 3.5rem);
+            width: auto;
         }
     }
 
