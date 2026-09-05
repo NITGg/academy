@@ -1,0 +1,87 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Arabic strings for local_msgrules.
+ *
+ * @package    local_msgrules
+ * @copyright  2026 NIT
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+$string['pluginname'] = 'قواعد المراسلة';
+$string['settings'] = 'الإعدادات';
+$string['managematrix'] = 'مَن يراسل مَن';
+
+// Settings.
+$string['enabled'] = 'تفعيل قواعد المراسلة';
+$string['enabled_desc'] = 'لما تكون مفعّلة، المستخدم مش هيقدر يبدأ محادثة إلا مع شخص تسمح بيه المصفوفة اللي تحت. '
+    . 'وإيقافها بيرجّع كل المحادثات اللي الإضافة قفلتها، مع الإبقاء على أي حظر عمله المستخدم بنفسه. '
+    . 'ارسم المصفوفة الأول، وبعدين فعّل الخيار ده.';
+$string['maxusers'] = 'الحد الأقصى لعدد الحسابات';
+$string['maxusers_desc'] = 'كل قاعدة بتتخزّن كصف حظر لكل اتجاه ممنوع، يعني الشغل بيزيد بمربع عدد الحسابات. '
+    . 'فوق الرقم ده عملية إعادة البناء بترفض تشتغل بدل ما تقعد ساعات في الـ cron. زوّده عن قصد، '
+    . 'وتوقّع إن إعادة البناء على موقع كبير هتكون بطيئة.';
+
+// Management screen.
+$string['matrixintro'] = 'علّم على المربع عشان تسمح لأعضاء المجموعة اللي في الصف إنهم يبدأوا محادثة مع أعضاء المجموعة '
+    . 'اللي في العمود. الاتجاه مهم: لما تسمح للطلاب يراسلوا المدربين، ده مابيقولش حاجة عن الرد — '
+    . 'الرد محتاج علامة في الخانة المقابلة.';
+$string['sendercohort'] = 'المُرسِل';
+$string['recipientcohort'] = 'مسموح يراسل';
+$string['nocohort'] = 'خارج أي مجموعة';
+$string['nocohort_help'] = 'بيشمل كل حساب مش تابع لأي مجموعة، ومنهم المستخدمين الجدد اللي لسه مسجّلين.';
+$string['rulessaved'] = 'تم حفظ القواعد. واتجدولت عملية إعادة بناء هتتنفّذ مع أول تشغيل للـ cron.';
+$string['rebuildnow'] = 'إعادة البناء الآن';
+$string['rebuildqueued'] = 'اتجدولت عملية إعادة بناء هتتنفّذ مع أول تشغيل للـ cron.';
+$string['currentstate'] = 'الحالة الحالية';
+$string['managedblocks'] = 'عدد المحادثات المقفولة حالياً بسبب القواعد دي: {$a}';
+$string['nocohortsyet'] = 'مفيش مجموعات (Cohorts) على الموقع لحد دلوقتي، يعني مفيش حاجة نرسم عليها قواعد. '
+    . 'اعمل المجموعات اللي عايز تفصل بينها من: إدارة الموقع ← المستخدمون ← المجموعات، وبعدين ارجع هنا.';
+$string['disabledwarning'] = 'القواعد دي مش مطبَّقة حالياً. فعّل خيار «تفعيل قواعد المراسلة» من الإعدادات '
+    . 'بعد ما تتأكد إن المصفوفة بتقول اللي إنت عايزه.';
+$string['messagingoffwarning'] = 'نظام الرسائل في الموقع مقفول أصلاً، فمفيش حاجة ممكن تتبعت. القواعد دي هيبقى ليها '
+    . 'معنى بعد ما تفعّل الرسائل من: إدارة الموقع ← ميزات متقدمة.';
+
+// Bypass diagnostics.
+$string['bypassheading'] = 'الأدوار اللي بتتخطى القواعد دي';
+$string['bypassintro'] = 'القواعد بتشتغل من خلال قائمة الحظر بتاعة المستلِم، ومودل بيسمح لصلاحيتين إنهم يتجاهلوا '
+    . 'القائمة دي تماماً. أي حد معاه واحدة منهم يقدر يراسل اللي هو عايزه مهما كانت المصفوفة بتقول إيه. '
+    . 'اسحب الصلاحية من الأدوار اللي تحت لو عايز القواعد تطبَّق عليهم كمان.';
+$string['bypassnone'] = 'مفيش أي دور غير مدير الموقع يقدر يتخطى القواعد.';
+$string['bypassrole'] = '{$a->role} — عن طريق {$a->capability}';
+$string['adminexempt'] = 'مديرو الموقع مستثنون دايماً: مابيتحظروش، ومحدش بيتمنع من مراسلتهم، '
+    . 'عشان يفضل في طريق مفتوح للتواصل مع الدعم.';
+
+// Tasks.
+$string['tasksyncblocks'] = 'إعادة بناء قواعد المراسلة';
+$string['tasksyncuser'] = 'تطبيق قواعد المراسلة على مستخدم واحد';
+
+// Errors.
+$string['errortoomanyusers'] = 'الموقع فيه {$a->count} حساب، وده أكبر من الحد المضبوط {$a->max}. '
+    . 'زوّد «الحد الأقصى لعدد الحسابات» من إعدادات الإضافة لو فعلاً عايز تعيد البناء على العدد ده.';
+
+// Capabilities.
+$string['msgrules:manage'] = 'إدارة مصفوفة قواعد المراسلة';
+
+// Privacy.
+$string['privacy:metadata:local_msgrules_managed'] = 'تحديد أي من صفوف الحظر في حساب المستخدم اتحطّت بواسطة '
+    . 'قواعد المراسلة في الموقع بدل ما يكون المستخدم هو اللي عملها.';
+$string['privacy:metadata:local_msgrules_managed:userid'] = 'المستخدم صاحب قائمة الحظر اللي فيها الصف.';
+$string['privacy:metadata:local_msgrules_managed:blockeduserid'] = 'المستخدم الممنوع من المحادثة.';
+$string['privacy:metadata:local_msgrules_managed:timecreated'] = 'وقت إضافة الصف بواسطة القواعد.';
