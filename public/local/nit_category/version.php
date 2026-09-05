@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_category';
-$plugin->version   = 2026090212;        // YYYYMMDDXX — all-categories grid retired; search refines into the catalogue.
+$plugin->version   = 2026090500;        // YYYYMMDDXX — local_nit_category_search: the header search over the web-service layer.
 $plugin->requires  = 2022041900;
 
 // The home.php JSON feed answers in the caller's language via

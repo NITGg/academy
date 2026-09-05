@@ -86,17 +86,30 @@ class account_profile_form extends moodleform {
     /**
      * Whether the profile picture control is drawn at all.
      *
-     * Two switches, either of which is enough to leave it off: the site-wide
-     * `$CFG->disableuserimages`, and "Picture of user" set to Hidden on the
-     * management page. account.php asks the same question before it saves an
-     * upload, so a control that was never drawn cannot be posted into.
+     * One switch: the site-wide `$CFG->disableuserimages`, which is core's own
+     * and which core honours on /user/edit.php and /user/editadvanced.php too.
+     *
+     * This used to also consult `manager::on_profile('picture')`. That was right
+     * while the management page's Profile tab drew a "Show" checkbox per core
+     * field and wrote the mode from it. The tab was later rebuilt around "User can
+     * edit" and stopped rendering - and stopped saving - those visibility
+     * checkboxes, so the stored mode became a value nothing could ever change
+     * again. On a site whose administrator had saved the old tab, `picture` was
+     * left at "hidden" for good and the upload control silently vanished from the
+     * account screen with no setting left anywhere to bring it back. Reading a
+     * setting no page can write is what made that unrecoverable, so the read is
+     * gone; if a per-site picture toggle is ever wanted, it needs a control on the
+     * management page to go with it.
+     *
+     * account.php asks the same question before it saves an upload, so a control
+     * that was never drawn cannot be posted into.
      *
      * @return bool
      */
     public static function picture_enabled(): bool {
         global $CFG;
 
-        return empty($CFG->disableuserimages) && manager::on_profile('picture');
+        return empty($CFG->disableuserimages);
     }
 
     /**
