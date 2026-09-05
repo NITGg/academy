@@ -41,7 +41,11 @@ if ($hassiteconfig) {
         get_string('enabled_desc', 'local_msgrules'),
         0
     );
-    $enabled->set_updatedcallback('local_msgrules_enabled_changed');
+    // A plain function name would need local/msgrules/lib.php to be loaded, and Moodle does
+    // not load a local plugin's lib.php on an ordinary request - post_write_settings() then
+    // finds it uncallable and skips it in silence, so the settings save and nothing applies.
+    // A static method is resolved by the class autoloader, which is always available.
+    $enabled->set_updatedcallback('\local_msgrules\sync::apply_now');
     $settings->add($enabled);
 
     // "All courses" lives here rather than on the per-course page: it is a site policy, and
@@ -53,7 +57,7 @@ if ($hassiteconfig) {
         \local_msgrules\rules::MODE_OPEN,
         \local_msgrules\rules::get_modes()
     );
-    $defaultmode->set_updatedcallback('local_msgrules_enabled_changed');
+    $defaultmode->set_updatedcallback('\local_msgrules\sync::apply_now');
     $settings->add($defaultmode);
 
     $settings->add(new admin_setting_configtext(

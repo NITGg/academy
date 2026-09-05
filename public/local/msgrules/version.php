@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_msgrules';
-$plugin->version   = 2026090600;        // YYYYMMDDXX — rules are per-course student restrictions, not a cohort matrix.
+$plugin->version   = 2026090601;        // YYYYMMDDXX — settings callback must be autoloadable, or saving applies nothing.
 $plugin->requires  = 2022041900;
 $plugin->maturity  = MATURITY_STABLE;
 $plugin->release   = '1.0.0';
