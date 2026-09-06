@@ -246,11 +246,11 @@ function theme_nit_brand_groups(): array {
         'g2' => 'Group 2',
         'g3' => 'Group 3',
         // 4 and 5 are a matched pair, built for the navbar light/dark switch:
-        // the same warm bronze family in two luminances, so toggling changes the
-        // light level and not the brand. Their labels say so, because the two
+        // one palette at two light levels, so toggling changes how bright the
+        // site is and not which site it is. Their labels say so, because the two
         // selects on the "Change style" tab are where that choice gets made.
-        'g4' => 'Group 4 (light)',
-        'g5' => 'Group 5 (dark)',
+        'g4' => 'Group 4 (Daylight — light)',
+        'g5' => 'Group 5 (Graphite — dark)',
     ];
 }
 
@@ -419,19 +419,21 @@ function theme_nit_mode_classes(): string {
  *   - Group 3 — Indigo / Lavender : soft violet on a deep indigo ground.
  *
  * Groups 4 and 5 are the exception to "all three are dark", and to "each group is
- * its own mood": they are one palette in two luminances, built for the navbar
- * light/dark switch. Bronze on parchment and the same bronze on espresso — a
- * warm, low-chroma family chosen because the first three are all cool (blue,
- * teal, violet), so the pair cannot be mistaken for any of them.
+ * its own mood": they are ONE palette at two light levels, built for the navbar
+ * light/dark switch. A switch between modes should change how bright the site is,
+ * not which site it is, so they share an accent and differ only in ground.
  *
- *   - Group 4 — Parchment & Bronze (LIGHT) : the only light group. Warm off-white
- *     paper, white cards, near-black warm ink, bronze accent.
- *   - Group 5 — Espresso & Bronze (DARK) : the same family after dark. Warm
- *     near-black ground, amber-bronze accent bright enough to carry on it.
+ *   - Group 4 — Daylight (LIGHT) : the only light group. Near-white page, white
+ *     cards, deep slate ink, azure accent — under a DARK navigation bar and
+ *     footer (the site logo is white-on-transparent and vanishes on a light bar).
+ *   - Group 5 — Graphite (DARK) : the same palette turned down. Neutral graphite
+ *     ground — which is also what keeps it apart from groups 1-3, all of which
+ *     are coloured darks.
  *
  * Being light, Group 4 is the one group whose text-on-primary cannot be the body
  * ink — see the `--nit-brand-on-primary` note on `.nit-brand-4` in
- * scss/foundation/_brand.scss.
+ * scss/foundation/_brand.scss. It is also why `--nit-navbartext` reads the navbar
+ * icon role rather than the body ink (scss/foundation/_root.scss).
  *
  * A role missing from a group falls back to theme_nit_brand_roles()['default'].
  *
@@ -517,76 +519,86 @@ function theme_nit_brand_group_defaults(): array {
             'warning'           => '#d8c24e',
             'info'              => '#7fa6d6',
         ],
-        // --- Group 4 : Parchment & Bronze (LIGHT). ----------------------------
-        // The only light group in the set. Warm off-white paper for the page, a
-        // plain white surface so cards lift off it, near-black warm ink, and a
-        // bronze accent dark enough to read as a link on paper (accenttext is a
-        // step darker than primary for exactly that reason — on a light ground a
-        // link has to beat the paper, not the ink).
+        // --- Group 4 : Daylight (LIGHT). --------------------------------------
+        // The light half of the pair: light CONTENT under DARK CHROME. Page and
+        // cards go to near-white with deep slate ink; the navigation bar and the
+        // footer stay dark.
         //
-        // The semantics are darkened to match: on parchment, the mid-tone
-        // orange/green/yellow the dark groups use would be a pale smudge.
+        // The dark bar is not a leftover — it is the only way this works today.
+        // The site logo is a white-on-transparent PNG (an admin setting, not a
+        // theme asset), so a light bar erases the wordmark completely; a dark bar
+        // keeps the brand mark readable and reads as a deliberate header band,
+        // which is how most light interfaces are built anyway.
+        //
+        // Neutral-cool rather than tinted: on a light ground any hue in the
+        // background shows up as a colour cast, and the warm palette this
+        // replaced looked muddy for exactly that reason. One confident azure
+        // carries the accent instead, dark enough (#1f5fa8) to hold white text on
+        // a fill and to pass as a link on paper.
         'g4' => [
-            'primary'           => '#9a5b18',
-            'secondary'         => '#e6dac6',
-            'accent'            => '#9a5b18',
-            'accenttext'        => '#87500f',
-            'background'        => '#f7f3ec',
-            'background2'       => '#f0e8db',
-            // A light group keeps a light bar: a dark navbar over parchment would
-            // read as a leftover from another palette rather than a choice.
-            'navbarbackground1' => '#fffdf9',
-            'navbarbackground2' => '#f4ecdf',
-            'footerbackground1' => '#f0e8db',
-            'footerbackground2' => '#e7dcc9',
+            'primary'           => '#1f5fa8',
+            'secondary'         => '#e4eaf2',
+            'accent'            => '#1f5fa8',
+            // A step darker than primary: on a light ground a link has to beat
+            // the paper, not the ink.
+            'accenttext'        => '#14538d',
+            'background'        => '#f4f6f9',
+            'background2'       => '#eaeef4',
+            // Dark chrome — see the note above.
+            'navbarbackground1' => '#101a27',
+            'navbarbackground2' => '#162333',
+            'footerbackground1' => '#101a27',
+            'footerbackground2' => '#162333',
             'surface'           => '#ffffff',
-            'textprimary'       => '#2a231a',
-            // Navbar glyphs are ink here, not gold: they sit on a near-white bar.
-            'navbariconcolor'   => '#3d3323',
-            'navbariconbg'      => '#efe6d6',
-            'textsecondary'     => '#6b5f4e',
-            'borderprimary'     => '#e2d7c4',
-            'bordersecondary'   => '#c8b89c',
-            'hoverbackground'   => '#f2e9d9',
-            'hovertext'         => '#7a4410',
-            // Still no red: danger is a deep burnt orange, kept clear of the
-            // bronze primary by being redder and darker than it.
-            'error'             => '#bf4a25',
-            'success'           => '#2d7a58',
-            'warning'           => '#9a7410',
-            'info'              => '#2b6c84',
+            'textprimary'       => '#16202e',
+            // Navbar glyph + navbar text: near-white, because the bar is dark
+            // while the body ink is not. This role is what --nit-navbartext
+            // follows, so the two never disagree.
+            'navbariconcolor'   => '#eef3f9',
+            'navbariconbg'      => '#1b2a3c',
+            'textsecondary'     => '#56657a',
+            'borderprimary'     => '#dde3ea',
+            'bordersecondary'   => '#b7c3d2',
+            'hoverbackground'   => '#e9eff7',
+            'hovertext'         => '#0e3f77',
+            // Semantics darkened for a light ground: the mid-tones the dark
+            // groups use would be a pale smudge on near-white. Still no red —
+            // danger is a burnt orange.
+            'error'             => '#b4471f',
+            'success'           => '#1e7a55',
+            'warning'           => '#8a6a0c',
+            'info'              => '#1a6480',
         ],
-        // --- Group 5 : Espresso & Bronze (DARK). ------------------------------
-        // Group 4 after dark — same warm family, inverted. A warm near-black
-        // ground (not the cool near-blacks of groups 1-3), and the bronze lifted
-        // to amber so it carries on it. Text roles flip to near-white, the
-        // semantics back to the mid-tones a dark ground needs.
+        // --- Group 5 : Graphite (DARK). ---------------------------------------
+        // The dark half of the same pair: Group 4 turned down, not a different
+        // brand. The same azure accent, lifted to carry on a dark ground, over a
+        // NEUTRAL graphite rather than a tinted one — which is also what keeps it
+        // apart from the other three, all of which are coloured darks (navy,
+        // teal, indigo).
         'g5' => [
-            'primary'           => '#c98b3f',
-            'secondary'         => '#33281a',
-            'accent'            => '#c98b3f',
-            'accenttext'        => '#e2b56e',
-            'background'        => '#171310',
-            'background2'       => '#1d1814',
-            'navbarbackground1' => '#171310',
-            'navbarbackground2' => '#241d17',
-            'footerbackground1' => '#171310',
-            'footerbackground2' => '#241d17',
-            'surface'           => '#241d17',
-            'textprimary'       => '#f6f1e8',
-            'navbariconcolor'   => '#f6f1e8',
-            'navbariconbg'      => '#241d17',
-            'textsecondary'     => '#ab9d89',
-            'borderprimary'     => '#3a3025',
-            'bordersecondary'   => '#584937',
-            'hoverbackground'   => '#2b231b',
-            'hovertext'         => '#eec284',
-            // Redder and cooler than the amber primary, so "danger" and "brand"
-            // never read as the same colour in a warm palette.
-            'error'             => '#e4694a',
-            'success'           => '#4fae7f',
-            'warning'           => '#e3d05a',
-            'info'              => '#6fa8cc',
+            'primary'           => '#4f9de0',
+            'secondary'         => '#232830',
+            'accent'            => '#4f9de0',
+            'accenttext'        => '#85c2f0',
+            'background'        => '#14161a',
+            'background2'       => '#1a1d22',
+            'navbarbackground1' => '#14161a',
+            'navbarbackground2' => '#1c2027',
+            'footerbackground1' => '#14161a',
+            'footerbackground2' => '#1c2027',
+            'surface'           => '#1f232a',
+            'textprimary'       => '#eef1f5',
+            'navbariconcolor'   => '#eef1f5',
+            'navbariconbg'      => '#1c2027',
+            'textsecondary'     => '#9aa4b2',
+            'borderprimary'     => '#2b3038',
+            'bordersecondary'   => '#414954',
+            'hoverbackground'   => '#1e222a',
+            'hovertext'         => '#a5d3f6',
+            'error'             => '#e07a4f',
+            'success'           => '#46b183',
+            'warning'           => '#ddc75c',
+            'info'              => '#66b3d8',
         ],
     ];
 }
@@ -1526,6 +1538,13 @@ function theme_nit_get_extra_scss($theme) {
     // _root.scss then aliases the legacy --nit-* properties onto.
     $scss .= file_get_contents(__DIR__ . '/scss/foundation/_brand.scss');
     $scss .= file_get_contents(__DIR__ . '/scss/foundation/_root.scss');
+    // _corebridge.scss re-points the colours CORE baked from Group 1 (page
+    // grounds, form fields, dimmed text, borders, the secondary button) at the
+    // ACTIVE brand roles, so a group switch reaches core's own CSS and not just
+    // ours. It has to come after _brand.scss for the roles, and it is emitted
+    // late so its rules out-order core's at equal specificity. Under Group 1 it
+    // resolves to the values core already baked, so nothing changes there.
+    $scss .= file_get_contents(__DIR__ . '/scss/foundation/_corebridge.scss');
     $scss .= file_get_contents(__DIR__ . '/scss/foundation/_fonts.scss');
 
     // Admin-uploaded, per-language custom fonts (edited on the gallery page).

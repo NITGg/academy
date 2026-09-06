@@ -39,12 +39,12 @@
             style="box-sizing: border-box; width: 100%; height: 100%; display: flex; flex-direction: column; background: var(--nit-brand-surface); border: 1px solid color-mix(in srgb, var(--nit-brand-accent) 32%, transparent); border-radius: 18px; overflow: hidden; box-shadow: 0 14px 34px rgba(0,0,0,.22);">
             <!-- VALUE BAND: the discount, and next to it the coupon's own name (the new
                  name/description fields) rather than the raw code — the code has its own chip
-                 below, where it can be copied. It sits on the card's own Surface, not on a
-                 filled accent strip: one card, one background, with the perforation below as
-                 the only seam. The discount itself keeps the accent colour, so the number is
-                 still the first thing read. -->
+                 below, where it can be copied. Rather than a filled accent strip, the band
+                 takes the page Background token, so the header reads a shade apart from the
+                 card Surface below the perforation. The discount itself
+                 keeps the accent colour, so the number is still the first thing read. -->
             <div
-              style="display: flex; align-items: center; gap: 14px; padding: 18px 20px; background: transparent; color: var(--nit-brand-textprimary);">
+              style="display: flex; align-items: center; gap: 14px; padding: 18px 20px; background: var(--nit-brand-background); color: var(--nit-brand-textprimary);">
               <div
                 style="flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; line-height: 1;">
                 <strong style="font-size: 31px; font-weight: 800; letter-spacing: -1px; color: var(--nit-brand-accent);"

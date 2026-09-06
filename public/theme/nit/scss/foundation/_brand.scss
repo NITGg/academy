@@ -258,8 +258,8 @@
     --nit-brand-info: var(--nit-brand-g3-info);
 }
 
-// Group 4 is the LIGHT palette (Parchment & Bronze) — the pair Group 5 is the
-// dark half of. Both are ordinary group switches; nothing about them is special
+// Group 4 is the LIGHT palette (Daylight) — the pair Group 5 is the dark half
+// of. Both are ordinary group switches; nothing about them is special
 // cased except the one line at the end of this block.
 .nit-brand-4 {
     --nit-brand-primary: var(--nit-brand-g4-primary);
@@ -298,7 +298,7 @@
     --nit-brand-on-primary: var(--nit-brand-g4-surface);
 }
 
-// Group 5 is the DARK half of that pair (Espresso & Bronze).
+// Group 5 is the DARK half of that pair (Graphite).
 .nit-brand-5 {
     --nit-brand-primary: var(--nit-brand-g5-primary);
     --nit-brand-secondary: var(--nit-brand-g5-secondary);
