@@ -34,13 +34,17 @@
     Context variables required for this template:
     * mode - the mode currently showing, "light" or "dark"
     * label - accessible name: the mode the button switches TO
-    * config - JSON for the click handler ({classes, labels, cookie, path, secure})
+    * config - JSON for the click handler: the keys `classes` (mode → the <html>
+      classes it owns), `labels`, `cookie`, `path` and `secure`. Deliberately
+      NOT written out as nested JSON here — two closing curly braces in a row
+      end a Mustache comment wherever they appear, so an example containing a
+      nested object would spill the rest of this block into the navbar as text.
 
     Example context (json):
     {
         "mode": "light",
         "label": "Switch to dark mode",
-        "config": "{\"classes\":{\"light\":\"nit-mode-light\",\"dark\":\"nit-mode-dark nit-brand-2\"}}"
+        "config": "(the JSON described above)"
     }
 }}
 <button type="button" class="btn nit-navbar-icon nit-mode-toggle"

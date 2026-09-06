@@ -123,6 +123,11 @@ $string['searchopen'] = 'Open search';
 $string['searchclose'] = 'Close search';
 $string['searchhint'] = 'Search the whole academy: course titles, subject areas and what a course covers.';
 $string['searchtooshort'] = 'Type at least {$a} letters to search.';
+// Shown when the query holds nothing searchable at all (punctuation only). With
+// site_search::MIN_LENGTH at 1 this replaced 'searchtooshort' on the pages, which
+// would otherwise have read "at least 1 letters"; the string above stays because the
+// web service still publishes minlength for the app to word its own message from.
+$string['searchnowords'] = 'Type a letter or a number to search.';
 $string['searchresults'] = '{$a->count} results for “{$a->query}”';
 $string['searchoneresult'] = '1 result for “{$a}”';
 $string['searchgroupcourses'] = 'Courses';

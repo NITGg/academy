@@ -61,11 +61,19 @@ class site_search {
     /**
      * @var int Shortest query answered.
      *
-     * One character matches most of the catalogue, which is not an answer to anything, and
-     * it would fire a full scan on every keystroke of the drop-down. Two is the shortest
-     * query that can be meant: Arabic in particular has real two-letter words.
+     * One: a single character is a real search here. The catalogue is small enough that a
+     * one-letter query returns a readable list rather than "most of it", and a learner who
+     * knows a course starts with "ت" should see it without having to guess a second letter.
+     *
+     * The two costs this accepts, and what already covers them: a one-letter query scans
+     * more rows (the drop-down debounces 320ms, so it is one request per pause, not one per
+     * keystroke), and it ranks less sharply (the panel caps each group, and "see all N"
+     * leads to the full, ordered page).
+     *
+     * At 1 this constant no longer gates anything a visitor types by hand — is_answerable()
+     * now only rejects a query that folds away to nothing at all, e.g. punctuation.
      */
-    const MIN_LENGTH = 2;
+    const MIN_LENGTH = 1;
 
     /** @var int Longest query kept. Past this it is a paste, not a search. */
     const MAX_LENGTH = 120;

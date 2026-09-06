@@ -40,7 +40,9 @@
     // How long the typing must have stopped before an empty panel counts as a real miss.
     var MISS_DELAY = 1500;
     // Matches site_search::MIN_LENGTH — below this the server answers with the hint only.
-    var MIN_LENGTH = 2;
+    // One character is a real search here, so the panel opens from the first letter typed;
+    // TYPING_DELAY above is what keeps that one request per pause rather than per keystroke.
+    var MIN_LENGTH = 1;
 
     /**
      * Wire up one search control.

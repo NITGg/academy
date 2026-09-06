@@ -318,8 +318,13 @@ echo $OUTPUT->header();
     <?php if ($search->query() === ''): ?>
       <p class="nitcat__intro"><?= s(get_string('searchhint', 'local_nit_category')) ?></p>
     <?php elseif (!$search->is_answerable()): ?>
-      <p class="nitcat__intro"><?= s(get_string('searchtooshort', 'local_nit_category',
-        site_search::MIN_LENGTH)) ?></p>
+      <?php // With MIN_LENGTH at 1 this branch is no longer "too short": one character is a
+            // search now. It survives for the queries that fold away to nothing in
+            // text_util::normalise() — a lone hamza, a tatweel, a string of harakat — which
+            // are non-empty as typed but carry no word to match on. "Type a letter or a
+            // number" is the useful thing to say about those; "type at least 1 letters" is
+            // not. ?>
+      <p class="nitcat__intro"><?= s(get_string('searchnowords', 'local_nit_category')) ?></p>
     <?php else: ?>
       <p class="nitcat__total" role="status">
         <?= s($total === 1

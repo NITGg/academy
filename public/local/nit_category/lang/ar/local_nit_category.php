@@ -122,6 +122,7 @@ $string['searchopen'] = 'فتح البحث';
 $string['searchclose'] = 'إغلاق البحث';
 $string['searchhint'] = 'ابحث في الأكاديمية كلها: أسماء الكورسات والمجالات وما يغطيه كل كورس.';
 $string['searchtooshort'] = 'اكتب حرفين على الأقل للبحث.';
+$string['searchnowords'] = 'اكتب حرفًا أو رقمًا للبحث.';
 $string['searchresults'] = '{$a->count} نتيجة لـ «{$a->query}»';
 $string['searchoneresult'] = 'نتيجة واحدة لـ «{$a}»';
 $string['searchgroupcourses'] = 'الكورسات';

@@ -241,7 +241,17 @@ function theme_nit_brand_roles(): array {
  * @return array<string, string> group key (g1/g2/g3) => display label
  */
 function theme_nit_brand_groups(): array {
-    return ['g1' => 'Group 1', 'g2' => 'Group 2', 'g3' => 'Group 3'];
+    return [
+        'g1' => 'Group 1',
+        'g2' => 'Group 2',
+        'g3' => 'Group 3',
+        // 4 and 5 are a matched pair, built for the navbar light/dark switch:
+        // the same warm bronze family in two luminances, so toggling changes the
+        // light level and not the brand. Their labels say so, because the two
+        // selects on the "Change style" tab are where that choice gets made.
+        'g4' => 'Group 4 (light)',
+        'g5' => 'Group 5 (dark)',
+    ];
 }
 
 /**
@@ -290,7 +300,13 @@ function theme_nit_category_brand_group(int $categoryid): string {
  * @return string '' | 'nit-brand-2' | 'nit-brand-3'
  */
 function theme_nit_brand_group_class(string $group): string {
-    $classes = ['g1' => '', 'g2' => 'nit-brand-2', 'g3' => 'nit-brand-3'];
+    $classes = [
+        'g1' => '',
+        'g2' => 'nit-brand-2',
+        'g3' => 'nit-brand-3',
+        'g4' => 'nit-brand-4',
+        'g5' => 'nit-brand-5',
+    ];
     return $classes[$group] ?? '';
 }
 
@@ -387,7 +403,7 @@ function theme_nit_mode_classes(): string {
 /**
  * Per-group default overrides for the Brand-Colors palette.
  *
- * Each of the three groups is a complete, self-contained theme with its own
+ * Groups 1-3 are each a complete, self-contained theme with its own
  * distinct — but deliberately calm and low-strain — mood, so an admin can skin a
  * category with a genuinely different look by switching groups. All three are
  * dark palettes tuned for eye comfort: desaturated accents (no harsh, fully
@@ -402,9 +418,24 @@ function theme_nit_mode_classes(): string {
  *   - Group 2 — Teal / Deep sea : cool, restful green-teal on near-black teal.
  *   - Group 3 — Indigo / Lavender : soft violet on a deep indigo ground.
  *
+ * Groups 4 and 5 are the exception to "all three are dark", and to "each group is
+ * its own mood": they are one palette in two luminances, built for the navbar
+ * light/dark switch. Bronze on parchment and the same bronze on espresso — a
+ * warm, low-chroma family chosen because the first three are all cool (blue,
+ * teal, violet), so the pair cannot be mistaken for any of them.
+ *
+ *   - Group 4 — Parchment & Bronze (LIGHT) : the only light group. Warm off-white
+ *     paper, white cards, near-black warm ink, bronze accent.
+ *   - Group 5 — Espresso & Bronze (DARK) : the same family after dark. Warm
+ *     near-black ground, amber-bronze accent bright enough to carry on it.
+ *
+ * Being light, Group 4 is the one group whose text-on-primary cannot be the body
+ * ink — see the `--nit-brand-on-primary` note on `.nit-brand-4` in
+ * scss/foundation/_brand.scss.
+ *
  * A role missing from a group falls back to theme_nit_brand_roles()['default'].
  *
- * @return array<string, array<string, string>> group key (g1/g2/g3) => role => #hex
+ * @return array<string, array<string, string>> group key (g1..g5) => role => #hex
  */
 function theme_nit_brand_group_defaults(): array {
     return [
@@ -486,6 +517,77 @@ function theme_nit_brand_group_defaults(): array {
             'warning'           => '#d8c24e',
             'info'              => '#7fa6d6',
         ],
+        // --- Group 4 : Parchment & Bronze (LIGHT). ----------------------------
+        // The only light group in the set. Warm off-white paper for the page, a
+        // plain white surface so cards lift off it, near-black warm ink, and a
+        // bronze accent dark enough to read as a link on paper (accenttext is a
+        // step darker than primary for exactly that reason — on a light ground a
+        // link has to beat the paper, not the ink).
+        //
+        // The semantics are darkened to match: on parchment, the mid-tone
+        // orange/green/yellow the dark groups use would be a pale smudge.
+        'g4' => [
+            'primary'           => '#9a5b18',
+            'secondary'         => '#e6dac6',
+            'accent'            => '#9a5b18',
+            'accenttext'        => '#87500f',
+            'background'        => '#f7f3ec',
+            'background2'       => '#f0e8db',
+            // A light group keeps a light bar: a dark navbar over parchment would
+            // read as a leftover from another palette rather than a choice.
+            'navbarbackground1' => '#fffdf9',
+            'navbarbackground2' => '#f4ecdf',
+            'footerbackground1' => '#f0e8db',
+            'footerbackground2' => '#e7dcc9',
+            'surface'           => '#ffffff',
+            'textprimary'       => '#2a231a',
+            // Navbar glyphs are ink here, not gold: they sit on a near-white bar.
+            'navbariconcolor'   => '#3d3323',
+            'navbariconbg'      => '#efe6d6',
+            'textsecondary'     => '#6b5f4e',
+            'borderprimary'     => '#e2d7c4',
+            'bordersecondary'   => '#c8b89c',
+            'hoverbackground'   => '#f2e9d9',
+            'hovertext'         => '#7a4410',
+            // Still no red: danger is a deep burnt orange, kept clear of the
+            // bronze primary by being redder and darker than it.
+            'error'             => '#bf4a25',
+            'success'           => '#2d7a58',
+            'warning'           => '#9a7410',
+            'info'              => '#2b6c84',
+        ],
+        // --- Group 5 : Espresso & Bronze (DARK). ------------------------------
+        // Group 4 after dark — same warm family, inverted. A warm near-black
+        // ground (not the cool near-blacks of groups 1-3), and the bronze lifted
+        // to amber so it carries on it. Text roles flip to near-white, the
+        // semantics back to the mid-tones a dark ground needs.
+        'g5' => [
+            'primary'           => '#c98b3f',
+            'secondary'         => '#33281a',
+            'accent'            => '#c98b3f',
+            'accenttext'        => '#e2b56e',
+            'background'        => '#171310',
+            'background2'       => '#1d1814',
+            'navbarbackground1' => '#171310',
+            'navbarbackground2' => '#241d17',
+            'footerbackground1' => '#171310',
+            'footerbackground2' => '#241d17',
+            'surface'           => '#241d17',
+            'textprimary'       => '#f6f1e8',
+            'navbariconcolor'   => '#f6f1e8',
+            'navbariconbg'      => '#241d17',
+            'textsecondary'     => '#ab9d89',
+            'borderprimary'     => '#3a3025',
+            'bordersecondary'   => '#584937',
+            'hoverbackground'   => '#2b231b',
+            'hovertext'         => '#eec284',
+            // Redder and cooler than the amber primary, so "danger" and "brand"
+            // never read as the same colour in a warm palette.
+            'error'             => '#e4694a',
+            'success'           => '#4fae7f',
+            'warning'           => '#e3d05a',
+            'info'              => '#6fa8cc',
+        ],
     ];
 }
 
@@ -499,7 +601,7 @@ function theme_nit_brand_group_defaults(): array {
  *
  * Each group's per-role default comes from theme_nit_brand_group_defaults(),
  * falling back to the shared role default (theme_nit_brand_roles()) when a group
- * does not override a role — so the three groups ship as distinct palettes.
+ * does not override a role — so every group ships as a distinct palette.
  *
  * @return array<string, array{group:string, groupkey:string, role:string,
  *         label:string, usage:string, default:string}> ordered map keyed by token key

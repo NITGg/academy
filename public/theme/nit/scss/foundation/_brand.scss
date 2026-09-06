@@ -30,7 +30,7 @@
 
 :root {
     // --- Per-group raw palettes (reference values; the switch classes read
-    //     these). 21 roles × 3 groups. -------------------------------------
+    //     these). 23 roles × 5 groups. -------------------------------------
     --nit-brand-g1-primary: #{$nit-b-g1-primary};
     --nit-brand-g1-secondary: #{$nit-b-g1-secondary};
     --nit-brand-g1-accent: #{$nit-b-g1-accent};
@@ -102,6 +102,54 @@
     --nit-brand-g3-success: #{$nit-b-g3-success};
     --nit-brand-g3-warning: #{$nit-b-g3-warning};
     --nit-brand-g3-info: #{$nit-b-g3-info};
+
+    --nit-brand-g4-primary: #{$nit-b-g4-primary};
+    --nit-brand-g4-secondary: #{$nit-b-g4-secondary};
+    --nit-brand-g4-accent: #{$nit-b-g4-accent};
+    --nit-brand-g4-accenttext: #{$nit-b-g4-accenttext};
+    --nit-brand-g4-background: #{$nit-b-g4-background};
+    --nit-brand-g4-background2: #{$nit-b-g4-background2};
+    --nit-brand-g4-navbarbackground1: #{$nit-b-g4-navbarbackground1};
+    --nit-brand-g4-navbarbackground2: #{$nit-b-g4-navbarbackground2};
+    --nit-brand-g4-footerbackground1: #{$nit-b-g4-footerbackground1};
+    --nit-brand-g4-footerbackground2: #{$nit-b-g4-footerbackground2};
+    --nit-brand-g4-surface: #{$nit-b-g4-surface};
+    --nit-brand-g4-textprimary: #{$nit-b-g4-textprimary};
+    --nit-brand-g4-navbariconcolor: #{$nit-b-g4-navbariconcolor};
+    --nit-brand-g4-navbariconbg: #{$nit-b-g4-navbariconbg};
+    --nit-brand-g4-textsecondary: #{$nit-b-g4-textsecondary};
+    --nit-brand-g4-borderprimary: #{$nit-b-g4-borderprimary};
+    --nit-brand-g4-bordersecondary: #{$nit-b-g4-bordersecondary};
+    --nit-brand-g4-hoverbackground: #{$nit-b-g4-hoverbackground};
+    --nit-brand-g4-hovertext: #{$nit-b-g4-hovertext};
+    --nit-brand-g4-error: #{$nit-b-g4-error};
+    --nit-brand-g4-success: #{$nit-b-g4-success};
+    --nit-brand-g4-warning: #{$nit-b-g4-warning};
+    --nit-brand-g4-info: #{$nit-b-g4-info};
+
+    --nit-brand-g5-primary: #{$nit-b-g5-primary};
+    --nit-brand-g5-secondary: #{$nit-b-g5-secondary};
+    --nit-brand-g5-accent: #{$nit-b-g5-accent};
+    --nit-brand-g5-accenttext: #{$nit-b-g5-accenttext};
+    --nit-brand-g5-background: #{$nit-b-g5-background};
+    --nit-brand-g5-background2: #{$nit-b-g5-background2};
+    --nit-brand-g5-navbarbackground1: #{$nit-b-g5-navbarbackground1};
+    --nit-brand-g5-navbarbackground2: #{$nit-b-g5-navbarbackground2};
+    --nit-brand-g5-footerbackground1: #{$nit-b-g5-footerbackground1};
+    --nit-brand-g5-footerbackground2: #{$nit-b-g5-footerbackground2};
+    --nit-brand-g5-surface: #{$nit-b-g5-surface};
+    --nit-brand-g5-textprimary: #{$nit-b-g5-textprimary};
+    --nit-brand-g5-navbariconcolor: #{$nit-b-g5-navbariconcolor};
+    --nit-brand-g5-navbariconbg: #{$nit-b-g5-navbariconbg};
+    --nit-brand-g5-textsecondary: #{$nit-b-g5-textsecondary};
+    --nit-brand-g5-borderprimary: #{$nit-b-g5-borderprimary};
+    --nit-brand-g5-bordersecondary: #{$nit-b-g5-bordersecondary};
+    --nit-brand-g5-hoverbackground: #{$nit-b-g5-hoverbackground};
+    --nit-brand-g5-hovertext: #{$nit-b-g5-hovertext};
+    --nit-brand-g5-error: #{$nit-b-g5-error};
+    --nit-brand-g5-success: #{$nit-b-g5-success};
+    --nit-brand-g5-warning: #{$nit-b-g5-warning};
+    --nit-brand-g5-info: #{$nit-b-g5-info};
 
     // --- Active layer — the names components actually use. Defaults to Group 1.
     --nit-brand-primary: var(--nit-brand-g1-primary);
@@ -208,4 +256,147 @@
     --nit-brand-success: var(--nit-brand-g3-success);
     --nit-brand-warning: var(--nit-brand-g3-warning);
     --nit-brand-info: var(--nit-brand-g3-info);
+}
+
+// Group 4 is the LIGHT palette (Parchment & Bronze) — the pair Group 5 is the
+// dark half of. Both are ordinary group switches; nothing about them is special
+// cased except the one line at the end of this block.
+.nit-brand-4 {
+    --nit-brand-primary: var(--nit-brand-g4-primary);
+    --nit-brand-secondary: var(--nit-brand-g4-secondary);
+    --nit-brand-accent: var(--nit-brand-g4-accent);
+    --nit-brand-accenttext: var(--nit-brand-g4-accenttext);
+    --nit-brand-background: var(--nit-brand-g4-background);
+    --nit-brand-background2: var(--nit-brand-g4-background2);
+    --nit-brand-navbarbackground1: var(--nit-brand-g4-navbarbackground1);
+    --nit-brand-navbarbackground2: var(--nit-brand-g4-navbarbackground2);
+    --nit-brand-footerbackground1: var(--nit-brand-g4-footerbackground1);
+    --nit-brand-footerbackground2: var(--nit-brand-g4-footerbackground2);
+    --nit-brand-surface: var(--nit-brand-g4-surface);
+    --nit-brand-textprimary: var(--nit-brand-g4-textprimary);
+    --nit-brand-navbariconcolor: var(--nit-brand-g4-navbariconcolor);
+    --nit-brand-navbariconbg: var(--nit-brand-g4-navbariconbg);
+    --nit-brand-textsecondary: var(--nit-brand-g4-textsecondary);
+    --nit-brand-borderprimary: var(--nit-brand-g4-borderprimary);
+    --nit-brand-bordersecondary: var(--nit-brand-g4-bordersecondary);
+    --nit-brand-hoverbackground: var(--nit-brand-g4-hoverbackground);
+    --nit-brand-hovertext: var(--nit-brand-g4-hovertext);
+    --nit-brand-error: var(--nit-brand-g4-error);
+    --nit-brand-success: var(--nit-brand-g4-success);
+    --nit-brand-warning: var(--nit-brand-g4-warning);
+    --nit-brand-info: var(--nit-brand-g4-info);
+
+    // The one override a light group needs. `--nit-brand-on-primary` is declared
+    // once, above, as "the body ink" — which is right for every dark group (their
+    // ink is near-white, and near-white on a saturated fill reads). Here the ink
+    // is near-black, so keeping that rule would put near-black text on a bronze
+    // fill. The surface — this group's white — is what belongs on it instead.
+    //
+    // Declared here rather than as a 24th role because it is not a decision an
+    // admin makes: it follows from the group being light, and a role would ask
+    // the same question five times to get four identical answers.
+    --nit-brand-on-primary: var(--nit-brand-g4-surface);
+}
+
+// Group 5 is the DARK half of that pair (Espresso & Bronze).
+.nit-brand-5 {
+    --nit-brand-primary: var(--nit-brand-g5-primary);
+    --nit-brand-secondary: var(--nit-brand-g5-secondary);
+    --nit-brand-accent: var(--nit-brand-g5-accent);
+    --nit-brand-accenttext: var(--nit-brand-g5-accenttext);
+    --nit-brand-background: var(--nit-brand-g5-background);
+    --nit-brand-background2: var(--nit-brand-g5-background2);
+    --nit-brand-navbarbackground1: var(--nit-brand-g5-navbarbackground1);
+    --nit-brand-navbarbackground2: var(--nit-brand-g5-navbarbackground2);
+    --nit-brand-footerbackground1: var(--nit-brand-g5-footerbackground1);
+    --nit-brand-footerbackground2: var(--nit-brand-g5-footerbackground2);
+    --nit-brand-surface: var(--nit-brand-g5-surface);
+    --nit-brand-textprimary: var(--nit-brand-g5-textprimary);
+    --nit-brand-navbariconcolor: var(--nit-brand-g5-navbariconcolor);
+    --nit-brand-navbariconbg: var(--nit-brand-g5-navbariconbg);
+    --nit-brand-textsecondary: var(--nit-brand-g5-textsecondary);
+    --nit-brand-borderprimary: var(--nit-brand-g5-borderprimary);
+    --nit-brand-bordersecondary: var(--nit-brand-g5-bordersecondary);
+    --nit-brand-hoverbackground: var(--nit-brand-g5-hoverbackground);
+    --nit-brand-hovertext: var(--nit-brand-g5-hovertext);
+    --nit-brand-error: var(--nit-brand-g5-error);
+    --nit-brand-success: var(--nit-brand-g5-success);
+    --nit-brand-warning: var(--nit-brand-g5-warning);
+    --nit-brand-info: var(--nit-brand-g5-info);
+}
+
+// --- Bootstrap bridge -------------------------------------------------------
+// Bootstrap 5.3 paints the page through its own custom properties
+// (`body { background-color: var(--bs-body-bg) }`), and pre_scss bakes those
+// from GROUP 1 — a literal hex that no group switch can reach. So the switch
+// classes above recoloured every component that reads a `--nit-brand-*` name and
+// left the page itself on Group 1's ground: content islands in the new palette
+// floating on the old one. Invisible while all the groups were dark and close in
+// value; impossible to miss the moment one of them (Group 4) is light.
+//
+// Re-pointing the three page-level Bootstrap properties at the ACTIVE brand
+// roles fixes that for every group at once, category styles included. Listed in
+// all five scopes rather than on `:root` alone on purpose: a custom property
+// holding a var() is substituted on the element that declares it, so a `:root`-
+// only declaration would freeze to Group 1 exactly the way the baked hex did.
+//
+// Under Group 1 these resolve to the same values pre_scss already baked, so the
+// default site is unchanged to the pixel.
+:root,
+.nit-brand-2,
+.nit-brand-3,
+.nit-brand-4,
+.nit-brand-5 {
+    --bs-body-bg: var(--nit-brand-background);
+    --bs-body-color: var(--nit-brand-textprimary);
+    --bs-border-color: var(--nit-brand-borderprimary);
+}
+
+// The same story one level down: Bootstrap scopes the surface of a card, a
+// dropdown and a form control to the component, again baked from Group 1. These
+// are declared ON the components, which sit inside whatever group wrapper is in
+// scope, so the active role resolves correctly there.
+.card {
+    --bs-card-bg: var(--nit-brand-surface);
+    --bs-card-color: var(--nit-brand-textprimary);
+    --bs-card-border-color: var(--nit-brand-borderprimary);
+}
+
+.dropdown-menu {
+    --bs-dropdown-bg: var(--nit-brand-surface);
+    --bs-dropdown-color: var(--nit-brand-textprimary);
+    --bs-dropdown-border-color: var(--nit-brand-borderprimary);
+    --bs-dropdown-link-color: var(--nit-brand-textprimary);
+}
+
+// The same bridge for the two things that carry the brand hardest: the primary
+// button and content links. Bootstrap 5.3 exposes both as component-scoped
+// custom properties, but `$primary` and `$link-color` were baked from Group 1 in
+// pre_scss — which is why a page in any other group still showed the Group 1 blue
+// button and the Group 1 blue link.
+//
+// The mix ratios are not invented: they are the exact tints Bootstrap computed
+// for these states (85% / 90% / 80% against white), read back off the compiled
+// stylesheet, so under Group 1 every one of these resolves to the same colour
+// that is already on the page. Only the group being different makes them differ.
+:root,
+.nit-brand-2,
+.nit-brand-3,
+.nit-brand-4,
+.nit-brand-5 {
+    --bs-link-color: var(--nit-brand-accenttext);
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--nit-brand-primary);
+    --bs-btn-border-color: var(--nit-brand-primary);
+    --bs-btn-color: var(--nit-brand-on-primary);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--nit-brand-primary) 85%, #fff);
+    --bs-btn-hover-border-color: color-mix(in srgb, var(--nit-brand-primary) 90%, #fff);
+    --bs-btn-hover-color: var(--nit-brand-on-primary);
+    --bs-btn-active-bg: color-mix(in srgb, var(--nit-brand-primary) 80%, #fff);
+    --bs-btn-active-border-color: color-mix(in srgb, var(--nit-brand-primary) 90%, #fff);
+    --bs-btn-active-color: var(--nit-brand-on-primary);
+    --bs-btn-disabled-bg: var(--nit-brand-primary);
+    --bs-btn-disabled-border-color: var(--nit-brand-primary);
 }
