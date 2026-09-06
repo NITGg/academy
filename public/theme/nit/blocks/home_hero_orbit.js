@@ -206,8 +206,18 @@
   // because a dead link is the wrong thing to put in a grid of courses. The
   // feed stays wired up below for any page that does not print the global.
   // ------------------------------------------------------------------
-  function drawOrbit() {
-    var orbit = document.querySelector('[data-nit-orbit]');
+  // Takes its element instead of finding it, so a page can carry MORE THAN ONE
+  // of these blocks — a second copy of the markup pasted into another HTML block
+  // to show the categories on their own, for instance.
+  //
+  // It used to run `document.querySelector('[data-nit-orbit]')` itself, which
+  // returns the FIRST match and only that one. With two blocks on the page both
+  // runs resolved to the same element: the first was drawn and flagged
+  // `nitLoaded`, the second run returned at that flag, and the second block sat
+  // there with its rings drawn and no categories in them. Nothing errored — the
+  // copy just stayed empty, which is exactly what it looked like. drawOrbits()
+  // below is what walks all of them.
+  function drawOrbit(orbit) {
     if (!orbit || orbit.dataset.nitLoaded) {
       return;
     }
@@ -722,8 +732,8 @@
   // .nit-navbar-logo in the DOM) so the hero constellation matches the navbar.
   // ------------------------------------------------------------------
   function setupLogo() {
-    var logoImg = document.querySelector('[data-nit-orbit-logo]');
-    if (!logoImg) {
+    var logos = document.querySelectorAll('[data-nit-orbit-logo]');
+    if (!logos.length) {
       return;
     }
 
@@ -750,17 +760,32 @@
       logoUrl = root + '/theme/nit/pix/footer-logo.png';
     }
 
-    // Only invert the default dark navy footer-logo.png fallback; real brand logos stay untinted.
-    if (/footer-logo\.png$/i.test(logoUrl)) {
-      logoImg.style.filter = 'brightness(0) invert(1)';
-    } else {
-      logoImg.style.filter = 'none';
-    }
+    // Every orbit on the page, not just the first — same reason as drawOrbits().
+    Array.prototype.forEach.call(logos, function(logoImg) {
+      // Only invert the default dark navy footer-logo.png fallback; real brand
+      // logos stay untinted.
+      if (/footer-logo\.png$/i.test(logoUrl)) {
+        logoImg.style.filter = 'brightness(0) invert(1)';
+      } else {
+        logoImg.style.filter = 'none';
+      }
 
-    logoImg.src = logoUrl;
-    if (logoAlt) {
-      logoImg.alt = logoAlt;
-    }
+      logoImg.src = logoUrl;
+      if (logoAlt) {
+        logoImg.alt = logoAlt;
+      }
+    });
+  }
+
+  // Every constellation on the page gets drawn, each from its own template node.
+  // A block pasted twice is two independent orbits, not one that wins.
+  function drawOrbits() {
+    Array.prototype.forEach.call(
+      document.querySelectorAll('[data-nit-orbit]'),
+      function(orbit) {
+        drawOrbit(orbit);
+      }
+    );
   }
 
   function start() {
@@ -768,7 +793,7 @@
     hoverStyle();
     playStyle();
     setupLogo();
-    drawOrbit();
+    drawOrbits();
     wireHero();
     continueCta();
   }

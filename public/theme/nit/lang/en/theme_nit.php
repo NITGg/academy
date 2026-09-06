@@ -238,3 +238,19 @@ $string['logoheightauthpanel'] = 'Log-in panel logo height';
 $string['logoheightauthpanel_desc'] = 'Maximum height in pixels of the logo drawn over the picture beside the log-in and sign-up forms.';
 $string['logoheightauthcard'] = 'Log-in form logo height';
 $string['logoheightauthcard_desc'] = 'Maximum height in pixels of the logo inside the log-in and sign-up cards, above the heading.';
+
+// Per-mode logos (Appearance → Logos). The light/dark switch can turn the bar
+// from navy to white, and one mark cannot read on both.
+$string['logomode'] = 'Logos for light and dark mode';
+$string['logomode_desc'] = 'The navigation bar changes colour with the light/dark switch, and a logo drawn for one of them will not read on the other — a white mark disappears on a white bar. Say below which mode the logos above were drawn for, then upload the versions for the other mode. Leave the setting on <em>Not set</em> and nothing is ever swapped: the site uses the logos above everywhere, exactly as before.';
+$string['logosfor'] = 'The logos above are drawn for';
+$string['logosfor_desc'] = 'Which display mode the Logo, Compact logo and Favicon above suit. Pages rendering in the other mode use the uploads below instead — and still use the ones above for any slot left empty.';
+$string['logosfor_unset'] = 'Not set — never swap';
+$string['logosfor_dark'] = 'Dark mode (a light mark on a dark bar)';
+$string['logosfor_light'] = 'Light mode (a dark mark on a light bar)';
+$string['altlogo'] = 'Logo for the other mode';
+$string['altlogo_desc'] = 'The full logo, drawn for whichever mode the ones above are not. Leave empty to use the logo above in both modes.';
+$string['altlogocompact'] = 'Compact logo for the other mode';
+$string['altlogocompact_desc'] = 'The mark shown in the navigation bar. This is the one that matters most — it is the logo on every page. Leave empty to use the compact logo above in both modes.';
+$string['altfavicon'] = 'Favicon for the other mode';
+$string['altfavicon_desc'] = 'The browser-tab icon. Leave empty to use the favicon above in both modes.';

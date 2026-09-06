@@ -1672,6 +1672,170 @@ function theme_nit_logo_slots(): array {
 }
 
 /**
+ * The alternative logo slots — one per core logo, for the other display mode.
+ *
+ * Core ships three logo settings on Appearance → Logos (`logo`, `logocompact`,
+ * `favicon`) and exactly one of each. That is enough for a site with one look,
+ * and not enough for a site with a light mode and a dark one: a mark drawn in
+ * white for a navy bar disappears the moment the bar turns white, and no amount
+ * of CSS can fix that honestly — filtering it would rewrite a picture the site
+ * owner uploaded.
+ *
+ * So the admin says which mode the CORE logos were drawn for
+ * (`theme_nit/logosfor`), and uploads the other set here. Pages rendering in the
+ * mode the core logos suit use core's; pages in the other mode use these, and
+ * fall back to core's when a slot is empty — an empty slot must never mean "no
+ * logo", only "no separate version".
+ *
+ * Stored exactly like the fonts and the auth pictures: system context, itemid 0,
+ * config `theme_nit/<setting>` = the filename, served by theme_nit_pluginfile().
+ *
+ * @return array<string, array{setting:string, filearea:string, basename:string,
+ *         strkey:string, deskey:string, core:string}> keyed by slot
+ */
+function theme_nit_logo_variants(): array {
+    return [
+        'logo' => [
+            'setting'  => 'altlogo',
+            'filearea' => 'altlogo',
+            'basename' => 'alt-logo',
+            'strkey'   => 'altlogo',
+            'deskey'   => 'altlogo_desc',
+            'core'     => 'logo',
+        ],
+        'logocompact' => [
+            'setting'  => 'altlogocompact',
+            'filearea' => 'altlogocompact',
+            'basename' => 'alt-logo-compact',
+            'strkey'   => 'altlogocompact',
+            'deskey'   => 'altlogocompact_desc',
+            'core'     => 'logocompact',
+        ],
+        'favicon' => [
+            'setting'  => 'altfavicon',
+            'filearea' => 'altfavicon',
+            'basename' => 'alt-favicon',
+            'strkey'   => 'altfavicon',
+            'deskey'   => 'altfavicon_desc',
+            'core'     => 'favicon',
+        ],
+    ];
+}
+
+/**
+ * Whether a brand group renders its CHROME light.
+ *
+ * Measured, not declared: the relative luminance of the group's "Navbar
+ * background 1" decides it. That is the surface the logo is actually drawn on,
+ * and it means a group an admin retunes on the Brand Colors tab starts or stops
+ * counting as light on its own — nobody has to remember to flip a second switch.
+ *
+ * @param string $group group key (g1..g5)
+ * @return bool true when the bar is light enough to need a dark mark
+ */
+function theme_nit_group_is_light(string $group): bool {
+    $hex = theme_nit_brandcolour($group . '_navbarbackground1');
+    $hex = ltrim($hex, '#');
+    if (strlen($hex) === 3) {
+        $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+    }
+    if (strlen($hex) !== 6) {
+        return false;
+    }
+    // WCAG relative luminance: linearise each channel, then weight it.
+    $lum = 0;
+    foreach ([[0, 0.2126], [2, 0.7152], [4, 0.0722]] as [$offset, $weight]) {
+        $c = hexdec(substr($hex, $offset, 2)) / 255;
+        $c = $c <= 0.04045 ? $c / 12.92 : pow(($c + 0.055) / 1.055, 2.4);
+        $lum += $c * $weight;
+    }
+    return $lum > 0.5;
+}
+
+/**
+ * The brand group this request's page CHROME renders in.
+ *
+ * The navbar and the footer sit outside any category wrapper, so their group is
+ * always the one the light/dark switch selected — not whatever a category page
+ * re-skins its own content with.
+ *
+ * @return string group key (g1..g5)
+ */
+function theme_nit_active_chrome_group(): string {
+    return theme_nit_mode_groups()[theme_nit_current_mode()] ?? 'g1';
+}
+
+/**
+ * The URL of a logo, for the mode this page is rendering in.
+ *
+ * Returns the alternative upload when the page's chrome is light and the core
+ * logos were drawn for dark (or the other way round) AND that alternative was
+ * actually uploaded. Otherwise core's own logo, unchanged — including when the
+ * admin has not said which mode the core logos are for, because guessing at
+ * somebody's artwork is worse than leaving it alone.
+ *
+ * @param string $slot 'logo' | 'logocompact' | 'favicon'
+ * @param int $maxwidth passed through to core's sizing for 'logo'/'logocompact'
+ * @param int $maxheight
+ * @return moodle_url|false the URL, or false exactly as core returns for "none"
+ */
+function theme_nit_logo_url(string $slot, int $maxwidth = 300, int $maxheight = 300) {
+    $variants = theme_nit_logo_variants();
+
+    // Core's own URL for this slot, built the way renderer_base builds it — the
+    // size is hidden in the file path and `theme_get_revision()` is the cache
+    // buster. Rebuilt here rather than called on the renderer because this
+    // function is also used outside a rendering context (settings, CLI checks).
+    $corelogo = function () use ($slot, $maxwidth, $maxheight) {
+        $filename = get_config('core_admin', $slot);
+        if (empty($filename)) {
+            return false;
+        }
+        $filepath = $slot === 'favicon' ? '64x64/' : ((int) $maxwidth . 'x' . (int) $maxheight) . '/';
+        return \moodle_url::make_pluginfile_url(
+            \context_system::instance()->id,
+            'core_admin',
+            $slot,
+            $filepath,
+            theme_get_revision(),
+            $filename
+        );
+    };
+
+    if (!isset($variants[$slot])) {
+        return $corelogo();
+    }
+
+    // Which mode the core uploads were drawn for. Unset = "not answered", and
+    // then nothing is swapped.
+    $corelogosfor = get_config('theme_nit', 'logosfor');
+    if ($corelogosfor !== 'dark' && $corelogosfor !== 'light') {
+        return $corelogo();
+    }
+
+    $pagemode = theme_nit_group_is_light(theme_nit_active_chrome_group()) ? 'light' : 'dark';
+    if ($pagemode === $corelogosfor) {
+        return $corelogo();
+    }
+
+    // The other mode: use the alternative, if there is one.
+    $variant = $variants[$slot];
+    $filename = get_config('theme_nit', $variant['setting']);
+    if (!is_string($filename) || $filename === '') {
+        return $corelogo();
+    }
+
+    return \moodle_url::make_pluginfile_url(
+        \context_system::instance()->id,
+        'theme_nit',
+        $variant['filearea'],
+        null,
+        '/',
+        ltrim($filename, '/')
+    );
+}
+
+/**
  * The master logo multiplier, as a percentage.
  *
  * Clamped rather than validated away: PARAM_INT on the setting will happily
@@ -1987,7 +2151,10 @@ function theme_nit_auth_background_scss($theme): string {
 function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
     $areas = array_merge(
         array_map(static fn($slot) => $slot['filearea'], theme_nit_font_slots()),
-        array_map(static fn($slot) => $slot['filearea'], theme_nit_auth_image_slots())
+        array_map(static fn($slot) => $slot['filearea'], theme_nit_auth_image_slots()),
+        // The per-mode logo uploads (Appearance → Logos). Without this the file
+        // saves fine and then 404s when the page asks for it.
+        array_map(static fn($v) => $v['filearea'], theme_nit_logo_variants())
     );
 
     if ($context->contextlevel == CONTEXT_SYSTEM && in_array($filearea, $areas, true)) {
@@ -2008,7 +2175,7 @@ function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
  * Exposed to JavaScript as `window.NIT_CATEGORIES`.
  *
  * @param int $limit maximum number of categories
- * @return array<int, array{id:int,name:string,coursecount:int,icon:string,iconurl:string,image:string,url:string}>
+ * @return array<int, array{id:int,name:string,names:array<string,string>,coursecount:int,icon:string,iconurl:string,image:string,url:string}>
  */
 function theme_nit_get_categories(int $limit = 4): array {
     global $CFG, $OUTPUT;
@@ -2047,6 +2214,10 @@ function theme_nit_get_categories(int $limit = 4): array {
         $categories[] = [
             'id' => (int) $cat->id,
             'name' => $cat->get_formatted_name(),
+            // Every translation the name carries, not just the one this page is
+            // being read in: the logo/categories block prints the Arabic and the
+            // English name on the same card, so one filtered string is not enough.
+            'names' => theme_nit_multilang_variants((string) $cat->name),
             // Count courses in this category AND all its subcategories, so a main
             // category whose courses live only in subcategories still shows a real total.
             'coursecount' => $cat->get_courses_count(['recursive' => true]),
@@ -2060,6 +2231,69 @@ function theme_nit_get_categories(int $limit = 4): array {
     }
 
     return $categories;
+}
+
+/**
+ * Split a multi-language string into one plain-text value per language.
+ *
+ * `format_string()` — and therefore `get_formatted_name()` — answers with the
+ * ONE language the page is currently being read in, which is right for almost
+ * every caller and wrong for a card that has to print the Arabic name and the
+ * English name side by side. This reads the raw, unfiltered value instead and
+ * hands back every translation it carries, so the caller can show two at once.
+ *
+ * Both markups the site can hold are understood: the "Multi-language content
+ * (v2)" filter's `{mlang xx}…{mlang}` — what the front-page blocks and our
+ * category names use — and core's older multilang spans. A value in neither
+ * form is not a translation set, so it yields an empty array and the caller
+ * falls back to the formatted name.
+ *
+ * The pieces come back as plain text (tags dropped, entities decoded) because
+ * they are written into the page with `textContent`, which escapes on output;
+ * leaving them escaped here would print a literal `&amp;` on the card.
+ *
+ * @param string $text the raw field value, before any filter has run
+ * @return array<string, string> language code (lower case, e.g. 'en', 'ar') => value
+ */
+function theme_nit_multilang_variants(string $text): array {
+    $plain = static function (string $value): string {
+        return trim(html_entity_decode(strip_tags($value), ENT_QUOTES, 'UTF-8'));
+    };
+
+    $variants = [];
+
+    // v2: {mlang en}Law{mlang}{mlang ar}القانون{mlang}. One tag may list several
+    // codes ({mlang en,fr}), and "other" is a code like any other here — it is the
+    // caller's business whether a fallback means anything to it.
+    if (preg_match_all('/\{\s*mlang\s+([^}]+)\}(.*?)\{\s*mlang\s*\}/is', $text, $matches, PREG_SET_ORDER)) {
+        foreach ($matches as $match) {
+            foreach (preg_split('/\s*,\s*/', trim($match[1])) as $lang) {
+                $lang = strtolower(trim($lang));
+                // First one wins: a name repeating a language is a typo, not an override.
+                if ($lang !== '' && !isset($variants[$lang])) {
+                    $variants[$lang] = $plain($match[2]);
+                }
+            }
+        }
+    }
+
+    // v1: a span carrying class="multilang". The two attributes appear in either
+    // order in the wild, so the span is matched on the class and the code is read
+    // out of it afterwards rather than pinning both into one pattern.
+    if (preg_match_all('/<span\b([^>]*\bmultilang\b[^>]*)>(.*?)<\/span>/is', $text, $matches, PREG_SET_ORDER)) {
+        foreach ($matches as $match) {
+            if (preg_match('/\blang\s*=\s*["\']?([a-zA-Z0-9_-]+)/', $match[1], $attr)) {
+                $lang = strtolower($attr[1]);
+                if (!isset($variants[$lang])) {
+                    $variants[$lang] = $plain($match[2]);
+                }
+            }
+        }
+    }
+
+    return array_filter($variants, static function (string $value): bool {
+        return $value !== '';
+    });
 }
 
 /**

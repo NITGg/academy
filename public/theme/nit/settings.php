@@ -135,5 +135,49 @@ if ($ADMIN->fulltree) {
             $setting->set_updatedcallback('theme_reset_all_caches');
             $logospage->add($setting);
         }
+
+        // ------------------------------------------------------------------
+        // Which mode the CORE logos were drawn for, and the set for the other
+        // one. A mark drawn in white for a navy bar vanishes when the light/dark
+        // switch turns that bar white; the honest fix is a second file, not a
+        // CSS filter that rewrites the artwork.
+        //
+        // "Not set" is the default and means "never swap" — the site behaves
+        // exactly as it did before these fields existed.
+        // ------------------------------------------------------------------
+        $logospage->add(new admin_setting_heading(
+            'theme_nit/logomodeheading',
+            get_string('logomode', 'theme_nit'),
+            get_string('logomode_desc', 'theme_nit')
+        ));
+
+        $setting = new admin_setting_configselect(
+            'theme_nit/logosfor',
+            get_string('logosfor', 'theme_nit'),
+            get_string('logosfor_desc', 'theme_nit'),
+            '',
+            [
+                ''      => get_string('logosfor_unset', 'theme_nit'),
+                'dark'  => get_string('logosfor_dark', 'theme_nit'),
+                'light' => get_string('logosfor_light', 'theme_nit'),
+            ]
+        );
+        $setting->set_updatedcallback('theme_reset_all_caches');
+        $logospage->add($setting);
+
+        // One upload per core logo. theme_nit_logo_variants() is the single
+        // source of truth: adding a slot there adds its field here.
+        foreach (theme_nit_logo_variants() as $variant) {
+            $setting = new admin_setting_configstoredfile(
+                'theme_nit/' . $variant['setting'],
+                get_string($variant['strkey'], 'theme_nit'),
+                get_string($variant['deskey'], 'theme_nit'),
+                $variant['filearea'],
+                0,
+                ['maxfiles' => 1, 'accepted_types' => ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.ico']]
+            );
+            $setting->set_updatedcallback('theme_reset_all_caches');
+            $logospage->add($setting);
+        }
     }
 }

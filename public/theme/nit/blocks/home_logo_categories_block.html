@@ -1,0 +1,251 @@
+<!-- NIT - Brand mark + category cards home-page block.
+     Paste into an HTML block on the FRONT PAGE (Site home).
+
+     Two sections, in this order:
+       1. the SITE LOGO, read from the site rather than pasted here, so
+          replacing the logo in Site administration replaces it here too;
+       2. a grid of the site's top-level CATEGORIES, one card each: the
+          category icon, the Arabic name, a short red rule, the English name.
+
+     WHERE THE LOGO COMES FROM - window.NIT_LOGO_FULL, printed by theme_nit's
+     front-page layout. That is the wide lock-up uploaded at Site
+     administration then Appearance then Logos; window.NIT_LOGO, the compact
+     navbar mark, is the fallback, and the picture shipped in the markup below
+     is the last resort for a site that has uploaded neither. Nothing here has
+     to be re-pasted when the logo changes.
+
+     WHERE THE CATEGORIES COME FROM - window.NIT_CATEGORIES, printed by the same
+     layout. It lists every top-level category INCLUDING ones with no courses
+     yet, which is what a showcase of fields wants and what
+     /local/nit_category/home.php deliberately withholds. Because that global
+     only exists on the front page, this block belongs on the front page.
+
+     WHICH categories, and in what order, is data-ids on the grid: a plain list
+     of category ids, drawn in that order. Leave it empty and the first
+     data-limit categories the site returns are used. The ids are visible in the
+     address bar on course/management.php.
+
+     BOTH NAMES ON ONE CARD - a category name normally answers in the one
+     language the page is being read in, which cannot print Arabic over English.
+     theme_nit_get_categories() therefore also sends `names`, every translation
+     the raw name carries, split out of its {mlang} markup. So the card is only
+     bilingual if the category NAME is: write it as
+       {mlang ar}الاسم بالعربية{mlang}{mlang en}The English name{mlang}
+     in Category settings. A name in one language prints on the top line alone,
+     and the second line is dropped rather than left blank.
+
+     THE ICON is the one uploaded on the category's "Category icon" tab
+     (local_nit_category); a category with no uploaded icon falls back to the
+     emoji set there, and then to a rotating placeholder glyph.
+
+     COLOURS read from the Brand Colors palette (--nit-brand-*), so a palette
+     change - or the light/dark switch, which selects a different group -
+     repaints the whole section. No literal colours anywhere.
+
+     THE RED RULE under the Arabic name is a background gradient on that line,
+     not an element of its own, because the editor deletes any element holding
+     no content and an empty span never comes back from a save.
+
+     Other house rules this file obeys, each of them learned the hard way:
+     never write a tag - a less-than sign followed by a letter and closed by a
+     greater-than sign - anywhere in these comments, because HTML Purifier reads
+     it as real markup even inside a comment and throws away everything before
+     it; no bare web address inside the script, because the "Convert URLs into
+     links" filter rewrites it into a link element and that is a syntax error;
+     and no {mlang} markup inside an attribute, because the multilang filter
+     would spill span markup into the attribute value - which is why the picture
+     below carries a plain alt.
+
+     NEEDS local_nit_mlang's "Include rich text editors" switched OFF, or the
+     editor splits into one tab per language and tears this bilingual file in
+     half on save:
+       php admin/cli/cfg.php --component=local_nit_mlang --name=editors --set=0
+     The tags also need the "Multi-language content (v2)" filter enabled.
+
+     Paste into an EMPTY block. The multilang filter pairs tags in document
+     order, so one unpaired tag left from earlier content shifts every pair
+     after it.
+
+     The fallback picture is prefixed with the /moodle-new/ sub-directory this
+     site is installed under. Change that prefix if wwwroot moves. -->
+<div dir="auto"
+  style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(16px, 4vw, 48px);">
+  <div style="max-width: 1230px; margin: 0 auto;">
+
+    <div
+      style="display: flex; align-items: center; justify-content: center; margin-bottom: clamp(32px, 5vw, 56px);"
+      data-nit-brandmark=""> <img class="img-fluid"
+        style="display: block; width: auto; height: auto; max-width: min(460px, 86%);"
+        src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
+        data-nit-brandmark-img=""> </div>
+
+    <div
+      style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: clamp(20px, 2.6vw, 32px); align-items: stretch;"
+      data-nit-catgrid="" data-limit="6" data-ids="">
+      <div style="display: none;" data-nit-catgrid-card=""><a
+          style="height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 32px 24px; background: var(--nit-brand-surface); border: 1px solid var(--nit-brand-borderprimary); border-radius: 16px; text-align: center; color: var(--nit-brand-textprimary); text-decoration: none !important;"
+          href="{{url}}">
+          <span
+            style="flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: 88px; height: 88px; font-size: 52px; line-height: 1; background-position: center; background-repeat: no-repeat; background-size: contain;"
+            data-nit-catgrid-icon="">{{icon}}</span>
+          <span dir="auto"
+            style="display: block; width: 100%; font-size: clamp(18px,2vw,22px); font-weight: 700; line-height: 1.6; color: var(--nit-brand-textprimary); min-height: 3.2em; padding-bottom: 16px; background: linear-gradient(var(--nit-brand-primary),var(--nit-brand-primary)) no-repeat bottom center/44px 3px;"
+            data-nit-catgrid-primary="">{{nameprimary}}</span>
+          <span dir="auto"
+            style="display: block; width: 100%; font-size: clamp(14px,1.4vw,17px); font-weight: 600; line-height: 1.6; color: var(--nit-brand-textprimary);"
+            data-nit-catgrid-secondary="">{{namesecondary}}</span>
+        </a></div>
+    </div>
+
+  </div>
+  <script>
+    // Card polish for this section only, in its own guarded style element - the
+    // shared nit-hoverfx-style block is injected by whichever home-page block
+    // renders first, so a rule added there would not reliably load.
+    (function() {
+      if (document.getElementById('nit-logocats-style')) {
+        return;
+      }
+      var css =
+        '[data-nit-catgrid] a{transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}' +
+        '[data-nit-catgrid] a:hover{transform:translateY(-6px);border-color:var(--nit-brand-primary)!important;box-shadow:0 16px 40px rgba(0,0,0,.18)}' +
+        '@media (prefers-reduced-motion:reduce){[data-nit-catgrid] a{transition:none}[data-nit-catgrid] a:hover{transform:none}}';
+      var st = document.createElement('style');
+      st.id = 'nit-logocats-style';
+      st.textContent = css;
+      (document.head || document.documentElement).appendChild(st);
+    })();
+  </script>
+  <script>
+    // The markup above ships ONE hidden card carrying {{placeholder}} markers.
+    // This clones it once per category and fills it in. Without this the grid
+    // renders empty: block_nit_section prints its HTML verbatim, so nothing
+    // else would ever replace a {{nameprimary}}.
+    //
+    // Runs during parsing rather than on DOMContentLoaded. Both globals it
+    // reads are printed at the top of the body, so they are already there, and
+    // getting in first means the cards are in the document before anything else
+    // measures the page.
+    (function() {
+      var grid = document.querySelector('[data-nit-catgrid]');
+      if (!grid || grid.dataset.nitLoaded) {
+        return;
+      }
+      grid.dataset.nitLoaded = '1';
+
+      // Section 1. The uploaded logo replaces the one in the markup; if the site
+      // has no logo at all the pasted picture stays, so the section is never a
+      // gap where a brand mark should be.
+      var mark = document.querySelector('[data-nit-brandmark-img]');
+      var logo = window.NIT_LOGO_FULL || window.NIT_LOGO || '';
+      if (mark && logo) {
+        mark.setAttribute('src', logo);
+      }
+
+      var tpl = grid.querySelector('[data-nit-catgrid-card]');
+      if (!tpl) {
+        return;
+      }
+      // Taken out of the document, not just hidden: theme_nit's front-page
+      // engine fills any grid it finds a card template inside, and a template it
+      // cannot see is a grid it leaves alone. The node itself is kept - it is
+      // still what every card is cloned from.
+      tpl.parentNode.removeChild(tpl);
+
+      var rows = (window.NIT_CATEGORIES || []).slice();
+
+      // data-ids picks the categories and their order; empty means "whatever the
+      // site returns, in its own order". An id that no longer exists is dropped
+      // rather than drawn as a hole.
+      var wanted = (grid.getAttribute('data-ids') || '').split(',')
+        .map(function(id) {
+          return id.trim();
+        })
+        .filter(function(id) {
+          return id !== '';
+        });
+      if (wanted.length) {
+        var byid = {};
+        rows.forEach(function(row) {
+          byid[String(row.id)] = row;
+        });
+        rows = wanted.map(function(id) {
+          return byid[id];
+        }).filter(Boolean);
+      }
+
+      var limit = parseInt(grid.getAttribute('data-limit') || '', 10) || rows.length;
+      rows = rows.slice(0, limit);
+
+      if (!rows.length) {
+        // A grid of nothing is worse than no grid: the logo above still stands
+        // on its own.
+        grid.style.display = 'none';
+        return;
+      }
+
+      var frag = document.createDocumentFragment();
+
+      rows.forEach(function(row) {
+        var names = row.names || {};
+        var primary = names.ar || '';
+        var secondary = names.en || names.other || '';
+
+        // A name with no {mlang} markup at all is simply that name, once.
+        if (!primary && !secondary) {
+          primary = row.name || '';
+        }
+        // Only one translation: it belongs on the top line, and the second line
+        // goes away rather than sitting there empty under the rule.
+        if (!primary) {
+          primary = secondary;
+          secondary = '';
+        }
+
+        var node = tpl.cloneNode(true);
+        node.style.display = '';
+        node.removeAttribute('data-nit-catgrid-card');
+
+        var link = node.querySelector('a');
+        if (link) {
+          link.setAttribute('href', row.url || '#');
+        }
+
+        var icon = node.querySelector('[data-nit-catgrid-icon]');
+        if (icon) {
+          if (row.iconurl) {
+            // An uploaded file, drawn as a background so it scales into the 88px
+            // box whatever shape it was uploaded at.
+            icon.textContent = '';
+            icon.style.backgroundImage = 'url("' + String(row.iconurl).replace(/["\\]/g, '') + '")';
+          } else {
+            // An emoji is text, not a picture.
+            icon.textContent = row.icon || '';
+          }
+        }
+
+        // textContent, never innerHTML: a category name is administrator text
+        // and may hold an ampersand or an angle bracket.
+        var top = node.querySelector('[data-nit-catgrid-primary]');
+        if (top) {
+          top.textContent = primary;
+        }
+        var bottom = node.querySelector('[data-nit-catgrid-secondary]');
+        if (bottom) {
+          if (secondary) {
+            bottom.textContent = secondary;
+          } else {
+            bottom.parentNode.removeChild(bottom);
+          }
+        }
+
+        frag.appendChild(node);
+      });
+
+      // Emptied first, not appended to: the grid should hold exactly one set of
+      // cards even if something else got here first.
+      grid.innerHTML = '';
+      grid.appendChild(frag);
+    })();
+  </script>
+</div>

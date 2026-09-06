@@ -239,6 +239,11 @@ $templatecontext = [
     'nitcategoriesjson' => json_encode(theme_nit_get_categories(12), JSON_UNESCAPED_UNICODE),
     // NIT: site/navbar logo URL exposed as window.NIT_LOGO for front-page section blocks.
     'nitlogojson' => json_encode(($OUTPUT->get_compact_logo_url(null, 200) ?: $OUTPUT->get_logo_url(null, 200))?->out(false) ?: '', JSON_UNESCAPED_UNICODE),
+    // NIT: the full site logo exposed as window.NIT_LOGO_FULL. NIT_LOGO above
+    // prefers the compact mark because it fills navbar-sized slots; a block that
+    // shows the brand as a section of its own wants the wide lock-up, and only
+    // falls back to the compact one when no full logo has been uploaded.
+    'nitlogofulljson' => json_encode(($OUTPUT->get_logo_url(null, 300) ?: $OUTPUT->get_compact_logo_url(null, 300))?->out(false) ?: '', JSON_UNESCAPED_UNICODE),
     // NIT: full-width region payloads for theme_nit/frontpage.
     'fullwidthtop' => $fullwidthtop,
     'hasfullwidthtop' => $hasfullwidthtop,

@@ -79,7 +79,7 @@
         <div
           style="display: flex; flex-direction: column; gap: 9px; flex-shrink: 0; margin-top: auto; padding-top: 18px;">
           <button class="nit-btn-solid"
-            style="background-color: var(--nit-brand-primary); border: 1px solid var(--nit-brand-primary); color: var(--nit-brand-textprimary); padding: 12px; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; width: 100%;"
+            style="background-color: var(--nit-brand-primary); border: 1px solid var(--nit-brand-primary); color: var(--nit-brand-onprimary); padding: 12px; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; width: 100%;"
             type="button" data-nit-buy=""> {mlang en}Subscribe now{mlang}{mlang
             ar}ابدأ الآن{mlang} </button> <!-- Details: the course list, the full description
             and the team prices all live one click away. --> <a class="nit-btn-ghost"
@@ -179,7 +179,7 @@
           style="background: transparent; border: 1px solid var(--nit-brand-bordersecondary); color: var(--nit-brand-textprimary); border-radius: 8px; padding: 9px 18px; font-weight: bold; cursor: pointer;"
           type="button" data-nit-m-cancel="">{mlang en}Cancel{mlang}{mlang
           ar}إلغاء{mlang}</button> <button class="nit-btn-solid"
-          style="background: var(--nit-brand-primary); border: 0; color: var(--nit-brand-textprimary); border-radius: 8px; padding: 9px 20px; font-weight: 800; cursor: pointer;"
+          style="background: var(--nit-brand-primary); border: 0; color: var(--nit-brand-onprimary); border-radius: 8px; padding: 9px 20px; font-weight: 800; cursor: pointer;"
           type="button" data-nit-m-proceed="">{mlang en}Proceed to
           payment{mlang}{mlang ar}متابعة الدفع{mlang}</button></div>
     </div>
@@ -209,12 +209,12 @@
       }
       var css =
         '.nit-btn-solid,.nit-btn-ghost,[data-nit-copy],[data-nit-scroll],[data-nit-coupons-scroll],[data-nit-categories]>a,[data-nit-my-courses]>div,[data-nit-about-card]{transition:background-color .2s ease,background .2s ease,color .2s ease,border-color .2s ease,transform .2s ease,box-shadow .2s ease}' +
-        '.nit-btn-solid:not(:disabled):hover{background:var(--nit-brand-primary-hover)!important;color:var(--nit-brand-textprimary)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
+        '.nit-btn-solid:not(:disabled):hover{background:var(--nit-brand-primary-hover)!important;color:var(--nit-brand-onprimary)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
         '.nit-btn-ghost:not(:disabled):hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-bordersecondary)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
         '[data-nit-copy]:hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-hoverbackground)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
         '[data-nit-scroll]:hover,[data-nit-coupons-scroll]:hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-hoverbackground)!important;transform:translateY(-50%) scale(1.08)!important}' +
         '[data-nit-categories]>a:hover,[data-nit-my-courses]>div:not([data-nit-my-course-card]):not([data-nit-my-courses-empty]):hover{transform:translateY(-6px);border-color:var(--nit-brand-accent)!important;box-shadow:0 16px 40px rgba(0,0,0,.45)}' +
-        '[data-nit-categories]>a:hover [data-nit-cta]{background:var(--nit-brand-primary-hover)!important;color:var(--nit-brand-textprimary)!important}' +
+        '[data-nit-categories]>a:hover [data-nit-cta]{background:var(--nit-brand-primary-hover)!important;color:var(--nit-brand-onprimary)!important}' +
         '[data-nit-about-card]:hover{transform:translateY(-4px);border-color:var(--nit-brand-accent)!important}';
       var st = document.createElement('style');
       st.id = 'nit-hoverfx-style';

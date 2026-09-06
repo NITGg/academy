@@ -79,9 +79,7 @@
   style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(20px, 5vw, 64px); overflow: hidden;">
   <div
     style="max-width: 1230px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 40px 20px;"
-    data-nit-hero-split="">
-
-    <!-- Text column. Flat on purpose: the heading, the paragraph and the button
+    data-nit-hero-split=""><!-- Text column. Flat on purpose: the heading, the paragraph and the button
          row are siblings rather than sitting in a nested wrapper, because the
          editor has been seen unwrapping a div that only held other divs, which
          left the heading in a container the layout no longer styled. One level
@@ -89,63 +87,54 @@
     <div
       style="flex: 1 1 380px; min-width: 0; max-width: 500px; display: flex; flex-direction: column; align-items: flex-start; gap: 16px;">
       <h1
-        style="font-size: clamp(34px,4.4vw,60px); font-weight: 700; line-height: 1.5; margin: 0; align-self: flex-start; width: fit-content; max-width: 100%; text-align: center;">
+        style="font-size: clamp(34px,4.4vw,60px); font-weight: bold; line-height: 1.5; margin: 0; align-self: flex-start; width: fit-content; max-width: 100%; text-align: center;">
         <span style="display: block; color: var(--nit-brand-textprimary);">
           {mlang en}Learn Today{mlang} {mlang ar}تعلّــــم اليوم{mlang} </span>
         <span style="display: block; color: var(--nit-brand-accenttext);">
           {mlang en}Advance Tomorrow{mlang} {mlang ar}تقــدّم غدًا{mlang}
-        </span>
-      </h1>
+        </span></h1>
       <p
         style="font-size: 18px; font-weight: 500; line-height: 1.9; color: var(--nit-brand-textsecondary); max-width: 470px; margin: 0; text-align: start;">
-        {mlang en} Enjoy a unique learning experience that gives you the
-        skills of the future. Join more than 10,000 learners and start
-        empowering your professional future with outstanding experts today.
-        {mlang} {mlang ar} استمتع بتجربة تعليمية فريدة تمنحك مهارات المستقبل.
-        انضم لأكثر من ١٠,٠٠٠ طالب وطالبة وابدأ رحلة تمكين مستقبلك المهني مع
-        خبراء متميزين اليوم. {mlang}</p>
-
+        {mlang en} Enjoy a unique learning experience that gives you the skills
+        of the future. Join more than 10,000 learners and start empowering your
+        professional future with outstanding experts today. {mlang} {mlang ar}
+        استمتع بتجربة تعليمية فريدة تمنحك مهارات المستقبل. انضم لأكثر من ١٠,٠٠٠
+        طالب وطالبة وابدأ رحلة تمكين مستقبلك المهني مع خبراء متميزين اليوم.
+        {mlang}</p>
       <div
         style="display: flex; align-items: center; flex-wrap: wrap; gap: 25px; margin-top: 18px;">
         <a class="nit-btn-solid"
-          style="background: var(--nit-brand-primary); border: 1px solid var(--nit-brand-borderprimary); color: var(--nit-brand-textprimary); width: 220px; height: 60px; border-radius: 8px; font-size: 18px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;"
-          href="/moodle-new/course/index.php" data-nit-btn="" data-nit-hero-cta=""
-          data-nit-scrollto="[data-nit-categories]"> {mlang en}Start
-          Now{mlang} {mlang ar}ابدأ الان{mlang} </a>
-        <a
+          style="background: var(--nit-brand-primary); border: 1px solid var(--nit-brand-primary); color: var(--nit-brand-onprimary); width: 220px; height: 60px; border-radius: 8px; font-size: 18px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;"
+          href="/moodle-new/course/index.php" data-nit-btn=""
+          data-nit-hero-cta="" data-nit-scrollto="[data-nit-categories]"> {mlang
+          en}Start Now{mlang} {mlang ar}ابدأ الان{mlang} </a> <a
           style="display: inline-flex; align-items: center; gap: 4px; color: var(--nit-brand-textprimary); font-size: 18px; font-weight: 600; text-decoration: none;"
-          href="#" data-nit-hero-play=""> <img
-            style="flex: 0 0 auto; width: 101px; height: 101px; margin-block: -20px; margin-inline-start: -20px;"
-            src="/moodle-new/theme/nit/pix/home/hero-play.png" alt=""
-            decoding="async" data-nit-hero-playdot=""> <span>{mlang en}See how
-            it works{mlang} {mlang ar}شاهد كيف يعمل{mlang}</span> </a>
-      </div>
+          href="#" data-nit-hero-play=""> <span
+            style="flex: 0 0 auto; width: 46px; height: 46px; margin-inline-end: 10px; border-radius: 50%; background: var(--nit-brand-primary); color: var(--nit-brand-onprimary); display: inline-flex; align-items: center; justify-content: center; font-size: 17px; line-height: 1; padding-inline-start: 3px;"
+            aria-hidden="true"
+            data-nit-hero-playdot="">&#9654;</span> {mlang en}See how it works{mlang} {mlang
+          ar}شاهد كيف يعمل{mlang} </a></div>
     </div>
-
     <!-- Artwork: the category constellation, drawn by home_hero_orbit.js.
          data-ids    which categories to draw, in order. Empty = the first six.
          data-icons  "category" (uploaded icon, then emoji, then glyph)
                      or "glyph" (always the built-in glyph). -->
     <div
       style="position: relative; flex: 1 1 520px; min-width: 0; width: 100%; max-width: 670px; aspect-ratio: 1 / 1; direction: ltr;"
-      data-nit-orbit="" data-ids="14,15,16,17,18,19" data-icons="category">
-
-      <!-- The ring the shapes sit on. Static, because its radius does not depend
+      data-nit-orbit="" data-ids="14,15,16,17,18,19" data-icons="category"><!-- The ring the shapes sit on. Static, because its radius does not depend
            on how many categories there are; the beads in the gaps are drawn by
-           the script, one per gap, cloned from this circle. -->
-      <svg style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;"
+           the script, one per gap, cloned from this circle. --><svg
+        style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;"
         viewBox="0 0 740 740" aria-hidden="true" data-nit-orbit-ring="">
         <circle cx="370" cy="370" r="300" fill="none" stroke-width="1.3"
           data-nit-orbit-track=""></circle>
         <g data-nit-orbit-beads=""></g>
-      </svg>
-
-      <!-- Centre: the logo inside a gradient ring inside a faint halo ring.
-           Populated dynamically with the site/navbar logo by home_hero_orbit.js. -->
-      <div data-nit-orbit-core=""><img
-          src="/theme/nit/pix/footer-logo.png" alt="Logo"
-          decoding="async" data-nit-orbit-logo=""></div>
-
+      </svg><!-- Centre: the logo inside a gradient ring inside a faint halo ring.
+           A real img, not an empty element painted through a CSS mask: the
+           editor deletes any element with no content of its own. -->
+      <div data-nit-orbit-core=""><img class="img-fluid"
+          src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
+          data-nit-orbit-logo=""></div>
       <!-- Card template, cloned once per category. The {{placeholder}} markers
            and the data-nit-orbit-* hooks are the contract with the script -
            renaming one empties the artwork.
@@ -155,57 +144,52 @@
            span and unwraps one holding only an svg. The script builds them. The
            d="M0 0" placeholders keep the paths from being attribute-less for
            the same reason. -->
-      <div style="display: none;" data-nit-orbit-card=""><a
-          href="{{url}}" data-nit-orbit-node="">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none"
-            aria-hidden="true" data-nit-orbit-shape="">
+      <div style="display: none;" data-nit-orbit-card=""><a href="{{url}}"
+          data-nit-orbit-node=""><svg viewBox="0 0 100 100"
+            preserveAspectRatio="none" aria-hidden="true"
+            data-nit-orbit-shape="">
             <path d="M0 0" data-nit-shape-base=""></path>
             <path d="M0 0" data-nit-shape-tint=""></path>
             <path d="M0 0" data-nit-shape-line=""></path>
-          </svg>
-          <span data-nit-orbit-eyebrow="">{{eyebrow}}</span>
-          <span data-nit-orbit-name="">{{name}}</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"
-            data-nit-orbit-arrow="">
-            <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"></path>
-          </svg>
-        </a></div>
+          </svg><span data-nit-orbit-eyebrow="">{{eyebrow}}</span> <span
+            data-nit-orbit-name="">{{name}}</span><svg width="14" height="14"
+            viewBox="0 0 24 24" aria-hidden="true" data-nit-orbit-arrow="">
+            <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z">
+            </path>
+          </svg></a></div>
     </div>
   </div>
-
   <!-- Video modal. Hidden until "See how it works" is clicked; the script moves
        it to body on first open so no clipping ancestor can trap it. -->
   <div style="display: none;" data-nit-hero-modal="">
     <div
       style="position: fixed; inset: 0; z-index: 1080; display: flex; align-items: center; justify-content: center; padding: 20px; background: color-mix(in srgb, var(--nit-brand-background) 88%, transparent);"
-      data-nit-hero-modal-backdrop="" role="dialog" aria-modal="true"
+      role="dialog" data-nit-hero-modal-backdrop="" aria-modal="true"
       aria-label="{mlang en}How it works{mlang} {mlang ar}كيف يعمل{mlang}">
-      <div style="position: relative; width: 100%; max-width: 960px;">
-        <button type="button"
+      <div style="position: relative; width: 100%; max-width: 960px;"><button
           style="position: absolute; top: -52px; inset-inline-end: 0; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; border: 1px solid var(--nit-brand-borderprimary); background: var(--nit-brand-surface); color: var(--nit-brand-textprimary); font-size: 24px; line-height: 1;"
-          data-nit-hero-modal-close=""
-          aria-label="{mlang en}Close{mlang} {mlang ar}إغلاق{mlang}">&#215;</button>
+          type="button" data-nit-hero-modal-close=""
+          aria-label="{mlang en}Close{mlang} {mlang ar}إغلاق{mlang}">×</button>
         <video
           style="width: 100%; height: auto; display: block; border-radius: 12px; background: var(--nit-brand-background);"
-          controls preload="none" playsinline data-nit-hero-video="">
+          preload="none" playsinline="" controls="controls"
+          data-nit-hero-video="">
           <source src="/moodle-new/local/nit_media/video.php" type="video/mp4">
         </video>
         <div
           style="display: none; padding: 24px; border-radius: 12px; border: 1px solid var(--nit-brand-borderprimary); background: var(--nit-brand-surface); color: var(--nit-brand-textprimary); font-size: 15px; line-height: 1.7;"
-          data-nit-hero-video-error="">
-          <strong>{mlang en}The video could not be played.{mlang} {mlang ar}تعذّر
-            تشغيل الفيديو.{mlang}</strong> <span
+          data-nit-hero-video-error=""><strong>{mlang en}The video could not be
+            played.{mlang} {mlang ar}تعذّر تشغيل الفيديو.{mlang}</strong> <span
             style="display: block; margin-top: 8px; color: var(--nit-brand-textsecondary);">
             {mlang en}Open the address below. If it downloads or 404s the file
             name is wrong or missing; if it downloads fine but still will not
             play, re-encode it as an H.264 MP4.{mlang} {mlang ar}افتح العنوان
             التالي. لو نزّل الملف أو أعطى 404 فالاسم غلط أو الملف غير مرفوع؛ ولو
-            نزّل سليمًا ومع ذلك لا يعمل فأعد ترميزه إلى MP4 بترميز
-            H.264.{mlang} </span> <a
+            نزّل سليمًا ومع ذلك لا يعمل فأعد ترميزه إلى MP4 بترميز H.264.{mlang}
+          </span> <a
             style="display: block; margin-top: 8px; word-break: break-all; color: var(--nit-brand-accenttext);"
             href="#" target="_blank" rel="noopener"
-            data-nit-hero-video-url="">&#8230;</a>
-        </div>
+            data-nit-hero-video-url="">…</a></div>
       </div>
     </div>
   </div>
@@ -218,7 +202,8 @@
       var base = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : '';
       var s = document.createElement('script');
       s.src = base + '/theme/nit/blocks/js.php?name=home_hero_orbit';
-      (here && here.parentNode ? here.parentNode : document.body).appendChild(s);
+      (here && here.parentNode ? here.parentNode : document.body).appendChild(
+        s);
     })();
   </script>
 </div>

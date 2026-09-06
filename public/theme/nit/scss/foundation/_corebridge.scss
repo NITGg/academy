@@ -317,3 +317,111 @@ div.editor_atto_toolbar
     --bs-nav-link-color: var(--nit-brand-textprimary);
     --bs-nav-link-hover-color: var(--nit-brand-textprimary);
 }
+
+// =============================================================================
+// The PRIMARY colour, everywhere core baked it.
+//
+// `pre_scss` sets Bootstrap's `$primary` from GROUP 1, and core compiles it into
+// every component that has a "primary" state: the outline button, the checked
+// checkbox, the active pill, tab, page number and list row, the progress bar,
+// the dropdown's active item. `.btn-primary` was bridged earlier; these were not,
+// so on a site whose Group 1 primary is (say) red, every one of them stayed red
+// no matter which group the page was in — a red "+ Add country price" button and
+// a red checkbox on a page with no red in its palette at all.
+//
+// The selector list is read off the compiled stylesheet by searching it for
+// Group 1's primary literal and grouping the hits by the property they were used
+// in, the same way as the block above. Component-scoped Bootstrap variables are
+// set on the component, so one declaration fixes every state of it.
+//
+// Group 1 is unchanged: `var(--nit-brand-primary)` IS the value core baked.
+// =============================================================================
+:root {
+    --bs-primary: var(--nit-brand-primary);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--nit-brand-primary);
+    --bs-btn-border-color: var(--nit-brand-primary);
+    --bs-btn-hover-bg: var(--nit-brand-primary);
+    --bs-btn-hover-border-color: var(--nit-brand-primary);
+    --bs-btn-hover-color: var(--nit-brand-onprimary);
+    --bs-btn-active-bg: var(--nit-brand-primary);
+    --bs-btn-active-border-color: var(--nit-brand-primary);
+    --bs-btn-active-color: var(--nit-brand-onprimary);
+    --bs-btn-disabled-color: var(--nit-brand-primary);
+    --bs-btn-disabled-border-color: var(--nit-brand-primary);
+}
+
+.dropdown-menu {
+    --bs-dropdown-link-active-bg: var(--nit-brand-primary);
+    --bs-dropdown-link-active-color: var(--nit-brand-onprimary);
+    --bs-dropdown-link-hover-bg: var(--nit-brand-hoverbackground);
+}
+
+.list-group {
+    --bs-list-group-active-bg: var(--nit-brand-primary);
+    --bs-list-group-active-border-color: var(--nit-brand-primary);
+    --bs-list-group-active-color: var(--nit-brand-onprimary);
+}
+
+.nav-pills,
+.nav-tabs:not(.more-nav) {
+    --bs-nav-pills-link-active-bg: var(--nit-brand-primary);
+    --bs-nav-pills-link-active-color: var(--nit-brand-onprimary);
+    --bs-nav-tabs-link-active-bg: var(--nit-brand-primary);
+}
+
+.pagination {
+    --bs-pagination-active-bg: var(--nit-brand-primary);
+    --bs-pagination-active-border-color: var(--nit-brand-primary);
+    --bs-pagination-active-color: var(--nit-brand-onprimary);
+}
+
+.progress,
+.progress-stacked {
+    --bs-progress-bar-bg: var(--nit-brand-primary);
+    --bs-progress-bar-color: var(--nit-brand-onprimary);
+}
+
+// The checked tick and the indeterminate dash. Two rules rather than one list
+// because the `:indeterminate` selector carries an attribute filter and reads
+// badly folded in with the rest.
+.form-check-input:checked,
+.form-check-input[type="checkbox"]:indeterminate,
+.custom-control-input:checked~.custom-control-label::before {
+    background-color: var(--nit-brand-primary);
+    border-color: var(--nit-brand-primary);
+}
+
+// The underline under the active item of Moodle's overflow menu (the "More"
+// row on a course or activity page).
+.moremenu .nav-link.active,
+.moremenu .nav-link.active:focus,
+.moremenu .nav-link.active:hover {
+    border-bottom-color: var(--nit-brand-primary);
+}
+
+// Small primary-coloured glyphs and the current-section marker.
+.block-add,
+.btn-icon.icons-collapse-expand,
+.course-section .section-summary-activities .icon,
+.course-section .section_goto .icon,
+.maincalendar .bottom span.footer-link:after,
+.block .bottom span.footer-link:after {
+    color: var(--nit-brand-primary);
+}
+
+.course-section.current>.section-item::before,
+.courseindex .courseindex-section.current {
+    border-left-color: var(--nit-brand-primary);
+}
+
+// The category-management pager, which is YUI rather than Bootstrap and so has
+// its own copy of the button variables.
+#course-category-listings .listing-pagination .yui3-button.active-page {
+    --bs-btn-bg: var(--nit-brand-primary);
+    --bs-btn-border-color: var(--nit-brand-primary);
+    --bs-btn-disabled-bg: var(--nit-brand-primary);
+    --bs-btn-disabled-border-color: var(--nit-brand-primary);
+}
