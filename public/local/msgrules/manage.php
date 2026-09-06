@@ -80,6 +80,57 @@ if (optional_param('rebuild', 0, PARAM_BOOL) && confirm_sesskey()) {
 
 $overrides = rules::get_course_modes();
 
+// ---- Keeping a row from showing a state it cannot save --------------------------------------
+// read_mode() already settles a contradictory row - "no restriction" beats the three group
+// ticks, and "use the setting for all courses" beats all four - but it settles it during the
+// save, so without this the screen cheerfully displays a combination it is about to discard.
+// The precedence below is the same one the PHP applies; with JavaScript off the save is still
+// correct, it is just less obvious why.
+$PAGE->requires->js_amd_inline(<<<'JS'
+require(['jquery'], function() {
+    var table = document.getElementById('local-msgrules-table');
+    if (!table) {
+        return;
+    }
+
+    Array.prototype.forEach.call(table.querySelectorAll('tbody tr'), function(row) {
+        var inherit = row.querySelector('input[name^="inherit_"]');
+        var open = row.querySelector('input[name^="open_"]');
+        var flags = Array.prototype.slice.call(row.querySelectorAll('input[name^="flag_"]'));
+
+        if (!open) {
+            return;
+        }
+
+        // Unticking as well as disabling, so the row always reads as what would be stored:
+        // a greyed-out tick that still looks ticked is the thing that caused the confusion.
+        var settle = function() {
+            var inheriting = !!(inherit && inherit.checked);
+
+            open.disabled = inheriting;
+            if (inheriting) {
+                open.checked = false;
+            }
+
+            flags.forEach(function(flag) {
+                flag.disabled = inheriting || open.checked;
+                if (flag.disabled) {
+                    flag.checked = false;
+                }
+            });
+        };
+
+        [inherit, open].concat(flags).forEach(function(input) {
+            if (input) {
+                input.addEventListener('change', settle);
+            }
+        });
+
+        settle();
+    });
+});
+JS);
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managecourses', 'local_msgrules'));
 
@@ -123,7 +174,7 @@ echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'save', 'val
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'page', 'value' => $page]);
 
 echo html_writer::start_div('table-responsive');
-echo html_writer::start_tag('table', ['class' => 'table generaltable']);
+echo html_writer::start_tag('table', ['class' => 'table generaltable', 'id' => 'local-msgrules-table']);
 echo html_writer::start_tag('thead');
 echo html_writer::start_tag('tr');
 echo html_writer::tag('th', get_string('course', 'local_msgrules'), ['scope' => 'col']);

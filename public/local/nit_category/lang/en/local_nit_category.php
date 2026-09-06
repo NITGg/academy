@@ -135,6 +135,11 @@ $string['searchmoreresults'] = 'Show the other {$a}';
 $string['searchrefine'] = 'Narrow it down:';
 $string['searchrefinecourses'] = 'Filter these courses';
 $string['searchsearching'] = 'Searching…';
+// The key hints along the bottom of the search dialog. Each is the words beside a key cap,
+// so they read as "<Enter> to select" once the cap is drawn in front of them.
+$string['searchkeyselect'] = 'to select';
+$string['searchkeynavigate'] = 'to navigate';
+$string['searchkeyclose'] = 'to close';
 
 // -- Failed-search report (AC-4.22.4) -----------------------------------------------------
 $string['searchlog'] = 'Searches that found nothing';

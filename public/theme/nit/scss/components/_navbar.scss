@@ -157,9 +157,11 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // — it was relocated into the gear/navigation dropdown (styled in
     // `.nit-navmenu-editswitch` below).
 
-    // Breathing room between the round buttons.
+    // 16px between the controls, as the design spaces them. With the discs
+    // gone the glyphs need the full gap: at 0.6rem they read as one blurred
+    // strip rather than five separate controls.
     #usernavigation {
-        gap: 0.6rem;
+        gap: 1rem;
     }
 
     // Drop the language glyph before the text (legacy shows text only).
@@ -167,16 +169,77 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         display: none;
     }
 
-    // ---- Right cluster: circular icon buttons (bell + gear) -----------------
-    // Dark round buttons with a gold glyph, matching the legacy header.
+    // ---- Language switcher: a plain "EN" / "AR" label ----------------------
+    // In the design it is not a button — it is the same weight and colour as the
+    // glyphs beside it, just set in type. Bootstrap gives `.btn.dropdown-toggle`
+    // padding, a border box and a caret, all of which are stripped here so it
+    // sits on the bar the way the icons do, and it reads from the same "Navbar
+    // icon color" role so the whole cluster moves together.
+    // The `.dropdown` step is load-bearing, not decoration: Boost sets
+    // `.navbar.fixed-top .langmenu .dropdown .dropdown-toggle { height: 100% }`,
+    // which is five classes — a shorter selector here loses and the button
+    // collapses to the height of its text.
+    .nit-navbar-lang .langmenu .dropdown .dropdown-toggle {
+        display: inline-flex;
+        align-items: center;
+        height: 42px;
+        padding: 0 0.25rem;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        box-shadow: none;
+        color: var(--nit-navbariconaccent, #{$nit-gold-500}) !important;
+        font-size: 1.125rem;   // 18px, as the design sets it.
+        font-weight: 500;
+        line-height: 1;
+        text-transform: uppercase;
+        transition: background-color 0.15s ease, color 0.15s ease;
+
+        // Two carets to remove: Bootstrap draws one with a border triangle on
+        // ::after, and core's template also ships a literal `<b class="caret">`.
+        &::after,
+        .caret {
+            display: none;
+        }
+
+        // The code is the whole label now, so it needs no inline spacing.
+        .langbutton {
+            margin: 0;
+        }
+
+        &:hover,
+        &:focus {
+            background-color: color-mix(in srgb, var(--nit-navbariconbg, #{$nit-navy-800}) 70%, transparent);
+            color: var(--nit-navbariconaccenthover, #{$nit-gold-400}) !important;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--nit-navbariconaccent, #{$nit-gold-500});
+            outline-offset: 2px;
+        }
+    }
+
+    // ---- Right cluster: bare icon buttons -----------------------------------
+    // The design ("nav" component, Figma 640:2850) puts NO chrome on these: the
+    // search, language, message, notification and gear controls are plain
+    // near-white glyphs sitting straight on the bar, 16px apart. They used to be
+    // dark 42px discs with a border and an accent glyph, which read as five
+    // buttons competing with the one real button on the bar (the red login CTA).
+    //
+    // The button box is kept at 42px and simply made invisible (transparent
+    // border and background): a 22px bare glyph is well under the 44px pointer
+    // target the bar needs on a touch screen, and shrinking the box to the glyph
+    // would also re-open the oval-bell problem the fixed square solves. Hover is
+    // the only state that paints anything — a soft rounded pad from the "Navbar
+    // icon background" role, so the control still answers the cursor.
     .nit-navbar-icon,
     .popover-region-toggle {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        // Lock a perfect square → circle. `aspect-ratio` guarantees width ==
-        // height even if flex or an inner glyph tries to stretch one side (this
-        // is what kept the bell an oval).
+        // Lock a perfect square. `aspect-ratio` guarantees width == height even
+        // if flex or an inner glyph tries to stretch one side (this is what kept
+        // the bell an oval).
         flex: 0 0 42px;
         box-sizing: border-box;
         width: 42px;
@@ -185,30 +248,55 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         max-width: 42px;
         aspect-ratio: 1;
         padding: 0;
-        border: 1px solid var(--nit-navbarborder, #{$nit-navy-700});
-        background-color: var(--nit-navbarsurface, #{$nit-navy-800});
-        border-radius: 50%;
-        // Icon glyph → non-text "Accent" role (see --nit-navbariconaccent).
+        // No chrome at rest. The border stays declared (transparent) rather than
+        // removed so the box never changes size between rest and hover.
+        border: 1px solid transparent;
+        background-color: transparent;
+        // A rounded square, not a disc: with nothing painted at rest the radius
+        // is only ever seen on the hover pad, and the design's controls are not
+        // circular.
+        border-radius: 10px;
+        box-shadow: none;
+        // Icon glyph → the dedicated "Navbar icon color" role.
         color: var(--nit-navbariconaccent, #{$nit-gold-500}) !important;
+        transition: background-color 0.15s ease, color 0.15s ease;
 
         &:hover,
         &:focus {
-            background-color: var(--nit-navbarborder, #{$nit-navy-700});
+            background-color: color-mix(in srgb, var(--nit-navbariconbg, #{$nit-navy-800}) 70%, transparent);
             color: var(--nit-navbariconaccenthover, #{$nit-gold-400}) !important;
         }
 
+        // Keyboard focus still needs a visible ring — the hover pad alone is too
+        // quiet to serve as the focus indicator.
+        &:focus-visible {
+            outline: 2px solid var(--nit-navbariconaccent, #{$nit-gold-500});
+            outline-offset: 2px;
+        }
+
+        // 22px glyphs, matching the design. The stroked SVG in the search
+        // control is sized by its own attributes, so this covers the Font
+        // Awesome glyphs (gear) and Moodle's icon spans (bell, messages).
         .fa,
         .icon {
-            font-size: 1.05rem;
+            font-size: 1.375rem;
+            width: auto;
+            height: auto;
             margin: 0;
             color: inherit;
         }
+
+        svg {
+            width: 22px;
+            height: 22px;
+        }
     }
 
-    // Notification bell: force a perfect circle. The toggle is stretched
-    // vertically by the flex row (→ tall oval), so clamp height/width hard with
-    // !important, and remove Moodle's default arrow triangles (::before/::after)
-    // that also distort it. The count badge is pinned to the TOP-right corner.
+    // Messages + notifications: the toggle is stretched vertically by the flex
+    // row (→ tall oval), so clamp height/width hard with !important, and remove
+    // Moodle's default arrow triangles (::before/::after) that also distort it.
+    // The unread badge is pinned to the top-inline-end corner — with the disc
+    // gone it tucks in closer than it did over a bordered button.
     .popover-region-toggle {
         position: relative;
         overflow: visible;
@@ -217,7 +305,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         height: 42px !important;
         min-height: 42px;
         max-height: 42px;
-        border-radius: 50% !important;
+        border-radius: 10px !important;
 
         &::before,
         &::after {
@@ -226,7 +314,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
         .count-container {
             position: absolute !important;
-            inset: -4px -4px auto auto !important; // top / right / bottom / left
+            inset: 1px 1px auto auto !important; // top / right / bottom / left
         }
     }
 
@@ -674,48 +762,40 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     margin-inline-end: 0.25rem;
 
     &__form {
-        // The positioning anchor for the panel below.
-        position: relative;
         display: flex;
         align-items: center;
-        gap: 0.35rem;
-        // Deliberately modest: the right cluster (search + bell + messages +
-        // gear + avatar) plus the language button has to fit beside the brand
-        // lock-up on a 1280px laptop, and a wider field pushed the avatar off
-        // the bar. The results panel below is not bound to this width, so a
-        // narrow field costs nothing at read time.
-        width: clamp(170px, 16vw, 250px);
-        padding-block: 0.22rem;
-        padding-inline: 0.7rem 0.2rem;
-        border: 1px solid var(--nit-navbarborder, #{$nit-navy-700});
-        border-radius: 999px;
-        background-color: var(--nit-navbarsurface, #{$nit-navy-800});
-        transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
-        &:focus-within {
-            border-color: var(--nit-navbaraccent, #{$nit-gold-500});
-            box-shadow: 0 0 0 3px color-mix(in srgb, var(--nit-navbaraccent, #{$nit-gold-500}) 25%, transparent);
-        }
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.9rem 1.1rem;
+        // The field is the top row of the dialog, not a box inside it: one rule
+        // underneath separates it from the results, and nothing else.
+        border: 0;
+        border-bottom: 1px solid var(--nit-brand-borderprimary, #e3e7ef);
+        background-color: transparent;
     }
 
+    // Everything from here down sits inside the dialog, not on the bar, so the
+    // colours are the page's brand roles rather than the navbar's: the dialog
+    // shares the results panel's surface and has to read correctly on it in both
+    // a light and a dark palette.
     &__glyph {
         display: inline-flex;
         flex: 0 0 auto;
-        // Non-text glyph → the navbar's icon-accent role, like the bell and gear.
-        color: var(--nit-navbariconaccent, #{$nit-gold-500});
+        color: var(--nit-brand-textsecondary, #6b7a90);
     }
 
     &__input {
         flex: 1 1 auto;
-        // Without this an input refuses to shrink below its size attribute and
-        // pushes the whole right cluster off a narrow bar.
+        // Without this an input refuses to shrink below its size attribute.
         min-width: 0;
         border: 0;
-        padding: 0.2rem 0;
+        padding: 0.1rem 0;
         background: transparent;
-        color: var(--nit-navbartext, #{$nit-on-navy});
-        font-size: 0.95rem;
-        line-height: 1.4;
+        color: var(--nit-brand-textprimary, #12203f);
+        // The field is what the dialog is for, so it is set at reading size
+        // rather than at the size a control on a crowded bar had to be.
+        font-size: 1.05rem;
+        line-height: 1.5;
 
         &:focus {
             outline: 0;
@@ -723,100 +803,109 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         }
 
         &::placeholder {
-            color: var(--nit-navbarpaneltext, #8a9ab5);
+            color: var(--nit-brand-textsecondary, #6b7a90);
             opacity: 1;
-        }
-
-        // Chrome draws its own dark "clear" cross, invisible on a navy field.
-        &::-webkit-search-cancel-button {
-            filter: invert(1);
-            opacity: 0.5;
         }
     }
 
     &__submit {
         flex: 0 0 auto;
         border: 0;
-        border-radius: 999px;
-        padding: 0.3rem 0.7rem;
-        font-size: 0.78rem;
+        border-radius: 8px;
+        padding: 0.35rem 0.8rem;
+        font-size: 0.8rem;
         font-weight: 700;
         white-space: nowrap;
-        // Gold fill with the bar's own navy on top: the one pairing on this bar
-        // that clears contrast comfortably at this size.
-        background-color: var(--nit-navbaraccent, #{$nit-gold-500});
-        color: var(--nit-navbarbg, #{$nit-navy-900});
+        background-color: var(--nit-brand-primary, #{$nit-gold-500});
+        color: var(--nit-brand-on-primary, #fff);
 
         &:hover,
         &:focus {
-            background-color: var(--nit-navbaraccenthover, #{$nit-gold-400});
-            color: var(--nit-navbarbg, #{$nit-navy-900});
+            background-color: var(--nit-brand-hoverbackground, #{$nit-gold-400});
+            color: var(--nit-brand-hovertext, var(--nit-brand-on-primary, #fff));
         }
     }
 
+    // The results, inside the dialog now: no border, no shadow and no width of
+    // its own — the dialog is the box, this is what scrolls inside it.
     &__panel {
-        position: absolute;
-        top: calc(100% + 10px);
-        // Anchored to the field's END edge, not its start: the box lives at the near
-        // edge of the bar (right in English, left in Arabic), so a panel wider than
-        // the field has to grow back towards the middle of the page. Anchoring it to
-        // the start edge sent it off the side of the viewport, taking the price
-        // column of every row with it. Logical, so the mirror image is automatic.
-        inset-inline-end: 0;
-        z-index: 1055; // above the fixed bar's own stacking context.
-        width: min(560px, calc(100vw - 2rem));
-        max-height: min(70vh, 34rem);
+        max-height: min(60vh, 30rem);
         overflow-y: auto;
         padding: 0.4rem;
-        border: 1px solid var(--nit-brand-borderprimary, #e3e7ef);
-        border-radius: 12px;
-        background-color: var(--nit-brand-surface, #fff);
+        background-color: transparent;
         color: var(--nit-brand-textprimary, #12203f);
-        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.3);
         text-align: start;
     }
 
-    // ---- The bar carries the magnifier; the field opens on click ------------
+    // ---- What the keys do, along the bottom of the dialog -------------------
+    &__hints {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem 1rem;
+        padding: 0.55rem 1.1rem;
+        border-top: 1px solid var(--nit-brand-borderprimary, #e3e7ef);
+        font-size: 0.75rem;
+        color: var(--nit-brand-textsecondary, #6b7a90);
+    }
+
+    &__hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+
+        kbd {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.4rem;
+            padding: 0.05rem 0.3rem;
+            border: 1px solid var(--nit-brand-borderprimary, #e3e7ef);
+            border-radius: 4px;
+            background-color: color-mix(in srgb, var(--nit-brand-textsecondary, #6b7a90) 12%, transparent);
+            color: inherit;
+            font-family: inherit;
+            font-size: 0.72rem;
+            line-height: 1.4;
+        }
+    }
+
+    // ---- The bar carries the magnifier; the dialog opens on click -----------
     // One form, revealed — not a second copy of the control, which would make
-    // "a single search control" true only on paper. The field is folded away at
-    // every width now, so the bar reads as icons rather than as a form.
+    // "a single search control" true only on paper.
     &__toggle {
         display: inline-flex;
     }
 
-    &__form {
+    // The dimmed page. Fixed to the viewport rather than to the bar, so the
+    // dialog is centred on the screen and not on the right-hand cluster.
+    &__overlay {
         display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1060; // over the fixed bar (1030) and its own panels (1055).
+        background-color: rgba(3, 8, 18, 0.62);
+        // A command palette sits high on the screen, not in the middle: the eye
+        // starts at the field and the results grow downwards from it.
+        padding: clamp(3rem, 12vh, 8rem) 1rem 1rem;
+        overflow-y: auto;
+    }
+
+    &__dialog {
+        width: min(640px, 100%);
+        margin: 0 auto;
+        border: 1px solid var(--nit-brand-borderprimary, #e3e7ef);
+        border-radius: 14px;
+        background-color: var(--nit-brand-surface, #fff);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+        // The rounded corners have to clip the results and the hint strip, which
+        // both run to the dialog's edge.
+        overflow: hidden;
     }
 
     &.is-expanded {
-        .nit-navsearch__form {
-            // Anchored to the bar itself (`.nit-navbar` is fixed, so it is the
-            // containing block): the field can then sit under the icons without
-            // the width of the cluster deciding where it lands.
-            display: flex;
-            position: absolute;
-            top: 100%;
-            inset-inline-end: 1rem;
-            width: min(340px, calc(100vw - 2rem));
-            margin-top: 0.4rem;
-            // Floating over the page now, so it needs an edge of its own.
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
-        }
-    }
-
-    // A narrow screen has no room for a panel beside the icons, so the revealed
-    // field spans the bar instead, exactly as it did before.
-    @include media-breakpoint-down(lg) {
-        &.is-expanded {
-            .nit-navsearch__form {
-                inset-inline: 0.75rem;
-                width: auto;
-            }
-
-            .nit-navsearch__panel {
-                inset-inline: 0;
-                width: auto;
-            }
+        .nit-navsearch__overlay {
+            display: block;
         }
     }
 }

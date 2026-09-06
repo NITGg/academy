@@ -237,15 +237,26 @@
         }
 
         // Clicking away closes the panel; clicking inside it must not, or the link under
-        // the pointer would never receive the click. The field itself is folded away too:
-        // it floats over the page now, so leaving it open over whatever the visitor
-        // clicked next would sit on top of the thing they were reaching for.
+        // the pointer would never receive the click. The dialog is folded away too, so it
+        // never stays open over whatever the visitor reached for next.
         document.addEventListener('click', function (event) {
             if (!root.contains(event.target) && (!toggle || !toggle.contains(event.target))) {
                 setOpen(false);
                 collapse();
             }
         });
+
+        // The dimmed page around the dialog: a click that lands on the overlay itself —
+        // not on the dialog inside it — is a click outside the search, and closes it. The
+        // overlay is a descendant of the wrapper, so the handler above never sees it.
+        var overlay = root.querySelector('[data-nitsearch-overlay]');
+        if (overlay) {
+            overlay.addEventListener('click', function (event) {
+                if (event.target === overlay) {
+                    collapse();
+                }
+            });
+        }
 
         // Escape closes the control and puts the focus back on the magnifier, so a keyboard
         // visitor is never left on a field that is no longer on the screen. The input and

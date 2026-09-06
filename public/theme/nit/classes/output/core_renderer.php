@@ -178,6 +178,16 @@ class core_renderer extends \theme_boost\output\core_renderer {
         if (empty($langmenu)) {
             return '';
         }
+
+        // The bar shows the two-letter code ("EN" / "AR"), not the full language
+        // name core exports ("English (en)"). That is what the design sets there,
+        // and the long form was the widest thing in the right cluster — on a
+        // 1280px laptop it pushed the avatar off the bar. Only the button label
+        // changes: the dropdown still lists every language under its own full
+        // name, and the anchor carries aria-label="Language", so a screen reader
+        // reads the control the same way either way.
+        $langmenu['title'] = strtoupper(explode('_', current_language())[0]);
+
         return $this->render_from_template('theme_boost/language_menu', $langmenu);
     }
 

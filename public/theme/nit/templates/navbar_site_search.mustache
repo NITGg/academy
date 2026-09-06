@@ -24,10 +24,10 @@
     own address. local_nit_category/search.js adds the preview panel and the arrow-key
     handling on top; the `data-nitsearch*` attributes below are what it binds to.
 
-    The bar carries the magnifier only: the field is folded behind it at every width
-    and opens on click (`.is-expanded`) — as a panel under the button on a wide screen,
-    as a full width row under the bar on a narrow one. One form, revealed; not a second
-    copy of the control, which would make "a single search control" true only on paper.
+    The bar carries the magnifier only. Clicking it opens the search as a centred dialog
+    over a dimmed page (`.is-expanded`): the field at the top, the results beneath it, the
+    key hints along the bottom. One form, revealed — not a second copy of the control,
+    which would make "a single search control" true only on paper.
 
     Context variables required for this template:
     * action - URL of the results page (local_nit_category/search.php)
@@ -45,24 +45,50 @@
         <span class="visually-hidden">{{#str}}searchopen, local_nit_category{{/str}}</span>
     </button>
 
-    <form id="nit-navsearch-form" class="nit-navsearch__form" method="get" action="{{{action}}}" role="search">
-        <label class="visually-hidden" for="nit-navsearch-input">{{#str}}searchsite, local_nit_category{{/str}}</label>
-        <span class="nit-navsearch__glyph" aria-hidden="true">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2.2" stroke-linecap="round" focusable="false">
-                <circle cx="11" cy="11" r="7"></circle>
-                <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
-            </svg>
-        </span>
-        <input type="search" id="nit-navsearch-input" name="q" value="{{query}}"
-               class="nit-navsearch__input" data-nitsearch-input
-               placeholder="{{#str}}searchplaceholder, local_nit_category{{/str}}"
-               aria-expanded="false" aria-controls="nit-navsearch-panel" autocomplete="off">
-        <button type="submit" class="nit-navsearch__submit">{{#str}}search{{/str}}</button>
+    {{! The dimmed page behind the dialog. Clicking it closes the search (search.js), which
+        is why it wraps the dialog rather than sitting beside it as a sibling. }}
+    <div class="nit-navsearch__overlay" data-nitsearch-overlay>
+        <div class="nit-navsearch__dialog" role="dialog" aria-modal="true"
+             aria-label="{{#str}}searchtitle, local_nit_category{{/str}}">
+            <form id="nit-navsearch-form" class="nit-navsearch__form" method="get" action="{{{action}}}" role="search">
+                <label class="visually-hidden" for="nit-navsearch-input">{{#str}}searchsite, local_nit_category{{/str}}</label>
+                <span class="nit-navsearch__glyph" aria-hidden="true">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.2" stroke-linecap="round" focusable="false">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+                    </svg>
+                </span>
+                <input type="search" id="nit-navsearch-input" name="q" value="{{query}}"
+                       class="nit-navsearch__input" data-nitsearch-input
+                       placeholder="{{#str}}searchplaceholder, local_nit_category{{/str}}"
+                       aria-expanded="false" aria-controls="nit-navsearch-panel" autocomplete="off">
+                {{! Kept, and kept visible: without a script this button is the only way to run
+                    the search, and Enter alone is not discoverable. }}
+                <button type="submit" class="nit-navsearch__submit">{{#str}}search{{/str}}</button>
+            </form>
 
-        {{! Filled by the script with search.php?fragment=1 — the same groups and counts
-            the results page prints, capped to the first few of each. }}
-        <div id="nit-navsearch-panel" class="nit-navsearch__panel" data-nitsearch-panel
-             role="region" aria-live="polite" aria-label="{{#str}}searchtitle, local_nit_category{{/str}}" hidden></div>
-    </form>
+            {{! Filled by the script with search.php?fragment=1 — the same groups and counts
+                the results page prints, capped to the first few of each. A sibling of the
+                form rather than a child of it: the form is the dialog's top row and lays its
+                children out in a line, which would put the results beside the field. }}
+            <div id="nit-navsearch-panel" class="nit-navsearch__panel" data-nitsearch-panel
+                 role="region" aria-live="polite" aria-label="{{#str}}searchtitle, local_nit_category{{/str}}" hidden></div>
+
+            {{! What the keys do, the way a command palette states it. Decoration for a pointer,
+                so the whole strip is hidden from the accessibility tree — a screen reader gets
+                the same information from the combobox itself. }}
+            <div class="nit-navsearch__hints" aria-hidden="true">
+                <span class="nit-navsearch__hint">
+                    <kbd>&#8629;</kbd> {{#str}}searchkeyselect, local_nit_category{{/str}}
+                </span>
+                <span class="nit-navsearch__hint">
+                    <kbd>&#8595;</kbd><kbd>&#8593;</kbd> {{#str}}searchkeynavigate, local_nit_category{{/str}}
+                </span>
+                <span class="nit-navsearch__hint">
+                    <kbd>esc</kbd> {{#str}}searchkeyclose, local_nit_category{{/str}}
+                </span>
+            </div>
+        </div>
+    </div>
 </div>

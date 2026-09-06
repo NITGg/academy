@@ -186,7 +186,7 @@ function theme_nit_colours_all(): array {
 }
 
 /**
- * The 21 semantic roles every Brand-Colors group is built from.
+ * The 23 semantic roles every Brand-Colors group is built from.
  *
  * This is the clean, small semantic layer that replaces the sprawling
  * theme_nit_colour_palette(): a component references a role by name (Primary,
@@ -194,7 +194,7 @@ function theme_nit_colours_all(): array {
  * and `usage` is a list of the concrete UI things that should use the colour —
  * rendered as chips on the gallery's Brand Colors tab. `default` here is only a
  * red-free FALLBACK (the Group 1 / Slate-blue values): every group overrides all
- * 21 roles in theme_nit_brand_group_defaults(), so a role default is used only if
+ * 23 roles in theme_nit_brand_group_defaults(), so a role default is used only if
  * a group ever omits a role. The Hover Background / Hover Text roles carry the
  * explicit hover colours (other opacity variants are still derived in SCSS, see
  * scss/foundation/_brand.scss).
@@ -213,6 +213,8 @@ function theme_nit_brand_roles(): array {
         'navbarbackground2' => ['label' => 'Navbar background 2', 'usage' => ['navbar background — second colour (reserved, not consumed yet)'], 'default' => '#121e2d'],
         'footerbackground1' => ['label' => 'Footer background 1', 'usage' => ['footer background'], 'default' => '#0c141f'],
         'footerbackground2' => ['label' => 'Footer background 2', 'usage' => ['footer background — second colour (reserved, not consumed yet)'], 'default' => '#121e2d'],
+        'navbariconcolor'   => ['label' => 'Navbar icon color', 'usage' => ['navbar icons — search, language, messages, notifications, gear', 'notification panel action icons'], 'default' => '#eef3f9'],
+        'navbariconbg'      => ['label' => 'Navbar icon background', 'usage' => ['navbar icon hover pad — the icons have no background at rest'], 'default' => '#121e2d'],
         'surface'           => ['label' => 'Surface', 'usage' => ['Cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'page sections background'], 'default' => '#121e2d'],
         'textprimary'       => ['label' => 'Text primary', 'usage' => ['main normal text', 'text in buttons', 'text in inputs', 'navbar text', 'navbar underline'], 'default' => '#eef3f9'],
         'textsecondary'     => ['label' => 'Text secondary', 'usage' => ['secondary normal text', 'placeholders'], 'default' => '#94a3b8'],
@@ -230,7 +232,7 @@ function theme_nit_brand_roles(): array {
 /**
  * The ordered Brand-Colors groups.
  *
- * A "group" is a complete named set of all 21 roles — a swappable palette.
+ * A "group" is a complete named set of all 23 roles — a swappable palette.
  * Group 1 is the site-wide default; a component can opt into another group via
  * the matching wrapper class (`.nit-brand-2`, `.nit-brand-3`), keeping the same
  * variable names but resolving them from that group's values. Groups 2 and 3
@@ -330,6 +332,8 @@ function theme_nit_brand_group_defaults(): array {
             'footerbackground2' => '#121e2d',
             'surface'           => '#121e2d',
             'textprimary'       => '#eef3f9',
+            'navbariconcolor'   => '#eef3f9',
+            'navbariconbg'      => '#121e2d',
             'textsecondary'     => '#94a3b8',
             'borderprimary'     => '#223244',
             'bordersecondary'   => '#33475e',
@@ -354,6 +358,8 @@ function theme_nit_brand_group_defaults(): array {
             'footerbackground2' => '#102727',
             'surface'           => '#102727',
             'textprimary'       => '#eef5f4',
+            'navbariconcolor'   => '#eef5f4',
+            'navbariconbg'      => '#102727',
             'textsecondary'     => '#8aa5a2',
             'borderprimary'     => '#1f3f3d',
             'bordersecondary'   => '#2f5a56',
@@ -378,6 +384,8 @@ function theme_nit_brand_group_defaults(): array {
             'footerbackground2' => '#1a182d',
             'surface'           => '#1a182d',
             'textprimary'       => '#efedf7',
+            'navbariconcolor'   => '#efedf7',
+            'navbariconbg'      => '#1a182d',
             'textsecondary'     => '#9691b3',
             'borderprimary'     => '#2d2a45',
             'bordersecondary'   => '#433d64',

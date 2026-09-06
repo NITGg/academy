@@ -134,6 +134,10 @@ $string['searchmoreresults'] = 'اعرض الـ {$a} الأخرى';
 $string['searchrefine'] = 'ضيِّق النتائج:';
 $string['searchrefinecourses'] = 'تصفية هذه الكورسات';
 $string['searchsearching'] = 'جارٍ البحث…';
+// تلميحات لوحة المفاتيح أسفل نافذة البحث: كل نص يظهر بجوار رمز المفتاح.
+$string['searchkeyselect'] = 'للاختيار';
+$string['searchkeynavigate'] = 'للتنقل';
+$string['searchkeyclose'] = 'للإغلاق';
 
 // ── تقرير عمليات البحث بلا نتائج (AC-4.22.4) ────────────────────────────────────
 $string['searchlog'] = 'عمليات بحث بلا نتائج';

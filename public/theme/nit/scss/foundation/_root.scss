@@ -56,11 +56,17 @@
     // "see all" link) — reads from the text-facing "Accent Text" role.
     --nit-navbaraccent: var(--nit-brand-accenttext);
     --nit-navbaraccenthover: var(--nit-brand-accenttext-vivid);
-    // Navbar ICON accent (the round bell + gear buttons and the notification
-    // action icons) — these are glyphs, not text, so they read from the
-    // non-text "Accent" role, keeping icon and link colours independently tunable.
-    --nit-navbariconaccent: var(--nit-brand-accent);
-    --nit-navbariconaccenthover: var(--nit-brand-accent-vivid);
+    // Navbar ICONS (search, language, messages, notifications, gear) and the
+    // notification-panel action icons. They have their OWN Brand Colors role
+    // rather than borrowing "Accent": in the design they are bare near-white
+    // glyphs on the bar, which is a different decision from the accent colour
+    // used for links and fills, and an admin has to be able to move one without
+    // the other. Hover brightens the same colour rather than switching hue, and
+    // the icon background role is the hover pad behind the glyph (the resting
+    // state has no chrome at all — see components/_navbar.scss).
+    --nit-navbariconaccent: var(--nit-brand-navbariconcolor);
+    --nit-navbariconaccenthover: color-mix(in srgb, var(--nit-brand-navbariconcolor) 82%, #fff);
+    --nit-navbariconbg: var(--nit-brand-navbariconbg);
     --nit-navbartext: var(--nit-brand-textprimary);
     --nit-navbarpanel: var(--nit-brand-surface);
     --nit-navbarpaneltext: var(--nit-brand-textsecondary);
