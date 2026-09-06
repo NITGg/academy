@@ -41,4 +41,9 @@ $callbacks = [
         'hook'     => \core\hook\output\before_standard_head_html_generation::class,
         'callback' => \theme_nit\local\course_seo::class . '::before_standard_head_html_generation',
     ],
+    [
+        // Light/dark switch: carry the chosen Brand-Colors group onto <html>.
+        'hook'     => \core\hook\output\before_html_attributes::class,
+        'callback' => \theme_nit\local\hook_callbacks::class . '::before_html_attributes',
+    ],
 ];

@@ -23,6 +23,8 @@
     * sesskey - session key for the editor forms
     * actionurl - POST target for the editor forms
     * colourgroups - array of { name, colours: [ { key, label, configname, value, default, isdefault } ] }
+    * categorygroups - array of { id, name, options: [ { value, label, selected } ], image, hasimage, imageurl }
+    * modegroups - array of { mode, label, options: [ { value, label, selected } ] } (light / dark)
     * fonts - array of { input, label, family, sample, rtl, hasfont, filename }
     * authimages - array of { key, input, label, description, hasimage, filename, url }
     * authtexts - array of { lang, label, rtl, quote, author }
@@ -59,7 +61,7 @@
             <button class="nav-link" id="nit-tab-catstyles-btn" data-bs-toggle="tab"
                     data-bs-target="#nit-tab-catstyles" type="button" role="tab"
                     aria-controls="nit-tab-catstyles" aria-selected="false">
-                {{#str}}tab_categorystyles, theme_nit{{/str}}
+                {{#str}}tab_changestyle, theme_nit{{/str}}
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -136,7 +138,11 @@
         </div>
 
         {{! ---------------------------------------------------------------- }}
-        {{! Category styles tab — assign a brand group to each category page  }}
+        {{! Change style tab — which brand group a given surface renders in.   }}
+        {{! Two sections, the same decision about two different subjects:      }}
+        {{!   * Category styles — the group each category's pages use.         }}
+        {{!   * Site styles — the group each display mode (the navbar          }}
+        {{!     light/dark button) uses site-wide.                             }}
         {{! ---------------------------------------------------------------- }}
         <div class="tab-pane fade" id="nit-tab-catstyles" role="tabpanel"
              aria-labelledby="nit-tab-catstyles-btn" tabindex="0">
@@ -191,6 +197,45 @@
             {{^hascategorygroups}}
             <p class="text-muted fst-italic">{{#str}}categorystyles_none, theme_nit{{/str}}</p>
             {{/hascategorygroups}}
+
+            {{! ------------------------------------------------------------ }}
+            {{! Site styles — the group behind each display mode. This is what }}
+            {{! the navbar light/dark button switches between.                 }}
+            {{! ------------------------------------------------------------ }}
+            <h3 class="mt-5">{{#str}}sitestyles, theme_nit{{/str}}</h3>
+            <p class="text-muted">{{#str}}sitestyles_desc, theme_nit{{/str}}</p>
+            <form method="post" action="{{actionurl}}" class="nit-catstyles-editor mb-4">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle nit-catstyles-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">{{#str}}sitestyles_col_mode, theme_nit{{/str}}</th>
+                                <th scope="col" style="width: 12rem;">{{#str}}sitestyles_col_group, theme_nit{{/str}}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{#modegroups}}
+                            <tr>
+                                <td>{{label}}</td>
+                                <td>
+                                    <select class="form-select form-select-sm" name="modegroup[{{mode}}]" aria-label="{{label}}">
+                                        {{#options}}
+                                        <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                                        {{/options}}
+                                    </select>
+                                </td>
+                            </tr>
+                            {{/modegroups}}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" name="savemodegroups" value="1" class="btn btn-primary">
+                        {{#str}}savesitestyles, theme_nit{{/str}}
+                    </button>
+                </div>
+            </form>
         </div>
 
         {{! ---------------------------------------------------------------- }}

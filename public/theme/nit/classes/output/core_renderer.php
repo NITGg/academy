@@ -32,6 +32,57 @@ use local_nit_core\output\view_model;
  */
 class core_renderer extends \theme_boost\output\core_renderer {
     /**
+     * The light/dark switch's click handler.
+     *
+     * Inline rather than a built AMD module because it is fifteen lines that
+     * take all of their configuration from the button's own data attribute —
+     * shipping it as amd/src + amd/build would mean a grunt run on every edit
+     * for no gain. Everything mode-specific (which classes each mode owns, the
+     * cookie name and path, the labels) is decided server-side in
+     * navbar_mode_toggle() and read out of `data-nit-mode-config`.
+     */
+    private const MODE_TOGGLE_JS = <<<'JS'
+require([], function() {
+    document.querySelectorAll('[data-nit-mode-toggle]').forEach(function(btn) {
+        var config;
+        try {
+            config = JSON.parse(btn.getAttribute('data-nit-mode-config') || '{}');
+        } catch (e) {
+            return;
+        }
+        var swap = function(names, add) {
+            (names || '').split(' ').filter(Boolean).forEach(function(name) {
+                document.documentElement.classList[add ? 'add' : 'remove'](name);
+            });
+        };
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var current = btn.getAttribute('data-nit-mode') === 'dark' ? 'dark' : 'light';
+            var next = current === 'dark' ? 'light' : 'dark';
+            swap((config.classes || {})[current], false);
+            swap((config.classes || {})[next], true);
+            btn.setAttribute('data-nit-mode', next);
+            var label = (config.labels || {})[next];
+            if (label) {
+                btn.setAttribute('aria-label', label);
+                btn.setAttribute('title', label);
+                var sr = btn.querySelector('.nit-mode-toggle-label');
+                if (sr) {
+                    sr.textContent = label;
+                }
+            }
+            // A year, so the choice survives the browser being closed. Nothing
+            // personal goes in it - it holds the string "light" or "dark".
+            document.cookie = config.cookie + '=' + next
+                + ';path=' + (config.path || '/')
+                + ';max-age=31536000;samesite=Lax'
+                + (config.secure ? ';secure' : '');
+        });
+    });
+});
+JS;
+
+    /**
      * Render a NIT view-model through its (theme-overridable) template.
      *
      * @param view_model $viewmodel the view-model to render
@@ -170,6 +221,15 @@ class core_renderer extends \theme_boost\output\core_renderer {
      * regardless of login state. Returns '' when the menu should not show
      * (language menu disabled, or a single installed language).
      *
+     * On a two-language site — which the academy is, English and Arabic — the
+     * control is not a menu at all but a single button that swaps to the other
+     * language in one click: a dropdown that only ever offers one choice makes
+     * the visitor open a list to pick the only thing in it. The button is
+     * labelled with the language it switches TO (the site in English shows
+     * "AR"), because it is now an action rather than a status. Three or more
+     * installed languages fall back to core's dropdown, which is the right
+     * control once there is a real choice to make.
+     *
      * @return string HTML, or '' when there is nothing to show
      */
     public function navbar_language_menu(): string {
@@ -179,16 +239,114 @@ class core_renderer extends \theme_boost\output\core_renderer {
             return '';
         }
 
-        // The bar shows the two-letter code ("EN" / "AR"), not the full language
-        // name core exports ("English (en)"). That is what the design sets there,
-        // and the long form was the widest thing in the right cluster — on a
-        // 1280px laptop it pushed the avatar off the bar. Only the button label
-        // changes: the dropdown still lists every language under its own full
-        // name, and the anchor carries aria-label="Language", so a screen reader
-        // reads the control the same way either way.
+        // The languages the visitor is not currently reading in. Core marks the
+        // active one with `isactive` and points it at '#'.
+        $others = [];
+        foreach ($langmenu['items'] ?? [] as $item) {
+            if (empty($item['isactive'])) {
+                $others[] = $item;
+            }
+        }
+
+        // Exactly one alternative → a direct swap button, no menu.
+        if (count($others) === 1) {
+            $target = $others[0];
+            // The code of the language the button switches to ("AR" / "EN"). The
+            // URL core built for that language carries it as ?lang=xx.
+            $langcode = $target['url'] instanceof \moodle_url
+                ? (string) $target['url']->get_param('lang')
+                : '';
+            $label = strtoupper(explode('_', $langcode)[0]);
+
+            return $this->render_from_template('theme_nit/navbar_lang_toggle', [
+                'url' => $target['url'] instanceof \moodle_url
+                    ? $target['url']->out(false)
+                    : (string) $target['url'],
+                'label' => $label,
+                // The full name of the target language ("العربية"), for the
+                // tooltip and for screen readers — two letters alone say very
+                // little when read aloud.
+                'title' => $target['title'] ?? $label,
+                'langcode' => $langcode,
+            ]);
+        }
+
+        // Three or more languages: core's dropdown. The bar shows the two-letter
+        // code ("EN" / "AR"), not the full language name core exports ("English
+        // (en)"). That is what the design sets there, and the long form was the
+        // widest thing in the right cluster — on a 1280px laptop it pushed the
+        // avatar off the bar. Only the button label changes: the dropdown still
+        // lists every language under its own full name, and the anchor carries
+        // aria-label="Language", so a screen reader reads the control the same
+        // way either way.
         $langmenu['title'] = strtoupper(explode('_', current_language())[0]);
 
         return $this->render_from_template('theme_boost/language_menu', $langmenu);
+    }
+
+    /**
+     * Render the navbar light/dark switch.
+     *
+     * The button does not carry a palette of its own: light and dark each map to
+     * one of the three Brand-Colors groups (assigned on the gallery "Change
+     * style" tab), and switching mode swaps that group's switch class on the
+     * <html> element. Because a group switch is nothing but a set of CSS custom
+     * properties, the swap re-skins the page instantly in the browser — no
+     * reload, and no flash of the other palette.
+     *
+     * The choice is remembered in a cookie rather than a user preference, so it
+     * works for the logged-out catalogue too, and so the next request can render
+     * the right mode server-side (theme_nit\local\hook_callbacks
+     * ::before_html_attributes) instead of letting JavaScript repaint after load.
+     *
+     * Returns '' when both modes resolve to the same group — then the button
+     * would change nothing, and a control that does nothing is worse than no
+     * control.
+     *
+     * @return string HTML, or '' when the switch would be a no-op
+     */
+    public function navbar_mode_toggle(): string {
+        global $CFG;
+
+        require_once($CFG->dirroot . '/theme/nit/lib.php');
+
+        $groups = theme_nit_mode_groups();
+        if (($groups['light'] ?? 'g1') === ($groups['dark'] ?? 'g2')) {
+            return '';
+        }
+
+        $mode = theme_nit_current_mode();
+
+        // The <html> classes each mode owns, handed to the browser so the click
+        // handler can swap one set for the other without asking the server.
+        $classes = [];
+        foreach (array_keys(theme_nit_modes()) as $key) {
+            $classes[$key] = trim('nit-mode-' . $key . ' ' .
+                theme_nit_brand_group_class($groups[$key] ?? 'g1'));
+        }
+
+        $config = [
+            'classes' => $classes,
+            // Each mode's label names the mode the button switches TO, matching
+            // what the icon shows.
+            'labels' => [
+                'light' => get_string('modeswitchtodark', 'theme_nit'),
+                'dark' => get_string('modeswitchtolight', 'theme_nit'),
+            ],
+            'cookie' => THEME_NIT_MODE_COOKIE,
+            // Scope the cookie to the Moodle install, so a site under /moodle
+            // does not write a cookie the whole domain has to carry.
+            'path' => empty($CFG->sessioncookiepath) ? '/' : $CFG->sessioncookiepath,
+            'secure' => (strpos($CFG->wwwroot, 'https://') === 0),
+        ];
+
+        $this->page->requires->js_amd_inline(self::MODE_TOGGLE_JS);
+
+        return $this->render_from_template('theme_nit/navbar_mode_toggle', [
+            'mode' => $mode,
+            'label' => $config['labels'][$mode],
+            'config' => json_encode($config),
+        ]);
     }
 
     /**

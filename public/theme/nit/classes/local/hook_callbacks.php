@@ -328,4 +328,41 @@ class hook_callbacks {
             ],
         ]);
     }
+
+    /**
+     * Carry the visitor's light/dark choice onto the <html> element.
+     *
+     * The switch does not own a palette: it selects one of the three
+     * Brand-Colors groups (mapped mode → group on the gallery "Change style"
+     * tab), so re-skinning the site is just a matter of putting that group's
+     * switch class somewhere every rule can see it.
+     *
+     * <html> — not <body> — is that place. The group switch works by re-pointing
+     * the `--nit-brand-*` custom properties, and scss/foundation/_root.scss
+     * aliases the legacy `--nit-*` properties on `:root`, i.e. on <html> itself.
+     * A custom property holding a var() is substituted on the element that
+     * declares it, so those aliases would freeze to Group 1 if the switch class
+     * sat any lower in the tree, and the page would recolour only half-way.
+     *
+     * Rendered server-side rather than left to the browser so the first paint is
+     * already in the chosen mode — a class added by JS after load would flash the
+     * other palette on every page.
+     *
+     * @param \core\hook\output\before_html_attributes $hook
+     */
+    public static function before_html_attributes(\core\hook\output\before_html_attributes $hook): void {
+        global $CFG;
+
+        require_once($CFG->dirroot . '/theme/nit/lib.php');
+
+        $classes = theme_nit_mode_classes();
+        if ($classes === '') {
+            return;
+        }
+
+        // Another plugin may already have put a class here; append rather than
+        // replace (add_attribute() overwrites the key outright).
+        $existing = trim((string) ($hook->get_attributes()['class'] ?? ''));
+        $hook->add_attribute('class', trim($existing . ' ' . $classes));
+    }
 }

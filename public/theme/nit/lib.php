@@ -295,6 +295,96 @@ function theme_nit_brand_group_class(string $group): string {
 }
 
 /**
+ * The cookie the light/dark switch remembers a visitor's choice in.
+ *
+ * A cookie rather than a user preference because the switch has to work for the
+ * logged-out catalogue too, and because the button re-skins the page in the
+ * browser (it only swaps a class on <html>) — a preference would need an AJAX
+ * round trip to store what the next request has to read back anyway.
+ */
+if (!defined('THEME_NIT_MODE_COOKIE')) {
+    define('THEME_NIT_MODE_COOKIE', 'nit_mode');
+}
+
+/**
+ * The two display modes of the light/dark switch, in switch order.
+ *
+ * @return array<string, string> mode key => the mode it toggles to
+ */
+function theme_nit_modes(): array {
+    return ['light' => 'dark', 'dark' => 'light'];
+}
+
+/**
+ * Which Brand-Colors group each display mode renders in.
+ *
+ * The light/dark button does not carry a palette of its own: it selects one of
+ * the three Brand-Colors groups, exactly like the category styles do. An admin
+ * maps mode → group on the gallery "Change style" tab ("Site styles" section);
+ * the map is stored as the theme_nit config `nit_mode_groups`
+ * (JSON `{"light":"g1","dark":"g2"}`).
+ *
+ * Defaults: light → Group 1 (the site's normal look), dark → Group 2.
+ *
+ * @return array<string, string> mode key (light/dark) => group key (g1/g2/g3)
+ */
+function theme_nit_mode_groups(): array {
+    static $map = null;
+    if ($map !== null) {
+        return $map;
+    }
+
+    $defaults = ['light' => 'g1', 'dark' => 'g2'];
+    $raw = get_config('theme_nit', 'nit_mode_groups');
+    $saved = ($raw && is_string($raw)) ? (json_decode($raw, true) ?: []) : [];
+
+    $groups = theme_nit_brand_groups();
+    $map = [];
+    foreach ($defaults as $mode => $default) {
+        $group = $saved[$mode] ?? $default;
+        $map[$mode] = array_key_exists($group, $groups) ? $group : $default;
+    }
+    return $map;
+}
+
+/**
+ * The display mode this request should render in.
+ *
+ * Read from the visitor's cookie; anything we do not recognise (and the very
+ * first visit) is "light", so the site looks the way it always has until
+ * somebody presses the button.
+ *
+ * @return string 'light' | 'dark'
+ */
+function theme_nit_current_mode(): string {
+    $mode = isset($_COOKIE[THEME_NIT_MODE_COOKIE]) ? (string) $_COOKIE[THEME_NIT_MODE_COOKIE] : '';
+    return array_key_exists($mode, theme_nit_modes()) ? $mode : 'light';
+}
+
+/**
+ * The classes the current display mode puts on the <html> element.
+ *
+ * Two things: `nit-mode-light` / `nit-mode-dark` (a hook for anything that has
+ * to know which mode it is in), and the Brand-Colors group switch class for the
+ * group that mode maps to.
+ *
+ * The classes go on <html>, not <body>, deliberately. The group switch works by
+ * re-pointing the `--nit-brand-*` custom properties, and the legacy `--nit-*`
+ * aliases are declared on `:root` — i.e. on <html> itself. A custom property
+ * holding a var() is substituted on the element that declares it, so an alias on
+ * <html> would freeze to Group 1 if the switch class sat any lower in the tree
+ * (the site would recolour only half-way). Declaring the switch on the same
+ * element the aliases live on makes them resolve from the active group.
+ *
+ * @return string space-separated class list (never empty)
+ */
+function theme_nit_mode_classes(): string {
+    $mode = theme_nit_current_mode();
+    $group = theme_nit_mode_groups()[$mode] ?? 'g1';
+    return trim('nit-mode-' . $mode . ' ' . theme_nit_brand_group_class($group));
+}
+
+/**
  * Per-group default overrides for the Brand-Colors palette.
  *
  * Each of the three groups is a complete, self-contained theme with its own

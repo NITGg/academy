@@ -61,8 +61,22 @@ $string['categorystyles_none'] = 'No categories found.';
 $string['savecategorygroups'] = 'Save category styles';
 $string['categorygroupssaved'] = 'Category styles saved.';
 
+// Site styles: which Brand Colors group the navbar light/dark switch shows in
+// each mode ("Change style" tab, next to the category styles).
+$string['sitestyles'] = 'Site styles';
+$string['sitestyles_desc'] = 'Choose which Brand Colors group the site uses in each display mode. The light/dark button in the navigation bar switches between the two — it carries no palette of its own, it selects one of the groups below, so a visitor pressing it sees exactly the colours you tuned on the Brand Colors tab. Give the two modes different groups; when they are the same the button changes nothing and is not shown.';
+$string['sitestyles_col_mode'] = 'Display mode';
+$string['sitestyles_col_group'] = 'Brand group';
+$string['savesitestyles'] = 'Save site styles';
+$string['sitestylessaved'] = 'Site styles saved.';
+$string['modelight'] = 'Light mode';
+$string['modedark'] = 'Dark mode';
+$string['modeswitchtolight'] = 'Switch to light mode';
+$string['modeswitchtodark'] = 'Switch to dark mode';
+
 // Design-system gallery tabs.
 $string['tab_brandcolours'] = 'Brand Colors';
+$string['tab_changestyle'] = 'Change style';
 $string['tab_categorystyles'] = 'Category styles';
 $string['tab_colours'] = 'Colours';
 $string['tab_fonts'] = 'Fonts';

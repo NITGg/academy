@@ -219,6 +219,70 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         }
     }
 
+    // ---- Language switcher, two-language site: a direct swap button ---------
+    // With English and Arabic installed there is exactly one alternative, so the
+    // renderer draws a single link straight to it rather than a dropdown with
+    // one row in it (see core_renderer::navbar_language_menu). It has to look
+    // identical to the dropdown version above — same type, same colour, same
+    // 42px box — so the bar does not change when a third language is installed
+    // and the control reverts to a menu.
+    .nit-navbar-lang .langmenu .nit-langtoggle {
+        display: inline-flex;
+        align-items: center;
+        height: 42px;
+        padding: 0 0.25rem;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        box-shadow: none;
+        color: var(--nit-navbariconaccent, #{$nit-gold-500}) !important;
+        font-size: 1.125rem;   // 18px, as the design sets it.
+        font-weight: 500;
+        line-height: 1;
+        text-transform: uppercase;
+        text-decoration: none;
+        transition: background-color 0.15s ease, color 0.15s ease;
+
+        // The code is the whole label, so it needs no inline spacing.
+        .langbutton {
+            margin: 0;
+        }
+
+        &:hover,
+        &:focus {
+            background-color: color-mix(in srgb, var(--nit-navbariconbg, #{$nit-navy-800}) 70%, transparent);
+            color: var(--nit-navbariconaccenthover, #{$nit-gold-400}) !important;
+            text-decoration: none;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--nit-navbariconaccent, #{$nit-gold-500});
+            outline-offset: 2px;
+        }
+    }
+
+    // ---- Light/dark switch ---------------------------------------------------
+    // The box comes from `.nit-navbar-icon` (the bare 42px glyph button shared
+    // with search, the bell and the gear); all this adds is which of the two
+    // glyphs is showing. Both are in the markup and CSS hides one, keyed off the
+    // `data-nit-mode` attribute the click handler flips — so the icon follows the
+    // state the handler already records, and the server-rendered first paint is
+    // right before any script runs.
+    //
+    // The glyph shown is the mode the button switches TO, which is the
+    // convention every site with this control uses: a moon while the site is
+    // light ("go dark"), a sun while it is dark ("go light").
+    .nit-mode-toggle {
+        .nit-mode-icon {
+            display: none;
+        }
+
+        &[data-nit-mode="light"] .nit-mode-icon-dark,
+        &[data-nit-mode="dark"] .nit-mode-icon-light {
+            display: inline-block;
+        }
+    }
+
     // ---- Right cluster: bare icon buttons -----------------------------------
     // The design ("nav" component, Figma 640:2850) puts NO chrome on these: the
     // search, language, message, notification and gear controls are plain

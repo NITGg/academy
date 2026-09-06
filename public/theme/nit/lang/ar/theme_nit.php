@@ -52,6 +52,20 @@ $string['resetbrandcolours'] = 'إعادة إلى الافتراضي';
 
 // Design-system gallery tabs.
 $string['tab_brandcolours'] = 'ألوان الهوية';
+
+// Category styles + site styles ("Change style" tab).
+$string['tab_changestyle'] = 'تغيير النمط';
+$string['tab_categorystyles'] = 'أنماط التصنيفات';
+$string['sitestyles'] = 'أنماط الموقع';
+$string['sitestyles_desc'] = 'اختر مجموعة ألوان الهوية التي يستخدمها الموقع في كل وضع عرض. يبدّل زر الوضع الفاتح/الداكن في شريط التنقّل بين الوضعين — وهو لا يحمل لوحة ألوان خاصة به، بل يختار إحدى المجموعات أدناه، فيرى الزائر عند الضغط عليه الألوان نفسها التي ضبطتها في تبويب ألوان الهوية. اجعل للوضعين مجموعتين مختلفتين؛ فإن تطابقتا لم يغيّر الزر شيئًا ولن يظهر.';
+$string['sitestyles_col_mode'] = 'وضع العرض';
+$string['sitestyles_col_group'] = 'مجموعة الهوية';
+$string['savesitestyles'] = 'حفظ أنماط الموقع';
+$string['sitestylessaved'] = 'تم حفظ أنماط الموقع.';
+$string['modelight'] = 'الوضع الفاتح';
+$string['modedark'] = 'الوضع الداكن';
+$string['modeswitchtolight'] = 'التبديل إلى الوضع الفاتح';
+$string['modeswitchtodark'] = 'التبديل إلى الوضع الداكن';
 $string['tab_colours'] = 'الألوان';
 $string['tab_fonts'] = 'الخطوط';
 $string['tab_authscreens'] = 'تسجيل الدخول وإنشاء الحساب';

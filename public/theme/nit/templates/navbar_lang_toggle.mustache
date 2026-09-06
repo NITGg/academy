@@ -1,0 +1,50 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template theme_nit/navbar_lang_toggle
+
+    The navbar language control on a two-language site: one button that swaps
+    straight to the other language, instead of a dropdown offering the single
+    alternative. Rendered by theme_nit\output\core_renderer::navbar_language_menu()
+    (which falls back to core's dropdown once a third language is installed).
+
+    The label is the language the button switches TO — the site in English shows
+    "AR" — because the control performs the switch rather than reporting the
+    current state. Two letters say very little read aloud, so the accessible name
+    and the tooltip carry the language's full name.
+
+    Context variables required for this template:
+    * url - the ?lang=xx URL that switches to the other language
+    * label - two-letter code of that language, upper case ("AR" / "EN")
+    * title - that language's own full name ("العربية"), for title/aria-label
+    * langcode - that language's code ("ar" / "en"), for the hreflang hint
+
+    Example context (json):
+    {
+        "url": "https://example.com/course/view.php?id=2&lang=ar",
+        "label": "AR",
+        "title": "العربية (ar)",
+        "langcode": "ar"
+    }
+}}
+<div class="langmenu nit-langtoggle-wrap">
+    <a href="{{{url}}}" class="btn nit-langtoggle" title="{{title}}" aria-label="{{title}}"
+       {{#langcode}}hreflang="{{langcode}}"{{/langcode}} data-nit-lang-toggle>
+        <i class="icon fa fa-language fa-fw me-1" aria-hidden="true"></i>
+        <span class="langbutton">{{label}}</span>
+    </a>
+</div>

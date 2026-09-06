@@ -114,6 +114,35 @@ if (($data = data_submitted()) && confirm_sesskey()) {
     }
 
     // -------------------------------------------------------------------------
+    // Display mode → Brand-group mapping ("Site styles", same "Change style"
+    // tab). The light/dark button in the navbar carries no palette of its own:
+    // it selects one of the three brand groups, and this is where an admin says
+    // which one each mode gets. Stored as one JSON config `nit_mode_groups`
+    // = { "light": "g1", "dark": "g2" }.
+    //
+    // Unlike the category map, BOTH modes are stored even when one of them is
+    // Group 1 — "light is deliberately Group 1" and "light has never been set"
+    // have to stay distinguishable, or an admin who moves light to Group 2 and
+    // back could not get the default back by saving. No SCSS changes (the switch
+    // classes are already compiled), so no cache purge.
+    // -------------------------------------------------------------------------
+    if (!empty($data->savemodegroups)) {
+        $selected = optional_param_array('modegroup', [], PARAM_ALPHANUMEXT);
+        $map = [];
+        foreach (array_keys(theme_nit_mode_groups()) as $mode) {
+            $gk = $selected[$mode] ?? '';
+            if (in_array($gk, $groupkeys, true)) {
+                $map[$mode] = $gk;
+            }
+        }
+        set_config('nit_mode_groups', json_encode($map), 'theme_nit');
+        // Back to the tab the form was posted from (see the hash handler below).
+        redirect(new moodle_url('/theme/nit/gallery.php', null, 'nit-tab-catstyles'),
+            get_string('sitestylessaved', 'theme_nit'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
+    }
+
+    // -------------------------------------------------------------------------
     // Per-language font upload / removal. Each slot (theme_nit_font_slots())
     // stores its file exactly like a Boost stored-file setting — system context,
     // itemid 0, config `theme_nit/<setting>` = the filename — so the standard

@@ -103,6 +103,29 @@ class gallery implements renderable, templatable {
             ];
         }
 
+        // Display mode → brand-group mapping for the "Site styles" section of the
+        // same tab. This is what the navbar light/dark button switches between:
+        // the button holds no palette, it just puts the chosen group's switch
+        // class on <html>. Same shape as the category rows above (one selector
+        // per row, pre-set to the stored assignment) because it is the same
+        // decision made about a different subject.
+        $modelabels = [
+            'light' => \get_string('modelight', 'theme_nit'),
+            'dark' => \get_string('modedark', 'theme_nit'),
+        ];
+        $modegroups = [];
+        foreach (\theme_nit_mode_groups() as $mode => $current) {
+            $options = [];
+            foreach ($grouplabels as $gkey => $glabel) {
+                $options[] = ['value' => $gkey, 'label' => $glabel, 'selected' => ($gkey === $current)];
+            }
+            $modegroups[] = [
+                'mode' => $mode,
+                'label' => $modelabels[$mode] ?? $mode,
+                'options' => $options,
+            ];
+        }
+
         // Per-language font slots: current filename (if any) + a live preview
         // that renders in the uploaded family the compiled CSS already exposes.
         $fonts = [];
@@ -163,6 +186,7 @@ class gallery implements renderable, templatable {
             'brandgroups' => $brandgroups,
             'categorygroups' => $categorygroups,
             'hascategorygroups' => !empty($categorygroups),
+            'modegroups' => $modegroups,
             'fonts' => $fonts,
             'authimages' => $authimages,
             'authtexts' => $authtexts,

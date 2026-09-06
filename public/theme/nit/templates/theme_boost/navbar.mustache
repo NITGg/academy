@@ -24,7 +24,11 @@
     tracked in theme/nit/docs/override-budget.md):
       * Brand shows the compact logo AND the site name together (Boost shows one
         or the other).
-      * The language menu sits on the left, right after the brand.
+      * The language menu sits on the left, right after the brand — and on a
+        two-language site it is a single swap button, not a dropdown
+        (output.navbar_language_menu).
+      * A light/dark switch (output.navbar_mode_toggle) that selects a Brand
+        Colors group rather than carrying a palette of its own.
       * The horizontal primary navigation is collapsed into a single gear-icon
         dropdown (built from `mobileprimarynav`), which carries a second,
         NIT-only group of management links (output.navbar_management_menu).
@@ -79,6 +83,13 @@
             <div class="nit-navbar-lang d-none d-md-flex align-items-center">
                 {{{ output.navbar_language_menu }}}
             </div>
+
+            {{! NIT: light/dark switch. It selects a Brand Colors group rather than
+                carrying a palette of its own — an admin maps mode → group on the
+                gallery "Change style" tab — so the click only swaps a class on
+                <html> and the page re-skins with no reload. Empty (nothing drawn)
+                when both modes point at the same group. }}
+            {{{ output.navbar_mode_toggle }}}
 
             {{! NIT: the edit-mode switch was moved OUT of the bar and INTO the
                 gear/navigation dropdown below (matches the legacy clean bar). }}
