@@ -519,86 +519,110 @@ function theme_nit_brand_group_defaults(): array {
             'warning'           => '#d8c24e',
             'info'              => '#7fa6d6',
         ],
+        // --- Groups 4 and 5 : Daylight / Graphite. ----------------------------
+        // Unlike groups 1-3 these were not picked by eye. They are two readings
+        // of ONE system, built in OKLCH so the steps are perceptually even, then
+        // checked pair by pair for contrast. The generator is checked in beside
+        // them — `node theme/nit/docs/palette-check.js` reprints these hexes and
+        // the whole contrast table, so a change here can be re-verified rather
+        // than argued about.
+        //
+        // Two ramps, sampled at fixed OKLCH lightnesses:
+        //   neutral  hue 258, chroma 0.005-0.014  (barely cool, never tinted)
+        //     N0  #fbfdff   N50 #f6f8fb   N100 #f1f3f6  N200 #e6e8eb  N300 #d5d9df
+        //     N350 #c7cbd0  N400 #a7abb1  N500 #7b8189  N600 #5e646b  N700 #43484f
+        //     N800 #2a2e35  N850 #1f232a  N900 #14191f  N950 #0d1117
+        //   accent   hue 256 (azure)
+        //     A200 #c0dafc  A300 #98c0f7  A400 #71a7ef  A500 #4687db
+        //     A600 #2368bd  A700 #0e509d  A800 #073b78
+        //
+        // Light reads the ramps from one end, dark from the other, so switching
+        // mode changes how bright the site is and not which site it is. The
+        // neutrals carry almost no chroma on purpose: at these lightnesses a
+        // tinted ground reads as a colour cast, which is what made the warm
+        // palette these replaced look muddy.
+        //
+        // Every text/background pair in both groups is WCAG AA or better; the
+        // numbers are in the block comment above each group.
+
         // --- Group 4 : Daylight (LIGHT). --------------------------------------
-        // The light half of the pair: light CONTENT under DARK CHROME. Page and
-        // cards go to near-white with deep slate ink; the navigation bar and the
-        // footer stay dark.
+        // Light CONTENT under DARK CHROME. The dark navigation bar and footer are
+        // not a leftover: the site logo is a white-on-transparent PNG (an admin
+        // setting, not a theme asset), so a light bar erases the wordmark. A dark
+        // header band is how most light interfaces are built anyway.
         //
-        // The dark bar is not a leftover — it is the only way this works today.
-        // The site logo is a white-on-transparent PNG (an admin setting, not a
-        // theme asset), so a light bar erases the wordmark completely; a dark bar
-        // keeps the brand mark readable and reads as a deliberate header band,
-        // which is how most light interfaces are built anyway.
-        //
-        // Neutral-cool rather than tinted: on a light ground any hue in the
-        // background shows up as a colour cast, and the warm palette this
-        // replaced looked muddy for exactly that reason. One confident azure
-        // carries the accent instead, dark enough (#1f5fa8) to hold white text on
-        // a fill and to pass as a link on paper.
+        // Contrast: ink on page 16.6 · ink on card 17.7 · muted on page 5.6 ·
+        // link on card 7.9 · white on the primary fill 5.6 · primary fill on the
+        // page 5.2 · navbar text on the bar 17.8. All AA or AAA.
         'g4' => [
-            'primary'           => '#1f5fa8',
-            'secondary'         => '#e4eaf2',
-            'accent'            => '#1f5fa8',
+            'primary'           => '#2368bd',   // A600
+            'secondary'         => '#e6e8eb',   // N200
+            'accent'            => '#2368bd',
             // A step darker than primary: on a light ground a link has to beat
             // the paper, not the ink.
-            'accenttext'        => '#14538d',
-            'background'        => '#f4f6f9',
-            'background2'       => '#eaeef4',
-            // Dark chrome — see the note above.
-            'navbarbackground1' => '#101a27',
-            'navbarbackground2' => '#162333',
-            'footerbackground1' => '#101a27',
-            'footerbackground2' => '#162333',
+            'accenttext'        => '#0e509d',   // A700
+            'background'        => '#f6f8fb',   // N50
+            'background2'       => '#f1f3f6',   // N100
+            'navbarbackground1' => '#0d1117',   // N950 — dark chrome, see above
+            'navbarbackground2' => '#14191f',   // N900
+            'footerbackground1' => '#0d1117',
+            'footerbackground2' => '#14191f',
             'surface'           => '#ffffff',
-            'textprimary'       => '#16202e',
-            // Navbar glyph + navbar text: near-white, because the bar is dark
-            // while the body ink is not. This role is what --nit-navbartext
-            // follows, so the two never disagree.
-            'navbariconcolor'   => '#eef3f9',
-            'navbariconbg'      => '#1b2a3c',
-            'textsecondary'     => '#56657a',
-            'borderprimary'     => '#dde3ea',
-            'bordersecondary'   => '#b7c3d2',
-            'hoverbackground'   => '#e9eff7',
-            'hovertext'         => '#0e3f77',
-            // Semantics darkened for a light ground: the mid-tones the dark
-            // groups use would be a pale smudge on near-white. Still no red —
-            // danger is a burnt orange.
-            'error'             => '#b4471f',
-            'success'           => '#1e7a55',
-            'warning'           => '#8a6a0c',
-            'info'              => '#1a6480',
+            'textprimary'       => '#14191f',   // N900
+            // Navbar glyphs AND navbar text: near-white, because the bar is dark
+            // while the body ink is not (see --nit-navbartext in _root.scss).
+            'navbariconcolor'   => '#f6f8fb',   // N50
+            'navbariconbg'      => '#1f232a',   // N850
+            'textsecondary'     => '#5e646b',   // N600
+            'borderprimary'     => '#d5d9df',   // N300
+            'bordersecondary'   => '#a7abb1',   // N400
+            'hoverbackground'   => '#f1f3f6',   // N100
+            'hovertext'         => '#073b78',   // A800
+            // Semantics sampled at OKLCH L48 — dark enough to read as text on
+            // white. Still no red: danger is a deep burnt orange.
+            'error'             => '#9a3c16',
+            'success'           => '#00703e',
+            'warning'           => '#775800',
+            'info'              => '#006789',
         ],
         // --- Group 5 : Graphite (DARK). ---------------------------------------
-        // The dark half of the same pair: Group 4 turned down, not a different
-        // brand. The same azure accent, lifted to carry on a dark ground, over a
-        // NEUTRAL graphite rather than a tinted one — which is also what keeps it
-        // apart from the other three, all of which are coloured darks (navy,
-        // teal, indigo).
+        // Group 4 turned down — the same two ramps read from the dark end. The
+        // ground is neutral graphite rather than a coloured dark, which is also
+        // what keeps it apart from groups 1-3 (navy, teal, indigo).
+        //
+        // The primary is LIGHT here and its label is DARK, the way dark themes
+        // are built: a fill dark enough to hold white text would be too dim to
+        // see against the page. White on the mid azure was 3.65 — short of AA;
+        // the page ground on the light azure is 7.6. See the
+        // `--nit-brand-on-primary` line on `.nit-brand-5` in _brand.scss.
+        //
+        // Contrast: ink on page 17.8 · ink on card 14.8 · muted on card 6.8 ·
+        // link on card 8.4 · dark label on the primary fill 7.6. All AA or AAA.
         'g5' => [
-            'primary'           => '#4f9de0',
-            'secondary'         => '#232830',
-            'accent'            => '#4f9de0',
-            'accenttext'        => '#85c2f0',
-            'background'        => '#14161a',
-            'background2'       => '#1a1d22',
-            'navbarbackground1' => '#14161a',
-            'navbarbackground2' => '#1c2027',
-            'footerbackground1' => '#14161a',
-            'footerbackground2' => '#1c2027',
-            'surface'           => '#1f232a',
-            'textprimary'       => '#eef1f5',
-            'navbariconcolor'   => '#eef1f5',
-            'navbariconbg'      => '#1c2027',
-            'textsecondary'     => '#9aa4b2',
-            'borderprimary'     => '#2b3038',
-            'bordersecondary'   => '#414954',
-            'hoverbackground'   => '#1e222a',
-            'hovertext'         => '#a5d3f6',
-            'error'             => '#e07a4f',
-            'success'           => '#46b183',
-            'warning'           => '#ddc75c',
-            'info'              => '#66b3d8',
+            'primary'           => '#71a7ef',   // A400
+            'secondary'         => '#2a2e35',   // N800
+            'accent'            => '#71a7ef',
+            'accenttext'        => '#98c0f7',   // A300
+            'background'        => '#0d1117',   // N950
+            'background2'       => '#14191f',   // N900
+            'navbarbackground1' => '#0d1117',
+            'navbarbackground2' => '#14191f',
+            'footerbackground1' => '#0d1117',
+            'footerbackground2' => '#14191f',
+            'surface'           => '#1f232a',   // N850
+            'textprimary'       => '#f6f8fb',   // N50
+            'navbariconcolor'   => '#f6f8fb',
+            'navbariconbg'      => '#1f232a',
+            'textsecondary'     => '#a7abb1',   // N400
+            'borderprimary'     => '#2a2e35',   // N800
+            'bordersecondary'   => '#43484f',   // N700
+            'hoverbackground'   => '#14191f',   // N900
+            'hovertext'         => '#c0dafc',   // A200
+            // The same four hues as Group 4, sampled at L72 instead of L48.
+            'error'             => '#e68867',
+            'success'           => '#5cbc82',
+            'warning'           => '#c89e3a',
+            'info'              => '#3bb2e3',
         ],
     ];
 }

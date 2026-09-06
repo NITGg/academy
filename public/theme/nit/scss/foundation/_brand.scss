@@ -298,6 +298,15 @@
     --nit-brand-on-primary: var(--nit-brand-g4-surface);
 }
 
+// Group 5 needs the same override for the opposite reason. Its primary is a
+// LIGHT azure, because a fill dark enough to hold white text is too dim to see
+// against a near-black page — so the label has to be the dark ground, not the
+// near-white ink. Measured: near-white on the mid azure is 3.65:1 (below AA);
+// the page ground on the light azure is 7.64:1.
+.nit-brand-5 {
+    --nit-brand-on-primary: var(--nit-brand-g5-background);
+}
+
 // Group 5 is the DARK half of that pair (Graphite).
 .nit-brand-5 {
     --nit-brand-primary: var(--nit-brand-g5-primary);
@@ -350,6 +359,82 @@
     --bs-body-bg: var(--nit-brand-background);
     --bs-body-color: var(--nit-brand-textprimary);
     --bs-border-color: var(--nit-brand-borderprimary);
+    --bs-border-color-translucent: var(--nit-brand-borderprimary);
+
+    // Bootstrap 5.3's SECOND text tier, and the reason an admin page in Group 4
+    // came out near-white on near-white. `.text-muted` is no longer `$text-muted`
+    // — 5.3 redefined it as `--bs-secondary-color`, which Bootstrap derives as
+    // `rgba(var(--bs-body-color-rgb), .75)`, i.e. Group 1's near-white ink at 75%
+    // opacity, frozen. Every "dimmed" label, section hint and help text on a
+    // Moodle settings page reads it. Pointed at the brand's own "Text secondary"
+    // role it becomes the colour the theme always meant it to be — which is what
+    // pre_scss already sets `$text-muted` to, so Group 1 does not move.
+    --bs-secondary-color: var(--nit-brand-textsecondary);
+    --bs-tertiary-color: var(--nit-brand-textsecondary);
+    --bs-emphasis-color: var(--nit-brand-textprimary);
+    --bs-heading-color: var(--nit-brand-textprimary);
+    --bs-highlight-color: var(--nit-brand-textprimary);
+
+    // The two neutral fills. Bootstrap ships these as its own light-theme greys
+    // (#e9ecef / #f8f9fa) and pre_scss never touched them, so they were wrong in
+    // every group — light blocks on the dark brand, and the wrong light on the
+    // light one.
+    --bs-secondary-bg: var(--nit-brand-background2);
+    --bs-tertiary-bg: var(--nit-brand-hoverbackground);
+
+    --bs-link-color: var(--nit-brand-accenttext);
+    --bs-link-hover-color: var(--nit-brand-hovertext);
+}
+
+// The `-rgb` companions. Bootstrap keeps a bare "r, g, b" triplet beside several
+// of the colours above so rules can write `rgba(var(--bs-body-color-rgb), .5)`.
+// A triplet cannot be derived from a hex custom property in CSS, so each group
+// emits its own at compile time from the same SCSS variable the role is built
+// from — otherwise every translucent tint in Bootstrap stays on Group 1.
+@each $sel, $g in (":root": "g1", ".nit-brand-2": "g2", ".nit-brand-3": "g3",
+                   ".nit-brand-4": "g4", ".nit-brand-5": "g5") {
+    #{$sel} {
+        $ink: map-get((
+            "g1": $nit-b-g1-textprimary, "g2": $nit-b-g2-textprimary,
+            "g3": $nit-b-g3-textprimary, "g4": $nit-b-g4-textprimary,
+            "g5": $nit-b-g5-textprimary), $g);
+        $bg: map-get((
+            "g1": $nit-b-g1-background, "g2": $nit-b-g2-background,
+            "g3": $nit-b-g3-background, "g4": $nit-b-g4-background,
+            "g5": $nit-b-g5-background), $g);
+        $muted: map-get((
+            "g1": $nit-b-g1-textsecondary, "g2": $nit-b-g2-textsecondary,
+            "g3": $nit-b-g3-textsecondary, "g4": $nit-b-g4-textsecondary,
+            "g5": $nit-b-g5-textsecondary), $g);
+        $link: map-get((
+            "g1": $nit-b-g1-accenttext, "g2": $nit-b-g2-accenttext,
+            "g3": $nit-b-g3-accenttext, "g4": $nit-b-g4-accenttext,
+            "g5": $nit-b-g5-accenttext), $g);
+        $pri: map-get((
+            "g1": $nit-b-g1-primary, "g2": $nit-b-g2-primary,
+            "g3": $nit-b-g3-primary, "g4": $nit-b-g4-primary,
+            "g5": $nit-b-g5-primary), $g);
+        // The two neutral fills need triplets of their own: `.bg-body-secondary`
+        // is `rgba(var(--bs-secondary-bg-rgb), var(--bs-bg-opacity))`, so setting
+        // only `--bs-secondary-bg` above left it on Bootstrap's own grey.
+        $bg2: map-get((
+            "g1": $nit-b-g1-background2, "g2": $nit-b-g2-background2,
+            "g3": $nit-b-g3-background2, "g4": $nit-b-g4-background2,
+            "g5": $nit-b-g5-background2), $g);
+        $hov: map-get((
+            "g1": $nit-b-g1-hoverbackground, "g2": $nit-b-g2-hoverbackground,
+            "g3": $nit-b-g3-hoverbackground, "g4": $nit-b-g4-hoverbackground,
+            "g5": $nit-b-g5-hoverbackground), $g);
+
+        --bs-secondary-bg-rgb: #{red($bg2)}, #{green($bg2)}, #{blue($bg2)};
+        --bs-tertiary-bg-rgb: #{red($hov)}, #{green($hov)}, #{blue($hov)};
+        --bs-body-color-rgb: #{red($ink)}, #{green($ink)}, #{blue($ink)};
+        --bs-emphasis-color-rgb: #{red($ink)}, #{green($ink)}, #{blue($ink)};
+        --bs-body-bg-rgb: #{red($bg)}, #{green($bg)}, #{blue($bg)};
+        --bs-secondary-color-rgb: #{red($muted)}, #{green($muted)}, #{blue($muted)};
+        --bs-link-color-rgb: #{red($link)}, #{green($link)}, #{blue($link)};
+        --bs-primary-rgb: #{red($pri)}, #{green($pri)}, #{blue($pri)};
+    }
 }
 
 // The same story one level down: Bootstrap scopes the surface of a card, a

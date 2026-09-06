@@ -196,13 +196,13 @@
 // arrived at from the other side.
 .nit-brand-4 {
     --nit-footertext: var(--nit-brand-g4-navbariconcolor);
-    --nit-footermuted: color-mix(in srgb, var(--nit-brand-g4-navbariconcolor) 62%, transparent);
-    --nit-footerborder: color-mix(in srgb, var(--nit-brand-g4-navbariconcolor) 22%, transparent);
+    --nit-footermuted: color-mix(in oklab, var(--nit-brand-g4-navbariconcolor) 62%, transparent);
+    --nit-footerborder: color-mix(in oklab, var(--nit-brand-g4-navbariconcolor) 22%, transparent);
     // Headings and icons keep the accent, lifted far enough out of the navy to
     // read on it — the page-side azure is tuned for white paper and disappears
     // against the band.
-    --nit-footerheading: color-mix(in srgb, var(--nit-brand-g4-primary) 55%, #fff);
-    --nit-footericon: color-mix(in srgb, var(--nit-brand-g4-primary) 55%, #fff);
-    --nit-footericonhover: color-mix(in srgb, var(--nit-brand-g4-primary) 35%, #fff);
-    --nit-footerhover: color-mix(in srgb, var(--nit-brand-g4-primary) 35%, #fff);
+    --nit-footerheading: color-mix(in oklab, var(--nit-brand-g4-primary) 55%, #fff);
+    --nit-footericon: color-mix(in oklab, var(--nit-brand-g4-primary) 55%, #fff);
+    --nit-footericonhover: color-mix(in oklab, var(--nit-brand-g4-primary) 35%, #fff);
+    --nit-footerhover: color-mix(in oklab, var(--nit-brand-g4-primary) 35%, #fff);
 }
