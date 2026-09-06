@@ -1825,11 +1825,17 @@ function theme_nit_logo_url(string $slot, int $maxwidth = 300, int $maxheight = 
         return $corelogo();
     }
 
+    // The itemid of a theme stored file is the THEME REVISION, not 0 — that is
+    // what makes the browser drop the old picture when a new one is uploaded,
+    // and theme_config::setting_file_serve() will not resolve a path without it.
+    // Built here rather than through setting_file_url() only because that returns
+    // a protocol-relative string and every caller of this function wants the
+    // moodle_url core's own accessors return.
     return \moodle_url::make_pluginfile_url(
         \context_system::instance()->id,
         'theme_nit',
         $variant['filearea'],
-        null,
+        theme_get_revision(),
         '/',
         ltrim($filename, '/')
     );

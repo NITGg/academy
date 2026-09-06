@@ -42,6 +42,12 @@
      change - or the light/dark switch, which selects a different group -
      repaints the whole section. No literal colours anywhere.
 
+     FULL HEIGHT - the section fills the screen and centres the logo and the
+     grid in it, which is what makes it read as a section rather than as a strip
+     of content. min-height, never height: six cards on a phone are taller than
+     a screenful and have to be allowed to grow past it. The script trims the
+     fixed navbar off that height - see the note beside it.
+
      THE RED RULE under the Arabic name is a background gradient on that line,
      not an element of its own, because the editor deletes any element holding
      no content and an empty span never comes back from a save.
@@ -69,11 +75,12 @@
      The fallback picture is prefixed with the /moodle-new/ sub-directory this
      site is installed under. Change that prefix if wwwroot moves. -->
 <div dir="auto"
-  style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(16px, 4vw, 48px);">
-  <div style="max-width: 1230px; margin: 0 auto;">
+  style="min-height: 100vh; min-height: 100svh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: clamp(32px, 5vh, 72px) clamp(16px, 4vw, 48px);"
+  data-nit-catsection="">
+  <div style="width: 100%; max-width: 1230px; margin: 0 auto;">
 
     <div
-      style="display: flex; align-items: center; justify-content: center; margin-bottom: clamp(32px, 5vw, 56px);"
+      style="display: flex; align-items: center; justify-content: center; margin-bottom: clamp(24px, 4vh, 56px);"
       data-nit-brandmark=""> <img class="img-fluid"
         style="display: block; width: auto; height: auto; max-width: min(460px, 86%);"
         src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
@@ -83,10 +90,10 @@
       style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: clamp(20px, 2.6vw, 32px); align-items: stretch;"
       data-nit-catgrid="" data-limit="6" data-ids="">
       <div style="display: none;" data-nit-catgrid-card=""><a
-          style="height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 32px 24px; background: var(--nit-brand-surface); border: 1px solid var(--nit-brand-borderprimary); border-radius: 16px; text-align: center; color: var(--nit-brand-textprimary); text-decoration: none !important;"
+          style="height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: clamp(12px, 2vh, 18px); padding: clamp(20px, 3vh, 32px) 24px; background: var(--nit-brand-surface); border: 1px solid var(--nit-brand-borderprimary); border-radius: 16px; text-align: center; color: var(--nit-brand-textprimary); text-decoration: none !important;"
           href="{{url}}">
           <span
-            style="flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: 88px; height: 88px; font-size: 52px; line-height: 1; background-position: center; background-repeat: no-repeat; background-size: contain;"
+            style="flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: clamp(64px, 8vh, 88px); height: clamp(64px, 8vh, 88px); font-size: clamp(40px, 5vh, 52px); line-height: 1; background-position: center; background-repeat: no-repeat; background-size: contain;"
             data-nit-catgrid-icon="">{{icon}}</span>
           <span dir="auto"
             style="display: block; width: 100%; font-size: clamp(18px,2vw,22px); font-weight: 700; line-height: 1.6; color: var(--nit-brand-textprimary); min-height: 3.2em; padding-bottom: 16px; background: linear-gradient(var(--nit-brand-primary),var(--nit-brand-primary)) no-repeat bottom center/44px 3px;"
@@ -141,6 +148,35 @@
       if (mark && logo) {
         mark.setAttribute('src', logo);
       }
+
+      // The section is one screenful tall, and the style attribute above says so
+      // in CSS alone so it holds even if this script never runs. What it cannot
+      // know is the navbar: Moodle's is fixed to the top, so the room a visitor
+      // actually has is the viewport MINUS that bar, and a plain 100svh section
+      // is a bar's worth too tall - enough to push the last row of cards under
+      // the fold and leave a strip of the next section showing at the bottom.
+      //
+      // svh rather than vh: on a phone 100vh is the viewport with the browser
+      // chrome retracted, which is not the height anything is looked at. The vh
+      // line is kept underneath it because a browser that does not understand
+      // svh drops that declaration on the floor - and drops this assignment too,
+      // which is what the fallback below is testing for.
+      var section = grid.closest('[data-nit-catsection]');
+      var sizeSection = function() {
+        if (!section) {
+          return;
+        }
+        var bar = document.querySelector('nav.navbar.fixed-top');
+        var offset = bar ? Math.round(bar.getBoundingClientRect().height) : 0;
+        section.style.minHeight = 'calc(100svh - ' + offset + 'px)';
+        if (!section.style.minHeight) {
+          section.style.minHeight = 'calc(100vh - ' + offset + 'px)';
+        }
+      };
+      sizeSection();
+      // The navbar is a different height at the mobile breakpoint, and rotating a
+      // phone crosses it. Re-measuring is two reads, so it is not worth throttling.
+      window.addEventListener('resize', sizeSection);
 
       var tpl = grid.querySelector('[data-nit-catgrid-card]');
       if (!tpl) {

@@ -477,28 +477,29 @@ JS;
     }
 
     /**
-     * The compact (navbar) logo, picked for the mode this page renders in.
+     * The compact (navbar) logo, for the mode this page renders in.
      *
-     * Core exposes exactly one compact logo, which is right until the site has
-     * both a light mode and a dark one: a mark drawn white for a navy bar is
-     * invisible the moment the light/dark switch turns that bar white. An admin
-     * says which mode the core uploads suit and supplies the other set on
-     * Appearance → Logos; theme_nit_logo_url() picks between them, and falls
-     * back to core's whenever there is nothing to pick.
+     * The third and last of the overridden logo accessors. Taking core's method
+     * over — rather than adding a NIT-only one and teaching each template to
+     * call it — is the whole point: anything that asks Moodle for the site's
+     * compact logo gets the right one, including the parts of core and of other
+     * plugins that this theme will never touch.
      *
      * Chosen on the server rather than by shipping both images and hiding one in
      * CSS, because the browser would download both and the wrong one would flash
      * before the stylesheet applied.
      *
-     * @return string the URL, or '' when the site has no compact logo at all
+     * @param int $maxwidth
+     * @param int $maxheight
+     * @return moodle_url|false
      */
-    public function nit_navbar_logo_url(): string {
+    public function get_compact_logo_url($maxwidth = 300, $maxheight = 300) {
         global $CFG;
 
         require_once($CFG->dirroot . '/theme/nit/lib.php');
-        $url = theme_nit_logo_url('logocompact', 300, 300);
+        $url = theme_nit_logo_url('logocompact', (int) $maxwidth, (int) $maxheight);
 
-        return $url ? $url->out(false) : '';
+        return $url ?: parent::get_compact_logo_url($maxwidth, $maxheight);
     }
 
     /**

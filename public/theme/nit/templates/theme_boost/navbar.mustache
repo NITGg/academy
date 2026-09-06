@@ -57,12 +57,12 @@
         {{! NIT: brand — compact logo AND the site name together. }}
         <a href="{{{ config.homeurl }}}" class="navbar-brand nit-navbar-brand d-none d-md-flex align-items-center m-0 me-3 p-0 aabtn">
             {{# output.should_display_navbar_logo }}
-                {{! NIT: the mode-aware logo. Core has one compact logo; a site with
-                    a light mode and a dark one needs two, because a white mark on a
-                    white bar is nothing at all. output.nit_navbar_logo_url picks the
-                    right upload for the group this page renders in (Appearance →
-                    Logos) and falls back to core's when there is only one. }}
-                <img src="{{output.nit_navbar_logo_url}}" class="nit-navbar-logo me-2" alt="{{sitename}}">
+                {{! Core's own accessor, deliberately. theme_nit overrides
+                    get_compact_logo_url() so it answers with the logo drawn for the
+                    mode this page is in (Appearance → Logos), which means this line
+                    — and every other place in Moodle that asks for the site logo —
+                    needs no special knowledge of the light/dark switch. }}
+                <img src="{{output.get_compact_logo_url}}" class="nit-navbar-logo me-2" alt="{{sitename}}">
             {{/ output.should_display_navbar_logo }}
             <span class="nit-navbar-title">{{{ sitename }}}</span>
         </a>
