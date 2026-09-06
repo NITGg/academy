@@ -1779,7 +1779,7 @@ function theme_nit_active_chrome_group(): string {
  * @param int $maxheight
  * @return moodle_url|false the URL, or false exactly as core returns for "none"
  */
-function theme_nit_logo_url(string $slot, int $maxwidth = 300, int $maxheight = 300) {
+function theme_nit_logo_url(string $slot, int $maxwidth = 300, int $maxheight = 300, ?string $mode = null) {
     $variants = theme_nit_logo_variants();
 
     // Core's own URL for this slot, built the way renderer_base builds it — the
@@ -1813,7 +1813,13 @@ function theme_nit_logo_url(string $slot, int $maxwidth = 300, int $maxheight = 
         return $corelogo();
     }
 
-    $pagemode = theme_nit_group_is_light(theme_nit_active_chrome_group()) ? 'light' : 'dark';
+    // `$mode` lets a caller ask "what would this be in the OTHER mode?" — which is
+    // what the navbar switch needs, so it can swap the picture in the browser
+    // instead of making the visitor reload the page to see it change.
+    $group = $mode !== null
+        ? (theme_nit_mode_groups()[$mode] ?? theme_nit_active_chrome_group())
+        : theme_nit_active_chrome_group();
+    $pagemode = theme_nit_group_is_light($group) ? 'light' : 'dark';
     if ($pagemode === $corelogosfor) {
         return $corelogo();
     }

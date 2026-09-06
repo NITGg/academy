@@ -71,6 +71,33 @@ require([], function() {
                     sr.textContent = label;
                 }
             }
+            // The logos. Everything else the switch does is CSS and lands at
+            // once; an <img src> was picked by the server, so without this the
+            // colours flip and the mark stays on the previous mode's version
+            // until the page is reloaded. Absent when the site has only one set.
+            var logos = (config.logos || {})[next];
+            if (logos) {
+                if (logos.navbar) {
+                    document.querySelectorAll(
+                        '.nit-navbar-logo, .navbar.fixed-top .navbar-brand .logo,' +
+                        ' .drawer-primary .drawerheader .logo, [data-nit-orbit-logo]'
+                    ).forEach(function(img) {
+                        img.src = logos.navbar;
+                    });
+                }
+                if (logos.footer) {
+                    document.querySelectorAll('.nit-sitefooter__logo').forEach(function(img) {
+                        img.src = logos.footer;
+                    });
+                }
+                if (logos.favicon) {
+                    // "shortcut icon" is a space-separated list, which is what
+                    // ~= matches on — a plain [rel="icon"] would miss it.
+                    document.querySelectorAll('link[rel~="icon"]').forEach(function(link) {
+                        link.href = logos.favicon;
+                    });
+                }
+            }
             // A year, so the choice survives the browser being closed. Nothing
             // personal goes in it - it holds the string "light" or "dark".
             document.cookie = config.cookie + '=' + next
@@ -325,6 +352,33 @@ JS;
                 theme_nit_brand_group_class($groups[$key] ?? 'g1'));
         }
 
+        // The logos each mode wants. Everything else about the switch is CSS, so
+        // it changes under the visitor's finger — but a picture is an `src`, and
+        // the server had already chosen one by the time the page arrived. Without
+        // this the palette flipped instantly and the logo stayed on the old one
+        // until a reload, which reads as the switch being half-broken.
+        //
+        // Three sizes because three places ask for the mark differently: the bar
+        // and the drawer at core's 300x300 default, the footer at 0x120
+        // (theme_nit_get_site_footer_context), and the browser tab.
+        $logos = [];
+        foreach (['light', 'dark'] as $key) {
+            $navbar = theme_nit_logo_url('logocompact', 300, 300, $key);
+            $footer = theme_nit_logo_url('logocompact', 0, 120, $key);
+            $favicon = theme_nit_logo_url('favicon', 0, 0, $key);
+            $logos[$key] = [
+                'navbar' => $navbar ? $navbar->out(false) : '',
+                'footer' => $footer ? $footer->out(false) : '',
+                'favicon' => $favicon ? $favicon->out(false) : '',
+            ];
+        }
+        // A site with one logo gets no logo payload at all: identical maps mean
+        // there is nothing to swap, and the handler should not touch an `src` it
+        // would only rewrite to the same value.
+        if ($logos['light'] === $logos['dark']) {
+            $logos = null;
+        }
+
         $config = [
             'classes' => $classes,
             // Each mode's label names the mode the button switches TO, matching
@@ -333,6 +387,7 @@ JS;
                 'light' => get_string('modeswitchtodark', 'theme_nit'),
                 'dark' => get_string('modeswitchtolight', 'theme_nit'),
             ],
+            'logos' => $logos,
             'cookie' => THEME_NIT_MODE_COOKIE,
             // Scope the cookie to the Moodle install, so a site under /moodle
             // does not write a cookie the whole domain has to carry.
