@@ -403,9 +403,33 @@ function theme_nit_current_mode(): string {
  * @return string space-separated class list (never empty)
  */
 function theme_nit_mode_classes(): string {
-    $mode = theme_nit_current_mode();
+    return theme_nit_mode_classes_for(theme_nit_current_mode());
+}
+
+/**
+ * The <html> classes a GIVEN mode owns.
+ *
+ * Split out from theme_nit_mode_classes() so the navbar switch can ask for the
+ * other mode's set and swap the two in the browser. One function builds both,
+ * because the server-rendered class list and the one the button applies must
+ * never be able to disagree.
+ *
+ * @param string $mode 'light' | 'dark'
+ * @return string space-separated class list
+ */
+function theme_nit_mode_classes_for(string $mode): string {
     $group = theme_nit_mode_groups()[$mode] ?? 'g1';
-    return trim('nit-mode-' . $mode . ' ' . theme_nit_brand_group_class($group));
+
+    // `nit-chrome-light` / `nit-chrome-dark` says whether the BAR is light, which
+    // is not the same question as which mode the visitor picked: a group is free
+    // to run a dark bar over a light page. Measured from the group's own navbar
+    // colour (theme_nit_group_is_light), so it stays true when an admin retunes
+    // the palette. CSS that has to contrast with the bar — anything drawn ON it
+    // whose own colour we do not control, a user's profile picture above all —
+    // keys off this rather than naming a group number.
+    $chrome = theme_nit_group_is_light($group) ? 'nit-chrome-light' : 'nit-chrome-dark';
+
+    return trim('nit-mode-' . $mode . ' ' . $chrome . ' ' . theme_nit_brand_group_class($group));
 }
 
 /**

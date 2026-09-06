@@ -90,6 +90,21 @@ require([], function() {
                         img.src = logos.footer;
                     });
                 }
+                // The opt-in hook for front-page HTML blocks. A block that draws
+                // the brand mark adds data-nit-logo="full" (the wide lock-up,
+                // window.NIT_LOGO_FULL) or "compact" (window.NIT_LOGO) to its
+                // image and is swapped with everything else. Better than listing
+                // each block's own selector here: a block is pasted content that
+                // this file cannot see, and the two would fall out of step the
+                // first time one was renamed.
+                ['full', 'compact'].forEach(function(kind) {
+                    if (!logos[kind]) {
+                        return;
+                    }
+                    document.querySelectorAll('[data-nit-logo="' + kind + '"]').forEach(function(img) {
+                        img.src = logos[kind];
+                    });
+                });
                 if (logos.favicon) {
                     // "shortcut icon" is a space-separated list, which is what
                     // ~= matches on — a plain [rel="icon"] would miss it.
@@ -348,8 +363,11 @@ JS;
         // handler can swap one set for the other without asking the server.
         $classes = [];
         foreach (array_keys(theme_nit_modes()) as $key) {
-            $classes[$key] = trim('nit-mode-' . $key . ' ' .
-                theme_nit_brand_group_class($groups[$key] ?? 'g1'));
+            // Built by the same function the server used for this page's <html>,
+            // so the classes the button applies can never drift from the ones
+            // that were rendered — including `nit-chrome-light`, which is what
+            // tells CSS the bar is light.
+            $classes[$key] = theme_nit_mode_classes_for($key);
         }
 
         // The logos each mode wants. Everything else about the switch is CSS, so
@@ -362,14 +380,23 @@ JS;
         // and the drawer at core's 300x300 default, the footer at 0x120
         // (theme_nit_get_site_footer_context), and the browser tab.
         $logos = [];
+        $out = static fn($url) => $url ? $url->out(false) : '';
         foreach (['light', 'dark'] as $key) {
-            $navbar = theme_nit_logo_url('logocompact', 300, 300, $key);
-            $footer = theme_nit_logo_url('logocompact', 0, 120, $key);
-            $favicon = theme_nit_logo_url('favicon', 0, 0, $key);
+            // The sizes each place asks for, so a swapped URL is byte-identical
+            // to what a reload would have produced and the browser reuses the
+            // file it already has instead of fetching a second rendition.
+            //   navbar  300x300 — core's default (navbar, drawer, orbit centre)
+            //   footer    0x120 — theme_nit_get_site_footer_context()
+            //   compact   0x200 — window.NIT_LOGO, for front-page blocks
+            //   full      0x300 — window.NIT_LOGO_FULL, the wide lock-up
             $logos[$key] = [
-                'navbar' => $navbar ? $navbar->out(false) : '',
-                'footer' => $footer ? $footer->out(false) : '',
-                'favicon' => $favicon ? $favicon->out(false) : '',
+                'navbar' => $out(theme_nit_logo_url('logocompact', 300, 300, $key)),
+                'footer' => $out(theme_nit_logo_url('logocompact', 0, 120, $key)),
+                'compact' => $out(theme_nit_logo_url('logocompact', 0, 200, $key)
+                    ?: theme_nit_logo_url('logo', 0, 200, $key)),
+                'full' => $out(theme_nit_logo_url('logo', 0, 300, $key)
+                    ?: theme_nit_logo_url('logocompact', 0, 300, $key)),
+                'favicon' => $out(theme_nit_logo_url('favicon', 0, 0, $key)),
             ];
         }
         // A site with one logo gets no logo payload at all: identical maps mean

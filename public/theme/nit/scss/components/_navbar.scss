@@ -399,6 +399,22 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         }
     }
 
+    // A profile picture with transparency, on a LIGHT bar.
+    //
+    // The picture is a user's own file and the theme does not get to alter it —
+    // but it can put something behind it. A photograph is opaque and covers this
+    // completely, so the fill is only ever seen through a picture that has holes
+    // in it: a logo or a signature saved as a transparent PNG. Drawn in white,
+    // that is invisible on a white bar, and the avatar reads as missing.
+    //
+    // Only where the bar is light: on a dark bar the same picture already reads,
+    // and a fill there would be the thing that hid it. `nit-chrome-light` is set
+    // from the group's own navbar colour, so this follows a retuned palette
+    // instead of naming Group 4.
+    .nit-chrome-light & [data-region="usermenu"] .userbutton img {
+        background-color: var(--nit-brand-textprimary);
+    }
+
     // ---- Language menu (left of the brand) ----------------------------------
     .langmenu {
         position: relative;

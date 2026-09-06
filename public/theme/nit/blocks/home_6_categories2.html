@@ -84,7 +84,7 @@
       data-nit-brandmark=""> <img class="img-fluid"
         style="display: block; width: auto; height: auto; max-width: min(460px, 86%);"
         src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
-        data-nit-brandmark-img=""> </div>
+        data-nit-brandmark-img="" data-nit-logo="full"> </div>
 
     <div
       style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: clamp(20px, 2.6vw, 32px); align-items: stretch;"
@@ -143,6 +143,15 @@
       // Section 1. The uploaded logo replaces the one in the markup; if the site
       // has no logo at all the pasted picture stays, so the section is never a
       // gap where a brand mark should be.
+      //
+      // This runs ONCE, at load, which is right for the first paint and not
+      // enough on its own: the light/dark button changes the site's logo without
+      // reloading the page, and this image would have kept the previous mode's
+      // one. The `data-nit-logo="full"` attribute on the image is what the
+      // theme's mode switch looks for - it swaps every element carrying it at
+      // the same moment it swaps the palette. "full" asks for the wide lock-up,
+      // the same picture window.NIT_LOGO_FULL holds; "compact" would ask for the
+      // navbar mark.
       var mark = document.querySelector('[data-nit-brandmark-img]');
       var logo = window.NIT_LOGO_FULL || window.NIT_LOGO || '';
       if (mark && logo) {
