@@ -275,14 +275,40 @@ function theme_nit_brand_groups(): array {
  * @return string one of the group keys from theme_nit_brand_groups() (g1/g2/g3)
  */
 function theme_nit_category_brand_group(int $categoryid): string {
+    return theme_nit_category_brand_group_assigned($categoryid) ?? 'g1';
+}
+
+/**
+ * The group an admin EXPLICITLY assigned to a category, or null when there is none.
+ *
+ * Same resolution as theme_nit_category_brand_group() — the map is keyed by main
+ * category, so a subcategory answers with its top-level ancestor's group — but it
+ * tells "assigned to Group 1" apart from "never assigned", which the plain
+ * function cannot: both come back as `g1` there.
+ *
+ * That distinction is what lets a course page adopt its category's palette
+ * without stealing the light/dark switch from every OTHER course: an unassigned
+ * category returns null and the page stays on the mode's group (see
+ * theme_nit_page_brand_group()).
+ *
+ * @param int $categoryid the category being rendered, or a course's category
+ * @return string|null a group key (g1..g5), or null when nothing is assigned
+ */
+function theme_nit_category_brand_group_assigned(int $categoryid): ?string {
     static $map = null;
+    static $resolved = [];
+
     if ($map === null) {
         $raw = get_config('theme_nit', 'nit_category_groups');
         $map = ($raw && is_string($raw)) ? (json_decode($raw, true) ?: []) : [];
     }
-    if (empty($map)) {
-        return 'g1';
+    if (empty($map) || $categoryid <= 0) {
+        return null;
     }
+    if (array_key_exists($categoryid, $resolved)) {
+        return $resolved[$categoryid];
+    }
+
     // Styles are assigned per main category → resolve to the top-level ancestor.
     $topid = $categoryid;
     try {
@@ -294,8 +320,86 @@ function theme_nit_category_brand_group(int $categoryid): string {
     } catch (\Throwable $e) {
         $topid = $categoryid;
     }
-    $group = $map[$topid] ?? 'g1';
-    return array_key_exists($group, theme_nit_brand_groups()) ? $group : 'g1';
+
+    $group = $map[$topid] ?? null;
+    if ($group === null || !array_key_exists($group, theme_nit_brand_groups())) {
+        $group = null;
+    }
+    $resolved[$categoryid] = $group;
+    return $group;
+}
+
+/**
+ * The category-assigned brand group THIS request's page belongs to, if any.
+ *
+ * A category's style is a property of the category, not of one page in it: a
+ * visitor who opens a course from a Group 2 category should stay in Group 2 for
+ * the whole visit — the course page, its settings form, the participants list,
+ * the grader report, the activity overview, every report under "More". So the
+ * group is resolved from the page's own context rather than being printed by
+ * each screen, which is why only course/view.php used to carry it (the course
+ * format renderer was the single place that asked).
+ *
+ * Three ways a page can name a category, in order:
+ *   1. `$PAGE->course->category` — anything inside a course. Off the site course
+ *      this is 0, which is how non-course pages fall through.
+ *   2. `$PAGE->category` — the category pages proper (course/index.php).
+ *   3. A CONTEXT_COURSECAT page context — the category management screens, which
+ *      do not always set (2).
+ *
+ * Returns null unless the category (or its main ancestor) has a group assigned on
+ * the gallery "Category styles" tab: an unassigned category must leave the page
+ * on the light/dark switch's group, not pin it to Group 1.
+ *
+ * @return string|null group key (g1..g5), or null when the page is not in a styled category
+ */
+function theme_nit_page_brand_group(): ?string {
+    global $PAGE;
+
+    // `false` = not computed yet; `null` is a real answer ("no assigned group").
+    static $group = false;
+    if ($group !== false) {
+        return $group;
+    }
+    $group = null;
+
+    if (!isset($PAGE)) {
+        return null;
+    }
+
+    $catid = 0;
+    if (!empty($PAGE->course) && !empty($PAGE->course->category)) {
+        $catid = (int) $PAGE->course->category;
+    }
+    if (!$catid) {
+        try {
+            $cat = $PAGE->category;
+            if (!empty($cat->id)) {
+                $catid = (int) $cat->id;
+            }
+        } catch (\Throwable $e) {
+            $catid = 0;
+        }
+    }
+    if (!$catid) {
+        // Guarded: reading $PAGE->context before anything set one emits a
+        // debugging notice (and throws outright in an AJAX script under
+        // developer mode). Nothing here is worth a warning on somebody else's
+        // page, so a page that cannot answer simply does not get a group.
+        try {
+            $context = $PAGE->context;
+            if ($context && (int) $context->contextlevel === CONTEXT_COURSECAT) {
+                $catid = (int) $context->instanceid;
+            }
+        } catch (\Throwable $e) {
+            $catid = 0;
+        }
+    }
+
+    if ($catid) {
+        $group = theme_nit_category_brand_group_assigned($catid);
+    }
+    return $group;
 }
 
 /**
@@ -403,7 +507,18 @@ function theme_nit_current_mode(): string {
  * @return string space-separated class list (never empty)
  */
 function theme_nit_mode_classes(): string {
-    return theme_nit_mode_classes_for(theme_nit_current_mode());
+    $mode = theme_nit_current_mode();
+
+    // A category with an assigned style outranks the switch: every page under
+    // that category — the course, its settings, participants, grades, reports —
+    // renders in the category's group, so a course looks the same wherever the
+    // visitor is standing in it. theme_nit_page_brand_group() is null everywhere
+    // else, and then the switch's own group is used exactly as before.
+    $override = theme_nit_page_brand_group();
+    if ($override !== null) {
+        return theme_nit_html_classes_for($mode, $override);
+    }
+    return theme_nit_mode_classes_for($mode);
 }
 
 /**
@@ -418,8 +533,23 @@ function theme_nit_mode_classes(): string {
  * @return string space-separated class list
  */
 function theme_nit_mode_classes_for(string $mode): string {
-    $group = theme_nit_mode_groups()[$mode] ?? 'g1';
+    return theme_nit_html_classes_for($mode, theme_nit_mode_groups()[$mode] ?? 'g1');
+}
 
+/**
+ * The <html> classes for a given mode rendered in a given group.
+ *
+ * The two are normally tied together (a mode selects a group), but a styled
+ * category breaks the tie: the page renders in the CATEGORY's group while the
+ * visitor's chosen mode is still what it was. One builder for both cases, so the
+ * chrome class can never be derived from a different group than the one actually
+ * painting the page.
+ *
+ * @param string $mode 'light' | 'dark' — the visitor's choice
+ * @param string $group the group key this page actually renders in
+ * @return string space-separated class list
+ */
+function theme_nit_html_classes_for(string $mode, string $group): string {
     // `nit-chrome-light` / `nit-chrome-dark` says whether the BAR is light, which
     // is not the same question as which mode the visitor picked: a group is free
     // to run a dark bar over a light page. Measured from the group's own navbar
@@ -1779,14 +1909,19 @@ function theme_nit_group_is_light(string $group): bool {
 /**
  * The brand group this request's page CHROME renders in.
  *
- * The navbar and the footer sit outside any category wrapper, so their group is
- * always the one the light/dark switch selected — not whatever a category page
- * re-skins its own content with.
+ * Normally the group the light/dark switch selected. Inside a category that has
+ * a style assigned it is that category's group instead: the switch class lands on
+ * <html>, so the navbar and the footer are inside it like everything else, and
+ * the things that have to know how bright the bar is — `nit-chrome-*`, and above
+ * all which logo file to serve — must read the group that is actually painting
+ * it. Asking the switch here instead would hand a dark navbar the logo drawn for
+ * a light one, and the mark would disappear.
  *
  * @return string group key (g1..g5)
  */
 function theme_nit_active_chrome_group(): string {
-    return theme_nit_mode_groups()[theme_nit_current_mode()] ?? 'g1';
+    return theme_nit_page_brand_group()
+        ?? (theme_nit_mode_groups()[theme_nit_current_mode()] ?? 'g1');
 }
 
 /**

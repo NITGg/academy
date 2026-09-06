@@ -67,8 +67,11 @@
 // Deliberately NOT bridged: `--nit-dark*` and `--nit-cat-style1-*` (tokens that
 // are meant to stay dark whatever the group), `.dropdown-menu-dark` (a Bootstrap
 // utility that means "dark on purpose"), `.admin_colourpicker` (a developer
-// widget), and the handful of rules that use Text primary as a *background* —
-// they want "a near-white fill", which in a light group is not the body ink.
+// widget), and most of the rules that use Text primary as a *background* — they
+// want "a near-white fill", and in a light group the body ink is not that. The
+// exceptions are handled one at a time at the end of this file, where the fill
+// has an obvious role to be re-read as (a panel is a surface, a hover wash is
+// the hover background).
 // =============================================================================
 
 // ONE RULE PER GROUP OF SELECTORS, AND NO VENDOR PSEUDO-ELEMENTS IN THEM.
@@ -93,7 +96,6 @@
 #page-mod-quiz-edit div.quizpage .pagecontent .pagestatus,
 #region-main,
 .block .block-cards .course-summaryitem,
-.btn-add-content,
 .form-autocomplete-suggestions li.suggestions-heading,
 .message-app .message.received,
 .modchoosernav,
@@ -404,6 +406,7 @@ div.editor_atto_toolbar
 
 // Small primary-coloured glyphs and the current-section marker.
 .block-add,
+.btn-add-content,
 .btn-icon.icons-collapse-expand,
 .course-section .section-summary-activities .icon,
 .course-section .section_goto .icon,
@@ -424,4 +427,43 @@ div.editor_atto_toolbar
     --bs-btn-border-color: var(--nit-brand-primary);
     --bs-btn-disabled-bg: var(--nit-brand-primary);
     --bs-btn-disabled-border-color: var(--nit-brand-primary);
+}
+
+// The "Add a block" affordance, and the "Add content" drop zone beside it.
+//
+// Four colours each, and only the text was reached by the primary bridge above,
+// which is why the button stayed the Group 1 accent — red on a site whose
+// Group 1 primary is red — on a page with no red in its palette:
+//
+//   .block-add  color #5488c4        primary            (already bridged)
+//               border-color #76a0d0 primary tinted 20% toward white
+//               background #eef3f9   Group 1's INK, used as a pale fill
+//   .btn-add-content  the same story, plus a dashed border
+//
+// The two that were missed are the tint and the fill. The tint is reproduced
+// with the mix core computed (80% primary against white), so it tracks whatever
+// the group's primary is. The fill is re-read as a SURFACE, which is what it
+// actually is — a panel behind the dashed outline.
+//
+// NOTE, this one does move Group 1: the fill goes from near-white to the brand
+// surface. Core was using the body ink as a background, which on a dark theme
+// paints a white box on a navy page — visible today, and the reason the button
+// looks like a light-theme leftover. Now it is a panel in the group's own
+// surface colour in every group.
+.block-add,
+.btn-add-content {
+    background-color: var(--nit-brand-surface);
+    border-color: color-mix(in oklab, var(--nit-brand-primary) 80%, #fff);
+}
+
+.block-add .pluscontainer {
+    border-color: color-mix(in oklab, var(--nit-brand-primary) 80%, #fff);
+}
+
+.block-add:hover,
+.btn-add-content:hover,
+.btn-add-content:focus {
+    background-color: var(--nit-brand-hoverbackground);
+    border-color: var(--nit-brand-primary);
+    color: var(--nit-brand-primary);
 }

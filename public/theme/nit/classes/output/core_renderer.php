@@ -343,7 +343,11 @@ JS;
      *
      * Returns '' when both modes resolve to the same group — then the button
      * would change nothing, and a control that does nothing is worse than no
-     * control.
+     * control. Same reasoning hides it inside a styled category: those pages are
+     * pinned to the CATEGORY's group (theme_nit_page_brand_group()), so the only
+     * thing a click could do is swap that group out for the mode's and leave the
+     * course looking like somebody else's — until the next request, which would
+     * pin it straight back. A control that fights the page is worse still.
      *
      * @return string HTML, or '' when the switch would be a no-op
      */
@@ -354,6 +358,10 @@ JS;
 
         $groups = theme_nit_mode_groups();
         if (($groups['light'] ?? 'g1') === ($groups['dark'] ?? 'g2')) {
+            return '';
+        }
+
+        if (theme_nit_page_brand_group() !== null) {
             return '';
         }
 
