@@ -205,6 +205,14 @@ function theme_nit_brand_roles(): array {
     return [
         'primary'           => ['label' => 'Primary', 'usage' => ['background main button', 'checked toggles', 'progress fill', 'notification dots'], 'default' => '#5488c4'],
         'secondary'         => ['label' => 'Secondary', 'usage' => ['background secondary button'], 'default' => '#1c2a3a'],
+        // Text drawn ON a filled button, one role per button colour. These are
+        // roles rather than "whatever the body ink happens to be" because the
+        // right answer depends on the fill, not on the page: a light group fills
+        // its main button with a dark blue and needs white on it, a dark group
+        // fills it with a light blue and needs near-black. Getting that from
+        // "Text primary" was wrong by construction in half the groups.
+        'onprimary'         => ['label' => 'Text on main button', 'usage' => ['label inside a filled main button', 'text on any primary fill'], 'default' => '#eef3f9'],
+        'onsecondary'       => ['label' => 'Text on secondary button', 'usage' => ['label inside a secondary button', 'label inside an outline-secondary button'], 'default' => '#eef3f9'],
         'accent'            => ['label' => 'Accent', 'usage' => ['none text'], 'default' => '#5488c4'],
         'accenttext'        => ['label' => 'Accent Text', 'usage' => ['text of links', 'important words', 'underlines'], 'default' => '#7fabdb'],
         'background'        => ['label' => 'Background', 'usage' => ['page background'], 'default' => '#0c141f'],
@@ -445,6 +453,8 @@ function theme_nit_brand_group_defaults(): array {
         'g1' => [
             'primary'           => '#5488c4',
             'secondary'         => '#1c2a3a',
+            'onprimary'         => '#eef3f9',
+            'onsecondary'       => '#eef3f9',
             'accent'            => '#5488c4',
             'accenttext'        => '#7fabdb',
             'background'        => '#0c141f',
@@ -471,6 +481,8 @@ function theme_nit_brand_group_defaults(): array {
         'g2' => [
             'primary'           => '#2f9e8f',
             'secondary'         => '#12302e',
+            'onprimary'         => '#eef5f4',
+            'onsecondary'       => '#eef5f4',
             'accent'            => '#2f9e8f',
             'accenttext'        => '#58bdad',
             'background'        => '#0a1a1a',
@@ -497,6 +509,8 @@ function theme_nit_brand_group_defaults(): array {
         'g3' => [
             'primary'           => '#8478cf',
             'secondary'         => '#26243d',
+            'onprimary'         => '#efedf7',
+            'onsecondary'       => '#efedf7',
             'accent'            => '#8478cf',
             'accenttext'        => '#a99ee2',
             'background'        => '#11101c',
@@ -557,22 +571,30 @@ function theme_nit_brand_group_defaults(): array {
         'g4' => [
             'primary'           => '#2368bd',   // A600
             'secondary'         => '#e6e8eb',   // N200
+            // Buttons: white on the dark-blue fill (5.6:1), and the body ink on
+            // the pale grey secondary fill (16.6:1).
+            'onprimary'         => '#ffffff',
+            'onsecondary'       => '#14191f',   // N900
             'accent'            => '#2368bd',
             // A step darker than primary: on a light ground a link has to beat
             // the paper, not the ink.
             'accenttext'        => '#0e509d',   // A700
             'background'        => '#f6f8fb',   // N50
             'background2'       => '#f1f3f6',   // N100
-            'navbarbackground1' => '#0d1117',   // N950 — dark chrome, see above
-            'navbarbackground2' => '#14191f',   // N900
-            'footerbackground1' => '#0d1117',
-            'footerbackground2' => '#14191f',
+            // Light chrome. This group is light THROUGHOUT — bar, page and band.
+            // The bar is one step whiter than the page so it still reads as a
+            // bar; the footer is one step greyer, which is what lets the curve
+            // across its top be seen at all.
+            'navbarbackground1' => '#ffffff',
+            'navbarbackground2' => '#f6f8fb',   // N50
+            'footerbackground1' => '#f1f3f6',   // N100
+            'footerbackground2' => '#e6e8eb',   // N200
             'surface'           => '#ffffff',
             'textprimary'       => '#14191f',   // N900
-            // Navbar glyphs AND navbar text: near-white, because the bar is dark
-            // while the body ink is not (see --nit-navbartext in _root.scss).
-            'navbariconcolor'   => '#f6f8fb',   // N50
-            'navbariconbg'      => '#1f232a',   // N850
+            // The bar is light here, so its glyphs and its text (--nit-navbartext
+            // follows this role) are the body ink, not near-white.
+            'navbariconcolor'   => '#14191f',   // N900
+            'navbariconbg'      => '#e6e8eb',   // N200 — the hover pad
             'textsecondary'     => '#5e646b',   // N600
             'borderprimary'     => '#d5d9df',   // N300
             'bordersecondary'   => '#a7abb1',   // N400
@@ -601,6 +623,10 @@ function theme_nit_brand_group_defaults(): array {
         'g5' => [
             'primary'           => '#71a7ef',   // A400
             'secondary'         => '#2a2e35',   // N800
+            // Buttons: the page ground on the light-azure fill (7.6:1), and the
+            // body ink on the dark grey secondary fill.
+            'onprimary'         => '#0d1117',
+            'onsecondary'       => '#f6f8fb',
             'accent'            => '#71a7ef',
             'accenttext'        => '#98c0f7',   // A300
             'background'        => '#0d1117',   // N950

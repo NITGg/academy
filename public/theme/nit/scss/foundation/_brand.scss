@@ -30,7 +30,7 @@
 
 :root {
     // --- Per-group raw palettes (reference values; the switch classes read
-    //     these). 23 roles × 5 groups. -------------------------------------
+    //     these). 25 roles × 5 groups. -------------------------------------
     --nit-brand-g1-primary: #{$nit-b-g1-primary};
     --nit-brand-g1-secondary: #{$nit-b-g1-secondary};
     --nit-brand-g1-accent: #{$nit-b-g1-accent};
@@ -151,6 +151,19 @@
     --nit-brand-g5-warning: #{$nit-b-g5-warning};
     --nit-brand-g5-info: #{$nit-b-g5-info};
 
+    // Text-on-button roles (added later than the rest, so they are grouped
+    // here rather than threaded back through each block above).
+    --nit-brand-g1-onprimary: #{$nit-b-g1-onprimary};
+    --nit-brand-g1-onsecondary: #{$nit-b-g1-onsecondary};
+    --nit-brand-g2-onprimary: #{$nit-b-g2-onprimary};
+    --nit-brand-g2-onsecondary: #{$nit-b-g2-onsecondary};
+    --nit-brand-g3-onprimary: #{$nit-b-g3-onprimary};
+    --nit-brand-g3-onsecondary: #{$nit-b-g3-onsecondary};
+    --nit-brand-g4-onprimary: #{$nit-b-g4-onprimary};
+    --nit-brand-g4-onsecondary: #{$nit-b-g4-onsecondary};
+    --nit-brand-g5-onprimary: #{$nit-b-g5-onprimary};
+    --nit-brand-g5-onsecondary: #{$nit-b-g5-onsecondary};
+
     // --- Active layer — the names components actually use. Defaults to Group 1.
     --nit-brand-primary: var(--nit-brand-g1-primary);
     --nit-brand-secondary: var(--nit-brand-g1-secondary);
@@ -175,6 +188,10 @@
     --nit-brand-success: var(--nit-brand-g1-success);
     --nit-brand-warning: var(--nit-brand-g1-warning);
     --nit-brand-info: var(--nit-brand-g1-info);
+    --nit-brand-onprimary: var(--nit-brand-g1-onprimary);
+    --nit-brand-onsecondary: var(--nit-brand-g1-onsecondary);
+    // Legacy alias, kept because five component partials already read it.
+    --nit-brand-on-primary: var(--nit-brand-g1-onprimary);
 
     // --- Derived helpers. These reference the ACTIVE role vars, so they follow
     //     whichever group is in scope automatically (no per-group duplication).
@@ -199,7 +216,6 @@
     --nit-brand-accenttext-vivid: color-mix(in srgb, var(--nit-brand-accenttext) 70%, #fff);
     --nit-brand-surface-2: color-mix(in srgb, var(--nit-brand-surface) 90%, #fff);
     --nit-brand-surface-translucent: color-mix(in srgb, var(--nit-brand-surface) 88%, transparent);
-    --nit-brand-on-primary: var(--nit-brand-textprimary);
 }
 
 // --- Group switch classes. A component (or any wrapper) carrying one of these
@@ -230,6 +246,10 @@
     --nit-brand-success: var(--nit-brand-g2-success);
     --nit-brand-warning: var(--nit-brand-g2-warning);
     --nit-brand-info: var(--nit-brand-g2-info);
+    --nit-brand-onprimary: var(--nit-brand-g2-onprimary);
+    --nit-brand-onsecondary: var(--nit-brand-g2-onsecondary);
+    // Legacy alias, kept because five component partials already read it.
+    --nit-brand-on-primary: var(--nit-brand-g2-onprimary);
 }
 
 .nit-brand-3 {
@@ -256,6 +276,10 @@
     --nit-brand-success: var(--nit-brand-g3-success);
     --nit-brand-warning: var(--nit-brand-g3-warning);
     --nit-brand-info: var(--nit-brand-g3-info);
+    --nit-brand-onprimary: var(--nit-brand-g3-onprimary);
+    --nit-brand-onsecondary: var(--nit-brand-g3-onsecondary);
+    // Legacy alias, kept because five component partials already read it.
+    --nit-brand-on-primary: var(--nit-brand-g3-onprimary);
 }
 
 // Group 4 is the LIGHT palette (Daylight) — the pair Group 5 is the dark half
@@ -285,27 +309,12 @@
     --nit-brand-success: var(--nit-brand-g4-success);
     --nit-brand-warning: var(--nit-brand-g4-warning);
     --nit-brand-info: var(--nit-brand-g4-info);
-
-    // The one override a light group needs. `--nit-brand-on-primary` is declared
-    // once, above, as "the body ink" — which is right for every dark group (their
-    // ink is near-white, and near-white on a saturated fill reads). Here the ink
-    // is near-black, so keeping that rule would put near-black text on a bronze
-    // fill. The surface — this group's white — is what belongs on it instead.
-    //
-    // Declared here rather than as a 24th role because it is not a decision an
-    // admin makes: it follows from the group being light, and a role would ask
-    // the same question five times to get four identical answers.
-    --nit-brand-on-primary: var(--nit-brand-g4-surface);
+    --nit-brand-onprimary: var(--nit-brand-g4-onprimary);
+    --nit-brand-onsecondary: var(--nit-brand-g4-onsecondary);
+    // Legacy alias, kept because five component partials already read it.
+    --nit-brand-on-primary: var(--nit-brand-g4-onprimary);
 }
 
-// Group 5 needs the same override for the opposite reason. Its primary is a
-// LIGHT azure, because a fill dark enough to hold white text is too dim to see
-// against a near-black page — so the label has to be the dark ground, not the
-// near-white ink. Measured: near-white on the mid azure is 3.65:1 (below AA);
-// the page ground on the light azure is 7.64:1.
-.nit-brand-5 {
-    --nit-brand-on-primary: var(--nit-brand-g5-background);
-}
 
 // Group 5 is the DARK half of that pair (Graphite).
 .nit-brand-5 {
@@ -332,6 +341,10 @@
     --nit-brand-success: var(--nit-brand-g5-success);
     --nit-brand-warning: var(--nit-brand-g5-warning);
     --nit-brand-info: var(--nit-brand-g5-info);
+    --nit-brand-onprimary: var(--nit-brand-g5-onprimary);
+    --nit-brand-onsecondary: var(--nit-brand-g5-onsecondary);
+    // Legacy alias, kept because five component partials already read it.
+    --nit-brand-on-primary: var(--nit-brand-g5-onprimary);
 }
 
 // --- Bootstrap bridge -------------------------------------------------------

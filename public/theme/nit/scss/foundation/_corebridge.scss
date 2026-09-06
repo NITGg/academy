@@ -71,6 +71,15 @@
 // they want "a near-white fill", which in a light group is not the body ink.
 // =============================================================================
 
+// ONE RULE PER GROUP OF SELECTORS, AND NO VENDOR PSEUDO-ELEMENTS IN THEM.
+// A browser that cannot parse ONE selector in a comma-separated list throws the
+// WHOLE rule away — so `.custom-select:focus::-ms-value` (Internet Explorer only)
+// sitting in these lists silently disabled every other selector beside it, and
+// the form fields stayed on Group 1 while everything around them recoloured. The
+// selector lists below are copied from core's own rules, and core writes plenty
+// of vendor pseudos; strip them when refreshing this file. Nothing warns you —
+// the rule simply does not exist at runtime.
+//
 // Grounds — every rule core baked from Group 1's "Background".
 #course-category-listings .listitem.highlight,
 #course-category-listings.columns-3,
@@ -103,7 +112,6 @@
 .custom-control-label::before,
 .custom-file-label,
 .custom-select,
-.custom-select:focus::-ms-value,
 .custom-switch .custom-control-input:checked~.custom-control-label::after,
 .form-control,
 .form-control:focus,
@@ -136,7 +144,6 @@
 .custom-file-label,
 .custom-file-label::after,
 .custom-select,
-.custom-select:focus::-ms-value,
 .dropdown-item a,
 .footer-dark a:focus .icon,
 .form-autocomplete-downarrow,
@@ -255,17 +262,21 @@ div.editor_atto_toolbar
 .btn-secondary {
     --bs-btn-bg: var(--nit-brand-secondary);
     --bs-btn-border-color: var(--nit-brand-secondary);
-    --bs-btn-color: var(--nit-brand-textprimary);
+    --bs-btn-color: var(--nit-brand-onsecondary);
     --bs-btn-hover-bg: var(--nit-brand-secondary-hover);
     --bs-btn-hover-border-color: var(--nit-brand-secondary-hover);
-    --bs-btn-hover-color: var(--nit-brand-textprimary);
+    --bs-btn-hover-color: var(--nit-brand-onsecondary);
     --bs-btn-active-bg: var(--nit-brand-secondary-hover);
     --bs-btn-active-border-color: var(--nit-brand-secondary-hover);
-    --bs-btn-active-color: var(--nit-brand-textprimary);
+    --bs-btn-active-color: var(--nit-brand-onsecondary);
     --bs-btn-disabled-bg: var(--nit-brand-secondary);
     --bs-btn-disabled-border-color: var(--nit-brand-secondary);
 }
 
+// An OUTLINE button is not filled, so its label sits on the PAGE, not on the
+// secondary colour — it keeps the body ink. "Text on secondary button" would be
+// the wrong role here, and would break the moment an admin tuned it for the
+// filled button.
 .btn-outline-secondary {
     --bs-btn-color: var(--nit-brand-textprimary);
     --bs-btn-border-color: var(--nit-brand-bordersecondary);
@@ -279,7 +290,7 @@ div.editor_atto_toolbar
 
 .badge-secondary {
     background-color: var(--nit-brand-secondary);
-    color: var(--nit-brand-textprimary);
+    color: var(--nit-brand-onsecondary);
 }
 
 // The form field's own text and its placeholder. Core sets `$input-color` from

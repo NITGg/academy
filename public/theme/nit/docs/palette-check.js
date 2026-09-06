@@ -95,7 +95,7 @@ Object.entries(SEM).forEach(([k, h]) => {
   S.dark[k] = toHex(72, 0.125, h);
 });
 
-const g4 = { onprimary: '#ffffff',
+const g4 = { onprimary: '#ffffff', onsecondary: '#14191f',
   primary: A[600], secondary: N[200], accent: A[600], accenttext: A[700],
   background: N[50], background2: N[100], surface: '#ffffff',
   navbarbackground1: N[950], navbarbackground2: N[900],
@@ -107,7 +107,7 @@ const g4 = { onprimary: '#ffffff',
   warning: S.light.caution, info: S.light.note,
 };
 
-const g5 = { onprimary: '#0d1117',
+const g5 = { onprimary: '#0d1117', onsecondary: '#f6f8fb',
   primary: A[400], secondary: N[800], accent: A[400], accenttext: A[300],
   background: N[950], background2: N[900], surface: N[850],
   navbarbackground1: N[950], navbarbackground2: N[900],
@@ -121,7 +121,7 @@ const g5 = { onprimary: '#0d1117',
 
 function report(name, g) {
   console.log('\n--- ' + name + ' ---');
-  const order = ['primary', 'secondary', 'accent', 'accenttext', 'background', 'background2',
+  const order = ['primary', 'secondary', 'onprimary', 'onsecondary', 'accent', 'accenttext', 'background', 'background2',
     'navbarbackground1', 'navbarbackground2', 'footerbackground1', 'footerbackground2',
     'surface', 'textprimary', 'navbariconcolor', 'navbariconbg', 'textsecondary',
     'borderprimary', 'bordersecondary', 'hoverbackground', 'hovertext',
@@ -137,6 +137,7 @@ function report(name, g) {
     ['link on surface', g.accenttext, g.surface],
     ['link hover on surface', g.hovertext, g.surface],
     ['on-primary on primary', g.onprimary, g.primary],
+    ['on-secondary on secondary', g.onsecondary, g.secondary],
     ['error on surface', g.error, g.surface],
     ['success on surface', g.success, g.surface],
     ['warning on surface', g.warning, g.surface],

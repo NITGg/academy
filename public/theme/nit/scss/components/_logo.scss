@@ -58,3 +58,30 @@
     width: auto;
     object-fit: contain;
 }
+
+// =============================================================================
+// Light groups: the site logo is a white-on-transparent PNG.
+//
+// The mark is an admin setting (Appearance → Logos), not a theme asset, and the
+// one this academy uses is drawn in white for a dark bar. Group 4 puts that bar
+// on white, where the wordmark simply disappears — the corner of every page goes
+// blank.
+//
+// `brightness(0)` collapses every pixel to black while keeping the alpha
+// channel, so a white mark becomes a black one of exactly the same shape. It is
+// a fallback, not a design: a two-colour logo comes out monochrome. An academy
+// that wants its colours on a light bar should upload a dark-background version
+// of the mark and this rule can be dropped for it.
+//
+// Scoped to `.nit-brand-4` because that is the only light group; the dark groups
+// need the logo exactly as it is. The auth PANEL logo is deliberately excluded —
+// it sits over a photograph, not over the page, so it stays white in every group.
+.nit-brand-4 {
+    .nit-navbar-logo,
+    .navbar.fixed-top .navbar-brand .logo,
+    .drawer-primary .drawerheader .logo,
+    .nit-sitefooter__logo,
+    .login-logo {
+        filter: brightness(0);
+    }
+}

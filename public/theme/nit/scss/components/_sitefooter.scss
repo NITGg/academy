@@ -41,15 +41,44 @@
     // viewport. `overflow: hidden` (needed for the arc) then clips the columns
     // away entirely rather than letting them spill.
     flex: 0 0 auto;
-
-    // The hairline arc across the top of the band — the one thing separating the
-    // footer from the page above it, since both sit on the same brand ground.
+    // The curve across the top of the band.
     //
-    // In the design it is a wide, very shallow curve. An ellipse far wider than
-    // the viewport gives the same shape without shipping an SVG that would have
-    // to be re-exported every time the brand moved. `top` has to keep the
-    // ellipse's crown INSIDE the band: `overflow: hidden` clips anything above
-    // 0, so a negative top hides the very part of the curve that is the arc.
+    // In the design the footer's top edge is a wide, very shallow arc rather than
+    // a straight line. An ellipse far wider than the viewport gives that shape
+    // without shipping an SVG that would have to be re-exported every time the
+    // brand moved.
+    //
+    // Drawing it takes two things, and only having the first is what made the
+    // footer look like a straight band with a line on it:
+    //
+    //   1. the hairline itself (`::before`), and
+    //   2. the two corners ABOVE the hairline filled with the colour of the PAGE.
+    //
+    // Without (2) those corners stay footer-coloured, so the eye reads a flat
+    // edge with a stray arc inside it. Filling them from the page ground is what
+    // makes the band appear to be cut by the curve.
+    //
+    // (2) is a background-image rather than another element because a filled
+    // pseudo-element would paint over the footer's own content, which would then
+    // need z-index on every column. The gradient reproduces the `::before`
+    // ellipse exactly: that box is 160% of the footer wide and 16rem tall at
+    // `top: 0`, i.e. an ellipse with radii (80% of the footer width, 8rem)
+    // centred at (50%, 8rem). Anything inside it keeps the band colour
+    // (`transparent` lets `background-color` through); anything outside becomes
+    // the page. `background-size` clips the gradient to the top 2rem, because at
+    // the visible left and right edges the arc has only dropped ~1.75rem — below
+    // that strip the band must stay its own colour.
+    background-image:
+        radial-gradient(80% 8rem at 50% 8rem,
+            transparent 0 100%,
+            var(--nit-background) 100%);
+    background-repeat: no-repeat;
+    background-size: 100% 2rem;
+    background-position: top center;
+
+    // The hairline that sits on that boundary. `top` has to keep the ellipse's
+    // crown INSIDE the band: `overflow: hidden` clips anything above 0, so a
+    // negative top would hide the very part of the curve that is the arc.
     &::before {
         content: "";
         position: absolute;

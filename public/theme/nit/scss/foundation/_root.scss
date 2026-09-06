@@ -175,34 +175,11 @@
 // Dark-palette tokens (--nit-dark*) remain published above for the always-dark
 // marketing bands that read them directly.
 
-// -----------------------------------------------------------------------------
-// Group 4: the footer is a dark band inside a light group.
-//
-// Every alias above reads a brand role, which is right when a group is one light
-// level throughout. Group 4 is not: its page is near-white but its navigation bar
-// and footer are dark, so the logo (a white-on-transparent PNG) stays readable.
-// The bar is already handled — `--nit-navbartext` follows the "Navbar icon color"
-// role, which is the colour that shows on the chrome. The footer has seven tokens
-// of its own and they all read page roles, so without this its links, headings
-// and hints come out dark-on-dark: invisible.
-//
-// Scoped to `.nit-brand-4` and placed after the alias block on purpose. `:root`
-// and a class have the same specificity, so an override written in the switch
-// class earlier in the stream (_brand.scss) would lose to the aliases above;
-// declared here it wins, and no other group is touched.
-//
-// The values are the on-chrome colour and mixes of it — the same relationship the
-// dark groups already have between their footer text and their footer ground,
-// arrived at from the other side.
-.nit-brand-4 {
-    --nit-footertext: var(--nit-brand-g4-navbariconcolor);
-    --nit-footermuted: color-mix(in oklab, var(--nit-brand-g4-navbariconcolor) 62%, transparent);
-    --nit-footerborder: color-mix(in oklab, var(--nit-brand-g4-navbariconcolor) 22%, transparent);
-    // Headings and icons keep the accent, lifted far enough out of the navy to
-    // read on it — the page-side azure is tuned for white paper and disappears
-    // against the band.
-    --nit-footerheading: color-mix(in oklab, var(--nit-brand-g4-primary) 55%, #fff);
-    --nit-footericon: color-mix(in oklab, var(--nit-brand-g4-primary) 55%, #fff);
-    --nit-footericonhover: color-mix(in oklab, var(--nit-brand-g4-primary) 35%, #fff);
-    --nit-footerhover: color-mix(in oklab, var(--nit-brand-g4-primary) 35%, #fff);
-}
+// Group 4 needs no footer override any more. It used to: the group ran a DARK
+// navigation bar and footer under a light page (so the white site logo stayed
+// readable), which meant the footer's seven aliases above — all reading page
+// roles — painted dark text on a dark band. The group is now light throughout,
+// so every alias is right again, and the block that corrected them is gone. If a
+// group ever mixes light and dark that way again, the fix is here, not in the
+// footer partial: point --nit-footertext at "Navbar icon color" and mix the
+// heading and icon colours out of the accent.
