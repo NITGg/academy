@@ -35,6 +35,9 @@ class api {
     /** @var string File area the uploaded transcript is kept in. */
     public const FILEAREA = 'transcript';
 
+    /** @var string The AI placement that carries the site-wide switch for this feature. */
+    public const PLACEMENT = 'aiplacement_nit_videoassist';
+
     /** @var int Tolerated gap, in seconds, between the last cue and the video's end. */
     public const LENGTH_TOLERANCE = 120;
 
@@ -250,10 +253,21 @@ class api {
             $problems[] = get_string('check_empty', 'local_nit_ai');
         }
 
-        // An approved transcript and no AI provider looks identical to a working
-        // setup from the teacher's side — the assistant just never appears. Say so.
-        if (!self::provider_ready()) {
+        // Everything below is switched off somewhere else on the site. Each one
+        // looks identical from the activity — the assistant simply never appears
+        // — so each gets its own line rather than one vague "not working".
+        if (!self::placement_enabled()) {
+            $problems[] = get_string('check_placementoff', 'local_nit_ai');
+        } else if (!self::provider_ready()) {
             $problems[] = get_string('check_noprovider', 'local_nit_ai');
+        }
+
+        try {
+            if (!self::allowed_in_context(\context_module::instance($cmid))) {
+                $problems[] = get_string('check_contextoff', 'local_nit_ai');
+            }
+        } catch (\Throwable $e) {
+            debugging('local_nit_ai: no module context for cmid ' . $cmid, DEBUG_DEVELOPER);
         }
 
         if ($record->hastimestamps && $currentlength > 0) {
@@ -306,7 +320,34 @@ class api {
             return false;
         }
 
-        return self::provider_ready();
+        return self::placement_enabled()
+            && self::provider_ready()
+            && self::allowed_in_context($context);
+    }
+
+    /**
+     * Is the feature switched on for the site?
+     *
+     * This is the administrator's switch on Site administration > AI > AI
+     * placements, plus the per-action toggle underneath it.
+     *
+     * @return bool
+     */
+    public static function placement_enabled(): bool {
+        try {
+            [$type, $name] = explode('_', \core_component::normalize_componentname(self::PLACEMENT), 2);
+            $plugininfo = \core_plugin_manager::resolve_plugininfo_class($type);
+
+            if (!$plugininfo::is_plugin_enabled($name)) {
+                return false;
+            }
+
+            return \core\di::get(\core_ai\manager::class)
+                ->is_action_enabled(self::PLACEMENT, \core_ai\aiactions\generate_text::class);
+        } catch (\Throwable $e) {
+            debugging('local_nit_ai: placement check failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return false;
+        }
     }
 
     /**
@@ -320,6 +361,25 @@ class api {
                 ->is_action_available(\core_ai\aiactions\generate_text::class);
         } catch (\Throwable $e) {
             debugging('local_nit_ai: AI subsystem unavailable: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return false;
+        }
+    }
+
+    /**
+     * Has AI been left on for this course and activity?
+     *
+     * Moodle lets a course turn AI tools off, and an activity choose which
+     * actions it allows. Both apply to us like any other AI feature.
+     *
+     * @param \context $context
+     * @return bool
+     */
+    public static function allowed_in_context(\context $context): bool {
+        try {
+            return \core\di::get(\core_ai\manager::class)
+                ->is_action_enabled_in_context($context, \core_ai\aiactions\generate_text::class);
+        } catch (\Throwable $e) {
+            debugging('local_nit_ai: context check failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
             return false;
         }
     }

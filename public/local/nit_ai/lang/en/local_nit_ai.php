@@ -69,6 +69,8 @@ $string['check_stale'] = 'The video has been replaced since this transcript was 
 $string['check_notimestamps'] = 'No timestamps were found. The assistant will still answer questions, but it cannot tell where the student is or link back to a moment in the video.';
 $string['check_empty'] = 'No readable text was found in the file.';
 $string['check_noprovider'] = 'No AI provider is set up on this site yet, so the assistant cannot answer. An administrator needs to configure one under Site administration > AI.';
+$string['check_placementoff'] = 'The AI video assistant is switched off for the whole site. Turn it on under Site administration > AI > AI placements.';
+$string['check_contextoff'] = 'AI tools are switched off for this course or activity, so the assistant cannot run here.';
 $string['check_lengthmismatch'] = 'The transcript ends at {$a->transcript} but the video runs {$a->video}. This usually means the transcript is truncated, or belongs to a different video.';
 
 // Chat.
