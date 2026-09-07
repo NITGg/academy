@@ -16,8 +16,15 @@
     /** Turns kept in the browser and replayed with each question. */
     var HISTORY_TURNS = 6;
 
-    /** [M:SS] or [H:MM:SS] citations the model is asked to produce. */
-    var TIMECODE = /\[(\d{1,2}:)?(\d{1,2}):(\d{2})\]/g;
+    /**
+     * A cited moment: [4:12], [1:02:05], or the same without the brackets.
+     *
+     * The prompt asks for brackets, but models drop them often enough that
+     * relying on them loses the jump links exactly when the answer is good.
+     * Bare timecodes are accepted and then checked against the video's length,
+     * so a number that cannot be a moment in this video stays plain text.
+     */
+    var TIMECODE = /\[?\b((?:\d{1,2}:)?\d{1,2}:\d{2})\b\]?/g;
 
     /**
      * Call a Moodle web service.
@@ -59,16 +66,18 @@
     }
 
     /**
-     * Convert "M:SS" style pieces to a number of seconds.
+     * Convert "M:SS" or "H:MM:SS" to a number of seconds.
      *
-     * @param {string} hours may be empty
-     * @param {string} minutes
-     * @param {string} seconds
+     * @param {string} stamp
      * @return {number}
      */
-    function toSeconds(hours, minutes, seconds) {
-        var h = hours ? parseInt(hours, 10) : 0;
-        return (h * 3600) + (parseInt(minutes, 10) * 60) + parseInt(seconds, 10);
+    function toSeconds(stamp) {
+        var parts = stamp.split(':').map(function (p) {
+            return parseInt(p, 10);
+        });
+        return parts.reduce(function (total, part) {
+            return (total * 60) + part;
+        }, 0);
     }
 
     /**
@@ -87,11 +96,18 @@
             return html;
         }
 
-        return html.replace(TIMECODE, function (match, hours, minutes, seconds) {
-            var total = toSeconds(hours, minutes, seconds);
-            var label = match.slice(1, -1);
+        var duration = player.getDuration ? player.getDuration() : 0;
+
+        return html.replace(TIMECODE, function (match, stamp) {
+            var total = toSeconds(stamp);
+
+            // Past the end of the video it is a number, not a moment in it.
+            if (duration && total > duration + 5) {
+                return match;
+            }
+
             return '<button type="button" class="nitai-jump" data-seek="' + total + '" title="' +
-                escapeHtml(jumpLabel.replace('{time}', label)) + '">' + escapeHtml(label) + '</button>';
+                escapeHtml(jumpLabel.replace('{time}', stamp)) + '">' + escapeHtml(stamp) + '</button>';
         });
     }
 
