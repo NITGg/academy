@@ -142,6 +142,7 @@ class ui {
             'statustext' => self::status_text($record, $status),
             'facts' => self::facts($record, $describe['length']),
             'problems' => $status['problems'],
+            'hasproblems' => !empty($status['problems']),
             'problemstitle' => get_string('problemsfound', 'local_nit_ai'),
             'canapprove' => !$record->approved && !$status['stale'],
             'approvelabel' => get_string('approve', 'local_nit_ai'),
@@ -165,6 +166,12 @@ class ui {
         }
         if ($status['ready']) {
             return get_string('approved', 'local_nit_ai');
+        }
+        // Approved but still not running: something below is blocking it, and
+        // saying "waiting for your approval" would send the teacher hunting for
+        // a button that is correctly absent.
+        if ($record->approved) {
+            return get_string('approvedblocked', 'local_nit_ai');
         }
         return get_string('notapproved', 'local_nit_ai');
     }

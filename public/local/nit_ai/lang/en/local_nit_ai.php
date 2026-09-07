@@ -55,6 +55,7 @@ $string['lengthskipped'] = 'Length check skipped';
 $string['approve'] = 'Approve and enable';
 $string['approved'] = 'Approved — students can use the assistant';
 $string['notapproved'] = 'Waiting for your approval — students cannot see the assistant yet';
+$string['approvedblocked'] = 'Approved, but the assistant is still not running — see what is blocking it below.';
 $string['notenabled'] = 'The assistant is switched off for this activity in its settings.';
 $string['notranscript'] = 'No transcript uploaded yet. Add one in the activity settings to switch the assistant on.';
 $string['problemsfound'] = 'Check these before approving';

@@ -54,14 +54,15 @@
                 {{/facts}}
             </dl>
 
-            {{#problems.length}}
+            {{! Mustache has no .length on a PHP list, so the flag is passed in. }}
+            {{#hasproblems}}
                 <div class="alert alert-warning mt-3 mb-0" role="status">
                     <strong class="d-block mb-1">{{problemstitle}}</strong>
                     <ul class="mb-0 ps-3">
                         {{#problems}}<li>{{.}}</li>{{/problems}}
                     </ul>
                 </div>
-            {{/problems.length}}
+            {{/hasproblems}}
 
             {{#canapprove}}
                 <div class="mt-3">
