@@ -101,62 +101,79 @@
        FULL WIDTH, NOT A 670px SQUARE. On its own the artwork used to sit in a
        670px box in the middle of the section, which left a band of background
        down both sides of it on any normal desktop. It now takes the whole
-       width, and is held to a wide 21:10 box rather than a square so that
-       filling the width does not also make the block as tall as it is wide.
-       Everything inside is placed in per-cent - home_hero_orbit.js puts each
-       shape at 33% of the box out from the centre - so the ring, the shapes
-       and the gaps between them all stretch with it and the artwork reaches
-       both edges.
+       width, in a 16:9 box rather than a square so that filling the width does
+       not also make the block as tall as it is wide.
 
-       Three numbers hold that together:
-         max-width 1800px  a ceiling for 2K and 4K monitors, where an
-                           edge-to-edge ring is drawn thinner than a hairline
-                           and the shapes come out wider than they read.
-         min-height 560px  a shape is about 115px of icon, name and arrow, and
-                           it is 27.5% of the box HEIGHT. Much below 560px the
-                           text starts to press against the contour, which is
-                           what happens on a narrow desktop, where 21:10 of the
-                           width is not much height.
-         no max-height     deliberately. Below 768px the script drops the ring
-                           and lays the same shapes out as a two-column grid
-                           taller than any ceiling worth setting here, and the
-                           section clips what overflows it - a max-height would
-                           cut the last row off on a phone.
+       WIDER MEANS A WIDER ORBIT, NOT WIDER SHAPES. That distinction is the
+       whole trick, and the first attempt got it wrong: leave the defaults alone
+       in a wide box and every per-cent inside it grows sideways only, so the
+       shapes came out as flat lozenges and the centre as an oval - the artwork
+       read as an image someone had dragged out by the corner. Only the ORBIT is
+       allowed to be an ellipse here. Everything sitting on it is square or
+       round, at every width:
+         data-rx / data-ry  how far out the shapes sit, as a share of the box:
+                            42% of the width, 33.5% of its height. One value for
+                            both is a circle, which is what a square box wants
+                            and what every other block still gets - these two
+                            attributes are read by home_hero_orbit.js and
+                            default to the old 33.
+         the shapes         sized off the box HEIGHT with a 1:1 ratio, so they
+                            are the same square in a 1000px box as in a 2000px
+                            one. 29% is what 33.5% of the height leaves room
+                            for: the two shapes down each side must not touch.
+         the centre         the same, at 27%.
+         the beads          drawn by the script as round elements rather than as
+                            circles inside the stretched ring svg, where they
+                            would come out as ovals.
 
-       The one thing that does NOT stretch is the centre: it is sized in pixels
-       below, because a per-cent box inside a 21:10 parent is an oval and the
-       ring around the logo has to stay round. -->
+       max-width 1800px and the script's own 860px height ceiling keep a 2K or
+       4K monitor from turning this into a band taller than the screen; the
+       ceiling is set there, not here, because it has to be desktop-only. There
+       is deliberately no max-height in this file: below 768px the same element
+       is a two-column grid taller than any ceiling worth setting, the section
+       clips what overflows it, and the last row would simply be cut off. -->
   <div
-    style="position: relative; width: 100%; max-width: 1800px; margin: 0 auto; aspect-ratio: 21 / 10; min-height: 560px; direction: ltr;"
-    data-nit-orbit="" data-ids="14,15,16,17,18,19" data-icons="category"><!-- The ring the shapes sit on. Static, because its radius does not depend
+    style="position: relative; width: 100%; max-width: 1800px; margin: 0 auto; aspect-ratio: 16 / 9; min-height: 620px; direction: ltr;"
+    data-nit-orbit="" data-ids="14,15,16,17,18,19" data-icons="category"
+    data-rx="42" data-ry="33.5"><!-- The ring the shapes sit on. Static, because its radius does not depend
          on how many categories there are; the beads in the gaps are drawn by
-         the script, one per gap, cloned from this circle.
+         the script, one per gap - as round elements beside this svg, not as
+         circles inside it, because this one is stretched.
 
-         preserveAspectRatio="none" is what turns the ring into an ellipse in
-         the wide box. Without it the browser holds the 740-unit square in
-         ratio and letterboxes it, so the ring would be drawn as a circle only
-         as wide as the box is TALL, while the shapes - placed in per-cent of
-         width and of height - sit on an ellipse the full width of it. The two
-         would never meet. It stretches the beads in the gaps by the same
-         amount, which is the point: they stay on the ring. --><svg
+         preserveAspectRatio="none" is what opens the ring into an ellipse.
+         Without it the browser holds the 740-unit square in ratio and
+         letterboxes it, so the ring would be drawn as a circle only as wide as
+         the box is TALL while the shapes, placed at 42% of the width and 33.5%
+         of the height, sit on an ellipse the full width of it. The two would
+         never meet.
+
+         Stretching an svg stretches what it draws, which is why the line is the
+         ONLY thing left inside it. vector-effect="non-scaling-stroke" spares
+         the line itself: without it a 1.3-unit stroke is scaled by the box, so
+         it would be drawn nearly twice as thick across the top and bottom of
+         the ellipse as down its sides. --><svg
       style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;"
       viewBox="0 0 740 740" preserveAspectRatio="none" aria-hidden="true"
       data-nit-orbit-ring="">
       <circle cx="370" cy="370" r="300" fill="none" stroke-width="1.3"
-        data-nit-orbit-track=""></circle>
+        vector-effect="non-scaling-stroke" data-nit-orbit-track=""></circle>
       <g data-nit-orbit-beads=""></g>
     </svg><!-- Centre: the logo inside a gradient ring inside a faint halo ring.
          A real img, not an empty element painted through a CSS mask: the
          editor deletes any element with no content of its own.
 
-         Sized here in pixels, and nowhere else in this block is. The script
-         sizes the centre in per-cent - 26% of the box both ways - and 26% of a
-         21:10 box is an oval, which the bright ring and the halo around the
-         logo would follow. On a phone the script wins it back: its own rule is
-         marked important, so the logo still goes full width above the grid. -->
-    <div style="width: 190px; height: 190px;" data-nit-orbit-core=""><img
-        class="img-fluid" src="/moodle-new/theme/nit/pix/footer-logo.png"
-        alt="EAAC" data-nit-orbit-logo=""></div>
+         Sized off the HEIGHT alone, with the ratio left to work out the width.
+         The script sizes it at 26% of the box both ways, and 26% of a 16:9 box
+         is an oval - which the bright ring and the halo around the logo would
+         both follow. Height and ratio give the same circle at any width.
+
+         On a phone the script wins it back: its rules there are marked
+         important, down to an aspect-ratio of auto, so the logo still goes full
+         width above the grid rather than sitting in a blank square. -->
+    <div style="height: 27%; width: auto; aspect-ratio: 1 / 1;"
+        data-nit-orbit-core=""><img class="img-fluid"
+        src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
+        data-nit-orbit-logo=""></div>
     <!-- Card template, cloned once per category. The {{placeholder}} markers
          and the data-nit-orbit-* hooks are the contract with the script -
          renaming one empties the artwork.
@@ -165,8 +182,18 @@
          with nothing of their own inside, and the editor deletes an empty
          span and unwraps one holding only an svg. The script builds them. The
          d="M0 0" placeholders keep the paths from being attribute-less for
-         the same reason. -->
+         the same reason.
+
+         The height-and-ratio on the link is what keeps a shape square in a box
+         that is not. The script sizes a shape at 27.5% of the box in BOTH
+         directions, which in a 16:9 box is half as tall as it is wide, and the
+         contour inside it is drawn with preserveAspectRatio="none" - it would
+         follow the box exactly. 29% of the height is the largest square that
+         still leaves a gap between the two shapes down each side, and it
+         survives being cloned because the script only ever writes left and top.
+         The phone grid overrides all three with its own important rules. -->
     <div style="display: none;" data-nit-orbit-card=""><a href="{{url}}"
+        style="height: 29%; width: auto; aspect-ratio: 1 / 1;"
         data-nit-orbit-node=""><svg viewBox="0 0 100 100"
           preserveAspectRatio="none" aria-hidden="true"
           data-nit-orbit-shape="">

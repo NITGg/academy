@@ -126,12 +126,16 @@
       // A ring of 185px shapes needs ~670px to exist. Below that it folds to the
       // logo above a two-column grid of the same shapes. @media, not
       // @container: Moodle's RTL build silently drops @container blocks.
+      // A full-width orbit takes its height from its width, and on a 2K monitor
+      // that is a band taller than the screen. Desktop only: below 768px the same
+      // element is a two-column grid that has to be as tall as its rows are.
+      '@media (min-width:768px){[data-nit-orbit][data-rx]{max-height:860px}}' +
       '@media (max-width:767px){' +
       // minmax(0,1fr), not 1fr: a plain 1fr track cannot go below the shape's
       // min-content width, which pushed the orbit wider than the phone.
       '[data-nit-orbit]{aspect-ratio:auto!important;max-width:440px;display:grid;' +
       'grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}' +
-      '[data-nit-orbit-ring]{display:none}' +
+      '[data-nit-orbit-ring],[data-nit-orbit-bead]{display:none}' +
       // relative, NOT static. The shape's <svg> is position:absolute;inset:0, so
       // it is laid out against its nearest POSITIONED ancestor — take the
       // position off the node and every contour reparents to the orbit box and
@@ -140,7 +144,11 @@
       // outrank a plain stylesheet rule.
       '[data-nit-orbit-core],[data-nit-orbit-node]{position:relative!important;' +
       'left:auto!important;top:auto!important;transform:none!important}' +
-      '[data-nit-orbit-core]{grid-column:1/-1;display:flex;' +
+      // aspect-ratio too: a full-width block pins the centre square by giving it
+      // a height and letting the ratio work out the width, and left alone here
+      // that ratio would turn "height:auto" into a blank square the width of the
+      // phone sitting above the grid.
+      '[data-nit-orbit-core]{grid-column:1/-1;display:flex;aspect-ratio:auto!important;' +
       'width:100%!important;height:auto!important;padding:8px 0 22px;border-radius:0!important;' +
       'background:none!important;box-shadow:none!important}' +
       '[data-nit-orbit-core]::before,[data-nit-orbit-core]::after{display:none}' +
@@ -294,13 +302,22 @@
       return typeof v === 'string' && /^https?:\/\//i.test(v);
     }
 
-    // Evenly spaced around a circle, first item straight up. R is a share of the
-    // orbit box; 33% keeps the shapes clear of both the centre rings and the box
-    // edge, including the glow each one casts.
+    // How far out the shapes sit, as a share of the orbit box. 33% keeps them
+    // clear of both the centre rings and the box edge, including the glow each
+    // one casts, and that is what a square box wants in both directions.
+    //
+    // data-rx raises the HORIZONTAL one on its own, which is what a full-width
+    // block needs: a wide box has room to push the shapes out sideways and none
+    // to push them further up and down, so the ring opens into an ellipse while
+    // the shapes stay exactly as round as they are in a square one. Both default
+    // to 33, so a block that sets neither is placed as it always was.
+    var RX = parseFloat(orbit.dataset.rx) || 33;
+    var RY = parseFloat(orbit.dataset.ry) || 33;
+
     function place(node, i, total) {
       var a = (i / total) * Math.PI * 2;
-      node.style.left = (50 + Math.sin(a) * 33) + '%';
-      node.style.top = (50 - Math.cos(a) * 33) + '%';
+      node.style.left = (50 + Math.sin(a) * RX) + '%';
+      node.style.top = (50 - Math.cos(a) * RY) + '%';
     }
 
     // One bead per gap, sitting on the ring at the midpoint between two shapes.
@@ -309,7 +326,34 @@
     // appear as a string — Moodle's "Convert URLs into links" filter rewrites a
     // bare URL in block content into an <a href>, and inside a script that is a
     // syntax error. The block no longer carries this code, but the habit stays.
+    // The same beads as plain elements rather than svg circles. A full-width
+    // block stretches the ring svg to fill the box, which draws a circle inside
+    // it as an oval; an element put at 40.5% of the WIDTH and 40.5% of the
+    // HEIGHT lands on that same ellipse and stays round doing it. Built here and
+    // not written into the block because the editor deletes any element with
+    // nothing of its own inside, and a bead is exactly that.
+    function beadsRound(total) {
+      for (var i = 0; i < total; i++) {
+        var a = ((i + 0.5) / total) * Math.PI * 2;
+        var left = (50 + Math.sin(a) * 40.5) + '%';
+        var top = (50 - Math.cos(a) * 40.5) + '%';
+        var role = 'var(--nit-brand-' + ROLES[i % ROLES.length] + ')';
+        [[26, '.22'], [12, '1']].forEach(function(spec) {
+          var dot = document.createElement('span');
+          dot.setAttribute('data-nit-orbit-bead', '');
+          dot.style.cssText = 'position:absolute;border-radius:50%;pointer-events:none;' +
+            'transform:translate(-50%,-50%);width:' + spec[0] + 'px;height:' + spec[0] + 'px;' +
+            'opacity:' + spec[1] + ';background:' + role + ';left:' + left + ';top:' + top;
+          orbit.appendChild(dot);
+        });
+      }
+    }
+
     function beads(total) {
+      if (orbit.dataset.rx) {
+        beadsRound(total);
+        return;
+      }
       var box = orbit.querySelector('[data-nit-orbit-beads]');
       var track = orbit.querySelector('[data-nit-orbit-track]');
       if (!box || !track) {
