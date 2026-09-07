@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_commerce';
-$plugin->version   = 2026090202;   // AC-4.13.4/6/7 lowest-price offer, price-change confirmation, offer report.
+$plugin->version   = 2026090700;   // Course-category scope for coupons + offers (per-category pages).
 $plugin->requires  = 2024100700;
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;

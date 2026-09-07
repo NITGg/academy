@@ -50,6 +50,20 @@ class api_client {
         return trim((string) get_config('local_vdocipher', 'apisecret')) !== '';
     }
 
+    /**
+     * Shorten (or lengthen) the network timeout for this client.
+     *
+     * The default is generous because most callers are a teacher waiting on a
+     * form or a cron run with time to spare. A caller sitting in the middle of a
+     * page render is not: it would rather give up quickly and show nothing than
+     * hold the whole page while an unreachable API runs out its clock.
+     *
+     * @param int $seconds must be at least 1
+     */
+    public function set_timeout(int $seconds): void {
+        $this->timeout = max(1, $seconds);
+    }
+
     // ── Public API ───────────────────────────────────────────────────────────
 
     /**

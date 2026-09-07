@@ -139,6 +139,7 @@ $STR = local_nit_subscriptions_string_map(array(
     'sub_ca_pickplan', 'sub_ca_counter', 'sub_ca_unsaved', 'sub_ca_reset',
     'sub_ca_onlyselected', 'sub_ca_nomatch', 'sub_ca_catall', 'sub_ca_catnone', 'sub_ca_discard',
     'sub_ca_catcount',
+    'sub_field_categories', 'sub_categories_help', 'sub_categories_allopt', 'sub_categories_clear',
     'err_sessionexpired', 'err_requestfailed',
 ));
 
@@ -149,6 +150,10 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
     // Lists for the in-form per-country price editor.
     'countries'  => get_string_manager()->get_list_of_countries(),
     'currencies' => array('EGP', 'USD', 'EUR', 'GBP', 'SAR', 'AED', 'KWD', 'BHD', 'QAR', 'OMR'),
+    // Every course category, in tree order with children indented — the choices for the plan's
+    // category placement. Server-rendered rather than fetched, because the form needs them
+    // before the admin can open it, and the list is short.
+    'categories' => \local_nit_core\helper\category::options(),
 )) . ';');
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 ?>
@@ -271,6 +276,21 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 <input type="number" class="form-control" id="f-refundfee" min="0" max="100" step="0.01" placeholder="0.00">
                 <small class="text-muted"><?php echo $STR['sub_refundfee_help']; ?></small>
             </div>
+            <!-- ── Which category pages advertise this plan ──
+                 Three answers, and the middle one is the default because it is what an admin
+                 would have typed by hand: nothing selected = work it out from the plan's own
+                 courses. "All categories" is the deliberate override for a site-wide plan. -->
+            <div class="form-group sub-cats-box">
+                <label for="f-categories"><strong><?php echo $STR['sub_field_categories']; ?></strong></label>
+                <p class="text-muted sub-cats-help"><?php echo $STR['sub_categories_help']; ?></p>
+                <select class="form-control" id="f-categories" multiple size="8">
+                    <option value="0"><?php echo $STR['sub_categories_allopt']; ?></option>
+                </select>
+                <button type="button" id="f-categories-clear" class="btn btn-sm btn-link px-0">
+                    <?php echo $STR['sub_categories_clear']; ?>
+                </button>
+            </div>
+
             <div class="form-check mb-3">
                 <input type="checkbox" class="form-check-input" id="f-active" checked>
                 <label class="form-check-label" for="f-active"><?php echo $STR['ui_active']; ?></label>

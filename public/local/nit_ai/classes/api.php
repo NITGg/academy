@@ -1,0 +1,339 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+namespace local_nit_ai;
+
+/**
+ * Storage and status for video transcripts.
+ *
+ * Everything is keyed on cmid, never on a video provider: mod_vdocipher is one
+ * possible source, not the shape of the data. Swapping provider means writing a
+ * new player adapter in JS, not touching this.
+ *
+ * @package    local_nit_ai
+ * @copyright  2026 NIT
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class api {
+
+    /** @var string Table holding one transcript per course module. */
+    public const TABLE = 'local_nit_ai_transcripts';
+
+    /** @var string File area the uploaded transcript is kept in. */
+    public const FILEAREA = 'transcript';
+
+    /** @var int Tolerated gap, in seconds, between the last cue and the video's end. */
+    public const LENGTH_TOLERANCE = 120;
+
+    /**
+     * Fetch the transcript row for a course module.
+     *
+     * @param int $cmid
+     * @return \stdClass|null
+     */
+    public static function get(int $cmid): ?\stdClass {
+        global $DB;
+        return $DB->get_record(self::TABLE, ['cmid' => $cmid]) ?: null;
+    }
+
+    /**
+     * Save the assistant settings and, when a new file was uploaded, its parsed
+     * transcript.
+     *
+     * Uploading a new transcript clears the approval: whoever uploads reviews.
+     *
+     * @param int $cmid
+     * @param int $courseid
+     * @param string $component owning module, e.g. mod_vdocipher
+     * @param string $sourceref provider video id at the time of saving
+     * @param int $sourcelength video duration in seconds (0 when unknown)
+     * @param bool $enabled teacher wants the assistant on this activity
+     * @param bool $hasonscreen the transcript includes on-screen text
+     * @param string|null $content raw transcript file, or null to keep the stored one
+     * @param string $filename original name, used as a format hint
+     * @return void
+     */
+    public static function save(
+        int $cmid,
+        int $courseid,
+        string $component,
+        string $sourceref,
+        int $sourcelength,
+        bool $enabled,
+        bool $hasonscreen,
+        ?string $content = null,
+        string $filename = ''
+    ): void {
+        global $DB, $USER;
+
+        $now = time();
+        $existing = self::get($cmid);
+
+        $record = $existing ?: (object) [
+            'cmid'         => $cmid,
+            'timecreated'  => $now,
+            'approved'     => 0,
+            'approvedby'   => 0,
+        ];
+
+        $record->courseid     = $courseid;
+        $record->component    = $component;
+        $record->enabled      = (int) $enabled;
+        $record->hasonscreen  = (int) $hasonscreen;
+        $record->timemodified = $now;
+
+        if ($content !== null) {
+            $parsed = transcript_parser::parse($content, $filename);
+
+            $record->format        = $parsed['format'];
+            $record->lang          = $parsed['lang'];
+            $record->hastimestamps = (int) $parsed['hastimestamps'];
+            $record->segmentcount  = count($parsed['cues']);
+            $record->lasttimestamp = $parsed['lasttimestamp'];
+            $record->segments      = json_encode($parsed['cues'], JSON_UNESCAPED_UNICODE);
+            $record->plaintext     = $parsed['plaintext'];
+
+            // A new transcript describes the video as it is right now, and needs
+            // a fresh review before students see it.
+            $record->sourceref    = $sourceref;
+            $record->sourcelength = $sourcelength;
+            $record->approved     = 0;
+            $record->approvedby   = 0;
+            $record->usermodified = (int) $USER->id;
+        } else if ($existing && $sourcelength > 0 && (int) $existing->sourcelength === 0) {
+            // The provider only learns the duration once it finishes processing;
+            // fill it in so the length check can run on the next look.
+            $record->sourcelength = $sourcelength;
+        }
+
+        if ($existing) {
+            $DB->update_record(self::TABLE, $record);
+        } else if ($content !== null) {
+            $DB->insert_record(self::TABLE, $record);
+        }
+        // No existing row and no file: nothing worth storing yet.
+    }
+
+    /**
+     * Take everything the activity form collected and store it.
+     *
+     * The one call a module makes from its add/update instance hook, after its
+     * own record and any provider mapping are already written — the video id
+     * and duration are read back from there.
+     *
+     * @param object $cm object with id, modname and instance
+     * @param \stdClass $data submitted form data
+     * @return void
+     */
+    public static function save_from_module(object $cm, \stdClass $data): void {
+        $context = \context_module::instance((int) $cm->id);
+        $change = helper::save_draft_and_detect_change($context, (int) ($data->nitai_transcript ?? 0));
+        $describe = source::describe($cm);
+
+        self::save(
+            cmid: (int) $cm->id,
+            courseid: (int) ($data->course ?? 0),
+            component: 'mod_' . $cm->modname,
+            sourceref: $describe['ref'],
+            sourcelength: $describe['length'],
+            enabled: !empty($data->nitai_enabled),
+            hasonscreen: !empty($data->nitai_onscreen),
+            content: $change['content'] ?? null,
+            filename: $change['filename'] ?? ''
+        );
+    }
+
+    /**
+     * Mark the transcript reviewed, which is what lets students see the assistant.
+     *
+     * @param int $cmid
+     * @return void
+     */
+    public static function approve(int $cmid): void {
+        global $DB, $USER;
+
+        $record = self::get($cmid);
+        if (!$record) {
+            return;
+        }
+        $record->approved     = 1;
+        $record->approvedby   = (int) $USER->id;
+        $record->timemodified = time();
+        $DB->update_record(self::TABLE, $record);
+    }
+
+    /**
+     * Remove everything we hold for a course module.
+     *
+     * @param int $cmid
+     * @return void
+     */
+    public static function delete(int $cmid): void {
+        global $DB;
+
+        $DB->delete_records(self::TABLE, ['cmid' => $cmid]);
+
+        try {
+            $context = \context_module::instance($cmid);
+        } catch (\Throwable $e) {
+            return; // Module context already gone.
+        }
+        get_file_storage()->delete_area_files($context->id, 'local_nit_ai', self::FILEAREA);
+    }
+
+    /**
+     * The cues, decoded.
+     *
+     * @param \stdClass $record
+     * @return array list of {s,e,t}
+     */
+    public static function cues(\stdClass $record): array {
+        $cues = json_decode((string) $record->segments, true);
+        return is_array($cues) ? $cues : [];
+    }
+
+    /**
+     * Has the video been replaced since this transcript was uploaded?
+     *
+     * The provider hands out a new id for a new upload, so this is a definite
+     * answer rather than a guess at timestamps.
+     *
+     * @param \stdClass $record
+     * @param string $currentsourceref
+     * @return bool
+     */
+    public static function is_stale(\stdClass $record, string $currentsourceref): bool {
+        return $currentsourceref !== '' && $record->sourceref !== '' && $record->sourceref !== $currentsourceref;
+    }
+
+    /**
+     * Everything the teacher's review panel needs: what we read out of the file,
+     * and every check that could catch a wrong or truncated transcript.
+     *
+     * @param int $cmid
+     * @param string $currentsourceref
+     * @param int $currentlength video duration in seconds, 0 when the provider has not reported one
+     * @return array|null null when no transcript has been uploaded
+     */
+    public static function status(int $cmid, string $currentsourceref, int $currentlength): ?array {
+        $record = self::get($cmid);
+        if (!$record) {
+            return null;
+        }
+
+        $stale = self::is_stale($record, $currentsourceref);
+        $problems = [];
+        $lengthcheck = 'skipped';
+
+        if ($stale) {
+            $problems[] = get_string('check_stale', 'local_nit_ai');
+        }
+
+        if (!$record->hastimestamps) {
+            $problems[] = get_string('check_notimestamps', 'local_nit_ai');
+        }
+
+        if (!$record->segmentcount && trim((string) $record->plaintext) === '') {
+            $problems[] = get_string('check_empty', 'local_nit_ai');
+        }
+
+        // An approved transcript and no AI provider looks identical to a working
+        // setup from the teacher's side — the assistant just never appears. Say so.
+        if (!self::provider_ready()) {
+            $problems[] = get_string('check_noprovider', 'local_nit_ai');
+        }
+
+        if ($record->hastimestamps && $currentlength > 0) {
+            $gap = $currentlength - (int) $record->lasttimestamp;
+            if (abs($gap) > self::LENGTH_TOLERANCE) {
+                $lengthcheck = 'failed';
+                $problems[] = get_string('check_lengthmismatch', 'local_nit_ai', (object) [
+                    'transcript' => helper::timecode((int) $record->lasttimestamp),
+                    'video'      => helper::timecode($currentlength),
+                ]);
+            } else {
+                $lengthcheck = 'passed';
+            }
+        }
+
+        return [
+            'record'      => $record,
+            'stale'       => $stale,
+            'lengthcheck' => $lengthcheck,
+            'problems'    => $problems,
+            'ready'       => $record->enabled && $record->approved && !$stale && empty($problems),
+        ];
+    }
+
+    /**
+     * Should this user see the assistant on this activity?
+     *
+     * Every gate lives here on purpose. Today the entitlement question always
+     * answers yes — when the assistant becomes a paid-tier feature, this is the
+     * one place that changes.
+     *
+     * @param \cm_info|\stdClass $cm
+     * @param \context $context
+     * @param string $currentsourceref
+     * @return bool
+     */
+    public static function is_available(object $cm, \context $context, string $currentsourceref = ''): bool {
+        if (!has_capability('local/nit_ai:use', $context)) {
+            return false;
+        }
+        if (!self::is_entitled($context)) {
+            return false;
+        }
+
+        $record = self::get((int) $cm->id);
+        if (!$record || !$record->enabled || !$record->approved) {
+            return false;
+        }
+        if (self::is_stale($record, $currentsourceref)) {
+            return false;
+        }
+
+        return self::provider_ready();
+    }
+
+    /**
+     * Is there an AI provider that can actually answer a question?
+     *
+     * @return bool
+     */
+    public static function provider_ready(): bool {
+        try {
+            return \core\di::get(\core_ai\manager::class)
+                ->is_action_available(\core_ai\aiactions\generate_text::class);
+        } catch (\Throwable $e) {
+            debugging('local_nit_ai: AI subsystem unavailable: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return false;
+        }
+    }
+
+    /**
+     * The subscription gate, deliberately isolated and deliberately open.
+     *
+     * @param \context $context
+     * @return bool
+     */
+    public static function is_entitled(\context $context): bool {
+        // Phase 1: available to everyone. Wire this to the subscription tier when
+        // that decision is made — nothing else needs to change.
+        unset($context);
+        return true;
+    }
+}

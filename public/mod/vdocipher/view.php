@@ -61,11 +61,24 @@ try {
 
 $src = 'https://player.vdocipher.com/v2/?otp=' . rawurlencode($data['otp'])
      . '&playbackInfo=' . rawurlencode($data['playbackInfo']);
-?>
-<div style="position:relative;width:100%;max-width:960px;margin:1rem auto;aspect-ratio:16/9;background:#000;">
-  <iframe src="<?php echo s($src); ?>"
-          style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
-          allow="encrypted-media" allowfullscreen></iframe>
-</div>
-<?php
+
+// The teacher's transcript review; empty for everyone else.
+echo \local_nit_ai\ui::review_panel($cm, $context);
+
+// The student's assistant; empty unless a transcript is approved and in date.
+// It attaches to the iframe below through VdoCipher's player API — the embed
+// itself needs nothing special.
+$chat = \local_nit_ai\ui::chat_drawer($cm, $context);
+
+$player = '<div style="position:relative;width:100%;aspect-ratio:16/9;background:#000;">'
+    . '<iframe src="' . s($src) . '"'
+    . ' style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"'
+    . ' allow="encrypted-media" allowfullscreen></iframe></div>';
+
+if ($chat !== '') {
+    echo html_writer::div($player . $chat, 'nitai-video-layout');
+} else {
+    echo html_writer::div($player, '', ['style' => 'max-width:960px;margin:1rem auto;']);
+}
+
 echo $OUTPUT->footer();

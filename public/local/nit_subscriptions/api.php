@@ -119,6 +119,7 @@ try {
                 'b2b_enabled'   => optional_param('b2b_enabled', 0, PARAM_INT),
                 'seat_options'  => nit_subscriptions_seat_options(),
                 'prices'        => nit_subscriptions_prices(),
+                'categories'    => nit_subscriptions_categories(),
             ], $USER->id);
             nit_subscriptions_respond(['status' => 'success', 'data' => ['id' => $id]]);
             break;
@@ -138,6 +139,7 @@ try {
                 'b2b_enabled'   => optional_param('b2b_enabled', 0, PARAM_INT),
                 'seat_options'  => nit_subscriptions_seat_options(),
                 'prices'        => nit_subscriptions_prices(),
+                'categories'    => nit_subscriptions_categories(),
             ], $USER->id);
             nit_subscriptions_respond(['status' => 'success', 'data' => []]);
             break;
@@ -328,6 +330,9 @@ try {
 
         case 'get_available_subscriptions':
             $country = optional_param('country', '', PARAM_ALPHA);
+            // A category landing page asks for its own plans; the home page and the app send
+            // nothing and get the whole price list, exactly as they always did.
+            $categoryid = optional_param('categoryid', 0, PARAM_INT);
             // `viewer` rides ALONGSIDE `data`, never inside it: the home-page block needs to
             // know whether this visitor can actually buy, while the mobile app and the
             // external function keep reading exactly the list shape they always have.
@@ -338,7 +343,7 @@ try {
             // login page. The server is the only honest source for this.
             nit_subscriptions_respond([
                 'status' => 'success',
-                'data'   => nit_subscriptions_available($country !== '' ? $country : null),
+                'data'   => nit_subscriptions_available($country !== '' ? $country : null, $categoryid),
                 'viewer' => [
                     'loggedin'      => (bool) (isloggedin() && !isguestuser()),
                     'isguest'       => (bool) isguestuser(),
@@ -397,6 +402,20 @@ function nit_subscriptions_prices(): array {
     $raw = optional_param('prices', '[]', PARAM_RAW);
     $decoded = json_decode($raw, true);
     return is_array($decoded) ? $decoded : [];
+}
+
+/**
+ * Decode the categories JSON parameter into an array of course-category ids.
+ *
+ * An empty array is a real answer, not a missing one: it clears the plan's assignment and lets
+ * its placement be derived from the courses it unlocks. A single 0 means "every category".
+ *
+ * @return int[]
+ */
+function nit_subscriptions_categories(): array {
+    $raw = optional_param('categories', '[]', PARAM_RAW);
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? array_map('intval', $decoded) : [];
 }
 
 // nit_subscriptions_available() now lives in lib.php (shared with the get_available_subscriptions

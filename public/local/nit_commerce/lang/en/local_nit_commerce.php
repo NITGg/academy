@@ -57,6 +57,7 @@ $string['scope_all_course']       = 'All courses';
 $string['scope_all_package']      = 'All packages';
 $string['scope_all_subscription'] = 'All subscriptions';
 $string['scope_all_program']      = 'All programs';
+$string['scope_all_category']     = 'All categories';
 
 // Coupons.
 $string['cpn_new']         = 'Create coupon';
@@ -81,6 +82,8 @@ $string['cpn_type_percent'] = 'Percentage';
 $string['cpn_type_fixed']   = 'Fixed';
 $string['cpn_usage_once']     = 'One-time';
 $string['cpn_usage_multiple'] = 'Multiple use';
+$string['cpn_scope_categories']    = 'Course categories';
+$string['cpn_scope_categories_help'] = 'A category covers every course filed under it, including its subcategories — and it is also what decides which category pages advertise this. Pick categories to tie it to a branch of the catalogue; leave them unticked and it is scoped by the courses and plans you select below, and shown wherever those live.';
 $string['cpn_scope_courses']       = 'Courses';
 $string['cpn_scope_packages']      = 'Packages';
 $string['cpn_scope_subscriptions'] = 'Subscriptions';

@@ -67,6 +67,24 @@
       </INDEXES>
     </TABLE>
 
+    <TABLE NAME="nit_subscription_category" COMMENT="Which course categories a plan belongs to, i.e. whose landing page advertises it. categoryid 0 = every category. No rows at all = derive it from the plan's own courses.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="subscriptionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="categoryid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="course_categories.id; 0 = all categories"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="subscriptionid_fk" TYPE="foreign" FIELDS="subscriptionid" REFTABLE="nit_subscription" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="sub_category_uk" UNIQUE="true" FIELDS="subscriptionid, categoryid"/>
+        <INDEX NAME="categoryid_idx" UNIQUE="false" FIELDS="categoryid"/>
+      </INDEXES>
+    </TABLE>
+
     <TABLE NAME="nit_course_access" COMMENT="Which subscriptions unlock a course. subscriptionid 0 = all subscriptions.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>

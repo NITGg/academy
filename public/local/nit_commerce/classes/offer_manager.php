@@ -193,9 +193,15 @@ class offer_manager {
     /**
      * Active, in-window offers. Each row includes its scope labels.
      *
+     * $categoryid narrows the list to the offers that belong on one category's landing page —
+     * those scoped to that branch, plus the site-wide ones. 0 (the default, and what the home
+     * page and the announcement bar send) means the whole catalogue. Same rule as the coupons,
+     * so an offer and the coupon beside it can never disagree about where they belong.
+     *
+     * @param int $categoryid restrict to a category branch; 0 = no restriction
      * @return array
      */
-    public static function get_available_offers() {
+    public static function get_available_offers($categoryid = 0) {
         global $DB;
         $now = time();
         $rows = array_values($DB->get_records('nit_offer', array('status' => self::STATUS_ACTIVE), 'timecreated DESC'));
@@ -203,6 +209,12 @@ class offer_manager {
         foreach ($rows as $r) {
             if ($r->startdate > 0 && $now < $r->startdate) { continue; }
             if ($r->enddate > 0 && $now > $r->enddate) { continue; }
+            if ((int) $categoryid > 0) {
+                $items = $DB->get_records('nit_offer_item', array('offerid' => $r->id));
+                if (!discount_manager::matches_category($items, (int) $categoryid)) {
+                    continue;
+                }
+            }
             $out[] = self::format($r);
         }
         return $out;

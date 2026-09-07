@@ -42,6 +42,12 @@
  * per-module lookup is keyed by the course cache revision, so a warm page render
  * costs no file queries at all.
  *
+ * A video that is not stored here at all - a VdoCipher activity, whose bytes
+ * never touch this server - has no header to read and none of that caching
+ * applies, so that one question is handed to local_vdocipher, which holds the
+ * length the provider reported. Callers see one answer either way: for_cm() is
+ * the only door.
+ *
  * @package    local_nit_media
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -69,6 +75,14 @@ class duration {
      * @return int|null seconds, or null when the module is not a video or its length is unreadable
      */
     public static function for_cm(\cm_info $cm): ?int {
+        // A hosted video is not a file we can open, and its length appears only
+        // once the provider finishes transcoding - which happens without any
+        // course edit. Neither half of the caching below fits that, so the
+        // provider answers, and caches, for itself.
+        if ($cm->modname === 'vdocipher') {
+            return self::for_hosted_cm($cm);
+        }
+
         $cache = \core_cache\cache::make('local_nit_media', 'duration');
 
         // The course cache revision is bumped whenever a module is edited, which
@@ -123,6 +137,32 @@ class duration {
         return $hours > 0
             ? sprintf('%d:%02d:%02d', $hours, $minutes, $secs)
             : sprintf('%d:%02d', $minutes, $secs);
+    }
+
+    /**
+     * Playing time of a video held by an external provider, in whole seconds.
+     *
+     * Only mod_vdocipher is handled: its video lives on VdoCipher, so the length
+     * is the provider's to report and there is nothing here to parse.
+     * local_vdocipher already stores it beside the video's id and keeps it
+     * current - see \local_vdocipher\video_service::length_for_cm.
+     *
+     * Guarded by class_exists exactly as our own caller guards this class: on a
+     * site without that plugin the row simply shows no duration.
+     *
+     * @param \cm_info $cm
+     * @return int|null seconds, or null when the provider does not know it yet
+     */
+    protected static function for_hosted_cm(\cm_info $cm): ?int {
+        if (!class_exists('\local_vdocipher\video_service')) {
+            return null;
+        }
+
+        $seconds = \local_vdocipher\video_service::length_for_cm((int) $cm->id, (int) $cm->course);
+        if ($seconds === null || $seconds < 1 || $seconds > self::MAX_SECONDS) {
+            return null;
+        }
+        return $seconds;
     }
 
     /**

@@ -104,6 +104,11 @@ class subscription_manager {
         if (array_key_exists('prices', $data)) {
             self::replace_prices($id, (array) $data['prices'], $userid);
         }
+        // Which category pages advertise the plan. Absent means "derive it from the courses",
+        // which is what a plan created without touching the field should do.
+        if (array_key_exists('categories', $data)) {
+            self::save_categories($id, (array) $data['categories'], $userid);
+        }
         return $id;
     }
 
@@ -186,6 +191,12 @@ class subscription_manager {
         if (array_key_exists('prices', $data)) {
             self::replace_prices($sub->id, (array) $data['prices'], $userid);
         }
+
+        // Category placement. Replace-on-save like the prices above, so clearing the field in
+        // the form really does hand placement back to the plan's courses.
+        if (array_key_exists('categories', $data)) {
+            self::save_categories($sub->id, (array) $data['categories'], $userid);
+        }
     }
 
     /**
@@ -228,6 +239,7 @@ class subscription_manager {
         $transaction = $DB->start_delegated_transaction();
         $DB->delete_records('nit_course_access', array('subscriptionid' => $id));
         $DB->delete_records('nit_sub_seat_option', array('subscriptionid' => $id));
+        $DB->delete_records('nit_subscription_category', array('subscriptionid' => $id));
         $DB->delete_records('nit_subscription', array('id' => $id));
         $transaction->allow_commit();
     }
@@ -276,6 +288,10 @@ class subscription_manager {
         foreach ($rows as $r) {
             $r->courses = self::courses_detail($r->id);
             $r->b2b_enabled = (int)$r->b2b_enabled;
+            // The raw assignment, not the derived placement: the edit form has to be able to
+            // show "nothing chosen" as nothing chosen, or saving would silently freeze whatever
+            // the courses happened to imply on the day the plan was last opened.
+            $r->categories = self::get_categories($r->id);
             $r->seat_options = self::get_seat_options($r->id, (float)$r->price);
             // Per-country price overrides, for the in-form editor.
             $r->prices = array_map(function ($p) {
@@ -725,6 +741,109 @@ class subscription_manager {
         $transaction->allow_commit();
 
         return self::courses_detail($subscriptionid);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Course categories a plan belongs to (which landing pages advertise it)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * The categories explicitly assigned to a plan.
+     *
+     * Three states, and they are not the same thing:
+     *   - [] — nothing assigned, so the plan's placement is DERIVED from its courses;
+     *   - [0] — the admin deliberately said "every category", overriding that;
+     *   - [12, 30] — those branches and no others.
+     *
+     * @param int $subscriptionid
+     * @return int[]
+     */
+    public static function get_categories($subscriptionid) {
+        global $DB;
+        $ids = $DB->get_fieldset_select('nit_subscription_category', 'categoryid',
+            'subscriptionid = :sid', array('sid' => (int) $subscriptionid));
+        return array_values(array_unique(array_map('intval', $ids)));
+    }
+
+    /**
+     * Replace the categories assigned to a plan.
+     *
+     * An empty array clears the assignment and hands placement back to the plan's courses; a 0
+     * anywhere in the list collapses to the single "all categories" row, because "all" and "all
+     * plus Programming" are the same instruction and storing both invites them to drift apart.
+     *
+     * @param int $subscriptionid
+     * @param int[] $categoryids
+     * @param int $userid admin
+     * @return int[] the stored ids
+     */
+    public static function save_categories($subscriptionid, array $categoryids, $userid = 0) {
+        global $DB;
+
+        $subscriptionid = (int) $subscriptionid;
+        $ids = array_values(array_unique(array_map('intval', $categoryids)));
+        $ids = array_values(array_filter($ids, static function ($id) {
+            return $id === 0 || \local_nit_core\helper\category::exists($id);
+        }));
+        if (in_array(0, $ids, true)) {
+            $ids = array(0);
+        }
+
+        $now = time();
+        $transaction = $DB->start_delegated_transaction();
+        $DB->delete_records('nit_subscription_category', array('subscriptionid' => $subscriptionid));
+        foreach ($ids as $catid) {
+            $DB->insert_record('nit_subscription_category', (object) array(
+                'subscriptionid' => $subscriptionid,
+                'categoryid'     => $catid,
+                'timecreated'    => $now,
+                'usermodified'   => (int) $userid,
+            ));
+        }
+        $transaction->allow_commit();
+
+        return $ids;
+    }
+
+    /**
+     * Whether a plan belongs on a given category's landing page.
+     *
+     * With categories assigned, the plan appears on those branches — "assigned to Programming"
+     * covers the Programming page and every page beneath it, and the pages ABOVE it too, because
+     * a parent page lists the courses of its children and a plan covering them belongs there.
+     * That is what {@see \local_nit_core\helper\category::branch()} means. Siblings are excluded.
+     *
+     * With nothing assigned the plan is placed by the courses it unlocks, which is the answer an
+     * admin would have given by hand: a plan of nothing but Programming courses is a Programming
+     * plan. A plan that unlocks NO courses yet has nothing to derive from, so it is shown
+     * everywhere rather than nowhere — an unfinished plan should be visible enough to be noticed.
+     *
+     * @param int $subscriptionid
+     * @param int $categoryid 0 = no category in particular (the home page), which matches everything
+     * @return bool
+     */
+    public static function matches_category($subscriptionid, $categoryid) {
+        $categoryid = (int) $categoryid;
+        if ($categoryid <= 0) {
+            return true;
+        }
+
+        $assigned = self::get_categories($subscriptionid);
+        $branch = \local_nit_core\helper\category::branch($categoryid);
+
+        if ($assigned) {
+            if (in_array(0, $assigned, true)) {
+                return true;
+            }
+            return (bool) array_intersect($assigned, $branch);
+        }
+
+        $coursecats = \local_nit_core\helper\category::of_courses(
+            self::courses_for_subscription($subscriptionid));
+        if (!$coursecats) {
+            return true;
+        }
+        return (bool) array_intersect($coursecats, $branch);
     }
 
     /**

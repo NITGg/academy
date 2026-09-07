@@ -51,6 +51,7 @@ $STR = local_nit_commerce_string_map(array(
     'cpn_col_type', 'cpn_col_value', 'cpn_col_scope', 'cpn_col_dates', 'cpn_field_dtype',
     'cpn_field_value', 'cpn_field_start', 'cpn_field_end', 'cpn_field_scope', 'cpn_type_percent',
     'cpn_type_fixed', 'cpn_scope_courses', 'cpn_scope_packages', 'cpn_scope_subscriptions', 'cpn_scope_programs',
+    'cpn_scope_categories', 'cpn_scope_categories_help',
     'cpn_scope_all', 'cpn_scope_specific', 'cpn_scope_required',
     'ofr_new', 'ofr_none', 'ofr_col_name', 'ofr_field_name', 'ofr_created', 'ofr_updated',
     'ofr_activated', 'ofr_deactivated', 'ofr_deleted', 'ofr_confirm_delete', 'ofr_edit_titled',
@@ -196,9 +197,13 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             </div>
 
             <label class="d-block"><strong><?php echo $STR['cpn_field_scope']; ?></strong></label>
+            <p class="text-muted small mb-1"><?php echo $STR['cpn_scope_categories_help']; ?></p>
             <div id="o-scope" class="mb-3 p-2" style="border:1px solid #dee2e6; border-radius:6px;">
                 <?php
+                // Category first, for the same reason as on the coupons page: it is the broad
+                // brush, and it doubles as "which category pages advertise this offer".
                 $scopetypes = array(
+                    'category'     => $STR['cpn_scope_categories'],
                     'course'       => $STR['cpn_scope_courses'],
                     'package'      => $STR['cpn_scope_packages'],
                     'subscription' => $STR['cpn_scope_subscriptions'],
@@ -520,6 +525,9 @@ echo html_writer::script(<<<'JS'
         if (type === 'package'){ return TARGETS.packages || []; }
         if (type === 'subscription'){ return TARGETS.subscriptions || []; }
         if (type === 'program'){ return TARGETS.programs || []; }
+        /* Every category, indented by depth — the parents holding no courses of their own
+           included, since those are the ones a whole-branch offer is scoped to. */
+        if (type === 'category'){ return TARGETS.allcategories || []; }
         var courses = [];
         (TARGETS.categories || []).forEach(function(cat){
             (cat.courses || []).forEach(function(co){ courses.push({ id:co.id, name:co.fullname }); });

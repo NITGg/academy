@@ -187,3 +187,121 @@
     color: var(--nit-brand-textprimary);
     border: 1px solid var(--nit-brand-borderprimary);
 }
+
+// =============================================================================
+// Gradebook - User report (/grade/report/user/index.php).
+//
+// grade/report/user/styles.css paints the whole report in light-theme greys and
+// never asks the theme: #f8f9fa for the panel, the header row, the plain data
+// cells and the aggregate rows; `white` for the grade-item rows, the item-name
+// headers and the category header; #dee2e6 for the rules between them; #1d2125
+// for the category toggle chevron. Bootstrap still takes the TEXT from
+// `--bs-table-color`, which theme_nit binds to Text primary - so on every dark
+// group the report is a white sheet carrying near-white text, and the header
+// band, the category row and "Course total" are all unreadable.
+//
+// The plugin sheet lands BEFORE the theme SCSS in the aggregated stylesheet, so
+// repeating its selectors at equal specificity is enough to out-cascade it. They
+// are repeated verbatim for that reason - `:not(.header,.category,.baggt,.baggb)`
+// included, which carries a class's worth of specificity of its own.
+//
+// Role mapping keeps the two planes core draws, read the way a dark palette
+// stacks them: core's grey ground (#f8f9fa) is the page Background, and the
+// `white` rows it lifts off that ground are Surface. On Group 4 - the light
+// group - that lands back on a pale sheet with lifted rows, i.e. the picture
+// core was drawing in the first place.
+// =============================================================================
+
+.path-grade-report-user,
+.grade-report-user {
+
+    // The padded panel the table sits in, and the gaps between the lifted rows.
+    .user-report-container {
+        background-color: var(--nit-brand-background);
+    }
+
+    .user-grade {
+
+        thead th {
+            background-color: var(--nit-brand-surface);
+            color: var(--nit-brand-textprimary);
+        }
+
+        // Plain data cells. `td.item` below lifts the ones that carry a grade.
+        td {
+            background-color: var(--nit-brand-background);
+            color: var(--nit-brand-textprimary);
+        }
+
+        tbody tr {
+            background-color: var(--nit-brand-background);
+        }
+
+        // Core neutralises the row hover here (it repaints the same colour);
+        // keep that behaviour, just on the brand's ground rather than a grey.
+        tbody tr:hover {
+            color: inherit;
+            background-color: var(--nit-brand-background);
+        }
+
+        // The aggregate rows - "Course total" and any category total.
+        .baggt,
+        .baggb {
+            background-color: var(--nit-brand-surface);
+            color: var(--nit-brand-textprimary);
+        }
+
+        // The lifted plane: one row per grade item, plus the category header
+        // that opens each block.
+        td.item {
+            background-color: var(--nit-brand-surface);
+            color: var(--nit-brand-textprimary);
+            border-top-color: var(--nit-brand-borderprimary);
+            border-bottom-color: var(--nit-brand-borderprimary);
+        }
+
+        th.column-itemname:not(.header, .category, .baggt, .baggb) {
+            background-color: var(--nit-brand-surface);
+            color: var(--nit-brand-textprimary);
+            border-bottom-color: var(--nit-brand-borderprimary);
+        }
+
+        th.category {
+            background-color: var(--nit-brand-surface);
+            color: var(--nit-brand-textprimary);
+            border-color: var(--nit-brand-borderprimary);
+        }
+
+        // Grade-item links keep the link role rather than the cell ink.
+        .column-itemname a {
+            color: var(--nit-brand-accenttext);
+
+            &:hover,
+            &:focus {
+                color: var(--nit-brand-hovertext);
+            }
+        }
+
+        // The expand / collapse chevron on a category row - core paints the
+        // glyph itself #1d2125, which vanishes on any dark surface.
+        th.category a.toggle-category i {
+            color: var(--nit-brand-textprimary);
+        }
+    }
+}
+
+// Pass / fail in the USER report land on the grade CELL, not on a span inside
+// it: report/user.php builds `class="item column-grade gradefail"`. So the
+// shared `.gradepass` / `.gradefail` pair near the top of this file - one class
+// against the `td.item` cell colour above - loses, and a failed grade came out
+// in the ordinary cell ink. Same two colours, stated at cell specificity so the
+// status survives the cell.
+.path-grade-report-user .user-grade td.gradepass,
+.grade-report-user .user-grade td.gradepass {
+    color: var(--nit-brand-success);
+}
+
+.path-grade-report-user .user-grade td.gradefail,
+.grade-report-user .user-grade td.gradefail {
+    color: var(--nit-brand-error);
+}

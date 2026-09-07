@@ -44,6 +44,15 @@ class discount_manager {
     const TYPE_SUBSCRIPTION = 'subscription';
     /** @var string Program item type. */
     const TYPE_PROGRAM      = 'program';
+    /**
+     * @var string Course-category item type.
+     *
+     * Scope only: nothing is ever BOUGHT as a category, so this never reaches
+     * {@see self::resolve()} as the thing being purchased. It appears solely in
+     * {nit_coupon_item} / {nit_offer_item} rows, where it means "every course in this
+     * category (and the categories beneath it), and every subscription plan attached to it".
+     */
+    const TYPE_CATEGORY     = 'category';
 
     /** @var string Percentage discount kind. */
     const DISCOUNT_PERCENT = 'percent';
@@ -56,7 +65,8 @@ class discount_manager {
      * @return string[]
      */
     public static function item_types() {
-        return array(self::TYPE_COURSE, self::TYPE_PACKAGE, self::TYPE_SUBSCRIPTION, self::TYPE_PROGRAM);
+        return array(self::TYPE_COURSE, self::TYPE_PACKAGE, self::TYPE_SUBSCRIPTION, self::TYPE_PROGRAM,
+            self::TYPE_CATEGORY);
     }
 
     /**
@@ -165,6 +175,113 @@ class discount_manager {
             if ($row->item_type === $itemtype && ((int)$row->item_id === 0 || (int)$row->item_id === $itemid)) {
                 return true;
             }
+            // A category row covers what LIVES in that category rather than the category itself,
+            // so it has to be resolved against the item instead of compared to it.
+            if ($row->item_type === self::TYPE_CATEGORY
+                    && self::category_row_covers((int)$row->item_id, $itemtype, $itemid)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Does a `category` scope row cover this item?
+     *
+     * item_id 0 means every category, i.e. the whole catalogue. Otherwise the row covers a course
+     * that sits in that category or in any category BENEATH it (scoping "Programming" has to
+     * reach the courses filed under "Programming / Web", or the setting would be useless on any
+     * site with a real tree), and a subscription plan attached to the same branch.
+     *
+     * @param int $rowcategoryid the scope row's item_id
+     * @param string $itemtype the item being priced
+     * @param int $itemid
+     * @return bool
+     */
+    protected static function category_row_covers($rowcategoryid, $itemtype, $itemid) {
+        $itemid = (int) $itemid;
+        if ($itemtype === self::TYPE_COURSE) {
+            $coursecat = \local_nit_core\helper\category::of_course($itemid);
+            if ($coursecat <= 0) {
+                return false;
+            }
+            return $rowcategoryid === 0
+                || \local_nit_core\helper\category::is_within($coursecat, $rowcategoryid);
+        }
+        if ($itemtype === self::TYPE_SUBSCRIPTION) {
+            if (!class_exists('\local_nit_subscriptions\subscription_manager')) {
+                return false;
+            }
+            // A plan with no categories of its own belongs to the whole catalogue, so an
+            // "all categories" row covers it; a row naming one category does not.
+            return \local_nit_subscriptions\subscription_manager::matches_category($itemid, $rowcategoryid);
+        }
+        // Packages and programs carry no category of their own; only an "all categories" row
+        // can reach them, and even that is a stretch, so it does not.
+        return false;
+    }
+
+    /**
+     * Should a coupon or offer with this scope be advertised on a category's landing page?
+     *
+     * This is a DISPLAY question, not the applicability question {@see self::scope_matches()}
+     * answers, and the two are deliberately separate: a coupon for one specific course is
+     * perfectly valid, but printing it on the page of a category that course is not in would be
+     * advertising a code the checkout would then refuse.
+     *
+     * The rule, in order:
+     *   - category rows win outright: a scope that names categories is shown on those branches
+     *     and nowhere else (item_id 0 = every category, so everywhere);
+     *   - otherwise a scope covering ALL courses (or all subscriptions) is site-wide, so it is
+     *     shown on every category page;
+     *   - otherwise it is shown where the things it names actually live — a named course in
+     *     this branch, or a named plan attached to it;
+     *   - anything else belongs to some other part of the catalogue and is left out.
+     *
+     * A category id of 0 means "no category in particular" (the home page), which shows the lot.
+     *
+     * @param array $items rows each with ->item_type and ->item_id
+     * @param int $categoryid the category page being rendered, 0 for none
+     * @return bool
+     */
+    public static function matches_category(array $items, $categoryid) {
+        $categoryid = (int) $categoryid;
+        if ($categoryid <= 0) {
+            return true;
+        }
+
+        $categoryrows = array();
+        foreach ($items as $row) {
+            if ($row->item_type === self::TYPE_CATEGORY) {
+                $categoryrows[] = (int) $row->item_id;
+            }
+        }
+        if ($categoryrows) {
+            foreach ($categoryrows as $rowid) {
+                if ($rowid === 0 || in_array($rowid, \local_nit_core\helper\category::branch($categoryid), true)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        $hassubscriptions = class_exists('\local_nit_subscriptions\subscription_manager');
+        foreach ($items as $row) {
+            $rowid = (int) $row->item_id;
+            if ($rowid === 0) {
+                // "All courses" / "all subscriptions" / "all packages": site-wide by definition.
+                return true;
+            }
+            if ($row->item_type === self::TYPE_COURSE) {
+                $coursecat = \local_nit_core\helper\category::of_course($rowid);
+                if ($coursecat > 0 && \local_nit_core\helper\category::is_within($coursecat, $categoryid)) {
+                    return true;
+                }
+            } else if ($row->item_type === self::TYPE_SUBSCRIPTION && $hassubscriptions) {
+                if (\local_nit_subscriptions\subscription_manager::matches_category($rowid, $categoryid)) {
+                    return true;
+                }
+            }
         }
         return false;
     }
@@ -219,6 +336,10 @@ class discount_manager {
         if ($itemtype === self::TYPE_COURSE) {
             $name = $DB->get_field('course', 'fullname', array('id' => $itemid));
             return $name !== false ? format_string(self::resolve_mlang($name)) : ('#' . $itemid);
+        }
+        if ($itemtype === self::TYPE_CATEGORY) {
+            $name = \local_nit_core\helper\category::name($itemid);
+            return $name !== '' ? $name : ('#' . $itemid);
         }
         if ($itemtype === self::TYPE_PACKAGE) {
             $name = $DB->get_manager()->table_exists('nit_package')

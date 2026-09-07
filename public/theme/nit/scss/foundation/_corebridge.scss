@@ -67,7 +67,8 @@
 // Deliberately NOT bridged: `--nit-dark*` and `--nit-cat-style1-*` (tokens that
 // are meant to stay dark whatever the group), `.dropdown-menu-dark` (a Bootstrap
 // utility that means "dark on purpose"), `.admin_colourpicker` (a developer
-// widget), and most of the rules that use Text primary as a *background* — they
+// widget), `.custom-range::-ms-thumb` (Internet Explorer only, so no browser in
+// use parses it), and most of the rules that use Text primary as a *background* — they
 // want "a near-white fill", and in a light group the body ink is not that. The
 // exceptions are handled one at a time at the end of this file, where the fill
 // has an obvious role to be re-read as (a panel is a surface, a hover wash is
@@ -391,7 +392,8 @@ div.editor_atto_toolbar
 // badly folded in with the rest.
 .form-check-input:checked,
 .form-check-input[type="checkbox"]:indeterminate,
-.custom-control-input:checked~.custom-control-label::before {
+.custom-control-input:checked~.custom-control-label::before,
+.custom-checkbox .custom-control-input:indeterminate~.custom-control-label::before {
     background-color: var(--nit-brand-primary);
     border-color: var(--nit-brand-primary);
 }
@@ -466,4 +468,124 @@ div.editor_atto_toolbar
     background-color: var(--nit-brand-hoverbackground);
     border-color: var(--nit-brand-primary);
     color: var(--nit-brand-primary);
+}
+
+// =============================================================================
+// The REST of the primary, swept in one pass.
+//
+// The block above took the components with a named "primary state". This takes
+// everything else the compiled stylesheet still paints with Group 1's primary —
+// the whole remainder of the list, not the ones that happened to get reported.
+// Course editing is where they cluster and where they are impossible to miss:
+// the outline around a hovered or selected activity, the "+" between sections,
+// the current item in the course index. On a site whose Group 1 primary is red,
+// all of that stayed red on a page with no red in its palette.
+//
+// Refresh the list the same way as above: search the compiled CSS for the Group
+// 1 primary literal, drop the `--nit-brand-g1-*` declarations and the `var(…)`
+// fallbacks, and bridge whatever is left.
+//
+// Shorthands are narrowed on purpose — `border-color` over `border`,
+// `outline-color` over `outline` — so core keeps deciding the width and the
+// style and only the colour is taken over.
+// =============================================================================
+
+// Fills: row highlights, selected states, badges. Core uses the primary at full
+// strength for these, which is its own design decision; only the hue moves here.
+.badge-primary,
+.content-item-container:hover,
+.content-item-container.unread:hover,
+.courseindex .courseindex-item.pageitem,
+.course-content .divider .btn.add-content:hover,
+.course-content .divider .btn.add-content:focus,
+.form-autocomplete-suggestions li:hover,
+.form-autocomplete-suggestions li:focus,
+.form-autocomplete-suggestions li[aria-selected="true"],
+.maincalendar .calendarmonth td.today .day-number-circle,
+.message-app .list-group .list-group-item:hover,
+.moremenu .dropdownmoremenu>.dropdown-menu .dropdown-menu .dropdown-item:hover,
+.moremenu .dropdownmoremenu>.dropdown-menu .dropdown-menu .dropdown-item:focus,
+.moremenu .dropdown-item[aria-current="true"]:focus-within,
+.moremenu .dropdown-item[aria-current="true"]:hover,
+.moremenu .dropdown-item.active:focus-within,
+.moremenu .dropdown-item.active:hover,
+.overlay-preview .overlay-preview-content,
+.path-mod-forum .unified-grader .drawer-button.active::after {
+    background-color: var(--nit-brand-primary);
+}
+
+// A filled badge needs its label to follow the fill, or a light group gets the
+// body ink on a saturated block.
+.badge-primary {
+    color: var(--nit-brand-onprimary);
+}
+
+// Outlines and borders: the editing affordances. `.editing .activity-item.selected`
+// is the ring around the activity you are hovering or have picked — the most
+// visible of the lot on a course page in edit mode.
+.editing .activity-item:hover:not(:has(.activity:hover)),
+.editing .activity-item.selected,
+.btn-icon.icons-collapse-expand:hover,
+.dropdown-item-outline:focus,
+.dropdown-item-outline:focus-within,
+.overlay-preview-borders {
+    outline-color: var(--nit-brand-primary);
+}
+
+.activity.dragging .activity-item,
+.calendar-controls .drop-target,
+.course-content .divider:has(.btn.add-content:hover) hr,
+.modchoosercontent .optionscontainer .option.selected,
+.move-activity-tree .collapse-list-item:hover:has(>.collapse-list-link.collapsed),
+.move-activity-tree .collapse-list-item:focus:has(>.collapse-list-link.collapsed),
+.move-section-tree .collapse-list-item:hover:has(>.collapse-list-link.collapsed),
+.move-section-tree .collapse-list-item:focus:has(>.collapse-list-link.collapsed),
+.overlay-preview {
+    border-color: var(--nit-brand-primary);
+}
+
+.emoji-picker .category-button.selected,
+.move-activity-tree .collapse-list-item:hover::after,
+.move-activity-tree .collapse-list-item:focus::after,
+.move-section-tree .collapse-list-item:hover::after,
+.move-section-tree .collapse-list-item:focus::after {
+    border-bottom-color: var(--nit-brand-primary);
+}
+
+#course-category-listings .listitem[data-selected="1"] {
+    border-left-color: var(--nit-brand-primary);
+}
+
+// The split-screen log-in page's picture column, which falls back to a flat
+// primary panel when no picture is uploaded.
+.login-layout-left {
+    background-color: var(--nit-brand-primary);
+}
+
+// Range sliders and the horizontal scrollbar. EVERY ONE OF THESE IS ITS OWN
+// RULE: they are vendor pseudo-elements, and a browser that cannot parse one
+// selector in a list discards the whole rule — grouping them would silently
+// disable the lot (see the warning at the top of this file).
+.form-range::-webkit-slider-thumb {
+    background-color: var(--nit-brand-primary);
+}
+
+.form-range::-moz-range-thumb {
+    background-color: var(--nit-brand-primary);
+}
+
+.custom-range::-webkit-slider-thumb {
+    background-color: var(--nit-brand-primary);
+}
+
+.custom-range::-moz-range-thumb {
+    background-color: var(--nit-brand-primary);
+}
+
+.visual-scroll-x::-webkit-scrollbar-thumb {
+    background-color: var(--nit-brand-primary);
+}
+
+.visual-scroll-x {
+    scrollbar-color: var(--nit-brand-primary) transparent;
 }

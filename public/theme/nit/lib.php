@@ -340,12 +340,16 @@ function theme_nit_category_brand_group_assigned(int $categoryid): ?string {
  * each screen, which is why only course/view.php used to carry it (the course
  * format renderer was the single place that asked).
  *
- * Three ways a page can name a category, in order:
+ * Four ways a page can name a category, in order:
  *   1. `$PAGE->course->category` — anything inside a course. Off the site course
  *      this is 0, which is how non-course pages fall through.
  *   2. `$PAGE->category` — the category pages proper (course/index.php).
  *   3. A CONTEXT_COURSECAT page context — the category management screens, which
  *      do not always set (2).
+ *   4. Any other context that lives inside a course — course, activity, block.
+ *      Setting a course CONTEXT without calling set_course() is common in plugin
+ *      pages (local/payments/buy.php does exactly that), and those pages have to
+ *      match the course they are about.
  *
  * Returns null unless the category (or its main ancestor) has a group assigned on
  * the gallery "Category styles" tab: an unassigned category must leave the page
@@ -354,7 +358,7 @@ function theme_nit_category_brand_group_assigned(int $categoryid): ?string {
  * @return string|null group key (g1..g5), or null when the page is not in a styled category
  */
 function theme_nit_page_brand_group(): ?string {
-    global $PAGE;
+    global $PAGE, $DB;
 
     // `false` = not computed yet; `null` is a real answer ("no assigned group").
     static $group = false;
@@ -388,8 +392,23 @@ function theme_nit_page_brand_group(): ?string {
         // page, so a page that cannot answer simply does not get a group.
         try {
             $context = $PAGE->context;
-            if ($context && (int) $context->contextlevel === CONTEXT_COURSECAT) {
-                $catid = (int) $context->instanceid;
+            if ($context) {
+                if ((int) $context->contextlevel === CONTEXT_COURSECAT) {
+                    $catid = (int) $context->instanceid;
+                } else {
+                    // A course (or activity, or block) context with no
+                    // $PAGE->course behind it. That is most plugin pages:
+                    // local/payments/buy.php sets the course CONTEXT and never
+                    // calls set_course(), so the check above still saw the site
+                    // course and the buy screen came out in the site palette
+                    // while the course around it was in its category's. Walk the
+                    // context up to its course and read the category from there.
+                    $coursectx = $context->get_course_context(false);
+                    if ($coursectx && (int) $coursectx->instanceid !== (int) SITEID) {
+                        $catid = (int) $DB->get_field('course', 'category',
+                            ['id' => $coursectx->instanceid]);
+                    }
+                }
             }
         } catch (\Throwable $e) {
             $catid = 0;

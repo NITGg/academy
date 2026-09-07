@@ -296,12 +296,17 @@ try {
             break;
 
         // ── Public reads for front-page blocks ──
+        // `categoryid` is what makes the same block work on a category landing page: it narrows
+        // the list to that branch plus the site-wide entries. Absent (the home page, the app)
+        // means the whole catalogue, so every existing caller keeps the list it always had.
         case 'get_available_coupons':
-            nit_commerce_respond(['status' => 'success', 'data' => coupon_manager::get_available_coupons()]);
+            nit_commerce_respond(['status' => 'success',
+                'data' => coupon_manager::get_available_coupons(null, optional_param('categoryid', 0, PARAM_INT))]);
             break;
 
         case 'get_available_offers':
-            nit_commerce_respond(['status' => 'success', 'data' => offer_manager::get_available_offers()]);
+            nit_commerce_respond(['status' => 'success',
+                'data' => offer_manager::get_available_offers(optional_param('categoryid', 0, PARAM_INT))]);
             break;
 
         default:
@@ -382,6 +387,11 @@ function nit_commerce_discount_targets(): array {
 
     return [
         'categories'    => $categories,
+        // Every category, in tree order with children indented — the selectable targets for the
+        // `category` scope type. Deliberately NOT the list above: that one is grouped by
+        // category to build the COURSE list and drops any category holding no courses of its
+        // own, which is exactly the parent an admin most wants to scope a whole branch to.
+        'allcategories' => \local_nit_core\helper\category::options(),
         'packages'      => $packages,
         'subscriptions' => $subs,
         'programs'      => [],

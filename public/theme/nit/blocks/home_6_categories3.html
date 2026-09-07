@@ -1,0 +1,145 @@
+<!-- NIT - Category CONSTELLATION on its own, home-page block.
+     Paste into an HTML block anywhere on the front page (Site home).
+
+     This is home_6_categories1.html with the text column removed. That block is
+     a two-column hero: a headline plus intro plus buttons on one side, the live
+     constellation on the other. This one keeps ONLY the constellation - the
+     EAAC logo in a double ring at the centre, and the site's course categories
+     orbiting it as irregular rounded shapes, each with an icon, its name and a
+     "go" arrow, each linking to that category.
+
+     Gone with the text column: the headline, the intro paragraph, the "Start
+     Now" and "See how it works" buttons, and the video modal the second of
+     those opened. The modal is markup nothing can reach once the play link is
+     gone, so it is not carried here. If a page needs the video back, use
+     home_6_categories1.html rather than adding it to this file.
+
+     Both blocks can sit on the same page: the script walks EVERY constellation
+     it finds and draws each from its own template, so a copy here does not
+     leave a copy there empty. Give each one its own data-ids if they should not
+     show the same six categories.
+
+     ALL BEHAVIOUR LIVES IN theme/nit/blocks/home_hero_orbit.js, served by
+     js.php beside it - the same file the hero block loads. This file is markup
+     and one four-line loader, and it has to stay that way.
+
+     That is not a style preference, it is what the block survived. An earlier
+     version carried the whole ~25KB of JavaScript inline. Saved through the
+     editor the copy came back TRUNCATED in the middle of a for-loop, which
+     closed the block early, spilled the rest of the script into the page as
+     markup, and took Moodle's own footer scripts down with it - including the
+     require.config call. RequireJS then fell back to a "./" baseUrl, every AMD
+     module 404'd, and nothing on the site could be clicked: no navbar menus, no
+     block editing, no way back in except by URL. Two smaller hazards were found
+     on the way: the "Convert URLs into links" filter rewrites a bare URL in
+     block content into a link element, which inside a script is a syntax
+     error; and the editor deletes any element holding nothing of its own, so
+     an empty span never comes back from a save.
+
+     A third one bit this very comment. NEVER write a tag - a less-than sign
+     followed by a letter and closed by a greater-than sign - anywhere in these
+     comments. HTML Purifier reads it as real markup even inside a comment, and
+     the damage is not local: it threw away the first 6140 bytes of the file it
+     hit, which was the whole comment plus the wrapper and the heading, and left
+     the block starting at the first link. Name tags in words instead - "a link
+     element", "an empty span" - the way the comment above does.
+
+     So: no logic here, no bare URLs in script, no empty elements, no tags in
+     comments. A fix to the behaviour ships with a git pull; only a markup
+     change needs a re-paste.
+
+     WHERE THE CATEGORIES COME FROM - window.NIT_CATEGORIES, which theme_nit's
+     front-page layout already prints. It lists every top-level category
+     INCLUDING ones with no courses yet, which is what a showcase needs and what
+     /local/nit_category/home.php deliberately withholds - that feed drops a
+     zero-course category because a dead link is wrong in a grid of courses.
+
+     WHICH categories, and in what order, is data-ids on the orbit element: a
+     plain list of category ids, drawn in that order. Empty it and the first six
+     the site returns are used instead. The ids are visible in the address bar
+     on course/management.php.
+
+     ICONS - data-icons on the same element.
+       "category" (default)  the icon uploaded at
+                             /local/nit_category/image.php?id=NN, then the emoji
+                             set there, then a built-in glyph.
+       "glyph"               always the built-in glyph.
+
+     COLOURS read from the Brand Colors palette (--nit-brand-*); a palette change
+     repaints the whole constellation. No literal colours anywhere.
+
+     LANGUAGE - none of the words on screen are written here, so unlike the hero
+     block this file carries no multi-language tags and cannot be torn in half
+     by local_nit_mlang's per-language editor tabs. The category names arrive
+     already translated in window.NIT_CATEGORIES, and the centre logo takes its
+     alt text from the site name.
+
+     ON A PHONE, below 768px, the script folds the ring into the logo above a
+     two-column grid of the same shapes. Nothing to configure.
+
+     Images are prefixed with the /moodle-new/ sub-directory this site is
+     installed under. Change that prefix if wwwroot moves. -->
+<div dir="auto"
+  style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(20px, 5vw, 64px); overflow: hidden;">
+  <!-- Artwork: the category constellation, drawn by home_hero_orbit.js.
+       data-ids    which categories to draw, in order. Empty = the first six.
+       data-icons  "category" (uploaded icon, then emoji, then glyph)
+                   or "glyph" (always the built-in glyph).
+
+       Centred with auto margins rather than by a flex parent: with no text
+       column beside it there is nothing to share the row with, and one wrapper
+       less is one less thing for the editor to rearrange. The direction stays
+       ltr so the ring is drawn the same way round in Arabic. -->
+  <div
+    style="position: relative; width: 100%; max-width: 670px; margin: 0 auto; aspect-ratio: 1 / 1; direction: ltr;"
+    data-nit-orbit="" data-ids="14,15,16,17,18,19" data-icons="category"><!-- The ring the shapes sit on. Static, because its radius does not depend
+         on how many categories there are; the beads in the gaps are drawn by
+         the script, one per gap, cloned from this circle. --><svg
+      style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;"
+      viewBox="0 0 740 740" aria-hidden="true" data-nit-orbit-ring="">
+      <circle cx="370" cy="370" r="300" fill="none" stroke-width="1.3"
+        data-nit-orbit-track=""></circle>
+      <g data-nit-orbit-beads=""></g>
+    </svg><!-- Centre: the logo inside a gradient ring inside a faint halo ring.
+         A real img, not an empty element painted through a CSS mask: the
+         editor deletes any element with no content of its own. -->
+    <div data-nit-orbit-core=""><img class="img-fluid"
+        src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
+        data-nit-orbit-logo=""></div>
+    <!-- Card template, cloned once per category. The {{placeholder}} markers
+         and the data-nit-orbit-* hooks are the contract with the script -
+         renaming one empties the artwork.
+
+         No icon disc and no arrow button here on purpose: both are wrappers
+         with nothing of their own inside, and the editor deletes an empty
+         span and unwraps one holding only an svg. The script builds them. The
+         d="M0 0" placeholders keep the paths from being attribute-less for
+         the same reason. -->
+    <div style="display: none;" data-nit-orbit-card=""><a href="{{url}}"
+        data-nit-orbit-node=""><svg viewBox="0 0 100 100"
+          preserveAspectRatio="none" aria-hidden="true"
+          data-nit-orbit-shape="">
+          <path d="M0 0" data-nit-shape-base=""></path>
+          <path d="M0 0" data-nit-shape-tint=""></path>
+          <path d="M0 0" data-nit-shape-line=""></path>
+        </svg><span data-nit-orbit-eyebrow="">{{eyebrow}}</span> <span
+          data-nit-orbit-name="">{{name}}</span><svg width="14" height="14"
+          viewBox="0 0 24 24" aria-hidden="true" data-nit-orbit-arrow="">
+          <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z">
+          </path>
+        </svg></a></div>
+  </div>
+  <script>
+    // Loads the behaviour. Keep this short and keep the "less than" character
+    // out of it - see the note at the top of this file for what happens when
+    // real logic is pasted through the editor.
+    (function() {
+      var here = document.currentScript;
+      var base = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : '';
+      var s = document.createElement('script');
+      s.src = base + '/theme/nit/blocks/js.php?name=home_hero_orbit';
+      (here && here.parentNode ? here.parentNode : document.body).appendChild(
+        s);
+    })();
+  </script>
+</div>

@@ -50,7 +50,8 @@ $STR = local_nit_commerce_string_map(array(
     'cpn_col_usage', 'cpn_col_dates', 'cpn_field_code', 'cpn_field_dtype', 'cpn_field_value',
     'cpn_field_max', 'cpn_field_utype', 'cpn_field_limit', 'cpn_field_start', 'cpn_field_end',
     'cpn_field_scope', 'cpn_type_percent', 'cpn_type_fixed', 'cpn_usage_once', 'cpn_usage_multiple',
-    'cpn_scope_courses', 'cpn_scope_subscriptions', 'cpn_scope_all',
+    'cpn_scope_courses', 'cpn_scope_subscriptions', 'cpn_scope_categories',
+    'cpn_scope_categories_help', 'cpn_scope_all',
     'cpn_scope_specific', 'cpn_created', 'cpn_updated', 'cpn_activated', 'cpn_deactivated',
     'cpn_deleted', 'cpn_confirm_delete', 'cpn_edit_titled', 'cpn_scope_required', 'cpn_unlimited',
     'cpn_used_count',
@@ -207,9 +208,13 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             </div>
 
             <label class="d-block"><strong><?php echo $STR['cpn_field_scope']; ?></strong></label>
+            <p class="text-muted small mb-1"><?php echo $STR['cpn_scope_categories_help']; ?></p>
             <div id="c-scope" class="mb-3 p-2" style="border:1px solid #dee2e6; border-radius:6px;">
                 <?php
+                // Category first: it is the broad brush an admin reaches for ("everything under
+                // Programming"); the course list below it is the fine one.
                 $scopetypes = array(
+                    'category'     => $STR['cpn_scope_categories'],
                     'course'       => $STR['cpn_scope_courses'],
                     'subscription' => $STR['cpn_scope_subscriptions'],
                 );
@@ -490,6 +495,9 @@ echo html_writer::script(<<<'JS'
         if (type === 'package'){ return TARGETS.packages || []; }
         if (type === 'subscription'){ return TARGETS.subscriptions || []; }
         if (type === 'program'){ return TARGETS.programs || []; }
+        /* Every category, indented by depth — including the parents holding no courses of their
+           own, which are exactly the ones worth scoping a whole branch to. */
+        if (type === 'category'){ return TARGETS.allcategories || []; }
         var courses = [];
         (TARGETS.categories || []).forEach(function(cat){
             (cat.courses || []).forEach(function(co){ courses.push({ id:co.id, name:co.fullname }); });

@@ -41,7 +41,8 @@ use local_nit_commerce\coupon_manager;
 class get_available_coupons extends external_api {
 
     /**
-     * Parameters: optional display language (mobile apps send it on every call).
+     * Parameters: optional display language (mobile apps send it on every call) and an optional
+     * category to narrow the list to, for an app screen showing one category.
      *
      * @return external_function_parameters
      */
@@ -49,6 +50,9 @@ class get_available_coupons extends external_api {
         return new external_function_parameters([
             'lang'  => new external_value(PARAM_LANG, 'Display language, e.g. en or ar (optional)', VALUE_DEFAULT, ''),
             'alang' => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
+            'categoryid' => new external_value(PARAM_INT,
+                'Only coupons belonging to this course category and its branch, plus the site-wide '
+                . 'ones. 0 (default) returns the whole catalogue.', VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -57,16 +61,18 @@ class get_available_coupons extends external_api {
      *
      * @param string $lang
      * @param string $alang
+     * @param int $categoryid
      * @return array
      */
-    public static function execute(string $lang = '', string $alang = ''): array {
-        $params = self::validate_parameters(self::execute_parameters(), ['lang' => $lang, 'alang' => $alang]);
+    public static function execute(string $lang = '', string $alang = '', int $categoryid = 0): array {
+        $params = self::validate_parameters(self::execute_parameters(),
+            ['lang' => $lang, 'alang' => $alang, 'categoryid' => $categoryid]);
         self::validate_context(\context_system::instance());
         $chosen = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
         if ($chosen !== '') {
             \local_nit_core\helper\lang::for_request($chosen);
         }
-        return coupon_manager::get_available_coupons();
+        return coupon_manager::get_available_coupons(null, (int) $params['categoryid']);
     }
 
     /**
@@ -95,7 +101,8 @@ class get_available_coupons extends external_api {
                 'currency'       => new external_value(PARAM_TEXT, "ISO 4217 the fixed amount is in ('' for a percentage)"),
                 'applies_to'     => new external_multiple_structure(
                     new external_single_structure([
-                        'item_type' => new external_value(PARAM_ALPHA, 'course | package | subscription | program'),
+                        'item_type' => new external_value(PARAM_ALPHA,
+                            'course | package | subscription | program | category'),
                         'item_id'   => new external_value(PARAM_INT, 'Target id (0 = all of that type)'),
                         'label'     => new external_value(PARAM_TEXT, 'Human-readable target label'),
                     ]),

@@ -224,10 +224,17 @@ class coupon_manager {
      * and for this user; and, when it takes a fixed amount off, denominated in the currency
      * this visitor is quoted in (AC-4.6) — 50 EGP off means nothing to a buyer paying USD.
      *
+     * $categoryid narrows the list to what belongs on one category's landing page — the coupons
+     * scoped to that branch, plus the site-wide ones. 0 (the default, and what the home page and
+     * the mobile app send) means "the whole catalogue" and filters nothing out. The rule itself
+     * lives in {@see discount_manager::matches_category()}, so the coupons page, the offers bar
+     * and the plan cards all draw the same line.
+     *
      * @param int|null $userid whose redemption history to respect; defaults to the current user
+     * @param int $categoryid restrict to a category branch; 0 = no restriction
      * @return array
      */
-    public static function get_available_coupons($userid = null) {
+    public static function get_available_coupons($userid = null, $categoryid = 0) {
         global $DB, $USER;
 
         $userid = $userid === null ? (int) $USER->id : (int) $userid;
@@ -265,6 +272,14 @@ class coupon_manager {
             if ($r->usage_type === self::USAGE_ONCE && $used >= 1) { continue; }
             if ((int)$r->usage_limit > 0 && $used >= (int)$r->usage_limit) { continue; }
             if (isset($usedbyuser[$r->id])) { continue; }
+
+            // On a category page, only the coupons that belong to that branch.
+            if ((int) $categoryid > 0) {
+                $items = $DB->get_records('nit_coupon_item', array('couponid' => $r->id));
+                if (!discount_manager::matches_category($items, (int) $categoryid)) {
+                    continue;
+                }
+            }
 
             $out[] = self::format($r, $used);
         }

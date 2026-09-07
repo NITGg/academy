@@ -281,5 +281,35 @@ function xmldb_local_nit_subscriptions_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090202, 'local', 'nit_subscriptions');
     }
 
+    if ($oldversion < 2026090700) {
+
+        // Which course categories a plan belongs to, so a category landing page can advertise
+        // its own plans instead of the whole price list.
+        //
+        // Nothing is written here on upgrade, deliberately. An empty table means every existing
+        // plan keeps being derived from the courses it already unlocks — which is the answer an
+        // admin would have given anyway — and the admin only has to touch a plan whose placement
+        // should differ from that.
+        $table = new xmldb_table('nit_subscription_category');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('subscriptionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('categoryid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_key('subscriptionid_fk', XMLDB_KEY_FOREIGN, ['subscriptionid'],
+                'nit_subscription', ['id']);
+
+            $table->add_index('sub_category_uk', XMLDB_INDEX_UNIQUE, ['subscriptionid', 'categoryid']);
+            $table->add_index('categoryid_idx', XMLDB_INDEX_NOTUNIQUE, ['categoryid']);
+
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026090700, 'local', 'nit_subscriptions');
+    }
+
     return true;
 }

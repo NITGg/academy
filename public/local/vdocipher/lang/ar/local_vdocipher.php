@@ -37,3 +37,6 @@ $string['err_nosecret']         = 'لم يتم ضبط المفتاح السرّ�
 $string['err_apifailed']        = 'فشل طلب واجهة VdoCipher: {$a}';
 $string['err_novideo']          = 'لا يوجد فيديو VdoCipher مرتبط بهذا النشاط.';
 $string['err_noaccess']         = 'ليس لديك صلاحية الوصول إلى هذا الفيديو.';
+
+// Scheduled tasks.
+$string['task_refreshlengths'] = 'تحديث مدد فيديوهات VdoCipher';

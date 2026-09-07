@@ -37,3 +37,6 @@ $string['err_nosecret']         = 'The VdoCipher API secret is not configured. S
 $string['err_apifailed']        = 'The VdoCipher API request failed: {$a}';
 $string['err_novideo']          = 'No VdoCipher video is attached to this activity.';
 $string['err_noaccess']         = 'You do not have access to this video.';
+
+// Scheduled tasks.
+$string['task_refreshlengths'] = 'Refresh VdoCipher video playing times';

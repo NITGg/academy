@@ -1,0 +1,148 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+// =============================================================================
+// Purchase card - local_payments (/local/payments/buy.php).
+//
+// This is the screen a signed-in visitor lands on when they open a course they
+// have not bought, so it is read as part of the course - and it was the one part
+// that did not look like it. local/payments/styles.css carries its own design
+// tokens (`--lp-indigo` #4f46e5, `--lp-ink` #1a1a2e, `--lp-surface` #f8f9fb,
+// `--lp-line` #e7e9ee) plus a literal `background: #fff` on the card, none of
+// which move with the brand: a white card with an indigo button, on a page whose
+// palette had already been chosen by the course's category.
+//
+// Re-point the tokens the page card actually reads at the Brand-Colors roles.
+// Scoped to `.local-payments-course-price` on purpose - `.local-payments-card-price`
+// is the small price row on the front-page slider, which sits on a dark gradient
+// bar and has its own `.lp-context-dark-footer` treatment already; that one is
+// left exactly as it is.
+//
+// The plugin sheet lands BEFORE the theme SCSS in the aggregated stylesheet, so
+// declaring the same custom properties again here is enough to replace them.
+// =============================================================================
+
+.local-payments-course-price {
+    // The gradient buttons are built from the indigo pair, so pointing both
+    // stops at the brand gives a Primary button with the shine core drew.
+    --lp-indigo: var(--nit-brand-primary);
+    --lp-indigo-2: color-mix(in srgb, var(--nit-brand-primary) 88%, #fff);
+    --lp-green: var(--nit-brand-success);
+    --lp-green-2: color-mix(in srgb, var(--nit-brand-success) 82%, #fff);
+    --lp-ink: var(--nit-brand-textprimary);
+    --lp-muted: var(--nit-brand-textsecondary);
+    --lp-line: var(--nit-brand-borderprimary);
+    --lp-surface: var(--nit-brand-surface);
+
+    // `--lp-rose` (the sale badge / struck-through original price) is left on
+    // its own red: it is the one colour on the card whose job is to be a
+    // markdown, and the brand has no red role to give it (Error is a warm
+    // orange, and reading "-40%" as an error would be worse than off-brand).
+
+    // The card itself. Core sets a literal #fff, so match its specificity by
+    // qualifying with the class the same element already carries.
+    &.lp-page-card {
+        background: var(--nit-brand-surface);
+        border-color: var(--nit-brand-borderprimary);
+        color: var(--nit-brand-textprimary);
+        // Core's drop shadow is tuned for a white card on a pale page and
+        // disappears (or muddies) on a dark ground. Deepen it from the palette's
+        // own darkest value instead of a baked navy.
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+
+        &:hover {
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.36);
+        }
+    }
+
+    // The amount. `--lp-ink` above already carries it, but the price is the one
+    // thing on this card that must not be missed, so it is stated.
+    .lp-price--current {
+        color: var(--nit-brand-textprimary);
+    }
+
+    // The button ink. The gradient is now the brand Primary, and Primary's
+    // readable ink is the on-primary role, not a literal white - Group 4
+    // (Daylight) is a light group and white-on-primary fails there.
+    .lp-btn {
+        color: var(--nit-brand-on-primary);
+
+        &:hover,
+        &:focus,
+        &:active {
+            color: var(--nit-brand-on-primary);
+        }
+
+        &:focus-visible {
+            outline-color: var(--nit-brand-accenttext);
+        }
+    }
+
+    // The glow under each button is a baked rgba of the colour the gradient used
+    // to be (indigo / that green), so re-pointing the gradient alone left an
+    // indigo halo around a brand-coloured button. Mix the halo from the same
+    // role the fill now comes from.
+    .lp-btn--subscribe {
+        box-shadow: 0 4px 14px color-mix(in srgb, var(--nit-brand-primary) 32%, transparent);
+
+        &:hover {
+            box-shadow: 0 8px 22px color-mix(in srgb, var(--nit-brand-primary) 42%, transparent);
+        }
+    }
+
+    .lp-btn--join {
+        box-shadow: 0 4px 14px color-mix(in srgb, var(--nit-brand-success) 30%, transparent);
+
+        &:hover {
+            box-shadow: 0 8px 22px color-mix(in srgb, var(--nit-brand-success) 40%, transparent);
+        }
+    }
+
+    // "Secure checkout powered by trusted payment providers".
+    .lp-secure-note {
+        color: var(--nit-brand-textsecondary);
+    }
+
+    // Status blocks shown instead of a price (already enrolled / purchased,
+    // and the "set your country first" notice). Core paints the purchased one
+    // a fixed #2563eb.
+    .lp-page-status--purchased {
+        color: var(--nit-brand-accenttext);
+    }
+
+    .lp-page-status--enrolled {
+        color: var(--nit-brand-success);
+    }
+
+    .lp-page-status--countryrequired {
+        color: var(--nit-brand-textprimary);
+
+        p {
+            color: var(--nit-brand-textsecondary);
+        }
+    }
+
+    // The "Free" pill - core gives it a pale mint ground that reads as a light
+    // island on a dark card.
+    .lp-badge--free {
+        background: color-mix(in srgb, var(--nit-brand-success) 18%, var(--nit-brand-surface));
+        color: var(--nit-brand-success);
+        border-color: color-mix(in srgb, var(--nit-brand-success) 35%, transparent);
+    }
+}
+
+// The course summary box printed above the card by buy.php ($OUTPUT->box). It is
+// a plain `.generalbox`, already branded site-wide - nothing to add here; the
+// note exists so the next reader does not go looking for it.

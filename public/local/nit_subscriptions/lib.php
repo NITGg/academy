@@ -48,13 +48,23 @@ function local_nit_subscriptions_string_map(array $keys): array {
  * A signed-in caller with no profile country gets every plan back priceless and flagged
  * `country_required` — see {@see \local_payments\country_detector::pricing_blocked()}.
  *
+ * $categoryid narrows the list to the plans that belong on one category's landing page: those
+ * assigned to that branch, or — for a plan with no assignment — those whose own courses live in
+ * it. 0 (the home page, the mobile app) lists every active plan, exactly as before.
+ *
  * @param string|null $app_country optional ISO 3166-1 alpha-2 country to price for (e.g. from the
  *        mobile app). When null, the caller's profile country (or IP for guests) is used.
+ * @param int $categoryid restrict to a course-category branch; 0 = no restriction
  * @return array
  */
-function nit_subscriptions_available(?string $app_country = null): array {
+function nit_subscriptions_available(?string $app_country = null, int $categoryid = 0): array {
     $subs = \local_nit_subscriptions\subscription_manager::get_subscriptions(
         \local_nit_subscriptions\subscription_manager::STATUS_ACTIVE);
+    if ($categoryid > 0) {
+        $subs = array_values(array_filter($subs, static function ($s) use ($categoryid) {
+            return \local_nit_subscriptions\subscription_manager::matches_category((int) $s->id, $categoryid);
+        }));
+    }
     $hasoffers = class_exists('\local_nit_commerce\discount_manager');
 
     // Signed in with no profile country: the plans still list (their name, duration and course

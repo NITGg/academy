@@ -31,6 +31,7 @@ $string['scope_all_course']       = 'كل الكورسات';
 $string['scope_all_package']      = 'كل الباقات';
 $string['scope_all_subscription'] = 'كل الاشتراكات';
 $string['scope_all_program']      = 'كل البرامج';
+$string['scope_all_category']     = 'كل التصنيفات';
 
 $string['cpn_type_percent']   = 'نسبة مئوية';
 $string['cpn_type_fixed']     = 'مبلغ ثابت';
@@ -112,6 +113,8 @@ $string['cpn_field_limit'] = 'حد الاستخدام';
 $string['cpn_field_start'] = 'تاريخ البداية';
 $string['cpn_field_end']   = 'تاريخ الانتهاء';
 $string['cpn_field_scope'] = 'العناصر المشمولة';
+$string['cpn_scope_categories']    = 'تصنيفات الكورسات';
+$string['cpn_scope_categories_help'] = 'التصنيف يشمل كل الكورسات المندرجة تحته بما فيها تصنيفاته الفرعية، وهو أيضًا ما يحدّد صفحات التصنيفات التي سيظهر فيها. اختر تصنيفات لربطه بفرع معيّن من الكتالوج؛ وإن تركتها بدون تحديد فسيُحدَّد نطاقه بالكورسات والخطط المختارة أدناه، ويظهر حيث تقع تلك العناصر.';
 $string['cpn_scope_courses']       = 'الكورسات';
 $string['cpn_scope_packages']      = 'الباقات';
 $string['cpn_scope_subscriptions'] = 'الاشتراكات';
