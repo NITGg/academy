@@ -111,10 +111,17 @@ class ask extends external_api {
             $history
         );
 
+        // Someone who can manage the activity can act on the provider's own
+        // message; a student can only be confused by it.
+        $error = $result['error'];
+        if (!empty($result['detail']) && has_capability('local/nit_ai:manage', $context)) {
+            $error .= ' — ' . $result['detail'];
+        }
+
         return [
             'success' => $result['success'],
             'answer'  => $result['answer'],
-            'error'   => $result['error'],
+            'error'   => $error,
         ];
     }
 

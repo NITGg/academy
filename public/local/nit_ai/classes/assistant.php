@@ -53,7 +53,9 @@ class assistant {
      * @param string $question the student's question
      * @param int $currenttime playback position in seconds, -1 when unknown
      * @param array $history prior turns, each ['role' => 'user'|'assistant', 'text' => string]
-     * @return array ['success' => bool, 'answer' => string, 'error' => string]
+     * @return array ['success' => bool, 'answer' => string, 'error' => string, 'detail' => string]
+     *               where 'error' is safe to show anyone and 'detail' is the
+     *               provider's own message, for people who can act on it
      */
     public static function ask(
         \stdClass $record,
@@ -66,7 +68,7 @@ class assistant {
 
         $question = trim($question);
         if ($question === '') {
-            return ['success' => false, 'answer' => '', 'error' => get_string('err_emptyquestion', 'local_nit_ai')];
+            return self::problem(get_string('err_emptyquestion', 'local_nit_ai'));
         }
 
         $prompt = self::build_prompt($record, $question, $currenttime, $history);
@@ -81,19 +83,32 @@ class assistant {
             $response = \core\di::get(manager::class)->process_action($action);
         } catch (\Throwable $e) {
             debugging('local_nit_ai: AI request failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
-            return ['success' => false, 'answer' => '', 'error' => get_string('err_aifailed', 'local_nit_ai')];
+            return self::problem(get_string('err_aifailed', 'local_nit_ai'), $e->getMessage());
         }
 
         if (!$response->get_success()) {
-            return [
-                'success' => false,
-                'answer'  => '',
-                'error'   => $response->get_errormessage() ?: get_string('err_aifailed', 'local_nit_ai'),
-            ];
+            // The provider's own words are for whoever can fix the configuration,
+            // not for a student who only wanted an answer about the lesson.
+            $detail = $response->get_errormessage() ?: (string) $response->get_error();
+            debugging('local_nit_ai: provider refused the request: ' . $detail, DEBUG_DEVELOPER);
+
+            return self::problem(get_string('err_aifailed', 'local_nit_ai'), $detail);
         }
 
         $answer = $response->get_response_data()['generatedcontent'] ?? '';
-        return ['success' => true, 'answer' => trim($answer), 'error' => ''];
+        return ['success' => true, 'answer' => trim($answer), 'error' => '', 'detail' => ''];
+    }
+
+    /**
+     * Shape a failure: one sentence anybody can read, plus the raw cause for
+     * whoever is allowed to see it.
+     *
+     * @param string $message
+     * @param string $detail
+     * @return array
+     */
+    protected static function problem(string $message, string $detail = ''): array {
+        return ['success' => false, 'answer' => '', 'error' => $message, 'detail' => $detail];
     }
 
     /**
