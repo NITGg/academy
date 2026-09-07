@@ -129,7 +129,7 @@ class transcript_parser {
                 if ($current !== null) {
                     $cues[] = $current;
                 }
-                $current = ['s' => self::seconds($m[1]), 'e' => self::seconds($m[2]), 't' => ''];
+                $current = ['s' => self::seconds($m[1]), 'e' => self::seconds($m[2]), 'lines' => []];
                 continue;
             }
 
@@ -142,15 +142,54 @@ class transcript_parser {
                 continue;
             }
             // Drop the cue-number line that SRT puts before each timestamp.
-            if ($current['t'] === '' && preg_match('/^\d+$/', $line)) {
+            if (!$current['lines'] && preg_match('/^\d+$/', $line)) {
                 continue;
             }
-            $current['t'] = trim($current['t'] . ' ' . self::strip_markup($line));
+            $text = self::strip_markup($line);
+            if ($text !== '') {
+                $current['lines'][] = $text;
+            }
         }
         if ($current !== null) {
             $cues[] = $current;
         }
-        return $cues;
+        return self::flatten_rolling($cues);
+    }
+
+    /**
+     * Collapse rolling captions into each cue's own words.
+     *
+     * YouTube's auto-captions scroll: every cue repeats the previous cue's line
+     * above its new one, so a naive read returns each sentence two or three
+     * times. That doubles the tokens we send and reads like a stutter. Keeping
+     * only the lines a cue did not inherit leaves one clean pass of the speech.
+     *
+     * @param array $cues cues carrying a 'lines' list
+     * @return array cues carrying a 't' string
+     */
+    protected static function flatten_rolling(array $cues): array {
+        $out = [];
+        $previous = [];
+
+        foreach ($cues as $cue) {
+            $lines = $cue['lines'] ?? [];
+            $fresh = array_filter($lines, static fn($line) => !in_array($line, $previous, true));
+
+            $previous = $lines;
+            unset($cue['lines']);
+            $cue['t'] = trim(implode(' ', $fresh));
+
+            // A cue that said nothing new is the tail of the one before it, so
+            // it lends its end time rather than disappearing.
+            if ($cue['t'] === '' && $out) {
+                $last = count($out) - 1;
+                $out[$last]['e'] = max($out[$last]['e'], $cue['e']);
+                continue;
+            }
+            $out[] = $cue;
+        }
+
+        return $out;
     }
 
     /**
