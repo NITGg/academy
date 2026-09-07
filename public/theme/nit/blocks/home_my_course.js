@@ -243,10 +243,16 @@
     show();
   };
 
+  // On a category landing page the block is the same block, asked a narrower question: only
+  // the courses this learner owns inside that category. The home page sets no data-category,
+  // sends no categoryid, and gets the whole list exactly as it always has.
+  var category = parseInt(root.getAttribute('data-category') || '0', 10) || 0;
+
   var url = base + (root.getAttribute('data-endpoint') ||
       '/local/nit_category/home.php') +
     '?function=get_my_courses&limit=' + encodeURIComponent(limit) +
-    '&alang=' + encodeURIComponent(lang);
+    '&alang=' + encodeURIComponent(lang) +
+    (category ? '&categoryid=' + encodeURIComponent(category) : '');
 
   fetch(url, {
       headers: {

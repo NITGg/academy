@@ -152,23 +152,20 @@ $stylevars =
   . '--cborder: var(--nit-brand-borderprimary); '
   . '--csuccess: var(--nit-brand-success); ';
 
-// Brand group for this category (gallery "Category styles" tab). Group 1 is the
-// default layer (no class); groups 2/3 add the .nit-brand-2 / .nit-brand-3 switch
-// class to the wrapper, so every --nit-brand-* the page reads (and hence every
-// --cbg*/--ctext* above) resolves from that group instead.
+// This category's Brand Colors group is NOT applied here. The theme puts the
+// group's switch class (.nit-brand-2 …) on the <html> element for every page in
+// a styled category — this page's context IS that category — so the --nit-brand-*
+// that the --cbg*/--ctext* above read already resolve from it. A second copy on
+// the wrapper below would be one pinned to the mode this request rendered in, and
+// the navbar light/dark button, which moves between the category's own light and
+// dark styles, would leave that copy behind.
 //
-// theme/nit/lib.php (where those helpers live) is only auto-included when the
-// theme is initialised — theme_config::__construct, which runs later than this,
-// at $OUTPUT->header(). So it has to be required here: without it function_exists()
-// was always false and every category page silently fell back to Group 1, while
-// course pages (rendered after theme init) picked the right group up fine.
-$brandgroupclass = '';
+// theme/nit/lib.php is still required here: it is only auto-included when the
+// theme is initialised (theme_config::__construct, at $OUTPUT->header(), later
+// than this), and the course cards below ask it for a teacher link.
 $themenitlib = $CFG->dirroot . '/theme/nit/lib.php';
 if (file_exists($themenitlib)) {
     require_once($themenitlib);
-}
-if (function_exists('theme_nit_category_brand_group')) {
-    $brandgroupclass = theme_nit_brand_group_class(theme_nit_category_brand_group((int) $category->id));
 }
 
 // Bilingual inline helper (site is en/ar); mirrors the theme's {mlang} pairs.
@@ -323,7 +320,7 @@ $nitpricetags = function (array $info) use ($nitmoney, $nitcountrynotice): strin
 echo $OUTPUT->header();
 ?>
 
-<div dir="auto" class="nit-cat-details<?= $brandgroupclass !== '' ? ' ' . $brandgroupclass : '' ?>" style="<?= $stylevars ?>background: var(--cbg1); min-height: 100vh; padding-bottom: 40px; width: 100vw; max-width: 100vw; margin-inline: calc(50% - 50vw); margin-top: 0;">
+<div dir="auto" class="nit-cat-details" style="<?= $stylevars ?>background: var(--cbg1); min-height: 100vh; padding-bottom: 40px; width: 100vw; max-width: 100vw; margin-inline: calc(50% - 50vw); margin-top: 0;">
 
   <!-- Category Hero Banner (X-Trade style) -->
   <style>
@@ -548,6 +545,27 @@ echo $OUTPUT->header();
     ?>
   </div>
   <?php endif; ?>
+
+  <?php
+  // ── "Continue learning", narrowed to this category ────────────────────────────────────────
+  //
+  // The same block the home page uses, asked a narrower question: the courses this learner
+  // already owns INSIDE this category. It is rendered from the theme's block file rather than
+  // written out again here, so the card design has exactly one definition — see
+  // local_nit_category_render_home_block(). The only things changed are the block's own data-*
+  // attributes, which are the contract between a block and the page hosting it.
+  //
+  // data-empty="hide": on the home page a learner with nothing enrolled is invited to browse
+  // the catalogue, but they are already standing in the catalogue here, so an empty section
+  // simply stays away. The block hides itself until the feed answers, so there is never a gap.
+  echo local_nit_category_render_home_block('home_my_course_block.html', [
+      'data-nit-mycourse=""' => 'data-nit-mycourse="" data-category="' . (int) $categoryid . '"',
+      'data-limit="2"'       => 'data-limit="3"',
+      'data-empty="show"'    => 'data-empty="hide"',
+      'data-viewall="/local/nit_category/mycourses.php"'
+          => 'data-viewall="/local/nit_category/mycourses.php?categoryid=' . (int) $categoryid . '"',
+  ], $context);
+  ?>
 
   <!-- Courses Section -->
   <div style="padding: 32px 16px 16px;">
@@ -830,9 +848,35 @@ echo $OUTPUT->header();
 
     </div>
   </div>
+
+  <?php
+  // ── This category's plans and coupons ─────────────────────────────────────────────────────
+  //
+  // Both are the home page's own blocks, rendered from the theme's files and handed the
+  // category id — so a category advertises the plans that unlock ITS courses and the coupons
+  // that can be spent on them, instead of the whole site's price list. What "belongs to this
+  // category" means is decided server-side and in one place for each:
+  // subscription_manager::matches_category() and discount_manager::matches_category().
+  //
+  // Each block takes itself off the page when its list comes back empty, so a category with no
+  // plans of its own simply ends after the courses.
+  echo local_nit_category_render_home_block('home_subscriptions_block.html', [
+      'data-nit-subs=""' => 'data-nit-subs="" data-category="' . (int) $categoryid . '"',
+  ], $context);
+
+  echo local_nit_category_render_home_block('home_coupons_block.html', [
+      'data-nit-coupons=""' => 'data-nit-coupons="" data-category="' . (int) $categoryid . '"',
+  ], $context);
+  ?>
 </div>
 
 <?php
+// The subscriptions block moves its confirm dialog to <body> so it can sit above the page.
+// That used to take it out of the wrapper carrying this category's Brand Colors group, and a
+// script had to put the class back on it. Nothing to put back now: the group's switch class
+// lives on <html>, and <body> is inside it, so the dialog is already in the right palette
+// wherever it is moved to — and it follows the light/dark button like the rest of the page.
+
 // NIT: wire the course Buy buttons to the shared checkout modal (coupon + auto offer -> Kashier).
 // Shared with the catalogue page so a Buy button behaves identically on both.
 local_nit_category_checkout_footer();

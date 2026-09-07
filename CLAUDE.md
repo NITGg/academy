@@ -91,3 +91,8 @@ tracked.
   — apply or inspect the messaging rules. `--check` asks **core** whether one user may
   message another and separately reports whether our rules are the reason, which is the
   quickest way to tell a wrong rule from a rule that has not been rebuilt yet.
+- `public/local/nit_category/cli/catscope_diagnose.php --category=ID | --all [--user=ID]`
+  — what a category landing page will advertise (plans, coupons, offers) and **why** each
+  item was kept or dropped: the plan's assignment or the courses it was derived from, and
+  the coupon/offer scope rows. The fastest way to tell "the admin scoped it elsewhere"
+  from "the rule is wrong".

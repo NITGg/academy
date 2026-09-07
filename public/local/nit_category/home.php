@@ -102,7 +102,9 @@ try {
                 'status' => 'success',
                 'learner' => isloggedin() && !isguestuser(),
                 'data' => \local_nit_category\home::my_courses(
-                    optional_param('limit', 12, PARAM_INT)
+                    optional_param('limit', 12, PARAM_INT),
+                    // Set by the block on a category landing page, absent on the home page.
+                    optional_param('categoryid', 0, PARAM_INT)
                 ),
             ]);
             break;

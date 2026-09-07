@@ -188,7 +188,22 @@ class block_nit_offers extends block_base {
         if ($max <= 0) {
             $max = self::DEFAULT_MAX_OFFERS;
         }
-        return \block_nit_offers\bar::rows($max, $fallbackurl, $linktext);
+        return \block_nit_offers\bar::rows($max, $fallbackurl, $linktext, $this->page_categoryid());
+    }
+
+    /**
+     * The course category this page is about, when it is about one.
+     *
+     * Only a genuine category context counts — the category landing pages and the category
+     * management screens. A course page is deliberately NOT resolved to its category: the bar
+     * there is a site-wide announcement and narrowing it would quietly change what every course
+     * page advertises, which is a different decision from "a category page shows its own offers".
+     *
+     * @return int 0 when the page is not about a category
+     */
+    private function page_categoryid(): int {
+        $context = $this->page->context ?? null;
+        return ($context && $context->contextlevel == CONTEXT_COURSECAT) ? (int) $context->instanceid : 0;
     }
 
     /**

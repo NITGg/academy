@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_category';
-$plugin->version   = 2026090500;        // YYYYMMDDXX — local_nit_category_search: the header search over the web-service layer.
+$plugin->version   = 2026090700;        // YYYYMMDDXX — category pages carry their own my-courses, plans and coupons.
 $plugin->requires  = 2022041900;
 
 // The home.php JSON feed answers in the caller's language via

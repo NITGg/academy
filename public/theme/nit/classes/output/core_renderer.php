@@ -330,9 +330,9 @@ JS;
      * Render the navbar light/dark switch.
      *
      * The button does not carry a palette of its own: light and dark each map to
-     * one of the three Brand-Colors groups (assigned on the gallery "Change
-     * style" tab), and switching mode swaps that group's switch class on the
-     * <html> element. Because a group switch is nothing but a set of CSS custom
+     * one of the Brand-Colors groups (assigned on the gallery "Change style"
+     * tab), and switching mode swaps that group's switch class on the <html>
+     * element. Because a group switch is nothing but a set of CSS custom
      * properties, the swap re-skins the page instantly in the browser — no
      * reload, and no flash of the other palette.
      *
@@ -341,13 +341,15 @@ JS;
      * the right mode server-side (theme_nit\local\hook_callbacks
      * ::before_html_attributes) instead of letting JavaScript repaint after load.
      *
-     * Returns '' when both modes resolve to the same group — then the button
-     * would change nothing, and a control that does nothing is worse than no
-     * control. Same reasoning hides it inside a styled category: those pages are
-     * pinned to the CATEGORY's group (theme_nit_page_brand_group()), so the only
-     * thing a click could do is swap that group out for the mode's and leave the
-     * course looking like somebody else's — until the next request, which would
-     * pin it straight back. A control that fights the page is worse still.
+     * Inside a styled category the two groups are the CATEGORY's own pair, not
+     * the site's — a category is branded per mode, so the switch stays useful
+     * there and moves between that category's light and dark looks. (It used to
+     * be hidden on those pages, back when a category had one style and a click
+     * could only have taken the visitor out of it.)
+     *
+     * Returns '' when both modes resolve to the same group AND to the same logo:
+     * then the button would change nothing, and a control that does nothing is
+     * worse than no control.
      *
      * @return string HTML, or '' when the switch would be a no-op
      */
@@ -355,15 +357,6 @@ JS;
         global $CFG;
 
         require_once($CFG->dirroot . '/theme/nit/lib.php');
-
-        $groups = theme_nit_mode_groups();
-        if (($groups['light'] ?? 'g1') === ($groups['dark'] ?? 'g2')) {
-            return '';
-        }
-
-        if (theme_nit_page_brand_group() !== null) {
-            return '';
-        }
 
         $mode = theme_nit_current_mode();
 
@@ -410,8 +403,20 @@ JS;
         // A site with one logo gets no logo payload at all: identical maps mean
         // there is nothing to swap, and the handler should not touch an `src` it
         // would only rewrite to the same value.
-        if ($logos['light'] === $logos['dark']) {
+        $samelogos = ($logos['light'] === $logos['dark']);
+        if ($samelogos) {
             $logos = null;
+        }
+
+        // Nothing left to change: this page renders in the same group and draws
+        // the same mark either way. Asked of theme_nit_active_chrome_group()
+        // rather than of theme_nit_mode_groups(), because inside a styled
+        // category the pair being compared is that category's, not the site's.
+        // The two groups, not the two class lists: those always differ by
+        // `nit-mode-light` / `nit-mode-dark`, which is a hook, not a look.
+        if (theme_nit_active_chrome_group('light') === theme_nit_active_chrome_group('dark')
+                && $samelogos) {
+            return '';
         }
 
         $config = [

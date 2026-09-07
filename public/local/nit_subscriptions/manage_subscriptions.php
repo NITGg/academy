@@ -140,6 +140,7 @@ $STR = local_nit_subscriptions_string_map(array(
     'sub_ca_onlyselected', 'sub_ca_nomatch', 'sub_ca_catall', 'sub_ca_catnone', 'sub_ca_discard',
     'sub_ca_catcount',
     'sub_field_categories', 'sub_categories_help', 'sub_categories_allopt', 'sub_categories_clear',
+    'sub_categories_auto', 'sub_col_categories',
     'err_sessionexpired', 'err_requestfailed',
 ));
 
@@ -200,10 +201,10 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         <thead>
             <tr>
                 <th><?php echo $STR['pkg_col_id']; ?></th><th><?php echo $STR['pkg_col_name']; ?></th><th><?php echo $STR['pkg_col_price']; ?></th><th><?php echo $STR['sub_col_days']; ?></th>
-                <th class="col-tags"><?php echo $STR['sub_col_courses']; ?></th><th><?php echo $STR['pkg_col_status']; ?></th><th class="col-tight"><?php echo $STR['pkg_col_actions']; ?></th>
+                <th class="col-tags"><?php echo $STR['sub_col_courses']; ?></th><th class="col-tags"><?php echo $STR['sub_col_categories']; ?></th><th><?php echo $STR['pkg_col_status']; ?></th><th class="col-tight"><?php echo $STR['pkg_col_actions']; ?></th>
             </tr>
         </thead>
-        <tbody><tr><td colspan="7"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
+        <tbody><tr><td colspan="8"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
     </table>
     </div>
     <div id="sub-table-pager" class="acad-pager"></div>
@@ -418,6 +419,15 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         .sub-price-row { margin-bottom: 0.5rem; }
         .sub-price-row select, .sub-price-row input[type="number"] { padding: 0.25rem 0.4rem; height: auto; }
         .sub-price-row .sub-price-active { display: flex; justify-content: center; }
+        /* In-form category placement picker — same framed look as the prices box above it,
+           so the two optional "where does this plan apply" panels read as a pair. */
+        .sub-cats-box {
+            border: 1px solid var(--nit-brand-borderprimary); border-radius: 0.6rem;
+            padding: 0.9rem 1rem; margin-bottom: 1rem;
+            background: color-mix(in srgb, var(--nit-brand-background) 40%, var(--nit-brand-surface));
+        }
+        .sub-cats-box .sub-cats-help { font-size: 0.8rem; margin: 0.35rem 0 0.6rem; }
+        .sub-cats-box select { height: auto; }
         .sub-price-row .sub-price-del {
             border: 0; background: transparent; color: var(--nit-brand-error);
             cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 0.25rem;
@@ -664,6 +674,22 @@ echo html_writer::script(<<<'JS'
 
     var ALL_SUBS = [];
 
+    /* What the "Categories" column says. The three states of the assignment, named:
+       an explicit list, the deliberate "all categories", or nothing chosen — which is
+       not blank but "worked out from the plan's courses", and saying so is the whole
+       point of the column. */
+    function categoryCell(s) {
+        var ids = s.categories || [];
+        if (!ids.length) { return '<span class="text-muted">' + esc(str('sub_categories_auto')) + '</span>'; }
+        if (ids.indexOf(0) !== -1) { return esc(str('sub_categories_allopt')); }
+        var names = ids.map(function (id) {
+            var hit = (CFG.categories || []).filter(function (c) { return c.id === id; })[0];
+            /* The indent marks are for the picker, not for a table cell. */
+            return hit ? hit.name.replace(/^(?:— )+/, '') : ('#' + id);
+        });
+        return AcademyUI.tagList(names, { more: str('ui_showmore'), less: str('ui_showless') });
+    }
+
     function renderSubRows(items) {
         var tbody = $('sub-table').querySelector('tbody');
         tbody.innerHTML = '';
@@ -678,6 +704,7 @@ echo html_writer::script(<<<'JS'
                 '<td>' + esc(s.price) + '</td>' +
                 '<td>' + esc(s.duration_days) + '</td>' +
                 '<td class="col-tags">' + courseNames(s) + '</td>' +
+                '<td class="col-tags">' + categoryCell(s) + '</td>' +
                 '<td>' + esc(sstat(s.status)) + '</td>' +
                 '<td class="col-tight"><div class="acad-actions">' +
                     '<button class="btn btn-sm btn-secondary" data-act="edit" data-id="' + s.id + '">' + esc(str('ui_edit')) + '</button> ' +
@@ -691,11 +718,11 @@ echo html_writer::script(<<<'JS'
 
     function loadSubs() {
         var tbody = $('sub-table').querySelector('tbody');
-        tbody.innerHTML = '<tr><td colspan="7">' + esc(str('ui_loading')) + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">' + esc(str('ui_loading')) + '</td></tr>';
         api('get_subscriptions').then(function (rows) {
             ALL_SUBS = rows;
             if (!rows.length) {
-                tbody.innerHTML = '<tr><td colspan="7">' + esc(str('sub_none_admin')) + '</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8">' + esc(str('sub_none_admin')) + '</td></tr>';
                 $('sub-table-pager').innerHTML = '';
                 populateSubscriptionDropdown();
                 return;
@@ -786,10 +813,62 @@ echo html_writer::script(<<<'JS'
         $('f-refundhours').value = (sub && sub.refund_hours !== null && sub.refund_hours !== undefined) ? sub.refund_hours : '';
         $('f-refundfee').value   = (sub && sub.refund_fee !== null && sub.refund_fee !== undefined) ? sub.refund_fee : '';
         fillPrices(sub ? sub.prices : []);
+        fillCategories(sub ? sub.categories : []);
         $('f-active').checked = sub ? (sub.status === 'active') : true;
         $('sub-form-card').style.display = 'block';
     }
     function hideForm() { $('sub-form-card').style.display = 'none'; }
+
+    /* ── Category placement ────────────────────────────────────────────────────
+       The picker is built once from the categories shipped with the page, then
+       re-selected each time the form opens. "All categories" (value 0) is
+       mutually exclusive with the rest: picking it clears the others, and
+       picking any other clears it, because "all plus one" is not a third state. */
+    function buildCategoryOptions() {
+        var sel = $('f-categories');
+        if (!sel || sel.getAttribute('data-built')) { return; }
+        (CFG.categories || []).forEach(function (cat) {
+            var o = document.createElement('option');
+            o.value = cat.id;
+            o.textContent = cat.name;
+            sel.appendChild(o);
+        });
+        sel.setAttribute('data-built', '1');
+        sel.addEventListener('change', function () {
+            var all = sel.querySelector('option[value="0"]');
+            if (!all) { return; }
+            var others = Array.prototype.filter.call(sel.selectedOptions, function (o) {
+                return o.value !== '0';
+            });
+            if (all.selected && others.length) {
+                /* Whichever the admin just touched wins; the other side is cleared. */
+                if (sel._allwas) { all.selected = false; } else {
+                    others.forEach(function (o) { o.selected = false; });
+                }
+            }
+            sel._allwas = all.selected;
+        });
+    }
+
+    function fillCategories(ids) {
+        buildCategoryOptions();
+        var sel = $('f-categories');
+        if (!sel) { return; }
+        var want = (ids || []).map(function (v) { return String(v); });
+        Array.prototype.forEach.call(sel.options, function (o) {
+            o.selected = want.indexOf(o.value) !== -1;
+        });
+        var all = sel.querySelector('option[value="0"]');
+        sel._allwas = !!(all && all.selected);
+    }
+
+    function collectCategories() {
+        var sel = $('f-categories');
+        if (!sel) { return []; }
+        return Array.prototype.map.call(sel.selectedOptions, function (o) {
+            return parseInt(o.value, 10);
+        });
+    }
 
     function save() {
         var id = $('f-id').value;
@@ -801,7 +880,10 @@ echo html_writer::script(<<<'JS'
             duration_days: $('f-days').value,
             refund_hours: $('f-refundhours').value,
             refund_fee: $('f-refundfee').value,
-            prices: JSON.stringify(collectPrices())
+            prices: JSON.stringify(collectPrices()),
+            // Always sent, including as an empty list: "[]" is the instruction that clears the
+            // assignment and hands placement back to the plan's courses.
+            categories: JSON.stringify(collectCategories())
         };
         var p;
         if (id) {
@@ -841,6 +923,7 @@ echo html_writer::script(<<<'JS'
     $('sub-save').addEventListener('click', save);
     $('sub-cancel').addEventListener('click', hideForm);
     $('sub-price-add').addEventListener('click', function () { addPriceRow({}); });
+    $('f-categories-clear').addEventListener('click', function () { fillCategories([]); });
 
     // ── Course access ──
     // The grid only makes sense against a chosen plan, so everything below keys off

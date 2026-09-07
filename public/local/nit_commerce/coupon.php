@@ -147,6 +147,26 @@ foreach ($coupon['applies_to'] as $scope) {
         $group['link'] = new moodle_url('/local/nit_category/catalogue.php');
         $group['linktext'] = get_string('cpn_browse_all', 'local_nit_commerce');
 
+    } else if ($type === 'category' && $itemid > 0) {
+        // A category covers everything filed beneath it, so the group lists the courses of the
+        // whole subtree — the same set the coupon would actually be accepted on — and links to
+        // the category page rather than to any one course.
+        foreach (\local_nit_core\helper\category::subtree($itemid) as $catid) {
+            foreach ($DB->get_records('course', ['category' => $catid], 'fullname ASC', 'id') as $row) {
+                $course = $visiblecourse((int) $row->id);
+                if ($course) {
+                    $group['courses'][] = $course;
+                }
+            }
+        }
+        $group['link'] = new moodle_url('/local/nit_category/index.php', ['id' => $itemid]);
+        $group['linktext'] = get_string('cpn_open_category', 'local_nit_commerce');
+
+    } else if ($type === 'category' && $itemid === 0) {
+        // Every category is the whole catalogue; naming each one is a worse answer than a link.
+        $group['link'] = new moodle_url('/local/nit_category/catalogue.php');
+        $group['linktext'] = get_string('cpn_browse_all', 'local_nit_commerce');
+
     } else if ($type === 'subscription' && $itemid > 0 && $hassubs) {
         foreach (\local_nit_subscriptions\subscription_manager::courses_detail($itemid) as $entry) {
             $course = $visiblecourse((int) $entry['id']);

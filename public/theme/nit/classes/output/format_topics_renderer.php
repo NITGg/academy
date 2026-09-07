@@ -158,14 +158,13 @@ class format_topics_renderer extends \format_topics\output\renderer {
         $tabs['modules'] = get_string('acad_modules', 'theme_nit');
         $body .= $this->acad_modules($course, $modinfo, $context, $data, $about);
 
-        // Assemble in visual order. The brand group class lets a course adopt its
-        // top-level category's palette (Group 1/2/3), same as category pages.
-        $groupclass = '';
-        if (function_exists('theme_nit_category_brand_group') && $course->category) {
-            $groupclass = theme_nit_brand_group_class(theme_nit_category_brand_group($course->category));
-        }
-
-        $o  = html_writer::start_div('acad-cr' . ($groupclass ? ' ' . $groupclass : ''));
+        // Assemble in visual order. The category's palette is NOT re-applied here:
+        // theme_nit_mode_classes() already puts the group's switch class on the
+        // <html> element for every page in a styled category, this one included.
+        // A second copy on this wrapper would be a copy pinned to the mode the
+        // page was rendered in — and the navbar light/dark button, which now moves
+        // between the category's own two styles, would leave it behind.
+        $o  = html_writer::start_div('acad-cr');
         $o .= $this->acad_breadcrumb($data);
         $o .= $this->acad_hero($course, $context, $data);
         $o .= $this->acad_tabs($tabs);

@@ -50,21 +50,32 @@ $string['brandcoloursreset'] = 'Brand Colors reset to the defaults.';
 $string['savebrandcolours'] = 'Save Brand Colors';
 $string['resetbrandcolours'] = 'Reset to defaults';
 
-// Category styles (assign a brand group to each category details page).
-$string['categorystyles_desc'] = 'Choose which Brand Colors group each category\'s details page uses. The page re-skins from that group (via the <code>.nit-brand-2</code> / <code>.nit-brand-3</code> switch classes); <strong>Group 1</strong> is the default look. Tune each group\'s colours on the Brand Colors tab.';
+// Category styles: the brand group and the navbar logo each main category uses,
+// once for light mode and once for dark mode.
+$string['categorystyles_desc'] = 'Brand each main category twice — once for light mode, once for dark mode — because that is what the light/dark button in the navigation bar moves between. <strong>Style</strong> picks the Brand Colors group the category\'s pages render in (tune the groups themselves on the Brand Colors tab); <strong>Logo</strong> is the mark drawn in the navigation bar on those pages. Everything under a main category inherits its branding: its subcategories and every course in them. Leave a style on <strong>Site default</strong> or a logo empty to use the site\'s own for that mode.';
 $string['categorystyles_col_category'] = 'Category';
 $string['categorystyles_col_group'] = 'Brand group';
+$string['categorystyles_col_stylefor'] = 'Style — {$a}';
+$string['categorystyles_col_logofor'] = 'Logo — {$a}';
+$string['categorystyles_col_logolight'] = 'Logo — light mode';
+$string['categorystyles_col_logodark'] = 'Logo — dark mode';
+$string['categorystyles_sitedefault'] = 'Site default';
+$string['categorystyles_nologo'] = 'Site logo';
+$string['categorystyles_removelogo'] = 'Remove';
 $string['categorystyles_col_image'] = 'Image';
 $string['categorystyles_noimage'] = 'No image';
 $string['categorystyles_editimage'] = 'Set image';
 $string['categorystyles_none'] = 'No categories found.';
+$string['categorylogouploaderror'] = 'Could not upload {$a}. Please try again.';
+$string['categorylogoinvalidtype'] = '{$a} must be a PNG, JPG, WebP, GIF or SVG image.';
+$string['categorylogotoomany'] = '{$a} logo file(s) were not saved: this server accepts only a limited number of uploads in one request. Upload a few categories at a time.';
 $string['savecategorygroups'] = 'Save category styles';
 $string['categorygroupssaved'] = 'Category styles saved.';
 
 // Site styles: which Brand Colors group the navbar light/dark switch shows in
 // each mode ("Change style" tab, next to the category styles).
 $string['sitestyles'] = 'Site styles';
-$string['sitestyles_desc'] = 'Choose which Brand Colors group the site uses in each display mode. The light/dark button in the navigation bar switches between the two — it carries no palette of its own, it selects one of the groups below, so a visitor pressing it sees exactly the colours you tuned on the Brand Colors tab. Give the two modes different groups; when they are the same the button changes nothing and is not shown.';
+$string['sitestyles_desc'] = 'Choose which Brand Colors group the site uses in each display mode. The light/dark button in the navigation bar switches between the two — it carries no palette of its own, it selects one of the groups below, so a visitor pressing it sees exactly the colours you tuned on the Brand Colors tab. Give the two modes different groups; when they are the same the button changes nothing and is not shown. Pages inside a category that has its own styles use those instead, and the button moves between that category\'s pair.';
 $string['sitestyles_col_mode'] = 'Display mode';
 $string['sitestyles_col_group'] = 'Brand group';
 $string['savesitestyles'] = 'Save site styles';

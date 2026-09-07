@@ -151,6 +151,14 @@ $string['sub_plans_heading']  = 'Subscription plans';
 $string['sub_new']            = 'New subscription';
 $string['sub_col_days']       = 'Days';
 $string['sub_col_courses']    = 'Courses';
+$string['sub_col_categories'] = 'Categories';
+
+// Which category pages advertise a plan.
+$string['sub_field_categories']  = 'Category pages';
+$string['sub_categories_help']   = 'Which course-category pages show this plan. Leave nothing selected and it is worked out from the courses the plan unlocks — a plan of Programming courses appears on the Programming pages. Pick categories to place it by hand, or "All categories" to show it everywhere. A category also covers the categories beneath it.';
+$string['sub_categories_allopt'] = 'All categories';
+$string['sub_categories_auto']   = 'From its courses';
+$string['sub_categories_clear']  = 'Clear selection (back to automatic)';
 $string['sub_col_subscription'] = 'Subscription';
 $string['sub_field_desc']     = 'Description (optional)';
 $string['sub_field_days']     = 'Number of days';

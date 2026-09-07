@@ -90,26 +90,168 @@ if (($data = data_submitted()) && confirm_sesskey()) {
     }
 
     // -------------------------------------------------------------------------
-    // Category → Brand-group mapping. The "Category styles" tab lets an admin
-    // assign a brand group (g1/g2/g3) to each category; the category details page
-    // (local_nit_category) then wraps itself in .nit-brand-2 / .nit-brand-3 so it
-    // re-skins from that group. Stored as one JSON config `nit_category_groups`
-    // = { "<categoryid>": "g2", … }; Group 1 (the default) is stored as absence.
-    // No SCSS change, so no cache rebuild is needed — the class is applied per
-    // request and the group switch classes already exist in the compiled CSS.
+    // Category branding — the "Category styles" tab. One row per MAIN category,
+    // and four decisions on it:
+    //
+    //   * a Brand-Colors group for light mode and one for dark mode. A category
+    //     is branded twice because the site is: pages under it render in the
+    //     group chosen for the mode the visitor is in, and the navbar light/dark
+    //     button moves between the two. Stored as two JSON maps,
+    //     `nit_category_groups` (light, the original key — so every assignment
+    //     made before the second column existed is still the light one) and
+    //     `nit_category_groups_dark`, each { "<categoryid>": "g2", … }. "Site
+    //     default" is stored as absence, which is what leaves those pages on the
+    //     site's own group for that mode.
+    //   * a navbar logo for light mode and one for dark mode, uploaded into the
+    //     CATEGORY's own file area (theme_nit_category_logo_slots()) so the file
+    //     belongs to the category and goes when it does. An empty slot means
+    //     "use the site logo", never "no logo".
+    //
+    // The group maps change no CSS — the switch classes are already compiled —
+    // but a replaced logo file keeps its name, so only a theme-revision bump
+    // makes browsers drop the picture they have. Hence the purge, and only when
+    // a file actually changed.
     // -------------------------------------------------------------------------
     if (!empty($data->savecatgroups)) {
-        $selected = optional_param_array('catgroup', [], PARAM_ALPHANUMEXT);
-        $map = [];
-        foreach ($selected as $cid => $gk) {
-            $cid = (int) $cid;
-            // Only persist real, non-default assignments to keep the map small.
-            if ($cid > 0 && in_array($gk, $groupkeys, true) && $gk !== 'g1') {
-                $map[$cid] = $gk;
+        // The two group maps, read per mode. Posted category ids are cast and
+        // checked; an unknown group key (or the empty "site default") simply is
+        // not written, so the map only ever holds assignments we can honour.
+        foreach (array_keys(theme_nit_modes()) as $mode) {
+            $selected = optional_param_array('catgroup' . $mode, [], PARAM_ALPHANUMEXT);
+            $map = [];
+            foreach ($selected as $cid => $gk) {
+                $cid = (int) $cid;
+                if ($cid > 0 && in_array($gk, $groupkeys, true)) {
+                    $map[$cid] = $gk;
+                }
+            }
+            set_config(theme_nit_category_groups_config($mode), json_encode($map), 'theme_nit');
+        }
+
+        // The per-category logos. Which categories exist is read from the
+        // catalogue, not from the post: these are file operations in somebody
+        // else's context, and the only ids worth acting on are the ones the form
+        // was built from.
+        $errors = [];
+        $filechanged = false;
+        $fs = get_file_storage();
+        $catlogoslots = theme_nit_category_logo_slots();
+
+        $removals = [];
+        foreach ($catlogoslots as $mode => $slot) {
+            $removals[$mode] = optional_param_array($slot['remove'], [], PARAM_BOOL);
+        }
+
+        // Every file field the browser said it was sending has to have arrived.
+        // One that did not was dropped by PHP's `max_file_uploads` cap, which it
+        // does silently — and an admin who picked a logo and got a green "saved"
+        // would have no way of knowing. The page prunes its empty inputs before
+        // submitting (see the script below) so this list names only real uploads.
+        $announced = array_filter(array_map(
+            'trim',
+            explode(',', optional_param('catlogofields', '', PARAM_RAW_TRIMMED))
+        ));
+        $dropped = 0;
+        foreach ($announced as $field) {
+            if (!array_key_exists($field, $_FILES)) {
+                $dropped++;
             }
         }
-        set_config('nit_category_groups', json_encode($map), 'theme_nit');
-        redirect($pageurl, get_string('categorygroupssaved', 'theme_nit'), null,
+        if ($dropped > 0) {
+            $errors[] = get_string('categorylogotoomany', 'theme_nit', $dropped);
+        }
+
+        foreach (core_course_category::top()->get_children() as $cat) {
+            $catid = (int) $cat->id;
+            $catcontext = context_coursecat::instance($catid, IGNORE_MISSING);
+            if (!$catcontext) {
+                continue;
+            }
+
+            foreach ($catlogoslots as $mode => $slot) {
+                $label = $cat->get_formatted_name() . ' — ' . get_string($slot['strkey'], 'theme_nit');
+
+                // "Remove" wins over an upload in the same post: an admin who
+                // ticked the box and also chose a file meant the box, or they
+                // would not have had to tick it.
+                if (!empty($removals[$mode][$catid])) {
+                    $fs->delete_area_files($catcontext->id, 'theme_nit', $slot['filearea']);
+                    $filechanged = true;
+                    continue;
+                }
+
+                $field = $slot['input'] . '_' . $catid;
+                if (empty($_FILES[$field]['name']) ||
+                        ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+                $upload = $_FILES[$field];
+
+                // Guard against upload failures and non-uploaded (spoofed) paths.
+                if ($upload['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($upload['tmp_name'])) {
+                    $errors[] = get_string('categorylogouploaderror', 'theme_nit', $label);
+                    continue;
+                }
+
+                $ext = strtolower(pathinfo($upload['name'], PATHINFO_EXTENSION));
+                if ($ext === 'jpeg') {
+                    $ext = 'jpg';
+                }
+                if (!in_array($ext, ['png', 'jpg', 'webp', 'gif', 'svg'], true)) {
+                    $errors[] = get_string('categorylogoinvalidtype', 'theme_nit', $label);
+                    continue;
+                }
+
+                // Verify the file really is the picture its name claims rather
+                // than trusting the extension. SVG is accepted here — a logo is
+                // the one image that genuinely wants to be vector, and the core
+                // Logos page this sits beside accepts it for the same reason —
+                // so it is checked for an SVG root instead of being parsed as a
+                // raster image.
+                if ($ext === 'svg') {
+                    $head = (string) file_get_contents($upload['tmp_name'], false, null, 0, 1024);
+                    if (stripos($head, '<svg') === false) {
+                        $errors[] = get_string('categorylogoinvalidtype', 'theme_nit', $label);
+                        continue;
+                    }
+                } else {
+                    $info = @getimagesize($upload['tmp_name']);
+                    $allowedtypes = [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP, IMAGETYPE_GIF];
+                    if ($info === false || !in_array($info[2], $allowedtypes, true)) {
+                        $errors[] = get_string('categorylogoinvalidtype', 'theme_nit', $label);
+                        continue;
+                    }
+                }
+
+                // Fixed, predictable filename per slot (only the extension
+                // varies), replacing any previous file in the area.
+                $filename = clean_param($slot['basename'] . '.' . $ext, PARAM_FILE);
+                $fs->delete_area_files($catcontext->id, 'theme_nit', $slot['filearea']);
+                $fs->create_file_from_pathname((object) [
+                    'contextid' => $catcontext->id,
+                    'component' => 'theme_nit',
+                    'filearea'  => $slot['filearea'],
+                    'itemid'    => 0,
+                    'filepath'  => '/',
+                    'filename'  => $filename,
+                ], $upload['tmp_name']);
+                $filechanged = true;
+            }
+        }
+
+        if ($filechanged) {
+            // A replaced logo keeps its filename, so only a new theme revision
+            // moves the URL and makes browsers fetch the new picture.
+            theme_reset_all_caches();
+        }
+
+        // Back to the tab the form was posted from (see the hash handler below).
+        $caturl = new moodle_url('/theme/nit/gallery.php', null, 'nit-tab-catstyles');
+        if ($errors) {
+            redirect($caturl, implode(' ', $errors), null,
+                \core\output\notification::NOTIFY_ERROR);
+        }
+        redirect($caturl, get_string('categorygroupssaved', 'theme_nit'), null,
             \core\output\notification::NOTIFY_SUCCESS);
     }
 
@@ -338,6 +480,39 @@ if (($data = data_submitted()) && confirm_sesskey()) {
 }
 
 $gallery = new \theme_nit\output\gallery();
+
+// Keep the Category styles form's empty file inputs out of the submission.
+//
+// That form carries two file inputs per category, and PHP counts EVERY file part
+// a browser sends against `max_file_uploads` (20 by default) — the empty ones
+// included. On a site with more than ten main categories the uploads past that
+// limit are dropped without a word. An empty input carries nothing, so it is
+// disabled just before the form goes (a disabled control is not submitted), and
+// the hidden field is rewritten to name only what is still on its way — which is
+// what lets the server tell "the admin left this one empty" apart from "PHP threw
+// this one away" (see the catlogofields check in the save handler above).
+$PAGE->requires->js_amd_inline(<<<'JS'
+require([], function() {
+    var form = document.querySelector('[data-nit-catstyles-form]');
+    if (!form) {
+        return;
+    }
+    form.addEventListener('submit', function() {
+        var kept = [];
+        form.querySelectorAll('input[type="file"]').forEach(function(input) {
+            if (input.files && input.files.length) {
+                kept.push(input.name);
+            } else {
+                input.disabled = true;
+            }
+        });
+        var hidden = form.querySelector('[data-nit-catlogo-fields]');
+        if (hidden) {
+            hidden.value = kept.join(',');
+        }
+    });
+});
+JS);
 
 // Two-way sync between each colour picker and its hex text field.
 $PAGE->requires->js_amd_inline(<<<'JS'

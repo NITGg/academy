@@ -218,13 +218,16 @@ $stylevars =
   . '--cborder: var(--nit-brand-borderprimary); '
   . '--csuccess: var(--nit-brand-success); ';
 
-$brandgroupclass = '';
+// The root category's Brand Colors group is NOT applied to the wrapper below. When
+// this page is filtered to a category it sets that category's CONTEXT (see above),
+// and the theme puts the group's switch class on the <html> element for every page
+// in a styled category — so the --nit-brand-* the --cbg*/--ctext* above read already
+// resolve from it. A second copy on the wrapper would be pinned to the mode this
+// request rendered in, and the navbar light/dark button — which moves between the
+// category's own light and dark styles — would leave it behind.
 $themenitlib = $CFG->dirroot . '/theme/nit/lib.php';
 if (file_exists($themenitlib)) {
     require_once($themenitlib);
-}
-if ($rootid && function_exists('theme_nit_category_brand_group')) {
-    $brandgroupclass = theme_nit_brand_group_class(theme_nit_category_brand_group($rootid));
 }
 
 /**
@@ -253,7 +256,7 @@ $pricetags = function (array $info) use ($countrynotice): string {
 echo $OUTPUT->header();
 ?>
 
-<div dir="auto" class="nitcat<?= $brandgroupclass !== '' ? ' ' . $brandgroupclass : '' ?>" style="<?= $stylevars ?>">
+<div dir="auto" class="nitcat" style="<?= $stylevars ?>">
 <form method="get" action="<?= s($baseurl->out_omit_querystring()) ?>" class="nitcat__form" data-nitcat-form>
   <?php if ($rootid): ?>
     <input type="hidden" name="id" value="<?= (int) $rootid ?>">

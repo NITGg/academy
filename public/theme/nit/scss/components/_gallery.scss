@@ -205,4 +205,32 @@
         color: var(--nit-brand-textprimary);
         border-color: var(--nit-brand-borderprimary);
     }
+
+    // The per-category logo uploads, given the same treatment for the same
+    // reason: Bootstrap paints a file field and its "Browse" button from its own
+    // light-theme variables, which on this page reads as a white island in the
+    // middle of a branded table. The `::file-selector-button` needs saying
+    // separately — it does not inherit the control's own colours.
+    .form-control {
+        background-color: var(--nit-brand-surface);
+        color: var(--nit-brand-textprimary);
+        border-color: var(--nit-brand-borderprimary);
+
+        &::file-selector-button {
+            background-color: var(--nit-brand-background2);
+            color: var(--nit-brand-textprimary);
+            border-color: var(--nit-brand-borderprimary);
+        }
+    }
+
+    // The "Remove" tick beside a logo that is already set.
+    .form-check-input {
+        background-color: var(--nit-brand-surface);
+        border-color: var(--nit-brand-borderprimary);
+
+        &:checked {
+            background-color: var(--nit-brand-primary);
+            border-color: var(--nit-brand-primary);
+        }
+    }
 }

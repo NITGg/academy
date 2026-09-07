@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_subscriptions';
-$plugin->version   = 2026090202;        // AC-4.16.1: 30/7/1-day + on-expiry reminders, on by default.
+$plugin->version   = 2026090700;        // Per-category plan placement (nit_subscription_category).
 $plugin->requires  = 2024100700;
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;

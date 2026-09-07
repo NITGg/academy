@@ -171,14 +171,47 @@ class discount_manager {
      */
     public static function scope_matches(array $items, $itemtype, $itemid) {
         $itemid = (int)$itemid;
+
+        // Category rows are a GATE, not another alternative. Everything else in the list is an
+        // alternative — "all courses" OR "this plan" — but a category names a part of the
+        // catalogue, and an admin who has said "Programming" has said where this promotion
+        // lives. So when any category row is present the item must sit inside one of those
+        // branches, and the rows below then choose within it: "Programming" + "all courses"
+        // reads as every course under Programming, which is what it looks like it says.
+        //
+        // Two consequences worth being explicit about. Category rows alone grant the whole
+        // branch (there is nothing else to choose with, so the gate IS the scope). And this is
+        // the same test {@see self::matches_category()} uses to decide which category page
+        // advertises the coupon — a code can never be shown somewhere the checkout would then
+        // refuse it, which is exactly what an OR would have allowed.
+        $categoryrows = array();
+        $otherrows = array();
         foreach ($items as $row) {
-            if ($row->item_type === $itemtype && ((int)$row->item_id === 0 || (int)$row->item_id === $itemid)) {
+            if ($row->item_type === self::TYPE_CATEGORY) {
+                $categoryrows[] = (int) $row->item_id;
+            } else {
+                $otherrows[] = $row;
+            }
+        }
+
+        if ($categoryrows) {
+            $inbranch = false;
+            foreach ($categoryrows as $rowid) {
+                if (self::category_row_covers($rowid, $itemtype, $itemid)) {
+                    $inbranch = true;
+                    break;
+                }
+            }
+            if (!$inbranch) {
+                return false;
+            }
+            if (!$otherrows) {
                 return true;
             }
-            // A category row covers what LIVES in that category rather than the category itself,
-            // so it has to be resolved against the item instead of compared to it.
-            if ($row->item_type === self::TYPE_CATEGORY
-                    && self::category_row_covers((int)$row->item_id, $itemtype, $itemid)) {
+        }
+
+        foreach ($otherrows as $row) {
+            if ($row->item_type === $itemtype && ((int)$row->item_id === 0 || (int)$row->item_id === $itemid)) {
                 return true;
             }
         }

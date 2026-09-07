@@ -111,6 +111,7 @@ $string['sortmostcourses'] = 'Most courses';
 // Home-page "My courses" card (theme_nit home_my_course_block).
 $string['homelesson'] = 'Lesson {$a->num}: {$a->name}';
 $string['mycourses'] = 'My courses';
+$string['mycoursesincategory'] = 'My courses in {$a}';
 $string['mycoursesunavailable'] = 'The course cards cannot be shown: the theme_nit block file is missing or unreadable.';
 
 // -- Site search (SRS 4.22) ---------------------------------------------------------------

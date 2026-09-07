@@ -53,6 +53,9 @@ class get_available_subscriptions extends external_api {
             'alang'   => new external_value(PARAM_LANG, 'Display language (alias of lang, optional)', VALUE_DEFAULT, ''),
             'country' => new external_value(PARAM_ALPHA, 'ISO 3166-1 alpha-2 country to price for (optional). '
                 . 'When omitted, the logged-in user\'s profile country is used.', VALUE_DEFAULT, ''),
+            'categoryid' => new external_value(PARAM_INT,
+                'Only the plans belonging to this course category and its branch. 0 (default) '
+                . 'returns every active plan.', VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -62,17 +65,20 @@ class get_available_subscriptions extends external_api {
      * @param string $lang
      * @param string $alang
      * @param string $country optional ISO country override for pricing
+     * @param int $categoryid optional course category to restrict the list to
      * @return array
      */
-    public static function execute(string $lang = '', string $alang = '', string $country = ''): array {
+    public static function execute(string $lang = '', string $alang = '', string $country = '',
+            int $categoryid = 0): array {
         $params = self::validate_parameters(self::execute_parameters(),
-            ['lang' => $lang, 'alang' => $alang, 'country' => $country]);
+            ['lang' => $lang, 'alang' => $alang, 'country' => $country, 'categoryid' => $categoryid]);
         self::validate_context(\context_system::instance());
         $chosen = $params['alang'] !== '' ? $params['alang'] : $params['lang'];
         if ($chosen !== '') {
             \local_nit_core\helper\lang::for_request($chosen);
         }
-        return nit_subscriptions_available($params['country'] !== '' ? $params['country'] : null);
+        return nit_subscriptions_available($params['country'] !== '' ? $params['country'] : null,
+            (int) $params['categoryid']);
     }
 
     /**

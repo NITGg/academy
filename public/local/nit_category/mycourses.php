@@ -37,6 +37,7 @@
  */
 
 require_once(__DIR__ . '/../../config.php');
+require_once($CFG->dirroot . '/local/nit_category/lib.php');
 
 require_login();
 
@@ -45,44 +46,54 @@ if (isguestuser()) {
     redirect(new moodle_url('/local/nit_category/catalogue.php'));
 }
 
+// Arriving from a category page's "More" link, which is showing that category's slice of the
+// learner's courses; the full list has to keep the same slice or the link would silently widen
+// what it was pointing at. 0 = every course, which is what the home page's own link sends.
+$categoryid = optional_param('categoryid', 0, PARAM_INT);
+$category = null;
+if ($categoryid > 0) {
+    try {
+        $category = core_course_category::get($categoryid);
+    } catch (\Throwable $e) {
+        // A category that has since been deleted, or one this viewer may not see: fall back to
+        // the whole list rather than refusing a page they are entitled to.
+        $categoryid = 0;
+    }
+}
+
 $context = context_system::instance();
 
-$PAGE->set_url(new moodle_url('/local/nit_category/mycourses.php'));
+$PAGE->set_url(new moodle_url('/local/nit_category/mycourses.php',
+    $categoryid ? ['categoryid' => $categoryid] : []));
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('nit_fullwidth');
 
-$heading = get_string('mycourses', 'local_nit_category');
+$heading = $category
+    ? get_string('mycoursesincategory', 'local_nit_category', $category->get_formatted_name())
+    : get_string('mycourses', 'local_nit_category');
 $PAGE->set_title($heading);
 $PAGE->set_heading($heading);
 
-$blockfile = $CFG->dirroot . '/theme/nit/blocks/home_my_course_block.html';
-$markup = is_readable($blockfile) ? (string) file_get_contents($blockfile) : '';
-
-if ($markup !== '') {
-    // Turn the teaser into the full list. Matching on the whole attribute with
-    // its value keeps this from firing on anything else in the file.
-    //
-    // data-empty is left alone: the block already ships with the AC-4.7.7
-    // invitation on, and this page wants it for the same reason the home page
-    // does - a learner who reached "My courses" with nothing enrolled should be
-    // pointed at the catalogue rather than shown a blank column. Guests never
-    // get here; they were sent to the catalogue above.
-    $markup = str_replace(
-        ['data-limit="2"', 'data-viewall="/local/nit_category/mycourses.php"'],
-        ['data-limit="50"', 'data-viewall=""'],
-        $markup
-    );
-
-    // noclean: this is our own file, and the cleaner would strip the <script>
-    // that loads the card behaviour along with most of the inline styles the
-    // design is made of. filter: on, because the strings in it are {mlang}
-    // pairs that only the multilang filter can resolve.
-    $markup = format_text($markup, FORMAT_HTML, [
-        'noclean' => true,
-        'filter' => true,
-        'context' => $context,
-    ]);
+// Turn the teaser into the full list. Matching on the whole attribute with its value keeps
+// this from firing on anything else in the file.
+//
+// data-empty is left alone: the block already ships with the AC-4.7.7 invitation on, and this
+// page wants it for the same reason the home page does - a learner who reached "My courses"
+// with nothing enrolled should be pointed at the catalogue rather than shown a blank column.
+// Guests never get here; they were sent to the catalogue above.
+$replace = [
+    'data-limit="2"' => 'data-limit="50"',
+    'data-viewall="/local/nit_category/mycourses.php"' => 'data-viewall=""',
+];
+if ($categoryid > 0) {
+    // data-category is what the block's script turns into &categoryid= on the feed call, and
+    // "browse" should lead back to the category rather than to the whole catalogue.
+    $replace['data-nit-mycourse=""'] = 'data-nit-mycourse="" data-category="' . $categoryid . '"';
+    $replace['data-browse="/local/nit_category/catalogue.php"'] =
+        'data-browse="/local/nit_category/index.php?id=' . $categoryid . '"';
 }
+
+$markup = local_nit_category_render_home_block('home_my_course_block.html', $replace, $context);
 
 echo $OUTPUT->header();
 

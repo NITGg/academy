@@ -56,8 +56,31 @@ $string['tab_brandcolours'] = 'ألوان الهوية';
 // Category styles + site styles ("Change style" tab).
 $string['tab_changestyle'] = 'تغيير النمط';
 $string['tab_categorystyles'] = 'أنماط التصنيفات';
+
+// Category styles: the brand group and the navbar logo each main category uses,
+// once for light mode and once for dark mode.
+$string['categorystyles_desc'] = 'اضبط هوية كل تصنيف رئيسي مرّتين — مرّة للوضع الفاتح ومرّة للوضع الداكن — لأن هذا ما ينتقل بينه زر الوضع الفاتح/الداكن في شريط التنقّل. يحدّد <strong>النمط</strong> مجموعة ألوان الهوية التي تُعرض بها صفحات التصنيف (اضبط المجموعات نفسها في تبويب ألوان الهوية)، و<strong>الشعار</strong> هو العلامة التي تظهر في شريط التنقّل في تلك الصفحات. يرث كل ما تحت التصنيف الرئيسي هويّته: تصنيفاته الفرعية وكل مقرّراته. اترك النمط على <strong>افتراضي الموقع</strong> أو اترك الشعار فارغًا لاستخدام ما يخصّ الموقع في ذلك الوضع.';
+$string['categorystyles_col_category'] = 'التصنيف';
+$string['categorystyles_col_group'] = 'مجموعة الهوية';
+$string['categorystyles_col_stylefor'] = 'النمط — {$a}';
+$string['categorystyles_col_logofor'] = 'الشعار — {$a}';
+$string['categorystyles_col_logolight'] = 'الشعار — الوضع الفاتح';
+$string['categorystyles_col_logodark'] = 'الشعار — الوضع الداكن';
+$string['categorystyles_sitedefault'] = 'افتراضي الموقع';
+$string['categorystyles_nologo'] = 'شعار الموقع';
+$string['categorystyles_removelogo'] = 'إزالة';
+$string['categorystyles_col_image'] = 'الصورة';
+$string['categorystyles_noimage'] = 'لا توجد صورة';
+$string['categorystyles_editimage'] = 'تعيين صورة';
+$string['categorystyles_none'] = 'لا توجد تصنيفات.';
+$string['categorylogouploaderror'] = 'تعذّر رفع {$a}. حاول مرّة أخرى.';
+$string['categorylogoinvalidtype'] = 'يجب أن يكون {$a} صورة بصيغة PNG أو JPG أو WebP أو GIF أو SVG.';
+$string['categorylogotoomany'] = 'لم يُحفظ {$a} من ملفات الشعارات: هذا الخادم يقبل عددًا محدودًا من الملفات المرفوعة في الطلب الواحد. ارفع شعارات بضعة تصنيفات في كل مرّة.';
+$string['savecategorygroups'] = 'حفظ أنماط التصنيفات';
+$string['categorygroupssaved'] = 'تم حفظ أنماط التصنيفات.';
+
 $string['sitestyles'] = 'أنماط الموقع';
-$string['sitestyles_desc'] = 'اختر مجموعة ألوان الهوية التي يستخدمها الموقع في كل وضع عرض. يبدّل زر الوضع الفاتح/الداكن في شريط التنقّل بين الوضعين — وهو لا يحمل لوحة ألوان خاصة به، بل يختار إحدى المجموعات أدناه، فيرى الزائر عند الضغط عليه الألوان نفسها التي ضبطتها في تبويب ألوان الهوية. اجعل للوضعين مجموعتين مختلفتين؛ فإن تطابقتا لم يغيّر الزر شيئًا ولن يظهر.';
+$string['sitestyles_desc'] = 'اختر مجموعة ألوان الهوية التي يستخدمها الموقع في كل وضع عرض. يبدّل زر الوضع الفاتح/الداكن في شريط التنقّل بين الوضعين — وهو لا يحمل لوحة ألوان خاصة به، بل يختار إحدى المجموعات أدناه، فيرى الزائر عند الضغط عليه الألوان نفسها التي ضبطتها في تبويب ألوان الهوية. اجعل للوضعين مجموعتين مختلفتين؛ فإن تطابقتا لم يغيّر الزر شيئًا ولن يظهر. أمّا الصفحات داخل تصنيف له أنماطه الخاصة فتستخدم تلك الأنماط، وينتقل الزر بين زوج ذلك التصنيف.';
 $string['sitestyles_col_mode'] = 'وضع العرض';
 $string['sitestyles_col_group'] = 'مجموعة الهوية';
 $string['savesitestyles'] = 'حفظ أنماط الموقع';

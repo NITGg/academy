@@ -41,8 +41,16 @@
  *   "categorystyles": {                     // Tab 2 — Category styles
  *     "groups": [ { "key": "g1", "name": "Group 1" }, … ],
  *     "categories": [
+ *       // The flat group/class keys are the LIGHT values, kept for readers that
+ *       // predate the second style; "modes" carries both.
  *       { "id": 3, "name": "Programming", "group": "g2", "groupname": "Group 2",
- *         "class": "nit-brand-2", "isdefault": false }, … ]
+ *         "class": "nit-brand-2", "isdefault": false,
+ *         "modes": {
+ *           "light": { "group": "g2", "groupname": "Group 2", "class": "nit-brand-2",
+ *                      "isdefault": false, "logo": "https://…/category-logo-light.png" },
+ *           "dark":  { "group": "g5", "groupname": "Group 5 (Graphite — dark)",
+ *                      "class": "nit-brand-5", "isdefault": false, "logo": "" }
+ *         } }, … ]
  *   },
  *   "fonts": [                              // Tab 3 — Fonts
  *     { "lang": "en", "label": "English font", "family": "NIT Site Font EN",

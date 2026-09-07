@@ -28,7 +28,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'block_nit_offers';
-$plugin->version   = 2026082900;        // YYYYMMDDXX.
+$plugin->version   = 2026090700;        // YYYYMMDDXX — category-aware bar (per-category offers).
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
 $plugin->maturity  = MATURITY_ALPHA;
 $plugin->release   = '0.1.0';

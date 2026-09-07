@@ -59,11 +59,16 @@ class gallery implements renderable, templatable {
             ];
         }
 
-        // Category → brand-group mapping for the "Category styles" tab. Only the
-        // MAIN (top-level) categories are assignable; every page under a main
-        // category (its subcategories, filtered views) inherits that group via
-        // theme_nit_category_brand_group(). Each row gets a Group 1/2/3 selector,
-        // pre-set to the stored assignment (default Group 1).
+        // Category branding for the "Category styles" tab. Only the MAIN
+        // (top-level) categories are assignable; every page under a main
+        // category (its subcategories, its courses, filtered views) inherits it
+        // via theme_nit_category_brand_group() / theme_nit_category_logo_url().
+        //
+        // Each row carries the same decision twice — once for light mode, once
+        // for dark — because that is what a category's style now is: a pair the
+        // navbar light/dark button moves between. `modes` is that pair, in
+        // switch order, so the template prints the columns from the data rather
+        // than naming "light" and "dark" itself.
         global $CFG;
         // Category pictures come from local_nit_category; load it so the per-row
         // thumbnail below can resolve, but keep the tab working without it.
@@ -71,19 +76,74 @@ class gallery implements renderable, templatable {
             require_once($CFG->dirroot . '/local/nit_category/lib.php');
         }
 
-        $rawmap = \get_config('theme_nit', 'nit_category_groups');
-        $catmap = ($rawmap && is_string($rawmap)) ? (json_decode($rawmap, true) ?: []) : [];
         $grouplabels = \theme_nit_brand_groups();
+        $modelabels = [
+            'light' => \get_string('modelight', 'theme_nit'),
+            'dark' => \get_string('modedark', 'theme_nit'),
+        ];
+        $logoslots = \theme_nit_category_logo_slots();
+
+        // One read of each map, rather than one per category.
+        $catmaps = [];
+        foreach (array_keys(\theme_nit_modes()) as $mode) {
+            $catmaps[$mode] = \theme_nit_category_group_map($mode);
+        }
+
+        // The column headings, in the same order every row's cells come out in.
+        // Built here rather than in the template because each one names a mode:
+        // "Style — light mode", "Logo — dark mode".
+        $catmodecolumns = [];
+        foreach (array_keys($catmaps) as $mode) {
+            $label = $modelabels[$mode] ?? $mode;
+            $catmodecolumns[] = [
+                'mode' => $mode,
+                'label' => $label,
+                'stylelabel' => \get_string('categorystyles_col_stylefor', 'theme_nit', $label),
+                'logolabel' => \get_string('categorystyles_col_logofor', 'theme_nit', $label),
+            ];
+        }
+
+        // Every file field this form renders, so the page can tell the server
+        // which uploads were actually on their way — see the max_file_uploads
+        // note on the pruning script in gallery.php.
+        $catlogofields = [];
+
         $categorygroups = [];
         foreach (\core_course_category::top()->get_children() as $cat) {
-            $current = $catmap[$cat->id] ?? 'g1';
-            if (!array_key_exists($current, $grouplabels)) {
-                $current = 'g1';
+            $modes = [];
+            foreach ($catmaps as $mode => $map) {
+                $current = $map[$cat->id] ?? '';
+                if (!array_key_exists($current, $grouplabels)) {
+                    $current = '';
+                }
+                // "Site default" first, and selected when nothing is assigned:
+                // an unassigned category must leave its pages on the site's own
+                // group for that mode, which is not the same answer as Group 1.
+                $options = [[
+                    'value' => '',
+                    'label' => \get_string('categorystyles_sitedefault', 'theme_nit'),
+                    'selected' => ($current === ''),
+                ]];
+                foreach ($grouplabels as $gkey => $glabel) {
+                    $options[] = ['value' => $gkey, 'label' => $glabel, 'selected' => ($gkey === $current)];
+                }
+
+                $slot = $logoslots[$mode];
+                $logo = \theme_nit_category_logo_url((int) $cat->id, $mode);
+                $catlogofields[] = $slot['input'] . '_' . (int) $cat->id;
+                $modes[] = [
+                    'mode' => $mode,
+                    'label' => $modelabels[$mode] ?? $mode,
+                    'options' => $options,
+                    'isdefault' => ($current === ''),
+                    'select' => 'catgroup' . $mode . '[' . (int) $cat->id . ']',
+                    'logoinput' => $slot['input'] . '_' . (int) $cat->id,
+                    'logoremove' => $slot['remove'] . '[' . (int) $cat->id . ']',
+                    'haslogo' => (bool) $logo,
+                    'logourl' => $logo ? $logo->out(false) : '',
+                ];
             }
-            $options = [];
-            foreach ($grouplabels as $gkey => $glabel) {
-                $options[] = ['value' => $gkey, 'label' => $glabel, 'selected' => ($gkey === $current)];
-            }
+
             // The category's picture (local_nit_category), so this one screen shows
             // both halves of a category's branding — its palette and its image — and
             // an admin can see at a glance which categories are still missing one.
@@ -95,8 +155,7 @@ class gallery implements renderable, templatable {
             $categorygroups[] = [
                 'id' => $cat->id,
                 'name' => $cat->get_formatted_name(),
-                'options' => $options,
-                'isdefault' => ($current === 'g1'),
+                'modes' => $modes,
                 'image' => $image,
                 'hasimage' => ($image !== ''),
                 'imageurl' => (new \moodle_url('/local/nit_category/image.php', ['id' => $cat->id]))->out(false),
@@ -104,15 +163,11 @@ class gallery implements renderable, templatable {
         }
 
         // Display mode → brand-group mapping for the "Site styles" section of the
-        // same tab. This is what the navbar light/dark button switches between:
-        // the button holds no palette, it just puts the chosen group's switch
-        // class on <html>. Same shape as the category rows above (one selector
-        // per row, pre-set to the stored assignment) because it is the same
-        // decision made about a different subject.
-        $modelabels = [
-            'light' => \get_string('modelight', 'theme_nit'),
-            'dark' => \get_string('modedark', 'theme_nit'),
-        ];
+        // same tab. This is what the navbar light/dark button switches between
+        // OUTSIDE a styled category: the button holds no palette, it just puts
+        // the chosen group's switch class on <html>. Same shape as the category
+        // rows above (one selector per row, pre-set to the stored assignment)
+        // because it is the same decision made about a different subject.
         $modegroups = [];
         foreach (\theme_nit_mode_groups() as $mode => $current) {
             $options = [];
@@ -185,6 +240,8 @@ class gallery implements renderable, templatable {
             'actionurl' => (new \moodle_url('/theme/nit/gallery.php'))->out(false),
             'brandgroups' => $brandgroups,
             'categorygroups' => $categorygroups,
+            'catmodecolumns' => $catmodecolumns,
+            'catlogofields' => implode(',', $catlogofields),
             'hascategorygroups' => !empty($categorygroups),
             'modegroups' => $modegroups,
             'fonts' => $fonts,

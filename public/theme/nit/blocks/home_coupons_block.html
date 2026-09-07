@@ -8,7 +8,10 @@
      the block starts hidden and shows itself only once it has at least one card: a visitor
      with nothing to claim sees no block and no gap where one would have been (AC-4.7.11).
      Optional: if it can't find the API, set data-base on the wrapper to your Moodle URL,
-     e.g. data-base="https://academy2026.nitg-eg.com/moodle-new" -->
+     e.g. data-base="https://academy2026.nitg-eg.com/moodle-new"
+     Set data-category="<id>" to list only the coupons belonging to one course category and its
+     branch, plus the site-wide ones (what local/nit_category/index.php does); leave it off and
+     the block lists every coupon this visitor could redeem. -->
 <div dir="auto"
   style="display: none; background: var(--nit-brand-background); padding: 64px 16px;"
   data-nit-coupons="" data-endpoint="/local/nit_commerce/api.php" data-base="">
@@ -120,10 +123,15 @@
         M.cfg.wwwroot :
         root.getAttribute('data-base') || '';
 
+      /* On a category landing page the rail shows that category's coupons plus the site-wide
+         ones; the home page sets no data-category and asks for the lot, as before. */
+      var category = parseInt(root.getAttribute('data-category') || '0', 10) || 0;
+
       var endpoint =
         base +
         root.getAttribute('data-endpoint') +
-        '?function=get_available_coupons';
+        '?function=get_available_coupons' +
+        (category ? '&categoryid=' + encodeURIComponent(category) : '');
 
       function esc(s) {
         return String(s == null ? '' : s).replace(

@@ -509,3 +509,53 @@ function local_nit_category_checkout_footer(): void {
 JS
     );
 }
+
+/**
+ * Render one of the theme's home-page block files as page markup.
+ *
+ * The home page is assembled from HTML blocks pasted into the database, and those pastes are
+ * copies of the files in theme/nit/blocks. This function is how a PHP page shows the same
+ * section without becoming a second copy of the design: it reads the file the paste came from,
+ * so the two can never drift, and a fix to the block reaches this page with a git pull instead
+ * of with a re-paste.
+ *
+ * $replace lets the caller retune the block's own data-* attributes — that is the whole contract
+ * between a block and the page hosting it (how many cards, which feed, which category). The
+ * search strings are matched WITH their value, e.g. 'data-limit="2"', so a replacement cannot
+ * fire on some other attribute that happens to share a name.
+ *
+ * @param string $filename block file name inside theme/nit/blocks, e.g. 'home_coupons_block.html'
+ * @param array $replace search => replacement pairs applied to the raw markup before filtering
+ * @param \context|null $context context to filter in (system context when null)
+ * @return string ready-to-echo HTML, or '' when the file is missing or unreadable
+ */
+function local_nit_category_render_home_block(string $filename, array $replace = [],
+        ?\context $context = null): string {
+    global $CFG;
+
+    // The name is a fixed choice made by our own code, never user input, but keep it a name:
+    // a path here would turn a design decision into a file-disclosure bug.
+    $filename = basename($filename);
+    $file = $CFG->dirroot . '/theme/nit/blocks/' . $filename;
+    if (!is_readable($file)) {
+        return '';
+    }
+
+    $markup = (string) file_get_contents($file);
+    if ($markup === '') {
+        return '';
+    }
+    if ($replace) {
+        $markup = str_replace(array_keys($replace), array_values($replace), $markup);
+    }
+
+    // noclean: this is our own file, and the cleaner would strip the <script> that gives the
+    // block its behaviour along with most of the inline styles the design is made of.
+    // filter: on, because every visible string in it is an {mlang} pair that only the
+    // multilang filter can resolve.
+    return format_text($markup, FORMAT_HTML, [
+        'noclean' => true,
+        'filter'  => true,
+        'context' => $context ?? context_system::instance(),
+    ]);
+}

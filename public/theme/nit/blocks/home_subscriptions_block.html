@@ -5,8 +5,13 @@
      --nit-brand-accent, the "positive" teal maps to --nit-brand-success; shades derive via
      color-mix from those same brand variables (no hard-coded colours).
      Optional: if it can't find the API, set data-base to your Moodle URL,
-     e.g. data-base="https://academy2026.nitg-eg.com/moodle-new" -->
-<div dir="rtl"
+     e.g. data-base="https://academy2026.nitg-eg.com/moodle-new"
+     Set data-category="<id>" to list only the plans belonging to one course category (what
+     local/nit_category/index.php does); leave it off and the block lists every active plan.
+     dir="auto" rather than a fixed rtl: the block is bilingual, and the copy it renders is in
+     one language at a time, so the direction follows the text instead of pinning English to
+     right-to-left. -->
+<div dir="auto"
   style="font-family: 'Cairo', 'Tajawal', sans-serif; background-color: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 60px 20px; border-radius: 12px;"
   data-nit-subs="" data-endpoint="/local/nit_subscriptions/api.php"
   data-commerce="/local/nit_commerce/api.php" data-base=""><!-- Header -->

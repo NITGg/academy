@@ -23,7 +23,11 @@
     * sesskey - session key for the editor forms
     * actionurl - POST target for the editor forms
     * colourgroups - array of { name, colours: [ { key, label, configname, value, default, isdefault } ] }
-    * categorygroups - array of { id, name, options: [ { value, label, selected } ], image, hasimage, imageurl }
+    * categorygroups - array of { id, name, image, hasimage, imageurl,
+        modes: [ { mode, label, select, options: [ { value, label, selected } ],
+                   logoinput, logoremove, haslogo, logourl } ] } (one entry per display mode)
+    * catmodecolumns - array of { mode, label, stylelabel, logolabel } - the per-mode column headings
+    * catlogofields - comma-separated names of every category-logo file input on the form
     * modegroups - array of { mode, label, options: [ { value, label, selected } ] } (light / dark)
     * fonts - array of { input, label, family, sample, rtl, hasfont, filename }
     * authimages - array of { key, input, label, description, hasimage, filename, url }
@@ -149,15 +153,30 @@
             <h3>{{#str}}tab_categorystyles, theme_nit{{/str}}</h3>
             <p class="text-muted">{{#str}}categorystyles_desc, theme_nit{{/str}}</p>
             {{#hascategorygroups}}
-            <form method="post" action="{{actionurl}}" class="nit-catstyles-editor mb-4">
+            <form method="post" action="{{actionurl}}" enctype="multipart/form-data"
+                  class="nit-catstyles-editor mb-4" data-nit-catstyles-form>
                 <input type="hidden" name="sesskey" value="{{sesskey}}">
+                {{! Which file fields are on their way. Rewritten by the pruning }}
+                {{! script in gallery.php, and read back there to spot uploads   }}
+                {{! that PHP's max_file_uploads cap threw away.                  }}
+                <input type="hidden" name="catlogofields" value="{{catlogofields}}" data-nit-catlogo-fields>
                 <div class="table-responsive">
                     <table class="table table-sm align-middle nit-catstyles-table">
                         <thead>
                             <tr>
                                 <th scope="col" style="width: 5rem;">{{#str}}categorystyles_col_image, theme_nit{{/str}}</th>
                                 <th scope="col">{{#str}}categorystyles_col_category, theme_nit{{/str}}</th>
-                                <th scope="col" style="width: 12rem;">{{#str}}categorystyles_col_group, theme_nit{{/str}}</th>
+                                {{! One style column and one logo column per display mode, in switch order. }}
+                                {{#catmodecolumns}}
+                                <th scope="col" style="width: 12rem;">
+                                    {{stylelabel}}
+                                </th>
+                                {{/catmodecolumns}}
+                                {{#catmodecolumns}}
+                                <th scope="col" style="width: 13rem;">
+                                    {{logolabel}}
+                                </th>
+                                {{/catmodecolumns}}
                             </tr>
                         </thead>
                         <tbody>
@@ -175,13 +194,43 @@
                                     </a>
                                 </td>
                                 <td>{{name}}</td>
+                                {{! The brand group this category renders in, per mode. }}
+                                {{#modes}}
                                 <td>
-                                    <select class="form-select form-select-sm" name="catgroup[{{id}}]" aria-label="{{name}}">
+                                    <select class="form-select form-select-sm" name="{{select}}"
+                                            aria-label="{{name}} — {{label}}">
                                         {{#options}}
                                         <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
                                         {{/options}}
                                     </select>
                                 </td>
+                                {{/modes}}
+                                {{! The navbar logo this category draws, per mode. Empty = the site logo. }}
+                                {{#modes}}
+                                <td>
+                                    {{#haslogo}}
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <img src="{{logourl}}" alt="{{name}} — {{label}}" class="rounded border"
+                                             style="height: 32px; max-width: 96px; object-fit: contain; background: var(--nit-brand-surface); padding: 2px;">
+                                        <div class="form-check mb-0">
+                                            <input class="form-check-input" type="checkbox" value="1"
+                                                   name="{{logoremove}}" id="{{logoinput}}_remove">
+                                            <label class="form-check-label small text-muted" for="{{logoinput}}_remove">
+                                                {{#str}}categorystyles_removelogo, theme_nit{{/str}}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {{/haslogo}}
+                                    {{^haslogo}}
+                                    <div class="small text-muted fst-italic mb-1">
+                                        {{#str}}categorystyles_nologo, theme_nit{{/str}}
+                                    </div>
+                                    {{/haslogo}}
+                                    <input type="file" class="form-control form-control-sm" name="{{logoinput}}"
+                                           id="{{logoinput}}" accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
+                                           aria-label="{{name}} — {{label}}">
+                                </td>
+                                {{/modes}}
                             </tr>
                             {{/categorygroups}}
                         </tbody>

@@ -242,6 +242,14 @@ $string['sub_plans_heading']  = 'خطط الاشتراك';
 $string['sub_new']            = 'اشتراك جديد';
 $string['sub_col_days']       = 'الأيام';
 $string['sub_col_courses']    = 'الكورسات';
+$string['sub_col_categories'] = 'التصنيفات';
+
+// صفحات التصنيفات التي تعرض الخطة.
+$string['sub_field_categories']  = 'صفحات التصنيفات';
+$string['sub_categories_help']   = 'صفحات تصنيفات الكورسات التي ستظهر فيها هذه الخطة. إن لم تختر شيئًا فسيُستنتج ذلك من الكورسات التي تفتحها الخطة — فخطة كورساتها في البرمجة تظهر في صفحات البرمجة. اختر تصنيفات لتحديد مكانها يدويًا، أو «كل التصنيفات» لعرضها في كل مكان. واختيار تصنيف يشمل تصنيفاته الفرعية أيضًا.';
+$string['sub_categories_allopt'] = 'كل التصنيفات';
+$string['sub_categories_auto']   = 'حسب كورساتها';
+$string['sub_categories_clear']  = 'مسح الاختيار (العودة للوضع التلقائي)';
 $string['sub_col_subscription'] = 'الاشتراك';
 $string['sub_field_desc']     = 'الوصف (اختياري)';
 $string['sub_field_days']     = 'عدد الأيام';

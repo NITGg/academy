@@ -261,21 +261,54 @@ function theme_nit_brand_groups(): array {
         'g5' => 'Group 5 (Graphite — dark)',
     ];
 }
+/**
+ * The theme_nit config row holding the category → group map for one mode.
+ *
+ * Light keeps the original key so every map an admin saved before the site had
+ * two styles per category is still the light one — the look those pages already
+ * had. Dark is a second row rather than a second field inside the first, so the
+ * two maps stay independently readable and a half-written dark map can never
+ * cost a category the style it is showing today.
+ *
+ * @param string $mode 'light' | 'dark'
+ * @return string the config name
+ */
+function theme_nit_category_groups_config(string $mode): string {
+    return $mode === 'dark' ? 'nit_category_groups_dark' : 'nit_category_groups';
+}
+
+/**
+ * The whole category → group map for one display mode.
+ *
+ * @param string $mode 'light' | 'dark'
+ * @return array<int|string, string> main category id => group key
+ */
+function theme_nit_category_group_map(string $mode): array {
+    static $maps = [];
+    $mode = ($mode === 'dark') ? 'dark' : 'light';
+    if (!array_key_exists($mode, $maps)) {
+        $raw = get_config('theme_nit', theme_nit_category_groups_config($mode));
+        $maps[$mode] = ($raw && is_string($raw)) ? (json_decode($raw, true) ?: []) : [];
+    }
+    return $maps[$mode];
+}
 
 /**
  * The Brand-Colors group assigned to a category (for the category details page).
  *
  * Admins map only the MAIN (top-level) categories to groups on the gallery
- * "Category styles" tab; the map is stored as the theme_nit config
- * `nit_category_groups` (JSON `{topcatid: "g2", …}`). A category page resolves to
- * the group of its top-level ancestor, so every subcategory / filtered view under
- * a main category inherits that main category's group. Unassigned → Group 1.
+ * "Category styles" tab, once per display mode; the maps are stored as the
+ * theme_nit configs `nit_category_groups` (light) and `nit_category_groups_dark`
+ * (dark), each JSON `{topcatid: "g2", …}`. A category page resolves to the group
+ * of its top-level ancestor, so every subcategory / filtered view under a main
+ * category inherits that main category's group. Unassigned → Group 1.
  *
  * @param int $categoryid the category whose page is being rendered
- * @return string one of the group keys from theme_nit_brand_groups() (g1/g2/g3)
+ * @param string|null $mode 'light' | 'dark'; null = the mode this request renders in
+ * @return string one of the group keys from theme_nit_brand_groups() (g1..g5)
  */
-function theme_nit_category_brand_group(int $categoryid): string {
-    return theme_nit_category_brand_group_assigned($categoryid) ?? 'g1';
+function theme_nit_category_brand_group(int $categoryid, ?string $mode = null): string {
+    return theme_nit_category_brand_group_assigned($categoryid, $mode) ?? 'g1';
 }
 
 /**
@@ -291,25 +324,60 @@ function theme_nit_category_brand_group(int $categoryid): string {
  * category returns null and the page stays on the mode's group (see
  * theme_nit_page_brand_group()).
  *
+ * A category holds one assignment PER MODE, so this is asked per mode too. A
+ * category styled for light and left alone for dark answers null in dark, and
+ * those pages fall back to the site's dark group — "not answered" must never
+ * mean "wear the light palette in the dark", which is the one outcome nobody
+ * would have chosen deliberately.
+ *
  * @param int $categoryid the category being rendered, or a course's category
+ * @param string|null $mode 'light' | 'dark'; null = the mode this request renders in
  * @return string|null a group key (g1..g5), or null when nothing is assigned
  */
-function theme_nit_category_brand_group_assigned(int $categoryid): ?string {
-    static $map = null;
+function theme_nit_category_brand_group_assigned(int $categoryid, ?string $mode = null): ?string {
     static $resolved = [];
 
-    if ($map === null) {
-        $raw = get_config('theme_nit', 'nit_category_groups');
-        $map = ($raw && is_string($raw)) ? (json_decode($raw, true) ?: []) : [];
-    }
+    $mode = ($mode === 'dark' || $mode === 'light') ? $mode : theme_nit_current_mode();
+    $map = theme_nit_category_group_map($mode);
+
     if (empty($map) || $categoryid <= 0) {
         return null;
     }
-    if (array_key_exists($categoryid, $resolved)) {
-        return $resolved[$categoryid];
+    $cachekey = $mode . ':' . $categoryid;
+    if (array_key_exists($cachekey, $resolved)) {
+        return $resolved[$cachekey];
     }
 
-    // Styles are assigned per main category → resolve to the top-level ancestor.
+    $topid = theme_nit_category_top_ancestor($categoryid);
+
+    $group = $map[$topid] ?? null;
+    if ($group === null || !array_key_exists($group, theme_nit_brand_groups())) {
+        $group = null;
+    }
+    $resolved[$cachekey] = $group;
+    return $group;
+}
+
+/**
+ * The MAIN (top-level) category a category belongs to — itself, when it is one.
+ *
+ * Both halves of a category's branding are assigned per main category (the
+ * palette above, the navbar logo below), so both resolve through this: one
+ * lookup, one cache, and no way for the two to disagree about which category a
+ * course page is really in.
+ *
+ * @param int $categoryid any category id
+ * @return int the top-level ancestor's id (the input id if it cannot be resolved)
+ */
+function theme_nit_category_top_ancestor(int $categoryid): int {
+    static $tops = [];
+    if ($categoryid <= 0) {
+        return 0;
+    }
+    if (array_key_exists($categoryid, $tops)) {
+        return $tops[$categoryid];
+    }
+
     $topid = $categoryid;
     try {
         $cat = core_course_category::get($categoryid, IGNORE_MISSING, true);
@@ -321,22 +389,18 @@ function theme_nit_category_brand_group_assigned(int $categoryid): ?string {
         $topid = $categoryid;
     }
 
-    $group = $map[$topid] ?? null;
-    if ($group === null || !array_key_exists($group, theme_nit_brand_groups())) {
-        $group = null;
-    }
-    $resolved[$categoryid] = $group;
-    return $group;
+    $tops[$categoryid] = $topid;
+    return $topid;
 }
 
 /**
- * The category-assigned brand group THIS request's page belongs to, if any.
+ * The category THIS request's page belongs to, or 0.
  *
- * A category's style is a property of the category, not of one page in it: a
+ * A category's branding is a property of the category, not of one page in it: a
  * visitor who opens a course from a Group 2 category should stay in Group 2 for
  * the whole visit — the course page, its settings form, the participants list,
  * the grader report, the activity overview, every report under "More". So the
- * group is resolved from the page's own context rather than being printed by
+ * category is resolved from the page's own context rather than being printed by
  * each screen, which is why only course/view.php used to carry it (the course
  * format renderer was the single place that asked).
  *
@@ -351,27 +415,27 @@ function theme_nit_category_brand_group_assigned(int $categoryid): ?string {
  *      pages (local/payments/buy.php does exactly that), and those pages have to
  *      match the course they are about.
  *
- * Returns null unless the category (or its main ancestor) has a group assigned on
- * the gallery "Category styles" tab: an unassigned category must leave the page
- * on the light/dark switch's group, not pin it to Group 1.
+ * Split out from theme_nit_page_brand_group() when a category gained a second
+ * piece of branding (its navbar logo): both answers are about the same category,
+ * and asking twice through two copies of this walk is how they would eventually
+ * come back about two different ones.
  *
- * @return string|null group key (g1..g5), or null when the page is not in a styled category
+ * @return int the category id, or 0 when this page is not in one
  */
-function theme_nit_page_brand_group(): ?string {
+function theme_nit_page_categoryid(): int {
     global $PAGE, $DB;
 
-    // `false` = not computed yet; `null` is a real answer ("no assigned group").
-    static $group = false;
-    if ($group !== false) {
-        return $group;
+    // -1 = not computed yet; 0 is a real answer ("this page is not in a category").
+    static $catid = -1;
+    if ($catid !== -1) {
+        return $catid;
     }
-    $group = null;
+    $catid = 0;
 
     if (!isset($PAGE)) {
-        return null;
+        return 0;
     }
 
-    $catid = 0;
     if (!empty($PAGE->course) && !empty($PAGE->course->category)) {
         $catid = (int) $PAGE->course->category;
     }
@@ -389,7 +453,7 @@ function theme_nit_page_brand_group(): ?string {
         // Guarded: reading $PAGE->context before anything set one emits a
         // debugging notice (and throws outright in an AJAX script under
         // developer mode). Nothing here is worth a warning on somebody else's
-        // page, so a page that cannot answer simply does not get a group.
+        // page, so a page that cannot answer simply does not get a category.
         try {
             $context = $PAGE->context;
             if ($context) {
@@ -415,10 +479,26 @@ function theme_nit_page_brand_group(): ?string {
         }
     }
 
-    if ($catid) {
-        $group = theme_nit_category_brand_group_assigned($catid);
+    return $catid;
+}
+
+/**
+ * The category-assigned brand group THIS request's page belongs to, if any.
+ *
+ * Returns null unless the page's category (or its main ancestor) has a group
+ * assigned for the mode being asked about on the gallery "Category styles" tab:
+ * an unassigned category must leave the page on the light/dark switch's group,
+ * not pin it to Group 1.
+ *
+ * @param string|null $mode 'light' | 'dark'; null = the mode this request renders in
+ * @return string|null group key (g1..g5), or null when the page is not in a styled category
+ */
+function theme_nit_page_brand_group(?string $mode = null): ?string {
+    $catid = theme_nit_page_categoryid();
+    if (!$catid) {
+        return null;
     }
-    return $group;
+    return theme_nit_category_brand_group_assigned($catid, $mode);
 }
 
 /**
@@ -526,33 +606,29 @@ function theme_nit_current_mode(): string {
  * @return string space-separated class list (never empty)
  */
 function theme_nit_mode_classes(): string {
-    $mode = theme_nit_current_mode();
-
-    // A category with an assigned style outranks the switch: every page under
-    // that category — the course, its settings, participants, grades, reports —
-    // renders in the category's group, so a course looks the same wherever the
-    // visitor is standing in it. theme_nit_page_brand_group() is null everywhere
-    // else, and then the switch's own group is used exactly as before.
-    $override = theme_nit_page_brand_group();
-    if ($override !== null) {
-        return theme_nit_html_classes_for($mode, $override);
-    }
-    return theme_nit_mode_classes_for($mode);
+    return theme_nit_mode_classes_for(theme_nit_current_mode());
 }
 
 /**
- * The <html> classes a GIVEN mode owns.
+ * The <html> classes a GIVEN mode owns, on THIS page.
  *
  * Split out from theme_nit_mode_classes() so the navbar switch can ask for the
  * other mode's set and swap the two in the browser. One function builds both,
  * because the server-rendered class list and the one the button applies must
  * never be able to disagree.
  *
+ * "On this page" is the whole of it: a category carries a style per mode, and
+ * inside such a category that style outranks the site's for that mode — the
+ * course page, its settings, participants, grades, reports. So the group is
+ * looked up per mode and per page, which is exactly what lets the switch keep
+ * working inside a styled category (it now moves between the category's own two
+ * looks) instead of having to be hidden there.
+ *
  * @param string $mode 'light' | 'dark'
  * @return string space-separated class list
  */
 function theme_nit_mode_classes_for(string $mode): string {
-    return theme_nit_html_classes_for($mode, theme_nit_mode_groups()[$mode] ?? 'g1');
+    return theme_nit_html_classes_for($mode, theme_nit_active_chrome_group($mode));
 }
 
 /**
@@ -964,16 +1040,23 @@ function theme_nit_brand_export(): array {
 }
 
 /**
- * Category styles tab, as data: which brand group each main category uses.
+ * Category styles tab, as data: how each main category is branded, per mode.
  *
  * Only top-level (main) categories are assignable; subcategories inherit their
- * top ancestor's group. Visibility-aware: an anonymous request sees only the
- * categories a guest may see. `group` is the assigned group key (default `g1`);
- * `class` is the wrapper class that skins the category page from that group.
+ * top ancestor's branding. Visibility-aware: an anonymous request sees only the
+ * categories a guest may see.
+ *
+ * Each category carries a `modes` map — `light` and `dark`, each with the group
+ * it renders in, the wrapper class that skins it, and the URL of the logo drawn
+ * for that mode (empty string = "use the site logo"). The flat `group` /
+ * `groupname` / `class` / `isdefault` keys are the LIGHT values and are kept
+ * because they are what the app already reads; a category that was branded
+ * before the site had two styles per category still answers there exactly as it
+ * did.
  *
  * @return array{groups: array<int, array{key:string, name:string}>,
  *         categories: array<int, array{id:int, name:string, group:string,
- *         groupname:string, class:string, isdefault:bool}>}
+ *         groupname:string, class:string, isdefault:bool, modes:array}>}
  */
 function theme_nit_category_styles_export(): array {
     $grouplabels = theme_nit_brand_groups();
@@ -983,22 +1066,38 @@ function theme_nit_category_styles_export(): array {
         $groups[] = ['key' => $gkey, 'name' => $glabel];
     }
 
-    $raw = get_config('theme_nit', 'nit_category_groups');
-    $map = ($raw && is_string($raw)) ? (json_decode($raw, true) ?: []) : [];
+    $maps = [];
+    foreach (array_keys(theme_nit_modes()) as $mode) {
+        $maps[$mode] = theme_nit_category_group_map($mode);
+    }
 
     $categories = [];
     foreach (core_course_category::top()->get_children() as $cat) {
-        $gkey = $map[$cat->id] ?? 'g1';
-        if (!array_key_exists($gkey, $grouplabels)) {
-            $gkey = 'g1';
+        $modes = [];
+        foreach ($maps as $mode => $map) {
+            $gkey = $map[$cat->id] ?? 'g1';
+            if (!array_key_exists($gkey, $grouplabels)) {
+                $gkey = 'g1';
+            }
+            $logo = theme_nit_category_logo_url((int) $cat->id, $mode);
+            $modes[$mode] = [
+                'group'     => $gkey,
+                'groupname' => $grouplabels[$gkey],
+                'class'     => theme_nit_brand_group_class($gkey),
+                'isdefault' => ($gkey === 'g1'),
+                'logo'      => $logo ? $logo->out(false) : '',
+            ];
         }
+
+        $light = $modes['light'];
         $categories[] = [
             'id'        => (int) $cat->id,
             'name'      => $cat->get_formatted_name(),
-            'group'     => $gkey,
-            'groupname' => $grouplabels[$gkey],
-            'class'     => theme_nit_brand_group_class($gkey),
-            'isdefault' => ($gkey === 'g1'),
+            'group'     => $light['group'],
+            'groupname' => $light['groupname'],
+            'class'     => $light['class'],
+            'isdefault' => $light['isdefault'],
+            'modes'     => $modes,
         ];
     }
 
@@ -1936,29 +2035,175 @@ function theme_nit_group_is_light(string $group): bool {
  * it. Asking the switch here instead would hand a dark navbar the logo drawn for
  * a light one, and the mark would disappear.
  *
+ * @param string|null $mode 'light' | 'dark'; null = the mode this request renders in
  * @return string group key (g1..g5)
  */
-function theme_nit_active_chrome_group(): string {
-    return theme_nit_page_brand_group()
-        ?? (theme_nit_mode_groups()[theme_nit_current_mode()] ?? 'g1');
+function theme_nit_active_chrome_group(?string $mode = null): string {
+    $mode = ($mode === 'dark' || $mode === 'light') ? $mode : theme_nit_current_mode();
+    return theme_nit_page_brand_group($mode)
+        ?? (theme_nit_mode_groups()[$mode] ?? 'g1');
+}
+
+/**
+ * The per-category logo slots — one per display mode.
+ *
+ * A category is a brand of its own on this site: it has its own palette (a brand
+ * group per mode, above) and its own mark. The mark needs the same two versions
+ * for the same reason the site's does — a logo drawn in white for a navy bar
+ * disappears the moment the bar turns white — so there is one slot per mode, and
+ * an empty slot means "use the site logo", never "no logo".
+ *
+ * Stored the way local_nit_category stores a category's picture: in the
+ * CATEGORY's own context, itemid 0, one file per area. That keeps a category's
+ * files with the category — delete the category and they go with it — and it
+ * gives the file a context whose visibility we can honour when serving it (see
+ * theme_nit_pluginfile()).
+ *
+ * `input` is the multipart field-name PREFIX on the gallery form; the category
+ * id is appended, because one form posts a row per category.
+ *
+ * @return array<string, array{filearea:string, input:string, basename:string,
+ *         strkey:string, remove:string}> keyed by mode
+ */
+function theme_nit_category_logo_slots(): array {
+    return [
+        'light' => [
+            'filearea' => 'categorylogolight',
+            'input'    => 'catlogolight',
+            'basename' => 'category-logo-light',
+            'strkey'   => 'categorystyles_col_logolight',
+            'remove'   => 'removecatlogolight',
+        ],
+        'dark' => [
+            'filearea' => 'categorylogodark',
+            'input'    => 'catlogodark',
+            'basename' => 'category-logo-dark',
+            'strkey'   => 'categorystyles_col_logodark',
+            'remove'   => 'removecatlogodark',
+        ],
+    ];
+}
+
+/**
+ * The logo file uploaded for a category in one display mode, if there is one.
+ *
+ * Asked about the MAIN category, the same way the palette is: the gallery table
+ * lists top-level categories only, so a course three levels down answers with
+ * its main category's mark.
+ *
+ * @param int $categoryid any category id (resolved to its top-level ancestor)
+ * @param string $mode 'light' | 'dark'
+ * @return stored_file|null the file, or null when that slot is empty
+ */
+function theme_nit_category_logo_file(int $categoryid, string $mode): ?stored_file {
+    static $cache = [];
+
+    $slots = theme_nit_category_logo_slots();
+    if (!isset($slots[$mode]) || $categoryid <= 0) {
+        return null;
+    }
+
+    $topid = theme_nit_category_top_ancestor($categoryid);
+    $cachekey = $mode . ':' . $topid;
+    if (array_key_exists($cachekey, $cache)) {
+        return $cache[$cachekey];
+    }
+    $cache[$cachekey] = null;
+
+    $context = \context_coursecat::instance($topid, IGNORE_MISSING);
+    if (!$context) {
+        return null;
+    }
+    $files = get_file_storage()->get_area_files(
+        $context->id,
+        'theme_nit',
+        $slots[$mode]['filearea'],
+        0,
+        'filename',
+        false
+    );
+    $cache[$cachekey] = $files ? reset($files) : null;
+    return $cache[$cachekey];
+}
+
+/**
+ * The URL of a category's own logo for one display mode.
+ *
+ * @param int $categoryid any category id (resolved to its top-level ancestor)
+ * @param string $mode 'light' | 'dark'
+ * @return moodle_url|false the URL, or false when that slot is empty
+ */
+function theme_nit_category_logo_url(int $categoryid, string $mode) {
+    $file = theme_nit_category_logo_file($categoryid, $mode);
+    if (!$file) {
+        return false;
+    }
+    // `theme_get_revision()` as the itemid segment is the cache buster, exactly
+    // as the site logos use it — the stored file's real itemid is 0, and
+    // theme_nit_pluginfile() drops this segment before looking the file up.
+    return \moodle_url::make_pluginfile_url(
+        $file->get_contextid(),
+        'theme_nit',
+        $file->get_filearea(),
+        theme_get_revision(),
+        $file->get_filepath(),
+        $file->get_filename()
+    );
+}
+
+/**
+ * The category logo THIS request's page should draw, if its category has one.
+ *
+ * @param string|null $mode 'light' | 'dark'; null = the mode this request renders in
+ * @return moodle_url|false
+ */
+function theme_nit_page_category_logo_url(?string $mode = null) {
+    $catid = theme_nit_page_categoryid();
+    if (!$catid) {
+        return false;
+    }
+    $mode = ($mode === 'dark' || $mode === 'light') ? $mode : theme_nit_current_mode();
+    return theme_nit_category_logo_url($catid, $mode);
 }
 
 /**
  * The URL of a logo, for the mode this page is rendering in.
  *
- * Returns the alternative upload when the page's chrome is light and the core
- * logos were drawn for dark (or the other way round) AND that alternative was
- * actually uploaded. Otherwise core's own logo, unchanged — including when the
- * admin has not said which mode the core logos are for, because guessing at
- * somebody's artwork is worse than leaving it alone.
+ * Three answers, in order:
+ *
+ *   1. The page's CATEGORY logo, when it has one for this mode. A category is a
+ *      brand of its own here — it already carries its own palette — so on its
+ *      pages its own mark replaces the site's, in the navbar and everywhere else
+ *      the compact logo is drawn. The browser-tab icon is deliberately excluded:
+ *      the favicon says which SITE a tab belongs to, and a per-category one only
+ *      makes a row of tabs harder to read.
+ *   2. The alternative site upload, when the page's chrome is light and the core
+ *      logos were drawn for dark (or the other way round) AND that alternative
+ *      was actually uploaded.
+ *   3. Core's own logo, unchanged — including when the admin has not said which
+ *      mode the core logos are for, because guessing at somebody's artwork is
+ *      worse than leaving it alone.
+ *
+ * Resolving all of this in ONE function is the point: every caller — the three
+ * overridden renderer accessors, the switch's swap payload, the site footer —
+ * gets the same answer, and no screen has to know that categories can have logos.
  *
  * @param string $slot 'logo' | 'logocompact' | 'favicon'
  * @param int $maxwidth passed through to core's sizing for 'logo'/'logocompact'
  * @param int $maxheight
+ * @param string|null $mode 'light' | 'dark'; null = the mode this request renders in
  * @return moodle_url|false the URL, or false exactly as core returns for "none"
  */
 function theme_nit_logo_url(string $slot, int $maxwidth = 300, int $maxheight = 300, ?string $mode = null) {
     $variants = theme_nit_logo_variants();
+
+    // (1) The category's own mark, when this page is inside one that has it.
+    if ($slot !== 'favicon') {
+        $catlogo = theme_nit_page_category_logo_url($mode);
+        if ($catlogo) {
+            return $catlogo;
+        }
+    }
 
     // Core's own URL for this slot, built the way renderer_base builds it — the
     // size is hidden in the file path and `theme_get_revision()` is the cache
@@ -1993,10 +2238,10 @@ function theme_nit_logo_url(string $slot, int $maxwidth = 300, int $maxheight = 
 
     // `$mode` lets a caller ask "what would this be in the OTHER mode?" — which is
     // what the navbar switch needs, so it can swap the picture in the browser
-    // instead of making the visitor reload the page to see it change.
-    $group = $mode !== null
-        ? (theme_nit_mode_groups()[$mode] ?? theme_nit_active_chrome_group())
-        : theme_nit_active_chrome_group();
+    // instead of making the visitor reload the page to see it change. Asked
+    // through the chrome-group resolver, so inside a styled category it answers
+    // with the group that category renders in for that mode — not the site's.
+    $group = theme_nit_active_chrome_group($mode);
     $pagemode = theme_nit_group_is_light($group) ? 'light' : 'dark';
     if ($pagemode === $corelogosfor) {
         return $corelogo();
@@ -2318,16 +2563,24 @@ function theme_nit_auth_background_scss($theme): string {
 }
 
 /**
- * Serve the theme's admin-uploaded fonts and account-screen pictures via pluginfile.php.
+ * Serve the theme's admin-uploaded fonts, pictures and category logos.
  *
- * Mirrors theme_boost_pluginfile(): each upload lives in a system-context file
- * area of its own — one per language for the fonts (theme_nit_font_slots()), one
- * per screen for the pictures (theme_nit_auth_image_slots()) — and the theme
- * revision, not the itemid, busts the cache. The gallery page (site:config only)
- * is the sole writer; this endpoint is a public, cache-able read of a self-hosted
- * file, exactly like the site logo. Public matters for the pictures in
- * particular: whoever is looking at the log-in screen is by definition not
- * logged in yet.
+ * Two shapes, because the files have two owners:
+ *
+ *   * SYSTEM context — the fonts (theme_nit_font_slots()), the account-screen
+ *     pictures (theme_nit_auth_image_slots()) and the alternative site logos
+ *     (theme_nit_logo_variants()). Mirrors theme_boost_pluginfile(): each upload
+ *     lives in a file area of its own and the theme revision, not the itemid,
+ *     busts the cache.
+ *   * CATEGORY context — a category's own navbar logo, one file area per display
+ *     mode (theme_nit_category_logo_slots()). Stored with the category, so it is
+ *     removed with the category, and served only while the category itself is
+ *     visible to the reader.
+ *
+ * The gallery page (site:config only) is the sole writer; this endpoint is a
+ * public, cache-able read of a self-hosted file, exactly like the site logo.
+ * Public matters for the pictures in particular: whoever is looking at the log-in
+ * screen is by definition not logged in yet.
  *
  * @param stdClass $course
  * @param stdClass $cm
@@ -2339,6 +2592,8 @@ function theme_nit_auth_background_scss($theme): string {
  * @return bool
  */
 function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
+    global $CFG;
+
     $areas = array_merge(
         array_map(static fn($slot) => $slot['filearea'], theme_nit_font_slots()),
         array_map(static fn($slot) => $slot['filearea'], theme_nit_auth_image_slots()),
@@ -2354,6 +2609,45 @@ function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
             $options['cacheability'] = 'public';
         }
         return $theme->setting_file_serve($filearea, $args, $forcedownload, $options);
+    }
+
+    // A category's own logo. theme_config::setting_file_serve() cannot serve
+    // these — it hard-codes the system context and itemid 0 — so the lookup is
+    // done here, the same way local_nit_category serves a category's picture.
+    $catareas = array_map(static fn($slot) => $slot['filearea'], theme_nit_category_logo_slots());
+    if ($context->contextlevel == CONTEXT_COURSECAT && in_array($filearea, $catareas, true)) {
+        if (!empty($CFG->forcelogin)) {
+            require_login();
+        }
+        // get() honours visibility, so a hidden category's mark stays hidden.
+        if (!core_course_category::get($context->instanceid, IGNORE_MISSING)) {
+            send_file_not_found();
+        }
+
+        // args = [theme revision, …filepath…, filename]. The revision is only a
+        // cache buster; the stored file's real itemid is 0.
+        array_shift($args);
+        $filename = array_pop($args);
+        $filepath = $args ? '/' . implode('/', $args) . '/' : '/';
+
+        $file = get_file_storage()->get_file(
+            $context->id,
+            'theme_nit',
+            $filearea,
+            0,
+            $filepath,
+            $filename
+        );
+        if (!$file || $file->is_directory()) {
+            send_file_not_found();
+        }
+
+        if (!array_key_exists('cacheability', $options)) {
+            $options['cacheability'] = 'public';
+        }
+        \core\session\manager::write_close(); // Unlock the session while the file streams.
+        send_stored_file($file, 60 * 60 * 24 * 60, 0, $forcedownload, $options);
+        return true;
     }
 
     send_file_not_found();

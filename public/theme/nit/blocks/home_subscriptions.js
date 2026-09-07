@@ -18,6 +18,10 @@
       var sesskey = (window.M && M.cfg && M.cfg.sesskey) ? M.cfg.sesskey : '';
       var subsUrl = base + root.getAttribute('data-endpoint');
       var commerceUrl = base + root.getAttribute('data-commerce');
+      // On a category landing page the block lists that category's plans instead of the whole
+      // price list. The home page sets no data-category and its request is unchanged.
+      var category = parseInt(root.getAttribute('data-category') || '0', 10) || 0;
+      var categoryParam = category ? '&categoryid=' + encodeURIComponent(category) : '';
       // Who is looking, according to the server. The body class alone is not enough: Moodle
       // only adds 'notloggedin' when NOBODY is signed in, and a guest IS signed in — so a
       // guest used to reach the checkout dialog instead of the login page. The plan feed
@@ -445,7 +449,7 @@
 
       // ── Load plans ──
       say(t('Loading…', 'جاري التحميل…'));
-      fetch(subsUrl + '?function=get_available_subscriptions', {
+      fetch(subsUrl + '?function=get_available_subscriptions' + categoryParam, {
           headers: {
             'Accept': 'application/json'
           }

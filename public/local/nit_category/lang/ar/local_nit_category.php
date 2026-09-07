@@ -110,6 +110,7 @@ $string['sortmostcourses'] = 'الأكثر كورسات';
 // Home-page "My courses" card (theme_nit home_my_course_block).
 $string['homelesson'] = 'الدرس {$a->num} : {$a->name}';
 $string['mycourses'] = 'كورساتي';
+$string['mycoursesincategory'] = 'كورساتي في {$a}';
 $string['mycoursesunavailable'] = 'تعذّر عرض بطاقات الكورسات: ملف البلوك الخاص بقالب theme_nit غير موجود أو غير قابل للقراءة.';
 
 // ── البحث في الموقع (SRS 4.22) ──────────────────────────────────────────────────

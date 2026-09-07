@@ -138,10 +138,15 @@ class home {
      * enrolment's status alone would keep showing courses the learner can no
      * longer open.
      *
+     * $categoryid narrows the list to the learner's courses inside one category and everything
+     * beneath it, which is what the same block shows on a category landing page — "carry on
+     * where you left off, in this subject". 0 (the home page) is every course, as before.
+     *
      * @param int $limit most courses to return
+     * @param int $categoryid restrict to this category and its subcategories; 0 = no restriction
      * @return array[] one row per course, most recently accessed first
      */
-    public static function my_courses(int $limit = 12): array {
+    public static function my_courses(int $limit = 12, int $categoryid = 0): array {
         global $USER, $DB;
 
         if (!isloggedin() || isguestuser()) {
@@ -150,6 +155,16 @@ class home {
 
         $limit = max(1, min(50, $limit));
         $rows = [];
+
+        // The whole subtree, not just the category itself: a landing page lists its
+        // subcategories' courses, so "my courses here" has to mean the same set.
+        $wanted = [];
+        if ($categoryid > 0) {
+            $wanted = array_flip(\local_nit_core\helper\category::subtree($categoryid));
+            if (!$wanted) {
+                return [];
+            }
+        }
 
         // Sorted by last access so "carry on where you left off" is the first card
         // rather than something bought a year ago.
@@ -168,6 +183,9 @@ class home {
         );
 
         foreach ($courses as $course) {
+            if ($wanted && !isset($wanted[(int) $course->category])) {
+                continue;
+            }
             if (!$course->visible && !can_access_course($course)) {
                 continue;
             }

@@ -50,14 +50,18 @@ class bar {
      * @param int $max how many to keep (0 or less = all)
      * @param moodle_url|null $fallbackurl where a row links when the offer is not one single course
      * @param string $linktext label for that link
+     * @param int $categoryid when the bar is sitting on a category page, that category: the bar
+     *        then announces that category's offers and the site-wide ones, rather than a
+     *        promotion on a subject the visitor is not looking at. 0 = the whole catalogue.
      * @return array[] one row per offer
      */
-    public static function rows(int $max, ?moodle_url $fallbackurl, string $linktext): array {
+    public static function rows(int $max, ?moodle_url $fallbackurl, string $linktext,
+            int $categoryid = 0): array {
         if (!self::available()) {
             return [];
         }
         try {
-            $offers = \local_nit_commerce\offer_manager::get_available_offers();
+            $offers = \local_nit_commerce\offer_manager::get_available_offers($categoryid);
         } catch (\Throwable $e) {
             // Commerce tables missing or mid-upgrade: an announcement bar is never worth
             // breaking a page over, so treat it as "nothing is running".
@@ -183,8 +187,9 @@ class bar {
     }
 
     /**
-     * An offer that targets exactly one course sends the visitor to that course; anything
-     * broader has no single destination, so the caller's fallback (the catalogue) is used.
+     * An offer that targets exactly one thing sends the visitor to it — one course to that
+     * course, one category to that category's page. Anything broader has no single destination,
+     * so the caller's fallback (the catalogue) is used.
      *
      * @param array $offer
      * @return moodle_url|null
@@ -195,9 +200,18 @@ class bar {
             return null;
         }
         $item = reset($items);
-        if (($item['item_type'] ?? '') !== 'course' || (int) ($item['item_id'] ?? 0) <= 0) {
+        $type = (string) ($item['item_type'] ?? '');
+        $id = (int) ($item['item_id'] ?? 0);
+        if ($id <= 0) {
+            // "All courses", "all categories": broad by definition, no single destination.
             return null;
         }
-        return new moodle_url('/course/view.php', ['id' => (int) $item['item_id']]);
+        if ($type === 'course') {
+            return new moodle_url('/course/view.php', ['id' => $id]);
+        }
+        if ($type === 'category') {
+            return new moodle_url('/local/nit_category/index.php', ['id' => $id]);
+        }
+        return null;
     }
 }
