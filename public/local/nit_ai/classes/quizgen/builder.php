@@ -503,7 +503,11 @@ class builder {
         global $DB;
 
         $sectionnum = (int) ($cm->sectionnum ?? 0);
-        $moduleinfo = prepare_new_moduleinfo_data($course, 'quiz', $sectionnum);
+
+        // The helper hands back five things, of which the form data is the last.
+        // The rest — module, context, section, cm — the add form needs and we do
+        // not.
+        [, , , , $moduleinfo] = prepare_new_moduleinfo_data($course, 'quiz', $sectionnum);
 
         $moduleinfo->name = \core_text::substr($name, 0, 250);
         $moduleinfo->visible = 0;
