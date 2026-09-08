@@ -194,6 +194,17 @@
       return;
     }
     var css =
+      // "See how it works" reads Accent Text from the block markup, which is
+      // the right ink on a light ground - it matches the headline's second line
+      // and the Start Now fill. In dark mode the accent is a pale blue sitting
+      // on an already blue-lit page and the label stops reading as body text,
+      // so it goes back to Text primary there.
+      //
+      // !important because the colour is an inline style on the anchor: the
+      // block is authored in an HTML block, so a stylesheet has no other way to
+      // reach it. Only the anchor is targeted - the play dot keeps the
+      // "Text on main button" ink its own inline style sets.
+      'html.nit-mode-dark [data-nit-hero-play]{color:var(--nit-brand-textprimary)!important}' +
       '[data-nit-hero-playdot]{transition:transform .2s ease}' +
       '[data-nit-hero-play]:hover [data-nit-hero-playdot]{transform:scale(1.08)}' +
       '@media (prefers-reduced-motion:reduce){[data-nit-hero-playdot]{transition:none}}';
