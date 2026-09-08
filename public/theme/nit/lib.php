@@ -227,7 +227,7 @@ function theme_nit_brand_roles(): array {
         // footer actually draws, so the band is tunable on its own.
         'footerheading'     => ['label' => 'Footer heading', 'usage' => ['footer column headings'], 'default' => '#7fabdb'],
         'footerlink'        => ['label' => 'Footer link', 'usage' => ['footer column links'], 'default' => '#5488c4'],
-        'footericon'        => ['label' => 'Footer icon', 'usage' => ['footer contact icons', 'footer social icons and their ring'], 'default' => '#5488c4'],
+        'footericon'        => ['label' => 'Footer icon', 'usage' => ['footer social icons and their ring'], 'default' => '#5488c4'],
         'navbariconcolor'   => ['label' => 'Navbar icon color', 'usage' => ['navbar icons — search, language, messages, notifications, gear', 'notification panel action icons'], 'default' => '#eef3f9'],
         'navbariconbg'      => ['label' => 'Navbar icon background', 'usage' => ['navbar icon hover pad — the icons have no background at rest'], 'default' => '#121e2d'],
         'surface'           => ['label' => 'Surface', 'usage' => ['Cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'page sections background'], 'default' => '#121e2d'],
