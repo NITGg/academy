@@ -159,6 +159,19 @@
     width: auto;
 }
 
+// The mark is a link home. `inline-flex` so the anchor is exactly the size of
+// the picture — a bare inline <a> adds the line-box descender under it, which
+// reads as the logo sitting slightly high in its own click target.
+.nit-authpanel-logolink {
+    display: inline-flex;
+    max-width: 100%;
+
+    &:hover,
+    &:focus {
+        opacity: 0.85;
+    }
+}
+
 .nit-authpanel-quote {
     margin: 0;
     max-width: 34rem;

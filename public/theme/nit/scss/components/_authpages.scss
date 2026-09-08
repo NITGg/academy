@@ -465,6 +465,19 @@
         }
     }
 
+    // The mark inside the card is a link home, like the navbar brand everywhere
+    // else. `inline-flex` keeps the click target exactly the size of the picture
+    // instead of the taller line box a bare inline <a> would make.
+    .nit-auth-logolink {
+        display: inline-flex;
+        max-width: 100%;
+
+        &:hover,
+        &:focus {
+            opacity: 0.85;
+        }
+    }
+
     // ---------------------------------------------------------------------
     // Hand-written fields
     //

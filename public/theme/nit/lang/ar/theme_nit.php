@@ -156,6 +156,7 @@ $string['acad_requirements'] = 'المتطلبات';
 $string['acad_modules'] = 'الوحدات';
 $string['acad_plusmore'] = '+{$a} آخرين';
 $string['acad_enrol'] = 'التحق الآن';
+$string['acad_buynow'] = 'اشترِ الآن';
 $string['acad_free'] = 'مجاني';
 $string['acad_ataglance'] = 'نظرة سريعة';
 $string['acad_nmodules'] = '{$a} وحدات';

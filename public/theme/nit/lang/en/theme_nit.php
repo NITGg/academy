@@ -157,6 +157,7 @@ $string['acad_requirements'] = 'Requirements';
 $string['acad_modules'] = 'Modules';
 $string['acad_plusmore'] = '+{$a} more';
 $string['acad_enrol'] = 'Enroll';
+$string['acad_buynow'] = 'Buy now';
 $string['acad_free'] = 'Free';
 $string['acad_ataglance'] = 'At a glance';
 $string['acad_nmodules'] = '{$a} modules';

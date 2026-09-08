@@ -367,3 +367,49 @@ $string['freeenrolled']            = 'تم تسجيلك بنجاح. نتمنى �
 $string['covered_by_subscription'] = 'مشمول ضمن اشتراكك';
 $string['enroll']                  = 'التحق بالكورس';
 $string['renew_subscription']      = 'جدّد اشتراكك';
+
+// ── اكتمال التسعير (course_pricing.php) ─────────────────────────────────────
+$string['pricing_incomplete'] = 'هذا الكورس مُباع، لكن أسعاره غير مكتملة.';
+$string['pricing_missing_home'] = 'لا يوجد سعر لـ{$a->country}. المشترون هناك يقعون على «السعر الافتراضي» ويُسعَّرون بعملته أيًا كانت، بدلًا من {$a->currency}.';
+$string['pricing_addhome'] = 'أضِف سعر {$a}';
+$string['pricing_missing_default'] = 'لا يوجد «سعر افتراضي». هذا هو الصف المستخدَم لكل مشترٍ لا يستطيع الموقع تحديد دولته — زائر من دولة لم تُسعّرها، وأي زائر غير مسجّل تعذّر تحديد موقعه — وبدونه لا يرى هؤلاء أي سعر على الإطلاق.';
+$string['pricing_adddefault'] = 'أضِف السعر الافتراضي (USD)';
+$string['pricing_default_islocal'] = 'السعر الافتراضي بعملة {$a->currency}. هذا الصف هو ما يراه كل مشترٍ خارج {$a->country}، فيجب أن يكون بعملة دولية؛ وأضِف صفًا منفصلًا لـ{$a->country} للمشترين المحليين.';
+$string['pricing_geo_off'] = 'لا يمكن تحديد دولة الزائر غير المسجَّل على هذا الموقع.';
+$string['pricing_geo_off_desc'] = 'أسعار الدول لا تصل إلى زائر غير مسجّل إلا إذا أمكن تحديد موقع عنوان الـIP الخاص به. وما دام تحديد الموقع غير متاح، فكل زائر تُحسب دولته «غير معروفة» ويُعرض له «السعر الافتراضي» — أيًا كانت دولته الحقيقية. وسعر الدولة الذي يبدو أنه «لا يُطبَّق» سببه هذا في الغالب.';
+$string['pricing_geo_check'] = 'افحص تحديد الدولة';
+
+// ── تشخيص تحديد الدولة (country_diagnose.php) ───────────────────────────────
+$string['geodiag_title'] = 'تحديد الدولة';
+$string['geodiag_intro'] = 'كل سعر هنا يُختار حسب الدولة. تعرض هذه الصفحة كيف يستنتج الموقع الدولة: لهذا الطلب، ولأي عنوان تكتبه — وهي تقرأ وتعرض فقط ولا تُغيّر شيئًا.';
+$string['geodiag_h_config'] = '١. هل يمكن إجراء بحث عن الموقع أصلًا؟';
+$string['geodiag_h_address'] = '٢. أي عنوان يراه الخادم فعلًا؟';
+$string['geodiag_h_lookup'] = '٣. ما الدولة الناتجة عن ذلك؟';
+$string['geodiag_h_course'] = '٤. أي صف سعر سيفوز؟';
+$string['geodiag_geoip2file'] = 'قاعدة بيانات GeoIP2‏ ($CFG->geoip2file)';
+$string['geodiag_notset'] = 'غير مضبوط';
+$string['geodiag_geoip2missing'] = 'ملف قاعدة البيانات';
+$string['geodiag_geoip2missing_desc'] = 'المسار مضبوط لكن لا يوجد ملف قابل للقراءة هناك، فيفشل كل بحث.';
+$string['geodiag_geoip2lib'] = 'مكتبة قراءة GeoIP2 موجودة';
+$string['geodiag_geoplugin'] = 'مفتاح geoPlugin‏ ($CFG->geopluginapikey)';
+$string['geodiag_available'] = 'تحديد الموقع متاح';
+$string['geodiag_nogeo'] = 'لا يوجد تحديد موقع مضبوط، فلا يمكن تحديد دولة أي زائر غير مسجّل ويُعرض للجميع «السعر الافتراضي». اضبط قاعدة بيانات GeoIP2 من: إدارة الموقع ← الموقع الجغرافي ← البحث عن عنوان IP، لتشغيل التسعير حسب الدولة للزوّار غير المسجَّلين.';
+$string['geodiag_seenaddr'] = 'العنوان الذي يراه الموقع‏ (getremoteaddr)';
+$string['geodiag_ispublic'] = 'صالح لتحديد الموقع';
+$string['geodiag_proxytrap'] = 'الموقع يرى عنوانًا داخليًا، بينما عنوان الزائر الحقيقي موجود في ترويسة تمرير أُمِر بتجاهلها. مودل يتجاهل X-Forwarded-For ما لم يُحدَّد ‎$CFG->getremoteaddrconf‎، ولذلك خلف بروكسي عكسي يبدو كل الزوّار وكأنهم البروكسي فيتعذّر تحديد أي منهم. اضبط ‎$CFG->getremoteaddrconf = 1;‎ في config.php (تجاهُل Client-IP واعتماد X-Forwarded-For) — لكن فقط إذا كان البروكسي بروكسيك وهو من يكتب تلك الترويسة، لأن ترويسة يستطيع الزائر كتابتها تعني دولة يستطيع الزائر اختيارها.';
+$string['geodiag_privateaddr'] = 'الموقع يرى عنوانًا داخليًا أو محجوزًا لا يمكن تحديد موقعه. كل زائر يصل بهذه الطريقة يُعرض له «السعر الافتراضي».';
+$string['geodiag_lookupfor'] = 'العنوان الذي جرى البحث عنه';
+$string['geodiag_lookupresult'] = 'الدولة';
+$string['geodiag_unknowncountry'] = 'غير معروفة — يُطبَّق السعر الافتراضي';
+$string['geodiag_youare'] = 'أنت تتصفّح بصفة';
+$string['geodiag_asguest'] = 'زائر — التسعير من عنوان الـIP';
+$string['geodiag_assignedin'] = 'حساب مسجّل دخول — التسعير من دولة البروفايل ({$a}). عنوان الـIP لا يُستخدم عمدًا، فاختبار أسعارك وأنت مسجّل الدخول لا يخبرك بشيء عمّا يراه الزائر. استخدم نافذة تصفّح خاص.';
+$string['geodiag_nocountry'] = 'فارغة';
+$string['geodiag_yourcountry'] = 'الدولة التي ستُسعَّر عليها';
+$string['geodiag_testip'] = 'اختبر عنوان IP آخر';
+$string['geodiag_testgo'] = 'ابحث عنه';
+$string['geodiag_courserows'] = 'صفوف الأسعار';
+$string['geodiag_wouldwin'] = 'السعر الذي سيُعرض';
+$string['geodiag_viadefault'] = 'من صف السعر الافتراضي';
+$string['geodiag_viacountry'] = 'من صف {$a}';
+$string['geodiag_nowinner'] = 'لا شيء — لا يوجد لهذا الكورس صف سعر مفعّل ينطبق';

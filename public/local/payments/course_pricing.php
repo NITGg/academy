@@ -45,6 +45,13 @@ if ($action === 'edit' || $action === 'add') {
         $data = $DB->get_record('local_payments_course_prices', ['id' => $priceid, 'courseid' => $courseid], '*', MUST_EXIST);
     }
 
+    // The "add the missing row" links on the list below arrive with the country
+    // and currency they are asking for already in the address, so the admin lands
+    // on the form with only the amount left to type. Just a starting position for
+    // the two selects — the form is free to be changed before it is saved.
+    $prefillcountry = optional_param('country', '', PARAM_ALPHA);
+    $prefillcurrency = optional_param('currency', '', PARAM_ALPHA);
+
     $formurl = new moodle_url('/local/payments/course_pricing.php', [
         'courseid' => $courseid,
         'action' => $action,
@@ -55,6 +62,8 @@ if ($action === 'edit' || $action === 'add') {
         'courseid' => $courseid,
         'priceid' => $priceid,
         'data' => $data,
+        'prefillcountry' => $prefillcountry,
+        'prefillcurrency' => $prefillcurrency,
     ]);
 
     if ($form->is_cancelled()) {
@@ -196,8 +205,77 @@ if ($pricingnote_isar) {
 echo html_writer::div($pricingnote, 'alert alert-info',
     ['dir' => $pricingnote_isar ? 'rtl' : 'ltr']);
 
+// ── The two rows a selling course must have ─────────────────────────────────
+// A course that sells needs the home country's price in local money AND a
+// Default row in international money. With only one of them, half the audience
+// is quoted the other half's currency — and nothing on this screen said so,
+// because a single row looks perfectly correct to whoever is reading it. See
+// price_resolver::pricing_gaps() for why this is reported rather than blocked.
+$gaps = \local_payments\price_resolver::pricing_gaps($courseid);
+if ($gaps['selling'] && !$gaps['complete']) {
+    $countrynames = get_string_manager()->get_list_of_countries();
+    $homename = $countrynames[$gaps['homecountry']] ?? $gaps['homecountry'];
+
+    $addlink = function (array $params, string $label) use ($courseid): string {
+        $url = new moodle_url('/local/payments/course_pricing.php',
+            ['courseid' => $courseid, 'action' => 'add'] + $params);
+        return html_writer::link($url, $label, ['class' => 'btn btn-sm btn-primary ms-2']);
+    };
+
+    $items = '';
+    if (!$gaps['hashome']) {
+        $items .= html_writer::tag('li',
+            get_string('pricing_missing_home', 'local_payments',
+                (object) ['country' => $homename, 'currency' => $gaps['homecurrency']])
+            . $addlink(['country' => $gaps['homecountry'], 'currency' => $gaps['homecurrency']],
+                get_string('pricing_addhome', 'local_payments', $homename)));
+    }
+    if (!$gaps['hasdefault']) {
+        $items .= html_writer::tag('li',
+            get_string('pricing_missing_default', 'local_payments')
+            // No country: the form's own default is the Default price row.
+            . $addlink(['currency' => 'USD'],
+                get_string('pricing_adddefault', 'local_payments')));
+    } else if ($gaps['defaultislocal']) {
+        // The Default row exists but is priced in the home currency, so every
+        // buyer abroad is being quoted an Egyptian amount in Egyptian pounds.
+        $items .= html_writer::tag('li',
+            get_string('pricing_default_islocal', 'local_payments',
+                (object) ['currency' => $gaps['defaultcurrency'], 'country' => $homename]));
+    }
+
+    echo $OUTPUT->notification(
+        html_writer::tag('strong', get_string('pricing_incomplete', 'local_payments'))
+        . html_writer::tag('ul', $items, ['class' => 'mb-0 mt-2']),
+        'warning'
+    );
+}
+
+// ── Can guests actually be placed in a country? ─────────────────────────────
+// The whole per-country table above is only reachable for a signed-out visitor
+// if the site can geolocate their IP: with no geolocation configured — or with
+// the reverse proxy hiding every visitor behind its own address — EVERY guest
+// resolves to "country unknown" and is quoted the Default row, whichever country
+// they are really in. That looks exactly like a broken price rule from the admin
+// side, so say it here, where the rules are being written.
+if (!\local_payments\country_detector::geolocation_available()) {
+    echo $OUTPUT->notification(
+        html_writer::tag('strong', get_string('pricing_geo_off', 'local_payments'))
+        . html_writer::tag('p', get_string('pricing_geo_off_desc', 'local_payments'), ['class' => 'mb-0 mt-2'])
+        . html_writer::link(
+            new moodle_url('/local/payments/country_diagnose.php', ['courseid' => $courseid]),
+            get_string('pricing_geo_check', 'local_payments'),
+            ['class' => 'btn btn-sm btn-secondary mt-2']),
+        'warning'
+    );
+}
+
 $addurl = new moodle_url('/local/payments/course_pricing.php', ['courseid' => $courseid, 'action' => 'add']);
 echo html_writer::link($addurl, get_string('addprice', 'local_payments'), ['class' => 'btn btn-primary mb-3']);
+echo html_writer::link(
+    new moodle_url('/local/payments/country_diagnose.php', ['courseid' => $courseid]),
+    get_string('pricing_geo_check', 'local_payments'),
+    ['class' => 'btn btn-outline-secondary mb-3 ms-2']);
 
 if (empty($prices)) {
     echo $OUTPUT->notification(get_string('noprices', 'local_payments'), 'info');

@@ -232,6 +232,69 @@ body:has(.acad-cr) .acad-cr__cta-row .acad-cr-btn.btn {
     text-align: center;
 }
 
+/* Price + button, together at the foot of the identity card. The wrapper takes
+   over pinning to the bottom so the price travels WITH the button — left on the
+   .acad-cr__cta-row alone, the price would sit against the facts above it and the
+   button would drift away from its own amount when the card is stretched. */
+body:has(.acad-cr) .acad-cr__offer {
+    display: flex;
+    flex-direction: column;
+    margin-block-start: auto;
+}
+body:has(.acad-cr) .acad-cr__offer .acad-cr__cta-row {
+    margin-block-start: 0;
+    padding-block-start: 14px;
+}
+
+/* The amount. `dir: ltr` with `text-align: start` because a price is a number
+   followed by its currency in both languages ("45.00 USD"), and on an Arabic
+   page the bidi algorithm would otherwise push the currency to the wrong side —
+   while the row itself still starts where the rest of the card starts. */
+body:has(.acad-cr) .acad-cr__price-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-block-start: 26px;
+}
+body:has(.acad-cr) .acad-cr__price {
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+body:has(.acad-cr) .acad-cr__price--now {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--cr-ink);
+    line-height: 1.1;
+}
+body:has(.acad-cr) .acad-cr__price--was {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--cr-muted);
+    text-decoration: line-through;
+    opacity: .75;
+}
+/* The "-40%" pill. Same fill and foreground as the pill on the catalogue cards
+   (local/nit_category/index.php maps --cbg4 -> Primary, --ctext4 -> Text primary),
+   because a learner arrives here FROM one of those cards and the same discount
+   should not be wearing two different colours across one click. */
+body:has(.acad-cr) .acad-cr__price-off {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background: var(--nit-brand-primary);
+    color: var(--nit-brand-textprimary);
+}
+
+/* "Set your country before we can price this for you" — a sentence, not a price. */
+body:has(.acad-cr) .acad-cr__pricenote {
+    margin: 0;
+    padding-block-start: 26px;
+    font-size: 14px;
+    color: var(--cr-muted);
+}
+
 /* Status pill (Free). */
 body:has(.acad-cr) .acad-cr__badge {
     display: inline-flex;

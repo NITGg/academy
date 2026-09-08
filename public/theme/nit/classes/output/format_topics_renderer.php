@@ -531,7 +531,7 @@ class format_topics_renderer extends \format_topics\output\renderer {
      * There is deliberately NO "Go to course" button. On this page an enrolled
      * user is already ON /course/view.php, so that button linked to the URL it
      * was rendered from — a no-op. The curriculum accordion below is the way into
-     * the activities. Visitors who are not enrolled still get the enrol CTA.
+     * the activities. Visitors who cannot get in still get the price and the CTA.
      *
      * @param stdClass $course
      * @param \context_course $context
@@ -541,7 +541,14 @@ class format_topics_renderer extends \format_topics\output\renderer {
     protected function acad_hero($course, $context, $data) {
         global $USER;
 
-        $isenrolled = is_enrolled($context, $USER->id, '', true);
+        // "Has access", not "is enrolled". A teacher, manager or administrator
+        // reads the course through moodle/course:view and is never enrolled in
+        // it — offering them the price and a "Buy now" button would be asking
+        // them to pay for something they can already open. The same capability
+        // local_payments' own gate lets through (hook_callbacks), so the button
+        // is shown exactly to the people the checkout would accept.
+        $hasaccess = is_enrolled($context, $USER->id, '', true)
+            || has_capability('moodle/course:view', $context);
 
         // Provider = top-level category.
         $provider = !empty($data->catnames) ? $data->catnames[0] : format_string($course->shortname);
@@ -601,14 +608,9 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $o .= html_writer::tag('dl', $rows, ['class' => 'acad-cr__facts']);
         }
 
-        // CTA — only for visitors who cannot already reach the course content.
-        if (!$isenrolled) {
-            $o .= html_writer::div(
-                html_writer::link(
-                    new moodle_url('/enrol/index.php', ['id' => $course->id]),
-                    s(get_string('acad_enrol', 'theme_nit')),
-                    ['class' => 'btn btn-primary acad-cr-btn']),
-                'acad-cr__cta-row');
+        // Price + CTA — only for visitors who cannot already reach the course content.
+        if (!$hasaccess) {
+            $o .= $this->acad_offer($course);
         }
 
         $o .= html_writer::end_div(); // hero-main.
@@ -618,6 +620,132 @@ class format_topics_renderer extends \format_topics\output\renderer {
 
         $o .= html_writer::end_div(); // hero.
         return html_writer::div($o, 'acad-cr__wrap');
+    }
+
+    /**
+     * What the course costs and the one button that acts on it.
+     *
+     * The catalogue cards have always said both — "45.00 USD" over a "Buy now"
+     * button — and the course page, which is the page a visitor lands on FROM one
+     * of those cards, said neither: one "Enroll" button, no amount. A learner who
+     * clicked a card priced at 45.00 arrived at a page that looked free, and only
+     * found out otherwise at the checkout.
+     *
+     * The state comes from local_payments\price_resolver::course_state() — the
+     * same call the cards make — so the two screens cannot disagree about what a
+     * course costs or about which button it should be offering.
+     *
+     * Every button goes to /enrol/index.php. That is deliberately the one door:
+     * local_payments' before_http_headers hook already routes it correctly for
+     * every case — a guest to the log-in page with this course remembered as the
+     * destination, a signed-in learner to the checkout, a free course to the
+     * one-click "register for free" — so the theme picks the LABEL and lets the
+     * payment plugin pick the flow. The one exception is the "no country on your
+     * profile" state, which is not an offer at all: prices are per country, so
+     * that button goes to the profile field that unblocks them.
+     *
+     * With local_payments absent, or with its resolver throwing, this falls back
+     * to exactly the CTA the page has always had: one plain "Enroll". A price we
+     * cannot work out must never cost the visitor the way in.
+     *
+     * @param stdClass $course
+     * @return string
+     */
+    protected function acad_offer($course): string {
+        $enrolurl = new moodle_url('/enrol/index.php', ['id' => $course->id]);
+
+        // No payments plugin: the page keeps exactly the CTA it always had.
+        if (!class_exists('\local_payments\price_resolver')) {
+            return html_writer::div(
+                html_writer::link($enrolurl, s(get_string('acad_enrol', 'theme_nit')),
+                    ['class' => 'btn btn-primary acad-cr-btn']),
+                'acad-cr__cta-row');
+        }
+
+        try {
+            $state = \local_payments\price_resolver::course_state((int) $course->id);
+        } catch (\Throwable $e) {
+            // A broken price must never cost the visitor the way in.
+            return html_writer::div(
+                html_writer::link($enrolurl, s(get_string('acad_enrol', 'theme_nit')),
+                    ['class' => 'btn btn-primary acad-cr-btn']),
+                'acad-cr__cta-row');
+        }
+
+        // Signed in with no profile country. There is no price for this account —
+        // not a guessed one, not the default one — so the slot carries the reason
+        // and the way to fix it instead of an amount and a button that can only
+        // fail at the checkout.
+        if (!empty($state['countryrequired']) && class_exists('\local_payments\country_detector')) {
+            $notice = \local_payments\country_detector::country_required_notice();
+            return html_writer::div(
+                html_writer::tag('p', s($notice['message']), ['class' => 'acad-cr__pricenote'])
+                . html_writer::div(
+                    html_writer::link($notice['url'], s($notice['action']),
+                        ['class' => 'btn btn-primary acad-cr-btn']),
+                    'acad-cr__cta-row'),
+                'acad-cr__offer');
+        }
+
+        $o = '';
+
+        // The amount. Printed in every state that has one — including "already
+        // purchased" and "in your subscription", where it is what the learner got
+        // rather than what they owe.
+        $price = $this->acad_price_tags($state);
+        if ($price !== '') {
+            $o .= html_writer::div($price, 'acad-cr__price-row');
+        }
+
+        // The label. "Buy now" only where money actually changes hands: a course
+        // covered by a subscription, or already paid for, is an enrolment now.
+        $buying = !empty($state['haspricing'])
+            && empty($state['purchased'])
+            && empty($state['covered'])
+            && ($state['price'] > 0 || $state['offerfinal'] > 0);
+        $label = $buying
+            ? get_string('acad_buynow', 'theme_nit')
+            : get_string('acad_enrol', 'theme_nit');
+
+        $o .= html_writer::div(
+            html_writer::link($enrolurl, s($label), ['class' => 'btn btn-primary acad-cr-btn']),
+            'acad-cr__cta-row');
+
+        return html_writer::div($o, 'acad-cr__offer');
+    }
+
+    /**
+     * The price tags: a live offer as struck-through original + final + "-40%",
+     * otherwise the plain amount, and nothing at all when the course is priced
+     * but no rule resolves to one.
+     *
+     * Nothing beats "Free" here: a course whose price could not be resolved is a
+     * course we do not know the price of, not a free one.
+     *
+     * @param array $state from local_payments\price_resolver::course_state()
+     * @return string
+     */
+    protected function acad_price_tags(array $state): string {
+        $money = function (float $amount) use ($state): string {
+            $currency = (string) ($state['currency'] ?? '');
+            return format_float($amount, 2, false) . ($currency !== '' ? ' ' . $currency : '');
+        };
+
+        if (!empty($state['offerlabel']) && !empty($state['offerfinal'])) {
+            return html_writer::tag('span', s($money((float) $state['price'])),
+                    ['class' => 'acad-cr__price acad-cr__price--was'])
+                . html_writer::tag('span', s($money((float) $state['offerfinal'])),
+                    ['class' => 'acad-cr__price acad-cr__price--now'])
+                . html_writer::tag('span', s($state['offerlabel']),
+                    ['class' => 'acad-cr__price-off']);
+        }
+
+        if (!empty($state['price']) && $state['price'] > 0) {
+            return html_writer::tag('span', s($money((float) $state['price'])),
+                ['class' => 'acad-cr__price acad-cr__price--now']);
+        }
+
+        return '';
     }
 
     /**

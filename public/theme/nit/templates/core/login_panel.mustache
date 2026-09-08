@@ -41,6 +41,7 @@
     Context variables required for this template:
     * nitpanel.haslogo - whether there is a logo to draw
     * nitpanel.logourl - its URL
+    * nitpanel.homeurl - where the logo links to (the site home page)
     * nitpanel.sitename - the site's full name, for the logo's alt text
     * nitpanel.hasquote - whether a quote has been written
     * nitpanel.quote - the quote, already format_string()'d
@@ -55,6 +56,7 @@
         "nitpanel": {
             "haslogo": true,
             "logourl": "https://example.com/pluginfile.php/1/core_admin/logocompact/logo.png",
+            "homeurl": "https://example.com/",
             "sitename": "EAAC Learning Platform",
             "hasquote": true,
             "quote": "The beautiful thing about learning is that no one can take it away from you.",
@@ -65,8 +67,18 @@
 }}
 <div class="nit-authpanel">
     <div class="nit-authpanel-brand">
+        {{!
+            A link home, for the same reason the navbar brand is one everywhere
+            else: the logo is where a visitor reaches when they want out of the
+            account screens. Built in PHP rather than written as
+            `{{config.wwwroot}}` because this panel is a PARTIAL — the log-in and
+            sign-up pages hand it the context built in theme/nit/layout/login.php,
+            and that is where the rest of its data comes from too.
+        }}
         {{#nitpanel.haslogo}}
-            <img src="{{nitpanel.logourl}}" alt="{{nitpanel.sitename}}" class="nit-authpanel-logo">
+            <a href="{{nitpanel.homeurl}}" class="nit-authpanel-logolink">
+                <img src="{{nitpanel.logourl}}" alt="{{nitpanel.sitename}}" class="nit-authpanel-logo">
+            </a>
         {{/nitpanel.haslogo}}
     </div>
 

@@ -369,3 +369,52 @@ $string['refund_feerow'] = 'Refund fee ({$a}%)';
 
 // The 'Course' column also lists subscriptions, so it names neither.
 $string['item_column'] = 'Item';
+
+// ── Pricing completeness (course_pricing.php) ───────────────────────────────
+// A course that sells needs the home country's price in local money AND a
+// Default row in international money; one row alone always quotes half the
+// audience in the other half's currency. See price_resolver::pricing_gaps().
+$string['pricing_incomplete'] = 'This course sells, but its prices are incomplete.';
+$string['pricing_missing_home'] = 'There is no price for {$a->country}. Buyers there fall through to the Default price and are quoted whatever currency it is in, instead of {$a->currency}.';
+$string['pricing_addhome'] = 'Add the {$a} price';
+$string['pricing_missing_default'] = 'There is no Default price. It is the row used for every buyer the site cannot place in a country &mdash; a visitor from a country you have not priced for, and any guest whose location cannot be worked out &mdash; so without it they see no price at all.';
+$string['pricing_adddefault'] = 'Add the Default price (USD)';
+$string['pricing_default_islocal'] = 'The Default price is in {$a->currency}. That row is what every buyer OUTSIDE {$a->country} is quoted, so it should be in an international currency; add a separate {$a->country} row for local buyers.';
+$string['pricing_geo_off'] = 'Guests cannot be placed in a country on this site.';
+$string['pricing_geo_off_desc'] = 'Per-country prices only reach a signed-out visitor if their IP address can be located. With location lookup unavailable, EVERY guest resolves to &ldquo;country unknown&rdquo; and is quoted the Default price &mdash; whichever country they are really in. A country price that looks like it is being ignored is usually this.';
+$string['pricing_geo_check'] = 'Check country detection';
+
+// ── Country detection diagnostics (country_diagnose.php) ────────────────────
+$string['geodiag_title'] = 'Country detection';
+$string['geodiag_intro'] = 'Every price here is chosen by country. This page shows how this site works one out, for this request and for any address you type in &mdash; it reads and reports, and changes nothing.';
+$string['geodiag_h_config'] = '1. Can a location lookup run at all?';
+$string['geodiag_h_address'] = '2. Whose address does the server actually see?';
+$string['geodiag_h_lookup'] = '3. What country does that come out as?';
+$string['geodiag_h_course'] = '4. Which price row would win?';
+$string['geodiag_geoip2file'] = 'GeoIP2 database ($CFG->geoip2file)';
+$string['geodiag_notset'] = 'not set';
+$string['geodiag_geoip2missing'] = 'Database file';
+$string['geodiag_geoip2missing_desc'] = 'The path is configured but there is no readable file there, so every lookup fails.';
+$string['geodiag_geoip2lib'] = 'GeoIP2 reader library present';
+$string['geodiag_geoplugin'] = 'geoPlugin API key ($CFG->geopluginapikey)';
+$string['geodiag_available'] = 'Location lookup available';
+$string['geodiag_nogeo'] = 'No location lookup is configured, so no guest can be placed in any country and every guest is quoted the Default price. Configure a GeoIP2 database (Site administration &rarr; Location &rarr; IP address lookup) to switch per-country pricing on for signed-out visitors.';
+$string['geodiag_seenaddr'] = 'Address the site sees (getremoteaddr)';
+$string['geodiag_ispublic'] = 'Usable for a location lookup';
+$string['geodiag_proxytrap'] = 'The site is seeing a private address, and the visitor\'s real address is sitting in a forwarded header it has been told to ignore. Moodle skips X-Forwarded-For unless $CFG->getremoteaddrconf says otherwise, so behind a reverse proxy EVERY visitor looks like the proxy and none of them can be placed. Set $CFG->getremoteaddrconf = 1; in config.php (skip Client-IP, honour X-Forwarded-For) &mdash; but only when the proxy is yours and sets that header itself, because a header a visitor can write is a country a visitor can choose.';
+$string['geodiag_privateaddr'] = 'The site is seeing a private or reserved address, which cannot be located. Every visitor arriving this way is quoted the Default price.';
+$string['geodiag_lookupfor'] = 'Address looked up';
+$string['geodiag_lookupresult'] = 'Country';
+$string['geodiag_unknowncountry'] = 'unknown &mdash; the Default price applies';
+$string['geodiag_youare'] = 'You are viewing as';
+$string['geodiag_asguest'] = 'a guest &mdash; priced by IP address';
+$string['geodiag_assignedin'] = 'a signed-in account &mdash; priced by profile country ({$a}). Your IP is deliberately not used, so testing your own prices while logged in tells you nothing about what a guest sees. Use a private window.';
+$string['geodiag_nocountry'] = 'empty';
+$string['geodiag_yourcountry'] = 'Country you would be priced on';
+$string['geodiag_testip'] = 'Test another IP address';
+$string['geodiag_testgo'] = 'Look it up';
+$string['geodiag_courserows'] = 'Price rows';
+$string['geodiag_wouldwin'] = 'Would be quoted';
+$string['geodiag_viadefault'] = 'from the Default price row';
+$string['geodiag_viacountry'] = 'from the {$a} row';
+$string['geodiag_nowinner'] = 'nothing &mdash; this course has no active price row that applies';

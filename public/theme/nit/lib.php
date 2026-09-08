@@ -2489,6 +2489,11 @@ function theme_nit_auth_panel_content($output): array {
     return [
         'haslogo'  => !empty($logourl),
         'logourl'  => !empty($logourl) ? $logourl->out(false) : '',
+        // The logo on the account screens is a link home, the same as the navbar
+        // brand is on every other page. The panel is rendered as a Mustache
+        // PARTIAL, so it cannot reach `{{config.wwwroot}}` on its own — the URL
+        // has to travel in the context with the rest of the panel's data.
+        'homeurl'  => (new moodle_url('/'))->out(false),
         'sitename' => format_string($SITE->fullname, true, ['context' => $context, 'escape' => false]),
         // format_string() escapes and runs the multilang filter, so a bilingual
         // site can also write one field with {mlang} markup instead of two.

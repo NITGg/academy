@@ -44,9 +44,17 @@
 
 <div class="loginform nit-auth nit-auth-card">
     <div class="nit-auth-head">
+        {{!
+            The mark is the way back to the site, not decoration. On every other
+            page of this site the logo is a link home (the navbar brand); the
+            account screens were the one place it was inert, and a visitor who
+            arrived here and changed their mind had nothing to click.
+        }}
         {{#logourl}}
             <div id="loginlogo" class="login-logo">
-                <img id="logoimage" src="{{logourl}}" class="img-fluid" alt="{{sitename}}"/>
+                <a href="{{config.wwwroot}}" class="nit-auth-logolink">
+                    <img id="logoimage" src="{{logourl}}" class="img-fluid" alt="{{sitename}}"/>
+                </a>
             </div>
         {{/logourl}}
         <h1 class="nit-auth-title">{{#str}} welcomeback, theme_nit {{/str}}</h1>

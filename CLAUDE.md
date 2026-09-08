@@ -96,3 +96,11 @@ tracked.
   item was kept or dropped: the plan's assignment or the courses it was derived from, and
   the coupon/offer scope rows. The fastest way to tell "the admin scoped it elsewhere"
   from "the rule is wrong".
+- `/local/payments/country_diagnose.php[?courseid=ID]` (a **page**, not a CLI — a CLI has no
+  request, so it cannot see the proxy headers that are usually the fault) — why a buyer was
+  quoted *that* price. Prints, in order: whether an IP lookup can run at all, what address
+  the server actually sees (`getremoteaddr()` next to the raw `REMOTE_ADDR` /
+  `X-Forwarded-For` and `$CFG->getremoteaddrconf`), what country that resolves to, and which
+  of the course's price rows would therefore win. Also takes `?ip=` to look up any address.
+  Reach for it whenever "the Egypt price is being ignored": four different causes produce
+  that one symptom and this separates them. Linked from every course's pricing page.

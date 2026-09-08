@@ -289,12 +289,54 @@ class country_detector {
     }
 
     /**
+     * Can this site place an IP address in a country at all?
+     *
+     * Every per-country price is unreachable for a signed-out visitor when the answer
+     * is no: {@see self::detect_for_pricing()} returns '' for every guest, and every one
+     * of them is quoted the course's Default price row whatever country they are in. From
+     * the admin screen that is indistinguishable from a price rule that does not work,
+     * which is why the pricing page asks this and says so.
+     *
+     * Only asks whether a lookup COULD run. Whether it will actually be handed the
+     * visitor's own address is a separate question — a reverse proxy with
+     * `$CFG->getremoteaddrconf` unset hides every visitor behind its own private
+     * address — and that one is answered per request by country_diagnose.php.
+     *
+     * @return bool
+     */
+    public static function geolocation_available(): bool {
+        global $CFG;
+
+        return (!empty($CFG->geoip2file) && file_exists($CFG->geoip2file))
+            || !empty($CFG->geopluginapikey);
+    }
+
+    /**
      * Only a routable public address can be geolocated. Loopback and LAN addresses (which is
      * what a misconfigured reverse proxy hands us) are "no usable IP", not a country.
+     *
+     * Public so the diagnostic page can say WHICH of the two ways an address fails.
      */
-    private static function is_public_ip(string $ip): bool {
+    public static function is_public_ip(string $ip): bool {
         return $ip !== '' && filter_var($ip, FILTER_VALIDATE_IP,
             FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+    }
+
+    /**
+     * Look one IP address up, ignoring the per-request cache.
+     *
+     * For the diagnostic page only: {@see self::from_ip()} caches misses for 24 hours,
+     * which is right for a catalogue page and wrong for the screen an administrator opens
+     * to find out whether they have just fixed geolocation.
+     *
+     * @param string $ip
+     * @return string ISO 3166-1 alpha-2 (uppercase), or '' when it cannot be established
+     */
+    public static function lookup_uncached(string $ip): string {
+        if (!self::is_public_ip($ip)) {
+            return '';
+        }
+        return self::lookup_ip_country($ip);
     }
 
     private static function is_valid_country(string $code): bool {

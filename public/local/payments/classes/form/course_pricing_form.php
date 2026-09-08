@@ -19,13 +19,19 @@ class course_pricing_form extends \moodleform {
         $mform->addElement('hidden', 'priceid', $priceid);
         $mform->setType('priceid', PARAM_INT);
 
+        // The country and currency a "add the missing price" link asked for. Only a
+        // starting position for the selects: setDefault() is overridden by
+        // set_data() at the bottom, so an EDIT still shows the row's own values.
+        $prefillcountry = strtoupper((string) ($this->_customdata['prefillcountry'] ?? ''));
+        $prefillcurrency = strtoupper((string) ($this->_customdata['prefillcurrency'] ?? ''));
+
         // Country.
         $countries = array_merge(
             ['*' => get_string('defaultprice', 'local_payments')],
             get_string_manager()->get_list_of_countries()
         );
         $mform->addElement('select', 'country', get_string('country', 'local_payments'), $countries);
-        $mform->setDefault('country', '*');
+        $mform->setDefault('country', isset($countries[$prefillcountry]) ? $prefillcountry : '*');
         $mform->addRule('country', null, 'required', null, 'client');
 
         // Currency.
@@ -42,6 +48,9 @@ class course_pricing_form extends \moodleform {
             'OMR' => 'OMR - Omani Rial',
         ];
         $mform->addElement('select', 'currency', get_string('currency', 'local_payments'), $currencies);
+        if (isset($currencies[$prefillcurrency])) {
+            $mform->setDefault('currency', $prefillcurrency);
+        }
         $mform->addRule('currency', null, 'required', null, 'client');
 
         // Price.

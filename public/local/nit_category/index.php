@@ -202,79 +202,26 @@ $nitcheckout = local_nit_category_require_checkout();
 // button at all ('countryrequired' below), because a price they were never quoted is worse
 // than no price. A guest (id 0) is priced by IP geolocation, and when that yields nothing the
 // course's default price is used; see local_payments\country_detector::detect_for_pricing().
+//
+// The answer itself now lives in local_payments\price_resolver::course_state(), because the
+// course page's own hero asks exactly the same question and the two must not be allowed to
+// answer it differently — a course that says "5.00 USD / Buy now" on this page and "Free" on
+// its own page is worse than either answer alone. This closure is what is left: the enrolment
+// probe that still works when local_payments is absent, and the plugin guard.
 $nitcourseinfo = function ($courseid) use ($nitcheckout) {
-    global $USER, $DB;
-    $out = ['enrolled' => false, 'purchased' => false, 'covered' => false, 'free' => true,
-        'haspricing' => false, 'price' => 0.0, 'currency' => '', 'offerlabel' => '', 'offerfinal' => 0.0,
-        'countryrequired' => false];
-    $uid = (int) ($USER->id ?? 0);
-    $ctx = context_course::instance($courseid);
-    $out['enrolled'] = $uid > 0 && is_enrolled($ctx, $uid, '', true);
+    global $USER;
 
     if (!$nitcheckout) {
-        return $out;
-    }
-    // "Paid" means local_payments has an active rule — the same test enrol.php and buy.php
-    // gate on, so the card can never offer a flow the server will refuse.
-    $out['haspricing'] = (bool) \local_payments\price_resolver::has_pricing($courseid);
-    $out['free'] = !$out['haspricing'];
-
-    if (!$out['haspricing']) {
-        return $out;
+        // No payments plugin: nothing is priced, so the card offers a plain "Enroll".
+        $uid = (int) ($USER->id ?? 0);
+        $ctx = context_course::instance($courseid);
+        return ['enrolled' => $uid > 0 && is_enrolled($ctx, $uid, '', true),
+            'purchased' => false, 'covered' => false, 'free' => true, 'haspricing' => false,
+            'price' => 0.0, 'currency' => '', 'offerlabel' => '', 'offerfinal' => 0.0,
+            'countryrequired' => false];
     }
 
-    // An enrolled viewer skips the purchase/coverage probes — the "Enrolled" badge already wins
-    // over both — but NOT the price resolution below: the card prints the course price next to
-    // that badge, so a paid course always shows what it costs, enrolled or not.
-    if (!$out['enrolled']) {
-        // Already bought (payment completed) but not enrolled yet — must not be asked to buy again.
-        $out['purchased'] = $uid > 0 && \local_payments\price_resolver::is_purchased($courseid, $uid);
-
-        // Covered by an active subscription (grants access without buying).
-        if (!$out['purchased'] && class_exists('\local_nit_subscriptions\subscription_purchase_manager')) {
-            $out['covered'] = (bool) \local_payments\price_resolver::is_covered_by_active_subscription($courseid, $uid);
-        }
-    }
-
-    try {
-        $pricing = \local_payments\price_resolver::resolve($courseid, $uid);
-        $out['price'] = (float) $pricing->price;
-        $out['currency'] = (string) $pricing->currency;
-    } catch (\local_payments\country_required_exception $e) {
-        // Signed in with no profile country — no price exists for this viewer. Caught before
-        // the generic handler on purpose: that one reaches past the resolver for "any active
-        // rule", which is exactly the borrowed price this rule forbids.
-        $out['countryrequired'] = true;
-        return $out;
-    } catch (\Throwable $e) {
-        // resolve() throws when nothing matches the viewer's country AND the course has no
-        // default rule — a per-viewer miss, not a free course. Fall back to any active rule
-        // so the card still shows a real price instead of claiming the course is free.
-        $fallback = $DB->get_record_select(
-            'local_payments_course_prices',
-            'courseid = :courseid AND is_active = 1',
-            ['courseid' => $courseid],
-            'price, currency',
-            IGNORE_MULTIPLE
-        );
-        if ($fallback) {
-            $out['price'] = (float) $fallback->price;
-            $out['currency'] = (string) $fallback->currency;
-        }
-    }
-
-    if ($out['price'] > 0) {
-        try {
-            $summary = \local_nit_commerce\discount_manager::offer_summary('course', (int) $courseid, $out['price']);
-            if ($summary) {
-                $out['offerlabel'] = $summary['label'];   // e.g. "-40%"
-                $out['offerfinal'] = (float) $summary['final'];
-            }
-        } catch (\Throwable $e) {
-            // No offer engine / bad offer data — just show the undiscounted price.
-        }
-    }
-    return $out;
+    return \local_payments\price_resolver::course_state((int) $courseid);
 };
 
 // One money formatter for every price a card prints: the base price, the struck-through
