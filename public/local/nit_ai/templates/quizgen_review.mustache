@@ -74,7 +74,12 @@
                 <div class="progress-bar bg-success" style="width: {{percent}}%"></div>
             </div>
 
+            <p class="text-muted small mb-1">{{strspan}}</p>
             <p class="text-muted small mb-0">{{strreview}}</p>
+
+            {{#spanmismatch}}
+                <div class="alert alert-warning mt-3 mb-0" role="alert">{{strspanwarning}}</div>
+            {{/spanmismatch}}
 
             {{#hasgaps}}
                 <div class="alert alert-warning mt-3 mb-0" role="status">

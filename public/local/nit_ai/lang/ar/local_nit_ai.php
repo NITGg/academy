@@ -153,3 +153,4 @@ $string['setting_maxquestions'] = 'أقصى عدد أسئلة في الجولة'
 $string['setting_maxquestions_desc'] = 'التوليد بيقف لما الجولة توصل للعدد ده، مهما كان الباقي من الفيديو.';
 $string['setting_maxgappasses'] = 'تمريرات سد الفجوات';
 $string['setting_maxgappasses_desc'] = 'بعد التمريرة الأولى، كام طلب إضافي مسموح نصرفه عشان نرجع للأجزاء اللي مااتسألش عنها.';
+$string['quizgen_span'] = 'اتقرا من نص مقسوم لـ {$a->parts} جزء وبينتهي عند {$a->end}، لفيديو مدته {$a->video}.';

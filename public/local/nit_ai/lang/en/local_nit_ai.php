@@ -153,3 +153,4 @@ $string['setting_maxquestions'] = 'Most questions per run';
 $string['setting_maxquestions_desc'] = 'Generation stops once a run holds this many questions, however much of the video is left.';
 $string['setting_maxgappasses'] = 'Gap-filling passes';
 $string['setting_maxgappasses_desc'] = 'After the first pass, how many extra requests may be spent going back for parts of the video nothing was asked about.';
+$string['quizgen_span'] = 'Read from a transcript of {$a->parts} parts ending at {$a->end}, for a video that runs {$a->video}.';

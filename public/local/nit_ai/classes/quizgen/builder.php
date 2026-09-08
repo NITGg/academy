@@ -102,23 +102,88 @@ class builder {
     }
 
     /**
-     * The course's question bank, created on first use.
+     * The question bank to write into, created on first use.
      *
-     * In Moodle 5 a question bank is an activity, and every course gets one
-     * system bank whether or not anybody has opened it yet.
+     * In Moodle 5 a question bank is an activity, so "the course's bank" is a
+     * question with more than one answer. An existing bank the teacher already
+     * uses is the right home; only when there is none do we make one, and we
+     * make the same one core's own "create a default bank" button makes.
+     *
+     * The system bank is accepted but never created for this: it is invisible on
+     * the course page and exists to hold categories migrated from before 5.0.
+     * Questions a teacher will want to find again do not belong there.
      *
      * @param \stdClass $course
      * @return \cm_info
      * @throws \moodle_exception
      */
     protected static function bank(\stdClass $course): \cm_info {
-        $bank = question_bank_helper::get_default_open_instance_system_type($course, true);
-
-        if (!$bank) {
-            throw new \moodle_exception('quizgen_err_nobank', 'local_nit_ai');
+        $ordinary = self::existing_bank($course, false);
+        if ($ordinary) {
+            return $ordinary;
         }
 
-        return $bank;
+        try {
+            return question_bank_helper::create_default_open_instance(
+                $course,
+                question_bank_helper::get_bank_name_string(
+                    'defaultbank',
+                    'core_question',
+                    ['coursename' => $course->fullname]
+                )
+            );
+        } catch (\Throwable $e) {
+            // Question banks disabled as an activity, or this user not allowed
+            // to add one. Either way there may still be a bank to write into.
+            debugging('local_nit_ai: could not create a question bank: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+
+        $system = self::existing_bank($course, true);
+        if ($system) {
+            return $system;
+        }
+
+        throw new \moodle_exception('quizgen_err_nobank', 'local_nit_ai');
+    }
+
+    /**
+     * A bank already in this course that this user may add questions to.
+     *
+     * @param \stdClass $course
+     * @param bool $system true to look for the hidden system bank, false for an
+     *                     ordinary one a teacher can see on the course page
+     * @return \cm_info|null
+     */
+    protected static function existing_bank(\stdClass $course, bool $system): ?\cm_info {
+        global $DB;
+
+        $modname = question_bank_helper::get_default_question_bank_activity_name();
+        $banks = get_fast_modinfo($course)->get_instances_of($modname);
+
+        if (!$banks) {
+            return null;
+        }
+
+        $types = $DB->get_records_list(
+            $modname,
+            'id',
+            array_map(static fn($bank) => (int) $bank->instance, $banks),
+            '',
+            'id, type'
+        );
+
+        foreach ($banks as $bank) {
+            $issystem = ($types[$bank->instance]->type ?? '') === question_bank_helper::TYPE_SYSTEM;
+
+            if ($issystem !== $system) {
+                continue;
+            }
+            if (has_capability('moodle/question:add', \context_module::instance($bank->id))) {
+                return $bank;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -160,7 +225,13 @@ class builder {
         global $DB;
 
         $manager = new \core_question\category_manager();
-        $top = $DB->get_record('question_categories', ['contextid' => $bankcontext->id, 'parent' => 0]);
+
+        // Asked for with create-if-missing rather than read: a bank is not
+        // guaranteed to have a top category. The system bank in particular is
+        // created with none at all — add_moduleinfo skips the default category
+        // for it — so reading would fail on exactly the course that has never
+        // had a bank of its own.
+        $top = question_get_top_category($bankcontext->id, true);
 
         if (!$top) {
             throw new \moodle_exception('quizgen_err_nobank', 'local_nit_ai');

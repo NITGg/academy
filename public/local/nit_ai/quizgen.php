@@ -248,9 +248,35 @@ foreach (generator::LEVELS as $level) {
     }
 }
 
+// Coverage is measured against the transcript, so it says nothing about the
+// video unless the two actually match. A transcript that stops early reads as
+// 100% covered while the second half of the lesson was never seen, which is the
+// one failure this feature must not hide — so the span is stated, and a gap
+// between it and the video is called out.
+$transcriptend = (int) $transcript->lasttimestamp;
+$videolength = (int) $transcript->sourcelength;
+$spanmismatch = $transcript->hastimestamps && $videolength > 0
+    && abs($videolength - $transcriptend) > api::LENGTH_TOLERANCE;
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('quizgen_title', 'local_nit_ai'));
 echo $OUTPUT->render_from_template('local_nit_ai/quizgen_review', [
+    'strspan'      => get_string('quizgen_span', 'local_nit_ai', (object) [
+        'parts' => count($blocks),
+        'end'   => $transcript->hastimestamps
+            ? helper::timecode($transcriptend)
+            : get_string('lengthunknown', 'local_nit_ai'),
+        'video' => $videolength > 0
+            ? helper::timecode($videolength)
+            : get_string('lengthunknown', 'local_nit_ai'),
+    ]),
+    'spanmismatch' => $spanmismatch,
+    'strspanwarning' => $spanmismatch
+        ? get_string('check_lengthmismatch', 'local_nit_ai', (object) [
+            'transcript' => helper::timecode($transcriptend),
+            'video'      => helper::timecode($videolength),
+        ])
+        : '',
     'actionurl'    => $pageurl->out(false),
     'cmid'         => $cmid,
     'runid'        => (int) $record->id,
