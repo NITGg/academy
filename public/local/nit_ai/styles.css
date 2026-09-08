@@ -168,3 +168,50 @@
         align-items: start;
     }
 }
+
+/* ── Quiz generator ──────────────────────────────────────────────────────── */
+
+.nitai-quizgen-question {
+    padding: .75rem 0;
+    border-top: 1px solid var(--nit-brand-border, #dee2e6);
+}
+
+.nitai-quizgen-question:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+}
+
+/* The answers are a reading list, not a form: the reviewer is checking whether
+   the right one is right, so it carries the only mark on the list. */
+.nitai-quizgen-answers {
+    margin: .25rem 0 .5rem;
+    padding-inline-start: 2rem;
+    list-style: none;
+}
+
+.nitai-quizgen-answers li {
+    font-size: .9375rem;
+    color: var(--nit-brand-textsecondary, #6c757d);
+}
+
+.nitai-quizgen-answers li.nitai-correct {
+    font-weight: 500;
+    color: var(--nit-brand-textprimary, #212529);
+}
+
+.nitai-quizgen-answers li.nitai-correct::before {
+    content: "\2713";
+    margin-inline-end: .35rem;
+    color: var(--nit-brand-success, #198754);
+}
+
+.nitai-quizgen-time {
+    display: inline-block;
+    margin-inline-end: .35rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.nitai-quizgen-progress .progress {
+    height: .5rem;
+}

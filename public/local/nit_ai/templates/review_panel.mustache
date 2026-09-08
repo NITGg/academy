@@ -70,6 +70,28 @@
                     <span class="text-muted small ms-2">{{intro}}</span>
                 </div>
             {{/canapprove}}
+
+            {{#showquizgen}}
+                <div class="nitai-quizgen-offer mt-3 pt-3 border-top">
+                    <h4 class="h6 mb-2">{{quizgentitle}}</h4>
+
+                    {{#quizgenready}}
+                        <a href="{{quizgenurl}}" class="btn btn-secondary btn-sm">{{quizgenlabel}}</a>
+                    {{/quizgenready}}
+                    {{^quizgenready}}
+                        <p class="text-muted small mb-0">{{quizgenblocked}}</p>
+                    {{/quizgenready}}
+
+                    {{#haslastquiz}}
+                        {{#lastquiz}}
+                            <p class="small mt-2 mb-0">
+                                {{lastquizlabel}} <a href="{{url}}">{{name}}</a>
+                                {{#stale}}<span class="text-warning d-block">{{lastquizstale}}</span>{{/stale}}
+                            </p>
+                        {{/lastquiz}}
+                    {{/haslastquiz}}
+                </div>
+            {{/showquizgen}}
         {{/empty}}
     </div>
 </div>

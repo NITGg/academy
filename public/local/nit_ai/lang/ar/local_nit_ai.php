@@ -90,3 +90,66 @@ $string['err_aifailed'] = 'المساعد مقدرش يجاوب دلوقتي. ج
 $string['err_unavailable'] = 'المساعد مش متاح للفيديو ده.';
 
 $string['privacy:metadata'] = 'مساعد الفيديو الذكي مبيخزّنش المحادثات. الأسئلة بتتبعت لمزوّد الذكاء الاصطناعي المعدّ للموقع عشان يجاوب عليها، ومش بتتحفظ بعدها.';
+
+// Quiz generator.
+$string['nit_ai:generatequiz'] = 'إنشاء اختبار من نص الفيديو';
+$string['quizgen_formlabel'] = 'اختبار من الفيديو ده';
+$string['quizgen_button'] = 'إنشاء اختبار بالذكاء الاصطناعي';
+$string['quizgen_buttonnote'] = 'بيفتح في تبويب جديد وبيشتغل على النص المحفوظ. لو غيّرت الملف فوق دلوقتي، احفظ الفورم الأول.';
+$string['quizgen_paneltitle'] = 'اختبار بالذكاء الاصطناعي';
+$string['quizgen_lastquiz'] = 'آخر اختبار اتعمل:';
+$string['quizgen_lastquizstale'] = 'الاختبار ده اتكتب من نسخة أقدم من نص الفيديو. لو الفيديو اتغيّر، اعمل واحد جديد.';
+$string['quizgen_title'] = 'إنشاء اختبار من الفيديو ده';
+$string['quizgen_intro'] = 'نص فيديو «{$a->video}» مدته {$a->length} واتقرا على {$a->parts} جزء. كل جزء بيشرح حاجة هياخد سؤال على الأقل، يعني عدد الأسئلة بيتحدد من الفيديو نفسه مش من رقم بتحطه.';
+$string['quizgen_quizname'] = 'اسم الاختبار';
+$string['quizgen_quizsuffix'] = 'اختبار';
+$string['quizgen_language'] = 'لغة الأسئلة';
+$string['quizgen_language_help'] = 'الافتراضي هو اللغة اللي اتكشفت في نص الفيديو. المصطلحات التقنية بتفضل بالإنجليزي زي ما الفيديو بيقولها.';
+$string['quizgen_types'] = 'أنواع الأسئلة';
+$string['quizgen_types_help'] = 'الأنواع اللي بتتصحّح لوحدها بس. الاختيار من متعدد بيشيل الأسئلة الصعبة، وصح/خطأ سريع ومناسب للمستوى السهل.';
+$string['quizgen_type_multichoice'] = 'اختيار من متعدد (إجابة واحدة صحيحة)';
+$string['quizgen_type_truefalse'] = 'صح أو خطأ';
+$string['quizgen_startbutton'] = 'ابدأ التوليد';
+$string['quizgen_level_easy'] = 'سهل';
+$string['quizgen_level_medium'] = 'متوسط';
+$string['quizgen_level_hard'] = 'صعب';
+$string['quizgen_part'] = 'الجزء {$a}';
+$string['quizgen_working'] = 'بنكتب الأسئلة من نص الفيديو';
+$string['quizgen_workingnote'] = 'سيب الصفحة مفتوحة. كل جزء بيتحفظ أول ما يتكتب، فلو المزوّد بطيء هتخسر وقت مش شغل.';
+$string['quizgen_slice'] = 'الجزء {a} من {b}';
+$string['quizgen_fillinggaps'] = 'بنرجع للأجزاء اللي مااتسألش عنها حاجة';
+$string['quizgen_questionssofar'] = 'الأسئلة لحد دلوقتي';
+$string['quizgen_coverage'] = 'المغطّى من الفيديو';
+$string['quizgen_atlimit'] = 'الجولة دي وصلت للحد المسموح بيه في الموقع، فالتوليد وقف هنا.';
+$string['quizgen_reviewintro'] = 'لسه مفيش حاجة هنا بقت سؤال. شيل علامة أي سؤال مش عايزه، وبعدين اعمل الاختبار.';
+$string['quizgen_coveragesummary'] = '{$a->total} سؤال، بيغطّوا {$a->percent}% من اللي ينفع يتسأل عنه في الفيديو.';
+$string['quizgen_gapstitle'] = 'الأجزاء دي مااتكتبش عنها سؤال';
+$string['quizgen_skippedtitle'] = 'أجزاء اتقال إن مفيهاش حاجة تتسأل';
+$string['quizgen_keep'] = 'خليه';
+$string['quizgen_marks'] = 'درجة للسؤال';
+$string['quizgen_createbutton'] = 'اعمل الاختبار';
+$string['quizgen_createdhidden'] = 'الاختبار بيتعمل مخفي، في نفس قسم الفيديو، وكل مستوى في صفحة. اظهره لما تطمن عليه.';
+$string['quizgen_created'] = 'الاختبار اتعمل بـ {$a} سؤال، ومخفي لحد ما تظهره.';
+$string['quizgen_categoryinfo'] = 'اتكتبت بمولّد الاختبارات الذكي من نص الفيديو ده.';
+$string['quizgen_quizintro'] = 'أسئلة على الفيديو اللي في القسم ده.';
+$string['quizgen_seenat'] = 'الكلام ده في الفيديو عند {$a}.';
+
+// Quiz generator checks and errors.
+$string['quizgen_check_notapproved'] = 'نص الفيديو لسه مااتعتمدش. اعتمده الأول — الأسئلة مش هتبقى أحسن من النص اللي اتكتبت منه.';
+$string['quizgen_check_placementoff'] = 'مولّد الاختبارات الذكي مقفول على مستوى الموقع كله. شغّله من إدارة الموقع > الذكاء الاصطناعي > أماكن الذكاء الاصطناعي.';
+$string['quizgen_err_unreadable'] = 'رد الذكاء الاصطناعي جه بصيغة مقدرناش نقراها. الجزء ده مااتضافش منه حاجة.';
+$string['quizgen_err_norun'] = 'الجولة دي مابقتش موجودة. ابدأ من أول وجديد من صفحة النشاط.';
+$string['quizgen_err_alreadybuilt'] = 'فيه اختبار اتعمل من الجولة دي خلاص.';
+$string['quizgen_err_notypes'] = 'اختار نوع سؤال واحد على الأقل.';
+$string['quizgen_err_nothingtobuild'] = 'مفيش أسئلة نعمل منها اختبار.';
+$string['quizgen_err_nothingkept'] = 'شيلت العلامة من كل الأسئلة، فمفيش حاجة تتعمل.';
+$string['quizgen_err_nobank'] = 'الكورس ده مفيهوش بنك أسئلة نكتب فيه الأسئلة.';
+$string['quizgen_err_importfailed'] = 'مقدرناش نكتب الأسئلة في بنك الأسئلة. مااتعملش أي حاجة.';
+
+// Site settings.
+$string['setting_quizgenheading'] = 'مولّد الاختبارات الذكي';
+$string['setting_quizgenheading_desc'] = 'حدود إنشاء اختبار من نص الفيديو. عدد الأسئلة المفروض يتبع كمية اللي الفيديو بيشرحه؛ الأرقام دي حماية للتكلفة مش أهداف نوصلها.';
+$string['setting_maxquestions'] = 'أقصى عدد أسئلة في الجولة';
+$string['setting_maxquestions_desc'] = 'التوليد بيقف لما الجولة توصل للعدد ده، مهما كان الباقي من الفيديو.';
+$string['setting_maxgappasses'] = 'تمريرات سد الفجوات';
+$string['setting_maxgappasses_desc'] = 'بعد التمريرة الأولى، كام طلب إضافي مسموح نصرفه عشان نرجع للأجزاء اللي مااتسألش عنها.';

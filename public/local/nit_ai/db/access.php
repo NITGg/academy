@@ -48,4 +48,20 @@ $capabilities = [
             'manager'        => CAP_ALLOW,
         ],
     ],
+
+    // Write a quiz from an approved transcript.
+    //
+    // Separate from :manage because it spends money and creates activities,
+    // while uploading a transcript does neither. Core's own question and
+    // activity capabilities are still checked on top of this one — this says
+    // "may use the generator", not "may bypass the question bank's rules".
+    'local/nit_ai:generatequiz' => [
+        'riskbitmask'  => RISK_SPAM,
+        'captype'      => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes'   => [
+            'editingteacher' => CAP_ALLOW,
+            'manager'        => CAP_ALLOW,
+        ],
+    ],
 ];

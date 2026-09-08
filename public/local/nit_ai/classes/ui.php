@@ -37,9 +37,10 @@ class ui {
      * about the transcript is detected and shown back for confirmation.
      *
      * @param \MoodleQuickForm $mform
+     * @param object|null $cm the course module being edited, null while creating
      * @return void
      */
-    public static function add_form_elements(\MoodleQuickForm $mform): void {
+    public static function add_form_elements(\MoodleQuickForm $mform, ?object $cm = null): void {
         $mform->addElement('header', 'nitaiheader', get_string('formheader', 'local_nit_ai'));
 
         $mform->addElement('advcheckbox', 'nitai_enabled', get_string('enabled', 'local_nit_ai'));
@@ -59,6 +60,51 @@ class ui {
         $mform->addHelpButton('nitai_onscreen', 'hasonscreen', 'local_nit_ai');
         $mform->setDefault('nitai_onscreen', 0);
         $mform->hideIf('nitai_onscreen', 'nitai_enabled', 'notchecked');
+
+        self::add_quizgen_element($mform, $cm);
+    }
+
+    /**
+     * The way from the transcript to a quiz, offered where the transcript was
+     * uploaded.
+     *
+     * Only ever a link out. The form on this page has unsaved changes in it, and
+     * a button that generated questions from a file the teacher has just replaced
+     * but not yet saved would describe the wrong video — so the wizard is a
+     * separate page working from what is stored, and says so.
+     *
+     * @param \MoodleQuickForm $mform
+     * @param object|null $cm
+     * @return void
+     */
+    protected static function add_quizgen_element(\MoodleQuickForm $mform, ?object $cm): void {
+        if (!$cm || empty($cm->id)) {
+            return; // Creating the activity: there is no transcript to work from yet.
+        }
+
+        $context = \context_module::instance((int) $cm->id);
+        if (!has_capability('local/nit_ai:generatequiz', $context)) {
+            return;
+        }
+
+        $blockers = quizgen\generator::blockers($cm, $context);
+
+        if ($blockers) {
+            // Say why rather than hiding it: "there is no button" is the one
+            // thing a teacher cannot troubleshoot.
+            $html = \html_writer::tag('p', reset($blockers), ['class' => 'text-muted mb-0']);
+        } else {
+            $url = new \moodle_url('/local/nit_ai/quizgen.php', ['cmid' => (int) $cm->id]);
+            $html = \html_writer::link($url, get_string('quizgen_button', 'local_nit_ai'), [
+                'class'  => 'btn btn-secondary',
+                'target' => '_blank',
+                'rel'    => 'noopener',
+            ]) . \html_writer::tag('p', get_string('quizgen_buttonnote', 'local_nit_ai'), [
+                'class' => 'text-muted small mt-2 mb-0',
+            ]);
+        }
+
+        $mform->addElement('static', 'nitai_quizgen', get_string('quizgen_formlabel', 'local_nit_ai'), $html);
     }
 
     /**
@@ -132,7 +178,7 @@ class ui {
 
         $record = $status['record'];
 
-        return $OUTPUT->render_from_template('local_nit_ai/review_panel', [
+        return $OUTPUT->render_from_template('local_nit_ai/review_panel', self::quizgen_context($cm, $context) + [
             'empty' => false,
             'title' => get_string('reviewtitle', 'local_nit_ai'),
             'intro' => get_string('reviewintro', 'local_nit_ai'),
@@ -151,6 +197,56 @@ class ui {
                 'sesskey' => sesskey(),
             ]))->out(false),
         ]);
+    }
+
+    /**
+     * The quiz half of the review panel: the way to generate one, and what
+     * happened last time somebody did.
+     *
+     * Kept beside the transcript because that is where a teacher already comes
+     * to see whether the AI has what it needs. A quiz written from a transcript
+     * that has since been replaced is the failure worth naming here — it looks
+     * fine and asks about a video nobody is watching.
+     *
+     * @param object $cm
+     * @param \context $context
+     * @return array template context
+     */
+    protected static function quizgen_context(object $cm, \context $context): array {
+        if (!has_capability('local/nit_ai:generatequiz', $context)) {
+            return ['showquizgen' => false];
+        }
+
+        $blockers = quizgen\generator::blockers($cm, $context);
+        $lastrun = quizgen\run::last_created((int) $cm->id);
+        $lastquiz = null;
+
+        if ($lastrun && $lastrun->quizcmid) {
+            $describe = source::describe($cm);
+            $quizcm = get_coursemodule_from_id('quiz', (int) $lastrun->quizcmid, 0, false, IGNORE_MISSING);
+
+            if ($quizcm) {
+                $lastquiz = [
+                    'name'  => format_string($quizcm->name),
+                    'url'   => (new \moodle_url('/mod/quiz/view.php', ['id' => (int) $quizcm->id]))->out(false),
+                    'stale' => $describe['ref'] !== '' && $lastrun->sourceref !== ''
+                        && $describe['ref'] !== $lastrun->sourceref,
+                ];
+            }
+        }
+
+        return [
+            'showquizgen'    => true,
+            'quizgenready'   => empty($blockers),
+            'quizgenblocked' => $blockers ? reset($blockers) : '',
+            'quizgenurl'     => (new \moodle_url('/local/nit_ai/quizgen.php', ['cmid' => (int) $cm->id]))->out(false),
+            'quizgenlabel'   => get_string('quizgen_button', 'local_nit_ai'),
+            'quizgentitle'   => get_string('quizgen_paneltitle', 'local_nit_ai'),
+            'lastquiz'       => $lastquiz,
+            'haslastquiz'    => $lastquiz !== null,
+            'lastquizlabel'  => get_string('quizgen_lastquiz', 'local_nit_ai'),
+            'lastquizstale'  => get_string('quizgen_lastquizstale', 'local_nit_ai'),
+        ];
     }
 
     /**

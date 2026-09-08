@@ -60,7 +60,7 @@ class mod_vdocipher_mod_form extends moodleform_mod {
         // ── AI assistant ─────────────────────────────────────────────────────
         // Owned by local_nit_ai: the transcript is keyed on the course module,
         // not on VdoCipher, so the same fields drop into any video activity.
-        \local_nit_ai\ui::add_form_elements($mform);
+        \local_nit_ai\ui::add_form_elements($mform, $this->_cm);
 
         // ── Standard elements ────────────────────────────────────────────────
         $this->standard_coursemodule_elements();

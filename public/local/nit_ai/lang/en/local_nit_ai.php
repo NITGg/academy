@@ -90,3 +90,66 @@ $string['err_aifailed'] = 'The assistant could not answer right now. Please try 
 $string['err_unavailable'] = 'The assistant is not available for this video.';
 
 $string['privacy:metadata'] = 'The AI video assistant does not store conversations. Questions are sent to the site\'s configured AI provider to be answered and are not kept afterwards.';
+
+// Quiz generator.
+$string['nit_ai:generatequiz'] = 'Generate a quiz from a video transcript';
+$string['quizgen_formlabel'] = 'Quiz from this video';
+$string['quizgen_button'] = 'Generate a quiz with AI';
+$string['quizgen_buttonnote'] = 'Opens in a new tab and works from the saved transcript. If you have just changed the file above, save this form first.';
+$string['quizgen_paneltitle'] = 'AI quiz';
+$string['quizgen_lastquiz'] = 'Last generated:';
+$string['quizgen_lastquizstale'] = 'That quiz was written from an older transcript of this video. Generate again if the video has changed.';
+$string['quizgen_title'] = 'Generate a quiz from this video';
+$string['quizgen_intro'] = 'The transcript of "{$a->video}" runs {$a->length} and was read as {$a->parts} parts. Every part that teaches something gets at least one question, so the number of questions follows the video rather than a setting.';
+$string['quizgen_quizname'] = 'Quiz name';
+$string['quizgen_quizsuffix'] = 'quiz';
+$string['quizgen_language'] = 'Write the questions in';
+$string['quizgen_language_help'] = 'Defaults to the language detected in the transcript. Technical terms stay in English where the video says them in English.';
+$string['quizgen_types'] = 'Question types';
+$string['quizgen_types_help'] = 'Only types that mark themselves. Multiple choice carries the difficult questions; true/false is quick and suits the easy level.';
+$string['quizgen_type_multichoice'] = 'Multiple choice (one correct answer)';
+$string['quizgen_type_truefalse'] = 'True or false';
+$string['quizgen_startbutton'] = 'Generate';
+$string['quizgen_level_easy'] = 'Easy';
+$string['quizgen_level_medium'] = 'Medium';
+$string['quizgen_level_hard'] = 'Hard';
+$string['quizgen_part'] = 'part {$a}';
+$string['quizgen_working'] = 'Writing questions from the transcript';
+$string['quizgen_workingnote'] = 'Leave this page open. Each part is saved as it is written, so a slow provider costs time and not work.';
+$string['quizgen_slice'] = 'Part {a} of {b}';
+$string['quizgen_fillinggaps'] = 'Going back for the parts nothing was asked about';
+$string['quizgen_questionssofar'] = 'Questions so far';
+$string['quizgen_coverage'] = 'Video covered';
+$string['quizgen_atlimit'] = 'This run has reached the limit set for the site, so generation stopped here.';
+$string['quizgen_reviewintro'] = 'Nothing here is a question yet. Untick anything you do not want, then create the quiz.';
+$string['quizgen_coveragesummary'] = '{$a->total} questions, reaching {$a->percent}% of the video that can be examined.';
+$string['quizgen_gapstitle'] = 'No question was written about these parts';
+$string['quizgen_skippedtitle'] = 'Reported as having nothing to examine';
+$string['quizgen_keep'] = 'Keep';
+$string['quizgen_marks'] = 'marks each';
+$string['quizgen_createbutton'] = 'Create the quiz';
+$string['quizgen_createdhidden'] = 'The quiz is created hidden, in this video\'s section, with one page per level. Show it once you are happy with it.';
+$string['quizgen_created'] = 'Quiz created with {$a} questions. It is hidden until you show it.';
+$string['quizgen_categoryinfo'] = 'Written by the AI quiz generator from this video\'s transcript.';
+$string['quizgen_quizintro'] = 'Questions about the video in this section.';
+$string['quizgen_seenat'] = 'This is covered at {$a} in the video.';
+
+// Quiz generator checks and errors.
+$string['quizgen_check_notapproved'] = 'The transcript has not been approved yet. Approve it first — questions are only as good as the text they are written from.';
+$string['quizgen_check_placementoff'] = 'The AI quiz generator is switched off for the whole site. Turn it on under Site administration > AI > AI placements.';
+$string['quizgen_err_unreadable'] = 'The AI replied in a format we could not read. Nothing was added for this part.';
+$string['quizgen_err_norun'] = 'That generation run no longer exists. Start again from the activity.';
+$string['quizgen_err_alreadybuilt'] = 'A quiz has already been created from this run.';
+$string['quizgen_err_notypes'] = 'Choose at least one question type.';
+$string['quizgen_err_nothingtobuild'] = 'There are no questions to build a quiz from.';
+$string['quizgen_err_nothingkept'] = 'You unticked every question, so there was nothing to create.';
+$string['quizgen_err_nobank'] = 'This course has no question bank the questions could be written into.';
+$string['quizgen_err_importfailed'] = 'The questions could not be written into the question bank. Nothing was created.';
+
+// Site settings.
+$string['setting_quizgenheading'] = 'AI quiz generator';
+$string['setting_quizgenheading_desc'] = 'Limits on generating a quiz from a video transcript. How many questions a video produces is meant to follow how much it teaches; these are guards on spending, not targets.';
+$string['setting_maxquestions'] = 'Most questions per run';
+$string['setting_maxquestions_desc'] = 'Generation stops once a run holds this many questions, however much of the video is left.';
+$string['setting_maxgappasses'] = 'Gap-filling passes';
+$string['setting_maxgappasses_desc'] = 'After the first pass, how many extra requests may be spent going back for parts of the video nothing was asked about.';

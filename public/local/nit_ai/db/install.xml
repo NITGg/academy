@@ -42,7 +42,7 @@
         <FIELD NAME="sourceref" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Provider video id at generation time. A change means the quiz describes a video nobody is watching."/>
         <FIELD NAME="status" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="draft" SEQUENCE="false" COMMENT="draft while the teacher is reviewing, created once the quiz exists"/>
         <FIELD NAME="options" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON of the choices made in the wizard"/>
-        <FIELD NAME="items" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON array of generated questions, each with its level and the transcript block it came from"/>
+        <FIELD NAME="items" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON holding the generated questions and the blocks declared empty of teachable content"/>
         <FIELD NAME="coverage" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON: which parts of the video the questions reach, and which they miss"/>
         <FIELD NAME="quizcmid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Course module of the quiz this run created, 0 while still a draft"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>

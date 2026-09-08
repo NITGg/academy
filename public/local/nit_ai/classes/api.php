@@ -189,6 +189,10 @@ class api {
 
         $DB->delete_records(self::TABLE, ['cmid' => $cmid]);
 
+        // The generation runs go with it. They only describe this video, and a
+        // quiz they produced stands on its own from here on.
+        quizgen\run::delete_for_cm($cmid);
+
         try {
             $context = \context_module::instance($cmid);
         } catch (\Throwable $e) {
@@ -331,11 +335,17 @@ class api {
      * This is the administrator's switch on Site administration > AI > AI
      * placements, plus the per-action toggle underneath it.
      *
+     * Takes the placement to ask about, because our features are separate
+     * switches: the chat and the quiz generator share a transcript but not an
+     * audience or a cost, and an administrator may well want one without the
+     * other.
+     *
+     * @param string $placement placement component, defaults to the video assistant
      * @return bool
      */
-    public static function placement_enabled(): bool {
+    public static function placement_enabled(string $placement = self::PLACEMENT): bool {
         try {
-            [$type, $name] = explode('_', \core_component::normalize_componentname(self::PLACEMENT), 2);
+            [$type, $name] = explode('_', \core_component::normalize_componentname($placement), 2);
             $plugininfo = \core_plugin_manager::resolve_plugininfo_class($type);
 
             if (!$plugininfo::is_plugin_enabled($name)) {
@@ -343,7 +353,7 @@ class api {
             }
 
             return \core\di::get(\core_ai\manager::class)
-                ->is_action_enabled(self::PLACEMENT, \core_ai\aiactions\generate_text::class);
+                ->is_action_enabled($placement, \core_ai\aiactions\generate_text::class);
         } catch (\Throwable $e) {
             debugging('local_nit_ai: placement check failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
             return false;

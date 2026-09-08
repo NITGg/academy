@@ -33,4 +33,11 @@ $functions = [
         'capabilities' => 'local/nit_ai:use',
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    'local_nit_ai_quizgen_generate' => [
+        'classname'    => 'local_nit_ai\external\quizgen_generate',
+        'description'  => 'Generate one batch of quiz questions from a slice of a video transcript.',
+        'type'         => 'write',
+        'ajax'         => true,
+        'capabilities' => 'local/nit_ai:generatequiz',
+    ],
 ];
