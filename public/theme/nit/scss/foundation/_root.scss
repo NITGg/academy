@@ -147,22 +147,20 @@
     // the navbar above it, so the band is the site's brand and not a second
     // palette to keep in step. A `.nit-brand-2/3` group switch recolours it with
     // everything else, and editing a brand role on the gallery page moves it.
-    // Column headings and the link columns are the primary blue; the contact
-    // glyphs beside the address are the body ink, as drawn in the Figma frames.
-    // They deliberately do NOT read the Accent roles: those carry the red section
-    // eyebrows, and pointing the footer at them turned every column heading red.
+    // The band has its OWN three roles now (Footer heading / Footer link /
+    // Footer icon), editable per group on the gallery page. It used to borrow
+    // Accent Text and Primary from the page, so recolouring a footer heading
+    // moved every link on the site with it. Only the prose still reads a page role.
     --nit-footerbg: var(--nit-brand-footerbackground1);
     // Second footer colour — published, not yet painted (see the navbar note).
     --nit-footerbg2: var(--nit-brand-footerbackground2);
-    --nit-footerheading: var(--nit-brand-primary);
-    // The link columns and the social ring read "Accent Text" — the role whose
-    // own description is "text of links". They need their own alias only because
-    // they used to share --nit-footertext with the contact prose beside them,
-    // which has to stay the body ink. The colour itself is an admin decision.
-    --nit-footerlink: var(--nit-brand-accenttext);
+    --nit-footerheading: var(--nit-brand-footerheading);
+    // The link columns are their own colour; the contact prose beside them stays
+    // the body ink, which is why they can no longer share --nit-footertext.
+    --nit-footerlink: var(--nit-brand-footerlink);
     --nit-footertext: var(--nit-brand-textprimary);
     --nit-footermuted: var(--nit-brand-textsecondary);
-    --nit-footericon: var(--nit-brand-textprimary);
+    --nit-footericon: var(--nit-brand-footericon);
     --nit-footericonhover: var(--nit-brand-hovertext);
     --nit-footerhover: var(--nit-brand-hovertext);
     --nit-footerborder: var(--nit-brand-borderprimary);

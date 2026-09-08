@@ -221,6 +221,13 @@ function theme_nit_brand_roles(): array {
         'navbarbackground2' => ['label' => 'Navbar background 2', 'usage' => ['navbar background — second colour (reserved, not consumed yet)'], 'default' => '#121e2d'],
         'footerbackground1' => ['label' => 'Footer background 1', 'usage' => ['footer background'], 'default' => '#0c141f'],
         'footerbackground2' => ['label' => 'Footer background 2', 'usage' => ['footer background — second colour (reserved, not consumed yet)'], 'default' => '#121e2d'],
+        // Footer-only roles. The band used to borrow Accent Text / Primary from
+        // the page, which meant an admin could not recolour a footer heading
+        // without moving every link on the site. Three roles, one per thing the
+        // footer actually draws, so the band is tunable on its own.
+        'footerheading'     => ['label' => 'Footer heading', 'usage' => ['footer column headings'], 'default' => '#7fabdb'],
+        'footerlink'        => ['label' => 'Footer link', 'usage' => ['footer column links'], 'default' => '#5488c4'],
+        'footericon'        => ['label' => 'Footer icon', 'usage' => ['footer contact icons', 'footer social icons and their ring'], 'default' => '#5488c4'],
         'navbariconcolor'   => ['label' => 'Navbar icon color', 'usage' => ['navbar icons — search, language, messages, notifications, gear', 'notification panel action icons'], 'default' => '#eef3f9'],
         'navbariconbg'      => ['label' => 'Navbar icon background', 'usage' => ['navbar icon hover pad — the icons have no background at rest'], 'default' => '#121e2d'],
         'surface'           => ['label' => 'Surface', 'usage' => ['Cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'page sections background'], 'default' => '#121e2d'],
@@ -712,6 +719,9 @@ function theme_nit_brand_group_defaults(): array {
             'navbarbackground2' => '#121e2d',
             'footerbackground1' => '#0c141f',
             'footerbackground2' => '#121e2d',
+            'footerheading'     => '#7fabdb',
+            'footerlink'        => '#5488c4',
+            'footericon'        => '#5488c4',
             'surface'           => '#121e2d',
             'textprimary'       => '#eef3f9',
             'navbariconcolor'   => '#eef3f9',
@@ -740,6 +750,9 @@ function theme_nit_brand_group_defaults(): array {
             'navbarbackground2' => '#102727',
             'footerbackground1' => '#0a1a1a',
             'footerbackground2' => '#102727',
+            'footerheading'     => '#58bdad',
+            'footerlink'        => '#2f9e8f',
+            'footericon'        => '#2f9e8f',
             'surface'           => '#102727',
             'textprimary'       => '#eef5f4',
             'navbariconcolor'   => '#eef5f4',
@@ -768,6 +781,9 @@ function theme_nit_brand_group_defaults(): array {
             'navbarbackground2' => '#1a182d',
             'footerbackground1' => '#11101c',
             'footerbackground2' => '#1a182d',
+            'footerheading'     => '#a99ee2',
+            'footerlink'        => '#8478cf',
+            'footericon'        => '#8478cf',
             'surface'           => '#1a182d',
             'textprimary'       => '#efedf7',
             'navbariconcolor'   => '#efedf7',
@@ -838,6 +854,9 @@ function theme_nit_brand_group_defaults(): array {
             'navbarbackground2' => '#f6f8fb',   // N50
             'footerbackground1' => '#f1f3f6',   // N100
             'footerbackground2' => '#e6e8eb',   // N200
+            'footerheading'     => '#0e509d',
+            'footerlink'        => '#2368bd',
+            'footericon'        => '#2368bd',
             'surface'           => '#ffffff',
             'textprimary'       => '#14191f',   // N900
             // The bar is light here, so its glyphs and its text (--nit-navbartext
@@ -884,6 +903,9 @@ function theme_nit_brand_group_defaults(): array {
             'navbarbackground2' => '#14191f',
             'footerbackground1' => '#0d1117',
             'footerbackground2' => '#14191f',
+            'footerheading'     => '#98c0f7',
+            'footerlink'        => '#71a7ef',
+            'footericon'        => '#71a7ef',
             'surface'           => '#1f232a',   // N850
             'textprimary'       => '#f6f8fb',   // N50
             'navbariconcolor'   => '#f6f8fb',
