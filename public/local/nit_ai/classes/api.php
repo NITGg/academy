@@ -378,16 +378,45 @@ class api {
     /**
      * Has AI been left on for this course and activity?
      *
-     * Moodle lets a course turn AI tools off, and an activity choose which
-     * actions it allows. Both apply to us like any other AI feature.
+     * Reads the two "AI tools" switches directly rather than asking
+     * \core_ai\manager::is_action_enabled_in_context(). That method also
+     * requires generate_text to appear in the activity's enabledaiactions
+     * list, and core builds that list from the courseassist and editor
+     * placements alone (see course/modlib.php) — ours never contributes to
+     * it. So an activity saved while either of those was on ends up with a
+     * list holding no generate_text, and the assistant is blocked for good:
+     * no setting an administrator can reach undoes it, because the two
+     * placements that write the list are exactly the ones we do not use.
+     *
+     * The enableaitools columns are the half of that setting that really
+     * means "AI here, yes or no", so they are the half we honour. Null means
+     * never set, which core reads as allowed; only an explicit 0 blocks.
      *
      * @param \context $context
      * @return bool
      */
     public static function allowed_in_context(\context $context): bool {
+        global $DB;
+
         try {
-            return \core\di::get(\core_ai\manager::class)
-                ->is_action_enabled_in_context($context, \core_ai\aiactions\generate_text::class);
+            // The course-level switch covers every AI feature, ours included.
+            if (!\core_ai\manager::is_ai_tools_enabled_in_course($context)) {
+                return false;
+            }
+
+            if ($context->contextlevel == CONTEXT_MODULE) {
+                $record = $DB->get_record(
+                    table: 'course_modules',
+                    conditions: ['id' => $context->instanceid],
+                    fields: 'enableaitools',
+                    strictness: MUST_EXIST,
+                );
+                if (!is_null($record->enableaitools) && !$record->enableaitools) {
+                    return false;
+                }
+            }
+
+            return true;
         } catch (\Throwable $e) {
             debugging('local_nit_ai: context check failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
             return false;
