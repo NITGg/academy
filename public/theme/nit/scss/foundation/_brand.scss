@@ -167,7 +167,7 @@
     // rest / hover / active triple for each of the three things drawn on it —
     // its titles, its icon cluster and the log-in link — plus the two colours
     // the title's hover / active SHAPE is drawn in. Which shape that is is not a
-    // colour and so is not here: see theme_nit_navbar_shape_scss().
+    // colour and so is not here: see theme_nit_navbar_style_scss().
     --nit-brand-g1-navbartitlecolor: #{$nit-b-g1-navbartitlecolor};
     --nit-brand-g1-navbartitlehovercolor: #{$nit-b-g1-navbartitlehovercolor};
     --nit-brand-g1-navbartitleactivecolor: #{$nit-b-g1-navbartitleactivecolor};

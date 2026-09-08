@@ -74,6 +74,7 @@ class gallery implements renderable, templatable {
                     'isfirst' => empty($brandgroups[$bidx[$gkey]]['sections']),
                     'roles' => [],
                     // Filled in below for the one section that has them.
+                    'typography' => [],
                     'shapes' => [],
                     'hasshapes' => false,
                 ];
@@ -121,18 +122,44 @@ class gallery implements renderable, templatable {
             );
         }
 
-        // The navbar title SHAPES — the one navbar decision that is not a colour,
-        // so it is a select and not a colour well. They ride in the same form as
-        // the group's colours (they are saved by the same button) and are shown
-        // inside the Navbar section, beside the two "style color" roles they
-        // decide the meaning of.
+        // The navbar's non-colour settings, in the same form as the group's
+        // colours (they are saved by the same button) and shown inside the Navbar
+        // section beside the roles they belong with:
+        //
+        //   * TYPOGRAPHY — how big and how heavy each of the three subjects is.
+        //     One card per subject holding both controls, because "16px" and
+        //     "Semi-bold" are one decision about one thing, not two.
+        //   * SHAPES — which shape a title takes on hover and on the current
+        //     page, beside the two "style color" roles they decide the meaning of.
         $shapeoptions = \theme_nit_navbar_title_shapes();
+        $weightoptions = \theme_nit_navbar_weights();
         foreach ($brandgroups as $gi => $group) {
             $gkey = $group['groupkey'];
             foreach ($group['sections'] as $si => $section) {
                 if ($section['key'] !== 'navbar') {
                     continue;
                 }
+
+                $typography = [];
+                foreach (\theme_nit_navbar_type_subjects() as $subject => $meta) {
+                    $weight = \theme_nit_navbar_type_weight($gkey, $subject);
+                    $typography[] = [
+                        'label' => $meta['label'],
+                        'usage' => array_map(static fn($u) => ['label' => $u], $meta['usage']),
+                        'sizeinput' => 'navbarsize_' . $gkey . '_' . $subject,
+                        'sizevalue' => \theme_nit_navbar_type_size($gkey, $subject),
+                        'sizemin' => $meta['min'],
+                        'sizemax' => $meta['max'],
+                        'sizedefault' => $meta['size'],
+                        'weightinput' => 'navbarweight_' . $gkey . '_' . $subject,
+                        'weightoptions' => array_map(static fn($w, $wlabel) => [
+                            'value' => $w,
+                            'label' => $wlabel,
+                            'selected' => ($w === $weight),
+                        ], array_keys($weightoptions), $weightoptions),
+                    ];
+                }
+
                 $shapes = [];
                 foreach (\theme_nit_navbar_title_states() as $state => $meta) {
                     $selected = \theme_nit_navbar_title_shape($gkey, $state);
@@ -146,6 +173,8 @@ class gallery implements renderable, templatable {
                         ], array_keys($shapeoptions), $shapeoptions),
                     ];
                 }
+
+                $brandgroups[$gi]['sections'][$si]['typography'] = $typography;
                 $brandgroups[$gi]['sections'][$si]['shapes'] = $shapes;
                 $brandgroups[$gi]['sections'][$si]['hasshapes'] = true;
             }

@@ -302,7 +302,7 @@ function theme_nit_brand_roles(): array {
  * underline, extra weight, a filled square behind it, or all three at once. That
  * is a style choice an administrator makes per Brand-Colors group, so it is
  * stored per group as `theme_nit/navbarshape_<gkey>_<state>` and consumed as
- * three CSS custom properties per state (see theme_nit_navbar_shape_scss()).
+ * three CSS custom properties per state (see theme_nit_navbar_style_scss()).
  *
  * Each entry says which of the three treatments the shape switches on. Nothing
  * else in the theme has to know the shape names.
@@ -349,6 +349,124 @@ function theme_nit_navbar_title_shape(string $group, string $state): string {
     $value = get_config('theme_nit', 'navbarshape_' . $group . '_' . $state);
     return (is_string($value) && array_key_exists($value, theme_nit_navbar_title_shapes()))
         ? $value : $default;
+}
+
+/**
+ * The three things drawn on the bar, and how big / how heavy each is set.
+ *
+ * The same three subjects the navbar COLOUR roles are built around (titles,
+ * icons, the log-in link) each get a size and a weight, per Brand-Colors group,
+ * stored as `theme_nit/navbarsize_<gkey>_<subject>` and
+ * `theme_nit/navbarweight_<gkey>_<subject>`. Per group and not site-wide because
+ * that is what a group IS here — a complete description of how the site looks in
+ * that palette — and because the shapes above already work that way; one of the
+ * two being global would be a trap, since an admin editing it under "Group 3"
+ * would silently move Group 1 as well.
+ *
+ * `size` and `weight` are the values the stylesheet already used, so an untouched
+ * site renders exactly as it did: 16px/600 titles, 22px glyphs, a 16px/600 log-in
+ * link. `min`/`max` are clamps, not suggestions — a 60px title would break the
+ * bar out of its own height.
+ *
+ * Two notes on what "icon size" reaches. It is the GLYPH, not the button: the
+ * 42px pointer target grows only if the glyph outgrows it
+ * (theme_nit_navbar_icon_box()), so making icons smaller never makes them harder
+ * to hit. And "icon weight" is only visible on the parts of the cluster that are
+ * type rather than a glyph — the language code (EN / AR) — because Font Awesome
+ * ships one weight per face.
+ *
+ * @return array<string, array{label:string, usage:string[], size:int, weight:int, min:int, max:int}>
+ */
+function theme_nit_navbar_type_subjects(): array {
+    return [
+        'title' => [
+            'label'  => 'Navbar title text',
+            'usage'  => ['size and weight of the site links across the bar'],
+            'size'   => 16, 'weight' => 600, 'min' => 12, 'max' => 28,
+        ],
+        'icon'  => [
+            'label'  => 'Navbar icon size',
+            'usage'  => ['size of the navbar glyphs', 'the button grows only if the glyph outgrows it', 'weight reaches the language code (EN / AR), not the glyphs'],
+            'size'   => 22, 'weight' => 500, 'min' => 14, 'max' => 36,
+        ],
+        'login' => [
+            'label'  => 'Navbar login text',
+            'usage'  => ['size and weight of the "Log in" link'],
+            'size'   => 16, 'weight' => 600, 'min' => 12, 'max' => 28,
+        ],
+    ];
+}
+
+/**
+ * The font weights offered, keyed by the CSS number.
+ *
+ * A fixed ladder rather than a free number: these are the weights a variable
+ * face actually has stops for, and the names are what an administrator thinks in.
+ *
+ * @return array<int, string> weight => label
+ */
+function theme_nit_navbar_weights(): array {
+    return [
+        300 => 'Light (300)',
+        400 => 'Regular (400)',
+        500 => 'Medium (500)',
+        600 => 'Semi-bold (600)',
+        700 => 'Bold (700)',
+        800 => 'Extra bold (800)',
+    ];
+}
+
+/**
+ * The size an administrator set for one group / subject, in px.
+ *
+ * Clamped to the subject's own range, so a saved value that predates a narrower
+ * range (or a hand-edited config row) still renders something sane.
+ *
+ * @param string $group group key (g1..g5)
+ * @param string $subject subject key (see theme_nit_navbar_type_subjects())
+ * @return int pixels
+ */
+function theme_nit_navbar_type_size(string $group, string $subject): int {
+    $meta = theme_nit_navbar_type_subjects()[$subject] ?? null;
+    if ($meta === null) {
+        return 16;
+    }
+    $value = get_config('theme_nit', 'navbarsize_' . $group . '_' . $subject);
+    if (!is_numeric($value)) {
+        return $meta['size'];
+    }
+    return min($meta['max'], max($meta['min'], (int) $value));
+}
+
+/**
+ * The font weight an administrator set for one group / subject.
+ *
+ * @param string $group group key (g1..g5)
+ * @param string $subject subject key (see theme_nit_navbar_type_subjects())
+ * @return int a key of theme_nit_navbar_weights()
+ */
+function theme_nit_navbar_type_weight(string $group, string $subject): int {
+    $meta = theme_nit_navbar_type_subjects()[$subject] ?? null;
+    if ($meta === null) {
+        return 400;
+    }
+    $value = get_config('theme_nit', 'navbarweight_' . $group . '_' . $subject);
+    return array_key_exists((int) $value, theme_nit_navbar_weights()) ? (int) $value : $meta['weight'];
+}
+
+/**
+ * How wide the square icon button is, for a given glyph size.
+ *
+ * The button is 42px and stays 42px until the glyph would not fit in it — a
+ * pointer target that shrinks with the glyph would put the smallest setting well
+ * under what a finger can hit, which is the one thing an admin choosing "small
+ * icons" is not asking for.
+ *
+ * @param int $glyph glyph size in px
+ * @return int the button's side, in px
+ */
+function theme_nit_navbar_icon_box(int $glyph): int {
+    return max(42, $glyph + 20);
 }
 
 /**
@@ -2057,9 +2175,10 @@ function theme_nit_get_extra_scss($theme) {
     // How large to draw the site logo, per place (Appearance → Logos).
     $scss .= theme_nit_logo_scss();
 
-    // Which SHAPE a navbar title takes on hover and on the current page, per
-    // brand group (gallery → Brand Colors → Navbar).
-    $scss .= theme_nit_navbar_shape_scss();
+    // How big and how heavy the bar sets its titles / icons / log-in link, and
+    // which shape a title takes on hover and on the current page — per brand
+    // group (gallery → Brand Colors → Navbar).
+    $scss .= theme_nit_navbar_style_scss();
 
     if (!empty($theme->settings->scss)) {
         $scss .= $theme->settings->scss;
@@ -2536,14 +2655,18 @@ function theme_nit_logo_scss(): string {
 }
 
 /**
- * The navbar-title shapes, as CSS — one declaration block per brand group.
+ * The bar's non-colour style layer, as CSS — one block per brand group.
  *
- * A shape is a choice out of four (underline / bold / square background / all)
- * and CSS has no way to switch which RULES apply from a custom property. So the
- * stylesheet writes the rule once, reading three properties per state, and this
- * decides what those properties hold: the shape's own colour where the treatment
- * is on, and an inert value (`transparent`, the resting weight) where it is off.
- * `_navbar.scss` therefore needs no knowledge of the shape names at all.
+ * Two things live here, and both are per group for the same reason: how big and
+ * how heavy each of the three subjects is set (titles / icons / log-in), and
+ * which SHAPE a title takes on hover and on the current page.
+ *
+ * The shapes are here rather than in the stylesheet because CSS has no way to
+ * switch which RULES apply from a custom property. So `_navbar.scss` writes the
+ * rule once, reading three properties per state, and this decides what those
+ * properties hold: the shape's own colour where the treatment is on, and an
+ * inert value (`transparent`, the resting weight) where it is off. That file
+ * therefore needs no knowledge of the shape names at all.
  *
  * Emitted for every group in the same order _brand.scss uses — `:root` first,
  * then the four switch classes — because a brand group class lands on <html>,
@@ -2551,30 +2674,45 @@ function theme_nit_logo_scss(): string {
  * source order is what decides. Same reason _brand.scss lists its roles that
  * way.
  *
- * The bold weight is 800 against a resting 600. It never reflows the bar: the
- * link reserves the heavier width up front through a hidden twin sized at
- * `max()` of the two weights (see `.nit-navbar-link` in scss/components/
- * _navbar.scss), so a group that uses no bold at all reserves nothing extra and
- * the bar measures exactly as it did before.
+ * "Bold" is one step up from whatever the group's resting title weight is, not a
+ * fixed 800 — a group set to Regular titles should get a visible step, not a
+ * jump past every weight in between. It never reflows the bar either: the link
+ * reserves the heaviest width up front through a hidden twin sized at `max()` of
+ * the three weights (see `.nit-navbar-link` in scss/components/_navbar.scss), so
+ * a group that uses no bold reserves nothing extra.
  *
  * @return string CSS
  */
-function theme_nit_navbar_shape_scss(): string {
-    // Rest weight, and the weight "bold" steps up to. Both are needed by the
-    // stylesheet even when no group chose bold — the twin reads them.
-    $restweight = 600;
-    $boldweight = 800;
-
+function theme_nit_navbar_style_scss(): string {
     $shapes = theme_nit_navbar_title_shapes();
     $states = theme_nit_navbar_title_states();
+    $subjects = theme_nit_navbar_type_subjects();
 
     $css = "\n";
     foreach (array_keys(theme_nit_brand_groups()) as $gkey) {
         $class = theme_nit_brand_group_class($gkey);
         // Bare class, not `:root.<class>` — a group wrapper anywhere in the page
-        // then carries its shapes too, exactly as it carries its colours.
+        // then carries these too, exactly as it carries its colours.
         $selector = ($class === '') ? ':root' : '.' . $class;
         $css .= $selector . " {\n";
+
+        // Size and weight, one pair per subject.
+        foreach (array_keys($subjects) as $subject) {
+            $size = theme_nit_navbar_type_size($gkey, $subject);
+            $weight = theme_nit_navbar_type_weight($gkey, $subject);
+            $prefix = '--nit-nav' . $subject . '-';
+            $css .= '    ' . $prefix . 'size: ' . $size . "px;\n";
+            $css .= '    ' . $prefix . 'weight: ' . $weight . ";\n";
+            if ($subject === 'icon') {
+                // The pointer target, which follows the glyph up but never down.
+                $css .= '    ' . $prefix . 'box: ' . theme_nit_navbar_icon_box($size) . "px;\n";
+            }
+        }
+
+        // The two title shapes. "Bold" steps up from this group's own resting
+        // title weight, clamped to the heaviest weight CSS has.
+        $restweight = theme_nit_navbar_type_weight($gkey, 'title');
+        $boldweight = min(900, $restweight + 200);
         foreach ($states as $state => $unused) {
             $shape = $shapes[theme_nit_navbar_title_shape($gkey, $state)];
             // Both treatments that paint take the state's own "style color"

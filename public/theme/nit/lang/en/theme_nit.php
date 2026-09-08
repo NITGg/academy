@@ -51,6 +51,8 @@ $string['savebrandcolours'] = 'Save Brand Colors';
 $string['resetbrandcolours'] = 'Reset to defaults';
 $string['brandgroupswitch'] = 'Which group to edit';
 $string['navbarshape_usage'] = 'how the title marks the state — drawn in the matching style color above';
+$string['navbarsize'] = 'size in pixels';
+$string['navbarweight'] = 'font weight';
 
 // Category styles: the brand group and the navbar logo each main category uses,
 // once for light mode and once for dark mode.

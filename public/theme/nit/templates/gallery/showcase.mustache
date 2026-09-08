@@ -26,8 +26,12 @@
         sections: [ { key, paneid, label, isfirst, hasshapes,
                       roles: [ { key, label, cssvar, value, default, isdefault,
                                  usage: [ { label } ] } ],
+                      typography: [ { label, usage: [ { label } ], sizeinput, sizevalue,
+                                      sizemin, sizemax, sizedefault, weightinput,
+                                      weightoptions: [ { value, label, selected } ] } ],
                       shapes: [ { input, label, options: [ { value, label, selected } ] } ] } ] }
-        One editor per group; one section of it visible at a time.
+        One editor per group; one section of it visible at a time. `typography`
+        and `shapes` are non-empty only in the Navbar section.
     * categorygroups - array of { id, name, image, hasimage, imageurl,
         modes: [ { mode, label, select, options: [ { value, label, selected } ],
                    logoinput, logoremove, haslogo, logourl } ] } (one entry per display mode)
@@ -200,6 +204,36 @@
                                 </div>
                             </div>
                         {{/roles}}
+
+                        {{! How big and how heavy the bar sets each of its three  }}
+                        {{! subjects. Both controls share one card because "16px" }}
+                        {{! and "Semi-bold" are one decision about one thing.     }}
+                        {{#typography}}
+                            <div class="nit-colour-row nit-type-row">
+                                <div class="nit-colour-meta">
+                                    <label class="nit-colour-name" for="nit-{{sizeinput}}">{{label}}</label>
+                                    <span class="nit-colour-usage">
+                                        {{#usage}}<span class="nit-colour-usage-item">{{label}}</span>{{/usage}}
+                                    </span>
+                                </div>
+                                <div class="nit-colour-controls nit-type-controls">
+                                    <span class="nit-type-field">
+                                        <input type="number" class="form-control nit-type-size" id="nit-{{sizeinput}}"
+                                               name="{{sizeinput}}" value="{{sizevalue}}"
+                                               min="{{sizemin}}" max="{{sizemax}}" step="1"
+                                               aria-label="{{label}} — {{#str}}navbarsize, theme_nit{{/str}}">
+                                        <span class="nit-type-unit" aria-hidden="true">px</span>
+                                    </span>
+                                    <select class="form-select nit-type-weight" name="{{weightinput}}"
+                                            aria-label="{{label}} — {{#str}}navbarweight, theme_nit{{/str}}">
+                                        {{#weightoptions}}
+                                        <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                                        {{/weightoptions}}
+                                    </select>
+                                    <span class="nit-colour-default">Default: {{sizedefault}}px</span>
+                                </div>
+                            </div>
+                        {{/typography}}
 
                         {{! The navbar title shapes. Same card as a colour role  }}
                         {{! and in the same grid, because they are the other     }}

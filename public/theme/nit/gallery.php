@@ -67,12 +67,15 @@ if (($data = data_submitted()) && confirm_sesskey()) {
     $brandurl = new moodle_url('/theme/nit/gallery.php',
         $brandgroup !== '' ? ['brandgroup' => $brandgroup] : null, 'nit-tab-brand');
 
-    // The navbar title shapes ride in the same form as the colours, saved and
-    // reset by the same buttons — they are part of "what this group looks like",
-    // and splitting them into a second form would mean two saves for one
+    // The navbar's non-colour style settings — the title shapes, and the size /
+    // weight of each of the three subjects — ride in the same form as the
+    // colours, saved and reset by the same buttons. They are part of "what this
+    // group looks like", and splitting them out would mean two saves for one
     // decision (a shape and the colour it is drawn in).
     $shapestates = array_keys(theme_nit_navbar_title_states());
     $shapevalues = theme_nit_navbar_title_shapes();
+    $typesubjects = theme_nit_navbar_type_subjects();
+    $typeweights = theme_nit_navbar_weights();
 
     if (!empty($data->resetbrand)) {
         foreach ($brand as $key => $meta) {
@@ -87,6 +90,10 @@ if (($data = data_submitted()) && confirm_sesskey()) {
             }
             foreach ($shapestates as $state) {
                 unset_config('navbarshape_' . $gkey . '_' . $state, 'theme_nit');
+            }
+            foreach (array_keys($typesubjects) as $subject) {
+                unset_config('navbarsize_' . $gkey . '_' . $subject, 'theme_nit');
+                unset_config('navbarweight_' . $gkey . '_' . $subject, 'theme_nit');
             }
         }
         theme_reset_all_caches();
@@ -117,6 +124,24 @@ if (($data = data_submitted()) && confirm_sesskey()) {
                 // whatever it had rather than silently dropping to a default.
                 if (array_key_exists($value, $shapevalues)) {
                     set_config($field, $value, 'theme_nit');
+                }
+            }
+            foreach ($typesubjects as $subject => $meta) {
+                // Size: a number in px, clamped to the subject's own range. The
+                // browser enforces min/max on the spinner, so anything outside it
+                // arrived some other way and is pulled back into range rather
+                // than rejected — the range is what the bar can actually draw.
+                $field = 'navbarsize_' . $gkey . '_' . $subject;
+                $size = optional_param($field, 0, PARAM_INT);
+                if ($size > 0) {
+                    set_config($field, min($meta['max'], max($meta['min'], $size)), 'theme_nit');
+                }
+
+                // Weight: one of the fixed ladder, or nothing is written.
+                $field = 'navbarweight_' . $gkey . '_' . $subject;
+                $weight = optional_param($field, 0, PARAM_INT);
+                if (array_key_exists($weight, $typeweights)) {
+                    set_config($field, $weight, 'theme_nit');
                 }
             }
         }

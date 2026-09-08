@@ -320,12 +320,50 @@
     // same grid, because they are the other half of one decision — the "style
     // color" roles beside them say what colour the shape is drawn in, and these
     // say which shape that is. Only the control differs: a select, not a well.
-    .nit-shape-select {
-        flex: 1 1 auto;
-        min-width: 0;
+    .nit-shape-select,
+    .nit-type-weight,
+    .nit-type-size {
         background-color: var(--nit-brand-background);
         color: var(--nit-brand-textprimary);
         border-color: var(--nit-brand-borderprimary);
+    }
+
+    .nit-shape-select {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    // Size + weight in one card. They wrap onto a second line before either is
+    // squeezed — a 3-character number field and a "Semi-bold (600)" select do not
+    // both fit on one line of a 20rem card.
+    .nit-type-controls {
+        flex-wrap: wrap;
+        gap: $nit-space-2;
+    }
+
+    // The px field and its unit read as one control. The unit sits BESIDE the
+    // field rather than over its trailing edge, which is where the browser draws
+    // a number input's own spinner — the two would have shared the same corner.
+    .nit-type-field {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .nit-type-size {
+        width: 4.75rem;
+        font-family: $font-family-monospace;
+    }
+
+    .nit-type-unit {
+        font-size: $nit-fs-xs;
+        color: var(--nit-brand-textsecondary);
+    }
+
+    .nit-type-weight {
+        flex: 1 1 8rem;
+        min-width: 8rem;
     }
 }
 

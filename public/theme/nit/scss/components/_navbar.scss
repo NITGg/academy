@@ -185,20 +185,24 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         padding: 0;
     }
 
-    // ---- Site titles: colour, and the SHAPE that answers the cursor ---------
+    // ---- Site titles: colour, type, and the SHAPE that answers the cursor ---
     //
     // Three colours (rest / hover / current page) come from the `--bs-navbar-*`
-    // values re-pointed at the top of this block. On top of that, hover and
-    // "current page" each draw a SHAPE an administrator picks per brand group —
-    // an underline, extra weight, a filled square, or all three.
+    // values re-pointed at the top of this block, and the size and weight from
+    // the two properties below. On top of that, hover and "current page" each
+    // draw a SHAPE an administrator picks per brand group — an underline, extra
+    // weight, a filled square, or all three.
     //
     // CSS cannot switch which RULES apply from a custom property, so the rule is
     // written once here and reads three properties per state; PHP decides what
     // those hold, putting the shape's colour where a treatment is on and an
     // inert value (`transparent`, the resting weight) where it is off. See
-    // theme_nit_navbar_shape_scss(). Nothing in this file knows a shape name.
+    // theme_nit_navbar_style_scss(). Nothing in this file knows a shape name.
     .nit-navbar-link {
-        font-weight: 600;
+        // Fallbacks are the values this rule carried as literals, so the bar is
+        // unchanged if the style block above it has not been published yet.
+        font-size: var(--nit-navtitle-size, 1rem);
+        font-weight: var(--nit-navtitle-weight, 600);
         white-space: nowrap;
         padding: 0.5rem 0.75rem;
         border-radius: 6px;
@@ -253,14 +257,17 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         // weight this link can ever take, drawn invisibly, so the box is already
         // that wide at rest and nothing moves.
         //
-        // `max()` of the two state weights is what keeps that free: a group that
-        // chose no bold at all resolves both to the resting weight, the twin
+        // `max()` of the three weights is what keeps that free: a group that
+        // chose no bold at all resolves all three to the resting weight, the twin
         // measures exactly the same as the label, and the bar is the width it
-        // always was.
+        // always was. The resting weight is in the list because it is an admin
+        // setting now — a group set to Extra bold at rest with no bold shape has
+        // its widest state there, not in a hover.
         .nit-navbar-link-ghost {
             visibility: hidden;
             pointer-events: none;
             font-weight: max(
+                var(--nit-navtitle-weight, 600),
                 var(--nit-navtitle-hover-weight, 600),
                 var(--nit-navtitle-active-weight, 600)
             );
@@ -320,7 +327,8 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
         a {
             color: var(--nit-navbarlogin, #{$nit-on-navy}) !important;
-            font-weight: 600;
+            font-size: var(--nit-navlogin-size, 1rem);
+            font-weight: var(--nit-navlogin-weight, 600);
             text-decoration: none;
             border-radius: 6px;
             padding: 0.35rem 0.5rem;
@@ -384,15 +392,18 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     .nit-navbar-lang .langmenu .dropdown .dropdown-toggle {
         display: inline-flex;
         align-items: center;
-        height: 42px;
+        height: var(--nit-navicon-box, 42px);
         padding: 0 0.25rem;
         border: 0;
         border-radius: 10px;
         background: transparent;
         box-shadow: none;
         color: var(--nit-navbariconaccent, #{$nit-gold-500}) !important;
-        font-size: 1.125rem;   // 18px, as the design sets it.
-        font-weight: 500;
+        // 18px against the design's 22px glyphs — the language code is type, not
+        // a glyph, so it tracks the icon size at the ratio the design set it at
+        // rather than matching it outright.
+        font-size: calc(var(--nit-navicon-size, 22px) * 0.82);
+        font-weight: var(--nit-navicon-weight, 500);
         line-height: 1;
         text-transform: uppercase;
         transition: background-color 0.15s ease, color 0.15s ease;
@@ -440,15 +451,18 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     .nit-navbar-lang .langmenu .nit-langtoggle {
         display: inline-flex;
         align-items: center;
-        height: 42px;
+        height: var(--nit-navicon-box, 42px);
         padding: 0 0.25rem;
         border: 0;
         border-radius: 10px;
         background: transparent;
         box-shadow: none;
         color: var(--nit-navbariconaccent, #{$nit-gold-500}) !important;
-        font-size: 1.125rem;   // 18px, as the design sets it.
-        font-weight: 500;
+        // 18px against the design's 22px glyphs — the language code is type, not
+        // a glyph, so it tracks the icon size at the ratio the design set it at
+        // rather than matching it outright.
+        font-size: calc(var(--nit-navicon-size, 22px) * 0.82);
+        font-weight: var(--nit-navicon-weight, 500);
         line-height: 1;
         text-transform: uppercase;
         text-decoration: none;
@@ -512,8 +526,13 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // border and background): a 22px bare glyph is well under the 44px pointer
     // target the bar needs on a touch screen, and shrinking the box to the glyph
     // would also re-open the oval-bell problem the fixed square solves. Hover is
-    // the only state that paints anything — a soft rounded pad from the "Navbar
-    // icon background" role, so the control still answers the cursor.
+    // the only state that paints anything — a soft rounded pad tinted from the
+    // icon hover colour, so the control still answers the cursor.
+    //
+    // The box follows the admin's glyph size UP and never DOWN
+    // (theme_nit_navbar_icon_box(): `max(42px, glyph + 20px)`), for that same
+    // reason — an admin asking for smaller icons is not asking for a target too
+    // small to hit.
     .nit-navbar-icon,
     .popover-region-toggle {
         display: inline-flex;
@@ -522,12 +541,12 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         // Lock a perfect square. `aspect-ratio` guarantees width == height even
         // if flex or an inner glyph tries to stretch one side (this is what kept
         // the bell an oval).
-        flex: 0 0 42px;
+        flex: 0 0 var(--nit-navicon-box, 42px);
         box-sizing: border-box;
-        width: 42px;
-        height: 42px;
-        min-width: 42px;
-        max-width: 42px;
+        width: var(--nit-navicon-box, 42px);
+        height: var(--nit-navicon-box, 42px);
+        min-width: var(--nit-navicon-box, 42px);
+        max-width: var(--nit-navicon-box, 42px);
         aspect-ratio: 1;
         padding: 0;
         // No chrome at rest. The border stays declared (transparent) rather than
@@ -568,12 +587,13 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
             outline-offset: 2px;
         }
 
-        // 22px glyphs, matching the design. The stroked SVG in the search
-        // control is sized by its own attributes, so this covers the Font
-        // Awesome glyphs (gear) and Moodle's icon spans (bell, messages).
+        // The glyph itself — 22px in the design, an admin setting now. This
+        // covers the Font Awesome glyphs (gear) and Moodle's icon spans (bell,
+        // messages); the stroked SVG in the search control carries its size as
+        // attributes, so it is set separately just below.
         .fa,
         .icon {
-            font-size: 1.375rem;
+            font-size: var(--nit-navicon-size, 1.375rem);
             width: auto;
             height: auto;
             margin: 0;
@@ -581,8 +601,8 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         }
 
         svg {
-            width: 22px;
-            height: 22px;
+            width: var(--nit-navicon-size, 22px);
+            height: var(--nit-navicon-size, 22px);
         }
     }
 
@@ -595,10 +615,10 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         position: relative;
         overflow: visible;
         align-self: center;
-        width: 42px !important;
-        height: 42px !important;
-        min-height: 42px;
-        max-height: 42px;
+        width: var(--nit-navicon-box, 42px) !important;
+        height: var(--nit-navicon-box, 42px) !important;
+        min-height: var(--nit-navicon-box, 42px);
+        max-height: var(--nit-navicon-box, 42px);
         border-radius: 10px !important;
 
         &::before,
@@ -625,11 +645,14 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
             padding-block: 0;
         }
 
+        // Sized off the icon button rather than a 42px of its own: the avatar is
+        // the last control in the same row, and a cluster where four buttons grew
+        // and the fifth did not reads as a mistake.
         .userbutton img {
             border: 2px solid color-mix(in srgb, var(--nit-brand-textprimary) 70%, transparent);
             border-radius: 50%;
-            width: 42px;
-            height: 42px;
+            width: var(--nit-navicon-box, 42px);
+            height: var(--nit-navicon-box, 42px);
             object-fit: cover;
         }
     }

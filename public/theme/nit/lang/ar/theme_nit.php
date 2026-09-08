@@ -51,6 +51,8 @@ $string['savebrandcolours'] = 'حفظ ألوان الهوية';
 $string['resetbrandcolours'] = 'إعادة إلى الافتراضي';
 $string['brandgroupswitch'] = 'المجموعة قيد التحرير';
 $string['navbarshape_usage'] = 'كيف يُبرز العنوان هذه الحالة — يُرسم بلون النمط المطابق أعلاه';
+$string['navbarsize'] = 'الحجم بالبكسل';
+$string['navbarweight'] = 'ثِخَن الخط';
 
 // Design-system gallery tabs.
 $string['tab_brandcolours'] = 'ألوان الهوية';
