@@ -379,9 +379,14 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
             display: none !important;
         }
 
+        // Core paints this $danger. An unread count is a neutral notice, not an
+        // error, so it reads the "Info" brand role instead, over that group's
+        // on-primary ink (near-black in the groups whose fills are light).
         .count-container {
             position: absolute !important;
             inset: 1px 1px auto auto !important; // top / right / bottom / left
+            background-color: var(--nit-brand-info) !important;
+            color: var(--nit-brand-on-primary) !important;
         }
     }
 
