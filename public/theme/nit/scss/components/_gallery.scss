@@ -46,6 +46,144 @@
     }
 }
 
+// =============================================================================
+// Brand Colors: the group switcher and the per-group section strip.
+//
+// The tab holds five complete palettes of 37 roles. Printed end to end that is
+// 185 colour wells in one column, and the only way from one group to another was
+// the scrollbar. One group and one section are on screen at a time now; these
+// two strips are what move between them, and both stay put while the grid under
+// them scrolls — on a long section the Save button used to be off the bottom of
+// the screen by the time a colour had been picked.
+// =============================================================================
+
+// The whole header: which group, which section, and the two buttons. ONE sticky
+// element carrying all three — two stacked sticky bars would need the second to
+// know the exact height of the first, which is a number that changes with the
+// type size and with how many pills fit on a line.
+.nit-brand-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: $nit-space-2;
+    position: sticky;
+    // Under the site's own fixed bar, not behind it — `$navbar-height` is what
+    // that bar is drawn at (scss/tokens/_semantic.scss), and it is also what
+    // Moodle offsets the page content by.
+    top: $navbar-height;
+    z-index: 2;
+    padding: $nit-space-2 0;
+    margin-bottom: $nit-space-3;
+    background: var(--nit-brand-background);
+    border-bottom: 1px solid var(--nit-brand-borderprimary);
+}
+
+// Section pills on one side, Save / Reset on the other. They stack rather than
+// squeeze when the row runs out of room.
+.nit-brand-toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: $nit-space-2;
+}
+
+// Which group is being edited. A row of pills rather than a <select> because the
+// choice is worth showing: each pill wears its group's own bar / page / button /
+// link colours, so the strip is also the answer to "which one is the teal one".
+.nit-brand-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $nit-space-2;
+}
+
+.nit-brand-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border: 1px solid var(--nit-brand-borderprimary);
+    border-radius: 999px;
+    background: var(--nit-brand-surface);
+    color: var(--nit-brand-textsecondary);
+    font-size: $nit-fs-sm;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+    &:hover,
+    &:focus {
+        background: var(--nit-brand-hoverbackground);
+        color: var(--nit-brand-textprimary);
+    }
+
+    // The selected group. A filled pill, and the one place on this page that
+    // uses the on-primary role — a raw primary fill under near-white text is
+    // only about 3.5:1.
+    &.active {
+        background: var(--nit-brand-primary);
+        border-color: var(--nit-brand-primary);
+        color: var(--nit-brand-onprimary);
+    }
+}
+
+.nit-brand-pill-dots {
+    display: inline-flex;
+    // Overlapped, so four colours cost the width of about two and a half.
+    align-items: center;
+}
+
+.nit-brand-pill-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid var(--nit-brand-borderprimary);
+    margin-inline-start: -4px;
+
+    &:first-child {
+        margin-inline-start: 0;
+    }
+}
+
+.nit-brand-sections {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.nit-brand-actions {
+    display: flex;
+    gap: $nit-space-2;
+}
+
+// A section within one group. Quieter than the group pills — this is a second
+// level of the same choice, and two equally loud strips read as one confusing
+// one.
+.nit-brand-sectionpill {
+    padding: 5px 12px;
+    border: 1px solid transparent;
+    border-radius: $nit-radius-md;
+    background: transparent;
+    color: var(--nit-brand-textsecondary);
+    font-size: $nit-fs-sm;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover,
+    &:focus {
+        background: var(--nit-brand-hoverbackground);
+        color: var(--nit-brand-textprimary);
+    }
+
+    &.active {
+        background: var(--nit-brand-surface);
+        border-color: var(--nit-brand-borderprimary);
+        color: var(--nit-brand-textprimary);
+    }
+}
+
 // The editor practises what it preaches: its chrome is built from the very
 // Brand Colors roles it edits, so the page demonstrates the rules —
 //   card   → Surface        name   → Text primary
@@ -116,7 +254,11 @@
         background: var(--nit-brand-background);
         border: 1px solid var(--nit-brand-borderprimary);
         color: var(--nit-brand-textsecondary);
-        white-space: nowrap;
+        // Wraps rather than clipping. A usage line is a sentence ("navbar icons
+        // — search, language, messages, notifications, gear"), and `nowrap` cut
+        // the longer ones off at the edge of the card.
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     // The swatch + hex + default sit in one horizontal row under the name.
@@ -172,6 +314,18 @@
 
     .nit-colour-default {
         flex: 0 0 auto;
+    }
+
+    // The two navbar-title shape pickers. Same card as a colour role, in the
+    // same grid, because they are the other half of one decision — the "style
+    // color" roles beside them say what colour the shape is drawn in, and these
+    // say which shape that is. Only the control differs: a select, not a well.
+    .nit-shape-select {
+        flex: 1 1 auto;
+        min-width: 0;
+        background-color: var(--nit-brand-background);
+        color: var(--nit-brand-textprimary);
+        border-color: var(--nit-brand-borderprimary);
     }
 }
 

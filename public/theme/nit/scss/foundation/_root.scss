@@ -67,25 +67,43 @@
     // "see all" link) — reads from the text-facing "Accent Text" role.
     --nit-navbaraccent: var(--nit-brand-accenttext);
     --nit-navbaraccenthover: var(--nit-brand-accenttext-vivid);
-    // Navbar ICONS (search, language, messages, notifications, gear) and the
-    // notification-panel action icons. They have their OWN Brand Colors role
-    // rather than borrowing "Accent": in the design they are bare near-white
-    // glyphs on the bar, which is a different decision from the accent colour
-    // used for links and fills, and an admin has to be able to move one without
-    // the other. Hover brightens the same colour rather than switching hue, and
-    // the icon background role is the hover pad behind the glyph (the resting
-    // state has no chrome at all — see components/_navbar.scss).
+    // ---- The bar's own three-part palette -----------------------------------
+    // Everything drawn on the navigation bar reads from a NAVBAR role, never
+    // from a page role. That is the whole point of the group: the bar sits on
+    // its own background, at its own size, over content that scrolls under it,
+    // so "the same blue as a body link" is almost never the right answer there —
+    // and an admin has to be able to move one of the three things on the bar
+    // without dragging the other two (or the rest of the site) along.
+    //
+    // Three subjects — the site TITLES, the ICON cluster, the LOG-IN link — each
+    // with a rest / hover / active colour of its own.
+
+    // Titles: the admin-managed links across the bar (Home, Courses, …).
+    --nit-navbartitle: var(--nit-brand-navbartitlecolor);
+    --nit-navbartitlehover: var(--nit-brand-navbartitlehovercolor);
+    --nit-navbartitleactive: var(--nit-brand-navbartitleactivecolor);
+
+    // Icons: search, language, messages, notifications, gear, the light/dark
+    // switch — and the notification panel's own action icons, which are the same
+    // glyphs one layer down. The resting state paints no chrome at all; the
+    // hover pad is derived from the hover colour rather than being a role of its
+    // own, so an admin who picks a hover colour gets a pad that matches it
+    // instead of having to tune a second value to agree with the first.
     --nit-navbariconaccent: var(--nit-brand-navbariconcolor);
-    --nit-navbariconaccenthover: color-mix(in srgb, var(--nit-brand-navbariconcolor) 82%, #fff);
-    --nit-navbariconbg: var(--nit-brand-navbariconbg);
-    // Text on the bar follows the NAVBAR ICON role, not the body ink. In every
-    // dark group the two are the same colour, so this changes nothing there —
-    // but a group whose page is light and whose bar is dark (Group 4) has a dark
-    // body ink, and reading the bar's text off it painted the site name and the
-    // menu links dark-on-dark. "Navbar icon color" is the role that already means
-    // "what shows on the bar"; the glyphs and the words beside them should never
-    // be able to disagree.
-    --nit-navbartext: var(--nit-brand-navbariconcolor);
+    --nit-navbariconaccenthover: var(--nit-brand-navbariconhovercolor);
+    --nit-navbariconactive: var(--nit-brand-navbariconactivecolor);
+    --nit-navbariconbg: color-mix(in srgb, var(--nit-brand-navbariconhovercolor) 14%, transparent);
+
+    // The log-in link (signed-out visitors only).
+    --nit-navbarlogin: var(--nit-brand-navbarlogincolor);
+    --nit-navbarloginhover: var(--nit-brand-navbarloginhovercolor);
+    --nit-navbarloginactive: var(--nit-brand-navbarloginactivecolor);
+
+    // Everything ELSE that is a word on the bar — the user-menu name, the
+    // edit-mode label, the accessible site name — follows the TITLE colour. It
+    // must not follow the body ink: a group whose page is light and whose bar is
+    // dark (or the reverse) would paint those words into their own background.
+    --nit-navbartext: var(--nit-brand-navbartitlecolor);
     --nit-navbarpanel: var(--nit-brand-surface);
     --nit-navbarpaneltext: var(--nit-brand-textsecondary);
     --nit-navbarpanelborder: var(--nit-brand-borderprimary);

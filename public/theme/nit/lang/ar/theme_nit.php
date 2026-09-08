@@ -49,6 +49,8 @@ $string['brandcolourssaved'] = 'تم حفظ ألوان الهوية. أُعيد 
 $string['brandcoloursreset'] = 'أُعيدت ألوان الهوية إلى القيم الافتراضية.';
 $string['savebrandcolours'] = 'حفظ ألوان الهوية';
 $string['resetbrandcolours'] = 'إعادة إلى الافتراضي';
+$string['brandgroupswitch'] = 'المجموعة قيد التحرير';
+$string['navbarshape_usage'] = 'كيف يُبرز العنوان هذه الحالة — يُرسم بلون النمط المطابق أعلاه';
 
 // Design-system gallery tabs.
 $string['tab_brandcolours'] = 'ألوان الهوية';

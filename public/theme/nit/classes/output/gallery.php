@@ -35,20 +35,51 @@ class gallery implements renderable, templatable {
      * @return array
      */
     public function export_for_template(renderer_base $output): array {
-        // Brand Colors palette: the new semantic layer, one section per group
-        // (Group 1/2/3), each listing the same roles. The palette is ordered so
-        // each group's roles are contiguous. `usage` is a list of UI targets,
-        // wrapped as {label} objects so the template renders one chip each.
+        // Brand Colors palette: the semantic layer, one editor per group, each
+        // listing the same roles. The palette is ordered so each group's roles
+        // are contiguous, and within a group so that each SECTION's roles are
+        // contiguous too — the template renders them in that order and does no
+        // sorting of its own. `usage` is a list of UI targets, wrapped as
+        // {label} objects so the template renders one chip each.
+        //
+        // Only ONE group's editor is shown at a time (the pills at the top of
+        // the tab switch between them) and only one section within it, because
+        // five groups × 37 roles is 185 colour wells and finding anything in
+        // that by scrolling is the thing this page was worst at.
+        $sectionlabels = \theme_nit_brand_role_sections();
         $brandgroups = [];
-        $bidx = [];  // group name => index in $brandgroups.
+        $bidx = [];  // group key => index in $brandgroups.
+        $sidx = [];  // group key => [section key => index in that group's sections].
         foreach (\theme_nit_brand_palette() as $key => $meta) {
-            $gname = $meta['group'];
-            if (!array_key_exists($gname, $bidx)) {
-                $bidx[$gname] = count($brandgroups);
-                $brandgroups[] = ['name' => $gname, 'groupkey' => $meta['groupkey'], 'roles' => []];
+            $gkey = $meta['groupkey'];
+            if (!array_key_exists($gkey, $bidx)) {
+                $bidx[$gkey] = count($brandgroups);
+                $sidx[$gkey] = [];
+                $brandgroups[] = [
+                    'name' => $meta['group'],
+                    'groupkey' => $gkey,
+                    // The first group's editor is the one shown on arrival.
+                    'isfirst' => empty($brandgroups),
+                    'sections' => [],
+                ];
+            }
+            $skey = $meta['section'];
+            if (!array_key_exists($skey, $sidx[$gkey])) {
+                $sidx[$gkey][$skey] = count($brandgroups[$bidx[$gkey]]['sections']);
+                $brandgroups[$bidx[$gkey]]['sections'][] = [
+                    'key' => $skey,
+                    // Unique per group: the same section appears in all five.
+                    'paneid' => 'nit-brand-' . $gkey . '-' . $skey,
+                    'label' => $sectionlabels[$skey] ?? $skey,
+                    'isfirst' => empty($brandgroups[$bidx[$gkey]]['sections']),
+                    'roles' => [],
+                    // Filled in below for the one section that has them.
+                    'shapes' => [],
+                    'hasshapes' => false,
+                ];
             }
             $value = \theme_nit_brandcolour($key);
-            $brandgroups[$bidx[$gname]]['roles'][] = [
+            $brandgroups[$bidx[$gkey]]['sections'][$sidx[$gkey][$skey]]['roles'][] = [
                 'key' => $key,
                 'label' => $meta['label'],
                 'usage' => array_map(static fn($u) => ['label' => $u], $meta['usage']),
@@ -57,6 +88,67 @@ class gallery implements renderable, templatable {
                 'default' => $meta['default'],
                 'isdefault' => (strtolower($value) === strtolower($meta['default'])),
             ];
+        }
+
+        // Four dots on each group's pill, so the pills say which palette they
+        // switch to instead of only saying "Group 3". These are the roles that
+        // actually tell two groups apart at a glance — the bar, the page, the
+        // main button and the link colour.
+        $pills = [];
+        foreach ($brandgroups as $group) {
+            $swatches = [];
+            foreach (['navbarbackground1', 'background', 'primary', 'accenttext'] as $role) {
+                $swatches[] = ['value' => \theme_nit_brandcolour($group['groupkey'] . '_' . $role)];
+            }
+            $pills[] = [
+                'groupkey' => $group['groupkey'],
+                'name' => $group['name'],
+                'swatches' => $swatches,
+            ];
+        }
+
+        // The group switcher rides inside each group's own editor rather than
+        // standing above all five, so the whole header — both choices and both
+        // buttons — is ONE sticky element instead of two stacked ones needing a
+        // hard-coded offset between them, and the Save button stays inside the
+        // form it submits. Only one editor is ever on screen, so only one copy
+        // of the switcher is ever visible. `iscurrent` is the pill for the group
+        // whose editor this copy belongs to.
+        foreach ($brandgroups as $gi => $group) {
+            $brandgroups[$gi]['groupswitch'] = array_map(
+                static fn($pill) => $pill + ['iscurrent' => ($pill['groupkey'] === $group['groupkey'])],
+                $pills
+            );
+        }
+
+        // The navbar title SHAPES — the one navbar decision that is not a colour,
+        // so it is a select and not a colour well. They ride in the same form as
+        // the group's colours (they are saved by the same button) and are shown
+        // inside the Navbar section, beside the two "style color" roles they
+        // decide the meaning of.
+        $shapeoptions = \theme_nit_navbar_title_shapes();
+        foreach ($brandgroups as $gi => $group) {
+            $gkey = $group['groupkey'];
+            foreach ($group['sections'] as $si => $section) {
+                if ($section['key'] !== 'navbar') {
+                    continue;
+                }
+                $shapes = [];
+                foreach (\theme_nit_navbar_title_states() as $state => $meta) {
+                    $selected = \theme_nit_navbar_title_shape($gkey, $state);
+                    $shapes[] = [
+                        'input' => 'navbarshape_' . $gkey . '_' . $state,
+                        'label' => $meta['label'],
+                        'options' => array_map(static fn($skey, $smeta) => [
+                            'value' => $skey,
+                            'label' => $smeta['label'],
+                            'selected' => ($skey === $selected),
+                        ], array_keys($shapeoptions), $shapeoptions),
+                    ];
+                }
+                $brandgroups[$gi]['sections'][$si]['shapes'] = $shapes;
+                $brandgroups[$gi]['sections'][$si]['hasshapes'] = true;
+            }
         }
 
         // Category branding for the "Category styles" tab. Only the MAIN

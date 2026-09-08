@@ -57,9 +57,11 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // 65%). Re-pointing them at the NIT tokens is what makes the links readable
     // on the navy field — the alternative is out-specifying `.navbar-nav
     // .nav-link.active` on every rule, which is a fight that never ends.
-    --bs-navbar-color: var(--nit-navbartext, #{$nit-on-navy});
-    --bs-navbar-hover-color: var(--nit-navbaraccenthover, #{$nit-gold-400});
-    --bs-navbar-active-color: var(--nit-navbaraccent, #{$nit-gold-500});
+    // The three states map onto the three TITLE roles, which is what these
+    // variables actually colour: the site links across the bar.
+    --bs-navbar-color: var(--nit-navbartitle, #{$nit-on-navy});
+    --bs-navbar-hover-color: var(--nit-navbartitlehover, #{$nit-gold-400});
+    --bs-navbar-active-color: var(--nit-navbartitleactive, #{$nit-gold-500});
 
     background-color: var(--nit-navbarbg, #{$nit-navy-900});
     // Base foreground: everything on the bar inherits light unless overridden.
@@ -69,10 +71,34 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // otherwise the 72% pane would let scrolled content show straight through.
     // The -webkit- test keeps older Safari (which never unprefixed it) on board,
     // and browsers failing both keep the solid --nit-navbarbg above.
+    //
+    // The blur is painted by a pseudo-element instead of by the bar itself, and
+    // that is not a style preference: `backdrop-filter` makes the element it is
+    // set on the containing block for every `position: fixed` DESCENDANT (CSS
+    // Filter Effects, same rule `transform` has). On `.nit-navbar` that trapped
+    // the site search: its overlay is `position: fixed; inset: 0`, which then
+    // resolved against the 101px bar instead of the viewport — so the dialog was
+    // drawn on top of the bar, over the logo, the menu links and the very search
+    // icon that had just been clicked; the page behind it was never dimmed; and
+    // the results panel was clipped to the height of the strip. On `::before`
+    // the same rectangle is frosted and nothing is trapped.
+    // See `.nit-navsearch__overlay` at the foot of this file.
     @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
         background-color: var(--nit-navbarglass, rgba(18, 30, 45, 0.72));
-        -webkit-backdrop-filter: var(--nit-navbarblur, blur(18px) saturate(160%));
-        backdrop-filter: var(--nit-navbarblur, blur(18px) saturate(160%));
+
+        &::before {
+            content: "";
+            position: absolute;
+            // All four sides are 0, so rtlcss flipping left/right is a no-op.
+            inset: 0;
+            // Under the bar's content but over the bar's own background, which
+            // is what keeps the look unchanged: the backdrop this blurs is the
+            // scrolled page *plus* the translucent tint declared just above.
+            z-index: -1;
+            pointer-events: none;
+            -webkit-backdrop-filter: var(--nit-navbarblur, blur(18px) saturate(160%));
+            backdrop-filter: var(--nit-navbarblur, blur(18px) saturate(160%));
+        }
     }
 
     // NIT: no line under the bar. Boost paints a $gray-300 hairline on
@@ -159,22 +185,101 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         padding: 0;
     }
 
-    // Colour comes from the `--bs-navbar-*` values re-pointed at the top of this
-    // block (light, gold on hover, gold for the current page), so what is left
-    // here is only the shape of the link.
+    // ---- Site titles: colour, and the SHAPE that answers the cursor ---------
+    //
+    // Three colours (rest / hover / current page) come from the `--bs-navbar-*`
+    // values re-pointed at the top of this block. On top of that, hover and
+    // "current page" each draw a SHAPE an administrator picks per brand group —
+    // an underline, extra weight, a filled square, or all three.
+    //
+    // CSS cannot switch which RULES apply from a custom property, so the rule is
+    // written once here and reads three properties per state; PHP decides what
+    // those hold, putting the shape's colour where a treatment is on and an
+    // inert value (`transparent`, the resting weight) where it is off. See
+    // theme_nit_navbar_shape_scss(). Nothing in this file knows a shape name.
     .nit-navbar-link {
         font-weight: 600;
         white-space: nowrap;
         padding: 0.5rem 0.75rem;
         border-radius: 6px;
-        transition: color 0.15s ease, background-color 0.15s ease;
+        transition: color 0.15s ease, background-color 0.15s ease, font-weight 0.15s ease;
 
         &:hover,
         &:focus {
-            // A wash rather than a second colour: the bar is dark, and a filled
-            // pill on hover would compete with the gold wordmark.
-            background-color: rgba(255, 255, 255, 0.08);
+            background-color: var(--nit-navtitle-hover-bg, transparent);
+            font-weight: var(--nit-navtitle-hover-weight, 600);
             text-decoration: none;
+
+            .nit-navbar-link-label::after {
+                background-color: var(--nit-navtitle-hover-underline, transparent);
+            }
+        }
+
+        // The page the visitor is on. `.active` is what the renderer marks (see
+        // core_renderer::navbar_custom_menu_is_active); `aria-current` is the
+        // same fact said to a screen reader, matched too so the two can never
+        // disagree. Declared AFTER hover so the current page keeps its own mark
+        // while the cursor is over it.
+        &.active,
+        &[aria-current="page"] {
+            background-color: var(--nit-navtitle-active-bg, transparent);
+            font-weight: var(--nit-navtitle-active-weight, 600);
+
+            .nit-navbar-link-label::after {
+                background-color: var(--nit-navtitle-active-underline, transparent);
+            }
+        }
+    }
+
+    // The label box. A span of its own rather than the anchor itself, because
+    // the anchor may also be a `.dropdown-toggle` — Bootstrap draws that caret
+    // with an `::after` and lays it out in normal flow, so neither the anchor's
+    // `::after` nor a grid on the anchor is free to be used here.
+    .nit-navbar-link-label {
+        position: relative;
+        // One cell, so the hidden twin below stacks on the label rather than
+        // sitting beside it.
+        display: inline-grid;
+        grid-template-areas: "label";
+
+        .nit-navbar-link-text,
+        .nit-navbar-link-ghost {
+            grid-area: label;
+        }
+
+        // Why a hidden twin at all: a state that goes BOLD makes the label wider,
+        // and a wider label pushes every link after it sideways — the bar
+        // twitches under the cursor. The twin is the same words at the heaviest
+        // weight this link can ever take, drawn invisibly, so the box is already
+        // that wide at rest and nothing moves.
+        //
+        // `max()` of the two state weights is what keeps that free: a group that
+        // chose no bold at all resolves both to the resting weight, the twin
+        // measures exactly the same as the label, and the bar is the width it
+        // always was.
+        .nit-navbar-link-ghost {
+            visibility: hidden;
+            pointer-events: none;
+            font-weight: max(
+                var(--nit-navtitle-hover-weight, 600),
+                var(--nit-navtitle-active-weight, 600)
+            );
+        }
+
+        // The underline. Always present, transparent at rest, so the two states
+        // only have to change a colour — a rule that appears and vanishes cannot
+        // transition. Hugging the label rather than the padding box is what makes
+        // it read as an underline instead of a border on a button.
+        &::after {
+            content: "";
+            position: absolute;
+            // Both inline sides in one property, so rtlcss has nothing to flip.
+            inset-inline: 0;
+            bottom: -0.25rem;
+            height: 2px;
+            border-radius: 2px;
+            background-color: transparent;
+            transition: background-color 0.15s ease;
         }
     }
 
@@ -189,7 +294,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
         &:hover,
         &:focus {
-            color: var(--nit-navbaraccenthover, #{$nit-gold-400}) !important;
+            color: var(--nit-navbartitlehover, #{$nit-gold-400}) !important;
         }
     }
 
@@ -197,6 +302,50 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     .nav-link .icon,
     .langmenu .icon {
         color: inherit;
+    }
+
+    // ---- The log-in link ----------------------------------------------------
+    // Core draws it as a bare `<a>` inside `<span class="login">` when nobody is
+    // signed in (lib/templates/user_menu.mustache) — no class of its own, so
+    // until it had brand roles it simply inherited whatever the bar or Bootstrap
+    // last said. It is the one call to action a signed-out visitor has, and it is
+    // the reason it gets its own rest / hover / active triple rather than
+    // borrowing the titles': "make the log-in stand out" must not mean "make
+    // every menu link stand out".
+    //
+    // The `.login` span is coloured too, not only the anchor, because the guest
+    // notice ("You are logged in as Guest") shares it.
+    [data-region="usermenu"] .login {
+        color: var(--nit-navbarlogin, #{$nit-on-navy});
+
+        a {
+            color: var(--nit-navbarlogin, #{$nit-on-navy}) !important;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 6px;
+            padding: 0.35rem 0.5rem;
+            transition: color 0.15s ease, background-color 0.15s ease;
+
+            &:hover,
+            &:focus {
+                color: var(--nit-navbarloginhover, #{$nit-gold-400}) !important;
+                text-decoration: none;
+            }
+
+            // Being pressed, and — on the log-in page itself — the page the
+            // visitor is already on. Core marks neither, so `aria-current` is
+            // matched for the day it does and `:active` carries it meanwhile.
+            &:active,
+            &.active,
+            &[aria-current] {
+                color: var(--nit-navbarloginactive, #{$nit-gold-500}) !important;
+            }
+
+            &:focus-visible {
+                outline: 2px solid var(--nit-navbarloginhover, #{$nit-gold-400});
+                outline-offset: 2px;
+            }
+        }
     }
 
     // ---- Right cluster: spacing ---------------------------------------------
@@ -262,8 +411,17 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
         &:hover,
         &:focus {
-            background-color: color-mix(in srgb, var(--nit-navbariconbg, #{$nit-navy-800}) 70%, transparent);
+            background-color: var(--nit-navbariconbg, rgba(255, 255, 255, 0.08));
             color: var(--nit-navbariconaccenthover, #{$nit-gold-400}) !important;
+        }
+
+        // Open panel, or the button being pressed. Declared after hover so an
+        // open menu keeps its own colour while the cursor is still on it.
+        &.show,
+        &[aria-expanded="true"],
+        &:active {
+            background-color: var(--nit-navbariconbg, rgba(255, 255, 255, 0.08));
+            color: var(--nit-navbariconactive, #{$nit-gold-500}) !important;
         }
 
         &:focus-visible {
@@ -303,9 +461,13 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
         &:hover,
         &:focus {
-            background-color: color-mix(in srgb, var(--nit-navbariconbg, #{$nit-navy-800}) 70%, transparent);
+            background-color: var(--nit-navbariconbg, rgba(255, 255, 255, 0.08));
             color: var(--nit-navbariconaccenthover, #{$nit-gold-400}) !important;
             text-decoration: none;
+        }
+
+        &:active {
+            color: var(--nit-navbariconactive, #{$nit-gold-500}) !important;
         }
 
         &:focus-visible {
@@ -383,8 +545,20 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
         &:hover,
         &:focus {
-            background-color: color-mix(in srgb, var(--nit-navbariconbg, #{$nit-navy-800}) 70%, transparent);
+            background-color: var(--nit-navbariconbg, rgba(255, 255, 255, 0.08));
             color: var(--nit-navbariconaccenthover, #{$nit-gold-400}) !important;
+        }
+
+        // An icon whose panel is open, or that is being pressed. Bootstrap flips
+        // `aria-expanded` on the toggle and adds `.show`, so the bar can say
+        // which of the five controls the open panel belongs to — which it could
+        // not before, when open and closed were the same colour. Declared after
+        // hover so an open panel keeps its mark under the cursor.
+        &.show,
+        &[aria-expanded="true"],
+        &:active {
+            background-color: var(--nit-navbariconbg, rgba(255, 255, 255, 0.08));
+            color: var(--nit-navbariconactive, #{$nit-gold-500}) !important;
         }
 
         // Keyboard focus still needs a visible ring — the hover pad alone is too
@@ -1020,6 +1194,15 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
     // The dimmed page. Fixed to the viewport rather than to the bar, so the
     // dialog is centred on the screen and not on the right-hand cluster.
+    //
+    // "Fixed to the viewport" only holds while no ancestor creates a containing
+    // block for fixed descendants. `.nit-navbar` did exactly that for a while,
+    // by carrying `backdrop-filter` itself: `inset: 0` then measured the 101px
+    // bar, so this overlay dimmed nothing, the dialog landed on top of the bar
+    // and the panel was clipped. The glass now sits on `.nit-navbar::before` to
+    // keep that from happening — do not move `backdrop-filter`, `filter`,
+    // `transform`, `perspective`, `will-change` or `contain` back onto the bar
+    // (or onto any wrapper between it and here) without re-homing this overlay.
     &__overlay {
         display: none;
         position: fixed;
@@ -1028,7 +1211,11 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         background-color: rgba(3, 8, 18, 0.62);
         // A command palette sits high on the screen, not in the middle: the eye
         // starts at the field and the results grow downwards from it.
-        padding: clamp(3rem, 12vh, 8rem) 1rem 1rem;
+        // The floor is the bar plus a gutter, not a bare 3rem: on a short
+        // viewport 12vh resolves to less than the bar's own height and the
+        // dialog opens tucked under it — the overlap this dialog exists to
+        // avoid. `$navbar-height` is the same 100px the bar is drawn at.
+        padding: clamp(#{$navbar-height + 16px}, 12vh, 8rem) 1rem 1rem;
         overflow-y: auto;
     }
 

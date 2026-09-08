@@ -60,6 +60,20 @@ if (($data = data_submitted()) && confirm_sesskey()) {
         $brandgroup = '';
     }
 
+    // Where a Brand Colors save lands the admin back: the same group's editor,
+    // not the first one. The tab strip and the group pills both read the URL
+    // (see the fragment handler below), so a POST-and-redirect no longer costs
+    // the admin the place they were working in.
+    $brandurl = new moodle_url('/theme/nit/gallery.php',
+        $brandgroup !== '' ? ['brandgroup' => $brandgroup] : null, 'nit-tab-brand');
+
+    // The navbar title shapes ride in the same form as the colours, saved and
+    // reset by the same buttons — they are part of "what this group looks like",
+    // and splitting them into a second form would mean two saves for one
+    // decision (a shape and the colour it is drawn in).
+    $shapestates = array_keys(theme_nit_navbar_title_states());
+    $shapevalues = theme_nit_navbar_title_shapes();
+
     if (!empty($data->resetbrand)) {
         foreach ($brand as $key => $meta) {
             if ($brandgroup !== '' && $meta['groupkey'] !== $brandgroup) {
@@ -67,8 +81,16 @@ if (($data = data_submitted()) && confirm_sesskey()) {
             }
             unset_config('brandcolour_' . $key, 'theme_nit');
         }
+        foreach ($groupkeys as $gkey) {
+            if ($brandgroup !== '' && $gkey !== $brandgroup) {
+                continue;
+            }
+            foreach ($shapestates as $state) {
+                unset_config('navbarshape_' . $gkey . '_' . $state, 'theme_nit');
+            }
+        }
         theme_reset_all_caches();
-        redirect($pageurl, get_string('brandcoloursreset', 'theme_nit'), null,
+        redirect($brandurl, get_string('brandcoloursreset', 'theme_nit'), null,
             \core\output\notification::NOTIFY_SUCCESS);
     }
 
@@ -84,8 +106,22 @@ if (($data = data_submitted()) && confirm_sesskey()) {
             }
             set_config($field, $value, 'theme_nit');
         }
+        foreach ($groupkeys as $gkey) {
+            if ($brandgroup !== '' && $gkey !== $brandgroup) {
+                continue;
+            }
+            foreach ($shapestates as $state) {
+                $field = 'navbarshape_' . $gkey . '_' . $state;
+                $value = optional_param($field, '', PARAM_ALPHANUMEXT);
+                // An unknown shape is not written at all, so the group keeps
+                // whatever it had rather than silently dropping to a default.
+                if (array_key_exists($value, $shapevalues)) {
+                    set_config($field, $value, 'theme_nit');
+                }
+            }
+        }
         theme_reset_all_caches();
-        redirect($pageurl, get_string('brandcolourssaved', 'theme_nit'), null,
+        redirect($brandurl, get_string('brandcolourssaved', 'theme_nit'), null,
             \core\output\notification::NOTIFY_SUCCESS);
     }
 
@@ -532,6 +568,78 @@ require([], function() {
             }
         });
     });
+});
+JS);
+
+// Brand Colors: show one group's editor, and one section of it, at a time.
+//
+// Five groups of 37 roles is 185 colour wells. Printed one under another - which
+// is what this tab did - finding the navbar roles of Group 4 meant scrolling past
+// a hundred and forty other pickers, and the Save button for the group you were
+// editing was somewhere off the bottom of the screen. Nothing here changes what
+// is submitted: every section stays inside its group's form whether it is on
+// screen or not, so Save still saves the whole group in one post.
+$PAGE->requires->js_amd_inline(<<<'JS'
+require([], function() {
+    var brandtab = document.getElementById('nit-tab-brand');
+    if (!brandtab) {
+        return;
+    }
+
+    var pills = brandtab.querySelectorAll('[data-nit-brand-group]');
+    var panes = brandtab.querySelectorAll('[data-nit-brand-pane]');
+
+    var showGroup = function(groupkey) {
+        var found = false;
+        panes.forEach(function(pane) {
+            var mine = pane.getAttribute('data-nit-brand-pane') === groupkey;
+            pane.classList.toggle('d-none', !mine);
+            found = found || mine;
+        });
+        if (!found) {
+            return false;
+        }
+        pills.forEach(function(pill) {
+            var mine = pill.getAttribute('data-nit-brand-group') === groupkey;
+            pill.classList.toggle('active', mine);
+            pill.setAttribute('aria-selected', mine ? 'true' : 'false');
+        });
+        return true;
+    };
+
+    pills.forEach(function(pill) {
+        pill.addEventListener('click', function() {
+            showGroup(pill.getAttribute('data-nit-brand-group'));
+        });
+    });
+
+    // Section strip, one per group's editor. Scoped to the form it lives in so
+    // the five strips never reach into each other.
+    panes.forEach(function(pane) {
+        var tabs = pane.querySelectorAll('[data-nit-brand-section]');
+        var sections = pane.querySelectorAll('[data-nit-brand-sectionpane]');
+        tabs.forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                var target = tab.getAttribute('data-nit-brand-section');
+                sections.forEach(function(section) {
+                    section.classList.toggle('d-none', section.id !== target);
+                });
+                tabs.forEach(function(other) {
+                    var mine = other === tab;
+                    other.classList.toggle('active', mine);
+                    other.setAttribute('aria-selected', mine ? 'true' : 'false');
+                });
+            });
+        });
+    });
+
+    // Land back on the group that was just saved. Every editor here saves by
+    // POST-and-redirect, and the redirect carries ?brandgroup= for exactly this
+    // (see the save handler in gallery.php).
+    var requested = new URLSearchParams(window.location.search).get('brandgroup');
+    if (requested) {
+        showGroup(requested);
+    }
 });
 JS);
 

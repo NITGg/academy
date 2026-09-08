@@ -95,12 +95,28 @@ Object.entries(SEM).forEach(([k, h]) => {
   S.dark[k] = toHex(72, 0.125, h);
 });
 
+// The bar carries its own rest / hover / active triple for each of the three
+// things drawn on it (titles, icons, the log-in link) plus the two colours its
+// hover / active SHAPE is drawn in — see theme_nit_brand_roles(). They are built
+// from the same two ramps as everything else: the bar's ink at rest, and the
+// azure steps for the states, read from whichever end of the ramp the bar's own
+// background sits at.
+const navbar = (ink, hover, active, hoverpad) => ({
+  navbartitlecolor: ink, navbartitlehovercolor: hover, navbartitleactivecolor: active,
+  navbartitlehoverstylecolor: hoverpad, navbartitleactivestylecolor: active,
+  navbariconcolor: ink, navbariconhovercolor: hover, navbariconactivecolor: active,
+  navbarlogincolor: ink, navbarloginhovercolor: active, navbarloginactivecolor: hover,
+});
+
 const g4 = { onprimary: '#ffffff', onsecondary: '#14191f',
   primary: A[600], secondary: N[200], accent: A[600], accenttext: A[700],
   background: N[50], background2: N[100], surface: '#ffffff',
-  navbarbackground1: N[950], navbarbackground2: N[900],
-  footerbackground1: N[950], footerbackground2: N[900],
-  textprimary: N[900], navbariconcolor: N[50], navbariconbg: N[850],
+  // Light chrome: the bar is one step whiter than the page, the footer one
+  // step greyer.
+  navbarbackground1: '#ffffff', navbarbackground2: N[50],
+  footerbackground1: N[100], footerbackground2: N[200],
+  textprimary: N[900],
+  ...navbar(N[900], A[800], A[700], N[100]),
   textsecondary: N[600], borderprimary: N[300], bordersecondary: N[400],
   hoverbackground: N[100], hovertext: A[800],
   error: S.light.danger, success: S.light.success,
@@ -112,7 +128,8 @@ const g5 = { onprimary: '#0d1117', onsecondary: '#f6f8fb',
   background: N[950], background2: N[900], surface: N[850],
   navbarbackground1: N[950], navbarbackground2: N[900],
   footerbackground1: N[950], footerbackground2: N[900],
-  textprimary: N[50], navbariconcolor: N[50], navbariconbg: N[850],
+  textprimary: N[50],
+  ...navbar(N[50], A[200], A[300], N[900]),
   textsecondary: N[400], borderprimary: N[800], bordersecondary: N[700],
   hoverbackground: N[900], hovertext: A[200],
   error: S.dark.danger, success: S.dark.success,
@@ -122,11 +139,16 @@ const g5 = { onprimary: '#0d1117', onsecondary: '#f6f8fb',
 function report(name, g) {
   console.log('\n--- ' + name + ' ---');
   const order = ['primary', 'secondary', 'onprimary', 'onsecondary', 'accent', 'accenttext', 'background', 'background2',
-    'navbarbackground1', 'navbarbackground2', 'footerbackground1', 'footerbackground2',
-    'surface', 'textprimary', 'navbariconcolor', 'navbariconbg', 'textsecondary',
+    'navbarbackground1', 'navbarbackground2',
+    'navbartitlecolor', 'navbartitlehovercolor', 'navbartitleactivecolor',
+    'navbartitlehoverstylecolor', 'navbartitleactivestylecolor',
+    'navbariconcolor', 'navbariconhovercolor', 'navbariconactivecolor',
+    'navbarlogincolor', 'navbarloginhovercolor', 'navbarloginactivecolor',
+    'footerbackground1', 'footerbackground2',
+    'surface', 'textprimary', 'textsecondary',
     'borderprimary', 'bordersecondary', 'hoverbackground', 'hovertext',
     'error', 'success', 'warning', 'info'];
-  order.forEach((k) => console.log("            '" + k + "'" + ' '.repeat(19 - k.length) + "=> '" + g[k] + "',"));
+  order.forEach((k) => console.log("            '" + k + "'" + ' '.repeat(Math.max(1, 30 - k.length)) + "=> '" + g[k] + "',"));
 
   const checks = [
     ['ink on page', g.textprimary, g.background],
@@ -142,7 +164,11 @@ function report(name, g) {
     ['success on surface', g.success, g.surface],
     ['warning on surface', g.warning, g.surface],
     ['info on surface', g.info, g.surface],
-    ['navbar text on bar', g.navbariconcolor, g.navbarbackground1],
+    ['navbar title on bar', g.navbartitlecolor, g.navbarbackground1],
+    ['navbar title hover on bar', g.navbartitlehovercolor, g.navbarbackground1],
+    ['navbar title active on bar', g.navbartitleactivecolor, g.navbarbackground1],
+    ['navbar icon on bar', g.navbariconcolor, g.navbarbackground1],
+    ['navbar login on bar', g.navbarlogincolor, g.navbarbackground1],
     ['border on surface', g.borderprimary, g.surface],
     ['primary fill on page', g.primary, g.background],
   ];

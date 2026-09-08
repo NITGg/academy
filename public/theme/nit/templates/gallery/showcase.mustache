@@ -22,7 +22,12 @@
     Context variables required for this template:
     * sesskey - session key for the editor forms
     * actionurl - POST target for the editor forms
-    * colourgroups - array of { name, colours: [ { key, label, configname, value, default, isdefault } ] }
+    * brandgroups - array of { name, groupkey, isfirst, swatches: [ { value } ],
+        sections: [ { key, paneid, label, isfirst, hasshapes,
+                      roles: [ { key, label, cssvar, value, default, isdefault,
+                                 usage: [ { label } ] } ],
+                      shapes: [ { input, label, options: [ { value, label, selected } ] } ] } ] }
+        One editor per group; one section of it visible at a time.
     * categorygroups - array of { id, name, image, hasimage, imageurl,
         modes: [ { mode, label, select, options: [ { value, label, selected } ],
                    logoinput, logoremove, haslogo, logourl } ] } (one entry per display mode)
@@ -38,11 +43,18 @@
     {
         "sesskey": "abc123",
         "actionurl": "/theme/nit/gallery.php",
-        "colourgroups": [
-            { "name": "Brand", "colours": [
-                { "key": "primary", "label": "Primary", "configname": "theme_nit | colour_primary",
-                  "value": "#2a50c8", "default": "#2a50c8", "isdefault": true }
-            ] }
+        "brandgroups": [
+            { "name": "Group 1", "groupkey": "g1", "isfirst": true,
+              "swatches": [ { "value": "#0c141f" } ],
+              "sections": [
+                { "key": "brand", "paneid": "nit-brand-g1-brand", "label": "Brand",
+                  "isfirst": true, "hasshapes": false, "shapes": [],
+                  "roles": [
+                    { "key": "g1_primary", "label": "Primary", "cssvar": "--nit-brand-primary",
+                      "value": "#5488c4", "default": "#5488c4", "isdefault": true,
+                      "usage": [ { "label": "background main button" } ] }
+                  ] }
+              ] }
         ],
         "fonts": [
             { "input": "fontfile_en", "label": "English font", "family": "NIT Site Font EN",
@@ -100,43 +112,120 @@
              aria-labelledby="nit-tab-brand-btn" tabindex="0">
             <h3>Brand Colors</h3>
             <p class="text-muted">{{#str}}brandcolours_desc, theme_nit{{/str}}</p>
+
             {{! Each group is its own form so Save / Reset act on that group only. }}
             {{#brandgroups}}
-            <form method="post" action="{{actionurl}}" class="nit-colour-editor mb-4">
+            <form method="post" action="{{actionurl}}"
+                  class="nit-colour-editor mb-4{{^isfirst}} d-none{{/isfirst}}"
+                  data-nit-brand-pane="{{groupkey}}">
                 <input type="hidden" name="sesskey" value="{{sesskey}}">
                 <input type="hidden" name="brandgroup" value="{{groupkey}}">
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
-                    <h4 class="h6 text-uppercase text-muted mb-0">{{name}}</h4>
-                    <div class="d-flex gap-2">
-                        <button type="submit" name="savebrand" value="1" class="btn btn-sm btn-primary">
-                            {{#str}}savebrandcolours, theme_nit{{/str}}
+
+                {{! --------------------------------------------------------- }}
+                {{! One sticky header holding both choices and both buttons.   }}
+                {{!                                                            }}
+                {{! Five groups of 37 roles is 185 colour wells. Printed end   }}
+                {{! to end - which is what this tab did - the only way from    }}
+                {{! one group to another was the scrollbar, and the Save       }}
+                {{! button for the group being edited was somewhere off the    }}
+                {{! bottom of the screen. One group and one section are on     }}
+                {{! screen at a time now, and this header follows the page so  }}
+                {{! both are always a click away.                              }}
+                {{!                                                            }}
+                {{! It is repeated inside every group's form rather than       }}
+                {{! standing above them, so it is ONE sticky element and not   }}
+                {{! two stacked ones needing a hard-coded offset between them  }}
+                {{! - and so the Save button is inside the form it submits.    }}
+                {{! Only one form is ever visible, so only one copy is shown.  }}
+                {{! --------------------------------------------------------- }}
+                <div class="nit-brand-toolbar">
+                    {{! The dots on a pill are that group's bar / page / button }}
+                    {{! / link colours, so the strip says which palette each    }}
+                    {{! button leads to and not only "Group 3".                 }}
+                    <div class="nit-brand-switch" role="tablist" aria-label="{{#str}}brandgroupswitch, theme_nit{{/str}}">
+                        {{#groupswitch}}
+                        <button type="button" role="tab" class="nit-brand-pill{{#iscurrent}} active{{/iscurrent}}"
+                                data-nit-brand-group="{{groupkey}}"
+                                aria-selected="{{#iscurrent}}true{{/iscurrent}}{{^iscurrent}}false{{/iscurrent}}">
+                            <span class="nit-brand-pill-dots" aria-hidden="true">
+                                {{#swatches}}<span class="nit-brand-pill-dot" style="background: {{value}};"></span>{{/swatches}}
+                            </span>
+                            <span class="nit-brand-pill-name">{{name}}</span>
                         </button>
-                        <button type="submit" name="resetbrand" value="1" class="btn btn-sm btn-outline-secondary">
-                            {{#str}}resetbrandcolours, theme_nit{{/str}}
-                        </button>
+                        {{/groupswitch}}
+                    </div>
+
+                    <div class="nit-brand-toolbar-row">
+                        <div class="nit-brand-sections" role="tablist" aria-label="{{name}}">
+                            {{#sections}}
+                            <button type="button" role="tab" class="nit-brand-sectionpill{{#isfirst}} active{{/isfirst}}"
+                                    data-nit-brand-section="{{paneid}}"
+                                    aria-controls="{{paneid}}"
+                                    aria-selected="{{#isfirst}}true{{/isfirst}}{{^isfirst}}false{{/isfirst}}">{{label}}</button>
+                            {{/sections}}
+                        </div>
+                        <div class="nit-brand-actions">
+                            <button type="submit" name="savebrand" value="1" class="btn btn-sm btn-primary">
+                                {{#str}}savebrandcolours, theme_nit{{/str}}
+                            </button>
+                            <button type="submit" name="resetbrand" value="1" class="btn btn-sm btn-outline-secondary">
+                                {{#str}}resetbrandcolours, theme_nit{{/str}}
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="nit-colour-grid">
-                    {{#roles}}
-                        <div class="nit-colour-row" data-nit-colour>
-                            <div class="nit-colour-meta">
-                                <label class="nit-colour-name" for="nit-brand-{{key}}">{{label}}</label>
-                                <code class="nit-colour-config">{{cssvar}}</code>
-                                <span class="nit-colour-usage">
-                                    {{#usage}}<span class="nit-colour-usage-item">{{label}}</span>{{/usage}}
-                                </span>
+
+                {{! Every section stays IN the form even while hidden — the save }}
+                {{! button saves the whole group, not the section on screen.     }}
+                {{#sections}}
+                <div class="nit-brand-section{{^isfirst}} d-none{{/isfirst}}" id="{{paneid}}"
+                     role="tabpanel" data-nit-brand-sectionpane>
+                    <div class="nit-colour-grid">
+                        {{#roles}}
+                            <div class="nit-colour-row" data-nit-colour>
+                                <div class="nit-colour-meta">
+                                    <label class="nit-colour-name" for="nit-brand-{{key}}">{{label}}</label>
+                                    <code class="nit-colour-config">{{cssvar}}</code>
+                                    <span class="nit-colour-usage">
+                                        {{#usage}}<span class="nit-colour-usage-item">{{label}}</span>{{/usage}}
+                                    </span>
+                                </div>
+                                <div class="nit-colour-controls">
+                                    <input type="color" id="nit-brand-{{key}}" name="brandcolour_{{key}}" value="{{value}}"
+                                           class="nit-colour-swatch" aria-label="{{label}}">
+                                    <input type="text" name="brandcolour_{{key}}_hex" value="{{value}}"
+                                           class="form-control nit-colour-hex" aria-label="{{label}} hex value"
+                                           pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" maxlength="7">
+                                    <span class="nit-colour-default">Default: {{default}}</span>
+                                </div>
                             </div>
-                            <div class="nit-colour-controls">
-                                <input type="color" id="nit-brand-{{key}}" name="brandcolour_{{key}}" value="{{value}}"
-                                       class="nit-colour-swatch" aria-label="{{label}}">
-                                <input type="text" name="brandcolour_{{key}}_hex" value="{{value}}"
-                                       class="form-control nit-colour-hex" aria-label="{{label}} hex value"
-                                       pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" maxlength="7">
-                                <span class="nit-colour-default">Default: {{default}}</span>
+                        {{/roles}}
+
+                        {{! The navbar title shapes. Same card as a colour role  }}
+                        {{! and in the same grid, because they are the other     }}
+                        {{! half of one decision: the two "style color" roles     }}
+                        {{! above say what colour the shape is drawn in, and      }}
+                        {{! these say which shape that is.                        }}
+                        {{#shapes}}
+                            <div class="nit-colour-row nit-shape-row">
+                                <div class="nit-colour-meta">
+                                    <label class="nit-colour-name" for="nit-{{input}}">{{label}}</label>
+                                    <span class="nit-colour-usage">
+                                        <span class="nit-colour-usage-item">{{#str}}navbarshape_usage, theme_nit{{/str}}</span>
+                                    </span>
+                                </div>
+                                <div class="nit-colour-controls">
+                                    <select class="form-select nit-shape-select" id="nit-{{input}}" name="{{input}}">
+                                        {{#options}}
+                                        <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                                        {{/options}}
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                    {{/roles}}
+                        {{/shapes}}
+                    </div>
                 </div>
+                {{/sections}}
             </form>
             {{/brandgroups}}
         </div>

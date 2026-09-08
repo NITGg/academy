@@ -186,62 +186,169 @@ function theme_nit_colours_all(): array {
 }
 
 /**
- * The 23 semantic roles every Brand-Colors group is built from.
+ * The named sections the roles are grouped into, in display order.
+ *
+ * A group is 37 roles now, which is more than anybody can scan as one flat
+ * grid. The section is purely an editing aid — it changes no CSS and no export
+ * shape — but it is declared here rather than in the template because the ORDER
+ * of theme_nit_brand_roles() is what the gallery renders, and the two have to
+ * agree. `key` is also the anchor the gallery's in-group jump links use.
+ *
+ * @return array<string, string> section key => display label
+ */
+function theme_nit_brand_role_sections(): array {
+    return [
+        'brand'   => 'Brand',
+        'navbar'  => 'Navbar',
+        'footer'  => 'Footer',
+        'surface' => 'Surfaces & text',
+        'status'  => 'Status',
+    ];
+}
+
+/**
+ * The 37 semantic roles every Brand-Colors group is built from.
  *
  * This is the clean, small semantic layer that replaces the sprawling
  * theme_nit_colour_palette(): a component references a role by name (Primary,
- * Surface, Text primary, …) and never a raw colour. `label` is the display name
- * and `usage` is a list of the concrete UI things that should use the colour —
- * rendered as chips on the gallery's Brand Colors tab. `default` here is only a
- * red-free FALLBACK (the Group 1 / Slate-blue values): every group overrides all
- * 23 roles in theme_nit_brand_group_defaults(), so a role default is used only if
- * a group ever omits a role. The Hover Background / Hover Text roles carry the
- * explicit hover colours (other opacity variants are still derived in SCSS, see
+ * Surface, Text primary, …) and never a raw colour. `label` is the display name,
+ * `section` is which block of the editor it belongs to (see
+ * theme_nit_brand_role_sections()) and `usage` is a list of the concrete UI
+ * things that should use the colour — rendered as chips on the gallery's Brand
+ * Colors tab. `default` here is only a red-free FALLBACK (the Group 1 /
+ * Slate-blue values): every group overrides all of them in
+ * theme_nit_brand_group_defaults(), so a role default is used only if a group
+ * ever omits a role. The Hover Background / Hover Text roles carry the explicit
+ * hover colours (other opacity variants are still derived in SCSS, see
  * scss/foundation/_brand.scss).
  *
- * @return array<string, array{label:string, usage:string[], default:string}>
+ * @return array<string, array{section:string, label:string, usage:string[], default:string}>
  */
 function theme_nit_brand_roles(): array {
     return [
-        'primary'           => ['label' => 'Primary', 'usage' => ['background main button', 'checked toggles', 'progress fill', 'notification dots'], 'default' => '#5488c4'],
-        'secondary'         => ['label' => 'Secondary', 'usage' => ['background secondary button'], 'default' => '#1c2a3a'],
+        // --- Brand -----------------------------------------------------------
+        'primary'           => ['section' => 'brand', 'label' => 'Primary', 'usage' => ['background main button', 'checked toggles', 'progress fill', 'notification dots'], 'default' => '#5488c4'],
+        'secondary'         => ['section' => 'brand', 'label' => 'Secondary', 'usage' => ['background secondary button'], 'default' => '#1c2a3a'],
         // Text drawn ON a filled button, one role per button colour. These are
         // roles rather than "whatever the body ink happens to be" because the
         // right answer depends on the fill, not on the page: a light group fills
         // its main button with a dark blue and needs white on it, a dark group
         // fills it with a light blue and needs near-black. Getting that from
         // "Text primary" was wrong by construction in half the groups.
-        'onprimary'         => ['label' => 'Text on main button', 'usage' => ['label inside a filled main button', 'text on any primary fill'], 'default' => '#eef3f9'],
-        'onsecondary'       => ['label' => 'Text on secondary button', 'usage' => ['label inside a secondary button', 'label inside an outline-secondary button'], 'default' => '#eef3f9'],
-        'accent'            => ['label' => 'Accent', 'usage' => ['none text'], 'default' => '#5488c4'],
-        'accenttext'        => ['label' => 'Accent Text', 'usage' => ['text of links', 'important words', 'underlines'], 'default' => '#7fabdb'],
-        'background'        => ['label' => 'Background', 'usage' => ['page background'], 'default' => '#0c141f'],
-        'background2'       => ['label' => 'Second background', 'usage' => ['alternate page sections', 'bands lifted off the page ground'], 'default' => '#101a27'],
-        'navbarbackground1' => ['label' => 'Navbar background 1', 'usage' => ['navbar background'], 'default' => '#0c141f'],
-        'navbarbackground2' => ['label' => 'Navbar background 2', 'usage' => ['navbar background — second colour (reserved, not consumed yet)'], 'default' => '#121e2d'],
-        'footerbackground1' => ['label' => 'Footer background 1', 'usage' => ['footer background'], 'default' => '#0c141f'],
-        'footerbackground2' => ['label' => 'Footer background 2', 'usage' => ['footer background — second colour (reserved, not consumed yet)'], 'default' => '#121e2d'],
+        'onprimary'         => ['section' => 'brand', 'label' => 'Text on main button', 'usage' => ['label inside a filled main button', 'text on any primary fill'], 'default' => '#eef3f9'],
+        'onsecondary'       => ['section' => 'brand', 'label' => 'Text on secondary button', 'usage' => ['label inside a secondary button', 'label inside an outline-secondary button'], 'default' => '#eef3f9'],
+        'accent'            => ['section' => 'brand', 'label' => 'Accent', 'usage' => ['none text'], 'default' => '#5488c4'],
+        'accenttext'        => ['section' => 'brand', 'label' => 'Accent Text', 'usage' => ['text of links', 'important words', 'underlines'], 'default' => '#7fabdb'],
+
+        // --- Navbar ----------------------------------------------------------
+        // The bar owns its whole palette rather than borrowing the page's. Every
+        // thing drawn on it — the site titles, the icon cluster, the log-in link
+        // — has its own rest / hover / active colour, because the bar is the one
+        // surface where "the same blue as a body link" is almost never the right
+        // answer: it sits on its own background, at its own size, over content
+        // that scrolls under it.
+        'navbarbackground1' => ['section' => 'navbar', 'label' => 'Navbar background 1', 'usage' => ['navbar background'], 'default' => '#0c141f'],
+        'navbarbackground2' => ['section' => 'navbar', 'label' => 'Navbar background 2', 'usage' => ['navbar glass — the translucent pane the bar is painted with'], 'default' => '#121e2d'],
+        'navbartitlecolor'  => ['section' => 'navbar', 'label' => 'Navbar title color', 'usage' => ['the site links across the bar (Home, Courses, …)'], 'default' => '#eef3f9'],
+        'navbartitlehovercolor' => ['section' => 'navbar', 'label' => 'Navbar title hover color', 'usage' => ['a site link under the cursor'], 'default' => '#7fabdb'],
+        'navbartitleactivecolor' => ['section' => 'navbar', 'label' => 'Navbar title active color', 'usage' => ['the site link for the page being viewed'], 'default' => '#7fabdb'],
+        // The two SHAPE colours. Which shape they draw (underline / bold /
+        // square background / all three) is not a colour and so is not a role:
+        // it is a per-group choice stored beside them, see
+        // theme_nit_navbar_title_shapes().
+        'navbartitlehoverstylecolor' => ['section' => 'navbar', 'label' => 'Navbar title hover style color', 'usage' => ['the hover shape — its underline, or its square background'], 'default' => '#16222f'],
+        'navbartitleactivestylecolor' => ['section' => 'navbar', 'label' => 'Navbar title active style color', 'usage' => ['the active shape — its underline, or its square background'], 'default' => '#7fabdb'],
+        'navbariconcolor'   => ['section' => 'navbar', 'label' => 'Navbar icon color', 'usage' => ['navbar icons — search, language, messages, notifications, gear', 'notification panel action icons'], 'default' => '#eef3f9'],
+        'navbariconhovercolor' => ['section' => 'navbar', 'label' => 'Navbar icon hover color', 'usage' => ['a navbar icon under the cursor', 'the soft pad drawn behind it'], 'default' => '#7fabdb'],
+        'navbariconactivecolor' => ['section' => 'navbar', 'label' => 'Navbar icon active color', 'usage' => ['a navbar icon whose panel is open, or being pressed'], 'default' => '#7fabdb'],
+        'navbarlogincolor'  => ['section' => 'navbar', 'label' => 'Navbar login color', 'usage' => ['the "Log in" link on the bar (signed-out visitors)'], 'default' => '#eef3f9'],
+        'navbarloginhovercolor' => ['section' => 'navbar', 'label' => 'Navbar login hover color', 'usage' => ['the "Log in" link under the cursor'], 'default' => '#7fabdb'],
+        'navbarloginactivecolor' => ['section' => 'navbar', 'label' => 'Navbar login active color', 'usage' => ['the "Log in" link being pressed, or on the log-in page itself'], 'default' => '#7fabdb'],
+
+        // --- Footer ----------------------------------------------------------
+        'footerbackground1' => ['section' => 'footer', 'label' => 'Footer background 1', 'usage' => ['footer background'], 'default' => '#0c141f'],
+        'footerbackground2' => ['section' => 'footer', 'label' => 'Footer background 2', 'usage' => ['footer background — second colour (reserved, not consumed yet)'], 'default' => '#121e2d'],
         // Footer-only roles. The band used to borrow Accent Text / Primary from
         // the page, which meant an admin could not recolour a footer heading
         // without moving every link on the site. Three roles, one per thing the
         // footer actually draws, so the band is tunable on its own.
-        'footerheading'     => ['label' => 'Footer heading', 'usage' => ['footer column headings'], 'default' => '#7fabdb'],
-        'footerlink'        => ['label' => 'Footer link', 'usage' => ['footer column links'], 'default' => '#5488c4'],
-        'footericon'        => ['label' => 'Footer icon', 'usage' => ['footer social icons and their ring'], 'default' => '#5488c4'],
-        'navbariconcolor'   => ['label' => 'Navbar icon color', 'usage' => ['navbar icons — search, language, messages, notifications, gear', 'notification panel action icons'], 'default' => '#eef3f9'],
-        'navbariconbg'      => ['label' => 'Navbar icon background', 'usage' => ['navbar icon hover pad — the icons have no background at rest'], 'default' => '#121e2d'],
-        'surface'           => ['label' => 'Surface', 'usage' => ['Cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'page sections background'], 'default' => '#121e2d'],
-        'textprimary'       => ['label' => 'Text primary', 'usage' => ['main normal text', 'text in buttons', 'text in inputs', 'navbar text', 'navbar underline'], 'default' => '#eef3f9'],
-        'textsecondary'     => ['label' => 'Text secondary', 'usage' => ['secondary normal text', 'placeholders'], 'default' => '#94a3b8'],
-        'borderprimary'     => ['label' => 'Border primary', 'usage' => ['main border color'], 'default' => '#223244'],
-        'bordersecondary'   => ['label' => 'Border secondary', 'usage' => ['secondary border color'], 'default' => '#33475e'],
-        'hoverbackground'   => ['label' => 'Hover Background', 'usage' => ['hover background'], 'default' => '#16222f'],
-        'hovertext'         => ['label' => 'Hover Text', 'usage' => ['hover text'], 'default' => '#7fabdb'],
-        'error'             => ['label' => 'Error', 'usage' => ['Errors', 'danger / destructive actions', 'invalid fields'], 'default' => '#d07f43'],
-        'success'           => ['label' => 'Success', 'usage' => ['Success', 'enrolled / active / paid', 'positive states'], 'default' => '#3fa877'],
-        'warning'           => ['label' => 'Warning', 'usage' => ['Warnings', 'caution', 'pending / expiring'], 'default' => '#d8c24e'],
-        'info'              => ['label' => 'Info', 'usage' => ['Neutral notices', 'tips', 'hints'], 'default' => '#5fb0c9'],
+        'footerheading'     => ['section' => 'footer', 'label' => 'Footer heading', 'usage' => ['footer column headings'], 'default' => '#7fabdb'],
+        'footerlink'        => ['section' => 'footer', 'label' => 'Footer link', 'usage' => ['footer column links'], 'default' => '#5488c4'],
+        'footericon'        => ['section' => 'footer', 'label' => 'Footer icon', 'usage' => ['footer social icons and their ring'], 'default' => '#5488c4'],
+
+        // --- Surfaces & text --------------------------------------------------
+        'background'        => ['section' => 'surface', 'label' => 'Background', 'usage' => ['page background'], 'default' => '#0c141f'],
+        'background2'       => ['section' => 'surface', 'label' => 'Second background', 'usage' => ['alternate page sections', 'bands lifted off the page ground'], 'default' => '#101a27'],
+        'surface'           => ['section' => 'surface', 'label' => 'Surface', 'usage' => ['Cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'page sections background'], 'default' => '#121e2d'],
+        'textprimary'       => ['section' => 'surface', 'label' => 'Text primary', 'usage' => ['main normal text', 'text in buttons', 'text in inputs'], 'default' => '#eef3f9'],
+        'textsecondary'     => ['section' => 'surface', 'label' => 'Text secondary', 'usage' => ['secondary normal text', 'placeholders'], 'default' => '#94a3b8'],
+        'borderprimary'     => ['section' => 'surface', 'label' => 'Border primary', 'usage' => ['main border color'], 'default' => '#223244'],
+        'bordersecondary'   => ['section' => 'surface', 'label' => 'Border secondary', 'usage' => ['secondary border color'], 'default' => '#33475e'],
+        'hoverbackground'   => ['section' => 'surface', 'label' => 'Hover Background', 'usage' => ['hover background'], 'default' => '#16222f'],
+        'hovertext'         => ['section' => 'surface', 'label' => 'Hover Text', 'usage' => ['hover text'], 'default' => '#7fabdb'],
+
+        // --- Status -----------------------------------------------------------
+        'error'             => ['section' => 'status', 'label' => 'Error', 'usage' => ['Errors', 'danger / destructive actions', 'invalid fields'], 'default' => '#d07f43'],
+        'success'           => ['section' => 'status', 'label' => 'Success', 'usage' => ['Success', 'enrolled / active / paid', 'positive states'], 'default' => '#3fa877'],
+        'warning'           => ['section' => 'status', 'label' => 'Warning', 'usage' => ['Warnings', 'caution', 'pending / expiring'], 'default' => '#d8c24e'],
+        'info'              => ['section' => 'status', 'label' => 'Info', 'usage' => ['Neutral notices', 'tips', 'hints'], 'default' => '#5fb0c9'],
     ];
+}
+
+/**
+ * The navbar-title SHAPE choices — the one navbar decision that is not a colour.
+ *
+ * A title can answer the cursor (and mark the page you are on) with an
+ * underline, extra weight, a filled square behind it, or all three at once. That
+ * is a style choice an administrator makes per Brand-Colors group, so it is
+ * stored per group as `theme_nit/navbarshape_<gkey>_<state>` and consumed as
+ * three CSS custom properties per state (see theme_nit_navbar_shape_scss()).
+ *
+ * Each entry says which of the three treatments the shape switches on. Nothing
+ * else in the theme has to know the shape names.
+ *
+ * @return array<string, array{label:string, underline:bool, bold:bool, square:bool}>
+ */
+function theme_nit_navbar_title_shapes(): array {
+    return [
+        'underline' => ['label' => 'Under line', 'underline' => true,  'bold' => false, 'square' => false],
+        'bold'      => ['label' => 'Bold',       'underline' => false, 'bold' => true,  'square' => false],
+        'square'    => ['label' => 'Square background', 'underline' => false, 'bold' => false, 'square' => true],
+        'all'       => ['label' => 'All',        'underline' => true,  'bold' => true,  'square' => true],
+    ];
+}
+
+/**
+ * The two navbar-title states that carry a shape, and each one's default.
+ *
+ * The defaults are the look the bar already had: hover paints a soft pad behind
+ * the title (a "square background" whose colour seeds to the group's Hover
+ * Background), and the current page is marked with an underline in the group's
+ * accent — which is the one thing the bar could not say before, because "active"
+ * was a colour change alone and the two accents in most groups are the same hue.
+ *
+ * @return array<string, array{label:string, default:string}> state key => meta
+ */
+function theme_nit_navbar_title_states(): array {
+    return [
+        'titlehover'  => ['label' => 'Title hover style shape', 'default' => 'square'],
+        'titleactive' => ['label' => 'Title active style shape', 'default' => 'underline'],
+    ];
+}
+
+/**
+ * The shape an administrator chose for one group / state.
+ *
+ * @param string $group group key (g1..g5)
+ * @param string $state state key (see theme_nit_navbar_title_states())
+ * @return string a key of theme_nit_navbar_title_shapes()
+ */
+function theme_nit_navbar_title_shape(string $group, string $state): string {
+    $states = theme_nit_navbar_title_states();
+    $default = $states[$state]['default'] ?? 'underline';
+    $value = get_config('theme_nit', 'navbarshape_' . $group . '_' . $state);
+    return (is_string($value) && array_key_exists($value, theme_nit_navbar_title_shapes()))
+        ? $value : $default;
 }
 
 /**
@@ -717,6 +824,17 @@ function theme_nit_brand_group_defaults(): array {
             'background2'       => '#101a27',
             'navbarbackground1' => '#0c141f',
             'navbarbackground2' => '#121e2d',
+            'navbartitlecolor'  => '#eef3f9',
+            'navbartitlehovercolor' => '#7fabdb',
+            'navbartitleactivecolor' => '#7fabdb',
+            'navbartitlehoverstylecolor' => '#16222f',
+            'navbartitleactivestylecolor' => '#7fabdb',
+            'navbariconcolor'   => '#eef3f9',
+            'navbariconhovercolor' => '#7fabdb',
+            'navbariconactivecolor' => '#7fabdb',
+            'navbarlogincolor'  => '#eef3f9',
+            'navbarloginhovercolor' => '#7fabdb',
+            'navbarloginactivecolor' => '#7fabdb',
             'footerbackground1' => '#0c141f',
             'footerbackground2' => '#121e2d',
             'footerheading'     => '#7fabdb',
@@ -724,8 +842,6 @@ function theme_nit_brand_group_defaults(): array {
             'footericon'        => '#5488c4',
             'surface'           => '#121e2d',
             'textprimary'       => '#eef3f9',
-            'navbariconcolor'   => '#eef3f9',
-            'navbariconbg'      => '#121e2d',
             'textsecondary'     => '#94a3b8',
             'borderprimary'     => '#223244',
             'bordersecondary'   => '#33475e',
@@ -748,6 +864,17 @@ function theme_nit_brand_group_defaults(): array {
             'background2'       => '#0d2020',
             'navbarbackground1' => '#0a1a1a',
             'navbarbackground2' => '#102727',
+            'navbartitlecolor'  => '#eef5f4',
+            'navbartitlehovercolor' => '#6ccabb',
+            'navbartitleactivecolor' => '#58bdad',
+            'navbartitlehoverstylecolor' => '#143231',
+            'navbartitleactivestylecolor' => '#58bdad',
+            'navbariconcolor'   => '#eef5f4',
+            'navbariconhovercolor' => '#6ccabb',
+            'navbariconactivecolor' => '#58bdad',
+            'navbarlogincolor'  => '#eef5f4',
+            'navbarloginhovercolor' => '#58bdad',
+            'navbarloginactivecolor' => '#6ccabb',
             'footerbackground1' => '#0a1a1a',
             'footerbackground2' => '#102727',
             'footerheading'     => '#58bdad',
@@ -755,8 +882,6 @@ function theme_nit_brand_group_defaults(): array {
             'footericon'        => '#2f9e8f',
             'surface'           => '#102727',
             'textprimary'       => '#eef5f4',
-            'navbariconcolor'   => '#eef5f4',
-            'navbariconbg'      => '#102727',
             'textsecondary'     => '#8aa5a2',
             'borderprimary'     => '#1f3f3d',
             'bordersecondary'   => '#2f5a56',
@@ -779,6 +904,17 @@ function theme_nit_brand_group_defaults(): array {
             'background2'       => '#151425',
             'navbarbackground1' => '#11101c',
             'navbarbackground2' => '#1a182d',
+            'navbartitlecolor'  => '#efedf7',
+            'navbartitlehovercolor' => '#b4a9ee',
+            'navbartitleactivecolor' => '#a99ee2',
+            'navbartitlehoverstylecolor' => '#201e34',
+            'navbartitleactivestylecolor' => '#a99ee2',
+            'navbariconcolor'   => '#efedf7',
+            'navbariconhovercolor' => '#b4a9ee',
+            'navbariconactivecolor' => '#a99ee2',
+            'navbarlogincolor'  => '#efedf7',
+            'navbarloginhovercolor' => '#a99ee2',
+            'navbarloginactivecolor' => '#b4a9ee',
             'footerbackground1' => '#11101c',
             'footerbackground2' => '#1a182d',
             'footerheading'     => '#a99ee2',
@@ -786,8 +922,6 @@ function theme_nit_brand_group_defaults(): array {
             'footericon'        => '#8478cf',
             'surface'           => '#1a182d',
             'textprimary'       => '#efedf7',
-            'navbariconcolor'   => '#efedf7',
-            'navbariconbg'      => '#1a182d',
             'textsecondary'     => '#9691b3',
             'borderprimary'     => '#2d2a45',
             'bordersecondary'   => '#433d64',
@@ -852,6 +986,21 @@ function theme_nit_brand_group_defaults(): array {
             // across its top be seen at all.
             'navbarbackground1' => '#ffffff',
             'navbarbackground2' => '#f6f8fb',   // N50
+            // The bar is light here, so everything drawn on it — the titles, the
+            // glyphs, the log-in link — is the body ink, not near-white. Their
+            // hover / active states go DARKER (A700 / A800), because on a light
+            // ground a state has to beat the paper, not the ink.
+            'navbartitlecolor'  => '#14191f',   // N900
+            'navbartitlehovercolor' => '#073b78',   // A800
+            'navbartitleactivecolor' => '#0e509d',  // A700
+            'navbartitlehoverstylecolor' => '#f1f3f6',  // N100 — the hover pad
+            'navbartitleactivestylecolor' => '#0e509d', // A700 — the underline
+            'navbariconcolor'   => '#14191f',   // N900
+            'navbariconhovercolor' => '#073b78',    // A800
+            'navbariconactivecolor' => '#0e509d',   // A700
+            'navbarlogincolor'  => '#14191f',   // N900
+            'navbarloginhovercolor' => '#0e509d',   // A700
+            'navbarloginactivecolor' => '#073b78',  // A800
             'footerbackground1' => '#f1f3f6',   // N100
             'footerbackground2' => '#e6e8eb',   // N200
             'footerheading'     => '#0e509d',
@@ -859,10 +1008,6 @@ function theme_nit_brand_group_defaults(): array {
             'footericon'        => '#2368bd',
             'surface'           => '#ffffff',
             'textprimary'       => '#14191f',   // N900
-            // The bar is light here, so its glyphs and its text (--nit-navbartext
-            // follows this role) are the body ink, not near-white.
-            'navbariconcolor'   => '#14191f',   // N900
-            'navbariconbg'      => '#e6e8eb',   // N200 — the hover pad
             'textsecondary'     => '#5e646b',   // N600
             'borderprimary'     => '#d5d9df',   // N300
             'bordersecondary'   => '#a7abb1',   // N400
@@ -901,6 +1046,17 @@ function theme_nit_brand_group_defaults(): array {
             'background2'       => '#14191f',   // N900
             'navbarbackground1' => '#0d1117',
             'navbarbackground2' => '#14191f',
+            'navbartitlecolor'  => '#f6f8fb',
+            'navbartitlehovercolor' => '#c0dafc',   // A200
+            'navbartitleactivecolor' => '#98c0f7',  // A300
+            'navbartitlehoverstylecolor' => '#14191f',  // N900 — the hover pad
+            'navbartitleactivestylecolor' => '#98c0f7', // A300 — the underline
+            'navbariconcolor'   => '#f6f8fb',
+            'navbariconhovercolor' => '#c0dafc',    // A200
+            'navbariconactivecolor' => '#98c0f7',   // A300
+            'navbarlogincolor'  => '#f6f8fb',
+            'navbarloginhovercolor' => '#98c0f7',   // A300
+            'navbarloginactivecolor' => '#c0dafc',  // A200
             'footerbackground1' => '#0d1117',
             'footerbackground2' => '#14191f',
             'footerheading'     => '#98c0f7',
@@ -908,8 +1064,6 @@ function theme_nit_brand_group_defaults(): array {
             'footericon'        => '#71a7ef',
             'surface'           => '#1f232a',   // N850
             'textprimary'       => '#f6f8fb',   // N50
-            'navbariconcolor'   => '#f6f8fb',
-            'navbariconbg'      => '#1f232a',
             'textsecondary'     => '#a7abb1',   // N400
             'borderprimary'     => '#2a2e35',   // N800
             'bordersecondary'   => '#43484f',   // N700
@@ -949,6 +1103,7 @@ function theme_nit_brand_palette(): array {
                 'group'    => $glabel,
                 'groupkey' => $gkey,
                 'role'     => $role,
+                'section'  => $meta['section'],
                 'label'    => $meta['label'],
                 'usage'    => $meta['usage'],
                 'default'  => $groupdefaults[$gkey][$role] ?? $meta['default'],
@@ -986,6 +1141,7 @@ function theme_nit_brand_all(): array {
             'group'    => $meta['group'],
             'groupkey' => $meta['groupkey'],
             'role'     => $meta['role'],
+            'section'  => $meta['section'],
             'label'    => $meta['label'],
             'usage'    => $meta['usage'],
             'value'    => $value,
@@ -1040,6 +1196,7 @@ function theme_nit_brand_export(): array {
         $groups[$gidx[$gkey]]['roles'][] = [
             'key'      => $token['key'],
             'role'     => $token['role'],
+            'section'  => $token['section'],
             'label'    => $token['label'],
             // The semantic custom property a component consumes. Its value is the
             // active group's value: inside a .nit-brand-2/3 wrapper it resolves to
@@ -1900,6 +2057,10 @@ function theme_nit_get_extra_scss($theme) {
     // How large to draw the site logo, per place (Appearance → Logos).
     $scss .= theme_nit_logo_scss();
 
+    // Which SHAPE a navbar title takes on hover and on the current page, per
+    // brand group (gallery → Brand Colors → Navbar).
+    $scss .= theme_nit_navbar_shape_scss();
+
     if (!empty($theme->settings->scss)) {
         $scss .= $theme->settings->scss;
     }
@@ -2372,6 +2533,62 @@ function theme_nit_logo_scss(): string {
     $scss .= "}\n";
 
     return $scss;
+}
+
+/**
+ * The navbar-title shapes, as CSS — one declaration block per brand group.
+ *
+ * A shape is a choice out of four (underline / bold / square background / all)
+ * and CSS has no way to switch which RULES apply from a custom property. So the
+ * stylesheet writes the rule once, reading three properties per state, and this
+ * decides what those properties hold: the shape's own colour where the treatment
+ * is on, and an inert value (`transparent`, the resting weight) where it is off.
+ * `_navbar.scss` therefore needs no knowledge of the shape names at all.
+ *
+ * Emitted for every group in the same order _brand.scss uses — `:root` first,
+ * then the four switch classes — because a brand group class lands on <html>,
+ * the very element `:root` matches: the two selectors tie on specificity and
+ * source order is what decides. Same reason _brand.scss lists its roles that
+ * way.
+ *
+ * The bold weight is 800 against a resting 600. It never reflows the bar: the
+ * link reserves the heavier width up front through a hidden twin sized at
+ * `max()` of the two weights (see `.nit-navbar-link` in scss/components/
+ * _navbar.scss), so a group that uses no bold at all reserves nothing extra and
+ * the bar measures exactly as it did before.
+ *
+ * @return string CSS
+ */
+function theme_nit_navbar_shape_scss(): string {
+    // Rest weight, and the weight "bold" steps up to. Both are needed by the
+    // stylesheet even when no group chose bold — the twin reads them.
+    $restweight = 600;
+    $boldweight = 800;
+
+    $shapes = theme_nit_navbar_title_shapes();
+    $states = theme_nit_navbar_title_states();
+
+    $css = "\n";
+    foreach (array_keys(theme_nit_brand_groups()) as $gkey) {
+        $class = theme_nit_brand_group_class($gkey);
+        // Bare class, not `:root.<class>` — a group wrapper anywhere in the page
+        // then carries its shapes too, exactly as it carries its colours.
+        $selector = ($class === '') ? ':root' : '.' . $class;
+        $css .= $selector . " {\n";
+        foreach ($states as $state => $unused) {
+            $shape = $shapes[theme_nit_navbar_title_shape($gkey, $state)];
+            // Both treatments that paint take the state's own "style color"
+            // role, so an admin picks the shape and its colour side by side.
+            $colour = 'var(--nit-brand-navbar' . $state . 'stylecolor)';
+            $prefix = '--nit-navtitle-' . ($state === 'titlehover' ? 'hover' : 'active');
+            $css .= '    ' . $prefix . '-underline: ' . ($shape['underline'] ? $colour : 'transparent') . ";\n";
+            $css .= '    ' . $prefix . '-bg: ' . ($shape['square'] ? $colour : 'transparent') . ";\n";
+            $css .= '    ' . $prefix . '-weight: ' . ($shape['bold'] ? $boldweight : $restweight) . ";\n";
+        }
+        $css .= "}\n";
+    }
+
+    return $css;
 }
 
 /**

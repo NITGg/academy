@@ -28,6 +28,14 @@
     Hidden below the `md` breakpoint: on a phone these same links are already in
     the drawer that the burger opens.
 
+    Every label is written TWICE — once as `.nit-navbar-link-text`, once as an
+    aria-hidden `.nit-navbar-link-ghost` stacked on top of it. The ghost is drawn
+    invisibly at the heaviest weight the link can ever take, which is what stops
+    the bar twitching sideways when an administrator picks the "Bold" hover or
+    active shape for a brand group. See `.nit-navbar-link-label` in
+    scss/components/_navbar.scss; on a group that uses no bold the ghost measures
+    the same as the label and costs nothing.
+
     Context variables required for this template:
     * items - [{text, url, title, isactive, haschildren, children:[{text, url, title}]}]
 
@@ -46,7 +54,7 @@
                 <a class="nav-link nit-navbar-link{{#isactive}} active{{/isactive}}"
                    href="{{{url}}}"
                    {{#title}}title="{{title}}"{{/title}}
-                   {{#isactive}}aria-current="page"{{/isactive}}>{{{text}}}</a>
+                   {{#isactive}}aria-current="page"{{/isactive}}><span class="nit-navbar-link-label"><span class="nit-navbar-link-text">{{{text}}}</span><span class="nit-navbar-link-ghost" aria-hidden="true">{{{text}}}</span></span></a>
             {{/haschildren}}
             {{#haschildren}}
                 <a class="nav-link nit-navbar-link dropdown-toggle{{#isactive}} active{{/isactive}}"
@@ -56,7 +64,7 @@
                    role="button"
                    aria-haspopup="true"
                    aria-expanded="false"
-                   {{#title}}title="{{title}}"{{/title}}>{{{text}}}</a>
+                   {{#title}}title="{{title}}"{{/title}}><span class="nit-navbar-link-label"><span class="nit-navbar-link-text">{{{text}}}</span><span class="nit-navbar-link-ghost" aria-hidden="true">{{{text}}}</span></span></a>
                 <div class="dropdown-menu nit-navbar-dropdown" aria-labelledby="nit-navbar-link-{{moremenuid}}">
                     {{#children}}
                         {{^divider}}

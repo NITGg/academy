@@ -49,6 +49,8 @@ $string['brandcolourssaved'] = 'Brand Colors saved. The theme CSS has been rebui
 $string['brandcoloursreset'] = 'Brand Colors reset to the defaults.';
 $string['savebrandcolours'] = 'Save Brand Colors';
 $string['resetbrandcolours'] = 'Reset to defaults';
+$string['brandgroupswitch'] = 'Which group to edit';
+$string['navbarshape_usage'] = 'how the title marks the state — drawn in the matching style color above';
 
 // Category styles: the brand group and the navbar logo each main category uses,
 // once for light mode and once for dark mode.
