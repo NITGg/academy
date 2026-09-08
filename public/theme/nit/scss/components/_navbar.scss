@@ -48,9 +48,6 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     --bs-navbar-active-color: var(--nit-navbaraccent, #{$nit-gold-500});
 
     background-color: var(--nit-navbarbg, #{$nit-navy-900});
-    // Pronounced drop shadow so the bar separates from the content beneath it,
-    // even on a dark page.
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
     // Base foreground: everything on the bar inherits light unless overridden.
     color: var(--nit-navbartext, #{$nit-on-navy});
 
@@ -70,6 +67,15 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // the navy field. Repeating both classes here beats it.
     &.navbar.fixed-top {
         border-bottom: 0;
+        // ...and the same two-class rule zeroes the drop shadow, which is why
+        // the bar had none: a `box-shadow` on a bare `.nit-navbar` was dead code
+        // for as long as it has been written there. Declared here it lands.
+        // Kept light on purpose — two soft stops (a close one to seat the edge,
+        // a wide one for depth) read as a lift rather than a bruise, which
+        // matters on a translucent bar where a heavy shadow looks like grime.
+        // Neutral black, not a brand colour: this is a shadow, same call the
+        // dropdown panels above make.
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18), 0 8px 24px rgba(0, 0, 0, 0.28);
     }
 
     // ---- Brand: compact logo + gold wordmark --------------------------------
