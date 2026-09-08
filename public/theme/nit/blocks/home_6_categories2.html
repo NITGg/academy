@@ -147,7 +147,26 @@
     // getting in first means the cards are in the document before anything else
     // measures the page.
     (function() {
-      var grid = document.querySelector('[data-nit-catgrid]');
+      // SCOPED TO THIS COPY OF THE BLOCK, never to the whole page.
+      // document.currentScript is this very script element while the parser is
+      // still sitting on it, so its enclosing [data-nit-catsection] is this
+      // block's own section - and every lookup below starts from there.
+      //
+      // A bare document.querySelector was wrong the moment a second copy of this
+      // block shared the front page, which is exactly what happens while an old
+      // copy is being replaced: the newer copy's script found the OLDER copy's
+      // grid, saw it already filled and returned - so the newer section drew no
+      // cards at all - and then set the older copy's logo instead of its own,
+      // leaving the newer one showing the shipped fallback picture rather than
+      // the site's. Two copies now each render themselves and neither can reach
+      // into the other.
+      var self = document.currentScript;
+      var root = (self && self.closest && self.closest('[data-nit-catsection]'))
+        || document.querySelector('[data-nit-catsection]');
+      if (!root) {
+        return;
+      }
+      var grid = root.querySelector('[data-nit-catgrid]');
       if (!grid || grid.dataset.nitLoaded) {
         return;
       }
@@ -171,7 +190,7 @@
       // the same moment it swaps the palette, and "compact" asks for the navbar
       // mark, so the bar and this section turn over together. "full" would ask
       // for the wide lock-up instead.
-      var mark = document.querySelector('[data-nit-brandmark-img]');
+      var mark = root.querySelector('[data-nit-brandmark-img]');
       var logo = window.NIT_LOGO || window.NIT_LOGO_FULL || '';
       if (mark && logo) {
         mark.setAttribute('src', logo);
@@ -189,7 +208,7 @@
       // line is kept underneath it because a browser that does not understand
       // svh drops that declaration on the floor - and drops this assignment too,
       // which is what the fallback below is testing for.
-      var section = grid.closest('[data-nit-catsection]');
+      var section = root;
       var sizeSection = function() {
         if (!section) {
           return;

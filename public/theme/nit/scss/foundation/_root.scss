@@ -181,6 +181,26 @@
     --nit-shadow-2: #{$nit-shadow-2};
 }
 
+// Light-group correction for the frosted bar.
+//
+// The five groups arrange their two navbar colours the opposite way round:
+//
+//   group          page bg    navbar bg1   navbar bg2
+//   1 / 2 / 3 / 5  (dark)     == page      one step lighter   -> bg2 separates
+//   4  (Daylight)  #f6f8fb    #ffffff      == page            -> bg1 separates
+//
+// So the glass above is built on colour 2, which is right for the four dark
+// groups and exactly wrong for the light one — there bg2 seeds to the page
+// colour and a translucent pane of it would melt into the ground, the very
+// thing this change set out to fix. Group 4 therefore builds its glass from
+// colour 1 (#ffffff against an off-white page), which is already the distinct
+// one there. `:root.nit-brand-4` and not a bare `.nit-brand-4`: _brand.scss is
+// concatenated BEFORE this file, so a single-class selector ties with `:root`
+// on specificity and loses on source order.
+:root.nit-brand-4 {
+    --nit-navbarglass: color-mix(in srgb, var(--nit-navbarbg) 72%, transparent);
+}
+
 // No prefers-color-scheme override: Group 1 of the Brand Colors palette is
 // itself the dark brand (dark-blue background, white text), so the site renders
 // in the brand regardless of the OS light/dark preference. The legacy
