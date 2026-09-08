@@ -32,3 +32,43 @@
     color: var(--nit-brand-textprimary);
     border-color: var(--nit-brand-borderprimary);
 }
+
+// -----------------------------------------------------------------------------
+// No footer on the account screens (log in, sign up, forgot password, confirm).
+//
+// The site footer band itself is not even rendered on these — see
+// theme_nit\output\core_renderer::nit_site_footer(). What is left is Boost's own
+// `#page-footer.footer-popover`, and it still shows: the round "?" / chat buttons
+// float over the panel from the `sm` breakpoint up, and BELOW `sm` Boost prints
+// `.footer-content-popover` inline (its `display: none` is inside a
+// `media-breakpoint-up(sm)` block), so a phone gets a block of support links,
+// "You are not logged in" and "Powered by Moodle" stacked under the sign-up form.
+//
+// The element is kept in the DOM rather than dropped from the template, because
+// `.footer-content-popover` is where core writes `standard_footer_html` and
+// `standard_end_of_body_html` — the page's own closing scripts. Hiding it is what
+// Boost already does on every desktop page, so nothing here is new behaviour;
+// it is only extended down to the small breakpoint on this one layout.
+//
+// `.footer-content-debugging` is deliberately left alone: on a site with
+// debugging on, that panel is the only place an error on the log-in screen is
+// visible, and it draws nothing at all when there is no message.
+//
+// The background override is `!important` for the same reason as the rule above:
+// it is undoing Boost's `.bg-white` utility, which is itself `!important`.
+// -----------------------------------------------------------------------------
+
+body.pagelayout-login {
+    #page-footer.footer-popover {
+        background-color: transparent !important;
+        border: 0;
+        padding: 0;
+
+        // The floating "?" / communication buttons, and the inline link list
+        // that Boost only hides from `sm` up.
+        [data-region="footer-container-popover"],
+        .footer-content-popover {
+            display: none;
+        }
+    }
+}

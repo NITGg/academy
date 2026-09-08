@@ -271,7 +271,10 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     //
     // The glyph shown is the mode the button switches TO, which is the
     // convention every site with this control uses: a moon while the site is
-    // light ("go dark"), a sun while it is dark ("go light").
+    // light ("go dark"), a lightbulb while it is dark ("go light"). The second
+    // one is a bulb and not the usual sun because at 14px `fa-sun` and the
+    // `fa-gear` two buttons along it are the same silhouette — see the note in
+    // theme_nit/navbar_mode_toggle.
     .nit-mode-toggle {
         .nit-mode-icon {
             display: none;

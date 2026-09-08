@@ -24,7 +24,16 @@
     "Change style" tab → "Site styles"); the click handler swaps that group's
     switch class on <html>, so the page re-skins with no reload. `data-nit-mode`
     holds the mode currently showing — CSS keys the icon off it, so the button
-    shows a moon in light mode and a sun in dark, i.e. the mode it switches TO.
+    shows a moon in light mode and a lightbulb in dark, i.e. the mode it
+    switches TO.
+
+    The dark-mode glyph is a lightbulb rather than the usual sun on purpose. At
+    the navbar's 14px, FontAwesome's `fa-sun` — a filled disc ringed with
+    triangular rays — is very nearly the same silhouette as `fa-gear`, and the
+    gear sits two buttons along on the same bar, so the pair read as one control
+    duplicated. The outline `fa-regular fa-sun` is no better at that size; the
+    rays still dominate. A bulb keeps the on/off reading of the pair ("turn the
+    light on") with a silhouette nothing else on the bar shares.
 
     Both icons are in the markup and CSS hides the one that does not apply,
     rather than JavaScript rewriting the glyph: the icon then follows the
@@ -51,6 +60,6 @@
         data-nit-mode-toggle data-nit-mode="{{mode}}" data-nit-mode-config="{{config}}"
         title="{{label}}" aria-label="{{label}}">
     <i class="icon fa fa-moon fa-fw nit-mode-icon nit-mode-icon-dark m-0" aria-hidden="true"></i>
-    <i class="icon fa fa-sun fa-fw nit-mode-icon nit-mode-icon-light m-0" aria-hidden="true"></i>
+    <i class="icon fa fa-lightbulb fa-fw nit-mode-icon nit-mode-icon-light m-0" aria-hidden="true"></i>
     <span class="visually-hidden nit-mode-toggle-label">{{label}}</span>
 </button>

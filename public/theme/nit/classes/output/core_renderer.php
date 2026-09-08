@@ -154,7 +154,16 @@ JS;
         // not there at all. Boost's own config.php spells out that this layout
         // must make no database or cache calls, and reading the footer's content
         // is exactly that, so it is the one page the band is left off.
-        if ($this->page->pagelayout === 'maintenance' || during_initial_install()) {
+        //
+        // The `login` layout (log in, sign up, forgot password, confirm) is left
+        // off too, but for a design reason rather than a technical one: those
+        // screens are a full-height two-panel composition with the picture panel
+        // running to the bottom of the viewport, and a band of link columns
+        // underneath it turns that into a scrolling page for no gain. The links
+        // it carries are all reachable from the site the visitor lands on after
+        // signing in.
+        $footerlesslayouts = ['maintenance', 'login'];
+        if (in_array($this->page->pagelayout, $footerlesslayouts, true) || during_initial_install()) {
             return '';
         }
 
