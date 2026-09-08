@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_payments';
-$plugin->version   = 2026090213;   // AC-4.16.3 lapsed-subscription notice + Renew on the course page.
+$plugin->version   = 2026090800;   // Price badge confined to cards; country_diagnose.php; pricing completeness rule.
 $plugin->requires  = 2024100700; // Moodle 4.5+
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_STABLE;

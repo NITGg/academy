@@ -53,15 +53,35 @@ class price_resolver {
     public static function pricing_gaps(int $courseid, string $homecurrency = 'EGP'): array {
         global $DB;
 
+        return self::gaps_for_rows(
+            $DB->get_records('local_payments_course_prices', ['courseid' => $courseid]),
+            $homecurrency
+        );
+    }
+
+    /**
+     * The same verdict, asked about a set of rows rather than about a course.
+     *
+     * Split out so a form can ask "what would this course look like AFTER the save
+     * I am about to make?" and refuse a save that breaks it. Checking the database
+     * before writing to it would answer the wrong question — it describes the
+     * course as it is, not as the admin is about to leave it.
+     *
+     * @param array $rows rows of local_payments_course_prices (active and not)
+     * @param string $homecurrency ISO 4217 the home country should be priced in
+     * @return array same shape as {@see self::pricing_gaps()}
+     */
+    public static function gaps_for_rows(array $rows, string $homecurrency = 'EGP'): array {
         $home = country_detector::fallback_country();
         $homecurrency = strtoupper($homecurrency);
 
-        $rows = $DB->get_records('local_payments_course_prices',
-            ['courseid' => $courseid, 'is_active' => 1]);
+        $active = array_filter($rows, function ($row) {
+            return (int) $row->is_active === 1;
+        });
 
         $hashome = false;
         $default = null;
-        foreach ($rows as $row) {
+        foreach ($active as $row) {
             if ((string) $row->country === $home) {
                 $hashome = true;
             }
@@ -75,7 +95,7 @@ class price_resolver {
         return [
             // No active rows at all = a free course. Nothing is missing from a
             // course that is not for sale.
-            'selling' => !empty($rows),
+            'selling' => !empty($active),
             'homecountry' => $home,
             'homecurrency' => $homecurrency,
             'hashome' => $hashome,
@@ -84,9 +104,37 @@ class price_resolver {
             // The Default row is the one the rest of the world sees. Priced in the
             // home currency it is quoting a local amount to everybody abroad.
             'defaultislocal' => $default && $defaultcurrency === $homecurrency,
-            'complete' => empty($rows)
+            'complete' => empty($active)
                 || ($hashome && $default && $defaultcurrency !== $homecurrency),
         ];
+    }
+
+    /**
+     * Would this set of rows break a course that is currently priced correctly?
+     *
+     * The rule the pricing screen enforces, in one place so the form and the delete
+     * handler cannot apply it differently:
+     *
+     *   a complete course may never be made incomplete,
+     *   an incomplete one may always be changed.
+     *
+     * The second half matters as much as the first. Courses priced before this rule
+     * existed have a single row, and a flat "must be complete to save" would trap
+     * them: every edit that fixes them starts from an incomplete course. Making the
+     * test about the DIRECTION of the change is what lets the rule be enforced
+     * without freezing the courses it was written for.
+     *
+     * @param int $courseid
+     * @param array $after the rows the course would have after the save
+     * @return bool true = refuse this save
+     */
+    public static function would_break_pricing(int $courseid, array $after): bool {
+        $before = self::pricing_gaps($courseid);
+        if (!$before['complete']) {
+            return false;
+        }
+        $result = self::gaps_for_rows($after);
+        return $result['selling'] && !$result['complete'];
     }
 
     /**

@@ -70,10 +70,19 @@
         {{!
             A link home, for the same reason the navbar brand is one everywhere
             else: the logo is where a visitor reaches when they want out of the
-            account screens. Built in PHP rather than written as
-            `{{config.wwwroot}}` because this panel is a PARTIAL — the log-in and
-            sign-up pages hand it the context built in theme/nit/layout/login.php,
-            and that is where the rest of its data comes from too.
+            account screens.
+
+            The URL is built in PHP and travels in nitpanel rather than being
+            written here as a wwwroot config variable, because this panel is a
+            PARTIAL: the log-in and sign-up pages hand it the context built in
+            theme/nit/layout/login.php, and that is where the rest of its data
+            comes from too.
+
+            NOTE for anyone editing this block: a Mustache comment ends at the
+            FIRST closing double brace, so writing a tag as an EXAMPLE inside one
+            cuts the comment short there and spills the rest of it onto the page
+            as visible text. That is exactly what happened here once. Describe
+            tags in words; never paste one into a comment.
         }}
         {{#nitpanel.haslogo}}
             <a href="{{nitpanel.homeurl}}" class="nit-authpanel-logolink">

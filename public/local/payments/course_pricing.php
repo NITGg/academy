@@ -18,12 +18,25 @@ $PAGE->set_title(get_string('coursepricing', 'local_payments'));
 $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('incourse');
 
+$listurl = new moodle_url('/local/payments/course_pricing.php', ['courseid' => $courseid]);
+
 // Handle delete.
 if ($action === 'delete' && $priceid && confirm_sesskey()) {
+    // Deleting one row is the third way to leave a course half-priced, so it is
+    // refused on the same rule the form uses: a course that prices correctly may
+    // not be made to price incorrectly. Stopping the sale altogether is still
+    // allowed — that is what "Remove all prices" below is for, and it makes the
+    // course free rather than half-priced.
+    $remaining = $DB->get_records('local_payments_course_prices', ['courseid' => $courseid]);
+    unset($remaining[$priceid]);
+    if (\local_payments\price_resolver::would_break_pricing($courseid, $remaining)) {
+        redirect($listurl, get_string('error_delete_would_break', 'local_payments'),
+            null, \core\output\notification::NOTIFY_ERROR);
+    }
+
     if ($confirm) {
         $DB->delete_records('local_payments_course_prices', ['id' => $priceid, 'courseid' => $courseid]);
-        redirect(new moodle_url('/local/payments/course_pricing.php', ['courseid' => $courseid]),
-            get_string('pricedeleted', 'local_payments'));
+        redirect($listurl, get_string('pricedeleted', 'local_payments'));
     }
     echo $OUTPUT->header();
     echo $OUTPUT->confirm(
@@ -32,7 +45,28 @@ if ($action === 'delete' && $priceid && confirm_sesskey()) {
             'courseid' => $courseid, 'action' => 'delete', 'priceid' => $priceid,
             'confirm' => 1, 'sesskey' => sesskey(),
         ]),
-        new moodle_url('/local/payments/course_pricing.php', ['courseid' => $courseid])
+        $listurl
+    );
+    echo $OUTPUT->footer();
+    exit;
+}
+
+// Stop selling this course: remove every price at once. The escape hatch the
+// delete rule above needs — without it, a correctly priced course could never be
+// turned back into a free one, because every single-row delete leaves it broken.
+if ($action === 'deleteall' && confirm_sesskey()) {
+    if ($confirm) {
+        $DB->delete_records('local_payments_course_prices', ['courseid' => $courseid]);
+        redirect($listurl, get_string('pricesallremoved', 'local_payments'));
+    }
+    echo $OUTPUT->header();
+    echo $OUTPUT->confirm(
+        get_string('confirmdeleteallprices', 'local_payments'),
+        new moodle_url('/local/payments/course_pricing.php', [
+            'courseid' => $courseid, 'action' => 'deleteall',
+            'confirm' => 1, 'sesskey' => sesskey(),
+        ]),
+        $listurl
     );
     echo $OUTPUT->footer();
     exit;
@@ -58,27 +92,80 @@ if ($action === 'edit' || $action === 'add') {
         'priceid' => $priceid,
     ]);
 
+    // Giving a course its FIRST price is the decision to sell it, and that
+    // decision has to produce both required rows in one save — see
+    // course_pricing_form::definition_first_prices(). Only for a brand-new price
+    // on a course that has none: adding a third country later is one row.
+    $isfirst = !$DB->record_exists('local_payments_course_prices', ['courseid' => $courseid]);
+
     $form = new \local_payments\form\course_pricing_form($formurl, [
         'courseid' => $courseid,
         'priceid' => $priceid,
         'data' => $data,
         'prefillcountry' => $prefillcountry,
         'prefillcurrency' => $prefillcurrency,
+        'bootstrap' => ($action === 'add' && !$priceid && $isfirst),
     ]);
 
     if ($form->is_cancelled()) {
-        redirect(new moodle_url('/local/payments/course_pricing.php', ['courseid' => $courseid]));
+        redirect($listurl);
     }
 
     if ($formdata = $form->get_data()) {
-        // The first price for a course is always the default.
-        $isfirst = !$DB->record_exists('local_payments_course_prices', ['courseid' => $courseid]);
+        // `$isfirst` is re-checked here, not just trusted from the posted form:
+        // the flag decides whether this save writes ONE row or TWO, and a stale
+        // form (two tabs, a back button) must not be able to add a second home
+        // row to a course that has since been priced.
+        if (!empty($formdata->bootstrap) && !$isfirst) {
+            // The course was priced by somebody else (or another tab) while this
+            // form was open. Its fields are the two-price pair and mean nothing
+            // to the single-row path below, so send the admin back to a list that
+            // now shows what actually happened rather than writing a guess.
+            redirect($listurl, get_string('pricesaved', 'local_payments'));
+        }
+
+        if (!empty($formdata->bootstrap) && $isfirst) {
+            // Two rows, one save, one transaction: a half-written pair would be
+            // exactly the state this whole form exists to make impossible.
+            $home = \local_payments\country_detector::fallback_country();
+            $now = time();
+            $base = (object) [
+                'courseid' => $courseid,
+                'is_active' => 1,
+                'created_by' => $USER->id,
+                'timecreated' => $now,
+                'timemodified' => $now,
+            ];
+
+            $transaction = $DB->start_delegated_transaction();
+
+            $homerow = clone $base;
+            $homerow->country = $home;
+            $homerow->currency = $formdata->homecurrency;
+            $homerow->price = $formdata->homeprice;
+            $homerow->is_default = 0;
+            $DB->insert_record('local_payments_course_prices', $homerow);
+
+            // The Default row carries the is_default flag: it is the one every
+            // buyer the site cannot place in a country falls back to.
+            $defaultrow = clone $base;
+            $defaultrow->country = '*';
+            $defaultrow->currency = $formdata->defaultcurrency;
+            $defaultrow->price = $formdata->defaultprice;
+            $defaultrow->is_default = 1;
+            $DB->insert_record('local_payments_course_prices', $defaultrow);
+
+            $transaction->allow_commit();
+
+            redirect($listurl, get_string('pricesfirstsaved', 'local_payments'));
+        }
+
         $record = (object) [
             'courseid' => $courseid,
             'country' => $formdata->country,
             'currency' => $formdata->currency,
             'price' => $formdata->price,
-            'is_default' => ($isfirst || !empty($formdata->is_default)) ? 1 : 0,
+            'is_default' => !empty($formdata->is_default) ? 1 : 0,
             'is_active' => !empty($formdata->is_active) ? 1 : 0,
             'timemodified' => time(),
         ];
@@ -92,12 +179,13 @@ if ($action === 'edit' || $action === 'add') {
             $DB->insert_record('local_payments_course_prices', $record);
         }
 
-        redirect(new moodle_url('/local/payments/course_pricing.php', ['courseid' => $courseid]),
-            get_string('pricesaved', 'local_payments'));
+        redirect($listurl, get_string('pricesaved', 'local_payments'));
     }
 
     echo $OUTPUT->header();
-    echo $OUTPUT->heading(get_string($priceid ? 'editprice' : 'addprice', 'local_payments'));
+    echo $OUTPUT->heading(get_string(
+        $priceid ? 'editprice' : ($isfirst && $action === 'add' ? 'pricing_first_heading' : 'addprice'),
+        'local_payments'));
     $form->display();
     echo $OUTPUT->footer();
     exit;
@@ -244,9 +332,15 @@ if ($gaps['selling'] && !$gaps['complete']) {
                 (object) ['currency' => $gaps['defaultcurrency'], 'country' => $homename]));
     }
 
+    // Only a legacy course can be in this state: since the first-price form asks
+    // for both rows at once, and neither an edit nor a delete may break a complete
+    // course, nothing can create a half-priced course any more. What is left is the
+    // ones priced before the rule existed, and they need the way out spelled out.
     echo $OUTPUT->notification(
         html_writer::tag('strong', get_string('pricing_incomplete', 'local_payments'))
-        . html_writer::tag('ul', $items, ['class' => 'mb-0 mt-2']),
+        . html_writer::tag('ul', $items, ['class' => 'mb-0 mt-2'])
+        . html_writer::tag('p', get_string('pricing_incomplete_legacy', 'local_payments'),
+            ['class' => 'mb-0 mt-2 small']),
         'warning'
     );
 }
@@ -271,11 +365,24 @@ if (!\local_payments\country_detector::geolocation_available()) {
 }
 
 $addurl = new moodle_url('/local/payments/course_pricing.php', ['courseid' => $courseid, 'action' => 'add']);
-echo html_writer::link($addurl, get_string('addprice', 'local_payments'), ['class' => 'btn btn-primary mb-3']);
+echo html_writer::link($addurl,
+    get_string(empty($prices) ? 'pricing_first_heading' : 'addprice', 'local_payments'),
+    ['class' => 'btn btn-primary mb-3']);
 echo html_writer::link(
     new moodle_url('/local/payments/country_diagnose.php', ['courseid' => $courseid]),
     get_string('pricing_geo_check', 'local_payments'),
     ['class' => 'btn btn-outline-secondary mb-3 ms-2']);
+
+// The only way to stop selling a course. A single-row delete that would leave the
+// course half-priced is refused, so without this there would be no route back to
+// a free course at all.
+if (!empty($prices)) {
+    echo html_writer::link(
+        new moodle_url('/local/payments/course_pricing.php',
+            ['courseid' => $courseid, 'action' => 'deleteall', 'sesskey' => sesskey()]),
+        get_string('pricing_removeall', 'local_payments'),
+        ['class' => 'btn btn-outline-danger mb-3 ms-2']);
+}
 
 if (empty($prices)) {
     echo $OUTPUT->notification(get_string('noprices', 'local_payments'), 'info');

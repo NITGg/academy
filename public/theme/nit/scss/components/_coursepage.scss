@@ -212,9 +212,20 @@ body:has(.acad-cr) .acad-cr-btn.btn:hover {
     transform: translateY(-1px);
 }
 /* The generic .acad-cr link rules add an underline on hover; the CTA is a button,
-   not a text link, so keep it clean (the component already sets text-decoration). */
+   not a text link, so keep it clean (the component already sets text-decoration).
+
+   The colour has to be given back for the same reason. `.acad-cr a { color: inherit }`
+   above outranks `.btn { color: var(--bs-btn-color) }` — three classes against one —
+   so the CTA was painting itself in the CARD's ink instead of the button component's
+   foreground. In dark mode that ink is near-white and the button looked right by
+   coincidence; in light mode it is #14191f, and the CTA came out near-black on the
+   blue fill. Handing --bs-btn-color back is what makes this button identical to the
+   "Buy now" on the catalogue cards, which are <button> elements and were never
+   caught by the link rule at all. */
 body:has(.acad-cr) .acad-cr a.acad-cr-btn,
-body:has(.acad-cr) .acad-cr a.acad-cr-btn:hover {
+body:has(.acad-cr) .acad-cr a.acad-cr-btn:hover,
+body:has(.acad-cr) .acad-cr a.acad-cr-btn:focus {
+    color: var(--bs-btn-color);
     text-decoration: none;
 }
 
