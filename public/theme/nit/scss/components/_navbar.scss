@@ -48,29 +48,6 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
     to {
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18), 0 8px 24px rgba(0, 0, 0, 0.28);
-
-        // ...but a bar at rest at the top of the page is not floating over
-        // anything yet, so it should carry no shadow until the page moves. A
-        // scroll-driven timeline fades the pair in over the first 72px: no JS,
-        // no scroll listener, no class for a stylesheet to chase.
-        //
-        // Moodle's own `body.scrolled` is the wrong signal for this — Boost
-        // only sets it once scrollY passes a FULL viewport height (see
-        // theme/boost/amd/src/drawers.js), which is a drawer-hiding threshold,
-        // not a "lifted off the top" one. The shadow would sit invisible for a
-        // whole screen and then snap on.
-        //
-        // Longhands, not the `animation` shorthand: the shorthand would reset
-        // `animation-duration` to 0s, and a scroll timeline needs it left at
-        // `auto`. Where scroll timelines are unsupported the declaration above
-        // simply stands and the shadow stays on — the behaviour this replaces.
-        @supports (animation-timeline: scroll()) {
-            animation-name: nit-navbar-elevate;
-            animation-timing-function: linear;
-            animation-fill-mode: both;
-            animation-timeline: scroll(root block);
-            animation-range: 0 72px;
-        }
     }
 }
 
@@ -113,6 +90,29 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         // Neutral black, not a brand colour: this is a shadow, same call the
         // dropdown panels above make.
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18), 0 8px 24px rgba(0, 0, 0, 0.28);
+
+        // ...but a bar sitting at the top of the page is not floating over
+        // anything yet, so it should carry no shadow until the page moves. A
+        // scroll-driven timeline fades the pair in over the first 72px: no JS,
+        // no scroll listener, no class for a stylesheet to chase.
+        //
+        // Moodle's own `body.scrolled` is the wrong signal for this — Boost
+        // only sets it once scrollY passes a FULL viewport height (see
+        // theme/boost/amd/src/drawers.js), which is a drawer-hiding threshold,
+        // not a "lifted off the top" one. The shadow would stay invisible for a
+        // whole screen and then snap on.
+        //
+        // Longhands, not the `animation` shorthand: the shorthand resets
+        // `animation-duration` to 0s, and a scroll timeline needs it left at
+        // `auto`. Where scroll timelines are unsupported the declaration above
+        // simply stands and the shadow stays on — the behaviour this replaces.
+        @supports (animation-timeline: scroll()) {
+            animation-name: nit-navbar-elevate;
+            animation-timing-function: linear;
+            animation-fill-mode: both;
+            animation-timeline: scroll(root block);
+            animation-range: 0 72px;
+        }
     }
 
     // ---- Brand: compact logo + gold wordmark --------------------------------
