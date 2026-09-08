@@ -7,12 +7,25 @@
        2. a grid of the site's top-level CATEGORIES, one card each: the
           category icon, the Arabic name, a short red rule, the English name.
 
-     WHERE THE LOGO COMES FROM - window.NIT_LOGO_FULL, printed by theme_nit's
-     front-page layout. That is the wide lock-up uploaded at Site
-     administration then Appearance then Logos; window.NIT_LOGO, the compact
-     navbar mark, is the fallback, and the picture shipped in the markup below
-     is the last resort for a site that has uploaded neither. Nothing here has
-     to be re-pasted when the logo changes.
+     WHERE THE LOGO COMES FROM - window.NIT_LOGO, printed by theme_nit's
+     front-page layout. That is the SAME picture the navigation bar draws: the
+     compact mark uploaded at Site administration then Appearance then Logos,
+     read through the same get_compact_logo_url() accessor navbar.mustache
+     calls, so the bar and this section can never show different marks.
+     window.NIT_LOGO_FULL, the wide lock-up, is the fallback for a site that
+     uploaded only that one, and the picture shipped in the markup below is the
+     last resort for a site that has uploaded neither. Nothing here has to be
+     re-pasted when the logo changes.
+
+     HOW BIG IT IS DRAWN - exactly as big as the navigation bar draws it. The
+     height is var(--nit-logo-navbar), the custom property theme_nit publishes
+     from Appearance then Logos - "Logo size" multiplied by "Navigation bar logo
+     height" - and it is the very same property .nit-navbar-logo reads in
+     scss/components/_navbar.scss. Change either setting and the mark here
+     follows the bar in the same step, with nothing to re-paste. The 66px inside
+     the var() is only the fallback for a stylesheet built before that property
+     existed, and is the height the bar has always used. max-width keeps a wide
+     mark inside a narrow phone, which costs it height on that screen alone.
 
      WHERE THE CATEGORIES COME FROM - window.NIT_CATEGORIES, printed by the same
      layout. It lists every top-level category INCLUDING ones with no courses
@@ -82,9 +95,9 @@
     <div
       style="display: flex; align-items: center; justify-content: center; margin-bottom: clamp(24px, 4vh, 56px);"
       data-nit-brandmark=""> <img class="img-fluid"
-        style="display: block; width: auto; height: auto; max-width: min(460px, 86%);"
+        style="display: block; width: auto; height: var(--nit-logo-navbar, 66px); max-width: 100%;"
         src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
-        data-nit-brandmark-img="" data-nit-logo="full"> </div>
+        data-nit-brandmark-img="" data-nit-logo="compact"> </div>
 
     <div
       style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: clamp(20px, 2.6vw, 32px); align-items: stretch;"
@@ -144,16 +157,22 @@
       // has no logo at all the pasted picture stays, so the section is never a
       // gap where a brand mark should be.
       //
+      // NIT_LOGO comes first on purpose: it holds get_compact_logo_url(), the
+      // exact accessor navbar.mustache calls, so this section shows the
+      // navigation bar's own mark rather than a second, different one.
+      // NIT_LOGO_FULL is only the fallback, for a site that uploaded a wide
+      // lock-up and left the compact slot empty.
+      //
       // This runs ONCE, at load, which is right for the first paint and not
       // enough on its own: the light/dark button changes the site's logo without
       // reloading the page, and this image would have kept the previous mode's
-      // one. The `data-nit-logo="full"` attribute on the image is what the
+      // one. The `data-nit-logo="compact"` attribute on the image is what the
       // theme's mode switch looks for - it swaps every element carrying it at
-      // the same moment it swaps the palette. "full" asks for the wide lock-up,
-      // the same picture window.NIT_LOGO_FULL holds; "compact" would ask for the
-      // navbar mark.
+      // the same moment it swaps the palette, and "compact" asks for the navbar
+      // mark, so the bar and this section turn over together. "full" would ask
+      // for the wide lock-up instead.
       var mark = document.querySelector('[data-nit-brandmark-img]');
-      var logo = window.NIT_LOGO_FULL || window.NIT_LOGO || '';
+      var logo = window.NIT_LOGO || window.NIT_LOGO_FULL || '';
       if (mark && logo) {
         mark.setAttribute('src', logo);
       }

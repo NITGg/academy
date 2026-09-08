@@ -54,6 +54,16 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // Base foreground: everything on the bar inherits light unless overridden.
     color: var(--nit-navbartext, #{$nit-on-navy});
 
+    // Glass upgrade, applied only where the blur can actually be rendered —
+    // otherwise the 72% pane would let scrolled content show straight through.
+    // The -webkit- test keeps older Safari (which never unprefixed it) on board,
+    // and browsers failing both keep the solid --nit-navbarbg above.
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        background-color: var(--nit-navbarglass, rgba(18, 30, 45, 0.72));
+        -webkit-backdrop-filter: var(--nit-navbarblur, blur(18px) saturate(160%));
+        backdrop-filter: var(--nit-navbarblur, blur(18px) saturate(160%));
+    }
+
     // NIT: no line under the bar. Boost paints a $gray-300 hairline on
     // `.navbar.fixed-top` (theme/boost/scss/moodle/navbar.scss) — two classes,
     // so it outranks a bare `.nit-navbar` and the pale line survived against
