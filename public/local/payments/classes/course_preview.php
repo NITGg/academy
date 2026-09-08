@@ -174,11 +174,11 @@ class course_preview {
         }
         if (!$courseid) {
             // The visitor has left the preview: if they are only "logged in" because we made
-            // them the guest to read a course page, end that session so the rest of the site
-            // behaves exactly as it does for any anonymous visitor (login form, not a guest
-            // dashboard). A guest who chose to log in as one is left alone.
+            // them the guest to read a course page, drop them back to anonymous so the rest of
+            // the site behaves exactly as it does for any anonymous visitor (login form, not a
+            // guest dashboard). A guest who chose to log in as one is left alone.
             if (!empty($USER->{self::AUTOGUESTKEY}) && isguestuser()) {
-                require_logout();
+                self::drop_autoguest();
             }
             return;
         }
@@ -264,6 +264,57 @@ class course_preview {
             remove_temp_course_roles($context);
         }
     }
+
+    /**
+     * Drop the guest login this class made on an earlier request, back to anonymous.
+     *
+     * Deliberately NOT require_logout(). That ends the session properly - it deletes the
+     * session record, issues a new session id and closes the session for the rest of the
+     * request - which is right when someone chose to log out, and wrong here, because this
+     * runs from after_config on ordinary navigation, every time a previewer moves from a
+     * course page to anything else. Two things went wrong because of it:
+     *
+     *   * the session id changed on every such navigation, so any request still carrying the
+     *     previous cookie - a second tab, a prefetched link, a bfcache restore, a subresource
+     *     that raced the page - found no session at all. Moodle marks that session
+     *     $SESSION->has_timed_out, and the next require_login() sends the visitor to
+     *     /login/index.php?loginredirect=1, which greets them with "Your session has timed
+     *     out. Please log in again." in the middle of browsing as a guest;
+     *   * the session was closed before the page ran, so everything the page then wrote to
+     *     $SESSION was dropped on the floor - including $SESSION->wantsurl and the login
+     *     form's CSRF token, so a login submitted from that very page failed validation.
+     *
+     * Dropping the user in the session we already have costs nothing by comparison: the sid
+     * stays valid, the session stays open, and there is no session-fixation reason to issue a
+     * new id on the way *down* - the guest we are discarding holds no privileges to inherit.
+     *
+     * $SESSION->lang is carried across because it is the visitor's own choice and survives
+     * being logged out of nothing.
+     *
+     * @return void
+     */
+    protected static function drop_autoguest(): void {
+        global $SESSION;
+
+        $lang = $SESSION->lang ?? null;
+
+        // Resets $USER to the not-logged-in user and $SESSION to a fresh one, keeping this
+        // session id and leaving the session open for the page that is about to run.
+        \core\session\manager::init_empty_session();
+
+        if ($lang !== null) {
+            $SESSION->lang = $lang;
+        }
+
+        // Put the session tracking row back to "not logged in" so the online-users list and
+        // session cleanup treat it as the anonymous session it now is.
+        $record = \core\session\manager::get_session_by_sid(session_id());
+        if (!empty($record->id)) {
+            $record->userid = 0;
+            \core\session\manager::update_session($record);
+        }
+    }
+
 
     /**
      * The course id this request is asking to read, or 0 when the URL is not previewable.

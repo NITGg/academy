@@ -35,22 +35,33 @@ class price_resolver {
      *
      * One row alone always fails one of those audiences, and which one it fails
      * is invisible from the admin screen — the price simply looks right to whoever
-     * is looking at it. So the gaps are named on the pricing page instead of being
-     * left to be discovered by a buyer.
+     * is looking at it.
      *
-     * Reported, not enforced: rows can only be added one at a time, so a course
-     * is *necessarily* incomplete between the first save and the second, and a
-     * hard block would make the second row impossible to reach. A course with no
-     * rows at all is free and complete — the requirement begins with the decision
-     * to sell.
+     * The rule is ENFORCED, in three places, none of which is "refuse to save an
+     * incomplete course": rows are added one at a time, so a course is necessarily
+     * incomplete between the first save and the second, and that flat rule would
+     * make the second row unreachable. Instead —
+     *
+     *   - a course's FIRST price is taken on a form that asks for both rows and
+     *     writes them in one transaction (course_pricing_form), so a half-priced
+     *     course cannot be created;
+     *   - an edit or a delete that would make a complete course incomplete is
+     *     refused (see {@see self::would_break_pricing()});
+     *   - "Remove all prices" is the way to stop selling, which leaves the course
+     *     free rather than half-priced.
+     *
+     * This method is what remains: the verdict itself, used by all three, and by
+     * the pricing page to name the gaps in courses priced before the rule existed.
+     * A course with no active rows is free and complete — the requirement begins
+     * with the decision to sell.
      *
      * @param int $courseid
-     * @param string $homecurrency ISO 4217 the home country should be priced in
+     * @param string|null $homecurrency ISO 4217; null = the site's own (country_detector)
      * @return array{selling:bool, homecountry:string, homecurrency:string,
      *         hashome:bool, hasdefault:bool, defaultcurrency:string,
      *         defaultislocal:bool, complete:bool}
      */
-    public static function pricing_gaps(int $courseid, string $homecurrency = 'EGP'): array {
+    public static function pricing_gaps(int $courseid, ?string $homecurrency = null): array {
         global $DB;
 
         return self::gaps_for_rows(
@@ -71,9 +82,9 @@ class price_resolver {
      * @param string $homecurrency ISO 4217 the home country should be priced in
      * @return array same shape as {@see self::pricing_gaps()}
      */
-    public static function gaps_for_rows(array $rows, string $homecurrency = 'EGP'): array {
+    public static function gaps_for_rows(array $rows, ?string $homecurrency = null): array {
         $home = country_detector::fallback_country();
-        $homecurrency = strtoupper($homecurrency);
+        $homecurrency = strtoupper($homecurrency ?? country_detector::home_currency());
 
         $active = array_filter($rows, function ($row) {
             return (int) $row->is_active === 1;

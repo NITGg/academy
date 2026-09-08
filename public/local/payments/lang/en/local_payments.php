@@ -423,7 +423,7 @@ $string['geodiag_nowinner'] = 'nothing &mdash; this course has no active price r
 $string['pricing_first_heading'] = 'Set the course price';
 $string['pricing_first_note'] = 'A course that sells needs two prices, and this form asks for both at once. One row alone always quotes half your buyers in the other half\'s currency, and there is no moment in between where the course is half-priced. You can add more countries afterwards.';
 $string['pricing_first_homehdr'] = '1. {$a} — the local price';
-$string['pricing_first_homehelp'] = 'What a buyer in {$a} pays, in local money. Without this row they fall through to the price below and are quoted a foreign currency.';
+$string['pricing_first_homehelp'] = 'What a buyer in {$a->country} pays, in {$a->currency}. Without this row they fall through to the price below and are quoted a foreign currency. The currency is fixed by the site's default country — it is not a choice here, because "the local price, in dollars" is the mistake this form exists to prevent.';
 $string['pricing_first_defaulthdr'] = '2. Everyone else — the Default price';
 $string['pricing_first_defaulthelp'] = 'What every buyer OUTSIDE {$a} pays, in an international currency. This row is also used for any visitor the site cannot place in a country at all, so a course can never be without it.';
 $string['pricesfirstsaved'] = 'Both prices were saved. This course is now for sale.';
@@ -434,3 +434,7 @@ $string['pricing_removeall'] = 'Remove all prices (make the course free)';
 $string['confirmdeleteallprices'] = 'Remove every price from this course? It becomes a free course that anyone can enrol in, and nothing will be charged for it.';
 $string['pricesallremoved'] = 'All prices removed. This course is now free.';
 $string['pricing_incomplete_legacy'] = 'This course was priced before the two-price rule existed. Nothing can create a half-priced course now — the price form asks for both, and neither an edit nor a delete may break a course that prices correctly — but an existing one has to be completed by hand.';
+
+// ── The country ladder's second rung (country_diagnose.php) ─────────────────
+$string['geodiag_online'] = 'Free online lookup (profilefield_phone)';
+$string['geodiag_onlineonly'] = 'Working, but on the slow rung. No local GeoIP2 database is configured, so an address that is not already cached costs an external HTTPS call (up to one second, once per address per day). This is the same lookup the sign-up country check uses, so it is not broken — but a local .mmdb file would make it a disk read instead. Site administration → Location → IP address lookup.';

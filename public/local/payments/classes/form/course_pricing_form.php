@@ -116,6 +116,7 @@ class course_pricing_form extends \moodleform {
     protected function definition_first_prices($mform): void {
         $currencies = self::currencies();
         $home = \local_payments\country_detector::fallback_country();
+        $homecurrency = self::home_currency();
         $countries = get_string_manager()->get_list_of_countries();
         $homename = $countries[$home] ?? $home;
 
@@ -127,23 +128,39 @@ class course_pricing_form extends \moodleform {
             get_string('pricing_first_homehdr', 'local_payments', $homename));
         $mform->setExpanded('hdrhome', true);
 
-        $mform->addElement('select', 'homecurrency', get_string('currency', 'local_payments'), $currencies);
-        $mform->setDefault('homecurrency', isset($currencies['EGP']) ? 'EGP' : key($currencies));
+        // Not a choice. This row exists to price the home country in the money the
+        // home country pays in — an EGP row for Egypt — and a picker here offers
+        // "the local price, in dollars", which is the exact mistake the whole form
+        // is here to make impossible. The currency follows the site's default
+        // country (Payments settings), so a site that sells from Riyadh gets SAR
+        // without anyone editing this file.
+        $mform->addElement('static', 'homecurrencyshown',
+            get_string('currency', 'local_payments'),
+            \html_writer::tag('strong', $currencies[$homecurrency] ?? $homecurrency));
+        $mform->addElement('hidden', 'homecurrency', $homecurrency);
+        $mform->setType('homecurrency', PARAM_ALPHA);
 
         $mform->addElement('text', 'homeprice', get_string('price', 'local_payments'));
         $mform->setType('homeprice', PARAM_FLOAT);
         $mform->addRule('homeprice', null, 'required', null, 'client');
         $mform->addRule('homeprice', null, 'numeric', null, 'client');
         $mform->addElement('static', 'homehelp', '',
-            get_string('pricing_first_homehelp', 'local_payments', $homename));
+            get_string('pricing_first_homehelp', 'local_payments',
+                (object) ['country' => $homename, 'currency' => $homecurrency]));
 
-        // 2. Everybody else, in international money.
+        // 2. Everybody else, in international money. The home currency is removed
+        // from this list rather than rejected after the fact: the two rows are the
+        // local price and the foreign one, so offering EGP here only invites the
+        // error message.
+        $foreign = $currencies;
+        unset($foreign[$homecurrency]);
+
         $mform->addElement('header', 'hdrdefault',
             get_string('pricing_first_defaulthdr', 'local_payments'));
         $mform->setExpanded('hdrdefault', true);
 
-        $mform->addElement('select', 'defaultcurrency', get_string('currency', 'local_payments'), $currencies);
-        $mform->setDefault('defaultcurrency', 'USD');
+        $mform->addElement('select', 'defaultcurrency', get_string('currency', 'local_payments'), $foreign);
+        $mform->setDefault('defaultcurrency', isset($foreign['USD']) ? 'USD' : key($foreign));
 
         $mform->addElement('text', 'defaultprice', get_string('price', 'local_payments'));
         $mform->setType('defaultprice', PARAM_FLOAT);
@@ -151,6 +168,17 @@ class course_pricing_form extends \moodleform {
         $mform->addRule('defaultprice', null, 'numeric', null, 'client');
         $mform->addElement('static', 'defaulthelp', '',
             get_string('pricing_first_defaulthelp', 'local_payments', $homename));
+    }
+
+    /**
+     * The currency the site's own country pays in — see country_detector::home_currency().
+     *
+     * @return string ISO 4217
+     */
+    public static function home_currency(): string {
+        $currency = \local_payments\country_detector::home_currency();
+
+        return isset(self::currencies()[$currency]) ? $currency : 'EGP';
     }
 
     public function validation($data, $files) {
@@ -166,9 +194,11 @@ class course_pricing_form extends \moodleform {
             }
             // Two rows in the same currency are one row twice over: the Default
             // row exists to quote everybody OUTSIDE the home country, and in the
-            // home currency it is not doing that job.
-            if (!empty($data['homecurrency']) && !empty($data['defaultcurrency'])
-                    && $data['homecurrency'] === $data['defaultcurrency']) {
+            // home currency it is not doing that job. The home currency is no
+            // longer offered in that select, so this can only be reached by a
+            // forged post — which is exactly why it is still checked here and not
+            // left to the widget.
+            if (!empty($data['defaultcurrency']) && $data['defaultcurrency'] === self::home_currency()) {
                 $errors['defaultcurrency'] = get_string('error_same_currency', 'local_payments');
             }
             return $errors;

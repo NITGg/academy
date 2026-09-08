@@ -325,11 +325,10 @@ class dialcodes {
      * @return string ISO alpha-2 country code, or ''
      */
     public static function country_from_ip(bool $allowonline = false): string {
-        global $CFG, $SESSION;
+        global $SESSION;
 
         $ip = getremoteaddr();
-        if (empty($ip) || !filter_var($ip, FILTER_VALIDATE_IP,
-                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        if (!self::is_lookupable_ip($ip)) {
             // No usable public address (e.g. localhost or a LAN client behind no proxy).
             return '';
         }
@@ -347,23 +346,7 @@ class dialcodes {
             return (string) $SESSION->{$cachekey};
         }
 
-        self::$servicedown = false;
-
-        // 1) Moodle's configured GeoIP source, if any. A local .mmdb file is a disk
-        // read rather than a network call, which is the only way the 300 ms in
-        // AC-4.6.9 is comfortably met - see the class note on geoip2file.
-        if (!empty($CFG->geoip2file) || !empty($CFG->geopluginapikey)) {
-            $iso = self::country_from_moodle($ip);
-            if ($iso !== '') {
-                $SESSION->{$cachekey} = $iso;
-
-                return $iso;
-            }
-        }
-
-        // 2) Free online lookup - needs no admin setup, but is an external call, so
-        // only for the opt-in check that asks for it.
-        $iso = $allowonline ? self::country_from_online($ip) : '';
+        $iso = self::country_for_ip($ip, $allowonline);
 
         // Only a settled answer is worth caching. A failure caused by the lookup
         // hosts being unreachable is a transient state of ours, and pinning it to
@@ -373,6 +356,67 @@ class dialcodes {
         }
 
         return $iso;
+    }
+
+    /**
+     * Is this address one a geolocation lookup could place at all?
+     *
+     * Loopback and LAN ranges are not "somewhere the lookup failed"; they are
+     * addresses that name no country anywhere. Behind a reverse proxy with
+     * `$CFG->getremoteaddrconf` unset, this is what every visitor looks like.
+     *
+     * @param string $ip
+     * @return bool
+     */
+    public static function is_lookupable_ip(string $ip): bool {
+        return $ip !== '' && filter_var($ip, FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+    }
+
+    /**
+     * The country ladder for ONE named address, with no session caching.
+     *
+     * Split out of {@see self::country_from_ip()} so anything that has to place an
+     * address other than the current visitor's uses the same ladder instead of
+     * writing a second, weaker one.
+     *
+     * local_payments is exactly that caller. Pricing is by country, and its own
+     * lookup asked only Moodle's configured GeoIP source — so on a site where the
+     * configured .mmdb path points at a file that is not there and the free online
+     * lookup is doing all the real work, sign-up could place a visitor in Egypt
+     * while the shop could not place them at all and quoted them the default price
+     * in dollars. Two ladders, two answers, one visitor.
+     *
+     * Sets {@see self::$servicedown}, so read {@see self::service_was_down()} right
+     * after calling this when the difference between "nobody could place this
+     * address" and "we could not ask anybody" matters.
+     *
+     * @param string $ip a public IP address
+     * @param bool $allowonline allow the external lookup when no local source answers
+     * @return string ISO alpha-2 country code, or ''
+     */
+    public static function country_for_ip(string $ip, bool $allowonline = false): string {
+        global $CFG;
+
+        self::$servicedown = false;
+
+        if (!self::is_lookupable_ip($ip)) {
+            return '';
+        }
+
+        // 1) Moodle's configured GeoIP source, if any. A local .mmdb file is a disk
+        // read rather than a network call, which is the only way the 300 ms in
+        // AC-4.6.9 is comfortably met - see the class note on geoip2file.
+        if (!empty($CFG->geoip2file) || !empty($CFG->geopluginapikey)) {
+            $iso = self::country_from_moodle($ip);
+            if ($iso !== '') {
+                return $iso;
+            }
+        }
+
+        // 2) Free online lookup - needs no admin setup, but is an external call, so
+        // only for the opt-in features that ask for it.
+        return $allowonline ? self::country_from_online($ip) : '';
     }
 
     /**

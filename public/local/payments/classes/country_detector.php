@@ -167,6 +167,28 @@ class country_detector {
     }
 
     /**
+     * The money the site's own country pays in.
+     *
+     * Follows the "default country" setting rather than being hard-coded, so a site
+     * selling from Riyadh gets SAR without an edit here. Anything unmapped falls back
+     * to EGP — the currency this plugin was written for — because a course priced in
+     * a currency nobody local uses is worse than one priced in the wrong local one.
+     *
+     * Lives here rather than on the pricing form because it is a fact about the SITE,
+     * and both the form and the completeness rule need the same answer.
+     *
+     * @return string ISO 4217 (uppercase)
+     */
+    public static function home_currency(): string {
+        $map = [
+            'EG' => 'EGP', 'SA' => 'SAR', 'AE' => 'AED', 'KW' => 'KWD',
+            'BH' => 'BHD', 'QA' => 'QAR', 'OM' => 'OMR', 'GB' => 'GBP', 'US' => 'USD',
+        ];
+
+        return $map[self::fallback_country()] ?? 'EGP';
+    }
+
+    /**
      * The admin-configured "default country", used only where a code is mandatory.
      *
      * @return string ISO 3166-1 alpha-2 (uppercase), never empty
@@ -204,8 +226,15 @@ class country_detector {
     /**
      * Country code for an IP, or '' if it cannot be established.
      *
-     * Both hits and misses are cached: a miss otherwise re-runs the geo lookup (which can be
-     * a remote HTTP call) for every course card on every catalogue page.
+     * Hits are cached for the definition's 24 hours: a miss otherwise re-runs the geo
+     * lookup (which can be a remote HTTP call) for every course card on every catalogue
+     * page.
+     *
+     * A miss is cached too — with one exception. When the lookup failed because no
+     * source could be REACHED, that is an outage of ours and not a fact about this
+     * visitor; caching it would keep quoting them the default price for a day after
+     * the service came back. "Nobody could place this address" is a settled answer and
+     * is cached; "we could not ask anybody" is not.
      */
     private static function from_ip(string $ip): string {
         if (!self::is_public_ip($ip)) {
@@ -223,69 +252,67 @@ class country_detector {
         }
 
         $country = self::lookup_ip_country($ip);
-        $cache->set($key, $country);
+
+        if ($country !== '' || !self::lookup_service_was_down()) {
+            $cache->set($key, $country);
+        }
+
         return $country;
     }
 
     /**
      * The actual geolocation call, normalised to an ISO 3166-1 alpha-2 code.
      *
-     * Core's iplookup_find_location() hands back a *localised country name* ("Egypt", "Mexico"),
-     * never a code — feeding that straight into a country-keyed price lookup can never match.
-     * So read the ISO code from the GeoIP2 database directly, and only fall back to core (and
-     * to mapping its name back to a code) for the other providers core supports.
+     * Handed to profilefield_phone\dialcodes, which owns the site's ONE country ladder:
+     * Moodle's configured GeoIP source first, then a free online HTTPS lookup that needs
+     * no admin setup. That second rung is the whole reason this delegates rather than
+     * asking Moodle directly.
+     *
+     * This method used to stop at the first rung. On a site whose $CFG->geoip2file points
+     * at a database file that is not actually there — the state this site was in — that
+     * meant every lookup returned '' and every guest was quoted the course's default
+     * price, while the sign-up screen, which already used the full ladder, placed the
+     * same visitor in Egypt correctly. One visitor, one address, two different answers,
+     * because the shop and the sign-up form each had a lookup of their own.
+     *
+     * The online rung is opted into here (`true`). This runs behind the 24-hour cache in
+     * from_ip(), so a listing page costs at most one lookup per address per day, and
+     * getting the price right is worth an occasional one-second call — it is the same
+     * trade the registration check already makes on every submit.
+     *
+     * @param string $ip a public IP address
+     * @return string ISO 3166-1 alpha-2 (uppercase), or ''
      */
     private static function lookup_ip_country(string $ip): string {
-        global $CFG;
-
-        if (!empty($CFG->geoip2file) && file_exists($CFG->geoip2file)
-                && class_exists('\GeoIp2\Database\Reader')) {
-            try {
-                $reader = new \GeoIp2\Database\Reader($CFG->geoip2file);
-                $record = $reader->city($ip);
-                $code = (string) ($record->country->isoCode ?? '');
-                if (self::is_valid_country($code)) {
-                    return strtoupper($code);
-                }
-            } catch (\Throwable $e) {
-                // Unreadable database, or an IP the database holds no record for.
-                debugging('local_payments: GeoIP2 lookup failed for ' . $ip . ': ' . $e->getMessage(),
-                    DEBUG_DEVELOPER);
-            }
+        if (!class_exists('\profilefield_phone\dialcodes')) {
+            // The phone profile field is not installed. Nothing else on this site
+            // resolves an address, so there is no country and the default price is
+            // the honest answer.
             return '';
         }
 
-        require_once($CFG->dirroot . '/iplookup/lib.php');
         try {
-            $location = iplookup_find_location($ip);
+            $code = \profilefield_phone\dialcodes::country_for_ip($ip, true);
         } catch (\Throwable $e) {
-            debugging('local_payments: iplookup failed for ' . $ip . ': ' . $e->getMessage(), DEBUG_DEVELOPER);
+            debugging('local_payments: country lookup failed for ' . $ip . ': ' . $e->getMessage(),
+                DEBUG_DEVELOPER);
             return '';
         }
 
-        $name = trim((string) ($location['country'] ?? ''));
-        if ($name === '') {
-            return '';
-        }
-        if (self::is_valid_country($name)) {
-            return strtoupper($name);
-        }
-        return self::code_from_country_name($name);
+        return self::is_valid_country($code) ? strtoupper($code) : '';
     }
 
     /**
-     * Map a country name back to its ISO code, trying the current language first (that is the
-     * language core localised the name into) and then English.
+     * Did the most recent lookup fail because no source could be reached?
+     *
+     * Only meaningful immediately after {@see self::lookup_ip_country()}. The caller
+     * uses it to decide whether a miss is worth caching — see {@see self::from_ip()}.
+     *
+     * @return bool
      */
-    private static function code_from_country_name(string $name): string {
-        $sm = get_string_manager();
-        foreach ([null, 'en'] as $lang) {
-            $map = array_flip($sm->get_list_of_countries(true, $lang));
-            if (isset($map[$name])) {
-                return strtoupper($map[$name]);
-            }
-        }
-        return '';
+    private static function lookup_service_was_down(): bool {
+        return class_exists('\profilefield_phone\dialcodes')
+            && \profilefield_phone\dialcodes::service_was_down();
     }
 
     /**
@@ -297,6 +324,13 @@ class country_detector {
      * the admin screen that is indistinguishable from a price rule that does not work,
      * which is why the pricing page asks this and says so.
      *
+     * Answered about the WHOLE ladder, not just its first rung. A local GeoIP2 database
+     * is the fast rung and the one worth configuring, but profilefield_phone's free
+     * online lookup needs no setup at all — and a site running on that rung alone is
+     * placing visitors perfectly well. Reporting it as "no geolocation" because no
+     * .mmdb file is configured is how this plugin ended up warning about a working
+     * site while quoting the wrong price on it, which is the opposite of useful.
+     *
      * Only asks whether a lookup COULD run. Whether it will actually be handed the
      * visitor's own address is a separate question — a reverse proxy with
      * `$CFG->getremoteaddrconf` unset hides every visitor behind its own private
@@ -305,6 +339,20 @@ class country_detector {
      * @return bool
      */
     public static function geolocation_available(): bool {
+        return self::local_geolocation_available()
+            || class_exists('\profilefield_phone\dialcodes');
+    }
+
+    /**
+     * Is a LOCAL geolocation source configured — a database read rather than a network call?
+     *
+     * The difference is speed, not correctness: without one, every address that is not
+     * already cached costs an external HTTPS request. Worth telling an administrator
+     * about, which is why the diagnostics separate the two.
+     *
+     * @return bool
+     */
+    public static function local_geolocation_available(): bool {
         global $CFG;
 
         return (!empty($CFG->geoip2file) && file_exists($CFG->geoip2file))

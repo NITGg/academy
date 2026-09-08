@@ -139,9 +139,12 @@ if ($action === 'edit' || $action === 'add') {
 
             $transaction = $DB->start_delegated_transaction();
 
+            // The local currency is fixed by the site's own country, not chosen on
+            // the form — the field there is a hidden one, and a hidden field is a
+            // suggestion until the server decides otherwise.
             $homerow = clone $base;
             $homerow->country = $home;
-            $homerow->currency = $formdata->homecurrency;
+            $homerow->currency = \local_payments\form\course_pricing_form::home_currency();
             $homerow->price = $formdata->homeprice;
             $homerow->is_default = 0;
             $DB->insert_record('local_payments_course_prices', $homerow);
@@ -352,6 +355,9 @@ if ($gaps['selling'] && !$gaps['complete']) {
 // resolves to "country unknown" and is quoted the Default row, whichever country
 // they are really in. That looks exactly like a broken price rule from the admin
 // side, so say it here, where the rules are being written.
+// Asked about the whole ladder, so a site running on profilefield_phone's free online
+// lookup — which is what the sign-up country check has always used — is correctly
+// reported as working rather than warned about.
 if (!\local_payments\country_detector::geolocation_available()) {
     echo $OUTPUT->notification(
         html_writer::tag('strong', get_string('pricing_geo_off', 'local_payments'))

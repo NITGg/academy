@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_payments';
-$plugin->version   = 2026090800;   // Price badge confined to cards; country_diagnose.php; pricing completeness rule.
+$plugin->version   = 2026090801;   // Pricing uses the site's one country ladder; two-price rule enforced.
 $plugin->requires  = 2024100700; // Moodle 4.5+
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_STABLE;

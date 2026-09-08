@@ -55,6 +55,22 @@ original against ours whenever Moodle or `mod_customcert` moves:
   upstream ever makes `studentname` snapshot-aware, drop ours and convert the
   rows back.
 
+## Two plugins of ours that live outside `local/`
+
+Moodle decides where a subplugin lives, so two of ours sit under core directories.
+Both are **additive** — they add a directory, they modify nothing upstream — so
+neither is a core edit, and both are excluded from the check below:
+
+- **`public/user/profile/field/phone/`** (`profilefield_phone`) — the phone profile
+  field. It also owns the site's ONE country ladder,
+  `dialcodes::country_for_ip()`: Moodle's configured GeoIP source first, then a
+  free no-key online lookup. Both the sign-up country check and `local_payments`
+  pricing go through it. Do not write a second IP→country lookup anywhere; a site
+  whose `$CFG->geoip2file` points at a missing file works entirely on that second
+  rung, and a caller that stops at the first one silently prices every guest on
+  the default row.
+- **`public/mod/customcert/element/nitstudentname/`** — see the upgrade note above.
+
 ## How to verify no core was touched
 
 List everything changed on top of the Moodle base import, excluding our plugins
@@ -66,6 +82,8 @@ for h in $(git log --no-merges --pretty="%h" | grep -v 09316d082); do
   git show "$h" --pretty=format: --diff-filter=M --name-only
 done | sort -u \
   | grep -vE '^public/(local|theme/nit|blocks/nit_section)/' \
+  | grep -vE '^public/user/profile/field/phone/' \
+  | grep -vE '^public/mod/customcert/element/nitstudentname/' \
   | grep -vE '\.upgradenotes/|\.github/|^\.git|docs/|README|SECURITY|robots|config\.php'
 ```
 

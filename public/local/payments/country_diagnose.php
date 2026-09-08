@@ -134,6 +134,15 @@ $rows[] = $row(get_string('geodiag_geoip2lib', 'local_payments'),
     class_exists('\GeoIp2\Database\Reader') ? 'ok' : null);
 $rows[] = $row(get_string('geodiag_geoplugin', 'local_payments'),
     $hasgeoplugin ? $yes : $no, $hasgeoplugin ? 'ok' : null);
+
+// The second rung. profilefield_phone carries a free, no-setup online lookup, and it
+// is what the sign-up country check has always used — which is why registration could
+// place a visitor on a site where the shop could not. The shop now uses the same
+// ladder, so this row is part of the verdict rather than a footnote to it.
+$hasonline = class_exists('\profilefield_phone\dialcodes');
+$rows[] = $row(get_string('geodiag_online', 'local_payments'),
+    $hasonline ? $yes : $no, $hasonline ? 'ok' : null);
+
 $rows[] = $row(get_string('geodiag_available', 'local_payments'),
     $available ? $yes : $no, $available ? 'ok' : 'bad');
 
@@ -142,6 +151,9 @@ echo $table($rows);
 
 if (!$available) {
     echo $OUTPUT->notification(get_string('geodiag_nogeo', 'local_payments'), 'error');
+} else if (!\local_payments\country_detector::local_geolocation_available()) {
+    // Working, but on the slow rung: every uncached address costs an external call.
+    echo $OUTPUT->notification(get_string('geodiag_onlineonly', 'local_payments'), 'info');
 }
 
 // ── 2. Whose address does the server actually see? ──────────────────────────
