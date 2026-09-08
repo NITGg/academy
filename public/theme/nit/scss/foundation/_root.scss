@@ -147,14 +147,19 @@
     // the navbar above it, so the band is the site's brand and not a second
     // palette to keep in step. A `.nit-brand-2/3` group switch recolours it with
     // everything else, and editing a brand role on the gallery page moves it.
-    // Column headings are the primary blue and the contact / social glyphs are
-    // the body ink, which is how the footer is drawn in the Figma home frames.
+    // Column headings and the link columns are the primary blue; the contact
+    // glyphs beside the address are the body ink, as drawn in the Figma frames.
     // They deliberately do NOT read the Accent roles: those carry the red section
     // eyebrows, and pointing the footer at them turned every column heading red.
     --nit-footerbg: var(--nit-brand-footerbackground1);
     // Second footer colour — published, not yet painted (see the navbar note).
     --nit-footerbg2: var(--nit-brand-footerbackground2);
     --nit-footerheading: var(--nit-brand-primary);
+    // The link columns and the social ring read "Accent Text" — the role whose
+    // own description is "text of links". They need their own alias only because
+    // they used to share --nit-footertext with the contact prose beside them,
+    // which has to stay the body ink. The colour itself is an admin decision.
+    --nit-footerlink: var(--nit-brand-accenttext);
     --nit-footertext: var(--nit-brand-textprimary);
     --nit-footermuted: var(--nit-brand-textsecondary);
     --nit-footericon: var(--nit-brand-textprimary);

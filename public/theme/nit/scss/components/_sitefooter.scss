@@ -201,7 +201,7 @@
     a {
         font-size: 0.875rem;
         line-height: 1.6;
-        color: var(--nit-footertext);
+        color: var(--nit-footerlink);
         text-decoration: none;
 
         &:hover,
@@ -303,9 +303,9 @@
         justify-content: center;
         width: 2.75rem;
         height: 2.75rem;
-        border: 1px solid transparent;
+        border: 1px solid currentColor;
         border-radius: 50%;
-        color: var(--nit-footericon);
+        color: var(--nit-footerlink);
         text-decoration: none;
 
         i {
@@ -315,7 +315,7 @@
 
         &:hover,
         &:focus-visible {
-            border-color: var(--nit-footerborder);
+            border-color: currentColor;
             color: var(--nit-footericonhover);
         }
     }
