@@ -16,7 +16,7 @@
 // =============================================================================
 // NIT Brand Colors — the semantic colour layer (gallery "Brand Colors" tab).
 //
-// A "group" is a complete named set of the 39 semantic roles (Primary, Surface,
+// A "group" is a complete named set of the 53 semantic roles (Primary, Surface,
 // Text primary, …). Every component references a role by its ACTIVE name
 // (`--nit-brand-primary`) and, by default, resolves it from Group 1. Wrapping a
 // component in `.nit-brand-2` / `.nit-brand-3` re-points all 39 names at that
@@ -28,9 +28,109 @@
 // onto the active layer here, so the whole existing site follows the brand.
 // =============================================================================
 
+// --- The button roles, as a map ----------------------------------------------
+// Fourteen roles per group: the border and the three hover colours of the main
+// and the secondary button, and the whole resting-plus-hover set of the outline
+// button. Seventy values, published three times over (per-group reference, the
+// active layer, and each of the five switch classes) = 210 declarations, which
+// is why they are looped rather than written out the way the roles above are.
+//
+// A map is what makes the loop possible at all: SCSS cannot build a variable
+// name by interpolation, so `$nit-b-#{$g}-#{$role}` is not a thing that can be
+// written. Naming each variable once here is the only place the ninety-odd
+// `$nit-b-*` button variables have to appear.
+//
+// One of these is not always a colour: `btnoutlinebg` is re-declared as the
+// keyword `transparent` by theme_nit_get_pre_scss() whenever a group's outline
+// Fill switch is off, which is the default. Interpolation carries a keyword as
+// happily as a hex, and nothing here does colour arithmetic on it.
+$nit-b-buttonroles: (
+    "g1": (
+        "btnprimaryborder": $nit-b-g1-btnprimaryborder,
+        "btnprimaryhoverbg": $nit-b-g1-btnprimaryhoverbg,
+        "btnprimaryhovertext": $nit-b-g1-btnprimaryhovertext,
+        "btnprimaryhoverborder": $nit-b-g1-btnprimaryhoverborder,
+        "btnsecondaryborder": $nit-b-g1-btnsecondaryborder,
+        "btnsecondaryhoverbg": $nit-b-g1-btnsecondaryhoverbg,
+        "btnsecondaryhovertext": $nit-b-g1-btnsecondaryhovertext,
+        "btnsecondaryhoverborder": $nit-b-g1-btnsecondaryhoverborder,
+        "btnoutlinebg": $nit-b-g1-btnoutlinebg,
+        "btnoutlinetext": $nit-b-g1-btnoutlinetext,
+        "btnoutlineborder": $nit-b-g1-btnoutlineborder,
+        "btnoutlinehoverbg": $nit-b-g1-btnoutlinehoverbg,
+        "btnoutlinehovertext": $nit-b-g1-btnoutlinehovertext,
+        "btnoutlinehoverborder": $nit-b-g1-btnoutlinehoverborder
+    ),
+    "g2": (
+        "btnprimaryborder": $nit-b-g2-btnprimaryborder,
+        "btnprimaryhoverbg": $nit-b-g2-btnprimaryhoverbg,
+        "btnprimaryhovertext": $nit-b-g2-btnprimaryhovertext,
+        "btnprimaryhoverborder": $nit-b-g2-btnprimaryhoverborder,
+        "btnsecondaryborder": $nit-b-g2-btnsecondaryborder,
+        "btnsecondaryhoverbg": $nit-b-g2-btnsecondaryhoverbg,
+        "btnsecondaryhovertext": $nit-b-g2-btnsecondaryhovertext,
+        "btnsecondaryhoverborder": $nit-b-g2-btnsecondaryhoverborder,
+        "btnoutlinebg": $nit-b-g2-btnoutlinebg,
+        "btnoutlinetext": $nit-b-g2-btnoutlinetext,
+        "btnoutlineborder": $nit-b-g2-btnoutlineborder,
+        "btnoutlinehoverbg": $nit-b-g2-btnoutlinehoverbg,
+        "btnoutlinehovertext": $nit-b-g2-btnoutlinehovertext,
+        "btnoutlinehoverborder": $nit-b-g2-btnoutlinehoverborder
+    ),
+    "g3": (
+        "btnprimaryborder": $nit-b-g3-btnprimaryborder,
+        "btnprimaryhoverbg": $nit-b-g3-btnprimaryhoverbg,
+        "btnprimaryhovertext": $nit-b-g3-btnprimaryhovertext,
+        "btnprimaryhoverborder": $nit-b-g3-btnprimaryhoverborder,
+        "btnsecondaryborder": $nit-b-g3-btnsecondaryborder,
+        "btnsecondaryhoverbg": $nit-b-g3-btnsecondaryhoverbg,
+        "btnsecondaryhovertext": $nit-b-g3-btnsecondaryhovertext,
+        "btnsecondaryhoverborder": $nit-b-g3-btnsecondaryhoverborder,
+        "btnoutlinebg": $nit-b-g3-btnoutlinebg,
+        "btnoutlinetext": $nit-b-g3-btnoutlinetext,
+        "btnoutlineborder": $nit-b-g3-btnoutlineborder,
+        "btnoutlinehoverbg": $nit-b-g3-btnoutlinehoverbg,
+        "btnoutlinehovertext": $nit-b-g3-btnoutlinehovertext,
+        "btnoutlinehoverborder": $nit-b-g3-btnoutlinehoverborder
+    ),
+    "g4": (
+        "btnprimaryborder": $nit-b-g4-btnprimaryborder,
+        "btnprimaryhoverbg": $nit-b-g4-btnprimaryhoverbg,
+        "btnprimaryhovertext": $nit-b-g4-btnprimaryhovertext,
+        "btnprimaryhoverborder": $nit-b-g4-btnprimaryhoverborder,
+        "btnsecondaryborder": $nit-b-g4-btnsecondaryborder,
+        "btnsecondaryhoverbg": $nit-b-g4-btnsecondaryhoverbg,
+        "btnsecondaryhovertext": $nit-b-g4-btnsecondaryhovertext,
+        "btnsecondaryhoverborder": $nit-b-g4-btnsecondaryhoverborder,
+        "btnoutlinebg": $nit-b-g4-btnoutlinebg,
+        "btnoutlinetext": $nit-b-g4-btnoutlinetext,
+        "btnoutlineborder": $nit-b-g4-btnoutlineborder,
+        "btnoutlinehoverbg": $nit-b-g4-btnoutlinehoverbg,
+        "btnoutlinehovertext": $nit-b-g4-btnoutlinehovertext,
+        "btnoutlinehoverborder": $nit-b-g4-btnoutlinehoverborder
+    ),
+    "g5": (
+        "btnprimaryborder": $nit-b-g5-btnprimaryborder,
+        "btnprimaryhoverbg": $nit-b-g5-btnprimaryhoverbg,
+        "btnprimaryhovertext": $nit-b-g5-btnprimaryhovertext,
+        "btnprimaryhoverborder": $nit-b-g5-btnprimaryhoverborder,
+        "btnsecondaryborder": $nit-b-g5-btnsecondaryborder,
+        "btnsecondaryhoverbg": $nit-b-g5-btnsecondaryhoverbg,
+        "btnsecondaryhovertext": $nit-b-g5-btnsecondaryhovertext,
+        "btnsecondaryhoverborder": $nit-b-g5-btnsecondaryhoverborder,
+        "btnoutlinebg": $nit-b-g5-btnoutlinebg,
+        "btnoutlinetext": $nit-b-g5-btnoutlinetext,
+        "btnoutlineborder": $nit-b-g5-btnoutlineborder,
+        "btnoutlinehoverbg": $nit-b-g5-btnoutlinehoverbg,
+        "btnoutlinehovertext": $nit-b-g5-btnoutlinehovertext,
+        "btnoutlinehoverborder": $nit-b-g5-btnoutlinehoverborder
+    )
+);
+
 :root {
     // --- Per-group raw palettes (reference values; the switch classes read
-    //     these). 39 roles × 5 groups. -------------------------------------
+    //     these). The 39 written out here, plus the 14 button roles looped in
+    //     below from $nit-b-buttonroles. -----------------------------------
     --nit-brand-g1-primary: #{$nit-b-g1-primary};
     --nit-brand-g1-secondary: #{$nit-b-g1-secondary};
     --nit-brand-g1-accent: #{$nit-b-g1-accent};
@@ -292,6 +392,20 @@
     --nit-brand-onsecondary: var(--nit-brand-g1-onsecondary);
     // Legacy alias, kept because five component partials already read it.
     --nit-brand-on-primary: var(--nit-brand-g1-onprimary);
+
+    // The button roles, both tiers at once: every group's reference values, then
+    // the active names pointed at Group 1 like every other role above. Looped
+    // from the map because there are seventy of the first and fourteen of the
+    // second, and a hand-written list of eighty-four would only be a list of
+    // places to mistype a group number.
+    @each $g, $roles in $nit-b-buttonroles {
+        @each $role, $value in $roles {
+            --nit-brand-#{$g}-#{$role}: #{$value};
+        }
+    }
+    @each $role, $value in map-get($nit-b-buttonroles, "g1") {
+        --nit-brand-#{$role}: var(--nit-brand-g1-#{$role});
+    }
 
     // --- Derived helpers. These reference the ACTIVE role vars, so they follow
     //     whichever group is in scope automatically (no per-group duplication).
@@ -558,6 +672,22 @@
     --nit-brand-on-primary: var(--nit-brand-g5-onprimary);
 }
 
+// The button roles' half of the same five switch classes. A separate block and
+// not fourteen more lines inside each one above, for the same reason the :root
+// tier is looped: the five bodies are identical apart from the group number, and
+// that is exactly the kind of list a copy-paste gets wrong in one place.
+//
+// Declaring them after the hand-written blocks is safe because these are names
+// those blocks never mention — same specificity, no property declared twice.
+@each $sel, $g in (".nit-brand-1": "g1", ".nit-brand-2": "g2", ".nit-brand-3": "g3",
+                   ".nit-brand-4": "g4", ".nit-brand-5": "g5") {
+    #{$sel} {
+        @each $role, $value in map-get($nit-b-buttonroles, $g) {
+            --nit-brand-#{$role}: var(--nit-brand-#{$g}-#{$role});
+        }
+    }
+}
+
 // --- Bootstrap bridge -------------------------------------------------------
 // Bootstrap 5.3 paints the page through its own custom properties
 // (`body { background-color: var(--bs-body-bg) }`), and pre_scss bakes those
@@ -709,16 +839,86 @@
     --bs-link-underline-color: var(--nit-brand-accentunderline);
 }
 
+// The three brand buttons, each wired to its own six roles: background, text and
+// border, and the same three again for hover. The colours used to be derived
+// here — the border WAS the fill and the hover was the fill mixed 85% with white
+// — which is a fair guess and not something an administrator could disagree
+// with. Every role seeds to the colour that derivation produced, so this is a
+// change of vocabulary and not of appearance.
+//
+// `active` (the pressed state) reads the same three hover roles rather than a
+// fourth set. Pressing is the tail end of hovering: the cursor is already on the
+// button, and a third colour there buys a frame or two of difference in exchange
+// for six more cards per group.
 .btn-primary {
     --bs-btn-bg: var(--nit-brand-primary);
-    --bs-btn-border-color: var(--nit-brand-primary);
-    --bs-btn-color: var(--nit-brand-on-primary);
-    --bs-btn-hover-bg: color-mix(in srgb, var(--nit-brand-primary) 85%, #fff);
-    --bs-btn-hover-border-color: color-mix(in srgb, var(--nit-brand-primary) 90%, #fff);
-    --bs-btn-hover-color: var(--nit-brand-on-primary);
-    --bs-btn-active-bg: color-mix(in srgb, var(--nit-brand-primary) 80%, #fff);
-    --bs-btn-active-border-color: color-mix(in srgb, var(--nit-brand-primary) 90%, #fff);
-    --bs-btn-active-color: var(--nit-brand-on-primary);
+    --bs-btn-border-color: var(--nit-brand-btnprimaryborder);
+    --bs-btn-color: var(--nit-brand-onprimary);
+    --bs-btn-hover-bg: var(--nit-brand-btnprimaryhoverbg);
+    --bs-btn-hover-border-color: var(--nit-brand-btnprimaryhoverborder);
+    --bs-btn-hover-color: var(--nit-brand-btnprimaryhovertext);
+    --bs-btn-active-bg: var(--nit-brand-btnprimaryhoverbg);
+    --bs-btn-active-border-color: var(--nit-brand-btnprimaryhoverborder);
+    --bs-btn-active-color: var(--nit-brand-btnprimaryhovertext);
     --bs-btn-disabled-bg: var(--nit-brand-primary);
-    --bs-btn-disabled-border-color: var(--nit-brand-primary);
+    --bs-btn-disabled-border-color: var(--nit-brand-btnprimaryborder);
+    --bs-btn-disabled-color: var(--nit-brand-onprimary);
+}
+
+// The secondary button, which until now was not merely underspecified but
+// FROZEN: pre_scss bakes `$secondary` from Group 1, so a page in any other group
+// still drew Group 1's dark navy — the same bug the bridge above was written to
+// undo for the primary. Group 4 is where it showed, a near-black button on a
+// near-white page.
+.btn-secondary {
+    --bs-btn-bg: var(--nit-brand-secondary);
+    --bs-btn-border-color: var(--nit-brand-btnsecondaryborder);
+    --bs-btn-color: var(--nit-brand-onsecondary);
+    --bs-btn-hover-bg: var(--nit-brand-btnsecondaryhoverbg);
+    --bs-btn-hover-border-color: var(--nit-brand-btnsecondaryhoverborder);
+    --bs-btn-hover-color: var(--nit-brand-btnsecondaryhovertext);
+    --bs-btn-active-bg: var(--nit-brand-btnsecondaryhoverbg);
+    --bs-btn-active-border-color: var(--nit-brand-btnsecondaryhoverborder);
+    --bs-btn-active-color: var(--nit-brand-btnsecondaryhovertext);
+    --bs-btn-disabled-bg: var(--nit-brand-secondary);
+    --bs-btn-disabled-border-color: var(--nit-brand-btnsecondaryborder);
+    --bs-btn-disabled-color: var(--nit-brand-onsecondary);
+}
+
+// The outline button. `.btn-outline-secondary` only, and that is a decision
+// rather than an oversight: `.btn-outline-primary` is the MAIN button drawn as a
+// ring — its border, its label and its hover fill are all the main button's
+// colours (see the `.btn-outline-primary` block in
+// scss/foundation/_corebridge.scss, which is emitted after this file) — so it
+// already follows the Main button block above, and folding it in here would have
+// flattened two deliberately different buttons into one and repainted every
+// "+ Add …" on the site neutral in the process.
+//
+// So: the Main button block governs the filled main button and its outline form;
+// this block governs the neutral outline button — the Cancels, the Resets, the
+// "Log in as guest" — which is what "the outline button" means on nearly every
+// page here. The status outlines (`-danger`, `-success`, …) belong to neither:
+// their whole job is to BE the status colour.
+//
+// The resting background is the one role that is usually not a colour at all —
+// it comes through as `transparent` unless the group's Fill switch is on, which
+// is what keeps an outline button looking right on the page ground and on a card
+// alike. See theme_nit_button_outline_fill().
+.btn-outline-secondary {
+    --bs-btn-bg: var(--nit-brand-btnoutlinebg);
+    --bs-btn-border-color: var(--nit-brand-btnoutlineborder);
+    --bs-btn-color: var(--nit-brand-btnoutlinetext);
+    --bs-btn-hover-bg: var(--nit-brand-btnoutlinehoverbg);
+    --bs-btn-hover-border-color: var(--nit-brand-btnoutlinehoverborder);
+    --bs-btn-hover-color: var(--nit-brand-btnoutlinehovertext);
+    --bs-btn-active-bg: var(--nit-brand-btnoutlinehoverbg);
+    --bs-btn-active-border-color: var(--nit-brand-btnoutlinehoverborder);
+    --bs-btn-active-color: var(--nit-brand-btnoutlinehovertext);
+    --bs-btn-disabled-color: var(--nit-brand-btnoutlinetext);
+    --bs-btn-disabled-border-color: var(--nit-brand-btnoutlineborder);
+
+    // Core carries a direct `border-color` on the outline variants (not only the
+    // --bs-btn-border-color var), so the RESTING border needs an explicit brand
+    // value to win. The state borders follow the vars above.
+    border-color: var(--nit-brand-btnoutlineborder);
 }

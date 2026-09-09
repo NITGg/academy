@@ -260,37 +260,19 @@ div.editor_atto_toolbar
     border-color: var(--nit-brand-borderprimary);
 }
 
-// The secondary button and badge. Core baked Group 1's "Secondary" into the full
-// set of Bootstrap button variables; these are the ones that carry colour.
-.btn-secondary {
-    --bs-btn-bg: var(--nit-brand-secondary);
-    --bs-btn-border-color: var(--nit-brand-secondary);
-    --bs-btn-color: var(--nit-brand-onsecondary);
-    --bs-btn-hover-bg: var(--nit-brand-secondary-hover);
-    --bs-btn-hover-border-color: var(--nit-brand-secondary-hover);
-    --bs-btn-hover-color: var(--nit-brand-onsecondary);
-    --bs-btn-active-bg: var(--nit-brand-secondary-hover);
-    --bs-btn-active-border-color: var(--nit-brand-secondary-hover);
-    --bs-btn-active-color: var(--nit-brand-onsecondary);
-    --bs-btn-disabled-bg: var(--nit-brand-secondary);
-    --bs-btn-disabled-border-color: var(--nit-brand-secondary);
-}
-
-// An OUTLINE button is not filled, so its label sits on the PAGE, not on the
-// secondary colour — it keeps the body ink. "Text on secondary button" would be
-// the wrong role here, and would break the moment an admin tuned it for the
-// filled button.
-.btn-outline-secondary {
-    --bs-btn-color: var(--nit-brand-textprimary);
-    --bs-btn-border-color: var(--nit-brand-bordersecondary);
-    --bs-btn-hover-bg: var(--nit-brand-hoverbackground);
-    --bs-btn-hover-border-color: var(--nit-brand-bordersecondary);
-    --bs-btn-hover-color: var(--nit-brand-textprimary);
-    --bs-btn-active-bg: var(--nit-brand-hoverbackground);
-    --bs-btn-active-border-color: var(--nit-brand-bordersecondary);
-    --bs-btn-active-color: var(--nit-brand-textprimary);
-}
-
+// The secondary button and the outline button used to be bridged here, out of
+// Secondary / Border secondary / the two Hover roles, with the outline button's
+// label taken from Text primary. Both now read the six cards each owns in
+// Brand → Secondary button / Outline button, wired in scss/foundation/_brand.scss.
+//
+// The rules had to LEAVE, not be re-pointed: this file is emitted after
+// _brand.scss, and at equal specificity the later rule wins — so every card in
+// those two blocks (the hover text an admin picks, most visibly) was being
+// overwritten here a few hundred lines later. A card that cannot move its button
+// is worse than no card.
+//
+// The badge stays: it is not a button, it has no card of its own, and Secondary
+// with its own on-colour is exactly what it wants.
 .badge-secondary {
     background-color: var(--nit-brand-secondary);
     color: var(--nit-brand-onsecondary);
@@ -343,6 +325,11 @@ div.editor_atto_toolbar
     --bs-primary: var(--nit-brand-primary);
 }
 
+// Left here, and deliberately NOT moved to the Outline button block in
+// scss/foundation/_brand.scss: this is the MAIN button drawn as a ring, not the
+// neutral outline button. Every colour in it is a main-button colour, so it
+// follows Brand → Main button already; the Outline button block owns the other
+// one (the Cancels and Resets). Two different buttons, two different blocks.
 .btn-outline-primary {
     --bs-btn-color: var(--nit-brand-primary);
     --bs-btn-border-color: var(--nit-brand-primary);

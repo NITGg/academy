@@ -356,19 +356,27 @@
     // "Log in with Google" / "Log in as guest" (.login-identityprovider-btn,
     // the guest one also .btn-outline-secondary). Core paints them white with
     // grey text/border. These are secondary ACTIONS, so compose them from the
-    // button roles — Secondary fill + Border-secondary outline + brand text —
-    // not the Surface role (which is for cards / inputs), so they read as real
-    // secondary buttons and stay distinct from the surfaces around them.
+    // button roles — Secondary fill + Border-secondary outline + the label that
+    // belongs ON that fill — not the Surface role (which is for cards / inputs),
+    // so they read as real secondary buttons and stay distinct from the surfaces
+    // around them.
+    //
+    // The label is "Text on secondary button" (`onsecondary`), not the page ink:
+    // it sits on the Secondary fill this rule paints two lines above it, so it
+    // has to follow that card and not the body text. Every group seeds the two
+    // to the same hex today, so nothing moves — but an admin darkening Secondary
+    // for one group now has one card to fix instead of a button they cannot
+    // reach without repainting every paragraph on the site.
     .login-identityprovider-btn {
         background-color: var(--nit-brand-secondary);
         border-color: var(--nit-brand-bordersecondary);
-        color: var(--nit-brand-textprimary);
+        color: var(--nit-brand-onsecondary);
 
         &:hover,
         &:focus {
-            background-color: var(--nit-brand-secondary-hover, var(--nit-brand-secondary));
+            background-color: var(--nit-brand-btnsecondaryhoverbg, var(--nit-brand-secondary));
             border-color: var(--nit-brand-bordersecondary);
-            color: var(--nit-brand-textprimary);
+            color: var(--nit-brand-btnsecondaryhovertext);
         }
     }
 }

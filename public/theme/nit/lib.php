@@ -188,7 +188,7 @@ function theme_nit_colours_all(): array {
 /**
  * The named sections the roles are grouped into, in display order.
  *
- * A group is 39 roles now, which is more than anybody can scan as one flat
+ * A group is 53 roles now, which is more than anybody can scan as one flat
  * grid. The section is purely an editing aid — it changes no CSS and no export
  * shape — but it is declared here rather than in the template because the ORDER
  * of theme_nit_brand_roles() is what the gallery renders, and the two have to
@@ -215,14 +215,29 @@ function theme_nit_brand_role_sections(): array {
  * read every card. Grouped under the four things the bar is MADE of, it is two
  * glances: which part, then which state.
  *
+ * The Brand section is broken up the same way, around the three kinds of button
+ * plus the accents: a button's six cards (background / text / border, and the
+ * same three for hover) are one block, so "what does an outline button look
+ * like" is a heading rather than a search.
+ *
  * A role, a typography card or a shape card names its block with `sub`. Anything
  * without one falls into a single unlabelled block at the top of its section, so
  * the sections that have not been broken up render exactly as before.
+ *
+ * The keys are flat across every section, so a new one must not collide with a
+ * block name already in use elsewhere in the list.
  *
  * @return array<string, string> block key => display label
  */
 function theme_nit_brand_role_subsections(): array {
     return [
+        // Brand.
+        'core'         => 'Core',
+        'btnprimary'   => 'Main button',
+        'btnsecondary' => 'Secondary button',
+        'btnoutline'   => 'Outline button',
+        'link'         => 'Links and words',
+        // Navbar.
         'background' => 'Background',
         'title'      => 'Titles',
         'icon'       => 'Icons',
@@ -232,7 +247,25 @@ function theme_nit_brand_role_subsections(): array {
 }
 
 /**
- * The 39 semantic roles every Brand-Colors group is built from.
+ * Whether a group's outline buttons paint their Background role at rest.
+ *
+ * Off by default, and that default is the whole reason the switch exists: an
+ * outline button's resting fill is transparent, so it borrows the colour of
+ * whatever it sits on — the page ground on a course page, a card surface inside
+ * a filter panel. No single hex is right in both places, so the role is only
+ * consumed once an admin has said they want a filled button; until then
+ * theme_nit_get_pre_scss() re-emits the token as `transparent` and the button
+ * looks exactly as it always did.
+ *
+ * @param string $group brand group key (g1..g5)
+ * @return bool true if the Outline button Background role should be painted
+ */
+function theme_nit_button_outline_fill(string $group): bool {
+    return get_config('theme_nit', 'btnoutlinefill_' . $group) === '1';
+}
+
+/**
+ * The 53 semantic roles every Brand-Colors group is built from.
  *
  * This is the clean, small semantic layer that replaces the sprawling
  * theme_nit_colour_palette(): a component references a role by name (Primary,
@@ -252,17 +285,73 @@ function theme_nit_brand_role_subsections(): array {
 function theme_nit_brand_roles(): array {
     return [
         // --- Brand -----------------------------------------------------------
-        'primary'           => ['section' => 'brand', 'label' => 'Primary', 'usage' => ['background main button', 'checked toggles', 'progress fill', 'notification dots'], 'default' => '#5488c4'],
-        'secondary'         => ['section' => 'brand', 'label' => 'Secondary', 'usage' => ['background secondary button'], 'default' => '#1c2a3a'],
+        // Broken into blocks the way the Navbar section is: the three BUTTON
+        // kinds each own a complete set — background, text, border, and the same
+        // three again for hover — so "what does a secondary button look like" is
+        // one heading and six cards instead of a hunt through a flat grid.
+        //
+        // The button blocks do NOT mint private background/text roles.
+        // `primary` / `secondary` already ARE the two fills and `onprimary` /
+        // `onsecondary` already ARE the two labels, so they appear here as
+        // "Background" and "Text" under the button they paint. Copies would have
+        // bought the tidier heading at the price of the worse trap: an admin
+        // moving Primary and watching the main button stay exactly where it was.
+        'accent'            => ['section' => 'brand', 'sub' => 'core', 'label' => 'Accent', 'short' => 'Accent', 'usage' => ['none text'], 'default' => '#5488c4'],
+
+        // --- Brand > Main button (.btn-primary) ------------------------------
+        'primary'           => ['section' => 'brand', 'sub' => 'btnprimary', 'label' => 'Primary', 'short' => 'Background', 'usage' => ['background main button', 'checked toggles', 'progress fill', 'notification dots'], 'default' => '#5488c4'],
         // Text drawn ON a filled button, one role per button colour. These are
         // roles rather than "whatever the body ink happens to be" because the
         // right answer depends on the fill, not on the page: a light group fills
         // its main button with a dark blue and needs white on it, a dark group
         // fills it with a light blue and needs near-black. Getting that from
         // "Text primary" was wrong by construction in half the groups.
-        'onprimary'         => ['section' => 'brand', 'label' => 'Text on main button', 'usage' => ['label inside a filled main button', 'text on any primary fill'], 'default' => '#eef3f9'],
-        'onsecondary'       => ['section' => 'brand', 'label' => 'Text on secondary button', 'usage' => ['label inside a secondary button', 'label inside an outline-secondary button'], 'default' => '#eef3f9'],
-        'accent'            => ['section' => 'brand', 'label' => 'Accent', 'usage' => ['none text'], 'default' => '#5488c4'],
+        'onprimary'         => ['section' => 'brand', 'sub' => 'btnprimary', 'label' => 'Text on main button', 'short' => 'Text', 'usage' => ['label inside a filled main button', 'text on any primary fill'], 'default' => '#eef3f9'],
+        // The four that were not sayable before. The ring and the three hover
+        // colours used to be derived in CSS — the border was the fill, and the
+        // hover was the fill mixed 85% with white — which is a reasonable guess
+        // and not a decision anybody could make. Each group seeds to exactly the
+        // colour that derivation produced, so no site moves until it is edited.
+        'btnprimaryborder'  => ['section' => 'brand', 'sub' => 'btnprimary', 'label' => 'Main button border', 'short' => 'Border', 'usage' => ['the ring around a filled main button'], 'default' => '#5488c4'],
+        'btnprimaryhoverbg' => ['section' => 'brand', 'sub' => 'btnprimary', 'label' => 'Main button hover background', 'short' => 'Hover background', 'usage' => ['a main button under the cursor, or being pressed'], 'default' => '#6e9acd'],
+        'btnprimaryhovertext' => ['section' => 'brand', 'sub' => 'btnprimary', 'label' => 'Main button hover text', 'short' => 'Hover text', 'usage' => ['the label of a main button under the cursor'], 'default' => '#eef3f9'],
+        'btnprimaryhoverborder' => ['section' => 'brand', 'sub' => 'btnprimary', 'label' => 'Main button hover border', 'short' => 'Hover border', 'usage' => ['the ring around a main button under the cursor'], 'default' => '#6594ca'],
+
+        // --- Brand > Secondary button (.btn-secondary) -----------------------
+        // This block is also a fix. `$secondary` is baked from GROUP 1 in
+        // pre_scss, so until now every group's secondary button was Group 1's
+        // dark navy — the same freeze the Bootstrap bridge at the foot of
+        // scss/foundation/_brand.scss was written to undo for .btn-primary.
+        'secondary'         => ['section' => 'brand', 'sub' => 'btnsecondary', 'label' => 'Secondary', 'short' => 'Background', 'usage' => ['background secondary button'], 'default' => '#1c2a3a'],
+        'onsecondary'       => ['section' => 'brand', 'sub' => 'btnsecondary', 'label' => 'Text on secondary button', 'short' => 'Text', 'usage' => ['label inside a secondary button'], 'default' => '#eef3f9'],
+        'btnsecondaryborder' => ['section' => 'brand', 'sub' => 'btnsecondary', 'label' => 'Secondary button border', 'short' => 'Border', 'usage' => ['the ring around a secondary button'], 'default' => '#1c2a3a'],
+        'btnsecondaryhoverbg' => ['section' => 'brand', 'sub' => 'btnsecondary', 'label' => 'Secondary button hover background', 'short' => 'Hover background', 'usage' => ['a secondary button under the cursor, or being pressed'], 'default' => '#182431'],
+        'btnsecondaryhovertext' => ['section' => 'brand', 'sub' => 'btnsecondary', 'label' => 'Secondary button hover text', 'short' => 'Hover text', 'usage' => ['the label of a secondary button under the cursor'], 'default' => '#eef3f9'],
+        'btnsecondaryhoverborder' => ['section' => 'brand', 'sub' => 'btnsecondary', 'label' => 'Secondary button hover border', 'short' => 'Hover border', 'usage' => ['the ring around a secondary button under the cursor'], 'default' => '#16222e'],
+
+        // --- Brand > Outline button (.btn-outline-secondary) -----------------
+        // The NEUTRAL outline button: the Cancels, the Resets, "Log in as
+        // guest". Its primary-coloured cousin `.btn-outline-primary` is not
+        // here, because it is the main button drawn as a ring rather than a
+        // second kind of outline button — every colour in it is a main-button
+        // colour, so it follows the Main button block above. See the
+        // `.btn-outline-primary` note in scss/foundation/_corebridge.scss.
+        //
+        // The one block whose background is not painted by default. An outline
+        // button IS its ring: the resting fill is transparent, so the button
+        // takes the colour of whatever it happens to sit on — the page here, a
+        // card two screens later — and one flat colour cannot be both. So the
+        // colour is offered with a switch beside it
+        // (theme_nit_button_outline_fill()), and the switch is off until an
+        // admin actually asks for a filled one.
+        'btnoutlinebg'      => ['section' => 'brand', 'sub' => 'btnoutline', 'label' => 'Outline button background', 'short' => 'Background', 'usage' => ['the fill behind an outline button — drawn only while "Fill the background" is ticked'], 'default' => '#0c141f'],
+        'btnoutlinetext'    => ['section' => 'brand', 'sub' => 'btnoutline', 'label' => 'Outline button text', 'short' => 'Text', 'usage' => ['the label of an outline button'], 'default' => '#eef3f9'],
+        'btnoutlineborder'  => ['section' => 'brand', 'sub' => 'btnoutline', 'label' => 'Outline button border', 'short' => 'Border', 'usage' => ['the ring that IS the outline button'], 'default' => '#33475e'],
+        'btnoutlinehoverbg' => ['section' => 'brand', 'sub' => 'btnoutline', 'label' => 'Outline button hover background', 'short' => 'Hover background', 'usage' => ['an outline button under the cursor, or being pressed'], 'default' => '#16222f'],
+        'btnoutlinehovertext' => ['section' => 'brand', 'sub' => 'btnoutline', 'label' => 'Outline button hover text', 'short' => 'Hover text', 'usage' => ['the label of an outline button under the cursor'], 'default' => '#7fabdb'],
+        'btnoutlinehoverborder' => ['section' => 'brand', 'sub' => 'btnoutline', 'label' => 'Outline button hover border', 'short' => 'Hover border', 'usage' => ['the ring around an outline button under the cursor'], 'default' => '#33475e'],
+
+        // --- Brand > Links and words -----------------------------------------
         // The three text-facing accents. They used to be ONE role ("Accent
         // Text") whose card listed three usages, which made them unsayable
         // apart: an admin who wanted a quieter underline had to move every link
@@ -281,9 +370,9 @@ function theme_nit_brand_roles(): array {
         // one under a hovered link (Boost ships `$link-decoration: none`) and it
         // was `currentColor` before — i.e. the hover ink. Seeding it there is
         // what makes the split invisible until someone uses it.
-        'accenttext'        => ['section' => 'brand', 'label' => 'Link Text', 'usage' => ['text of links'], 'default' => '#7fabdb'],
-        'accentwords'       => ['section' => 'brand', 'label' => 'Important Words', 'usage' => ['a word highlighted inside a heading', 'a sale price', 'inline code', 'a status word that is not a link'], 'default' => '#7fabdb'],
-        'accentunderline'   => ['section' => 'brand', 'label' => 'Underlines', 'usage' => ['the underline drawn under a link', 'accent rules under a heading'], 'default' => '#7fabdb'],
+        'accenttext'        => ['section' => 'brand', 'sub' => 'link', 'label' => 'Link Text', 'short' => 'Link text', 'usage' => ['text of links'], 'default' => '#7fabdb'],
+        'accentwords'       => ['section' => 'brand', 'sub' => 'link', 'label' => 'Important Words', 'short' => 'Important words', 'usage' => ['a word highlighted inside a heading', 'a sale price', 'inline code', 'a status word that is not a link'], 'default' => '#7fabdb'],
+        'accentunderline'   => ['section' => 'brand', 'sub' => 'link', 'label' => 'Underlines', 'short' => 'Underlines', 'usage' => ['the underline drawn under a link', 'accent rules under a heading'], 'default' => '#7fabdb'],
 
         // --- Navbar ----------------------------------------------------------
         // The bar owns its whole palette rather than borrowing the page's. Every
@@ -332,7 +421,21 @@ function theme_nit_brand_roles(): array {
         'background'        => ['section' => 'surface', 'label' => 'Background', 'usage' => ['page background'], 'default' => '#0c141f'],
         'background2'       => ['section' => 'surface', 'label' => 'Second background', 'usage' => ['alternate page sections', 'bands lifted off the page ground'], 'default' => '#101a27'],
         'surface'           => ['section' => 'surface', 'label' => 'Surface', 'usage' => ['Cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'page sections background'], 'default' => '#121e2d'],
-        'textprimary'       => ['section' => 'surface', 'label' => 'Text primary', 'usage' => ['main normal text', 'text in buttons', 'text in inputs'], 'default' => '#eef3f9'],
+        // "text in buttons" is deliberately NOT one of these any more. Every
+        // button label has a card of its own in the Brand section — "Text on
+        // main button", "Text on secondary button", "Outline button text" and
+        // their hover twins — because a label's colour is decided by the FILL
+        // under it, not by the page: the same near-white that reads on a dark
+        // page is invisible on Group 4's light one. Leaving the usage here sent
+        // an admin to the wrong card, where moving Text primary to fix one
+        // button repainted every paragraph on the site and still left the
+        // button wrong in half the groups.
+        //
+        // What stays is the ink of the controls that only LOOK like buttons —
+        // the eye toggle inside a password box, the drawer chevron, the ghost
+        // links under the log-in card. Those are body / field text that happens
+        // to sit in a `.btn`, and the two usages below already name them.
+        'textprimary'       => ['section' => 'surface', 'label' => 'Text primary', 'usage' => ['main normal text', 'text in inputs'], 'default' => '#eef3f9'],
         'textsecondary'     => ['section' => 'surface', 'label' => 'Text secondary', 'usage' => ['secondary normal text', 'placeholders'], 'default' => '#94a3b8'],
         'borderprimary'     => ['section' => 'surface', 'label' => 'Border primary', 'usage' => ['main border color'], 'default' => '#223244'],
         'bordersecondary'   => ['section' => 'surface', 'label' => 'Border secondary', 'usage' => ['secondary border color'], 'default' => '#33475e'],
@@ -1146,6 +1249,28 @@ function theme_nit_brand_group_defaults(): array {
             'accenttext'        => '#7fabdb',
             'accentwords'       => '#7fabdb',
             'accentunderline'   => '#7fabdb',
+            // --- Buttons. The border and the three hover colours were derived
+            //     in CSS before they were roles (border = the fill; hover = the
+            //     fill mixed 85% with white). Each seeds to exactly what that
+            //     derivation produced, so no group moves until one is edited.
+            'btnprimaryborder'  => '#5488c4',
+            'btnprimaryhoverbg' => '#6e9acd',
+            'btnprimaryhovertext' => '#eef3f9',
+            'btnprimaryhoverborder' => '#6594ca',
+            'btnsecondaryborder' => '#1c2a3a',
+            'btnsecondaryhoverbg' => '#182431',
+            'btnsecondaryhovertext' => '#eef3f9',
+            'btnsecondaryhoverborder' => '#16222e',
+            // The outline button seeds to what .btn-outline-secondary already
+            // resolved to: Text primary on Border secondary, hovering onto the
+            // two Hover roles. Its Background is the page ground, and is painted
+            // only once the Fill switch is on — theme_nit_button_outline_fill().
+            'btnoutlinebg'      => '#0c141f',
+            'btnoutlinetext'    => '#eef3f9',
+            'btnoutlineborder'  => '#33475e',
+            'btnoutlinehoverbg' => '#16222f',
+            'btnoutlinehovertext' => '#7fabdb',
+            'btnoutlinehoverborder' => '#33475e',
             'background'        => '#0c141f',
             'background2'       => '#101a27',
             'navbarbackground1' => '#0c141f',
@@ -1188,6 +1313,20 @@ function theme_nit_brand_group_defaults(): array {
             'accenttext'        => '#58bdad',
             'accentwords'       => '#58bdad',
             'accentunderline'   => '#6ccabb',
+            'btnprimaryborder'  => '#2f9e8f',
+            'btnprimaryhoverbg' => '#4eada0',
+            'btnprimaryhovertext' => '#eef5f4',
+            'btnprimaryhoverborder' => '#44a89a',
+            'btnsecondaryborder' => '#12302e',
+            'btnsecondaryhoverbg' => '#0f2927',
+            'btnsecondaryhovertext' => '#eef5f4',
+            'btnsecondaryhoverborder' => '#0e2625',
+            'btnoutlinebg'      => '#0a1a1a',
+            'btnoutlinetext'    => '#eef5f4',
+            'btnoutlineborder'  => '#2f5a56',
+            'btnoutlinehoverbg' => '#143231',
+            'btnoutlinehovertext' => '#6ccabb',
+            'btnoutlinehoverborder' => '#2f5a56',
             'background'        => '#0a1a1a',
             'background2'       => '#0d2020',
             'navbarbackground1' => '#0a1a1a',
@@ -1230,6 +1369,20 @@ function theme_nit_brand_group_defaults(): array {
             'accenttext'        => '#a99ee2',
             'accentwords'       => '#a99ee2',
             'accentunderline'   => '#b4a9ee',
+            'btnprimaryborder'  => '#8478cf',
+            'btnprimaryhoverbg' => '#968cd6',
+            'btnprimaryhovertext' => '#efedf7',
+            'btnprimaryhoverborder' => '#9086d4',
+            'btnsecondaryborder' => '#26243d',
+            'btnsecondaryhoverbg' => '#201f34',
+            'btnsecondaryhovertext' => '#efedf7',
+            'btnsecondaryhoverborder' => '#1e1d31',
+            'btnoutlinebg'      => '#11101c',
+            'btnoutlinetext'    => '#efedf7',
+            'btnoutlineborder'  => '#433d64',
+            'btnoutlinehoverbg' => '#201e34',
+            'btnoutlinehovertext' => '#b4a9ee',
+            'btnoutlinehoverborder' => '#433d64',
             'background'        => '#11101c',
             'background2'       => '#151425',
             'navbarbackground1' => '#11101c',
@@ -1310,6 +1463,27 @@ function theme_nit_brand_group_defaults(): array {
             'accenttext'        => '#0e509d',   // A700
             'accentwords'       => '#0e509d',
             'accentunderline'   => '#073b78',
+            'btnprimaryborder'  => '#2368bd',
+            'btnprimaryhoverbg' => '#447fc7',
+            'btnprimaryhovertext' => '#ffffff',
+            'btnprimaryhoverborder' => '#3977c4',
+            'btnsecondaryborder' => '#e6e8eb',   // N200
+            // The one seed that is NOT what the site drew before, and it could
+            // not be: this group's secondary button was frozen on Group 1's navy
+            // (see the Bootstrap bridge note in scss/foundation/_brand.scss), so
+            // there was no correct-looking value to preserve. It steps one rung
+            // DOWN the ramp (N300) rather than up, because this is the only
+            // group whose secondary fill is light and Bootstrap's tint-on-hover
+            // would have made a light button fainter instead of firmer.
+            'btnsecondaryhoverbg' => '#d5d9df',   // N300
+            'btnsecondaryhovertext' => '#14191f',   // N900
+            'btnsecondaryhoverborder' => '#d5d9df',   // N300
+            'btnoutlinebg'      => '#f6f8fb',   // N50
+            'btnoutlinetext'    => '#14191f',   // N900
+            'btnoutlineborder'  => '#a7abb1',   // N400
+            'btnoutlinehoverbg' => '#f1f3f6',   // N100
+            'btnoutlinehovertext' => '#073b78',   // A800
+            'btnoutlinehoverborder' => '#a7abb1',   // N400
             'background'        => '#f6f8fb',   // N50
             'background2'       => '#f1f3f6',   // N100
             // Light chrome. This group is light THROUGHOUT — bar, page and band.
@@ -1376,6 +1550,20 @@ function theme_nit_brand_group_defaults(): array {
             'accenttext'        => '#98c0f7',   // A300
             'accentwords'       => '#98c0f7',
             'accentunderline'   => '#c0dafc',
+            'btnprimaryborder'  => '#71a7ef',   // A400
+            'btnprimaryhoverbg' => '#86b4f1',
+            'btnprimaryhovertext' => '#0d1117',   // N950
+            'btnprimaryhoverborder' => '#7fb0f1',
+            'btnsecondaryborder' => '#2a2e35',   // N800
+            'btnsecondaryhoverbg' => '#24272d',
+            'btnsecondaryhovertext' => '#f6f8fb',   // N50
+            'btnsecondaryhoverborder' => '#22252a',
+            'btnoutlinebg'      => '#0d1117',   // N950
+            'btnoutlinetext'    => '#f6f8fb',   // N50
+            'btnoutlineborder'  => '#43484f',   // N700
+            'btnoutlinehoverbg' => '#14191f',   // N900
+            'btnoutlinehovertext' => '#c0dafc',   // A200
+            'btnoutlinehoverborder' => '#43484f',   // N700
             'background'        => '#0d1117',   // N950
             'background2'       => '#14191f',   // N900
             'navbarbackground1' => '#0d1117',
@@ -2320,6 +2508,23 @@ function theme_nit_get_pre_scss($theme) {
     // `--nit-brand-*` custom properties in the same combined stream.
     foreach (theme_nit_brand_palette() as $key => $meta) {
         $scss .= '$nit-b-' . str_replace('_', '-', $key) . ': ' . theme_nit_brandcolour($key) . ";\n";
+    }
+
+    // The one token that is not always a colour. An outline button's resting
+    // fill is transparent — that is what makes it an outline button, and what
+    // lets the same button sit on the page ground and on a card without looking
+    // wrong on one of them. The Outline button "Background" role is therefore
+    // consumed only when the group's Fill switch is on; otherwise the token is
+    // re-declared here as `transparent`, which is exactly what Bootstrap already
+    // gave the variant.
+    //
+    // Re-declared rather than skipped above: _brand.scss reads every token by
+    // name, so the variable has to exist in all cases. A later `$x: y` wins in
+    // SCSS, so this second declaration is the value that reaches the stylesheet.
+    foreach (array_keys(theme_nit_brand_groups()) as $gkey) {
+        if (!theme_nit_button_outline_fill($gkey)) {
+            $scss .= '$nit-b-' . $gkey . "-btnoutlinebg: transparent;\n";
+        }
     }
 
     // Drive the Bootstrap / semantic SCSS layer from Group 1 — the site-wide

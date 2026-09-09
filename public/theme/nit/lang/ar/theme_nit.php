@@ -61,6 +61,10 @@ $string['navbarscroll'] = 'النمط بعد التمرير';
 $string['navbarscroll_usage'] = 'يأخذ الشريط نمط هذه المجموعة بمجرّد أن تبدأ الصفحة في التمرير';
 $string['navbarscroll_same'] = 'نفس هذه المجموعة (بلا تغيير)';
 
+// The Brand section's Outline button block.
+$string['btnoutlinefill'] = 'تعبئة الخلفية';
+$string['btnoutlinefill_usage'] = 'عند الإيقاف تكون شفافة، فيأخذ الزر لون ما يقع فوقه';
+
 // Design-system gallery tabs.
 $string['tab_brandcolours'] = 'ألوان الهوية';
 

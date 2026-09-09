@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'theme_nit';
-$plugin->version   = 2026090902;        // YYYYMMDDXX — Hero CTA/play on Primary; "See how it works" on Important Words.
+$plugin->version   = 2026090903;        // YYYYMMDDXX — Brand section grouped into blocks; six roles each for the main, secondary and outline button.
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline (pinned per CI matrix).
 $plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_ALPHA;    // Foundation + rendering + branding (M2–M5); pre-1.0.

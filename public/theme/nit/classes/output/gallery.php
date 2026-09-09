@@ -44,7 +44,7 @@ class gallery implements renderable, templatable {
         //
         // Only ONE group's editor is shown at a time (the pills at the top of
         // the tab switch between them) and only one section within it, because
-        // five groups × 37 roles is 185 colour wells and finding anything in
+        // five groups × 53 roles is 265 colour wells and finding anything in
         // that by scrolling is the thing this page was worst at.
         // Built keyed (group → section → block) and flattened into lists at the
         // end, because everything below wants to reach a named block — the shape
@@ -159,6 +159,23 @@ class gallery implements renderable, templatable {
                     'options' => $options,
                 ];
             }
+
+            // Whether this group's outline buttons paint their Background role
+            // at all. A switch and not just the colour card above it, because an
+            // outline button's resting fill is transparent by design — it takes
+            // the colour of the page or the card it sits on, and no single hex
+            // is right in both places. Off until an admin says otherwise, at
+            // which point the colour beside it starts being drawn.
+            //
+            // It lands in the Outline button block, beside the six colours it
+            // governs, rather than in a settings list somewhere else.
+            $keyed[$gkey]['sections']['brand']['blocks']['btnoutline']['switches'][] = [
+                'input' => 'btnoutlinefill_' . $gkey,
+                'id' => 'nit-btnoutlinefill-' . $gkey,
+                'label' => get_string('btnoutlinefill', 'theme_nit'),
+                'usage' => get_string('btnoutlinefill_usage', 'theme_nit'),
+                'on' => \theme_nit_button_outline_fill($gkey),
+            ];
         }
 
         // Flatten: keyed maps become the ordered lists the template walks.
@@ -182,6 +199,7 @@ class gallery implements renderable, templatable {
                         'glass' => $block['glass'] ?? [],
                         'typography' => $block['typography'] ?? [],
                         'shapes' => $block['shapes'] ?? [],
+                        'switches' => $block['switches'] ?? [],
                         'scrollgroup' => $block['scrollgroup'] ?? [],
                     ];
                 }

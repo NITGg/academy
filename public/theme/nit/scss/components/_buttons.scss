@@ -25,18 +25,29 @@
     }
 }
 
-// Solid brand-coloured buttons carry the white brand foreground (Brand Colors:
-// buttons text = Text primary). Bootstrap's auto-contrast otherwise flips the
-// label to black on the mid-tone red / green fills, which fights the brand.
-// Light fills (warning, info) correctly keep dark text, so they are left to
-// Bootstrap. Using the brand token means a .nit-brand-2/3 wrapper switches the
-// label colour with the rest of the group.
-.btn-primary,
+// Solid status buttons need a label picked for the FILL under it. Bootstrap's
+// auto-contrast flips it to black on the mid-tone red / green, which fights the
+// brand. Light fills (warning, info) correctly keep dark text, so they are left
+// to Bootstrap.
+//
+// The role is "Text on main button" (`onprimary`) — its card says "text on any
+// primary fill", and these are exactly that: a filled button that is not the
+// page. It used to be "Text primary", the body ink, which was right only by
+// coincidence and only in the dark groups: Group 4 fills a Delete button with
+// red and then wrote its near-BLACK page ink on it, Group 5 wrote near-white on
+// a light salmon. Every group's `onprimary` is the ink that group already puts
+// on its main button, so the dark groups do not move and the two that were
+// wrong are now right.
+//
+// `.btn-primary` used to be in this list. It has its own "Text on main button"
+// role now and is wired, with the secondary and the outline button, in
+// scss/foundation/_brand.scss — which is emitted after this file, so a rule left
+// here would have been dead weight that still looked authoritative.
 .btn-danger,
 .btn-success {
-    --bs-btn-color: var(--nit-brand-textprimary);
-    --bs-btn-hover-color: var(--nit-brand-textprimary);
-    --bs-btn-active-color: var(--nit-brand-textprimary);
+    --bs-btn-color: var(--nit-brand-onprimary);
+    --bs-btn-hover-color: var(--nit-brand-onprimary);
+    --bs-btn-active-color: var(--nit-brand-onprimary);
 }
 
 // Icon-only buttons (`.btn-icon`) — the action-menu "⋮" triggers, the activity
@@ -52,22 +63,8 @@
     --bs-btn-active-color: var(--nit-brand-hovertext);
 }
 
-// Ghost / outline-secondary (e.g. the "Reset" actions). Bootstrap draws these
-// from its grey $secondary, giving a mid-grey border and label that sit off the
-// brand. Point the resting state at the Border secondary role (ghost-button
-// borders) with brand text, and fill from the Hover roles on hover / active.
-.btn-outline-secondary {
-    --bs-btn-color: var(--nit-brand-textprimary);
-    --bs-btn-border-color: var(--nit-brand-bordersecondary);
-    --bs-btn-hover-color: var(--nit-brand-hovertext);
-    --bs-btn-hover-bg: var(--nit-brand-hoverbackground);
-    --bs-btn-hover-border-color: var(--nit-brand-bordersecondary);
-    --bs-btn-active-color: var(--nit-brand-hovertext);
-    --bs-btn-active-bg: var(--nit-brand-hoverbackground);
-    --bs-btn-active-border-color: var(--nit-brand-bordersecondary);
-
-    // Core carries a direct `border-color` on this variant (not just the
-    // --bs-btn-border-color var), so the resting border needs an explicit
-    // brand value to win; the state borders follow the vars above.
-    border-color: var(--nit-brand-bordersecondary);
-}
+// The ghost / outline buttons (e.g. the "Reset" actions) moved to
+// scss/foundation/_brand.scss, where they are wired to the six Outline button
+// roles instead of borrowing Border secondary and the two Hover roles from the
+// page. The values those roles seed to are exactly what this block set, so the
+// buttons did not move; what changed is that an admin can now move them.

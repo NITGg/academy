@@ -61,6 +61,13 @@ $string['navbarscroll'] = 'Style once scrolled';
 $string['navbarscroll_usage'] = 'the bar wears this group\'s navbar style from the moment the page moves';
 $string['navbarscroll_same'] = 'Same as this group (no change)';
 
+// The Brand section's Outline button block. Its Background role is the one
+// colour on the whole tab that is not painted by default — an outline button is
+// transparent so it can sit on the page and on a card alike — so it comes with
+// a switch that says whether to paint it.
+$string['btnoutlinefill'] = 'Fill the background';
+$string['btnoutlinefill_usage'] = 'off = transparent, so the button takes the colour of whatever it sits on';
+
 // Category styles: the brand group and the navbar logo each main category uses,
 // once for light mode and once for dark mode.
 $string['categorystyles_desc'] = 'Brand each main category twice — once for light mode, once for dark mode — because that is what the light/dark button in the navigation bar moves between. <strong>Style</strong> picks the Brand Colors group the category\'s pages render in (tune the groups themselves on the Brand Colors tab); <strong>Logo</strong> is the mark drawn in the navigation bar on those pages. Everything under a main category inherits its branding: its subcategories and every course in them. Leave a style on <strong>Site default</strong> or a logo empty to use the site\'s own for that mode.';

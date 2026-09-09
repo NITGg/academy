@@ -31,10 +31,12 @@
                                       sizemin, sizemax, sizedefault, weightinput,
                                       weightoptions: [ { value, label, selected } ] } ],
                       shapes: [ { input, label,
-                                  options: [ { id, value, label, checked } ] } ] } ] } ] }
+                                  options: [ { id, value, label, checked } ] } ],
+                      switches: [ { input, id, label, usage, on } ] } ] } ] }
         One editor per group; one section of it visible at a time; the section's
         cards grouped into blocks. `typography` and `shapes` are non-empty only in
-        the Navbar section, and a section with nothing to group has one block with
+        the Navbar section, `switches` only in the Brand section's Outline button
+        block, and a section with nothing to group has one block with
         `hasheading` false.
     * categorygroups - array of { id, name, image, hasimage, imageurl,
         modes: [ { mode, label, select, options: [ { value, label, selected } ],
@@ -58,9 +60,10 @@
                 { "key": "brand", "paneid": "nit-brand-g1-brand", "label": "Brand",
                   "isfirst": true,
                   "blocks": [
-                    { "label": "", "hasheading": false, "typography": [], "shapes": [],
+                    { "label": "Main button", "hasheading": true, "typography": [],
+                      "shapes": [], "switches": [],
                       "roles": [
-                        { "key": "g1_primary", "label": "Primary", "cssvar": "--nit-brand-primary",
+                        { "key": "g1_primary", "label": "Background", "cssvar": "--nit-brand-primary",
                           "value": "#5488c4", "default": "#5488c4", "isdefault": true,
                           "usage": [ { "label": "background main button" } ] }
                       ] }
@@ -117,7 +120,7 @@
     <div class="tab-content pt-4" id="nit-gallery-tabs-content">
 
         {{! ---------------------------------------------------------------- }}
-        {{! Brand Colors tab — the new semantic palette (5 groups × 23 roles) }}
+        {{! Brand Colors tab — the semantic palette (5 groups × 53 roles)    }}
         {{! ---------------------------------------------------------------- }}
         <div class="tab-pane fade show active" id="nit-tab-brand" role="tabpanel"
              aria-labelledby="nit-tab-brand-btn" tabindex="0">
@@ -139,7 +142,7 @@
                 {{! --------------------------------------------------------- }}
                 {{! One sticky header holding both choices and both buttons.   }}
                 {{!                                                            }}
-                {{! Five groups of 37 roles is 185 colour wells. Printed end   }}
+                {{! Five groups of 53 roles is 265 colour wells. Printed end   }}
                 {{! to end - which is what this tab did - the only way from    }}
                 {{! one group to another was the scrollbar, and the Save       }}
                 {{! button for the group being edited was somewhere off the    }}
@@ -225,6 +228,29 @@
                                 </div>
                             </div>
                         {{/roles}}
+
+                        {{! A plain yes/no about the block it sits in — today   }}
+                        {{! only "fill the outline button", which decides       }}
+                        {{! whether the Background card above it is drawn at    }}
+                        {{! all. Same card shape as a colour so it reads as one }}
+                        {{! more property of the button, not a setting off to   }}
+                        {{! the side.                                           }}
+                        {{#switches}}
+                            <div class="nit-colour-row nit-switch-row">
+                                <div class="nit-colour-meta">
+                                    <label class="nit-colour-name" for="{{id}}">{{label}}</label>
+                                    <span class="nit-colour-usage">
+                                        <span class="nit-colour-usage-item">{{usage}}</span>
+                                    </span>
+                                </div>
+                                <div class="nit-colour-controls">
+                                    <div class="form-check form-switch nit-glass-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="{{id}}" name="{{input}}" value="1" {{#on}}checked{{/on}}>
+                                    </div>
+                                </div>
+                            </div>
+                        {{/switches}}
 
                         {{! Whether the bar is see-through, and by how much. Both }}
                         {{! on one card: the degree is meaningless with the switch}}

@@ -110,6 +110,7 @@ if (($data = data_submitted()) && confirm_sesskey()) {
             unset_config('navbarglass_' . $gkey, 'theme_nit');
             unset_config('navbartransparency_' . $gkey, 'theme_nit');
             unset_config('navbarscrollgroup_' . $gkey, 'theme_nit');
+            unset_config('btnoutlinefill_' . $gkey, 'theme_nit');
         }
         theme_reset_all_caches();
         redirect($brandurl, get_string('brandcoloursreset', 'theme_nit'), null,
@@ -182,6 +183,13 @@ if (($data = data_submitted()) && confirm_sesskey()) {
             if ($brandgroup !== '') {
                 set_config('navbarglass_' . $gkey,
                     optional_param('navbarglass_' . $gkey, 0, PARAM_INT) ? '1' : '0', 'theme_nit');
+
+                // Whether the outline buttons paint their Background role. Same
+                // gate and the same reason as the glass switch above: an
+                // unticked box posts nothing, so its absence can only be read as
+                // "off" for the group whose form was actually submitted.
+                set_config('btnoutlinefill_' . $gkey,
+                    optional_param('btnoutlinefill_' . $gkey, 0, PARAM_INT) ? '1' : '0', 'theme_nit');
 
                 // 0 is a solid bar and a real answer, so the field is read with a
                 // sentinel default rather than 0 — a browser that sent nothing
@@ -657,7 +665,7 @@ JS);
 
 // Brand Colors: show one group's editor, and one section of it, at a time.
 //
-// Five groups of 37 roles is 185 colour wells. Printed one under another - which
+// Five groups of 53 roles is 265 colour wells. Printed one under another - which
 // is what this tab did - finding the navbar roles of Group 4 meant scrolling past
 // a hundred and forty other pickers, and the Save button for the group you were
 // editing was somewhere off the bottom of the screen. Nothing here changes what
