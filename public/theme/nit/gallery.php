@@ -242,34 +242,12 @@ if (($data = data_submitted()) && confirm_sesskey()) {
         // The two group maps, read per mode. Posted category ids are cast and
         // checked; an unknown group key (or the empty "site default") simply is
         // not written, so the map only ever holds assignments we can honour.
-        //
-        // A mode also only accepts a group AUTHORED for it (light mode → a
-        // light group), the same rule the selector is built from — the form is
-        // the only way in, but a mode pointed at the other scheme's palette is
-        // a dark screen for everyone who asked for the light one, so it is
-        // refused here too rather than only hidden there. The exception is the
-        // value already stored: a mismatch made before this rule existed stays
-        // put and stays visible until an admin actually moves it, instead of
-        // being wiped by a save of some other row.
         foreach (array_keys(theme_nit_modes()) as $mode) {
             $selected = optional_param_array('catgroup' . $mode, [], PARAM_ALPHANUMEXT);
-            $stored = theme_nit_category_group_map($mode);
-            $allowed = theme_nit_groups_for_scheme($mode);
             $map = [];
             foreach ($selected as $cid => $gk) {
                 $cid = (int) $cid;
-                if ($cid <= 0) {
-                    continue;
-                }
-                // What this row says today. A refused value falls back to it —
-                // never to "site default", which would be a change of its own.
-                $keep = $stored[$cid] ?? '';
-                if ($gk !== '' && !in_array($gk, $groupkeys, true)) {
-                    $gk = $keep;
-                } else if ($gk !== '' && !in_array($gk, $allowed, true) && $gk !== $keep) {
-                    $gk = $keep;
-                }
-                if ($gk !== '' && in_array($gk, $groupkeys, true)) {
+                if ($cid > 0 && in_array($gk, $groupkeys, true)) {
                     $map[$cid] = $gk;
                 }
             }
@@ -406,34 +384,24 @@ if (($data = data_submitted()) && confirm_sesskey()) {
     // -------------------------------------------------------------------------
     // Display mode → Brand-group mapping ("Site styles", same "Change style"
     // tab). The light/dark button in the navbar carries no palette of its own:
-    // it selects one of the brand groups, and this is where an admin says which
-    // one each mode gets. Stored as one JSON config `nit_mode_groups`
-    // = { "light": "g4", "dark": "g5" }.
+    // it selects one of the three brand groups, and this is where an admin says
+    // which one each mode gets. Stored as one JSON config `nit_mode_groups`
+    // = { "light": "g1", "dark": "g2" }.
     //
     // Unlike the category map, BOTH modes are stored even when one of them is
-    // the default group — "light is deliberately Group 4" and "light has never
-    // been set" have to stay distinguishable, or an admin who moves light away
-    // and back could not get the default back by saving. No SCSS changes (the
-    // switch classes are already compiled), so no cache purge.
+    // Group 1 — "light is deliberately Group 1" and "light has never been set"
+    // have to stay distinguishable, or an admin who moves light to Group 2 and
+    // back could not get the default back by saving. No SCSS changes (the switch
+    // classes are already compiled), so no cache purge.
     // -------------------------------------------------------------------------
     if (!empty($data->savemodegroups)) {
         $selected = optional_param_array('modegroup', [], PARAM_ALPHANUMEXT);
-        $stored = theme_nit_mode_groups();
         $map = [];
-        foreach ($stored as $mode => $currentgk) {
+        foreach (array_keys(theme_nit_mode_groups()) as $mode) {
             $gk = $selected[$mode] ?? '';
-            // Same rule as the category map above: a mode wears a group
-            // authored for it, unless that IS what it is already wearing. This
-            // pair is also what the design-system API publishes as
-            // `brandcolors.schemes`, so it has to mean what it says. A refused
-            // value leaves the mode on the group it already has — there is no
-            // "unset" here, and falling through to the seeded default could
-            // point light mode at a dark group all by itself.
-            if (!in_array($gk, $groupkeys, true)
-                    || (!in_array($gk, theme_nit_groups_for_scheme($mode), true) && $gk !== $currentgk)) {
-                $gk = $currentgk;
+            if (in_array($gk, $groupkeys, true)) {
+                $map[$mode] = $gk;
             }
-            $map[$mode] = $gk;
         }
         set_config('nit_mode_groups', json_encode($map), 'theme_nit');
         // Back to the tab the form was posted from (see the hash handler below).

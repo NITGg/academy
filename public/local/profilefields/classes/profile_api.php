@@ -467,6 +467,46 @@ class profile_api {
     }
 
     /**
+     * Reopen the fields a registration is still waiting on.
+     *
+     * `describe()` is built from `/user/edit.php`, so it reports a field as locked
+     * whenever the profile editor would freeze it - because `user_info_field.locked`
+     * is set, or because the account's auth plugin has a `field_lock_*` on it. That
+     * is the right answer for the profile screen and the wrong one for the last step
+     * of a registration, and the difference is not cosmetic: `prepare_data()` drops
+     * a locked field silently, so the phone the user just typed vanished and the
+     * field's own validator then reported it as missing. The account could never be
+     * finished, and the message pointed at the one box that had been filled in.
+     *
+     * The web page does not have the problem because `complete_form` draws the
+     * fields with `edit_field()` and never runs `edit_after_data()`, so nothing
+     * freezes there - which is the rule this restores for the app: a "sign-up asked
+     * late" page copies sign-up's rules, not the profile editor's. Core's own
+     * sign-up form ignores both locks for exactly the same reason
+     * ({@see \local_profilefields\completion::missing()} says the rest).
+     *
+     * Only the outstanding fields are reopened, so an ordinary profile edit still
+     * sees every lock. A `file` field keeps its flag whatever is outstanding: it is
+     * reported read-only because its value lives in a draft area a web-service
+     * parameter cannot carry, which is a fact about the transport, not a policy.
+     *
+     * @param array $described the output of describe()
+     * @param array[] $outstanding the `fields` entries from completion::missing()
+     * @return array the same structure, with those fields editable
+     */
+    public static function unlock_outstanding(array $described, array $outstanding): array {
+        $names = array_flip(array_column($outstanding, 'name'));
+
+        foreach ($described['fields'] as $i => $field) {
+            if (isset($names[$field['name']]) && (string) $field['type'] !== 'file') {
+                $described['fields'][$i]['locked'] = false;
+            }
+        }
+
+        return $described;
+    }
+
+    /**
      * Apply a submitted set of values on top of the stored account.
      *
      * Only the fields a client actually sent are touched, so an app may save one

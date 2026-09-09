@@ -863,9 +863,10 @@ function theme_nit_brand_groups(): array {
 /**
  * The WCAG relative luminance of a `#rrggbb` colour — 0 (black) .. 1 (white).
  *
- * The one place the theme turns a hex into "how bright is this", so every
- * light/dark judgement the site makes (which logo a bar needs, which scheme a
- * group is authored for) is the same measurement and they can never disagree.
+ * Used by theme_nit_brand_group_scheme() only. theme_nit_group_is_light() runs
+ * the same maths inline over a different role; the two were deliberately left
+ * separate so that changing what the API reports can never move what the site
+ * renders.
  *
  * @param string $hex `#rrggbb` or `#rgb`, with or without the hash
  * @return float|null the luminance, or null when the string is not a colour
@@ -904,10 +905,14 @@ function theme_nit_hex_luminance(string $hex): ?float {
  * keeps the answer right for the mid-toned grounds where a threshold is a coin
  * toss: whichever of ground and ink is brighter decides it.
  *
- * Published per group on the design-system API (`brandcolors.groups[].scheme`)
- * so the mobile app can pair modes to groups from the payload instead of
- * hard-coding group keys, and used by the gallery's "Category styles" tab to
- * offer a mode only the groups authored for it.
+ * REPORTING ONLY. It is published per group on the design-system API
+ * (`brandcolors.groups[].scheme`) so the mobile app can pair modes to groups
+ * from the payload instead of hard-coding group keys, and it is printed by
+ * theme/nit/cli/scheme_diagnose.php. Nothing that renders a page consults it:
+ * the settings forms still offer every group, and an admin can still point a
+ * mode wherever they like. A filtered picker was tried and taken back out —
+ * hiding groups is a change to the site, and this answer exists to describe the
+ * site, not to overrule it.
  *
  * @param string $group group key (g1..g5)
  * @return string 'light' | 'dark'
@@ -938,9 +943,9 @@ function theme_nit_brand_group_scheme(string $group): string {
 /**
  * The Brand-Colors groups authored for one colour scheme.
  *
- * The list a "which group does light mode wear" picker may offer: pointing a
- * mode at a group authored for the other scheme is the one setting that puts a
- * dark screen in front of somebody who asked for the light one.
+ * Reporting only — read by theme/nit/cli/scheme_diagnose.php to say which
+ * groups a mode COULD wear. It is not enforced anywhere: no form filters its
+ * options by it and no save is refused because of it.
  *
  * @param string $scheme 'light' | 'dark'
  * @return string[] group keys, in group order
@@ -1240,22 +1245,20 @@ function theme_nit_modes(): array {
  * Which Brand-Colors group each display mode renders in.
  *
  * The light/dark button does not carry a palette of its own: it selects one of
- * the Brand-Colors groups, exactly like the category styles do. An admin maps
- * mode → group on the gallery "Change style" tab ("Site styles" section); the
- * map is stored as the theme_nit config `nit_mode_groups`
- * (JSON `{"light":"g4","dark":"g5"}`).
+ * the three Brand-Colors groups, exactly like the category styles do. An admin
+ * maps mode → group on the gallery "Change style" tab ("Site styles" section);
+ * the map is stored as the theme_nit config `nit_mode_groups`
+ * (JSON `{"light":"g1","dark":"g2"}`).
  *
- * Defaults: the reserved pair — light → Group 4 (Daylight), dark → Group 5
- * (Graphite). They are the two groups authored as a light/dark pair and the
- * only default that satisfies the rule the pickers now enforce: a mode wears a
- * group authored for it. (The seed was light → Group 1 / dark → Group 2, from
- * before groups 4 and 5 existed — a light mode pointed at a black ground, which
- * is the very mistake theme_nit_brand_group_scheme() exists to prevent.)
+ * Defaults: light → Group 1 (the site's normal look), dark → Group 2.
  *
  * This pair is also what the design-system API publishes as
  * `brandcolors.schemes`, so a client can stop hard-coding "g4 is the light one".
+ * That is a read of whatever an admin actually saved here — the default above is
+ * deliberately left alone, because it is consulted on sites that never saved the
+ * row and changing it would repaint them.
  *
- * @return array<string, string> mode key (light/dark) => group key (g1..g5)
+ * @return array<string, string> mode key (light/dark) => group key (g1/g2/g3)
  */
 function theme_nit_mode_groups(): array {
     static $map = null;
@@ -1263,7 +1266,7 @@ function theme_nit_mode_groups(): array {
         return $map;
     }
 
-    $defaults = ['light' => 'g4', 'dark' => 'g5'];
+    $defaults = ['light' => 'g1', 'dark' => 'g2'];
     $raw = get_config('theme_nit', 'nit_mode_groups');
     $saved = ($raw && is_string($raw)) ? (json_decode($raw, true) ?: []) : [];
 
@@ -2977,11 +2980,22 @@ function theme_nit_logo_variants(): array {
  * @return bool true when the bar is light enough to need a dark mark
  */
 function theme_nit_group_is_light(string $group): bool {
-    // theme_nit_hex_luminance() is the shared measurement (see
-    // theme_nit_brand_group_scheme(), which asks the same question of the page
-    // ground rather than of the bar). An unreadable colour is not light.
-    $lum = theme_nit_hex_luminance(theme_nit_brandcolour($group . '_navbarbackground1'));
-    return $lum !== null && $lum > 0.5;
+    $hex = theme_nit_brandcolour($group . '_navbarbackground1');
+    $hex = ltrim($hex, '#');
+    if (strlen($hex) === 3) {
+        $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+    }
+    if (strlen($hex) !== 6) {
+        return false;
+    }
+    // WCAG relative luminance: linearise each channel, then weight it.
+    $lum = 0;
+    foreach ([[0, 0.2126], [2, 0.7152], [4, 0.0722]] as [$offset, $weight]) {
+        $c = hexdec(substr($hex, $offset, 2)) / 255;
+        $c = $c <= 0.04045 ? $c / 12.92 : pow(($c + 0.055) / 1.055, 2.4);
+        $lum += $c * $weight;
+    }
+    return $lum > 0.5;
 }
 
 /**

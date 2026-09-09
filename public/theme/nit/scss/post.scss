@@ -55,7 +55,18 @@
 // can out-specify it, and the component ends up underlined and recoloured on
 // hover on top of the state it drew for itself. Adding the class in the
 // component markup is the one place that decision belongs.
-a:not(.btn):not(.nav-link):not(.navbar-brand):not(.dropdown-item):not(.page-link):not(.list-group-item):not(.badge):not(.card):not(.nit-link-plain):not([role="button"]):not([role="tab"]):not([role="menuitem"]) {
+//
+// The whole NAVBAR opts out by place rather than by class. Every anchor on the
+// bar draws its own state — the titles, the brand, the icon buttons, the log-in
+// link — and this rule was landing a content link's underline on top of it. Only
+// one anchor up there was actually being caught, and only because core renders it
+// with no class at all to name: the log-in link
+// (`<span class="login"><a>` in lib/templates/user_menu.mustache). Every other
+// one already carries `.nav-link`, `.btn`, `.navbar-brand` or `.dropdown-item`
+// and was opting out through the chain above — which is exactly why this read as
+// a bug on one link and nowhere else. Saying "not on the bar" is the honest form
+// of the rule: it is a CONTENT link rule, and the class list is only its proxy.
+a:not(.btn):not(.nav-link):not(.navbar-brand):not(.dropdown-item):not(.page-link):not(.list-group-item):not(.badge):not(.card):not(.nit-link-plain):not([role="button"]):not([role="tab"]):not([role="menuitem"]):not(.nit-navbar *) {
     // A link that is underlined at rest (core marks a few that way, and content
     // authors write plain <u>/text-decoration markup) takes the role too, so the
     // rule is one colour across the site and not only on hover.

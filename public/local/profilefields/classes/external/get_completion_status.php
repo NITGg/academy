@@ -66,7 +66,11 @@ class get_completion_status extends external_api {
         self::validate_context($context);
 
         $missing = completion::missing($USER);
-        $described = profile_api::describe($USER);
+        // Reported editable, because this is the sign-up questions asked late: a
+        // lock that /user/edit.php would apply must not leave the app drawing a
+        // read-only box for a value the account cannot be finished without.
+        $described = profile_api::unlock_outstanding(
+            profile_api::describe($USER), $missing['fields']);
 
         // Index the profile form's own field descriptions so each outstanding field
         // is returned with the label, type and options the client needs to draw it -

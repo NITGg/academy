@@ -317,7 +317,9 @@ class gallery implements renderable, templatable {
                     'label' => \get_string('categorystyles_sitedefault', 'theme_nit'),
                     'selected' => ($current === ''),
                 ]];
-                $options = array_merge($options, self::group_options_for_scheme($grouplabels, $mode, $current));
+                foreach ($grouplabels as $gkey => $glabel) {
+                    $options[] = ['value' => $gkey, 'label' => $glabel, 'selected' => ($gkey === $current)];
+                }
 
                 $slot = $logoslots[$mode];
                 $logo = \theme_nit_category_logo_url((int) $cat->id, $mode);
@@ -361,7 +363,10 @@ class gallery implements renderable, templatable {
         // because it is the same decision made about a different subject.
         $modegroups = [];
         foreach (\theme_nit_mode_groups() as $mode => $current) {
-            $options = self::group_options_for_scheme($grouplabels, $mode, $current);
+            $options = [];
+            foreach ($grouplabels as $gkey => $glabel) {
+                $options[] = ['value' => $gkey, 'label' => $glabel, 'selected' => ($gkey === $current)];
+            }
             $modegroups[] = [
                 'mode' => $mode,
                 'label' => $modelabels[$mode] ?? $mode,
@@ -441,43 +446,5 @@ class gallery implements renderable, templatable {
                 ['label' => 'Overdue tasks', 'value' => '37', 'trend' => '-8%', 'up' => false],
             ],
         ];
-    }
-
-    /**
-     * The brand groups a "which group does this mode wear" selector may offer.
-     *
-     * A display mode may only be pointed at a group AUTHORED for it
-     * (theme_nit_brand_group_scheme()): light mode wearing a group whose ground
-     * is black is the one setting that hands a dark screen to somebody who
-     * asked for the light one, and it is invisible on the form — every group is
-     * just "Group 2" in a list. Offering only the matching ones makes the
-     * mistake unmakeable instead of something spotted afterwards.
-     *
-     * A group that does NOT match is still listed when it is the assignment
-     * currently stored, marked as the wrong scheme. Dropping it would show the
-     * admin a selector whose value is not what the site is doing, and saving
-     * the form would silently rewrite an assignment nobody touched; this way
-     * the mistake is on screen, in the row it belongs to, until it is fixed.
-     *
-     * @param array<string, string> $grouplabels group key => display label
-     * @param string $mode 'light' | 'dark'
-     * @param string $current the group key stored for this row ('' = none)
-     * @return array<int, array{value:string, label:string, selected:bool}>
-     */
-    private static function group_options_for_scheme(array $grouplabels, string $mode, string $current): array {
-        $options = [];
-        foreach ($grouplabels as $gkey => $glabel) {
-            $matches = (\theme_nit_brand_group_scheme($gkey) === $mode);
-            if (!$matches && $gkey !== $current) {
-                continue;
-            }
-            $options[] = [
-                'value' => $gkey,
-                'label' => $matches ? $glabel
-                    : \get_string('categorystyles_groupmismatch', 'theme_nit', $glabel),
-                'selected' => ($gkey === $current),
-            ];
-        }
-        return $options;
     }
 }

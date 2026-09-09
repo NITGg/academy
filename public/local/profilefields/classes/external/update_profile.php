@@ -124,9 +124,19 @@ class update_profile extends external_api {
             unset($submitted['lang']);
         }
 
+        // What the sign-up flow is still owed. Read before the save, so the answer
+        // is about the account as it arrived, not as this call leaves it.
+        $outstanding = \local_profilefields\completion::missing($user);
+
         // The live form is the authority on what exists, what is required and what
-        // is locked - the same object the browser would be given.
-        $described = profile_api::describe($user);
+        // is locked - the same object the browser would be given. The one exception
+        // is a field the registration is still waiting on: this call is the sign-up
+        // questions asked late, and sign-up applies neither the profile field lock
+        // nor the auth plugin one. Without this a locked required field was asked
+        // for, dropped from the save unread, and then reported straight back as
+        // missing - a registration the app could never finish, whatever was typed.
+        $described = profile_api::unlock_outstanding(
+            profile_api::describe($user), $outstanding['fields']);
 
         $known = [];
         foreach ($described['fields'] as $field) {
@@ -151,10 +161,6 @@ class update_profile extends external_api {
                 $usernew->lang = $newlang;
             }
         }
-
-        // What the sign-up flow is still owed. Read before the save, so the answer
-        // is about the account as it arrived, not as this call leaves it.
-        $outstanding = \local_profilefields\completion::missing($user);
 
         // The app's half of the rule /local/profilefields/complete.php applies: while
         // this call is finishing a registration, `country` follows the phone the user
