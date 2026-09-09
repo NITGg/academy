@@ -86,6 +86,7 @@ if (($data = data_submitted()) && confirm_sesskey()) {
     // like", and splitting them out would mean two saves for one decision (a
     // shape and the colour it is drawn in).
     $shapestates = array_keys(theme_nit_navbar_shape_states());
+    $shapevalues = array_keys(theme_nit_navbar_shape_treatments());
     $typesubjects = theme_nit_navbar_type_subjects();
     $typeweights = theme_nit_navbar_weights();
 
@@ -110,7 +111,9 @@ if (($data = data_submitted()) && confirm_sesskey()) {
             unset_config('navbarglass_' . $gkey, 'theme_nit');
             unset_config('navbartransparency_' . $gkey, 'theme_nit');
             unset_config('navbarscrollgroup_' . $gkey, 'theme_nit');
-            unset_config('btnoutlinefill_' . $gkey, 'theme_nit');
+            foreach (array_keys(theme_nit_button_outline_variants()) as $variant) {
+                unset_config($variant . 'fill_' . $gkey, 'theme_nit');
+            }
         }
         theme_reset_all_caches();
         redirect($brandurl, get_string('brandcoloursreset', 'theme_nit'), null,
@@ -148,12 +151,10 @@ if (($data = data_submitted()) && confirm_sesskey()) {
                 foreach ($shapestates as $state) {
                     $field = 'navbarshape_' . $gkey . '_' . $state;
                     $ticked = optional_param_array($field, [], PARAM_ALPHANUMEXT);
-                    // Against the STATE's own list, not the whole catalogue: a
-                    // post naming a treatment this state does not offer (an icon
-                    // asking for Bold) is not a choice the editor could have
-                    // made, so it is dropped rather than stored.
-                    $ticked = array_values(array_intersect(
-                        theme_nit_navbar_shape_state_treatments($state), $ticked));
+                    // Against the catalogue, so a post naming a treatment that
+                    // does not exist (a retired `bold`) is dropped rather than
+                    // stored.
+                    $ticked = array_values(array_intersect($shapevalues, $ticked));
                     set_config($field, implode(',', $ticked), 'theme_nit');
                 }
             }
@@ -184,12 +185,14 @@ if (($data = data_submitted()) && confirm_sesskey()) {
                 set_config('navbarglass_' . $gkey,
                     optional_param('navbarglass_' . $gkey, 0, PARAM_INT) ? '1' : '0', 'theme_nit');
 
-                // Whether the outline buttons paint their Background role. Same
+                // Whether each outline button paints its Background role. Same
                 // gate and the same reason as the glass switch above: an
                 // unticked box posts nothing, so its absence can only be read as
                 // "off" for the group whose form was actually submitted.
-                set_config('btnoutlinefill_' . $gkey,
-                    optional_param('btnoutlinefill_' . $gkey, 0, PARAM_INT) ? '1' : '0', 'theme_nit');
+                foreach (array_keys(theme_nit_button_outline_variants()) as $variant) {
+                    $field = $variant . 'fill_' . $gkey;
+                    set_config($field, optional_param($field, 0, PARAM_INT) ? '1' : '0', 'theme_nit');
+                }
 
                 // 0 is a solid bar and a real answer, so the field is read with a
                 // sentinel default rather than 0 — a browser that sent nothing
@@ -665,7 +668,7 @@ JS);
 
 // Brand Colors: show one group's editor, and one section of it, at a time.
 //
-// Five groups of 53 roles is 265 colour wells. Printed one under another - which
+// Five groups of 59 roles is 295 colour wells. Printed one under another - which
 // is what this tab did - finding the navbar roles of Group 4 meant scrolling past
 // a hundred and forty other pickers, and the Save button for the group you were
 // editing was somewhere off the bottom of the screen. Nothing here changes what

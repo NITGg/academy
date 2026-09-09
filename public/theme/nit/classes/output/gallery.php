@@ -44,7 +44,7 @@ class gallery implements renderable, templatable {
         //
         // Only ONE group's editor is shown at a time (the pills at the top of
         // the tab switch between them) and only one section within it, because
-        // five groups × 53 roles is 265 colour wells and finding anything in
+        // five groups × 59 roles is 295 colour wells and finding anything in
         // that by scrolling is the thing this page was worst at.
         // Built keyed (group → section → block) and flattened into lists at the
         // end, because everything below wants to reach a named block — the shape
@@ -142,10 +142,8 @@ class gallery implements renderable, templatable {
             foreach (\theme_nit_navbar_shape_states() as $state => $meta) {
                 $ticked = \theme_nit_navbar_shape($gkey, $state);
                 $input = 'navbarshape_' . $gkey . '_' . $state;
-                // A state offers only the treatments it can actually draw — the
-                // icons have no Bold, because an icon font has one weight.
                 $options = [];
-                foreach (\theme_nit_navbar_shape_state_treatments($state) as $tkey) {
+                foreach (array_keys($treatments) as $tkey) {
                     $options[] = [
                         'id' => 'nit-' . $input . '-' . $tkey,
                         'value' => $tkey,
@@ -160,22 +158,24 @@ class gallery implements renderable, templatable {
                 ];
             }
 
-            // Whether this group's outline buttons paint their Background role
-            // at all. A switch and not just the colour card above it, because an
-            // outline button's resting fill is transparent by design — it takes
-            // the colour of the page or the card it sits on, and no single hex
-            // is right in both places. Off until an admin says otherwise, at
-            // which point the colour beside it starts being drawn.
+            // Whether each outline button paints its Background role at all. A
+            // switch and not just the colour card above it, because an outline
+            // button's resting fill is transparent by design — it takes the
+            // colour of the page or the card it sits on, and no single hex is
+            // right in both places. Off until an admin says otherwise, at which
+            // point the colour beside it starts being drawn.
             //
-            // It lands in the Outline button block, beside the six colours it
-            // governs, rather than in a settings list somewhere else.
-            $keyed[$gkey]['sections']['brand']['blocks']['btnoutline']['switches'][] = [
-                'input' => 'btnoutlinefill_' . $gkey,
-                'id' => 'nit-btnoutlinefill-' . $gkey,
-                'label' => get_string('btnoutlinefill', 'theme_nit'),
-                'usage' => get_string('btnoutlinefill_usage', 'theme_nit'),
-                'on' => \theme_nit_button_outline_fill($gkey),
-            ];
+            // One per outline block, landing in the block beside the six colours
+            // it governs rather than in a settings list somewhere else.
+            foreach (array_keys(\theme_nit_button_outline_variants()) as $variant) {
+                $keyed[$gkey]['sections']['brand']['blocks'][$variant]['switches'][] = [
+                    'input' => $variant . 'fill_' . $gkey,
+                    'id' => 'nit-' . $variant . 'fill-' . $gkey,
+                    'label' => get_string('btnoutlinefill', 'theme_nit'),
+                    'usage' => get_string('btnoutlinefill_usage', 'theme_nit'),
+                    'on' => \theme_nit_button_outline_fill($gkey, $variant),
+                ];
+            }
         }
 
         // Flatten: keyed maps become the ordered lists the template walks.

@@ -37,8 +37,8 @@ $nit-navpanel-shadow:  0 0 50px rgba(32, 32, 32, 0.15); // neutral drop shadow (
 $nit-navpanel-item:    var(--nit-navbarpaneltext, #8a9ab5);   // muted blue-grey row text.
 $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divider.
 
-// The shape an ICON state draws — the same three switches the titles use
-// (underline / bold / square background, any combination or none), read from the
+// The shape an ICON state draws — the same two switches the titles use
+// (underline / square background, either, both or neither), read from the
 // properties theme_nit_navbar_style_scss() publishes per brand group. Applied to
 // all four controls in the cluster from one place so they can never disagree.
 //
@@ -61,7 +61,6 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 // fallback only covers a half-built stylesheet.
 @mixin nit-navicon-shape($phase) {
     background-color: var(--nit-navicon-#{$phase}-bg, transparent);
-    font-weight: var(--nit-navicon-#{$phase}-weight, 500);
     box-shadow: inset 0 -2px 0 var(--nit-navicon-#{$phase}-underline, transparent);
 }
 
@@ -263,21 +262,12 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         white-space: nowrap;
         padding: 0.5rem 0.75rem;
         border-radius: 6px;
-        transition: color 0.15s ease, background-color 0.15s ease, font-weight 0.15s ease;
+        transition: color 0.15s ease, background-color 0.15s ease;
 
         &:hover,
         &:focus {
             background-color: var(--nit-navtitle-hover-bg, transparent);
-            font-weight: var(--nit-navtitle-hover-weight, 600);
             text-decoration: none;
-
-            // The other half of "Bold" — see the stroke note in
-            // theme_nit_navbar_style_scss(). The site's fonts are single-weight
-            // uploads, so the browser synthesises bold as a SWITCH that is
-            // already flipped at the resting 600: no heavier number can look
-            // different. Thickening the outline is what the font cannot refuse,
-            // and it changes no advance width, so the bar still does not move.
-            -webkit-text-stroke-width: var(--nit-navtitle-hover-stroke, 0);
 
             .nit-navbar-link-label::after {
                 background-color: var(--nit-navtitle-hover-underline, transparent);
@@ -292,8 +282,6 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         &.active,
         &[aria-current="page"] {
             background-color: var(--nit-navtitle-active-bg, transparent);
-            font-weight: var(--nit-navtitle-active-weight, 600);
-            -webkit-text-stroke-width: var(--nit-navtitle-active-stroke, 0);
 
             .nit-navbar-link-label::after {
                 background-color: var(--nit-navtitle-active-underline, transparent);
@@ -305,39 +293,16 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // the anchor may also be a `.dropdown-toggle` — Bootstrap draws that caret
     // with an `::after` and lays it out in normal flow, so neither the anchor's
     // `::after` nor a grid on the anchor is free to be used here.
+    //
+    // It used to carry a hidden twin of the label as well, sized at the heaviest
+    // weight the link could take, so that a state going BOLD did not widen the
+    // label and shove every link after it sideways. There is no Bold treatment
+    // any more (see theme_nit_navbar_shape_treatments()), so a title is the same
+    // weight in all three states, nothing can change width, and the twin — a
+    // second copy of every menu label in the DOM of every page — reserved a width
+    // that no longer varies.
     .nit-navbar-link-label {
         position: relative;
-        // One cell, so the hidden twin below stacks on the label rather than
-        // sitting beside it.
-        display: inline-grid;
-        grid-template-areas: "label";
-
-        .nit-navbar-link-text,
-        .nit-navbar-link-ghost {
-            grid-area: label;
-        }
-
-        // Why a hidden twin at all: a state that goes BOLD makes the label wider,
-        // and a wider label pushes every link after it sideways — the bar
-        // twitches under the cursor. The twin is the same words at the heaviest
-        // weight this link can ever take, drawn invisibly, so the box is already
-        // that wide at rest and nothing moves.
-        //
-        // `max()` of the three weights is what keeps that free: a group that
-        // chose no bold at all resolves all three to the resting weight, the twin
-        // measures exactly the same as the label, and the bar is the width it
-        // always was. The resting weight is in the list because it is an admin
-        // setting now — a group set to Extra bold at rest with no bold shape has
-        // its widest state there, not in a hover.
-        .nit-navbar-link-ghost {
-            visibility: hidden;
-            pointer-events: none;
-            font-weight: max(
-                var(--nit-navtitle-weight, 600),
-                var(--nit-navtitle-hover-weight, 600),
-                var(--nit-navtitle-active-weight, 600)
-            );
-        }
 
         // The underline. Always present, transparent at rest, so the two states
         // only have to change a colour — a rule that appears and vanishes cannot
@@ -472,7 +437,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         font-weight: var(--nit-navicon-weight, 500);
         line-height: 1;
         text-transform: uppercase;
-        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, font-weight 0.15s ease;
+        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 
         // Two carets to remove: Bootstrap draws one with a border triangle on
         // ::after, and core's template also ships a literal `<b class="caret">`.
@@ -533,7 +498,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         line-height: 1;
         text-transform: uppercase;
         text-decoration: none;
-        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, font-weight 0.15s ease;
+        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 
         // The code is the whole label, so it needs no inline spacing.
         .langbutton {
@@ -628,7 +593,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         box-shadow: none;
         // Icon glyph → the dedicated "Navbar icon color" role.
         color: var(--nit-navbariconaccent, #{$nit-gold-500}) !important;
-        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, font-weight 0.15s ease;
+        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 
         &:hover,
 

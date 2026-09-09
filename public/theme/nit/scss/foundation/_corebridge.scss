@@ -307,12 +307,15 @@ div.editor_atto_toolbar
 // The PRIMARY colour, everywhere core baked it.
 //
 // `pre_scss` sets Bootstrap's `$primary` from GROUP 1, and core compiles it into
-// every component that has a "primary" state: the outline button, the checked
-// checkbox, the active pill, tab, page number and list row, the progress bar,
-// the dropdown's active item. `.btn-primary` was bridged earlier; these were not,
-// so on a site whose Group 1 primary is (say) red, every one of them stayed red
-// no matter which group the page was in — a red "+ Add country price" button and
-// a red checkbox on a page with no red in its palette at all.
+// every component that has a "primary" state: the checked checkbox, the active
+// pill, tab, page number and list row, the progress bar, the dropdown's active
+// item. `.btn-primary` was bridged earlier; these were not, so on a site whose
+// Group 1 primary is (say) red, every one of them stayed red no matter which
+// group the page was in — a red checkbox on a page with no red in its palette
+// at all.
+//
+// The outline button was in this list too, and is not any more: it has its own
+// six cards now (see below).
 //
 // The selector list is read off the compiled stylesheet by searching it for
 // Group 1's primary literal and grouping the hits by the property they were used
@@ -325,24 +328,19 @@ div.editor_atto_toolbar
     --bs-primary: var(--nit-brand-primary);
 }
 
-// Left here, and deliberately NOT moved to the Outline button block in
-// scss/foundation/_brand.scss: this is the MAIN button drawn as a ring, not the
-// neutral outline button. Every colour in it is a main-button colour, so it
-// follows Brand → Main button already; the Outline button block owns the other
-// one (the Cancels and Resets). Two different buttons, two different blocks.
-.btn-outline-primary {
-    --bs-btn-color: var(--nit-brand-primary);
-    --bs-btn-border-color: var(--nit-brand-primary);
-    --bs-btn-hover-bg: var(--nit-brand-primary);
-    --bs-btn-hover-border-color: var(--nit-brand-primary);
-    --bs-btn-hover-color: var(--nit-brand-onprimary);
-    --bs-btn-active-bg: var(--nit-brand-primary);
-    --bs-btn-active-border-color: var(--nit-brand-primary);
-    --bs-btn-active-color: var(--nit-brand-onprimary);
-    --bs-btn-disabled-color: var(--nit-brand-primary);
-    --bs-btn-disabled-border-color: var(--nit-brand-primary);
-}
-
+// `.btn-outline-primary` was bridged here, derived from Primary: ring and label
+// in Primary, hovering onto a solid Primary fill wearing the main button's
+// label. It now reads the six cards in Brand → Outline button (brand), wired in
+// scss/foundation/_brand.scss, and every one of them seeds to the colour this
+// block produced — so the button has not moved, it has only become editable.
+//
+// The rule had to LEAVE rather than be re-pointed: this file is emitted after
+// _brand.scss, and at equal specificity the later rule wins, so it would have
+// overwritten whatever an admin set on those cards a few hundred lines later.
+// That is the same trap the secondary and neutral-outline bridges above fell
+// into. Everything else in this block — the checked checkbox, the active pill,
+// tab, page number and list row, the progress bar — stays: they are core
+// components with no card of their own, and Primary is what they want.
 .dropdown-menu {
     --bs-dropdown-link-active-bg: var(--nit-brand-primary);
     --bs-dropdown-link-active-color: var(--nit-brand-onprimary);

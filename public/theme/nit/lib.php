@@ -188,7 +188,7 @@ function theme_nit_colours_all(): array {
 /**
  * The named sections the roles are grouped into, in display order.
  *
- * A group is 53 roles now, which is more than anybody can scan as one flat
+ * A group is 59 roles now, which is more than anybody can scan as one flat
  * grid. The section is purely an editing aid — it changes no CSS and no export
  * shape — but it is declared here rather than in the template because the ORDER
  * of theme_nit_brand_roles() is what the gallery renders, and the two have to
@@ -231,12 +231,20 @@ function theme_nit_brand_role_sections(): array {
  */
 function theme_nit_brand_role_subsections(): array {
     return [
-        // Brand.
-        'core'         => 'Core',
-        'btnprimary'   => 'Main button',
-        'btnsecondary' => 'Secondary button',
-        'btnoutline'   => 'Outline button',
-        'link'         => 'Links and words',
+        // Brand. Two outline blocks, because the site draws two different
+        // outline buttons and always has: the BRAND one carries the public
+        // pages (the hero CTAs, the category filter pills, "Course details" on
+        // every course card) and the NEUTRAL one is back-office chrome (the
+        // Cancels and Resets on the payments, refunds and email screens). One
+        // shared block would have had to repaint one of them: either a Cancel
+        // button picks up the brand ring and stops reading differently from the
+        // Save beside it, or every public CTA goes grey.
+        'core'              => 'Core',
+        'btnprimary'        => 'Main button',
+        'btnsecondary'      => 'Secondary button',
+        'btnoutlineprimary' => 'Outline button (brand)',
+        'btnoutline'        => 'Outline button (neutral)',
+        'link'              => 'Links and words',
         // Navbar.
         'background' => 'Background',
         'title'      => 'Titles',
@@ -247,7 +255,29 @@ function theme_nit_brand_role_subsections(): array {
 }
 
 /**
- * Whether a group's outline buttons paint their Background role at rest.
+ * The two outline buttons, keyed by the prefix their six roles share.
+ *
+ * The prefix is load-bearing: it is the role-key prefix (`btnoutlineborder`,
+ * `btnoutlineprimaryborder`, …), the editor block key, and the stem of the Fill
+ * switch's config name. Naming the variants once here is what keeps the roles,
+ * the switch, the `transparent` override in theme_nit_get_pre_scss() and the
+ * editor cards from each carrying their own copy of the list.
+ *
+ * Order is display order, and the brand one leads because it is the one an
+ * administrator means by "the outline button" — it is what the public pages are
+ * built from.
+ *
+ * @return array<string, string> role-key prefix => the CSS class it drives
+ */
+function theme_nit_button_outline_variants(): array {
+    return [
+        'btnoutlineprimary' => '.btn-outline-primary',
+        'btnoutline'        => '.btn-outline-secondary',
+    ];
+}
+
+/**
+ * Whether one of a group's outline buttons paints its Background role at rest.
  *
  * Off by default, and that default is the whole reason the switch exists: an
  * outline button's resting fill is transparent, so it borrows the colour of
@@ -258,14 +288,15 @@ function theme_nit_brand_role_subsections(): array {
  * looks exactly as it always did.
  *
  * @param string $group brand group key (g1..g5)
- * @return bool true if the Outline button Background role should be painted
+ * @param string $variant an outline variant key (theme_nit_button_outline_variants())
+ * @return bool true if that variant's Background role should be painted
  */
-function theme_nit_button_outline_fill(string $group): bool {
-    return get_config('theme_nit', 'btnoutlinefill_' . $group) === '1';
+function theme_nit_button_outline_fill(string $group, string $variant): bool {
+    return get_config('theme_nit', $variant . 'fill_' . $group) === '1';
 }
 
 /**
- * The 53 semantic roles every Brand-Colors group is built from.
+ * The 59 semantic roles every Brand-Colors group is built from.
  *
  * This is the clean, small semantic layer that replaces the sprawling
  * theme_nit_colour_palette(): a component references a role by name (Primary,
@@ -329,13 +360,32 @@ function theme_nit_brand_roles(): array {
         'btnsecondaryhovertext' => ['section' => 'brand', 'sub' => 'btnsecondary', 'label' => 'Secondary button hover text', 'short' => 'Hover text', 'usage' => ['the label of a secondary button under the cursor'], 'default' => '#eef3f9'],
         'btnsecondaryhoverborder' => ['section' => 'brand', 'sub' => 'btnsecondary', 'label' => 'Secondary button hover border', 'short' => 'Hover border', 'usage' => ['the ring around a secondary button under the cursor'], 'default' => '#16222e'],
 
-        // --- Brand > Outline button (.btn-outline-secondary) -----------------
-        // The NEUTRAL outline button: the Cancels, the Resets, "Log in as
-        // guest". Its primary-coloured cousin `.btn-outline-primary` is not
-        // here, because it is the main button drawn as a ring rather than a
-        // second kind of outline button — every colour in it is a main-button
-        // colour, so it follows the Main button block above. See the
-        // `.btn-outline-primary` note in scss/foundation/_corebridge.scss.
+        // --- Brand > Outline button (brand) (.btn-outline-primary) -----------
+        // The outline button the PUBLIC pages are built from: the category hero
+        // CTAs, the filter pills across the top of a catalogue, "Course details"
+        // on every course card, the catalogue and search actions. This is the
+        // one an administrator means by "the outline button", which is why it
+        // leads the pair.
+        //
+        // Its colours were derived from the main button before they were roles —
+        // ring and label in Primary, hovering onto a solid Primary fill with the
+        // main button's label colour on it — so each seeds to exactly that. It
+        // is a separate block from the neutral outline button below rather than
+        // a second name for it: they have always looked different, and merging
+        // them would have had to repaint one of the two.
+        'btnoutlineprimarybg' => ['section' => 'brand', 'sub' => 'btnoutlineprimary', 'label' => 'Brand outline button background', 'short' => 'Background', 'usage' => ['the fill behind a brand outline button — drawn only while "Fill the background" is ticked'], 'default' => '#0c141f'],
+        'btnoutlineprimarytext' => ['section' => 'brand', 'sub' => 'btnoutlineprimary', 'label' => 'Brand outline button text', 'short' => 'Text', 'usage' => ['the label of a brand outline button'], 'default' => '#5488c4'],
+        'btnoutlineprimaryborder' => ['section' => 'brand', 'sub' => 'btnoutlineprimary', 'label' => 'Brand outline button border', 'short' => 'Border', 'usage' => ['the ring that IS the brand outline button'], 'default' => '#5488c4'],
+        'btnoutlineprimaryhoverbg' => ['section' => 'brand', 'sub' => 'btnoutlineprimary', 'label' => 'Brand outline button hover background', 'short' => 'Hover background', 'usage' => ['a brand outline button under the cursor, or being pressed'], 'default' => '#5488c4'],
+        'btnoutlineprimaryhovertext' => ['section' => 'brand', 'sub' => 'btnoutlineprimary', 'label' => 'Brand outline button hover text', 'short' => 'Hover text', 'usage' => ['the label of a brand outline button under the cursor'], 'default' => '#eef3f9'],
+        'btnoutlineprimaryhoverborder' => ['section' => 'brand', 'sub' => 'btnoutlineprimary', 'label' => 'Brand outline button hover border', 'short' => 'Hover border', 'usage' => ['the ring around a brand outline button under the cursor'], 'default' => '#5488c4'],
+
+        // --- Brand > Outline button (neutral) (.btn-outline-secondary) -------
+        // The NEUTRAL outline button: the Cancels and Resets on the payments,
+        // refunds, subscriptions and email screens, and "Log in as guest". It is
+        // back-office chrome, and it stays visually apart from the brand outline
+        // above on purpose — a Cancel that carries the same ring as the Save
+        // beside it has stopped saying which one is which.
         //
         // The one block whose background is not painted by default. An outline
         // button IS its ring: the resting fill is transparent, so the button
@@ -454,14 +504,22 @@ function theme_nit_brand_roles(): array {
  * The SHAPE treatments — the navbar decisions that are not a colour.
  *
  * A title (and, since they answer the cursor the same way, an icon) can mark a
- * state with an underline, with extra weight, with a filled square behind it —
- * any combination of the three, or none at all. They are INDEPENDENT switches
- * rather than four named looks: an "All" entry beside them was only ever the
- * three of them ticked together, and it made "underline plus bold" unsayable
- * while making "the same thing" sayable twice.
+ * state with an underline, with a filled square behind it, with both, or with
+ * neither. They are INDEPENDENT switches rather than named looks: an "All" entry
+ * beside them was only ever every switch ticked together, and it made
+ * combinations unsayable while making "the same thing" sayable twice.
+ *
+ * There is no BOLD. There was, and it could not draw: the site's fonts are
+ * single-file admin uploads declared at `font-weight: normal`
+ * (theme_nit_font_scss()), so the browser synthesises every heavier weight — and
+ * synthesis is a switch, not a ramp. It flips at 600 and does the same thing at
+ * 700, 800 and 900, which measured pixel-for-pixel identical on the live bar
+ * against a resting weight of 600. An icon font is worse still: one weight per
+ * face, so five of the six controls in the cluster could not have moved at all.
+ * A tick that does nothing is worse than a tick that is not offered.
  *
  * A choice is a SET, stored per group as `theme_nit/navbarshape_<gkey>_<state>`
- * holding the ticked keys comma-separated, and consumed as three CSS custom
+ * holding the ticked keys comma-separated, and consumed as two CSS custom
  * properties per state (see theme_nit_navbar_style_scss()). An empty string is a
  * real answer there — "mark this state with no shape at all" — and is why the
  * config row is written rather than removed when nothing is ticked.
@@ -471,7 +529,6 @@ function theme_nit_brand_roles(): array {
 function theme_nit_navbar_shape_treatments(): array {
     return [
         'underline' => ['label' => 'Under line'],
-        'bold'      => ['label' => 'Bold'],
         'square'    => ['label' => 'Square background'],
     ];
 }
@@ -514,16 +571,9 @@ function theme_nit_navbar_shape_states(): array {
             'bg' => 'var(--nit-brand-navbartitleactivestylecolor)',
             'default' => ['underline'],
         ],
-        // The icons offer no BOLD. What the cluster draws is Font Awesome
-        // glyphs, and an icon font ships one weight per face — asking for a
-        // heavier one changes nothing on five of the six controls. It would have
-        // moved only the language code (EN / AR), which is the one piece of type
-        // in there, and a tick that silently does nothing on almost everything
-        // it names is worse than a tick that is not offered.
         'iconhover'   => [
             'subject' => 'icon', 'phase' => 'hover', 'sub' => 'icon',
             'label' => 'Navbar icon hover style shape', 'short' => 'Icon hover style shape',
-            'treatments' => ['underline', 'square'],
             'underline' => 'var(--nit-brand-navbariconhovercolor)',
             'bg' => 'var(--nit-navbariconbg)',
             'default' => ['square'],
@@ -531,7 +581,6 @@ function theme_nit_navbar_shape_states(): array {
         'iconactive'  => [
             'subject' => 'icon', 'phase' => 'active', 'sub' => 'icon',
             'label' => 'Navbar icon active style shape', 'short' => 'Icon active style shape',
-            'treatments' => ['underline', 'square'],
             'underline' => 'var(--nit-brand-navbariconactivecolor)',
             'bg' => 'var(--nit-navbariconactivebg)',
             'default' => ['square'],
@@ -551,38 +600,22 @@ function theme_nit_navbar_shape_states(): array {
  */
 function theme_nit_navbar_shape(string $group, string $state): array {
     $states = theme_nit_navbar_shape_states();
-    $valid = theme_nit_navbar_shape_state_treatments($state);
+    $valid = array_keys(theme_nit_navbar_shape_treatments());
     $value = get_config('theme_nit', 'navbarshape_' . $group . '_' . $state);
 
     if (!is_string($value)) {
         return $states[$state]['default'] ?? [];
     }
     // Sites that chose the retired "All" entry keep what they picked: it was
-    // exactly the treatments this state offers, ticked together.
+    // every treatment ticked together.
     if ($value === 'all') {
         return $valid;
     }
-    // Intersect against the state's OWN list, in ITS order — so the emitted CSS
-    // does not depend on the order the checkboxes happened to post in, and a
-    // treatment a state no longer offers (a `bold` saved for an icon before the
-    // icons stopped offering it) is dropped on read rather than lingering in the
-    // stylesheet.
+    // Intersect against the catalogue, in ITS order — so the emitted CSS does
+    // not depend on the order the checkboxes happened to post in, and a
+    // treatment that no longer exists (a `bold` saved before it was retired) is
+    // dropped on read rather than lingering in the stylesheet.
     return array_values(array_intersect($valid, array_map('trim', explode(',', $value))));
-}
-
-/**
- * The treatments one state is allowed to offer.
- *
- * All three unless the state says otherwise — see the icon states in
- * theme_nit_navbar_shape_states() for the one that does, and why.
- *
- * @param string $state state key
- * @return string[] keys of theme_nit_navbar_shape_treatments()
- */
-function theme_nit_navbar_shape_state_treatments(string $state): array {
-    $all = array_keys(theme_nit_navbar_shape_treatments());
-    $allowed = theme_nit_navbar_shape_states()[$state]['treatments'] ?? $all;
-    return array_values(array_intersect($all, $allowed));
 }
 
 /**
@@ -1265,6 +1298,15 @@ function theme_nit_brand_group_defaults(): array {
             // resolved to: Text primary on Border secondary, hovering onto the
             // two Hover roles. Its Background is the page ground, and is painted
             // only once the Fill switch is on — theme_nit_button_outline_fill().
+            // The brand outline button seeds to what .btn-outline-primary was
+            // already drawn from: the ring and the label in Primary, hovering
+            // onto a solid Primary fill wearing the main button's label colour.
+            'btnoutlineprimarybg' => '#0c141f',
+            'btnoutlineprimarytext' => '#5488c4',
+            'btnoutlineprimaryborder' => '#5488c4',
+            'btnoutlineprimaryhoverbg' => '#5488c4',
+            'btnoutlineprimaryhovertext' => '#eef3f9',
+            'btnoutlineprimaryhoverborder' => '#5488c4',
             'btnoutlinebg'      => '#0c141f',
             'btnoutlinetext'    => '#eef3f9',
             'btnoutlineborder'  => '#33475e',
@@ -1321,6 +1363,12 @@ function theme_nit_brand_group_defaults(): array {
             'btnsecondaryhoverbg' => '#0f2927',
             'btnsecondaryhovertext' => '#eef5f4',
             'btnsecondaryhoverborder' => '#0e2625',
+            'btnoutlineprimarybg' => '#0a1a1a',
+            'btnoutlineprimarytext' => '#2f9e8f',
+            'btnoutlineprimaryborder' => '#2f9e8f',
+            'btnoutlineprimaryhoverbg' => '#2f9e8f',
+            'btnoutlineprimaryhovertext' => '#eef5f4',
+            'btnoutlineprimaryhoverborder' => '#2f9e8f',
             'btnoutlinebg'      => '#0a1a1a',
             'btnoutlinetext'    => '#eef5f4',
             'btnoutlineborder'  => '#2f5a56',
@@ -1377,6 +1425,12 @@ function theme_nit_brand_group_defaults(): array {
             'btnsecondaryhoverbg' => '#201f34',
             'btnsecondaryhovertext' => '#efedf7',
             'btnsecondaryhoverborder' => '#1e1d31',
+            'btnoutlineprimarybg' => '#11101c',
+            'btnoutlineprimarytext' => '#8478cf',
+            'btnoutlineprimaryborder' => '#8478cf',
+            'btnoutlineprimaryhoverbg' => '#8478cf',
+            'btnoutlineprimaryhovertext' => '#efedf7',
+            'btnoutlineprimaryhoverborder' => '#8478cf',
             'btnoutlinebg'      => '#11101c',
             'btnoutlinetext'    => '#efedf7',
             'btnoutlineborder'  => '#433d64',
@@ -1478,6 +1532,12 @@ function theme_nit_brand_group_defaults(): array {
             'btnsecondaryhoverbg' => '#d5d9df',   // N300
             'btnsecondaryhovertext' => '#14191f',   // N900
             'btnsecondaryhoverborder' => '#d5d9df',   // N300
+            'btnoutlineprimarybg' => '#f6f8fb',   // N50
+            'btnoutlineprimarytext' => '#2368bd',   // A600
+            'btnoutlineprimaryborder' => '#2368bd',   // A600
+            'btnoutlineprimaryhoverbg' => '#2368bd',   // A600
+            'btnoutlineprimaryhovertext' => '#ffffff',
+            'btnoutlineprimaryhoverborder' => '#2368bd',   // A600
             'btnoutlinebg'      => '#f6f8fb',   // N50
             'btnoutlinetext'    => '#14191f',   // N900
             'btnoutlineborder'  => '#a7abb1',   // N400
@@ -1558,6 +1618,12 @@ function theme_nit_brand_group_defaults(): array {
             'btnsecondaryhoverbg' => '#24272d',
             'btnsecondaryhovertext' => '#f6f8fb',   // N50
             'btnsecondaryhoverborder' => '#22252a',
+            'btnoutlineprimarybg' => '#0d1117',   // N950
+            'btnoutlineprimarytext' => '#71a7ef',   // A400
+            'btnoutlineprimaryborder' => '#71a7ef',   // A400
+            'btnoutlineprimaryhoverbg' => '#71a7ef',   // A400
+            'btnoutlineprimaryhovertext' => '#0d1117',   // N950
+            'btnoutlineprimaryhoverborder' => '#71a7ef',   // A400
             'btnoutlinebg'      => '#0d1117',   // N950
             'btnoutlinetext'    => '#f6f8fb',   // N50
             'btnoutlineborder'  => '#43484f',   // N700
@@ -2510,20 +2576,22 @@ function theme_nit_get_pre_scss($theme) {
         $scss .= '$nit-b-' . str_replace('_', '-', $key) . ': ' . theme_nit_brandcolour($key) . ";\n";
     }
 
-    // The one token that is not always a colour. An outline button's resting
+    // The two tokens that are not always a colour. An outline button's resting
     // fill is transparent — that is what makes it an outline button, and what
     // lets the same button sit on the page ground and on a card without looking
-    // wrong on one of them. The Outline button "Background" role is therefore
-    // consumed only when the group's Fill switch is on; otherwise the token is
-    // re-declared here as `transparent`, which is exactly what Bootstrap already
-    // gave the variant.
+    // wrong on one of them. Either outline block's "Background" role is
+    // therefore consumed only when that block's Fill switch is on; otherwise the
+    // token is re-declared here as `transparent`, which is exactly what
+    // Bootstrap already gave the variant.
     //
     // Re-declared rather than skipped above: _brand.scss reads every token by
     // name, so the variable has to exist in all cases. A later `$x: y` wins in
     // SCSS, so this second declaration is the value that reaches the stylesheet.
     foreach (array_keys(theme_nit_brand_groups()) as $gkey) {
-        if (!theme_nit_button_outline_fill($gkey)) {
-            $scss .= '$nit-b-' . $gkey . "-btnoutlinebg: transparent;\n";
+        foreach (array_keys(theme_nit_button_outline_variants()) as $variant) {
+            if (!theme_nit_button_outline_fill($gkey, $variant)) {
+                $scss .= '$nit-b-' . $gkey . '-' . $variant . "bg: transparent;\n";
+            }
         }
     }
 
@@ -3132,63 +3200,29 @@ function theme_nit_navbar_style_scss(): string {
         $css .= '    --nit-navbaropacity: ' . $opacity . "%;\n";
         $css .= '    --nit-navbarblur: ' . ($glass['on'] ? THEME_NIT_NAVBAR_BLUR : 'none') . ";\n";
 
-        // Size and weight, one pair per subject.
-        $boldweights = [];
+        // Size and weight, one pair per subject. The weight is the RESTING one an
+        // administrator sets on the typography card, and it is the only weight
+        // the bar has: no shape changes it, so a title is the same weight resting,
+        // hovered and current. See theme_nit_navbar_shape_treatments() for why
+        // there is no Bold treatment to change it.
         foreach (array_keys($subjects) as $subject) {
             $size = theme_nit_navbar_type_size($gkey, $subject);
-            $weight = theme_nit_navbar_type_weight($gkey, $subject);
             $prefix = '--nit-nav' . $subject . '-';
             $css .= '    ' . $prefix . 'size: ' . $size . "px;\n";
-            $css .= '    ' . $prefix . 'weight: ' . $weight . ";\n";
+            $css .= '    ' . $prefix . 'weight: ' . theme_nit_navbar_type_weight($gkey, $subject) . ";\n";
             if ($subject === 'icon') {
                 // The pointer target, which follows the glyph up but never down.
                 $css .= '    ' . $prefix . 'box: ' . theme_nit_navbar_icon_box($size) . "px;\n";
             }
-            // What this subject's "Bold" treatment steps up to, clamped to the
-            // heaviest weight CSS has and floored at 700 — see the stroke note
-            // below for why a bare +200 step was not enough on its own.
-            $boldweights[$subject] = ['rest' => $weight, 'bold' => max(700, min(900, $weight + 200))];
         }
 
         foreach ($states as $state => $meta) {
             $ticked = theme_nit_navbar_shape($gkey, $state);
-            $weights = $boldweights[$meta['subject']] ?? ['rest' => 600, 'bold' => 800];
-            $bold = in_array('bold', $ticked, true);
             $prefix = '--nit-nav' . $meta['subject'] . '-' . $meta['phase'] . '-';
             $css .= '    ' . $prefix . 'underline: '
                 . (in_array('underline', $ticked, true) ? $meta['underline'] : 'transparent') . ";\n";
             $css .= '    ' . $prefix . 'bg: '
                 . (in_array('square', $ticked, true) ? $meta['bg'] : 'transparent') . ";\n";
-            $css .= '    ' . $prefix . 'weight: ' . ($bold ? $weights['bold'] : $weights['rest']) . ";\n";
-
-            // ...and a hairline stroke, which is what makes "Bold" visible AT
-            // ALL on this site.
-            //
-            // The site's fonts are admin uploads of ONE file per language,
-            // declared at `font-weight: normal` (theme_nit_font_scss()), so the
-            // browser synthesises every heavier weight — and synthesis is a
-            // SWITCH, not a ramp: it kicks in at 600 and does the same thing at
-            // 700, 800 and 900. Measured on the live bar, weights 600 and 800
-            // render pixel-for-pixel identically; the only step the font can draw
-            // is 500 → 600. Since titles rest at 600 by default, the old
-            // "rest + 200" step was 600 → 800 — a change the font had no way to
-            // show, which is exactly what "Bold does nothing" was.
-            //
-            // The stroke thickens the glyph outline itself, so it lands whatever
-            // the font can or cannot do, and it is set in `em` so it tracks the
-            // admin's size setting. It also costs no layout: a stroke does not
-            // change advance width, so the hidden twin that keeps the bar from
-            // twitching (see `.nit-navbar-link-label`) needs no adjustment.
-            //
-            // Where a real multi-weight family IS installed the weight step does
-            // the work and this only firms it slightly.
-            //
-            // Emitted only for the states that offer Bold at all, so the icons —
-            // which do not — publish no property the stylesheet would only ever
-            // read as zero.
-            if (in_array('bold', theme_nit_navbar_shape_state_treatments($state), true)) {
-                $css .= '    ' . $prefix . 'stroke: ' . ($bold ? '0.03em' : '0') . ";\n";
-            }
         }
         $css .= "}\n";
     }
