@@ -411,9 +411,16 @@ function theme_nit_navbar_shape_states(): array {
             'bg' => 'var(--nit-brand-navbartitleactivestylecolor)',
             'default' => ['underline'],
         ],
+        // The icons offer no BOLD. What the cluster draws is Font Awesome
+        // glyphs, and an icon font ships one weight per face — asking for a
+        // heavier one changes nothing on five of the six controls. It would have
+        // moved only the language code (EN / AR), which is the one piece of type
+        // in there, and a tick that silently does nothing on almost everything
+        // it names is worse than a tick that is not offered.
         'iconhover'   => [
             'subject' => 'icon', 'phase' => 'hover', 'sub' => 'icon',
             'label' => 'Navbar icon hover style shape', 'short' => 'Icon hover style shape',
+            'treatments' => ['underline', 'square'],
             'underline' => 'var(--nit-brand-navbariconhovercolor)',
             'bg' => 'var(--nit-navbariconbg)',
             'default' => ['square'],
@@ -421,6 +428,7 @@ function theme_nit_navbar_shape_states(): array {
         'iconactive'  => [
             'subject' => 'icon', 'phase' => 'active', 'sub' => 'icon',
             'label' => 'Navbar icon active style shape', 'short' => 'Icon active style shape',
+            'treatments' => ['underline', 'square'],
             'underline' => 'var(--nit-brand-navbariconactivecolor)',
             'bg' => 'var(--nit-navbariconactivebg)',
             'default' => ['square'],
@@ -440,20 +448,38 @@ function theme_nit_navbar_shape_states(): array {
  */
 function theme_nit_navbar_shape(string $group, string $state): array {
     $states = theme_nit_navbar_shape_states();
-    $valid = array_keys(theme_nit_navbar_shape_treatments());
+    $valid = theme_nit_navbar_shape_state_treatments($state);
     $value = get_config('theme_nit', 'navbarshape_' . $group . '_' . $state);
 
     if (!is_string($value)) {
         return $states[$state]['default'] ?? [];
     }
     // Sites that chose the retired "All" entry keep what they picked: it was
-    // exactly these three ticked together.
+    // exactly the treatments this state offers, ticked together.
     if ($value === 'all') {
         return $valid;
     }
-    // Intersect against the treatment list IN ITS OWN ORDER, so the emitted CSS
-    // does not depend on the order the checkboxes happened to post in.
+    // Intersect against the state's OWN list, in ITS order — so the emitted CSS
+    // does not depend on the order the checkboxes happened to post in, and a
+    // treatment a state no longer offers (a `bold` saved for an icon before the
+    // icons stopped offering it) is dropped on read rather than lingering in the
+    // stylesheet.
     return array_values(array_intersect($valid, array_map('trim', explode(',', $value))));
+}
+
+/**
+ * The treatments one state is allowed to offer.
+ *
+ * All three unless the state says otherwise — see the icon states in
+ * theme_nit_navbar_shape_states() for the one that does, and why.
+ *
+ * @param string $state state key
+ * @return string[] keys of theme_nit_navbar_shape_treatments()
+ */
+function theme_nit_navbar_shape_state_treatments(string $state): array {
+    $all = array_keys(theme_nit_navbar_shape_treatments());
+    $allowed = theme_nit_navbar_shape_states()[$state]['treatments'] ?? $all;
+    return array_values(array_intersect($all, $allowed));
 }
 
 /**
@@ -2914,20 +2940,50 @@ function theme_nit_navbar_style_scss(): string {
                 $css .= '    ' . $prefix . 'box: ' . theme_nit_navbar_icon_box($size) . "px;\n";
             }
             // What this subject's "Bold" treatment steps up to, clamped to the
-            // heaviest weight CSS has.
-            $boldweights[$subject] = ['rest' => $weight, 'bold' => min(900, $weight + 200)];
+            // heaviest weight CSS has and floored at 700 — see the stroke note
+            // below for why a bare +200 step was not enough on its own.
+            $boldweights[$subject] = ['rest' => $weight, 'bold' => max(700, min(900, $weight + 200))];
         }
 
         foreach ($states as $state => $meta) {
             $ticked = theme_nit_navbar_shape($gkey, $state);
             $weights = $boldweights[$meta['subject']] ?? ['rest' => 600, 'bold' => 800];
+            $bold = in_array('bold', $ticked, true);
             $prefix = '--nit-nav' . $meta['subject'] . '-' . $meta['phase'] . '-';
             $css .= '    ' . $prefix . 'underline: '
                 . (in_array('underline', $ticked, true) ? $meta['underline'] : 'transparent') . ";\n";
             $css .= '    ' . $prefix . 'bg: '
                 . (in_array('square', $ticked, true) ? $meta['bg'] : 'transparent') . ";\n";
-            $css .= '    ' . $prefix . 'weight: '
-                . (in_array('bold', $ticked, true) ? $weights['bold'] : $weights['rest']) . ";\n";
+            $css .= '    ' . $prefix . 'weight: ' . ($bold ? $weights['bold'] : $weights['rest']) . ";\n";
+
+            // ...and a hairline stroke, which is what makes "Bold" visible AT
+            // ALL on this site.
+            //
+            // The site's fonts are admin uploads of ONE file per language,
+            // declared at `font-weight: normal` (theme_nit_font_scss()), so the
+            // browser synthesises every heavier weight — and synthesis is a
+            // SWITCH, not a ramp: it kicks in at 600 and does the same thing at
+            // 700, 800 and 900. Measured on the live bar, weights 600 and 800
+            // render pixel-for-pixel identically; the only step the font can draw
+            // is 500 → 600. Since titles rest at 600 by default, the old
+            // "rest + 200" step was 600 → 800 — a change the font had no way to
+            // show, which is exactly what "Bold does nothing" was.
+            //
+            // The stroke thickens the glyph outline itself, so it lands whatever
+            // the font can or cannot do, and it is set in `em` so it tracks the
+            // admin's size setting. It also costs no layout: a stroke does not
+            // change advance width, so the hidden twin that keeps the bar from
+            // twitching (see `.nit-navbar-link-label`) needs no adjustment.
+            //
+            // Where a real multi-weight family IS installed the weight step does
+            // the work and this only firms it slightly.
+            //
+            // Emitted only for the states that offer Bold at all, so the icons —
+            // which do not — publish no property the stylesheet would only ever
+            // read as zero.
+            if (in_array('bold', theme_nit_navbar_shape_state_treatments($state), true)) {
+                $css .= '    ' . $prefix . 'stroke: ' . ($bold ? '0.03em' : '0') . ";\n";
+            }
         }
         $css .= "}\n";
     }

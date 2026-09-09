@@ -86,7 +86,6 @@ if (($data = data_submitted()) && confirm_sesskey()) {
     // like", and splitting them out would mean two saves for one decision (a
     // shape and the colour it is drawn in).
     $shapestates = array_keys(theme_nit_navbar_shape_states());
-    $shapevalues = array_keys(theme_nit_navbar_shape_treatments());
     $typesubjects = theme_nit_navbar_type_subjects();
     $typeweights = theme_nit_navbar_weights();
 
@@ -148,7 +147,12 @@ if (($data = data_submitted()) && confirm_sesskey()) {
                 foreach ($shapestates as $state) {
                     $field = 'navbarshape_' . $gkey . '_' . $state;
                     $ticked = optional_param_array($field, [], PARAM_ALPHANUMEXT);
-                    $ticked = array_values(array_intersect($shapevalues, $ticked));
+                    // Against the STATE's own list, not the whole catalogue: a
+                    // post naming a treatment this state does not offer (an icon
+                    // asking for Bold) is not a choice the editor could have
+                    // made, so it is dropped rather than stored.
+                    $ticked = array_values(array_intersect(
+                        theme_nit_navbar_shape_state_treatments($state), $ticked));
                     set_config($field, implode(',', $ticked), 'theme_nit');
                 }
             }

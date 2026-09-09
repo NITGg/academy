@@ -271,6 +271,14 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
             font-weight: var(--nit-navtitle-hover-weight, 600);
             text-decoration: none;
 
+            // The other half of "Bold" — see the stroke note in
+            // theme_nit_navbar_style_scss(). The site's fonts are single-weight
+            // uploads, so the browser synthesises bold as a SWITCH that is
+            // already flipped at the resting 600: no heavier number can look
+            // different. Thickening the outline is what the font cannot refuse,
+            // and it changes no advance width, so the bar still does not move.
+            -webkit-text-stroke-width: var(--nit-navtitle-hover-stroke, 0);
+
             .nit-navbar-link-label::after {
                 background-color: var(--nit-navtitle-hover-underline, transparent);
             }
@@ -285,6 +293,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         &[aria-current="page"] {
             background-color: var(--nit-navtitle-active-bg, transparent);
             font-weight: var(--nit-navtitle-active-weight, 600);
+            -webkit-text-stroke-width: var(--nit-navtitle-active-stroke, 0);
 
             .nit-navbar-link-label::after {
                 background-color: var(--nit-navtitle-active-underline, transparent);

@@ -142,15 +142,21 @@ class gallery implements renderable, templatable {
             foreach (\theme_nit_navbar_shape_states() as $state => $meta) {
                 $ticked = \theme_nit_navbar_shape($gkey, $state);
                 $input = 'navbarshape_' . $gkey . '_' . $state;
+                // A state offers only the treatments it can actually draw — the
+                // icons have no Bold, because an icon font has one weight.
+                $options = [];
+                foreach (\theme_nit_navbar_shape_state_treatments($state) as $tkey) {
+                    $options[] = [
+                        'id' => 'nit-' . $input . '-' . $tkey,
+                        'value' => $tkey,
+                        'label' => $treatments[$tkey]['label'],
+                        'checked' => in_array($tkey, $ticked, true),
+                    ];
+                }
                 $keyed[$gkey]['sections']['navbar']['blocks'][$meta['sub']]['shapes'][] = [
                     'input' => $input,
                     'label' => $meta['short'] ?? $meta['label'],
-                    'options' => array_map(static fn($tkey, $tmeta) => [
-                        'id' => 'nit-' . $input . '-' . $tkey,
-                        'value' => $tkey,
-                        'label' => $tmeta['label'],
-                        'checked' => in_array($tkey, $ticked, true),
-                    ], array_keys($treatments), $treatments),
+                    'options' => $options,
                 ];
             }
         }
