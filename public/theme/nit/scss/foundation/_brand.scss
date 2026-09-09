@@ -181,7 +181,9 @@ $nit-b-buttonroles: (
     --nit-brand-g1-borderprimary: #{$nit-b-g1-borderprimary};
     --nit-brand-g1-bordersecondary: #{$nit-b-g1-bordersecondary};
     --nit-brand-g1-hoverbackground: #{$nit-b-g1-hoverbackground};
+    --nit-brand-g1-hoverbackgroundsecondary: #{$nit-b-g1-hoverbackgroundsecondary};
     --nit-brand-g1-hovertext: #{$nit-b-g1-hovertext};
+    --nit-brand-g1-hovertextsecondary: #{$nit-b-g1-hovertextsecondary};
     --nit-brand-g1-error: #{$nit-b-g1-error};
     --nit-brand-g1-success: #{$nit-b-g1-success};
     --nit-brand-g1-warning: #{$nit-b-g1-warning};
@@ -207,7 +209,9 @@ $nit-b-buttonroles: (
     --nit-brand-g2-borderprimary: #{$nit-b-g2-borderprimary};
     --nit-brand-g2-bordersecondary: #{$nit-b-g2-bordersecondary};
     --nit-brand-g2-hoverbackground: #{$nit-b-g2-hoverbackground};
+    --nit-brand-g2-hoverbackgroundsecondary: #{$nit-b-g2-hoverbackgroundsecondary};
     --nit-brand-g2-hovertext: #{$nit-b-g2-hovertext};
+    --nit-brand-g2-hovertextsecondary: #{$nit-b-g2-hovertextsecondary};
     --nit-brand-g2-error: #{$nit-b-g2-error};
     --nit-brand-g2-success: #{$nit-b-g2-success};
     --nit-brand-g2-warning: #{$nit-b-g2-warning};
@@ -233,7 +237,9 @@ $nit-b-buttonroles: (
     --nit-brand-g3-borderprimary: #{$nit-b-g3-borderprimary};
     --nit-brand-g3-bordersecondary: #{$nit-b-g3-bordersecondary};
     --nit-brand-g3-hoverbackground: #{$nit-b-g3-hoverbackground};
+    --nit-brand-g3-hoverbackgroundsecondary: #{$nit-b-g3-hoverbackgroundsecondary};
     --nit-brand-g3-hovertext: #{$nit-b-g3-hovertext};
+    --nit-brand-g3-hovertextsecondary: #{$nit-b-g3-hovertextsecondary};
     --nit-brand-g3-error: #{$nit-b-g3-error};
     --nit-brand-g3-success: #{$nit-b-g3-success};
     --nit-brand-g3-warning: #{$nit-b-g3-warning};
@@ -259,7 +265,9 @@ $nit-b-buttonroles: (
     --nit-brand-g4-borderprimary: #{$nit-b-g4-borderprimary};
     --nit-brand-g4-bordersecondary: #{$nit-b-g4-bordersecondary};
     --nit-brand-g4-hoverbackground: #{$nit-b-g4-hoverbackground};
+    --nit-brand-g4-hoverbackgroundsecondary: #{$nit-b-g4-hoverbackgroundsecondary};
     --nit-brand-g4-hovertext: #{$nit-b-g4-hovertext};
+    --nit-brand-g4-hovertextsecondary: #{$nit-b-g4-hovertextsecondary};
     --nit-brand-g4-error: #{$nit-b-g4-error};
     --nit-brand-g4-success: #{$nit-b-g4-success};
     --nit-brand-g4-warning: #{$nit-b-g4-warning};
@@ -285,7 +293,9 @@ $nit-b-buttonroles: (
     --nit-brand-g5-borderprimary: #{$nit-b-g5-borderprimary};
     --nit-brand-g5-bordersecondary: #{$nit-b-g5-bordersecondary};
     --nit-brand-g5-hoverbackground: #{$nit-b-g5-hoverbackground};
+    --nit-brand-g5-hoverbackgroundsecondary: #{$nit-b-g5-hoverbackgroundsecondary};
     --nit-brand-g5-hovertext: #{$nit-b-g5-hovertext};
+    --nit-brand-g5-hovertextsecondary: #{$nit-b-g5-hovertextsecondary};
     --nit-brand-g5-error: #{$nit-b-g5-error};
     --nit-brand-g5-success: #{$nit-b-g5-success};
     --nit-brand-g5-warning: #{$nit-b-g5-warning};
@@ -425,7 +435,9 @@ $nit-b-buttonroles: (
     --nit-brand-borderprimary: var(--nit-brand-g1-borderprimary);
     --nit-brand-bordersecondary: var(--nit-brand-g1-bordersecondary);
     --nit-brand-hoverbackground: var(--nit-brand-g1-hoverbackground);
+    --nit-brand-hoverbackgroundsecondary: var(--nit-brand-g1-hoverbackgroundsecondary);
     --nit-brand-hovertext: var(--nit-brand-g1-hovertext);
+    --nit-brand-hovertextsecondary: var(--nit-brand-g1-hovertextsecondary);
     --nit-brand-error: var(--nit-brand-g1-error);
     --nit-brand-success: var(--nit-brand-g1-success);
     --nit-brand-warning: var(--nit-brand-g1-warning);
@@ -524,7 +536,9 @@ $nit-b-buttonroles: (
     --nit-brand-borderprimary: var(--nit-brand-g1-borderprimary);
     --nit-brand-bordersecondary: var(--nit-brand-g1-bordersecondary);
     --nit-brand-hoverbackground: var(--nit-brand-g1-hoverbackground);
+    --nit-brand-hoverbackgroundsecondary: var(--nit-brand-g1-hoverbackgroundsecondary);
     --nit-brand-hovertext: var(--nit-brand-g1-hovertext);
+    --nit-brand-hovertextsecondary: var(--nit-brand-g1-hovertextsecondary);
     --nit-brand-error: var(--nit-brand-g1-error);
     --nit-brand-success: var(--nit-brand-g1-success);
     --nit-brand-warning: var(--nit-brand-g1-warning);
@@ -570,7 +584,9 @@ $nit-b-buttonroles: (
     --nit-brand-borderprimary: var(--nit-brand-g2-borderprimary);
     --nit-brand-bordersecondary: var(--nit-brand-g2-bordersecondary);
     --nit-brand-hoverbackground: var(--nit-brand-g2-hoverbackground);
+    --nit-brand-hoverbackgroundsecondary: var(--nit-brand-g2-hoverbackgroundsecondary);
     --nit-brand-hovertext: var(--nit-brand-g2-hovertext);
+    --nit-brand-hovertextsecondary: var(--nit-brand-g2-hovertextsecondary);
     --nit-brand-error: var(--nit-brand-g2-error);
     --nit-brand-success: var(--nit-brand-g2-success);
     --nit-brand-warning: var(--nit-brand-g2-warning);
@@ -616,7 +632,9 @@ $nit-b-buttonroles: (
     --nit-brand-borderprimary: var(--nit-brand-g3-borderprimary);
     --nit-brand-bordersecondary: var(--nit-brand-g3-bordersecondary);
     --nit-brand-hoverbackground: var(--nit-brand-g3-hoverbackground);
+    --nit-brand-hoverbackgroundsecondary: var(--nit-brand-g3-hoverbackgroundsecondary);
     --nit-brand-hovertext: var(--nit-brand-g3-hovertext);
+    --nit-brand-hovertextsecondary: var(--nit-brand-g3-hovertextsecondary);
     --nit-brand-error: var(--nit-brand-g3-error);
     --nit-brand-success: var(--nit-brand-g3-success);
     --nit-brand-warning: var(--nit-brand-g3-warning);
@@ -665,7 +683,9 @@ $nit-b-buttonroles: (
     --nit-brand-borderprimary: var(--nit-brand-g4-borderprimary);
     --nit-brand-bordersecondary: var(--nit-brand-g4-bordersecondary);
     --nit-brand-hoverbackground: var(--nit-brand-g4-hoverbackground);
+    --nit-brand-hoverbackgroundsecondary: var(--nit-brand-g4-hoverbackgroundsecondary);
     --nit-brand-hovertext: var(--nit-brand-g4-hovertext);
+    --nit-brand-hovertextsecondary: var(--nit-brand-g4-hovertextsecondary);
     --nit-brand-error: var(--nit-brand-g4-error);
     --nit-brand-success: var(--nit-brand-g4-success);
     --nit-brand-warning: var(--nit-brand-g4-warning);
@@ -713,7 +733,9 @@ $nit-b-buttonroles: (
     --nit-brand-borderprimary: var(--nit-brand-g5-borderprimary);
     --nit-brand-bordersecondary: var(--nit-brand-g5-bordersecondary);
     --nit-brand-hoverbackground: var(--nit-brand-g5-hoverbackground);
+    --nit-brand-hoverbackgroundsecondary: var(--nit-brand-g5-hoverbackgroundsecondary);
     --nit-brand-hovertext: var(--nit-brand-g5-hovertext);
+    --nit-brand-hovertextsecondary: var(--nit-brand-g5-hovertextsecondary);
     --nit-brand-error: var(--nit-brand-g5-error);
     --nit-brand-success: var(--nit-brand-g5-success);
     --nit-brand-warning: var(--nit-brand-g5-warning);

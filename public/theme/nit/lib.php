@@ -327,7 +327,18 @@ function theme_nit_brand_roles(): array {
         // "Background" and "Text" under the button they paint. Copies would have
         // bought the tidier heading at the price of the worse trap: an admin
         // moving Primary and watching the main button stay exactly where it was.
-        'accent'            => ['section' => 'brand', 'sub' => 'core', 'label' => 'Accent', 'short' => 'Accent', 'usage' => ['none text'], 'default' => '#5488c4'],
+        // `usage` here used to read `['none text']`, which is true and says
+        // nothing: it names what the role is NOT and leaves an admin to guess
+        // what it paints. The list below is the audited answer — every one of
+        // the sixty-one places this role reaches, collapsed to six lines, most
+        // used first. Borders lead because thirty-six of the sixty-one are
+        // borders, and the line says WHICH borders, because the neutral hairline
+        // next door in Surfaces & text is the card people reach for first.
+        //
+        // Keep the key. It is the setting name (`g1_accent`), the custom
+        // property (`--nit-brand-accent`, 61 uses in 22 files) and the SCSS
+        // variable (`$nit-b-g1-accent`) all at once — see theme_nit_brand_palette().
+        'accent'            => ['section' => 'brand', 'sub' => 'core', 'label' => 'Accent (highlight)', 'short' => 'Accent', 'usage' => ['the border of a card that is selected, active or featured', 'icons and decorative glyphs', 'the keyboard focus ring', 'progress bar fill', 'tinted highlight fills behind chips and badges', 'never body text — the site\'s one saturated non-text colour'], 'default' => '#5488c4'],
 
         // --- Brand > Main button (.btn-primary) ------------------------------
         'primary'           => ['section' => 'brand', 'sub' => 'btnprimary', 'label' => 'Primary', 'short' => 'Background', 'usage' => ['background main button', 'checked toggles', 'progress fill', 'notification dots'], 'default' => '#5488c4'],
@@ -474,9 +485,16 @@ function theme_nit_brand_roles(): array {
         'footericon'        => ['section' => 'footer', 'label' => 'Footer icon', 'usage' => ['footer social icons and their ring'], 'default' => '#5488c4'],
 
         // --- Surfaces & text --------------------------------------------------
-        'background'        => ['section' => 'surface', 'label' => 'Background', 'usage' => ['page background'], 'default' => '#0c141f'],
-        'background2'       => ['section' => 'surface', 'label' => 'Second background', 'usage' => ['alternate page sections', 'bands lifted off the page ground'], 'default' => '#101a27'],
-        'surface'           => ['section' => 'surface', 'label' => 'Surface', 'usage' => ['Cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'page sections background'], 'default' => '#121e2d'],
+        // The three background layers, deepest first. They are one ladder, not a
+        // primary/secondary pair plus a stray: Background primary is the floor,
+        // Background secondary a band lifted off it, and Surface the card that
+        // sits on top of both. The usage text below says which is which, because
+        // the NAMES alone read as "primary and secondary are the pair" — and an
+        // admin who assumes Background secondary is the card recolours bands and
+        // wonders why every card stayed put.
+        'background'        => ['section' => 'surface', 'label' => 'Background primary', 'usage' => ['the page background — the deepest layer, behind everything else'], 'default' => '#0c141f'],
+        'background2'       => ['section' => 'surface', 'label' => 'Background secondary', 'usage' => ['a band or section lifted off the page ground', 'a recessed control inside an input — e.g. the Browse button of a file field', 'Bootstrap\'s secondary background'], 'default' => '#101a27'],
+        'surface'           => ['section' => 'surface', 'label' => 'Surface', 'usage' => ['the top layer — anything with an edge sits here', 'cards background', 'dropdowns background', 'side menu background', 'inputs background', 'tooltips background', 'table background', 'navbar buttons and panels'], 'default' => '#121e2d'],
         // "text in buttons" is deliberately NOT one of these any more. Every
         // button label has a card of its own in the Brand section — "Text on
         // main button", "Text on secondary button", "Outline button text" and
@@ -493,10 +511,27 @@ function theme_nit_brand_roles(): array {
         // to sit in a `.btn`, and the two usages below already name them.
         'textprimary'       => ['section' => 'surface', 'label' => 'Text primary', 'usage' => ['main normal text', 'text in inputs'], 'default' => '#eef3f9'],
         'textsecondary'     => ['section' => 'surface', 'label' => 'Text secondary', 'usage' => ['secondary normal text', 'placeholders'], 'default' => '#94a3b8'],
-        'borderprimary'     => ['section' => 'surface', 'label' => 'Border primary', 'usage' => ['main border color'], 'default' => '#223244'],
-        'bordersecondary'   => ['section' => 'surface', 'label' => 'Border secondary', 'usage' => ['secondary border color'], 'default' => '#33475e'],
-        'hoverbackground'   => ['section' => 'surface', 'label' => 'Hover Background', 'usage' => ['hover background'], 'default' => '#16222f'],
-        'hovertext'         => ['section' => 'surface', 'label' => 'Hover Text', 'usage' => ['hover text'], 'default' => '#7fabdb'],
+        // Both borders here are NEUTRAL — the quiet hairline that separates one
+        // thing from the next. The coloured border that means "this card is the
+        // selected one" is not either of these: it is Accent, over in Brand.
+        // Saying so here is the whole point of the usage lines — thirty-six of
+        // Accent's sixty-one uses are borders, so "which border card do I move"
+        // is the question this section gets asked most.
+        'borderprimary'     => ['section' => 'surface', 'label' => 'Border primary', 'usage' => ['the default hairline around cards, inputs, tables and dropdowns', 'the divider between rows', 'NOT the border of a selected card — that is Accent'], 'default' => '#223244'],
+        'bordersecondary'   => ['section' => 'surface', 'label' => 'Border secondary', 'usage' => ['a stronger neutral edge where the hairline is too faint to read', 'the outer edge of a raised panel'], 'default' => '#33475e'],
+
+        // --- Surfaces & text > Hover ------------------------------------------
+        // Two pairs. The primaries are what the site draws today; the
+        // secondaries are declared for the quieter second hover a nested row or
+        // a muted label wants, and NOTHING reads them yet. That last fact is in
+        // their usage text on purpose: a card an admin can move with no visible
+        // effect reads as a broken panel, and the honest fix while they wait for
+        // a consumer is to say so on the card rather than to leave them looking
+        // like the eleven cards around them that do work.
+        'hoverbackground'   => ['section' => 'surface', 'label' => 'Hover background primary', 'usage' => ['the fill behind a row, menu item or card under the cursor', 'table row hover', 'dropdown item hover'], 'default' => '#16222f'],
+        'hoverbackgroundsecondary' => ['section' => 'surface', 'label' => 'Hover background secondary', 'usage' => ['reserved — a second, stronger hover fill for a row nested inside an already-hovered container', 'no component reads this yet'], 'default' => '#1b2937'],
+        'hovertext'         => ['section' => 'surface', 'label' => 'Hover text primary', 'usage' => ['the colour a link or label turns under the cursor', 'keyboard-focused link text', 'the underline under a hovered link'], 'default' => '#7fabdb'],
+        'hovertextsecondary' => ['section' => 'surface', 'label' => 'Hover text secondary', 'usage' => ['reserved — what Text secondary turns into under the cursor, for muted labels that should not brighten all the way', 'no component reads this yet'], 'default' => '#b6c4d3'],
 
         // --- Status -----------------------------------------------------------
         'error'             => ['section' => 'status', 'label' => 'Error', 'usage' => ['Errors', 'danger / destructive actions', 'invalid fields'], 'default' => '#d07f43'],
@@ -1472,7 +1507,9 @@ function theme_nit_brand_group_defaults(): array {
             'borderprimary'     => '#223244',
             'bordersecondary'   => '#33475e',
             'hoverbackground'   => '#16222f',
+            'hoverbackgroundsecondary' => '#1c2937',
             'hovertext'         => '#7fabdb',
+            'hovertextsecondary' => '#b6c4d3',
             'error'             => '#d07f43',
             'success'           => '#3fa877',
             'warning'           => '#d8c24e',
@@ -1536,7 +1573,9 @@ function theme_nit_brand_group_defaults(): array {
             'borderprimary'     => '#1f3f3d',
             'bordersecondary'   => '#2f5a56',
             'hoverbackground'   => '#143231',
+            'hoverbackgroundsecondary' => '#193937',
             'hovertext'         => '#6ccabb',
+            'hovertextsecondary' => '#aec5c2',
             'error'             => '#d07f43',
             'success'           => '#46b085',
             'warning'           => '#d8c24e',
@@ -1600,7 +1639,9 @@ function theme_nit_brand_group_defaults(): array {
             'borderprimary'     => '#2d2a45',
             'bordersecondary'   => '#433d64',
             'hoverbackground'   => '#201e34',
+            'hoverbackgroundsecondary' => '#26243c',
             'hovertext'         => '#b4a9ee',
+            'hovertextsecondary' => '#b8b4d0',
             'error'             => '#d07f43',
             'success'           => '#57b39a',
             'warning'           => '#d8c24e',
@@ -1717,7 +1758,12 @@ function theme_nit_brand_group_defaults(): array {
             'borderprimary'     => '#d5d9df',   // N300
             'bordersecondary'   => '#a7abb1',   // N400
             'hoverbackground'   => '#f1f3f6',   // N100
+            'hoverbackgroundsecondary' => '#e6e8eb',   // N200
             'hovertext'         => '#073b78',   // A800
+            // On a LIGHT group a muted label darkens on hover instead of
+            // brightening, and it stays neutral — the azure ramp is the link
+            // ink, and a secondary label is not a link.
+            'hovertextsecondary' => '#43484f',   // N700
             // Semantics sampled at OKLCH L48 — dark enough to read as text on
             // white. Still no red: danger is a deep burnt orange.
             'error'             => '#9a3c16',
@@ -1797,7 +1843,13 @@ function theme_nit_brand_group_defaults(): array {
             'borderprimary'     => '#2a2e35',   // N800
             'bordersecondary'   => '#43484f',   // N700
             'hoverbackground'   => '#14191f',   // N900
+            // Graphite's neutral ramp is tighter than the other groups', so the
+            // stronger hover lands on N850 — the same tone as this group's
+            // Surface. That is the ramp being honest, not a mistake: a nested
+            // row hovered inside a card reads as the card's own tone here.
+            'hoverbackgroundsecondary' => '#1f232a',   // N850
             'hovertext'         => '#c0dafc',   // A200
+            'hovertextsecondary' => '#d5d9df',   // N300
             // The same four hues as Group 4, sampled at L72 instead of L48.
             'error'             => '#e68867',
             'success'           => '#5cbc82',

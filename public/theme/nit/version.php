@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'theme_nit';
-$plugin->version   = 2026090907;        // YYYYMMDDXX — The navbar log-in link gets the title's full card set; the site-wide content-link underline stops reaching onto the bar.
+$plugin->version   = 2026090908;        // YYYYMMDDXX — Surfaces & text renamed to primary/secondary pairs, two reserved hover roles added, and every vague `usage` line replaced with the audited list of what the role actually paints.
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline (pinned per CI matrix).
 $plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_ALPHA;    // Foundation + rendering + branding (M2–M5); pre-1.0.
