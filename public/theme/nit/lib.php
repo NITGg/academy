@@ -188,7 +188,7 @@ function theme_nit_colours_all(): array {
 /**
  * The named sections the roles are grouped into, in display order.
  *
- * A group is 37 roles now, which is more than anybody can scan as one flat
+ * A group is 39 roles now, which is more than anybody can scan as one flat
  * grid. The section is purely an editing aid — it changes no CSS and no export
  * shape — but it is declared here rather than in the template because the ORDER
  * of theme_nit_brand_roles() is what the gallery renders, and the two have to
@@ -232,7 +232,7 @@ function theme_nit_brand_role_subsections(): array {
 }
 
 /**
- * The 37 semantic roles every Brand-Colors group is built from.
+ * The 39 semantic roles every Brand-Colors group is built from.
  *
  * This is the clean, small semantic layer that replaces the sprawling
  * theme_nit_colour_palette(): a component references a role by name (Primary,
@@ -275,6 +275,12 @@ function theme_nit_brand_roles(): array {
         // `--nit-brand-accenttext`. The two new keys ship seeded to the same hex
         // in every group, so nothing moves on any site until an admin actually
         // pulls them apart.
+        //
+        // `accentunderline` seeds to each group's HOVER TEXT rather than to its
+        // link ink, because the only underline the site actually draws is the
+        // one under a hovered link (Boost ships `$link-decoration: none`) and it
+        // was `currentColor` before — i.e. the hover ink. Seeding it there is
+        // what makes the split invisible until someone uses it.
         'accenttext'        => ['section' => 'brand', 'label' => 'Link Text', 'usage' => ['text of links'], 'default' => '#7fabdb'],
         'accentwords'       => ['section' => 'brand', 'label' => 'Important Words', 'usage' => ['a word highlighted inside a heading', 'a sale price', 'inline code', 'a status word that is not a link'], 'default' => '#7fabdb'],
         'accentunderline'   => ['section' => 'brand', 'label' => 'Underlines', 'usage' => ['the underline drawn under a link', 'accent rules under a heading'], 'default' => '#7fabdb'],
@@ -1155,7 +1161,7 @@ function theme_nit_brand_group_defaults(): array {
             'accent'            => '#2f9e8f',
             'accenttext'        => '#58bdad',
             'accentwords'       => '#58bdad',
-            'accentunderline'   => '#58bdad',
+            'accentunderline'   => '#6ccabb',
             'background'        => '#0a1a1a',
             'background2'       => '#0d2020',
             'navbarbackground1' => '#0a1a1a',
@@ -1197,7 +1203,7 @@ function theme_nit_brand_group_defaults(): array {
             'accent'            => '#8478cf',
             'accenttext'        => '#a99ee2',
             'accentwords'       => '#a99ee2',
-            'accentunderline'   => '#a99ee2',
+            'accentunderline'   => '#b4a9ee',
             'background'        => '#11101c',
             'background2'       => '#151425',
             'navbarbackground1' => '#11101c',
@@ -1277,7 +1283,7 @@ function theme_nit_brand_group_defaults(): array {
             // the paper, not the ink.
             'accenttext'        => '#0e509d',   // A700
             'accentwords'       => '#0e509d',
-            'accentunderline'   => '#0e509d',
+            'accentunderline'   => '#073b78',
             'background'        => '#f6f8fb',   // N50
             'background2'       => '#f1f3f6',   // N100
             // Light chrome. This group is light THROUGHOUT — bar, page and band.
@@ -1343,7 +1349,7 @@ function theme_nit_brand_group_defaults(): array {
             'accent'            => '#71a7ef',
             'accenttext'        => '#98c0f7',   // A300
             'accentwords'       => '#98c0f7',
-            'accentunderline'   => '#98c0f7',
+            'accentunderline'   => '#c0dafc',
             'background'        => '#0d1117',   // N950
             'background2'       => '#14191f',   // N900
             'navbarbackground1' => '#0d1117',

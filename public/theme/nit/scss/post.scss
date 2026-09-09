@@ -29,14 +29,20 @@
 // -----------------------------------------------------------------------------
 // Site-wide link affordance.
 //
-// The brand system already colours resting links with the "Accent Text" role
-// (--nit-brand-accenttext, documented usage: "text of links / underlines"; it
-// drives Bootstrap's $link-color) and reserves "hovertext"
-// (--nit-brand-hovertext) for the hover state. On hover,
-// keyboard focus, and click (active), every content link shifts to the brand
-// hover colour and shows an underline in that SAME colour — `currentColor`
-// keeps the underline matched to whatever brand group is in scope
-// (.nit-brand-2 / .nit-brand-3), so it never drifts from the text.
+// The brand system colours resting links with the "Link Text" role
+// (--nit-brand-accenttext; it drives Bootstrap's $link-color), reserves
+// "hovertext" (--nit-brand-hovertext) for the hover state, and paints the rule
+// itself with "Underlines" (--nit-brand-accentunderline). On hover, keyboard
+// focus, and click (active), every content link shifts to the brand hover
+// colour and shows an underline in the Underlines role.
+//
+// That last one used to be `currentColor` — one role covered link ink and its
+// underline, so the underline had no colour of its own to be. Now it does, and
+// it is a real role: a site can quiet the rule to a wash without touching the
+// link ink, or lock the two together by putting both cards on the same hex.
+// Every group seeds Underlines to its OWN Hover Text — which is exactly what
+// `currentColor` resolved to here — so nothing moves until the card is changed,
+// and the role still re-resolves per brand group the way every other role does.
 //
 // Chrome-bearing anchors opt out (:not(...)) — buttons, nav/menu items,
 // dropdown entries, pagination, tabs, list-group rows, cards and badges own
@@ -50,12 +56,17 @@
 // hover on top of the state it drew for itself. Adding the class in the
 // component markup is the one place that decision belongs.
 a:not(.btn):not(.nav-link):not(.navbar-brand):not(.dropdown-item):not(.page-link):not(.list-group-item):not(.badge):not(.card):not(.nit-link-plain):not([role="button"]):not([role="tab"]):not([role="menuitem"]) {
+    // A link that is underlined at rest (core marks a few that way, and content
+    // authors write plain <u>/text-decoration markup) takes the role too, so the
+    // rule is one colour across the site and not only on hover.
+    text-decoration-color: var(--nit-brand-accentunderline);
+
     &:hover,
     &:focus,
     &:active {
         color: var(--nit-brand-hovertext);
         text-decoration: underline;
-        text-decoration-color: currentColor;
+        text-decoration-color: var(--nit-brand-accentunderline);
         // No filled box on click — only the colour + underline should change.
         background-color: transparent;
         box-shadow: none;

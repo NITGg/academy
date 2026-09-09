@@ -16,10 +16,10 @@
 // =============================================================================
 // NIT Brand Colors — the semantic colour layer (gallery "Brand Colors" tab).
 //
-// A "group" is a complete named set of the 16 semantic roles (Primary, Surface,
+// A "group" is a complete named set of the 39 semantic roles (Primary, Surface,
 // Text primary, …). Every component references a role by its ACTIVE name
 // (`--nit-brand-primary`) and, by default, resolves it from Group 1. Wrapping a
-// component in `.nit-brand-2` / `.nit-brand-3` re-points all 21 names at that
+// component in `.nit-brand-2` / `.nit-brand-3` re-points all 39 names at that
 // group's values — same variable names, different palette.
 //
 // Emission order (one combined stream): pre_scss defines `$nit-b-<gkey>-<role>`
@@ -30,7 +30,7 @@
 
 :root {
     // --- Per-group raw palettes (reference values; the switch classes read
-    //     these). 25 roles × 5 groups. -------------------------------------
+    //     these). 39 roles × 5 groups. -------------------------------------
     --nit-brand-g1-primary: #{$nit-b-g1-primary};
     --nit-brand-g1-secondary: #{$nit-b-g1-secondary};
     --nit-brand-g1-accent: #{$nit-b-g1-accent};
@@ -696,6 +696,17 @@
 .nit-brand-4,
 .nit-brand-5 {
     --bs-link-color: var(--nit-brand-accenttext);
+    // Inline <code> anywhere on the site. Bootstrap ships a raw magenta that no
+    // brand group has ever contained; a code span is an emphasised word, so it
+    // takes the Important Words role. The vivid mix (not the flat role) because
+    // code is set small and sits on the raised Surface as often as on the page.
+    // theme/nit/scss/components/_gallery.scss said the same thing scoped to one
+    // admin page — this is that decision made once, for every page.
+    --bs-code-color: var(--nit-brand-accentwords-vivid);
+    // Text-decoration colour for the anchors Bootstrap itself underlines. The
+    // site-wide rule in post.scss covers content links; this reaches the ones
+    // core styles through its own custom property.
+    --bs-link-underline-color: var(--nit-brand-accentunderline);
 }
 
 .btn-primary {

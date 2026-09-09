@@ -95,6 +95,35 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // Base foreground: everything on the bar inherits light unless overridden.
     color: var(--nit-navbartext, #{$nit-on-navy});
 
+    // ---- A mouse click leaves no ring behind --------------------------------
+    // Moodle rings a focused control with a 4px blue glow — `.aabtn:focus`,
+    // `.nav-link:focus`, `[role="button"]:focus`, `a.dropdown-toggle:focus`,
+    // `a:not([class]):focus` and a dozen more, in one rule in
+    // theme/boost/scss/moodle/core.scss ("Accessible focus styling for buttons
+    // like elements that do not use the .btn class"). Every selector in it is
+    // plain `:focus`, and a MOUSE CLICK sets `:focus`. So clicking a title left a
+    // blue box around it that stayed until something else took focus — on a
+    // navigation bar that reads as a stuck selection, not as an answer to the
+    // click, and it is the thing the click was least trying to say.
+    //
+    // `:focus-visible` is the half of the pair the browser withholds from a
+    // pointer and grants to the keyboard. Clearing the ring only where it is
+    // ABSENT therefore narrows Moodle's rule to the case it was written for and
+    // takes nothing from keyboard users: tab to the same link and the indicator
+    // is exactly what it always was. Removing the ring outright would have been
+    // the smaller diff and a real accessibility regression.
+    //
+    // Declared HERE, above the icon rules, and that position is load-bearing:
+    // those rules paint their own `box-shadow` for the "under line" shape at the
+    // same specificity as this one (two classes and a pseudo-class either way),
+    // so source order is the only thing that lets an icon keep its underline
+    // while a title loses its glow. The notification panel's own checkbox ring
+    // is `!important` and is untouched by either.
+    :focus:not(:focus-visible) {
+        box-shadow: none;
+        outline: 0;
+    }
+
     // Glass upgrade, applied only where the blur can actually be rendered —
     // otherwise the 72% pane would let scrolled content show straight through.
     // The -webkit- test keeps older Safari (which never unprefixed it) on board,
