@@ -194,17 +194,16 @@
       return;
     }
     var css =
-      // "See how it works" reads Accent Text from the block markup, which is
-      // the right ink on a light ground - it matches the headline's second line
-      // and the Start Now fill. In dark mode the accent is a pale blue sitting
-      // on an already blue-lit page and the label stops reading as body text,
-      // so it goes back to Text primary there.
+      // "See how it works" reads Important Words (--nit-brand-accentwords) from
+      // the block markup, in every mode. It used to read Link Text with a dark-
+      // mode override back to Text primary here, because one accent role served
+      // links, highlighted words and this label at once and the dark group's pale
+      // blue was wrong for a non-link. Important Words is its own setting per
+      // brand group now, so a group that needs a quieter label sets it there -
+      // a stylesheet override fighting an inline style is no longer the fix.
       //
-      // !important because the colour is an inline style on the anchor: the
-      // block is authored in an HTML block, so a stylesheet has no other way to
-      // reach it. Only the anchor is targeted - the play dot keeps the
-      // "Text on main button" ink its own inline style sets.
-      'html.nit-mode-dark [data-nit-hero-play]{color:var(--nit-brand-textprimary)!important}' +
+      // The play dot keeps the Primary fill and "Text on main button" ink its
+      // own inline style sets, matching the button beside it.
       '[data-nit-hero-playdot]{transition:transform .2s ease}' +
       '[data-nit-hero-play]:hover [data-nit-hero-playdot]{transform:scale(1.08)}' +
       '@media (prefers-reduced-motion:reduce){[data-nit-hero-playdot]{transition:none}}';
