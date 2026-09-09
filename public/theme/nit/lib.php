@@ -207,6 +207,31 @@ function theme_nit_brand_role_sections(): array {
 }
 
 /**
+ * The named blocks a section's cards are grouped under, in display order.
+ *
+ * One level below the section. The Navbar section alone is twenty cards — three
+ * colours, a size, a weight and two shapes for each of the things the bar draws
+ * — and as one flat grid the only way to find "the icon hover colour" was to
+ * read every card. Grouped under the four things the bar is MADE of, it is two
+ * glances: which part, then which state.
+ *
+ * A role, a typography card or a shape card names its block with `sub`. Anything
+ * without one falls into a single unlabelled block at the top of its section, so
+ * the sections that have not been broken up render exactly as before.
+ *
+ * @return array<string, string> block key => display label
+ */
+function theme_nit_brand_role_subsections(): array {
+    return [
+        'background' => 'Background',
+        'title'      => 'Titles',
+        'icon'       => 'Icons',
+        'login'      => 'Login',
+        'scroll'     => 'On scroll',
+    ];
+}
+
+/**
  * The 37 semantic roles every Brand-Colors group is built from.
  *
  * This is the clean, small semantic layer that replaces the sprawling
@@ -238,7 +263,21 @@ function theme_nit_brand_roles(): array {
         'onprimary'         => ['section' => 'brand', 'label' => 'Text on main button', 'usage' => ['label inside a filled main button', 'text on any primary fill'], 'default' => '#eef3f9'],
         'onsecondary'       => ['section' => 'brand', 'label' => 'Text on secondary button', 'usage' => ['label inside a secondary button', 'label inside an outline-secondary button'], 'default' => '#eef3f9'],
         'accent'            => ['section' => 'brand', 'label' => 'Accent', 'usage' => ['none text'], 'default' => '#5488c4'],
-        'accenttext'        => ['section' => 'brand', 'label' => 'Accent Text', 'usage' => ['text of links', 'important words', 'underlines'], 'default' => '#7fabdb'],
+        // The three text-facing accents. They used to be ONE role ("Accent
+        // Text") whose card listed three usages, which made them unsayable
+        // apart: an admin who wanted a quieter underline had to move every link
+        // on the site with it. One card each now, and each is consumed by
+        // exactly the thing it is named after.
+        //
+        // `accenttext` keeps its KEY (and so its saved value and its custom
+        // property) because it is the one that stayed pointed at links, and
+        // forty-odd component rules plus five front-page blocks already read
+        // `--nit-brand-accenttext`. The two new keys ship seeded to the same hex
+        // in every group, so nothing moves on any site until an admin actually
+        // pulls them apart.
+        'accenttext'        => ['section' => 'brand', 'label' => 'Link Text', 'usage' => ['text of links'], 'default' => '#7fabdb'],
+        'accentwords'       => ['section' => 'brand', 'label' => 'Important Words', 'usage' => ['a word highlighted inside a heading', 'a sale price', 'inline code', 'a status word that is not a link'], 'default' => '#7fabdb'],
+        'accentunderline'   => ['section' => 'brand', 'label' => 'Underlines', 'usage' => ['the underline drawn under a link', 'accent rules under a heading'], 'default' => '#7fabdb'],
 
         // --- Navbar ----------------------------------------------------------
         // The bar owns its whole palette rather than borrowing the page's. Every
@@ -247,23 +286,30 @@ function theme_nit_brand_roles(): array {
         // surface where "the same blue as a body link" is almost never the right
         // answer: it sits on its own background, at its own size, over content
         // that scrolls under it.
-        'navbarbackground1' => ['section' => 'navbar', 'label' => 'Navbar background 1', 'usage' => ['navbar background'], 'default' => '#0c141f'],
-        'navbarbackground2' => ['section' => 'navbar', 'label' => 'Navbar background 2', 'usage' => ['navbar glass — the translucent pane the bar is painted with'], 'default' => '#121e2d'],
-        'navbartitlecolor'  => ['section' => 'navbar', 'label' => 'Navbar title color', 'usage' => ['the site links across the bar (Home, Courses, …)'], 'default' => '#eef3f9'],
-        'navbartitlehovercolor' => ['section' => 'navbar', 'label' => 'Navbar title hover color', 'usage' => ['a site link under the cursor'], 'default' => '#7fabdb'],
-        'navbartitleactivecolor' => ['section' => 'navbar', 'label' => 'Navbar title active color', 'usage' => ['the site link for the page being viewed'], 'default' => '#7fabdb'],
-        // The two SHAPE colours. Which shape they draw (underline / bold /
-        // square background / all three) is not a colour and so is not a role:
-        // it is a per-group choice stored beside them, see
-        // theme_nit_navbar_title_shapes().
-        'navbartitlehoverstylecolor' => ['section' => 'navbar', 'label' => 'Navbar title hover style color', 'usage' => ['the hover shape — its underline, or its square background'], 'default' => '#16222f'],
-        'navbartitleactivestylecolor' => ['section' => 'navbar', 'label' => 'Navbar title active style color', 'usage' => ['the active shape — its underline, or its square background'], 'default' => '#7fabdb'],
-        'navbariconcolor'   => ['section' => 'navbar', 'label' => 'Navbar icon color', 'usage' => ['navbar icons — search, language, messages, notifications, gear', 'notification panel action icons'], 'default' => '#eef3f9'],
-        'navbariconhovercolor' => ['section' => 'navbar', 'label' => 'Navbar icon hover color', 'usage' => ['a navbar icon under the cursor', 'the soft pad drawn behind it'], 'default' => '#7fabdb'],
-        'navbariconactivecolor' => ['section' => 'navbar', 'label' => 'Navbar icon active color', 'usage' => ['a navbar icon whose panel is open, or being pressed'], 'default' => '#7fabdb'],
-        'navbarlogincolor'  => ['section' => 'navbar', 'label' => 'Navbar login color', 'usage' => ['the "Log in" link on the bar (signed-out visitors)'], 'default' => '#eef3f9'],
-        'navbarloginhovercolor' => ['section' => 'navbar', 'label' => 'Navbar login hover color', 'usage' => ['the "Log in" link under the cursor'], 'default' => '#7fabdb'],
-        'navbarloginactivecolor' => ['section' => 'navbar', 'label' => 'Navbar login active color', 'usage' => ['the "Log in" link being pressed, or on the log-in page itself'], 'default' => '#7fabdb'],
+        //
+        // `sub` groups the cards on the editor into the four things the bar is
+        // made of, and `short` is the name shown there — inside a section already
+        // headed "Navbar", under a heading already reading "Titles", a card
+        // called "Navbar title hover color" says its own address three times.
+        // `label` keeps the long form because that is what the design-system
+        // export hands the app, where there is no surrounding page to supply it.
+        'navbarbackground1' => ['section' => 'navbar', 'sub' => 'background', 'label' => 'Navbar background 1', 'short' => 'Background 1', 'usage' => ['navbar background'], 'default' => '#0c141f'],
+        'navbarbackground2' => ['section' => 'navbar', 'sub' => 'background', 'label' => 'Navbar background 2', 'short' => 'Background 2', 'usage' => ['navbar glass — the translucent pane the bar is painted with'], 'default' => '#121e2d'],
+        'navbartitlecolor'  => ['section' => 'navbar', 'sub' => 'title', 'label' => 'Navbar title color', 'short' => 'Title color', 'usage' => ['the site links across the bar (Home, Courses, …)'], 'default' => '#eef3f9'],
+        'navbartitlehovercolor' => ['section' => 'navbar', 'sub' => 'title', 'label' => 'Navbar title hover color', 'short' => 'Title hover color', 'usage' => ['a site link under the cursor'], 'default' => '#7fabdb'],
+        'navbartitleactivecolor' => ['section' => 'navbar', 'sub' => 'title', 'label' => 'Navbar title active color', 'short' => 'Title active color', 'usage' => ['the site link for the page being viewed'], 'default' => '#7fabdb'],
+        // The two SHAPE colours. Which shapes they draw (any of underline / bold
+        // / square background, or none) is not a colour and so is not a role: it
+        // is a per-group choice stored beside them, see
+        // theme_nit_navbar_shape_treatments().
+        'navbartitlehoverstylecolor' => ['section' => 'navbar', 'sub' => 'title', 'label' => 'Navbar title hover style color', 'short' => 'Title hover style color', 'usage' => ['the hover shape — its underline, or its square background'], 'default' => '#16222f'],
+        'navbartitleactivestylecolor' => ['section' => 'navbar', 'sub' => 'title', 'label' => 'Navbar title active style color', 'short' => 'Title active style color', 'usage' => ['the active shape — its underline, or its square background'], 'default' => '#7fabdb'],
+        'navbariconcolor'   => ['section' => 'navbar', 'sub' => 'icon', 'label' => 'Navbar icon color', 'short' => 'Icon color', 'usage' => ['navbar icons — search, language, messages, notifications, gear', 'notification panel action icons'], 'default' => '#eef3f9'],
+        'navbariconhovercolor' => ['section' => 'navbar', 'sub' => 'icon', 'label' => 'Navbar icon hover color', 'short' => 'Icon hover color', 'usage' => ['a navbar icon under the cursor', 'the shape drawn with it — its underline, or its soft pad'], 'default' => '#7fabdb'],
+        'navbariconactivecolor' => ['section' => 'navbar', 'sub' => 'icon', 'label' => 'Navbar icon active color', 'short' => 'Icon active color', 'usage' => ['a navbar icon whose panel is open, or being pressed', 'the shape drawn with it'], 'default' => '#7fabdb'],
+        'navbarlogincolor'  => ['section' => 'navbar', 'sub' => 'login', 'label' => 'Navbar login color', 'short' => 'Login color', 'usage' => ['the "Log in" link on the bar (signed-out visitors)'], 'default' => '#eef3f9'],
+        'navbarloginhovercolor' => ['section' => 'navbar', 'sub' => 'login', 'label' => 'Navbar login hover color', 'short' => 'Login hover color', 'usage' => ['the "Log in" link under the cursor'], 'default' => '#7fabdb'],
+        'navbarloginactivecolor' => ['section' => 'navbar', 'sub' => 'login', 'label' => 'Navbar login active color', 'short' => 'Login active color', 'usage' => ['the "Log in" link being pressed, or on the log-in page itself'], 'default' => '#7fabdb'],
 
         // --- Footer ----------------------------------------------------------
         'footerbackground1' => ['section' => 'footer', 'label' => 'Footer background 1', 'usage' => ['footer background'], 'default' => '#0c141f'],
@@ -296,59 +342,112 @@ function theme_nit_brand_roles(): array {
 }
 
 /**
- * The navbar-title SHAPE choices — the one navbar decision that is not a colour.
+ * The SHAPE treatments — the navbar decisions that are not a colour.
  *
- * A title can answer the cursor (and mark the page you are on) with an
- * underline, extra weight, a filled square behind it, or all three at once. That
- * is a style choice an administrator makes per Brand-Colors group, so it is
- * stored per group as `theme_nit/navbarshape_<gkey>_<state>` and consumed as
- * three CSS custom properties per state (see theme_nit_navbar_style_scss()).
+ * A title (and, since they answer the cursor the same way, an icon) can mark a
+ * state with an underline, with extra weight, with a filled square behind it —
+ * any combination of the three, or none at all. They are INDEPENDENT switches
+ * rather than four named looks: an "All" entry beside them was only ever the
+ * three of them ticked together, and it made "underline plus bold" unsayable
+ * while making "the same thing" sayable twice.
  *
- * Each entry says which of the three treatments the shape switches on. Nothing
- * else in the theme has to know the shape names.
+ * A choice is a SET, stored per group as `theme_nit/navbarshape_<gkey>_<state>`
+ * holding the ticked keys comma-separated, and consumed as three CSS custom
+ * properties per state (see theme_nit_navbar_style_scss()). An empty string is a
+ * real answer there — "mark this state with no shape at all" — and is why the
+ * config row is written rather than removed when nothing is ticked.
  *
- * @return array<string, array{label:string, underline:bool, bold:bool, square:bool}>
+ * @return array<string, array{label:string}> treatment key => meta
  */
-function theme_nit_navbar_title_shapes(): array {
+function theme_nit_navbar_shape_treatments(): array {
     return [
-        'underline' => ['label' => 'Under line', 'underline' => true,  'bold' => false, 'square' => false],
-        'bold'      => ['label' => 'Bold',       'underline' => false, 'bold' => true,  'square' => false],
-        'square'    => ['label' => 'Square background', 'underline' => false, 'bold' => false, 'square' => true],
-        'all'       => ['label' => 'All',        'underline' => true,  'bold' => true,  'square' => true],
+        'underline' => ['label' => 'Under line'],
+        'bold'      => ['label' => 'Bold'],
+        'square'    => ['label' => 'Square background'],
     ];
 }
 
 /**
- * The two navbar-title states that carry a shape, and each one's default.
+ * The four states that carry a shape, and what each one is drawn with.
  *
- * The defaults are the look the bar already had: hover paints a soft pad behind
- * the title (a "square background" whose colour seeds to the group's Hover
- * Background), and the current page is marked with an underline in the group's
- * accent — which is the one thing the bar could not say before, because "active"
- * was a colour change alone and the two accents in most groups are the same hue.
+ * `subject` and `phase` say which set of CSS custom properties the state feeds
+ * (`--nit-nav<subject>-<phase>-*`) and, for the bold treatment, which resting
+ * weight it steps up from. `underline` / `bg` are the colours the two painting
+ * treatments use:
  *
- * @return array<string, array{label:string, default:string}> state key => meta
+ *   * A TITLE has two dedicated "style color" roles, so an admin picks the shape
+ *     and the colour it is drawn in side by side.
+ *   * An ICON has none, and does not need them: the state already has a colour,
+ *     and a glyph's underline wants to be exactly that colour. Its square is the
+ *     same colour at a 14% tint (`--nit-navbaricon*bg`, scss/foundation/
+ *     _root.scss) rather than the flat fill — a solid accent behind a 22px glyph
+ *     is a badge, not a hover, and it takes the glyph's own contrast with it.
+ *
+ * The defaults are the look the bar already had: a title's hover paints a soft
+ * pad and its current page is underlined; an icon paints its pad in both states.
+ *
+ * @return array<string, array{subject:string, phase:string, sub:string,
+ *         label:string, short:string, underline:string, bg:string, default:string[]}>
  */
-function theme_nit_navbar_title_states(): array {
+function theme_nit_navbar_shape_states(): array {
     return [
-        'titlehover'  => ['label' => 'Title hover style shape', 'default' => 'square'],
-        'titleactive' => ['label' => 'Title active style shape', 'default' => 'underline'],
+        'titlehover'  => [
+            'subject' => 'title', 'phase' => 'hover', 'sub' => 'title',
+            'label' => 'Navbar title hover style shape', 'short' => 'Title hover style shape',
+            'underline' => 'var(--nit-brand-navbartitlehoverstylecolor)',
+            'bg' => 'var(--nit-brand-navbartitlehoverstylecolor)',
+            'default' => ['square'],
+        ],
+        'titleactive' => [
+            'subject' => 'title', 'phase' => 'active', 'sub' => 'title',
+            'label' => 'Navbar title active style shape', 'short' => 'Title active style shape',
+            'underline' => 'var(--nit-brand-navbartitleactivestylecolor)',
+            'bg' => 'var(--nit-brand-navbartitleactivestylecolor)',
+            'default' => ['underline'],
+        ],
+        'iconhover'   => [
+            'subject' => 'icon', 'phase' => 'hover', 'sub' => 'icon',
+            'label' => 'Navbar icon hover style shape', 'short' => 'Icon hover style shape',
+            'underline' => 'var(--nit-brand-navbariconhovercolor)',
+            'bg' => 'var(--nit-navbariconbg)',
+            'default' => ['square'],
+        ],
+        'iconactive'  => [
+            'subject' => 'icon', 'phase' => 'active', 'sub' => 'icon',
+            'label' => 'Navbar icon active style shape', 'short' => 'Icon active style shape',
+            'underline' => 'var(--nit-brand-navbariconactivecolor)',
+            'bg' => 'var(--nit-navbariconactivebg)',
+            'default' => ['square'],
+        ],
     ];
 }
 
 /**
- * The shape an administrator chose for one group / state.
+ * The treatments an administrator ticked for one group / state.
+ *
+ * Three answers are distinguishable and all three are meant: never saved (the
+ * state's default), saved empty (no shape — a deliberate choice), and a set.
  *
  * @param string $group group key (g1..g5)
- * @param string $state state key (see theme_nit_navbar_title_states())
- * @return string a key of theme_nit_navbar_title_shapes()
+ * @param string $state state key (see theme_nit_navbar_shape_states())
+ * @return string[] keys of theme_nit_navbar_shape_treatments(), possibly empty
  */
-function theme_nit_navbar_title_shape(string $group, string $state): string {
-    $states = theme_nit_navbar_title_states();
-    $default = $states[$state]['default'] ?? 'underline';
+function theme_nit_navbar_shape(string $group, string $state): array {
+    $states = theme_nit_navbar_shape_states();
+    $valid = array_keys(theme_nit_navbar_shape_treatments());
     $value = get_config('theme_nit', 'navbarshape_' . $group . '_' . $state);
-    return (is_string($value) && array_key_exists($value, theme_nit_navbar_title_shapes()))
-        ? $value : $default;
+
+    if (!is_string($value)) {
+        return $states[$state]['default'] ?? [];
+    }
+    // Sites that chose the retired "All" entry keep what they picked: it was
+    // exactly these three ticked together.
+    if ($value === 'all') {
+        return $valid;
+    }
+    // Intersect against the treatment list IN ITS OWN ORDER, so the emitted CSS
+    // does not depend on the order the checkboxes happened to post in.
+    return array_values(array_intersect($valid, array_map('trim', explode(',', $value))));
 }
 
 /**
@@ -380,17 +479,23 @@ function theme_nit_navbar_title_shape(string $group, string $state): string {
 function theme_nit_navbar_type_subjects(): array {
     return [
         'title' => [
+            'sub'    => 'title',
             'label'  => 'Navbar title text',
+            'short'  => 'Title text',
             'usage'  => ['size and weight of the site links across the bar'],
             'size'   => 16, 'weight' => 600, 'min' => 12, 'max' => 28,
         ],
         'icon'  => [
+            'sub'    => 'icon',
             'label'  => 'Navbar icon size',
+            'short'  => 'Icon size',
             'usage'  => ['size of the navbar glyphs', 'the button grows only if the glyph outgrows it', 'weight reaches the language code (EN / AR), not the glyphs'],
             'size'   => 22, 'weight' => 500, 'min' => 14, 'max' => 36,
         ],
         'login' => [
+            'sub'    => 'login',
             'label'  => 'Navbar login text',
+            'short'  => 'Login text',
             'usage'  => ['size and weight of the "Log in" link'],
             'size'   => 16, 'weight' => 600, 'min' => 12, 'max' => 28,
         ],
@@ -467,6 +572,75 @@ function theme_nit_navbar_type_weight(string $group, string $subject): int {
  */
 function theme_nit_navbar_icon_box(int $glyph): int {
     return max(42, $glyph + 20);
+}
+
+/**
+ * Whether the bar is see-through in this group, and by how much.
+ *
+ * Two knobs on one decision. `theme_nit/navbarglass_<gkey>` is the switch —
+ * frost the bar or paint it solid — and `theme_nit/navbartransparency_<gkey>` is
+ * how far, as a TRANSPARENCY percentage: 0 is a solid bar and 60 lets most of
+ * the page through. Transparency and not opacity because that is the word the
+ * control is labelled with, and a number that goes UP as the bar gets more
+ * see-through is the one an administrator predicts correctly; the CSS wants the
+ * complement, so theme_nit_navbar_style_scss() does that one subtraction.
+ *
+ * `off` is not a second code path in the stylesheet: it is the same mix at 100%
+ * opacity with the blur set to `none`, which is a solid bar.
+ *
+ * The cap is 90 rather than 100 because a bar you can see straight through is
+ * not a bar — the logo and the links would sit on the scrolling page with
+ * nothing behind them, which no administrator reaching for this control is
+ * asking for.
+ *
+ * @param string $group group key (g1..g5)
+ * @return array{on:bool, transparency:int} the switch, and 0-90
+ */
+function theme_nit_navbar_glass(string $group): array {
+    $on = get_config('theme_nit', 'navbarglass_' . $group);
+    $value = get_config('theme_nit', 'navbartransparency_' . $group);
+    return [
+        'on' => !is_string($on) || $on !== '0',
+        'transparency' => is_numeric($value) ? min(90, max(0, (int) $value)) : 28,
+    ];
+}
+
+/**
+ * The blur the frosted bar puts behind itself.
+ *
+ * A constant, not a setting: it is what makes the pane read as glass rather than
+ * as a tint, and there is no useful second answer — too little and scrolled
+ * content shows through as clutter, too much and the bar looks smeared. The
+ * transparency control above is the one an administrator actually wants.
+ */
+define('THEME_NIT_NAVBAR_BLUR', 'blur(18px) saturate(160%)');
+
+/**
+ * The group the bar switches to once the page scrolls.
+ *
+ * A bar over the top of a page and a bar floating over scrolled content are two
+ * different design problems — the first can be part of the hero, the second has
+ * to separate itself from whatever is passing underneath. So a group can name a
+ * SECOND group for the bar to wear from the moment the page moves, and the
+ * switch carries the whole navbar style with it: colours, sizes, shapes and how
+ * see-through the bar is.
+ *
+ * It works by putting the other group's class on the BAR (not on <html>, which
+ * would re-skin the page too) — see the `.nit-navbar` selector in
+ * scss/foundation/_root.scss for why every navbar alias is declared there as
+ * well, and theme_nit\output\core_renderer::navbar_scroll_class() for the class
+ * the template hands to the browser.
+ *
+ * Answering with the group itself — the default — means "do not change", and
+ * nothing is emitted or scripted for it at all.
+ *
+ * @param string $group group key (g1..g5)
+ * @return string a group key; equal to $group when the bar does not change
+ */
+function theme_nit_navbar_scroll_group(string $group): string {
+    $value = get_config('theme_nit', 'navbarscrollgroup_' . $group);
+    return (is_string($value) && array_key_exists($value, theme_nit_brand_groups()))
+        ? $value : $group;
 }
 
 /**
@@ -938,6 +1112,8 @@ function theme_nit_brand_group_defaults(): array {
             'onsecondary'       => '#eef3f9',
             'accent'            => '#5488c4',
             'accenttext'        => '#7fabdb',
+            'accentwords'       => '#7fabdb',
+            'accentunderline'   => '#7fabdb',
             'background'        => '#0c141f',
             'background2'       => '#101a27',
             'navbarbackground1' => '#0c141f',
@@ -978,6 +1154,8 @@ function theme_nit_brand_group_defaults(): array {
             'onsecondary'       => '#eef5f4',
             'accent'            => '#2f9e8f',
             'accenttext'        => '#58bdad',
+            'accentwords'       => '#58bdad',
+            'accentunderline'   => '#58bdad',
             'background'        => '#0a1a1a',
             'background2'       => '#0d2020',
             'navbarbackground1' => '#0a1a1a',
@@ -1018,6 +1196,8 @@ function theme_nit_brand_group_defaults(): array {
             'onsecondary'       => '#efedf7',
             'accent'            => '#8478cf',
             'accenttext'        => '#a99ee2',
+            'accentwords'       => '#a99ee2',
+            'accentunderline'   => '#a99ee2',
             'background'        => '#11101c',
             'background2'       => '#151425',
             'navbarbackground1' => '#11101c',
@@ -1096,6 +1276,8 @@ function theme_nit_brand_group_defaults(): array {
             // A step darker than primary: on a light ground a link has to beat
             // the paper, not the ink.
             'accenttext'        => '#0e509d',   // A700
+            'accentwords'       => '#0e509d',
+            'accentunderline'   => '#0e509d',
             'background'        => '#f6f8fb',   // N50
             'background2'       => '#f1f3f6',   // N100
             // Light chrome. This group is light THROUGHOUT — bar, page and band.
@@ -1160,6 +1342,8 @@ function theme_nit_brand_group_defaults(): array {
             'onsecondary'       => '#f6f8fb',
             'accent'            => '#71a7ef',
             'accenttext'        => '#98c0f7',   // A300
+            'accentwords'       => '#98c0f7',
+            'accentunderline'   => '#98c0f7',
             'background'        => '#0d1117',   // N950
             'background2'       => '#14191f',   // N900
             'navbarbackground1' => '#0d1117',
@@ -1222,6 +1406,11 @@ function theme_nit_brand_palette(): array {
                 'groupkey' => $gkey,
                 'role'     => $role,
                 'section'  => $meta['section'],
+                // Both optional: only the roles the editor groups and renames
+                // carry them, and everything downstream falls back to `label`
+                // and to the section's single unnamed block.
+                'sub'      => $meta['sub'] ?? '',
+                'short'    => $meta['short'] ?? $meta['label'],
                 'label'    => $meta['label'],
                 'usage'    => $meta['usage'],
                 'default'  => $groupdefaults[$gkey][$role] ?? $meta['default'],
@@ -2659,14 +2848,15 @@ function theme_nit_logo_scss(): string {
  *
  * Two things live here, and both are per group for the same reason: how big and
  * how heavy each of the three subjects is set (titles / icons / log-in), and
- * which SHAPE a title takes on hover and on the current page.
+ * which SHAPES a title and an icon take on hover and when active.
  *
  * The shapes are here rather than in the stylesheet because CSS has no way to
  * switch which RULES apply from a custom property. So `_navbar.scss` writes the
  * rule once, reading three properties per state, and this decides what those
- * properties hold: the shape's own colour where the treatment is on, and an
- * inert value (`transparent`, the resting weight) where it is off. That file
- * therefore needs no knowledge of the shape names at all.
+ * properties hold: the state's own colour where a treatment is ticked, and an
+ * inert value (`transparent`, the resting weight) where it is not. That file
+ * therefore needs no knowledge of the treatment names at all — which is also why
+ * "nothing ticked" needs no special case anywhere: it is three inert values.
  *
  * Emitted for every group in the same order _brand.scss uses — `:root` first,
  * then the four switch classes — because a brand group class lands on <html>,
@@ -2674,29 +2864,39 @@ function theme_nit_logo_scss(): string {
  * source order is what decides. Same reason _brand.scss lists its roles that
  * way.
  *
- * "Bold" is one step up from whatever the group's resting title weight is, not a
- * fixed 800 — a group set to Regular titles should get a visible step, not a
- * jump past every weight in between. It never reflows the bar either: the link
- * reserves the heaviest width up front through a hidden twin sized at `max()` of
- * the three weights (see `.nit-navbar-link` in scss/components/_navbar.scss), so
- * a group that uses no bold reserves nothing extra.
+ * "Bold" is one step up from whatever the group's resting weight for that
+ * subject is, not a fixed 800 — a group set to Regular titles should get a
+ * visible step, not a jump past every weight in between. It never reflows the
+ * bar either: the link reserves the heaviest width up front through a hidden
+ * twin sized at `max()` of the three weights (see `.nit-navbar-link` in
+ * scss/components/_navbar.scss), so a group that uses no bold reserves nothing.
  *
  * @return string CSS
  */
 function theme_nit_navbar_style_scss(): string {
-    $shapes = theme_nit_navbar_title_shapes();
-    $states = theme_nit_navbar_title_states();
+    $states = theme_nit_navbar_shape_states();
     $subjects = theme_nit_navbar_type_subjects();
 
     $css = "\n";
     foreach (array_keys(theme_nit_brand_groups()) as $gkey) {
         $class = theme_nit_brand_group_class($gkey);
         // Bare class, not `:root.<class>` — a group wrapper anywhere in the page
-        // then carries these too, exactly as it carries its colours.
-        $selector = ($class === '') ? ':root' : '.' . $class;
+        // then carries these too, exactly as it carries its colours, and that is
+        // what lets the scroll switch work by classing the BAR. Group 1 is the
+        // site default so it also answers to plain `:root`, but it needs the
+        // class as well: a bar scrolling INTO Group 1 has to be able to say so.
+        $selector = ($class === '') ? ':root, .nit-brand-1' : '.' . $class;
         $css .= $selector . " {\n";
 
+        // How see-through the bar is, and whether it frosts at all. "Off" is not
+        // a separate rule anywhere: it is this mix at full opacity with no blur.
+        $glass = theme_nit_navbar_glass($gkey);
+        $opacity = $glass['on'] ? (100 - $glass['transparency']) : 100;
+        $css .= '    --nit-navbaropacity: ' . $opacity . "%;\n";
+        $css .= '    --nit-navbarblur: ' . ($glass['on'] ? THEME_NIT_NAVBAR_BLUR : 'none') . ";\n";
+
         // Size and weight, one pair per subject.
+        $boldweights = [];
         foreach (array_keys($subjects) as $subject) {
             $size = theme_nit_navbar_type_size($gkey, $subject);
             $weight = theme_nit_navbar_type_weight($gkey, $subject);
@@ -2707,21 +2907,21 @@ function theme_nit_navbar_style_scss(): string {
                 // The pointer target, which follows the glyph up but never down.
                 $css .= '    ' . $prefix . 'box: ' . theme_nit_navbar_icon_box($size) . "px;\n";
             }
+            // What this subject's "Bold" treatment steps up to, clamped to the
+            // heaviest weight CSS has.
+            $boldweights[$subject] = ['rest' => $weight, 'bold' => min(900, $weight + 200)];
         }
 
-        // The two title shapes. "Bold" steps up from this group's own resting
-        // title weight, clamped to the heaviest weight CSS has.
-        $restweight = theme_nit_navbar_type_weight($gkey, 'title');
-        $boldweight = min(900, $restweight + 200);
-        foreach ($states as $state => $unused) {
-            $shape = $shapes[theme_nit_navbar_title_shape($gkey, $state)];
-            // Both treatments that paint take the state's own "style color"
-            // role, so an admin picks the shape and its colour side by side.
-            $colour = 'var(--nit-brand-navbar' . $state . 'stylecolor)';
-            $prefix = '--nit-navtitle-' . ($state === 'titlehover' ? 'hover' : 'active');
-            $css .= '    ' . $prefix . '-underline: ' . ($shape['underline'] ? $colour : 'transparent') . ";\n";
-            $css .= '    ' . $prefix . '-bg: ' . ($shape['square'] ? $colour : 'transparent') . ";\n";
-            $css .= '    ' . $prefix . '-weight: ' . ($shape['bold'] ? $boldweight : $restweight) . ";\n";
+        foreach ($states as $state => $meta) {
+            $ticked = theme_nit_navbar_shape($gkey, $state);
+            $weights = $boldweights[$meta['subject']] ?? ['rest' => 600, 'bold' => 800];
+            $prefix = '--nit-nav' . $meta['subject'] . '-' . $meta['phase'] . '-';
+            $css .= '    ' . $prefix . 'underline: '
+                . (in_array('underline', $ticked, true) ? $meta['underline'] : 'transparent') . ";\n";
+            $css .= '    ' . $prefix . 'bg: '
+                . (in_array('square', $ticked, true) ? $meta['bg'] : 'transparent') . ";\n";
+            $css .= '    ' . $prefix . 'weight: '
+                . (in_array('bold', $ticked, true) ? $weights['bold'] : $weights['rest']) . ";\n";
         }
         $css .= "}\n";
     }

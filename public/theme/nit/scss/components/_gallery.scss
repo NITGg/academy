@@ -156,6 +156,25 @@
     gap: $nit-space-2;
 }
 
+// A block heading inside a section — Background / Titles / Icons / Login within
+// the Navbar. Deliberately quiet: it is a third level down, its job is to break
+// twenty cards into four runs of five, and a heading loud enough to compete with
+// the card names would make the grid harder to read rather than easier.
+.nit-brand-blockhead {
+    margin: $nit-space-4 0 $nit-space-2;
+    font-size: $nit-fs-sm;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--nit-brand-textsecondary);
+
+    // The first heading sits directly under the sticky toolbar, which already
+    // provides the gap.
+    &:first-child {
+        margin-top: 0;
+    }
+}
+
 // A section within one group. Quieter than the group pills — this is a second
 // level of the same choice, and two equally loud strips read as one confusing
 // one.
@@ -316,11 +335,7 @@
         flex: 0 0 auto;
     }
 
-    // The two navbar-title shape pickers. Same card as a colour role, in the
-    // same grid, because they are the other half of one decision — the "style
-    // color" roles beside them say what colour the shape is drawn in, and these
-    // say which shape that is. Only the control differs: a select, not a well.
-    .nit-shape-select,
+    // The size and weight controls, on the same field ground the hex boxes use.
     .nit-type-weight,
     .nit-type-size {
         background-color: var(--nit-brand-background);
@@ -328,9 +343,54 @@
         border-color: var(--nit-brand-borderprimary);
     }
 
-    .nit-shape-select {
-        flex: 1 1 auto;
+    // The shape cards are a <fieldset>, which browsers give their own min-width
+    // and default box. Reset it back to the card the colour rows use.
+    .nit-shape-row {
         min-width: 0;
+        border: 1px solid var(--nit-brand-borderprimary);
+        margin: 0;
+        padding: $nit-space-3;
+
+        // A <legend> is not a normal block: left alone it floats out of the
+        // fieldset's border and sizes itself to its text.
+        .nit-colour-name {
+            float: none;
+            width: auto;
+            padding: 0;
+            margin: 0;
+        }
+    }
+
+    // The three treatment ticks. A column, not a row: "Square background" is
+    // wider than a third of a 20rem card, and a row would either wrap unevenly
+    // or squeeze the labels to two lines each.
+    .nit-shape-options {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .nit-shape-option {
+        margin: 0;
+        // Bootstrap's own check spacing assumes an LTR page; the logical
+        // property keeps the tick beside its label in Arabic too.
+        padding-inline-start: 1.6em;
+
+        .form-check-input {
+            margin-inline-start: -1.6em;
+            background-color: var(--nit-brand-background);
+            border-color: var(--nit-brand-bordersecondary);
+
+            &:checked {
+                background-color: var(--nit-brand-primary);
+                border-color: var(--nit-brand-primary);
+            }
+        }
+
+        .form-check-label {
+            color: var(--nit-brand-textprimary);
+            cursor: pointer;
+        }
     }
 
     // Size + weight in one card. They wrap onto a second line before either is
@@ -364,6 +424,44 @@
     .nit-type-weight {
         flex: 1 1 8rem;
         min-width: 8rem;
+    }
+
+    .nit-scroll-select {
+        flex: 1 1 auto;
+        min-width: 0;
+        background-color: var(--nit-brand-background);
+        color: var(--nit-brand-textprimary);
+        border-color: var(--nit-brand-borderprimary);
+    }
+
+    // The transparency card: a switch and a percentage. They wrap onto separate
+    // lines before either is squeezed.
+    .nit-glass-controls {
+        flex-wrap: wrap;
+        gap: $nit-space-2;
+    }
+
+    .nit-glass-switch {
+        flex: 1 0 100%;
+        min-height: 0;
+        margin: 0;
+        padding-inline-start: 2.5em;
+
+        .form-check-input {
+            margin-inline-start: -2.5em;
+            background-color: var(--nit-brand-background);
+            border-color: var(--nit-brand-bordersecondary);
+
+            &:checked {
+                background-color: var(--nit-brand-primary);
+                border-color: var(--nit-brand-primary);
+            }
+        }
+
+        .form-check-label {
+            color: var(--nit-brand-textprimary);
+            cursor: pointer;
+        }
     }
 }
 

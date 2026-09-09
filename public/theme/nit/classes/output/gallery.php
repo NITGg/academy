@@ -46,48 +46,154 @@ class gallery implements renderable, templatable {
         // the tab switch between them) and only one section within it, because
         // five groups × 37 roles is 185 colour wells and finding anything in
         // that by scrolling is the thing this page was worst at.
+        // Built keyed (group → section → block) and flattened into lists at the
+        // end, because everything below wants to reach a named block — the shape
+        // and typography cards belong beside the colours of the same subject, not
+        // in a pile at the foot of the section.
         $sectionlabels = \theme_nit_brand_role_sections();
-        $brandgroups = [];
-        $bidx = [];  // group key => index in $brandgroups.
-        $sidx = [];  // group key => [section key => index in that group's sections].
+        $blocklabels = \theme_nit_brand_role_subsections();
+        $keyed = [];      // gkey => [gname, sections: skey => [label, blocks: sub => card lists]].
         foreach (\theme_nit_brand_palette() as $key => $meta) {
             $gkey = $meta['groupkey'];
-            if (!array_key_exists($gkey, $bidx)) {
-                $bidx[$gkey] = count($brandgroups);
-                $sidx[$gkey] = [];
-                $brandgroups[] = [
-                    'name' => $meta['group'],
-                    'groupkey' => $gkey,
-                    // The first group's editor is the one shown on arrival.
-                    'isfirst' => empty($brandgroups),
-                    'sections' => [],
-                ];
-            }
             $skey = $meta['section'];
-            if (!array_key_exists($skey, $sidx[$gkey])) {
-                $sidx[$gkey][$skey] = count($brandgroups[$bidx[$gkey]]['sections']);
-                $brandgroups[$bidx[$gkey]]['sections'][] = [
-                    'key' => $skey,
-                    // Unique per group: the same section appears in all five.
-                    'paneid' => 'nit-brand-' . $gkey . '-' . $skey,
-                    'label' => $sectionlabels[$skey] ?? $skey,
-                    'isfirst' => empty($brandgroups[$bidx[$gkey]]['sections']),
-                    'roles' => [],
-                    // Filled in below for the one section that has them.
-                    'typography' => [],
-                    'shapes' => [],
-                    'hasshapes' => false,
-                ];
-            }
+            $sub = $meta['sub'] ?? '';
+            $keyed[$gkey]['name'] ??= $meta['group'];
+            $keyed[$gkey]['sections'][$skey]['label'] ??= $sectionlabels[$skey] ?? $skey;
+            $block = &$keyed[$gkey]['sections'][$skey]['blocks'][$sub];
+            $block['roles'] ??= [];
+
             $value = \theme_nit_brandcolour($key);
-            $brandgroups[$bidx[$gkey]]['sections'][$sidx[$gkey][$skey]]['roles'][] = [
+            // `short` is the name used HERE. On a page already headed "Navbar"
+            // and under a block already headed "Titles", the full role name says
+            // its own address three times; the export keeps the long one, where
+            // there is no surrounding page to supply the context.
+            $block['roles'][] = [
                 'key' => $key,
-                'label' => $meta['label'],
+                'label' => $meta['short'] ?? $meta['label'],
                 'usage' => array_map(static fn($u) => ['label' => $u], $meta['usage']),
                 'cssvar' => '--nit-brand-' . $meta['role'],
                 'value' => $value,
                 'default' => $meta['default'],
                 'isdefault' => (strtolower($value) === strtolower($meta['default'])),
+            ];
+            unset($block);
+        }
+
+        // The navbar's non-colour cards, dropped into the block of the subject
+        // they describe rather than collected at the end of the section:
+        //
+        //   * TYPOGRAPHY — how big and how heavy the subject is set. One card
+        //     holding both controls, because "16px" and "Semi-bold" are one
+        //     decision about one thing, not two.
+        //   * SHAPES — which of the three treatments mark hover and active. A
+        //     card of tick boxes, not a picker: any combination is a valid answer
+        //     and so is none, which a list of named looks could not say.
+        $weightoptions = \theme_nit_navbar_weights();
+        $treatments = \theme_nit_navbar_shape_treatments();
+        foreach (array_keys($keyed) as $gkey) {
+            foreach (\theme_nit_navbar_type_subjects() as $subject => $meta) {
+                $weight = \theme_nit_navbar_type_weight($gkey, $subject);
+                $keyed[$gkey]['sections']['navbar']['blocks'][$meta['sub']]['typography'][] = [
+                    'label' => $meta['short'] ?? $meta['label'],
+                    'usage' => array_map(static fn($u) => ['label' => $u], $meta['usage']),
+                    'sizeinput' => 'navbarsize_' . $gkey . '_' . $subject,
+                    'sizevalue' => \theme_nit_navbar_type_size($gkey, $subject),
+                    'sizemin' => $meta['min'],
+                    'sizemax' => $meta['max'],
+                    'sizedefault' => $meta['size'],
+                    'weightinput' => 'navbarweight_' . $gkey . '_' . $subject,
+                    'weightoptions' => array_map(static fn($w, $wlabel) => [
+                        'value' => $w,
+                        'label' => $wlabel,
+                        'selected' => ($w === $weight),
+                    ], array_keys($weightoptions), $weightoptions),
+                ];
+            }
+            // The glass: whether the bar is see-through at all, and by how much.
+            // One card, because they are one decision — the degree is meaningless
+            // with the switch off, and the switch alone leaves nothing to tune.
+            $glass = \theme_nit_navbar_glass($gkey);
+            $keyed[$gkey]['sections']['navbar']['blocks']['background']['glass'][] = [
+                'oninput' => 'navbarglass_' . $gkey,
+                'onid' => 'nit-navbarglass-' . $gkey,
+                'on' => $glass['on'],
+                'valueinput' => 'navbartransparency_' . $gkey,
+                'valueid' => 'nit-navbartransparency-' . $gkey,
+                'value' => $glass['transparency'],
+            ];
+
+            // The group the bar switches to once the page moves. "Same as this
+            // group" is stored as the group itself and means "do not change";
+            // it is first in the list because it is the answer for almost every
+            // site.
+            $scroll = \theme_nit_navbar_scroll_group($gkey);
+            $keyed[$gkey]['sections']['navbar']['blocks']['scroll']['scrollgroup'][] = [
+                'input' => 'navbarscrollgroup_' . $gkey,
+                'id' => 'nit-navbarscrollgroup-' . $gkey,
+                'options' => array_map(static fn($okey, $olabel) => [
+                    'value' => $okey,
+                    'label' => ($okey === $gkey)
+                        ? get_string('navbarscroll_same', 'theme_nit')
+                        : $olabel,
+                    'selected' => ($okey === $scroll),
+                ], array_keys(\theme_nit_brand_groups()), \theme_nit_brand_groups()),
+            ];
+
+            foreach (\theme_nit_navbar_shape_states() as $state => $meta) {
+                $ticked = \theme_nit_navbar_shape($gkey, $state);
+                $input = 'navbarshape_' . $gkey . '_' . $state;
+                $keyed[$gkey]['sections']['navbar']['blocks'][$meta['sub']]['shapes'][] = [
+                    'input' => $input,
+                    'label' => $meta['short'] ?? $meta['label'],
+                    'options' => array_map(static fn($tkey, $tmeta) => [
+                        'id' => 'nit-' . $input . '-' . $tkey,
+                        'value' => $tkey,
+                        'label' => $tmeta['label'],
+                        'checked' => in_array($tkey, $ticked, true),
+                    ], array_keys($treatments), $treatments),
+                ];
+            }
+        }
+
+        // Flatten: keyed maps become the ordered lists the template walks.
+        $brandgroups = [];
+        foreach ($keyed as $gkey => $group) {
+            $sections = [];
+            foreach ($group['sections'] as $skey => $section) {
+                $blocks = [];
+                foreach ($section['blocks'] as $sub => $block) {
+                    // The heading is looked up from the block KEY here rather
+                    // than stored on the block, so the three places that fill a
+                    // block (roles, typography, shapes) cannot each remember to
+                    // set it — and two of them would have forgotten.
+                    $blocklabel = $blocklabels[$sub] ?? '';
+                    $blocks[] = [
+                        // A section that was never broken into blocks has one
+                        // unnamed block, and renders exactly as it did before.
+                        'label' => $blocklabel,
+                        'hasheading' => ($blocklabel !== ''),
+                        'roles' => $block['roles'] ?? [],
+                        'glass' => $block['glass'] ?? [],
+                        'typography' => $block['typography'] ?? [],
+                        'shapes' => $block['shapes'] ?? [],
+                        'scrollgroup' => $block['scrollgroup'] ?? [],
+                    ];
+                }
+                $sections[] = [
+                    'key' => $skey,
+                    // Unique per group: the same section appears in all five.
+                    'paneid' => 'nit-brand-' . $gkey . '-' . $skey,
+                    'label' => $section['label'],
+                    'isfirst' => empty($sections),
+                    'blocks' => $blocks,
+                ];
+            }
+            $brandgroups[] = [
+                'name' => $group['name'],
+                'groupkey' => $gkey,
+                // The first group's editor is the one shown on arrival.
+                'isfirst' => empty($brandgroups),
+                'sections' => $sections,
             ];
         }
 
@@ -120,64 +226,6 @@ class gallery implements renderable, templatable {
                 static fn($pill) => $pill + ['iscurrent' => ($pill['groupkey'] === $group['groupkey'])],
                 $pills
             );
-        }
-
-        // The navbar's non-colour settings, in the same form as the group's
-        // colours (they are saved by the same button) and shown inside the Navbar
-        // section beside the roles they belong with:
-        //
-        //   * TYPOGRAPHY — how big and how heavy each of the three subjects is.
-        //     One card per subject holding both controls, because "16px" and
-        //     "Semi-bold" are one decision about one thing, not two.
-        //   * SHAPES — which shape a title takes on hover and on the current
-        //     page, beside the two "style color" roles they decide the meaning of.
-        $shapeoptions = \theme_nit_navbar_title_shapes();
-        $weightoptions = \theme_nit_navbar_weights();
-        foreach ($brandgroups as $gi => $group) {
-            $gkey = $group['groupkey'];
-            foreach ($group['sections'] as $si => $section) {
-                if ($section['key'] !== 'navbar') {
-                    continue;
-                }
-
-                $typography = [];
-                foreach (\theme_nit_navbar_type_subjects() as $subject => $meta) {
-                    $weight = \theme_nit_navbar_type_weight($gkey, $subject);
-                    $typography[] = [
-                        'label' => $meta['label'],
-                        'usage' => array_map(static fn($u) => ['label' => $u], $meta['usage']),
-                        'sizeinput' => 'navbarsize_' . $gkey . '_' . $subject,
-                        'sizevalue' => \theme_nit_navbar_type_size($gkey, $subject),
-                        'sizemin' => $meta['min'],
-                        'sizemax' => $meta['max'],
-                        'sizedefault' => $meta['size'],
-                        'weightinput' => 'navbarweight_' . $gkey . '_' . $subject,
-                        'weightoptions' => array_map(static fn($w, $wlabel) => [
-                            'value' => $w,
-                            'label' => $wlabel,
-                            'selected' => ($w === $weight),
-                        ], array_keys($weightoptions), $weightoptions),
-                    ];
-                }
-
-                $shapes = [];
-                foreach (\theme_nit_navbar_title_states() as $state => $meta) {
-                    $selected = \theme_nit_navbar_title_shape($gkey, $state);
-                    $shapes[] = [
-                        'input' => 'navbarshape_' . $gkey . '_' . $state,
-                        'label' => $meta['label'],
-                        'options' => array_map(static fn($skey, $smeta) => [
-                            'value' => $skey,
-                            'label' => $smeta['label'],
-                            'selected' => ($skey === $selected),
-                        ], array_keys($shapeoptions), $shapeoptions),
-                    ];
-                }
-
-                $brandgroups[$gi]['sections'][$si]['typography'] = $typography;
-                $brandgroups[$gi]['sections'][$si]['shapes'] = $shapes;
-                $brandgroups[$gi]['sections'][$si]['hasshapes'] = true;
-            }
         }
 
         // Category branding for the "Category styles" tab. Only the MAIN

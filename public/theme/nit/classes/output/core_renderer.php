@@ -41,6 +41,54 @@ class core_renderer extends \theme_boost\output\core_renderer {
      * cookie name and path, the labels) is decided server-side in
      * navbar_mode_toggle() and read out of `data-nit-mode-config`.
      */
+    /**
+     * Swap the bar onto its scrolled brand group once the page moves.
+     *
+     * All this does is add one class to the bar and take it away again; WHICH
+     * class is decided server-side (theme_nit_navbar_scroll_group()) and handed
+     * over in `data-nit-scroll-group`, and the class itself is an ordinary brand
+     * switch, so every navbar colour, size, shape and the glass follow it with
+     * no further scripting. Nothing is emitted at all when a group does not name
+     * a second one.
+     *
+     * The threshold is 8px, not a fraction of the viewport: the question is "has
+     * the page moved", and Moodle's own `body.scrolled` answers a different one
+     * (it waits a full screen — see theme/boost/amd/src/drawers.js).
+     *
+     * `passive` and the rAF gate keep this off the scroll critical path: the
+     * listener does nothing but set a flag, and the class is touched once per
+     * frame and only when the answer actually changed.
+     */
+    private const SCROLL_GROUP_JS = <<<'JS'
+require([], function() {
+    var bar = document.querySelector('[data-nit-scroll-group]');
+    if (!bar) {
+        return;
+    }
+    var group = bar.getAttribute('data-nit-scroll-group');
+    var scrolled = null;
+    var queued = false;
+    var apply = function() {
+        queued = false;
+        var now = window.scrollY > 8;
+        if (now === scrolled) {
+            return;
+        }
+        scrolled = now;
+        // Adding the class is the whole switch; removing it drops the bar back
+        // to the group it inherits from <html>, which is where it started.
+        bar.classList.toggle(group, now);
+    };
+    window.addEventListener('scroll', function() {
+        if (!queued) {
+            queued = true;
+            window.requestAnimationFrame(apply);
+        }
+    }, {passive: true});
+    apply();
+});
+JS;
+
     private const MODE_TOGGLE_JS = <<<'JS'
 require([], function() {
     document.querySelectorAll('[data-nit-mode-toggle]').forEach(function(btn) {
@@ -333,6 +381,44 @@ JS;
         $langmenu['title'] = strtoupper(explode('_', current_language())[0]);
 
         return $this->render_from_template('theme_boost/language_menu', $langmenu);
+    }
+
+    /**
+     * The attribute that tells the bar which group to wear once the page scrolls.
+     *
+     * A bar sitting on top of a hero and a bar floating over scrolled content are
+     * two different design problems, so a group can name a SECOND group for the
+     * bar to switch to the moment the page moves (gallery → Brand Colors → Navbar
+     * → On scroll). What comes back is one attribute holding that group's switch
+     * class; the class does the rest, because every navbar colour, size, shape
+     * and the glass are declared on `.nit-navbar` as well as on `:root` (see
+     * scss/foundation/_root.scss) and so re-resolve against whatever group the
+     * BAR is wearing — not the page's.
+     *
+     * Emitted as a raw attribute string rather than a template variable because
+     * the navbar template is a `theme_boost/navbar` override: keeping the change
+     * to one `{{{ }}}` in the `<nav>` tag keeps the override diff a single line.
+     *
+     * Returns '' — and requires no script at all — when the group does not name a
+     * second one, which is the default and the overwhelmingly common case.
+     *
+     * @return string an HTML attribute, with a leading space, or ''
+     */
+    public function navbar_scroll_attributes(): string {
+        $resting = \theme_nit_active_chrome_group();
+        $scrolled = \theme_nit_navbar_scroll_group($resting);
+        if ($scrolled === $resting) {
+            // The overwhelmingly common answer. No attribute, no listener, no
+            // class — a bar that does not change on scroll costs nothing.
+            return '';
+        }
+
+        // Group 1's switch class exists for exactly this: without it, "scroll
+        // into Group 1" would be the one combination that could not be said.
+        $class = \theme_nit_brand_group_class($scrolled) ?: 'nit-brand-1';
+        $this->page->requires->js_amd_inline(self::SCROLL_GROUP_JS);
+
+        return ' data-nit-scroll-group="' . s($class) . '"';
     }
 
     /**
@@ -784,6 +870,10 @@ JS;
      * A parent is active when one of its children is: the visitor is inside that
      * section either way.
      *
+     * Paths are compared through navbar_path_key(), not as raw strings, because
+     * the front page has two spellings and core and the administrator each pick
+     * a different one — see that method.
+     *
      * @param array $item exported custom menu node
      * @param string|null $currentpath path of the page being viewed, if it set a URL
      * @return bool
@@ -792,10 +882,12 @@ JS;
         if ($currentpath === null) {
             return false;
         }
+        $currentkey = self::navbar_path_key($currentpath);
 
         if (!empty($item['url'])) {
             $itempath = parse_url($item['url'], PHP_URL_PATH);
-            if ($itempath !== null && $itempath !== false && $itempath === $currentpath) {
+            if ($itempath !== null && $itempath !== false
+                    && self::navbar_path_key($itempath) === $currentkey) {
                 parse_str((string) parse_url($item['url'], PHP_URL_QUERY), $itemparams);
                 $matches = true;
                 foreach ($itemparams as $name => $value) {
@@ -820,5 +912,30 @@ JS;
         }
 
         return false;
+    }
+
+    /**
+     * One path, in the one spelling two spellings of the same page share.
+     *
+     * The site front page is `/` AND `/index.php`, and which one you get depends
+     * on who wrote it down. Core's own front page sets its URL to the first
+     * (`$PAGE->set_url('/')`, public/index.php); an administrator typing a menu
+     * line writes the second, because that is what the address bar shows them
+     * after they click it. Compared as raw strings the two never matched, so the
+     * home link was the one row on the bar that could never be the current page —
+     * no active colour, no active shape, on the page most visitors land on.
+     *
+     * A trailing slash is folded for the same reason: `/local/x/` and
+     * `/local/x` are one directory, and only one of them will be written down.
+     *
+     * Both sides of every comparison go through this, so the fold cannot make two
+     * genuinely different pages match — it only removes spellings.
+     *
+     * @param string $path a URL path
+     * @return string a comparable key
+     */
+    protected static function navbar_path_key(string $path): string {
+        $path = preg_replace('~/index\.php$~', '/', $path);
+        return rtrim($path, '/') . '/';
     }
 }

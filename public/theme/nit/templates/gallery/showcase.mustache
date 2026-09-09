@@ -23,15 +23,19 @@
     * sesskey - session key for the editor forms
     * actionurl - POST target for the editor forms
     * brandgroups - array of { name, groupkey, isfirst, swatches: [ { value } ],
-        sections: [ { key, paneid, label, isfirst, hasshapes,
+        sections: [ { key, paneid, label, isfirst,
+          blocks: [ { label, hasheading,
                       roles: [ { key, label, cssvar, value, default, isdefault,
                                  usage: [ { label } ] } ],
                       typography: [ { label, usage: [ { label } ], sizeinput, sizevalue,
                                       sizemin, sizemax, sizedefault, weightinput,
                                       weightoptions: [ { value, label, selected } ] } ],
-                      shapes: [ { input, label, options: [ { value, label, selected } ] } ] } ] }
-        One editor per group; one section of it visible at a time. `typography`
-        and `shapes` are non-empty only in the Navbar section.
+                      shapes: [ { input, label,
+                                  options: [ { id, value, label, checked } ] } ] } ] } ] }
+        One editor per group; one section of it visible at a time; the section's
+        cards grouped into blocks. `typography` and `shapes` are non-empty only in
+        the Navbar section, and a section with nothing to group has one block with
+        `hasheading` false.
     * categorygroups - array of { id, name, image, hasimage, imageurl,
         modes: [ { mode, label, select, options: [ { value, label, selected } ],
                    logoinput, logoremove, haslogo, logourl } ] } (one entry per display mode)
@@ -52,11 +56,14 @@
               "swatches": [ { "value": "#0c141f" } ],
               "sections": [
                 { "key": "brand", "paneid": "nit-brand-g1-brand", "label": "Brand",
-                  "isfirst": true, "hasshapes": false, "shapes": [],
-                  "roles": [
-                    { "key": "g1_primary", "label": "Primary", "cssvar": "--nit-brand-primary",
-                      "value": "#5488c4", "default": "#5488c4", "isdefault": true,
-                      "usage": [ { "label": "background main button" } ] }
+                  "isfirst": true,
+                  "blocks": [
+                    { "label": "", "hasheading": false, "typography": [], "shapes": [],
+                      "roles": [
+                        { "key": "g1_primary", "label": "Primary", "cssvar": "--nit-brand-primary",
+                          "value": "#5488c4", "default": "#5488c4", "isdefault": true,
+                          "usage": [ { "label": "background main button" } ] }
+                      ] }
                   ] }
               ] }
         ],
@@ -124,6 +131,10 @@
                   data-nit-brand-pane="{{groupkey}}">
                 <input type="hidden" name="sesskey" value="{{sesskey}}">
                 <input type="hidden" name="brandgroup" value="{{groupkey}}">
+                {{! Which section was open when Save was pressed. Kept current by }}
+                {{! the section strip (see gallery.php) and handed back by the     }}
+                {{! redirect, so a save returns to the work, not to the top of it. }}
+                <input type="hidden" name="brandsection" value="" data-nit-brand-sectionfield>
 
                 {{! --------------------------------------------------------- }}
                 {{! One sticky header holding both choices and both buttons.   }}
@@ -164,6 +175,7 @@
                             {{#sections}}
                             <button type="button" role="tab" class="nit-brand-sectionpill{{#isfirst}} active{{/isfirst}}"
                                     data-nit-brand-section="{{paneid}}"
+                                    data-nit-brand-sectionkey="{{key}}"
                                     aria-controls="{{paneid}}"
                                     aria-selected="{{#isfirst}}true{{/isfirst}}{{^isfirst}}false{{/isfirst}}">{{label}}</button>
                             {{/sections}}
@@ -184,6 +196,15 @@
                 {{#sections}}
                 <div class="nit-brand-section{{^isfirst}} d-none{{/isfirst}}" id="{{paneid}}"
                      role="tabpanel" data-nit-brand-sectionpane>
+                    {{! One block per thing the section is made of — for the      }}
+                    {{! Navbar that is Background / Titles / Icons / Login, and    }}
+                    {{! every card about a subject (its colours, its size and      }}
+                    {{! weight, its shapes) sits under that subject's heading      }}
+                    {{! rather than in one flat grid of twenty. A section that was }}
+                    {{! never broken up has a single unnamed block and renders     }}
+                    {{! exactly as it did before.                                  }}
+                    {{#blocks}}
+                    {{#hasheading}}<h4 class="nit-brand-blockhead">{{label}}</h4>{{/hasheading}}
                     <div class="nit-colour-grid">
                         {{#roles}}
                             <div class="nit-colour-row" data-nit-colour>
@@ -204,6 +225,36 @@
                                 </div>
                             </div>
                         {{/roles}}
+
+                        {{! Whether the bar is see-through, and by how much. Both }}
+                        {{! on one card: the degree is meaningless with the switch}}
+                        {{! off, and the switch alone leaves nothing to tune.     }}
+                        {{#glass}}
+                            <div class="nit-colour-row nit-glass-row">
+                                <div class="nit-colour-meta">
+                                    <span class="nit-colour-name">{{#str}}navbarglass, theme_nit{{/str}}</span>
+                                    <span class="nit-colour-usage">
+                                        <span class="nit-colour-usage-item">{{#str}}navbarglass_usage, theme_nit{{/str}}</span>
+                                    </span>
+                                </div>
+                                <div class="nit-colour-controls nit-glass-controls">
+                                    <div class="form-check form-switch nit-glass-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="{{onid}}" name="{{oninput}}" value="1" {{#on}}checked{{/on}}>
+                                        <label class="form-check-label" for="{{onid}}">
+                                            {{#str}}navbarglass_on, theme_nit{{/str}}
+                                        </label>
+                                    </div>
+                                    <span class="nit-type-field">
+                                        <input type="number" class="form-control nit-type-size" id="{{valueid}}"
+                                               name="{{valueinput}}" value="{{value}}" min="0" max="90" step="1"
+                                               aria-label="{{#str}}navbarglass_degree, theme_nit{{/str}}">
+                                        <span class="nit-type-unit" aria-hidden="true">%</span>
+                                    </span>
+                                    <span class="nit-colour-default">Default: 28%</span>
+                                </div>
+                            </div>
+                        {{/glass}}
 
                         {{! How big and how heavy the bar sets each of its three  }}
                         {{! subjects. Both controls share one card because "16px" }}
@@ -235,29 +286,62 @@
                             </div>
                         {{/typography}}
 
-                        {{! The navbar title shapes. Same card as a colour role  }}
-                        {{! and in the same grid, because they are the other     }}
-                        {{! half of one decision: the two "style color" roles     }}
-                        {{! above say what colour the shape is drawn in, and      }}
-                        {{! these say which shape that is.                        }}
+                        {{! The shapes. Same card as a colour role and in the same }}
+                        {{! grid, because they are the other half of one decision: }}
+                        {{! the "style color" role above says what colour the shape}}
+                        {{! is drawn in, and this says which shapes those are.     }}
+                        {{!                                                        }}
+                        {{! Tick boxes and not a picker: the three treatments are  }}
+                        {{! independent, so any combination is a valid answer and  }}
+                        {{! so is none — which a list of named looks could not say }}
+                        {{! without one entry per combination. They are also the   }}
+                        {{! one control here that has to be readable at a glance,  }}
+                        {{! and a multi-select listbox hides its state behind a    }}
+                        {{! scroll and a ctrl-click.                                }}
                         {{#shapes}}
-                            <div class="nit-colour-row nit-shape-row">
+                            <fieldset class="nit-colour-row nit-shape-row">
                                 <div class="nit-colour-meta">
-                                    <label class="nit-colour-name" for="nit-{{input}}">{{label}}</label>
+                                    <legend class="nit-colour-name">{{label}}</legend>
                                     <span class="nit-colour-usage">
                                         <span class="nit-colour-usage-item">{{#str}}navbarshape_usage, theme_nit{{/str}}</span>
                                     </span>
                                 </div>
+                                <div class="nit-shape-options">
+                                    {{#options}}
+                                    <div class="form-check nit-shape-option">
+                                        <input class="form-check-input" type="checkbox" id="{{id}}"
+                                               name="{{input}}[]" value="{{value}}" {{#checked}}checked{{/checked}}>
+                                        <label class="form-check-label" for="{{id}}">{{label}}</label>
+                                    </div>
+                                    {{/options}}
+                                </div>
+                            </fieldset>
+                        {{/shapes}}
+
+                        {{! The group the bar wears once the page moves. "Same as }}
+                        {{! this group" means the bar does not change — and then  }}
+                        {{! nothing is emitted or scripted for it at all.         }}
+                        {{#scrollgroup}}
+                            <div class="nit-colour-row nit-shape-row">
+                                <div class="nit-colour-meta">
+                                    <label class="nit-colour-name" for="{{id}}">
+                                        {{#str}}navbarscroll, theme_nit{{/str}}
+                                    </label>
+                                    <span class="nit-colour-usage">
+                                        <span class="nit-colour-usage-item">{{#str}}navbarscroll_usage, theme_nit{{/str}}</span>
+                                    </span>
+                                </div>
                                 <div class="nit-colour-controls">
-                                    <select class="form-select nit-shape-select" id="nit-{{input}}" name="{{input}}">
+                                    <select class="form-select nit-scroll-select" id="{{id}}" name="{{input}}">
                                         {{#options}}
                                         <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
                                         {{/options}}
                                     </select>
                                 </div>
                             </div>
-                        {{/shapes}}
+                        {{/scrollgroup}}
                     </div>
+                    {{/blocks}}
                 </div>
                 {{/sections}}
             </form>

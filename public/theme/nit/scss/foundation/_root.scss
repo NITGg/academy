@@ -44,6 +44,27 @@
     --nit-accentgolddark: #{$nit-c-accentgolddark};
     --nit-accentteal: #{$nit-c-accentteal};
 
+}
+
+// =============================================================================
+// The bar's own alias layer.
+//
+// Declared on `.nit-navbar` AS WELL AS on `:root`, and that second selector is
+// load-bearing rather than defensive. A custom property holding a `var()` is
+// substituted on the element that DECLARES it, so a `:root`-only block freezes
+// these to whatever brand group `<html>` is wearing — which is right until the
+// bar is asked to wear a different one from the page it sits on. It is: an
+// administrator can give a group a second group to switch to once the page
+// scrolls (theme_nit_navbar_scroll_group()), and the switch works by putting
+// that group's class on the BAR. Declared here too, every name below re-resolves
+// there against the group the bar is actually wearing.
+//
+// The two selectors tie on specificity (`:root` and `.nit-navbar` are both one
+// class-level), so on an unscrolled bar with no class of its own they compute to
+// the same values and nothing moves.
+// =============================================================================
+:root,
+.nit-navbar {
     // The bar has its own pair of Brand Colors roles rather than borrowing the
     // page ground, so an admin can lift the navbar off the page without moving
     // every other surface with it. Only colour 1 is painted today; colour 2 is
@@ -55,11 +76,17 @@
     // ground under it and read as "no bar at all". The glass layer is built on
     // "Navbar background 2" instead — the reserved second navbar colour, one
     // step lighter than the page in all five groups (including the light
-    // Group 4) — held at 72% so the bar lifts off the page while still reading
-    // as glass, with the backdrop blurred behind it (--nit-navbarblur) so
-    // scrolled content never shows through as clutter. Both roles stay
-    // admin-editable on the Brand Colors tab, so the bar is still tunable there.
-    --nit-navbarglass: color-mix(in srgb, var(--nit-navbarbg2) 72%, transparent);
+    // Group 4) — held at an admin-set opacity so the bar lifts off the page while
+    // still reading as glass, with the backdrop blurred behind it
+    // (--nit-navbarblur) so scrolled content never shows through as clutter.
+    //
+    // How see-through, and whether to frost at all, are per-group settings now
+    // (theme_nit_navbar_style_scss() publishes both). Turning transparency OFF is
+    // not a separate code path: it is this same mix at 100% with the blur set to
+    // `none`, which is a solid bar. The literals here are the values the rule
+    // carried before either was editable.
+    --nit-navbaropacity: 72%;
+    --nit-navbarglass: color-mix(in srgb, var(--nit-navbarbg2) var(--nit-navbaropacity, 72%), transparent);
     --nit-navbarblur: blur(18px) saturate(160%);
     --nit-navbarsurface: var(--nit-brand-surface);
     --nit-navbarborder: var(--nit-brand-borderprimary);
@@ -92,7 +119,13 @@
     --nit-navbariconaccent: var(--nit-brand-navbariconcolor);
     --nit-navbariconaccenthover: var(--nit-brand-navbariconhovercolor);
     --nit-navbariconactive: var(--nit-brand-navbariconactivecolor);
+    // The two soft pads — the "square background" shape, one per state. A tint
+    // of the state's own colour rather than a flat fill: a solid accent behind a
+    // 22px glyph is a badge, not a hover, and it takes the glyph's contrast with
+    // it. Which state actually paints one is the admin's shape choice, resolved
+    // in theme_nit_navbar_style_scss().
     --nit-navbariconbg: color-mix(in srgb, var(--nit-brand-navbariconhovercolor) 14%, transparent);
+    --nit-navbariconactivebg: color-mix(in srgb, var(--nit-brand-navbariconactivecolor) 14%, transparent);
 
     // The log-in link (signed-out visitors only).
     --nit-navbarlogin: var(--nit-brand-navbarlogincolor);
@@ -107,6 +140,9 @@
     --nit-navbarpanel: var(--nit-brand-surface);
     --nit-navbarpaneltext: var(--nit-brand-textsecondary);
     --nit-navbarpanelborder: var(--nit-brand-borderprimary);
+}
+
+:root {
 
     --nit-background: var(--nit-brand-background);
     --nit-background2: var(--nit-brand-background2);
@@ -218,8 +254,13 @@
 // one there. `:root.nit-brand-4` and not a bare `.nit-brand-4`: _brand.scss is
 // concatenated BEFORE this file, so a single-class selector ties with `:root`
 // on specificity and loses on source order.
-:root.nit-brand-4 {
-    --nit-navbarglass: color-mix(in srgb, var(--nit-navbarbg) 72%, transparent);
+//
+// `.nit-navbar.nit-brand-4` is the same correction for the bar wearing Group 4
+// on its own — the scroll switch puts a group class on the BAR, so a bar that
+// scrolls into Group 4 needs this as much as a page rendered in it does.
+:root.nit-brand-4,
+.nit-navbar.nit-brand-4 {
+    --nit-navbarglass: color-mix(in srgb, var(--nit-navbarbg) var(--nit-navbaropacity, 72%), transparent);
 }
 
 // No prefers-color-scheme override: Group 1 of the Brand Colors palette is

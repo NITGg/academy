@@ -50,9 +50,16 @@ $string['brandcoloursreset'] = 'Brand Colors reset to the defaults.';
 $string['savebrandcolours'] = 'Save Brand Colors';
 $string['resetbrandcolours'] = 'Reset to defaults';
 $string['brandgroupswitch'] = 'Which group to edit';
-$string['navbarshape_usage'] = 'how the title marks the state — drawn in the matching style color above';
+$string['navbarshape_usage'] = 'tick any, or none — the ticked marks are drawn together';
 $string['navbarsize'] = 'size in pixels';
 $string['navbarweight'] = 'font weight';
+$string['navbarglass'] = 'Background transparency';
+$string['navbarglass_usage'] = 'let the page show through the bar, and by how much';
+$string['navbarglass_on'] = 'Apply transparency';
+$string['navbarglass_degree'] = 'transparency percentage';
+$string['navbarscroll'] = 'Style once scrolled';
+$string['navbarscroll_usage'] = 'the bar wears this group\'s navbar style from the moment the page moves';
+$string['navbarscroll_same'] = 'Same as this group (no change)';
 
 // Category styles: the brand group and the navbar logo each main category uses,
 // once for light mode and once for dark mode.

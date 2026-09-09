@@ -37,6 +37,34 @@ $nit-navpanel-shadow:  0 0 50px rgba(32, 32, 32, 0.15); // neutral drop shadow (
 $nit-navpanel-item:    var(--nit-navbarpaneltext, #8a9ab5);   // muted blue-grey row text.
 $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divider.
 
+// The shape an ICON state draws — the same three switches the titles use
+// (underline / bold / square background, any combination or none), read from the
+// properties theme_nit_navbar_style_scss() publishes per brand group. Applied to
+// all four controls in the cluster from one place so they can never disagree.
+//
+// The underline is an inset box-shadow and not a pseudo-element on purpose:
+// `.popover-region-toggle` hides BOTH its pseudo-elements with `!important`
+// further down (they are Moodle's arrow triangles, which otherwise distort the
+// square), so the bell and the message toggle are exactly the two controls that
+// could not have drawn one. A shadow needs no element at all and follows the
+// button's border radius for free.
+//
+// The background fallback is `transparent` and NOT the `rgba(255,255,255,.08)`
+// these rules used to carry as a literal, because that literal cannot survive
+// the trip to Arabic. scssphp minifies `rgba(255, 255, 255, 0.08)` into the CSS
+// Color 4 form `rgb(255 255 255 / .08)`, and Moodle's RTL post-processor parses
+// the compiled sheet with a library that does not know that syntax — it drops
+// the whole DECLARATION, silently, leaving the RTL stylesheet with no background
+// on these rules at all. Keep every fallback here free of `rgb()`/`rgba()`.
+//
+// Nothing is lost by it: the style block always publishes a real value, and the
+// fallback only covers a half-built stylesheet.
+@mixin nit-navicon-shape($phase) {
+    background-color: var(--nit-navicon-#{$phase}-bg, transparent);
+    font-weight: var(--nit-navicon-#{$phase}-weight, 500);
+    box-shadow: inset 0 -2px 0 var(--nit-navicon-#{$phase}-underline, transparent);
+}
+
 // Scroll-triggered lift for the fixed bar (consumed in `.nit-navbar` below).
 // Both stops carry the SAME two shadow layers, at zero alpha and at full, so
 // the pair interpolates cleanly — a `from` of plain `none` steps instead of
@@ -406,7 +434,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         font-weight: var(--nit-navicon-weight, 500);
         line-height: 1;
         text-transform: uppercase;
-        transition: background-color 0.15s ease, color 0.15s ease;
+        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, font-weight 0.15s ease;
 
         // Two carets to remove: Bootstrap draws one with a border triangle on
         // ::after, and core's template also ships a literal `<b class="caret">`.
@@ -421,8 +449,9 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         }
 
         &:hover,
+
         &:focus {
-            background-color: var(--nit-navbariconbg, rgba(255, 255, 255, 0.08));
+            @include nit-navicon-shape(hover);
             color: var(--nit-navbariconaccenthover, #{$nit-gold-400}) !important;
         }
 
@@ -431,7 +460,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         &.show,
         &[aria-expanded="true"],
         &:active {
-            background-color: var(--nit-navbariconbg, rgba(255, 255, 255, 0.08));
+            @include nit-navicon-shape(active);
             color: var(--nit-navbariconactive, #{$nit-gold-500}) !important;
         }
 
@@ -466,7 +495,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         line-height: 1;
         text-transform: uppercase;
         text-decoration: none;
-        transition: background-color 0.15s ease, color 0.15s ease;
+        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, font-weight 0.15s ease;
 
         // The code is the whole label, so it needs no inline spacing.
         .langbutton {
@@ -475,12 +504,13 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 
         &:hover,
         &:focus {
-            background-color: var(--nit-navbariconbg, rgba(255, 255, 255, 0.08));
+            @include nit-navicon-shape(hover);
             color: var(--nit-navbariconaccenthover, #{$nit-gold-400}) !important;
             text-decoration: none;
         }
 
         &:active {
+            @include nit-navicon-shape(active);
             color: var(--nit-navbariconactive, #{$nit-gold-500}) !important;
         }
 
@@ -560,11 +590,12 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         box-shadow: none;
         // Icon glyph → the dedicated "Navbar icon color" role.
         color: var(--nit-navbariconaccent, #{$nit-gold-500}) !important;
-        transition: background-color 0.15s ease, color 0.15s ease;
+        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, font-weight 0.15s ease;
 
         &:hover,
+
         &:focus {
-            background-color: var(--nit-navbariconbg, rgba(255, 255, 255, 0.08));
+            @include nit-navicon-shape(hover);
             color: var(--nit-navbariconaccenthover, #{$nit-gold-400}) !important;
         }
 
@@ -576,7 +607,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         &.show,
         &[aria-expanded="true"],
         &:active {
-            background-color: var(--nit-navbariconbg, rgba(255, 255, 255, 0.08));
+            @include nit-navicon-shape(active);
             color: var(--nit-navbariconactive, #{$nit-gold-500}) !important;
         }
 

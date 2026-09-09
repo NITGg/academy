@@ -60,20 +60,33 @@ if (($data = data_submitted()) && confirm_sesskey()) {
         $brandgroup = '';
     }
 
-    // Where a Brand Colors save lands the admin back: the same group's editor,
-    // not the first one. The tab strip and the group pills both read the URL
-    // (see the fragment handler below), so a POST-and-redirect no longer costs
-    // the admin the place they were working in.
-    $brandurl = new moodle_url('/theme/nit/gallery.php',
-        $brandgroup !== '' ? ['brandgroup' => $brandgroup] : null, 'nit-tab-brand');
+    // Where a Brand Colors save lands the admin back: the same group's editor AND
+    // the same section of it, not the first of each. Every editor here saves by
+    // POST-and-redirect, so without carrying the place forward an admin tuning
+    // the navbar was thrown back to Group 1 / Brand on every save — the deeper
+    // they were working, the more of it they lost. The group pills and the
+    // section strip both read these off the URL (see the handler below); the
+    // section travels in a hidden field the strip keeps up to date.
+    $brandsection = optional_param('brandsection', '', PARAM_ALPHANUMEXT);
+    if ($brandsection !== '' && !array_key_exists($brandsection, theme_nit_brand_role_sections())) {
+        $brandsection = '';
+    }
+    $brandparams = [];
+    if ($brandgroup !== '') {
+        $brandparams['brandgroup'] = $brandgroup;
+    }
+    if ($brandsection !== '') {
+        $brandparams['brandsection'] = $brandsection;
+    }
+    $brandurl = new moodle_url('/theme/nit/gallery.php', $brandparams ?: null, 'nit-tab-brand');
 
-    // The navbar's non-colour style settings — the title shapes, and the size /
-    // weight of each of the three subjects — ride in the same form as the
-    // colours, saved and reset by the same buttons. They are part of "what this
-    // group looks like", and splitting them out would mean two saves for one
-    // decision (a shape and the colour it is drawn in).
-    $shapestates = array_keys(theme_nit_navbar_title_states());
-    $shapevalues = theme_nit_navbar_title_shapes();
+    // The navbar's non-colour style settings — the shapes, and the size / weight
+    // of each of the three subjects — ride in the same form as the colours, saved
+    // and reset by the same buttons. They are part of "what this group looks
+    // like", and splitting them out would mean two saves for one decision (a
+    // shape and the colour it is drawn in).
+    $shapestates = array_keys(theme_nit_navbar_shape_states());
+    $shapevalues = array_keys(theme_nit_navbar_shape_treatments());
     $typesubjects = theme_nit_navbar_type_subjects();
     $typeweights = theme_nit_navbar_weights();
 
@@ -95,6 +108,9 @@ if (($data = data_submitted()) && confirm_sesskey()) {
                 unset_config('navbarsize_' . $gkey . '_' . $subject, 'theme_nit');
                 unset_config('navbarweight_' . $gkey . '_' . $subject, 'theme_nit');
             }
+            unset_config('navbarglass_' . $gkey, 'theme_nit');
+            unset_config('navbartransparency_' . $gkey, 'theme_nit');
+            unset_config('navbarscrollgroup_' . $gkey, 'theme_nit');
         }
         theme_reset_all_caches();
         redirect($brandurl, get_string('brandcoloursreset', 'theme_nit'), null,
@@ -117,13 +133,23 @@ if (($data = data_submitted()) && confirm_sesskey()) {
             if ($brandgroup !== '' && $gkey !== $brandgroup) {
                 continue;
             }
-            foreach ($shapestates as $state) {
-                $field = 'navbarshape_' . $gkey . '_' . $state;
-                $value = optional_param($field, '', PARAM_ALPHANUMEXT);
-                // An unknown shape is not written at all, so the group keeps
-                // whatever it had rather than silently dropping to a default.
-                if (array_key_exists($value, $shapevalues)) {
-                    set_config($field, $value, 'theme_nit');
+            // A shape is a SET of treatments now, posted as a tick per box. Any
+            // subset is a valid answer, INCLUDING none — so the row is written
+            // even when the array comes back empty, and "" is stored rather than
+            // the row being removed. Removing it would mean "never set", which is
+            // what re-applies the default, and an admin who deliberately unticked
+            // everything would watch the shape come straight back.
+            //
+            // Only ever for the group whose form was posted: an empty
+            // `brandgroup` is a legacy single-form post that carried no shape
+            // fields at all, and treating its silence as "none" would wipe all
+            // five groups at once.
+            if ($brandgroup !== '') {
+                foreach ($shapestates as $state) {
+                    $field = 'navbarshape_' . $gkey . '_' . $state;
+                    $ticked = optional_param_array($field, [], PARAM_ALPHANUMEXT);
+                    $ticked = array_values(array_intersect($shapevalues, $ticked));
+                    set_config($field, implode(',', $ticked), 'theme_nit');
                 }
             }
             foreach ($typesubjects as $subject => $meta) {
@@ -142,6 +168,30 @@ if (($data = data_submitted()) && confirm_sesskey()) {
                 $weight = optional_param($field, 0, PARAM_INT);
                 if (array_key_exists($weight, $typeweights)) {
                     set_config($field, $weight, 'theme_nit');
+                }
+            }
+
+            // The glass switch, the transparency degree and the scrolled group.
+            // Same gate as the shapes: an unticked switch posts nothing, so the
+            // absence has to be read as "off" — which is only safe for the group
+            // whose form was actually submitted.
+            if ($brandgroup !== '') {
+                set_config('navbarglass_' . $gkey,
+                    optional_param('navbarglass_' . $gkey, 0, PARAM_INT) ? '1' : '0', 'theme_nit');
+
+                // 0 is a solid bar and a real answer, so the field is read with a
+                // sentinel default rather than 0 — a browser that sent nothing
+                // must not be taken for an admin asking for zero.
+                $field = 'navbartransparency_' . $gkey;
+                $transparency = optional_param($field, -1, PARAM_INT);
+                if ($transparency >= 0) {
+                    set_config($field, min(90, $transparency), 'theme_nit');
+                }
+
+                $field = 'navbarscrollgroup_' . $gkey;
+                $scroll = optional_param($field, '', PARAM_ALPHANUMEXT);
+                if (in_array($scroll, $groupkeys, true)) {
+                    set_config($field, $scroll, 'theme_nit');
                 }
             }
         }
@@ -356,13 +406,18 @@ if (($data = data_submitted()) && confirm_sesskey()) {
     $syscontext = context_system::instance();
     $fs = get_file_storage();
 
+    // Back to the Fonts tab, not to the first one. Every other editor on this
+    // page already carried its tab through the redirect; this was the one that
+    // did not, so uploading a font looked like it had gone nowhere.
+    $fonturl = new moodle_url('/theme/nit/gallery.php', null, 'nit-tab-fonts');
+
     if (!empty($data->resetfonts)) {
         foreach ($slots as $slot) {
             $fs->delete_area_files($syscontext->id, 'theme_nit', $slot['filearea']);
             unset_config($slot['setting'], 'theme_nit');
         }
         theme_reset_all_caches();
-        redirect($pageurl, get_string('fontsreset', 'theme_nit'), null,
+        redirect($fonturl, get_string('fontsreset', 'theme_nit'), null,
             \core\output\notification::NOTIFY_SUCCESS);
     }
 
@@ -422,10 +477,10 @@ if (($data = data_submitted()) && confirm_sesskey()) {
         theme_reset_all_caches();
 
         if ($errors) {
-            redirect($pageurl, implode(' ', $errors), null,
+            redirect($fonturl, implode(' ', $errors), null,
                 \core\output\notification::NOTIFY_ERROR);
         }
-        redirect($pageurl, get_string('fontssaved', 'theme_nit'), null,
+        redirect($fonturl, get_string('fontssaved', 'theme_nit'), null,
             \core\output\notification::NOTIFY_SUCCESS);
     }
 
@@ -640,30 +695,70 @@ require([], function() {
 
     // Section strip, one per group's editor. Scoped to the form it lives in so
     // the five strips never reach into each other.
-    panes.forEach(function(pane) {
+    //
+    // Every pane records the open section in a hidden field of its own form, so
+    // the POST carries it and the redirect can hand it back (see $brandurl in
+    // the save handler above). Showing a section is what writes it, which means
+    // the field is right on arrival too, not only after a click.
+    var showSection = function(pane, key) {
         var tabs = pane.querySelectorAll('[data-nit-brand-section]');
         var sections = pane.querySelectorAll('[data-nit-brand-sectionpane]');
+        var match = null;
         tabs.forEach(function(tab) {
+            if (tab.getAttribute('data-nit-brand-sectionkey') === key) {
+                match = tab;
+            }
+        });
+        if (!match) {
+            return false;
+        }
+        var target = match.getAttribute('data-nit-brand-section');
+        sections.forEach(function(section) {
+            section.classList.toggle('d-none', section.id !== target);
+        });
+        tabs.forEach(function(other) {
+            var mine = other === match;
+            other.classList.toggle('active', mine);
+            other.setAttribute('aria-selected', mine ? 'true' : 'false');
+        });
+        var field = pane.querySelector('[data-nit-brand-sectionfield]');
+        if (field) {
+            field.value = key;
+        }
+        return true;
+    };
+
+    panes.forEach(function(pane) {
+        pane.querySelectorAll('[data-nit-brand-section]').forEach(function(tab) {
             tab.addEventListener('click', function() {
-                var target = tab.getAttribute('data-nit-brand-section');
-                sections.forEach(function(section) {
-                    section.classList.toggle('d-none', section.id !== target);
-                });
-                tabs.forEach(function(other) {
-                    var mine = other === tab;
-                    other.classList.toggle('active', mine);
-                    other.setAttribute('aria-selected', mine ? 'true' : 'false');
-                });
+                showSection(pane, tab.getAttribute('data-nit-brand-sectionkey'));
             });
         });
+        // Seed the hidden field with the section that is open on arrival, so a
+        // save made without ever touching the strip still comes back here.
+        var first = pane.querySelector('[data-nit-brand-sectionkey]');
+        if (first) {
+            showSection(pane, first.getAttribute('data-nit-brand-sectionkey'));
+        }
     });
 
-    // Land back on the group that was just saved. Every editor here saves by
-    // POST-and-redirect, and the redirect carries ?brandgroup= for exactly this
-    // (see the save handler in gallery.php).
-    var requested = new URLSearchParams(window.location.search).get('brandgroup');
-    if (requested) {
-        showGroup(requested);
+    // Land back exactly where the save was made — the same group AND the same
+    // section of it. Every editor here saves by POST-and-redirect, and the
+    // redirect carries ?brandgroup= and ?brandsection= for this (see $brandurl in
+    // the save handler). The section is applied to whichever pane is showing, so
+    // it works whether the group came from the URL or was already the default.
+    var params = new URLSearchParams(window.location.search);
+    var wantgroup = params.get('brandgroup');
+    if (wantgroup) {
+        showGroup(wantgroup);
+    }
+    var wantsection = params.get('brandsection');
+    if (wantsection) {
+        panes.forEach(function(pane) {
+            if (!pane.classList.contains('d-none')) {
+                showSection(pane, wantsection);
+            }
+        });
     }
 });
 JS);

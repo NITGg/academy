@@ -236,11 +236,27 @@
     --nit-brand-g5-onprimary: #{$nit-b-g5-onprimary};
     --nit-brand-g5-onsecondary: #{$nit-b-g5-onsecondary};
 
+    // The two accents split off "Accent Text" (see theme_nit_brand_roles()).
+    // Grouped here rather than threaded back through each block above, the same
+    // way onprimary / onsecondary were when they arrived late.
+    --nit-brand-g1-accentwords: #{$nit-b-g1-accentwords};
+    --nit-brand-g1-accentunderline: #{$nit-b-g1-accentunderline};
+    --nit-brand-g2-accentwords: #{$nit-b-g2-accentwords};
+    --nit-brand-g2-accentunderline: #{$nit-b-g2-accentunderline};
+    --nit-brand-g3-accentwords: #{$nit-b-g3-accentwords};
+    --nit-brand-g3-accentunderline: #{$nit-b-g3-accentunderline};
+    --nit-brand-g4-accentwords: #{$nit-b-g4-accentwords};
+    --nit-brand-g4-accentunderline: #{$nit-b-g4-accentunderline};
+    --nit-brand-g5-accentwords: #{$nit-b-g5-accentwords};
+    --nit-brand-g5-accentunderline: #{$nit-b-g5-accentunderline};
+
     // --- Active layer — the names components actually use. Defaults to Group 1.
     --nit-brand-primary: var(--nit-brand-g1-primary);
     --nit-brand-secondary: var(--nit-brand-g1-secondary);
     --nit-brand-accent: var(--nit-brand-g1-accent);
     --nit-brand-accenttext: var(--nit-brand-g1-accenttext);
+    --nit-brand-accentwords: var(--nit-brand-g1-accentwords);
+    --nit-brand-accentunderline: var(--nit-brand-g1-accentunderline);
     --nit-brand-background: var(--nit-brand-g1-background);
     --nit-brand-background2: var(--nit-brand-g1-background2);
     --nit-brand-navbarbackground1: var(--nit-brand-g1-navbarbackground1);
@@ -293,11 +309,16 @@
     // in the RTL stylesheet, breaking every consumer (e.g. the navbar hover) in
     // Arabic only. Keep directional words out of custom-property names.
     --nit-brand-accent-vivid: color-mix(in srgb, var(--nit-brand-accent) 70%, #fff);
-    // Text-facing accent (links, important words, underlines). Its own hover/vivid
-    // companions so link and text-icon hover states track "Accent Text", not the
+    // Link ink ("Link Text"). Its own hover/vivid
+    // companions so link and text-icon hover states track the link role, not the
     // (now non-text) "Accent" role.
     --nit-brand-accenttext-hover: color-mix(in srgb, var(--nit-brand-accenttext) 16%, transparent);
     --nit-brand-accenttext-vivid: color-mix(in srgb, var(--nit-brand-accenttext) 70%, #fff);
+    // Important Words gets the same two companions, for the same reason: inline
+    // code sits on the raised Surface and a flat accent measures ~4.2 there, so
+    // the vivid mix is what the code role actually consumes.
+    --nit-brand-accentwords-hover: color-mix(in srgb, var(--nit-brand-accentwords) 16%, transparent);
+    --nit-brand-accentwords-vivid: color-mix(in srgb, var(--nit-brand-accentwords) 70%, #fff);
     --nit-brand-surface-2: color-mix(in srgb, var(--nit-brand-surface) 90%, #fff);
     --nit-brand-surface-translucent: color-mix(in srgb, var(--nit-brand-surface) 88%, transparent);
 }
@@ -306,11 +327,63 @@
 //     re-resolves every active role name to that group. Same names, different
 //     palette; the derived helpers above follow because they read the active
 //     vars, which are overridden here.
+// Group 1 is the site default and every role above already resolves to it, so
+// this class is a no-op on a page — and load-bearing on the navigation bar. The
+// scroll switch works by putting a group's class on the BAR
+// (theme_nit_navbar_scroll_group()), and a bar scrolling INTO Group 1 needs a
+// class to say that with; without one, "switch to Group 1" would be the single
+// combination the control could not express.
+.nit-brand-1 {
+    --nit-brand-primary: var(--nit-brand-g1-primary);
+    --nit-brand-secondary: var(--nit-brand-g1-secondary);
+    --nit-brand-accent: var(--nit-brand-g1-accent);
+    --nit-brand-accenttext: var(--nit-brand-g1-accenttext);
+    --nit-brand-accentwords: var(--nit-brand-g1-accentwords);
+    --nit-brand-accentunderline: var(--nit-brand-g1-accentunderline);
+    --nit-brand-background: var(--nit-brand-g1-background);
+    --nit-brand-background2: var(--nit-brand-g1-background2);
+    --nit-brand-navbarbackground1: var(--nit-brand-g1-navbarbackground1);
+    --nit-brand-navbarbackground2: var(--nit-brand-g1-navbarbackground2);
+    --nit-brand-navbartitlecolor: var(--nit-brand-g1-navbartitlecolor);
+    --nit-brand-navbartitlehovercolor: var(--nit-brand-g1-navbartitlehovercolor);
+    --nit-brand-navbartitleactivecolor: var(--nit-brand-g1-navbartitleactivecolor);
+    --nit-brand-navbartitlehoverstylecolor: var(--nit-brand-g1-navbartitlehoverstylecolor);
+    --nit-brand-navbartitleactivestylecolor: var(--nit-brand-g1-navbartitleactivestylecolor);
+    --nit-brand-navbariconhovercolor: var(--nit-brand-g1-navbariconhovercolor);
+    --nit-brand-navbariconactivecolor: var(--nit-brand-g1-navbariconactivecolor);
+    --nit-brand-navbarlogincolor: var(--nit-brand-g1-navbarlogincolor);
+    --nit-brand-navbarloginhovercolor: var(--nit-brand-g1-navbarloginhovercolor);
+    --nit-brand-navbarloginactivecolor: var(--nit-brand-g1-navbarloginactivecolor);
+    --nit-brand-footerbackground1: var(--nit-brand-g1-footerbackground1);
+    --nit-brand-footerbackground2: var(--nit-brand-g1-footerbackground2);
+    --nit-brand-footerheading: var(--nit-brand-g1-footerheading);
+    --nit-brand-footerlink: var(--nit-brand-g1-footerlink);
+    --nit-brand-footericon: var(--nit-brand-g1-footericon);
+    --nit-brand-surface: var(--nit-brand-g1-surface);
+    --nit-brand-textprimary: var(--nit-brand-g1-textprimary);
+    --nit-brand-navbariconcolor: var(--nit-brand-g1-navbariconcolor);
+    --nit-brand-textsecondary: var(--nit-brand-g1-textsecondary);
+    --nit-brand-borderprimary: var(--nit-brand-g1-borderprimary);
+    --nit-brand-bordersecondary: var(--nit-brand-g1-bordersecondary);
+    --nit-brand-hoverbackground: var(--nit-brand-g1-hoverbackground);
+    --nit-brand-hovertext: var(--nit-brand-g1-hovertext);
+    --nit-brand-error: var(--nit-brand-g1-error);
+    --nit-brand-success: var(--nit-brand-g1-success);
+    --nit-brand-warning: var(--nit-brand-g1-warning);
+    --nit-brand-info: var(--nit-brand-g1-info);
+    --nit-brand-onprimary: var(--nit-brand-g1-onprimary);
+    --nit-brand-onsecondary: var(--nit-brand-g1-onsecondary);
+    // Legacy alias, kept because five component partials already read it.
+    --nit-brand-on-primary: var(--nit-brand-g1-onprimary);
+}
+
 .nit-brand-2 {
     --nit-brand-primary: var(--nit-brand-g2-primary);
     --nit-brand-secondary: var(--nit-brand-g2-secondary);
     --nit-brand-accent: var(--nit-brand-g2-accent);
     --nit-brand-accenttext: var(--nit-brand-g2-accenttext);
+    --nit-brand-accentwords: var(--nit-brand-g2-accentwords);
+    --nit-brand-accentunderline: var(--nit-brand-g2-accentunderline);
     --nit-brand-background: var(--nit-brand-g2-background);
     --nit-brand-background2: var(--nit-brand-g2-background2);
     --nit-brand-navbarbackground1: var(--nit-brand-g2-navbarbackground1);
@@ -353,6 +426,8 @@
     --nit-brand-secondary: var(--nit-brand-g3-secondary);
     --nit-brand-accent: var(--nit-brand-g3-accent);
     --nit-brand-accenttext: var(--nit-brand-g3-accenttext);
+    --nit-brand-accentwords: var(--nit-brand-g3-accentwords);
+    --nit-brand-accentunderline: var(--nit-brand-g3-accentunderline);
     --nit-brand-background: var(--nit-brand-g3-background);
     --nit-brand-background2: var(--nit-brand-g3-background2);
     --nit-brand-navbarbackground1: var(--nit-brand-g3-navbarbackground1);
@@ -398,6 +473,8 @@
     --nit-brand-secondary: var(--nit-brand-g4-secondary);
     --nit-brand-accent: var(--nit-brand-g4-accent);
     --nit-brand-accenttext: var(--nit-brand-g4-accenttext);
+    --nit-brand-accentwords: var(--nit-brand-g4-accentwords);
+    --nit-brand-accentunderline: var(--nit-brand-g4-accentunderline);
     --nit-brand-background: var(--nit-brand-g4-background);
     --nit-brand-background2: var(--nit-brand-g4-background2);
     --nit-brand-navbarbackground1: var(--nit-brand-g4-navbarbackground1);
@@ -442,6 +519,8 @@
     --nit-brand-secondary: var(--nit-brand-g5-secondary);
     --nit-brand-accent: var(--nit-brand-g5-accent);
     --nit-brand-accenttext: var(--nit-brand-g5-accenttext);
+    --nit-brand-accentwords: var(--nit-brand-g5-accentwords);
+    --nit-brand-accentunderline: var(--nit-brand-g5-accentunderline);
     --nit-brand-background: var(--nit-brand-g5-background);
     --nit-brand-background2: var(--nit-brand-g5-background2);
     --nit-brand-navbarbackground1: var(--nit-brand-g5-navbarbackground1);
@@ -497,6 +576,7 @@
 // Under Group 1 these resolve to the same values pre_scss already baked, so the
 // default site is unchanged to the pixel.
 :root,
+.nit-brand-1,
 .nit-brand-2,
 .nit-brand-3,
 .nit-brand-4,
@@ -536,8 +616,8 @@
 // A triplet cannot be derived from a hex custom property in CSS, so each group
 // emits its own at compile time from the same SCSS variable the role is built
 // from — otherwise every translucent tint in Bootstrap stays on Group 1.
-@each $sel, $g in (":root": "g1", ".nit-brand-2": "g2", ".nit-brand-3": "g3",
-                   ".nit-brand-4": "g4", ".nit-brand-5": "g5") {
+@each $sel, $g in (":root": "g1", ".nit-brand-1": "g1", ".nit-brand-2": "g2",
+                   ".nit-brand-3": "g3", ".nit-brand-4": "g4", ".nit-brand-5": "g5") {
     #{$sel} {
         $ink: map-get((
             "g1": $nit-b-g1-textprimary, "g2": $nit-b-g2-textprimary,
@@ -610,6 +690,7 @@
 // stylesheet, so under Group 1 every one of these resolves to the same colour
 // that is already on the page. Only the group being different makes them differ.
 :root,
+.nit-brand-1,
 .nit-brand-2,
 .nit-brand-3,
 .nit-brand-4,

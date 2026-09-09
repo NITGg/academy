@@ -50,9 +50,16 @@ $string['brandcoloursreset'] = 'أُعيدت ألوان الهوية إلى ال
 $string['savebrandcolours'] = 'حفظ ألوان الهوية';
 $string['resetbrandcolours'] = 'إعادة إلى الافتراضي';
 $string['brandgroupswitch'] = 'المجموعة قيد التحرير';
-$string['navbarshape_usage'] = 'كيف يُبرز العنوان هذه الحالة — يُرسم بلون النمط المطابق أعلاه';
+$string['navbarshape_usage'] = 'اختر ما تشاء أو لا شيء — تُرسم العلامات المختارة معًا';
 $string['navbarsize'] = 'الحجم بالبكسل';
 $string['navbarweight'] = 'ثِخَن الخط';
+$string['navbarglass'] = 'شفافية الخلفية';
+$string['navbarglass_usage'] = 'السماح بظهور الصفحة من خلف الشريط، وبأي درجة';
+$string['navbarglass_on'] = 'تفعيل الشفافية';
+$string['navbarglass_degree'] = 'نسبة الشفافية';
+$string['navbarscroll'] = 'النمط بعد التمرير';
+$string['navbarscroll_usage'] = 'يأخذ الشريط نمط هذه المجموعة بمجرّد أن تبدأ الصفحة في التمرير';
+$string['navbarscroll_same'] = 'نفس هذه المجموعة (بلا تغيير)';
 
 // Design-system gallery tabs.
 $string['tab_brandcolours'] = 'ألوان الهوية';
