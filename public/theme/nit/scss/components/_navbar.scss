@@ -353,10 +353,19 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     //
     // The `.login` span is coloured too, not only the anchor, because the guest
     // notice ("You are logged in as Guest") shares it.
+    //
+    // It carries the same SHAPE layer a title does, read from the same four
+    // properties (`--nit-navlogin-<phase>-bg` / `-underline`) that
+    // theme_nit_navbar_style_scss() fills per brand group — so the log-in link
+    // is tuned on the gallery with the same set of cards a title has, and this
+    // file still knows no treatment name. The underline sits on the anchor's own
+    // `::after` rather than an inner span: unlike a title, the log-in link is
+    // never a `.dropdown-toggle`, so nothing else is drawing there.
     [data-region="usermenu"] .login {
         color: var(--nit-navbarlogin, #{$nit-on-navy});
 
         a {
+            position: relative;
             color: var(--nit-navbarlogin, #{$nit-on-navy}) !important;
             font-size: var(--nit-navlogin-size, 1rem);
             font-weight: var(--nit-navlogin-weight, 600);
@@ -365,19 +374,46 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
             padding: 0.35rem 0.5rem;
             transition: color 0.15s ease, background-color 0.15s ease;
 
+            // Always present, transparent at rest, so the two states only change
+            // a colour — a rule that appears and vanishes cannot transition.
+            // Inset by the anchor's own inline padding so it hugs the word
+            // instead of underscoring the pad.
+            &::after {
+                content: "";
+                position: absolute;
+                inset-inline: 0.5rem;
+                bottom: 0.05rem;
+                height: 2px;
+                border-radius: 2px;
+                background-color: transparent;
+                transition: background-color 0.15s ease;
+            }
+
             &:hover,
             &:focus {
                 color: var(--nit-navbarloginhover, #{$nit-gold-400}) !important;
+                background-color: var(--nit-navlogin-hover-bg, transparent);
                 text-decoration: none;
+
+                &::after {
+                    background-color: var(--nit-navlogin-hover-underline, transparent);
+                }
             }
 
             // Being pressed, and — on the log-in page itself — the page the
             // visitor is already on. Core marks neither, so `aria-current` is
             // matched for the day it does and `:active` carries it meanwhile.
+            // After hover, so the current page keeps its own mark under the
+            // cursor — the order the titles use.
             &:active,
             &.active,
             &[aria-current] {
                 color: var(--nit-navbarloginactive, #{$nit-gold-500}) !important;
+                background-color: var(--nit-navlogin-active-bg, transparent);
+
+                &::after {
+                    background-color: var(--nit-navlogin-active-underline, transparent);
+                }
             }
 
             &:focus-visible {

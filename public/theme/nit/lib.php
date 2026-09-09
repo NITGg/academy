@@ -455,6 +455,12 @@ function theme_nit_brand_roles(): array {
         'navbarlogincolor'  => ['section' => 'navbar', 'sub' => 'login', 'label' => 'Navbar login color', 'short' => 'Login color', 'usage' => ['the "Log in" link on the bar (signed-out visitors)'], 'default' => '#eef3f9'],
         'navbarloginhovercolor' => ['section' => 'navbar', 'sub' => 'login', 'label' => 'Navbar login hover color', 'short' => 'Login hover color', 'usage' => ['the "Log in" link under the cursor'], 'default' => '#7fabdb'],
         'navbarloginactivecolor' => ['section' => 'navbar', 'sub' => 'login', 'label' => 'Navbar login active color', 'short' => 'Login active color', 'usage' => ['the "Log in" link being pressed, or on the log-in page itself'], 'default' => '#7fabdb'],
+        // The log-in link's two SHAPE colours, the same pair a title has. It is
+        // the one call to action a signed-out visitor gets, so it answers the
+        // cursor the way a title does — and an admin who wants a pill behind it
+        // needs a colour for that pill that is not the ink.
+        'navbarloginhoverstylecolor' => ['section' => 'navbar', 'sub' => 'login', 'label' => 'Navbar login hover style color', 'short' => 'Login hover style color', 'usage' => ['the hover shape — its underline, or its square background'], 'default' => '#16222f'],
+        'navbarloginactivestylecolor' => ['section' => 'navbar', 'sub' => 'login', 'label' => 'Navbar login active style color', 'short' => 'Login active style color', 'usage' => ['the active shape — its underline, or its square background'], 'default' => '#7fabdb'],
 
         // --- Footer ----------------------------------------------------------
         'footerbackground1' => ['section' => 'footer', 'label' => 'Footer background 1', 'usage' => ['footer background'], 'default' => '#0c141f'],
@@ -534,15 +540,17 @@ function theme_nit_navbar_shape_treatments(): array {
 }
 
 /**
- * The four states that carry a shape, and what each one is drawn with.
+ * The six states that carry a shape, and what each one is drawn with.
  *
  * `subject` and `phase` say which set of CSS custom properties the state feeds
  * (`--nit-nav<subject>-<phase>-*`) and, for the bold treatment, which resting
  * weight it steps up from. `underline` / `bg` are the colours the two painting
  * treatments use:
  *
- *   * A TITLE has two dedicated "style color" roles, so an admin picks the shape
- *     and the colour it is drawn in side by side.
+ *   * A TITLE and the LOG-IN link each have two dedicated "style color" roles,
+ *     so an admin picks the shape and the colour it is drawn in side by side.
+ *     They are TEXT: a pill behind a word has to be a colour of its own, because
+ *     the word's own ink painted behind the word leaves nothing to read.
  *   * An ICON has none, and does not need them: the state already has a colour,
  *     and a glyph's underline wants to be exactly that colour. Its square is the
  *     same colour at a 14% tint (`--nit-navbaricon*bg`, scss/foundation/
@@ -551,6 +559,8 @@ function theme_nit_navbar_shape_treatments(): array {
  *
  * The defaults are the look the bar already had: a title's hover paints a soft
  * pad and its current page is underlined; an icon paints its pad in both states.
+ * The log-in link starts on the title's pair, which is the closest thing to the
+ * plain link it was before it had shapes at all.
  *
  * @return array<string, array{subject:string, phase:string, sub:string,
  *         label:string, short:string, underline:string, bg:string, default:string[]}>
@@ -584,6 +594,20 @@ function theme_nit_navbar_shape_states(): array {
             'underline' => 'var(--nit-brand-navbariconactivecolor)',
             'bg' => 'var(--nit-navbariconactivebg)',
             'default' => ['square'],
+        ],
+        'loginhover'  => [
+            'subject' => 'login', 'phase' => 'hover', 'sub' => 'login',
+            'label' => 'Navbar login hover style shape', 'short' => 'Login hover style shape',
+            'underline' => 'var(--nit-brand-navbarloginhoverstylecolor)',
+            'bg' => 'var(--nit-brand-navbarloginhoverstylecolor)',
+            'default' => ['square'],
+        ],
+        'loginactive' => [
+            'subject' => 'login', 'phase' => 'active', 'sub' => 'login',
+            'label' => 'Navbar login active style shape', 'short' => 'Login active style shape',
+            'underline' => 'var(--nit-brand-navbarloginactivestylecolor)',
+            'bg' => 'var(--nit-brand-navbarloginactivestylecolor)',
+            'default' => ['underline'],
         ],
     ];
 }
@@ -835,6 +859,102 @@ function theme_nit_brand_groups(): array {
         'g5' => 'Group 5 (Graphite — dark)',
     ];
 }
+
+/**
+ * The WCAG relative luminance of a `#rrggbb` colour — 0 (black) .. 1 (white).
+ *
+ * The one place the theme turns a hex into "how bright is this", so every
+ * light/dark judgement the site makes (which logo a bar needs, which scheme a
+ * group is authored for) is the same measurement and they can never disagree.
+ *
+ * @param string $hex `#rrggbb` or `#rgb`, with or without the hash
+ * @return float|null the luminance, or null when the string is not a colour
+ */
+function theme_nit_hex_luminance(string $hex): ?float {
+    $hex = ltrim(trim($hex), '#');
+    if (strlen($hex) === 3) {
+        $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+    }
+    if (strlen($hex) !== 6 || !ctype_xdigit($hex)) {
+        return null;
+    }
+    // Linearise each channel, then weight it.
+    $lum = 0.0;
+    foreach ([[0, 0.2126], [2, 0.7152], [4, 0.0722]] as [$offset, $weight]) {
+        $c = hexdec(substr($hex, $offset, 2)) / 255;
+        $c = $c <= 0.04045 ? $c / 12.92 : pow(($c + 0.055) / 1.055, 2.4);
+        $lum += $c * $weight;
+    }
+    return $lum;
+}
+
+/**
+ * Which colour scheme a Brand-Colors group's own roles are authored for.
+ *
+ * "light" = dark ink on a bright ground, "dark" = the other way round. It
+ * describes how the GROUP is painted, not where it is used: a light group is
+ * still a light group when somebody points dark mode at it (which is exactly
+ * the mistake this answer exists to make visible).
+ *
+ * Measured, not declared — the group's page Background against its Text
+ * primary — for the same reason theme_nit_group_is_light() is measured: an
+ * admin who retunes a group on the Brand Colors tab changes what it IS, and
+ * nobody should have to remember to flip a second switch to say so. Comparing
+ * the two roles rather than testing the background against a fixed threshold
+ * keeps the answer right for the mid-toned grounds where a threshold is a coin
+ * toss: whichever of ground and ink is brighter decides it.
+ *
+ * Published per group on the design-system API (`brandcolors.groups[].scheme`)
+ * so the mobile app can pair modes to groups from the payload instead of
+ * hard-coding group keys, and used by the gallery's "Category styles" tab to
+ * offer a mode only the groups authored for it.
+ *
+ * @param string $group group key (g1..g5)
+ * @return string 'light' | 'dark'
+ */
+function theme_nit_brand_group_scheme(string $group): string {
+    static $cache = [];
+    if (array_key_exists($group, $cache)) {
+        return $cache[$group];
+    }
+
+    $bg = theme_nit_hex_luminance(theme_nit_brandcolour($group . '_background'));
+    $ink = theme_nit_hex_luminance(theme_nit_brandcolour($group . '_textprimary'));
+
+    if ($bg === null) {
+        // No readable ground: fall back to the chrome answer, which reads a
+        // different role and so may still know something.
+        $scheme = theme_nit_group_is_light($group) ? 'light' : 'dark';
+    } else if ($ink === null) {
+        $scheme = $bg > 0.5 ? 'light' : 'dark';
+    } else {
+        $scheme = $bg > $ink ? 'light' : 'dark';
+    }
+
+    $cache[$group] = $scheme;
+    return $scheme;
+}
+
+/**
+ * The Brand-Colors groups authored for one colour scheme.
+ *
+ * The list a "which group does light mode wear" picker may offer: pointing a
+ * mode at a group authored for the other scheme is the one setting that puts a
+ * dark screen in front of somebody who asked for the light one.
+ *
+ * @param string $scheme 'light' | 'dark'
+ * @return string[] group keys, in group order
+ */
+function theme_nit_groups_for_scheme(string $scheme): array {
+    $out = [];
+    foreach (array_keys(theme_nit_brand_groups()) as $gkey) {
+        if (theme_nit_brand_group_scheme($gkey) === $scheme) {
+            $out[] = $gkey;
+        }
+    }
+    return $out;
+}
+
 /**
  * The theme_nit config row holding the category → group map for one mode.
  *
@@ -1120,14 +1240,22 @@ function theme_nit_modes(): array {
  * Which Brand-Colors group each display mode renders in.
  *
  * The light/dark button does not carry a palette of its own: it selects one of
- * the three Brand-Colors groups, exactly like the category styles do. An admin
- * maps mode → group on the gallery "Change style" tab ("Site styles" section);
- * the map is stored as the theme_nit config `nit_mode_groups`
- * (JSON `{"light":"g1","dark":"g2"}`).
+ * the Brand-Colors groups, exactly like the category styles do. An admin maps
+ * mode → group on the gallery "Change style" tab ("Site styles" section); the
+ * map is stored as the theme_nit config `nit_mode_groups`
+ * (JSON `{"light":"g4","dark":"g5"}`).
  *
- * Defaults: light → Group 1 (the site's normal look), dark → Group 2.
+ * Defaults: the reserved pair — light → Group 4 (Daylight), dark → Group 5
+ * (Graphite). They are the two groups authored as a light/dark pair and the
+ * only default that satisfies the rule the pickers now enforce: a mode wears a
+ * group authored for it. (The seed was light → Group 1 / dark → Group 2, from
+ * before groups 4 and 5 existed — a light mode pointed at a black ground, which
+ * is the very mistake theme_nit_brand_group_scheme() exists to prevent.)
  *
- * @return array<string, string> mode key (light/dark) => group key (g1/g2/g3)
+ * This pair is also what the design-system API publishes as
+ * `brandcolors.schemes`, so a client can stop hard-coding "g4 is the light one".
+ *
+ * @return array<string, string> mode key (light/dark) => group key (g1..g5)
  */
 function theme_nit_mode_groups(): array {
     static $map = null;
@@ -1135,7 +1263,7 @@ function theme_nit_mode_groups(): array {
         return $map;
     }
 
-    $defaults = ['light' => 'g1', 'dark' => 'g2'];
+    $defaults = ['light' => 'g4', 'dark' => 'g5'];
     $raw = get_config('theme_nit', 'nit_mode_groups');
     $saved = ($raw && is_string($raw)) ? (json_decode($raw, true) ?: []) : [];
 
@@ -1328,6 +1456,8 @@ function theme_nit_brand_group_defaults(): array {
             'navbarlogincolor'  => '#eef3f9',
             'navbarloginhovercolor' => '#7fabdb',
             'navbarloginactivecolor' => '#7fabdb',
+            'navbarloginhoverstylecolor' => '#16222f',
+            'navbarloginactivestylecolor' => '#7fabdb',
             'footerbackground1' => '#0c141f',
             'footerbackground2' => '#121e2d',
             'footerheading'     => '#7fabdb',
@@ -1390,6 +1520,8 @@ function theme_nit_brand_group_defaults(): array {
             'navbarlogincolor'  => '#eef5f4',
             'navbarloginhovercolor' => '#58bdad',
             'navbarloginactivecolor' => '#6ccabb',
+            'navbarloginhoverstylecolor' => '#143231',
+            'navbarloginactivestylecolor' => '#58bdad',
             'footerbackground1' => '#0a1a1a',
             'footerbackground2' => '#102727',
             'footerheading'     => '#58bdad',
@@ -1452,6 +1584,8 @@ function theme_nit_brand_group_defaults(): array {
             'navbarlogincolor'  => '#efedf7',
             'navbarloginhovercolor' => '#a99ee2',
             'navbarloginactivecolor' => '#b4a9ee',
+            'navbarloginhoverstylecolor' => '#201e34',
+            'navbarloginactivestylecolor' => '#a99ee2',
             'footerbackground1' => '#11101c',
             'footerbackground2' => '#1a182d',
             'footerheading'     => '#a99ee2',
@@ -1567,6 +1701,8 @@ function theme_nit_brand_group_defaults(): array {
             'navbarlogincolor'  => '#14191f',   // N900
             'navbarloginhovercolor' => '#0e509d',   // A700
             'navbarloginactivecolor' => '#073b78',  // A800
+            'navbarloginhoverstylecolor' => '#f1f3f6',
+            'navbarloginactivestylecolor' => '#0e509d',
             'footerbackground1' => '#f1f3f6',   // N100
             'footerbackground2' => '#e6e8eb',   // N200
             'footerheading'     => '#0e509d',
@@ -1645,6 +1781,8 @@ function theme_nit_brand_group_defaults(): array {
             'navbarlogincolor'  => '#f6f8fb',
             'navbarloginhovercolor' => '#98c0f7',   // A300
             'navbarloginactivecolor' => '#c0dafc',  // A200
+            'navbarloginhoverstylecolor' => '#14191f',
+            'navbarloginactivestylecolor' => '#98c0f7',
             'footerbackground1' => '#0d1117',
             'footerbackground2' => '#14191f',
             'footerheading'     => '#98c0f7',
@@ -1768,7 +1906,17 @@ function theme_nit_brand_all(): array {
  * `--nit-brand-<role>` custom properties to that group's values. `roles` lists
  * the site-wide role keys shared by every group, in order.
  *
- * @return array{roles: string[], groups: array<int, array{key:string, name:string,
+ * Two keys exist for clients that theme themselves from this payload and must
+ * not hard-code group keys to do it:
+ *   * `scheme` on every group — 'light' or 'dark', how that group's own roles
+ *     are authored (theme_nit_brand_group_scheme()). It says what the group IS,
+ *     not where the site uses it.
+ *   * `schemes` beside `groups` — { "light": "g4", "dark": "g5" }, the pair the
+ *     site's own light/dark switch moves between (theme_nit_mode_groups()). A
+ *     client that follows it survives the groups being renumbered or renamed.
+ *
+ * @return array{roles: string[], schemes: array<string, string>,
+ *         groups: array<int, array{key:string, name:string, scheme:string,
  *         isdefault:bool, class:string, roles: array}>}
  */
 function theme_nit_brand_export(): array {
@@ -1781,6 +1929,10 @@ function theme_nit_brand_export(): array {
             $groups[] = [
                 'key'       => $gkey,
                 'name'      => $token['group'],
+                // How this group is authored — measured from its own roles, so
+                // it stays true when an admin retunes the group. The name is
+                // admin-editable prose and can say anything; this cannot.
+                'scheme'    => theme_nit_brand_group_scheme($gkey),
                 'isdefault' => ($gkey === 'g1'),
                 'class'     => theme_nit_brand_group_class($gkey),
                 'roles'     => [],
@@ -1808,7 +1960,10 @@ function theme_nit_brand_export(): array {
         $roles[] = $role;
     }
 
-    return ['roles' => $roles, 'groups' => $groups];
+    // The site's own light/dark pair: which group each scheme is worn as. Same
+    // map the navbar switch uses, so a client that reads it is looking at the
+    // site's answer rather than at a copy of it made on release day.
+    return ['roles' => $roles, 'schemes' => theme_nit_mode_groups(), 'groups' => $groups];
 }
 
 /**
@@ -1826,7 +1981,15 @@ function theme_nit_brand_export(): array {
  * before the site had two styles per category still answers there exactly as it
  * did.
  *
- * @return array{groups: array<int, array{key:string, name:string}>,
+ * Each mode also carries `scheme` — how the group it names is authored — so a
+ * client can see that a category's light mode really is pointed at a light
+ * palette without having to know which group key that is.
+ *
+ * `isdefault` means "this category has no style of its own for this mode, so it
+ * shows the site's group for that mode" — which is also what `group` answers in
+ * that case, because it is the group those pages actually render in.
+ *
+ * @return array{groups: array<int, array{key:string, name:string, scheme:string}>,
  *         categories: array<int, array{id:int, name:string, group:string,
  *         groupname:string, class:string, isdefault:bool, modes:array}>}
  */
@@ -1835,19 +1998,30 @@ function theme_nit_category_styles_export(): array {
 
     $groups = [];
     foreach ($grouplabels as $gkey => $glabel) {
-        $groups[] = ['key' => $gkey, 'name' => $glabel];
+        $groups[] = [
+            'key'    => $gkey,
+            'name'   => $glabel,
+            'scheme' => theme_nit_brand_group_scheme($gkey),
+        ];
     }
 
     $maps = [];
     foreach (array_keys(theme_nit_modes()) as $mode) {
         $maps[$mode] = theme_nit_category_group_map($mode);
     }
+    // What an UNASSIGNED category renders in: the site's group for that mode,
+    // which is what theme_nit_active_chrome_group() falls back to on the web.
+    // Answering 'g1' here (as this used to) told the app a category was black
+    // in light mode whenever the site's light group was anything but Group 1.
+    $sitegroups = theme_nit_mode_groups();
 
     $categories = [];
     foreach (core_course_category::top()->get_children() as $cat) {
         $modes = [];
         foreach ($maps as $mode => $map) {
-            $gkey = $map[$cat->id] ?? 'g1';
+            $assigned = $map[$cat->id] ?? null;
+            $isdefault = ($assigned === null || !array_key_exists($assigned, $grouplabels));
+            $gkey = $isdefault ? ($sitegroups[$mode] ?? 'g1') : $assigned;
             if (!array_key_exists($gkey, $grouplabels)) {
                 $gkey = 'g1';
             }
@@ -1856,7 +2030,8 @@ function theme_nit_category_styles_export(): array {
                 'group'     => $gkey,
                 'groupname' => $grouplabels[$gkey],
                 'class'     => theme_nit_brand_group_class($gkey),
-                'isdefault' => ($gkey === 'g1'),
+                'scheme'    => theme_nit_brand_group_scheme($gkey),
+                'isdefault' => $isdefault,
                 'logo'      => $logo ? $logo->out(false) : '',
             ];
         }
@@ -2802,22 +2977,11 @@ function theme_nit_logo_variants(): array {
  * @return bool true when the bar is light enough to need a dark mark
  */
 function theme_nit_group_is_light(string $group): bool {
-    $hex = theme_nit_brandcolour($group . '_navbarbackground1');
-    $hex = ltrim($hex, '#');
-    if (strlen($hex) === 3) {
-        $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
-    }
-    if (strlen($hex) !== 6) {
-        return false;
-    }
-    // WCAG relative luminance: linearise each channel, then weight it.
-    $lum = 0;
-    foreach ([[0, 0.2126], [2, 0.7152], [4, 0.0722]] as [$offset, $weight]) {
-        $c = hexdec(substr($hex, $offset, 2)) / 255;
-        $c = $c <= 0.04045 ? $c / 12.92 : pow(($c + 0.055) / 1.055, 2.4);
-        $lum += $c * $weight;
-    }
-    return $lum > 0.5;
+    // theme_nit_hex_luminance() is the shared measurement (see
+    // theme_nit_brand_group_scheme(), which asks the same question of the page
+    // ground rather than of the bar). An unreadable colour is not light.
+    $lum = theme_nit_hex_luminance(theme_nit_brandcolour($group . '_navbarbackground1'));
+    return $lum !== null && $lum > 0.5;
 }
 
 /**
@@ -3153,7 +3317,7 @@ function theme_nit_logo_scss(): string {
  *
  * Two things live here, and both are per group for the same reason: how big and
  * how heavy each of the three subjects is set (titles / icons / log-in), and
- * which SHAPES a title and an icon take on hover and when active.
+ * which SHAPES each of them takes on hover and when active.
  *
  * The shapes are here rather than in the stylesheet because CSS has no way to
  * switch which RULES apply from a custom property. So `_navbar.scss` writes the

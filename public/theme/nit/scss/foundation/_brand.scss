@@ -308,6 +308,8 @@ $nit-b-buttonroles: (
     --nit-brand-g1-navbarlogincolor: #{$nit-b-g1-navbarlogincolor};
     --nit-brand-g1-navbarloginhovercolor: #{$nit-b-g1-navbarloginhovercolor};
     --nit-brand-g1-navbarloginactivecolor: #{$nit-b-g1-navbarloginactivecolor};
+    --nit-brand-g1-navbarloginhoverstylecolor: #{$nit-b-g1-navbarloginhoverstylecolor};
+    --nit-brand-g1-navbarloginactivestylecolor: #{$nit-b-g1-navbarloginactivestylecolor};
 
     --nit-brand-g2-navbartitlecolor: #{$nit-b-g2-navbartitlecolor};
     --nit-brand-g2-navbartitlehovercolor: #{$nit-b-g2-navbartitlehovercolor};
@@ -319,6 +321,8 @@ $nit-b-buttonroles: (
     --nit-brand-g2-navbarlogincolor: #{$nit-b-g2-navbarlogincolor};
     --nit-brand-g2-navbarloginhovercolor: #{$nit-b-g2-navbarloginhovercolor};
     --nit-brand-g2-navbarloginactivecolor: #{$nit-b-g2-navbarloginactivecolor};
+    --nit-brand-g2-navbarloginhoverstylecolor: #{$nit-b-g2-navbarloginhoverstylecolor};
+    --nit-brand-g2-navbarloginactivestylecolor: #{$nit-b-g2-navbarloginactivestylecolor};
 
     --nit-brand-g3-navbartitlecolor: #{$nit-b-g3-navbartitlecolor};
     --nit-brand-g3-navbartitlehovercolor: #{$nit-b-g3-navbartitlehovercolor};
@@ -330,6 +334,8 @@ $nit-b-buttonroles: (
     --nit-brand-g3-navbarlogincolor: #{$nit-b-g3-navbarlogincolor};
     --nit-brand-g3-navbarloginhovercolor: #{$nit-b-g3-navbarloginhovercolor};
     --nit-brand-g3-navbarloginactivecolor: #{$nit-b-g3-navbarloginactivecolor};
+    --nit-brand-g3-navbarloginhoverstylecolor: #{$nit-b-g3-navbarloginhoverstylecolor};
+    --nit-brand-g3-navbarloginactivestylecolor: #{$nit-b-g3-navbarloginactivestylecolor};
 
     --nit-brand-g4-navbartitlecolor: #{$nit-b-g4-navbartitlecolor};
     --nit-brand-g4-navbartitlehovercolor: #{$nit-b-g4-navbartitlehovercolor};
@@ -341,6 +347,8 @@ $nit-b-buttonroles: (
     --nit-brand-g4-navbarlogincolor: #{$nit-b-g4-navbarlogincolor};
     --nit-brand-g4-navbarloginhovercolor: #{$nit-b-g4-navbarloginhovercolor};
     --nit-brand-g4-navbarloginactivecolor: #{$nit-b-g4-navbarloginactivecolor};
+    --nit-brand-g4-navbarloginhoverstylecolor: #{$nit-b-g4-navbarloginhoverstylecolor};
+    --nit-brand-g4-navbarloginactivestylecolor: #{$nit-b-g4-navbarloginactivestylecolor};
 
     --nit-brand-g5-navbartitlecolor: #{$nit-b-g5-navbartitlecolor};
     --nit-brand-g5-navbartitlehovercolor: #{$nit-b-g5-navbartitlehovercolor};
@@ -352,6 +360,8 @@ $nit-b-buttonroles: (
     --nit-brand-g5-navbarlogincolor: #{$nit-b-g5-navbarlogincolor};
     --nit-brand-g5-navbarloginhovercolor: #{$nit-b-g5-navbarloginhovercolor};
     --nit-brand-g5-navbarloginactivecolor: #{$nit-b-g5-navbarloginactivecolor};
+    --nit-brand-g5-navbarloginhoverstylecolor: #{$nit-b-g5-navbarloginhoverstylecolor};
+    --nit-brand-g5-navbarloginactivestylecolor: #{$nit-b-g5-navbarloginactivestylecolor};
 
     // Text-on-button roles (added later than the rest, so they are grouped
     // here rather than threaded back through each block above).
@@ -401,6 +411,8 @@ $nit-b-buttonroles: (
     --nit-brand-navbarlogincolor: var(--nit-brand-g1-navbarlogincolor);
     --nit-brand-navbarloginhovercolor: var(--nit-brand-g1-navbarloginhovercolor);
     --nit-brand-navbarloginactivecolor: var(--nit-brand-g1-navbarloginactivecolor);
+    --nit-brand-navbarloginhoverstylecolor: var(--nit-brand-g1-navbarloginhoverstylecolor);
+    --nit-brand-navbarloginactivestylecolor: var(--nit-brand-g1-navbarloginactivestylecolor);
     --nit-brand-footerbackground1: var(--nit-brand-g1-footerbackground1);
     --nit-brand-footerbackground2: var(--nit-brand-g1-footerbackground2);
     --nit-brand-footerheading: var(--nit-brand-g1-footerheading);
@@ -498,6 +510,8 @@ $nit-b-buttonroles: (
     --nit-brand-navbarlogincolor: var(--nit-brand-g1-navbarlogincolor);
     --nit-brand-navbarloginhovercolor: var(--nit-brand-g1-navbarloginhovercolor);
     --nit-brand-navbarloginactivecolor: var(--nit-brand-g1-navbarloginactivecolor);
+    --nit-brand-navbarloginhoverstylecolor: var(--nit-brand-g1-navbarloginhoverstylecolor);
+    --nit-brand-navbarloginactivestylecolor: var(--nit-brand-g1-navbarloginactivestylecolor);
     --nit-brand-footerbackground1: var(--nit-brand-g1-footerbackground1);
     --nit-brand-footerbackground2: var(--nit-brand-g1-footerbackground2);
     --nit-brand-footerheading: var(--nit-brand-g1-footerheading);
@@ -542,6 +556,8 @@ $nit-b-buttonroles: (
     --nit-brand-navbarlogincolor: var(--nit-brand-g2-navbarlogincolor);
     --nit-brand-navbarloginhovercolor: var(--nit-brand-g2-navbarloginhovercolor);
     --nit-brand-navbarloginactivecolor: var(--nit-brand-g2-navbarloginactivecolor);
+    --nit-brand-navbarloginhoverstylecolor: var(--nit-brand-g2-navbarloginhoverstylecolor);
+    --nit-brand-navbarloginactivestylecolor: var(--nit-brand-g2-navbarloginactivestylecolor);
     --nit-brand-footerbackground1: var(--nit-brand-g2-footerbackground1);
     --nit-brand-footerbackground2: var(--nit-brand-g2-footerbackground2);
     --nit-brand-footerheading: var(--nit-brand-g2-footerheading);
@@ -586,6 +602,8 @@ $nit-b-buttonroles: (
     --nit-brand-navbarlogincolor: var(--nit-brand-g3-navbarlogincolor);
     --nit-brand-navbarloginhovercolor: var(--nit-brand-g3-navbarloginhovercolor);
     --nit-brand-navbarloginactivecolor: var(--nit-brand-g3-navbarloginactivecolor);
+    --nit-brand-navbarloginhoverstylecolor: var(--nit-brand-g3-navbarloginhoverstylecolor);
+    --nit-brand-navbarloginactivestylecolor: var(--nit-brand-g3-navbarloginactivestylecolor);
     --nit-brand-footerbackground1: var(--nit-brand-g3-footerbackground1);
     --nit-brand-footerbackground2: var(--nit-brand-g3-footerbackground2);
     --nit-brand-footerheading: var(--nit-brand-g3-footerheading);
@@ -633,6 +651,8 @@ $nit-b-buttonroles: (
     --nit-brand-navbarlogincolor: var(--nit-brand-g4-navbarlogincolor);
     --nit-brand-navbarloginhovercolor: var(--nit-brand-g4-navbarloginhovercolor);
     --nit-brand-navbarloginactivecolor: var(--nit-brand-g4-navbarloginactivecolor);
+    --nit-brand-navbarloginhoverstylecolor: var(--nit-brand-g4-navbarloginhoverstylecolor);
+    --nit-brand-navbarloginactivestylecolor: var(--nit-brand-g4-navbarloginactivestylecolor);
     --nit-brand-footerbackground1: var(--nit-brand-g4-footerbackground1);
     --nit-brand-footerbackground2: var(--nit-brand-g4-footerbackground2);
     --nit-brand-footerheading: var(--nit-brand-g4-footerheading);
@@ -679,6 +699,8 @@ $nit-b-buttonroles: (
     --nit-brand-navbarlogincolor: var(--nit-brand-g5-navbarlogincolor);
     --nit-brand-navbarloginhovercolor: var(--nit-brand-g5-navbarloginhovercolor);
     --nit-brand-navbarloginactivecolor: var(--nit-brand-g5-navbarloginactivecolor);
+    --nit-brand-navbarloginhoverstylecolor: var(--nit-brand-g5-navbarloginhoverstylecolor);
+    --nit-brand-navbarloginactivestylecolor: var(--nit-brand-g5-navbarloginactivestylecolor);
     --nit-brand-footerbackground1: var(--nit-brand-g5-footerbackground1);
     --nit-brand-footerbackground2: var(--nit-brand-g5-footerbackground2);
     --nit-brand-footerheading: var(--nit-brand-g5-footerheading);

@@ -30,8 +30,17 @@
  *   "site": { "name": "NIT Academy", "url": "https://…" },
  *   "brandcolors": {                        // Tab 1 — Brand Colors
  *     "roles": ["primary", "secondary", …], // role keys shared by every group
+ *     // Which group the site wears for each colour scheme — the pair its own
+ *     // light/dark switch moves between. Follow this instead of hard-coding
+ *     // group keys: renumbering the groups then costs no client release.
+ *     "schemes": { "light": "g4", "dark": "g5" },
  *     "groups": [
- *       { "key": "g1", "name": "Group 1", "isdefault": true, "class": "",
+ *       // "scheme" is how the group's OWN roles are authored ("light" = dark
+ *       // ink on a bright ground), measured from its Background against its
+ *       // Text primary — not where the site happens to use it, and not the
+ *       // admin-editable "name". Present on every group.
+ *       { "key": "g1", "name": "Group 1", "scheme": "dark",
+ *         "isdefault": true, "class": "",
  *         "roles": [
  *           { "key": "g1_primary", "role": "primary", "label": "Primary",
  *             "cssvar": "--nit-brand-primary", "value": "#e5322d",
@@ -39,17 +48,21 @@
  *             "usage": ["background main button", …] }, … ] }, … ]
  *   },
  *   "categorystyles": {                     // Tab 2 — Category styles
- *     "groups": [ { "key": "g1", "name": "Group 1" }, … ],
+ *     "groups": [ { "key": "g1", "name": "Group 1", "scheme": "dark" }, … ],
  *     "categories": [
  *       // The flat group/class keys are the LIGHT values, kept for readers that
- *       // predate the second style; "modes" carries both.
- *       { "id": 3, "name": "Programming", "group": "g2", "groupname": "Group 2",
- *         "class": "nit-brand-2", "isdefault": false,
+ *       // predate the second style; "modes" carries both. "isdefault" means the
+ *       // category has no style of its own for that mode, so "group" is the
+ *       // site's group for it — the one those pages really render in.
+ *       { "id": 3, "name": "Programming", "group": "g4", "groupname": "Group 4 (Daylight — light)",
+ *         "class": "nit-brand-4", "isdefault": false,
  *         "modes": {
- *           "light": { "group": "g2", "groupname": "Group 2", "class": "nit-brand-2",
+ *           "light": { "group": "g4", "groupname": "Group 4 (Daylight — light)",
+ *                      "class": "nit-brand-4", "scheme": "light",
  *                      "isdefault": false, "logo": "https://…/category-logo-light.png" },
  *           "dark":  { "group": "g5", "groupname": "Group 5 (Graphite — dark)",
- *                      "class": "nit-brand-5", "isdefault": false, "logo": "" }
+ *                      "class": "nit-brand-5", "scheme": "dark",
+ *                      "isdefault": false, "logo": "" }
  *         } }, … ]
  *   },
  *   "fonts": [                              // Tab 3 — Fonts

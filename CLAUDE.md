@@ -114,6 +114,12 @@ tracked.
   item was kept or dropped: the plan's assignment or the courses it was derived from, and
   the coupon/offer scope rows. The fastest way to tell "the admin scoped it elsewhere"
   from "the rule is wrong".
+- `public/theme/nit/cli/scheme_diagnose.php [--fix]`
+  — which brand group is authored light and which dark (measured from each group's own
+  Background vs Text primary), and whether any display mode — the site's light/dark pair or
+  a category's — is pointed at a group authored for the other scheme. `--fix` repoints every
+  mismatch at the site's group for that mode. Same answer the app reads as
+  `brandcolors.groups[].scheme` / `brandcolors.schemes` on `/theme/nit/design_system.php`.
 - `/local/payments/country_diagnose.php[?courseid=ID]` (a **page**, not a CLI — a CLI has no
   request, so it cannot see the proxy headers that are usually the fault) — why a buyer was
   quoted *that* price. Prints, in order: whether an IP lookup can run at all, what address
