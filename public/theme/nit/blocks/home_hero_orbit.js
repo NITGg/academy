@@ -765,8 +765,9 @@
   // 'Continue learning' and links to the most recently accessed course."
   //
   // A guest keeps the button exactly as the block rendered it, so the page is
-  // correct before this runs and correct if it never does — the button is a
-  // working link to the catalogue either way.
+  // correct before this runs and correct if it never does — the block's own
+  // inline script has already pointed it at the login page for anonymous and
+  // guest-account visitors (body.nit-guest), and at the catalogue otherwise.
   // ------------------------------------------------------------------
   function continueCta() {
     var cta = document.querySelector('[data-nit-hero-cta]');

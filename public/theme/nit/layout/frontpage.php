@@ -53,6 +53,13 @@ $extraclasses = ['uses-drawers', 'nit-frontpage'];
 if ($courseindexopen) {
     $extraclasses[] = 'drawer-open-index';
 }
+// NIT: who is looking, for the front-page section blocks. Core only adds
+// 'notloggedin' when NOBODY is signed in, and the guest account IS signed in,
+// so a block that wants "anonymous or guest" (the hero's Start Now goes to the
+// login page for both) needs this class rather than the core one.
+if (!isloggedin() || isguestuser()) {
+    $extraclasses[] = 'nit-guest';
+}
 
 // NIT: the "Add a block" entry lives at the top of the page (not in the right
 // drawer), so the drawer is shown only when side-pre actually holds blocks.

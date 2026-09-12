@@ -260,6 +260,25 @@
     // loaded and not before - the markup ships them at opacity 0.
     (function() {
       var here = document.currentScript;
+      // Start Now: a visitor with no account of their own (anonymous, or the
+      // guest account) goes to the login page instead of the catalogue. The
+      // theme's frontpage layout marks both with body.nit-guest; 'notloggedin'
+      // is core's class and only covers the anonymous case, so it is the
+      // fallback for a page rendered by another layout. A signed-in user keeps
+      // the catalogue link, and home_hero_orbit.js may later turn it into
+      // "Continue learning".
+      var body = document.body;
+      if (body && (body.classList.contains('nit-guest') ||
+          body.classList.contains('notloggedin'))) {
+        var cta = document.querySelector('[data-nit-hero-cta]');
+        var root = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : '';
+        if (cta) {
+          cta.setAttribute('href', root + '/login/index.php');
+          // The scroll-to-categories click handler would otherwise swallow
+          // the navigation.
+          cta.removeAttribute('data-nit-scrollto');
+        }
+      }
       var logo = window.NIT_LOGO;
       if (typeof logo === 'string' && logo) {
         Array.prototype.forEach.call(document.querySelectorAll(
