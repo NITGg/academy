@@ -251,6 +251,12 @@ $string['welcomebacksub'] = 'Log in to continue learning';
 $string['loginemail'] = 'Email address';
 $string['loginemailplaceholder'] = 'name@example.com';
 $string['forgotyourpassword'] = 'Forgot your password?';
+// Forgotten-password screen: core locks one of its two boxes while the other has
+// a value (theme_nit/eitheror says so under the locked box).
+$string['eitherorlockedbyusername'] = 'Locked while a username is entered — search by one or the other.';
+$string['eitherorlockedbyemail'] = 'Locked while an email address is entered — search by one or the other.';
+$string['eitherorclearusername'] = 'Clear the username';
+$string['eitherorclearemail'] = 'Clear the email address';
 $string['noaccount'] = 'Don\'t have an account?';
 $string['signupnow'] = 'Sign up';
 

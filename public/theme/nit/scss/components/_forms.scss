@@ -155,20 +155,17 @@ textarea.form-control[readonly][disabled] {
         margin-inline-start: -1px !important;
 
         // The number box carries dir="ltr" (a phone number always reads
-        // left-to-right), so its *own* logical edges never flip with the page —
-        // name the physical corners here and swap them for RTL below.
+        // left-to-right), so its *own* logical edges would never flip with the
+        // page - hence physical corners. Physical is also what Moodle's RTLCSS
+        // pass flips at compile time: on an RTL page these two become
+        // `border-*-right-radius: 0`, which is the edge that meets the select
+        // there. Do NOT add a `[dir="rtl"]` override for this - RTLCSS flips
+        // that too, and the double flip re-rounds the joining edge.
         .form-control {
             border-top-left-radius: 0;
             border-bottom-left-radius: 0;
         }
     }
-}
-
-[dir="rtl"] .mform .d-flex .profilefield-phone-number .form-control {
-    border-top-left-radius: $border-radius;
-    border-bottom-left-radius: $border-radius;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
 }
 
 // =============================================================================
@@ -182,6 +179,82 @@ textarea.form-control[readonly][disabled] {
 // =============================================================================
 .nit-gate-blocked {
     cursor: not-allowed;
+}
+
+// =============================================================================
+// Either/or fields (forgotten password: username OR email address).
+//
+// theme_nit/eitheror puts `.nit-eitheror-locked` on the form row whose box core
+// has disabled, and a `.nit-eitheror-hint` under it saying which field is
+// holding the lock. Bootstrap's disabled look is a background one shade
+// darker - on the dark brand that is invisible, which is how "one or the
+// other" came to read as "the site will not let me type". So the locked box
+// is dimmed outright, the cursor says "not here", and the hint says why.
+// =============================================================================
+.nit-eitheror-locked {
+    .felement {
+        cursor: not-allowed;
+    }
+
+    .form-control:disabled {
+        opacity: 0.45;
+        // Lets the click through to the row, which the module answers by
+        // pointing at the hint - a disabled input swallows it otherwise.
+        pointer-events: none;
+    }
+}
+
+.nit-eitheror-hint {
+    // Every field in the group is a flex item of the same row, so the hint
+    // needs its own line under the box.
+    flex-basis: 100%;
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--nit-brand-textsecondary);
+
+    .nit-eitheror-clear {
+        font-size: inherit;
+        font-weight: 600;
+        line-height: inherit;
+        text-decoration: underline;
+        vertical-align: baseline;
+        color: var(--nit-brand-primary);
+
+        &:hover,
+        &:focus-visible {
+            color: var(--nit-brand-primary);
+            text-decoration: none;
+        }
+    }
+
+    &.nit-eitheror-nudge {
+        animation: nit-eitheror-nudge 0.5s ease-out;
+    }
+}
+
+@keyframes nit-eitheror-nudge {
+    0% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(4px);
+    }
+    50% {
+        transform: translateX(-4px);
+    }
+    75% {
+        transform: translateX(2px);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nit-eitheror-hint.nit-eitheror-nudge {
+        animation: none;
+    }
 }
 
 // =============================================================================

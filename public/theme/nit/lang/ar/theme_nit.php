@@ -246,6 +246,10 @@ $string['welcomebacksub'] = 'سجّل الدخول لمواصلة التعلّم
 $string['loginemail'] = 'البريد الإلكتروني';
 $string['loginemailplaceholder'] = 'name@example.com';
 $string['forgotyourpassword'] = 'هل نسيت كلمة المرور؟';
+$string['eitherorlockedbyusername'] = 'مقفل ما دام اسم المستخدم مُدخلًا — ابحث بأحدهما فقط.';
+$string['eitherorlockedbyemail'] = 'مقفل ما دام عنوان البريد الإلكتروني مُدخلًا — ابحث بأحدهما فقط.';
+$string['eitherorclearusername'] = 'امسح اسم المستخدم';
+$string['eitherorclearemail'] = 'امسح عنوان البريد الإلكتروني';
 $string['noaccount'] = 'ليس لديك حساب؟';
 $string['signupnow'] = 'إنشاء حساب';
 

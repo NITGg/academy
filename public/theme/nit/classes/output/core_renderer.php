@@ -317,6 +317,18 @@ JS;
         $context['nitidentityproviders'] = $providers;
         $context['nithasproviders'] = !empty($providers);
 
+        // The utility line the log-in card ends with - the language switcher and
+        // guest access - built exactly the way core_auth\output\login builds it
+        // for the log-in page. Core's sign-up renderable knows nothing of either,
+        // so a visitor who landed on sign-up in the wrong language had to go back
+        // to log-in to change it. The guest form POSTs to login/index.php with
+        // the session's login token, the same as it does from the log-in card.
+        $languagemenu = new \core\output\language_menu($this->page);
+        $context['languagemenu'] = $languagemenu->export_for_action_menu($this);
+        $context['canloginasguest'] = !empty($CFG->guestloginbutton) && !isguestuser();
+        $context['loginurl'] = (new \moodle_url('/login/index.php'))->out(false);
+        $context['logintoken'] = \core\session\manager::get_login_token();
+
         return $this->render_from_template('core/signup_form_layout', $context);
     }
 

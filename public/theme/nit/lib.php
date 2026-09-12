@@ -3638,25 +3638,33 @@ function theme_nit_auth_text(string $lang): array {
  * meant re-exporting an image to correct a typo, and a logo that went stale the
  * moment the site's did.
  *
- * The logo is the navbar's, read through the same two renderer methods the navbar
- * template uses, so there is one logo on the site and not two. `get_logo_url()`
- * is the fallback: `should_display_navbar_logo()` is false on a site that has set
- * only the full logo and no compact one, and a blank corner is a worse answer
- * than the logo that is actually configured.
+ * The logo is the navbar's, resolved through theme_nit_logo_url() — the same
+ * function behind the navbar's renderer accessors — so there is one logo on the
+ * site and not two. The full logo is the fallback: a site that has set only the
+ * full logo and no compact one would otherwise get a blank corner, which is a
+ * worse answer than the logo that is actually configured.
+ *
+ * Always the LIGHT-mode mark, whichever mode the visitor is in. The panel is a
+ * photograph under a fixed scrim, not the page's chrome: its brightness does not
+ * change with the light/dark switch, so the logo drawn on it should not either.
+ * The renderer accessors answer for the current mode, which is why they are not
+ * used here.
  *
  * The quote is resolved to the interface language, falling back to English and
  * then to whichever language has been filled in — an administrator who wrote only
  * one of the two gets that one everywhere rather than an empty card.
  *
- * @param renderer_base $output the renderer, for the logo URLs
+ * @param renderer_base $output the renderer (kept for the signature; unused)
  * @return array template context for theme_nit/core/login_panel
  */
 function theme_nit_auth_panel_content($output): array {
     global $SITE;
 
-    $logourl = $output->get_compact_logo_url(null, 120);
+    // Same sizes core's get_compact_logo_url(null, 120) / get_logo_url(null, 120)
+    // would request, so the cached file is the one the navbar already serves.
+    $logourl = theme_nit_logo_url('logocompact', 0, 120, 'light');
     if (empty($logourl)) {
-        $logourl = $output->get_logo_url(null, 120);
+        $logourl = theme_nit_logo_url('logo', 0, 120, 'light');
     }
 
     $langs = theme_nit_auth_text_langs();

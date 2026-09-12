@@ -20,6 +20,23 @@
 // primitives are kept as fallbacks.
 // =============================================================================
 
+// The panel picture must be the same width on log-in and sign-up.
+//
+// Both screens use Boost's two `col-lg-6` columns, so they ARE the same width -
+// until one of them scrolls. Sign-up is taller than a laptop viewport and gets a
+// scrollbar; log-in is not and does not. The bar takes ~15px out of the row, so
+// the picture is half a scrollbar narrower on sign-up (and in RTL, where the bar
+// sits on the left, it shifts as well). Crossing between the two screens made the
+// whole layout jump.
+//
+// Reserving the gutter on the ROOT scroller (the viewport's scrollbar belongs to
+// `html`, not `body`) keeps the row the same width whether or not there is
+// anything to scroll. Scoped to the account screens by `:has()`, because the
+// body class is what marks them and the rule has to live one element up.
+html:has(body.pagelayout-login) {
+    scrollbar-gutter: stable;
+}
+
 .pagelayout-login {
     // The page canvas follows the neutral background token.
     #page {
@@ -116,7 +133,11 @@
         // one knob stays one custom property. Deliberately not folded into the
         // `rgba()` alphas: Moodle compiles this with scssphp, which evaluates
         // `rgba()` at build time and cannot take a `var()` for a channel.
-        opacity: var(--nit-authpanel-scrim, 0.45);
+        //
+        // 0.65, up from 0.45: at the lighter setting a bright upload (the
+        // library photo) left the panel reading as a light half of the screen
+        // and the quote card sitting on near-white.
+        opacity: var(--nit-authpanel-scrim, 0.65);
         background: linear-gradient(
             to bottom,
             rgba(0, 0, 0, 1) 0%,

@@ -128,6 +128,7 @@ class hook_callbacks {
 
         self::load_form_gate();
         self::load_inline_validation();
+        self::load_either_or();
 
         // AC-4.4.1 asks for the same reveal toggle and the same per-rule messages
         // on the "set a new password" screen as on sign-up. The module finds the
@@ -161,6 +162,50 @@ class hook_callbacks {
 
         $PAGE->requires->js_call_amd('theme_nit/passwordstrength', 'init', [
             ['policy' => $policy, 'strings' => $strings],
+        ]);
+    }
+
+    /**
+     * Say why the forgotten-password form has locked one of its two boxes.
+     *
+     * Core disables "Email address" while "Username" holds a value, and the
+     * other way round (`disabledIf` in login/forgot_password_form.php), and it
+     * does so on blur - so the click that leaves one box is the click that lands
+     * on a box that has just stopped taking input, with nothing on the page to
+     * say why. theme_nit/eitheror prints the reason under the locked box and a
+     * button that clears the other one. The rule itself is untouched.
+     *
+     * @return void
+     */
+    protected static function load_either_or(): void {
+        global $PAGE;
+
+        if ($PAGE->pagetype !== 'login-forgot_password') {
+            return;
+        }
+
+        $PAGE->requires->js_call_amd('theme_nit/eitheror', 'init', [
+            [
+                'form' => '#region-main form',
+                'pairs' => [
+                    [
+                        'name' => 'email',
+                        'lockedBy' => 'username',
+                        'strings' => [
+                            'locked' => get_string('eitherorlockedbyusername', 'theme_nit'),
+                            'clear' => get_string('eitherorclearusername', 'theme_nit'),
+                        ],
+                    ],
+                    [
+                        'name' => 'username',
+                        'lockedBy' => 'email',
+                        'strings' => [
+                            'locked' => get_string('eitherorlockedbyemail', 'theme_nit'),
+                            'clear' => get_string('eitherorclearemail', 'theme_nit'),
+                        ],
+                    ],
+                ],
+            ],
         ]);
     }
 

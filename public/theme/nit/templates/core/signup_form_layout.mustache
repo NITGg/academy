@@ -20,6 +20,10 @@
     * formhtml - the rendered sign-up form
     * nithasproviders - whether any identity provider is configured
     * nitidentityproviders - [{url, iconurl, name}]
+    * languagemenu - the language switcher, as core/action_menu context, or empty
+    * canloginasguest - whether the site offers guest access
+    * loginurl - where the guest form POSTs (login/index.php)
+    * logintoken - the session's login token, for that POST
 
     Example context (json):
     {
@@ -29,7 +33,11 @@
         "nithasproviders": true,
         "nitidentityproviders": [
             {"url": "https://localhost/auth/oauth2/login.php", "iconurl": "", "name": "Google"}
-        ]
+        ],
+        "languagemenu": false,
+        "canloginasguest": true,
+        "loginurl": "https://localhost/login/index.php",
+        "logintoken": "abc123"
     }
 }}
 {{!
@@ -66,4 +74,29 @@
         <span>{{#str}} alreadyhaveaccount, theme_nit {{/str}}</span>
         <a href="{{config.wwwroot}}/login/index.php">{{#str}} logintoaccount, theme_nit {{/str}}</a>
     </p>
+
+    {{!
+        The same utility line the log-in card ends with: the language switcher
+        and guest access. Sign-up and log-in are one journey, and a visitor who
+        arrived here in the wrong language should not have to cross back to
+        log-in to change it. Markup and classes are identical to
+        theme_nit/core/loginform so the two screens keep one look and one
+        stylesheet rule (`.nit-auth-utility` in _authpages.scss).
+    }}
+    <div class="nit-auth-utility">
+        {{#languagemenu}}
+            <div class="login-languagemenu">
+                {{>core/action_menu}}
+            </div>
+        {{/languagemenu}}
+        {{#canloginasguest}}
+            <form action="{{loginurl}}" method="post" id="guestlogin" class="nit-auth-guest">
+                <input type="hidden" name="logintoken" value="{{logintoken}}">
+                <input type="hidden" name="username" value="guest" />
+                <input type="hidden" name="password" value="guest" />
+                <button class="btn nit-auth-utility-btn" type="submit" id="loginguestbtn">{{!
+                    !}}{{#str}}loginguest{{/str}}</button>
+            </form>
+        {{/canloginasguest}}
+    </div>
 </div>
