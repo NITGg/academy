@@ -57,7 +57,7 @@ $STR = local_nit_commerce_string_map(array(
     'cpn_scope_categories_help', 'cpn_scope_all',
     'cpn_scope_specific', 'cpn_created', 'cpn_updated', 'cpn_activated', 'cpn_deactivated',
     'cpn_deleted', 'cpn_confirm_delete', 'cpn_edit_titled', 'cpn_scope_required', 'cpn_unlimited',
-    'cpn_used_count',
+    'cpn_used_count', 'cpn_limit_min_hint', 'err_usagelimitbelowused', 'err_usagetypebelowused',
     'err_sessionexpired', 'err_requestfailed',
 ));
 echo html_writer::script('window.ACADEMY_CFG = ' . json_encode(array(
@@ -166,6 +166,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 <div class="form-group col-md-6" id="c-limit-wrap">
                     <label for="c-limit"><?php echo $STR['cpn_field_limit']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
                     <input type="number" class="form-control" id="c-limit" min="0" step="1">
+                    <small class="form-text text-muted" id="c-limit-hint" style="display:none"></small>
                 </div>
             </div>
             <div class="form-row">
@@ -474,6 +475,14 @@ echo html_writer::script(<<<'JS'
         $('c-max').value   = (c && c.max_discount != null) ? c.max_discount : '';
         $('c-utype').value = c ? c.usage_type : 'multiple';
         $('c-limit').value = (c && c.usage_limit) ? c.usage_limit : '';
+        // What was already spent bounds what can be set: a coupon used N times cannot be capped
+        // below N, nor made one-time once it has been redeemed twice. The server refuses either;
+        // this just tells the admin before they try.
+        var used = c ? (parseInt(c.usage_count, 10) || 0) : 0;
+        $('c-limit').min = used > 0 ? used : 0;
+        $('c-limit-hint').textContent = used > 0 ? strf('cpn_limit_min_hint', used) : '';
+        $('c-limit-hint').style.display = used > 0 ? '' : 'none';
+        $('c-utype').querySelector('option[value="once"]').disabled = used > 1;
         $('c-start').value = toInput(c ? c.startdate : 0);
         $('c-end').value   = toInput(c ? c.enddate : 0);
         $('c-active').checked = c ? (c.status === 'active') : true;
@@ -486,6 +495,10 @@ echo html_writer::script(<<<'JS'
         var items = collectItems();
         if (!items.length){ msg(str('cpn_scope_required'), 'danger'); return; }
         var id = $('c-id').value;
+        var used = parseInt($('c-limit').min, 10) || 0;
+        var limit = parseInt($('c-limit').value, 10) || 0;
+        if (id && $('c-utype').value === 'once' && used > 1){ msg(strf('err_usagetypebelowused', used), 'danger'); return; }
+        if (id && limit > 0 && limit < used){ msg(strf('err_usagelimitbelowused', used), 'danger'); return; }
         var params = {
             code: $('c-code').value,
             name: buildMultilang($('c-name-en').value, $('c-name-ar').value),

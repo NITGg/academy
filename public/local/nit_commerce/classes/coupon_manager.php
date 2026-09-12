@@ -123,6 +123,20 @@ class coupon_manager {
         if (array_key_exists('usage_limit', $data)) {
             $update->usage_limit = max(0, (int)$data['usage_limit']);
         }
+        // A cap must not fall below what has already been spent: a coupon used 5 times cannot be
+        // capped at 3, nor turned one-time after its second redemption. Equal is fine (it is
+        // simply exhausted from now on), and 0 stays "unlimited".
+        if (isset($update->usage_type) || isset($update->usage_limit)) {
+            $type  = $update->usage_type ?? $coupon->usage_type;
+            $limit = (int)($update->usage_limit ?? $coupon->usage_limit);
+            $used  = self::usage_count($coupon->id);
+            if ($type === self::USAGE_ONCE && $used > 1) {
+                throw new \moodle_exception('err_usagetypebelowused', 'local_nit_commerce', '', $used);
+            }
+            if ($limit > 0 && $limit < $used) {
+                throw new \moodle_exception('err_usagelimitbelowused', 'local_nit_commerce', '', $used);
+            }
+        }
         if (array_key_exists('startdate', $data) || array_key_exists('enddate', $data)) {
             $start = array_key_exists('startdate', $data) ? $data['startdate'] : $coupon->startdate;
             $end   = array_key_exists('enddate', $data) ? $data['enddate'] : $coupon->enddate;
@@ -335,6 +349,18 @@ class coupon_manager {
     public static function has_usages($id) {
         global $DB;
         return $DB->record_exists('nit_coupon_usage', array('couponid' => $id));
+    }
+
+    /**
+     * How many times a coupon has been redeemed. Pending reservations count too: they hold a
+     * slot against the cap exactly as a confirmed redemption does.
+     *
+     * @param int $id
+     * @return int
+     */
+    public static function usage_count($id) {
+        global $DB;
+        return $DB->count_records('nit_coupon_usage', array('couponid' => $id));
     }
 
     // ── Reporting (AC-4.12.8) ──
