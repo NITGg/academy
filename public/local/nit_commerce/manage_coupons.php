@@ -141,14 +141,15 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <div class="form-row">
                 <div class="form-group col-md-6">
                     <label for="c-dtype"><?php echo $STR['cpn_field_dtype']; ?></label>
+                    <?php // Percentage only: a fixed amount is stated in one currency and hidden from
+                          // every visitor priced in another, so the option was dropped. ?>
                     <select class="form-control" id="c-dtype">
                         <option value="percent"><?php echo $STR['cpn_type_percent']; ?></option>
-                        <option value="fixed"><?php echo $STR['cpn_type_fixed']; ?></option>
                     </select>
                 </div>
                 <div class="form-group col-md-6">
                     <label for="c-value"><?php echo $STR['cpn_field_value']; ?></label>
-                    <input type="number" class="form-control" id="c-value" min="0" step="0.01">
+                    <input type="number" class="form-control" id="c-value" min="0" max="100" step="0.01">
                 </div>
             </div>
             <div class="form-group">
@@ -470,7 +471,9 @@ echo html_writer::script(<<<'JS'
         $('c-name-ar').value = nm.ar;
         $('c-desc-en').value = ds.en;
         $('c-desc-ar').value = ds.ar;
-        $('c-dtype').value = c ? c.discount_type : 'percent';
+        // A legacy fixed row opens as percent so its next save converts it; the admin re-enters
+        // the value as a percentage.
+        $('c-dtype').value = 'percent';
         $('c-value').value = c ? c.discount_value : '';
         $('c-max').value   = (c && c.max_discount != null) ? c.max_discount : '';
         $('c-utype').value = c ? c.usage_type : 'multiple';
