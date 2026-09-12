@@ -208,8 +208,7 @@ class revenue {
 
         $currency = $f['currency'];
         if ($currency === '' || !in_array($currency, $currencies, true)) {
-            $currency = self::dominant_currency($records)
-                ?: ((string) get_config('local_payments', 'default_currency') ?: 'EGP');
+            $currency = self::dominant_currency($records) ?: self::catalogue_currency();
         }
 
         // Summing money across currencies would be a lie, so the report is always about one.
@@ -765,6 +764,36 @@ class revenue {
         }
         arsort($count);
         return (string) array_key_first($count);
+    }
+
+    /**
+     * The currency to label an empty report with: whatever the site actually prices in.
+     *
+     * $CFG local_payments/default_currency is the obvious source and the wrong one — it ships as
+     * USD and nobody changes it, so a site that sells every course in EGP would announce "0.00
+     * USD" the moment its ledger is empty, which is precisely the state a fresh site and a
+     * just-reset one are both in. The price rows are the honest answer, and they survive a
+     * financial reset because they are setup, not money.
+     *
+     * @return string
+     */
+    private static function catalogue_currency(): string {
+        global $DB;
+
+        foreach (['local_payments_course_prices', 'nit_sub_price'] as $table) {
+            if (!$DB->get_manager()->table_exists(new \xmldb_table($table))) {
+                continue;
+            }
+            $rows = $DB->get_records_sql(
+                "SELECT currency, COUNT(1) AS n FROM {" . $table . "}
+                  WHERE currency IS NOT NULL AND currency <> ''
+               GROUP BY currency ORDER BY n DESC", [], 0, 1);
+            if ($rows) {
+                return (string) reset($rows)->currency;
+            }
+        }
+
+        return (string) (get_config('local_payments', 'default_currency') ?: 'EGP');
     }
 
     /**

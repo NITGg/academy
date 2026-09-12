@@ -192,6 +192,32 @@ $pill = function (moodle_url $url, string $label, bool $active, string $icon = '
 $description  = format_text($category->description, $category->descriptionformat, ['context' => $context]);
 $categoryname = $category->get_formatted_name();
 
+// Does this page have anything to advertise below the courses? The hero's "Flexible plans" and
+// "Coupon plans" buttons scroll to the plans / coupons sections, so each button exists only when
+// its section will. The answer is worked out HERE, with the same rule the two blocks' feeds
+// apply (subscription_manager::matches_category(), coupon_manager::get_available_coupons()),
+// rather than by watching the blocks fill in: a button that appeared a second after the hero
+// painted, or scrolled to a section that then said "nothing here", would be worse than none.
+// The plan test deliberately stops short of pricing — the block lists a plan whether or not
+// this visitor can be quoted for it, so "has plans" must not depend on the price either.
+$hasplans = false;
+if (class_exists('\local_nit_subscriptions\subscription_manager')) {
+    $activeplans = \local_nit_subscriptions\subscription_manager::get_subscriptions(
+        \local_nit_subscriptions\subscription_manager::STATUS_ACTIVE);
+    foreach ($activeplans as $plan) {
+        if (\local_nit_subscriptions\subscription_manager::matches_category((int) $plan->id, $categoryid)) {
+            $hasplans = true;
+            break;
+        }
+    }
+}
+$hascoupons = class_exists('\local_nit_commerce\coupon_manager')
+    && !empty(\local_nit_commerce\coupon_manager::get_available_coupons(null, $categoryid));
+
+// Where "Explore specializations" lands: the subcategory filter bar when the category has
+// children, otherwise straight at the course list (a leaf category has no bar to show).
+$exploretarget = !empty($subcategories) ? 'nit-cat-filters' : 'nit-cat-courses';
+
 // NIT: checkout modal + course offer/price support (guarded — degrade if the plugins are absent).
 $nitcheckout = local_nit_category_require_checkout();
 // Per-course state for a card: enrolment, purchase, subscription coverage, pricing, offer.
@@ -451,17 +477,62 @@ echo $OUTPUT->header();
         </div>
       </div>
 
-      <!-- Buttons: the site's own .btn components -->
+      <!-- Buttons: the site's own .btn components. Each one scrolls to a section of this
+           page; the plans / coupons buttons print only when their section does ($hasplans /
+           $hascoupons above), so a button never points at nothing. -->
       <div class="nit-hero__btns">
-        <a href="#nit-cat-filters" class="btn btn-primary"
-           onclick="event.preventDefault(); document.getElementById('nit-cat-filters').scrollIntoView({behavior:'smooth'});">
+        <a href="#<?= $exploretarget ?>" class="btn btn-primary" data-nit-scrollto="<?= $exploretarget ?>">
           <?= $t('Explore specializations', 'استكشف التخصصات') ?>
         </a>
-        <a href="#nit-cat-filters" class="btn btn-outline-primary"
-           onclick="event.preventDefault(); document.getElementById('nit-cat-filters').scrollIntoView({behavior:'smooth'});">
+        <?php if ($hasplans): ?>
+        <a href="#nit-cat-plans" class="btn btn-outline-primary" data-nit-scrollto="nit-cat-plans">
           <?= $t('Flexible plans', 'خطط مرنة') ?>
         </a>
+        <?php endif; ?>
+        <?php if ($hascoupons): ?>
+        <a href="#nit-cat-coupons" class="btn btn-outline-primary" data-nit-scrollto="nit-cat-coupons">
+          <?= $t('Coupon plans', 'كوبونات الخصم') ?>
+        </a>
+        <?php endif; ?>
       </div>
+      <script>
+        (function() {
+          /* The site's top bar is fixed (.navbar.fixed-top, 100px or taller when the logo
+             needs it), so a plain scrollIntoView() lands the section's heading underneath
+             it. Scroll to the section's top minus the bar's LIVE height instead — measured
+             at click time, so a taller bar or a resized window is still right. */
+          function navbarHeight() {
+            var bar = document.querySelector('.navbar.fixed-top');
+            return bar ? Math.ceil(bar.getBoundingClientRect().height) : 0;
+          }
+          function scrollTo(el) {
+            var top = el.getBoundingClientRect().top + window.pageYOffset - navbarHeight() - 16;
+            window.scrollTo({top: Math.max(0, top), behavior: 'smooth'});
+          }
+          /* The coupons block ships hidden and reveals itself once its feed answers, so a
+             click that beats the feed would measure a section with no height. Wait for it
+             to have one (a few seconds at most) rather than scrolling to the wrong place. */
+          function whenVisible(el, tries) {
+            if (el.offsetParent !== null || el.getClientRects().length) {
+              scrollTo(el);
+            } else if (tries > 0) {
+              setTimeout(function() { whenVisible(el, tries - 1); }, 150);
+            }
+          }
+          document.addEventListener('click', function(ev) {
+            var btn = ev.target.closest('[data-nit-scrollto]');
+            if (!btn) {
+              return;
+            }
+            var el = document.getElementById(btn.getAttribute('data-nit-scrollto'));
+            if (!el) {
+              return;
+            }
+            ev.preventDefault();
+            whenVisible(el, 30);
+          });
+        })();
+      </script>
 
     </div>
   </div>
@@ -652,8 +723,8 @@ echo $OUTPUT->header();
   ], $context);
   ?>
 
-  <!-- Courses Section -->
-  <div style="padding: 32px 16px 16px;">
+  <!-- Courses Section (the "Explore specializations" landing spot on a leaf category) -->
+  <div id="nit-cat-courses" style="padding: 32px 16px 16px;">
     <div style="max-width: 1200px; margin: 0 auto;">
 
       <?php
@@ -943,15 +1014,22 @@ echo $OUTPUT->header();
   // category" means is decided server-side and in one place for each:
   // subscription_manager::matches_category() and discount_manager::matches_category().
   //
-  // Each block takes itself off the page when its list comes back empty, so a category with no
-  // plans of its own simply ends after the courses.
-  echo local_nit_category_render_home_block('home_subscriptions_block.html', [
-      'data-nit-subs=""' => 'data-nit-subs="" data-category="' . (int) $categoryid . '"',
-  ], $context);
+  // Each block prints only when $hasplans / $hascoupons (decided above, by the same rule its
+  // feed applies) says it will have cards, so a category with no plans of its own simply ends
+  // after the courses — and the hero's "Flexible plans" / "Coupon plans" buttons, which exist
+  // under the same condition, always have a section to scroll to. The id each block is given
+  // here is that scroll target.
+  if ($hasplans) {
+      echo local_nit_category_render_home_block('home_subscriptions_block.html', [
+          'data-nit-subs=""' => 'id="nit-cat-plans" data-nit-subs="" data-category="' . (int) $categoryid . '"',
+      ], $context);
+  }
 
-  echo local_nit_category_render_home_block('home_coupons_block.html', [
-      'data-nit-coupons=""' => 'data-nit-coupons="" data-category="' . (int) $categoryid . '"',
-  ], $context);
+  if ($hascoupons) {
+      echo local_nit_category_render_home_block('home_coupons_block.html', [
+          'data-nit-coupons=""' => 'id="nit-cat-coupons" data-nit-coupons="" data-category="' . (int) $categoryid . '"',
+      ], $context);
+  }
   ?>
 </div>
 
