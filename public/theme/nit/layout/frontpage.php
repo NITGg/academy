@@ -76,6 +76,69 @@ $hasbelowcontent = $editing || (strpos($belowcontent, 'data-block=') !== false);
 $hasfullwidthbottom = $editing || (strpos($fullwidthbottom, 'data-block=') !== false);
 // NIT: end full-width regions.
 
+// NIT: does core's own content column have anything to show? The Site home is
+// built from the block regions above; the column in the middle (`.main-inner`:
+// page heading, site section 1, the frontpage course lists) is hidden piece by
+// piece in post.scss — but display:none on its children leaves the column's
+// own margins and padding standing, and that was a ~200px blank band between
+// the hero region and the footer. The column cannot be inspected here (core
+// writes it into the page after this layout has been emitted), so this works
+// out from the same inputs core uses whether anything visible will land in it,
+// and post.scss collapses the column only on that word.
+//
+// Kept open (space and all) whenever: editing (the column carries the drop
+// zones); a block sits in above-content / below-content (both live inside the
+// column); side-pre holds blocks (its toggle does too); a custom front page
+// include is configured; or the frontpage layout setting names a part that
+// prints — the news forum when the site has news items, the enrolled-course
+// list when this visitor is enrolled somewhere, and the all-courses /
+// category / combo / search parts always. Site section 1 is not a reason: the
+// theme never shows it here (`.course-content` is display:none on this page).
+$nitmainempty = !$editing && !$hasabovecontent && !$hasbelowcontent && !$hasblocks
+    && empty($CFG->customfrontpageinclude);
+if ($nitmainempty) {
+    $nitfrontpagelayout = (isloggedin() && !isguestuser() && isset($CFG->frontpageloggedin))
+        ? $CFG->frontpageloggedin : ($CFG->frontpage ?? '');
+    foreach (explode(',', (string) $nitfrontpagelayout) as $nitpart) {
+        if ($nitpart === '') {
+            continue;
+        }
+        if ((int) $nitpart === FRONTPAGENEWS) {
+            $nitmainempty = empty($SITE->newsitems);
+        } else if ((int) $nitpart === FRONTPAGEENROLLEDCOURSELIST) {
+            $nitmainempty = !isloggedin() || isguestuser() || !enrol_get_my_courses('id', null, 1);
+        } else {
+            $nitmainempty = false;
+        }
+        if (!$nitmainempty) {
+            break;
+        }
+    }
+}
+if ($nitmainempty) {
+    $extraclasses[] = 'nit-frontpage-nomain';
+}
+// NIT: end empty-column check.
+
+// NIT: navigation bar / site footer on the Site home ("Home page chrome" on the
+// gallery's Change style tab — see theme_nit_home_chrome()). Either may be
+// switched off for this page only; both are forced back on while editing, as
+// the edit-mode switch and the user menu are on the bar. The navbar is simply
+// not rendered (nothing left behind to take up room). Boost's `#page-footer`
+// popover has to stay — core writes the page's closing scripts into it — so
+// the footer switch drops the site-footer band (core_renderer::nit_site_footer)
+// and a body class lets post.scss zero the popover's own box.
+$nithomechrome = theme_nit_home_chrome();
+$nitshownavbar = $editing || $nithomechrome['navbar'];
+$nitshowfooter = $editing || $nithomechrome['footer'];
+if (!$nitshownavbar) {
+    $extraclasses[] = 'nit-home-nonavbar';
+}
+if (!$nitshowfooter) {
+    $extraclasses[] = 'nit-home-nofooter';
+}
+// NIT: end home chrome.
+
 $courseindex = core_course_drawer();
 if (!$courseindex) {
     $courseindexopen = false;
@@ -253,6 +316,8 @@ $templatecontext = [
     'hasbelowcontent' => $hasbelowcontent,
     'fullwidthbottom' => $fullwidthbottom,
     'hasfullwidthbottom' => $hasfullwidthbottom,
+    // NIT: whether the navigation bar is drawn on this page at all (see above).
+    'nitshownavbar' => $nitshownavbar,
     // NIT: end.
 ];
 

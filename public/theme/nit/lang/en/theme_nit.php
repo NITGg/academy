@@ -98,6 +98,15 @@ $string['sitestyles_col_mode'] = 'Display mode';
 $string['sitestyles_col_group'] = 'Brand group';
 $string['savesitestyles'] = 'Save site styles';
 $string['sitestylessaved'] = 'Site styles saved.';
+// Home page chrome: the navigation bar and the site footer on the Site home.
+$string['homechrome'] = 'Home page chrome';
+$string['homechrome_desc'] = 'Choose whether the navigation bar and the site footer are shown on the home page. This affects the home page only — every other page keeps both. A part that is switched off is left out of the page entirely, so it takes up no room. Both are always shown while edit mode is on, because the edit-mode switch and the user menu are on the navigation bar.';
+$string['homechrome_navbar'] = 'Show the navigation bar on the home page';
+$string['homechrome_navbar_desc'] = 'Off: the home page starts at the top of the screen with the first block; the navigation bar (logo, menu, search, language, log in) is not drawn there.';
+$string['homechrome_footer'] = 'Show the footer on the home page';
+$string['homechrome_footer_desc'] = 'Off: the home page ends with its last block; the site footer band (contact details, link columns, copyright) is not drawn there.';
+$string['savehomechrome'] = 'Save home page chrome';
+$string['homechromesaved'] = 'Home page chrome saved.';
 $string['modelight'] = 'Light mode';
 $string['modedark'] = 'Dark mode';
 $string['modeswitchtolight'] = 'Switch to light mode';

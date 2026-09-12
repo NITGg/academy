@@ -1315,6 +1315,33 @@ function theme_nit_mode_groups(): array {
 }
 
 /**
+ * The parts of the page chrome an admin may switch off on the Site home.
+ *
+ * "Home page chrome" on the gallery's Change style tab: the home page is the
+ * marketing landing screen, and its hero / closing blocks often carry a menu
+ * and contact strip of their own, so an admin may want the theme's navigation
+ * bar and site footer off THAT page while every other page keeps them. Stored
+ * as two theme_nit configs, `homechrome_navbar` / `homechrome_footer`
+ * ('1' shown, '0' hidden); a row that was never saved means shown, so a site
+ * that has not visited the tab looks the way it always has.
+ *
+ * Only the Site home layout (layout/frontpage.php) and the site-footer band
+ * (core_renderer::nit_site_footer) consult this, and both ignore the answer
+ * while the page is in edit mode — the edit-mode switch and the user menu live
+ * on the navigation bar, and an admin who hid it must still be able to leave
+ * editing.
+ *
+ * @return array{navbar: bool, footer: bool} true = shown
+ */
+function theme_nit_home_chrome(): array {
+    $chrome = [];
+    foreach (['navbar', 'footer'] as $part) {
+        $chrome[$part] = get_config('theme_nit', 'homechrome_' . $part) !== '0';
+    }
+    return $chrome;
+}
+
+/**
  * The display mode this request should render in.
  *
  * Read from the visitor's cookie; anything we do not recognise (and the very

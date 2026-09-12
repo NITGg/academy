@@ -100,6 +100,15 @@ $string['sitestyles_col_mode'] = 'وضع العرض';
 $string['sitestyles_col_group'] = 'مجموعة الهوية';
 $string['savesitestyles'] = 'حفظ أنماط الموقع';
 $string['sitestylessaved'] = 'تم حفظ أنماط الموقع.';
+// Home page chrome: the navigation bar and the site footer on the Site home.
+$string['homechrome'] = 'إطار الصفحة الرئيسية';
+$string['homechrome_desc'] = 'اختر ما إذا كان شريط التنقّل وتذييل الموقع يظهران في الصفحة الرئيسية. يؤثّر هذا على الصفحة الرئيسية فقط — وتحتفظ كل الصفحات الأخرى بهما. الجزء الذي يُوقَف يُحذف من الصفحة كليًا فلا يشغل أي مساحة. ويظهر الاثنان دائمًا أثناء تشغيل وضع التحرير، لأن مفتاح وضع التحرير وقائمة المستخدم موجودان في شريط التنقّل.';
+$string['homechrome_navbar'] = 'إظهار شريط التنقّل في الصفحة الرئيسية';
+$string['homechrome_navbar_desc'] = 'عند الإيقاف: تبدأ الصفحة الرئيسية من أعلى الشاشة بأول كتلة؛ ولا يُرسم فيها شريط التنقّل (الشعار والقائمة والبحث واللغة وتسجيل الدخول).';
+$string['homechrome_footer'] = 'إظهار التذييل في الصفحة الرئيسية';
+$string['homechrome_footer_desc'] = 'عند الإيقاف: تنتهي الصفحة الرئيسية بآخر كتلة؛ ولا يُرسم فيها شريط تذييل الموقع (بيانات التواصل وأعمدة الروابط وحقوق النشر).';
+$string['savehomechrome'] = 'حفظ إطار الصفحة الرئيسية';
+$string['homechromesaved'] = 'تم حفظ إطار الصفحة الرئيسية.';
 $string['modelight'] = 'الوضع الفاتح';
 $string['modedark'] = 'الوضع الداكن';
 $string['modeswitchtolight'] = 'التبديل إلى الوضع الفاتح';

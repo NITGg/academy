@@ -165,6 +165,46 @@ a:not(.btn):not(.nav-link):not(.navbar-brand):not(.dropdown-item):not(.page-link
         margin-top: map-get($spacers, 3);
     }
 
+    // Core's content column has nothing to show (layout/frontpage.php works
+    // that out and sets the class — never while editing). Everything inside it
+    // is already display:none above; what remained was the column's own box:
+    // Boost's `.main-inner` margins and padding, the page header's row, the
+    // `<br>` core prints after each (empty) frontpage part, and the rhythm the
+    // two full-bleed regions keep around the column. Together ~200px of blank
+    // band between the hero and the footer, so all of it goes.
+    //
+    // The column is collapsed, not removed: `#user-notifications` lives in it,
+    // and a page that redirects home with a notice still has to show it — a
+    // notice adds its own height back when there is one.
+    &.nit-frontpage-nomain {
+        #page.drawers .main-inner {
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        #page-header,
+        #region-main [role="main"] > br {
+            display: none;
+        }
+
+        #page-content {
+            padding-bottom: 0 !important; // Boost's `.pb-3` utility is !important.
+        }
+
+        // The skip-link target Boost draws 1px tall; still a valid anchor at 0.
+        #maincontent {
+            height: 0;
+        }
+
+        .nit-region-fullwidth-top {
+            margin-bottom: 0;
+        }
+
+        .nit-region-fullwidth-bottom {
+            margin-top: 0;
+        }
+    }
+
     // Editing affordance: outline empty regions so authors can see the drop
     // zones even before any block is added.
     &.editing .nit-region .block-region:empty::after {
@@ -255,6 +295,43 @@ a:not(.btn):not(.nav-link):not(.navbar-brand):not(.dropdown-item):not(.page-link
         .block_nit_section[class*="nit-w-"] {
             flex: 0 0 100% !important;
             max-width: 100% !important;
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Home page chrome — the navigation bar and the footer switched off on the Site
+// home only ("Home page chrome" on the gallery's Change style tab; decided in
+// layout/frontpage.php, which sets these body classes and never while editing).
+//
+// The bar is not rendered at all, so the only trace to remove is the room Boost
+// keeps for it: `#page.drawers` starts `$navbar-height` down so content clears
+// the fixed bar, and with no bar that is a blank band at the top of the page.
+//
+// The footer band is not rendered either (core_renderer::nit_site_footer), but
+// Boost's `#page-footer` popover has to stay in the DOM — core writes the page's
+// closing scripts into it — so its box is zeroed the same way the account
+// screens do it in components/_footer.scss: no background, no border, no
+// padding, and the floating "?" button and the inline link list (which Boost
+// prints below the `sm` breakpoint) hidden. The debugging sub-panel is left
+// alone: it draws nothing without a message and is the only place an error on
+// this page would be seen with debugging on.
+// -----------------------------------------------------------------------------
+body.nit-home-nonavbar {
+    #page.drawers {
+        margin-top: 0;
+    }
+}
+
+body.nit-home-nofooter {
+    #page-footer.footer-popover {
+        background-color: transparent !important; // Undoing Boost's !important `.bg-white`.
+        border: 0;
+        padding: 0;
+
+        [data-region="footer-container-popover"],
+        .footer-content-popover {
+            display: none;
         }
     }
 }

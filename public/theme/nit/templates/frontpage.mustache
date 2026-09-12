@@ -38,6 +38,7 @@
     * abovecontent / hasabovecontent - NIT region above the main content column.
     * belowcontent / hasbelowcontent - NIT region below the main content column.
     * fullwidthbottom / hasfullwidthbottom - NIT full-width closing region.
+    * nitshownavbar - NIT: false when the Home page chrome setting hides the navbar here.
 
     Example context (json):
     {
@@ -341,7 +342,11 @@ window.NIT_LOGO_FULL = {{{ nitlogofulljson }}};
 
     {{{ output.standard_top_of_body_html }}}
 
+    {{! NIT: the bar is left out altogether when "Home page chrome" hides it on
+        this page (layout/frontpage.php decides; editing always shows it). }}
+    {{#nitshownavbar}}
     {{> theme_boost/navbar }}
+    {{/nitshownavbar}}
     {{#courseindex}}
         {{< theme_boost/drawer }}
             {{$id}}theme_boost-drawers-courseindex{{/id}}

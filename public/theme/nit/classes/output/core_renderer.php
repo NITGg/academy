@@ -215,6 +215,16 @@ JS;
             return '';
         }
 
+        // The Site home may have the band switched off by "Home page chrome" on
+        // the gallery's Change style tab (theme_nit_home_chrome()). This page
+        // only — and never while editing, in step with the navbar rule in
+        // layout/frontpage.php, which also puts the `nit-home-nofooter` body
+        // class on for the popover's box.
+        if ($this->page->pagelayout === 'frontpage' && !$this->page->user_is_editing()
+                && !theme_nit_home_chrome()['footer']) {
+            return '';
+        }
+
         $context = theme_nit_get_site_footer_context($this);
         if ($context === null) {
             return '';

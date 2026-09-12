@@ -411,6 +411,24 @@ if (($data = data_submitted()) && confirm_sesskey()) {
     }
 
     // -------------------------------------------------------------------------
+    // Home page chrome (same "Change style" tab): whether the navigation bar and
+    // the site footer are drawn on the Site home. One checkbox each, ticked =
+    // shown; an unticked box is simply absent from the POST, so both are written
+    // on every save. Stored as `homechrome_navbar` / `homechrome_footer` ('1' /
+    // '0') and read by theme_nit_home_chrome(). The bar is left out of the page
+    // and the footer band is not rendered — no SCSS changes, so no cache purge.
+    // -------------------------------------------------------------------------
+    if (!empty($data->savehomechrome)) {
+        $ticked = optional_param_array('homechrome', [], PARAM_INT);
+        foreach (array_keys(theme_nit_home_chrome()) as $part) {
+            set_config('homechrome_' . $part, empty($ticked[$part]) ? '0' : '1', 'theme_nit');
+        }
+        redirect(new moodle_url('/theme/nit/gallery.php', null, 'nit-tab-catstyles'),
+            get_string('homechromesaved', 'theme_nit'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
+    }
+
+    // -------------------------------------------------------------------------
     // Per-language font upload / removal. Each slot (theme_nit_font_slots())
     // stores its file exactly like a Boost stored-file setting — system context,
     // itemid 0, config `theme_nit/<setting>` = the filename — so the standard

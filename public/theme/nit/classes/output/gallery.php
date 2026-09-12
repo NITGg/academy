@@ -374,6 +374,19 @@ class gallery implements renderable, templatable {
             ];
         }
 
+        // Home page chrome, on the same tab: one checkbox per part of the page
+        // frame the Site home may go without (theme_nit_home_chrome()). Ticked
+        // means shown, which is also what an unsaved site gets.
+        $homechrome = [];
+        foreach (\theme_nit_home_chrome() as $part => $shown) {
+            $homechrome[] = [
+                'key' => $part,
+                'label' => \get_string('homechrome_' . $part, 'theme_nit'),
+                'description' => \get_string('homechrome_' . $part . '_desc', 'theme_nit'),
+                'checked' => $shown,
+            ];
+        }
+
         // Per-language font slots: current filename (if any) + a live preview
         // that renders in the uploaded family the compiled CSS already exposes.
         $fonts = [];
@@ -437,6 +450,7 @@ class gallery implements renderable, templatable {
             'catlogofields' => implode(',', $catlogofields),
             'hascategorygroups' => !empty($categorygroups),
             'modegroups' => $modegroups,
+            'homechrome' => $homechrome,
             'fonts' => $fonts,
             'authimages' => $authimages,
             'authtexts' => $authtexts,
