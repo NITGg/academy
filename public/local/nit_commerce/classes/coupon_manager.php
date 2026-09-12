@@ -261,10 +261,11 @@ class coupon_manager {
         $sitecurrency = self::default_currency();
 
         // One query for this user's history, rather than one per coupon.
+        // Redemptions only — a checkout this user opened and abandoned is a reservation,
+        // not a use, and must not hide the coupon from them.
         $usedbyuser = array();
         if ($userid > 0) {
-            $usedbyuser = array_flip($DB->get_fieldset_select('nit_coupon_usage', 'DISTINCT couponid',
-                'userid = :userid', array('userid' => $userid)));
+            $usedbyuser = array_flip(discount_manager::coupons_redeemed_by($userid, $now));
         }
 
         $rows = array_values($DB->get_records('nit_coupon', array('status' => self::STATUS_ACTIVE), 'timecreated DESC'));
@@ -282,7 +283,7 @@ class coupon_manager {
 
             // Redemptions left: a one-time coupon is spent after the first, a capped one
             // after its cap, and either is spent for this user once they have used it.
-            $used = $DB->count_records('nit_coupon_usage', array('couponid' => $r->id));
+            $used = discount_manager::live_usage_count($r->id, $userid, $now);
             if ($r->usage_type === self::USAGE_ONCE && $used >= 1) { continue; }
             if ((int)$r->usage_limit > 0 && $used >= (int)$r->usage_limit) { continue; }
             if (isset($usedbyuser[$r->id])) { continue; }

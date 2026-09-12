@@ -538,6 +538,8 @@ class gateway extends base_provider {
             ? array_merge(checkout_response::empty_payment_data(),
                 ['type' => 'redirect', 'redirect_url' => $hostedurl])
             : $this->normalise_payment_data($paymentdata);
+        $normalised['redirect_url'] = $this->localise_hosted_url(
+            (string) $normalised['redirect_url'], $request->display_lang);
         $normalised['method_name'] = $this->method_name($methodid);
 
         if ($normalised['type'] === 'none') {
@@ -583,6 +585,7 @@ class gateway extends base_provider {
             'payLoad' => $cart['payload'],
             'sendEmail' => (bool) $this->get_setting('send_email', 0),
             'sendSMS' => (bool) $this->get_setting('send_sms', 0),
+            'lang' => $request->display_lang === 'ar' ? 'ar' : 'en',
         ];
 
         $direct = ($methodid > 0);
@@ -616,6 +619,7 @@ class gateway extends base_provider {
             if ($url === '') {
                 return checkout_response::failure('Missing url in Fawaterk response', $result['body']);
             }
+            $url = $this->localise_hosted_url($url, $request->display_lang);
             return checkout_response::success($url, $invoiceid, $result['body'], array_merge(
                 checkout_response::empty_payment_data(),
                 ['type' => 'redirect', 'redirect_url' => $url, 'method_name' => '']
@@ -624,6 +628,8 @@ class gateway extends base_provider {
 
         $normalised = $this->normalise_payment_data(
             is_array($data['payment_data'] ?? null) ? $data['payment_data'] : []);
+        $normalised['redirect_url'] = $this->localise_hosted_url(
+            (string) $normalised['redirect_url'], $request->display_lang);
         $normalised['method_name'] = $this->method_name($methodid);
 
         if ($normalised['type'] === 'none') {
@@ -634,6 +640,38 @@ class gateway extends base_provider {
         }
 
         return checkout_response::success($normalised['redirect_url'], $invoiceid, $result['body'], $normalised);
+    }
+
+    /**
+     * Pin the language of a Fawaterk-hosted page to the one the buyer is using.
+     *
+     * The hosted transaction page reads its language from the `lg` query
+     * parameter of the URL Fawaterk hands back, not from the `lang` field we
+     * send when creating the transaction — so an Arabic site could land its
+     * buyer on an English page and vice versa. Only Fawaterk's own pages take
+     * the parameter; a bank 3-D Secure redirect is left untouched.
+     */
+    private function localise_hosted_url(string $url, string $displaylang): string {
+        if ($url === '') {
+            return $url;
+        }
+        $host = (string) parse_url($url, PHP_URL_HOST);
+        if ($host === '' || stripos($host, 'fawaterk') === false) {
+            return $url;
+        }
+        $lg = ($displaylang === 'ar') ? 'ar' : 'en';
+        $parts = parse_url($url);
+        $query = [];
+        if (!empty($parts['query'])) {
+            parse_str($parts['query'], $query);
+        }
+        $query['lg'] = $lg;
+        $rebuilt = ($parts['scheme'] ?? 'https') . '://' . $host
+            . (isset($parts['port']) ? ':' . $parts['port'] : '')
+            . ($parts['path'] ?? '')
+            . '?' . http_build_query($query, '', '&')
+            . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
+        return $rebuilt;
     }
 
     /**

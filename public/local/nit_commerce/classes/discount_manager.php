@@ -545,6 +545,147 @@ class discount_manager {
         );
     }
 
+    /** @var string[] Transaction states under which a usage row no longer holds a slot. */
+    const DEAD_STATUSES = array('failed', 'cancelled', 'expired', 'timed_out');
+
+    /**
+     * SQL fragment (plus params) that keeps only the {nit_coupon_usage} rows still holding a
+     * slot against a coupon's cap, given the row is joined to its transaction as `t`.
+     *
+     * A usage row is written twice over: as a *reservation* when a checkout is created, and
+     * confirmed as-is when the payment lands. So the table alone cannot say whether a coupon
+     * was spent — only the owning transaction can. A row whose transaction failed, was
+     * cancelled, expired, or is pending past its own expiry is dead weight the cleanup task
+     * has not swept yet, and must not read as a redemption. A row with no transaction at all
+     * (a manual or legacy entry) is taken at face value.
+     *
+     * @param int $now
+     * @param string $prefix param-name prefix, so two fragments can share one query
+     * @return array [sql, params]
+     */
+    private static function live_usage_sql($now, $prefix = 'lu') {
+        $dead = array();
+        $params = array($prefix . 'now' => (int) $now);
+        foreach (self::DEAD_STATUSES as $i => $status) {
+            $dead[] = ':' . $prefix . 'dead' . $i;
+            $params[$prefix . 'dead' . $i] = $status;
+        }
+        // expires_at is nullable; COALESCE keeps a NULL from turning the whole predicate
+        // NULL (which would drop a live pending row from the count rather than keep it).
+        $sql = "(t.id IS NULL OR (t.status NOT IN (" . implode(',', $dead) . ")
+                    AND NOT (t.status = 'pending' AND COALESCE(t.expires_at, 0) > 0
+                             AND t.expires_at < :{$prefix}now)))";
+        return array($sql, $params);
+    }
+
+    /**
+     * Whether the transactions table is there to join against. nit_commerce can be installed
+     * ahead of local_payments; without it every usage row is taken at face value.
+     *
+     * @return bool
+     */
+    private static function has_transactions_table() {
+        global $DB;
+        static $exists = null;
+        if ($exists === null) {
+            $exists = $DB->get_manager()->table_exists('local_payments_transactions');
+        }
+        return $exists;
+    }
+
+    /**
+     * How many slots of a coupon's cap are taken: confirmed redemptions plus reservations
+     * held by checkouts that are still live.
+     *
+     * A buyer who opened the gateway page with this coupon and came back without paying has a
+     * reservation of their own still standing. When THAT buyer checks out again the reservation
+     * is either reused (same order) or retired and re-made, so counting it against them would
+     * refuse a coupon nobody has spent — pass their id in $ignorependingof and their own pending
+     * reservations are left out of the count. Other buyers' pending reservations still count:
+     * they hold the slot until they pay or their order dies.
+     *
+     * @param int $couponid
+     * @param int $ignorependingof user id whose own pending reservations are not counted, 0 for none
+     * @param int|null $now
+     * @return int
+     */
+    public static function live_usage_count($couponid, $ignorependingof = 0, $now = null) {
+        global $DB;
+        $couponid = (int) $couponid;
+        if (!self::has_transactions_table()) {
+            return $DB->count_records('nit_coupon_usage', array('couponid' => $couponid));
+        }
+        list($livesql, $params) = self::live_usage_sql($now ?? time());
+        $params['couponid'] = $couponid;
+        $own = '';
+        if ((int) $ignorependingof > 0) {
+            $own = " AND NOT (t.status = 'pending' AND cu.userid = :ownuserid)";
+            $params['ownuserid'] = (int) $ignorependingof;
+        }
+        return (int) $DB->count_records_sql(
+            "SELECT COUNT(1)
+               FROM {nit_coupon_usage} cu
+          LEFT JOIN {local_payments_transactions} t ON t.id = cu.transactionid
+              WHERE cu.couponid = :couponid AND {$livesql}{$own}", $params);
+    }
+
+    /**
+     * Whether a user has actually redeemed a coupon: a usage row whose transaction is neither
+     * dead nor still pending. Their own open checkout is a reservation, not a redemption.
+     *
+     * @param int $couponid
+     * @param int $userid
+     * @param int|null $now
+     * @return bool
+     */
+    public static function user_has_redeemed($couponid, $userid, $now = null) {
+        global $DB;
+        $couponid = (int) $couponid;
+        $userid = (int) $userid;
+        if ($userid <= 0) {
+            return false;
+        }
+        if (!self::has_transactions_table()) {
+            return $DB->record_exists('nit_coupon_usage', array('couponid' => $couponid, 'userid' => $userid));
+        }
+        list($livesql, $params) = self::live_usage_sql($now ?? time());
+        $params['couponid'] = $couponid;
+        $params['userid'] = $userid;
+        return $DB->record_exists_sql(
+            "SELECT 1
+               FROM {nit_coupon_usage} cu
+          LEFT JOIN {local_payments_transactions} t ON t.id = cu.transactionid
+              WHERE cu.couponid = :couponid AND cu.userid = :userid
+                    AND {$livesql} AND (t.id IS NULL OR t.status <> 'pending')", $params);
+    }
+
+    /**
+     * Every coupon a user has actually redeemed (see {@see self::user_has_redeemed()}), in one
+     * query, for list screens.
+     *
+     * @param int $userid
+     * @param int|null $now
+     * @return int[] coupon ids
+     */
+    public static function coupons_redeemed_by($userid, $now = null) {
+        global $DB;
+        $userid = (int) $userid;
+        if ($userid <= 0) {
+            return array();
+        }
+        if (!self::has_transactions_table()) {
+            return $DB->get_fieldset_select('nit_coupon_usage', 'DISTINCT couponid',
+                'userid = :userid', array('userid' => $userid));
+        }
+        list($livesql, $params) = self::live_usage_sql($now ?? time());
+        $params['userid'] = $userid;
+        return $DB->get_fieldset_sql(
+            "SELECT DISTINCT cu.couponid
+               FROM {nit_coupon_usage} cu
+          LEFT JOIN {local_payments_transactions} t ON t.id = cu.transactionid
+              WHERE cu.userid = :userid AND {$livesql} AND (t.id IS NULL OR t.status <> 'pending')", $params);
+    }
+
     /**
      * Validate a coupon code for an item + user, or throw a moodle_exception describing why.
      *
@@ -580,7 +721,9 @@ class discount_manager {
         if (!self::scope_matches($items, $itemtype, $itemid)) {
             throw new \moodle_exception('err_couponnotapplicable', 'local_nit_commerce');
         }
-        $used = $DB->count_records('nit_coupon_usage', array('couponid' => $coupon->id));
+        // The user's own still-pending reservation (a gateway page they opened and left) is
+        // not a redemption: their next checkout reuses or retires it, so it is not counted.
+        $used = self::live_usage_count($coupon->id, (int) $userid, $now);
         if ($coupon->usage_type === 'once') {
             if ($used >= 1) {
                 throw new \moodle_exception('err_couponusedup', 'local_nit_commerce');
@@ -590,8 +733,7 @@ class discount_manager {
         }
         // One redemption per user, on top of any global cap: a coupon this user
         // has already redeemed cannot be applied by them again.
-        if (!empty($userid)
-                && $DB->record_exists('nit_coupon_usage', array('couponid' => $coupon->id, 'userid' => (int) $userid))) {
+        if (!empty($userid) && self::user_has_redeemed($coupon->id, (int) $userid, $now)) {
             throw new \moodle_exception('err_couponalreadyusedbyuser', 'local_nit_commerce');
         }
         return $coupon;
@@ -761,15 +903,17 @@ class discount_manager {
         try {
             $coupon = $DB->get_record('nit_coupon', array('id' => $couponid));
             if ($coupon) {
-                $used = $DB->count_records('nit_coupon_usage', array('couponid' => $couponid));
+                // Same rule as validate_coupon(): this buyer's own pending reservation — an
+                // earlier checkout they walked away from — is superseded by this one, so it
+                // neither takes a slot nor counts as their redemption.
+                $used = self::live_usage_count($couponid, (int) $userid);
                 if ($coupon->usage_type === 'once' && $used >= 1) {
                     throw new \moodle_exception('err_couponusedup', 'local_nit_commerce');
                 }
                 if ((int) $coupon->usage_limit > 0 && $used >= (int) $coupon->usage_limit) {
                     throw new \moodle_exception('err_couponusedup', 'local_nit_commerce');
                 }
-                if (!empty($userid)
-                        && $DB->record_exists('nit_coupon_usage', array('couponid' => $couponid, 'userid' => (int) $userid))) {
+                if (!empty($userid) && self::user_has_redeemed($couponid, (int) $userid)) {
                     throw new \moodle_exception('err_couponalreadyusedbyuser', 'local_nit_commerce');
                 }
             }

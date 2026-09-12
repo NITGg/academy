@@ -202,8 +202,12 @@ try {
     cli_writeln('');
     cli_writeln('One redemption per learner');
     $DB->delete_records('nit_coupon_usage', ['couponid' => $couponid]);
-    $e4 = $reserve((int) $users[0], $order((int) $users[0], 4));
+    $paid = $order((int) $users[0], 4);
+    $e4 = $reserve((int) $users[0], $paid);
     check('first use by this learner succeeds', $e4 === '', $e4);
+    // The rule is one *redemption* per learner, so the first order has to be paid: while it is
+    // only pending it is a reservation the learner may still abandon (see the last block below).
+    $DB->set_field('local_payments_transactions', 'status', 'completed', ['id' => $paid]);
     $e5 = $reserve((int) $users[0], $order((int) $users[0], 5));
     check('same learner refused a second time', $e5 === 'err_couponalreadyusedbyuser', 'got "' . $e5 . '"');
 
@@ -257,6 +261,42 @@ try {
     check('the reservation is gone', $count() === 0, 'got ' . $count());
     $e6 = $reserve((int) $users[2], $order((int) $users[2], 12));
     check('the freed seat can be taken by someone else', $e6 === '', $e6);
+
+    // ── A buyer who walked away from the gateway page is not "a buyer who used the coupon" ──
+    // Their reservation is still there (the cleanup task has not run), but it is theirs and
+    // pending: coming back to check out again must neither hit the cap nor the per-user rule,
+    // and the coupon must still validate for them. Another buyer, though, still sees the seat
+    // as taken until the order dies.
+    cli_writeln('');
+    cli_writeln('An abandoned checkout does not count as the buyer\'s redemption');
+    $DB->delete_records('nit_coupon_usage', ['couponid' => $couponid]);
+    // The race block above squeezed the cap to one seat; this block needs the original two.
+    $DB->set_field('nit_coupon', 'usage_limit', 2, ['id' => $couponid]);
+    $abandoned = $order((int) $users[0], 13);
+    $e7 = $reserve((int) $users[0], $abandoned);
+    check('the first checkout reserves', $e7 === '', $e7);
+    $v = '';
+    try {
+        discount_manager::validate_coupon(TAG . '2USES', 'course', $courseid, (int) $users[0]);
+    } catch (\moodle_exception $ex) {
+        $v = $ex->errorcode;
+    }
+    check('the coupon still validates for the same buyer', $v === '', 'got "' . $v . '"');
+    $e8 = $reserve((int) $users[0], $order((int) $users[0], 14));
+    check('the same buyer can check out again', $e8 === '', $e8);
+    check('another buyer still sees the seats as held',
+        discount_manager::live_usage_count($couponid, (int) $users[1]) === 2,
+        'got ' . discount_manager::live_usage_count($couponid, (int) $users[1]));
+
+    // Once the abandoned order dies, its seat is free for everyone even before the sweep.
+    $DB->set_field('local_payments_transactions', 'status', 'expired', ['id' => $abandoned]);
+    check('a dead order\'s reservation no longer holds a seat',
+        discount_manager::live_usage_count($couponid, (int) $users[1]) === 1,
+        'got ' . discount_manager::live_usage_count($couponid, (int) $users[1]));
+    $e9 = $reserve((int) $users[1], $order((int) $users[1], 15));
+    check('so another buyer can take it', $e9 === '', $e9);
+    $e10 = $reserve((int) $users[2], $order((int) $users[2], 16));
+    check('and the cap holds against a third', $e10 === 'err_couponusedup', 'got "' . $e10 . '"');
 
 } finally {
     cleanup();

@@ -53,6 +53,11 @@ class cleanup_reservations extends \core\task\scheduled_task {
         }
 
         $now = time();
+        // One list of dead states, shared with the live-usage checks in discount_manager, so
+        // what this task sweeps and what those checks already ignore never drift apart.
+        [$deadsql, $params] = $DB->get_in_or_equal(
+            \local_nit_commerce\discount_manager::DEAD_STATUSES, SQL_PARAMS_NAMED, 'dead');
+        $params['now'] = $now;
         foreach (['nit_coupon_usage', 'nit_offer_usage'] as $table) {
             if (!$DB->get_manager()->table_exists($table)) {
                 continue;
@@ -61,12 +66,12 @@ class cleanup_reservations extends \core\task\scheduled_task {
             $sql = "SELECT DISTINCT u.transactionid
                       FROM {" . $table . "} u
                       JOIN {local_payments_transactions} t ON t.id = u.transactionid
-                     WHERE t.status IN ('failed', 'cancelled')
+                     WHERE t.status $deadsql
                         OR (t.status = 'pending' AND t.expires_at > 0 AND t.expires_at < :now)";
-            $ids = $DB->get_fieldset_sql($sql, ['now' => $now]);
+            $ids = $DB->get_fieldset_sql($sql, $params);
             if ($ids) {
-                [$insql, $params] = $DB->get_in_or_equal($ids, SQL_PARAMS_NAMED);
-                $DB->delete_records_select($table, "transactionid $insql", $params);
+                [$insql, $delparams] = $DB->get_in_or_equal($ids, SQL_PARAMS_NAMED);
+                $DB->delete_records_select($table, "transactionid $insql", $delparams);
             }
         }
     }
