@@ -3644,9 +3644,9 @@ function theme_nit_auth_text(string $lang): array {
  * full logo and no compact one would otherwise get a blank corner, which is a
  * worse answer than the logo that is actually configured.
  *
- * Always the LIGHT-mode mark, whichever mode the visitor is in. The panel is a
- * photograph under a fixed scrim, not the page's chrome: its brightness does not
- * change with the light/dark switch, so the logo drawn on it should not either.
+ * Always the DARK-mode mark, whichever mode the visitor is in. The panel is a
+ * photograph under a dark scrim, not the page's chrome: it is dark in both
+ * modes, so the logo drawn on it is the one made for dark chrome in both modes.
  * The renderer accessors answer for the current mode, which is why they are not
  * used here.
  *
@@ -3662,9 +3662,9 @@ function theme_nit_auth_panel_content($output): array {
 
     // Same sizes core's get_compact_logo_url(null, 120) / get_logo_url(null, 120)
     // would request, so the cached file is the one the navbar already serves.
-    $logourl = theme_nit_logo_url('logocompact', 0, 120, 'light');
+    $logourl = theme_nit_logo_url('logocompact', 0, 120, 'dark');
     if (empty($logourl)) {
-        $logourl = theme_nit_logo_url('logo', 0, 120, 'light');
+        $logourl = theme_nit_logo_url('logo', 0, 120, 'dark');
     }
 
     $langs = theme_nit_auth_text_langs();

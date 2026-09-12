@@ -187,6 +187,11 @@ class hook_callbacks {
         $PAGE->requires->js_call_amd('theme_nit/eitheror', 'init', [
             [
                 'form' => '#region-main form',
+                // The browser's autofill fills BOTH boxes from one saved login.
+                // The e-mail is the one that stands then: the site logs in by
+                // e-mail, so that is what the browser saved, and what it wrote
+                // into the username box is that same address.
+                'keep' => 'email',
                 'pairs' => [
                     [
                         'name' => 'email',

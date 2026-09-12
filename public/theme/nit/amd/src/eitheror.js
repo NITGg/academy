@@ -79,6 +79,49 @@ const buildHint = (text, clearLabel) => {
 };
 
 /**
+ * Empty a box and tell everyone listening.
+ *
+ * Core's dependency manager listens for change (lib/form/form.js), so that is
+ * what actually lifts the lock on the other box. `input` keeps any other
+ * listener (the button gate, inline validation) in step too.
+ *
+ * @param {HTMLInputElement} box
+ */
+const empty = (box) => {
+    box.value = '';
+    box.dispatchEvent(new Event('input', {bubbles: true}));
+    box.dispatchEvent(new Event('change', {bubbles: true}));
+};
+
+/** @type {String} Marker class on the box that stands when both are filled at once. */
+const PREFERRED = 'nit-eitheror-preferred';
+
+/**
+ * Both boxes are full: decide which one stands and empty the other.
+ *
+ * The box the person is in wins - autofill on a click lands in the box that
+ * was clicked, and that click is the only intent there is to read. With
+ * neither focused (autofill on page load) the preferred box stands; the
+ * caller marks it, and on this site that is the e-mail, because e-mail is
+ * what the browser saved from the log-in form.
+ *
+ * @param {HTMLInputElement} a
+ * @param {HTMLInputElement} b
+ */
+const settle = (a, b) => {
+    const active = document.activeElement;
+    let keep;
+    if (active === a || active === b) {
+        keep = active;
+    } else if (b.classList.contains(PREFERRED)) {
+        keep = b;
+    } else {
+        keep = a;
+    }
+    empty(keep === a ? b : a);
+};
+
+/**
  * Wire one box against the box that can lock it.
  *
  * @param {HTMLInputElement} input The box that gets locked.
@@ -110,15 +153,22 @@ const wire = (input, other, strings) => {
     };
 
     button.addEventListener('click', () => {
-        other.value = '';
-        // Core's dependency manager listens for change (lib/form/form.js), so
-        // this is what actually lifts the lock. `input` keeps any other
-        // listener (the button gate, inline validation) in step too.
-        other.dispatchEvent(new Event('input', {bubbles: true}));
-        other.dispatchEvent(new Event('change', {bubbles: true}));
+        empty(other);
         render();
         if (!input.disabled) {
             input.focus();
+        }
+    });
+
+    // The browser's autofill does not know the rule. Picking a saved login
+    // writes BOTH boxes in one go - the e-mail into the username box as well -
+    // and core then locks each because the other is full: two disabled boxes
+    // and no way forward but the clear buttons. The rule is "one or the
+    // other", so one of them has to give. A person typing never trips this:
+    // their second box is already disabled before they can reach it.
+    input.addEventListener('input', () => {
+        if (input.value !== '' && other.value !== '') {
+            settle(input, other);
         }
     });
 
@@ -147,6 +197,8 @@ const wire = (input, other, strings) => {
  * @param {String} config.form Selector of the form holding the pair.
  * @param {Array<Object>} config.pairs Each `{name, lockedBy, strings: {locked, clear}}`:
  *     the box called `name` is locked while the box called `lockedBy` has a value.
+ * @param {String} [config.keep] Name of the box that stands when the browser
+ *     fills both at once and nobody is in either.
  */
 export const init = (config) => {
     const form = document.querySelector(config.form);
@@ -154,11 +206,20 @@ export const init = (config) => {
         return;
     }
 
+    if (config.keep) {
+        form.querySelector(`[name="${config.keep}"]`)?.classList.add(PREFERRED);
+    }
+
     (config.pairs || []).forEach((pair) => {
         const input = form.querySelector(`[name="${pair.name}"]`);
         const other = form.querySelector(`[name="${pair.lockedBy}"]`);
         if (input && other) {
             wire(input, other, pair.strings);
+            // Autofill can run before this module does - the page is then
+            // already in the both-full state and no `input` event is coming.
+            if (input.value !== '' && other.value !== '') {
+                settle(input, other);
+            }
         }
     });
 };

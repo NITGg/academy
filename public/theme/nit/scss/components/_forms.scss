@@ -13,6 +13,20 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+// The resting border of a text box, from Border primary.
+//
+// Bootstrap bakes `$input-border-color` into `.form-control` at compile time,
+// and that variable is seeded from GROUP 1's Border primary — so on any other
+// brand group a text box kept group 1's hairline while the `<select>` beside it
+// (`.form-select` in _dropdowns.scss) read the live token. Visible on the
+// sign-up form as a phone-country picker one shade off the boxes around it.
+// The login form already bridged its own boxes (_login.scss); this does it for
+// every `.form-control`. `.is-invalid` / `:focus` keep their own colours - they
+// are more specific or come later.
+.form-control {
+    border-color: var(--nit-brand-borderprimary);
+}
+
 // NIT form-control focus using the brand ring.
 .form-control,
 .form-select {
