@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_commerce';
-$plugin->version   = 2026091202;        // Checkout modal + coupon feed: Max discount amount shown to the buyer.
+$plugin->version   = 2026091203;        // Max discount amount withdrawn: column dropped, UI/engine/feed cleaned.
 $plugin->requires  = 2024100700;
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;

@@ -17,11 +17,13 @@
 {{!
     @template theme_nit/navbar_gear_nav
 
-    Core's navigation rows inside the gear dropdown: Home, Dashboard, My courses,
-    Site administration. Built by theme_nit\output\core_renderer::navbar_gear_nav()
-    from $PAGE->primarynav rather than from the template's `mobileprimarynav`, so
-    the custom menu items (which core merges into that list) stay where the
-    administrator put them — as titles on the bar.
+    Core's navigation rows inside the gear dropdown, under their own
+    "Navigation" heading: My courses, Site administration (Home and Dashboard
+    are deliberately left out). Built by
+    theme_nit\output\core_renderer::navbar_gear_nav() from $PAGE->primarynav
+    rather than from the template's `mobileprimarynav`, so the custom menu items
+    (which core merges into that list) stay where the administrator put them —
+    as titles on the bar.
 
     Context variables required for this template:
     * items - [{text, url, isactive, haschildren, children:[{text, url, isactive}]}]
@@ -29,11 +31,12 @@
     Example context (json):
     {
         "items": [
-            {"text": "Home", "url": "https://example.com/", "isactive": true},
-            {"text": "Dashboard", "url": "https://example.com/my/", "isactive": false}
+            {"text": "My courses", "url": "https://example.com/my/courses.php", "isactive": true},
+            {"text": "Site administration", "url": "https://example.com/admin/search.php", "isactive": false}
         ]
     }
 }}
+<h6 class="dropdown-header">{{#str}}navigation, core{{/str}}</h6>
 {{#items}}
     <a class="dropdown-item{{#isactive}} active{{/isactive}}" href="{{{url}}}" {{#isactive}}aria-current="true"{{/isactive}}>{{{text}}}</a>
     {{#haschildren}}

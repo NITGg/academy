@@ -91,7 +91,6 @@ class get_available_coupons extends external_api {
                 'description_raw' => new external_value(PARAM_RAW, 'Description with the stored {mlang} markup'),
                 'discount_type'  => new external_value(PARAM_ALPHA, 'percent | fixed'),
                 'discount_value' => new external_value(PARAM_FLOAT, 'Percent (0-100) or fixed amount'),
-                'max_discount'   => new external_value(PARAM_FLOAT, 'Cap on the applied discount, or null', VALUE_OPTIONAL),
                 'usage_type'     => new external_value(PARAM_ALPHA, 'once | multiple'),
                 'usage_limit'    => new external_value(PARAM_INT, 'Global redemption cap (0 = unlimited)'),
                 'startdate'      => new external_value(PARAM_INT, 'Valid-from unix time (0 = always)'),
@@ -99,8 +98,6 @@ class get_available_coupons extends external_api {
                 'status'         => new external_value(PARAM_ALPHA, 'active | inactive'),
                 'usage_count'    => new external_value(PARAM_INT, 'How many times it has been redeemed'),
                 'currency'       => new external_value(PARAM_TEXT, "ISO 4217 the fixed amount is in ('' for a percentage)"),
-                'max_discount_currency' => new external_value(PARAM_TEXT,
-                    "ISO 4217 max_discount is in ('' when there is no cap)", VALUE_OPTIONAL),
                 'applies_to'     => new external_multiple_structure(
                     new external_single_structure([
                         'item_type' => new external_value(PARAM_ALPHA,

@@ -477,7 +477,6 @@ function local_nit_category_checkout_footer(): void {
         'co_secure', 'co_proceed', 'co_cancel', 'co_loading', 'co_coupon_failed', 'co_currency',
         'co_method', 'co_method_code', 'co_offer_won', 'co_coupon_won', 'co_notcombined',
         'co_pricechanged', 'co_confirm_price', 'co_usage_limit', 'co_usage_unlimited', 'co_usage_once',
-        'co_max_discount', 'co_max_discount_hit',
     ]);
     echo html_writer::script('window.NIT_CO = ' . json_encode([
         'wwwroot'  => $CFG->wwwroot,

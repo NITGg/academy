@@ -68,11 +68,9 @@ $string['cpn_col_value']   = 'Value';
 $string['cpn_col_scope']   = 'Applies to';
 $string['cpn_col_usage']   = 'Usage';
 $string['cpn_col_dates']   = 'Valid';
-$string['cpn_col_max']     = 'Max discount';
 $string['cpn_field_code']  = 'Coupon code';
 $string['cpn_field_dtype'] = 'Discount type';
 $string['cpn_field_value'] = 'Discount value';
-$string['cpn_field_max']   = 'Max discount amount';
 $string['cpn_field_utype'] = 'Usage type';
 $string['cpn_field_limit'] = 'Usage limit';
 $string['cpn_field_start'] = 'Start date';
@@ -87,7 +85,6 @@ $string['cpn_help_name']   = 'Shown to students on the coupon card and at checko
 $string['cpn_help_desc']   = 'An optional line under the name — who the coupon is for, or what it celebrates.';
 $string['cpn_help_code']   = 'What the student types at checkout. Keep it short and easy to type; it must be unique.';
 $string['cpn_help_value']  = 'Percentage taken off the price, from 1 to 100. A percentage works in every currency.';
-$string['cpn_help_max']    = 'Caps the discount in money, in the currency the buyer pays in — e.g. 40% but never more than 50. Leave empty for no cap.';
 $string['cpn_help_utype']  = 'One-time: spent after the first purchase by anyone. Multiple use: many students can use it until the limit is reached — each student once.';
 $string['cpn_help_limit']  = 'Total number of purchases the coupon is accepted on, across all students. Leave empty for unlimited.';
 $string['cpn_help_start']  = 'Accepted from this date. Leave empty to start right away.';
@@ -132,7 +129,6 @@ $string['err_itemnotfound']        = 'The requested item was not found.';
 $string['err_discounttype']        = 'Discount type must be percentage or fixed.';
 $string['err_discountvalue']       = 'Discount value cannot be negative.';
 $string['err_discountpercent']     = 'A percentage discount must be between 0 and 100.';
-$string['err_maxdiscount']         = 'Max discount cannot be negative.';
 $string['err_daterange']           = 'The end date must be after the start date.';
 $string['err_usagetype']           = 'Usage type must be one-time or multiple.';
 $string['err_status']              = 'Status must be "active" or "inactive"';
@@ -285,9 +281,3 @@ $string['co_usage_limit']     = 'Usage limit: {limit} — {left} left';
 $string['co_usage_unlimited'] = 'Usage limit: unlimited';
 $string['co_usage_once']      = 'One-time use';
 
-// The applied coupon's "Max discount amount (optional)" cap, shown under the code once it
-// validates. The second form is used when the cap is what limited the discount — a 30% code on
-// a 500 order that takes off 50 looks broken unless the buyer is told why. {amount} is filled
-// in by the modal, not by get_string.
-$string['co_max_discount']     = 'Max discount amount: {amount}';
-$string['co_max_discount_hit'] = 'Max discount amount: {amount} — your discount was capped at this amount.';

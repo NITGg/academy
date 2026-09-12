@@ -931,14 +931,48 @@ JS;
     }
 
     /**
+     * The whole gear dropdown on the navbar — button and panel — or nothing.
+     *
+     * The panel is three pieces stacked: core's navigation rows
+     * (navbar_gear_nav), the relocated edit-mode switch, and the academy's
+     * management group (navbar_management_menu). Each of them is '' for some
+     * visitor — a guest has no navigation left once Home is gone, a student
+     * never edits and manages nothing — and a gear that opens onto an empty
+     * panel is worse than no gear, so the button is drawn only when at least
+     * one piece has something in it.
+     *
+     * @return string HTML, or '' when the dropdown would be empty
+     */
+    public function navbar_gear_menu(): string {
+        $nav = $this->navbar_gear_nav();
+        $editswitch = (string) $this->edit_switch();
+        $management = $this->navbar_management_menu();
+
+        if (trim($nav) === '' && trim($editswitch) === '' && trim($management) === '') {
+            return '';
+        }
+
+        return $this->render_from_template('theme_nit/navbar_gear_menu', [
+            'nav' => $nav,
+            'editswitch' => $editswitch,
+            'management' => $management,
+        ]);
+    }
+
+    /**
      * The core navigation rows of the gear dropdown.
      *
-     * The gear is core's navigation and nothing else: Home, Dashboard, My
-     * courses, Site administration. It deliberately does NOT use the template's
-     * `mobileprimarynav`, because core merges the custom menu items into that
-     * list (\core\navigation\output\primary::merge_primary_and_custom) — and
-     * with the site's own links now drawn as titles on the bar, letting them
-     * through here would show every one of them twice on a desktop screen.
+     * The gear is core's navigation and nothing else: My courses and Site
+     * administration. Home and Dashboard are left out on purpose — the logo is
+     * the way home and the dashboard sits in the user menu — so for a visitor
+     * who has neither of the two remaining rows the list is empty and, with
+     * nothing else in the panel, navbar_gear_menu() drops the gear altogether.
+     *
+     * It deliberately does NOT use the template's `mobileprimarynav`, because
+     * core merges the custom menu items into that list
+     * (\core\navigation\output\primary::merge_primary_and_custom) — and with
+     * the site's own links now drawn as titles on the bar, letting them through
+     * here would show every one of them twice on a desktop screen.
      *
      * The mobile drawer keeps the merged list: below the `md` breakpoint the bar
      * links are hidden, so the drawer is the only place those links can be.
@@ -948,7 +982,7 @@ JS;
      * @return string HTML, or '' when there is no navigation to show
      */
     public function navbar_gear_nav(): string {
-        $items = $this->navbar_primary_nav_items($this->page->primarynav);
+        $items = $this->navbar_primary_nav_items($this->page->primarynav, ['home', 'myhome']);
         if (empty($items)) {
             return '';
         }
@@ -960,12 +994,16 @@ JS;
      * Flatten a navigation node's children into template rows.
      *
      * @param \navigation_node $parent node whose children to export
+     * @param string[] $skipkeys node keys to leave out (top level only)
      * @return array [{text, url, isactive, children, haschildren}]
      */
-    protected function navbar_primary_nav_items($parent): array {
+    protected function navbar_primary_nav_items($parent, array $skipkeys = []): array {
         $nodes = [];
         foreach ($parent->children as $node) {
             if (!$node->has_action() && empty($node->children)) {
+                continue;
+            }
+            if (in_array($node->key, $skipkeys, true)) {
                 continue;
             }
             $children = $this->navbar_primary_nav_items($node);

@@ -51,14 +51,14 @@ $STR = local_nit_commerce_string_map(array(
     'pkg_field_desc_en', 'pkg_field_desc_ar', 'ui_showmore', 'ui_showless',
     'cpn_new', 'cpn_none', 'cpn_col_code', 'cpn_col_type', 'cpn_col_value', 'cpn_col_scope',
     'cpn_col_usage', 'cpn_col_dates', 'cpn_field_code', 'cpn_field_dtype', 'cpn_field_value',
-    'cpn_field_max', 'cpn_field_utype', 'cpn_field_limit', 'cpn_field_start', 'cpn_field_end',
+    'cpn_field_utype', 'cpn_field_limit', 'cpn_field_start', 'cpn_field_end',
     'cpn_field_scope', 'cpn_type_percent', 'cpn_type_fixed', 'cpn_usage_once', 'cpn_usage_multiple',
     'cpn_scope_courses', 'cpn_scope_subscriptions', 'cpn_scope_categories',
     'cpn_scope_categories_help', 'cpn_scope_all',
     'cpn_scope_specific', 'cpn_created', 'cpn_updated', 'cpn_activated', 'cpn_deactivated',
     'cpn_deleted', 'cpn_confirm_delete', 'cpn_edit_titled', 'cpn_scope_required', 'cpn_unlimited',
     'cpn_used_count', 'cpn_limit_min_hint', 'err_usagelimitbelowused', 'err_usagetypebelowused',
-    'cpn_help_name', 'cpn_help_desc', 'cpn_help_code', 'cpn_help_value', 'cpn_help_max',
+    'cpn_help_name', 'cpn_help_desc', 'cpn_help_code', 'cpn_help_value',
     'cpn_help_utype', 'cpn_help_limit', 'cpn_help_start', 'cpn_help_end', 'cpn_help_active',
     'err_sessionexpired', 'err_requestfailed',
 ));
@@ -147,20 +147,13 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                   // and hidden from every visitor priced in another), so there is nothing to choose:
                   // the type travels as a hidden field and the value wears a "%" suffix instead. ?>
             <input type="hidden" id="c-dtype" value="percent">
-            <div class="form-row">
-                <div class="form-group col-md-6">
-                    <label for="c-value"><?php echo $STR['cpn_field_value']; ?></label>
-                    <div class="input-group">
-                        <input type="number" class="form-control" id="c-value" min="0" max="100" step="0.01">
-                        <div class="input-group-append"><span class="input-group-text">%</span></div>
-                    </div>
-                    <small class="form-text text-muted"><?php echo $STR['cpn_help_value']; ?></small>
+            <div class="form-group">
+                <label for="c-value"><?php echo $STR['cpn_field_value']; ?></label>
+                <div class="input-group">
+                    <input type="number" class="form-control" id="c-value" min="0" max="100" step="0.01">
+                    <div class="input-group-append"><span class="input-group-text">%</span></div>
                 </div>
-                <div class="form-group col-md-6">
-                    <label for="c-max"><?php echo $STR['cpn_field_max']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
-                    <input type="number" class="form-control" id="c-max" min="0" step="0.01">
-                    <small class="form-text text-muted"><?php echo $STR['cpn_help_max']; ?></small>
-                </div>
+                <small class="form-text text-muted"><?php echo $STR['cpn_help_value']; ?></small>
             </div>
             <div class="form-row">
                 <div class="form-group col-md-6">
@@ -355,7 +348,7 @@ echo html_writer::script(<<<'JS'
                 '<td><code>'+esc(c.code)+'</code></td>'+
                 '<td>'+titleCell(c.name_raw || c.name, c.description_raw || c.description)+'</td>'+
                 '<td>'+esc(dtype(c.discount_type))+'</td>'+
-                '<td>'+esc(valueLabel(c))+(c.max_discount!=null?' <small class="text-muted">(max '+esc(c.max_discount)+')</small>':'')+'</td>'+
+                '<td>'+esc(valueLabel(c))+'</td>'+
                 '<td class="col-tags">'+scopeLabel(c)+'</td>'+
                 '<td>'+esc(usageLabel(c))+'</td>'+
                 '<td>'+esc(fmtDate(c.startdate))+' → '+esc(fmtDate(c.enddate))+'</td>'+
@@ -485,7 +478,6 @@ echo html_writer::script(<<<'JS'
         // c-dtype is a hidden "percent": a legacy fixed row opens as percent so its next save
         // converts it; the admin re-enters the value as a percentage.
         $('c-value').value = c ? c.discount_value : '';
-        $('c-max').value   = (c && c.max_discount != null) ? c.max_discount : '';
         $('c-utype').value = c ? c.usage_type : 'multiple';
         $('c-limit').value = (c && c.usage_limit) ? c.usage_limit : '';
         // What was already spent bounds what can be set: a coupon used N times cannot be capped
@@ -518,7 +510,6 @@ echo html_writer::script(<<<'JS'
             description: buildMultilang($('c-desc-en').value, $('c-desc-ar').value),
             discount_type: $('c-dtype').value,
             discount_value: $('c-value').value || 0,
-            max_discount: $('c-max').value === '' ? '' : $('c-max').value,
             usage_type: $('c-utype').value,
             usage_limit: $('c-limit').value || 0,
             startdate: fromInput($('c-start').value),

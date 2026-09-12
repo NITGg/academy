@@ -118,7 +118,7 @@ try {
     $now = time();
     $couponid = $DB->insert_record('nit_coupon', (object) [
         'code' => TAG . '2USES', 'name' => TAG, 'description' => '', 'discount_type' => 'percent',
-        'discount_value' => 10, 'max_discount' => null, 'usage_type' => 'multiple',
+        'discount_value' => 10, 'usage_type' => 'multiple',
         'usage_limit' => 2, 'startdate' => 0, 'enddate' => 0, 'status' => 'active',
         'timecreated' => $now, 'timemodified' => $now, 'usermodified' => 2,
     ]);

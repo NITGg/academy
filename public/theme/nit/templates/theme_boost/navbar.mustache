@@ -104,33 +104,12 @@
                 {{{ . }}}
             {{/output.navbar_plugin_output}}
 
-            {{! NIT: primary navigation collapsed into a single gear-icon dropdown. }}
-            <div class="dropdown nit-navmenu d-flex align-items-center">
-                <a href="#" role="button" id="nit-navmenu-toggle" class="btn nit-navbar-icon" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="{{#str}}navigation, core{{/str}}">
-                    <i class="icon fa fa-gear fa-fw" aria-hidden="true"></i>
-                    <span class="visually-hidden">{{#str}}navigation, core{{/str}}</span>
-                </a>
-                <div class="dropdown-menu dropdown-menu-end nit-navbar-dropdown" aria-labelledby="nit-navmenu-toggle">
-                    <h6 class="dropdown-header">{{#str}}navigation, core{{/str}}</h6>
-                    {{! NIT: core's navigation only — Home / Dashboard / My courses /
-                        Site administration. Built from $PAGE->primarynav by the
-                        renderer instead of read from `mobileprimarynav`, because
-                        core merges the custom menu items into that list and those
-                        links now have their own place: the titles on the bar. }}
-                    {{{ output.navbar_gear_nav }}}
-
-                    {{! NIT: edit-mode toggle lives here (moved from the bar). The
-                        wrapper is `:empty` when core returns no switch — CSS then
-                        hides it, so no stray row on pages without editing. }}
-                    <div class="nit-navmenu-editswitch">{{{ output.edit_switch }}}</div>
-
-                    {{! NIT: second group — the management screens an administrator
-                        opens daily, each otherwise three or four clicks down the
-                        Site administration tree. Empty (nothing drawn, heading
-                        included) for a user without the capabilities. }}
-                    {{{ output.navbar_management_menu }}}
-                </div>
-            </div>
+            {{! NIT: primary navigation collapsed into a single gear-icon dropdown
+                (theme_nit/navbar_gear_menu): core's My courses / Site administration
+                rows, the relocated edit-mode switch, and the management group.
+                Empty — no gear on the bar at all — when all three would be, which
+                is the case for a guest and for a student with nothing to open. }}
+            {{{ output.navbar_gear_menu }}}
 
             {{! NIT: user menu (avatar) — Dashboard / Profile / Grades / Log out / Switch role. }}
             {{#usermenu}}

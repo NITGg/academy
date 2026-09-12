@@ -46,7 +46,7 @@ class coupon_manager {
     /**
      * Create a coupon.
      *
-     * @param array $data code, name, description, discount_type, discount_value, max_discount, usage_type, usage_limit,
+     * @param array $data code, name, description, discount_type, discount_value, usage_type, usage_limit,
      *                     startdate, enddate, active, items[]
      * @param int $userid admin
      * @return int new coupon id
@@ -65,7 +65,6 @@ class coupon_manager {
         $record->description    = self::normalize_description($data['description'] ?? '');
         $record->discount_type  = discount_manager::normalize_discount_type($data['discount_type'] ?? 'percent');
         $record->discount_value = self::validate_value($record->discount_type, $data['discount_value'] ?? 0);
-        $record->max_discount   = self::validate_max($data['max_discount'] ?? null);
         $record->usage_type     = self::normalize_usage_type($data['usage_type'] ?? self::USAGE_MULTIPLE);
         $record->usage_limit    = max(0, (int)($data['usage_limit'] ?? 0));
         list($record->startdate, $record->enddate) = self::validate_dates($data['startdate'] ?? 0, $data['enddate'] ?? 0);
@@ -113,9 +112,6 @@ class coupon_manager {
         if (array_key_exists('discount_value', $data)) {
             $type = $update->discount_type ?? $coupon->discount_type;
             $update->discount_value = self::validate_value($type, $data['discount_value']);
-        }
-        if (array_key_exists('max_discount', $data)) {
-            $update->max_discount = self::validate_max($data['max_discount']);
         }
         if (array_key_exists('usage_type', $data)) {
             $update->usage_type = self::normalize_usage_type($data['usage_type']);
@@ -614,7 +610,6 @@ class coupon_manager {
             'description_raw' => (string)$record->description,
             'discount_type'  => $record->discount_type,
             'discount_value' => (float)$record->discount_value,
-            'max_discount'   => $record->max_discount === null ? null : (float)$record->max_discount,
             'usage_type'     => $record->usage_type,
             'usage_limit'    => (int)$record->usage_limit,
             'startdate'      => (int)$record->startdate,
@@ -626,9 +621,6 @@ class coupon_manager {
             // Coupons carry no currency of their own: a fixed amount is stated in the site's,
             // and a percentage is stated in none, so it reports none.
             'currency'       => $record->discount_type === 'percent' ? '' : self::default_currency(),
-            // The cap is a money amount whatever the discount type, so it carries the site
-            // currency even when the (percentage) discount itself reports none.
-            'max_discount_currency' => $record->max_discount === null ? '' : self::default_currency(),
             'applies_to'     => $applies,
         );
     }
@@ -730,22 +722,6 @@ class coupon_manager {
         return $value;
     }
 
-    /**
-     * Validate an optional max-discount cap (>= 0 or null).
-     *
-     * @param mixed $max
-     * @return float|null
-     */
-    private static function validate_max($max) {
-        if ($max === null || $max === '') {
-            return null;
-        }
-        $max = (float)$max;
-        if ($max < 0) {
-            throw new \moodle_exception('err_maxdiscount', 'local_nit_commerce');
-        }
-        return $max > 0 ? $max : null;
-    }
 
     /**
      * Validate a start/end window (end must not precede start when both set).

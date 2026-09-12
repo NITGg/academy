@@ -38,7 +38,6 @@ $string['cpn_type_fixed']     = 'مبلغ ثابت';
 $string['cpn_usage_once']     = 'استخدام لمرة واحدة';
 $string['cpn_usage_multiple'] = 'استخدام متعدد';
 $string['cpn_unlimited']      = 'غير محدود';
-$string['cpn_col_max']        = 'أقصى خصم';
 $string['cpn_col_usage']      = 'الاستخدام';
 
 // Public coupon-details page (/local/nit_commerce/coupon.php).
@@ -108,7 +107,6 @@ $string['cpn_col_dates']   = 'مدة الصلاحية';
 $string['cpn_field_code']  = 'كود الكوبون';
 $string['cpn_field_dtype'] = 'نوع الخصم';
 $string['cpn_field_value'] = 'قيمة الخصم';
-$string['cpn_field_max']   = 'الحد الأقصى لمبلغ الخصم';
 $string['cpn_field_utype'] = 'نوع الاستخدام';
 $string['cpn_field_limit'] = 'حد الاستخدام';
 $string['cpn_field_start'] = 'تاريخ البداية';
@@ -119,7 +117,6 @@ $string['cpn_help_name']   = 'يظهر للطلاب على بطاقة الكوب
 $string['cpn_help_desc']   = 'سطر اختياري تحت الاسم — لمن هذا الكوبون، أو بأي مناسبة.';
 $string['cpn_help_code']   = 'ما يكتبه الطالب في صفحة الدفع. اجعله قصيرًا وسهل الكتابة، ويجب ألا يتكرر.';
 $string['cpn_help_value']  = 'نسبة الخصم من السعر، من 1 إلى 100. النسبة تعمل مع كل العملات.';
-$string['cpn_help_max']    = 'سقف للخصم كمبلغ، بالعملة التي يدفع بها المشتري — مثلًا 40% لكن ليس أكثر من 50. اتركه فارغًا بلا سقف.';
 $string['cpn_help_utype']  = 'لمرة واحدة: يُستهلك بعد أول عملية شراء من أي طالب. استخدام متعدد: يستخدمه عدة طلاب حتى الوصول للحد — كل طالب مرة واحدة.';
 $string['cpn_help_limit']  = 'إجمالي عدد عمليات الشراء التي يُقبل فيها الكوبون، لكل الطلاب معًا. اتركه فارغًا ليكون غير محدود.';
 $string['cpn_help_start']  = 'يُقبل ابتداءً من هذا التاريخ. اتركه فارغًا ليبدأ فورًا.';
@@ -166,7 +163,6 @@ $string['err_itemnotfound']        = 'العنصر المطلوب غير موج�
 $string['err_discounttype']        = 'يجب أن يكون نوع الخصم نسبة مئوية أو مبلغًا ثابتًا.';
 $string['err_discountvalue']       = 'لا يمكن أن تكون قيمة الخصم بالسالب.';
 $string['err_discountpercent']     = 'يجب أن تكون نسبة الخصم بين 0 و100.';
-$string['err_maxdiscount']         = 'لا يمكن أن يكون الحد الأقصى للخصم بالسالب.';
 $string['err_daterange']           = 'يجب أن يكون تاريخ الانتهاء بعد تاريخ البداية.';
 $string['err_usagetype']           = 'يجب أن يكون نوع الاستخدام لمرة واحدة أو متعددًا.';
 $string['err_status']              = 'يجب أن تكون الحالة "مفعّل" أو "موقوف"';
@@ -289,7 +285,3 @@ $string['co_usage_limit']     = 'حد الاستخدام: {limit} — متبقٍ
 $string['co_usage_unlimited'] = 'حد الاستخدام: غير محدود';
 $string['co_usage_once']      = 'استخدام لمرة واحدة';
 
-// «الحد الأقصى لمبلغ الخصم (اختياري)» للكوبون المطبَّق، يظهر تحت الكود بعد قبوله. الصيغة الثانية
-// تُستخدم عندما يكون الحد هو ما قيّد الخصم فعلًا. يتم استبدال {amount} داخل النافذة نفسها.
-$string['co_max_discount']     = 'الحد الأقصى لمبلغ الخصم: {amount}';
-$string['co_max_discount_hit'] = 'الحد الأقصى لمبلغ الخصم: {amount} — تم تحديد خصمك عند هذا المبلغ.';

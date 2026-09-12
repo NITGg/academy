@@ -135,25 +135,20 @@ class discount_manager {
     }
 
     /**
-     * The raw discount amount for a (type, value) pair against a base, capped by an optional max and by
-     * the base itself.
+     * The raw discount amount for a (type, value) pair against a base, capped by the base itself.
      *
      * @param string $discounttype percent | fixed
      * @param float $value
-     * @param float|null $max cap on the applied discount (null = no cap)
      * @param float $base price the discount is applied to
      * @return float
      */
-    public static function discount_amount($discounttype, $value, $max, $base) {
+    public static function discount_amount($discounttype, $value, $base) {
         $base = max(0.0, (float)$base);
         $value = max(0.0, (float)$value);
         if ($discounttype === self::DISCOUNT_PERCENT) {
             $amount = $base * $value / 100.0;
         } else {
             $amount = $value;
-        }
-        if ($max !== null && $max !== '' && (float)$max > 0) {
-            $amount = min($amount, (float)$max);
         }
         $amount = min($amount, $base);
         return round($amount, 2);
@@ -414,7 +409,7 @@ class discount_manager {
             if ($offer->enddate > 0 && $now > $offer->enddate) { continue; }
             $items = $DB->get_records('nit_offer_item', array('offerid' => $offer->id));
             if (!self::scope_matches($items, $itemtype, $itemid)) { continue; }
-            $discount = self::discount_amount($offer->discount_type, $offer->discount_value, null, $base);
+            $discount = self::discount_amount($offer->discount_type, $offer->discount_value, $base);
             $out[] = (object) array(
                 'id'             => (int)$offer->id,
                 // Resolve {mlang} to the current language for display (the {mlang} filter is not
@@ -796,10 +791,6 @@ class discount_manager {
             'coupon_usage_limit' => 0,
             'coupon_usage_count' => 0,
             'coupon_uses_left'   => null,
-            // The coupon's "Max discount amount (optional)" and whether it bit: a 30% code on
-            // a 500 order that takes off 50 looks broken unless the buyer is told the cap did it.
-            'coupon_max_discount' => null,
-            'coupon_max_hit'      => false,
             'discount'          => 0.0,
             'final'             => $base,
         );
@@ -818,8 +809,7 @@ class discount_manager {
         $couponcode = trim((string)$couponcode);
         if ($couponcode !== '') {
             $coupon = self::validate_coupon($couponcode, $itemtype, $itemid, $userid, $now);
-            $couponamount = self::discount_amount($coupon->discount_type, $coupon->discount_value,
-                $coupon->max_discount, $base);
+            $couponamount = self::discount_amount($coupon->discount_type, $coupon->discount_value, $base);
             // Same count validate_coupon() just measured the cap against, so "left" can never
             // disagree with the accept/refuse decision above.
             $used = self::live_usage_count($coupon->id, (int) $userid, $now);
@@ -828,13 +818,6 @@ class discount_manager {
             $result['coupon_usage_limit'] = $limit;
             $result['coupon_usage_count'] = $used;
             $result['coupon_uses_left']   = $limit > 0 ? max(0, $limit - $used) : null;
-            $max = ($coupon->max_discount !== null && (float) $coupon->max_discount > 0)
-                ? round((float) $coupon->max_discount, 2) : null;
-            $result['coupon_max_discount'] = $max;
-            // Measured against the uncapped amount, so "hit" means the cap — not the order
-            // total — is what held the discount down.
-            $result['coupon_max_hit'] = $max !== null
-                && self::discount_amount($coupon->discount_type, $coupon->discount_value, null, $base) > $max;
         }
 
         $result['offer_candidate']  = $offeramount;

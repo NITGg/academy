@@ -56,5 +56,18 @@ function xmldb_local_nit_commerce_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090100, 'local', 'nit_commerce');
     }
 
+    if ($oldversion < 2026091203) {
+        // The "Max discount amount" cap was withdrawn (2026-09-12): a bare number applied
+        // against whichever currency the buyer is quoted in meant different things to
+        // different buyers, and the business did not want it. The column goes with it, so a
+        // value an admin once typed can never silently shrink a discount again.
+        $table = new xmldb_table('nit_coupon');
+        $field = new xmldb_field('max_discount');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026091203, 'local', 'nit_commerce');
+    }
+
     return true;
 }

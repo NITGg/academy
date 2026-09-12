@@ -269,13 +269,6 @@ echo $OUTPUT->header();
           <?php endif; ?>
         </li>
 
-        <?php if ($coupon['max_discount'] !== null && (float) $coupon['max_discount'] > 0): ?>
-          <li>
-            <span class="nitcpn__termlabel"><?= s(get_string('cpn_col_max', 'local_nit_commerce')) ?></span>
-            <strong><?= s(number_format((float) $coupon['max_discount'], 2) . ' ' . $currency) ?></strong>
-          </li>
-        <?php endif; ?>
-
         <?php if ((int) $coupon['startdate'] > 0): ?>
           <li>
             <span class="nitcpn__termlabel"><?= s(get_string('cpn_starts', 'local_nit_commerce')) ?></span>

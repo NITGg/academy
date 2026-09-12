@@ -93,15 +93,14 @@ function make_offer(string $type, float $value): int {
  * @param string $code
  * @param string $type percent|fixed
  * @param float $value
- * @param float|null $max optional cap
  * @return int coupon id
  */
-function make_coupon(string $code, string $type, float $value, $max = null): int {
+function make_coupon(string $code, string $type, float $value): int {
     global $DB, $USER;
     $now = time();
     $id = $DB->insert_record('nit_coupon', (object) [
         'code' => $code, 'name' => 'TEST coupon', 'description' => '', 'discount_type' => $type,
-        'discount_value' => $value, 'max_discount' => $max, 'usage_type' => 'multiple',
+        'discount_value' => $value, 'usage_type' => 'multiple',
         'usage_limit' => 0, 'startdate' => 0, 'enddate' => 0, 'status' => 'active',
         'timecreated' => $now, 'timemodified' => $now, 'usermodified' => $USER->id,
     ]);

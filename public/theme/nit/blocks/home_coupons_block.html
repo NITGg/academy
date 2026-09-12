@@ -1,6 +1,6 @@
 <!-- NIT — Available coupons home-page block. Paste into an HTML block on the home page.
      Inline styles only (editor-safe). Fetches live coupons from the plugin and renders a dark slider.
-     Shows: code, discount value, applies-to scope, usage type, max discount, valid dates.
+     Shows: code, discount value, applies-to scope, usage type, valid dates.
      Colours read from the Brand Colors palette (theme/nit gallery). Gold accents map to
      --nit-brand-accent, the teal "positive" accent maps to --nit-brand-success; shades are
      derived with color-mix from those same brand variables (no hard-coded colours).
@@ -60,9 +60,6 @@
                 <p
                   style="margin: 0; font-size: 16px; font-weight: 800; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                   data-nit-name="">{{name}}</p>
-                <p
-                  style="display: none; margin: 4px 0 0; font-size: 11.5px; font-weight: 600; opacity: .9;"
-                  data-nit-max="">{{max}}</p>
               </div>
             </div>
             <!-- Perforation, so the card reads as a torn-off ticket. -->
@@ -316,17 +313,6 @@
                   ' · {mlang en}Usage limit: unlimited{mlang}{mlang ar}حد الاستخدام: غير محدود{mlang}';
               }
             }
-
-            /* Max discount amount (the admin's optional cap). It is money whatever the
-               discount type, so it takes its own currency from the feed — `c.currency` is
-               empty for a percentage coupon and used to leave the cap printed unitless. */
-            var max =
-              c.max_discount != null &&
-              Number(c.max_discount) > 0 ?
-              '{mlang en}Max discount amount{mlang}{mlang ar}الحد الأقصى لمبلغ الخصم{mlang}: ' +
-              (num(c.max_discount) + ' ' + (c.max_discount_currency || c.currency || '')).trim() :
-              '';
-
             var html = tpl.innerHTML
               .replace(/\{\{value\}\}/g, esc(value))
               .replace(
@@ -337,7 +323,6 @@
               .replace(/\{\{name\}\}/g, esc(name))
               .replace(/\{\{description\}\}/g, esc(description))
               .replace(/\{\{usage\}\}/g, esc(usage))
-              .replace(/\{\{max\}\}/g, esc(max))
               .replace(/\{\{dates\}\}/g, esc(dates));
 
             var wrap = document.createElement('div');
@@ -372,7 +357,6 @@
             }
 
             show('[data-nit-desc]', !!description, '-webkit-box');
-            show('[data-nit-max]', !!max, 'block');
             show('[data-nit-usage]', !!usage, 'inline-block');
             show('[data-nit-dates]', !!dates, 'inline-block');
 
