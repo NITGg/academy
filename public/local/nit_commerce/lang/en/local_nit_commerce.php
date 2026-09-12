@@ -277,3 +277,10 @@ $string['co_notcombined']   = 'Offers and coupons are not combined — you alway
 // offer that reached its end date. {old}/{new} are filled in by the modal, not by get_string.
 $string['co_pricechanged']  = 'The price changed while this window was open: it was {old} and is now {new}. Nothing has been charged — press again to continue at the new price.';
 $string['co_confirm_price'] = 'Confirm new price';
+
+// The applied coupon's usage cap (the admin's "Usage limit (optional)"), shown under the code
+// once it validates so the buyer knows how many redemptions are left. {limit}/{left} are filled
+// in by the modal, not by get_string.
+$string['co_usage_limit']     = 'Usage limit: {limit} — {left} left';
+$string['co_usage_unlimited'] = 'Usage limit: unlimited';
+$string['co_usage_once']      = 'One-time use';

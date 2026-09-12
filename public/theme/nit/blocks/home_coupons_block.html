@@ -293,7 +293,9 @@
               (e || '…') :
               '';
 
-            /* Usage type */
+            /* Usage type, then the admin's "Usage limit (optional)" spelled out: the cap
+               and how many redemptions are left, or "unlimited" when the field was left
+               empty. A bare "(1/50)" did not say which number was which. */
             var usage;
 
             if (c.usage_type === 'once') {
@@ -304,12 +306,14 @@
                 '{mlang en}Multiple use{mlang}{mlang ar}استخدام متعدد{mlang}';
 
               if (c.usage_limit > 0) {
+                var left = Math.max(0, c.usage_limit - (c.usage_count || 0));
                 usage +=
-                  ' (' +
-                  (c.usage_count || 0) +
-                  '/' +
+                  ' · {mlang en}Usage limit{mlang}{mlang ar}حد الاستخدام{mlang}: ' +
                   c.usage_limit +
-                  ')';
+                  ' — {mlang en}' + left + ' left{mlang}{mlang ar}متبقٍ ' + left + '{mlang}';
+              } else {
+                usage +=
+                  ' · {mlang en}Usage limit: unlimited{mlang}{mlang ar}حد الاستخدام: غير محدود{mlang}';
               }
             }
 

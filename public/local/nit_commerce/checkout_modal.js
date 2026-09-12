@@ -61,12 +61,15 @@
     // (the final price, the "apply" label) -> Accent Text role.
     accent: 'var(--nit-brand-accent, #5488c4)',
     accenttext: 'var(--nit-brand-accenttext, #7fabdb)',
-    // The main call to action: same fill + label as the site's .btn-primary
-    // (Brand Colors: Primary = "background main button", Text primary = "text
-    // in buttons"), so Proceed matches every other primary button on the site.
+    // The main call to action: the same roles the site's .btn-primary is wired
+    // to (theme/nit/scss/foundation/_brand.scss), so Proceed matches every other
+    // primary button on the site. The label is "Text on main button"
+    // (`onprimary`), NOT "Text primary": that one is the page's body ink, which
+    // is near-black in a light group and painted the label black on a blue fill.
     primary: 'var(--nit-brand-primary, #5488c4)',
-    primaryhover: 'var(--nit-brand-primary-hover, #497ab0)',
-    onprimary: 'var(--nit-brand-textprimary, #eef3f9)',
+    primaryhover: 'var(--nit-brand-btnprimaryhoverbg, #497ab0)',
+    onprimary: 'var(--nit-brand-onprimary, #eef3f9)',
+    onprimaryhover: 'var(--nit-brand-btnprimaryhovertext, #eef3f9)',
     // Money saved (offer / discount) is a positive state -> Success role.
     good: 'var(--nit-brand-success, #3fa877)',
     error: 'var(--nit-brand-error, #d07f43)',
@@ -141,6 +144,11 @@
     els.couponNote = el('div', 'display:none; color:' + C.muted + '; font-size:12px; margin:-6px 0 10px; line-height:1.5;', ' ');
     box.appendChild(els.couponNote);
 
+    // The accepted code's usage cap — the admin's "Usage limit (optional)" — so the buyer sees
+    // how many redemptions the code has left, the same figure the coupon card advertises.
+    els.couponUsage = el('div', 'display:none; color:' + C.muted + '; font-size:12px; margin:-6px 0 10px; line-height:1.5;', ' ');
+    box.appendChild(els.couponUsage);
+
     box.appendChild(row(S('co_discount'), (els.discount = el('b', 'color:' + C.good + ';', '0.00 ' + cur()))));
 
     var totalRow = el('div', 'border-top:1px solid ' + C.line + '; padding-top:12px; display:flex; justify-content:space-between; font-size:16px; font-weight:800;');
@@ -174,8 +182,8 @@
     els.proceed = el('button', 'background:' + C.primary + '; border:0; color:' + C.onprimary + '; border-radius:8px; padding:9px 20px; font-weight:800; cursor:pointer;', S('co_proceed'));
     els.proceed.type = 'button';
     // Inline styles cannot carry :hover, so mirror the theme's primary hover token.
-    els.proceed.addEventListener('mouseenter', function () { els.proceed.style.background = C.primaryhover; });
-    els.proceed.addEventListener('mouseleave', function () { els.proceed.style.background = C.primary; });
+    els.proceed.addEventListener('mouseenter', function () { els.proceed.style.background = C.primaryhover; els.proceed.style.color = C.onprimaryhover; });
+    els.proceed.addEventListener('mouseleave', function () { els.proceed.style.background = C.primary; els.proceed.style.color = C.onprimary; });
     actions.appendChild(els.cancel);
     actions.appendChild(els.proceed);
     card.appendChild(actions);
@@ -374,10 +382,28 @@
         } else {
           els.couponNote.style.display = 'none';
         }
+
+        // Usage limit of the code that just validated (refused codes carry none). A one-time
+        // coupon says so; a capped one says the cap and what is left; an uncapped one says so.
+        var usage = '';
+        if (!d.coupon_error && d.coupon_id) {
+          if (d.coupon_usage_type === 'once') {
+            usage = S('co_usage_once');
+          } else if (Number(d.coupon_usage_limit || 0) > 0) {
+            usage = S('co_usage_limit')
+              .replace('{limit}', String(d.coupon_usage_limit))
+              .replace('{left}', String(d.coupon_uses_left != null ? d.coupon_uses_left : 0));
+          } else {
+            usage = S('co_usage_unlimited');
+          }
+        }
+        els.couponUsage.textContent = usage || ' ';
+        els.couponUsage.style.display = usage ? '' : 'none';
         return d;
       })
       .catch(function (e) {
         els.couponNote.style.display = 'none';
+        els.couponUsage.style.display = 'none';
         els.couponErr.textContent = S('co_coupon_failed');
         els.couponErr.style.display = '';
         // Rethrown so go() can tell "the price has not moved" apart from "we could not ask".
@@ -401,6 +427,7 @@
       els.coupon.value = '';
       els.couponErr.style.display = 'none';
       els.couponNote.style.display = 'none';
+      els.couponUsage.style.display = 'none';
       els.error.style.display = 'none';
       els.pricenote.style.display = 'none';
       els.proceed.textContent = S('co_proceed');

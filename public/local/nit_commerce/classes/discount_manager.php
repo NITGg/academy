@@ -788,6 +788,14 @@ class discount_manager {
             // cheapest won (AC-4.13.4); the checkout says so rather than leaving the buyer to
             // wonder why a promotion they read about is not the one on screen.
             'offer_candidates'  => 0,
+            // The entered coupon's usage cap (the admin's "Usage limit (optional)"), so the
+            // checkout can tell the buyer how many redemptions the code has left rather than
+            // only whether it worked. Filled only for a coupon that validated; `uses_left` is
+            // null when the coupon is uncapped.
+            'coupon_usage_type'  => '',
+            'coupon_usage_limit' => 0,
+            'coupon_usage_count' => 0,
+            'coupon_uses_left'   => null,
             'discount'          => 0.0,
             'final'             => $base,
         );
@@ -808,6 +816,14 @@ class discount_manager {
             $coupon = self::validate_coupon($couponcode, $itemtype, $itemid, $userid, $now);
             $couponamount = self::discount_amount($coupon->discount_type, $coupon->discount_value,
                 $coupon->max_discount, $base);
+            // Same count validate_coupon() just measured the cap against, so "left" can never
+            // disagree with the accept/refuse decision above.
+            $used = self::live_usage_count($coupon->id, (int) $userid, $now);
+            $limit = (int) $coupon->usage_limit;
+            $result['coupon_usage_type']  = (string) $coupon->usage_type;
+            $result['coupon_usage_limit'] = $limit;
+            $result['coupon_usage_count'] = $used;
+            $result['coupon_uses_left']   = $limit > 0 ? max(0, $limit - $used) : null;
         }
 
         $result['offer_candidate']  = $offeramount;

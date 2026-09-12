@@ -120,7 +120,7 @@ try {
             'co_title', 'co_intro', 'co_total', 'co_offer', 'co_coupon', 'co_apply', 'co_discount',
             'co_secure', 'co_proceed', 'co_cancel', 'co_loading', 'co_coupon_failed', 'co_currency',
             'co_method', 'co_method_code', 'co_offer_won', 'co_coupon_won', 'co_notcombined',
-            'co_pricechanged', 'co_confirm_price',
+        'co_pricechanged', 'co_confirm_price', 'co_usage_limit', 'co_usage_unlimited', 'co_usage_once',
         ]);
 
         // The methods the gateway will actually accept, so the buyer picks here
