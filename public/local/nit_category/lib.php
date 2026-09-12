@@ -375,6 +375,23 @@ function local_nit_category_extend_navigation_category_settings(
 function local_nit_category_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
     global $CFG;
 
+    // A picture of the "Why choose us" section (system context, itemid = card id). Public
+    // like the section it sits in — the category pages themselves are open to guests.
+    if ($context->contextlevel == CONTEXT_SYSTEM && $filearea === \local_nit_category\whychoose::FILEAREA) {
+        if (!empty($CFG->forcelogin)) {
+            require_login();
+        }
+        $itemid   = (int) array_shift($args);
+        $filename = array_pop($args);
+        $filepath = $args ? '/' . implode('/', $args) . '/' : '/';
+        $file = get_file_storage()->get_file($context->id, 'local_nit_category', $filearea, $itemid, $filepath, $filename);
+        if (!$file || $file->is_directory()) {
+            send_file_not_found();
+        }
+        \core\session\manager::write_close();
+        send_stored_file($file, 60 * 60, 0, $forcedownload, $options);
+    }
+
     $allowedareas = [LOCAL_NIT_CATEGORY_IMAGE_FILEAREA, LOCAL_NIT_CATEGORY_ICON_FILEAREA];
     if ($context->contextlevel != CONTEXT_COURSECAT || !in_array($filearea, $allowedareas, true)) {
         send_file_not_found();

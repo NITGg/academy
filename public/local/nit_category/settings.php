@@ -57,6 +57,16 @@ if ($hassiteconfig) {
 
     $ADMIN->add('localplugins', $settings);
 
+    // The "Why thousands choose us" section under the hero of every category page: its
+    // three texts and its cards (whychoose.php). A page of its own rather than settings
+    // above because the cards are a list the admin adds to and reorders, not a value.
+    $ADMIN->add('localplugins', new admin_externalpage(
+        'local_nit_category_whychoose',
+        get_string('whychoose', 'local_nit_category'),
+        new moodle_url('/local/nit_category/whychoose.php'),
+        'moodle/site:config'
+    ));
+
     // The record of searches that found nothing (AC-4.22.4). A report rather than a
     // setting, so it gets its own entry instead of a link buried in the settings page.
     $ADMIN->add('reports', new admin_externalpage(

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the NIT category catalogue pages.
+ * Fresh-install hook for local_nit_category.
  *
  * @package    local_nit_category
  * @copyright  2026 NIT
@@ -24,12 +24,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_nit_category';
-$plugin->version   = 2026091200;        // YYYYMMDDXX — the "Why choose us" section under the category hero.
-$plugin->requires  = 2022041900;
-
-// The home.php JSON feed answers in the caller's language via
-// \local_nit_core\helper\lang, which must therefore be installed.
-$plugin->dependencies = [
-    'local_nit_core' => 2026080404,
-];
+/**
+ * Seed the "Why choose us" section with the design's copy on a fresh install, exactly as
+ * the upgrade step does for an existing site.
+ *
+ * @return void
+ */
+function xmldb_local_nit_category_install(): void {
+    \local_nit_category\whychoose::seed_defaults();
+}

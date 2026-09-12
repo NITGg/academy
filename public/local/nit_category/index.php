@@ -174,6 +174,11 @@ $t = function (string $en, string $ar) use ($isar) {
     return $isar ? $ar : $en;
 };
 
+// "Why thousands choose us" — the section under the hero. Site-wide content the admin
+// edits on Site administration → Plugins → Local plugins → "Why choose us" section
+// (whychoose.php); null when there is nothing to show, and the section stays away.
+$whychoose = \local_nit_category\whychoose::for_display();
+
 // Subcategory filter buttons reuse the site's gallery button components (Components
 // tab): the active filter is a solid .btn-primary, the rest are .btn-outline-primary.
 // $icon is the category's own icon HTML (or '' for the "All" button, which is not a
@@ -460,6 +465,139 @@ echo $OUTPUT->header();
 
     </div>
   </div>
+
+  <?php if ($whychoose): ?>
+  <!-- "Why thousands choose us" (Figma frame 593:2017): two headings + description, then
+       one numbered card per row of local_nit_cat_whycard. Colours are the page's brand
+       slots: the red heading is the palette's Accent Words role, the squiggle its Accent
+       Underline, the card corner strokes its Accent, the number badge border its Border. -->
+  <style>
+    .nit-why { padding: 56px 16px 40px; }
+    .nit-why__inner { max-width: 1280px; margin: 0 auto; }
+    .nit-why__head { text-align: center; max-width: 660px; margin: 0 auto 44px; }
+    .nit-why__h1 {
+      font-size: clamp(30px, 4vw, 48px); font-weight: 600; line-height: 1.3;
+      color: var(--nit-brand-accentwords, var(--ctext3)); margin: 0;
+    }
+    .nit-why__h2wrap { display: inline-block; position: relative; padding-bottom: 16px; }
+    .nit-why__h2 {
+      font-size: clamp(22px, 3vw, 36px); font-weight: 600; line-height: 1.4;
+      color: var(--ctext1); margin: 0;
+    }
+    /* The hand-drawn underline sits under the first word (the inline-start end). */
+    .nit-why__squiggle {
+      position: absolute; bottom: 0; inset-inline-start: 0;
+      width: 177px; max-width: 60%; height: 10px; display: block;
+      color: var(--nit-brand-accentunderline, var(--nit-brand-accentwords, var(--ctext3)));
+    }
+    .nit-why__desc {
+      font-size: clamp(16px, 1.8vw, 22px); font-weight: 500; line-height: 1.45;
+      color: var(--ctext2); margin: 14px auto 0; max-width: 630px;
+    }
+
+    /* Cards: a centred wrapping row, so any number of cards lays out — 4 across at the
+       design width, 3/2 as the viewport narrows, orphans centred on the last row, one per
+       row on a phone. */
+    .nit-why__grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 21px; }
+    .nit-why__card {
+      position: relative; box-sizing: border-box;
+      flex: 1 1 260px; max-width: 304px; min-height: 236px;
+      padding: 36px 28px 30px;
+      border-radius: 13px;
+      background: color-mix(in srgb, var(--cbg2) 55%, transparent);
+      box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+      display: flex; flex-direction: column; align-items: flex-start; gap: 16px;
+      text-align: start;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .nit-why__card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35); }
+    /* The two accent strokes: one hugging the top inline-start corner, one the bottom
+       inline-end corner (top-right and bottom-left in Arabic, mirrored in English). */
+    .nit-why__card::before, .nit-why__card::after {
+      content: ''; position: absolute; pointer-events: none;
+      border: 0 solid var(--caccent);
+    }
+    .nit-why__card::before {
+      top: 0; inset-inline-start: 0; width: 114px; height: 81px;
+      border-top-width: 3px; border-inline-start-width: 3px;
+      border-start-start-radius: 13px;
+    }
+    .nit-why__card::after {
+      bottom: 0; inset-inline-end: 0; width: 114px; height: 99px;
+      border-bottom-width: 3px; border-inline-end-width: 3px;
+      border-end-end-radius: 13px;
+    }
+    .nit-why__num {
+      width: 43px; height: 43px; box-sizing: border-box;
+      border: 1px solid var(--cborder); border-radius: 13px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 600; color: var(--ctext1); line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    /* A card with a picture shows it where the number would be. */
+    .nit-why__img {
+      width: 64px; height: 64px; box-sizing: border-box; padding: 4px;
+      border: 1px solid var(--cborder); border-radius: 13px;
+      object-fit: contain; display: block; background: color-mix(in srgb, var(--cbg2) 70%, transparent);
+    }
+    .nit-why__text { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+    .nit-why__title { font-size: 16px; font-weight: 600; color: var(--ctext1); margin: 0; line-height: 1.5; }
+    .nit-why__body  { font-size: 14px; font-weight: 400; color: var(--ctext2); margin: 0; line-height: 1.65; }
+    @media (max-width: 640px) {
+      .nit-why { padding-top: 40px; }
+      .nit-why__head { margin-bottom: 28px; }
+      .nit-why__card { max-width: 100%; min-height: 0; }
+    }
+  </style>
+  <section class="nit-why" dir="<?= $isar ? 'rtl' : 'ltr' ?>" aria-labelledby="nit-why-h1">
+    <div class="nit-why__inner">
+
+      <?php $wt = $whychoose['texts']; ?>
+      <?php if ($wt['header1'] !== '' || $wt['header2'] !== '' || $wt['description'] !== ''): ?>
+      <div class="nit-why__head">
+        <?php if ($wt['header1'] !== ''): ?>
+        <h2 class="nit-why__h1" id="nit-why-h1"><?= s($wt['header1']) ?></h2>
+        <?php endif; ?>
+        <?php if ($wt['header2'] !== ''): ?>
+        <div class="nit-why__h2wrap">
+          <h3 class="nit-why__h2"><?= s($wt['header2']) ?></h3>
+          <svg class="nit-why__squiggle" viewBox="0 0 177 10" fill="none" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M2 6.5 C 28 1, 52 10, 80 5.5 S 132 1, 152 5 S 168 7, 175 3.5"
+                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <?php endif; ?>
+        <?php if ($wt['description'] !== ''): ?>
+        <p class="nit-why__desc"><?= s($wt['description']) ?></p>
+        <?php endif; ?>
+      </div>
+      <?php endif; ?>
+
+      <?php if (!empty($whychoose['cards'])): ?>
+      <div class="nit-why__grid">
+        <?php foreach ($whychoose['cards'] as $wc): ?>
+        <article class="nit-why__card">
+          <?php if ($wc['image'] !== ''): ?>
+          <img class="nit-why__img" src="<?= s($wc['image']) ?>" alt="">
+          <?php else: ?>
+          <span class="nit-why__num" aria-hidden="true"><?= $wc['number'] ?></span>
+          <?php endif; ?>
+          <div class="nit-why__text">
+            <?php if ($wc['title'] !== ''): ?>
+            <h4 class="nit-why__title"><?= s($wc['title']) ?></h4>
+            <?php endif; ?>
+            <?php if ($wc['body'] !== ''): ?>
+            <p class="nit-why__body"><?= nl2br(s($wc['body'])) ?></p>
+            <?php endif; ?>
+          </div>
+        </article>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
+
+    </div>
+  </section>
+  <?php endif; ?>
 
   <!-- Subcategory Filter Bar (All + children) -->
   <?php if (!empty($subcategories)): ?>

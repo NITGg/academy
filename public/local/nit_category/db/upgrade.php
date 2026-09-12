@@ -64,5 +64,29 @@ function xmldb_local_nit_category_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026090210, 'local', 'nit_category');
     }
 
+    if ($oldversion < 2026091200) {
+        // The cards of the "Why thousands choose us" section on the category pages.
+        $table = new xmldb_table('local_nit_cat_whycard');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('title', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('body', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('sortorder', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('sortorder_idx', XMLDB_INDEX_NOTUNIQUE, ['sortorder']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Ship the section with the design's own copy and four cards, so it is live at
+        // once and the admin edits from something. Fills only what is empty.
+        \local_nit_category\whychoose::seed_defaults();
+
+        upgrade_plugin_savepoint(true, 2026091200, 'local', 'nit_category');
+    }
+
     return true;
 }
