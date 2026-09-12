@@ -31,6 +31,11 @@
       // font-size:0 is a guard, not styling: the editor drops an &nbsp; into
       // any container it thinks is empty, and that stray text node would sit in
       // this flex row and push the logo off centre.
+      //
+      // The block carries this same geometry INLINE on the disc, the logo and
+      // the ring's stroke, so they are in place from the first paint rather
+      // than a round trip later. Kept here too for a page whose paste predates
+      // that, and because the phone rules below override it.
       '[data-nit-orbit-core]{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);' +
       'width:26%;height:26%;border-radius:50%;display:flex;align-items:center;justify-content:center;' +
       'font-size:0;' +
@@ -115,6 +120,14 @@
       '[data-nit-orbit-arrow]{fill:currentColor}' +
       'html[dir="rtl"] [data-nit-orbit-arrow]{transform:scaleX(-1)}' +
 
+      // ---- arrival --------------------------------------------------------
+      // The shapes cannot exist before the script has the category rows, so
+      // they will always land a beat after the rest of the hero. A short fade
+      // makes that read as the artwork arriving rather than the page jumping.
+      // Opacity only: the hover transform below must stay free to transition.
+      '@keyframes nit-orbit-in{from{opacity:0}to{opacity:1}}' +
+      '[data-nit-orbit-node],[data-nit-orbit-bead],[data-nit-orbit-beads]{animation:nit-orbit-in .4s ease both}' +
+
       // ---- hover ----------------------------------------------------------
       '[data-nit-orbit-node]{transition:transform .25s ease}' +
       '[data-nit-orbit-shape],[data-nit-orbit-ico]{transition:filter .25s ease,transform .25s ease}' +
@@ -162,7 +175,10 @@
       'width:100%!important;height:auto!important;padding:8px 0 22px;border-radius:0!important;' +
       'background:none!important;box-shadow:none!important}' +
       '[data-nit-orbit-core]::before,[data-nit-orbit-core]::after{display:none}' +
-      '[data-nit-orbit-logo]{width:min(70%,240px);max-height:100px;object-fit:contain}' +
+      // !important because the block writes the desktop size inline (so the
+      // logo is in place before this stylesheet exists), same as the core.
+      '[data-nit-orbit-logo]{width:min(70%,240px)!important;max-width:min(70%,240px)!important;' +
+      'max-height:100px!important;object-fit:contain}' +
       '[data-nit-orbit-node]{width:100%!important;height:auto!important;aspect-ratio:1!important}' +
       '[data-nit-orbit-node]:hover{transform:none!important}' +
       // A grid cell on a phone is ~165px against ~185px in the ring, and the
@@ -171,7 +187,8 @@
       '}' +
 
       '@media (prefers-reduced-motion:reduce){[data-nit-orbit-node],[data-nit-orbit-shape],' +
-      '[data-nit-orbit-ico]{transition:none}[data-nit-orbit-node]:hover{transform:translate(-50%,-50%)}}';
+      '[data-nit-orbit-ico]{transition:none}[data-nit-orbit-node]:hover{transform:translate(-50%,-50%)}' +
+      '[data-nit-orbit-node],[data-nit-orbit-bead],[data-nit-orbit-beads]{animation:none}}';
     var st = document.createElement('style');
     st.id = 'nit-hero-orbit-style';
     st.textContent = css;
