@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "NIT Academy - Categories (Mobile API)",
+    "_postman_id": "7c1f2f4e-3a5b-4c1a-9c6e-categories-mobile",
+    "description": "The calls the mobile app uses to view categories.\n\n1. core_course_get_categories  (core web service, needs the mobile token) - the category tree.\n2. /local/nit_category/home.php?function=get_categories  (our JSON feed, no auth) - image + icon, merge by id.\n3. local_nit_category_search  (our web service, needs the mobile token) - search courses + categories together.\n\nSet the collection variables `wwwroot` and `token` before running. Get a token from:\n{{wwwroot}}/login/token.php?username=USER&password=PASS&service=moodle_mobile_app\n\nFull reference: docs/apis/category-course-details-mobile-api.md",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "wwwroot", "value": "https://academy2026.nitg-eg.com/moodle-new", "type": "string" },
+    { "key": "token",   "value": "PUT_YOUR_MOBILE_TOKEN_HERE", "type": "string" },
+    { "key": "alang",   "value": "ar", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "0. Get mobile token (login/token.php)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{wwwroot}}/login/token.php?username=USERNAME&password=PASSWORD&service=moodle_mobile_app",
+          "host": ["{{wwwroot}}"],
+          "path": ["login", "token.php"],
+          "query": [
+            { "key": "username", "value": "USERNAME" },
+            { "key": "password", "value": "PASSWORD" },
+            { "key": "service",  "value": "moodle_mobile_app" }
+          ]
+        },
+        "description": "Returns {\"token\":\"...\",\"privatetoken\":\"...\"}. The test script below copies `token` into the collection variable automatically."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "if (body.token) {",
+              "    pm.collectionVariables.set('token', body.token);",
+              "    console.log('token saved to collection variable');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Category tree - core_course_get_categories",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "wstoken",            "value": "{{token}}" },
+            { "key": "wsfunction",         "value": "core_course_get_categories" },
+            { "key": "moodlewsrestformat", "value": "json" },
+            { "key": "addsubcategories",   "value": "1", "description": "1 = include subcategories, 0 = top-level only" }
+          ]
+        },
+        "url": {
+          "raw": "{{wwwroot}}/webservice/rest/server.php",
+          "host": ["{{wwwroot}}"],
+          "path": ["webservice", "rest", "server.php"]
+        },
+        "description": "Core Moodle. Returns id, name, idnumber, description, parent, sortorder, coursecount, visible, depth, path, theme. NO image / icon - merge request #2 by id."
+      }
+    },
+    {
+      "name": "1b. Children of one category - core_course_get_categories (criteria)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "wstoken",              "value": "{{token}}" },
+            { "key": "wsfunction",           "value": "core_course_get_categories" },
+            { "key": "moodlewsrestformat",   "value": "json" },
+            { "key": "criteria[0][key]",     "value": "parent" },
+            { "key": "criteria[0][value]",   "value": "1", "description": "parent category id" },
+            { "key": "addsubcategories",     "value": "0" }
+          ]
+        },
+        "url": {
+          "raw": "{{wwwroot}}/webservice/rest/server.php",
+          "host": ["{{wwwroot}}"],
+          "path": ["webservice", "rest", "server.php"]
+        },
+        "description": "Same function filtered by criteria. Other keys: id, ids, name, idnumber, visible, theme."
+      }
+    },
+    {
+      "name": "2. Category image + icon feed - local_nit_category home.php",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{wwwroot}}/local/nit_category/home.php?function=get_categories&limit=50&alang={{alang}}",
+          "host": ["{{wwwroot}}"],
+          "path": ["local", "nit_category", "home.php"],
+          "query": [
+            { "key": "function", "value": "get_categories" },
+            { "key": "limit",    "value": "50", "description": "0..50, default 0 = all" },
+            { "key": "alang",    "value": "{{alang}}", "description": "ar | en" }
+          ]
+        },
+        "description": "No auth. Returns {status, data:[{id, name, url, coursecount, image, icon}]}. Every visible top-level category, including ones with coursecount 0; limit caps the list (0 = all, max 50). `icon` is a URL, a single emoji, or \"\"."
+      }
+    },
+    {
+      "name": "3. Search courses + categories - local_nit_category_search",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "wstoken",            "value": "{{token}}" },
+            { "key": "wsfunction",         "value": "local_nit_category_search" },
+            { "key": "moodlewsrestformat", "value": "json" },
+            { "key": "query",              "value": "digital marketing" },
+            { "key": "courseperpage",      "value": "20", "description": "default 20, max 100" },
+            { "key": "coursepage",         "value": "0",  "description": "zero-based" },
+            { "key": "categoryperpage",    "value": "20", "description": "default 20, max 100" },
+            { "key": "categorypage",       "value": "0",  "description": "zero-based" },
+            { "key": "format",             "value": "full", "description": "full | ids" },
+            { "key": "country",            "value": "",   "description": "ISO country for pricing (optional)", "disabled": true },
+            { "key": "alang",              "value": "{{alang}}" }
+          ]
+        },
+        "url": {
+          "raw": "{{wwwroot}}/webservice/rest/server.php",
+          "host": ["{{wwwroot}}"],
+          "path": ["webservice", "rest", "server.php"]
+        },
+        "description": "Our web service (MOODLE_OFFICIAL_MOBILE_SERVICE). Returns {query, answerable, minlength, total, courses:{label,count,page,perpage,more,ids,rows}, categories:{label,count,page,perpage,more,rows:[{id,...}]}}."
+      }
+    }
+  ]
+}

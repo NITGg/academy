@@ -37,11 +37,21 @@
      comments. A fix to the behaviour ships with a git pull; only a markup
      change needs a re-paste.
 
+     THE LOGO ROW at the top of the section is the site logo, read from the
+     site rather than pasted here: window.NIT_LOGO, the compact mark the
+     navigation bar draws through the same get_compact_logo_url() accessor,
+     printed by theme_nit's front-page layout; failing that, the navigation
+     bar's own image in the page. The picture in the markup is only the last
+     resort for a site that has uploaded no logo. home_hero_orbit.js fills it
+     at load, in setupLogo, exactly as it fills the mark at the centre of the
+     orbit, and data-nit-logo="compact" lets the theme's light/dark button
+     swap it in step with the navbar - the same contract home_6_categories2.html
+     uses, so the two sections can never show different marks.
+
      WHERE THE CATEGORIES COME FROM - window.NIT_CATEGORIES, which theme_nit's
      front-page layout already prints. It lists every top-level category
-     INCLUDING ones with no courses yet, which is what a showcase needs and what
-     /local/nit_category/home.php deliberately withholds - that feed drops a
-     zero-course category because a dead link is wrong in a grid of courses.
+     INCLUDING ones with no courses yet, which is what a showcase needs
+     (/local/nit_category/home.php?function=get_categories lists the same set).
 
      WHICH categories, and in what order, is data-ids on the orbit element: a
      plain list of category ids, drawn in that order. Empty it and the first six
@@ -77,6 +87,15 @@
      installed under. Change that prefix if wwwroot moves. -->
 <div dir="auto"
   style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(20px, 5vw, 64px); overflow: hidden;">
+  <!-- Logo row. A real img with a src, never an empty element: the editor
+       deletes anything with no content of its own. The height is a clamp so
+       the mark stays a mark on a phone and does not swell on a wide screen. -->
+  <div
+    style="max-width: 1230px; margin: 0 auto 40px; display: flex; align-items: center; justify-content: center;"
+    data-nit-hero-brand=""> <img class="img-fluid"
+      style="display: block; height: clamp(64px, 8vw, 96px); width: auto; max-width: 100%; object-fit: contain;"
+      src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
+      data-nit-hero-brandmark="" data-nit-logo="compact"> </div>
   <div
     style="max-width: 1230px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 40px 20px;"
     data-nit-hero-split=""><!-- Text column. Flat on purpose: the heading, the paragraph and the button

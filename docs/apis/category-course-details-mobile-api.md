@@ -64,7 +64,7 @@ GET {wwwroot}/local/nit_category/home.php?function=get_categories&limit=50&alang
 | Param | Type | Default | Meaning |
 |-------|------|---------|---------|
 | `function` | string | — | must be `get_categories` |
-| `limit` | int | `12` | max rows, clamped to **1..50** |
+| `limit` | int | `0` | max rows, clamped to **0..50**; `0` = every top-level category |
 | `alang` | `ar` \| `en` | session lang | language the names come back in |
 
 **Auth:** none. No token, no cookie, no sesskey. (If an admin ever turns

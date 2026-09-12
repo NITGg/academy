@@ -53,21 +53,21 @@ class home {
      * hidden category is absent for a guest and present for a manager without this
      * method having to know the difference.
      *
-     * @param int $limit most categories to return
+     * Every visible top-level category is listed, including one with no courses
+     * yet: the mobile app merges this feed into the tree it already has from
+     * `core_course_get_categories` by id, so a row the feed withholds is a
+     * category the app draws with no image and no icon. A consumer that wants
+     * the empty ones out reads `coursecount` and drops them itself.
+     *
+     * @param int $limit most categories to return; 0 means all of them
      * @return array[] one row per category
      */
-    public static function categories(int $limit = 12): array {
-        $limit = max(1, min(50, $limit));
+    public static function categories(int $limit = 0): array {
+        $limit = max(0, min(50, $limit));
         $rows = [];
 
         foreach (core_course_category::get_all(['returnhidden' => false]) as $category) {
             if ((int) $category->parent !== 0) {
-                continue;
-            }
-
-            // A category with nothing in it is a dead link on the front page.
-            $count = self::course_count($category);
-            if ($count === 0) {
                 continue;
             }
 
@@ -76,12 +76,12 @@ class home {
                 'name' => $category->get_formatted_name(),
                 'url' => (new moodle_url('/local/nit_category/index.php',
                     ['id' => $category->id]))->out(false),
-                'coursecount' => $count,
+                'coursecount' => self::course_count($category),
                 'image' => local_nit_category_get_image_url((int) $category->id),
                 'icon' => self::icon($category),
             ];
 
-            if (count($rows) >= $limit) {
+            if ($limit > 0 && count($rows) >= $limit) {
                 break;
             }
         }

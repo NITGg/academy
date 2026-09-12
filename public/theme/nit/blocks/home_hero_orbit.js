@@ -119,8 +119,12 @@
       '[data-nit-orbit-node]:hover{transform:translate(-50%,-50%) scale(1.06)}' +
       '[data-nit-orbit-node]:hover [data-nit-orbit-shape]{' +
       'filter:drop-shadow(0 0 22px color-mix(in srgb,var(--nit-ac) 70%,transparent))}' +
+      // The arrow is currentColor, so without a colour of its own it would keep
+      // the page's text colour - near black in light mode - on top of the
+      // saturated fill. On Primary is the palette's text-on-a-brand-fill role,
+      // white in every group.
       '[data-nit-orbit-node]:hover [data-nit-orbit-go]{background:var(--nit-ac);' +
-      'border-color:var(--nit-ac)}' +
+      'border-color:var(--nit-ac);color:var(--nit-brand-onprimary)}' +
 
       // ---- phones ---------------------------------------------------------
       // A ring of 185px shapes needs ~670px to exist. Below that it folds to the
@@ -543,16 +547,14 @@
       beads(picked.length);
     }
 
-    // Already on the page, and the only source that includes a category with no
-    // courses in it yet.
+    // Already on the page, so no request is needed.
     if (Array.isArray(window.NIT_CATEGORIES) && window.NIT_CATEGORIES.length) {
       draw(window.NIT_CATEGORIES);
       return;
     }
 
-    // Fallback for a page that does not print the global. The feed hides empty
-    // categories, so the ring may come up short here — that is the feed's rule,
-    // not a fault in this block.
+    // Fallback for a page that does not print the global. The feed lists every
+    // top-level category, empty ones included, so the ring is the same either way.
     var root = (window.M && window.M.cfg && window.M.cfg.wwwroot) ? window.M.cfg.wwwroot : '';
     var lang = (document.documentElement.getAttribute('lang') || 'en').split('-')[0];
     fetch(root + '/local/nit_category/home.php?function=get_categories' +
@@ -784,9 +786,12 @@
   // ------------------------------------------------------------------
   // Centre logo: reads from the site/navbar logo (window.NIT_LOGO or
   // .nit-navbar-logo in the DOM) so the hero constellation matches the navbar.
+  // The same fill goes to [data-nit-hero-brandmark], the logo row the block
+  // draws above the hero; it is a separate hook because the orbit-logo rules
+  // above size the centre mark as a fraction of the core circle.
   // ------------------------------------------------------------------
   function setupLogo() {
-    var logos = document.querySelectorAll('[data-nit-orbit-logo]');
+    var logos = document.querySelectorAll('[data-nit-orbit-logo], [data-nit-hero-brandmark]');
     if (!logos.length) {
       return;
     }

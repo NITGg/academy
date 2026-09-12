@@ -57,9 +57,8 @@
 
      WHERE THE CATEGORIES COME FROM - window.NIT_CATEGORIES, which theme_nit's
      front-page layout already prints. It lists every top-level category
-     INCLUDING ones with no courses yet, which is what a showcase needs and what
-     /local/nit_category/home.php deliberately withholds - that feed drops a
-     zero-course category because a dead link is wrong in a grid of courses.
+     INCLUDING ones with no courses yet, which is what a showcase needs
+     (/local/nit_category/home.php?function=get_categories lists the same set).
 
      WHICH categories, and in what order, is data-ids on the orbit element: a
      plain list of category ids, drawn in that order. Empty it and the first six

@@ -86,7 +86,8 @@ try {
             nit_home_respond([
                 'status' => 'success',
                 'data' => \local_nit_category\home::categories(
-                    optional_param('limit', 12, PARAM_INT)
+                    // 0 = every top-level category; a positive value caps the list.
+                    optional_param('limit', 0, PARAM_INT)
                 ),
             ]);
             break;
