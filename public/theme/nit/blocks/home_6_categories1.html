@@ -89,11 +89,18 @@
   style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(20px, 5vw, 64px); overflow: hidden;">
   <!-- Logo row. A real img with a src, never an empty element: the editor
        deletes anything with no content of its own. The height is a clamp so
-       the mark stays a mark on a phone and does not swell on a wide screen. -->
+       the mark stays a mark on a phone and does not swell on a wide screen.
+
+       opacity: 0 is deliberate, and it is on BOTH logo images in this file.
+       The src is only the last-resort fallback; without the opacity the
+       browser paints it for the moment before home_hero_orbit.js has swapped
+       in the site's real logo, which shows as the old mark flashing and then
+       changing. setupLogo() lifts the opacity only once the real image has
+       finished loading, so nothing is ever drawn but the right mark. -->
   <div
     style="max-width: 1230px; margin: 0 auto 40px; display: flex; align-items: center; justify-content: center;"
     data-nit-hero-brand=""> <img class="img-fluid"
-      style="display: block; width: auto; max-width: 100%; object-fit: contain;"
+      style="display: block; width: auto; max-width: 100%; object-fit: contain; opacity: 0;"
       src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
       data-nit-hero-brandmark="" data-nit-logo="compact"> </div>
   <div
@@ -150,8 +157,11 @@
         <g data-nit-orbit-beads=""></g>
       </svg><!-- Centre: the logo inside a gradient ring inside a faint halo ring.
            A real img, not an empty element painted through a CSS mask: the
-           editor deletes any element with no content of its own. -->
+           editor deletes any element with no content of its own. Hidden with
+           opacity: 0 until the script has loaded the real logo - see the logo
+           row above for why. -->
       <div data-nit-orbit-core=""><img class="img-fluid"
+          style="opacity: 0;"
           src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
           data-nit-orbit-logo=""></div>
       <!-- Card template, cloned once per category. The {{placeholder}} markers

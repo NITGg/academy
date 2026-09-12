@@ -92,7 +92,9 @@
       'display:flex;align-items:center;justify-content:center;font-size:26px;line-height:1;' +
       'background:linear-gradient(160deg,var(--nit-ac),color-mix(in srgb,var(--nit-ac) 62%,#000));' +
       'box-shadow:0 6px 18px color-mix(in srgb,var(--nit-ac) 45%,transparent)}' +
-      '[data-nit-orbit-ico] svg{width:28px;height:28px;fill:var(--nit-brand-textprimary)}' +
+      // --nit-ac-on is whichever palette colour contrasts best with this
+      // shape's accent, picked by onAccent() below — see the note there.
+      '[data-nit-orbit-ico] svg{width:28px;height:28px;fill:var(--nit-ac-on,var(--nit-brand-textprimary))}' +
       // The uploaded icons are a circular badge drawn on a white square, and
       // that square's corners would otherwise survive as a white ring inside the
       // disc. Cropping to cover and zooming past the margin pushes the white out
@@ -121,10 +123,14 @@
       'filter:drop-shadow(0 0 22px color-mix(in srgb,var(--nit-ac) 70%,transparent))}' +
       // The arrow is currentColor, so without a colour of its own it would keep
       // the page's text colour - near black in light mode - on top of the
-      // saturated fill. On Primary is the palette's text-on-a-brand-fill role,
-      // white in every group.
+      // saturated fill. It used to take On Primary, the palette's text-on-a-
+      // brand-fill role, but that is white in every group and not every accent
+      // is dark: the dark group's Accent Text is white, so the fifth shape's
+      // button went white-on-white the moment it was hovered. --nit-ac-on is
+      // computed per shape from the accent it actually resolves to; On Primary
+      // stays as the fallback for a browser that could not measure it.
       '[data-nit-orbit-node]:hover [data-nit-orbit-go]{background:var(--nit-ac);' +
-      'border-color:var(--nit-ac);color:var(--nit-brand-onprimary)}' +
+      'border-color:var(--nit-ac);color:var(--nit-ac-on,var(--nit-brand-onprimary))}' +
 
       // ---- phones ---------------------------------------------------------
       // A ring of 185px shapes needs ~670px to exist. Below that it folds to the
@@ -545,6 +551,9 @@
         orbit.appendChild(node);
       });
       beads(picked.length);
+      // After the nodes are in the document: the accent is measured off the
+      // rendered element, and a detached one resolves every var() to nothing.
+      onAccent();
     }
 
     // Already on the page, so no request is needed.
@@ -784,6 +793,126 @@
   }
 
   // ------------------------------------------------------------------
+  // Text on an accent. Each shape's accent is a Brand Colors role, and nothing
+  // guarantees a role is dark enough to carry white: the dark group's Accent
+  // Text is white, which put a white arrow on a white button and a white glyph
+  // on a white disc for the fifth shape. CSS cannot pick a contrasting colour
+  // on its own (contrast-color() is not usable yet), so this measures each
+  // shape's accent as the browser resolves it, keeps On Primary where it is
+  // readable, and otherwise sets --nit-ac-on to whichever of Background and
+  // Text primary contrasts more — one of those two is always the opposite
+  // scheme's extreme. Nothing literal; every candidate is a palette role.
+  //
+  // Re-run when the html element's class list changes, because the light/dark
+  // button swaps the brand group live and every accent resolves to a new value.
+  // ------------------------------------------------------------------
+  function onAccent() {
+    var probe = null;
+
+    // Lets the browser resolve a colour expression in the context of `el`, so
+    // var(--nit-ac) is read off THIS shape. display:none keeps the probe out
+    // of layout; computed styles are still available for it.
+    function resolve(el, expr) {
+      if (!probe) {
+        probe = document.createElement('span');
+        probe.style.display = 'none';
+      }
+      el.appendChild(probe);
+      probe.style.color = '';
+      probe.style.color = expr;
+      var c = getComputedStyle(probe).color;
+      el.removeChild(probe);
+      var m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(c);
+      if (m) {
+        return [+m[1], +m[2], +m[3]];
+      }
+      m = /^color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/.exec(c);
+      if (m) {
+        return [+m[1] * 255, +m[2] * 255, +m[3] * 255];
+      }
+      return null;
+    }
+
+    function luminance(rgb) {
+      var ch = rgb.map(function(v) {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+    }
+
+    function contrast(a, b) {
+      var la = luminance(a);
+      var lb = luminance(b);
+      return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+    }
+
+    // WCAG's floor for graphics and UI parts. On Primary is the designed
+    // choice and keeps the button wherever it clears this; only an accent it
+    // cannot be read on (a white one) gets the next-best palette colour. A
+    // "highest contrast wins" rule would instead repaint every mid-tone accent
+    // dark-on-colour, because near-black edges out white on most of them.
+    var MINRATIO = 3;
+    var DEFAULT = 'var(--nit-brand-onprimary)';
+    var CANDIDATES = [
+      'var(--nit-brand-background)',
+      'var(--nit-brand-textprimary)'
+    ];
+
+    function tune() {
+      Array.prototype.forEach.call(
+        document.querySelectorAll('[data-nit-orbit-node]'),
+        function(link) {
+          var ac = resolve(link, 'var(--nit-ac)');
+          var on = ac && resolve(link, DEFAULT);
+          if (!ac || !on || contrast(ac, on) >= MINRATIO) {
+            link.style.removeProperty('--nit-ac-on');
+            return;
+          }
+          var best = null;
+          var bestratio = 0;
+          CANDIDATES.forEach(function(expr) {
+            var rgb = resolve(link, expr);
+            if (!rgb) {
+              return;
+            }
+            var ratio = contrast(ac, rgb);
+            if (ratio > bestratio) {
+              bestratio = ratio;
+              best = expr;
+            }
+          });
+          if (best) {
+            link.style.setProperty('--nit-ac-on', best);
+          } else {
+            link.style.removeProperty('--nit-ac-on');
+          }
+        }
+      );
+    }
+
+    tune();
+
+    if (!window.nitHeroOrbitAccentWatch && window.MutationObserver) {
+      window.nitHeroOrbitAccentWatch = true;
+      // A timeout rather than requestAnimationFrame to coalesce the burst of
+      // class changes the toggle makes: rAF does not fire in a background tab,
+      // and a mode switched from another tab would then stay untuned.
+      var pending = false;
+      new MutationObserver(function() {
+        if (pending) {
+          return;
+        }
+        pending = true;
+        setTimeout(function() {
+          pending = false;
+          tune();
+        }, 0);
+      }).observe(document.documentElement, {attributes: true, attributeFilter: ['class']});
+    }
+  }
+
+  // ------------------------------------------------------------------
   // Centre logo: reads from the site/navbar logo (window.NIT_LOGO or
   // .nit-navbar-logo in the DOM) so the hero constellation matches the navbar.
   // The same fill goes to [data-nit-hero-brandmark], the logo row the block
@@ -829,9 +958,34 @@
         logoImg.style.filter = 'none';
       }
 
+      // The block ships the image with opacity: 0, because its src attribute
+      // is only the fallback mark and the browser would otherwise paint that
+      // for the moment before this runs — the old logo flashing, then the real
+      // one. So: swap the src, and reveal on load, never before. A load that
+      // fails falls back to the theme asset, and reveals on THAT, so a site
+      // whose logo URL is broken still gets a mark rather than a blank disc.
+      // The complete/naturalWidth check covers a cached image and the case
+      // where the fallback IS the real logo (same URL, so no load event).
+      var reveal = function() {
+        logoImg.style.opacity = '1';
+      };
+      var fallback = root + '/theme/nit/pix/footer-logo.png';
+      logoImg.addEventListener('load', reveal);
+      logoImg.addEventListener('error', function() {
+        if (logoImg.src.indexOf(fallback) === -1) {
+          logoImg.style.filter = 'brightness(0) invert(1)';
+          logoImg.src = fallback;
+        } else {
+          reveal();
+        }
+      });
+
       logoImg.src = logoUrl;
       if (logoAlt) {
         logoImg.alt = logoAlt;
+      }
+      if (logoImg.complete && logoImg.naturalWidth > 0) {
+        reveal();
       }
     });
   }
