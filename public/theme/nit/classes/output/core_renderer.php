@@ -799,6 +799,9 @@ JS;
             if (!empty($item['divider'])) {
                 continue;
             }
+            if ($this->navbar_link_hidden_from_visitor($item)) {
+                continue;
+            }
             $item['isactive'] = $this->navbar_custom_menu_is_active($item, $currentpath);
             $items[] = $item;
         }
@@ -808,6 +811,82 @@ JS;
         }
 
         return $this->render_from_template('theme_nit/navbar_custom_menu', ['items' => $items]);
+    }
+
+    /**
+     * Pages a custom menu line may point at that a visitor has no business seeing.
+     *
+     * The custom menu syntax (`text|url|title|lang`) has no notion of who a line
+     * is for, and the calendar is only meaningful once there is a user to have
+     * events — a visitor who follows it lands on the login page. Paths are
+     * matched as prefixes against the link's path.
+     */
+    const VISITOR_HIDDEN_PATHS = ['/calendar/'];
+
+    /**
+     * Whether one custom menu row is kept off the navbar for the current viewer.
+     *
+     * Applies to a visitor only: not logged in, or logged in as the guest
+     * account. Every real account sees every line the administrator wrote.
+     *
+     * @param array $item an exported custom menu node ({text, url, ...})
+     * @return bool true to drop the row
+     */
+    protected function navbar_link_hidden_from_visitor(array $item): bool {
+        if (isloggedin() && !isguestuser()) {
+            return false;
+        }
+        if (empty($item['url'])) {
+            return false;
+        }
+        $path = parse_url((string) $item['url'], PHP_URL_PATH);
+        if ($path === null || $path === false) {
+            return false;
+        }
+        // A link written relative to the site ("/calendar/view.php") and one
+        // written in full both end up compared as the path under wwwroot.
+        global $CFG;
+        $root = (string) parse_url($CFG->wwwroot, PHP_URL_PATH);
+        if ($root !== '' && $root !== '/' && strpos($path, $root) === 0) {
+            $path = substr($path, strlen($root));
+        }
+        foreach (self::VISITOR_HIDDEN_PATHS as $prefix) {
+            if (strpos($path, $prefix) === 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The mobile drawer's rows: core's merged primary + custom list, minus what a
+     * visitor should not see.
+     *
+     * Core merges the custom menu lines into `mobileprimarynav`
+     * (\core\navigation\output\primary::merge_primary_and_custom) inside the
+     * layout, where the theme cannot get between the setting and the template.
+     * The drawer template (theme_nit's copy of theme_boost/primary-drawer-mobile)
+     * therefore iterates this method instead of the layout's variable, so the
+     * same gate that keeps a row off the bar keeps it out of the drawer.
+     *
+     * @return array the rows, in the shape the drawer template expects
+     */
+    public function navbar_mobile_primary_nav(): array {
+        $primary = new primary($this->page);
+        $rows = [];
+        foreach ($primary->mobile_rows($this) as $row) {
+            $row = (array) $row;
+            if ($this->navbar_link_hidden_from_visitor($row)) {
+                continue;
+            }
+            if (!empty($row['children'])) {
+                $row['children'] = array_values(array_filter($row['children'], function($child) {
+                    return !$this->navbar_link_hidden_from_visitor((array) $child);
+                }));
+            }
+            $rows[] = $row;
+        }
+        return $rows;
     }
 
     /**

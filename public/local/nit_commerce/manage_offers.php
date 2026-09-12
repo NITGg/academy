@@ -399,7 +399,6 @@ echo html_writer::script(<<<'JS'
         tbody.innerHTML = '<tr><td colspan="8">'+esc(str('ui_loading'))+'</td></tr>';
         return api('get_offers').then(function(rows){
             OFFERS = rows || [];
-            fillOfferFilter();
             if (!OFFERS.length){
                 tbody.innerHTML = '<tr><td colspan="8">'+esc(str('ofr_none'))+'</td></tr>';
                 $('ofr-table-pager').innerHTML = '';

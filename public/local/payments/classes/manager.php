@@ -255,8 +255,11 @@ class manager {
             'order_id' => $order_id,
             'amount' => $amount,
             'currency' => $pricing->currency,
-            'description' => get_string('paymentfor', 'local_payments',
-                $DB->get_field('course', 'fullname', ['id' => $courseid])),
+            // The provider prints this on its invoice verbatim, so the {mlang} name is
+            // resolved here, in the language the buyer is checking out in.
+            'description' => get_string_manager()->get_string('paymentfor', 'local_payments',
+                multilang::resolve($DB->get_field('course', 'fullname', ['id' => $courseid]), $display_lang),
+                $display_lang),
             'userid' => $userid,
             'courseid' => $courseid,
             'customer_email' => $user->email,
@@ -479,7 +482,7 @@ class manager {
             'order_id' => $order_id,
             'amount' => $amount,
             'currency' => $currency,
-            'description' => 'Subscription: ' . format_string($sub->name),
+            'description' => 'Subscription: ' . multilang::resolve($sub->name, $display_lang),
             'userid' => $userid,
             'courseid' => 0,
             'customer_email' => $user->email,

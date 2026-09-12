@@ -362,7 +362,6 @@ echo html_writer::script(<<<'JS'
         tbody.innerHTML = '<tr><td colspan="9">'+esc(str('ui_loading'))+'</td></tr>';
         api('get_coupons').then(function(rows){
             COUPONS = rows || [];
-            fillCouponFilter();
             if (!rows.length){
                 tbody.innerHTML = '<tr><td colspan="9">'+esc(str('cpn_none'))+'</td></tr>';
                 $('cpn-table-pager').innerHTML = '';
