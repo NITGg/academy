@@ -29,7 +29,7 @@
     looking like two different products.
 
     Everything core puts on the page is still here (guest access, the language
-    menu, the cookies notice, an administrator's own instructions), only demoted
+    menu, an administrator's own instructions), only demoted
     to where it belongs on a screen whose one job is to let a returning learner
     back in.
 
@@ -193,9 +193,9 @@
     {{/hasinstructions}}
 
     {{!
-        The utility line: the three things that are on this screen because the
+        The utility line: the two things that are on this screen because the
         page needs them somewhere, not because a returning learner came for them
-        - the language switcher, guest access and the cookies notice.
+        - the language switcher and guest access.
 
         Guest access sits here rather than as a full-width button of its own. It
         is not a second way to sign in - it is a way to look around without an
@@ -219,11 +219,13 @@
                     !}}{{#str}}loginguest{{/str}}</button>
             </form>
         {{/canloginasguest}}
-        <button type="button" class="btn nit-auth-utility-btn" {{!
-        }} data-modal="alert"{{!
-        }} data-modal-title-str='["cookiesenabled", "core"]' {{!
-        }} data-modal-content-str='["cookiesenabled_help_html", "core"]'{{!
-        }}>{{#str}}cookiesnotice{{/str}}</button>
+        {{!
+            Core's "Cookies notice" button used to sit here. It only opened an
+            informational modal (the MoodleSession / MOODLEID explanation) and
+            set nothing itself: the cookies are still issued by the server and
+            login/index.php still runs its own cookies-disabled check. Dropped
+            because the privacy policy page (AC-4.21) covers it.
+        }}
     </div>
 </div>
 
