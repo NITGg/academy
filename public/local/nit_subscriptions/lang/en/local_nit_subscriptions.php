@@ -43,6 +43,9 @@ $string['mc_unbuy_title']     = 'Revoke course purchase';
 $string['mc_unbuy_confirm']   = 'Unenrol <b>{$a->user}</b> from <b>{$a->course}</b> and revoke this purchase?';
 $string['mc_unbuy_confirm_norole'] = 'Revoke <b>{$a->user}</b>\'s purchase of <b>{$a->course}</b>? They are already unenrolled from it.';
 $string['mc_unbuy_refund']    = 'Mark this purchase as refunded';
+// Written on the refund row the "Unbuy … and mark refunded" tick creates, so the financial
+// report can say where that money went without an administrator having to remember.
+$string['mc_refund_reason']   = 'Purchase revoked by an administrator (Manage courses)';
 $string['mc_unbuy_success']   = 'The course purchase was revoked.';
 $string['mc_course_deleted']  = '(deleted course)';
 $string['mc_txn_notfound']    = 'Purchase not found.';

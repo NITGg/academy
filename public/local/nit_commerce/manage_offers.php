@@ -20,7 +20,10 @@
  *
  * Two tabs, same shape as the coupon page:
  *   - Offers: create/edit/activate/delete the offers themselves.
- *   - Reports: how many times each offer was used and the orders it was applied to (AC-4.13.7).
+ *   - Reports: the platform's shared financial report, narrowed to orders an offer discounted.
+ *     It is \local_nit_finance\output\report_panel — the same panel manage_coupons,
+ *     manage_courses and manage_subscriptions carry, and the same one the master report at
+ *     local/nit_finance/manage_withdrawals.php runs with every scope.
  *
  * @package    local_nit_commerce
  * @copyright  2026 NIT
@@ -30,6 +33,9 @@
 require(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->dirroot . '/local/nit_commerce/lib.php');
+
+use local_nit_finance\output\report_panel;
+use local_nit_finance\report\revenue;
 
 admin_externalpage_setup('local_nit_commerce_manageoffers');
 require_capability('local/nit_commerce:manageoffers', context_system::instance());
@@ -58,16 +64,13 @@ $STR = local_nit_commerce_string_map(array(
     'ofr_delete_title',
     'pkg_field_name_en', 'pkg_field_name_ar',
     'pkg_field_desc_en', 'pkg_field_desc_ar', 'ui_showmore', 'ui_showless',
-    // Report tab (AC-4.13.7).
-    'ofr_rep_none', 'ofr_col_usage', 'ofr_rep_open',
-    'rep_col_date', 'rep_col_learner', 'rep_col_order', 'rep_col_orderstatus', 'rep_col_item',
-    'rep_col_original', 'rep_col_discount', 'rep_col_paid', 'rep_col_usages', 'rep_col_learners',
-    'rep_col_last', 'rep_col_offer', 'rep_total', 'rep_held', 'rep_noorder', 'rep_filter_alloffers',
+    // The offers table's own usage cell (AC-4.13.7): paid uses, plus the ones still only held
+    // by an unpaid checkout.
+    'rep_held', 'ofr_col_usage',
     'err_sessionexpired', 'err_requestfailed',
 ));
 echo html_writer::script('window.ACADEMY_CFG = ' . json_encode(array(
     'endpoint' => (new moodle_url('/local/nit_commerce/api.php'))->out(false),
-    'export'   => (new moodle_url('/local/nit_commerce/export_offer_usages.php'))->out(false),
     'sesskey'  => sesskey(),
     'lang'     => optional_param('lang', current_language(), PARAM_LANG),
     'currency' => \local_nit_commerce\coupon_manager::default_currency(),
@@ -81,44 +84,24 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     .acad-pager button.is-active { background:#0f6cbf; border-color:#0f6cbf; color:#fff; }
     .acad-pager button:disabled { opacity:.5; cursor:default; }
 
-    /* Report tab. Every colour is a Brand Colors role (theme/nit/gallery.php -> --nit-brand-*),
-       so the report recolours with the saved palette instead of sitting as a white island on the
-       site's dark ground. The roles are defined on :root by theme_nit, which puts them on admin
-       pages too. Hex fallbacks are the Group 1 seeds, used only if the theme CSS is absent.
-       Kept identical to manage_coupons.php so the two reports read as one feature. */
-    .rep-filters { display:flex; flex-wrap:wrap; gap:.75rem; align-items:flex-end; margin-bottom:1rem; }
-    .rep-filters .rep-field { display:flex; flex-direction:column; gap:.2rem; }
-    .rep-filters label { font-size:.8rem; color:var(--nit-brand-textsecondary, #94a3b8); margin:0; }
-    .rep-filters .form-control { min-width:150px; }
-    .rep-kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:.75rem; margin-bottom:1.25rem; }
-    /* Surface is the role for "cards background / page sections background" — these tiles are
-       exactly that, so they take it rather than a hard-coded white. */
-    .rep-kpi { border:1px solid var(--nit-brand-borderprimary, #223244); border-radius:8px;
-        padding:.75rem 1rem; background:var(--nit-brand-surface, #121e2d); }
-    .rep-kpi__label { font-size:.78rem; color:var(--nit-brand-textsecondary, #94a3b8); text-transform:uppercase; letter-spacing:.03em; }
-    .rep-kpi__value { font-size:1.5rem; font-weight:800; color:var(--nit-brand-textprimary, #eef3f9); line-height:1.3; }
-    .rep-kpi__value small { font-size:.8rem; font-weight:600; color:var(--nit-brand-textsecondary, #94a3b8); }
+    /* The Reports tab brings its own stylesheet with it (report_panel::css), which is why there
+       is almost no report CSS left here: one file styles that tab on all five pages. What stays
+       is what the Offers tab itself uses — the "lowest offer wins" note, and the usage cell in
+       the offers table. */
     .rep-sub { font-size:.85rem; color:var(--nit-brand-textsecondary, #94a3b8); margin:.15rem 0 0; }
-    .rep-h { font-size:1.05rem; font-weight:700; margin:1.5rem 0 .5rem; color:var(--nit-brand-textprimary, #eef3f9); }
+    .rep-amount { white-space:nowrap; font-variant-numeric:tabular-nums; }
     .rep-badge { display:inline-block; font-size:.72rem; font-weight:700; border-radius:999px; padding:.1rem .5rem; }
-    /* Held / no-order pills: tinted from the role rather than filled with it, so the label stays
-       readable on both a light and a dark palette. */
+    /* Held pill: tinted from the role rather than filled with it, so the label stays readable on
+       both a light and a dark palette. */
     .rep-badge--held { background:color-mix(in srgb, var(--nit-brand-warning, #d8c24e) 22%, transparent);
         color:var(--nit-brand-warning, #d8c24e); }
-    .rep-badge--none { background:color-mix(in srgb, var(--nit-brand-textsecondary, #94a3b8) 18%, transparent);
-        color:var(--nit-brand-textsecondary, #94a3b8); }
-    .rep-amount { white-space:nowrap; font-variant-numeric:tabular-nums; }
-    /* Money given away — the Error role is the palette's "negative / destructive" colour. */
-    .rep-cut { color:var(--nit-brand-error, #d07f43); font-weight:700; }
-    /* An offer with no sales is a real answer, not an empty row — dim it rather than hide it. */
-    .rep-row--unused { color:var(--nit-brand-textsecondary, #94a3b8); }
 </style>
 
 <ul class="nav nav-tabs mb-3" id="ofr-tabs" role="tablist">
     <li class="nav-item"><a class="nav-link active" href="#manage" data-tab="manage" role="tab"><?php
         echo get_string('tab_offers', 'local_nit_commerce'); ?></a></li>
     <li class="nav-item"><a class="nav-link" href="#reports" data-tab="reports" role="tab"><?php
-        echo get_string('tab_reports', 'local_nit_commerce'); ?></a></li>
+        echo report_panel::tab_label(); ?></a></li>
 </ul>
 
 <div id="academy-offer-app" data-tabpane="manage">
@@ -252,106 +235,17 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
     </div>
 </div>
 
-<!-- ── Report tab (AC-4.13.7) ──
-     Every application of an offer is already logged with the learner, the order, the date and the
-     amount it took off. This tab is what makes those numbers answerable without a database
-     client: how many times each offer was used, and which orders it was used on. -->
+<!-- ── Tab 2: the platform's shared financial report, narrowed to offer-discounted orders ──
+     Markup, styling and behaviour all come from local_nit_finance, so this tab and the ones on
+     manage_coupons, manage_courses and manage_subscriptions are literally the same panel — and
+     the master report at local/nit_finance/manage_withdrawals.php is the same panel again, run
+     with every scope instead of one.
+
+     It replaces the old usage log (AC-4.13.7), which counted applications but never said what
+     they earned: an offer's whole point is that it trades revenue for volume, and only a report
+     with both numbers in it can tell whether that trade paid. -->
 <div id="academy-offer-report" data-tabpane="reports" style="display:none">
-    <div id="rep-message" class="alert" style="display:none"></div>
-    <p class="rep-sub"><?php echo get_string('ofr_rep_intro', 'local_nit_commerce'); ?></p>
-
-    <div class="rep-filters">
-        <div class="rep-field">
-            <label for="r-offer"><?php echo get_string('rep_filter_offer', 'local_nit_commerce'); ?></label>
-            <select class="form-control" id="r-offer">
-                <option value="0"><?php echo get_string('rep_filter_alloffers', 'local_nit_commerce'); ?></option>
-            </select>
-        </div>
-        <div class="rep-field">
-            <label for="r-item"><?php echo get_string('rep_filter_item', 'local_nit_commerce'); ?></label>
-            <select class="form-control" id="r-item">
-                <option value=""><?php echo get_string('rep_filter_anyitem', 'local_nit_commerce'); ?></option>
-                <option value="course"><?php echo $STR['cpn_scope_courses']; ?></option>
-                <option value="package"><?php echo $STR['cpn_scope_packages']; ?></option>
-                <option value="subscription"><?php echo $STR['cpn_scope_subscriptions']; ?></option>
-            </select>
-        </div>
-        <div class="rep-field">
-            <label for="r-from"><?php echo get_string('rep_filter_from', 'local_nit_commerce'); ?></label>
-            <input type="date" class="form-control" id="r-from">
-        </div>
-        <div class="rep-field">
-            <label for="r-to"><?php echo get_string('rep_filter_to', 'local_nit_commerce'); ?></label>
-            <input type="date" class="form-control" id="r-to">
-        </div>
-        <div class="rep-field">
-            <label for="r-state"><?php echo get_string('rep_filter_state', 'local_nit_commerce'); ?></label>
-            <select class="form-control" id="r-state">
-                <option value="confirmed"><?php echo get_string('rep_state_confirmed', 'local_nit_commerce'); ?></option>
-                <option value="pending"><?php echo get_string('rep_state_pending', 'local_nit_commerce'); ?></option>
-                <option value="all"><?php echo get_string('rep_state_all', 'local_nit_commerce'); ?></option>
-            </select>
-        </div>
-        <div class="rep-field" style="flex:1 1 220px">
-            <label for="r-q"><?php echo get_string('rep_search', 'local_nit_commerce'); ?></label>
-            <input type="search" class="form-control" id="r-q" style="min-width:100%">
-        </div>
-        <div class="rep-field">
-            <label>&nbsp;</label>
-            <div>
-                <button id="rep-apply" class="btn btn-primary"><?php
-                    echo get_string('rep_apply', 'local_nit_commerce'); ?></button>
-                <button id="rep-reset" class="btn btn-link"><?php
-                    echo get_string('rep_reset', 'local_nit_commerce'); ?></button>
-                <button id="rep-export" class="btn btn-secondary"><?php
-                    echo get_string('rep_export', 'local_nit_commerce'); ?></button>
-            </div>
-        </div>
-    </div>
-
-    <div class="rep-kpis" id="rep-kpis"></div>
-    <p class="rep-sub" id="rep-heldnote" style="display:none"><?php
-        echo get_string('ofr_rep_heldnote', 'local_nit_commerce'); ?></p>
-
-    <h3 class="rep-h"><?php echo get_string('rep_byoffer', 'local_nit_commerce'); ?></h3>
-    <div class="acad-table-wrap">
-        <table class="table table-sm table-striped" id="rep-summary">
-            <thead>
-                <tr>
-                    <th><?php echo $STR['ofr_col_name']; ?></th>
-                    <th><?php echo $STR['cpn_col_value']; ?></th>
-                    <th><?php echo $STR['pkg_col_status']; ?></th>
-                    <th><?php echo get_string('rep_col_usages', 'local_nit_commerce'); ?></th>
-                    <th><?php echo get_string('rep_col_learners', 'local_nit_commerce'); ?></th>
-                    <th><?php echo get_string('rep_col_discount', 'local_nit_commerce'); ?></th>
-                    <th><?php echo get_string('rep_col_paid', 'local_nit_commerce'); ?></th>
-                    <th><?php echo get_string('rep_col_last', 'local_nit_commerce'); ?></th>
-                    <th class="col-tight"><?php echo $STR['pkg_col_actions']; ?></th>
-                </tr>
-            </thead>
-            <tbody><tr><td colspan="9"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
-        </table>
-    </div>
-
-    <h3 class="rep-h"><?php echo get_string('rep_allorders', 'local_nit_commerce'); ?></h3>
-    <div class="acad-table-wrap">
-        <table class="table table-sm table-striped" id="rep-table">
-            <thead>
-                <tr>
-                    <th class="col-tight"><?php echo get_string('rep_col_date', 'local_nit_commerce'); ?></th>
-                    <th><?php echo get_string('rep_col_offer', 'local_nit_commerce'); ?></th>
-                    <th><?php echo get_string('rep_col_learner', 'local_nit_commerce'); ?></th>
-                    <th><?php echo get_string('rep_col_item', 'local_nit_commerce'); ?></th>
-                    <th><?php echo get_string('rep_col_order', 'local_nit_commerce'); ?></th>
-                    <th><?php echo get_string('rep_col_original', 'local_nit_commerce'); ?></th>
-                    <th><?php echo get_string('rep_col_discount', 'local_nit_commerce'); ?></th>
-                    <th><?php echo get_string('rep_col_paid', 'local_nit_commerce'); ?></th>
-                </tr>
-            </thead>
-            <tbody><tr><td colspan="8"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
-        </table>
-    </div>
-    <div id="rep-pager" class="acad-pager"></div>
+    <?php echo report_panel::render(revenue::SCOPE_OFFERS); ?>
 </div>
 
 <style>
@@ -668,7 +562,7 @@ echo html_writer::script(<<<'JS'
             hideForm(); load();
             // An offer whose dates or value just changed prices differently, so any report on
             // screen is now stale.
-            repLoaded = false;
+            if (window.NITFR && window.NITFR.reload){ window.NITFR.reload(); }
         }).catch(function(e){ msg(e.message, 'danger'); });
     }
 
@@ -695,196 +589,6 @@ echo html_writer::script(<<<'JS'
 
     scopeBlocks().forEach(wireScopeBlock);
 
-    // ── Report tab (AC-4.13.7) ──
-    var REP_PAGE_SIZE = 25, repPage = 0, repLoaded = false;
-
-    function repMsg(text, type){
-        var el = $('rep-message');
-        el.textContent = text;
-        el.className = 'alert alert-' + (type || 'info');
-        el.style.display = 'block';
-    }
-    function money(n){
-        return Number(n || 0).toLocaleString(undefined, { minimumFractionDigits:2, maximumFractionDigits:2 });
-    }
-    function cur(){ return CFG.currency || ''; }
-
-    // The offer filter is filled from the list the manage tab already fetched, so creating an
-    // offer and switching tabs finds it there without a second round trip.
-    function fillOfferFilter(){
-        var sel = $('r-offer');
-        if (!sel){ return; }
-        var keep = sel.value;
-        sel.innerHTML = '<option value="0">' + esc(str('rep_filter_alloffers')) + '</option>';
-        OFFERS.forEach(function(o){
-            var opt = document.createElement('option');
-            opt.value = o.id;
-            opt.textContent = displayName(o.name_raw || o.name);
-            sel.appendChild(opt);
-        });
-        if (keep){ sel.value = keep; }
-    }
-
-    function repFilters(){
-        return {
-            offerid:   $('r-offer').value || 0,
-            item_type: $('r-item').value || '',
-            from:      $('r-from').value || '',
-            to:        $('r-to').value || '',
-            state:     $('r-state').value || 'confirmed',
-            q:         $('r-q').value || ''
-        };
-    }
-
-    function kpi(label, value, sub){
-        return '<div class="rep-kpi"><div class="rep-kpi__label">'+esc(label)+'</div>'+
-            '<div class="rep-kpi__value">'+value+(sub?' <small>'+esc(sub)+'</small>':'')+'</div></div>';
-    }
-
-    function renderKpis(t){
-        $('rep-kpis').innerHTML =
-            kpi(str('rep_col_usages'), esc(String(t.usages || 0))) +
-            kpi(str('rep_col_learners'), esc(String(t.learners || 0))) +
-            // The number the business actually asks for: what the offers gave away.
-            kpi(str('rep_col_discount'), '<span class="rep-cut">-'+esc(money(t.discounted))+'</span>', cur()) +
-            kpi(str('rep_col_paid'), esc(money(t.net)), cur());
-    }
-
-    function renderSummary(rows){
-        var tbody = $('rep-summary').querySelector('tbody');
-        if (!rows.length){
-            tbody.innerHTML = '<tr><td colspan="9">'+esc(str('ofr_rep_none'))+'</td></tr>';
-            return;
-        }
-        tbody.innerHTML = rows.map(function(r){
-            var value = r.discount_type === 'percent' ? (r.discount_value + '%') : money(r.discount_value);
-            var status = r.status === 'active' ? str('ui_active') : (r.status ? str('sub_inactive') : '');
-            // An offer nobody has bought under is dimmed, not hidden: "this campaign sold nothing"
-            // is the answer most worth seeing, and a missing row does not say it.
-            return '<tr'+(r.usages ? '' : ' class="rep-row--unused"')+'>'+
-                '<td>'+esc(r.offer_name || '')+'</td>'+
-                '<td>'+esc(value)+'</td>'+
-                '<td>'+esc(status)+'</td>'+
-                '<td>'+esc(String(r.usages))+'</td>'+
-                '<td>'+esc(String(r.learners))+'</td>'+
-                '<td class="rep-amount rep-cut">-'+esc(money(r.discounted))+' '+esc(cur())+'</td>'+
-                '<td class="rep-amount">'+esc(money(r.net))+' '+esc(cur())+'</td>'+
-                '<td>'+esc(r.last_date || '')+'</td>'+
-                '<td class="col-tight">'+(r.usages
-                    ? '<button class="btn btn-sm btn-secondary" data-rep-offer="'+r.offerid+'">'+
-                        esc(str('ofr_rep_open'))+'</button>'
-                    : '')+'</td>'+
-            '</tr>';
-        }).join('');
-    }
-
-    // "View orders" on a summary row narrows the detail table to that offer — the same thing the
-    // filter above does, reached from the row that prompted the question.
-    $('rep-summary').addEventListener('click', function(ev){
-        var btn = ev.target.closest('button[data-rep-offer]');
-        if (!btn){ return; }
-        $('r-offer').value = btn.getAttribute('data-rep-offer');
-        repPage = 0;
-        loadReport();
-    });
-
-    function renderDetail(rows){
-        var tbody = $('rep-table').querySelector('tbody');
-        if (!rows.length){
-            tbody.innerHTML = '<tr><td colspan="8">'+esc(str('ofr_rep_none'))+'</td></tr>';
-            return;
-        }
-        tbody.innerHTML = rows.map(function(r){
-            // A row whose order is still unpaid is a reservation, not a use. It is shown so the
-            // figures can be reconciled against the gateway, but never silently counted as a sale,
-            // which is why it is badged rather than just listed.
-            var order = r.order_id
-                ? '<code>'+esc(r.order_id)+'</code>'
-                : '<span class="rep-badge rep-badge--none">'+esc(str('rep_noorder'))+'</span>';
-            if (r.order_id && !r.confirmed){
-                order += ' <span class="rep-badge rep-badge--held">'+esc(str('rep_held'))+
-                    (r.order_status ? ': '+esc(r.order_status) : '')+'</span>';
-            }
-            var who = r.learner ? esc(r.learner) : '—';
-            if (r.email){ who += '<div class="acad-cell-sub">'+esc(r.email)+'</div>'; }
-            return '<tr>'+
-                '<td class="col-tight">'+esc(r.date)+'</td>'+
-                '<td>'+esc(r.offer_name || '')+'</td>'+
-                '<td>'+who+'</td>'+
-                '<td>'+esc(r.item_label || '')+'</td>'+
-                '<td>'+order+'</td>'+
-                '<td class="rep-amount">'+esc(money(r.original_amount))+'</td>'+
-                '<td class="rep-amount rep-cut">-'+esc(money(r.discount_amount))+'</td>'+
-                '<td class="rep-amount">'+esc(money(r.final_amount))+'</td>'+
-            '</tr>';
-        }).join('');
-    }
-
-    function renderRepPager(total){
-        var wrap = $('rep-pager'), pages = Math.ceil(total / REP_PAGE_SIZE);
-        wrap.innerHTML = '';
-        if (pages <= 1){ return; }
-        var info = document.createElement('span');
-        info.className = 'acad-pager__info';
-        // ui_pager_info is a {from}/{to}/{total} template, not a {$a} one — same shape AcademyUI
-        // fills for the offer table, so both bars read identically.
-        info.textContent = str('ui_pager_info')
-            .replace('{from}', String(repPage * REP_PAGE_SIZE + 1))
-            .replace('{to}', String(Math.min((repPage + 1) * REP_PAGE_SIZE, total)))
-            .replace('{total}', String(total));
-        wrap.appendChild(info);
-        var make = function(label, target, disabled, active){
-            var b = document.createElement('button');
-            b.type = 'button';
-            b.textContent = label;
-            b.disabled = !!disabled;
-            if (active){ b.className = 'is-active'; }
-            b.addEventListener('click', function(){ repPage = target; loadReport(); });
-            wrap.appendChild(b);
-        };
-        make('‹', Math.max(0, repPage - 1), repPage === 0, false);
-        // A window around the current page: 40 numbered buttons is not navigation.
-        var first = Math.max(0, repPage - 2), last = Math.min(pages - 1, first + 4);
-        first = Math.max(0, last - 4);
-        for (var i = first; i <= last; i++){ make(String(i + 1), i, false, i === repPage); }
-        make('›', Math.min(pages - 1, repPage + 1), repPage >= pages - 1, false);
-    }
-
-    function loadReport(){
-        $('rep-message').style.display = 'none';
-        $('rep-table').querySelector('tbody').innerHTML =
-            '<tr><td colspan="8">'+esc(str('ui_loading'))+'</td></tr>';
-        var params = repFilters();
-        params.page = repPage;
-        params.perpage = REP_PAGE_SIZE;
-        api('get_offer_usages', params).then(function(d){
-            renderKpis(d.totals || {});
-            renderSummary(d.summary || []);
-            renderDetail(d.rows || []);
-            renderRepPager(d.total || 0);
-            // The "held rows are not sales" note only makes sense when held rows can be on screen.
-            $('rep-heldnote').style.display = (params.state === 'confirmed') ? 'none' : '';
-            repLoaded = true;
-        }).catch(function(e){ repMsg(e.message, 'danger'); });
-    }
-
-    $('rep-apply').addEventListener('click', function(){ repPage = 0; loadReport(); });
-    $('rep-reset').addEventListener('click', function(){
-        $('r-offer').value = '0'; $('r-item').value = ''; $('r-from').value = '';
-        $('r-to').value = ''; $('r-state').value = 'confirmed'; $('r-q').value = '';
-        repPage = 0; loadReport();
-    });
-    $('r-q').addEventListener('keydown', function(ev){
-        if (ev.key === 'Enter'){ repPage = 0; loadReport(); }
-    });
-    $('rep-export').addEventListener('click', function(){
-        // Same filters, no paging — the file is what is on screen, not page one of it.
-        var q = new URLSearchParams(repFilters());
-        q.append('sesskey', CFG.sesskey);
-        if (CFG.lang){ q.append('alang', CFG.lang); }
-        window.location = CFG.export + '?' + q.toString();
-    });
-
     // ── Tabs ──
     // The hash carries the active tab so a refresh, a bookmark or the back button all land where
     // the admin left off — an admin who filtered a report does not want the offer list back.
@@ -896,7 +600,7 @@ echo html_writer::script(<<<'JS'
         Array.prototype.forEach.call(document.querySelectorAll('#ofr-tabs .nav-link'), function(a){
             a.classList.toggle('active', a.getAttribute('data-tab') === name);
         });
-        if (name === 'reports' && !repLoaded){ loadReport(); }
+        if (name === 'reports' && window.NITFR){ window.NITFR.ensure(); }
     }
     document.getElementById('ofr-tabs').addEventListener('click', function(ev){
         var a = ev.target.closest('a[data-tab]');

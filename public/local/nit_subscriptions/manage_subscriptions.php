@@ -27,6 +27,9 @@ require(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->dirroot . '/local/nit_subscriptions/lib.php');
 
+use local_nit_finance\output\report_panel;
+use local_nit_finance\report\revenue;
+
 admin_externalpage_setup('local_nit_subscriptions_managesubscriptions');
 require_capability('local/nit_subscriptions:managesubscriptions', context_system::instance());
 
@@ -122,16 +125,16 @@ $STR = local_nit_subscriptions_string_map(array(
     'sub_price_pickcountry',
     'pkg_col_pricepaid', 'pkg_col_expiresat',
     'sub_field_desc', 'sub_field_days', 'sub_courseavail_heading', 'sub_courseavail_desc', 'sub_target',
-    'sub_select_placeholder', 'sub_save_courses', 'sub_usersubs_heading', 'sub_usersubs_desc',
-    'sub_unsub_title', 'sub_unsub_refund', 'sub_unsubscribe', 'sub_none_admin', 'sub_inactive',
+    'sub_select_placeholder', 'sub_save_courses',
+    'sub_none_admin', 'sub_inactive',
     'sub_edit_titled', 'sub_updated', 'sub_created', 'sub_activated', 'sub_deactivated', 'sub_deleted',
     'sub_confirm_delete', 'sub_no_categories', 'sub_select_target', 'sub_courses_assigned',
-    'sub_no_usersubs', 'sub_unsub_confirm', 'sub_unsub_success', 'pkg_unassign_paid',
+    'pkg_unassign_paid',
     'sstat_active', 'sstat_expired', 'sstat_cancelled', 'sstat_pending', 'sstat_payment_failed',
     'ui_pager_info',
     'ui_search', 'sub_courses_search', 'sub_selectall', 'sub_clear',
     'ui_showmore', 'ui_showless',
-    'tab_plans', 'tab_courses', 'tab_users', 'tab_reminders',
+    'tab_plans', 'tab_courses', 'tab_reminders',
     'rem_heading', 'rem_desc', 'rem_enabled', 'rem_enabled_help', 'rem_days', 'rem_days_help',
     'rem_days_add', 'rem_days_none', 'rem_day_unit', 'rem_remove', 'rem_save', 'rem_applied',
     'rem_preview', 'rem_window_note', 'rem_window_off', 'rem_window_none', 'rem_recalc_note',
@@ -177,7 +180,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         </li>
         <li class="nav-item" role="presentation">
             <button type="button" class="nav-link" role="tab"
-                    data-subtab="users"><?php echo $STR['tab_users']; ?></button>
+                    data-subtab="reports"><?php echo report_panel::tab_label(); ?></button>
         </li>
         <li class="nav-item" role="presentation">
             <button type="button" class="nav-link" role="tab"
@@ -476,29 +479,19 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 
     </div><!-- /tab: courses -->
 
-    <!-- ══ TAB 3: who is subscribed ═════════════════════════════════════════════ -->
-    <div data-subtabpane="users" role="tabpanel" hidden>
+    <!-- ══ TAB 3: the shared financial report, narrowed to plan sales ═══════════════
+         The same panel as the Reports tab on manage_courses, manage_coupons and
+         manage_offers, and the same one the master report runs with every scope; see
+         \local_nit_finance\output\report_panel.
 
-    <!-- ── User Subscriptions ── -->
-    <h4 class="mt-4"><?php echo $STR['sub_usersubs_heading']; ?></h4>
-    <p class="text-muted"><?php echo $STR['sub_usersubs_desc']; ?></p>
-    <button id="refresh-users" class="btn btn-secondary mb-2"><?php echo $STR['ui_refresh']; ?></button>
-    <table class="table table-striped" id="users-table">
-        <thead>
-            <tr>
-                <th><?php echo $STR['pkg_col_user']; ?></th>
-                <th><?php echo $STR['sub_col_subscription']; ?></th>
-                <th><?php echo $STR['pkg_col_pricepaid']; ?></th>
-                <th><?php echo $STR['pkg_col_status']; ?></th>
-                <th><?php echo $STR['pkg_col_expiresat']; ?></th>
-                <th><?php echo $STR['pkg_col_actions']; ?></th>
-            </tr>
-        </thead>
-        <tbody><tr><td colspan="6"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
-    </table>
-    <div id="users-table-pager" class="acad-pager"></div>
+         It replaces the old "User subscriptions" list, which showed who held what but not
+         what any of it earned. Every plan sale is still listed here, with the money it
+         brought in — what is gone with that list is its Unsubscribe button; the API behind
+         it (`unsubscribe_user`) is untouched and still callable. -->
 
-    </div><!-- /tab: users -->
+    <div data-subtabpane="reports" role="tabpanel" hidden>
+        <?php echo report_panel::render(revenue::SCOPE_SUBSCRIPTIONS); ?>
+    </div><!-- /tab: reports -->
 
     <!-- ══ TAB 4: renewal reminders ═════════════════════════════════════════════
          One window, two effects: it is when the warning goes out AND when the Renew
@@ -549,23 +542,6 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 
     </div><!-- /tab: reminders -->
 
-    <!-- ── Unsubscribe confirmation modal ── -->
-    <div id="unsub-modal-backdrop" class="academy-modal-backdrop" style="display:none;">
-        <div class="academy-modal">
-            <h5 class="academy-modal-title"><?php echo $STR['sub_unsub_title']; ?></h5>
-            <p id="unsub-modal-text"></p>
-            <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="unsub-refund-checkbox">
-                <label class="form-check-label" for="unsub-refund-checkbox">
-                    <?php echo $STR['sub_unsub_refund']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span>
-                </label>
-            </div>
-            <div class="academy-modal-actions">
-                <button id="unsub-modal-cancel" class="btn btn-link"><?php echo $STR['ui_cancel']; ?></button>
-                <button id="unsub-modal-confirm" class="btn btn-danger"><?php echo $STR['sub_unsubscribe']; ?></button>
-            </div>
-        </div>
-    </div>
 </div>
 <?php
 
@@ -579,7 +555,7 @@ echo html_writer::script(<<<'JS'
     function $(id) { return document.getElementById(id); }
 
     var PAGE_SIZE = 10;
-    var subPager = null, usersPager = null;
+    var subPager = null;
     function pagerLabels() { return { info: str('ui_pager_info') }; }
 
     function msg(text, type) {
@@ -1124,99 +1100,18 @@ echo html_writer::script(<<<'JS'
         }).catch(function(e) { msg(e.message, 'danger'); });
     });
 
-    // ── User Subscriptions ──
-    function renderUserRows(items) {
-        var tbody = $('users-table').querySelector('tbody');
-        tbody.innerHTML = '';
-        items.forEach(function(r) {
-            var tr = document.createElement('tr');
-            var toggle = '';
-            if (r.status === 'active') {
-                toggle = '<button class="btn btn-sm btn-danger btn-unsubscribe" data-id="' + r.id + '">' + esc(str('sub_unsubscribe')) + '</button>';
-            }
-            var expires = r.expires_at > 0 ? new Date(r.expires_at * 1000).toLocaleString() : str('ui_never');
-            tr.innerHTML =
-                '<td>' + esc(r.user_fullname) + ' <br><small class="text-muted">' + esc(r.user_email) + '</small></td>' +
-                '<td>' + esc(displayName(r.name)) + '</td>' +
-                '<td>' + esc(r.price_paid) + '</td>' +
-                '<td>' + esc(sstat(r.status)) + '</td>' +
-                '<td>' + esc(expires) + '</td>' +
-                '<td>' + toggle + '</td>';
-            tr._row = r;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function loadUsers() {
-        var tbody = $('users-table').querySelector('tbody');
-        tbody.innerHTML = '<tr><td colspan="6">' + esc(str('ui_loading')) + '</td></tr>';
-        api('get_all_user_subscriptions').then(function(rows) {
-            if (!rows.length) {
-                tbody.innerHTML = '<tr><td colspan="6">' + esc(str('sub_no_usersubs')) + '</td></tr>';
-                $('users-table-pager').innerHTML = '';
-                return;
-            }
-            if (usersPager) {
-                usersPager.setRows(rows);
-            } else {
-                usersPager = AcademyUI.paginate({
-                    rows: rows, pageSize: PAGE_SIZE, pagerEl: $('users-table-pager'),
-                    labels: pagerLabels(), render: renderUserRows
-                });
-            }
-        }).catch(function(e) { msg(e.message, 'danger'); });
-    }
-
-    // ── Unsubscribe confirmation modal ──
-    var pendingUnsubscribe = null;
-
-    function openUnsubscribeModal(row) {
-        pendingUnsubscribe = row;
-        var priceText = row.price_paid ? strf('pkg_unassign_paid', esc(row.price_paid)) : '';
-        $('unsub-modal-text').innerHTML = strf('sub_unsub_confirm', {
-            user: esc(row.user_fullname), name: esc(displayName(row.name)), price: priceText
-        });
-        $('unsub-refund-checkbox').checked = false;
-        $('unsub-modal-backdrop').style.display = 'flex';
-    }
-
-    function closeUnsubscribeModal() {
-        pendingUnsubscribe = null;
-        $('unsub-modal-backdrop').style.display = 'none';
-    }
-
-    $('users-table').addEventListener('click', function(ev) {
-        var btn = ev.target.closest('.btn-unsubscribe');
-        if (!btn) return;
-        openUnsubscribeModal(btn.closest('tr')._row);
-    });
-
-    $('unsub-modal-cancel').addEventListener('click', closeUnsubscribeModal);
-    $('unsub-modal-backdrop').addEventListener('click', function(ev) {
-        if (ev.target === this) { closeUnsubscribeModal(); }
-    });
-    document.addEventListener('keydown', function(ev) {
-        if (ev.key === 'Escape' && $('unsub-modal-backdrop').style.display !== 'none') { closeUnsubscribeModal(); }
-    });
-    $('unsub-modal-confirm').addEventListener('click', function() {
-        var row = pendingUnsubscribe;
-        if (!row) { return; }
-        api('unsubscribe_user', { purchaseid: row.id }, 'POST').then(function() {
-            msg(str('sub_unsub_success'), 'success');
-            closeUnsubscribeModal();
-            loadUsers();
-        }).catch(function(e) { msg(e.message, 'danger'); });
-    });
-
-    $('refresh-users').addEventListener('click', loadUsers);
-
     // ── Tabs ────────────────────────────────────────────────────────────────────
     // Panes, not separate pages: everything is already loaded, so switching is instant
     // and no in-progress edit in another pane is thrown away. The choice rides in the
     // URL hash so a reload lands where the admin left off.
-    var TABS = ['plans', 'courses', 'users', 'reminders'];
+    var TABS = ['plans', 'courses', 'reports', 'reminders'];
+
+    // #users was this tab's name while it listed user subscriptions. Links to it are already
+    // out there — in bookmarks, in tickets — so they keep working.
+    var LEGACY = { users: 'reports' };
 
     function showTab(name) {
+        name = LEGACY[name] || name;
         if (TABS.indexOf(name) === -1) { name = TABS[0]; }
         TABS.forEach(function (t) {
             var pane = document.querySelector('[data-subtabpane="' + t + '"]');
@@ -1228,6 +1123,7 @@ echo html_writer::script(<<<'JS'
             }
         });
         if (name === 'reminders') { loadReminders(); }
+        if (name === 'reports' && window.NITFR) { window.NITFR.ensure(); }
     }
 
     Array.prototype.forEach.call(document.querySelectorAll('[data-subtab]'), function (btn) {
@@ -1386,7 +1282,7 @@ echo html_writer::script(<<<'JS'
     showTab((location.hash || '').replace('#', ''));
 
     loadCategories();
-    loadUsers();
+
     loadSubs();
 })();
 JS

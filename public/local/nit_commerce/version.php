@@ -25,11 +25,14 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_commerce';
-$plugin->version   = 2026090700;   // Course-category scope for coupons + offers (per-category pages).
+$plugin->version   = 2026091200;        // Reports tab is now the shared local_nit_finance financial report.
 $plugin->requires  = 2024100700;
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;
 $plugin->release   = '0.1.0';
 $plugin->dependencies = [
     'local_nit_core' => 2026080404,
+    // The Reports tab on manage_coupons / manage_offers renders the shared report panel from
+    // local_nit_finance, so the finance plugin must upgrade first.
+    'local_nit_finance' => 2026091200,
 ];

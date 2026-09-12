@@ -15,7 +15,20 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Financial Reports: platform wallet + teacher withdrawal queue (US-FN-2-2).
+ * The platform's Financial Report — every figure the four subject pages show, in one place.
+ *
+ * This page used to be a platform wallet: five cards fed by \local_nit_flex\api\flex, plus a
+ * teacher withdrawal queue. The Flex plugin is not installed on this site, so the cards were
+ * reading zeros from a model that does not exist here and the queue had nothing behind it. It
+ * is rebuilt on the one ledger the platform actually keeps — {local_payments_transactions} in,
+ * {local_payments_refunds} out.
+ *
+ * Nothing on this page is special-cased: it is the same panel embedded in the Reports tab of
+ * manage_courses, manage_subscriptions, manage_coupons and manage_offers, run with every scope
+ * instead of one. That is what makes it the master: those four pages are this page, narrowed.
+ *
+ * The URL keeps its old name so existing bookmarks, the admin menu entry and any link already
+ * in the wild still land somewhere useful.
  *
  * @package    local_nit_finance
  * @copyright  2026 NIT
@@ -23,145 +36,26 @@
  */
 
 require(__DIR__ . '/../../config.php');
+require_once($CFG->libdir . '/adminlib.php');
 
-use local_nit_finance\api\wallet;
+use local_nit_finance\output\report_panel;
+use local_nit_finance\report\revenue;
 
-require_login();
-$context = context_system::instance();
-require_capability('local/nit_finance:manage', $context);
+admin_externalpage_setup('local_nit_finance_reports');
+require_capability('local/nit_finance:manage', context_system::instance());
 
-$PAGE->set_context($context);
-$PAGE->set_url(new moodle_url('/local/nit_finance/manage_withdrawals.php'));
-$PAGE->set_pagelayout('admin');
 $PAGE->set_title(get_string('financialreports', 'local_nit_finance'));
 $PAGE->set_heading(get_string('financialreports', 'local_nit_finance'));
 
-// Handle an action on a withdrawal.
-$action = optional_param('action', '', PARAM_ALPHA);
-$wid = optional_param('wid', 0, PARAM_INT);
-if ($action !== '' && $wid > 0 && confirm_sesskey()) {
-    $opts = [];
-    if ($action === 'reject') {
-        $opts['reason'] = required_param('reason', PARAM_TEXT);
-    } else if ($action === 'pay') {
-        $opts['reference'] = optional_param('reference', '', PARAM_TEXT);
-    }
-    wallet::process_withdrawal($USER->id, $wid, $action, $opts);
-    redirect($PAGE->url, get_string('changessaved'), null, \core\output\notification::NOTIFY_SUCCESS);
-}
-
-/**
- * Format a minor-unit amount as a decimal money string.
- *
- * @param int $minor
- * @return string
- */
-function local_nit_finance_money(int $minor): string {
-    return number_format($minor / 100, 2);
-}
-
-// Compose the platform wallet: Flex plugin (if installed) provides money-in + unconsumed value.
-$payments = 0;
-$undistributed = 0;
-if (class_exists('\local_nit_flex\api\flex')) {
-    $totals = \local_nit_flex\api\flex::money_totals();
-    $payments = (int) ($totals['payments_minor'] ?? 0);
-    $undistributed = (int) ($totals['undistributed_minor'] ?? 0);
-}
-$pw = wallet::platform($payments, $undistributed);
-$withdrawals = wallet::list_withdrawals();
-
 echo $OUTPUT->header();
+echo $OUTPUT->heading(get_string('financialreports', 'local_nit_finance'));
 
-// Platform wallet cards.
-echo html_writer::start_div('', ['style' => 'display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px']);
-$cards = [
-    'currentmoney'        => $pw['current_money_minor'],
-    'undistributedmoney'  => $pw['undistributed_money_minor'],
-    'teachersmoney'       => $pw['teachers_money_minor'],
-    'platformearnings'    => $pw['platform_earnings_minor'],
-    'totalpaidout'        => $pw['total_paid_out_minor'],
-];
-foreach ($cards as $key => $minor) {
-    echo html_writer::div(
-        html_writer::div(get_string($key, 'local_nit_finance'), 'text-muted small') .
-        html_writer::div(local_nit_finance_money($minor) . ' EGP', 'h4 mt-1'),
-        'card p-3', ['style' => 'min-width:170px;flex:1']
-    );
-}
-echo html_writer::end_div();
+// Said once, above the strip, because it is about the page rather than about any one scope:
+// the panel's own line underneath changes as the scope does.
+echo html_writer::div(get_string('rep_masterintro', 'local_nit_finance'), 'alert alert-info');
 
-// Withdrawal queue.
-echo $OUTPUT->heading(get_string('withdrawals', 'local_nit_finance'), 3);
-if (!$withdrawals) {
-    echo $OUTPUT->notification(get_string('nowithdrawals', 'local_nit_finance'), 'info');
-} else {
-    $table = new html_table();
-    $table->head = [
-        get_string('teacher', 'local_nit_finance'),
-        get_string('amount', 'local_nit_finance'),
-        get_string('method', 'local_nit_finance'),
-        get_string('status', 'local_nit_finance'),
-        get_string('actions', 'local_nit_finance'),
-    ];
-    foreach ($withdrawals as $w) {
-        $statuslabel = get_string('status_' . $w['status'], 'local_nit_finance');
-        $buttons = '';
-        if ($w['status'] === 'pending') {
-            $buttons .= local_nit_finance_action_button($PAGE->url, 'approve', $w['id'], get_string('approve', 'local_nit_finance'));
-        }
-        if ($w['status'] === 'approved') {
-            $buttons .= local_nit_finance_action_button($PAGE->url, 'pay', $w['id'], get_string('pay', 'local_nit_finance'));
-        }
-        if (in_array($w['status'], ['pending', 'approved'], true)) {
-            $buttons .= local_nit_finance_reject_button($PAGE->url, $w['id']);
-        }
-        $table->data[] = [
-            s($w['teacher_name']),
-            local_nit_finance_money($w['amount_minor']) . ' EGP',
-            s($w['method']),
-            $statuslabel,
-            $buttons,
-        ];
-    }
-    echo html_writer::table($table);
-}
+// Every scope, as a strip across the top. The scope rides in the URL hash, so an admin who
+// lives in the refunds view can bookmark it.
+echo report_panel::render(revenue::SCOPE_ALL, ['scopes' => revenue::scopes()]);
 
 echo $OUTPUT->footer();
-
-/**
- * A simple sesskey-protected action button (approve / pay).
- *
- * @param moodle_url $baseurl
- * @param string $action
- * @param int $wid
- * @param string $label
- * @return string
- */
-function local_nit_finance_action_button(moodle_url $baseurl, string $action, int $wid, string $label): string {
-    $url = new moodle_url($baseurl, ['action' => $action, 'wid' => $wid, 'sesskey' => sesskey()]);
-    return html_writer::link($url, $label, ['class' => 'btn btn-sm btn-primary mr-1']) . ' ';
-}
-
-/**
- * A reject button with an inline reason prompt.
- *
- * @param moodle_url $baseurl
- * @param int $wid
- * @return string
- */
-function local_nit_finance_reject_button(moodle_url $baseurl, int $wid): string {
-    $formid = 'rej' . $wid;
-    $out = html_writer::start_tag('form', [
-        'method' => 'post', 'action' => $baseurl->out(false), 'style' => 'display:inline',
-        'onsubmit' => "this.reason.value=prompt('Reason for rejection:')||'';return this.reason.value!==''",
-    ]);
-    $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'reject']);
-    $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'wid', 'value' => $wid]);
-    $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'reason', 'value' => '']);
-    $out .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
-    $out .= html_writer::tag('button', get_string('reject', 'local_nit_finance'),
-        ['type' => 'submit', 'class' => 'btn btn-sm btn-outline-danger']);
-    $out .= html_writer::end_tag('form');
-    return $out;
-}

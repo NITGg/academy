@@ -117,7 +117,7 @@ class course_purchase_manager {
      * @return void
      */
     public static function revoke_course_purchase(int $transactionid, bool $refund): void {
-        global $DB;
+        global $DB, $USER;
 
         $transaction = $DB->get_record('local_payments_transactions', ['id' => $transactionid]);
         if (!$transaction) {
@@ -129,6 +129,7 @@ class course_purchase_manager {
 
         $courseid = (int) $transaction->courseid;
         $userid   = (int) $transaction->userid;
+        $now      = time();
 
         $dbtx = $DB->start_delegated_transaction();
 
@@ -142,8 +143,40 @@ class course_purchase_manager {
         $update->status       = $refund
             ? \local_payments\status_machine::REFUNDED
             : \local_payments\status_machine::CANCELLED;
-        $update->timemodified = time();
+        $update->timemodified = $now;
         $DB->update_record('local_payments_transactions', $update);
+
+        // Ticking "refund" used to do nothing but change a word in the status column: no refund
+        // row, no amount, no record of who decided it. The financial report reads
+        // {local_payments_refunds}, so a refund that leaves no row there is money that went out
+        // of the business and was never counted. It is written here instead.
+        //
+        // The gateway is deliberately NOT called. This button means "the money was returned"
+        // (by hand, by bank transfer, or because it never really arrived), which is why the row
+        // is marked MANUAL_REVOKE and the report can tell an administrator's write-off apart
+        // from a refund the provider actually processed. A refund that should go back through
+        // the gateway is \local_payments\refund_manager::staff_refund(), not this.
+        if ($refund) {
+            $DB->insert_record('local_payments_refunds', (object) [
+                'transaction_id'    => $transaction->id,
+                'operation_type'    => 'refund',
+                'amount'            => $transaction->amount,
+                'currency'          => $transaction->currency,
+                'reason'            => get_string('mc_refund_reason', 'local_nit_subscriptions'),
+                'status'            => 'completed',
+                'provider_refund_id' => null,
+                'provider_order_id' => $transaction->provider_order_id,
+                'gateway_code'      => \local_nit_finance\report\revenue::REFUND_MANUAL,
+                'initiated_by'      => (int) $USER->id,
+                'timecreated'       => $now,
+                'timemodified'      => $now,
+            ]);
+        }
+
+        // The same audit trail a gateway refund leaves, so both routes are visible in one place.
+        \local_payments\manager::audit_log((int) $transaction->id, (int) $USER->id,
+            $refund ? 'refund_admin_revoke' : 'cancel_admin_revoke',
+            \local_payments\status_machine::COMPLETED, (string) $update->status);
 
         $dbtx->allow_commit();
     }
