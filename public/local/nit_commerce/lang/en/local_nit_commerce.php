@@ -82,6 +82,17 @@ $string['cpn_type_percent'] = 'Percentage';
 $string['cpn_type_fixed']   = 'Fixed';
 $string['cpn_usage_once']     = 'One-time';
 $string['cpn_usage_multiple'] = 'Multiple use';
+// One line under each field of the coupon form — what the field does, in the admin's words.
+$string['cpn_help_name']   = 'Shown to students on the coupon card and at checkout, in the language they are browsing in.';
+$string['cpn_help_desc']   = 'An optional line under the name — who the coupon is for, or what it celebrates.';
+$string['cpn_help_code']   = 'What the student types at checkout. Keep it short and easy to type; it must be unique.';
+$string['cpn_help_value']  = 'Percentage taken off the price, from 1 to 100. A percentage works in every currency.';
+$string['cpn_help_max']    = 'Caps the discount in money, in the currency the buyer pays in — e.g. 40% but never more than 50. Leave empty for no cap.';
+$string['cpn_help_utype']  = 'One-time: spent after the first purchase by anyone. Multiple use: many students can use it until the limit is reached — each student once.';
+$string['cpn_help_limit']  = 'Total number of purchases the coupon is accepted on, across all students. Leave empty for unlimited.';
+$string['cpn_help_start']  = 'Accepted from this date. Leave empty to start right away.';
+$string['cpn_help_end']    = 'Refused after this date. Leave empty to never expire.';
+$string['cpn_help_active'] = 'An inactive coupon is hidden and refused, but keeps its history.';
 $string['cpn_scope_categories']    = 'Course categories';
 $string['cpn_scope_categories_help'] = 'Picking categories ties this to a branch of the catalogue: it then applies only inside those categories (their subcategories included), and only their pages advertise it. The courses and plans below choose within that branch — "Programming" plus "All courses" means every course under Programming. Pick no categories and it is scoped by the courses and plans alone, and shown wherever those live.';
 $string['cpn_scope_courses']       = 'Courses';

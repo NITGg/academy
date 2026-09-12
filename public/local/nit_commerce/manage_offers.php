@@ -55,7 +55,7 @@ $STR = local_nit_commerce_string_map(array(
     'ui_edit', 'ui_delete', 'ui_never', 'ui_optional', 'ui_pager_info',
     'pkg_col_status', 'pkg_col_actions', 'sub_inactive',
     'cpn_col_type', 'cpn_col_value', 'cpn_col_scope', 'cpn_col_dates', 'cpn_field_dtype',
-    'cpn_field_value', 'cpn_field_start', 'cpn_field_end', 'cpn_field_scope', 'cpn_type_percent',
+    'cpn_field_value', 'cpn_help_value', 'cpn_field_start', 'cpn_field_end', 'cpn_field_scope', 'cpn_type_percent',
     'cpn_type_fixed', 'cpn_scope_courses', 'cpn_scope_packages', 'cpn_scope_subscriptions', 'cpn_scope_programs',
     'cpn_scope_categories', 'cpn_scope_categories_help',
     'cpn_scope_all', 'cpn_scope_specific', 'cpn_scope_required',
@@ -155,18 +155,18 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 <label for="o-desc-ar"><?php echo $STR['pkg_field_desc_ar']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
                 <textarea class="form-control" id="o-desc-ar" rows="2" dir="rtl"></textarea>
             </div>
+            <?php // Percentage is the only discount type (a fixed amount is stated in one currency
+                  // and hidden from every visitor priced in another), so there is nothing to choose:
+                  // the type travels as a hidden field and the value wears a "%" suffix instead. ?>
+            <input type="hidden" id="o-dtype" value="percent">
             <div class="form-row">
                 <div class="form-group col-md-6">
-                    <label for="o-dtype"><?php echo $STR['cpn_field_dtype']; ?></label>
-                    <?php // Percentage only: a fixed amount is stated in one currency and hidden from
-                          // every visitor priced in another, so the option was dropped. ?>
-                    <select class="form-control" id="o-dtype">
-                        <option value="percent"><?php echo $STR['cpn_type_percent']; ?></option>
-                    </select>
-                </div>
-                <div class="form-group col-md-6">
                     <label for="o-value"><?php echo $STR['cpn_field_value']; ?></label>
-                    <input type="number" class="form-control" id="o-value" min="0" max="100" step="0.01">
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="o-value" min="0" max="100" step="0.01">
+                        <div class="input-group-append"><span class="input-group-text">%</span></div>
+                    </div>
+                    <small class="form-text text-muted"><?php echo $STR['cpn_help_value']; ?></small>
                 </div>
             </div>
             <div class="form-row">
@@ -525,9 +525,6 @@ echo html_writer::script(<<<'JS'
         $('o-name-ar').value = nm.ar;
         $('o-desc-en').value = ds.en;
         $('o-desc-ar').value = ds.ar;
-        // A legacy fixed row opens as percent so its next save converts it; the admin re-enters
-        // the value as a percentage.
-        $('o-dtype').value = 'percent';
         $('o-value').value = o ? o.discount_value : '';
         $('o-start').value = toInput(o ? o.startdate : 0);
         $('o-end').value   = toInput(o ? o.enddate : 0);

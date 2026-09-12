@@ -58,6 +58,8 @@ $STR = local_nit_commerce_string_map(array(
     'cpn_scope_specific', 'cpn_created', 'cpn_updated', 'cpn_activated', 'cpn_deactivated',
     'cpn_deleted', 'cpn_confirm_delete', 'cpn_edit_titled', 'cpn_scope_required', 'cpn_unlimited',
     'cpn_used_count', 'cpn_limit_min_hint', 'err_usagelimitbelowused', 'err_usagetypebelowused',
+    'cpn_help_name', 'cpn_help_desc', 'cpn_help_code', 'cpn_help_value', 'cpn_help_max',
+    'cpn_help_utype', 'cpn_help_limit', 'cpn_help_start', 'cpn_help_end', 'cpn_help_active',
     'err_sessionexpired', 'err_requestfailed',
 ));
 echo html_writer::script('window.ACADEMY_CFG = ' . json_encode(array(
@@ -121,6 +123,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <div class="form-group">
                 <label for="c-name-en"><?php echo $STR['pkg_field_name_en']; ?></label>
                 <input type="text" class="form-control" id="c-name-en" dir="ltr">
+                <small class="form-text text-muted"><?php echo $STR['cpn_help_name']; ?></small>
             </div>
             <div class="form-group">
                 <label for="c-name-ar"><?php echo $STR['pkg_field_name_ar']; ?></label>
@@ -129,6 +132,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <div class="form-group">
                 <label for="c-desc-en"><?php echo $STR['pkg_field_desc_en']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
                 <textarea class="form-control" id="c-desc-en" rows="2" dir="ltr"></textarea>
+                <small class="form-text text-muted"><?php echo $STR['cpn_help_desc']; ?></small>
             </div>
             <div class="form-group">
                 <label for="c-desc-ar"><?php echo $STR['pkg_field_desc_ar']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
@@ -137,24 +141,26 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <div class="form-group">
                 <label for="c-code"><?php echo $STR['cpn_field_code']; ?></label>
                 <input type="text" class="form-control" id="c-code" dir="ltr">
+                <small class="form-text text-muted"><?php echo $STR['cpn_help_code']; ?></small>
             </div>
+            <?php // Percentage is the only discount type (a fixed amount is stated in one currency
+                  // and hidden from every visitor priced in another), so there is nothing to choose:
+                  // the type travels as a hidden field and the value wears a "%" suffix instead. ?>
+            <input type="hidden" id="c-dtype" value="percent">
             <div class="form-row">
                 <div class="form-group col-md-6">
-                    <label for="c-dtype"><?php echo $STR['cpn_field_dtype']; ?></label>
-                    <?php // Percentage only: a fixed amount is stated in one currency and hidden from
-                          // every visitor priced in another, so the option was dropped. ?>
-                    <select class="form-control" id="c-dtype">
-                        <option value="percent"><?php echo $STR['cpn_type_percent']; ?></option>
-                    </select>
+                    <label for="c-value"><?php echo $STR['cpn_field_value']; ?></label>
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="c-value" min="0" max="100" step="0.01">
+                        <div class="input-group-append"><span class="input-group-text">%</span></div>
+                    </div>
+                    <small class="form-text text-muted"><?php echo $STR['cpn_help_value']; ?></small>
                 </div>
                 <div class="form-group col-md-6">
-                    <label for="c-value"><?php echo $STR['cpn_field_value']; ?></label>
-                    <input type="number" class="form-control" id="c-value" min="0" max="100" step="0.01">
+                    <label for="c-max"><?php echo $STR['cpn_field_max']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
+                    <input type="number" class="form-control" id="c-max" min="0" step="0.01">
+                    <small class="form-text text-muted"><?php echo $STR['cpn_help_max']; ?></small>
                 </div>
-            </div>
-            <div class="form-group">
-                <label for="c-max"><?php echo $STR['cpn_field_max']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
-                <input type="number" class="form-control" id="c-max" min="0" step="0.01">
             </div>
             <div class="form-row">
                 <div class="form-group col-md-6">
@@ -163,10 +169,12 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                         <option value="multiple"><?php echo $STR['cpn_usage_multiple']; ?></option>
                         <option value="once"><?php echo $STR['cpn_usage_once']; ?></option>
                     </select>
+                    <small class="form-text text-muted"><?php echo $STR['cpn_help_utype']; ?></small>
                 </div>
                 <div class="form-group col-md-6" id="c-limit-wrap">
                     <label for="c-limit"><?php echo $STR['cpn_field_limit']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
                     <input type="number" class="form-control" id="c-limit" min="0" step="1">
+                    <small class="form-text text-muted"><?php echo $STR['cpn_help_limit']; ?></small>
                     <small class="form-text text-muted" id="c-limit-hint" style="display:none"></small>
                 </div>
             </div>
@@ -174,10 +182,12 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 <div class="form-group col-md-6">
                     <label for="c-start"><?php echo $STR['cpn_field_start']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
                     <input type="datetime-local" class="form-control" id="c-start">
+                    <small class="form-text text-muted"><?php echo $STR['cpn_help_start']; ?></small>
                 </div>
                 <div class="form-group col-md-6">
                     <label for="c-end"><?php echo $STR['cpn_field_end']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
                     <input type="datetime-local" class="form-control" id="c-end">
+                    <small class="form-text text-muted"><?php echo $STR['cpn_help_end']; ?></small>
                 </div>
             </div>
 
@@ -213,6 +223,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <div class="form-check mb-3">
                 <input type="checkbox" class="form-check-input" id="c-active" checked>
                 <label class="form-check-label" for="c-active"><?php echo $STR['ui_active']; ?></label>
+                <small class="form-text text-muted"><?php echo $STR['cpn_help_active']; ?></small>
             </div>
             <button id="cpn-save" class="btn btn-primary"><?php echo $STR['ui_save']; ?></button>
             <button id="cpn-cancel" class="btn btn-link"><?php echo $STR['ui_cancel']; ?></button>
@@ -471,9 +482,8 @@ echo html_writer::script(<<<'JS'
         $('c-name-ar').value = nm.ar;
         $('c-desc-en').value = ds.en;
         $('c-desc-ar').value = ds.ar;
-        // A legacy fixed row opens as percent so its next save converts it; the admin re-enters
-        // the value as a percentage.
-        $('c-dtype').value = 'percent';
+        // c-dtype is a hidden "percent": a legacy fixed row opens as percent so its next save
+        // converts it; the admin re-enters the value as a percentage.
         $('c-value').value = c ? c.discount_value : '';
         $('c-max').value   = (c && c.max_discount != null) ? c.max_discount : '';
         $('c-utype').value = c ? c.usage_type : 'multiple';
