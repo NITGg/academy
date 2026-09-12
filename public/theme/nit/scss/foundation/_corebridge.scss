@@ -112,10 +112,8 @@
 
 // Surfaces — fields, panels and rows core baked from Group 1's "Surface".
 #region-flat-nav .nav,
-.custom-control-label::before,
 .custom-file-label,
 .custom-select,
-.custom-switch .custom-control-input:checked~.custom-control-label::after,
 .form-control,
 .form-control:focus,
 .form-floating>.form-control-plaintext~label::after,
@@ -372,15 +370,33 @@ div.editor_atto_toolbar
     --bs-progress-bar-color: var(--nit-brand-onprimary);
 }
 
-// The checked tick and the indeterminate dash. Two rules rather than one list
-// because the `:indeterminate` selector carries an attribute filter and reads
-// badly folded in with the rest.
-.form-check-input:checked,
-.form-check-input[type="checkbox"]:indeterminate,
+// The checked tick and the indeterminate dash of the LEGACY (Bootstrap 4
+// `.custom-control`) checkbox, which a few core pages still render. Pointed at
+// the same roles the current `.form-check-input` reads, so both kinds of box
+// answer the same cards.
+//
+// `.form-check-input` itself was in this list and is not any more: it has its
+// own six cards now (Brand → Checkbox & switch), wired in
+// scss/foundation/_brand.scss. It had to LEAVE rather than be re-pointed for
+// the same reason the outline button did — this file is emitted after
+// _brand.scss, so at equal specificity a rule here would overwrite whatever an
+// admin set on those cards.
 .custom-control-input:checked~.custom-control-label::before,
 .custom-checkbox .custom-control-input:indeterminate~.custom-control-label::before {
-    background-color: var(--nit-brand-primary);
-    border-color: var(--nit-brand-primary);
+    background-color: var(--nit-brand-checkcheckedbg);
+    border-color: var(--nit-brand-checkcheckedborder);
+}
+
+// The legacy box at rest, and the legacy switch's ON knob. Both were in the
+// Surface list above (core baked them from `$input-bg`); they read the same
+// cards as the current box now.
+.custom-control-label::before {
+    background-color: var(--nit-brand-checkbg);
+    border-color: var(--nit-brand-checkborder);
+}
+
+.custom-switch .custom-control-input:checked~.custom-control-label::after {
+    background-color: var(--nit-brand-checkcheckedmark);
 }
 
 // The underline under the active item of Moodle's overflow menu (the "More"

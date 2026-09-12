@@ -376,15 +376,11 @@
         // property keeps the tick beside its label in Arabic too.
         padding-inline-start: 1.6em;
 
+        // No colours here: the box reads the Checkbox & switch cards like every
+        // other tick box (scss/foundation/_brand.scss), so the ones on this
+        // page are a live preview of what those cards do.
         .form-check-input {
             margin-inline-start: -1.6em;
-            background-color: var(--nit-brand-background);
-            border-color: var(--nit-brand-bordersecondary);
-
-            &:checked {
-                background-color: var(--nit-brand-primary);
-                border-color: var(--nit-brand-primary);
-            }
         }
 
         .form-check-label {
@@ -447,15 +443,10 @@
         margin: 0;
         padding-inline-start: 2.5em;
 
+        // Colours come from the Checkbox & switch cards (see the shape options
+        // above) — this is the switch an admin will look at while editing them.
         .form-check-input {
             margin-inline-start: -2.5em;
-            background-color: var(--nit-brand-background);
-            border-color: var(--nit-brand-bordersecondary);
-
-            &:checked {
-                background-color: var(--nit-brand-primary);
-                border-color: var(--nit-brand-primary);
-            }
         }
 
         .form-check-label {
@@ -513,14 +504,6 @@
         }
     }
 
-    // The "Remove" tick beside a logo that is already set.
-    .form-check-input {
-        background-color: var(--nit-brand-surface);
-        border-color: var(--nit-brand-borderprimary);
-
-        &:checked {
-            background-color: var(--nit-brand-primary);
-            border-color: var(--nit-brand-primary);
-        }
-    }
+    // The "Remove" tick beside a logo that is already set reads the Checkbox &
+    // switch cards like every other box — nothing to override here.
 }

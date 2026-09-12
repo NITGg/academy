@@ -28,12 +28,13 @@
 // onto the active layer here, so the whole existing site follows the brand.
 // =============================================================================
 
-// --- The button roles, as a map ----------------------------------------------
-// Fourteen roles per group: the border and the three hover colours of the main
-// and the secondary button, and the whole resting-plus-hover set of the outline
-// button. Seventy values, published three times over (per-group reference, the
-// active layer, and each of the five switch classes) = 210 declarations, which
-// is why they are looped rather than written out the way the roles above are.
+// --- The button (and checkbox) roles, as a map --------------------------------
+// Twenty-six roles per group: the border and the three hover colours of the main
+// and the secondary button, the whole resting-plus-hover set of each outline
+// button, and the six the tick box / switch is drawn from. Published three times
+// over (per-group reference, the active layer, and each of the five switch
+// classes) = nearly 400 declarations, which is why they are looped rather than
+// written out the way the roles above are.
 //
 // A map is what makes the loop possible at all: SCSS cannot build a variable
 // name by interpolation, so `$nit-b-#{$g}-#{$role}` is not a thing that can be
@@ -65,7 +66,13 @@ $nit-b-buttonroles: (
         "btnoutlineborder": $nit-b-g1-btnoutlineborder,
         "btnoutlinehoverbg": $nit-b-g1-btnoutlinehoverbg,
         "btnoutlinehovertext": $nit-b-g1-btnoutlinehovertext,
-        "btnoutlinehoverborder": $nit-b-g1-btnoutlinehoverborder
+        "btnoutlinehoverborder": $nit-b-g1-btnoutlinehoverborder,
+        "checkbg": $nit-b-g1-checkbg,
+        "checkborder": $nit-b-g1-checkborder,
+        "checkknob": $nit-b-g1-checkknob,
+        "checkcheckedbg": $nit-b-g1-checkcheckedbg,
+        "checkcheckedborder": $nit-b-g1-checkcheckedborder,
+        "checkcheckedmark": $nit-b-g1-checkcheckedmark
     ),
     "g2": (
         "btnprimaryborder": $nit-b-g2-btnprimaryborder,
@@ -87,7 +94,13 @@ $nit-b-buttonroles: (
         "btnoutlineborder": $nit-b-g2-btnoutlineborder,
         "btnoutlinehoverbg": $nit-b-g2-btnoutlinehoverbg,
         "btnoutlinehovertext": $nit-b-g2-btnoutlinehovertext,
-        "btnoutlinehoverborder": $nit-b-g2-btnoutlinehoverborder
+        "btnoutlinehoverborder": $nit-b-g2-btnoutlinehoverborder,
+        "checkbg": $nit-b-g2-checkbg,
+        "checkborder": $nit-b-g2-checkborder,
+        "checkknob": $nit-b-g2-checkknob,
+        "checkcheckedbg": $nit-b-g2-checkcheckedbg,
+        "checkcheckedborder": $nit-b-g2-checkcheckedborder,
+        "checkcheckedmark": $nit-b-g2-checkcheckedmark
     ),
     "g3": (
         "btnprimaryborder": $nit-b-g3-btnprimaryborder,
@@ -109,7 +122,13 @@ $nit-b-buttonroles: (
         "btnoutlineborder": $nit-b-g3-btnoutlineborder,
         "btnoutlinehoverbg": $nit-b-g3-btnoutlinehoverbg,
         "btnoutlinehovertext": $nit-b-g3-btnoutlinehovertext,
-        "btnoutlinehoverborder": $nit-b-g3-btnoutlinehoverborder
+        "btnoutlinehoverborder": $nit-b-g3-btnoutlinehoverborder,
+        "checkbg": $nit-b-g3-checkbg,
+        "checkborder": $nit-b-g3-checkborder,
+        "checkknob": $nit-b-g3-checkknob,
+        "checkcheckedbg": $nit-b-g3-checkcheckedbg,
+        "checkcheckedborder": $nit-b-g3-checkcheckedborder,
+        "checkcheckedmark": $nit-b-g3-checkcheckedmark
     ),
     "g4": (
         "btnprimaryborder": $nit-b-g4-btnprimaryborder,
@@ -131,7 +150,13 @@ $nit-b-buttonroles: (
         "btnoutlineborder": $nit-b-g4-btnoutlineborder,
         "btnoutlinehoverbg": $nit-b-g4-btnoutlinehoverbg,
         "btnoutlinehovertext": $nit-b-g4-btnoutlinehovertext,
-        "btnoutlinehoverborder": $nit-b-g4-btnoutlinehoverborder
+        "btnoutlinehoverborder": $nit-b-g4-btnoutlinehoverborder,
+        "checkbg": $nit-b-g4-checkbg,
+        "checkborder": $nit-b-g4-checkborder,
+        "checkknob": $nit-b-g4-checkknob,
+        "checkcheckedbg": $nit-b-g4-checkcheckedbg,
+        "checkcheckedborder": $nit-b-g4-checkcheckedborder,
+        "checkcheckedmark": $nit-b-g4-checkcheckedmark
     ),
     "g5": (
         "btnprimaryborder": $nit-b-g5-btnprimaryborder,
@@ -153,7 +178,13 @@ $nit-b-buttonroles: (
         "btnoutlineborder": $nit-b-g5-btnoutlineborder,
         "btnoutlinehoverbg": $nit-b-g5-btnoutlinehoverbg,
         "btnoutlinehovertext": $nit-b-g5-btnoutlinehovertext,
-        "btnoutlinehoverborder": $nit-b-g5-btnoutlinehoverborder
+        "btnoutlinehoverborder": $nit-b-g5-btnoutlinehoverborder,
+        "checkbg": $nit-b-g5-checkbg,
+        "checkborder": $nit-b-g5-checkborder,
+        "checkknob": $nit-b-g5-checkknob,
+        "checkcheckedbg": $nit-b-g5-checkcheckedbg,
+        "checkcheckedborder": $nit-b-g5-checkcheckedborder,
+        "checkcheckedmark": $nit-b-g5-checkcheckedmark
     )
 );
 
@@ -1015,4 +1046,102 @@ $nit-b-buttonroles: (
     // --bs-btn-border-color var), so the RESTING border needs an explicit brand
     // value to win. The state borders follow the vars above.
     border-color: var(--nit-brand-btnoutlineborder);
+}
+
+// --- Checkboxes, radios and switches ------------------------------------------
+// One element, `.form-check-input`; `.form-switch` only changes the picture
+// drawn on it. Six roles under Brand → Checkbox & switch, and this is the one
+// door: the box used to be assembled from four places — the resting fill from
+// `$input-bg` (Group 1's Surface, baked), the resting border in _forms.scss, the
+// checked fill in _corebridge.scss, and the tick and the switch knob from
+// Bootstrap's own SVGs, fixed white and black-at-25% — and the last two were
+// beyond an administrator's reach entirely. Every role seeds to the colour that
+// arrangement produced, so this is a change of vocabulary, not of appearance
+// (the OFF knob excepted: it had no hex to seed from, and on a dark track was
+// invisible).
+//
+// `--bs-form-check-bg` is the property Bootstrap paints the fill from, so
+// re-pointing it reaches the resting state; `:checked` and `:focus` carry
+// literal colours in core and are overridden at equal specificity, which this
+// file wins by coming later. `:active` (pressed) reads the same roles as rest —
+// Bootstrap's pressed tint is `$form-check-input-active-filter`, a brightness
+// filter, so it needs nothing of its own.
+.form-check-input {
+    --bs-form-check-bg: var(--nit-brand-checkbg);
+    border-color: var(--nit-brand-checkborder);
+
+    &:checked,
+    &[type="checkbox"]:indeterminate {
+        background-color: var(--nit-brand-checkcheckedbg);
+        border-color: var(--nit-brand-checkcheckedborder);
+    }
+
+}
+
+// The focus ring. Written with the element name on purpose: Boost paints its
+// own ring on `input[type="checkbox"]:focus` (0,2,1), baked from Group 1's
+// primary, and `.form-check-input:focus` (0,2,0) loses to it however late it is
+// emitted. Same 35% Boost uses, so under Group 1 the ring does not move.
+input.form-check-input:focus {
+    border-color: var(--nit-brand-checkcheckedborder);
+    box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--nit-brand-checkcheckedbg) 35%, transparent);
+}
+
+// The pictures: the tick, the radio dot, the half-ticked dash, and the switch
+// knob in its off and on states. All five are SVG data-URIs, and a data-URI is a
+// string — it cannot contain `var()`. So each is compiled once per group from
+// the same `$nit-b-*` value the card saved, and scoped to that group's switch
+// class, which lives on <html> (theme_nit_brand_group_class()) and so reaches
+// every box on the page. `:root` carries Group 1 for pages with no class at all;
+// a group's own rule is emitted after it and wins at equal specificity.
+//
+// The shapes are Bootstrap's own (`$form-check-input-checked-bg-image` and
+// friends), colour swapped and nothing else, run through the same escape-svg()
+// core uses — a raw `#` inside a data-URI ends the URL.
+//
+// The focus picture of an OFF switch is Bootstrap's focus-tinted knob; here it
+// stays the knob role so the ring alone says "focused", the way it does on a
+// tick box.
+@each $sel, $g in (":root": "g1", ".nit-brand-1": "g1", ".nit-brand-2": "g2",
+                   ".nit-brand-3": "g3", ".nit-brand-4": "g4", ".nit-brand-5": "g5") {
+    $mark: map-get((
+        "g1": $nit-b-g1-checkcheckedmark, "g2": $nit-b-g2-checkcheckedmark,
+        "g3": $nit-b-g3-checkcheckedmark, "g4": $nit-b-g4-checkcheckedmark,
+        "g5": $nit-b-g5-checkcheckedmark), $g);
+    $knob: map-get((
+        "g1": $nit-b-g1-checkknob, "g2": $nit-b-g2-checkknob,
+        "g3": $nit-b-g3-checkknob, "g4": $nit-b-g4-checkknob,
+        "g5": $nit-b-g5-checkknob), $g);
+
+    $tick: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path fill='none' stroke='#{$mark}' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/></svg>");
+    $dot: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'><circle r='2' fill='#{$mark}'/></svg>");
+    $dash: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path fill='none' stroke='#{$mark}' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10h8'/></svg>");
+    $knoboff: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'><circle r='3' fill='#{$knob}'/></svg>");
+    $knobon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'><circle r='3' fill='#{$mark}'/></svg>");
+
+    #{$sel} .form-check-input {
+        &:checked[type="checkbox"] {
+            --bs-form-check-bg-image: #{escape-svg($tick)};
+        }
+
+        &:checked[type="radio"] {
+            --bs-form-check-bg-image: #{escape-svg($dot)};
+        }
+
+        &[type="checkbox"]:indeterminate {
+            --bs-form-check-bg-image: #{escape-svg($dash)};
+        }
+    }
+
+    #{$sel} .form-switch .form-check-input {
+        --bs-form-switch-bg: #{escape-svg($knoboff)};
+
+        &:focus {
+            --bs-form-switch-bg: #{escape-svg($knoboff)};
+        }
+
+        &:checked {
+            --bs-form-switch-bg: #{escape-svg($knobon)};
+        }
+    }
 }

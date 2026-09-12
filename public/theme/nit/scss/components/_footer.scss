@@ -34,6 +34,35 @@
 }
 
 // -----------------------------------------------------------------------------
+// The floating round "?" button (bottom-right) that opens the footer popover.
+//
+// Boost's footer.mustache hard-codes it as
+// `<button class="btn btn-icon rounded-circle bg-secondary btn-footer-popover">`,
+// so the circle is painted by the `.bg-secondary` utility (an `!important`
+// Bootstrap colour, not a brand role) and the "?" glyph takes the plain `.btn`
+// text colour. Route the pair to Primary / On-primary so the button recolours
+// with the palette, and hover on the primary hover shade rather than the
+// generic `.btn-icon` hover (which is meant for transparent icon buttons).
+// -----------------------------------------------------------------------------
+.footer-popover .btn-footer-popover {
+    background-color: var(--nit-brand-primary) !important; // Undoing `.bg-secondary`.
+    color: var(--nit-brand-onprimary);
+    --bs-btn-color: var(--nit-brand-onprimary);
+    --bs-btn-hover-color: var(--nit-brand-onprimary);
+    --bs-btn-active-color: var(--nit-brand-onprimary);
+
+    .icon {
+        color: inherit;
+    }
+
+    &:hover,
+    &:focus-visible,
+    &:active {
+        background-color: var(--nit-brand-primary-hover) !important;
+    }
+}
+
+// -----------------------------------------------------------------------------
 // No footer on the account screens (log in, sign up, forgot password, confirm).
 //
 // The site footer band itself is not even rendered on these — see

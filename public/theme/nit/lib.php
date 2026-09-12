@@ -244,6 +244,7 @@ function theme_nit_brand_role_subsections(): array {
         'btnsecondary'      => 'Secondary button',
         'btnoutlineprimary' => 'Outline button (brand)',
         'btnoutline'        => 'Outline button (neutral)',
+        'check'             => 'Checkbox & switch',
         'link'              => 'Links and words',
         // Navbar.
         'background' => 'Background',
@@ -411,6 +412,35 @@ function theme_nit_brand_roles(): array {
         'btnoutlinehoverbg' => ['section' => 'brand', 'sub' => 'btnoutline', 'label' => 'Outline button hover background', 'short' => 'Hover background', 'usage' => ['an outline button under the cursor, or being pressed'], 'default' => '#16222f'],
         'btnoutlinehovertext' => ['section' => 'brand', 'sub' => 'btnoutline', 'label' => 'Outline button hover text', 'short' => 'Hover text', 'usage' => ['the label of an outline button under the cursor'], 'default' => '#7fabdb'],
         'btnoutlinehoverborder' => ['section' => 'brand', 'sub' => 'btnoutline', 'label' => 'Outline button hover border', 'short' => 'Hover border', 'usage' => ['the ring around an outline button under the cursor'], 'default' => '#33475e'],
+
+        // --- Brand > Checkbox & switch (.form-check-input) -------------------
+        // The tick box, the radio and the toggle switch are ONE element in
+        // Bootstrap (`.form-check-input`; `.form-switch` only swaps the picture
+        // drawn on it), so they share one block. Until these were roles the
+        // box was assembled from four different places and two of them were
+        // not colours an admin could reach at all: the resting fill came from
+        // Surface — baked from GROUP 1 in pre_scss via `$input-bg`, so a page
+        // in any other group kept Group 1's box; the checked fill was Primary;
+        // and the tick and the switch knob were Bootstrap's own SVG data-URIs,
+        // fixed white and black-at-25% — which on a dark Surface is an OFF
+        // switch with no visible knob.
+        //
+        // Each seeds to what the box already resolved to in that group (Surface,
+        // Border primary, Primary, Text on main button), so nothing moves on a
+        // site until a card is edited — except the OFF knob, which had no hex
+        // to seed from (`rgba(0,0,0,.25)`) and seeds to Text secondary so it can
+        // be seen on the dark groups at all.
+        //
+        // The tick and the two knobs are drawn as SVG, which cannot read a CSS
+        // variable; scss/foundation/_brand.scss compiles one picture per group
+        // from the same `$nit-b-*` value instead, scoped to the group's switch
+        // class, so they follow a category style like every other role.
+        'checkbg'           => ['section' => 'brand', 'sub' => 'check', 'label' => 'Checkbox background', 'short' => 'Background', 'usage' => ['an unticked box', 'an unselected radio', 'the track of a switch that is off'], 'default' => '#121e2d'],
+        'checkborder'       => ['section' => 'brand', 'sub' => 'check', 'label' => 'Checkbox border', 'short' => 'Border', 'usage' => ['the ring around an unticked box, radio or switch'], 'default' => '#223244'],
+        'checkknob'         => ['section' => 'brand', 'sub' => 'check', 'label' => 'Switch knob (off)', 'short' => 'Switch knob', 'usage' => ['the round knob of a switch that is off'], 'default' => '#94a3b8'],
+        'checkcheckedbg'    => ['section' => 'brand', 'sub' => 'check', 'label' => 'Checkbox checked background', 'short' => 'Checked background', 'usage' => ['a ticked box', 'a selected radio', 'the track of a switch that is on', 'the focus ring, faded'], 'default' => '#5488c4'],
+        'checkcheckedborder' => ['section' => 'brand', 'sub' => 'check', 'label' => 'Checkbox checked border', 'short' => 'Checked border', 'usage' => ['the ring around a ticked box, selected radio or switch that is on', 'the ring while the box has keyboard focus'], 'default' => '#5488c4'],
+        'checkcheckedmark'  => ['section' => 'brand', 'sub' => 'check', 'label' => 'Checkbox tick', 'short' => 'Tick / knob (on)', 'usage' => ['the tick inside a ticked box', 'the dot inside a selected radio', 'the dash of a half-ticked box', 'the knob of a switch that is on'], 'default' => '#eef3f9'],
 
         // --- Brand > Links and words -----------------------------------------
         // The three text-facing accents. They used to be ONE role ("Accent
@@ -1506,6 +1536,17 @@ function theme_nit_brand_group_defaults(): array {
             'btnoutlinehoverbg' => '#16222f',
             'btnoutlinehovertext' => '#7fabdb',
             'btnoutlinehoverborder' => '#33475e',
+            // The tick box and the switch seed to what the box already drew in
+            // this group — Surface under it, Border primary around it, Primary
+            // when ticked with the main button's label colour for the tick —
+            // except the OFF knob, which had no hex to seed from and takes Text
+            // secondary so it shows on a dark track.
+            'checkbg'           => '#121e2d',
+            'checkborder'       => '#223244',
+            'checkknob'         => '#94a3b8',
+            'checkcheckedbg'    => '#5488c4',
+            'checkcheckedborder' => '#5488c4',
+            'checkcheckedmark'  => '#eef3f9',
             'background'        => '#0c141f',
             'background2'       => '#101a27',
             'navbarbackground1' => '#0c141f',
@@ -1572,6 +1613,12 @@ function theme_nit_brand_group_defaults(): array {
             'btnoutlinehoverbg' => '#143231',
             'btnoutlinehovertext' => '#6ccabb',
             'btnoutlinehoverborder' => '#2f5a56',
+            'checkbg'           => '#102727',
+            'checkborder'       => '#1f3f3d',
+            'checkknob'         => '#8aa5a2',
+            'checkcheckedbg'    => '#2f9e8f',
+            'checkcheckedborder' => '#2f9e8f',
+            'checkcheckedmark'  => '#eef5f4',
             'background'        => '#0a1a1a',
             'background2'       => '#0d2020',
             'navbarbackground1' => '#0a1a1a',
@@ -1638,6 +1685,12 @@ function theme_nit_brand_group_defaults(): array {
             'btnoutlinehoverbg' => '#201e34',
             'btnoutlinehovertext' => '#b4a9ee',
             'btnoutlinehoverborder' => '#433d64',
+            'checkbg'           => '#1a182d',
+            'checkborder'       => '#2d2a45',
+            'checkknob'         => '#9691b3',
+            'checkcheckedbg'    => '#8478cf',
+            'checkcheckedborder' => '#8478cf',
+            'checkcheckedmark'  => '#efedf7',
             'background'        => '#11101c',
             'background2'       => '#151425',
             'navbarbackground1' => '#11101c',
@@ -1749,6 +1802,12 @@ function theme_nit_brand_group_defaults(): array {
             'btnoutlinehoverbg' => '#f1f3f6',   // N100
             'btnoutlinehovertext' => '#073b78',   // A800
             'btnoutlinehoverborder' => '#a7abb1',   // N400
+            'checkbg'           => '#ffffff',
+            'checkborder'       => '#d5d9df',   // N300
+            'checkknob'         => '#5e646b',   // N600
+            'checkcheckedbg'    => '#2368bd',   // A600
+            'checkcheckedborder' => '#2368bd',  // A600
+            'checkcheckedmark'  => '#ffffff',
             'background'        => '#f6f8fb',   // N50
             'background2'       => '#f1f3f6',   // N100
             // Light chrome. This group is light THROUGHOUT — bar, page and band.
@@ -1842,6 +1901,12 @@ function theme_nit_brand_group_defaults(): array {
             'btnoutlinehoverbg' => '#14191f',   // N900
             'btnoutlinehovertext' => '#c0dafc',   // A200
             'btnoutlinehoverborder' => '#43484f',   // N700
+            'checkbg'           => '#1f232a',   // N850
+            'checkborder'       => '#2a2e35',   // N800
+            'checkknob'         => '#a7abb1',   // N400
+            'checkcheckedbg'    => '#71a7ef',   // A400
+            'checkcheckedborder' => '#71a7ef',  // A400
+            'checkcheckedmark'  => '#0d1117',   // N950
             'background'        => '#0d1117',   // N950
             'background2'       => '#14191f',   // N900
             'navbarbackground1' => '#0d1117',
