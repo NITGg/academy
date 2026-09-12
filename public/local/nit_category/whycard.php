@@ -17,22 +17,26 @@
 /**
  * Add or edit one card of the "Why thousands choose us" section.
  *
+ * Reached from, and returning to, the "Why choose us" tab of the Site pages manager
+ * (see \local_nit_category\whychoose_ui).
+ *
  * @package    local_nit_category
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(__DIR__ . '/../../config.php');
-require_once($CFG->libdir . '/adminlib.php');
 
 use local_nit_category\whychoose;
+use local_nit_category\whychoose_ui;
 
 $cardid = optional_param('cardid', 0, PARAM_INT);
 
-admin_externalpage_setup('local_nit_category_whychoose');
-$PAGE->set_url(new moodle_url('/local/nit_category/whycard.php', ['cardid' => $cardid]));
+require_login();
+$context = context_system::instance();
+require_capability('moodle/site:config', $context);
 
-$manageurl = new moodle_url('/local/nit_category/whychoose.php');
+$manageurl = whychoose_ui::url();
 
 $card = null;
 if ($cardid) {
@@ -42,7 +46,13 @@ if ($cardid) {
     }
 }
 $heading = $card ? get_string('whycard_edit', 'local_nit_category') : get_string('whycard_add', 'local_nit_category');
+
+$PAGE->set_url(new moodle_url('/local/nit_category/whycard.php', ['cardid' => $cardid]));
+$PAGE->set_context($context);
+$PAGE->set_pagelayout('admin');
 $PAGE->set_title($heading);
+$PAGE->set_heading($heading);
+$PAGE->navbar->add(get_string('whychoose', 'local_nit_category'), $manageurl);
 $PAGE->navbar->add($heading);
 
 $form = new \local_nit_category\form\whycard_form($PAGE->url->out(false));

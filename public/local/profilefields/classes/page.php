@@ -64,6 +64,13 @@ class page {
     const TAB_PAGE_PREFIX = 'page';
 
     /**
+     * The "Why choose us" tab: the section under the hero of every category page. Its
+     * content belongs to local_nit_category (\local_nit_category\whychoose_ui); this
+     * manager only lends it a tab, so the tab exists only while that plugin does.
+     */
+    const TAB_WHYCHOOSE = 'whychoose';
+
+    /**
      * The valid tab identifiers.
      *
      * @return string[]
@@ -72,10 +79,20 @@ class page {
         return array_merge(
             [self::TAB_REGISTER, self::TAB_LOGIN, self::TAB_PROFILE,
                 self::TAB_PASSWORDRESET, self::TAB_FOOTER],
+            self::has_whychoose() ? [self::TAB_WHYCHOOSE] : [],
             array_map(static function (string $slug): string {
                 return self::TAB_PAGE_PREFIX . $slug;
             }, staticpages::slugs())
         );
+    }
+
+    /**
+     * Whether local_nit_category is installed to supply the "Why choose us" tab.
+     *
+     * @return bool
+     */
+    protected static function has_whychoose(): bool {
+        return class_exists('\local_nit_category\whychoose_ui');
     }
 
     /**
@@ -120,6 +137,12 @@ class page {
         $slug = self::tab_slug($tab);
         if ($slug !== '') {
             self::process_staticpage($slug, $tab);
+            return;
+        }
+
+        // The "Why choose us" tab handles its own links and form, in its own plugin.
+        if ($tab === self::TAB_WHYCHOOSE && self::has_whychoose()) {
+            \local_nit_category\whychoose_ui::process();
             return;
         }
 
@@ -197,13 +220,22 @@ class page {
                 get_string('tabpasswordreset', 'local_profilefields')),
             new tabobject(self::TAB_FOOTER, self::url(self::TAB_FOOTER),
                 get_string('tabfooter', 'local_profilefields')),
-            self::pages_tab($tab),
         ];
+        if (self::has_whychoose()) {
+            $rows[] = new tabobject(self::TAB_WHYCHOOSE, self::url(self::TAB_WHYCHOOSE),
+                get_string('tabwhychoose', 'local_profilefields'));
+        }
+        $rows[] = self::pages_tab($tab);
         echo $OUTPUT->tabtree($rows, $tab);
 
         $slug = self::tab_slug($tab);
         if ($slug !== '') {
             self::render_staticpage($slug);
+            return;
+        }
+
+        if ($tab === self::TAB_WHYCHOOSE && self::has_whychoose()) {
+            \local_nit_category\whychoose_ui::render();
             return;
         }
 

@@ -486,6 +486,7 @@ $string['footercopyrightpreview'] = 'سيظهر هكذا';
 
 // Static pages (AC-4.21).
 $string['tabpages'] = 'الصفحات الثابتة';
+$string['tabwhychoose'] = 'لماذا يختارنا';
 $string['tabpages_intro'] = 'صفحات الموقع الثابتة. تُكتب كل صفحة مرتين — مرة بالعربية ومرة بالإنجليزية — ويرى كل زائر النسخة بلغته. الخانة الفارغة تعود إلى الإنجليزية، ثم إلى اللغة التي كُتبت فعلًا.';
 
 $string['staticpagename_about'] = 'عن الأكاديمية';

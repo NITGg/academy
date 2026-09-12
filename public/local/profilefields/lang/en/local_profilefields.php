@@ -493,6 +493,7 @@ $string['footercopyrightpreview'] = 'Shown as';
 
 // Static pages (AC-4.21).
 $string['tabpages'] = 'Static pages';
+$string['tabwhychoose'] = 'Why choose us';
 $string['tabpages_intro'] = 'The site\'s standing pages. Each one is written twice - once in English and once in Arabic - and every visitor sees the version in their own language. A box left empty falls back to English, and then to whichever language was actually filled in.';
 
 $string['staticpagename_about'] = 'About EAAC';

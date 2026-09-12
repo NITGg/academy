@@ -8,8 +8,9 @@
      icon, its name and a "go" arrow, each linking to that category.
 
      ALL BEHAVIOUR LIVES IN theme/nit/blocks/home_hero_orbit.js, served by
-     js.php beside it. This file is markup and one four-line loader, and it has
-     to stay that way.
+     js.php beside it. This file is markup and one short loader (which also
+     primes the two logo images from window.NIT_LOGO, so the real mark starts
+     loading before that script has arrived), and it has to stay that way.
 
      That is not a style preference, it is what the block survived. An earlier
      version carried the whole ~25KB of JavaScript inline. Saved through the
@@ -88,19 +89,30 @@
 <div dir="auto"
   style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(20px, 5vw, 64px); overflow: hidden;">
   <!-- Logo row. A real img with a src, never an empty element: the editor
-       deletes anything with no content of its own. The height is a clamp so
-       the mark stays a mark on a phone and does not swell on a wide screen.
+       deletes anything with no content of its own.
+
+       The height is NOT optional. The src is only the last-resort fallback
+       and the real mark arrives later, and the two are different sizes: the
+       fallback is 1000 by 350 and Moodle serves the compact logo at up to 200
+       tall. Left to its natural size the row was 350px tall on first paint
+       and ~200px once the real logo landed, so the headline, the buttons and
+       the whole constellation jumped up 150px about a second after the page
+       appeared. A fixed height makes the row the same size whichever image is
+       in it - the reserved box IS the skeleton - and object-fit keeps any logo
+       inside it undistorted. 200px is what the compact logo renders at
+       anyway on a desktop; the clamp only shrinks it on a phone.
 
        opacity: 0 is deliberate, and it is on BOTH logo images in this file.
-       The src is only the last-resort fallback; without the opacity the
-       browser paints it for the moment before home_hero_orbit.js has swapped
-       in the site's real logo, which shows as the old mark flashing and then
-       changing. setupLogo() lifts the opacity only once the real image has
-       finished loading, so nothing is ever drawn but the right mark. -->
+       Without it the browser paints the fallback for the moment before the
+       real logo has loaded, which shows as the old mark flashing and then
+       changing. The loader at the bottom of this file sets the real src as
+       soon as the block is parsed and lifts the opacity when it has loaded;
+       setupLogo() in home_hero_orbit.js does the same again later for a page
+       that does not print window.NIT_LOGO. -->
   <div
     style="max-width: 1230px; margin: 0 auto 40px; display: flex; align-items: center; justify-content: center;"
     data-nit-hero-brand=""> <img class="img-fluid"
-      style="display: block; width: auto; max-width: 100%; object-fit: contain; opacity: 0;"
+      style="display: block; height: clamp(120px, 16vw, 200px); width: auto; max-width: 100%; object-fit: contain; opacity: 0; transition: opacity .25s ease;"
       src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
       data-nit-hero-brandmark="" data-nit-logo="compact"> </div>
   <div
@@ -161,7 +173,7 @@
            opacity: 0 until the script has loaded the real logo - see the logo
            row above for why. -->
       <div data-nit-orbit-core=""><img class="img-fluid"
-          style="opacity: 0;"
+          style="opacity: 0; transition: opacity .25s ease;"
           src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
           data-nit-orbit-logo=""></div>
       <!-- Card template, cloned once per category. The {{placeholder}} markers
@@ -226,8 +238,24 @@
     // Loads the behaviour. Keep this short and keep the "less than" character
     // out of it - see the note at the top of this file for what happens when
     // real logic is pasted through the editor.
+    //
+    // The first half primes the two logo images: the theme prints
+    // window.NIT_LOGO before the block regions, so the real mark can start
+    // loading the moment this block is parsed instead of after the script
+    // below has made its own round trip. Each image is revealed when it has
+    // loaded and not before - the markup ships them at opacity 0.
     (function() {
       var here = document.currentScript;
+      var logo = window.NIT_LOGO;
+      if (typeof logo === 'string' && logo) {
+        Array.prototype.forEach.call(document.querySelectorAll(
+          '[data-nit-orbit-logo], [data-nit-hero-brandmark]'), function(img) {
+          img.addEventListener('load', function() {
+            img.style.opacity = '1';
+          });
+          img.src = logo;
+        });
+      }
       var base = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : '';
       var s = document.createElement('script');
       s.src = base + '/theme/nit/blocks/js.php?name=home_hero_orbit';

@@ -175,8 +175,8 @@ $t = function (string $en, string $ar) use ($isar) {
 };
 
 // "Why thousands choose us" — the section under the hero. Site-wide content the admin
-// edits on Site administration → Plugins → Local plugins → "Why choose us" section
-// (whychoose.php); null when there is nothing to show, and the section stays away.
+// edits on the "Why choose us" tab of the Site pages manager
+// (/local/profilefields/manage.php?tab=whychoose); null when there is nothing to show.
 $whychoose = \local_nit_category\whychoose::for_display();
 
 // Subcategory filter buttons reuse the site's gallery button components (Components
