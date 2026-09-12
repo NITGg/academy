@@ -696,6 +696,21 @@
                 text-decoration: underline;
             }
         }
+
+        // The language switcher's toggle is a bare `<a>` from core/action_menu,
+        // so Bootstrap's `a:hover` recolours it with the Hover text role. That
+        // role is drawn to sit ON the Hover background, and this link never gets
+        // one - on the card it hovered to a colour with almost no contrast and
+        // read as the control going dead. It keeps its resting colour; the
+        // list it opens is a normal dropdown and keeps its own hover.
+        .login-languagemenu .dropdown-toggle {
+            &:hover,
+            &:focus,
+            &[aria-expanded="true"] {
+                color: var(--nit-brand-accenttext);
+                text-decoration: none;
+            }
+        }
     }
 }
 

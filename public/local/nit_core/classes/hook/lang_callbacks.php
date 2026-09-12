@@ -26,6 +26,72 @@ use core\hook\after_config;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class lang_callbacks {
+    /** @var string $SESSION key: the language a logged-out visitor clicked, kept until they log in. */
+    public const CHOSEN_KEY = 'local_nit_core_chosenlang';
+
+    /**
+     * Remember a language a logged-out visitor clicked, so it survives logging in.
+     *
+     * Core throws $SESSION->lang away on every login (set_login_session_preferences() in
+     * lib/moodlelib.php), so the language picked on the log-in or sign-up screen lasted exactly
+     * until the form was submitted: log in as a guest in Arabic and the site comes back in
+     * English, because the guest account's profile language is English. The comment in
+     * login/index.php promising guests "use existing session" language predates that unset.
+     *
+     * Only an EXPLICIT ?lang=xx click is remembered — never the browser-detected language
+     * setup_lang_from_browser() puts in the same $SESSION->lang — because a learner whose
+     * profile says Arabic and who logged in from an English-looking browser without touching
+     * the switcher still expects Arabic. And only while logged out (or the guest): a signed-in
+     * user's clicks are honoured by core already. The observer for user_loggedin puts the
+     * remembered language back once core has done its unset.
+     *
+     * @param after_config $hook
+     * @return void
+     */
+    public static function remember_chosen_language(after_config $hook): void {
+        global $SESSION;
+
+        // GET only, as core reads ?lang= (a POSTed lang field is form data).
+        if (!isset($_GET['lang'])) {
+            return;
+        }
+        if (isloggedin() && !isguestuser()) {
+            return;
+        }
+
+        $lang = optional_param('lang', '', PARAM_SAFEDIR);
+        if ($lang === '' || !get_string_manager()->translation_exists($lang, false)) {
+            return;
+        }
+
+        $SESSION->{self::CHOSEN_KEY} = $lang;
+    }
+
+    /**
+     * Put the remembered language back after core's login-time unset.
+     *
+     * Runs from complete_user_login(), after set_login_session_preferences() has cleared
+     * $SESSION->lang, and before the redirect that renders the first logged-in page — so
+     * that page, and the rest of the session, come up in the language the visitor chose.
+     * Session-scoped, exactly like core's own navbar switcher: the profile language is not
+     * rewritten.
+     *
+     * @param \core\event\user_loggedin $event
+     * @return void
+     */
+    public static function user_loggedin(\core\event\user_loggedin $event): void {
+        global $SESSION;
+
+        $lang = $SESSION->{self::CHOSEN_KEY} ?? '';
+        unset($SESSION->{self::CHOSEN_KEY});
+
+        if ($lang === '' || !get_string_manager()->translation_exists($lang, false)) {
+            return;
+        }
+
+        $SESSION->lang = $lang;
+    }
+
     /**
      * Drop a leftover $SESSION->forcelang when the visitor explicitly asks for a language.
      *

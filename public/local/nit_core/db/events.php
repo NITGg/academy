@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the NIT Core SDK.
+ * Event observers for local_nit_core.
  *
  * @package    local_nit_core
  * @copyright  2026 NIT
@@ -24,9 +24,14 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_nit_core';
-$plugin->version   = 2026091200;        // YYYYMMDDXX — a logged-out ?lang= choice survives logging in (db/events.php observer).
-$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline (approx; pinned per CI matrix).
-$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
-$plugin->maturity  = MATURITY_ALPHA;    // SDK API is v0.x (unstable) until sdk-v1.0.0.
-$plugin->release   = '0.1.0';
+$observers = [
+    // Restore the language a logged-out visitor chose on the account screens: core's
+    // set_login_session_preferences() unsets $SESSION->lang on every login, so without this
+    // the site came back in the profile language (English, for the guest) the moment the
+    // form was submitted. The choice is recorded by lang_callbacks::remember_chosen_language
+    // (after_config, see db/hooks.php).
+    [
+        'eventname' => '\core\event\user_loggedin',
+        'callback'  => '\local_nit_core\hook\lang_callbacks::user_loggedin',
+    ],
+];

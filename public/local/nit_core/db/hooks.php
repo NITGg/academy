@@ -32,6 +32,13 @@ $callbacks = [
         'callback' => 'local_nit_core\hook\lang_callbacks::after_config',
         'priority' => 0,
     ],
+    // Remember a logged-out visitor's ?lang=xx click so it outlives the login (core clears
+    // $SESSION->lang on login); db/events.php restores it on user_loggedin.
+    [
+        'hook'     => \core\hook\after_config::class,
+        'callback' => 'local_nit_core\hook\lang_callbacks::remember_chosen_language',
+        'priority' => 0,
+    ],
     [
         'hook'     => \core\hook\output\before_standard_top_of_body_html_generation::class,
         'callback' => 'local_nit_core\hook\output_callbacks::add_welcome_panel',
