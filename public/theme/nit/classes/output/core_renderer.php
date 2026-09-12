@@ -280,6 +280,14 @@ JS;
             }
         }
 
+        // A visitor who is ALREADY the guest and came back to this screen. Core
+        // hides "Access as a guest" then (`canloginasguest` is false for the
+        // guest user - logging the guest in again is a no-op), and the utility
+        // line lost its way back into the site. In its place, a plain link home:
+        // same spot, same weight, and it does what the visitor wanted from the
+        // button that vanished.
+        [$context->nitisguest, $context->nithomeurl] = $this->guest_continue_context();
+
         return $this->render_from_template('core/loginform', $context);
     }
 
@@ -328,8 +336,29 @@ JS;
         $context['canloginasguest'] = !empty($CFG->guestloginbutton) && !isguestuser();
         $context['loginurl'] = (new \moodle_url('/login/index.php'))->out(false);
         $context['logintoken'] = \core\session\manager::get_login_token();
+        // Already the guest: a link home stands in for the button (see render_login()).
+        [$context['nitisguest'], $context['nithomeurl']] = $this->guest_continue_context();
 
         return $this->render_from_template('core/signup_form_layout', $context);
+    }
+
+    /**
+     * The "Continue as guest" link the account screens show to a visitor who is
+     * already browsing as the guest.
+     *
+     * Core's guest button is hidden for the guest user itself (the POST would
+     * only log the guest in again), so the screen offered that visitor no way
+     * back into the site short of the browser's Back button. Shown only when the
+     * site offers guest access at all: a site with `guestloginbutton` off never
+     * had the button, and should not grow a link in its place.
+     *
+     * @return array [bool show, string home URL]
+     */
+    protected function guest_continue_context(): array {
+        global $CFG;
+
+        $show = !empty($CFG->guestloginbutton) && isloggedin() && isguestuser();
+        return [$show, (new \moodle_url('/'))->out(false)];
     }
 
     /**

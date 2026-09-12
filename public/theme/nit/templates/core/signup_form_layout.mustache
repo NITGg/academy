@@ -24,6 +24,8 @@
     * canloginasguest - whether the site offers guest access
     * loginurl - where the guest form POSTs (login/index.php)
     * logintoken - the session's login token, for that POST
+    * nitisguest - the visitor is already the guest; a link home replaces the guest button
+    * nithomeurl - that link
 
     Example context (json):
     {
@@ -37,7 +39,9 @@
         "languagemenu": false,
         "canloginasguest": true,
         "loginurl": "https://localhost/login/index.php",
-        "logintoken": "abc123"
+        "logintoken": "abc123",
+        "nitisguest": false,
+        "nithomeurl": "https://localhost/"
     }
 }}
 {{!
@@ -98,5 +102,10 @@
                     !}}{{#str}}loginguest{{/str}}</button>
             </form>
         {{/canloginasguest}}
+        {{#nitisguest}}
+            {{! Already the guest: a link home in the button's place (see loginform). }}
+            <a href="{{nithomeurl}}" class="btn nit-auth-utility-btn" id="continueasguest">{{!
+                !}}{{#str}}continueasguest, theme_nit{{/str}}</a>
+        {{/nitisguest}}
     </div>
 </div>

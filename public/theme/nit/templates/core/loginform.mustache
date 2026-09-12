@@ -219,6 +219,15 @@
                     !}}{{#str}}loginguest{{/str}}</button>
             </form>
         {{/canloginasguest}}
+        {{#nitisguest}}
+            {{!
+                The visitor IS the guest already (core hides the button above for
+                them), so the way into the site is a link home, in the button's
+                place and at its weight.
+            }}
+            <a href="{{nithomeurl}}" class="btn nit-auth-utility-btn" id="continueasguest">{{!
+                !}}{{#str}}continueasguest, theme_nit{{/str}}</a>
+        {{/nitisguest}}
         {{!
             Core's "Cookies notice" button used to sit here. It only opened an
             informational modal (the MoodleSession / MOODLEID explanation) and

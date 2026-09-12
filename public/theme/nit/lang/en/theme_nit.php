@@ -259,6 +259,7 @@ $string['eitherorclearusername'] = 'Clear the username';
 $string['eitherorclearemail'] = 'Clear the email address';
 $string['noaccount'] = 'Don\'t have an account?';
 $string['signupnow'] = 'Sign up';
+$string['continueasguest'] = 'Continue as a guest';
 
 // Navbar gear menu — the second group, holding the management screens that
 // otherwise sit three or four clicks down the Site administration tree.
