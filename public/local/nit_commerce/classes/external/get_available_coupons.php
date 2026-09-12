@@ -99,6 +99,8 @@ class get_available_coupons extends external_api {
                 'status'         => new external_value(PARAM_ALPHA, 'active | inactive'),
                 'usage_count'    => new external_value(PARAM_INT, 'How many times it has been redeemed'),
                 'currency'       => new external_value(PARAM_TEXT, "ISO 4217 the fixed amount is in ('' for a percentage)"),
+                'max_discount_currency' => new external_value(PARAM_TEXT,
+                    "ISO 4217 max_discount is in ('' when there is no cap)", VALUE_OPTIONAL),
                 'applies_to'     => new external_multiple_structure(
                     new external_single_structure([
                         'item_type' => new external_value(PARAM_ALPHA,

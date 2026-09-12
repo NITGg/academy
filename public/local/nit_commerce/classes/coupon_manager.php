@@ -626,6 +626,9 @@ class coupon_manager {
             // Coupons carry no currency of their own: a fixed amount is stated in the site's,
             // and a percentage is stated in none, so it reports none.
             'currency'       => $record->discount_type === 'percent' ? '' : self::default_currency(),
+            // The cap is a money amount whatever the discount type, so it carries the site
+            // currency even when the (percentage) discount itself reports none.
+            'max_discount_currency' => $record->max_discount === null ? '' : self::default_currency(),
             'applies_to'     => $applies,
         );
     }

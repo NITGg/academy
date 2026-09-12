@@ -265,8 +265,11 @@
       // theme's frontpage layout marks both with body.nit-guest; 'notloggedin'
       // is core's class and only covers the anonymous case, so it is the
       // fallback for a page rendered by another layout. A signed-in user keeps
-      // the catalogue link, and home_hero_orbit.js may later turn it into
-      // "Continue learning".
+      // the catalogue link until home_hero_orbit.js has asked the site: a
+      // learner with a course in progress gets "Continue learning" into that
+      // course; a first-time learner with nothing to continue keeps "Start
+      // Now" but is sent to the first category's page - the first id in
+      // data-ids on the orbit element below.
       var body = document.body;
       if (body && (body.classList.contains('nit-guest') ||
           body.classList.contains('notloggedin'))) {

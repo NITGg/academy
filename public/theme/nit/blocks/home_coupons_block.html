@@ -317,12 +317,14 @@
               }
             }
 
-            /* Max discount */
+            /* Max discount amount (the admin's optional cap). It is money whatever the
+               discount type, so it takes its own currency from the feed — `c.currency` is
+               empty for a percentage coupon and used to leave the cap printed unitless. */
             var max =
               c.max_discount != null &&
               Number(c.max_discount) > 0 ?
-              '{mlang en}Max discount{mlang}{mlang ar}أقصى خصم{mlang}: ' +
-              (num(c.max_discount) + ' ' + (c.currency || '')).trim() :
+              '{mlang en}Max discount amount{mlang}{mlang ar}الحد الأقصى لمبلغ الخصم{mlang}: ' +
+              (num(c.max_discount) + ' ' + (c.max_discount_currency || c.currency || '')).trim() :
               '';
 
             var html = tpl.innerHTML

@@ -149,6 +149,11 @@
     els.couponUsage = el('div', 'display:none; color:' + C.muted + '; font-size:12px; margin:-6px 0 10px; line-height:1.5;', ' ');
     box.appendChild(els.couponUsage);
 
+    // The accepted code's "Max discount amount (optional)". Its own line because it answers a
+    // different question than the usage cap: not "can I use it" but "why is 30% only 50".
+    els.couponMax = el('div', 'display:none; color:' + C.muted + '; font-size:12px; margin:-6px 0 10px; line-height:1.5;', ' ');
+    box.appendChild(els.couponMax);
+
     box.appendChild(row(S('co_discount'), (els.discount = el('b', 'color:' + C.good + ';', '0.00 ' + cur()))));
 
     var totalRow = el('div', 'border-top:1px solid ' + C.line + '; padding-top:12px; display:flex; justify-content:space-between; font-size:16px; font-weight:800;');
@@ -399,11 +404,22 @@
         }
         els.couponUsage.textContent = usage || ' ';
         els.couponUsage.style.display = usage ? '' : 'none';
+
+        // Max discount amount of the code that just validated, worded to say whether the cap
+        // is what held the discount down (the server measured that against the uncapped sum).
+        var maxline = '';
+        if (!d.coupon_error && d.coupon_id && d.coupon_max_discount != null && Number(d.coupon_max_discount) > 0) {
+          maxline = S(d.coupon_max_hit ? 'co_max_discount_hit' : 'co_max_discount')
+            .replace('{amount}', money(d.coupon_max_discount) + ' ' + cur());
+        }
+        els.couponMax.textContent = maxline || ' ';
+        els.couponMax.style.display = maxline ? '' : 'none';
         return d;
       })
       .catch(function (e) {
         els.couponNote.style.display = 'none';
         els.couponUsage.style.display = 'none';
+        els.couponMax.style.display = 'none';
         els.couponErr.textContent = S('co_coupon_failed');
         els.couponErr.style.display = '';
         // Rethrown so go() can tell "the price has not moved" apart from "we could not ask".
@@ -428,6 +444,7 @@
       els.couponErr.style.display = 'none';
       els.couponNote.style.display = 'none';
       els.couponUsage.style.display = 'none';
+      els.couponMax.style.display = 'none';
       els.error.style.display = 'none';
       els.pricenote.style.display = 'none';
       els.proceed.textContent = S('co_proceed');

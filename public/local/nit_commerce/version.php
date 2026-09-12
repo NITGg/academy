@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_commerce';
-$plugin->version   = 2026091201;        // Checkout modal: Proceed label uses the Text-on-main-button role.
+$plugin->version   = 2026091202;        // Checkout modal + coupon feed: Max discount amount shown to the buyer.
 $plugin->requires  = 2024100700;
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;

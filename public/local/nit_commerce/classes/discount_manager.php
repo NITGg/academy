@@ -796,6 +796,10 @@ class discount_manager {
             'coupon_usage_limit' => 0,
             'coupon_usage_count' => 0,
             'coupon_uses_left'   => null,
+            // The coupon's "Max discount amount (optional)" and whether it bit: a 30% code on
+            // a 500 order that takes off 50 looks broken unless the buyer is told the cap did it.
+            'coupon_max_discount' => null,
+            'coupon_max_hit'      => false,
             'discount'          => 0.0,
             'final'             => $base,
         );
@@ -824,6 +828,13 @@ class discount_manager {
             $result['coupon_usage_limit'] = $limit;
             $result['coupon_usage_count'] = $used;
             $result['coupon_uses_left']   = $limit > 0 ? max(0, $limit - $used) : null;
+            $max = ($coupon->max_discount !== null && (float) $coupon->max_discount > 0)
+                ? round((float) $coupon->max_discount, 2) : null;
+            $result['coupon_max_discount'] = $max;
+            // Measured against the uncapped amount, so "hit" means the cap — not the order
+            // total — is what held the discount down.
+            $result['coupon_max_hit'] = $max !== null
+                && self::discount_amount($coupon->discount_type, $coupon->discount_value, null, $base) > $max;
         }
 
         $result['offer_candidate']  = $offeramount;

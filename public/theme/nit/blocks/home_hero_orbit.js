@@ -768,7 +768,33 @@
   // correct before this runs and correct if it never does — the block's own
   // inline script has already pointed it at the login page for anonymous and
   // guest-account visitors (body.nit-guest), and at the catalogue otherwise.
+  //
+  // A signed-in learner with nothing to continue — a first visit, no enrolment
+  // yet — keeps the "Start Now" label, but the button opens the FIRST category's
+  // landing page instead of scrolling to the grid: the page that presents the
+  // plans is a better first step than a row of cards. "First" is the first id
+  // in the orbit's data-ids (the order the constellation is drawn in), so the
+  // button and the shape at the top of the ring agree; a block with no data-ids
+  // falls back to the first category the site lists.
   // ------------------------------------------------------------------
+  function firstCategoryUrl() {
+    var root = (window.M && window.M.cfg && window.M.cfg.wwwroot) ? window.M.cfg.wwwroot : '';
+    var orbit = document.querySelector('[data-nit-orbit]');
+    var first = orbit ? (orbit.dataset.ids || '').split(',')
+      .map(function(s) {
+        return s.trim();
+      })
+      .filter(Boolean)[0] : '';
+    if (first) {
+      return root + '/local/nit_category/index.php?id=' + encodeURIComponent(first);
+    }
+    var rows = window.NIT_CATEGORIES;
+    if (Array.isArray(rows) && rows.length && rows[0]) {
+      return rows[0].url || (root + '/local/nit_category/index.php?id=' + rows[0].id);
+    }
+    return '';
+  }
+
   function continueCta() {
     var cta = document.querySelector('[data-nit-hero-cta]');
     if (!cta || cta.dataset.nitLoaded) {
@@ -795,7 +821,25 @@
         return r.json();
       })
       .then(function(res) {
-        if (!res || res.status !== 'success' || !res.data || !res.data.url) {
+        if (!res || res.status !== 'success') {
+          return;
+        }
+        if (!res.data || !res.data.url) {
+          // Nothing to continue. The guest account has a sesskey too and gets
+          // the same empty answer, but the block already sent it to the login
+          // page — leave that alone. A real learner, first visit: "Start Now"
+          // opens the first category page. The scroll-to hook has to go, or
+          // the click handler swallows the navigation.
+          var body = document.body;
+          if (body && (body.classList.contains('nit-guest') ||
+              body.classList.contains('notloggedin'))) {
+            return;
+          }
+          var url = firstCategoryUrl();
+          if (url) {
+            cta.setAttribute('href', url);
+            cta.removeAttribute('data-nit-scrollto');
+          }
           return;
         }
         cta.textContent = label;

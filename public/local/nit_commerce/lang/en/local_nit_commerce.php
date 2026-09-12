@@ -284,3 +284,10 @@ $string['co_confirm_price'] = 'Confirm new price';
 $string['co_usage_limit']     = 'Usage limit: {limit} — {left} left';
 $string['co_usage_unlimited'] = 'Usage limit: unlimited';
 $string['co_usage_once']      = 'One-time use';
+
+// The applied coupon's "Max discount amount (optional)" cap, shown under the code once it
+// validates. The second form is used when the cap is what limited the discount — a 30% code on
+// a 500 order that takes off 50 looks broken unless the buyer is told why. {amount} is filled
+// in by the modal, not by get_string.
+$string['co_max_discount']     = 'Max discount amount: {amount}';
+$string['co_max_discount_hit'] = 'Max discount amount: {amount} — your discount was capped at this amount.';
