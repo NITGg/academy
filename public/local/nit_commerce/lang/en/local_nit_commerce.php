@@ -71,22 +71,20 @@ $string['cpn_col_dates']   = 'Valid';
 $string['cpn_field_code']  = 'Coupon code';
 $string['cpn_field_dtype'] = 'Discount type';
 $string['cpn_field_value'] = 'Discount value';
-$string['cpn_field_utype'] = 'Usage type';
 $string['cpn_field_limit'] = 'Usage limit';
+$string['cpn_field_userlimit'] = 'Usage limit per student';
 $string['cpn_field_start'] = 'Start date';
 $string['cpn_field_end']   = 'End date';
 $string['cpn_field_scope'] = 'Applicable items';
 $string['cpn_type_percent'] = 'Percentage';
 $string['cpn_type_fixed']   = 'Fixed';
-$string['cpn_usage_once']     = 'One-time';
-$string['cpn_usage_multiple'] = 'Multiple use';
 // One line under each field of the coupon form — what the field does, in the admin's words.
 $string['cpn_help_name']   = 'Shown to students on the coupon card and at checkout, in the language they are browsing in.';
 $string['cpn_help_desc']   = 'An optional line under the name — who the coupon is for, or what it celebrates.';
 $string['cpn_help_code']   = 'What the student types at checkout. Keep it short and easy to type; it must be unique.';
 $string['cpn_help_value']  = 'Percentage taken off the price, from 1 to 100. A percentage works in every currency.';
-$string['cpn_help_utype']  = 'One-time: spent after the first purchase by anyone. Multiple use: many students can use it until the limit is reached — each student once.';
 $string['cpn_help_limit']  = 'Total number of purchases the coupon is accepted on, across all students. Leave empty for unlimited.';
+$string['cpn_help_userlimit'] = 'How many times one student may use this coupon. Leave empty for unlimited — every student can use it as often as they like while it lasts.';
 $string['cpn_help_start']  = 'Accepted from this date. Leave empty to start right away.';
 $string['cpn_help_end']    = 'Refused after this date. Leave empty to never expire.';
 $string['cpn_help_active'] = 'An inactive coupon is hidden and refused, but keeps its history.';
@@ -130,7 +128,6 @@ $string['err_discounttype']        = 'Discount type must be percentage or fixed.
 $string['err_discountvalue']       = 'Discount value cannot be negative.';
 $string['err_discountpercent']     = 'A percentage discount must be between 0 and 100.';
 $string['err_daterange']           = 'The end date must be after the start date.';
-$string['err_usagetype']           = 'Usage type must be one-time or multiple.';
 $string['err_status']              = 'Status must be "active" or "inactive"';
 $string['err_couponcoderequired']  = 'A coupon code is required.';
 $string['err_couponcodetaken']     = 'That coupon code is already in use.';
@@ -140,12 +137,11 @@ $string['err_couponnotstarted']    = 'This coupon is not valid yet.';
 $string['err_couponexpired']       = 'This coupon has expired.';
 $string['err_couponnotapplicable'] = 'This coupon does not apply to this item.';
 $string['err_couponusedup']        = 'This coupon has reached its usage limit.';
-$string['err_couponalreadyusedbyuser'] = 'You have already used this coupon.';
+$string['err_couponalreadyusedbyuser'] = 'You have already used this coupon the maximum number of times allowed per student ({$a}).';
 $string['err_couponbusy'] = 'This coupon is being processed by another request. Please try again in a moment.';
 $string['cleanupreservations'] = 'Release abandoned coupon reservations';
 $string['err_couponhasusages']     = 'This coupon has been used and can only be deactivated.';
 $string['err_usagelimitbelowused'] = 'This coupon has already been used {$a} time(s); the usage limit cannot be lower than that. Enter {$a} or more, or leave it empty for unlimited.';
-$string['err_usagetypebelowused']  = 'This coupon has already been used {$a} times, so it cannot be changed to one-time.';
 $string['cpn_limit_min_hint']      = 'Already used {$a} time(s) — the limit must be at least {$a}, or empty for unlimited.';
 $string['err_offernamerequired']   = 'An offer name is required.';
 $string['err_offernotfound']       = 'Offer not found.';
@@ -196,6 +192,12 @@ $string['cpn_open_category'] = 'Browse the category';
 $string['cpn_terms']         = 'Terms';
 $string['cpn_uses_left']     = '{$a} uses left';
 $string['cpn_uses_none']     = 'Fully redeemed';
+// The per-student cap on the details page: the label, then the cap, then — for a signed-in
+// visitor — how many of their own uses remain.
+$string['cpn_per_student']        = 'Per student';
+$string['cpn_per_student_uses']   = '{$a} time(s)';
+$string['cpn_per_student_left']   = '{$a} left for you';
+$string['cpn_per_student_none']   = 'You have used it up';
 $string['cpn_no_expiry']     = 'No expiry date';
 $string['cpn_starts']        = 'Starts';
 $string['cpn_expires']       = 'Expires';
@@ -274,10 +276,11 @@ $string['co_notcombined']   = 'Offers and coupons are not combined — you alway
 $string['co_pricechanged']  = 'The price changed while this window was open: it was {old} and is now {new}. Nothing has been charged — press again to continue at the new price.';
 $string['co_confirm_price'] = 'Confirm new price';
 
-// The applied coupon's usage cap (the admin's "Usage limit (optional)"), shown under the code
-// once it validates so the buyer knows how many redemptions are left. {limit}/{left} are filled
-// in by the modal, not by get_string.
+// The applied coupon's two caps (the admin's "Usage limit" and "Usage limit per student"), shown
+// under the code once it validates so the buyer knows how many redemptions are left, in all and
+// for them. {limit}/{left} are filled in by the modal, not by get_string.
 $string['co_usage_limit']     = 'Usage limit: {limit} — {left} left';
 $string['co_usage_unlimited'] = 'Usage limit: unlimited';
-$string['co_usage_once']      = 'One-time use';
+$string['co_usage_user']      = 'Per student: {limit} — {left} left for you';
+$string['co_usage_user_unlimited'] = 'Per student: unlimited';
 

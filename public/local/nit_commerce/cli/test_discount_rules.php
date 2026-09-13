@@ -100,7 +100,7 @@ function make_coupon(string $code, string $type, float $value): int {
     $now = time();
     $id = $DB->insert_record('nit_coupon', (object) [
         'code' => $code, 'name' => 'TEST coupon', 'description' => '', 'discount_type' => $type,
-        'discount_value' => $value, 'usage_type' => 'multiple',
+        'discount_value' => $value, 'user_limit' => 0,
         'usage_limit' => 0, 'startdate' => 0, 'enddate' => 0, 'status' => 'active',
         'timecreated' => $now, 'timemodified' => $now, 'usermodified' => $USER->id,
     ]);

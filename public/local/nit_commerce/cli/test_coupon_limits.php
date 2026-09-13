@@ -114,11 +114,11 @@ $prov = (int) $DB->get_field_sql('SELECT MIN(id) FROM {local_payments_providers}
 cleanup();
 
 try {
-    // ── Fixture: a coupon worth 10% that may be redeemed twice in total ──
+    // ── Fixture: a coupon worth 10% that may be redeemed twice in total, once per learner ──
     $now = time();
     $couponid = $DB->insert_record('nit_coupon', (object) [
         'code' => TAG . '2USES', 'name' => TAG, 'description' => '', 'discount_type' => 'percent',
-        'discount_value' => 10, 'usage_type' => 'multiple',
+        'discount_value' => 10, 'user_limit' => 1,
         'usage_limit' => 2, 'startdate' => 0, 'enddate' => 0, 'status' => 'active',
         'timecreated' => $now, 'timemodified' => $now, 'usermodified' => 2,
     ]);
@@ -210,6 +210,12 @@ try {
     $DB->set_field('local_payments_transactions', 'status', 'completed', ['id' => $paid]);
     $e5 = $reserve((int) $users[0], $order((int) $users[0], 5));
     check('same learner refused a second time', $e5 === 'err_couponalreadyusedbyuser', 'got "' . $e5 . '"');
+    // The per-learner cap is the admin's user_limit, not a fixed 1: raise it to 2 and the same
+    // learner is accepted again; clear it (0) and there is no per-learner cap at all.
+    $DB->set_field('nit_coupon', 'user_limit', 2, ['id' => $couponid]);
+    $e5b = $reserve((int) $users[0], $order((int) $users[0], 6));
+    check('same learner accepted when user_limit is 2', $e5b === '', $e5b);
+    $DB->set_field('nit_coupon', 'user_limit', 1, ['id' => $couponid]);
 
     // ── AC-4.12.9 under genuine concurrency ──
     // Two OS processes, started together, both racing to take the last remaining seat. Only one

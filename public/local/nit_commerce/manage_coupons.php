@@ -51,15 +51,15 @@ $STR = local_nit_commerce_string_map(array(
     'pkg_field_desc_en', 'pkg_field_desc_ar', 'ui_showmore', 'ui_showless',
     'cpn_new', 'cpn_none', 'cpn_col_code', 'cpn_col_type', 'cpn_col_value', 'cpn_col_scope',
     'cpn_col_usage', 'cpn_col_dates', 'cpn_field_code', 'cpn_field_dtype', 'cpn_field_value',
-    'cpn_field_utype', 'cpn_field_limit', 'cpn_field_start', 'cpn_field_end',
-    'cpn_field_scope', 'cpn_type_percent', 'cpn_type_fixed', 'cpn_usage_once', 'cpn_usage_multiple',
+    'cpn_field_limit', 'cpn_field_userlimit', 'cpn_field_start', 'cpn_field_end',
+    'cpn_field_scope', 'cpn_type_percent', 'cpn_type_fixed', 'cpn_per_student',
     'cpn_scope_courses', 'cpn_scope_subscriptions', 'cpn_scope_categories',
     'cpn_scope_categories_help', 'cpn_scope_all',
     'cpn_scope_specific', 'cpn_created', 'cpn_updated', 'cpn_activated', 'cpn_deactivated',
     'cpn_deleted', 'cpn_confirm_delete', 'cpn_edit_titled', 'cpn_scope_required', 'cpn_unlimited',
-    'cpn_used_count', 'cpn_limit_min_hint', 'err_usagelimitbelowused', 'err_usagetypebelowused',
+    'cpn_used_count', 'cpn_limit_min_hint', 'err_usagelimitbelowused',
     'cpn_help_name', 'cpn_help_desc', 'cpn_help_code', 'cpn_help_value',
-    'cpn_help_utype', 'cpn_help_limit', 'cpn_help_start', 'cpn_help_end', 'cpn_help_active',
+    'cpn_help_limit', 'cpn_help_userlimit', 'cpn_help_start', 'cpn_help_end', 'cpn_help_active',
     'err_sessionexpired', 'err_requestfailed',
 ));
 echo html_writer::script('window.ACADEMY_CFG = ' . json_encode(array(
@@ -155,20 +155,19 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 </div>
                 <small class="form-text text-muted"><?php echo $STR['cpn_help_value']; ?></small>
             </div>
+            <?php // Two plain caps and no "usage type": every coupon is open to every student, and
+                  // how often is the global cap (all students together) next to the per-student one. ?>
             <div class="form-row">
-                <div class="form-group col-md-6">
-                    <label for="c-utype"><?php echo $STR['cpn_field_utype']; ?></label>
-                    <select class="form-control" id="c-utype">
-                        <option value="multiple"><?php echo $STR['cpn_usage_multiple']; ?></option>
-                        <option value="once"><?php echo $STR['cpn_usage_once']; ?></option>
-                    </select>
-                    <small class="form-text text-muted"><?php echo $STR['cpn_help_utype']; ?></small>
-                </div>
                 <div class="form-group col-md-6" id="c-limit-wrap">
                     <label for="c-limit"><?php echo $STR['cpn_field_limit']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
                     <input type="number" class="form-control" id="c-limit" min="0" step="1">
                     <small class="form-text text-muted"><?php echo $STR['cpn_help_limit']; ?></small>
                     <small class="form-text text-muted" id="c-limit-hint" style="display:none"></small>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="c-userlimit"><?php echo $STR['cpn_field_userlimit']; ?> <span class="text-muted"><?php echo $STR['ui_optional']; ?></span></label>
+                    <input type="number" class="form-control" id="c-userlimit" min="0" step="1">
+                    <small class="form-text text-muted"><?php echo $STR['cpn_help_userlimit']; ?></small>
                 </div>
             </div>
             <div class="form-row">
@@ -330,10 +329,12 @@ echo html_writer::script(<<<'JS'
         return '<div class="acad-cell-title">' + esc(title) + '</div>' +
             (sub ? '<div class="acad-cell-sub">' + esc(sub) + '</div>' : '');
     }
+    // "Used N / cap" for the whole site, then the per-student cap underneath.
     function usageLabel(c){
-        if (c.usage_type === 'once'){ return str('cpn_usage_once') + ' (' + c.usage_count + ')'; }
         var cap = c.usage_limit > 0 ? c.usage_limit : str('cpn_unlimited');
-        return strf('cpn_used_count', c.usage_count) + ' / ' + cap;
+        var per = c.user_limit > 0 ? c.user_limit : str('cpn_unlimited');
+        return '<div class="acad-cell-title">' + esc(strf('cpn_used_count', c.usage_count) + ' / ' + cap) + '</div>' +
+            '<div class="acad-cell-sub">' + esc(str('cpn_per_student') + ': ' + per) + '</div>';
     }
 
     function renderRows(items){
@@ -350,7 +351,7 @@ echo html_writer::script(<<<'JS'
                 '<td>'+esc(dtype(c.discount_type))+'</td>'+
                 '<td>'+esc(valueLabel(c))+'</td>'+
                 '<td class="col-tags">'+scopeLabel(c)+'</td>'+
-                '<td>'+esc(usageLabel(c))+'</td>'+
+                '<td>'+usageLabel(c)+'</td>'+
                 '<td>'+esc(fmtDate(c.startdate))+' → '+esc(fmtDate(c.enddate))+'</td>'+
                 '<td>'+esc(c.status === 'active' ? str('ui_active') : str('sub_inactive'))+'</td>'+
                 '<td class="col-tight"><div class="acad-actions">'+
@@ -478,16 +479,15 @@ echo html_writer::script(<<<'JS'
         // c-dtype is a hidden "percent": a legacy fixed row opens as percent so its next save
         // converts it; the admin re-enters the value as a percentage.
         $('c-value').value = c ? c.discount_value : '';
-        $('c-utype').value = c ? c.usage_type : 'multiple';
         $('c-limit').value = (c && c.usage_limit) ? c.usage_limit : '';
+        $('c-userlimit').value = (c && c.user_limit) ? c.user_limit : '';
         // What was already spent bounds what can be set: a coupon used N times cannot be capped
-        // below N, nor made one-time once it has been redeemed twice. The server refuses either;
+        // below N. The server refuses it;
         // this just tells the admin before they try.
         var used = c ? (parseInt(c.usage_count, 10) || 0) : 0;
         $('c-limit').min = used > 0 ? used : 0;
         $('c-limit-hint').textContent = used > 0 ? strf('cpn_limit_min_hint', used) : '';
         $('c-limit-hint').style.display = used > 0 ? '' : 'none';
-        $('c-utype').querySelector('option[value="once"]').disabled = used > 1;
         $('c-start').value = toInput(c ? c.startdate : 0);
         $('c-end').value   = toInput(c ? c.enddate : 0);
         $('c-active').checked = c ? (c.status === 'active') : true;
@@ -502,7 +502,6 @@ echo html_writer::script(<<<'JS'
         var id = $('c-id').value;
         var used = parseInt($('c-limit').min, 10) || 0;
         var limit = parseInt($('c-limit').value, 10) || 0;
-        if (id && $('c-utype').value === 'once' && used > 1){ msg(strf('err_usagetypebelowused', used), 'danger'); return; }
         if (id && limit > 0 && limit < used){ msg(strf('err_usagelimitbelowused', used), 'danger'); return; }
         var params = {
             code: $('c-code').value,
@@ -510,8 +509,8 @@ echo html_writer::script(<<<'JS'
             description: buildMultilang($('c-desc-en').value, $('c-desc-ar').value),
             discount_type: $('c-dtype').value,
             discount_value: $('c-value').value || 0,
-            usage_type: $('c-utype').value,
             usage_limit: $('c-limit').value || 0,
+            user_limit: $('c-userlimit').value || 0,
             startdate: fromInput($('c-start').value),
             enddate: fromInput($('c-end').value),
             items: JSON.stringify(items)

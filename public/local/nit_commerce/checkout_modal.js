@@ -144,8 +144,8 @@
     els.couponNote = el('div', 'display:none; color:' + C.muted + '; font-size:12px; margin:-6px 0 10px; line-height:1.5;', ' ');
     box.appendChild(els.couponNote);
 
-    // The accepted code's usage cap — the admin's "Usage limit (optional)" — so the buyer sees
-    // how many redemptions the code has left, the same figure the coupon card advertises.
+    // The accepted code's two caps — the admin's "Usage limit" and "Usage limit per student" — so
+    // the buyer sees how many redemptions are left, in all and for them, as the coupon card says.
     els.couponUsage = el('div', 'display:none; color:' + C.muted + '; font-size:12px; margin:-6px 0 10px; line-height:1.5;', ' ');
     box.appendChild(els.couponUsage);
 
@@ -383,18 +383,23 @@
           els.couponNote.style.display = 'none';
         }
 
-        // Usage limit of the code that just validated (refused codes carry none). A one-time
-        // coupon says so; a capped one says the cap and what is left; an uncapped one says so.
+        // The two caps of the code that just validated (refused codes carry none): the global
+        // one, then the per-student one — each says the cap and what is left, or "unlimited".
         var usage = '';
         if (!d.coupon_error && d.coupon_id) {
-          if (d.coupon_usage_type === 'once') {
-            usage = S('co_usage_once');
-          } else if (Number(d.coupon_usage_limit || 0) > 0) {
+          if (Number(d.coupon_usage_limit || 0) > 0) {
             usage = S('co_usage_limit')
               .replace('{limit}', String(d.coupon_usage_limit))
               .replace('{left}', String(d.coupon_uses_left != null ? d.coupon_uses_left : 0));
           } else {
             usage = S('co_usage_unlimited');
+          }
+          if (Number(d.coupon_user_limit || 0) > 0) {
+            usage += ' · ' + S('co_usage_user')
+              .replace('{limit}', String(d.coupon_user_limit))
+              .replace('{left}', String(d.coupon_user_uses_left != null ? d.coupon_user_uses_left : 0));
+          } else {
+            usage += ' · ' + S('co_usage_user_unlimited');
           }
         }
         els.couponUsage.textContent = usage || ' ';

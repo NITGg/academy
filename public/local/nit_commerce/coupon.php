@@ -256,16 +256,31 @@ echo $OUTPUT->header();
       <ul class="nitcpn__terms">
         <li>
           <span class="nitcpn__termlabel"><?= s(get_string('cpn_col_usage', 'local_nit_commerce')) ?></span>
-          <strong><?= $coupon['usage_type'] === 'once'
-              ? s(get_string('cpn_usage_once', 'local_nit_commerce'))
-              : s(get_string('cpn_usage_multiple', 'local_nit_commerce')) ?></strong>
           <?php if ($usesleft !== null): ?>
+            <strong><?= s(get_string('cpn_field_limit', 'local_nit_commerce') . ': ' . (int) $coupon['usage_limit']) ?></strong>
             <span class="nitcpn__termnote<?= $usesleft === 0 ? ' nitcpn__termnote--out' : '' ?>"><?=
               $usesleft > 0
                 ? s(get_string('cpn_uses_left', 'local_nit_commerce', $usesleft))
                 : s(get_string('cpn_uses_none', 'local_nit_commerce')) ?></span>
           <?php else: ?>
+            <strong><?= s(get_string('cpn_field_limit', 'local_nit_commerce')) ?></strong>
             <span class="nitcpn__termnote"><?= s(get_string('cpn_unlimited', 'local_nit_commerce')) ?></span>
+          <?php endif; ?>
+        </li>
+
+        <?php // The per-student cap, and — when the visitor is signed in — their own remaining uses. ?>
+        <li>
+          <span class="nitcpn__termlabel"><?= s(get_string('cpn_per_student', 'local_nit_commerce')) ?></span>
+          <?php if ((int) $coupon['user_limit'] > 0): ?>
+            <strong><?= s(get_string('cpn_per_student_uses', 'local_nit_commerce', (int) $coupon['user_limit'])) ?></strong>
+            <?php if ($coupon['user_uses_left'] !== null): ?>
+              <span class="nitcpn__termnote<?= (int) $coupon['user_uses_left'] === 0 ? ' nitcpn__termnote--out' : '' ?>"><?=
+                (int) $coupon['user_uses_left'] > 0
+                  ? s(get_string('cpn_per_student_left', 'local_nit_commerce', (int) $coupon['user_uses_left']))
+                  : s(get_string('cpn_per_student_none', 'local_nit_commerce')) ?></span>
+            <?php endif; ?>
+          <?php else: ?>
+            <strong><?= s(get_string('cpn_unlimited', 'local_nit_commerce')) ?></strong>
           <?php endif; ?>
         </li>
 

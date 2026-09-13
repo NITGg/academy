@@ -69,5 +69,26 @@ function xmldb_local_nit_commerce_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026091203, 'local', 'nit_commerce');
     }
 
+    if ($oldversion < 2026091300) {
+        // "Usage type" (one-time | multiple) was withdrawn (2026-09-13): a coupon is always open
+        // to every student, and how often is now two plain caps — usage_limit (all students
+        // together, as before) and the new user_limit (one student). Existing rows keep the
+        // behaviour they had under the old rule: a one-time coupon was a global cap of 1, and
+        // every coupon was "each student once", so nothing that worked yesterday is refused or
+        // over-accepted today. New coupons default to unlimited per student.
+        $table = new xmldb_table('nit_coupon');
+        $field = new xmldb_field('user_limit', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'usage_limit');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+            $DB->set_field('nit_coupon', 'user_limit', 1);
+        }
+        $old = new xmldb_field('usage_type');
+        if ($dbman->field_exists($table, $old)) {
+            $DB->execute("UPDATE {nit_coupon} SET usage_limit = 1 WHERE usage_type = 'once'");
+            $dbman->drop_field($table, $old);
+        }
+        upgrade_plugin_savepoint(true, 2026091300, 'local', 'nit_commerce');
+    }
+
     return true;
 }

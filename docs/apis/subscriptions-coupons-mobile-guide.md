@@ -120,13 +120,14 @@ GET …&wsfunction=local_nit_commerce_get_available_coupons&moodlewsrestformat=j
     "code": "WELCOME10",
     "discount_type": "percent",
     "discount_value": 10,
-    "max_discount": 100,
-    "usage_type": "multiple",
     "usage_limit": 0,
+    "user_limit": 2,
     "startdate": 0,
     "enddate": 1790000000,
     "status": "active",
     "usage_count": 12,
+    "user_usage_count": 1,
+    "user_uses_left": 1,
     "applies_to": [
       { "item_type": "subscription", "item_id": 0, "label": "All subscriptions" },
       { "item_type": "course", "item_id": 42, "label": "English A1" }
@@ -135,7 +136,14 @@ GET …&wsfunction=local_nit_commerce_get_available_coupons&moodlewsrestformat=j
 ]
 ```
 - `discount_type` = `percent` (value 0–100) or `fixed` (an amount).
-- `max_discount` caps a percentage discount (may be `null`/absent = no cap).
+- `usage_limit` is the site-wide cap (all students together; `0` = unlimited); `usage_count` is
+  how much of it is spent. A coupon that has reached it is not in the list at all.
+- `user_limit` is how many times **one** student may use the code (`0` = unlimited).
+  `user_usage_count` / `user_uses_left` are the calling user's own figures; `user_uses_left` is
+  `null` when there is no per-student cap. Show `user_limit` on the coupon card ("Per student: 2
+  time(s) — 1 left for you"); a coupon this user has exhausted is not in the list either.
+  (`usage_type` — `once` / `multiple` — was removed on 2026-09-13: every coupon is open to
+  every student; the two caps above say how often.)
 - `applies_to[].item_id = 0` means **all** items of that `item_type`.
 - Don't compute the final price yourself — call `preview_discount` (§3.2) so server rules win.
 

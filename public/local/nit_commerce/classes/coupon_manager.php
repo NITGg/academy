@@ -36,17 +36,12 @@ class coupon_manager {
     /** @var string Inactive status. */
     const STATUS_INACTIVE = 'inactive';
 
-    /** @var string One-time usage. */
-    const USAGE_ONCE     = 'once';
-    /** @var string Multiple usage. */
-    const USAGE_MULTIPLE = 'multiple';
-
     // ── CRUD ──
 
     /**
      * Create a coupon.
      *
-     * @param array $data code, name, description, discount_type, discount_value, usage_type, usage_limit,
+     * @param array $data code, name, description, discount_type, discount_value, usage_limit, user_limit,
      *                     startdate, enddate, active, items[]
      * @param int $userid admin
      * @return int new coupon id
@@ -65,8 +60,8 @@ class coupon_manager {
         $record->description    = self::normalize_description($data['description'] ?? '');
         $record->discount_type  = discount_manager::normalize_discount_type($data['discount_type'] ?? 'percent');
         $record->discount_value = self::validate_value($record->discount_type, $data['discount_value'] ?? 0);
-        $record->usage_type     = self::normalize_usage_type($data['usage_type'] ?? self::USAGE_MULTIPLE);
         $record->usage_limit    = max(0, (int)($data['usage_limit'] ?? 0));
+        $record->user_limit     = max(0, (int)($data['user_limit'] ?? 0));
         list($record->startdate, $record->enddate) = self::validate_dates($data['startdate'] ?? 0, $data['enddate'] ?? 0);
         $record->status         = !empty($data['active']) ? self::STATUS_ACTIVE : self::STATUS_INACTIVE;
         $record->timecreated    = $now;
@@ -113,22 +108,21 @@ class coupon_manager {
             $type = $update->discount_type ?? $coupon->discount_type;
             $update->discount_value = self::validate_value($type, $data['discount_value']);
         }
-        if (array_key_exists('usage_type', $data)) {
-            $update->usage_type = self::normalize_usage_type($data['usage_type']);
-        }
         if (array_key_exists('usage_limit', $data)) {
             $update->usage_limit = max(0, (int)$data['usage_limit']);
         }
-        // A cap must not fall below what has already been spent: a coupon used 5 times cannot be
-        // capped at 3, nor turned one-time after its second redemption. Equal is fine (it is
-        // simply exhausted from now on), and 0 stays "unlimited".
-        if (isset($update->usage_type) || isset($update->usage_limit)) {
-            $type  = $update->usage_type ?? $coupon->usage_type;
-            $limit = (int)($update->usage_limit ?? $coupon->usage_limit);
+        // The per-student cap is not bounded by history: lowering it below what one student has
+        // already spent only means that student is exhausted from now on, which is what the
+        // admin asked for.
+        if (array_key_exists('user_limit', $data)) {
+            $update->user_limit = max(0, (int)$data['user_limit']);
+        }
+        // The global cap must not fall below what has already been spent: a coupon used 5 times
+        // cannot be capped at 3. Equal is fine (it is simply exhausted from now on), and 0 stays
+        // "unlimited".
+        if (isset($update->usage_limit)) {
+            $limit = (int) $update->usage_limit;
             $used  = self::usage_count($coupon->id);
-            if ($type === self::USAGE_ONCE && $used > 1) {
-                throw new \moodle_exception('err_usagetypebelowused', 'local_nit_commerce', '', $used);
-            }
             if ($limit > 0 && $limit < $used) {
                 throw new \moodle_exception('err_usagelimitbelowused', 'local_nit_commerce', '', $used);
             }
@@ -255,13 +249,12 @@ class coupon_manager {
         $now = time();
         $currency = self::visitor_currency();
         $sitecurrency = self::default_currency();
-
         // One query for this user's history, rather than one per coupon.
         // Redemptions only — a checkout this user opened and abandoned is a reservation,
         // not a use, and must not hide the coupon from them.
         $usedbyuser = array();
         if ($userid > 0) {
-            $usedbyuser = array_flip(discount_manager::coupons_redeemed_by($userid, $now));
+            $usedbyuser = discount_manager::usage_counts_by($userid, $now);
         }
 
         $rows = array_values($DB->get_records('nit_coupon', array('status' => self::STATUS_ACTIVE), 'timecreated DESC'));
@@ -277,12 +270,12 @@ class coupon_manager {
                 continue;
             }
 
-            // Redemptions left: a one-time coupon is spent after the first, a capped one
-            // after its cap, and either is spent for this user once they have used it.
+            // Redemptions left: a capped coupon is spent after its cap, and spent for this
+            // user once they have used it their per-student allowance (0 = no such cap).
             $used = discount_manager::live_usage_count($r->id, $userid, $now);
-            if ($r->usage_type === self::USAGE_ONCE && $used >= 1) { continue; }
             if ((int)$r->usage_limit > 0 && $used >= (int)$r->usage_limit) { continue; }
-            if (isset($usedbyuser[$r->id])) { continue; }
+            $userused = (int) ($usedbyuser[$r->id] ?? 0);
+            if ((int)$r->user_limit > 0 && $userused >= (int)$r->user_limit) { continue; }
 
             // On a category page, only the coupons that belong to that branch.
             if ((int) $categoryid > 0) {
@@ -292,7 +285,7 @@ class coupon_manager {
                 }
             }
 
-            $out[] = self::format($r, $used);
+            $out[] = self::format($r, $used, $userid > 0 ? $userused : null);
         }
         return $out;
     }
@@ -587,10 +580,13 @@ class coupon_manager {
      *
      * @param \stdClass $record
      * @param int|null $used redemption count, when the caller has already counted it
+     * @param int|null $userused the viewer's own redemptions, when the list is for one signed-in
+     *                           user; null (admin lists, guests) reports no personal figures
      * @return array
      */
-    private static function format($record, $used = null) {
+    private static function format($record, $used = null, $userused = null) {
         global $DB;
+        $userlimit = (int) ($record->user_limit ?? 0);
         $items = array_values($DB->get_records('nit_coupon_item', array('couponid' => $record->id)));
         $applies = array();
         foreach ($items as $it) {
@@ -610,7 +606,6 @@ class coupon_manager {
             'description_raw' => (string)$record->description,
             'discount_type'  => $record->discount_type,
             'discount_value' => (float)$record->discount_value,
-            'usage_type'     => $record->usage_type,
             'usage_limit'    => (int)$record->usage_limit,
             'startdate'      => (int)$record->startdate,
             'enddate'        => (int)$record->enddate,
@@ -618,6 +613,13 @@ class coupon_manager {
             'usage_count'    => $used === null
                 ? $DB->count_records('nit_coupon_usage', array('couponid' => $record->id))
                 : (int)$used,
+            // The per-student cap (0 = none), and — for a signed-in viewer only — how much of
+            // it they have spent and what is left. `user_uses_left` is null when there is no
+            // cap or no viewer, so a card can tell "unlimited" from "5 left for you".
+            'user_limit'       => $userlimit,
+            'user_usage_count' => (int) ($userused ?? 0),
+            'user_uses_left'   => ($userlimit > 0 && $userused !== null)
+                ? max(0, $userlimit - (int) $userused) : null,
             // Coupons carry no currency of their own: a fixed amount is stated in the site's,
             // and a percentage is stated in none, so it reports none.
             'currency'       => $record->discount_type === 'percent' ? '' : self::default_currency(),
@@ -737,20 +739,6 @@ class coupon_manager {
             throw new \moodle_exception('err_daterange', 'local_nit_commerce');
         }
         return array($start, $end);
-    }
-
-    /**
-     * Validate a usage type.
-     *
-     * @param string $type
-     * @return string
-     */
-    private static function normalize_usage_type($type) {
-        $type = strtolower(trim((string)$type));
-        if (!in_array($type, array(self::USAGE_ONCE, self::USAGE_MULTIPLE), true)) {
-            throw new \moodle_exception('err_usagetype', 'local_nit_commerce');
-        }
-        return $type;
     }
 
     /**

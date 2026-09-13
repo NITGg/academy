@@ -35,8 +35,6 @@ $string['scope_all_category']     = 'كل التصنيفات';
 
 $string['cpn_type_percent']   = 'نسبة مئوية';
 $string['cpn_type_fixed']     = 'مبلغ ثابت';
-$string['cpn_usage_once']     = 'استخدام لمرة واحدة';
-$string['cpn_usage_multiple'] = 'استخدام متعدد';
 $string['cpn_unlimited']      = 'غير محدود';
 $string['cpn_col_usage']      = 'الاستخدام';
 
@@ -61,6 +59,11 @@ $string['cpn_open_category'] = 'تصفّح التصنيف';
 $string['cpn_terms']         = 'الشروط';
 $string['cpn_uses_left']     = 'متبقٍ {$a} استخدام';
 $string['cpn_uses_none']     = 'تم استهلاكه بالكامل';
+// حد الاستخدام للطالب في صفحة التفاصيل: العنوان، ثم الحد، ثم — للزائر المسجّل — كم تبقّى له هو.
+$string['cpn_per_student']        = 'للطالب الواحد';
+$string['cpn_per_student_uses']   = '{$a} مرة';
+$string['cpn_per_student_left']   = 'متبقٍ لك {$a}';
+$string['cpn_per_student_none']   = 'استهلكت نصيبك منه';
 $string['cpn_no_expiry']     = 'بدون تاريخ انتهاء';
 $string['cpn_starts']        = 'يبدأ';
 $string['cpn_expires']       = 'ينتهي';
@@ -107,8 +110,8 @@ $string['cpn_col_dates']   = 'مدة الصلاحية';
 $string['cpn_field_code']  = 'كود الكوبون';
 $string['cpn_field_dtype'] = 'نوع الخصم';
 $string['cpn_field_value'] = 'قيمة الخصم';
-$string['cpn_field_utype'] = 'نوع الاستخدام';
 $string['cpn_field_limit'] = 'حد الاستخدام';
+$string['cpn_field_userlimit'] = 'حد الاستخدام للطالب';
 $string['cpn_field_start'] = 'تاريخ البداية';
 $string['cpn_field_end']   = 'تاريخ الانتهاء';
 $string['cpn_field_scope'] = 'العناصر المشمولة';
@@ -117,8 +120,8 @@ $string['cpn_help_name']   = 'يظهر للطلاب على بطاقة الكوب
 $string['cpn_help_desc']   = 'سطر اختياري تحت الاسم — لمن هذا الكوبون، أو بأي مناسبة.';
 $string['cpn_help_code']   = 'ما يكتبه الطالب في صفحة الدفع. اجعله قصيرًا وسهل الكتابة، ويجب ألا يتكرر.';
 $string['cpn_help_value']  = 'نسبة الخصم من السعر، من 1 إلى 100. النسبة تعمل مع كل العملات.';
-$string['cpn_help_utype']  = 'لمرة واحدة: يُستهلك بعد أول عملية شراء من أي طالب. استخدام متعدد: يستخدمه عدة طلاب حتى الوصول للحد — كل طالب مرة واحدة.';
 $string['cpn_help_limit']  = 'إجمالي عدد عمليات الشراء التي يُقبل فيها الكوبون، لكل الطلاب معًا. اتركه فارغًا ليكون غير محدود.';
+$string['cpn_help_userlimit'] = 'عدد المرات التي يستطيع الطالب الواحد استخدام هذا الكوبون فيها. اتركه فارغًا ليكون غير محدود — فيستخدمه أي طالب كما يشاء ما دام الكوبون متاحًا.';
 $string['cpn_help_start']  = 'يُقبل ابتداءً من هذا التاريخ. اتركه فارغًا ليبدأ فورًا.';
 $string['cpn_help_end']    = 'يُرفض بعد هذا التاريخ. اتركه فارغًا فلا ينتهي أبدًا.';
 $string['cpn_help_active'] = 'الكوبون غير النشط مخفي ومرفوض، لكنه يحتفظ بسجله.';
@@ -164,7 +167,6 @@ $string['err_discounttype']        = 'يجب أن يكون نوع الخصم ن�
 $string['err_discountvalue']       = 'لا يمكن أن تكون قيمة الخصم بالسالب.';
 $string['err_discountpercent']     = 'يجب أن تكون نسبة الخصم بين 0 و100.';
 $string['err_daterange']           = 'يجب أن يكون تاريخ الانتهاء بعد تاريخ البداية.';
-$string['err_usagetype']           = 'يجب أن يكون نوع الاستخدام لمرة واحدة أو متعددًا.';
 $string['err_status']              = 'يجب أن تكون الحالة "مفعّل" أو "موقوف"';
 $string['err_couponcoderequired']  = 'كود الكوبون مطلوب.';
 $string['err_couponcodetaken']     = 'كود الكوبون هذا مستخدم بالفعل.';
@@ -174,11 +176,10 @@ $string['err_couponnotstarted']    = 'هذا الكوبون لم يبدأ سري
 $string['err_couponexpired']       = 'انتهت صلاحية هذا الكوبون.';
 $string['err_couponnotapplicable'] = 'هذا الكوبون لا ينطبق على هذا العنصر.';
 $string['err_couponusedup']        = 'وصل هذا الكوبون إلى الحد الأقصى لعدد مرات الاستخدام.';
-$string['err_couponalreadyusedbyuser'] = 'لقد استخدمت هذا الكوبون من قبل.';
+$string['err_couponalreadyusedbyuser'] = 'لقد استخدمت هذا الكوبون الحد الأقصى المسموح به للطالب الواحد ({$a} مرة).';
 $string['err_couponbusy']          = 'يجري استخدام هذا الكوبون في طلب آخر. برجاء المحاولة بعد لحظات.';
 $string['err_couponhasusages']     = 'تم استخدام هذا الكوبون، ولذلك يمكن إيقافه فقط دون حذفه.';
 $string['err_usagelimitbelowused'] = 'تم استخدام هذا الكوبون {$a} مرة بالفعل، ولا يمكن أن يكون حد الاستخدام أقل من ذلك. أدخل {$a} أو أكثر، أو اتركه فارغًا ليكون غير محدود.';
-$string['err_usagetypebelowused']  = 'تم استخدام هذا الكوبون {$a} مرة بالفعل، ولذلك لا يمكن تحويله إلى استخدام لمرة واحدة.';
 $string['cpn_limit_min_hint']      = 'استُخدم {$a} مرة بالفعل — يجب ألا يقل الحد عن {$a}، أو اتركه فارغًا ليكون غير محدود.';
 $string['err_offernamerequired']   = 'اسم العرض مطلوب.';
 $string['err_offernotfound']       = 'العرض غير موجود.';
@@ -279,9 +280,10 @@ $string['co_notcombined']   = 'لا يتم جمع العروض مع الكوبو
 $string['co_pricechanged']  = 'تغيّر السعر أثناء فتح هذه النافذة: كان {old} وأصبح {new}. لم يتم خصم أي مبلغ — اضغط مرة أخرى للمتابعة بالسعر الجديد.';
 $string['co_confirm_price'] = 'تأكيد السعر الجديد';
 
-// حد استخدام الكوبون المطبَّق (حقل «حد الاستخدام (اختياري)» في لوحة الإدارة)، يظهر تحت الكود
-// بعد قبوله ليعرف المشتري كم استخدامًا تبقّى. يتم استبدال {limit} و{left} داخل النافذة نفسها.
+// حدّا الكوبون المطبَّق (حقلا «حد الاستخدام» و«حد الاستخدام للطالب» في لوحة الإدارة)، يظهران تحت الكود
+// بعد قبوله ليعرف المشتري كم استخدامًا تبقّى، للجميع وله هو. يتم استبدال {limit} و{left} داخل النافذة نفسها.
 $string['co_usage_limit']     = 'حد الاستخدام: {limit} — متبقٍ {left}';
 $string['co_usage_unlimited'] = 'حد الاستخدام: غير محدود';
-$string['co_usage_once']      = 'استخدام لمرة واحدة';
+$string['co_usage_user']      = 'للطالب الواحد: {limit} — متبقٍ لك {left}';
+$string['co_usage_user_unlimited'] = 'للطالب الواحد: غير محدود';
 

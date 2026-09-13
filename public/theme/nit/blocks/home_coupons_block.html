@@ -1,6 +1,6 @@
 <!-- NIT — Available coupons home-page block. Paste into an HTML block on the home page.
      Inline styles only (editor-safe). Fetches live coupons from the plugin and renders a dark slider.
-     Shows: code, discount value, applies-to scope, usage type, valid dates.
+     Shows: code, discount value, applies-to scope, per-student usage limit, valid dates.
      Colours read from the Brand Colors palette (theme/nit gallery). Gold accents map to
      --nit-brand-accent, the teal "positive" accent maps to --nit-brand-success; shades are
      derived with color-mix from those same brand variables (no hard-coded colours).
@@ -290,28 +290,25 @@
               (e || '…') :
               '';
 
-            /* Usage type, then the admin's "Usage limit (optional)" spelled out: the cap
-               and how many redemptions are left, or "unlimited" when the field was left
-               empty. A bare "(1/50)" did not say which number was which. */
+            /* The admin's "Usage limit per student" spelled out: how many times ONE student
+               may use the code and — when the visitor is signed in — how many of their own
+               uses are left. The site-wide cap is not the visitor's concern; it is on the
+               details page, and the feed already drops a coupon that has reached it. */
             var usage;
 
-            if (c.usage_type === 'once') {
+            if (c.user_limit > 0) {
               usage =
-                '{mlang en}One-time use{mlang}{mlang ar}استخدام لمرة واحدة{mlang}';
+                '{mlang en}Per student{mlang}{mlang ar}للطالب الواحد{mlang}: ' +
+                '{mlang en}' + c.user_limit + ' time(s){mlang}{mlang ar}' + c.user_limit + ' مرة{mlang}';
+
+              if (c.user_uses_left != null) {
+                var left = Math.max(0, c.user_uses_left);
+                usage +=
+                  ' — {mlang en}' + left + ' left for you{mlang}{mlang ar}متبقٍ لك ' + left + '{mlang}';
+              }
             } else {
               usage =
-                '{mlang en}Multiple use{mlang}{mlang ar}استخدام متعدد{mlang}';
-
-              if (c.usage_limit > 0) {
-                var left = Math.max(0, c.usage_limit - (c.usage_count || 0));
-                usage +=
-                  ' · {mlang en}Usage limit{mlang}{mlang ar}حد الاستخدام{mlang}: ' +
-                  c.usage_limit +
-                  ' — {mlang en}' + left + ' left{mlang}{mlang ar}متبقٍ ' + left + '{mlang}';
-              } else {
-                usage +=
-                  ' · {mlang en}Usage limit: unlimited{mlang}{mlang ar}حد الاستخدام: غير محدود{mlang}';
-              }
+                '{mlang en}Per student: unlimited{mlang}{mlang ar}للطالب الواحد: غير محدود{mlang}';
             }
             var html = tpl.innerHTML
               .replace(/\{\{value\}\}/g, esc(value))

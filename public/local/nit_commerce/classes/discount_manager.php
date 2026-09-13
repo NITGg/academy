@@ -625,29 +625,30 @@ class discount_manager {
     }
 
     /**
-     * Whether a user has actually redeemed a coupon: a usage row whose transaction is neither
-     * dead nor still pending. Their own open checkout is a reservation, not a redemption.
+     * How many times a user has actually redeemed a coupon: usage rows whose transaction is
+     * neither dead nor still pending. Their own open checkout is a reservation, not a
+     * redemption. Measured against the coupon's per-student cap (user_limit).
      *
      * @param int $couponid
      * @param int $userid
      * @param int|null $now
-     * @return bool
+     * @return int
      */
-    public static function user_has_redeemed($couponid, $userid, $now = null) {
+    public static function user_usage_count($couponid, $userid, $now = null) {
         global $DB;
         $couponid = (int) $couponid;
         $userid = (int) $userid;
         if ($userid <= 0) {
-            return false;
+            return 0;
         }
         if (!self::has_transactions_table()) {
-            return $DB->record_exists('nit_coupon_usage', array('couponid' => $couponid, 'userid' => $userid));
+            return $DB->count_records('nit_coupon_usage', array('couponid' => $couponid, 'userid' => $userid));
         }
         list($livesql, $params) = self::live_usage_sql($now ?? time());
         $params['couponid'] = $couponid;
         $params['userid'] = $userid;
-        return $DB->record_exists_sql(
-            "SELECT 1
+        return (int) $DB->count_records_sql(
+            "SELECT COUNT(1)
                FROM {nit_coupon_usage} cu
           LEFT JOIN {local_payments_transactions} t ON t.id = cu.transactionid
               WHERE cu.couponid = :couponid AND cu.userid = :userid
@@ -655,30 +656,49 @@ class discount_manager {
     }
 
     /**
-     * Every coupon a user has actually redeemed (see {@see self::user_has_redeemed()}), in one
-     * query, for list screens.
+     * Whether a user has spent their own allowance of a coupon: user_limit redemptions, with 0
+     * meaning there is no per-student cap at all.
+     *
+     * @param \stdClass $coupon nit_coupon row
+     * @param int $userid
+     * @param int|null $now
+     * @return bool
+     */
+    public static function user_limit_reached($coupon, $userid, $now = null) {
+        $limit = (int) ($coupon->user_limit ?? 0);
+        if ($limit <= 0 || (int) $userid <= 0) {
+            return false;
+        }
+        return self::user_usage_count($coupon->id, $userid, $now) >= $limit;
+    }
+
+    /**
+     * Every coupon a user has actually redeemed (see {@see self::user_usage_count()}) with how
+     * many times, in one query, for list screens.
      *
      * @param int $userid
      * @param int|null $now
-     * @return int[] coupon ids
+     * @return int[] coupon id => redemptions by this user
      */
-    public static function coupons_redeemed_by($userid, $now = null) {
+    public static function usage_counts_by($userid, $now = null) {
         global $DB;
         $userid = (int) $userid;
         if ($userid <= 0) {
             return array();
         }
         if (!self::has_transactions_table()) {
-            return $DB->get_fieldset_select('nit_coupon_usage', 'DISTINCT couponid',
-                'userid = :userid', array('userid' => $userid));
+            return $DB->get_records_sql_menu(
+                "SELECT couponid, COUNT(1) FROM {nit_coupon_usage} WHERE userid = :userid GROUP BY couponid",
+                array('userid' => $userid));
         }
         list($livesql, $params) = self::live_usage_sql($now ?? time());
         $params['userid'] = $userid;
-        return $DB->get_fieldset_sql(
-            "SELECT DISTINCT cu.couponid
+        return $DB->get_records_sql_menu(
+            "SELECT cu.couponid, COUNT(1)
                FROM {nit_coupon_usage} cu
           LEFT JOIN {local_payments_transactions} t ON t.id = cu.transactionid
-              WHERE cu.userid = :userid AND {$livesql} AND (t.id IS NULL OR t.status <> 'pending')", $params);
+              WHERE cu.userid = :userid AND {$livesql} AND (t.id IS NULL OR t.status <> 'pending')
+           GROUP BY cu.couponid", $params);
     }
 
     /**
@@ -719,17 +739,14 @@ class discount_manager {
         // The user's own still-pending reservation (a gateway page they opened and left) is
         // not a redemption: their next checkout reuses or retires it, so it is not counted.
         $used = self::live_usage_count($coupon->id, (int) $userid, $now);
-        if ($coupon->usage_type === 'once') {
-            if ($used >= 1) {
-                throw new \moodle_exception('err_couponusedup', 'local_nit_commerce');
-            }
-        } else if ((int)$coupon->usage_limit > 0 && $used >= (int)$coupon->usage_limit) {
+        if ((int)$coupon->usage_limit > 0 && $used >= (int)$coupon->usage_limit) {
             throw new \moodle_exception('err_couponusedup', 'local_nit_commerce');
         }
-        // One redemption per user, on top of any global cap: a coupon this user
-        // has already redeemed cannot be applied by them again.
-        if (!empty($userid) && self::user_has_redeemed($coupon->id, (int) $userid, $now)) {
-            throw new \moodle_exception('err_couponalreadyusedbyuser', 'local_nit_commerce');
+        // The per-student cap, on top of the global one: a user who has redeemed this coupon
+        // user_limit times cannot apply it again (0 = no per-student cap).
+        if (self::user_limit_reached($coupon, (int) $userid, $now)) {
+            throw new \moodle_exception('err_couponalreadyusedbyuser', 'local_nit_commerce', '',
+                (int) $coupon->user_limit);
         }
         return $coupon;
     }
@@ -783,14 +800,17 @@ class discount_manager {
             // cheapest won (AC-4.13.4); the checkout says so rather than leaving the buyer to
             // wonder why a promotion they read about is not the one on screen.
             'offer_candidates'  => 0,
-            // The entered coupon's usage cap (the admin's "Usage limit (optional)"), so the
-            // checkout can tell the buyer how many redemptions the code has left rather than
-            // only whether it worked. Filled only for a coupon that validated; `uses_left` is
-            // null when the coupon is uncapped.
-            'coupon_usage_type'  => '',
-            'coupon_usage_limit' => 0,
-            'coupon_usage_count' => 0,
-            'coupon_uses_left'   => null,
+            // The entered coupon's two caps (the admin's "Usage limit" — all students — and
+            // "Usage limit per student"), so the checkout can tell the buyer how many
+            // redemptions the code has left, globally and for them, rather than only whether it
+            // worked. Filled only for a coupon that validated; a `*_left` is null when that cap
+            // is not set.
+            'coupon_usage_limit'      => 0,
+            'coupon_usage_count'      => 0,
+            'coupon_uses_left'        => null,
+            'coupon_user_limit'       => 0,
+            'coupon_user_usage_count' => 0,
+            'coupon_user_uses_left'   => null,
             'discount'          => 0.0,
             'final'             => $base,
         );
@@ -814,10 +834,14 @@ class discount_manager {
             // disagree with the accept/refuse decision above.
             $used = self::live_usage_count($coupon->id, (int) $userid, $now);
             $limit = (int) $coupon->usage_limit;
-            $result['coupon_usage_type']  = (string) $coupon->usage_type;
             $result['coupon_usage_limit'] = $limit;
             $result['coupon_usage_count'] = $used;
             $result['coupon_uses_left']   = $limit > 0 ? max(0, $limit - $used) : null;
+            $userused  = self::user_usage_count($coupon->id, (int) $userid, $now);
+            $userlimit = (int) ($coupon->user_limit ?? 0);
+            $result['coupon_user_limit']       = $userlimit;
+            $result['coupon_user_usage_count'] = $userused;
+            $result['coupon_user_uses_left']   = $userlimit > 0 ? max(0, $userlimit - $userused) : null;
         }
 
         $result['offer_candidate']  = $offeramount;
@@ -917,14 +941,12 @@ class discount_manager {
                 // earlier checkout they walked away from — is superseded by this one, so it
                 // neither takes a slot nor counts as their redemption.
                 $used = self::live_usage_count($couponid, (int) $userid);
-                if ($coupon->usage_type === 'once' && $used >= 1) {
-                    throw new \moodle_exception('err_couponusedup', 'local_nit_commerce');
-                }
                 if ((int) $coupon->usage_limit > 0 && $used >= (int) $coupon->usage_limit) {
                     throw new \moodle_exception('err_couponusedup', 'local_nit_commerce');
                 }
-                if (!empty($userid) && self::user_has_redeemed($couponid, (int) $userid)) {
-                    throw new \moodle_exception('err_couponalreadyusedbyuser', 'local_nit_commerce');
+                if (self::user_limit_reached($coupon, (int) $userid)) {
+                    throw new \moodle_exception('err_couponalreadyusedbyuser', 'local_nit_commerce', '',
+                        (int) $coupon->user_limit);
                 }
             }
             self::do_record_usage($DB, $resolved, $userid, (int) $transactionid, $itemtype, $itemid, time());
