@@ -18,8 +18,9 @@
 // header on Boost primitives). Markup: theme_nit/templates/theme_boost/navbar.
 //
 // Contrast rule: the field is dark, so every glyph and label on the bar (and in
-// the NIT-owned dark dropdowns) must read light. The notification / messaging
-// popovers keep their own light panels and are deliberately left untouched.
+// the NIT-owned dark dropdowns) must read light. The notification popover is one
+// of those dropdowns — its panel, rows and footer are restyled at the bottom of
+// the `.nit-navbar` block onto the same panel look as the language / user menus.
 // =============================================================================
 
 // Shared "legacy sub-menu" panel look — one source of truth for every navbar
@@ -1104,29 +1105,112 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
             }
         }
 
-        // Body text (the "You have no notifications" empty state + any real
-        // notification rows) reads light on navy.
+        // The rounded frame has to clip the rows: an unread row's fill runs
+        // edge to edge and was squaring off the panel's corners.
+        overflow: hidden;
+
+        // Body text (the "You have no notifications" empty state) reads light
+        // on navy. The scrolling body itself keeps the panel ground.
+        .popover-region-content-container {
+            background-color: transparent;
+        }
+
         .popover-region-content,
-        .empty-message,
-        .content-item-container {
+        .empty-message {
             color: $nit-navpanel-item;
         }
 
-        // Real notification rows: divider + light text, gold-ish on hover.
-        .all-notifications .list-group-item {
+        // ---- Notification rows --------------------------------------------
+        // Each row is `.content-item-container` (message/output/popup's
+        // notification_content_item.mustache — NOT a `.list-group-item`, which
+        // is what this used to target, so none of it applied). Core paints the
+        // rows for a light panel: unread on `#f4f4f4`, hover on Bootstrap
+        // `$primary` under white text, the timestamp and "View full
+        // notification" link inheriting whichever of those it sits on. On the
+        // dark panel that is a white strip carrying muted grey text, which is
+        // the panel the bell was opening. Every state now reads a brand role:
+        //
+        //   textprimary     → row text (the subject line — it is the content)
+        //   textsecondary   → the timestamp under it
+        //   accenttext      → "View full notification"
+        //   primary (wash)  → an unread row's ground
+        //   hoverbackground → the row under the cursor / holding focus
+        //   hovertext       → its text
+        //   primary (solid) → the row keyboard navigation has landed on
+        //
+        // An unread row is told apart by a wash of the brand primary over the
+        // panel, not by a second neutral: a group's two neutrals (Background /
+        // Surface) are a step apart, and an unread row on the darker of them
+        // read as "disabled" rather than "new". `color-mix()`, never an `rgba()`
+        // literal — see the note at the top of this file on what the RTL pass
+        // does to the space-separated form.
+        .content-item-container {
+            color: var(--nit-brand-textprimary);
             background-color: transparent;
             border-bottom: 1px solid $nit-navpanel-divider;
-            color: $nit-navpanel-item;
+            padding: 10px 12px;
 
+            &:last-child {
+                border-bottom: 0;
+            }
+
+            .context-link {
+                color: inherit;
+            }
+
+            .content-item-footer .timestamp {
+                color: var(--nit-brand-textsecondary);
+            }
+
+            // Core pins this `right: 5px` to match its 5px row padding; follow
+            // the wider padding above. Physical `right` on purpose — the RTL
+            // pass flips it, the same way it flips core's.
+            .view-more {
+                color: var(--nit-brand-accenttext);
+                right: 12px;
+                bottom: 10px;
+            }
+
+            &.unread {
+                background-color: color-mix(in srgb, var(--nit-brand-primary) 12%, $nit-navpanel-bg);
+            }
+
+            // `:focus-within`, not `:focus`: the focusable thing is the anchor
+            // INSIDE the row, so the row itself never holds focus.
             &:hover,
-            &:focus {
+            &:focus-within,
+            &.unread:hover,
+            &.unread:focus-within {
                 background-color: var(--nit-brand-hoverbackground);
+                color: var(--nit-brand-hovertext);
+
+                .content-item-footer .timestamp,
+                .view-more {
+                    color: inherit;
+                }
+            }
+
+            // The row the arrow keys have moved to (core's list navigation
+            // adds `.selected`). The one filled state, so it reads as "chosen"
+            // the way a selected dropdown row does.
+            &.selected,
+            &.selected:hover {
+                background-color: var(--nit-brand-primary);
+                color: var(--nit-brand-on-primary);
+                border-color: var(--nit-brand-primary);
+
+                .content-item-footer .timestamp,
+                .view-more {
+                    color: inherit;
+                }
             }
         }
 
-        // Footer "See all" link.
+        // Footer "See all" link. Core fills the footer `$popover-bg` (white);
+        // it is the panel's own ground here.
         .see-all-link {
             .popover-region-footer-container {
+                background-color: $nit-navpanel-bg;
                 border-top: 1px solid $nit-navpanel-divider;
             }
 
