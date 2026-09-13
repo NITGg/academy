@@ -230,8 +230,9 @@ class manager {
                 'item_type' => 'course',
                 'item_id' => $courseid,
                 'discount' => $discountmeta,
-                // The code that was actually honoured, not the one typed: a coupon beaten by a bigger
-                // offer (AC-4.12.6) takes nothing off, and naming it on the invoice would be a lie.
+                // The code that was actually honoured, not the one typed: a coupon set aside because
+                // the item is on offer (AC-4.12.6) takes nothing off, and naming it on the invoice
+                // would be a lie.
                 'coupon_code' => (string) ($discountmeta['coupon_code'] ?? ''),
                 'payment_method_id' => $payment_method_id,
             ]),
@@ -255,11 +256,13 @@ class manager {
             'order_id' => $order_id,
             'amount' => $amount,
             'currency' => $pricing->currency,
-            // The provider prints this on its invoice verbatim, so the {mlang} name is
-            // resolved here, in the language the buyer is checking out in.
+            // The provider prints this on its invoice as the line item, so the {mlang} name
+            // is resolved here. Always in English, whatever language the buyer is checking
+            // out in: the invoice is a record, and one name per course keeps every receipt,
+            // export and support lookup reading the same line.
             'description' => get_string_manager()->get_string('paymentfor', 'local_payments',
-                multilang::resolve($DB->get_field('course', 'fullname', ['id' => $courseid]), $display_lang),
-                $display_lang),
+                multilang::resolve($DB->get_field('course', 'fullname', ['id' => $courseid]), 'en'),
+                'en'),
             'userid' => $userid,
             'courseid' => $courseid,
             'customer_email' => $user->email,
@@ -482,7 +485,8 @@ class manager {
             'order_id' => $order_id,
             'amount' => $amount,
             'currency' => $currency,
-            'description' => 'Subscription: ' . multilang::resolve($sub->name, $display_lang),
+            // English on the invoice line for the same reason as the course checkout.
+            'description' => 'Subscription: ' . multilang::resolve($sub->name, 'en'),
             'userid' => $userid,
             'courseid' => 0,
             'customer_email' => $user->email,
@@ -733,8 +737,8 @@ class manager {
         }
         $resolved = \local_nit_commerce\discount_manager::resolve($item_type, $item_id, $userid, $coupon_code, $base);
 
-        // A coupon and an offer never combine: the larger wins and the loser resolves to a zero
-        // amount (AC-4.12.6). resolve() still names the loser so the checkout can explain itself,
+        // A coupon and an offer never combine: an item on offer takes no code, so the coupon
+        // resolves to a zero amount (AC-4.12.6). resolve() still names it so the checkout can explain itself,
         // but the transaction must only carry what was actually honoured — a coupon id recorded
         // against a zero discount would show up in the redemption report as a spend that never
         // happened, and on the invoice as a code that took nothing off.

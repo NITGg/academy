@@ -138,9 +138,10 @@
     els.couponErr = el('div', 'display:none; color:' + C.error + '; font-size:12px; margin:-6px 0 10px;', ' ');
     box.appendChild(els.couponErr);
 
-    // A refused code is an error; a code that simply lost to a bigger offer is not. Keeping
-    // them on separate lines is the difference between "your code is broken" and "we already
-    // gave you more" — the second is what a buyer needs when the total does not move (AC-4.12.6).
+    // A refused code is an error; a valid code set aside because the item is on offer is not.
+    // Keeping them on separate lines is the difference between "your code is broken" and "codes
+    // do not apply to an item on offer" — the second is what a buyer needs when the total does
+    // not move (AC-4.12.6).
     els.couponNote = el('div', 'display:none; color:' + C.muted + '; font-size:12px; margin:-6px 0 10px; line-height:1.5;', ' ');
     box.appendChild(els.couponNote);
 
@@ -367,17 +368,12 @@
         if (d.coupon_error) { els.couponErr.textContent = d.coupon_error; els.couponErr.style.display = ''; }
         else { els.couponErr.style.display = 'none'; }
 
-        // AC-4.12.6: only the larger of coupon and offer is applied, never both. When the buyer
-        // typed a perfectly good code and the total did not move, say which one won and why —
-        // otherwise the screen looks broken and they retype the code.
-        var note = '';
+        // AC-4.12.6: an item on offer takes no discount code — the offer applies and the code is
+        // set aside. When the buyer typed a perfectly good code and the total did not move, say
+        // so — otherwise the screen looks broken and they retype the code. Never worded as "the
+        // offer saves you more": the code may be worth more, and the buyer can see that.
         if (!d.coupon_error && d.coupon_superseded) {
-          note = S('co_offer_won');
-        } else if (d.applied === 'coupon' && Number(d.offer_candidate || 0) > 0) {
-          note = S('co_coupon_won');
-        }
-        if (note) {
-          els.couponNote.textContent = note + ' ' + S('co_notcombined');
+          els.couponNote.textContent = S('co_coupon_notwithoffer');
           els.couponNote.style.display = '';
         } else {
           els.couponNote.style.display = 'none';
@@ -385,8 +381,10 @@
 
         // The two caps of the code that just validated (refused codes carry none): the global
         // one, then the per-student one — each says the cap and what is left, or "unlimited".
+        // Only for a code that is actually being applied: "3 uses left" under a code the item
+        // is not taking would read as if it were.
         var usage = '';
-        if (!d.coupon_error && d.coupon_id) {
+        if (!d.coupon_error && d.coupon_id && Number(d.coupon_discount || 0) > 0) {
           if (Number(d.coupon_usage_limit || 0) > 0) {
             usage = S('co_usage_limit')
               .replace('{limit}', String(d.coupon_usage_limit))

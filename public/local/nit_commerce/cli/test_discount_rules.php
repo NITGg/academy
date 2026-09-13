@@ -19,9 +19,10 @@
  *
  *   php local/nit_commerce/cli/test_discount_rules.php
  *
- * Covers AC-4.12.6 (only the larger of coupon and offer applies; a tie goes to the offer; the two
- * are never combined or chained) and AC-4.12.7 (a discount above the order value yields zero, not
- * a negative). Every fixture is created inside a transaction that is deliberately rolled back, so
+ * Covers AC-4.12.6 (an item on offer takes no coupon: the offer applies and the code is set aside
+ * whatever it is worth; the two are never combined or chained; a coupon applies only where no
+ * offer does) and AC-4.12.7 (a discount above the order value yields zero, not a negative). Every
+ * fixture is created inside a transaction that is deliberately rolled back, so
  * running this leaves the database exactly as it found it — safe on a staging site.
  *
  * @package    local_nit_commerce
@@ -143,22 +144,26 @@ try {
     cli_writeln('Site offers parked for the run (rolled back afterwards).');
     cli_writeln('');
 
-    // ── AC-4.12.6: the coupon is worth more, so the coupon wins outright ──
-    cli_writeln('AC-4.12.6  coupon (400) beats offer (10% = 100)');
+    // ── AC-4.12.6: the coupon is worth MORE than the offer — the offer still applies ──
+    // This is the case the rule is about: an item on offer takes no code, so the bigger coupon is
+    // set aside rather than winning. It is reported (named, flagged) but takes nothing off.
+    cli_writeln('AC-4.12.6  coupon (400) on an item with a 10% offer (100): the offer applies');
     clear_fixtures();
     make_offer('percent', 10);
     make_coupon('TESTBIG', 'fixed', 400);
     $r = discount_manager::resolve('course', $courseid, $userid, 'TESTBIG', $base);
-    check('coupon discount is the full 400', 400.00, $r['coupon_discount']);
-    check('offer contributes nothing', 0.00, $r['offer_discount']);
-    check('offers list is empty (no offer usage recorded)', 0, count($r['offers']));
-    check('total discount is the winner alone, not 500', 400.00, $r['discount']);
-    check('final = 1000 - 400', 600.00, $r['final']);
-    check('applied flag', 'coupon', $r['applied']);
+    check('offer discount applied', 100.00, $r['offer_discount']);
+    check('coupon contributes nothing, although worth more', 0.00, $r['coupon_discount']);
+    check('coupon is flagged as superseded, not rejected', true, $r['coupon_superseded']);
+    check('coupon is still named (so the checkout can explain)', 'TESTBIG', $r['coupon_code']);
+    check('what the coupon would have taken off is still reported', 400.00, $r['coupon_candidate']);
+    check('total discount is the offer alone, not 400 and not 500', 100.00, $r['discount']);
+    check('final = 1000 - 100', 900.00, $r['final']);
+    check('applied flag', 'offer', $r['applied']);
 
-    // ── AC-4.12.6: the offer is worth more, so the coupon is set aside ──
+    // ── AC-4.12.6: the offer is worth more — same outcome, the coupon is set aside ──
     cli_writeln('');
-    cli_writeln('AC-4.12.6  offer (50% = 500) beats coupon (100)');
+    cli_writeln('AC-4.12.6  coupon (100) on an item with a 50% offer (500): the offer applies');
     clear_fixtures();
     make_offer('percent', 50);
     make_coupon('TESTSMALL', 'fixed', 100);
@@ -170,27 +175,52 @@ try {
     check('final = 1000 - 500', 500.00, $r['final']);
     check('applied flag', 'offer', $r['applied']);
 
-    // ── AC-4.12.6: equal amounts — the offer takes it ──
+    // ── AC-4.12.6: equal amounts — the offer, like every other time ──
     cli_writeln('');
-    cli_writeln('AC-4.12.6  tie (offer 20% = 200, coupon 200) goes to the offer');
+    cli_writeln('AC-4.12.6  equal amounts (offer 20% = 200, coupon 200): the offer applies');
     clear_fixtures();
     make_offer('percent', 20);
     make_coupon('TESTTIE', 'fixed', 200);
     $r = discount_manager::resolve('course', $courseid, $userid, 'TESTTIE', $base);
-    check('offer applied on a tie', 200.00, $r['offer_discount']);
-    check('coupon not spent on a tie', 0.00, $r['coupon_discount']);
+    check('offer applied', 200.00, $r['offer_discount']);
+    check('coupon not spent', 0.00, $r['coupon_discount']);
     check('applied flag', 'offer', $r['applied']);
     check('final', 800.00, $r['final']);
 
-    // ── AC-4.12.6: a coupon measured against the base, never against the offer-reduced total ──
+    // ── AC-4.12.6: a wrong code on an item on offer is still refused as wrong ──
+    // The policy note is for a VALID code; a code that does not exist must not hide behind it.
     cli_writeln('');
-    cli_writeln('AC-4.12.6  coupon 30% is measured on 1000, not on the offer-reduced 900');
+    cli_writeln('AC-4.12.6  an unknown code on an item on offer is refused as unknown');
     clear_fixtures();
-    make_offer('percent', 10);            // 100 off.
-    make_coupon('TESTPCT', 'percent', 30); // 300 off the base; 270 if chained after the offer.
+    make_offer('percent', 10);
+    $refused = false;
+    try {
+        discount_manager::resolve('course', $courseid, $userid, 'NOSUCHCODE', $base);
+    } catch (\moodle_exception $e) {
+        $refused = true;
+    }
+    check('resolve() throws for the unknown code', true, $refused);
+
+    // ── AC-4.12.6: an offer that takes nothing off does not block the coupon ──
+    cli_writeln('');
+    cli_writeln('AC-4.12.6  a 0% offer is not "on offer": the coupon applies');
+    clear_fixtures();
+    make_offer('percent', 0);
+    make_coupon('TESTZERO', 'fixed', 150);
+    $r = discount_manager::resolve('course', $courseid, $userid, 'TESTZERO', $base);
+    check('coupon applied', 150.00, $r['coupon_discount']);
+    check('coupon not flagged as superseded', false, $r['coupon_superseded']);
+    check('applied flag', 'coupon', $r['applied']);
+    check('final = 1000 - 150', 850.00, $r['final']);
+
+    // ── AC-4.12.6: a coupon is measured against the base price, and never chained ──
+    cli_writeln('');
+    cli_writeln('AC-4.12.6  coupon 30% on a 1000 item with no offer is 300 off the base');
+    clear_fixtures();
+    make_coupon('TESTPCT', 'percent', 30);
     $r = discount_manager::resolve('course', $courseid, $userid, 'TESTPCT', $base);
     check('coupon computed on the full base', 300.00, $r['coupon_discount']);
-    check('final = 1000 - 300 (not 1000 - 100 - 270)', 700.00, $r['final']);
+    check('final = 1000 - 300', 700.00, $r['final']);
 
     // ── AC-4.12.7: a discount bigger than the order ──
     cli_writeln('');

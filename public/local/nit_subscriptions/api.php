@@ -108,8 +108,13 @@ try {
             $id = subscription_manager::create_subscription([
                 'name'          => required_param('name', PARAM_TEXT),
                 'description'   => optional_param('description', '', PARAM_TEXT),
-                'price'         => required_param('price', PARAM_FLOAT),
-                'currency'      => optional_param('currency', 'EGP', PARAM_ALPHA),
+                // The two price rows a plan has, like a course: the Default price
+                // (price/currency) and the home country's price. Both are checked
+                // together by subscription_manager::normalize_pricing().
+                'price'         => optional_param('price', '', PARAM_RAW_TRIMMED),
+                'currency'      => optional_param('currency', '', PARAM_ALPHA),
+                'home_price'    => optional_param('home_price', '', PARAM_RAW_TRIMMED),
+                'home_currency' => optional_param('home_currency', '', PARAM_ALPHA),
                 'duration_days' => required_param('duration_days', PARAM_INT),
                 // Blank means "follow the site policy"; 0 is a deliberate
                 // no-window or full refund, so the two cannot be conflated.
@@ -118,7 +123,6 @@ try {
                 'active'        => optional_param('active', 1, PARAM_INT),
                 'b2b_enabled'   => optional_param('b2b_enabled', 0, PARAM_INT),
                 'seat_options'  => nit_subscriptions_seat_options(),
-                'prices'        => nit_subscriptions_prices(),
                 'categories'    => nit_subscriptions_categories(),
             ], $USER->id);
             nit_subscriptions_respond(['status' => 'success', 'data' => ['id' => $id]]);
@@ -128,8 +132,10 @@ try {
             subscription_manager::update_subscription(required_param('id', PARAM_INT), [
                 'name'          => required_param('name', PARAM_TEXT),
                 'description'   => optional_param('description', '', PARAM_TEXT),
-                'price'         => required_param('price', PARAM_FLOAT),
-                'currency'      => optional_param('currency', 'EGP', PARAM_ALPHA),
+                'price'         => optional_param('price', '', PARAM_RAW_TRIMMED),
+                'currency'      => optional_param('currency', '', PARAM_ALPHA),
+                'home_price'    => optional_param('home_price', '', PARAM_RAW_TRIMMED),
+                'home_currency' => optional_param('home_currency', '', PARAM_ALPHA),
                 'duration_days' => required_param('duration_days', PARAM_INT),
                 // Blank means "follow the site policy"; 0 is a deliberate
                 // no-window or full refund, so the two cannot be conflated.
@@ -138,7 +144,6 @@ try {
                 'status'        => optional_param('status', 'active', PARAM_ALPHA),
                 'b2b_enabled'   => optional_param('b2b_enabled', 0, PARAM_INT),
                 'seat_options'  => nit_subscriptions_seat_options(),
-                'prices'        => nit_subscriptions_prices(),
                 'categories'    => nit_subscriptions_categories(),
             ], $USER->id);
             nit_subscriptions_respond(['status' => 'success', 'data' => []]);
@@ -388,18 +393,6 @@ function nit_subscriptions_optional_number(string $name): ?float {
  */
 function nit_subscriptions_seat_options(): array {
     $raw = optional_param('seat_options', '[]', PARAM_RAW);
-    $decoded = json_decode($raw, true);
-    return is_array($decoded) ? $decoded : [];
-}
-
-/**
- * Decode the prices JSON parameter into an array of per-country price rows
- * (['country','currency','price','is_active']).
- *
- * @return array
- */
-function nit_subscriptions_prices(): array {
-    $raw = optional_param('prices', '[]', PARAM_RAW);
     $decoded = json_decode($raw, true);
     return is_array($decoded) ? $decoded : [];
 }

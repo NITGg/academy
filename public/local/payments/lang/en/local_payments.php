@@ -69,7 +69,6 @@ $string['actions'] = 'Actions';
 $string['error_price_positive'] = 'Price must be greater than zero.';
 $string['error_sale_price_lower'] = 'Sale price must be lower than the regular price.';
 $string['error_end_after_start'] = 'End date must be after start date.';
-$string['error_one_active_per_country'] = 'There is already an active pricing rule for this country. Deactivate it first, or edit that rule instead.';
 
 // Course display.
 $string['enrolled'] = 'Enrolled';
@@ -413,15 +412,8 @@ $string['pricing_first_homehelp'] = 'What a buyer in {$a} pays, in the currency 
 $string['pricing_first_defaulthdr'] = '2. Everyone else — the Default price';
 $string['pricing_first_defaulthelp'] = 'What every buyer OUTSIDE {$a} pays, in an international currency. This row is also used for any visitor the site cannot place in a country at all, so a course can never be without it.';
 $string['error_same_currency'] = 'The Default price must be in a different currency from the local one — otherwise it is the local price twice, and buyers abroad are quoted local money.';
-$string['pricing_section_note'] = 'Prices are set per country. A signed-in buyer is priced by the country on their profile &mdash; with no country they see no price and cannot buy until they set one. A guest is placed by IP address. Anyone whose country has no price of its own, and any guest the site cannot place, gets the Default price. Leave every price empty to make the course free. {$a}';
 $string['pricing_incomplete_form'] = 'Fill in what is missing below. This form saves a course only with both the local and the Default price (in different currencies), or with every price cleared (a free course).';
-$string['pricing_other_intro'] = 'Other countries: a price for one specific country, in the currency of your choice. A buyer from a country with no row here gets the Default price.';
-$string['pricing_other_row'] = 'Country price {no}';
-$string['pricing_other_none'] = '(none &mdash; this row is removed on save)';
-$string['pricing_other_add'] = 'Add a price for another country';
 $string['error_currency_unknown'] = 'Unknown currency.';
-$string['error_other_country_required'] = 'Choose the country this price is for, or clear the price.';
-$string['error_other_country_reserved'] = 'This country has its own row above.';
 $string['error_home_required'] = 'A course that sells needs the {$a} price too. Fill it in, or clear every price to make the course free.';
 $string['error_default_required'] = 'A course that sells needs the Default price too. Fill it in, or clear every price to make the course free.';
 $string['error_refund_hours'] = 'The refund window must be a whole number of hours, 0 or more. Leave it blank to follow the site policy.';

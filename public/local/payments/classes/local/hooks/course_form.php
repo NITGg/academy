@@ -29,6 +29,9 @@ defined('MOODLE_INTERNAL') || die();
  * Core dispatches three hooks around course_edit_form — definition, validation
  * and submission — and this class answers all three, so the price of a course
  * is set where the rest of the course is set instead of on a page of its own.
+ * The section is deliberately small: the local price, the Default price and
+ * the refund terms. Per-country rows beyond those two were dropped from the
+ * form on 2026-09-13 ("two is enough for now").
  * Every element is prefixed `lpp_` so nothing collides with a course column,
  * a custom field or another plugin. The rules themselves live in
  * {@see course_pricing}; this class only draws the form and passes data through.
@@ -63,12 +66,12 @@ class course_form {
         $currencies = course_pricing::currencies();
         $home = country_detector::fallback_country();
         $homecurrency = course_pricing::home_currency();
-        $countries = get_string_manager()->get_list_of_countries();
-        $homename = $countries[$home] ?? $home;
+        $homename = get_string_manager()->get_list_of_countries()[$home] ?? $home;
 
         $mform->addElement('header', 'lpp_pricing', get_string('coursepricing', 'local_payments'));
-        // Opened from the course's "Course pricing" link (course_pricing::settings_url),
-        // the section is what the admin came for, so it arrives expanded.
+        // Opened through course_pricing::settings_url() — the old pricing URL and
+        // the diagnose page both send the admin here for the prices — so the
+        // section is what they came for and arrives expanded.
         if (optional_param('pricing', 0, PARAM_BOOL)) {
             $mform->setExpanded('lpp_pricing', true, true);
         }
@@ -78,23 +81,22 @@ class course_form {
         $mform->addElement('hidden', 'lpp_present', 1);
         $mform->setType('lpp_present', PARAM_INT);
 
-        // How a buyer's price is chosen. Kept short here; the diagnose page has the
-        // long version and shows what THIS server actually sees.
-        $diagnose = \html_writer::link(
-            new \moodle_url('/local/payments/country_diagnose.php', $courseid ? ['courseid' => $courseid] : []),
-            get_string('pricing_geo_check', 'local_payments'));
-        $mform->addElement('static', 'lpp_note', '',
-            \html_writer::div(get_string('pricing_section_note', 'local_payments', $diagnose), 'alert alert-info mb-0'));
-
-        // With no way to place a guest, every country price below is unreachable
-        // for signed-out visitors: they all get the Default row. Said here, where
-        // the prices are being typed, because from the outside it looks exactly
-        // like a wrong price rule.
+        // No explanation of the country ladder up here — the admin asked for the
+        // section to open straight on the prices. How a buyer's price is chosen is
+        // documented on country_diagnose.php, which also shows what THIS server sees.
+        //
+        // With no way to place a guest, the local price below is unreachable for
+        // signed-out visitors: they all get the Default row. Said here, where the
+        // prices are being typed, because from the outside it looks exactly like
+        // a wrong price rule.
         if (!country_detector::geolocation_available()) {
             $mform->addElement('static', 'lpp_geowarn', '',
                 \html_writer::div(
                     \html_writer::tag('strong', get_string('pricing_geo_off', 'local_payments')) . ' '
-                    . get_string('pricing_geo_off_desc', 'local_payments'),
+                    . get_string('pricing_geo_off_desc', 'local_payments') . ' '
+                    . \html_writer::link(
+                        new \moodle_url('/local/payments/country_diagnose.php', $courseid ? ['courseid' => $courseid] : []),
+                        get_string('pricing_geo_check', 'local_payments')),
                     'alert alert-warning mb-0'));
         }
 
@@ -151,43 +153,7 @@ class course_form {
         $mform->addElement('static', 'lpp_defaulthelp', '',
             get_string('pricing_first_defaulthelp', 'local_payments', $homename));
 
-        // ── 3. Other countries, one row each ─────────────────────────────────
-        // Deleting a row is choosing "(none)" for its country: there is no delete
-        // button because a moodleform cannot tell which of several same-named
-        // buttons was pressed, and an emptied row is dropped on save anyway.
-        $others = $countries;
-        unset($others[$home]);
-        $others = ['' => get_string('pricing_other_none', 'local_payments')] + $others;
-
-        $mform->addElement('static', 'lpp_othersintro', '',
-            get_string('pricing_other_intro', 'local_payments'));
-
-        $row = [
-            $mform->createElement('select', 'lpp_country', get_string('country', 'local_payments'), $others),
-            $mform->createElement('select', 'lpp_currency', get_string('currency', 'local_payments'), $currencies),
-            $mform->createElement('text', 'lpp_price', get_string('price', 'local_payments'),
-                ['size' => 8, 'placeholder' => get_string('price', 'local_payments')]),
-        ];
-        $rowgroup = $mform->createElement('group', 'lpp_othergrp',
-            get_string('pricing_other_row', 'local_payments'), $row, ' ', false);
-
-        $mform->setType('lpp_country', PARAM_ALPHA);
-        $mform->setType('lpp_currency', PARAM_ALPHA);
-        $mform->setType('lpp_price', PARAM_RAW_TRIMMED);
-
-        $form->repeat_elements([$rowgroup], count($current->others), [
-            'lpp_country' => ['type' => PARAM_ALPHA],
-            'lpp_currency' => ['type' => PARAM_ALPHA],
-            'lpp_price' => ['type' => PARAM_RAW_TRIMMED],
-        ], 'lpp_repeats', 'lpp_addrow', 1, get_string('pricing_other_add', 'local_payments'), true);
-
-        foreach (array_values($current->others) as $i => $other) {
-            $mform->setDefault("lpp_country[{$i}]", $other->country);
-            $mform->setDefault("lpp_currency[{$i}]", $other->currency);
-            $mform->setDefault("lpp_price[{$i}]", course_pricing::display_price($other->price));
-        }
-
-        // ── 4. Refund terms ──────────────────────────────────────────────────
+        // ── 3. Refund terms ──────────────────────────────────────────────────
         // Terms of the same sale as the price, so they sit with it — but not on
         // each row, because a percentage is the same number whatever the currency.
         $sitepolicy = refund_policy::site_policy('course');

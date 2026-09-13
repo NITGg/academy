@@ -205,24 +205,21 @@ $string['pkg_col_user']      = 'المستخدم';
 $string['pkg_col_pricepaid'] = 'المبلغ المدفوع';
 $string['pkg_col_expiresat'] = 'تاريخ الانتهاء';
 $string['pkg_field_name']    = 'الاسم';
-$string['pkg_field_price']   = 'السعر الافتراضي';
 $string['pkg_field_name_en'] = 'الاسم (بالإنجليزية)';
 $string['pkg_field_name_ar'] = 'الاسم (بالعربية)';
 $string['pkg_field_desc_en'] = 'الوصف (بالإنجليزية)';
 $string['pkg_field_desc_ar'] = 'الوصف (بالعربية)';
-$string['pkg_field_currency'] = 'العملة الافتراضية';
 $string['pkg_unassign_paid'] = ' — مدفوع <strong>{$a}</strong>';
 
-// Per-country pricing (managed inside the create/edit subscription form).
-$string['sub_prices_heading']     = 'أسعار حسب الدولة';
-$string['sub_prices_help']        = 'اختياري. حدّد سعرًا لدول بعينها؛ ومن يشتري من غيرها يدفع السعر الافتراضي أعلاه.';
-$string['sub_price_add']          = '+ إضافة سعر لدولة';
-$string['sub_price_country']      = 'الدولة';
-$string['sub_price_currency']     = 'العملة';
-$string['sub_price_amount']       = 'السعر';
-$string['sub_price_active']       = 'مفعّل';
-$string['sub_price_remove']       = 'إزالة';
-$string['sub_price_pickcountry']  = 'اختر الدولة…';
+// سعرا الخطة (فورم الإنشاء/التعديل) — نفس الصفّين والقواعد والصياغة بتوع قسم «تسعير الدورة»
+// في local_payments. {$a} هو اسم الدولة المحلية.
+$string['sub_price_home_hdr']     = '١. {$a} — السعر المحلي';
+$string['sub_price_home_help']    = 'اللي بيدفعه المشترك في {$a}، بالعملة اللي تختارها هنا.';
+$string['sub_price_default_hdr']  = '٢. باقي العالم — السعر الافتراضي';
+$string['sub_price_default_help'] = 'اللي بيدفعه أي مشترك خارج {$a}، بعملة دولية. وهو كمان السعر اللي بيشوفه أي زائر تعذّر تحديد دولته.';
+$string['err_homeprice_required']    = 'الخطة محتاجة سعر {$a} مع السعر الافتراضي.';
+$string['err_defaultprice_required'] = 'الخطة محتاجة السعر الافتراضي مع السعر المحلي.';
+$string['err_samecurrency']          = 'السعر الافتراضي لازم يكون بعملة مختلفة عن العملة المحلية — وإلا يبقى هو السعر المحلي مرتين، والمشتركون في الخارج بيتسعّروا بعملة محلية.';
 
 // (Legacy strings from the old standalone pricing page — kept for compatibility.)
 $string['sub_pricing']            = 'الأسعار';

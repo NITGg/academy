@@ -475,7 +475,7 @@ function local_nit_category_checkout_footer(): void {
     $costr = local_nit_commerce_string_map([
         'co_title', 'co_intro', 'co_total', 'co_offer', 'co_coupon', 'co_apply', 'co_discount',
         'co_secure', 'co_proceed', 'co_cancel', 'co_loading', 'co_coupon_failed', 'co_currency',
-        'co_method', 'co_method_code', 'co_offer_won', 'co_coupon_won', 'co_notcombined',
+        'co_method', 'co_method_code', 'co_coupon_notwithoffer',
         'co_pricechanged', 'co_confirm_price', 'co_usage_limit', 'co_usage_unlimited', 'co_usage_user', 'co_usage_user_unlimited',
     ]);
     echo html_writer::script('window.NIT_CO = ' . json_encode([
@@ -508,6 +508,9 @@ function local_nit_category_checkout_footer(): void {
                 proceed: function (code, methodId, quoted) {
                     var url = window.NIT_CO.wwwroot + '/local/payments/checkout.php?courseid=' + id +
                         '&sesskey=' + encodeURIComponent(window.NIT_CO.sesskey) + '&coupon_code=' + encodeURIComponent(code);
+                    // The language this page is showing, so checkout.php and the gateway page it
+                    // hands over to follow what the buyer is looking at, not a session guess.
+                    url += '&lang=' + encodeURIComponent((document.documentElement.lang || 'en').slice(0, 2));
                     // 0 means the modal offered no choice, and the gateway then
                     // picks one itself rather than showing its own page.
                     if (methodId) { url += '&payment_method_id=' + encodeURIComponent(methodId); }

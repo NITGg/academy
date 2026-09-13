@@ -127,4 +127,5 @@ tracked.
   `X-Forwarded-For` and `$CFG->getremoteaddrconf`), what country that resolves to, and which
   of the course's price rows would therefore win. Also takes `?ip=` to look up any address.
   Reach for it whenever "the Egypt price is being ignored": four different causes produce
-  that one symptom and this separates them. Linked from every course's pricing page.
+  that one symptom and this separates them. Linked from the *Course pricing* section of the
+  course settings form whenever no IP lookup is available; otherwise reach it by URL.

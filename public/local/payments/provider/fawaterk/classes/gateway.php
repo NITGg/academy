@@ -645,11 +645,25 @@ class gateway extends base_provider {
     /**
      * Pin the language of a Fawaterk-hosted page to the one the buyer is using.
      *
-     * The hosted transaction page reads its language from the `lg` query
-     * parameter of the URL Fawaterk hands back, not from the `lang` field we
-     * send when creating the transaction — so an Arabic site could land its
-     * buyer on an English page and vice versa. Only Fawaterk's own pages take
-     * the parameter; a bank 3-D Secure redirect is left untouched.
+     * The `lang` field in the create body is not documented and never reaches
+     * the page. What the hosted transaction page actually does (read from its
+     * bundle on staging and app, Sep 2026) is decide its language in this order:
+     *
+     *  1. `?lg=ar` on the URL -> Arabic. `lg` recognises no other value, so it
+     *     can force Arabic but never English.
+     *  2. The `invoiceLanguage` the browser already holds in localStorage,
+     *     which every visit writes and the page's own footer switcher sets.
+     *  3. The `<html lang>` the server rendered. That is Fawaterk's session
+     *     locale: `?lang=en|ar` sets it and it then sticks for the browser
+     *     session. With nothing set it is Arabic.
+     *  4. English.
+     *
+     * An English buyer therefore landed on an Arabic page: `lg=en` was a no-op
+     * and nothing had set rung 3. Sending `lang` (rung 3) and `lg` (rung 1)
+     * covers every case but one that is not ours to fix — a browser that
+     * already holds `invoiceLanguage=ar` from an earlier visit keeps Arabic
+     * until the buyer switches it in the page footer. Only Fawaterk's own pages
+     * take the parameters; a bank 3-D Secure redirect is left untouched.
      */
     private function localise_hosted_url(string $url, string $displaylang): string {
         if ($url === '') {
@@ -659,13 +673,14 @@ class gateway extends base_provider {
         if ($host === '' || stripos($host, 'fawaterk') === false) {
             return $url;
         }
-        $lg = ($displaylang === 'ar') ? 'ar' : 'en';
+        $lang = ($displaylang === 'ar') ? 'ar' : 'en';
         $parts = parse_url($url);
         $query = [];
         if (!empty($parts['query'])) {
             parse_str($parts['query'], $query);
         }
-        $query['lg'] = $lg;
+        $query['lang'] = $lang;
+        $query['lg'] = $lang;
         $rebuilt = ($parts['scheme'] ?? 'https') . '://' . $host
             . (isset($parts['port']) ? ':' . $parts['port'] : '')
             . ($parts['path'] ?? '')

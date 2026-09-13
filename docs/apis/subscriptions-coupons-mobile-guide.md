@@ -149,8 +149,13 @@ GET …&wsfunction=local_nit_commerce_get_available_coupons&moodlewsrestformat=j
 
 ### 3.2 `local_nit_commerce_preview_discount`
 
-Preview the price of an item with the best automatic **offer** applied, plus an optional **coupon**
-on top. **Charges nothing.** Use it on the checkout screen before starting payment.
+Preview the price of an item with the best automatic **offer** applied, or — only when the item has
+**no** live offer — an optional **coupon**. **Charges nothing.** Use it on the checkout screen before
+starting payment.
+
+> **An item on offer takes no coupon.** The offer applies and the code is set aside, *whatever the
+> two amounts are* — even a code worth more than the offer. Offers and coupons are never combined and
+> never chained. A coupon is honoured only on an item with no live offer.
 
 ```
 GET …&wsfunction=local_nit_commerce_preview_discount&moodlewsrestformat=json
@@ -172,15 +177,28 @@ GET …&wsfunction=local_nit_commerce_preview_discount&moodlewsrestformat=json
   "offer_discount": 36.50,
   "coupon_id": 5,
   "coupon_code": "WELCOME10",
-  "coupon_discount": 32.85,
-  "discount": 69.35,
-  "final": 295.65,
+  "coupon_discount": 0,
+  "applied": "offer",
+  "offer_candidate": 36.50,
+  "coupon_candidate": 32.85,
+  "coupon_superseded": true,
+  "discount": 36.50,
+  "final": 328.50,
   "coupon_error": ""
 }
 ```
-- `final` = what checkout will charge. `discount` = `offer_discount + coupon_discount`.
+- `final` = what checkout will charge. `discount` = whichever ONE of `offer_discount` /
+  `coupon_discount` applied (the other is always `0`).
+- `applied` says which: `offer` | `coupon` | `none`.
+- **`coupon_superseded: true`** = the code was **valid and in scope**, but the item is on offer so it
+  was set aside (`coupon_discount` is `0`, `coupon_id`/`coupon_code` are still filled so you can
+  explain). Show a neutral note such as *"This item is already on offer — discount codes can't be
+  used together with an offer. The offer has been applied."* **Do not word it as a comparison**
+  ("the offer saves you more"): `coupon_candidate` may well be larger than `offer_candidate`, and the
+  user holding the code can see that. Do not show the code's remaining-uses counters in this state.
 - **Invalid coupon does not fail the call** — you get the offer-only price and `coupon_error` is filled
   (e.g. `"This coupon is not applicable to this item"`). Show it inline; keep the Buy button enabled.
+  A wrong/expired/out-of-scope code is refused as such even on an item on offer.
 
 ### 3.3 `local_nit_subscriptions_get_available_subscriptions`
 

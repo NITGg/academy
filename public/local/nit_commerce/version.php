@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_commerce';
-$plugin->version   = 2026091300;        // Usage type withdrawn; per-student usage limit (user_limit) added.
+$plugin->version   = 2026091301;        // An item on offer takes no coupon (AC-4.12.6); checkout_modal.js cache-buster.
 $plugin->requires  = 2024100700;
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;

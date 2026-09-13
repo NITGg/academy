@@ -266,10 +266,10 @@ $string['ofr_col_usage']       = 'Usage';
 $string['ofr_rep_open']        = 'View orders';
 $string['ofr_lowest_note']     = 'Where more than one offer covers the same item, the one giving the learner the lowest price is the one applied — offers are never combined.';
 
-// Coupon vs offer: only the larger discount is applied (AC-4.12.6).
-$string['co_offer_won']     = 'Your code is valid, but the current offer saves you more, so the offer was applied.';
-$string['co_coupon_won']    = 'Your code saves more than the current offer, so the code was applied instead.';
-$string['co_notcombined']   = 'Offers and coupons are not combined — you always get the larger of the two.';
+// Coupon vs offer: an item on offer takes no discount code — the offer applies and the code is set
+// aside (AC-4.12.6). Deliberately NOT worded as a comparison ("the offer saves you more"): the code
+// may well be worth more than the offer, and the buyer holding it can see that.
+$string['co_coupon_notwithoffer'] = 'Your code is valid, but this item is already on offer and discount codes cannot be used together with an offer. The offer has been applied.';
 
 // The price moved between this sheet opening and Proceed being pressed (AC-4.13.6) — normally an
 // offer that reached its end date. {old}/{new} are filled in by the modal, not by get_string.

@@ -28,8 +28,8 @@ out of a single setting — and would quietly become a third of a discounted sal
 ### Courses
 
 *Course → Settings → Course pricing* (the last section of the course settings
-form; the course's *Course pricing* link opens it expanded) → the **Refund policy
-for this course** fields at the bottom of that section, under the prices.
+form) → the **Refund policy for this course** fields at the bottom of that
+section, under the two prices.
 
 | Field | Meaning |
 |---|---|
@@ -42,8 +42,8 @@ is a deliberate choice.
 ### Subscriptions
 
 *Manage subscriptions → add/edit a plan* — the same two fields, on the plan.
-They cover every country price row the plan has, because a percentage is the same
-policy in all of them.
+They cover both of the plan's prices (the local one and the Default one), because
+a percentage is the same policy in either currency.
 
 ### Everything else
 

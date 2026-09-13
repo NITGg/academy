@@ -6,18 +6,10 @@ function local_payments_extend_navigation(global_navigation $navigation) {
 }
 
 function local_payments_extend_navigation_course(\navigation_node $navigation, \stdClass $course, \context_course $context) {
-    if (has_capability('local/payments:managecoursepricing', $context)) {
-        // Prices live on the course settings form; this opens it with that section expanded.
-        $url = \local_payments\course_pricing::settings_url((int) $course->id);
-        $navigation->add(
-            get_string('coursepricing', 'local_payments'),
-            $url,
-            \navigation_node::TYPE_SETTING,
-            null,
-            'local_payments_pricing',
-            new \pix_icon('i/payment', '')
-        );
-    }
+    // No "Course pricing" entry: prices are a section of the course settings form
+    // (Settings > Course pricing), so a menu item would only be a second door to
+    // the same page. \local_payments\course_pricing::settings_url() is still the
+    // link for anything that needs to point at that section.
 
     if (has_capability('local/payments:viewcoursepayments', $context)) {
         $url = new \moodle_url('/local/payments/transactions.php', ['courseid' => $course->id]);

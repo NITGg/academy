@@ -17,8 +17,9 @@
 /**
  * Web-service (token) function: preview the discounted price of a sellable item.
  *
- * Applies the best automatic offer, then an optional coupon code on top, and returns the price
- * breakdown WITHOUT charging anything. Mobile-facing twin of the ?function=preview_discount endpoint.
+ * Applies the best automatic offer, or — only on an item with no live offer — an optional coupon
+ * code, and returns the price breakdown WITHOUT charging anything (AC-4.12.6: an item on offer takes
+ * no code). Mobile-facing twin of the ?function=preview_discount endpoint.
  * An invalid coupon does not fail the call: the offer-only price is returned with a `coupon_error`.
  *
  * @package    local_nit_commerce
@@ -214,23 +215,24 @@ class preview_discount extends external_api {
                 'Automatic offers applied (best one; offers do not stack)'
             ),
             'offer_id'        => new external_value(PARAM_INT,
-                'Offer id (0 = none). Named even when the coupon beat it, so the app can explain the outcome'),
+                'Offer id (0 = none)'),
             'offer_name'      => new external_value(PARAM_TEXT, 'Offer name'),
             'offer_discount'  => new external_value(PARAM_FLOAT,
-                'Offer discount ACTUALLY applied — 0 when the coupon won'),
+                'Offer discount applied (0 = no live offer on this item)'),
             'coupon_id'       => new external_value(PARAM_INT,
-                'Coupon id (0 = none). Named even when the offer beat it'),
+                'Coupon id (0 = none). Named even when the offer set it aside, so the app can explain the outcome'),
             'coupon_code'     => new external_value(PARAM_TEXT, 'Coupon code'),
             'coupon_discount' => new external_value(PARAM_FLOAT,
-                'Coupon discount ACTUALLY applied — 0 when the offer won'),
-            // Coupon and offer never combine and never stack: the larger amount wins, a tie goes
-            // to the offer (AC-4.12.6). These three say which won and by how much, so a client can
-            // tell "your code is invalid" apart from "your code lost to a better offer".
-            'applied'           => new external_value(PARAM_ALPHA, 'Which discount won: offer | coupon | none'),
+                'Coupon discount ACTUALLY applied — 0 when the item is on offer'),
+            // Coupon and offer never combine: an item on offer takes no code at all — the offer
+            // applies and the code is set aside, whatever it was worth (AC-4.12.6). These say which
+            // applied, so a client can tell "your code is invalid" apart from "this item is on
+            // offer, so codes do not apply" — and must NOT phrase the second as a comparison.
+            'applied'           => new external_value(PARAM_ALPHA, 'Which discount applied: offer | coupon | none'),
             'offer_candidate'   => new external_value(PARAM_FLOAT, 'What the offer would take off on its own'),
             'coupon_candidate'  => new external_value(PARAM_FLOAT, 'What the coupon would take off on its own'),
             'coupon_superseded' => new external_value(PARAM_BOOL,
-                'True when the coupon was valid and in scope but the offer discounted more'),
+                'True when the coupon was valid and in scope but set aside because the item is on offer'),
             'discount'        => new external_value(PARAM_FLOAT, 'Total discount applied (the winner only)'),
             'final'           => new external_value(PARAM_FLOAT, 'Final price to charge, never below zero'),
             'coupon_error'    => new external_value(PARAM_TEXT, 'Why the coupon was rejected (empty if none/valid)'),

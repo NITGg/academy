@@ -18,8 +18,11 @@ defined('MOODLE_INTERNAL') || die();
  *      country) — in whatever currency the admin picks;
  *   2. the Default price (country "*", is_default = 1) — the row every buyer the
  *      site cannot place in a country lands on, in an international currency;
- *   3. any number of other countries;
- *   4. the course's refund window and fee, overriding the site policy.
+ *   3. the course's refund window and fee, overriding the site policy.
+ *
+ * Nothing per country beyond those two: the table can hold a row for any
+ * country (the old screen offered that), but the form no longer does — two
+ * prices is the whole model for now.
  *
  * The two-price rule ({@see price_resolver::pricing_gaps()}) is enforced here as
  * plain validation: a course that sells must have BOTH 1 and 2, and 2 may not be
@@ -28,18 +31,16 @@ defined('MOODLE_INTERNAL') || die();
  * course" direction test is not needed — the form simply refuses an incomplete set.
  * Clearing every price makes the course free.
  *
- * "What the form shows is what the course has": on save, a country that is not
- * on the form loses its rows, and a country that is gets exactly one active row.
- * Inactive rows the old per-row screen could leave behind were invisible to
- * buyers (the resolver only reads active rows) and are cleaned up the same way.
+ * "What the form shows is what the course has": on save, each of the two rows
+ * becomes exactly one active record, and every other record the course had — a
+ * per-country row from the old screen, a duplicate, an inactive row nobody
+ * could see — is removed. A price the admin cannot see on the form is a price
+ * they cannot be expected to know about.
  */
 class course_pricing {
 
     /** @var string The country code of the Default price row. */
     const DEFAULT_ROW = '*';
-
-    /** @var int Blank rows offered under "Other countries" when a course has none. */
-    const BLANK_OTHER_ROWS = 1;
 
     /**
      * The currencies a price may be set in.
@@ -98,8 +99,7 @@ class course_pricing {
      *
      * @param int $courseid 0 for a course being created
      * @return object {home: ?object{currency,price}, default: ?object{currency,price},
-     *                 others: object[]{country,currency,price}, selling: bool,
-     *                 refund: object{hours: ?int, feepercent: ?float}}
+     *                 selling: bool, refund: object{hours: ?int, feepercent: ?float}}
      */
     public static function load(int $courseid): object {
         global $DB;
@@ -107,7 +107,6 @@ class course_pricing {
         $out = (object) [
             'home' => null,
             'default' => null,
-            'others' => [],
             'selling' => false,
             'refund' => (object) ['hours' => null, 'feepercent' => null],
         ];
@@ -129,9 +128,8 @@ class course_pricing {
                 $out->default = $out->default ?? $entry;
             } else if ($entry->country === $home) {
                 $out->home = $out->home ?? $entry;
-            } else {
-                $out->others[] = $entry;
             }
+            // Any other country's row is not shown: the form has no place for it.
         }
 
         // A legacy Default row may carry the flag under a real country code. It
@@ -193,48 +191,11 @@ class course_pricing {
             $errors['lpp_defaultgrp'] = get_string('error_currency_unknown', 'local_payments');
         }
 
-        // ── Other countries ──────────────────────────────────────────────────
-        // A row is one of: blank (ignored), or a country + a positive price.
-        $others = [];
-        $seen = [];
-        foreach (self::posted_other_rows($data) as $i => $row) {
-            $key = "lpp_othergrp[{$i}]";
-            $blank = $row->country === '' && $row->price === null;
-            if ($blank) {
-                continue;
-            }
-            if ($row->country === '') {
-                // A price with no country: the admin typed an amount and forgot
-                // who it is for. Never silently dropped.
-                $errors[$key] = get_string('error_other_country_required', 'local_payments');
-                continue;
-            }
-            if ($row->price === null || $row->price === false) {
-                $errors[$key] = get_string('error_price_positive', 'local_payments');
-                continue;
-            }
-            if ($row->country === $home || $row->country === self::DEFAULT_ROW) {
-                // These two have rows of their own above.
-                $errors[$key] = get_string('error_other_country_reserved', 'local_payments');
-                continue;
-            }
-            if (!isset($currencies[$row->currency])) {
-                $errors[$key] = get_string('error_currency_unknown', 'local_payments');
-                continue;
-            }
-            if (isset($seen[$row->country])) {
-                $errors[$key] = get_string('error_one_active_per_country', 'local_payments');
-                continue;
-            }
-            $seen[$row->country] = true;
-            $others[] = $row;
-        }
-
         // ── The two-price rule ───────────────────────────────────────────────
         // A course that sells at all needs the home price AND the Default price:
         // with only one of them, half the audience is quoted the other half's
         // currency — or, with no Default row, nothing at all.
-        $selling = $homeprice !== null || $defaultprice !== null || !empty($others);
+        $selling = $homeprice !== null || $defaultprice !== null;
         if ($selling) {
             $countries = get_string_manager()->get_list_of_countries();
             $homename = $countries[$home] ?? $home;
@@ -306,17 +267,6 @@ class course_pricing {
                 'is_default' => 1,
             ];
         }
-        foreach (self::posted_other_rows($data) as $row) {
-            if ($row->country === '' || !$row->price || isset($target[$row->country])) {
-                continue;
-            }
-            $target[$row->country] = (object) [
-                'currency' => $row->currency,
-                'price' => $row->price,
-                'is_default' => 0,
-            ];
-        }
-
         $now = time();
         $transaction = $DB->start_delegated_transaction();
 
@@ -354,8 +304,9 @@ class course_pricing {
             }
         }
 
-        // Whatever is left was not on the form: a country the admin cleared, or a
-        // duplicate/inactive row nobody could see.
+        // Whatever is left was not on the form: a price the admin cleared, a row
+        // for some other country from the old screen, or a duplicate/inactive row
+        // nobody could see.
         if (!empty($existing)) {
             $DB->delete_records_list('local_payments_course_prices', 'id', array_keys($existing));
         }
@@ -405,28 +356,6 @@ class course_pricing {
         } else {
             $DB->insert_record('local_payments_refund_terms', $terms);
         }
-    }
-
-    /**
-     * The "Other countries" rows as posted, index-preserving.
-     *
-     * @param array $data
-     * @return object[] index => {country, currency, price: null|false|float}
-     */
-    private static function posted_other_rows(array $data): array {
-        $countries = (array) ($data['lpp_country'] ?? []);
-        $currencies = (array) ($data['lpp_currency'] ?? []);
-        $prices = (array) ($data['lpp_price'] ?? []);
-
-        $rows = [];
-        foreach ($countries as $i => $country) {
-            $rows[$i] = (object) [
-                'country' => strtoupper(trim((string) $country)),
-                'currency' => strtoupper(trim((string) ($currencies[$i] ?? ''))),
-                'price' => self::parse_price($prices[$i] ?? ''),
-            ];
-        }
-        return $rows;
     }
 
     /**

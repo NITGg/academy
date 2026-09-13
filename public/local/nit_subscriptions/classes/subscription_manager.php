@@ -50,7 +50,8 @@ class subscription_manager {
     /**
      * Create a subscription plan.
      *
-     * @param array $data name, description, price, duration_days, active, b2b_enabled, seat_options[]
+     * @param array $data name, description, price, currency, home_price, home_currency,
+     *                    duration_days, active, b2b_enabled, seat_options[], categories[]
      * @param int $userid admin performing the action
      * @return int new subscription id
      */
@@ -61,13 +62,12 @@ class subscription_manager {
         if ($name === '') {
             throw new \moodle_exception('err_subnamerequired', 'local_nit_subscriptions');
         }
-        // Every plan must carry a positive default price — it is the fallback used whenever a
-        // buyer's country has no per-country override row, so a plan can never exist without a price.
-        $price = (float)($data['price'] ?? 0);
-        if ($price <= 0) {
-            throw new \moodle_exception('err_pricepositive', 'local_nit_subscriptions');
-        }
-        $currency = self::normalize_currency($data['currency'] ?? 'EGP');
+        // A plan is priced like a course: the Default price (its own price/currency,
+        // what everyone outside the home country pays) AND the home country's price,
+        // both required. There is no such thing as a free plan.
+        $pricing = self::normalize_pricing($data);
+        $price = $pricing['price'];
+        $currency = $pricing['currency'];
         $duration = (int)($data['duration_days'] ?? 0);
         if ($duration <= 0) {
             throw new \moodle_exception('err_durationpositive', 'local_nit_subscriptions');
@@ -100,10 +100,8 @@ class subscription_manager {
         if ($b2benabled && array_key_exists('seat_options', $data)) {
             self::save_seat_options($id, (array)$data['seat_options']);
         }
-        // Per-country price overrides (from the edit form).
-        if (array_key_exists('prices', $data)) {
-            self::replace_prices($id, (array) $data['prices'], $userid);
-        }
+        // The home country's row — the only per-country row a plan has.
+        self::replace_prices($id, [$pricing['home']], $userid);
         // Which category pages advertise the plan. Absent means "derive it from the courses",
         // which is what a plan created without touching the field should do.
         if (array_key_exists('categories', $data)) {
@@ -115,8 +113,12 @@ class subscription_manager {
     /**
      * Update a subscription plan. Only provided fields change; changes apply to future purchases only.
      *
+     * The prices are one field for this purpose: send price, currency, home_price and
+     * home_currency together (the form always does) or none of them.
+     *
      * @param int $id
-     * @param array $data subset of: name, description, price, duration_days, status, b2b_enabled, seat_options
+     * @param array $data subset of: name, description, price, currency, home_price, home_currency,
+     *                    duration_days, status, b2b_enabled, seat_options, categories
      * @param int $userid admin performing the action
      * @return void
      */
@@ -138,15 +140,11 @@ class subscription_manager {
         if (array_key_exists('description', $data)) {
             $update->description = $data['description'];
         }
-        if (array_key_exists('price', $data)) {
-            $price = (float)$data['price'];
-            if ($price <= 0) {
-                throw new \moodle_exception('err_pricepositive', 'local_nit_subscriptions');
-            }
-            $update->price = $price;
-        }
-        if (array_key_exists('currency', $data)) {
-            $update->currency = self::normalize_currency($data['currency']);
+        $pricing = null;
+        if (array_key_exists('price', $data) || array_key_exists('home_price', $data)) {
+            $pricing = self::normalize_pricing($data);
+            $update->price = $pricing['price'];
+            $update->currency = $pricing['currency'];
         }
         foreach (['refund_hours', 'refund_fee'] as $refundfield) {
             if (array_key_exists($refundfield, $data)) {
@@ -187,9 +185,10 @@ class subscription_manager {
             $DB->delete_records('nit_sub_seat_option', array('subscriptionid' => $sub->id));
         }
 
-        // Per-country price overrides (from the edit form).
-        if (array_key_exists('prices', $data)) {
-            self::replace_prices($sub->id, (array) $data['prices'], $userid);
+        // The home country's row replaces every per-country row the plan had: what the
+        // form shows is what the plan has, exactly as on a course.
+        if ($pricing) {
+            self::replace_prices($sub->id, [$pricing['home']], $userid);
         }
 
         // Category placement. Replace-on-save like the prices above, so clearing the field in
@@ -399,6 +398,115 @@ class subscription_manager {
     // ──────────────────────────────────────────────────────────────────────────
     // Per-country pricing (mirror of local_payments course pricing)
     // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * The currencies a plan may be priced in — the course list when local_payments is
+     * installed, so the two pickers never drift apart.
+     *
+     * @return array<string, string> ISO 4217 => label
+     */
+    public static function currencies(): array {
+        if (class_exists('\local_payments\course_pricing')) {
+            return \local_payments\course_pricing::currencies();
+        }
+        return [
+            'USD' => 'USD - US Dollar', 'EGP' => 'EGP - Egyptian Pound', 'EUR' => 'EUR - Euro',
+            'GBP' => 'GBP - British Pound', 'SAR' => 'SAR - Saudi Riyal', 'AED' => 'AED - UAE Dirham',
+            'KWD' => 'KWD - Kuwaiti Dinar', 'BHD' => 'BHD - Bahraini Dinar', 'QAR' => 'QAR - Qatari Rial',
+            'OMR' => 'OMR - Omani Rial',
+        ];
+    }
+
+    /**
+     * The country the first price row is for — the site's own (Egypt unless configured).
+     *
+     * @return string ISO 3166-1 alpha-2
+     */
+    public static function home_country(): string {
+        return self::fallback_country();
+    }
+
+    /**
+     * That country's currency: only the picker's starting point for the home row, and the
+     * one currency the Default price may NOT be in (it would quote local money to the world).
+     *
+     * @return string ISO 4217
+     */
+    public static function home_currency(): string {
+        $currency = class_exists('\local_payments\country_detector')
+            ? \local_payments\country_detector::home_currency() : 'EGP';
+        return isset(self::currencies()[$currency]) ? $currency : 'EGP';
+    }
+
+    /**
+     * Check a plan's prices as the form posts them and shape them for saving.
+     *
+     * The same two-price rule as local_payments course_pricing::validate(): the home
+     * country's price and the Default price are both required, each positive, in a
+     * known currency, and the Default price may not be in the home currency. A plan
+     * has no "free" state — it always sells — so neither price may be blank.
+     *
+     * @param array $data price, currency, home_price, home_currency (all as posted)
+     * @return array {price: float, currency: string,
+     *                home: {country, currency, price, is_active} — a replace_prices() row}
+     * @throws \moodle_exception on the first rule broken
+     */
+    public static function normalize_pricing(array $data): array {
+        $currencies = self::currencies();
+        $home = self::home_country();
+        $homename = get_string_manager()->get_list_of_countries()[$home] ?? $home;
+
+        $homeprice = self::posted_price($data['home_price'] ?? null);
+        if ($homeprice === null) {
+            throw new \moodle_exception('err_homeprice_required', 'local_nit_subscriptions', '', $homename);
+        }
+        $price = self::posted_price($data['price'] ?? null);
+        if ($price === null) {
+            throw new \moodle_exception('err_defaultprice_required', 'local_nit_subscriptions');
+        }
+        if ($homeprice === false || $price === false) {
+            throw new \moodle_exception('err_pricepositive', 'local_nit_subscriptions');
+        }
+
+        // The home row's currency is the admin's choice; blank means the country's own.
+        $homecurrency = trim((string) ($data['home_currency'] ?? ''));
+        $homecurrency = self::normalize_currency($homecurrency !== '' ? $homecurrency : self::home_currency());
+        $currency = self::normalize_currency($data['currency'] ?? '');
+        if (!isset($currencies[$homecurrency]) || !isset($currencies[$currency])) {
+            throw new \moodle_exception('err_currency', 'local_nit_subscriptions');
+        }
+        if ($currency === self::home_currency()) {
+            throw new \moodle_exception('err_samecurrency', 'local_nit_subscriptions');
+        }
+
+        return [
+            'price'    => $price,
+            'currency' => $currency,
+            'home'     => [
+                'country'   => $home,
+                'currency'  => $homecurrency,
+                'price'     => $homeprice,
+                'is_active' => 1,
+            ],
+        ];
+    }
+
+    /**
+     * A posted price: null when blank, false when not a positive number, else the amount.
+     *
+     * @param mixed $raw
+     * @return float|false|null
+     */
+    private static function posted_price($raw) {
+        $raw = trim((string) $raw);
+        if ($raw === '') {
+            return null;
+        }
+        if (!is_numeric($raw) || (float) $raw <= 0) {
+            return false;
+        }
+        return round((float) $raw, 2);
+    }
 
     /**
      * Resolve the price a given user pays for a plan, based on their country.

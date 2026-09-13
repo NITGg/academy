@@ -114,24 +114,21 @@ $string['pkg_col_user']      = 'User';
 $string['pkg_col_pricepaid'] = 'Price Paid';
 $string['pkg_col_expiresat'] = 'Expires At';
 $string['pkg_field_name']    = 'Name';
-$string['pkg_field_price']   = 'Default price';
 $string['pkg_field_name_en'] = 'Name (English)';
 $string['pkg_field_name_ar'] = 'Name (Arabic)';
 $string['pkg_field_desc_en'] = 'Description (English)';
 $string['pkg_field_desc_ar'] = 'Description (Arabic)';
-$string['pkg_field_currency'] = 'Default currency';
 $string['pkg_unassign_paid'] = ' — <strong>{$a}</strong> paid';
 
-// Per-country pricing (managed inside the create/edit subscription form).
-$string['sub_prices_heading']     = 'Country prices';
-$string['sub_prices_help']        = 'Optional. Set a price for specific countries; buyers elsewhere pay the default price above.';
-$string['sub_price_add']          = '+ Add country price';
-$string['sub_price_country']      = 'Country';
-$string['sub_price_currency']     = 'Currency';
-$string['sub_price_amount']       = 'Price';
-$string['sub_price_active']       = 'Active';
-$string['sub_price_remove']       = 'Remove';
-$string['sub_price_pickcountry']  = 'Choose country…';
+// The plan's two prices (create/edit form) — the same rows, rules and wording as a
+// course's "Course pricing" section in local_payments. {$a} is the home country's name.
+$string['sub_price_home_hdr']     = '1. {$a} — the local price';
+$string['sub_price_home_help']    = 'What a subscriber in {$a} pays, in the currency you pick here.';
+$string['sub_price_default_hdr']  = '2. Everyone else — the Default price';
+$string['sub_price_default_help'] = 'What every subscriber OUTSIDE {$a} pays, in an international currency. This is also the price shown to any visitor the site cannot place in a country.';
+$string['err_homeprice_required']    = 'A plan needs the {$a} price as well as the Default price.';
+$string['err_defaultprice_required'] = 'A plan needs the Default price as well as the local one.';
+$string['err_samecurrency']          = 'The Default price must be in a different currency from the local one — otherwise it is the local price twice, and subscribers abroad are quoted local money.';
 
 // (Legacy strings from the old standalone pricing page — kept for compatibility.)
 $string['sub_pricing']            = 'Pricing';

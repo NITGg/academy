@@ -436,8 +436,9 @@ class revenue {
         }
         $itemid = (int) ($meta['item_id'] ?? 0) ?: (int) $rec->courseid;
 
-        // A coupon and an offer never stack (AC-4.12.6, discount_manager::resolve): the larger
-        // wins outright. Rows written before that rule can carry both, so the larger is what
+        // A coupon and an offer never stack (AC-4.12.6, discount_manager::resolve): an item on
+        // offer takes no code. Rows written under the earlier "larger wins" rule, or before any
+        // rule, can carry a coupon beside an offer, so the larger of the two is what
         // names the row and the other is only mentioned in the detail text.
         if ($coupondiscount > 0 && $coupondiscount >= $offerdiscount) {
             $channel = 'coupon';

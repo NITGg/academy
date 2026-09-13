@@ -752,17 +752,22 @@ class discount_manager {
     }
 
     /**
-     * Compute the charged price for an item: the best automatic offer and the entered coupon
-     * compete, and the larger of the two wins outright (AC-4.12.6).
+     * Compute the charged price for an item: the best automatic offer applies whenever one covers
+     * the item, and a coupon is honoured only on an item that has NO live offer (AC-4.12.6).
      *
-     * The two are deliberately NOT combined and NOT applied one after the other. Both are measured
-     * against the same undiscounted base, so "larger" is a straight comparison of two amounts in
-     * the same currency — a 20% offer and a "50 off" coupon are compared as the money each
-     * actually takes off this item, not as a rate against a rate. A tie goes to the offer, so a
-     * coupon is spent only when it genuinely beats what the buyer would have got for free. The
-     * loser is still reported (so the checkout can explain itself) but carries a zero amount,
-     * which is what keeps {@see self::reserve_usage()} and {@see self::do_record_usage()} from
-     * recording a redemption against it.
+     * An item on offer does not take discount codes — not "the larger of the two wins", the offer
+     * simply stands and the code is set aside, even when the code would have taken more off. That
+     * is the site's rule (an offer is the price of the item while it runs; codes are for what is
+     * not already discounted), so the checkout must never explain the outcome as a comparison: a
+     * buyer told "the offer saves you more" could hold a code that plainly does not agree. The
+     * set-aside coupon is still validated and reported (so the checkout can say WHY it did nothing
+     * and tell a refused code apart from a valid one) but carries a zero amount, which is what
+     * keeps {@see self::reserve_usage()} and {@see self::do_record_usage()} from recording a
+     * redemption against it. `offer_candidate` / `coupon_candidate` still say what each would have
+     * taken off on its own, for callers that want to show the buyer both numbers.
+     *
+     * An offer that covers the item but takes nothing off (a 0% campaign, a fixed amount that
+     * rounds away) does not count as "on offer": the coupon then applies as if there were none.
      *
      * The order can never fall below zero (AC-4.12.7): {@see self::discount_amount()} caps each
      * candidate at the base price, and the final subtraction is clamped again.
@@ -790,8 +795,9 @@ class discount_manager {
             'coupon_id'         => 0,
             'coupon_code'       => '',
             'coupon_discount'   => 0.0,
-            // Which of the two won, and what each would have taken off on its own. The checkout
-            // reads these to explain a coupon that was perfectly valid but simply beaten.
+            // Which of the two applied, and what each would have taken off on its own. The
+            // checkout reads `coupon_superseded` to explain a coupon that was perfectly valid but
+            // set aside because the item is on offer.
             'applied'           => 'none',
             'offer_candidate'   => 0.0,
             'coupon_candidate'  => 0.0,
@@ -815,15 +821,17 @@ class discount_manager {
             'final'             => $base,
         );
 
-        // Candidate 1: the best automatic offer, measured against the undiscounted base. Where
-        // several offers cover this item, offers_discount() has already picked the one that
-        // leaves the learner paying least (AC-4.13.4) — they never stack.
+        // The best automatic offer, measured against the undiscounted base. Where several offers
+        // cover this item, offers_discount() has already picked the one that leaves the learner
+        // paying least (AC-4.13.4) — they never stack.
         $od = self::offers_discount($itemtype, $itemid, $base, $now);
         $offeramount = round((float) $od['total'], 2);
         $result['offer_candidates'] = (int) ($od['candidates'] ?? 0);
 
-        // Candidate 2: the entered coupon, measured against the SAME undiscounted base — never
-        // against an offer-reduced running total, because the two never compound.
+        // The entered coupon, measured against the SAME undiscounted base — never against an
+        // offer-reduced running total, because the two never compound. Validated even when an
+        // offer is about to set it aside: a wrong, expired or out-of-scope code should still be
+        // refused as such, rather than hidden behind "this item is on offer".
         $coupon = null;
         $couponamount = 0.0;
         $couponcode = trim((string)$couponcode);
@@ -847,31 +855,18 @@ class discount_manager {
         $result['offer_candidate']  = $offeramount;
         $result['coupon_candidate'] = $couponamount;
 
-        // Strictly greater: an equal-value coupon loses, so the offer is applied (AC-4.12.6).
-        $couponwins = ($coupon !== null) && ($couponamount > $offeramount) && ($couponamount > 0);
-
-        if ($couponwins) {
-            $result['coupon_id']       = (int)$coupon->id;
-            $result['coupon_code']     = $coupon->code;
-            $result['coupon_discount'] = $couponamount;
-            $result['applied']         = 'coupon';
-            // The beaten offer is named for display only: no amount and no 'offers' row, so no
-            // offer usage is recorded for a purchase the offer did not discount.
-            if ($offeramount > 0) {
-                $result['offer_id']   = (int) $od['offers'][0]['id'];
-                $result['offer_name'] = format_string($od['offers'][0]['name']);
-            }
-            $applied = $couponamount;
-
-        } else if ($offeramount > 0) {
+        // An item on offer takes no discount code (AC-4.12.6): the offer applies and the coupon
+        // is set aside, whatever the two amounts are. No comparison happens here on purpose.
+        if ($offeramount > 0) {
             $result['offers']         = $od['offers'];
             $result['offer_discount'] = $offeramount;
             $result['offer_id']       = (int) $od['offers'][0]['id'];
             $result['offer_name']     = format_string($od['offers'][0]['name']);
             $result['applied']        = 'offer';
             if ($coupon !== null) {
-                // Valid and in scope, just beaten. Named with a zero amount so the checkout can
-                // say why it did nothing, and so no redemption is recorded against it.
+                // Valid and in scope, set aside because the item is on offer. Named with a zero
+                // amount so the checkout can say why it did nothing, and so no redemption is
+                // recorded against it.
                 $result['coupon_id']         = (int)$coupon->id;
                 $result['coupon_code']       = $coupon->code;
                 $result['coupon_superseded'] = true;
@@ -879,7 +874,7 @@ class discount_manager {
             $applied = $offeramount;
 
         } else if ($coupon !== null && $couponamount > 0) {
-            // No offer on this item — the coupon stands alone.
+            // No offer on this item — the coupon applies.
             $result['coupon_id']       = (int)$coupon->id;
             $result['coupon_code']     = $coupon->code;
             $result['coupon_discount'] = $couponamount;

@@ -29,6 +29,7 @@ require_once($CFG->dirroot . '/local/nit_subscriptions/lib.php');
 
 use local_nit_finance\output\report_panel;
 use local_nit_finance\report\revenue;
+use local_nit_subscriptions\subscription_manager;
 
 admin_externalpage_setup('local_nit_subscriptions_managesubscriptions');
 require_capability('local/nit_subscriptions:managesubscriptions', context_system::instance());
@@ -43,86 +44,15 @@ $PAGE->requires->js(new moodle_url('/local/nit_subscriptions/ui.js',
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managesubscriptions', 'local_nit_subscriptions'));
 
-// Admin note: explain how the price a user sees is chosen. Three key ideas to make clear:
-// pricing is ALWAYS by country (the IP only *identifies* a country, it carries no price of its
-// own); a SIGNED-IN account is priced on its profile country and nothing else, so an empty one
-// means no price and no purchase at all rather than a borrowed price; and every remaining dead
-// end — guest, no usable IP — resolves to the plan's default price rather than to some other
-// country's price. Same rules as the course pricing page; see
-// subscription_manager::resolve_price() / local_payments\country_detector.
-// Rendered in the admin's current language (site is en/ar).
-// Name the plan's base-price field exactly as the add/edit form labels it, so "default price"
-// in the note points at a field the admin can actually see.
-$STR_PRICE_LABEL = s(get_string('pkg_field_price', 'local_nit_subscriptions'));
-$pricingnote_isar = (strpos(current_language(), 'ar') === 0);
-if ($pricingnote_isar) {
-    $pricingnote =
-        '<strong>كيف يظهر سعر الاشتراك للمستخدم؟</strong><br>'
-        . 'السعر يعتمد دائمًا على <strong>دولة المستخدم</strong>. تُحدَّد الدولة بالترتيب التالي، '
-        . 'وأوّل خطوة تنجح هي المعتمدة:'
-        . '<ol style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
-        . '<li>مستخدم <strong>مسجّل دخول ولبروفايله دولة</strong>: تُؤخذ الدولة من بروفايله '
-        . '(الدولة التي سجّل بها).</li>'
-        . '<li>مستخدم <strong>مسجّل دخول لكن بروفايله بلا دولة</strong>: <strong>لا يُعرض له أي سعر '
-        . 'ولا يستطيع الاشتراك</strong>. تظهر الخطط بأسمائها ومدّتها وكورساتها، لكن مكان السعر تظهر '
-        . 'رسالة تطلب تحديد دولته مع رابط لصفحة بياناته، وبمجرد حفظ الدولة تعمل الأسعار والاشتراك '
-        . 'فورًا. (لا نُخمّن دولته من الـ IP: الحساب الذي نستطيع سؤاله لا يُسعَّر بالتخمين.)</li>'
-        . '<li>زائر <strong>غير مسجّل دخول</strong>: نُخمّن الدولة من عنوان الـ IP (موقعه التقريبي) — '
-        . 'فلا بروفايل لديه لنسأله.</li>'
-        . '<li>إذا <strong>تعذّر تحديد الدولة</strong> للزائر (فشل تحديد الموقع من الـ IP، أو عنوان داخلي/غير '
-        . 'صالح، أو خدمة تحديد الموقع غير مُفعّلة): يظهر <strong>السعر الافتراضي</strong> للخطة مباشرةً.</li>'
-        . '</ol>'
-        . 'بعد تحديد الدولة: إذا كان للخطة سعرٌ مضبوطٌ <strong>ومفعّل</strong> لتلك الدولة يظهر هذا السعر، '
-        . 'وإذا لم يوجد سعرٌ لتلك الدولة يظهر <strong>السعر الافتراضي</strong> للخطة '
-        . '(حقل «' . $STR_PRICE_LABEL . '» في نموذج الخطة).<br>'
-        . '<span style="opacity:.85;">ملاحظة: عنوان الـ IP نفسه ليس له سعر — هو فقط يحدّد الدولة، '
-        . 'ثم يُطبَّق سعر تلك الدولة إن وُجد. ولأن السعر الافتراضي هو المُستخدَم في كل الحالات '
-        . 'غير المُغطّاة، يجب أن يكون لكل خطة سعرٌ افتراضيٌّ صحيح.</span><br>'
-        . 'تضبط أسعار الدول من داخل نموذج إضافة/تعديل الاشتراك في قسم «Country prices».';
-} else {
-    $pricingnote =
-        '<strong>How is a user&rsquo;s subscription price chosen?</strong><br>'
-        . 'The price is always based on the <strong>user&rsquo;s country</strong>. The country is worked out '
-        . 'in this order, and the first step that succeeds wins:'
-        . '<ol style="margin:.5rem 0 .25rem; padding-inline-start:1.25rem;">'
-        . '<li><strong>Logged-in user whose profile has a country</strong>: that profile country is used '
-        . '(the country used at registration).</li>'
-        . '<li><strong>Logged-in user whose profile has no country</strong>: <strong>no price is shown and '
-        . 'they cannot subscribe</strong>. The plans still list &mdash; name, duration, included courses &mdash; '
-        . 'but where the price would be they get a short message asking them to set their country, with a link '
-        . 'to their profile; saving it switches prices and checkout back on immediately. (Their IP is '
-        . 'deliberately not used: an account we can simply ask is not priced by a guess.)</li>'
-        . '<li>A visitor who is <strong>not logged in</strong>: the country is guessed from their IP address '
-        . '(approximate location) &mdash; there is no profile to ask.</li>'
-        . '<li>If a visitor&rsquo;s country <strong>still cannot be determined</strong> (IP lookup fails, the '
-        . 'address is private/invalid, or geolocation is not configured): the plan&rsquo;s <strong>default '
-        . 'price</strong> is shown straight away.</li>'
-        . '</ol>'
-        . 'Once the country is known: if the plan has an <strong>active</strong> price set for that country, '
-        . 'it is shown; otherwise the plan&rsquo;s <strong>default price</strong> is shown (the '
-        . '&ldquo;' . $STR_PRICE_LABEL . '&rdquo; field on the plan itself).<br>'
-        . '<span style="opacity:.85;">Note: an IP address has no price of its own &mdash; it only identifies the country, '
-        . 'then that country&rsquo;s price is applied if one exists. Because the default price covers every '
-        . 'case not matched above, every plan should always carry a valid default price.</span><br>'
-        . 'Set per-country prices inside the add/edit subscription form, under &ldquo;Country prices&rdquo;.';
-}
-// Held rather than echoed: the note belongs inside the "Plans & pricing" tab, next to the
-// prices it explains, not floating above the whole screen.
-$pricingnotehtml = html_writer::div($pricingnote, 'alert alert-info',
-    ['dir' => $pricingnote_isar ? 'rtl' : 'ltr']);
-
 // Localised strings: server-rendered HTML reads $STR['key']; the JS reads window.ACADEMY_STR.
 $STR = local_nit_subscriptions_string_map(array(
     'sub_plans_heading', 'sub_new', 'ui_refresh', 'ui_loading', 'ui_save', 'ui_cancel', 'ui_active',
     'ui_activate', 'ui_deactivate', 'ui_edit', 'ui_delete', 'ui_never', 'ui_optional',
     'pkg_col_id', 'pkg_col_name', 'pkg_col_price', 'sub_col_days', 'sub_col_courses', 'pkg_col_status',
-    'pkg_col_actions', 'pkg_field_name', 'pkg_field_price', 'pkg_col_user', 'sub_col_subscription',
+    'pkg_col_actions', 'pkg_field_name', 'pkg_col_user', 'sub_col_subscription',
     'pkg_field_name_en', 'pkg_field_name_ar', 'pkg_field_desc_en', 'pkg_field_desc_ar',
-    'pkg_field_currency', 'sub_field_refundhours', 'sub_field_refundfee',
+    'sub_field_refundhours', 'sub_field_refundfee',
     'sub_refundfee_help',
-    'sub_prices_heading', 'sub_prices_help', 'sub_price_add', 'sub_price_country',
-    'sub_price_currency', 'sub_price_amount', 'sub_price_active', 'sub_price_remove',
-    'sub_price_pickcountry',
     'pkg_col_pricepaid', 'pkg_col_expiresat',
     'sub_field_desc', 'sub_field_days', 'sub_courseavail_heading', 'sub_courseavail_desc', 'sub_target',
     'sub_select_placeholder', 'sub_save_courses',
@@ -147,13 +77,37 @@ $STR = local_nit_subscriptions_string_map(array(
     'err_sessionexpired', 'err_requestfailed',
 ));
 
+// A plan is priced exactly like a course (local_payments course_pricing): the home
+// country's price in a currency of the admin's choosing, and the Default price —
+// everyone else, and anyone the site cannot place — in a different currency.
+$homecountry = subscription_manager::home_country();
+$homecurrency = subscription_manager::home_currency();
+$homename = get_string_manager()->get_list_of_countries()[$homecountry] ?? $homecountry;
+$currencies = subscription_manager::currencies();
+$foreign = $currencies;
+unset($foreign[$homecurrency]);
+foreach (['sub_price_home_hdr', 'sub_price_home_help', 'sub_price_default_hdr', 'sub_price_default_help'] as $key) {
+    $STR[$key] = get_string($key, 'local_nit_subscriptions', $homename);
+}
+$currencyoptions = function (array $list) {
+    $html = '';
+    foreach ($list as $code => $label) {
+        $html .= html_writer::tag('option', s($label), ['value' => $code]);
+    }
+    return $html;
+};
+
 echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
     'endpoint'   => (new moodle_url('/local/nit_subscriptions/api.php'))->out(false),
     'sesskey'    => sesskey(),
     'lang'       => optional_param('lang', current_language(), PARAM_LANG),
-    // Lists for the in-form per-country price editor.
-    'countries'  => get_string_manager()->get_list_of_countries(),
-    'currencies' => array('EGP', 'USD', 'EUR', 'GBP', 'SAR', 'AED', 'KWD', 'BHD', 'QAR', 'OMR'),
+    // The two price rows: which country the first one is, and what each picker
+    // starts on for a new plan. Legacy plans priced in the home currency still
+    // show that currency (added to the picker on the fly) until the admin changes it.
+    'homecountry'     => $homecountry,
+    'homecurrency'    => $homecurrency,
+    'defaultcurrency' => isset($foreign['USD']) ? 'USD' : (string) key($foreign),
+    'currencies'      => $currencies,
     // Every course category, in tree order with children indented — the choices for the plan's
     // category placement. Server-rendered rather than fetched, because the form needs them
     // before the admin can open it, and the list is short.
@@ -188,9 +142,8 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         </li>
     </ul>
 
-    <!-- ══ TAB 1: pricing rules + the plans themselves ══════════════════════════ -->
+    <!-- ══ TAB 1: the plans themselves ═══════════════════════════════════════════ -->
     <div data-subtabpane="plans" role="tabpanel">
-    <?php echo $pricingnotehtml; ?>
 
     <!-- ── Subscription plans ── -->
     <h4><?php echo $STR['sub_plans_heading']; ?></h4>
@@ -232,40 +185,24 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 <label for="f-desc-ar"><?php echo $STR['pkg_field_desc_ar']; ?></label>
                 <textarea class="form-control" id="f-desc-ar" rows="2" dir="rtl"></textarea>
             </div>
+            <!-- ── Prices: the same two rows as a course's "Course pricing" section ──
+                 1. the home country at a local price, 2. everyone else at the Default
+                 price in a different currency. Both required; no per-country rows. -->
             <div class="form-group">
-                <label for="f-price"><?php echo $STR['pkg_field_price']; ?></label>
-                <input type="number" class="form-control" id="f-price" min="0" step="0.01">
+                <label for="f-homeprice"><?php echo $STR['sub_price_home_hdr']; ?></label>
+                <div class="sub-pricerow">
+                    <select class="form-control" id="f-homecurrency"><?php echo $currencyoptions($currencies); ?></select>
+                    <input type="number" class="form-control" id="f-homeprice" min="0" step="0.01">
+                </div>
+                <small class="text-muted"><?php echo $STR['sub_price_home_help']; ?></small>
             </div>
             <div class="form-group">
-                <label for="f-currency"><?php echo $STR['pkg_field_currency']; ?></label>
-                <select class="form-control" id="f-currency">
-                    <option value="EGP">EGP - Egyptian Pound</option>
-                    <option value="USD">USD - US Dollar</option>
-                    <option value="EUR">EUR - Euro</option>
-                    <option value="GBP">GBP - British Pound</option>
-                    <option value="SAR">SAR - Saudi Riyal</option>
-                    <option value="AED">AED - UAE Dirham</option>
-                    <option value="KWD">KWD - Kuwaiti Dinar</option>
-                    <option value="BHD">BHD - Bahraini Dinar</option>
-                    <option value="QAR">QAR - Qatari Riyal</option>
-                    <option value="OMR">OMR - Omani Rial</option>
-                </select>
-            </div>
-            <!-- ── Per-country price overrides (optional) ── -->
-            <div class="sub-prices-box">
-                <div class="sub-prices-head">
-                    <strong><?php echo $STR['sub_prices_heading']; ?></strong>
-                    <button type="button" id="sub-price-add" class="btn btn-sm btn-outline-primary"><?php echo $STR['sub_price_add']; ?></button>
+                <label for="f-price"><?php echo $STR['sub_price_default_hdr']; ?></label>
+                <div class="sub-pricerow">
+                    <select class="form-control" id="f-currency"><?php echo $currencyoptions($foreign); ?></select>
+                    <input type="number" class="form-control" id="f-price" min="0" step="0.01">
                 </div>
-                <p class="sub-prices-help text-muted"><?php echo $STR['sub_prices_help']; ?></p>
-                <div class="sub-prices-cols">
-                    <span><?php echo $STR['sub_price_country']; ?></span>
-                    <span><?php echo $STR['sub_price_currency']; ?></span>
-                    <span><?php echo $STR['sub_price_amount']; ?></span>
-                    <span><?php echo $STR['sub_price_active']; ?></span>
-                    <span></span>
-                </div>
-                <div id="sub-prices-list"></div>
+                <small class="text-muted"><?php echo $STR['sub_price_default_help']; ?></small>
             </div>
             <div class="form-group">
                 <label for="f-days"><?php echo $STR['sub_field_days']; ?></label>
@@ -405,25 +342,11 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         .academy-modal-title { margin-bottom: 0.75rem; font-weight: 600; }
         .academy-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem; }
 
-        /* In-form per-country price editor. */
-        .sub-prices-box {
-            border: 1px solid var(--nit-brand-borderprimary); border-radius: 0.6rem;
-            padding: 0.9rem 1rem; margin-bottom: 1rem;
-            background: color-mix(in srgb, var(--nit-brand-background) 40%, var(--nit-brand-surface));
-        }
-        .sub-prices-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-        .sub-prices-help { font-size: 0.8rem; margin: 0.35rem 0 0.6rem; }
-        .sub-prices-cols, .sub-price-row {
-            display: grid; grid-template-columns: 1fr 0.9fr 0.8fr auto auto;
-            gap: 0.5rem; align-items: center;
-        }
-        .sub-prices-cols { font-size: 0.75rem; font-weight: 600; color: var(--nit-brand-textsecondary); margin-bottom: 0.35rem; }
-        .sub-prices-cols span:nth-child(4) { text-align: center; }
-        .sub-price-row { margin-bottom: 0.5rem; }
-        .sub-price-row select, .sub-price-row input[type="number"] { padding: 0.25rem 0.4rem; height: auto; }
-        .sub-price-row .sub-price-active { display: flex; justify-content: center; }
-        /* In-form category placement picker — same framed look as the prices box above it,
-           so the two optional "where does this plan apply" panels read as a pair. */
+        /* A price row: the currency picker and the amount side by side. */
+        .sub-pricerow { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem; }
+        .sub-pricerow select { flex: 1 1 60%; }
+        .sub-pricerow input[type="number"] { flex: 1 1 40%; }
+        /* In-form category placement picker, framed so it reads as its own optional panel. */
         .sub-cats-box {
             border: 1px solid var(--nit-brand-borderprimary); border-radius: 0.6rem;
             padding: 0.9rem 1rem; margin-bottom: 1rem;
@@ -431,10 +354,6 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         }
         .sub-cats-box .sub-cats-help { font-size: 0.8rem; margin: 0.35rem 0 0.6rem; }
         .sub-cats-box select { height: auto; }
-        .sub-price-row .sub-price-del {
-            border: 0; background: transparent; color: var(--nit-brand-error);
-            cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 0.25rem;
-        }
     </style>
 
     <div id="course-selector-area" style="display:none;">
@@ -715,63 +634,31 @@ echo html_writer::script(<<<'JS'
         }).catch(function (e) { msg(e.message, 'danger'); });
     }
 
-    // ── In-form per-country price editor ──
-    var COUNTRIES = CFG.countries || {};
-    var CURRENCIES = CFG.currencies || ['EGP'];
-
-    function countryOptions(selected) {
-        var html = '<option value="">' + esc(str('sub_price_pickcountry')) + '</option>';
-        Object.keys(COUNTRIES).forEach(function (code) {
-            html += '<option value="' + esc(code) + '"' + (code === selected ? ' selected' : '') + '>' +
-                esc(COUNTRIES[code]) + '</option>';
-        });
-        return html;
+    // ── The two price rows ──
+    // The home country's row is the plan's nit_sub_price row for that country; the
+    // Default price is the plan's own price/currency. Same shape a course has.
+    function homeRow(sub) {
+        var rows = (sub && sub.prices) || [];
+        for (var i = 0; i < rows.length; i++) {
+            if (rows[i].country === CFG.homecountry && Number(rows[i].is_active)) { return rows[i]; }
+        }
+        return null;
     }
 
-    function currencyOptions(selected) {
-        return CURRENCIES.map(function (c) {
-            return '<option value="' + esc(c) + '"' + (c === selected ? ' selected' : '') + '>' + esc(c) + '</option>';
-        }).join('');
-    }
-
-    function addPriceRow(p) {
-        p = p || {};
-        var list = $('sub-prices-list');
-        var row = document.createElement('div');
-        row.className = 'sub-price-row';
-        row.innerHTML =
-            '<select class="form-control sub-price-country">' + countryOptions(p.country || '') + '</select>' +
-            '<select class="form-control sub-price-cur">' + currencyOptions(p.currency || 'EGP') + '</select>' +
-            '<input type="number" class="form-control sub-price-val" min="0" step="0.01" value="' +
-                (p.price != null ? esc(p.price) : '') + '">' +
-            '<span class="sub-price-active"><input type="checkbox" class="sub-price-on"' +
-                ((p.is_active == null || Number(p.is_active)) ? ' checked' : '') + '></span>' +
-            '<button type="button" class="sub-price-del" title="' + esc(str('sub_price_remove')) + '">&times;</button>';
-        row.querySelector('.sub-price-del').addEventListener('click', function () { row.remove(); });
-        list.appendChild(row);
-    }
-
-    function fillPrices(prices) {
-        var list = $('sub-prices-list');
-        list.innerHTML = '';
-        (prices || []).forEach(addPriceRow);
-    }
-
-    // Collect the price rows into an array, skipping blank rows (no country chosen).
-    function collectPrices() {
-        var out = [];
-        document.querySelectorAll('#sub-prices-list .sub-price-row').forEach(function (row) {
-            var country = row.querySelector('.sub-price-country').value;
-            var price = row.querySelector('.sub-price-val').value;
-            if (!country || price === '') { return; }
-            out.push({
-                country: country,
-                currency: row.querySelector('.sub-price-cur').value,
-                price: price,
-                is_active: row.querySelector('.sub-price-on').checked ? 1 : 0
-            });
-        });
-        return out;
+    // The Default picker deliberately lacks the home currency. A plan saved before
+    // that rule still carries it, so it is shown — flagged — and the server refuses
+    // the save until the admin picks another.
+    function setDefaultCurrency(code) {
+        var sel = $('f-currency');
+        Array.prototype.forEach.call(sel.querySelectorAll('option[data-legacy]'), function (o) { o.remove(); });
+        if (code && !sel.querySelector('option[value="' + code + '"]')) {
+            var o = document.createElement('option');
+            o.value = code;
+            o.textContent = (CFG.currencies && CFG.currencies[code]) || code;
+            o.setAttribute('data-legacy', '1');
+            sel.insertBefore(o, sel.firstChild);
+        }
+        sel.value = code || CFG.defaultcurrency;
     }
 
     function showForm(sub) {
@@ -783,12 +670,14 @@ echo html_writer::script(<<<'JS'
         $('f-name-ar').value  = nm.ar;
         $('f-desc-en').value  = ds.en;
         $('f-desc-ar').value  = ds.ar;
+        var home = homeRow(sub);
+        $('f-homecurrency').value = home ? home.currency : CFG.homecurrency;
+        $('f-homeprice').value    = home ? home.price : '';
+        setDefaultCurrency((sub && sub.currency) ? sub.currency : CFG.defaultcurrency);
         $('f-price').value    = sub ? sub.price : '';
-        $('f-currency').value = (sub && sub.currency) ? sub.currency : 'EGP';
         $('f-days').value     = sub ? sub.duration_days : '';
         $('f-refundhours').value = (sub && sub.refund_hours !== null && sub.refund_hours !== undefined) ? sub.refund_hours : '';
         $('f-refundfee').value   = (sub && sub.refund_fee !== null && sub.refund_fee !== undefined) ? sub.refund_fee : '';
-        fillPrices(sub ? sub.prices : []);
         fillCategories(sub ? sub.categories : []);
         $('f-active').checked = sub ? (sub.status === 'active') : true;
         $('sub-form-card').style.display = 'block';
@@ -853,10 +742,11 @@ echo html_writer::script(<<<'JS'
             description: buildMultilang($('f-desc-en').value, $('f-desc-ar').value),
             price: $('f-price').value,
             currency: $('f-currency').value,
+            home_price: $('f-homeprice').value,
+            home_currency: $('f-homecurrency').value,
             duration_days: $('f-days').value,
             refund_hours: $('f-refundhours').value,
             refund_fee: $('f-refundfee').value,
-            prices: JSON.stringify(collectPrices()),
             // Always sent, including as an empty list: "[]" is the instruction that clears the
             // assignment and hands placement back to the plan's courses.
             categories: JSON.stringify(collectCategories())
@@ -898,7 +788,6 @@ echo html_writer::script(<<<'JS'
     $('sub-refresh').addEventListener('click', loadSubs);
     $('sub-save').addEventListener('click', save);
     $('sub-cancel').addEventListener('click', hideForm);
-    $('sub-price-add').addEventListener('click', function () { addPriceRow({}); });
     $('f-categories-clear').addEventListener('click', function () { fillCategories([]); });
 
     // ── Course access ──
