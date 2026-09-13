@@ -35,7 +35,13 @@ class jitsi_jwt {
                 'user' => [
                     'name'      => $name,
                     'email'     => $email,
-                    'moderator' => $moderator,
+                    // `moderator` is read by Jitsi core; `affiliation` is read by the
+                    // prosody `token_affiliation` module. Both are set so that when
+                    // jicofo auto-owner is turned OFF, teachers still get owner
+                    // (moderator) purely from the token and students stay members —
+                    // no matter who joins the room first.
+                    'moderator'   => $moderator,
+                    'affiliation' => $moderator ? 'owner' : 'member',
                 ],
                 'features' => [
                     'recording'     => $moderator,
