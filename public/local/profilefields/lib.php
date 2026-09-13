@@ -170,6 +170,16 @@ function local_profilefields_extend_navigation_user_settings(
     foreach ($victims as $node) {
         $node->remove();
     }
+
+    // "Edit profile" is core's /user/edit.php for a learner; ours is the account
+    // screen (WF-5.1). An administrator gets /user/editadvanced.php here instead,
+    // and that stays: it is the one route to a locked field - see the note in
+    // hook_callbacks::redirect_own_profile().
+    $edit = $account->find('editprofile', navigation_node::TYPE_SETTING);
+    if ($edit && $edit->action instanceof moodle_url
+            && substr($edit->action->get_path(), -strlen('/user/edit.php')) === '/user/edit.php') {
+        $edit->action = new moodle_url('/local/profilefields/account.php');
+    }
 }
 
 /**
