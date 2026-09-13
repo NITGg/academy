@@ -238,7 +238,7 @@ const payments = folder('07 · Payments & Checkout',
 
 // ---------- 08 Offers & coupons ----------------------------------------------
 const commerce = folder('08 · Offers & Coupons', 'Discounts. Offers apply automatically; coupons are typed in. The larger discount wins — never both.\n\nDoc: docs/apis/subscriptions-coupons-mobile-guide.md §3.1–3.2', [
-  ws('Available coupons', 'local_nit_commerce_get_available_coupons', { params: [O('categoryid', '0', 'Only coupons scoped to this category branch + site-wide ones; 0 = all.'), O('lang', '{{lang}}', '')], desc: 'Active, in-window coupons a student may browse.' }),
+  ws('Available coupons', 'local_nit_commerce_get_available_coupons', { params: [O('categoryid', '0', 'Only coupons scoped to this category branch + site-wide ones; 0 = all.'), O('lang', '{{lang}}', '')], desc: 'Coupons the calling user can redeem now: active, in window, under the site-wide cap and under their own per-student cap. Each row carries usage_limit (all students; 0 = unlimited), user_limit (one student; 0 = unlimited), plus user_usage_count / user_uses_left (null when no per-student cap or a guest). usage_type (once / multiple) no longer exists.' }),
   ws('Preview discounted price', 'local_nit_commerce_preview_discount', { params: [R('item_type', 'course', 'course | package | subscription | program'), R('item_id', '{{courseid}}', ''), O('coupon_code', 'SUMMER10', 'Empty = offer-only price.'), O('country', '{{country}}', 'Course pricing only.'), O('lang', '{{lang}}', '')], desc: 'Base price, best offer, coupon result (`coupon_error` when rejected) and final price — without charging.' }),
 ]);
 

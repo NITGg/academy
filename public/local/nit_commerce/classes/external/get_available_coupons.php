@@ -78,6 +78,12 @@ class get_available_coupons extends external_api {
     /**
      * Return structure: one row per coupon (see coupon_manager::format()).
      *
+     * Only coupons the calling user could redeem right now are listed: active, in window,
+     * under the site-wide cap and under this user's own per-student cap. Two caps describe
+     * how often a code may be used — `usage_limit` (all students together) and `user_limit`
+     * (one student) — and the `user_*` figures are the caller's own. There is no "usage type"
+     * any more (2026-09-13): every coupon is open to every student.
+     *
      * @return external_multiple_structure
      */
     public static function execute_returns(): external_multiple_structure {
