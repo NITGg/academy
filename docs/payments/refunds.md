@@ -27,8 +27,9 @@ out of a single setting — and would quietly become a third of a discounted sal
 
 ### Courses
 
-*Course → Course pricing* → the **Refund policy for this course** form at the
-bottom of the page, under the price rules.
+*Course → Settings → Course pricing* (the last section of the course settings
+form; the course's *Course pricing* link opens it expanded) → the **Refund policy
+for this course** fields at the bottom of that section, under the prices.
 
 | Field | Meaning |
 |---|---|
@@ -203,8 +204,8 @@ hand from *Manage subscriptions*, and treat it as a bug rather than a one-off.
    to `48`, fee `10`%.
 2. Buy a course, then open *Payment history* → **Refund**. You should get 90%
    back, be unenrolled, and see the order as `refunded`.
-3. Now open that course's *Course pricing* page and set **Refund window `0`** in
-   the form at the bottom, then buy again. The button becomes **Request refund**
+3. Now open that course's *Course pricing* section (course settings) and set
+   **Refund window `0`** at the bottom of it, then buy again. The button becomes **Request refund**
    and a reason is required.
 4. *Payments → Refund requests* → approve it. The buyer gets a notification.
 5. Repeat 2 with the course priced in a second currency. The same `10` should

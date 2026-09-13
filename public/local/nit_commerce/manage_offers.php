@@ -56,7 +56,7 @@ $STR = local_nit_commerce_string_map(array(
     'pkg_col_status', 'pkg_col_actions', 'sub_inactive',
     'cpn_col_type', 'cpn_col_value', 'cpn_col_scope', 'cpn_col_dates', 'cpn_field_dtype',
     'cpn_field_value', 'cpn_help_value', 'cpn_field_start', 'cpn_field_end', 'cpn_field_scope', 'cpn_type_percent',
-    'cpn_type_fixed', 'cpn_scope_courses', 'cpn_scope_packages', 'cpn_scope_subscriptions', 'cpn_scope_programs',
+    'cpn_type_fixed', 'cpn_scope_courses', 'cpn_scope_subscriptions',
     'cpn_scope_categories', 'cpn_scope_categories_help',
     'cpn_scope_all', 'cpn_scope_specific', 'cpn_scope_required',
     'ofr_new', 'ofr_none', 'ofr_col_name', 'ofr_field_name', 'ofr_created', 'ofr_updated',
@@ -186,12 +186,12 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 <?php
                 // Category first, for the same reason as on the coupons page: it is the broad
                 // brush, and it doubles as "which category pages advertise this offer".
+                // Same three kinds as the coupons page: packages and programs are not sold on
+                // this platform, so an offer cannot be scoped to them.
                 $scopetypes = array(
                     'category'     => $STR['cpn_scope_categories'],
                     'course'       => $STR['cpn_scope_courses'],
-                    'package'      => $STR['cpn_scope_packages'],
                     'subscription' => $STR['cpn_scope_subscriptions'],
-                    'program'      => $STR['cpn_scope_programs'],
                 );
                 foreach ($scopetypes as $t => $label) {
                     echo '<div class="scope-block mb-2" data-type="' . $t . '">';

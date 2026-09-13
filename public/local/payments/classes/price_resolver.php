@@ -37,23 +37,17 @@ class price_resolver {
      * is invisible from the admin screen — the price simply looks right to whoever
      * is looking at it.
      *
-     * The rule is ENFORCED, in three places, none of which is "refuse to save an
-     * incomplete course": rows are added one at a time, so a course is necessarily
-     * incomplete between the first save and the second, and that flat rule would
-     * make the second row unreachable. Instead —
+     * The rule is ENFORCED by the course settings form, which edits the WHOLE
+     * set of prices at once and refuses a set with only one of the two rows
+     * (course_pricing::validate()) — so a half-priced course can be neither
+     * created nor saved, and clearing every price there is the way to stop
+     * selling, which leaves the course free rather than half-priced.
      *
-     *   - a course's FIRST price is taken on a form that asks for both rows and
-     *     writes them in one transaction (course_pricing_form), so a half-priced
-     *     course cannot be created;
-     *   - an edit or a delete that would make a complete course incomplete is
-     *     refused (see {@see self::would_break_pricing()});
-     *   - "Remove all prices" is the way to stop selling, which leaves the course
-     *     free rather than half-priced.
-     *
-     * This method is what remains: the verdict itself, used by all three, and by
-     * the pricing page to name the gaps in courses priced before the rule existed.
-     * A course with no active rows is free and complete — the requirement begins
-     * with the decision to sell.
+     * This method is the verdict itself, used by that form to warn about courses
+     * priced before the rule existed (they cannot be saved again until repaired),
+     * and by anything else that needs to know whether a course is priced
+     * correctly. A course with no active rows is free and complete — the
+     * requirement begins with the decision to sell.
      *
      * @param int $courseid
      * @param string|null $homecurrency ISO 4217; null = the site's own (country_detector)
@@ -73,10 +67,8 @@ class price_resolver {
     /**
      * The same verdict, asked about a set of rows rather than about a course.
      *
-     * Split out so a form can ask "what would this course look like AFTER the save
-     * I am about to make?" and refuse a save that breaks it. Checking the database
-     * before writing to it would answer the wrong question — it describes the
-     * course as it is, not as the admin is about to leave it.
+     * Split out so a caller holding rows it has not written yet can ask the
+     * question about those, rather than about the database.
      *
      * @param array $rows rows of local_payments_course_prices (active and not)
      * @param string $homecurrency ISO 4217 the home country should be priced in
@@ -118,34 +110,6 @@ class price_resolver {
             'complete' => empty($active)
                 || ($hashome && $default && $defaultcurrency !== $homecurrency),
         ];
-    }
-
-    /**
-     * Would this set of rows break a course that is currently priced correctly?
-     *
-     * The rule the pricing screen enforces, in one place so the form and the delete
-     * handler cannot apply it differently:
-     *
-     *   a complete course may never be made incomplete,
-     *   an incomplete one may always be changed.
-     *
-     * The second half matters as much as the first. Courses priced before this rule
-     * existed have a single row, and a flat "must be complete to save" would trap
-     * them: every edit that fixes them starts from an incomplete course. Making the
-     * test about the DIRECTION of the change is what lets the rule be enforced
-     * without freezing the courses it was written for.
-     *
-     * @param int $courseid
-     * @param array $after the rows the course would have after the save
-     * @return bool true = refuse this save
-     */
-    public static function would_break_pricing(int $courseid, array $after): bool {
-        $before = self::pricing_gaps($courseid);
-        if (!$before['complete']) {
-            return false;
-        }
-        $result = self::gaps_for_rows($after);
-        return $result['selling'] && !$result['complete'];
     }
 
     /**

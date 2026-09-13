@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_payments';
-$plugin->version   = 2026090801;   // Pricing uses the site's one country ladder; two-price rule enforced.
+$plugin->version   = 2026091300;   // Course pricing moved onto the course settings form; home-country currency selectable.
 $plugin->requires  = 2024100700; // Moodle 4.5+
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_STABLE;

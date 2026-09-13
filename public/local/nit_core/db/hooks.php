@@ -32,11 +32,13 @@ $callbacks = [
         'callback' => 'local_nit_core\hook\lang_callbacks::after_config',
         'priority' => 0,
     ],
-    // Remember a logged-out visitor's ?lang=xx click so it outlives the login (core clears
-    // $SESSION->lang on login); db/events.php restores it on user_loggedin.
+    // Keep the site in the language the visitor last used across log-in and log-out (core
+    // clears $SESSION->lang on login and empties the session on logout): the `nit_lang`
+    // cookie. Registered after the forcelang callback so a ?lang=xx click is recorded once
+    // the override that could mask it is gone.
     [
         'hook'     => \core\hook\after_config::class,
-        'callback' => 'local_nit_core\hook\lang_callbacks::remember_chosen_language',
+        'callback' => 'local_nit_core\hook\lang_callbacks::keep_last_used_language',
         'priority' => 0,
     ],
     [

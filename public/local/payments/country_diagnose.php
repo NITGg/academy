@@ -288,7 +288,7 @@ if ($courseid) {
     echo $table($rows);
 
     echo html_writer::link(
-        new moodle_url('/local/payments/course_pricing.php', ['courseid' => $courseid]),
+        \local_payments\course_pricing::settings_url($courseid),
         get_string('coursepricing', 'local_payments'),
         ['class' => 'btn btn-secondary']);
 }

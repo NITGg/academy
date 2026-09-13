@@ -92,5 +92,63 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026091300, 'local', 'academy');
     }
 
+    if ($oldversion < 2026091301) {
+        // The course custom fields' group. Its heading is DATA, not a lang
+        // string: core writes get_string('otherfields') into
+        // customfield_category.name once, at creation, and from then on the
+        // course settings form prints format_string() of that row - so the
+        // Arabic form showed "Other fields" in English whatever the lang pack
+        // said. The group is renamed to what it actually holds, in both
+        // languages via {mlang} (filter_multilang2 runs on headings on this
+        // site), and "Level" moves up to be its second field.
+        //
+        // The group is found by the field it holds rather than by name, so the
+        // step still lands if the heading was already edited by hand; the
+        // rename itself only replaces a heading that still says "Other fields".
+        try {
+            $handler = \core_course\customfield\course_handler::create();
+            $group = null;
+            $level = null;
+            foreach ($handler->get_categories_with_fields() as $category) {
+                foreach ($category->get_fields() as $field) {
+                    if ($field->get('shortname') === 'level') {
+                        $group = $category;
+                        $level = $field;
+                        break 2;
+                    }
+                }
+            }
+
+            if ($group) {
+                $name = (string) $group->get('name');
+                if (stripos($name, 'Other fields') !== false && stripos($name, 'Course File Summary') === false) {
+                    $handler->rename_category($group,
+                        '{mlang en}Course File Summary{mlang}{mlang ar}ملخص الدورة التدريبية{mlang}');
+                    mtrace('local_academy: renamed the "Other fields" course custom field group to "Course File Summary".');
+                }
+
+                // Second place = before whichever field is currently second once
+                // Level itself is taken out of the line.
+                $fields = array_values(array_filter($group->get_fields(), function ($field) use ($level) {
+                    return $field->get('id') != $level->get('id');
+                }));
+                usort($fields, function ($a, $b) {
+                    return $a->get('sortorder') <=> $b->get('sortorder') ?: $a->get('id') <=> $b->get('id');
+                });
+                $before = isset($fields[1]) ? (int) $fields[1]->get('id') : 0;
+                $handler->move_field($level, (int) $group->get('id'), $before);
+                mtrace('local_academy: moved the "Level" course custom field to second place in its group.');
+            } else {
+                mtrace('local_academy: no course custom field "level" found; nothing to rename or move.');
+            }
+        } catch (\Throwable $e) {
+            // Cosmetic; must not stop the upgrade. Both can be done by hand at
+            // Site administration > Courses > Course custom fields.
+            mtrace('local_academy: could not rename/reorder the course custom field group: ' . $e->getMessage());
+        }
+
+        upgrade_plugin_savepoint(true, 2026091301, 'local', 'academy');
+    }
+
     return true;
 }

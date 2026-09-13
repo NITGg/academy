@@ -358,4 +358,28 @@ class verification {
 
         return $user ?: null;
     }
+
+    /**
+     * Where the "Continue" button on the confirmation page leads: the site home.
+     *
+     * Spelled the way core's primary navigation spells its own Home item
+     * (\core\navigation\views\primary): `/`, plus `redirect=0` on a site whose
+     * home page is the Dashboard or My courses. The parameter matters twice on
+     * such a site - index.php forwards a logged-in visitor away from a bare `/`,
+     * and core_login_get_return_url() does the same forwarding to a bare
+     * `wwwroot/` before the button is even drawn, so without it "home" would
+     * quietly become the dashboard.
+     *
+     * @return \moodle_url
+     */
+    public static function landing_url(): \moodle_url {
+        $url = new \moodle_url('/');
+
+        $homepage = get_home_page();
+        if ($homepage == HOMEPAGE_MY || $homepage == HOMEPAGE_MYCOURSES) {
+            $url->param('redirect', 0);
+        }
+
+        return $url;
+    }
 }

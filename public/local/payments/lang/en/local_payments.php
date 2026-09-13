@@ -50,12 +50,7 @@ $string['reports'] = 'Payment reports';
 
 // Course pricing.
 $string['coursepricing'] = 'Course pricing';
-$string['addprice'] = 'Add pricing rule';
-$string['editprice'] = 'Edit pricing rule';
 $string['noprices'] = 'No pricing rules configured for this course.';
-$string['pricesaved'] = 'Pricing rule saved.';
-$string['pricedeleted'] = 'Pricing rule deleted.';
-$string['confirmdeleteprice'] = 'Are you sure you want to delete this pricing rule?';
 $string['defaultprice'] = 'Default (all countries)';
 
 // Form fields.
@@ -74,7 +69,6 @@ $string['actions'] = 'Actions';
 $string['error_price_positive'] = 'Price must be greater than zero.';
 $string['error_sale_price_lower'] = 'Sale price must be lower than the regular price.';
 $string['error_end_after_start'] = 'End date must be after start date.';
-$string['error_one_default'] = 'Only one default price is allowed per course.';
 $string['error_one_active_per_country'] = 'There is already an active pricing rule for this country. Deactivate it first, or edit that rule instead.';
 
 // Course display.
@@ -362,7 +356,6 @@ $string['pricechanged_desc'] = 'The price changed while you were checking out: i
 $string['refund_terms_heading'] = 'Refund policy for this course';
 $string['refund_terms_intro'] = 'Leave both blank to use the site policy, which is currently a {$a->hours} hour window with a {$a->fee}% fee.';
 $string['refund_terms_inherit'] = 'Site policy';
-$string['refund_terms_saved'] = 'Refund policy saved for this course.';
 $string['refund_terms_offsitewide'] = 'Refunds are switched off site-wide, so nothing set here takes effect until that changes.';
 $string['refund_terms_help'] = 'The fee is a percentage of whatever the buyer actually paid, so one number covers every currency this course is priced in and follows any discount they used. Set the window to 0 to allow no automatic refund &mdash; the buyer then has to ask, and a member of staff decides.';
 $string['refund_feerow'] = 'Refund fee ({$a}%)';
@@ -375,11 +368,6 @@ $string['item_column'] = 'Item';
 // Default row in international money; one row alone always quotes half the
 // audience in the other half's currency. See price_resolver::pricing_gaps().
 $string['pricing_incomplete'] = 'This course sells, but its prices are incomplete.';
-$string['pricing_missing_home'] = 'There is no price for {$a->country}. Buyers there fall through to the Default price and are quoted whatever currency it is in, instead of {$a->currency}.';
-$string['pricing_addhome'] = 'Add the {$a} price';
-$string['pricing_missing_default'] = 'There is no Default price. It is the row used for every buyer the site cannot place in a country &mdash; a visitor from a country you have not priced for, and any guest whose location cannot be worked out &mdash; so without it they see no price at all.';
-$string['pricing_adddefault'] = 'Add the Default price (USD)';
-$string['pricing_default_islocal'] = 'The Default price is in {$a->currency}. That row is what every buyer OUTSIDE {$a->country} is quoted, so it should be in an international currency; add a separate {$a->country} row for local buyers.';
 $string['pricing_geo_off'] = 'Guests cannot be placed in a country on this site.';
 $string['pricing_geo_off_desc'] = 'Per-country prices only reach a signed-out visitor if their IP address can be located. With location lookup unavailable, EVERY guest resolves to &ldquo;country unknown&rdquo; and is quoted the Default price &mdash; whichever country they are really in. A country price that looks like it is being ignored is usually this.';
 $string['pricing_geo_check'] = 'Check country detection';
@@ -419,21 +407,25 @@ $string['geodiag_viadefault'] = 'from the Default price row';
 $string['geodiag_viacountry'] = 'from the {$a} row';
 $string['geodiag_nowinner'] = 'nothing &mdash; this course has no active price row that applies';
 
-// ── The two-price rule, enforced (course_pricing.php + course_pricing_form) ──
-$string['pricing_first_heading'] = 'Set the course price';
-$string['pricing_first_note'] = 'A course that sells needs two prices, and this form asks for both at once. One row alone always quotes half your buyers in the other half\'s currency, and there is no moment in between where the course is half-priced. You can add more countries afterwards.';
+// ── The "Course pricing" section of course/edit.php (local\hooks\course_form + course_pricing) ──
 $string['pricing_first_homehdr'] = '1. {$a} — the local price';
-$string['pricing_first_homehelp'] = 'What a buyer in {$a->country} pays, in {$a->currency}. Without this row they fall through to the price below and are quoted a foreign currency. The currency is fixed by the site\'s default country — it is not a choice here, because "the local price, in dollars" is the mistake this form exists to prevent.';
+$string['pricing_first_homehelp'] = 'What a buyer in {$a} pays, in the currency you pick here. Without this row they fall through to the Default price below and are quoted a foreign currency.';
 $string['pricing_first_defaulthdr'] = '2. Everyone else — the Default price';
 $string['pricing_first_defaulthelp'] = 'What every buyer OUTSIDE {$a} pays, in an international currency. This row is also used for any visitor the site cannot place in a country at all, so a course can never be without it.';
-$string['pricesfirstsaved'] = 'Both prices were saved. This course is now for sale.';
 $string['error_same_currency'] = 'The Default price must be in a different currency from the local one — otherwise it is the local price twice, and buyers abroad are quoted local money.';
-$string['error_would_break_pricing'] = 'This change would leave the course selling with only half its prices: it needs an active local price AND an active Default price in a different currency. Fix the other row first, or use "Remove all prices" to stop selling the course.';
-$string['error_delete_would_break'] = 'That price cannot be deleted: it would leave the course selling with only half its prices. To stop selling this course, use "Remove all prices" instead.';
-$string['pricing_removeall'] = 'Remove all prices (make the course free)';
-$string['confirmdeleteallprices'] = 'Remove every price from this course? It becomes a free course that anyone can enrol in, and nothing will be charged for it.';
-$string['pricesallremoved'] = 'All prices removed. This course is now free.';
-$string['pricing_incomplete_legacy'] = 'This course was priced before the two-price rule existed. Nothing can create a half-priced course now — the price form asks for both, and neither an edit nor a delete may break a course that prices correctly — but an existing one has to be completed by hand.';
+$string['pricing_section_note'] = 'Prices are set per country. A signed-in buyer is priced by the country on their profile &mdash; with no country they see no price and cannot buy until they set one. A guest is placed by IP address. Anyone whose country has no price of its own, and any guest the site cannot place, gets the Default price. Leave every price empty to make the course free. {$a}';
+$string['pricing_incomplete_form'] = 'Fill in what is missing below. This form saves a course only with both the local and the Default price (in different currencies), or with every price cleared (a free course).';
+$string['pricing_other_intro'] = 'Other countries: a price for one specific country, in the currency of your choice. A buyer from a country with no row here gets the Default price.';
+$string['pricing_other_row'] = 'Country price {no}';
+$string['pricing_other_none'] = '(none &mdash; this row is removed on save)';
+$string['pricing_other_add'] = 'Add a price for another country';
+$string['error_currency_unknown'] = 'Unknown currency.';
+$string['error_other_country_required'] = 'Choose the country this price is for, or clear the price.';
+$string['error_other_country_reserved'] = 'This country has its own row above.';
+$string['error_home_required'] = 'A course that sells needs the {$a} price too. Fill it in, or clear every price to make the course free.';
+$string['error_default_required'] = 'A course that sells needs the Default price too. Fill it in, or clear every price to make the course free.';
+$string['error_refund_hours'] = 'The refund window must be a whole number of hours, 0 or more. Leave it blank to follow the site policy.';
+$string['error_refund_fee'] = 'The refund fee must be a percentage between 0 and 100. Leave it blank to follow the site policy.';
 
 // ── The country ladder's second rung (country_diagnose.php) ─────────────────
 $string['geodiag_online'] = 'Free online lookup (profilefield_phone)';

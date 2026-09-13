@@ -95,6 +95,11 @@ class hook_callbacks {
                 return;
             }
 
+            // The other end of the same email: the page the confirmation link
+            // opens ends in a "Continue" button, and this is the last moment to
+            // decide where it goes (see the method).
+            self::land_confirmed_on_home();
+
             // WF-5.1: /user/profile.php is core's block-based public profile, and
             // the account screen the wireframes describe is a different thing
             // entirely - editable fields, a password, a way to leave. Rather than
@@ -226,6 +231,54 @@ class hook_callbacks {
         redirect(new \moodle_url('/local/profilefields/verify.php', ['id' => $id]));
 
         return true;
+    }
+
+    /**
+     * Point the "Continue" button on core's confirmation page at the site home.
+     *
+     * `/login/confirm.php` builds that button from core_login_get_return_url(),
+     * which prefers `$SESSION->wantsurl` - and for a self-registered account
+     * that is whatever page the visitor was on when they clicked "Create new
+     * account": signup.php stores it, auth_email carries it on the user record
+     * across the email round-trip, and confirm.php puts it back in the session
+     * the moment the account is confirmed. A course they were browsing, a page
+     * that had asked them to log in, the dashboard - the first click after
+     * confirming went there. The academy wants it to land on the site home.
+     *
+     * Done by overwriting the very session value core reads, from the one hook
+     * that runs after confirm.php has restored it and before the button exists:
+     * before_http_headers is dispatched at the top of $OUTPUT->header(), and
+     * confirm.php calls core_login_get_return_url() straight after the header.
+     * An event observer on user_loggedin would be too early - confirm.php
+     * restores the saved value *after* complete_user_login() - and anything
+     * later than the header is too late.
+     *
+     * Only the page core actually drew counts - $PAGE->url, not the request
+     * path - because an exception on this script prints core's error page
+     * under a URL of `/`, and that page has no button to point anywhere. The
+     * login test keeps the suspended-account branch, which confirms without
+     * signing in, on core's own answer. The app's sign-up is untouched: its
+     * links carry `redirect=`, which confirm.php follows before any header.
+     *
+     * An account core still considers not fully set up is left to core, which
+     * sends it to /user/edit.php ahead of any wantsurl - and the completion gate
+     * above would only bounce it off the home page anyway.
+     *
+     * @return void
+     */
+    protected static function land_confirmed_on_home(): void {
+        global $PAGE, $SESSION;
+
+        if (!isloggedin() || isguestuser()) {
+            return;
+        }
+
+        if (empty($PAGE) || !$PAGE->has_set_url()
+                || !$PAGE->url->compare(new \moodle_url('/login/confirm.php'), URL_MATCH_BASE)) {
+            return;
+        }
+
+        $SESSION->wantsurl = verification::landing_url()->out(false);
     }
 
     /**

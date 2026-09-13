@@ -44,4 +44,19 @@ $callbacks = [
         'hook' => \core\hook\output\before_standard_head_html_generation::class,
         'callback' => [\local_payments\local\hooks\output::class, 'before_standard_head_html_generation'],
     ],
+    // The "Course pricing" section of the course settings form (course/edit.php):
+    // prices per country and the course's refund terms, drawn, checked and saved
+    // with the rest of the course.
+    [
+        'hook' => \core_course\hook\after_form_definition::class,
+        'callback' => [\local_payments\local\hooks\course_form::class, 'after_form_definition'],
+    ],
+    [
+        'hook' => \core_course\hook\after_form_validation::class,
+        'callback' => [\local_payments\local\hooks\course_form::class, 'after_form_validation'],
+    ],
+    [
+        'hook' => \core_course\hook\after_form_submission::class,
+        'callback' => [\local_payments\local\hooks\course_form::class, 'after_form_submission'],
+    ],
 ];
