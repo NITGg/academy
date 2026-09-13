@@ -219,6 +219,26 @@
     color: var(--nit-brand-textprimary);
 }
 
+// A core table_sql drawn inside a pane - the certificates list. The table itself
+// is already on-brand (_tables.scss); this only gives it room: a five-column
+// table in a pane beside a 13rem nav is wider than a phone, so it scrolls inside
+// the card rather than pushing the whole screen sideways.
+.nit-account__tablewrap {
+    margin-block-start: 1rem;
+    overflow-x: auto;
+
+    .flexible.table {
+        margin-bottom: 0;
+    }
+
+    // table_sql draws the download form and the paging bar under the table;
+    // keep them on the card's rhythm rather than Bootstrap's.
+    .paging,
+    .dataformatselector {
+        margin-block-start: 0.75rem;
+    }
+}
+
 // The profile picture, as the wireframe draws it: a circle with its control
 // underneath rather than beside.
 .nit-account__avatar {

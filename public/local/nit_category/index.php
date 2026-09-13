@@ -265,9 +265,10 @@ $nitmoney = function (float $amount, string $currency) use ($t): string {
 // The price tags a card prints in its status row. With a live offer that is the original struck
 // through + the discounted amount + the "-40%" pill; otherwise the plain price; and nothing at all
 // when the course is priced but no rule resolves to an amount (saying nothing beats claiming
-// "Free"). One helper because the same tags print in EVERY card state — next to the "Enrolled",
-// "Purchased" and "In your subscription" badges and above the "Buy now" button — so a priced
-// course always shows what it costs and no two states can drift apart.
+// "Free"). One helper because the same tags print in every card state that has a price — next
+// to the "Purchased" and "In your subscription" badges and above the "Buy now" button — so no
+// two states can drift apart. The one state that prints no price is "Enrolled": the learner
+// already has the course, so there is nothing to quote.
 // The "set your country" notice, built once per page (it is the same for every card) and only
 // when a card actually needs it. Empty array = this viewer is priced normally.
 $nitcountrynotice = (class_exists('\local_payments\country_detector')
@@ -795,9 +796,9 @@ echo $OUTPUT->header();
                 <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--csuccess) 16%, transparent); color: var(--csuccess); border: 1px solid color-mix(in srgb, var(--csuccess) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
                   ✓ <?= $t('Enrolled', 'مُسجَّل') ?>
                 </span>
-                <?php // Enrolled still shows what the course costs — the badge says they have it,
-                      // the price says what it is worth. Free courses print nothing extra here. ?>
-                <?= $nitpricetags($info) ?>
+                <?php // No price beside "Enrolled": the learner already has the course, and a
+                      // number next to that badge reads as something still owed. The slot keeps
+                      // its reserved height, so the buttons below do not move. ?>
               <?php elseif ($info['purchased']): ?>
                 <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--csuccess) 16%, transparent); color: var(--csuccess); border: 1px solid color-mix(in srgb, var(--csuccess) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
                   ✓ <?= $t('Purchased', 'تم الشراء') ?>

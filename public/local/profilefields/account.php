@@ -52,6 +52,12 @@ $section = optional_param('section', account::SECTION_PROFILE, PARAM_ALPHA);
 if (!in_array($section, account::OWN_SECTIONS, true)) {
     $section = account::SECTION_PROFILE;
 }
+// The certificates pane draws mod_customcert's table; a site without that plugin
+// has no such pane, and the nav never offers one, so a typed URL lands on the
+// first pane rather than on a fatal.
+if ($section === account::SECTION_CERTIFICATES && !account::certificates_available()) {
+    $section = account::SECTION_PROFILE;
+}
 
 // The email address is changed on a card of its own rather than in the profile
 // form, so this is a mode of the profile pane and not a section in its own right.
@@ -76,6 +82,10 @@ $before = '';
 $after = '';
 $cardtitle = '';
 $cardlead = '';
+// The certificates pane: mod_customcert's table, which prints itself, so it is
+// kept as an object and asked to draw at output time rather than captured here.
+$certtable = null;
+$certperpage = 0;
 
 if ($section === account::SECTION_SECURITY) {
     // ---------------------------------------------------------------- WF-5.2
@@ -117,6 +127,36 @@ if ($section === account::SECTION_SECURITY) {
             ''
         )
     );
+
+} else if ($section === account::SECTION_CERTIFICATES) {
+    // --------------------------------------------------------- Certificates
+
+    // The same rows `/mod/customcert/my_certificates.php` shows, drawn by the
+    // same class, inside this screen's pane. Only ever the signed-in learner's
+    // own: that page takes a userid and checks a capability for somebody else's,
+    // but this screen has no user parameter by design (see the file comment), so
+    // the table is built for $USER and nobody else.
+    $cardtitle = get_string('mycertificates', 'customcert');
+    $cardlead = get_string('mycertificatesdescription', 'customcert');
+
+    $download = optional_param('download', null, PARAM_ALPHA);
+    $certpage = optional_param('page', 0, PARAM_INT);
+    $certperpage = optional_param('perpage', \mod_customcert\local\pagination::CUSTOMCERT_PER_PAGE, PARAM_INT);
+
+    // The table's own paging and sorting links are built from this URL, so they
+    // land back on this pane rather than on the customcert page.
+    $url->param('page', $certpage);
+    $url->param('perpage', $certperpage);
+    $PAGE->set_url($url);
+
+    $certtable = new \mod_customcert\my_certificates_table((int) $USER->id, $download);
+    $certtable->define_baseurl($url);
+
+    // The "Download table data as" control under the table posts back here.
+    if ($certtable->is_downloading()) {
+        $certtable->download();
+        exit();
+    }
 
 } else if ($changeemail) {
     // ------------------------------------------------- WF-5.1, "Change" email
@@ -267,6 +307,19 @@ if ($form !== null) {
         echo html_writer::div($cardlead, 'nit-account__cardlead');
     }
     $form->display();
+    echo html_writer::end_div();
+}
+
+if ($certtable !== null) {
+    echo html_writer::start_div('nit-account__card nit-account__card--certificates');
+    echo html_writer::tag('h2', $cardtitle, ['class' => 'nit-account__cardtitle']);
+    echo html_writer::div($cardlead, 'nit-account__cardlead');
+    // table_sql prints straight to the output buffer, like moodleform::display().
+    // No initials bar: the list is one learner's own certificates, which is not
+    // long enough to filter by surname - and the surname would be theirs.
+    echo html_writer::start_div('nit-account__tablewrap');
+    $certtable->out($certperpage, false);
+    echo html_writer::end_div();
     echo html_writer::end_div();
 }
 

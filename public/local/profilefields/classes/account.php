@@ -31,10 +31,13 @@ defined('MOODLE_INTERNAL') || die();
  * which is how `/local/payments/history.php` shows the same navigation without
  * this plugin having to own the payment history.
  *
- * Three of the entries lead somewhere that already exists (`/my/courses.php`, the
- * certificate list, the payment history). Those are links, not panes: rebuilding
- * three working screens to change the box they sit in would be a lot of new code
- * that displays the same rows.
+ * Two of the entries lead somewhere that already exists (`/my/courses.php`, the
+ * payment history). Those are links, not panes: rebuilding working screens to
+ * change the box they sit in would be a lot of new code that displays the same
+ * rows. The certificate list is the exception - mod_customcert's page is not ours
+ * to edit, so it cannot wrap itself the way the payment history does; account.php
+ * draws that plugin's own table inside the pane instead
+ * ({@see self::SECTION_CERTIFICATES}).
  *
  * @package    local_profilefields
  * @copyright  2026 NIT
@@ -52,6 +55,19 @@ class account {
     const SECTION_DELETE = 'delete';
 
     /**
+     * @var string The certificates the learner has been issued.
+     *
+     * The rows are mod_customcert's - its `my_certificates_table`, drawn inside
+     * this screen's pane rather than on `/mod/customcert/my_certificates.php`.
+     * That page belongs to a third-party plugin and cannot call {@see self::open()}
+     * the way `/local/payments/history.php` does, so the only way to show the list
+     * *in* the screen is for account.php to render the same table itself. The
+     * download links the table draws still point at the customcert page, which is
+     * where the PDF is generated.
+     */
+    const SECTION_CERTIFICATES = 'certificates';
+
+    /**
      * @var string[] The panes account.php itself serves.
      *
      * Delete is not among them. It already has a page of its own, and that page
@@ -60,7 +76,7 @@ class account {
      * wrong. It joins the screen by wrapping itself in {@see self::open()}
      * instead.
      */
-    const OWN_SECTIONS = [self::SECTION_PROFILE, self::SECTION_SECURITY];
+    const OWN_SECTIONS = [self::SECTION_PROFILE, self::SECTION_SECURITY, self::SECTION_CERTIFICATES];
 
     /**
      * The core user fields this screen can draw, in the order it draws them.
@@ -87,6 +103,20 @@ class account {
     }
 
     /**
+     * Can this site show a certificates pane at all?
+     *
+     * True when mod_customcert is installed. Asked of the classes the pane
+     * actually draws with, not merely of the plugin directory, so a half-removed
+     * install answers "no" rather than fataling inside the pane.
+     *
+     * @return bool
+     */
+    public static function certificates_available(): bool {
+        return class_exists('\mod_customcert\my_certificates_table')
+            && class_exists('\mod_customcert\local\pagination');
+    }
+
+    /**
      * The navigation entries, in the order the wireframe lists them.
      *
      * @param string $active the SECTION_* constant of the entry to mark current
@@ -110,12 +140,12 @@ class account {
         ];
 
         // The certificate list belongs to mod_customcert, which an academy may not
-        // have installed. No plugin, no entry - rather than an entry that 404s.
-        if (file_exists($CFG->dirroot . '/mod/customcert/my_certificates.php')) {
+        // have installed. No plugin, no entry - rather than a pane that fatals.
+        if (self::certificates_available()) {
             $items[] = [
-                'key' => 'certificates',
+                'key' => self::SECTION_CERTIFICATES,
                 'label' => get_string('navcertificates', 'local_profilefields'),
-                'url' => (new moodle_url('/mod/customcert/my_certificates.php'))->out(false),
+                'url' => self::url(self::SECTION_CERTIFICATES)->out(false),
             ];
         }
 

@@ -436,8 +436,9 @@ echo $OUTPUT->header();
                        every card: a free course simply leaves it empty. -->
                   <div class="nitcat-card__status">
                     <?php if ($info['enrolled']): ?>
+                      <?php // No price beside "Enrolled": the learner already has the course, and a
+                            // number next to that badge reads as something still owed. ?>
                       <span class="nitcat-badge nitcat-badge--ok">✓ <?= s(get_string('enrolled', 'local_nit_category')) ?></span>
-                      <?= $pricetags($info) ?>
                     <?php elseif ($info['purchased']): ?>
                       <span class="nitcat-badge nitcat-badge--ok">✓ <?= s(get_string('purchased', 'local_nit_category')) ?></span>
                       <?= $pricetags($info) ?>
