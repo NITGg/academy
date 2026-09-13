@@ -964,8 +964,11 @@ JS;
      *
      * The gear is core's navigation and nothing else: My courses and Site
      * administration. Home and Dashboard are left out on purpose — the logo is
-     * the way home and the dashboard sits in the user menu — so for a visitor
-     * who has neither of the two remaining rows the list is empty and, with
+     * the way home and the dashboard sits in the user menu — and so is the
+     * Calendar row core adds for the guest account only
+     * (\core\navigation\views\primary::initialise): the same page the
+     * visitor gate keeps out of the custom menu and the drawer. So for a
+     * visitor who has none of the remaining rows the list is empty and, with
      * nothing else in the panel, navbar_gear_menu() drops the gear altogether.
      *
      * It deliberately does NOT use the template's `mobileprimarynav`, because
@@ -982,7 +985,7 @@ JS;
      * @return string HTML, or '' when there is no navigation to show
      */
     public function navbar_gear_nav(): string {
-        $items = $this->navbar_primary_nav_items($this->page->primarynav, ['home', 'myhome']);
+        $items = $this->navbar_primary_nav_items($this->page->primarynav, ['home', 'myhome', 'calendar']);
         if (empty($items)) {
             return '';
         }
