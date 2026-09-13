@@ -1027,17 +1027,19 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         }
     }
 
-    // ---- Gear panel: tighter rows than its two siblings ----------------------
-    // The language and profile panels hold three or four rows, so the shared
-    // 25px/20px inset and 10px rows read as generous. The gear panel is the
-    // whole primary navigation plus its child links plus the management group —
-    // a dozen rows or more on an admin's screen — and at that rhythm it ran off
-    // the bottom of a laptop viewport. Only the spacing is changed here: the
-    // colours, borders and per-row dividers stay the shared "sub-menu" look.
-    // Placed after the shared block so it wins on source order at equal
-    // specificity, and `!important` on the row padding matches the declaration
-    // it is overriding.
-    .nit-navbar-dropdown {
+    // ---- Gear + profile panels: tighter rows than the language panel --------
+    // The language panel holds three or four rows, so the shared 25px/20px
+    // inset and 10px rows read as generous. The gear panel is the whole primary
+    // navigation plus its child links plus the management group — a dozen rows
+    // or more on an admin's screen — and at that rhythm it ran off the bottom
+    // of a laptop viewport. The profile (avatar) panel lists nine rows and sits
+    // right beside it, so it shares the same rhythm rather than reading as a
+    // different component. Only the spacing is changed here: the colours,
+    // borders and per-row dividers stay the shared "sub-menu" look. Placed after
+    // the shared block so it wins on source order at equal specificity, and
+    // `!important` on the row padding matches the declaration it is overriding.
+    .nit-navbar-dropdown,
+    [data-region="usermenu"] .dropdown-menu {
         padding: 10px 12px;
 
         .dropdown-item {

@@ -49,7 +49,7 @@ class get_account_menu extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'active' => new external_value(PARAM_ALPHANUMEXT,
-                'Which entry to mark as current: profile, security, mylearning, certificates, '
+                'Which entry to mark as current: profile, security, certificates, '
                 . 'invoices or delete.', VALUE_DEFAULT, account::SECTION_PROFILE),
         ]);
     }

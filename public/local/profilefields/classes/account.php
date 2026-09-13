@@ -109,12 +109,6 @@ class account {
             'url' => self::url(self::SECTION_SECURITY)->out(false),
         ];
 
-        $items[] = [
-            'key' => 'mylearning',
-            'label' => get_string('navmylearning', 'local_profilefields'),
-            'url' => (new moodle_url('/my/courses.php'))->out(false),
-        ];
-
         // The certificate list belongs to mod_customcert, which an academy may not
         // have installed. No plugin, no entry - rather than an entry that 404s.
         if (file_exists($CFG->dirroot . '/mod/customcert/my_certificates.php')) {

@@ -1,0 +1,174 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+// =============================================================================
+// Notifications page — /message/output/popup/notifications.php.
+//
+// Markup: message_popup/notification_area (and its _content_area_* partials).
+// A two-pane `.notification-area`: the list on the start side (`.control-area`,
+// the same `.content-item-container` rows the navbar bell drops down), the open
+// notification on the other (`.content-area`: header, body, footer link).
+//
+// Core styles it in theme/boost/scss/moodle/message.scss for a light page —
+// `#e3e3e3` frame and dividers, the timestamp on `#666`, and the rows on the
+// popover-region defaults: unread on `#f4f4f4`, hover on Bootstrap `$primary`
+// under white, the selected row on a hard-coded `#3279b3`. On the dark brand
+// that is a column of white strips with grey text, sitting in a frame no one
+// can see. Nothing here is a Bootstrap variable we could have set in pre.scss,
+// so it is re-pointed rule by rule at the Brand Colors roles, the same ones the
+// navbar popover reads (components/_navbar.scss, "Notifications popover"):
+//
+//   surface         → the panel, both panes
+//   borderprimary   → frame, pane divider, row dividers, content header rule
+//   textprimary     → row text, the open notification's subject and body
+//   textsecondary   → timestamps, both empty-state lines
+//   accenttext      → the footer "View …" link
+//   primary (wash)  → an unread row's ground
+//   hoverbackground → the row under the cursor / holding focus
+//   hovertext       → its text
+//   primary (solid) → the selected row (the one whose text is open beside it)
+//
+// An unread row is a wash of the brand primary over the surface rather than a
+// second neutral, for the reason the popover gives: a group's two neutrals are
+// only a step apart and the darker read as "disabled", not "new". `color-mix()`
+// and never an `rgba()` literal — the RTL pass drops the declaration if scssphp
+// emits the space-separated colour form (see the top of _navbar.scss).
+//
+// Colours only. The pane widths, the 600px height, the narrow-viewport slide
+// between the panes and the physical `border-right` on the list (which RTLCSS
+// mirrors) all stay core's.
+// =============================================================================
+
+.notification-area {
+    background-color: var(--nit-brand-surface);
+    color: var(--nit-brand-textprimary);
+    border-color: var(--nit-brand-borderprimary);
+    border-radius: $border-radius;
+    // The frame has to clip the rows: an unread row's fill runs edge to edge
+    // and squares off the corners otherwise.
+    overflow: hidden;
+
+    // ---- The list ------------------------------------------------------------
+    .control-area {
+        border-right-color: var(--nit-brand-borderprimary);
+
+        .empty-text {
+            color: var(--nit-brand-textsecondary);
+        }
+
+        .content-item-container {
+            color: var(--nit-brand-textprimary);
+            background-color: transparent;
+            border-bottom: 1px solid var(--nit-brand-borderprimary);
+            padding: 10px 12px;
+
+            .context-link {
+                color: inherit;
+            }
+
+            .content-item-footer .timestamp {
+                color: var(--nit-brand-textsecondary);
+            }
+
+            .view-more {
+                color: var(--nit-brand-accenttext);
+            }
+
+            &.unread {
+                background-color: color-mix(in srgb, var(--nit-brand-primary) 12%, var(--nit-brand-surface));
+            }
+
+            // `:focus-within` as well as `:hover`: the focusable thing is the
+            // anchor INSIDE the row, so the row itself never holds focus.
+            &:hover,
+            &:focus-within,
+            &.unread:hover,
+            &.unread:focus-within {
+                background-color: var(--nit-brand-hoverbackground);
+                color: var(--nit-brand-hovertext);
+
+                .content-item-footer .timestamp,
+                .view-more {
+                    color: inherit;
+                }
+            }
+
+            // The row whose notification is open in the other pane (core adds
+            // `.selected`). The one filled state, so it reads as "chosen".
+            &.selected,
+            &.selected:hover {
+                background-color: var(--nit-brand-primary);
+                color: var(--nit-brand-on-primary);
+                border-color: var(--nit-brand-primary);
+
+                .content-item-footer .timestamp,
+                .view-more {
+                    color: inherit;
+                }
+            }
+        }
+    }
+
+    // ---- The open notification ----------------------------------------------
+    .content-area {
+        background-color: var(--nit-brand-surface);
+        color: var(--nit-brand-textprimary);
+
+        .header {
+            border-bottom-color: var(--nit-brand-borderprimary);
+
+            .subject-container {
+                color: var(--nit-brand-textprimary);
+                font-weight: 600;
+            }
+
+            .timestamp {
+                color: var(--nit-brand-textsecondary);
+            }
+        }
+
+        > .content {
+            color: var(--nit-brand-textprimary);
+
+            // A plain-text notification is printed in a <pre>, which Bootstrap
+            // colours with $pre-color and lets run off the pane; it is body
+            // text here, so it wraps and inherits.
+            pre {
+                color: inherit;
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+        }
+
+        .empty-text {
+            color: var(--nit-brand-textsecondary);
+        }
+
+        .footer a {
+            color: var(--nit-brand-accenttext);
+
+            &:hover,
+            &:focus {
+                color: var(--nit-brand-hovertext);
+            }
+        }
+
+        // The "Back" button core shows below 980px, when the panes stack and
+        // slide. A `.btn-link`, which already takes the brand link colour.
+        .toggle-mode .btn-link {
+            color: var(--nit-brand-accenttext);
+        }
+    }
+}
