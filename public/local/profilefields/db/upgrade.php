@@ -326,6 +326,15 @@ function xmldb_local_profilefields_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026090300, 'local', 'profilefields');
     }
 
+    if ($oldversion < 2026091300) {
+        // The user menu's "Profile" entry pointed at /user/profile.php and relied
+        // on hook_callbacks::redirect_own_profile() to bounce it to the account
+        // screen. Point it straight at the account screen instead: one request
+        // less, and the menu says where it goes.
+        local_profilefields_repoint_usermenu_profile();
+        upgrade_plugin_savepoint(true, 2026091300, 'local', 'profilefields');
+    }
+
     // Not a versioned step, and deliberately so: it has to run on every upgrade,
     // because the thing it repairs is created by an upgrade. Registering a new
     // web-service function does not put it on the hand-made service a site's own
@@ -336,4 +345,37 @@ function xmldb_local_profilefields_upgrade($oldversion) {
     \local_profilefields\ws_registry::sync();
 
     return true;
+}
+
+/**
+ * Point the user menu's "Profile" line at the account screen.
+ *
+ * Rewrites, in the core `customusermenuitems` setting, any line whose URL is
+ * `/user/profile.php` (core's default `profile,moodle|/user/profile.php`) so it
+ * targets `/local/profilefields/account.php`. Every other line is left exactly as
+ * the administrator wrote it, and a site that already points there is untouched.
+ */
+function local_profilefields_repoint_usermenu_profile(): void {
+    $current = (string) get_config('core', 'customusermenuitems');
+    if ($current === '') {
+        return;
+    }
+
+    $changed = false;
+    $lines = preg_split('/\r?\n/', $current);
+    foreach ($lines as $i => $line) {
+        $parts = explode('|', $line);
+        if (!isset($parts[1])) {
+            continue;
+        }
+        if (trim($parts[1]) === '/user/profile.php') {
+            $parts[1] = '/local/profilefields/account.php';
+            $lines[$i] = implode('|', $parts);
+            $changed = true;
+        }
+    }
+
+    if ($changed) {
+        set_config('customusermenuitems', implode("\n", $lines));
+    }
 }

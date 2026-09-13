@@ -107,6 +107,72 @@ function local_profilefields_myprofile_navigation(
 }
 
 /**
+ * Drop the preference links a learner has no use for from their own Preferences page.
+ *
+ * `settings_navigation::generate_user_settings()` calls every plugin's
+ * `*_extend_navigation_user_settings()` *after* it has built the whole tree, so
+ * this is the one place a plugin can take a core node away without editing core.
+ * /user/preferences.php then reads that same tree, so what is removed here is
+ * gone from the page and from the secondary navigation alike.
+ *
+ * Four links go: Preferred language (the navbar switcher already does this),
+ * Forum preferences, Content bank preferences (nothing a learner uploads there)
+ * and Message preferences (a page that only opens the messaging drawer's own
+ * Settings tab). Only on the viewer's OWN preferences: an administrator opening
+ * somebody else's (`?userid=`) keeps the full set, because that is the one place
+ * the message-preferences form actually renders.
+ *
+ * @param navigation_node $navigation the user-settings root node
+ * @param stdClass $user the account whose preferences are shown
+ * @param context_user $usercontext
+ * @param stdClass $course
+ * @param context $coursecontext
+ * @return void
+ */
+function local_profilefields_extend_navigation_user_settings(
+    navigation_node $navigation,
+    stdClass $user,
+    context_user $usercontext,
+    stdClass $course,
+    context $coursecontext
+): void {
+    global $USER;
+
+    if ((int) $user->id !== (int) $USER->id) {
+        return;
+    }
+
+    $hidden = [
+        '/user/language.php',
+        '/user/forum.php',
+        '/user/contentbank.php',
+        '/message/edit.php',
+    ];
+
+    $account = $navigation->find('useraccount', navigation_node::TYPE_CONTAINER);
+    if (!$account) {
+        return;
+    }
+    // remove() reindexes the collection, so pick the victims first, then drop them.
+    $victims = [];
+    foreach ($account->children as $node) {
+        if (!$node->action instanceof moodle_url) {
+            continue;
+        }
+        $path = $node->action->get_path();
+        foreach ($hidden as $suffix) {
+            if (substr($path, -strlen($suffix)) === $suffix) {
+                $victims[] = $node;
+                break;
+            }
+        }
+    }
+    foreach ($victims as $node) {
+        $node->remove();
+    }
+}
+
+/**
  * The password rules of AC-4.1.6, applied wherever Moodle checks a password.
  *
  * `get_password_policy_errors()` collects `check_password_policy()` out of every
