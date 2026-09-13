@@ -11,31 +11,22 @@ if (!empty($CFG->forcelogin)) {
     require_login();
 }
 
-$categoryid = required_param('id', PARAM_INT);      // Parent category (drives header + labels).
-$subid      = optional_param('sub', 0, PARAM_INT);  // 0 = "All" (every subcategory as its own section).
+$categoryid = required_param('id', PARAM_INT);      // The category this page is about.
+$subid      = optional_param('sub', 0, PARAM_INT);  // Initial filter: 0 = "All", else one direct child.
 
-// Parent category.
+// The category. Any category, at any depth: a subcategory is an ordinary category and
+// opens its own copy of this page (its own hero, its own filter bar of its own children).
 $category = core_course_category::get($categoryid, MUST_EXIST);
 $context  = $category->get_context();
 
-// Direct subcategories -> the clickable label bar.
+// Direct subcategories -> the clickable filter bar.
 $subcategories = $category->get_children();
 
-// Which category's courses are we listing? "All" -> parent; otherwise the chosen child.
-$targetcat = $category;
-if ($subid) {
-    $found = null;
-    foreach ($subcategories as $sc) {
-        if ((int) $sc->id === $subid) {
-            $found = $sc;
-            break;
-        }
-    }
-    if ($found) {
-        $targetcat = $found;
-    } else {
-        $subid = 0; // Unknown sub id -> behave as "All".
-    }
+// `sub` names a direct child to start filtered to. The filter itself is client-side —
+// every subtree is rendered and the bar shows/hides them without a round trip — so this
+// only decides what is visible on first paint (and keeps old ?sub= links working).
+if ($subid && !isset($subcategories[$subid])) {
+    $subid = 0; // Unknown sub id -> behave as "All".
 }
 
 $PAGE->set_url(new moodle_url('/local/nit_category/index.php', ['id' => $categoryid, 'sub' => $subid]));
@@ -90,12 +81,10 @@ $rootnodes = [];
 if (empty($subcategories)) {
     // Flat category (no children): just its own courses.
     $rootnodes[] = $buildnode($category);
-} else if ($subid) {
-    // One subcategory selected: render that subtree (its courses + nested subcategories).
-    $rootnodes[] = $buildnode($targetcat);
 } else {
-    // "All": courses that live directly under the parent (not inside any child) get
-    // their own section first so nothing is dropped, then every subcategory subtree.
+    // Courses that live directly under the category (not inside any child) get their own
+    // section first so nothing is dropped, then every subcategory subtree. All of them are
+    // rendered whatever `sub` says: the filter bar hides the others client-side.
     $directcourses = $fetchcourses($category, false);
     if (!empty($directcourses)) {
         $rootnodes[] = ['cat' => $category, 'courses' => $directcourses, 'children' => []];
@@ -105,12 +94,8 @@ if (empty($subcategories)) {
     }
 }
 
-// Drop empty subtrees and tally the visible total.
+// Drop empty subtrees.
 $rootnodes = array_values(array_filter($rootnodes, static fn($n) => $counttree($n) > 0));
-$totalcourses = 0;
-foreach ($rootnodes as $n) {
-    $totalcourses += $counttree($n);
-}
 
 // Hero banner always shows the grand total for the whole parent category, regardless
 // of any subcategory filter currently selected.
@@ -183,9 +168,15 @@ $whychoose = \local_nit_category\whychoose::for_display();
 // tab): the active filter is a solid .btn-primary, the rest are .btn-outline-primary.
 // $icon is the category's own icon HTML (or '' for the "All" button, which is not a
 // category); it prints inside the button, before the label.
-$pill = function (moodle_url $url, string $label, bool $active, string $icon = ''): string {
+//
+// Each pill is still a real link (?sub=ID), so it works without JavaScript and can be
+// opened in a new tab; with JavaScript the click is intercepted and the filter happens in
+// place — the sections are all on the page already, the bar only shows and hides them.
+// data-nit-sub carries the child id (0 = All) that the script keys on.
+$pill = function (moodle_url $url, string $label, bool $active, int $subid, string $icon = ''): string {
     $cls = $active ? 'btn btn-primary' : 'btn btn-outline-primary';
-    return '<a href="' . $url->out() . '" class="' . $cls . ' fw-bold nit-cat-pill">'
+    return '<a href="' . $url->out() . '" class="' . $cls . ' fw-bold nit-cat-pill" data-nit-sub="' . $subid . '"'
+        . ' aria-pressed="' . ($active ? 'true' : 'false') . '">'
         . $icon . '<span>' . $label . '</span></a>';
 };
 
@@ -371,6 +362,18 @@ echo $OUTPUT->header();
       animation: nit-fadedown 0.8s ease both;
     }
 
+    /* Ancestor trail — only on a subcategory's page. */
+    .nit-hero__crumbs {
+      display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px;
+      margin-bottom: 14px; font-size: 13px; font-weight: 600; color: var(--ctext2);
+      animation: nit-fadedown 0.6s ease;
+    }
+    .nit-hero__crumbs a { color: var(--ctext3); text-decoration: none; }
+    .nit-hero__crumbs a:hover { text-decoration: underline; }
+    .nit-hero__crumb-sep { opacity: 0.6; }
+    [dir="rtl"] .nit-hero__crumb-sep { transform: scaleX(-1); display: inline-block; }
+    .nit-hero__crumb-current { color: var(--ctext1); }
+
     /* Badge — X-Trade .hero-badge */
     .nit-hero__badge {
       display: inline-flex; align-items: center; gap: 0.5rem;
@@ -444,6 +447,21 @@ echo $OUTPUT->header();
       <img class="nit-hero__logo" src="<?= s($categoryimage) ?>" alt="<?= $categoryname ?>">
       <?php endif; ?>
 
+      <?php
+      // A subcategory's page says where it sits: a trail of its ancestors, each one a link
+      // to its own copy of this page. A top-level category has no trail to show.
+      $parents = $category->get_parents();
+      if (!empty($parents)): ?>
+      <nav class="nit-hero__crumbs" aria-label="<?= $t('Parent categories', 'التصنيفات الأعلى') ?>">
+        <?php foreach ($parents as $pid): ?>
+          <?php $pcat = core_course_category::get($pid, IGNORE_MISSING); if (!$pcat) { continue; } ?>
+          <a href="<?= (new moodle_url('/local/nit_category/index.php', ['id' => $pid]))->out() ?>"><?= $pcat->get_formatted_name() ?></a>
+          <span class="nit-hero__crumb-sep" aria-hidden="true">›</span>
+        <?php endforeach; ?>
+        <span class="nit-hero__crumb-current"><?= $categoryname ?></span>
+      </nav>
+      <?php endif; ?>
+
       <!-- Badge: category name with pulsing dot, and this category's icon if it has one -->
       <div class="nit-hero__badge">
         <span class="nit-hero__badge-dot"></span>
@@ -468,14 +486,12 @@ echo $OUTPUT->header();
           <span class="nit-hero__stat-num"><?= $bannertotal ?></span>
           <span class="nit-hero__stat-label"><?= $t('Courses and diplomas', 'دورة ودبلوم') ?></span>
         </div>
+        <?php if (!empty($subcategories)): ?>
         <div>
           <span class="nit-hero__stat-num"><?= count($subcategories) ?></span>
           <span class="nit-hero__stat-label"><?= $t('Main specializations', 'تخصص رئيسي') ?></span>
         </div>
-        <div>
-          <span class="nit-hero__stat-num">4</span>
-          <span class="nit-hero__stat-label"><?= $t('Educational levels', 'مستويات تعليمية') ?></span>
-        </div>
+        <?php endif; ?>
       </div>
 
       <!-- Buttons: the site's own .btn components. Each one scrolls to a section of this
@@ -671,13 +687,13 @@ echo $OUTPUT->header();
   </section>
   <?php endif; ?>
 
-  <!-- Subcategory Filter Bar (All + children) -->
+  <!-- Subcategory Filter Bar (All + children). Filters in place — see the script below. -->
   <?php if (!empty($subcategories)): ?>
-  <div id="nit-cat-filters" style="padding: 32px 16px 0;">
+  <div id="nit-cat-filters" style="padding: 32px 16px 0;" data-nit-catfilter data-category="<?= (int) $categoryid ?>">
     <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;">
       <?php
         $allurl = new moodle_url('/local/nit_category/index.php', ['id' => $categoryid]);
-        echo $pill($allurl, $t('All', 'الكل'), $subid === 0);
+        echo $pill($allurl, $t('All', 'الكل'), $subid === 0, 0);
         foreach ($subcategories as $sc) {
             $suburl = new moodle_url('/local/nit_category/index.php', ['id' => $categoryid, 'sub' => $sc->id]);
             $scname = $sc->get_formatted_name();
@@ -685,6 +701,7 @@ echo $OUTPUT->header();
                 $suburl,
                 $scname,
                 $subid === (int) $sc->id,
+                (int) $sc->id,
                 local_nit_category_render_icon((int) $sc->id, 'nit-cat-icon nit-cat-icon--pill', $scname)
             );
         }
@@ -692,12 +709,17 @@ echo $OUTPUT->header();
     </div>
 
     <?php
-      // When a subcategory is selected, show its description.
-      if ($subid) {
-          $subdescription = format_text($targetcat->description, $targetcat->descriptionformat, ['context' => $targetcat->get_context()]);
-          if (trim(strip_tags($subdescription)) !== '') {
-              echo '<div style="max-width: 900px; margin: 24px auto 0; text-align: center; color: var(--ctext2); font-size: 15px; line-height: 1.7;">' . $subdescription . '</div>';
+      // Every subcategory's description is on the page from the start, hidden; the filter
+      // reveals the chosen one. Nothing is fetched when a pill is clicked.
+      foreach ($subcategories as $sc) {
+          $subdescription = format_text($sc->description, $sc->descriptionformat, ['context' => $sc->get_context()]);
+          if (trim(strip_tags($subdescription)) === '') {
+              continue;
           }
+          $shown = $subid === (int) $sc->id;
+          echo '<div class="nit-cat-subdesc" data-nit-subdesc="' . (int) $sc->id . '"' . ($shown ? '' : ' hidden')
+              . ' style="max-width: 900px; margin: 24px auto 0; text-align: center; color: var(--ctext2); font-size: 15px; line-height: 1.7;">'
+              . $subdescription . '</div>';
       }
     ?>
   </div>
@@ -853,12 +875,26 @@ echo $OUTPUT->header();
         // Recursive section renderer: each category (at any depth) gets an X-Trade
         // style "specialty" title — pin icon + gradient text + a coloured start-border —
         // then its own course grid, then its child subcategories nested underneath with
-        // the same title UI (indented to show the hierarchy).
-        $rendernode = function (array $node, int $depth) use (&$rendernode, $rendercard, $counttree): void {
+        // the same title UI (indented to show the hierarchy). Every title is a link to
+        // that category's own copy of this page: a subcategory at any depth is browsed
+        // exactly like a top-level one.
+        //
+        // A top-level block carries data-nit-block=<category id> for the filter bar, and
+        // starts hidden when the page opened filtered to a different child (?sub=).
+        $rendernode = function (array $node, int $depth) use (&$rendernode, $rendercard, $counttree, $subid, $categoryid): void {
             $cat   = $node['cat'];
             $name  = $cat->get_formatted_name();
             $count = $counttree($node);
             $blockclass = 'nit-spec-block' . ($depth > 0 ? ' nit-spec-block--nested' : '');
+            // The section of the category's own direct courses links nowhere new: it is
+            // this page. Every other section is a subcategory with a page of its own.
+            $caturl = (int) $cat->id === $categoryid ? '' :
+                (new moodle_url('/local/nit_category/index.php', ['id' => $cat->id]))->out();
+            $blockattrs = '';
+            if ($depth === 0) {
+                $blockattrs = ' data-nit-block="' . (int) $cat->id . '"'
+                    . (($subid && (int) $cat->id !== $subid) ? ' hidden' : '');
+            }
             // What stands in for the generic pin/dot, best first: the category's own
             // icon, else its own image, else nothing (the pin/dot stays). Inheritance is
             // OFF on purpose — with it on, every subcategory of an imaged parent would
@@ -867,11 +903,14 @@ echo $OUTPUT->header();
             $secicon  = local_nit_category_render_icon((int) $cat->id, $seciconclass, $name);
             $secimage = $secicon === '' ? local_nit_category_get_image_url((int) $cat->id, false) : '';
         ?>
-        <div class="<?= $blockclass ?>">
+        <div class="<?= $blockclass ?>"<?= $blockattrs ?>>
           <div class="nit-spec-head">
+            <?php // The title's tag: a link to the category's own page when it has one. ?>
+            <?php $ttag = $caturl !== '' ? 'a' : 'span'; $thref = $caturl !== '' ? ' href="' . $caturl . '"' : ''; ?>
             <?php if ($depth === 0): ?>
             <!-- Top-level subcategory: image (or pin) + gradient text + coloured start-border. -->
             <h3 class="nit-spec-title">
+              <<?= $ttag ?><?= $thref ?> class="nit-spec-link">
               <?php if ($secicon !== ''): ?>
               <?= $secicon ?>
               <?php elseif ($secimage !== ''): ?>
@@ -881,10 +920,12 @@ echo $OUTPUT->header();
               <?php endif; ?>
               <span class="nit-spec-name"><?= $name ?></span>
               <span class="nit-spec-count">(<?= $count ?>)</span>
+              </<?= $ttag ?>>
             </h3>
             <?php else: ?>
             <!-- Nested subcategory: rounded tint pill + image (or circle icon). -->
             <h3 class="nit-spec-title nit-spec-title--sub">
+              <<?= $ttag ?><?= $thref ?> class="nit-spec-link">
               <?php if ($secicon !== ''): ?>
               <?= $secicon ?>
               <?php elseif ($secimage !== ''): ?>
@@ -894,6 +935,7 @@ echo $OUTPUT->header();
               <?php endif; ?>
               <span class="nit-spec-subname"><?= $name ?></span>
               <span class="nit-spec-count">(<?= $count ?>)</span>
+              </<?= $ttag ?>>
             </h3>
             <?php endif; ?>
           </div>
@@ -937,6 +979,15 @@ echo $OUTPUT->header();
           border-inline-start: 4px solid var(--cbg4);
           padding-inline-start: 14px;
         }
+        /* The title's contents sit inside a link (or a span for this page's own courses)
+           that inherits every colour, so a linked title looks exactly like a plain one
+           until it is hovered. */
+        .nit-spec-title .nit-spec-link {
+          display: inline-flex; align-items: center; gap: inherit;
+          color: inherit; text-decoration: none;
+        }
+        .nit-spec-title a.nit-spec-link:hover .nit-spec-name,
+        .nit-spec-title a.nit-spec-link:hover .nit-spec-subname { text-decoration: underline; }
         .nit-spec-title .nit-spec-name {
           color: var(--ctext3);
         }
@@ -993,18 +1044,102 @@ echo $OUTPUT->header();
         }
       </style>
 
-      <?php if (!empty($rootnodes)): ?>
-        <?php foreach ($rootnodes as $node): ?>
-          <?php $rendernode($node, 0); ?>
-        <?php endforeach; ?>
-      <?php else: ?>
-      <div style="text-align: center; color: var(--ctext2); padding: 40px;">
+      <?php foreach ($rootnodes as $node): ?>
+        <?php $rendernode($node, 0); ?>
+      <?php endforeach; ?>
+
+      <?php
+        // Shown when nothing is visible: no courses at all, or the filter picked a
+        // subcategory with no (visible) courses — whose block was never rendered.
+        $anyvisible = false;
+        foreach ($rootnodes as $node) {
+            if (!$subid || (int) $node['cat']->id === $subid) {
+                $anyvisible = true;
+                break;
+            }
+        }
+      ?>
+      <div data-nit-empty<?= $anyvisible ? ' hidden' : '' ?> style="text-align: center; color: var(--ctext2); padding: 40px;">
         <?= $t('No courses found in this category.', 'لا توجد دورات في هذا التصنيف.') ?>
       </div>
-      <?php endif; ?>
 
     </div>
   </div>
+
+  <?php if (!empty($subcategories)): ?>
+  <script>
+    (function() {
+      /* The subcategory filter bar, without a round trip. Every subcategory's section is
+         already on the page (rendered whatever ?sub= said); a pill only decides which of
+         them is shown. The URL is kept in step with history.pushState so the filtered view
+         can still be bookmarked, shared, or reached with Back/Forward — and the same
+         ?sub= link works with JavaScript off, because each pill is a real link. */
+      var bar = document.querySelector('[data-nit-catfilter]');
+      if (!bar) {
+        return;
+      }
+      var pills  = Array.prototype.slice.call(bar.querySelectorAll('[data-nit-sub]'));
+      var blocks = Array.prototype.slice.call(document.querySelectorAll('[data-nit-block]'));
+      var descs  = Array.prototype.slice.call(bar.querySelectorAll('[data-nit-subdesc]'));
+      var empty  = document.querySelector('[data-nit-empty]');
+
+      function apply(sub) {
+        var shown = 0;
+        var all = (sub === '0');
+        blocks.forEach(function(b) {
+          var on = all || b.getAttribute('data-nit-block') === sub;
+          b.hidden = !on;
+          if (on) {
+            shown++;
+          }
+        });
+        descs.forEach(function(d) {
+          d.hidden = d.getAttribute('data-nit-subdesc') !== sub;
+        });
+        pills.forEach(function(p) {
+          var on = p.getAttribute('data-nit-sub') === sub;
+          p.classList.toggle('btn-primary', on);
+          p.classList.toggle('btn-outline-primary', !on);
+          p.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        if (empty) {
+          empty.hidden = shown > 0;
+        }
+      }
+
+      function current() {
+        var m = /[?&]sub=(\d+)/.exec(window.location.search);
+        return m && m[1] !== '0' ? m[1] : '0';
+      }
+
+      pills.forEach(function(p) {
+        p.addEventListener('click', function(e) {
+          /* A modifier click means "open in a new tab": leave that to the browser. */
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+            return;
+          }
+          e.preventDefault();
+          var sub = p.getAttribute('data-nit-sub');
+          if (sub === current()) {
+            return;
+          }
+          apply(sub);
+          var url = new URL(window.location.href);
+          if (sub === '0') {
+            url.searchParams.delete('sub');
+          } else {
+            url.searchParams.set('sub', sub);
+          }
+          window.history.pushState({nitsub: sub}, '', url.toString());
+        });
+      });
+
+      window.addEventListener('popstate', function() {
+        apply(current());
+      });
+    })();
+  </script>
+  <?php endif; ?>
 
   <?php
   // ── This category's plans and coupons ─────────────────────────────────────────────────────
