@@ -1029,7 +1029,16 @@ $nit-b-buttonroles: (
     border-color: var(--nit-brand-btnoutlineprimaryborder);
 }
 
-.btn-outline-secondary {
+// `.btn-outline-dark` rides along with the neutral one. Bootstrap generates an
+// outline variant for every theme colour, and core reaches for the "dark" one in
+// a few back-office places — the question bank's "Reset columns" / "Add column" /
+// "Save widths" controls (qbank_columnsortorder) and mod_bigbluebuttonbn's end-
+// session button. It has no role of its own, and on a dark brand it renders as a
+// near-black label on a near-black page (measured 1.14:1 on question/edit.php).
+// It is the same job as the neutral ghost button it sits beside, so it takes the
+// same six roles rather than a seventh set nobody would know to look for.
+.btn-outline-secondary,
+.btn-outline-dark {
     --bs-btn-bg: var(--nit-brand-btnoutlinebg);
     --bs-btn-border-color: var(--nit-brand-btnoutlineborder);
     --bs-btn-color: var(--nit-brand-btnoutlinetext);

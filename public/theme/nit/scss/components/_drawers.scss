@@ -32,3 +32,25 @@
         background-color: var(--nit-brand-hoverbackground);
     }
 }
+
+// The two floating square buttons that pull a closed drawer back out — one
+// pinned to each edge of the page, on every drawers layout (course, dashboard,
+// admin, the question bank). Boost fills them `$gray-300` and leaves the glyph
+// to inherit, so on the dark brand they are light-grey tiles carrying the
+// brand's near-white icon: measured 1.05:1, a blank chip until you hover it.
+//
+// Give them the same Surface + Border-primary treatment the drawer they open
+// already has, so a closed drawer's handle reads as part of the same panel.
+// `.btn-icon` above supplies the brand hover pair, and the button is square and
+// edge-pinned by core in both directions, so there is nothing to mirror for RTL.
+.drawer-toggles .drawer-toggler .btn {
+    background-color: var(--nit-brand-surface);
+    border: 1px solid var(--nit-brand-borderprimary);
+    color: var(--nit-brand-textprimary);
+
+    &:hover,
+    &:focus {
+        background-color: var(--nit-brand-hoverbackground);
+        color: var(--nit-brand-hovertext);
+    }
+}

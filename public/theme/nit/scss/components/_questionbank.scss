@@ -1,0 +1,130 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+// =============================================================================
+// Question bank list — question/edit.php ("Edit questions"), the Question bank
+// tab of a quiz or of a qbank instance, and the same list as it appears inside
+// the quiz "Add from the question bank" modal.
+//
+// The list is a Bootstrap `.table`, so components/_tables.scss already rebinds
+// its ink, stripes, borders and hover rows to the palette. The one thing it
+// cannot reach is the `<table>` element's OWN background: Boost hard-codes
+//
+//     table.question-bank-table { background-color: $white; }   (boost/scss/moodle/question.scss)
+//
+// and that declaration paints the element itself, where the `--bs-table-bg:
+// transparent` our table rules set only reaches the cells. So on the dark brand
+// the whole list sits on a white slab while every column header and cell keeps
+// the brand's near-white ink — measured 1.12:1, i.e. the text is invisible
+// until you select it. That single line is what makes this page read as
+// unthemed; the rest of this file is the handful of other colours core baked
+// from the light theme in and around the same table.
+//
+// Everything here is a role, not a hue, so it re-resolves per brand group and
+// is correct in light mode as well as dark. No physical directions are used —
+// the only left/right in core's rules is `text-align`, which the RTL pass
+// flips on its own.
+// =============================================================================
+
+table.question-bank-table {
+
+    // The slab. Surface is the "cards, dropdowns, inputs, tables, page sections"
+    // role, one step off the page Background, so the list reads as a panel.
+    background-color: var(--nit-brand-surface);
+
+    // Core stripes its own odd rows (`r0`/`r1`) with `$table-striped-bg` on top
+    // of Bootstrap's striping. Use the same faint wash of the ink that
+    // components/_tables.scss gives every other table, so the two agree instead
+    // of stacking a baked grey over a brand one.
+    > tbody > tr.r1 {
+        background-color: color-mix(in srgb, var(--nit-brand-textprimary) 6%, transparent);
+    }
+
+    // The question you have just added or edited. view::get_row_classes() tags
+    // that row `highlight text-dark`, and `.text-dark` is a Bootstrap utility —
+    // `!important` near-black — which Boost's `.table tbody td { color: inherit }`
+    // then carries into every cell. On the dark brand the one row you were
+    // looking for is the one row you cannot read. Put the ink back on the brand
+    // (the `!important` is what beats the utility) and keep core's "this one"
+    // signal as an Info tint instead.
+    > tbody > tr.highlight,
+    > tbody > tr.highlight > * {
+        color: var(--nit-brand-textprimary) !important;
+    }
+
+    // The tint rides on the CELLS via `--bs-table-bg-type`, not on the `<tr>`:
+    // Bootstrap paints row striping as an inset box-shadow on each cell, which
+    // would otherwise be drawn straight over a background set on the row.
+    > tbody > tr.highlight > * {
+        --bs-table-bg-type: color-mix(in srgb, var(--nit-brand-info) 14%, transparent);
+    }
+
+    // Core frames that same row in `$info`, a hex baked from Group 1 that cannot
+    // follow a group switch. Same colour today, from the role instead.
+    &.generaltable > tbody > tr.highlight.firstrow td {
+        border-top-color: var(--nit-brand-info);
+    }
+
+    > tbody > tr.highlight.firstrow,
+    > tbody > tr.highlight.extrarow {
+        border-inline-color: var(--nit-brand-info);
+    }
+
+    &.generaltable > tbody > tr.highlight.extrarow td,
+    &.generaltable > tbody > tr.highlight.firstrow.onlyhighlightrow td {
+        border-bottom-color: var(--nit-brand-info);
+    }
+
+    // A question whose type is no longer installed: core tags the row
+    // `.table-danger`, Bootstrap's light-red variant (pale pink fill, near-black
+    // ink). Keep the "something is wrong with this row" reading, in the Error
+    // role and with the brand's own ink.
+    > tbody > tr.table-danger > * {
+        --bs-table-bg-type: color-mix(in srgb, var(--nit-brand-error) 18%, transparent);
+    }
+
+    // Bootstrap's table-variant mixin writes `color: var(--bs-table-color)` onto
+    // the row itself (near-black, picked for its own pale fill), and Boost's
+    // `.table tbody td { color: inherit }` carries that into the cells ahead of
+    // any `--bs-table-color-*` var. So the ink has to be set on the row AND on
+    // the cells, not handed to Bootstrap's cascade.
+    > tbody > tr.table-danger,
+    > tbody > tr.table-danger > * {
+        color: var(--nit-brand-textprimary);
+    }
+
+    // Dragging a column to reorder it (qbank_columnsortorder): core lifts the
+    // picked-up header on `$white` and marks the drop target with
+    // `lighten($primary, 40%)` — two more light slabs that only appear mid-drag,
+    // which is exactly why they survived this long.
+    .header {
+        &.sortable-list-is-dragged {
+            background-color: var(--nit-brand-surface);
+        }
+
+        &.sortable-list-current-position {
+            background-color: color-mix(in srgb, var(--nit-brand-primary) 22%, transparent);
+        }
+    }
+}
+
+// qbank_columnsortorder puts `background-color: white` on EVERY sortable header
+// (question/bank/columnsortorder/styles.css), not only the one being dragged —
+// Bootstrap's own cell rule happens to out-specify it at rest, so the white only
+// shows on the floating clone while a column is moving. Brand it anyway: the day
+// core's specificity changes, this page goes white again.
+.qbank-sortable-column {
+    background-color: var(--nit-brand-surface);
+}
