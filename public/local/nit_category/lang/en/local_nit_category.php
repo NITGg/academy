@@ -185,15 +185,13 @@ $string['priceto'] = 'Highest price';
 
 // Settings: which course field answers which filter.
 $string['filterfieldsheading'] = 'Filter fields';
-$string['filterfieldsdesc'] = 'The catalogue offers exactly the six filters of SRS §4.8 — category, level, price, language, duration and certificate. Category and price are built in; the other four read a course custom field, named below. Leave a box empty to use the default shortname; name a field that does not exist and that filter is simply left out of the panel.';
+$string['filterfieldsdesc'] = 'The catalogue offers exactly the six filters of SRS §4.8 — category, level, price, language, duration and certificate. Category and price are built in, and so is certificate: a course "carries a certificate" when it contains a visible certificate activity, so there is no field to tick. The other three read a course custom field, named below. Leave a box empty to use the default shortname; name a field that does not exist and that filter is simply left out of the panel.';
 $string['filterfield_level'] = 'Level field';
 $string['filterfield_level_desc'] = 'Short name of the course custom field holding the level. A select field gives a controlled list, which is what AC-4.8.5 requires. Default: level';
 $string['filterfield_language'] = 'Language field';
 $string['filterfield_language_desc'] = 'Short name of the course custom field holding the language of delivery. Default: language';
 $string['filterfield_duration'] = 'Duration field';
 $string['filterfield_duration_desc'] = 'Short name of the number field holding the course length in hours. It is offered as three bands — under 10, 10 to 25, over 25 — rather than as a from/to box. Default: total_number_of_hours';
-$string['filterfield_certificate'] = 'Certificate field';
-$string['filterfield_certificate_desc'] = 'Short name of the checkbox field marking a course as carrying a certificate. Default: certificate';
 
 // The "Why thousands choose us" section under the hero of every category page.
 $string['whychoose'] = '"Why choose us" section';

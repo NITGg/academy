@@ -35,10 +35,14 @@ use core_course\customfield\course_handler;
  *   select    -> a checkbox list of its configured options
  *   text      -> a checkbox list of the distinct values courses hold (our short-text
  *                fields are chip lists, so one course can sit under several options)
- *   checkbox  -> a single yes/no toggle ("Carries a certificate")
+ *   checkbox  -> a single yes/no toggle
  *   number    -> a from/to range ("Duration, hours")
  *   textarea  -> nothing: prose is searched, not faceted
  *   date      -> nothing: no course-shopping question is asked in dates today
+ *
+ * One facet is not a field at all: "Carries a certificate" is computed from whether the
+ * course contains a certificate activity (see {@see self::certificate_filter()}), because
+ * a fact the system already knows should not be a box somebody has to remember to tick.
  *
  * Values within one filter are OR-ed (Foundation *or* Intermediate) and filters are AND-ed
  * across each other, which is what a shopper means by ticking several boxes.
@@ -119,10 +123,11 @@ class catalogue {
      * six are what this builds, in that order.
      *
      * Category and price are not custom fields and are handled elsewhere ({@see
-     * self::category_facet()} and {@see self::matches_price()}); the four here are. Each is
-     * a *role* rather than a field name, and the field behind a role is a setting, so a
-     * site that calls its hours field something else is rewired in the admin UI rather
-     * than in this file.
+     * self::category_facet()} and {@see self::matches_price()}), and neither is
+     * certificate, which is computed ({@see self::certificate_filter()}); the other three
+     * are. Each is a *role* rather than a field name, and the field behind a role is a
+     * setting, so a site that calls its hours field something else is rewired in the
+     * admin UI rather than in this file.
      *
      * Only fields visible to everyone are used: a field an admin restricted to teachers
      * must not become a public facet that leaks its values through the option list.
@@ -144,6 +149,15 @@ class catalogue {
 
         $filters = [];
         foreach (self::filter_roles() as $role => $spec) {
+            // A computed role has no field to look up; it is either offered or not.
+            if (($spec['source'] ?? 'customfield') === 'certificates') {
+                $filter = $this->certificate_filter($role, $spec, $excluded);
+                if ($filter !== null) {
+                    $filters[$filter['shortname']] = $filter;
+                }
+                continue;
+            }
+
             $shortname = trim((string) get_config('local_nit_category', 'filterfield_' . $role));
             if ($shortname === '') {
                 $shortname = $spec['field'];
@@ -201,6 +215,7 @@ class catalogue {
                 // Formatted names arrive HTML-escaped; the page escapes once at output.
                 'name'       => $spec['label'](),
                 'type'       => $type,
+                'source'     => 'customfield',
                 'kind'       => $spec['kind'],
                 'options'    => $options,
                 'optionsraw' => $optionsraw,
@@ -214,13 +229,16 @@ class catalogue {
     }
 
     /**
-     * The four custom-field filters of SRS §4.8, in the order the design shows them.
+     * The four non-price, non-category filters of SRS §4.8, in the order the design shows
+     * them.
      *
-     * `field` is the shortname assumed when the matching admin setting is empty; `types`
-     * are the field types that can answer the question; `label` is deferred because a
-     * string cannot be fetched while the class is being loaded. The panel's own wording is
-     * used rather than the field's name, so a field titled "Total Number of Hours" still
-     * appears under the heading "Duration" the design asks for.
+     * Three read a course custom field: `field` is the shortname assumed when the matching
+     * admin setting is empty and `types` are the field types that can answer the question.
+     * The fourth, certificate, has `source` => 'certificates' and no field at all: it is
+     * computed from the courses (see {@see self::certificate_filter()}). `label` is deferred
+     * because a string cannot be fetched while the class is being loaded. The panel's own
+     * wording is used rather than the field's name, so a field titled "Total Number of
+     * Hours" still appears under the heading "Duration" the design asks for.
      *
      * @return array[] keyed by role
      */
@@ -256,13 +274,58 @@ class catalogue {
                     'long'   => ['min' => 25.0, 'max' => null],
                 ],
             ],
+            // Not a field. Whether the course CONTAINS a certificate activity, asked
+            // through local_academy. The role is still keyed "certificate" so the URL
+            // parameter (f_certificate) and an `excludefilterfields` entry naming it
+            // both keep working exactly as they did when it was a checkbox field.
             'certificate' => [
-                'field' => 'certificate',
-                'types' => ['checkbox'],
-                'kind'  => self::KIND_BOOL,
-                'order' => 60,
-                'label' => static fn() => get_string('filtercertificate', 'local_nit_category'),
+                'source' => 'certificates',
+                'kind'   => self::KIND_BOOL,
+                'order'  => 60,
+                'label'  => static fn() => get_string('filtercertificate', 'local_nit_category'),
             ],
+        ];
+    }
+
+    /**
+     * The certificate facet: computed from the courses, not read from a field.
+     *
+     * "Carries a certificate" was a checkbox custom field until 2026-09, and it said
+     * whatever a teacher had last ticked — a course that lost its certificate activity
+     * kept advertising one, and a course that gained one advertised nothing until somebody
+     * edited the course settings. The course either contains a certificate activity or it
+     * does not, and local_academy knows which; that is what the facet asks now, through
+     * the same call the course page's "Shareable certificate" row makes, so the two cannot
+     * disagree. The rows get their flag in {@see self::load_rows()}.
+     *
+     * Without local_academy (or without the certificate module) nothing can carry one,
+     * and the facet is simply absent — the same shape as a role whose field the site
+     * does not have.
+     *
+     * @param string $role
+     * @param array $spec the role's entry in {@see self::filter_roles()}
+     * @param array<string, true> $excluded lower-cased names from the admin's exclude list
+     * @return array|null the filter definition, or null to leave the facet out
+     */
+    private function certificate_filter(string $role, array $spec, array $excluded): ?array {
+        if (isset($excluded[\core_text::strtolower($role)])) {
+            return null;
+        }
+        if (!class_exists('\local_academy\certificates_api')
+                || !\local_academy\certificates_api::available()) {
+            return null;
+        }
+        return [
+            'shortname'  => $role,
+            'role'       => $role,
+            'name'       => $spec['label'](),
+            'type'       => 'computed',
+            'source'     => $spec['source'],
+            'kind'       => $spec['kind'],
+            'options'    => [],
+            'optionsraw' => [],
+            'buckets'    => [],
+            'sortorder'  => $spec['order'],
         ];
     }
 
@@ -358,7 +421,7 @@ class catalogue {
         }
 
         $ids = array_map(static fn($c) => (int) $c->id, array_values($courses));
-        $values = $this->load_field_values($ids);
+        $values = $this->attach_certificates($ids, $this->load_field_values($ids));
         $created = $DB->get_records_list('course', 'id', $ids, '', 'id, timecreated, category');
         $popularity = $this->load_popularity($ids);
 
@@ -409,12 +472,42 @@ class catalogue {
             if (!isset($this->filters[$shortname])) {
                 continue;
             }
+            // A computed facet never reads a field, even one that happens to share its
+            // name: the old hand-ticked "certificate" checkbox must not be able to put
+            // a course under the facet that replaced it.
+            if (($this->filters[$shortname]['source'] ?? 'customfield') !== 'customfield') {
+                continue;
+            }
             $bundle = $this->bundle($this->filters[$shortname], $record);
             if ($bundle !== null) {
                 $out[(int) $record->instanceid][$shortname] = $bundle;
             }
         }
         return $out;
+    }
+
+    /**
+     * Flag the courses that carry a certificate, for the computed certificate facet.
+     *
+     * One query for the whole candidate set, through the same local_academy call the
+     * course page makes — see {@see self::certificate_filter()} for why this is not a
+     * field. The flag takes the same `['bool' => true]` shape a checkbox bundle has, so
+     * matching, counting and the card chip need no special case for it.
+     *
+     * @param int[] $courseids
+     * @param array<int, array<string, array>> $values course id -> shortname -> bundle
+     * @return array<int, array<string, array>> the same, with the certificate flags added
+     */
+    private function attach_certificates(array $courseids, array $values): array {
+        foreach ($this->filters as $shortname => $filter) {
+            if (($filter['source'] ?? 'customfield') !== 'certificates') {
+                continue;
+            }
+            foreach (\local_academy\certificates_api::courses_with_certificate($courseids) as $courseid => $unused) {
+                $values[$courseid][$shortname] = ['bool' => true];
+            }
+        }
+        return $values;
     }
 
     /**

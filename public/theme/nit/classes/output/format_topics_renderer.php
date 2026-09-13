@@ -32,13 +32,17 @@
  *        course_fields ............. hero subject line + "Skills you'll gain" chips
  *        total_number_of_hours ..... "Duration" row in the at-a-glance card
  *        language .................. "Language" row in the at-a-glance card
- *        certificate (checkbox) .... hero badge + "Shareable certificate" glance row
- *        free (checkbox) ........... hero "Free" badge
  *        target_audience ........... "Who this course is for" card
  *        prerequisites ............. "Prerequisites" card
  *        ilos ...................... "What you'll learn" › intended learning outcomes
  *        by_the_end_of_training .... "What you'll learn" › by the end of this program
  *        level (dropdown) .......... "Level" row in the at-a-glance card
+ *   - and two facts the SYSTEM decides, which used to be hand-ticked checkbox
+ *     custom fields ("Free", "Certificate") until 2026-09 and are now read from
+ *     the plugin that actually owns each — see {@see acad_gather()}:
+ *        free .......... hero "Free" badge — no active price rule in local_payments
+ *        certificate ... "Shareable certificate" glance row — the course contains a
+ *                        certificate activity (local_academy\certificates_api)
  *
  * A field (or whole band) that has no value is simply NOT rendered — nothing is
  * ever shown as an em-dash. Short-text fields authored in the bilingual
@@ -287,6 +291,23 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $d->cf = [];
         }
 
+        // Two facts nobody should have to tick. Both used to be checkbox custom
+        // fields, and each said whatever the last editor remembered: a course
+        // whose prices were removed kept selling, a course that gained a
+        // certificate activity advertised none. Now each is read from the plugin
+        // that decides it, so this page cannot disagree with the checkout or
+        // with the curriculum below it:
+        //   - free: no active price rule — the same has_pricing() test enrol.php,
+        //     buy.php, the catalogue cards and the app's is_course_free gate on;
+        //   - certificate: the course contains a (visible) certificate activity,
+        //     asked through local_academy so the catalogue's facet and this page
+        //     give one answer.
+        // Without the plugin that owns a fact, the fact is simply not claimed.
+        $d->isfree = class_exists('\local_payments\price_resolver')
+            && !\local_payments\price_resolver::has_pricing((int) $course->id);
+        $d->hascertificate = class_exists('\local_academy\certificates_api')
+            && \local_academy\certificates_api::course_has_certificate((int) $course->id);
+
         return $d;
     }
 
@@ -407,20 +428,6 @@ class format_topics_renderer extends \format_topics\output\renderer {
             return '';
         }
         return $this->acad_ml($data->cf[$shortname]->raw, $data);
-    }
-
-    /**
-     * A checkbox custom field as bool (false when absent).
-     *
-     * @param string $shortname
-     * @param stdClass $data
-     * @return bool
-     */
-    protected function acad_cf_bool($shortname, $data): bool {
-        if (!isset($data->cf[$shortname])) {
-            return false;
-        }
-        return (bool) $data->cf[$shortname]->raw;
     }
 
     /**
@@ -567,10 +574,11 @@ class format_topics_renderer extends \format_topics\output\renderer {
         }
 
         // "Free" moves here from beside the CTA, so enrolled users — who no longer
-        // get a CTA at all — still see it. The certificate flag is deliberately
-        // NOT repeated here: the glance card next to this one already states it,
-        // with more detail ("Shareable certificate").
-        if ($this->acad_cf_bool('free', $data)) {
+        // get a CTA at all — still see it. It is the payment plugin's verdict
+        // (no active price rule), not a tick — see acad_gather(). The certificate
+        // flag is deliberately NOT repeated here: the glance card next to this
+        // one already states it, with more detail ("Shareable certificate").
+        if (!empty($data->isfree)) {
             $o .= html_writer::div(
                 html_writer::tag('span', get_string('acad_free', 'theme_nit'),
                     ['class' => 'acad-cr__badge acad-cr__badge--free']),
@@ -788,8 +796,9 @@ class format_topics_renderer extends \format_topics\output\renderer {
             // $lang is already HTML-safe (resolved via format_string/{mlang}).
             $rows[] = [$this->acad_icon('lang'), get_string('acad_language', 'theme_nit'), $lang];
         }
-        // Certificate.
-        if ($this->acad_cf_bool('certificate', $data)) {
+        // Certificate: the course contains a certificate activity (acad_gather()),
+        // which is the same test the catalogue's "Carries a certificate" facet makes.
+        if (!empty($data->hascertificate)) {
             $rows[] = [$this->acad_icon('cert'),
                 get_string('acad_certificate', 'theme_nit'),
                 get_string('acad_certificate_sub', 'theme_nit')];

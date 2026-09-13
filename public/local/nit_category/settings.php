@@ -49,6 +49,11 @@ if ($hassiteconfig) {
         get_string('filterfieldsdesc', 'local_nit_category')));
 
     foreach (\local_nit_category\catalogue::filter_roles() as $role => $spec) {
+        // Certificate is computed from the course's activities, not read from a field,
+        // so there is nothing to wire.
+        if (!isset($spec['field'])) {
+            continue;
+        }
         $settings->add(new admin_setting_configtext('local_nit_category/filterfield_' . $role,
             get_string('filterfield_' . $role, 'local_nit_category'),
             get_string('filterfield_' . $role . '_desc', 'local_nit_category'),

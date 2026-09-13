@@ -31,9 +31,9 @@ So two more calls are needed. Both are documented below.
 | Course title, summary, category name | `core_course_get_courses_by_field` |
 | **Course cover image** | `core_course_get_courses_by_field` → `overviewfiles[0].fileurl` |
 | Instructors (name + role) | `core_course_get_courses_by_field` → `contacts[]` |
-| **Prerequisites / Target audience / ILOs / Skills / Hours / Language / Certificate / Free** | `core_course_get_courses_by_field` → `customfields[]` (see §2.2) |
+| **Prerequisites / Target audience / ILOs / Skills / Hours / Language** | `core_course_get_courses_by_field` → `customfields[]` (see §2.2) |
 | Modules & activities | `getalltopics.php` (enrolled only) |
-| Price / free flag | `local_payments_get_course_price`, `local_academy` `is_course_free` |
+| Price / **Free** flag / **Certificate** flag | `local_academy` `is_course_free` → `is_free`, `has_certificate` (see §2.7); price also via `local_payments_get_course_price` |
 
 ---
 
@@ -223,8 +223,6 @@ same way.
 | `course_fields` | text | hero subject line + **"Skills you'll gain"** | one **list** — split (see §2.4, with commas) |
 | `total_number_of_hours` | number | **Duration** row ("5 hours") | number + "hour(s)" |
 | `language` | text | **Language** row | single string |
-| `certificate` | checkbox | **Certificate** row + hero badge | bool |
-| `free` | checkbox | hero **Free** badge | bool |
 | `target_audience` | text | **"Who this course is for"** card | list |
 | `prerequisites` | text | **Prerequisites** card | list |
 | `ilos` | text | **"What you'll learn"** → intended learning outcomes | list (✓ bullets) |
@@ -239,6 +237,10 @@ Rules that match the web exactly:
 - **Skills fall back to course tags**: when `course_fields` is empty, the web
   shows the course tags instead (`core_tag`/course tags). Do the same, or show
   nothing.
+- **There is no `certificate` and no `free` checkbox any more** (removed
+  2026-09-13). Both were hand-ticked and drifted from the truth; the server now
+  computes them. Read them from `is_course_free` (§2.7) and ignore any
+  `customfields[]` entry with those shortnames should an old site still send one.
 
 ## 2.3 `value` vs `valueraw` — which one to use
 
@@ -308,14 +310,14 @@ do, both of them:
 | Hero: provider label | top-level ancestor category name |
 | Hero: title | `fullname` |
 | Hero: subject line | `course_fields` (raw string, not split) |
-| Hero: `Free` badge | `free` checkbox |
+| Hero: `Free` badge | `is_course_free` → `is_free` (§2.7) |
 | Hero facts: Instructor / Enrolled / Starts | `contacts[0].fullname` (+ "and N more"), enrolled count, `startdate` |
 | Hero CTA | Enroll → your enrolment/checkout flow |
 | **At a glance**: Modules | count of visible sections (from `getalltopics.php`, enrolled) or `numsections` |
 | At a glance: Duration | `total_number_of_hours` |
 | At a glance: Assessments | count of `assign` + `quiz` + `workshop` + `lesson` activities |
 | At a glance: Language | `language` |
-| At a glance: Certificate | `certificate` checkbox → "Shareable certificate" |
+| At a glance: Certificate | `is_course_free` → `has_certificate` (§2.7) → "Shareable certificate" |
 | **What you'll learn** | `ilos` chips + `by_the_end_of_training` chips |
 | **Skills you'll gain** | `course_fields` chips (commas included), else course tags |
 | **Requirements** → Who this course is for | `target_audience` chips |
@@ -323,6 +325,31 @@ do, both of them:
 | **Instructors** | `contacts[]`, enriched via `local_academy` `get_teacher` |
 | **Offered by** | category name + category image/icon from §1.2 |
 | **Modules** accordion | `getalltopics.php` → `parents[] → topics[] → activities[]` |
+
+## 2.7 The two computed flags — `Free` and `Certificate`
+
+```
+GET {wwwroot}/local/academy/api.php?function=is_course_free&courseid=9&token={token}
+```
+
+```jsonc
+{ "status": "success",
+  "data": { "courseid": 9, "is_free": false, "has_certificate": true,
+            "price": 45.0, "currency": "USD" } }
+```
+
+| key | meaning | web equivalent |
+|---|---|---|
+| `is_free` | the course has **no active price rule** — the same test the checkout gates on | hero **Free** badge; catalogue "Free" filter |
+| `has_certificate` | the course **contains a visible certificate activity** (mod_customcert) | "At a glance" **Certificate** row; catalogue "Carries a certificate" facet |
+| `price`, `currency` | only when paid; the amount for *this* user's country | hero price |
+| `country_required` | only when paid and the signed-in user has no profile country | the "set your country" notice |
+
+Neither flag is something a teacher ticks. They were checkbox custom fields
+until 2026-09-13 and were removed precisely because a tick goes stale: a course
+whose prices were deleted stayed "paid" on its own page, and a course that
+gained a certificate activity advertised none. A course is free when nobody can
+be charged for it, and it carries a certificate when there is one to earn.
 
 ---
 
@@ -356,8 +383,8 @@ GET {wwwroot}/local/multitopics/getalltopics.php?courseid=9&wstoken={token}
 - [ ] Never re-encode the percent-encoded Arabic filenames in those URLs.
 - [ ] The category feed returns **top-level, non-empty** categories only; inherit
       the ancestor's image for subcategories.
-- [ ] `certificate` / `free` → read `valueraw` (`"1"`/`"0"`), never `value`
-      (`"Yes"`/`"No"`, localised).
+- [ ] **Free** and **Certificate** are not custom fields: read `is_free` /
+      `has_certificate` from `is_course_free` (§2.7).
 - [ ] `total_number_of_hours` → `valueraw`, print `5` not `5.0`.
 - [ ] Split multi-value text fields on `| \n •`; add `, ،` **only** for `course_fields`.
 - [ ] Resolve `{mlang}` before splitting, and send
@@ -375,6 +402,7 @@ GET {wwwroot}/local/multitopics/getalltopics.php?courseid=9&wstoken={token}
 | Category media admin page | `public/local/nit_category/image.php` |
 | The `get_categories` JSON feed | `public/local/nit_category/home.php`, `public/local/nit_category/classes/home.php` |
 | Course-detail page (the reference rendering, incl. chip/mlang parsing) | `public/theme/nit/classes/output/format_topics_renderer.php` |
+| The computed **Free** / **Certificate** flags (§2.7) | `public/local/academy/api.php` (`is_course_free`) → `local_payments\price_resolver::has_pricing()` and `local_academy\certificates_api::course_has_certificate()` |
 | Chips editor that writes `|`-joined values | `public/local/nit_core/classes/hook/output_callbacks.php` |
 | Bilingual field editor | `public/local/nit_mlang/README.md` |
 | Course structure feed | `public/local/multitopics/getalltopics.php` |

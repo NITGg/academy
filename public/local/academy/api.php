@@ -263,11 +263,23 @@ try {
 
         // ── Courses: is this course free? ───────────────────────────────────────────
         // Free = no active pricing rule. Returns price/currency too when paid.
+        //
+        // Also carries `has_certificate`. Both flags used to be checkbox custom
+        // fields the app read from core_course_get_courses_by_field's customfields[]
+        // ("free", "certificate"); those fields are gone (local_academy 2026091300)
+        // because each is a fact the system already knows, and this call is where
+        // the app already asks the first of them. has_certificate = the course
+        // contains a visible certificate activity — the same test the web course
+        // page's "Shareable certificate" row and the catalogue's facet make.
         case 'is_course_free':
             $courseid = required_param('courseid', PARAM_INT);
             $isfree = !class_exists('\local_payments\price_resolver')
                 || !\local_payments\price_resolver::has_pricing($courseid);
-            $data = ['courseid' => (int) $courseid, 'is_free' => $isfree];
+            $data = [
+                'courseid'        => (int) $courseid,
+                'is_free'         => $isfree,
+                'has_certificate' => \local_academy\certificates_api::course_has_certificate($courseid),
+            ];
             if (!$isfree) {
                 try {
                     $p = \local_payments\price_resolver::resolve($courseid, $userid);

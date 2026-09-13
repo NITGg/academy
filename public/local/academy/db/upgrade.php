@@ -56,5 +56,41 @@ function xmldb_local_academy_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026083000, 'local', 'academy');
     }
 
+    if ($oldversion < 2026091300) {
+        // Two course custom fields nobody should have had to tick. "Free" and
+        // "Certificate" were checkboxes under "Other fields" on the course settings
+        // form, and each said whatever the last editor remembered: a course whose
+        // prices were removed stayed "paid" on its own page, a course that gained
+        // a certificate activity advertised none. Both facts are now read from
+        // the plugin that decides them - free = no active local_payments price
+        // rule, certificate = the course contains a certificate activity
+        // (\local_academy\certificates_api::course_has_certificate()) - by the
+        // course page, the catalogue facet and the app's is_course_free call.
+        //
+        // Nothing reads the fields any more, so they go, and with them the
+        // checkboxes on the form. Matched by shortname AND type, so a field an
+        // administrator later gives one of these names for another purpose is
+        // left alone; the handler call also drops their customfield_data rows.
+        try {
+            $handler = \core_course\customfield\course_handler::create();
+            foreach ($handler->get_fields() as $field) {
+                $shortname = (string) $field->get('shortname');
+                if (!in_array($shortname, ['free', 'certificate'], true) || $field->get('type') !== 'checkbox') {
+                    continue;
+                }
+                $handler->delete_field_configuration($field);
+                mtrace("local_academy: removed the hand-ticked course custom field '{$shortname}'; " .
+                    "the fact is now computed.");
+            }
+        } catch (\Throwable $e) {
+            // A broken field definition must not stop the upgrade; the field can
+            // still be deleted by hand under Site administration > Courses >
+            // Course custom fields.
+            mtrace('local_academy: could not remove the free/certificate custom fields: ' . $e->getMessage());
+        }
+
+        upgrade_plugin_savepoint(true, 2026091300, 'local', 'academy');
+    }
+
     return true;
 }

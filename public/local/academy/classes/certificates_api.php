@@ -36,6 +36,12 @@ defined('MOODLE_INTERNAL') || die();
  * when the file is there. Every entry point here asks {@see self::available()}
  * first.
  *
+ * It also answers the one question about a COURSE the site keeps asking - "does
+ * this course carry a certificate?" ({@see self::course_has_certificate()}).
+ * The course page's "Shareable certificate" row, the catalogue's "Carries a
+ * certificate" facet and the app's `is_course_free` call all come here, so the
+ * three screens cannot disagree about it.
+ *
  * @package    local_academy
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -68,6 +74,73 @@ class certificates_api {
         if (!self::available()) {
             throw new \moodle_exception('err_nocertificates', 'local_academy');
         }
+    }
+
+    /**
+     * The activity modules that issue a certificate.
+     *
+     * @var string[]
+     */
+    const CERTIFICATE_MODULES = ['customcert'];
+
+    /**
+     * Whether a course carries a certificate.
+     *
+     * "Carries a certificate" means the course CONTAINS a certificate activity
+     * the learner can reach: a visible customcert instance that is not being
+     * deleted. Until 2026-09 this was a course custom field - a "Certificate"
+     * checkbox a teacher ticked by hand - and it said whatever was last ticked: a
+     * course that lost its certificate activity kept advertising one, and a
+     * course that gained one advertised nothing until somebody remembered to
+     * edit the course settings. The activity IS the certificate, so the activity
+     * is what is asked.
+     *
+     * A hidden activity does not count. The teacher has not published it, so
+     * the learner cannot earn it yet, and a catalogue must not promise it.
+     *
+     * @param int $courseid
+     * @return bool
+     */
+    public static function course_has_certificate(int $courseid): bool {
+        return !empty(self::courses_with_certificate([$courseid]));
+    }
+
+    /**
+     * Which of a set of courses carry a certificate, in ONE query.
+     *
+     * The catalogue asks about every course on a page and every course behind a
+     * facet count, so the per-course form of this would be a few hundred queries.
+     *
+     * @param int[] $courseids
+     * @return array<int, true> keyed by course id; a course absent from the result carries none
+     */
+    public static function courses_with_certificate(array $courseids): array {
+        global $DB;
+
+        $courseids = array_values(array_unique(array_filter(array_map('intval', $courseids))));
+        if (empty($courseids) || !self::available()) {
+            return [];
+        }
+
+        [$coursesql, $courseparams] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'c');
+        [$modsql, $modparams] = $DB->get_in_or_equal(self::CERTIFICATE_MODULES, SQL_PARAMS_NAMED, 'm');
+
+        // m.visible: a module an administrator switched off site-wide issues
+        // nothing, whatever its instances say.
+        $sql = "SELECT DISTINCT cm.course
+                  FROM {course_modules} cm
+                  JOIN {modules} m ON m.id = cm.module
+                 WHERE m.name $modsql
+                   AND m.visible = 1
+                   AND cm.visible = 1
+                   AND cm.deletioninprogress = 0
+                   AND cm.course $coursesql";
+
+        $out = [];
+        foreach ($DB->get_fieldset_sql($sql, $courseparams + $modparams) as $courseid) {
+            $out[(int) $courseid] = true;
+        }
+        return $out;
     }
 
     /**
