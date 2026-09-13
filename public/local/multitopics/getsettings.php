@@ -24,7 +24,9 @@
  *
  * Contract (the app parses it exactly this way — do not "improve" it):
  *   - 200 with Content-Type application/json, one top-level "data" object.
- *   - EVERY value is a JSON string, numbers and booleans included.
+ *   - EVERY value is a JSON string, numbers and booleans included - except
+ *     `pages`, an object of the About and Contact pages in the shape of
+ *     local_profilefields_get_static_page (optional ?lang=ar|en picks the text).
  *   - A key that has no usable value is OMITTED, never sent empty or malformed:
  *     the app falls back per key, but a malformed value throws on its side
  *     (a bad version string locks every user behind a blocking update dialog).
@@ -115,6 +117,38 @@ if (class_exists('\local_payments\country_detector')) {
         $put('ip_country', \local_payments\country_detector::detect_for_pricing(0, null, getremoteaddr()));
     } catch (\Throwable $e) {
         debugging('local_multitopics: ip_country lookup failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+    }
+}
+
+// ── Support e-mail and the About / Contact pages ───────────────────────────
+// Both come from local_profilefields, which already owns them for the web site
+// and the app's `local_profilefields_get_static_page` function: the footer's
+// e-mail row is the support address, and the two pages are served through the
+// very same external class so the feed and the WS can never disagree. Nested
+// objects, unlike the flat string keys above; the app reads them as such.
+if (class_exists('\local_profilefields\footer')) {
+    $email = trim(\local_profilefields\footer::get('email'));
+    $put('support_email', validate_email($email) ? $email : '');
+}
+
+if (class_exists('\local_profilefields\external\get_static_page')) {
+    // ?lang=ar|en picks the language of the page text; absent = site default.
+    $lang = optional_param('lang', '', PARAM_LANG);
+    $pages = [];
+    foreach (['about', 'contact'] as $slug) {
+        try {
+            $page = \local_profilefields\external\get_static_page::execute($slug, $lang);
+            unset($page['warnings']);
+            $pages[$slug] = $page;
+            if (!empty($page['published'])) {
+                $put($slug . '_url', $page['url']);
+            }
+        } catch (\Throwable $e) {
+            debugging("local_multitopics: static page '$slug' failed: " . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+    }
+    if ($pages) {
+        $data['pages'] = $pages;
     }
 }
 

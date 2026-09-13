@@ -14,8 +14,7 @@ if (!empty($CFG->forcelogin)) {
 $categoryid = required_param('id', PARAM_INT);      // The category this page is about.
 $subid      = optional_param('sub', 0, PARAM_INT);  // Initial filter: 0 = "All", else one direct child.
 
-// The category. Any category, at any depth: a subcategory is an ordinary category and
-// opens its own copy of this page (its own hero, its own filter bar of its own children).
+// The category.
 $category = core_course_category::get($categoryid, MUST_EXIST);
 $context  = $category->get_context();
 
@@ -124,6 +123,11 @@ if (!$hasrealimage) {
 // labels) -> Accent Text (--ctext3), and non-text accent tints/pills/borders -> Accent
 // (--caccent). --cbg3 (the tile behind category/course images) is Surface lifted a
 // touch so logos read cleanly.
+//
+// --ctext4 is the ink drawn ON a --cbg4 (Primary) fill, and is the palette's own
+// "Text on main button" role — the pair .btn-primary uses. It is NOT Text primary:
+// that is the ink for the page surface, and a light group's surface ink is near-black
+// while its primary fill is a dark blue, so the two land on each other unreadably.
 $stylevars =
     '--cbg1: var(--nit-brand-background); '
   . '--cbg2: var(--nit-brand-surface); '
@@ -133,7 +137,7 @@ $stylevars =
   . '--ctext2: var(--nit-brand-textsecondary); '
   . '--ctext3: var(--nit-brand-accenttext); '
   . '--caccent: var(--nit-brand-accent); '
-  . '--ctext4: var(--nit-brand-textprimary); '
+  . '--ctext4: var(--nit-brand-onprimary); '
   . '--cborder: var(--nit-brand-borderprimary); '
   . '--csuccess: var(--nit-brand-success); ';
 
@@ -362,18 +366,6 @@ echo $OUTPUT->header();
       animation: nit-fadedown 0.8s ease both;
     }
 
-    /* Ancestor trail — only on a subcategory's page. */
-    .nit-hero__crumbs {
-      display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px;
-      margin-bottom: 14px; font-size: 13px; font-weight: 600; color: var(--ctext2);
-      animation: nit-fadedown 0.6s ease;
-    }
-    .nit-hero__crumbs a { color: var(--ctext3); text-decoration: none; }
-    .nit-hero__crumbs a:hover { text-decoration: underline; }
-    .nit-hero__crumb-sep { opacity: 0.6; }
-    [dir="rtl"] .nit-hero__crumb-sep { transform: scaleX(-1); display: inline-block; }
-    .nit-hero__crumb-current { color: var(--ctext1); }
-
     /* Badge — X-Trade .hero-badge */
     .nit-hero__badge {
       display: inline-flex; align-items: center; gap: 0.5rem;
@@ -445,21 +437,6 @@ echo $OUTPUT->header();
       <?php if ($hasrealimage): ?>
       <?php // $categoryname comes from format_string(), so it is already attribute-safe. ?>
       <img class="nit-hero__logo" src="<?= s($categoryimage) ?>" alt="<?= $categoryname ?>">
-      <?php endif; ?>
-
-      <?php
-      // A subcategory's page says where it sits: a trail of its ancestors, each one a link
-      // to its own copy of this page. A top-level category has no trail to show.
-      $parents = $category->get_parents();
-      if (!empty($parents)): ?>
-      <nav class="nit-hero__crumbs" aria-label="<?= $t('Parent categories', 'التصنيفات الأعلى') ?>">
-        <?php foreach ($parents as $pid): ?>
-          <?php $pcat = core_course_category::get($pid, IGNORE_MISSING); if (!$pcat) { continue; } ?>
-          <a href="<?= (new moodle_url('/local/nit_category/index.php', ['id' => $pid]))->out() ?>"><?= $pcat->get_formatted_name() ?></a>
-          <span class="nit-hero__crumb-sep" aria-hidden="true">›</span>
-        <?php endforeach; ?>
-        <span class="nit-hero__crumb-current"><?= $categoryname ?></span>
-      </nav>
       <?php endif; ?>
 
       <!-- Badge: category name with pulsing dot, and this category's icon if it has one -->
@@ -875,21 +852,17 @@ echo $OUTPUT->header();
         // Recursive section renderer: each category (at any depth) gets an X-Trade
         // style "specialty" title — pin icon + gradient text + a coloured start-border —
         // then its own course grid, then its child subcategories nested underneath with
-        // the same title UI (indented to show the hierarchy). Every title is a link to
-        // that category's own copy of this page: a subcategory at any depth is browsed
-        // exactly like a top-level one.
+        // the same title UI (indented to show the hierarchy). Titles are headings, not
+        // links: a subcategory is browsed here, under its parent, never on a page of
+        // its own.
         //
         // A top-level block carries data-nit-block=<category id> for the filter bar, and
         // starts hidden when the page opened filtered to a different child (?sub=).
-        $rendernode = function (array $node, int $depth) use (&$rendernode, $rendercard, $counttree, $subid, $categoryid): void {
+        $rendernode = function (array $node, int $depth) use (&$rendernode, $rendercard, $counttree, $subid): void {
             $cat   = $node['cat'];
             $name  = $cat->get_formatted_name();
             $count = $counttree($node);
             $blockclass = 'nit-spec-block' . ($depth > 0 ? ' nit-spec-block--nested' : '');
-            // The section of the category's own direct courses links nowhere new: it is
-            // this page. Every other section is a subcategory with a page of its own.
-            $caturl = (int) $cat->id === $categoryid ? '' :
-                (new moodle_url('/local/nit_category/index.php', ['id' => $cat->id]))->out();
             $blockattrs = '';
             if ($depth === 0) {
                 $blockattrs = ' data-nit-block="' . (int) $cat->id . '"'
@@ -905,12 +878,9 @@ echo $OUTPUT->header();
         ?>
         <div class="<?= $blockclass ?>"<?= $blockattrs ?>>
           <div class="nit-spec-head">
-            <?php // The title's tag: a link to the category's own page when it has one. ?>
-            <?php $ttag = $caturl !== '' ? 'a' : 'span'; $thref = $caturl !== '' ? ' href="' . $caturl . '"' : ''; ?>
             <?php if ($depth === 0): ?>
             <!-- Top-level subcategory: image (or pin) + gradient text + coloured start-border. -->
             <h3 class="nit-spec-title">
-              <<?= $ttag ?><?= $thref ?> class="nit-spec-link">
               <?php if ($secicon !== ''): ?>
               <?= $secicon ?>
               <?php elseif ($secimage !== ''): ?>
@@ -920,12 +890,10 @@ echo $OUTPUT->header();
               <?php endif; ?>
               <span class="nit-spec-name"><?= $name ?></span>
               <span class="nit-spec-count">(<?= $count ?>)</span>
-              </<?= $ttag ?>>
             </h3>
             <?php else: ?>
-            <!-- Nested subcategory: rounded tint pill + image (or circle icon). -->
+            <!-- Nested subcategory: soft accent chip + image (or circle icon). -->
             <h3 class="nit-spec-title nit-spec-title--sub">
-              <<?= $ttag ?><?= $thref ?> class="nit-spec-link">
               <?php if ($secicon !== ''): ?>
               <?= $secicon ?>
               <?php elseif ($secimage !== ''): ?>
@@ -935,7 +903,6 @@ echo $OUTPUT->header();
               <?php endif; ?>
               <span class="nit-spec-subname"><?= $name ?></span>
               <span class="nit-spec-count">(<?= $count ?>)</span>
-              </<?= $ttag ?>>
             </h3>
             <?php endif; ?>
           </div>
@@ -979,15 +946,6 @@ echo $OUTPUT->header();
           border-inline-start: 4px solid var(--cbg4);
           padding-inline-start: 14px;
         }
-        /* The title's contents sit inside a link (or a span for this page's own courses)
-           that inherits every colour, so a linked title looks exactly like a plain one
-           until it is hovered. */
-        .nit-spec-title .nit-spec-link {
-          display: inline-flex; align-items: center; gap: inherit;
-          color: inherit; text-decoration: none;
-        }
-        .nit-spec-title a.nit-spec-link:hover .nit-spec-name,
-        .nit-spec-title a.nit-spec-link:hover .nit-spec-subname { text-decoration: underline; }
         .nit-spec-title .nit-spec-name {
           color: var(--ctext3);
         }
@@ -1000,23 +958,31 @@ echo $OUTPUT->header();
           background: var(--cbg3); padding: 5px; box-sizing: border-box;
         }
 
-        /* Nested subcategory title — rounded tint pill (50% of the accent) + circle
-           icon instead of the pin; no gradient / start-border so it reads as a chip. */
+        /* Nested subcategory title — a soft accent chip + circle icon instead of the
+           pin; no gradient / start-border so it reads as a chip.
+
+           Soft, not filled: a light wash of Accent over the surface, with Accent TEXT
+           as the ink — the same pairing as the "In your subscription" badge on the
+           cards. Accent Text is a text role, chosen per group to read on that group's
+           surface, so the chip is legible in a light group and a dark one alike. The
+           old version filled the chip 70% with Accent and wrote Text primary on it,
+           which in a light group is near-black ink on a mid-blue fill. */
         .nit-spec-title--sub {
           border-inline-start: none; padding: 8px 20px; border-radius: 50px;
-          background: color-mix(in srgb, var(--caccent) 70%, transparent);
-          font-size: 20px; color: var(--ctext1);
+          background: color-mix(in srgb, var(--caccent) 16%, transparent);
+          border: 1px solid color-mix(in srgb, var(--caccent) 45%, transparent);
+          font-size: 20px; color: var(--ctext3);
         }
-        .nit-spec-title--sub .nit-spec-subname { color: var(--ctext1); }
-        .nit-spec-title--sub .nit-spec-count { color: var(--ctext1); font-size: 14px; }
+        .nit-spec-title--sub .nit-spec-subname { color: var(--ctext3); }
+        .nit-spec-title--sub .nit-spec-count { color: var(--ctext3); font-size: 14px; }
         .nit-spec-title--sub .nit-spec-dot {
           width: 12px; height: 12px; border-radius: 50%;
-          background: var(--ctext1); flex: 0 0 auto;
+          background: var(--ctext3); flex: 0 0 auto;
         }
         /* Smaller inside the chip, and round to match the dot it replaces. */
         .nit-spec-title--sub .nit-spec-img {
           width: 28px; height: 28px; border-radius: 50%; padding: 3px;
-          background: color-mix(in srgb, var(--ctext1) 15%, transparent);
+          background: color-mix(in srgb, var(--ctext3) 15%, transparent);
         }
 
         .nit-spec-grid {
@@ -1031,16 +997,18 @@ echo $OUTPUT->header();
           border-inline-start: 2px solid color-mix(in srgb, var(--cbg4) 18%, transparent);
         }
 
-        /* Course-card category chip — same tint pill + circle icon as nested titles. */
+        /* Course-card category chip — same soft chip + circle icon as nested titles
+           (and the same Accent-wash / Accent-Text pairing, for the same reason). */
         .nit-card-cat {
           align-self: flex-start; display: inline-flex; align-items: center; gap: 8px;
-          background: color-mix(in srgb, var(--caccent) 70%, transparent);
-          color: var(--ctext1); padding: 6px 14px; border-radius: 4px;
+          background: color-mix(in srgb, var(--caccent) 16%, transparent);
+          border: 1px solid color-mix(in srgb, var(--caccent) 45%, transparent);
+          color: var(--ctext3); padding: 6px 14px; border-radius: 4px;
           font-size: 12px; font-weight: bold; margin-bottom: 16px;
         }
         .nit-card-cat-dot {
           width: 9px; height: 9px; border-radius: 50%;
-          background: var(--ctext1); flex: 0 0 auto;
+          background: var(--ctext3); flex: 0 0 auto;
         }
       </style>
 
