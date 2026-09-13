@@ -16,6 +16,12 @@ MOODLE_NOTIFY_KEY="${MOODLE_NOTIFY_KEY:-academy-cron-2024}"
 BUNNY_API_URL="${BUNNY_API_URL:-}"
 BUNNY_INTERNAL_KEY="${BUNNY_INTERNAL_KEY:-}"
 
+# NIT SaaS academies: recordings from rooms named nit_<slug>_<cmid>_<hash> are POSTed
+# to the academy's record_notify.php, which uploads them to Vimeo (local_vimeo). The
+# Jibri host needs NO video credentials for the SaaS path — just the notify key +
+# domain. (Bunny/MinIO below still serve the legacy single-tenant academy.)
+SAAS_DOMAIN="${SAAS_DOMAIN:-academy2026.nitg-eg.com}"
+
 log() { echo "[finalize] $*" >&2; }
 
 if [ -z "$RECORDING_DIR" ] || [ ! -d "$RECORDING_DIR" ]; then
@@ -37,6 +43,40 @@ TITLE="${FILENAME%.mp4}"
 # Extract the Moodle cmid from the room name (academy_jitsi_{cmid}_{hash}_…)
 CMID=$(echo "$TITLE" | sed 's/academy_jitsi_\([0-9]*\)_.*/\1/')
 [ "$CMID" = "$TITLE" ] && CMID="" # sed returned unchanged — no match
+
+# ════════════════════════════════════════════════════════════════════════════
+#  NIT SaaS branch: rooms named nit_<slug>_<cmid>_<hash> belong to a multi-tenant
+#  academy → POST the .mp4 to THAT academy's record_notify.php, which uploads it to
+#  Vimeo (via local_vimeo) and stores it. The Jibri host needs NO video credentials
+#  — only MOODLE_NOTIFY_KEY + SAAS_DOMAIN. Legacy single-tenant rooms
+#  (academy_jitsi_…) fall through to the Bunny/MinIO flow below, unchanged.
+# ════════════════════════════════════════════════════════════════════════════
+SAAS_ROOM=""
+[ -f "$RECORDING_DIR/metadata.json" ] && SAAS_ROOM=$(grep -oE 'nit_[a-z0-9-]+_[0-9]+_[a-f0-9]+' "$RECORDING_DIR/metadata.json" | head -1)
+[ -n "$SAAS_ROOM" ] || SAAS_ROOM=$(printf '%s' "$TITLE" | grep -oE 'nit_[a-z0-9-]+_[0-9]+_[a-f0-9]+' | head -1)
+
+if [ -n "$SAAS_ROOM" ]; then
+    SAAS_SLUG=$(printf '%s' "$SAAS_ROOM" | sed -E 's/^nit_(.+)_([0-9]+)_[a-f0-9]+$/\1/')
+    SAAS_CMID=$(printf '%s' "$SAAS_ROOM" | sed -E 's/^nit_(.+)_([0-9]+)_[a-f0-9]+$/\2/')
+    REC_TITLE="Recording $(date '+%Y-%m-%d %H:%M')"
+    NOTIFY_URL="https://${SAAS_SLUG}.${SAAS_DOMAIN}/mod/jitsi/record_notify.php"
+    log "SaaS recording: academy=$SAAS_SLUG cmid=$SAAS_CMID → $NOTIFY_URL (Vimeo via record_notify, $(du -h "$MP4_FILE" | cut -f1))"
+
+    # Server-to-server multipart upload of the recording. --max-time high for big files.
+    NOTIFY_CODE=$(curl -s -o /tmp/rec_notify.out -w "%{http_code}" --max-time 3600 \
+        -X POST "$NOTIFY_URL" \
+        -H "X-Notify-Key: ${MOODLE_NOTIFY_KEY}" \
+        -F "cmid=${SAAS_CMID}" \
+        -F "title=${REC_TITLE}" \
+        -F "file=@${MP4_FILE};type=video/mp4")
+    if [ "$NOTIFY_CODE" -ge 200 ] 2>/dev/null && [ "$NOTIFY_CODE" -lt 300 ] 2>/dev/null; then
+        log "record_notify OK (HTTP $NOTIFY_CODE): $(cat /tmp/rec_notify.out 2>/dev/null). Removing local recording."
+        rm -rf "$RECORDING_DIR"
+    else
+        log "ERROR: record_notify HTTP ${NOTIFY_CODE} ($(cat /tmp/rec_notify.out 2>/dev/null)) — files kept for retry"
+    fi
+    exit 0
+fi
 
 # ── Upload directly to Bunny via TUS ─────────────────────────────────────────
 if [ -n "$BUNNY_API_URL" ] && [ -n "$BUNNY_INTERNAL_KEY" ]; then
