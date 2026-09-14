@@ -178,12 +178,9 @@ class gear_menu {
      *
      * Blank lines are skipped. A page line before any heading opens a group
      * with no heading, so a menu that is one flat list still works. A page line
-     * without a link is dropped - there is nothing to open.
-     *
-     * A page line is `-English|Arabic|link`, or `-English|link` when one name
-     * is enough: with two parts, the second is the link if it reads like one
-     * (starts with `/` or a scheme) and the Arabic name otherwise. A fourth
-     * part, when present, is an explicit rule (rule_for() explains).
+     * that page_line() cannot find a link in is dropped here - there is nothing
+     * to open - but the settings page refuses to save such a line in the first
+     * place (problems()), so a saved definition never loses a row silently.
      *
      * @param string $text the setting text
      * @return array list of ['names' => ['en' => string, 'ar' => string],
@@ -208,26 +205,15 @@ class gear_menu {
                 continue;
             }
 
-            $bits = array_map('trim', explode('|', ltrim($line, '-'), 4));
-            if (count($bits) === 2 && self::looks_like_link($bits[1])) {
-                $bits = [$bits[0], '', $bits[1]];
-            }
-            $en = $bits[0];
-            $ar = $bits[1] ?? '';
-            $url = $bits[2] ?? '';
-            $rule = $bits[3] ?? '';
-            if (($en === '' && $ar === '') || $url === '') {
+            $item = self::page_line($line);
+            if ($item['url'] === '' || ($item['names']['en'] === '' && $item['names']['ar'] === '')) {
                 continue;
             }
 
             if ($current === null) {
                 $current = ['names' => ['en' => '', 'ar' => ''], 'items' => []];
             }
-            $current['items'][] = [
-                'names' => ['en' => $en, 'ar' => $ar],
-                'url' => $url,
-                'rule' => $rule,
-            ];
+            $current['items'][] = $item;
         }
 
         if ($current !== null) {
@@ -235,6 +221,70 @@ class gear_menu {
         }
 
         return $groups;
+    }
+
+    /**
+     * Read one page line - `-English|Arabic|link`, with some forgiveness.
+     *
+     * The link is the third part when there are three. With fewer, the last
+     * part is the link if it reads like one (`-English|link`, one name for
+     * both languages), and when it does not, a link glued onto the end of a
+     * name is peeled off it: `-Calendar|التقويم/calendar/view.php` is the most
+     * common slip - a `|` forgotten before the link - and is read as the
+     * writer meant. A fourth part, when present, is an explicit rule
+     * (rule_for() explains). `url` is '' when no link could be found.
+     *
+     * @param string $line a trimmed line starting with '-'
+     * @return array ['names' => ['en' => string, 'ar' => string], 'url' => string, 'rule' => string]
+     */
+    public static function page_line(string $line): array {
+        $bits = array_map('trim', explode('|', ltrim($line, '-'), 4));
+
+        if (count($bits) >= 3) {
+            [$en, $ar, $url] = $bits;
+            $rule = $bits[3] ?? '';
+        } else {
+            $rule = '';
+            $last = array_pop($bits);
+            if (self::looks_like_link($last)) {
+                $url = $last;
+            } else if (preg_match('~^(.*?)((?:/|[a-z][a-z0-9+.-]*://)\S*)$~iu', $last, $found)) {
+                $bits[] = trim($found[1]);
+                $url = $found[2];
+            } else {
+                $bits[] = $last;
+                $url = '';
+            }
+            $en = $bits[0];
+            $ar = $bits[1] ?? '';
+        }
+
+        return ['names' => ['en' => $en, 'ar' => $ar], 'url' => $url, 'rule' => $rule];
+    }
+
+    /**
+     * What is wrong with a definition, for the settings page to show before
+     * it saves: every page line that names no link, and every one that has a
+     * link but no name. A heading line can never be wrong.
+     *
+     * @param string $text the text as typed
+     * @return array list of ['line' => int (1-based), 'text' => string, 'problem' => 'nolink'|'noname']
+     */
+    public static function problems(string $text): array {
+        $problems = [];
+        foreach (preg_split('/\r\n|\r|\n/', $text) as $number => $line) {
+            $line = trim($line);
+            if ($line === '' || $line[0] !== '-') {
+                continue;
+            }
+            $item = self::page_line($line);
+            if ($item['url'] === '') {
+                $problems[] = ['line' => $number + 1, 'text' => $line, 'problem' => 'nolink'];
+            } else if ($item['names']['en'] === '' && $item['names']['ar'] === '') {
+                $problems[] = ['line' => $number + 1, 'text' => $line, 'problem' => 'noname'];
+            }
+        }
+        return $problems;
     }
 
     /**

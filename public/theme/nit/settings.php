@@ -207,7 +207,8 @@ if ($ADMIN->fulltree) {
             get_string('gearmenu', 'theme_nit'),
             get_string('gearmenu_desc', 'theme_nit')
         ));
-        $advancedpage->add(new admin_setting_configtextarea(
+        // A textarea that refuses a page line without a link (see the class).
+        $advancedpage->add(new \theme_nit\local\gear_menu_setting(
             'theme_nit/gearmenuitems',
             get_string('gearmenuitems', 'theme_nit'),
             get_string('gearmenuitems_desc', 'theme_nit'),

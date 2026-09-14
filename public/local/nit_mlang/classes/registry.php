@@ -123,6 +123,33 @@ class registry {
     ];
 
     /**
+     * Inline-rename controls that edit a display string.
+     *
+     * The pencil next to a section or activity name on the course page is not a
+     * form field: it is a `core/inplace_editable` that swaps the name for a single
+     * input and saves on Enter. Which of those hold a translatable value is keyed
+     * by the editable's `component|itemtype` pair (both accept `*`). Section names
+     * are owned by the course format (`format_topics`, `format_weeks`, ...), hence
+     * the wildcard; activity names by core_course.
+     *
+     * @var string[]
+     */
+    const INLINE_ITEMS = [
+        'format_*|sectionname',
+        'format_*|sectionnamenl',
+        'core_course|activityname',
+    ];
+
+    /**
+     * Inline-rename controls (`component|itemtype` globs) that get per-language boxes.
+     *
+     * @return string[]
+     */
+    public static function inline_items(): array {
+        return self::INLINE_ITEMS;
+    }
+
+    /**
      * The effective allow list for text inputs (defaults + admin additions).
      *
      * @return string[]

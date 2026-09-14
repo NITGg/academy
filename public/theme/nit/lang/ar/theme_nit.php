@@ -274,6 +274,8 @@ $string['gearmenuitems_desc'] = '<p>سطر لكل عنصر، والأجزاء م
 Management|الإدارة
 -Manage coupons|إدارة الكوبونات|/local/nit_commerce/manage_coupons.php
 -Reports|التقارير|/reportbuilder/index.php|loggedin</pre>';
+$string['gearmenuerrornolink'] = 'السطر {$a->line} بلا رابط، فلم يُحفظ شيء: "{$a->text}". اكتب الصفحة بالشكل -الاسم الإنجليزي|الاسم العربي|الرابط مع علامة | قبل الرابط.';
+$string['gearmenuerrornoname'] = 'السطر {$a->line} فيه رابط لكن بلا اسم، فلم يُحفظ شيء: "{$a->text}".';
 
 
 // حجم الشعار — يظهر في صفحة "الشعارات" في النواة (المظهر ← الشعارات) أسفل

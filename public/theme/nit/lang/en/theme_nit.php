@@ -283,6 +283,8 @@ $string['gearmenuitems_desc'] = '<p>One line per item, the parts separated by <c
 Management|الإدارة
 -Manage coupons|إدارة الكوبونات|/local/nit_commerce/manage_coupons.php
 -Reports|التقارير|/reportbuilder/index.php|loggedin</pre>';
+$string['gearmenuerrornolink'] = 'Line {$a->line} has no link, so nothing was saved: "{$a->text}". Write a page as -English name|Arabic name|link, with a | before the link.';
+$string['gearmenuerrornoname'] = 'Line {$a->line} has a link but no name, so nothing was saved: "{$a->text}".';
 
 
 // Logo size — shown on the core Logos page (Appearance → Logos), directly under

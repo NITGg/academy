@@ -79,6 +79,7 @@ class output_callbacks {
             $textfields   = array_merge(registry::text_fields(), $profile['text']);
             $editors      = self::setting('editors');
             $forceeditors = $profile['editor'];
+            $inlineitems  = registry::inline_items();
         } else {
             // Everybody else: nothing but their own profile, and only on a screen
             // where a profile is edited — a student filling in a forum subject
@@ -89,6 +90,7 @@ class output_callbacks {
             $textfields   = $profile['text'];
             $editors      = false;
             $forceeditors = $profile['editor'];
+            $inlineitems  = [];
         }
 
         $PAGE->requires->js_call_amd('local_nit_mlang/fields', 'init', [[
@@ -109,8 +111,18 @@ class output_callbacks {
             // document that breaks when it is split in two; an instructor's
             // Biography is ordinary prose and has the opposite need.
             'forceeditors'   => $forceeditors,
+            // Inline-rename controls (the pencil beside a section or activity name
+            // on the course page) that get the same per-language boxes. They are
+            // not form fields, so they are keyed by component|itemtype rather than
+            // by field name, and are only ever handed to content authors.
+            'inlineitems'    => $inlineitems,
             'strings'        => [
                 'translations' => get_string('translations', 'local_nit_mlang'),
+                // The inline widget reuses core's own wording so it reads like the
+                // single-box control it replaces.
+                'instructions' => get_string('edittitleinstructions'),
+                'save'         => get_string('save'),
+                'cancel'       => get_string('cancel'),
             ],
         ]]);
     }
