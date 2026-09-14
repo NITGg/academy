@@ -17,6 +17,7 @@
 namespace theme_nit\output;
 
 use local_nit_core\output\view_model;
+use theme_nit\local\gear_menu;
 
 /**
  * NIT core renderer — the "how to show" half of the rendering seam.
@@ -591,94 +592,6 @@ JS;
     }
 
     /**
-     * Render the "Management" group of the navbar gear menu.
-     *
-     * The academy's day-to-day management screens (coupons, offers,
-     * subscriptions, the job form, the design gallery, site media) each live
-     * under a different branch of Site administration, so reaching any one of
-     * them is three or four clicks down a tree. They are the screens an
-     * administrator opens every day, so the gear menu carries them directly, as
-     * a second group beneath core's Navigation list.
-     *
-     * Every row is gated on the same capability the page itself requires, so a
-     * user who could not open the page never sees the link; a row whose plugin
-     * is not installed on the site is skipped entirely (its capability would
-     * not exist to ask about). Returns '' when nothing survives that filter -
-     * the group, heading and all, then simply is not there.
-     *
-     * @return string HTML, or '' when the user may see none of the links
-     */
-    public function navbar_management_menu(): string {
-        $syscontext = \context_system::instance();
-
-        // [component, capability, url, label string identifier, string component].
-        $candidates = [
-            ['local_nit_commerce', 'local/nit_commerce:managecoupons',
-                '/local/nit_commerce/manage_coupons.php', 'managecoupons', 'local_nit_commerce'],
-            ['local_nit_commerce', 'local/nit_commerce:manageoffers',
-                '/local/nit_commerce/manage_offers.php', 'manageoffers', 'local_nit_commerce'],
-            ['local_nit_subscriptions', 'local/nit_subscriptions:managesubscriptions',
-                '/local/nit_subscriptions/manage_subscriptions.php', 'managesubscriptions', 'local_nit_subscriptions'],
-            ['local_jobform', 'local/jobform:manage',
-                '/local/jobform/manage.php', 'managejobform', 'local_jobform'],
-            ['theme_nit', 'moodle/site:config',
-                '/theme/nit/gallery.php', 'navgallery', 'theme_nit'],
-            ['local_nit_media', 'moodle/site:config',
-                '/admin/settings.php', 'pluginname', 'local_nit_media'],
-            // Course purchases + the enrolment-source report (AC-4.10.5). Last in the group:
-            // it is the screen that gets *read* rather than edited, so it sits after the
-            // things an administrator goes to the menu to change.
-            ['local_nit_subscriptions', 'local/nit_subscriptions:managesubscriptions',
-                '/local/nit_subscriptions/manage_courses.php', 'managecourses', 'local_nit_subscriptions'],
-        ];
-
-        // Reading $PAGE->url on a page that never set one raises a developer
-        // notice, and highlighting the current row is not worth that: without a
-        // URL, nothing is simply marked active.
-        $currentpath = $this->page->has_set_url() ? $this->page->url->get_path() : null;
-        $currentsection = $this->page->has_set_url() ? $this->page->url->get_param('section') : null;
-        $items = [];
-
-        foreach ($candidates as [$component, $capability, $path, $identifier, $stringcomponent]) {
-            // A site that does not run one of these plugins still gets a menu:
-            // the row is skipped rather than asking about a capability that the
-            // access definitions never installed.
-            if (\core_component::get_component_directory($component) === null) {
-                continue;
-            }
-            if (!has_capability($capability, $syscontext)) {
-                continue;
-            }
-
-            // Site media has no page of its own - it is an admin settings
-            // section, so it needs the query string that selects it.
-            $params = $component === 'local_nit_media' ? ['section' => 'local_nit_media_settings'] : [];
-            $url = new \moodle_url($path, $params);
-
-            // /admin/settings.php is every settings page, so the section is what
-            // tells them apart; for a page of its own the path is enough.
-            $isactive = $currentpath === $url->get_path()
-                && (empty($params['section']) || $currentsection === $params['section']);
-
-            $items[] = [
-                'text' => get_string($identifier, $stringcomponent),
-                'url' => $url->out(false),
-                'isactive' => $isactive,
-            ];
-        }
-
-        if (empty($items)) {
-            return '';
-        }
-
-        return $this->render_from_template('theme_nit/navbar_management_menu', [
-            'heading' => get_string('navmanagement', 'theme_nit'),
-            'items' => $items,
-        ]);
-    }
-
-    /**
-    /**
      * The full site logo, for the mode this page renders in.
      *
      * Overriding core's accessor rather than adding a second one means every
@@ -933,96 +846,98 @@ JS;
     /**
      * The whole gear dropdown on the navbar — button and panel — or nothing.
      *
-     * The panel is three pieces stacked: core's navigation rows
-     * (navbar_gear_nav), the relocated edit-mode switch, and the academy's
-     * management group (navbar_management_menu). Each of them is '' for some
-     * visitor — a guest has no navigation left once Home is gone, a student
-     * never edits and manages nothing — and a gear that opens onto an empty
-     * panel is worse than no gear, so the button is drawn only when at least
-     * one piece has something in it.
+     * The panel is the groups the administrator wrote into the
+     * `theme_nit/gearmenuitems` setting (Appearance → Advanced theme settings;
+     * see theme_nit\local\gear_menu for the syntax), with core's edit-mode
+     * switch relocated in after the first of them — that is where it always
+     * sat, between Navigation and Management, and a row that moves around as
+     * groups are renamed is harder to find than one that stays put.
+     *
+     * Each piece is empty for some visitor — a guest has no group left once
+     * every logged-in row is gone, a student never edits — and a gear that
+     * opens onto an empty panel is worse than no gear, so the button is drawn
+     * only when at least one piece has something in it.
      *
      * @return string HTML, or '' when the dropdown would be empty
      */
     public function navbar_gear_menu(): string {
-        $nav = $this->navbar_gear_nav();
+        $groups = $this->navbar_gear_groups();
         $editswitch = (string) $this->edit_switch();
-        $management = $this->navbar_management_menu();
 
-        if (trim($nav) === '' && trim($editswitch) === '' && trim($management) === '') {
+        if (empty($groups) && trim($editswitch) === '') {
             return '';
         }
 
+        if (!empty($groups)) {
+            $groups[0]['isfirst'] = true;
+        }
+
         return $this->render_from_template('theme_nit/navbar_gear_menu', [
-            'nav' => $nav,
+            'groups' => $groups,
+            'hasgroups' => !empty($groups),
             'editswitch' => $editswitch,
-            'management' => $management,
         ]);
     }
 
     /**
-     * The core navigation rows of the gear dropdown.
+     * The gear dropdown's groups, as this viewer gets to see them.
      *
-     * The gear is core's navigation and nothing else: My courses and Site
-     * administration. Home and Dashboard are left out on purpose — the logo is
-     * the way home and the dashboard sits in the user menu — and so is the
-     * Calendar row core adds for the guest account only
-     * (\core\navigation\views\primary::initialise): the same page the
-     * visitor gate keeps out of the custom menu and the drawer. So for a
-     * visitor who has none of the remaining rows the list is empty and, with
-     * nothing else in the panel, navbar_gear_menu() drops the gear altogether.
+     * Reads the administrator's definition (theme_nit\local\gear_menu), keeps
+     * the rows whose rule this viewer passes, and drops any group that has no
+     * row left — a heading over nothing is not a group.
      *
-     * It deliberately does NOT use the template's `mobileprimarynav`, because
-     * core merges the custom menu items into that list
-     * (\core\navigation\output\primary::merge_primary_and_custom) — and with
-     * the site's own links now drawn as titles on the bar, letting them through
-     * here would show every one of them twice on a desktop screen.
+     * A row is marked active when it is the page being viewed: same path, and
+     * every parameter the row's URL names has that value on the page (so the
+     * one settings section a row points at lights up, not every settings page).
+     * A row that is also one of core's primary-navigation nodes — My courses,
+     * Site administration — borrows core's answer as well, so it stays lit
+     * inside a course or deep in the admin tree exactly as core lights it.
      *
-     * The mobile drawer keeps the merged list: below the `md` breakpoint the bar
-     * links are hidden, so the drawer is the only place those links can be.
-     *
-     * Walks $PAGE->primarynav the same way core does, one level of children.
-     *
-     * @return string HTML, or '' when there is no navigation to show
+     * @return array list of ['heading' => string, 'hasheading' => bool, 'items' => [{text, url, isactive}]]
      */
-    public function navbar_gear_nav(): string {
-        $items = $this->navbar_primary_nav_items($this->page->primarynav, ['home', 'myhome', 'calendar']);
-        if (empty($items)) {
-            return '';
+    public function navbar_gear_groups(): array {
+        // Reading $PAGE->url on a page that never set one raises a developer
+        // notice, and highlighting the current row is not worth that: without a
+        // URL, nothing is simply marked active.
+        $currentpath = $this->page->has_set_url() ? $this->page->url->get_path() : null;
+
+        // Core's own verdict on its rows, keyed by path (see the doc block).
+        $coreactive = [];
+        foreach ($this->page->primarynav->children as $node) {
+            $action = $node->action();
+            if ($action instanceof \moodle_url) {
+                $coreactive[self::navbar_path_key($action->get_path())] = (bool) $node->isactive;
+            }
         }
 
-        return $this->render_from_template('theme_nit/navbar_gear_nav', ['items' => $items]);
-    }
-
-    /**
-     * Flatten a navigation node's children into template rows.
-     *
-     * @param \navigation_node $parent node whose children to export
-     * @param string[] $skipkeys node keys to leave out (top level only)
-     * @return array [{text, url, isactive, children, haschildren}]
-     */
-    protected function navbar_primary_nav_items($parent, array $skipkeys = []): array {
-        $nodes = [];
-        foreach ($parent->children as $node) {
-            if (!$node->has_action() && empty($node->children)) {
+        $groups = [];
+        foreach (gear_menu::parse(gear_menu::definition()) as $group) {
+            $items = [];
+            foreach ($group['items'] as $item) {
+                if (!gear_menu::rule_allows($item['rule'], $this->page)) {
+                    continue;
+                }
+                $url = gear_menu::url($item['url'])->out(false);
+                $key = self::navbar_path_key((string) parse_url($url, PHP_URL_PATH));
+                $items[] = [
+                    'text' => gear_menu::label($item['label']),
+                    'url' => $url,
+                    'isactive' => $this->navbar_custom_menu_is_active(['url' => $url], $currentpath)
+                        || !empty($coreactive[$key]),
+                ];
+            }
+            if (empty($items)) {
                 continue;
             }
-            if (in_array($node->key, $skipkeys, true)) {
-                continue;
-            }
-            $children = $this->navbar_primary_nav_items($node);
-            $activechildren = array_filter($children, fn($child) => !empty($child['isactive']));
-            $action = $node->action();
-
-            $nodes[] = [
-                'text' => $node->text,
-                'url' => $action ? $action->out(false) : '',
-                'isactive' => $node->isactive || !empty($activechildren),
-                'children' => $children,
-                'haschildren' => !empty($children),
+            $heading = $group['heading'] === '' ? '' : gear_menu::label($group['heading']);
+            $groups[] = [
+                'heading' => $heading,
+                'hasheading' => $heading !== '',
+                'items' => $items,
             ];
         }
 
-        return $nodes;
+        return $groups;
     }
 
     /**

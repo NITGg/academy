@@ -954,11 +954,15 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
             opacity: 0.9;
         }
 
-        // Second group (management links). Per-row borders separate the items
-        // inside it, so the group only needs one rule of its own: the line that
-        // closes off the Navigation group above it. Its own last row drops the
-        // border, the way the last row of the panel already does.
-        .nit-navmenu-group {
+        // A group of the gear menu (Navigation, Management, whatever the
+        // administrator defined on Advanced theme settings). Per-row borders
+        // separate the items inside it, so a group only needs one rule of its
+        // own: the line that closes off whatever sits above it. The first child
+        // of the panel has nothing above it, so it gets no line; the edit-mode
+        // row between the first two groups is a child too, so the second group
+        // still draws its line beneath the switch. The last row of a group
+        // drops its border the way the last row of the panel already does.
+        .nit-navmenu-group:not(:first-child) {
             border-top: 1px solid $nit-navpanel-divider;
             margin-top: 4px;
             padding-top: 4px;
@@ -1057,7 +1061,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
             padding: 5px 12px;
         }
 
-        .nit-navmenu-group {
+        .nit-navmenu-group:not(:first-child) {
             margin-top: 2px;
             padding-top: 2px;
 

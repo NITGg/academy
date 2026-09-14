@@ -181,3 +181,36 @@ if ($ADMIN->fulltree) {
         }
     }
 }
+
+// -----------------------------------------------------------------------------
+// The navbar gear menu — appended to the CORE Advanced theme settings page.
+//
+// Appearance → Advanced theme settings is where the other two navbar menus are
+// written down (Custom menu items, User menu items), in the same line syntax,
+// so the gear menu belongs beside them rather than on a page of its own. Same
+// load-order trick as the Logos page above: appearance.php builds
+// `themesettingsadvanced` before it includes this file, `locate()` hands the
+// page back, and the guard costs nothing on a core that renames it.
+//
+// The default is the menu the theme used to hard-code, so a site that never
+// opens this page sees no change (theme_nit\local\gear_menu::default_definition).
+// The value is read at render time — nothing is compiled — so no cache reset.
+if ($ADMIN->fulltree) {
+    $advancedpage = $ADMIN->locate('themesettingsadvanced');
+    if ($advancedpage instanceof admin_settingpage) {
+        $advancedpage->add(new admin_setting_heading(
+            'theme_nit/gearmenuheading',
+            get_string('gearmenu', 'theme_nit'),
+            get_string('gearmenu_desc', 'theme_nit')
+        ));
+        $advancedpage->add(new admin_setting_configtextarea(
+            'theme_nit/gearmenuitems',
+            get_string('gearmenuitems', 'theme_nit'),
+            get_string('gearmenuitems_desc', 'theme_nit'),
+            \theme_nit\local\gear_menu::default_definition(),
+            PARAM_RAW,
+            '50',
+            '14'
+        ));
+    }
+}

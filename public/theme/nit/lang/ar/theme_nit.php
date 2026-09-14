@@ -174,8 +174,6 @@ $string['region-fullwidth-bottom'] = 'بعرض الصفحة (أسفل)';
 $string['privacy:metadata'] = 'لا يخزّن قالب NIT أي بيانات شخصية.';
 
 // صفحة تفاصيل الكورس (theme_nit\output\format_topics_renderer).
-$string['acad_browse'] = 'تصفّح';
-$string['acad_skills_tab'] = 'المهارات';
 $string['acad_requirements'] = 'المتطلبات';
 $string['acad_modules'] = 'الوحدات';
 $string['acad_plusmore'] = '+{$a} آخرين';
@@ -192,7 +190,7 @@ $string['acad_nassessments'] = '{$a} تقييمات';
 $string['acad_language'] = 'اللغة';
 $string['acad_certificate'] = 'الشهادة';
 $string['acad_certificate_sub'] = 'شهادة قابلة للمشاركة';
-$string['acad_learn'] = 'ماذا ستتعلّم';
+$string['acad_whatlearn_q'] = 'ماذا تتعلم في هذا الكورس؟';
 $string['acad_skills'] = 'المهارات التي ستكتسبها';
 $string['acad_audience'] = 'لمن هذا الكورس';
 $string['acad_prerequisites'] = 'المتطلبات المسبقة';
@@ -204,7 +202,6 @@ $string['acad_moduledetails'] = 'تفاصيل الوحدة';
 $string['acad_included'] = 'ما الذي تتضمّنه';
 $string['acad_videolength'] = 'مدة الفيديو';
 $string['acad_instructors'] = 'المدرّبون';
-$string['acad_instructorrole'] = 'مدرّب';
 $string['acad_offeredby'] = 'مقدَّم من';
 // صيغ المفرد للأعداد.
 $string['acad_nmodule'] = 'وحدة واحدة';
@@ -213,10 +210,12 @@ $string['acad_nassessment'] = 'تقييم واحد';
 $string['acad_nitem'] = 'عنصر واحد';
 $string['acad_1modulein'] = 'يحتوي هذا الكورس على وحدة واحدة';
 
-// صفحة تفاصيل المقرر — تسميات الحقائق في الترويسة ومجموعات "ماذا ستتعلّم".
+// صفحة تفاصيل المقرر — شرائح الترويسة، الزر الوحيد، ومجموعات "ماذا تتعلم".
 $string['acad_instructorlabel'] = 'المدرّب';
-$string['acad_enrolledlabel'] = 'الملتحقون';
-$string['acad_startlabel'] = 'يبدأ';
+$string['acad_gotocourse'] = 'الذهاب إلى الكورس';
+$string['acad_hascert'] = 'شهادة معتمدة';
+$string['acad_startson'] = 'يبدأ {$a}';
+$string['acad_nenrolled'] = '{$a} ملتحق';
 $string['acad_ilos'] = 'النتائج التعليمية المرجوة';
 $string['acad_bytheend'] = 'بنهاية هذا البرنامج التدريبي ستتمكّن من';
 
@@ -258,6 +257,30 @@ $string['continueasguest'] = 'المتابعة بصفة ضيف';
 // تحتاج لولا ذلك ثلاث أو أربع نقرات داخل شجرة إدارة الموقع.
 $string['navmanagement'] = 'الإدارة';
 $string['navgallery'] = 'معرض التصميم';
+
+// إعداد قائمة الترس — يُضاف إلى صفحة «إعدادات السمة المتقدمة» الأساسية.
+$string['gearmenu'] = 'قائمة الترس في شريط التنقل';
+$string['gearmenu_desc'] = 'أيقونة الترس في شريط التنقل تفتح قائمة من المجموعات، كل مجموعة عنوان تحته بضع صفحات — <em>التنقل</em> وفيها مقرراتي وإدارة الموقع، و<em>الإدارة</em> وفيها شاشات الكوبونات والعروض والاشتراكات، وهكذا. المجموعات وأسماؤها والصفحات تحت كل مجموعة وترتيبها كلها تُضبط من النص أدناه. مفتاح وضع التحرير، لمن يملكه، يوضع بعد المجموعة الأولى.';
+$string['gearmenuitems'] = 'عناصر قائمة الترس';
+$string['gearmenuitems_desc'] = '<p>سطر واحد لكل عنوان مجموعة أو صفحة:</p>
+<ul>
+<li>السطر <b>بدون</b> شرطة في أوله يبدأ مجموعة جديدة ويكون عنوانها.</li>
+<li>السطر <b>الذي يبدأ</b> بشرطة هو صفحة داخل المجموعة الحالية، ويُكتب بالشكل <code>-التسمية|الرابط|لمن</code> مفصولًا بعلامة الأنبوب.</li>
+</ul>
+<p>العنوان أو التسمية إما نص عادي (تعمل فيه مقاطع <code>{mlang}</code>) أو سلسلة لغة بالشكل <code>identifier,component</code>، مثل <code>mycourses,core</code>. الرابط نسبي إلى الموقع (<code>/local/nit_commerce/manage_coupons.php</code>) أو عنوان كامل. الجزء الثالث يحدد من يرى الصفحة ويمكن تركه:</p>
+<ul>
+<li>فارغ — الجميع، بمن فيهم الزوار غير المسجلين؛</li>
+<li><code>loggedin</code> — أي مستخدم مسجل الدخول (ليس حساب الضيف)؛</li>
+<li><code>admin</code> — كل من يستطيع فتح إدارة الموقع؛</li>
+<li>صلاحية مثل <code>local/nit_commerce:managecoupons</code> — المستخدمون الذين يملكونها على مستوى الموقع. الصلاحية غير الموجودة في الموقع تُخفي الصفحة.</li>
+</ul>
+<p>المجموعة التي تُخفى كل صفحاتها عن مستخدم تُخفى عنه هي أيضًا بعنوانها. اترك المربع فارغًا لإخفاء كل المجموعات. مثال:</p>
+<pre>navigation,core
+-mycourses,core|/my/courses.php|loggedin
+-administrationsite,core|/admin/search.php|admin
+الإدارة
+-إدارة الكوبونات|/local/nit_commerce/manage_coupons.php|local/nit_commerce:managecoupons
+-{mlang en}Reports{mlang}{mlang ar}التقارير{mlang}|/reportbuilder/index.php|moodle/site:config</pre>';
 
 
 // حجم الشعار — يظهر في صفحة "الشعارات" في النواة (المظهر ← الشعارات) أسفل

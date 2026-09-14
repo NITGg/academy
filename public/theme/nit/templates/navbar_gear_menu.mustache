@@ -17,22 +17,37 @@
 {{!
     @template theme_nit/navbar_gear_menu
 
-    The navbar's gear button and the dropdown it opens: core's navigation rows,
-    the relocated edit-mode switch, then the academy's management group.
+    The navbar's gear button and the dropdown it opens: the groups the
+    administrator wrote into Appearance → Advanced theme settings → "Gear menu"
+    (theme_nit/gearmenuitems — see theme_nit\local\gear_menu for the line
+    syntax), with core's edit-mode switch relocated in after the first group.
     Rendered by theme_nit\output\core_renderer::navbar_gear_menu(), which
-    returns nothing at all when every one of the three pieces is empty — so a
-    guest, or a student with nothing to open, has no gear on the bar.
+    returns nothing at all when there is no group and no switch — so a guest,
+    or a student with nothing to open, has no gear on the bar.
+
+    Every group is a `.nit-navmenu-group`; the stylesheet draws the divider
+    above each one but the first child of the panel, so the first group sits
+    flush under the top and the ones after it — and the switch between — are
+    separated by a line.
 
     Context variables required for this template:
-    * nav - HTML of the core navigation rows, or ''
+    * groups - [{heading, hasheading, isfirst, items:[{text, url, isactive}]}], already
+               filtered to what this viewer may see; empty groups are not passed
+    * hasgroups - bool, whether groups has anything in it
     * editswitch - HTML of core's edit-mode switch, or ''
-    * management - HTML of the management group, or ''
 
     Example context (json):
     {
-        "nav": "<h6 class=\"dropdown-header\">Navigation</h6><a class=\"dropdown-item\" href=\"#\">My courses</a>",
-        "editswitch": "",
-        "management": ""
+        "hasgroups": true,
+        "groups": [
+            {"heading": "Navigation", "hasheading": true, "isfirst": true, "items": [
+                {"text": "My courses", "url": "https://example.com/my/courses.php", "isactive": true}
+            ]},
+            {"heading": "Management", "hasheading": true, "items": [
+                {"text": "Manage coupons", "url": "https://example.com/local/nit_commerce/manage_coupons.php", "isactive": false}
+            ]}
+        ],
+        "editswitch": ""
     }
 }}
 <div class="dropdown nit-navmenu d-flex align-items-center">
@@ -41,16 +56,25 @@
         <span class="visually-hidden">{{#str}}navigation, core{{/str}}</span>
     </a>
     <div class="dropdown-menu dropdown-menu-end nit-navbar-dropdown" aria-labelledby="nit-navmenu-toggle">
-        {{! Core's navigation only — My courses / Site administration — with its
-            own "Navigation" heading, so the heading is not there over nothing. }}
-        {{{ nav }}}
-
-        {{! Edit-mode toggle (moved from the bar). The wrapper is `:empty` when
-            core returns no switch — CSS then hides it, so no stray row. }}
-        <div class="nit-navmenu-editswitch">{{{ editswitch }}}</div>
-
-        {{! The management screens an administrator opens daily. Empty
-            (heading included) for a user without the capabilities. }}
-        {{{ management }}}
+        {{#groups}}
+            <div class="nit-navmenu-group">
+                {{#hasheading}}<h6 class="dropdown-header">{{{heading}}}</h6>{{/hasheading}}
+                {{#items}}
+                    <a class="dropdown-item{{#isactive}} active{{/isactive}}" href="{{{url}}}" {{#isactive}}aria-current="true"{{/isactive}}>{{{text}}}</a>
+                {{/items}}
+            </div>
+            {{#isfirst}}
+                {{! Edit-mode toggle (moved from the bar), after the first group.
+                    The wrapper is `:empty` when core returns no switch — CSS
+                    then hides it, so no stray row. }}
+                <div class="nit-navmenu-editswitch">{{{ editswitch }}}</div>
+            {{/isfirst}}
+        {{/groups}}
+        {{^hasgroups}}
+            {{! No group survived the viewer's rules (or the setting is empty):
+                the switch is all there is, and the renderer only got this far
+                because there is one. }}
+            <div class="nit-navmenu-editswitch">{{{ editswitch }}}</div>
+        {{/hasgroups}}
     </div>
 </div>

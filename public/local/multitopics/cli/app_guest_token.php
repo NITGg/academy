@@ -34,6 +34,9 @@
  *        # ...and store the token in the Mobile app settings page (admin_token)
  *   php public/local/multitopics/cli/app_guest_token.php --create --functions=a,b,c
  *        # replace the default function list (the app team can send the full one)
+ *   php public/local/multitopics/cli/app_guest_token.php --create --userid=22
+ *        # the app already browses on an existing account: adopt it (role, service,
+ *        # token) instead of creating "appguest" — its current token keeps working
  *
  * Without --create nothing is written.
  *
@@ -55,7 +58,7 @@ require_once($CFG->dirroot . '/webservice/lib.php');
 require_once($CFG->dirroot . '/user/lib.php');
 
 [$options, $unrecognized] = cli_get_params(
-    ['service' => 'nit_app_guest', 'username' => 'appguest', 'functions' => '',
+    ['service' => 'nit_app_guest', 'username' => 'appguest', 'userid' => 0, 'functions' => '',
      'create' => false, 'save' => false, 'help' => false],
     ['h' => 'help']
 );
@@ -65,6 +68,7 @@ if ($options['help']) {
         . "Options:\n"
         . "  --service=SHORTNAME   external service shortname (default nit_app_guest)\n"
         . "  --username=NAME       the guest account (default appguest)\n"
+        . "  --userid=ID           adopt an existing account instead (wins over --username)\n"
         . "  --functions=a,b,c     replace the default function list\n"
         . "  --create              create whatever is missing (otherwise report only)\n"
         . "  --save                also store the token as local_multitopics/admin_token\n";
@@ -99,6 +103,15 @@ $defaultfunctions = [
     'local_profilefields_get_static_pages',
     'local_profilefields_get_static_page',
     'local_profilefields_get_footer',
+    // Finishing a Google sign-up. An OAuth2 account skipped the sign-up form, so
+    // the app shows /local/profilefields/complete.php's screen — and it builds
+    // that screen from these two reads (the field schema, and what is still
+    // outstanding). Without them here the token answers accessexception and the
+    // completion screen never appears. Both are reads; the SAVE goes through the
+    // signed-in user's own token (local_profilefields_update_profile), so that
+    // write stays off this public guest service.
+    'local_profilefields_get_profile_form',
+    'local_profilefields_get_completion_status',
 ];
 
 $wanted = $options['functions'] !== ''
@@ -178,7 +191,18 @@ if ($service) {
 }
 
 // ── 3. The account ─────────────────────────────────────────────────────────
-$user = $DB->get_record('user', ['username' => $options['username'], 'mnethostid' => $CFG->mnet_localhost_id, 'deleted' => 0]);
+// By id when the app is already browsing on some account (whatever it is called),
+// otherwise by username — which is also the name a missing account is created under.
+$userid = (int) $options['userid'];
+if ($userid > 0) {
+    $user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0]);
+    if (!$user) {
+        cli_error("No user with id $userid.");
+    }
+    $options['username'] = $user->username;
+} else {
+    $user = $DB->get_record('user', ['username' => $options['username'], 'mnethostid' => $CFG->mnet_localhost_id, 'deleted' => 0]);
+}
 if (!$user) {
     if ($create) {
         $user = (object) [
