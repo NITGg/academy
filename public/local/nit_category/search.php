@@ -280,6 +280,8 @@ if ($search->is_answerable() && $total === 0) {
 
 // The eight local colour slots map to brand roles by job, exactly as the catalogue and the
 // category grid do, so all three are one design under one palette and re-skin together.
+// --ctext4 is the ink ON a --cbg4 (Primary) fill, so it is "Text on main button", not
+// Text primary (see the note in index.php).
 $stylevars =
     '--cbg1: var(--nit-brand-background); '
   . '--cbg2: var(--nit-brand-surface); '
@@ -289,7 +291,7 @@ $stylevars =
   . '--ctext2: var(--nit-brand-textsecondary); '
   . '--ctext3: var(--nit-brand-accenttext); '
   . '--caccent: var(--nit-brand-accent); '
-  . '--ctext4: var(--nit-brand-textprimary); '
+  . '--ctext4: var(--nit-brand-onprimary); '
   . '--cborder: var(--nit-brand-borderprimary); '
   . '--csuccess: var(--nit-brand-success); ';
 

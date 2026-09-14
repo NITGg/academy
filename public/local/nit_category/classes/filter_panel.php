@@ -86,9 +86,13 @@ class filter_panel {
           <?php
           // Level, then price, then language, duration and certificate — the design's
           // order. Each is drawn only if the site actually has the field behind it.
+          //
+          // The `[]` is not optional: the catalogue reads these with optional_param_array(),
+          // which hands back its default (nothing ticked) for a scalar `f_level=…`, so a
+          // group named without it draws fine and filters nothing.
           $level = catalogue::facet_by_role($facets, 'level');
           if ($level) {
-              self::options_group($level['name'], 'f_' . $level['shortname'], $level['values']);
+              self::options_group($level['name'], 'f_' . $level['shortname'] . '[]', $level['values']);
           }
 
           self::price_group($catalogue, $active, (bool) ($options['hascheckout'] ?? true));
@@ -96,7 +100,7 @@ class filter_panel {
           foreach (['language', 'duration'] as $role) {
               $facet = catalogue::facet_by_role($facets, $role);
               if ($facet) {
-                  self::options_group($facet['name'], 'f_' . $facet['shortname'], $facet['values']);
+                  self::options_group($facet['name'], 'f_' . $facet['shortname'] . '[]', $facet['values']);
               }
           }
 

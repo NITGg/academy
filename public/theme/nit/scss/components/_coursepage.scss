@@ -378,16 +378,18 @@ body:has(.acad-cr) .acad-cr__price--was {
     text-decoration: line-through;
 }
 /* The "-40%" pill. Same fill and foreground as the pill on the catalogue cards
-   (local/nit_category/index.php maps --cbg4 -> Primary, --ctext4 -> Text primary),
-   because a learner arrives here FROM one of those cards and the same discount
-   should not be wearing two different colours across one click. */
+   (local/nit_category/index.php maps --cbg4 -> Primary, --ctext4 -> Text on main
+   button), because a learner arrives here FROM one of those cards and the same
+   discount should not be wearing two different colours across one click. The ink
+   is the on-Primary role, not Text primary: in a light group Text primary is
+   near-black and sits unreadably on the dark-blue Primary fill. */
 body:has(.acad-cr) .acad-cr__price-off {
     font-size: 12px;
     font-weight: 700;
     padding: 4px 11px;
     border-radius: 999px;
     background: var(--nit-brand-primary);
-    color: var(--nit-brand-textprimary);
+    color: var(--nit-brand-onprimary);
 }
 /* "Set your country before we can price this for you" — a sentence, not a price. */
 body:has(.acad-cr) .acad-cr__pricenote {

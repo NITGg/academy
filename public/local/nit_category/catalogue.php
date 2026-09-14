@@ -204,7 +204,10 @@ foreach ($filters as $shortname => $filter) {
 $clearall = $linkto($clearparams);
 
 // The 8 local colour slots map to brand roles by job, exactly as the category page does, so
-// the two pages are the same design under one palette and re-skin together.
+// the two pages are the same design under one palette and re-skin together. --ctext4 is
+// the ink ON a --cbg4 (Primary) fill — the "-40%" pill, the current page number — so it is
+// the palette's "Text on main button" role, NOT Text primary: a light group's Text primary
+// is near-black and its Primary is a dark blue, and the two land on each other unreadably.
 $stylevars =
     '--cbg1: var(--nit-brand-background); '
   . '--cbg2: var(--nit-brand-surface); '
@@ -214,7 +217,7 @@ $stylevars =
   . '--ctext2: var(--nit-brand-textsecondary); '
   . '--ctext3: var(--nit-brand-accenttext); '
   . '--caccent: var(--nit-brand-accent); '
-  . '--ctext4: var(--nit-brand-textprimary); '
+  . '--ctext4: var(--nit-brand-onprimary); '
   . '--cborder: var(--nit-brand-borderprimary); '
   . '--csuccess: var(--nit-brand-success); ';
 
@@ -312,14 +315,8 @@ echo $OUTPUT->header();
         <div class="nitcat__count">
           <strong><?= s($coursecount($found, 'coursesfound')) ?></strong>
         </div>
-        <label class="nitcat__sort">
-          <span><?= s(get_string('sortby', 'local_nit_category')) ?></span>
-          <select name="sort" data-nitcat-submit>
-            <?php foreach (catalogue::sort_options() as $key => $label): ?>
-              <option value="<?= s($key) ?>" <?= $key === $sort ? 'selected' : '' ?>><?= s($label) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </label>
+        <?php // The sort control was removed from the toolbar (2026-09-14): the list stays
+              // in its default order. `?sort=` is still honoured for links that carry it. ?>
       </div>
 
       <?php if (!empty($active)): ?>
