@@ -21,12 +21,17 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * The account behind the app's guest-browsing token.
  *
- * getsettings.php hands every app install one read-only token (built by
- * cli/app_guest_token.php) so the catalogue can be browsed before sign-in. To
- * Moodle that token is a signed-in user like any other — but the person holding
- * the phone is a visitor: there is no profile to read a country from, and nobody
- * to send to "set your country". Anything that treats visitors differently from
- * members — pricing, above all — asks here before trusting $USER->id.
+ * cli/app_guest_token.php builds one read-only token so the catalogue can be
+ * browsed before sign-in. To Moodle that token is a signed-in user like any
+ * other — but the person holding the phone is a visitor: there is no profile to
+ * read a country from, and nobody to send to "set your country". Anything that
+ * treats visitors differently from members — pricing, above all — asks here
+ * before trusting $USER->id.
+ *
+ * The account is recognised by the `nit_app_guest` system role the CLI assigns
+ * it (the role exists for exactly this: to mark the account), and, as a second
+ * signal, by owning the token getsettings.php publishes — so a site whose admin
+ * never saved the token into the settings page is still covered.
  *
  * @package    local_multitopics
  * @copyright  2026 NIT
@@ -34,28 +39,48 @@ defined('MOODLE_INTERNAL') || die();
  */
 class app_guest {
 
-    /** @var int|null The account's id, memoised for the request; null until looked up. */
-    private static $userid = null;
+    /** @var string Shortname of the system role cli/app_guest_token.php gives the account. */
+    const ROLE = 'nit_app_guest';
+
+    /** @var array<int, string>|null userid => how it was recognised; null until looked up. */
+    private static $accounts = null;
 
     /**
-     * The guest-browsing account's id, or 0 when no token is published.
+     * Every guest-browsing account, keyed by id, memoised for the request.
      *
-     * The published token (local_multitopics/admin_token) is the one fact the app
-     * and the server share, so the account is whoever that token belongs to —
-     * not a hard-coded username, which the CLI lets the admin change.
+     * Normally exactly one. Empty when the CLI has never been run on this site.
      *
-     * @return int
+     * @return array<int, string> userid => 'role' | 'token'
      */
-    public static function userid(): int {
+    public static function accounts(): array {
         global $DB;
 
-        if (self::$userid === null) {
-            $token = trim((string) get_config('local_multitopics', 'admin_token'));
-            self::$userid = preg_match('/^[a-f0-9]{32}$/i', $token)
-                ? (int) $DB->get_field('external_tokens', 'userid', ['token' => $token])
-                : 0;
+        if (self::$accounts !== null) {
+            return self::$accounts;
         }
-        return self::$userid;
+        self::$accounts = [];
+
+        // 1. Holders of the marker role, in the system context.
+        $holders = $DB->get_fieldset_sql(
+            "SELECT DISTINCT ra.userid
+               FROM {role_assignments} ra
+               JOIN {role} r ON r.id = ra.roleid
+              WHERE r.shortname = :role AND ra.contextid = :ctx",
+            ['role' => self::ROLE, 'ctx' => \context_system::instance()->id]);
+        foreach ($holders as $userid) {
+            self::$accounts[(int) $userid] = 'role';
+        }
+
+        // 2. The owner of the published token.
+        $token = trim((string) get_config('local_multitopics', 'admin_token'));
+        if (preg_match('/^[a-f0-9]{32}$/i', $token)) {
+            $owner = (int) $DB->get_field('external_tokens', 'userid', ['token' => $token]);
+            if ($owner > 0 && !isset(self::$accounts[$owner])) {
+                self::$accounts[$owner] = 'token';
+            }
+        }
+
+        return self::$accounts;
     }
 
     /**
@@ -65,6 +90,16 @@ class app_guest {
      * @return bool
      */
     public static function is(int $userid): bool {
-        return $userid > 0 && $userid === self::userid();
+        return $userid > 0 && isset(self::accounts()[$userid]);
+    }
+
+    /**
+     * The guest-browsing account's id, or 0 when there is none.
+     *
+     * @return int
+     */
+    public static function userid(): int {
+        $accounts = self::accounts();
+        return $accounts ? (int) array_key_first($accounts) : 0;
     }
 }

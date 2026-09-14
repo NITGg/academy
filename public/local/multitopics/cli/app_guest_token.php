@@ -303,6 +303,18 @@ if ($service && $user) {
     }
 }
 
+// ── 5b. Does pricing know the account? ─────────────────────────────────────
+// local_payments prices this account as a visitor only if local_multitopics
+// recognises it (the nit_app_guest role above, or owning the published token).
+// Otherwise every pre-login call gets price 0 and "set your country".
+if ($user) {
+    $known = \local_multitopics\app_guest::is((int) $user->id)
+        || ($create && $roleid && user_has_role_assignment($user->id, $roleid, $systemcontext->id));
+    $say($known ? 'OK' : 'MISSING', $known
+        ? 'pricing treats the account as a visitor (IP, then the app\'s country, then the Default price)'
+        : 'pricing would treat the account as a member with no country - assign the role above (--create)');
+}
+
 // ── 6. Publish it ──────────────────────────────────────────────────────────
 $published = (string) get_config('local_multitopics', 'admin_token');
 if ($token !== '' && $published === $token) {

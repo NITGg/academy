@@ -144,6 +144,8 @@ class country_detector {
      * (local_multitopics, cli/app_guest_token.php). To Moodle that is a signed-in
      * user, but the person holding the phone is a visitor: treating the account as
      * a member would withhold every price and point at a profile nobody can edit.
+     * local_multitopics recognises the account by the nit_app_guest role the CLI
+     * gives it, or by owning the published token.
      *
      * @param int $userid
      * @return bool

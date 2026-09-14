@@ -213,6 +213,22 @@ $rows[] = $row(get_string('geodiag_yourcountry', 'local_payments'),
         ? s($c . ' — ' . ($countries[$c] ?? $c))
         : get_string('geodiag_unknowncountry', 'local_payments'));
 
+// The mobile app browses before sign-in on a shared account (local_multitopics).
+// If that account is not recognised it is priced as a member with no country —
+// which the app reports as "price 0, country_required" for every guest.
+if (class_exists('\local_multitopics\app_guest')) {
+    $appaccounts = \local_multitopics\app_guest::accounts();
+    $names = [];
+    foreach ($appaccounts as $appuserid => $how) {
+        $appuser = \core_user::get_user($appuserid, 'id, username', IGNORE_MISSING);
+        $names[] = s(($appuser->username ?? '?') . " (id $appuserid, $how)");
+    }
+    $rows[] = $row(get_string('geodiag_appguest', 'local_payments'),
+        $names ? get_string('geodiag_appguest_ok', 'local_payments', implode(', ', $names))
+               : get_string('geodiag_appguest_none', 'local_payments'),
+        $names ? 'ok' : 'bad');
+}
+
 echo $OUTPUT->heading(get_string('geodiag_h_lookup', 'local_payments'), 3);
 echo $table($rows);
 
