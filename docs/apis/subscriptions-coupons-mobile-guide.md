@@ -249,12 +249,12 @@ GET …&wsfunction=local_nit_subscriptions_get_available_subscriptions&moodlewsr
 - Legacy fields `b2b_enabled`, `courses_count`, `seat_options`, `offer_label`, `offer_final` remain for
   backward compatibility — `seat_options` is for **B2B** (team) plans, empty for a normal plan.
 - `price`/`currency` are resolved **for this caller's country** (`country` says which one was used).
-  Pass `country=SA` to price for a specific market; otherwise the signed-in user's profile country
-  decides, and each plan can carry a different price per country.
-- `country_required: true` means the account has **no profile country**, so nothing can be priced:
-  `price`, `currency`, `offer*` and `seat_options` all come back empty. Show `country_short` where the
-  amount goes, `country_message` as the explanation, and turn the Subscribe button into
-  `country_action` pointing at `country_url` — checkout would be refused server-side anyway.
+  A signed-in user with a profile country is priced on it; anyone else — a guest, or a user whose
+  profile has no country — is placed by IP address, then by the `country` you pass, then falls on
+  the plan's Default price. Each plan carries a local price and a Default price.
+- `country_required` is **always `false`** since 2026-09-14 (the "set your country" gate for members
+  without a profile country was dropped — they are priced like visitors instead). The field and its
+  `country_*` companions stay in the shape for compatibility; nothing needs to read them.
 
 ### 3.4 `local_nit_subscriptions_create_subscription_checkout` — **POST**
 
@@ -487,12 +487,11 @@ Every visual state on a card maps to a field, so the app can match the web witho
 Guests see the catalogue but must not reach checkout: `get_available_subscriptions` is the only call
 here that works without a login, and every other one needs a token.
 
-Before sign-in the app calls it with the **guest-browsing token** from `getsettings.php`. That token's
-account is priced as a *visitor*, never as a member: the server places the caller by IP address
-first, then by the `country` you pass (send `ip_country` from `getsettings`, or the device
-country when that key is absent), and finally on the plan's Default price. So with that token
-`country_required` is always `false` and a price always comes back; `country` in the response says
-which market won. Note the order: when the server can place the IP, an explicit `country` that
+Before sign-in the app calls it with the **guest-browsing token** from `getsettings.php`. That
+account has no profile country, so it is priced like any visitor: the server places the caller by IP
+address first, then by the `country` you pass (send `ip_country` from `getsettings`, or the device
+country when that key is absent), and finally on the plan's Default price; `country` in the response
+says which market won. Note the order: when the server can place the IP, an explicit `country` that
 disagrees with it does not change the price.
 
 ---

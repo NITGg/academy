@@ -119,7 +119,6 @@ class price_resolver {
      * @param int|null $userid
      * @param string|null $app_country Country from Flutter app.
      * @return object {price_id, price, sale_price, original_price, currency, country, discount_pct, is_sale_active}
-     * @throws country_required_exception if the buyer is signed in with no profile country.
      * @throws \moodle_exception if no pricing found.
      */
     public static function resolve(int $courseid, ?int $userid = null, ?string $app_country = null): object {
@@ -127,16 +126,10 @@ class price_resolver {
 
         $userid = $userid ?? $USER->id;
 
-        // A signed-in account with no profile country has no price — not the default one, not
-        // an IP-guessed one. Refusing here (rather than at each of the dozen display surfaces)
-        // is what makes the rule leak-proof: nothing can print an amount it never received.
-        if (country_detector::pricing_blocked($userid)) {
-            throw new country_required_exception("Course {$courseid}: user {$userid} has no profile country");
-        }
-
-        // May be '' when the country genuinely cannot be determined (a guest whose IP lookup
-        // failed and who sent no app hint). That case must land on the course's Default price
-        // row, never on the admin default country's row.
+        // May be '' when the country genuinely cannot be determined (no usable IP and no app
+        // hint — a member with no profile country goes down the same rungs as a guest). That
+        // case must land on the course's Default price row, never on the admin default
+        // country's row.
         $country = country_detector::detect_for_pricing($userid, $app_country);
 
         // Country-specific active price wins; otherwise the course's default active price.

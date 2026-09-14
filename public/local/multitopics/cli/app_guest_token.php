@@ -40,9 +40,9 @@
  *
  * Without --create nothing is written.
  *
- * Pricing knows this account: local_payments\country_detector treats whoever holds the
- * published token as a VISITOR (IP → the app's country hint → the Default price), not as
- * a member with an empty profile country — see \local_multitopics\app_guest.
+ * Pricing needs nothing from this account beyond an EMPTY profile country: a member
+ * without one is priced like a visitor (IP → the app's country hint → the Default
+ * price), which is exactly what the phone in a stranger's hand should get.
  *
  * @package    local_multitopics
  * @copyright  2026 NIT
@@ -327,26 +327,13 @@ if ($service && $user) {
     }
 }
 
-// ── 5b. Does pricing know the account? ─────────────────────────────────────
-// local_payments prices this account as a visitor only if local_multitopics
-// recognises it (the nit_app_guest role above, or owning the published token).
-// Otherwise every pre-login call gets price 0 and "set your country".
-if ($user) {
-    $known = \local_multitopics\app_guest::is((int) $user->id)
-        || ($create && $roleid && user_has_role_assignment($user->id, $roleid, $systemcontext->id));
-    $say($known ? 'OK' : 'MISSING', $known
-        ? 'pricing treats the account as a visitor (IP, then the app\'s country, then the Default price)'
-        : 'pricing would treat the account as a member with no country - assign the role above (--create)');
-}
-
 // ── 6. Publish it ──────────────────────────────────────────────────────────
 $published = (string) get_config('local_multitopics', 'admin_token');
 if ($token !== '' && $published === $token) {
     $say('OK', 'getsettings.php already publishes this token');
 } else if ($token !== '' && !empty($options['save'])) {
     set_config('admin_token', $token, 'local_multitopics');
-    set_config('guest_userid', (int) $user->id, 'local_multitopics');
-    $say('SAVED', 'stored as local_multitopics/admin_token - getsettings.php now publishes it (and guest_userid = ' . $user->id . ')');
+    $say('SAVED', 'stored as local_multitopics/admin_token - getsettings.php now publishes it');
 } else if ($token !== '') {
     $say('TODO', 'paste the token into Site administration → Plugins → Local plugins → Mobile app settings, or re-run with --save');
 }

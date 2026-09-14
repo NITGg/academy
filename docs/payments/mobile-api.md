@@ -49,9 +49,10 @@ wsfunction = local_payments_get_course_price
 Returns the resolved price, the pre-discount price and the currency. Show
 `amount`, and show `original_amount` struck through only when it differs.
 
-> A user with no country on their profile has no price. That is deliberate:
-> pricing is per country. The call returns an error whose `message` tells them to
-> set it — surface it and link to the profile.
+> Pricing is per country. A user with a country on their profile is priced on it;
+> a user without one (and a guest) is placed by IP address, then by the `country`
+> you pass, then gets the Default price. Since 2026-09-14 nobody is refused a
+> price for an empty profile country.
 
 ---
 

@@ -9,21 +9,23 @@ class country_detector {
      * Resolve the country a buyer's price should be keyed on, or '' when it genuinely
      * cannot be determined.
      *
-     * Pricing is ALWAYS by country. The chain splits on whether anybody is signed in:
+     * Pricing is ALWAYS by country. One ladder for everybody:
      *
-     *   A SIGNED-IN account is priced on its **profile country and nothing else**. If that
-     *   field is empty the account has no price at all — see {@see self::pricing_blocked()},
-     *   which every price surface checks *before* calling this. It deliberately does not fall
-     *   through to IP: an account we can ask is an account whose own answer is the only
-     *   honest one, and a guessed country would let the same buyer be quoted two different
-     *   prices from two different networks. This method returns '' for that account; the gate,
-     *   not the '' , is what stops the price being shown.
+     *   0. A signed-in account that has a **profile country** is priced on it and nothing
+     *      else — the buyer's own answer beats any guess, and it is what the checkout,
+     *      the invoice and the gateway routing use.
+     *   1. Otherwise — a guest, or a member who never filled the country in — IP
+     *      geolocation: approximate, but it localises the shop window.
+     *   2. Country hint sent by the Flutter app (the device's country).
+     *   3. '' — country unknown. The caller must then fall back to the *default price*
+     *      row/base price, NOT to some other country's price.
      *
-     *   A GUEST (nobody signed in) has no profile to read, so:
-     *     1. IP geolocation — approximate, but it localises the shop window.
-     *     2. Country hint sent by the Flutter app.
-     *     3. '' — country unknown. The caller must then fall back to the *default price*
-     *        row/base price, NOT to some other country's price.
+     * Until 2026-09-14 a member with an empty profile country stopped at rung 0 with no
+     * price at all ("set your country"). That rule was dropped: the app browses before
+     * sign-in on a real account's token, which the rule mistook for such a member and
+     * priced everything at 0 — and every other account it caught (OAuth sign-ups mid
+     * completion, hand-made accounts) was being told to fix a profile field to see a
+     * price a visitor could see without one. Sign-up requires the country anyway.
      *
      * Returning '' at the end is the whole point: an unknown country must never be silently
      * rewritten to the admin "default country", because that country may well have a price
@@ -41,14 +43,16 @@ class country_detector {
 
         $userid = $userid ?? $USER->id;
 
-        // Signed in: the profile country is the only source, and an empty one is a dead end
-        // (pricing_blocked() is what the display/purchase surfaces act on). No IP guess.
+        // 0. A member's declared country wins outright.
         if (!self::is_guest($userid)) {
-            return self::from_profile($userid);
+            $profile = self::from_profile($userid);
+            if ($profile !== '') {
+                return $profile;
+            }
         }
 
-        // Guest — no profile to read. 1. IP geolocation. Yields '' when geolocation is
-        // unconfigured, the IP is private, or the lookup fails.
+        // 1. IP geolocation. Yields '' when geolocation is unconfigured, the IP is private,
+        // or the lookup fails.
         $ip_country = self::from_ip($ip ?? getremoteaddr());
         if ($ip_country !== '') {
             return $ip_country;
@@ -64,35 +68,30 @@ class country_detector {
     }
 
     /**
-     * Must this user be shown no price at all?
+     * Must this user be shown no price at all? Nobody, any more.
      *
-     * True for a signed-in account whose profile country is empty. Such an account is not
-     * priced by IP or by the admin default — it is not priced at all: every price surface
-     * prints {@see self::country_required_notice()} instead of an amount, and every purchase
-     * entry point refuses. The buyer sets their country once, on their profile, and the whole
-     * shop starts working.
+     * Until 2026-09-14 this was true for a signed-in account with an empty profile country,
+     * and every price surface printed {@see self::country_required_notice()} instead of an
+     * amount. Such an account is now priced like a visitor (see the ladder in
+     * {@see self::detect_for_pricing()}). The method stays because a dozen surfaces and the
+     * mobile contract (`country_required` on the course and plan payloads) still ask — they
+     * simply always hear "no" — so the answer changes in one place should the rule return.
      *
-     * Guests are NOT blocked: they have no profile to fill in, so they keep the IP →
-     * default-price ladder in {@see self::detect_for_pricing()} and the shop window still
-     * shows real prices to visitors who have not signed up yet. The mobile app's
-     * guest-browsing account counts as a guest for the same reason — see {@see self::is_guest()}.
-     *
-     * @param int|null $userid defaults to the current user
-     * @return bool
+     * @param int|null $userid unused
+     * @return bool always false
      */
     public static function pricing_blocked(?int $userid = null): bool {
-        global $USER;
-
-        $userid = $userid ?? (int) $USER->id;
-
-        return !self::is_guest($userid) && self::from_profile($userid) === '';
+        return false;
     }
 
     /**
      * What a blocked buyer is told, and where to send them to fix it.
      *
-     * One place builds it so the course cards, the course page, the buy page, the
-     * subscription block and the mobile web services all say the same thing.
+     * Nobody is blocked since 2026-09-14 ({@see self::pricing_blocked()}), so this is only
+     * ever built by a surface whose template still carries the branch. Kept so those
+     * branches keep rendering something sane if the rule returns; one place builds it so
+     * the course cards, the course page, the buy page, the subscription block and the
+     * mobile web services would all say the same thing.
      *
      * `url` prefers local_profilefields' sign-up completion page — a short form that asks only
      * what registration would still ask — but ONLY when that page would actually ask for the
@@ -137,15 +136,11 @@ class country_detector {
     }
 
     /**
-     * Anonymous (id 0), the site guest account, or the mobile app's guest-browsing
-     * account — nobody with a profile to price on.
+     * Anonymous (id 0) or the site guest account — nobody with a profile to read.
      *
-     * The app browses the catalogue before sign-in on one shared read-only token
-     * (local_multitopics, cli/app_guest_token.php). To Moodle that is a signed-in
-     * user, but the person holding the phone is a visitor: treating the account as
-     * a member would withhold every price and point at a profile nobody can edit.
-     * local_multitopics recognises the account by the nit_app_guest role the CLI
-     * gives it, or by owning the published token.
+     * The mobile app's guest-browsing account (local_multitopics, cli/app_guest_token.php)
+     * needs no special case here: it is a member with no profile country, and such a
+     * member goes down the visitor rungs of {@see self::detect_for_pricing()} anyway.
      *
      * @param int $userid
      * @return bool
@@ -153,10 +148,8 @@ class country_detector {
     private static function is_guest(int $userid): bool {
         global $CFG;
 
-        if ($userid <= 0 || (!empty($CFG->siteguest) && (int) $userid === (int) $CFG->siteguest)) {
-            return true;
-        }
-        return class_exists('\local_multitopics\app_guest') && \local_multitopics\app_guest::is($userid);
+        return ($userid <= 0)
+            || (!empty($CFG->siteguest) && (int) $userid === (int) $CFG->siteguest);
     }
 
     /**

@@ -343,7 +343,7 @@ GET {wwwroot}/local/academy/api.php?function=is_course_free&courseid=9&token={to
 | `is_free` | the course has **no active price rule** — the same test the checkout gates on | hero **Free** badge; catalogue "Free" filter |
 | `has_certificate` | the course **contains a visible certificate activity** (mod_customcert) | "At a glance" **Certificate** row; catalogue "Carries a certificate" facet |
 | `price`, `currency` | only when paid; the amount for *this* user's country | hero price |
-| `country_required` | only when paid and the signed-in user has no profile country | the "set your country" notice |
+| `country_required` | always `false` since 2026-09-14 (a user with no profile country is priced like a visitor); kept in the shape | — |
 
 Neither flag is something a teacher ticks. They were checkbox custom fields
 until 2026-09-13 and were removed precisely because a tick goes stale: a course
