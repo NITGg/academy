@@ -200,3 +200,131 @@ table.quizreviewsummary {
         color: var(--nit-brand-textprimary);
     }
 }
+
+// =============================================================================
+// Quiz reports (mod/quiz/report.php — Grades / Responses / Statistics).
+//
+// mod/quiz/styles.css paints the attempts table from the light theme and never
+// asks the theme:
+//
+//   body.path-mod-quiz .gradedattempt,
+//   … tr.gradedattempt > td                 #d9edf7 on a #bce8f1 edge
+//       (the attempt that counts towards the grade, and the grading-method
+//        name in the caption above the table)
+//   … td.sticky-column, … th.sticky-column  #fff
+//       (the name column, which stays put when the table scrolls sideways; a
+//        sticky cell has to be opaque, so core made it white)
+//   #page-mod-quiz-report .highlight        #d9edf7 on #bce8f1
+//       (the same grading-method name inside the "What to include" form)
+//   #page-mod-quiz-report .dubious          #fcc      (statistics: suspect value)
+//   #page-mod-quiz-report .negcovar         pink edge (statistics: negative covariance)
+//   #page-mod-quiz-report tr.lastrowforattempt   lightgrey rule (responses)
+//   #attemptsform .icon.text-success/-danger/-warning
+//       shift-color($success …) !important — the per-question state icons,
+//       baked from Group 1 and darkened for a white page.
+//
+// Under theme_nit's near-white ink every one of those is white-on-white
+// (measured 1.08:1 on the graded rows, 1.12:1 on the name column). Each is
+// routed to a role below, on core's own selectors, so the theme stream — which
+// loads after the plugin CSS — wins by cascade order.
+// =============================================================================
+
+// ---- The graded attempt: an Info tint (core's #d9edf7 is Bootstrap's old
+// info-light). The tint is declared three ways because Bootstrap 5.3 paints a
+// table row three ways:
+//   * `background-color`   — what the sticky name cell shows (it must be opaque,
+//                            so the tint is mixed over Background, not transparent);
+//   * `--bs-table-bg-type` — the inset box-shadow the striped odd rows draw over
+//                            every cell, which would otherwise hide the tint on
+//                            every second graded row;
+//   * `--bs-table-bg-state` on hover — the same shadow in its hover flavour.
+body.path-mod-quiz .gradedattempt,
+body.path-mod-quiz table tbody tr.gradedattempt > td,
+body.path-mod-quiz table tbody tr.gradedattempt > td.sticky-column {
+    --bs-table-bg-type: color-mix(in srgb, var(--nit-brand-info) 16%, var(--nit-brand-background));
+    border-color: color-mix(in srgb, var(--nit-brand-info) 40%, var(--nit-brand-borderprimary));
+    background-color: color-mix(in srgb, var(--nit-brand-info) 16%, var(--nit-brand-background));
+}
+
+body.path-mod-quiz table tbody tr.gradedattempt:hover > td {
+    --bs-table-bg-state: color-mix(in srgb, var(--nit-brand-info) 22%, var(--nit-brand-hoverbackground));
+}
+
+// The two inline mentions of the grading method ("… is Highest grade") are the
+// same tint drawn as a small chip, so the words still stand out from the
+// sentence the way core's pale box did on white.
+body.path-mod-quiz span.gradedattempt,
+#page-mod-quiz-report span.highlight {
+    display: inline-block;
+    padding-inline: 0.3em;
+    border-radius: 0.25rem;
+    line-height: 1.4;
+}
+
+// ---- The sticky name column. Same selector list as core, so the theme's copy
+// simply lands later; the fill is the page ground the table already sits on
+// (#region-main carries Background), so the column looks like every other cell
+// and still hides whatever scrolls underneath it. Striping and hover are inset
+// shadows drawn on top of this fill, so both states stay in step with the row.
+body.path-mod-quiz table tbody tr > td.sticky-column,
+body.path-mod-quiz table thead tr > th.sticky-column,
+body.path-mod-quiz table tbody tr:not(.gradedattempt):hover td.sticky-column {
+    background-color: var(--nit-brand-background);
+}
+
+#page-mod-quiz-report {
+
+    // "Show only attempts that are graded by <Highest grade>" in the options form.
+    // Boost also inks .highlight in $info — Group 1's value, baked at compile
+    // time — which on an Info-tinted chip in a light group is Info-on-Info. The
+    // chip carries the meaning; the words take the ink, like the caption's.
+    .highlight {
+        color: var(--nit-brand-textprimary);
+        border-color: color-mix(in srgb, var(--nit-brand-info) 40%, var(--nit-brand-borderprimary));
+        background-color: color-mix(in srgb, var(--nit-brand-info) 16%, var(--nit-brand-background));
+    }
+
+    // Statistics report: a suspect statistic keeps its "look at this" meaning
+    // as an Error tint; a negative covariance keeps its Error edge.
+    .dubious {
+        background-color: color-mix(in srgb, var(--nit-brand-error) 22%, var(--nit-brand-surface));
+    }
+
+    .negcovar {
+        border-color: var(--nit-brand-error);
+    }
+
+    // Responses report: the rule under the last row of each attempt.
+    tr.lastrowforattempt {
+        border-bottom-color: var(--nit-brand-borderprimary);
+    }
+
+    // Initials avatar in the name column: core ships a light grey chip
+    // (#e9ecef behind #343a40 text), a pale island on the dark brand — the same
+    // recipe the gradebook and the assignment grading table use.
+    .userinitials {
+        background-color: color-mix(in srgb, var(--nit-brand-primary) 22%, var(--nit-brand-surface));
+        color: var(--nit-brand-textprimary);
+        border: 1px solid var(--nit-brand-borderprimary);
+    }
+}
+
+// ---- Per-question state icons (correct / wrong / needs grading) in the
+// attempts table. Boost's modules.scss darkens the three status utilities here
+// with `!important` for a white page, from Group 1's compile-time values; the
+// roles themselves are what read on the brand ground, and the `!important` is
+// the only way past core's.
+#attemptsform {
+
+    .icon.text-success {
+        color: var(--nit-brand-success) !important; /* stylelint-disable-line declaration-no-important */
+    }
+
+    .icon.text-danger {
+        color: var(--nit-brand-error) !important; /* stylelint-disable-line declaration-no-important */
+    }
+
+    .icon.text-warning {
+        color: var(--nit-brand-warning) !important; /* stylelint-disable-line declaration-no-important */
+    }
+}

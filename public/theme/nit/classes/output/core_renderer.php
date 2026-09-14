@@ -657,6 +657,28 @@ JS;
     }
 
     /**
+     * A chart, on the brand.
+     *
+     * Core's charts are canvases: no stylesheet reaches them, and both of the
+     * places they take colour from are blind to the palette — `core/chart_base`
+     * hands each series a colour from a fixed built-in list, and Chart.js paints
+     * its legend, ticks and grid in its own greys. So before the chart is built,
+     * theme_nit/chart_brand rewires both from the live `--nit-brand-*` custom
+     * properties (whichever group the switch or a category style put on
+     * `<html>`). It is queued here, ahead of the `{{#js}}` block core's chart
+     * template adds, so it always runs first; the chart itself is core's, unchanged.
+     *
+     * @param \core\chart_base $chart The chart.
+     * @param bool $withtable Whether to include a data table with the chart.
+     * @return string
+     */
+    public function render_chart(\core\chart_base $chart, $withtable = true) {
+        $this->page->requires->js_call_amd('theme_nit/chart_brand', 'init');
+
+        return parent::render_chart($chart, $withtable);
+    }
+
+    /**
      * Render the one search control in the header (AC-4.22.1).
      *
      * The navbar carries a single box, and it searches the shop window: courses and

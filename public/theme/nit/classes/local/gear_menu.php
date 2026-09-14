@@ -216,7 +216,7 @@ class gear_menu {
                 if ($current !== null) {
                     $groups[] = $current;
                 }
-                $bits = array_map('trim', explode('|', $line, 2));
+                $bits = self::parts($line, 2);
                 $current = ['names' => ['en' => $bits[0], 'ar' => $bits[1] ?? ''], 'items' => []];
                 continue;
             }
@@ -249,14 +249,15 @@ class gear_menu {
      * words). When no part is a link, a link glued onto the end of a name is
      * peeled off it: `-Calendar|التقويم/calendar/view.php` is the most common
      * slip - a `|` forgotten before the link - and is read as the writer
-     * meant. `url` is '' when no link could be found; `audience` is '' when
-     * none was written.
+     * meant. A `|` left dangling at the end of a line, or typed twice, is
+     * ignored (parts()). `url` is '' when no link could be found; `audience` is
+     * '' when none was written.
      *
      * @param string $line a trimmed line starting with '-'
      * @return array ['names' => ['en' => string, 'ar' => string], 'url' => string, 'audience' => string]
      */
     public static function page_line(string $line): array {
-        $bits = array_map('trim', explode('|', ltrim($line, '-'), 4));
+        $bits = self::parts(ltrim($line, '-'), 4);
 
         $linkat = null;
         foreach ($bits as $i => $bit) {
@@ -326,6 +327,24 @@ class gear_menu {
             }
         }
         return $problems;
+    }
+
+    /**
+     * A line split on `|`, trimmed, with the slips that cost nothing taken out:
+     * a `|` left dangling at the end (`...|admin,user|`), one typed twice
+     * (`name||link`) and a blank part between two others are all dropped, so
+     * they can neither become an empty name nor swallow the audience.
+     *
+     * @param string $line the line, without its leading dash
+     * @param int $limit the most parts wanted; the last one keeps any remainder
+     * @return string[] non-empty, trimmed parts
+     */
+    protected static function parts(string $line, int $limit): array {
+        $parts = array_values(array_filter(array_map('trim', explode('|', $line)), fn($part) => $part !== ''));
+        if (count($parts) > $limit) {
+            $parts = array_merge(array_slice($parts, 0, $limit - 1), [implode('|', array_slice($parts, $limit - 1))]);
+        }
+        return $parts === [] ? [''] : $parts;
     }
 
     /**
