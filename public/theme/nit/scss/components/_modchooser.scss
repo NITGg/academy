@@ -25,7 +25,7 @@
 //   .nav-link / .option hover    background-color: $gray-100  (#f8f9fa light grey)
 //   .option.selected             background-color: $primary-light-background (#fcebeb)
 //   .optionsummary               background-color: $white
-//   .btn-close (X)               black SVG @ .5 opacity, no filter → invisible
+//   .btn-close (X)               black SVG @ .5 opacity → invisible on a dark ground
 //
 // Rewire each to a --nit-brand-* role so the whole modal reads from the palette
 // and re-skins with a course's category group (.nit-brand-2 / .nit-brand-3).
@@ -46,13 +46,17 @@
 
     // ---- Category navigation pills ------------------------------------------
     .modchoosernav {
-        // Selected category: core fills the pill with $body-color (#fff) and keeps
-        // white active text → white-on-white. Use the Primary role for the chosen
-        // pill (same "selected = Primary" rule as the site dropdowns). The fill is
-        // nudged a touch darker via color-mix so the white label clears the 4.5
-        // contrast bar on the mid-tone brand red while staying unmistakably Primary.
+        // Selected category: core fills the pill with $body-color and keeps the
+        // body ink for the label — which is ink-on-ink whichever way the group is
+        // authored (white-on-white in a dark group, black-on-black in a light
+        // one). Use the Primary role for the chosen pill (same "selected =
+        // Primary" rule as the site dropdowns) and the ON-primary role for its
+        // label: Text primary is the page ink, so in a light group (Daylight) it
+        // is near-black and the label vanished into the blue fill. The fill is
+        // nudged a touch darker via color-mix so the label clears the 4.5 contrast
+        // bar in every group while staying unmistakably Primary.
         --bs-nav-pills-link-active-bg: color-mix(in srgb, var(--nit-brand-primary) 88%, #000);
-        --bs-nav-pills-link-active-color: var(--nit-brand-textprimary);
+        --bs-nav-pills-link-active-color: var(--nit-brand-onprimary);
 
         // Resting-pill hover: core fills $gray-100 (light grey). Darken to the
         // brand Hover Background and keep the white label (a category name is
@@ -94,10 +98,12 @@
     }
 
     // ---- Close (X) -----------------------------------------------------------
-    // Core's .btn-close is a black SVG at .5 opacity with no filter → invisible on
-    // the dark modal header. Invert it to the brand white foreground.
+    // The glyph itself is painted from the palette site-wide in _buttons.scss
+    // (it used to be inverted to white here, which is exactly as invisible on a
+    // light group's white modal as core's black X was on the dark one). Only the
+    // opacity is local: Bootstrap's resting .5 was fine for black-on-white, but
+    // on the busy chooser header the brand ink wants a little more presence.
     .btn-close {
-        filter: var(--bs-btn-close-white-filter);
         opacity: 0.75;
 
         &:hover,

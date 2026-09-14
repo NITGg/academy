@@ -63,6 +63,37 @@
     --bs-btn-active-color: var(--nit-brand-hovertext);
 }
 
+// Dismiss "X" (`.btn-close`) — every modal header, dismissible alert, toast and
+// the navbar search. Bootstrap draws it as a BLACK SVG background at .5 opacity
+// and offers only a fixed `invert()` filter for dark surfaces, so whichever way
+// it is left it disappears in half the brand groups: black on the dark groups'
+// modals, white (once inverted) on Daylight's white ones. Paint the glyph from
+// the palette instead: keep Bootstrap's own SVG for the shape, but use it as a
+// MASK over a fill of the Text primary role, so the X is always the page ink —
+// near-white on a dark group, near-black on a light one — and follows a course's
+// category group like every other glyph. The mask sits on a pseudo-element, not
+// the button, so the focus ring (a box-shadow outside the box, which a mask on
+// the button itself would clip away) still draws.
+.btn-close {
+    position: relative;
+    background-image: none;
+
+    &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-color: var(--nit-brand-textprimary);
+        -webkit-mask-image: var(--bs-btn-close-bg);
+        mask-image: var(--bs-btn-close-bg);
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        -webkit-mask-size: 1em auto;
+        mask-size: 1em auto;
+    }
+}
+
 // The ghost / outline buttons (e.g. the "Reset" actions) moved to
 // scss/foundation/_brand.scss, where they are wired to the six Outline button
 // roles instead of borrowing Border secondary and the two Hover roles from the

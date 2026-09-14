@@ -119,13 +119,6 @@
         background-color: color-mix(in srgb, var(--nit-brand-primary) 26%, var(--nit-brand-surface));
     }
 
-    // Quick grading: a cell whose grade or comment was edited but not yet
-    // saved. Core marks it #fc9; a Warning tint says the same thing.
-    tr .quickgrademodified {
-        --bs-table-bg-state: color-mix(in srgb, var(--nit-brand-warning) 22%, var(--nit-brand-surface));
-        background-color: color-mix(in srgb, var(--nit-brand-warning) 22%, var(--nit-brand-surface));
-    }
-
     // The quick-grading controls are bare `<input>` / `<textarea>` / `<select>`
     // elements with no Bootstrap class, so they render as the browser's white
     // boxes. Same roles as any other input: Surface fill, Text primary ink,
@@ -161,6 +154,14 @@
         color: var(--nit-brand-textprimary);
         border: 1px solid var(--nit-brand-borderprimary);
     }
+}
+
+// Quick grading: the box around a grade or comment that was edited but not
+// yet saved. Core marks it #fc9 from `div.gradingtable` (one element more
+// specific than the block above), so the selector is repeated verbatim here.
+// A Warning tint says the same thing.
+.path-mod-assign div.gradingtable tr .quickgrademodified {
+    background-color: color-mix(in srgb, var(--nit-brand-warning) 22%, var(--nit-brand-surface));
 }
 
 // ---- The "Advanced" filter dropdown ----------------------------------------
