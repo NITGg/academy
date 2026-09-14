@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'theme_nit';
-$plugin->version   = 2026091400;        // YYYYMMDDXX — Course page: the "courses / المقرر" design (hero banner, tab pill, two-column cards).
+$plugin->version   = 2026091401;        // YYYYMMDDXX — Navbar gear menu written as `English|Arabic|link` lines on Advanced theme settings (theme_nit/gearmenuitems); earlier shapes cleared.
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline (pinned per CI matrix).
 $plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_ALPHA;    // Foundation + rendering + branding (M2–M5); pre-1.0.

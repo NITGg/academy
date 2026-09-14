@@ -66,7 +66,16 @@ class update_profile extends external_api {
                         'The new value. A phone field takes "EG:1012345678" or an encoded JSON object '
                         . '{"country":"EG","number":"1012345678"}; a datetime field takes a unix timestamp; '
                         . 'interests take a comma separated list.'),
-                ]), 'The fields to change. Anything left out keeps its current value.'
+                ]),
+                // Optional, defaulting to none: a completion screen that has nothing
+                // outstanding but the terms checkbox sends consent=1 with no fields at
+                // all, and over REST an empty array is sent by *omitting* it. Left
+                // VALUE_REQUIRED, that submission was refused with invalid_parameter
+                // before the consent below could ever be recorded - so the app could
+                // never clear a consent-only prompt. The consent is applied outside
+                // the field loop, so an empty list is a valid "just accept" call.
+                'The fields to change. Anything left out keeps its current value.',
+                VALUE_DEFAULT, []
             ),
             'userid' => new external_value(PARAM_INT,
                 'Whose profile to update. 0 (the default) means the calling user.', VALUE_DEFAULT, 0),
@@ -90,7 +99,7 @@ class update_profile extends external_api {
      * @param bool $consent record acceptance of the site policies
      * @return array
      */
-    public static function execute($fields, $userid = 0, $descriptionformat = FORMAT_HTML, $consent = 0): array {
+    public static function execute($fields = [], $userid = 0, $descriptionformat = FORMAT_HTML, $consent = 0): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [

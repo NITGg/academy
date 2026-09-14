@@ -267,15 +267,22 @@ $string['navgallery'] = 'Design gallery';
 
 // The gear menu settings — appended to the core Advanced theme settings page
 // (Appearance → Advanced theme settings), beside the two core navbar menus.
-// Three controls per group; the groups and pages are theme_nit\local\gear_menu.
+// One text box, written like Custom menu items; the parser is theme_nit\local\gear_menu.
 $string['gearmenu'] = 'Navigation bar gear menu';
-$string['gearmenu_desc'] = 'The gear icon on the navigation bar opens two groups of links: <em>Navigation</em> (My courses, Site administration) and <em>Management</em> (coupons, offers, subscriptions and the other administration screens). For each group, choose below whether it is shown, what it is called, and which pages it lists. A page is only ever shown to users who are allowed to open it, so a student never sees the management screens whatever is ticked here. The Edit mode switch, for users who have one, sits after the first group.';
-$string['gearmenushow'] = 'Show the "{$a}" group';
-$string['gearmenushow_desc'] = 'Untick to remove the whole group, heading and pages, from the gear menu.';
-$string['gearmenuname'] = '"{$a}" group name';
-$string['gearmenuname_desc'] = 'The heading shown above the group\'s pages. Leave empty to use "{$a}" (translated for each language). To give your own name in both languages write it as <code>{mlang en}Name{mlang}{mlang ar}الاسم{mlang}</code>.';
-$string['gearmenupages'] = 'Pages in the "{$a}" group';
-$string['gearmenupages_desc'] = 'Tick the pages to list under this group, in the order shown. A page may be ticked in both groups, or in neither.';
+$string['gearmenu_desc'] = 'The gear icon on the navigation bar opens a list of groups, each a heading over a few pages — <em>Navigation</em> (My courses, Site administration) and <em>Management</em> (coupons, offers, subscriptions and the other administration screens). The groups, their names in both languages, the pages under each one and their order are all set by the text below, written the same way as Custom menu items above. The Edit mode switch, for users who have one, sits after the first group.';
+$string['gearmenuitems'] = 'Gear menu items';
+$string['gearmenuitems_desc'] = '<p>One line per item, the parts separated by <code>|</code>:</p>
+<ul>
+<li>A line <b>without</b> a hyphen starts a group: <code>English name|Arabic name</code></li>
+<li>A line <b>starting with a hyphen</b> is a page in that group: <code>-English name|Arabic name|link</code></li>
+</ul>
+<p>The link is a page on this site (<code>/my/courses.php</code>) or a full address. Give one name only and it is used in both languages. Site administration pages and the management screens are shown only to users allowed to open them; any other link is shown to everyone (add <code>|loggedin</code> at the end of a line to limit it to logged-in users). Leave the box empty to show no groups. For example:</p>
+<pre>Navigation|التصفح
+-My courses|مقرراتي الدراسية|/my/courses.php
+-Site administration|إدارة الموقع|/admin/search.php
+Management|الإدارة
+-Manage coupons|إدارة الكوبونات|/local/nit_commerce/manage_coupons.php
+-Reports|التقارير|/reportbuilder/index.php|loggedin</pre>';
 
 
 // Logo size — shown on the core Logos page (Appearance → Logos), directly under

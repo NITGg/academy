@@ -50,8 +50,10 @@ editing `amd/src/`.
   the override budget.
 - No `pix/screenshot.png` yet (added with the M3 visual identity); the theme
   selector shows a placeholder until then.
-- The navbar gear menu (Navigation / Management groups) is configured, not
-  coded: three controls per group (shown, name, pages) on Site administration →
-  Appearance → Advanced theme settings. The catalogue of pages, the groups and
-  the visibility rules live in `classes/local/gear_menu.php`; the renderer
+- The navbar gear menu (Navigation / Management groups) is a text setting, not
+  code: `theme_nit/gearmenuitems` on Site administration → Appearance →
+  Advanced theme settings, written like core's Custom menu items —
+  `English|Arabic` for a group, `-English|Arabic|link` for a page. Who may see
+  a link is worked out from the link (`gear_menu::rule_for`), never typed. The
+  parser lives in `classes/local/gear_menu.php`; the renderer
   (`core_renderer::navbar_gear_menu`) only filters and draws.

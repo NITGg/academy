@@ -183,23 +183,22 @@ if ($ADMIN->fulltree) {
 }
 
 
+
 // -----------------------------------------------------------------------------
 // The navbar gear menu — appended to the CORE Advanced theme settings page.
 //
 // Appearance → Advanced theme settings is where the other two navbar menus are
-// configured (Custom menu items, User menu items), so the gear menu belongs
-// beside them rather than on a page of its own. Same load-order trick as the
-// Logos page above: appearance.php builds `themesettingsadvanced` before it
-// includes this file, `locate()` hands the page back, and the guard costs
-// nothing on a core that renames it.
+// written down (Custom menu items, User menu items) — one text box, one line
+// per item — so the gear menu is a third box of the same kind beside them,
+// rather than a page of its own. Same load-order trick as the Logos page above:
+// appearance.php builds `themesettingsadvanced` before it includes this file,
+// `locate()` hands the page back, and the guard costs nothing on a core that
+// renames it.
 //
-// Three plain controls per group — shown?, name, which pages — because the
-// administrator is not expected to learn a line syntax for this. The catalogue
-// of pages and the groups' defaults live in theme_nit\local\gear_menu, so a new
-// screen is added there and appears here on its own. The defaults reproduce
-// the menu the theme used to hard-code, so a site that never opens this page
-// sees no change. Values are read at render time — nothing is compiled — so no
-// cache reset is needed.
+// The default is the menu the theme used to hard-code, written out with the
+// English and Arabic names from the language packs, so a site that never opens
+// this page sees no change (theme_nit\local\gear_menu::default_definition).
+// The value is read at render time — nothing is compiled — so no cache reset.
 if ($ADMIN->fulltree) {
     $advancedpage = $ADMIN->locate('themesettingsadvanced');
     if ($advancedpage instanceof admin_settingpage) {
@@ -208,39 +207,14 @@ if ($ADMIN->fulltree) {
             get_string('gearmenu', 'theme_nit'),
             get_string('gearmenu_desc', 'theme_nit')
         ));
-
-        // The tick-box list is the same for both groups: every page the site
-        // has, labelled as the menu labels it.
-        $pagechoices = [];
-        foreach (\theme_nit\local\gear_menu::installed_pages() as $key => $page) {
-            $pagechoices[$key] = get_string($page['label'][0], $page['label'][1]);
-        }
-
-        foreach (\theme_nit\local\gear_menu::groups() as $key => $group) {
-            $groupname = get_string($group['heading'][0], $group['heading'][1]);
-
-            $advancedpage->add(new admin_setting_configcheckbox(
-                'theme_nit/' . \theme_nit\local\gear_menu::setting_name($key, 'show'),
-                get_string('gearmenushow', 'theme_nit', $groupname),
-                get_string('gearmenushow_desc', 'theme_nit', $groupname),
-                1
-            ));
-
-            $advancedpage->add(new admin_setting_configtext(
-                'theme_nit/' . \theme_nit\local\gear_menu::setting_name($key, 'name'),
-                get_string('gearmenuname', 'theme_nit', $groupname),
-                get_string('gearmenuname_desc', 'theme_nit', $groupname),
-                '',
-                PARAM_TEXT
-            ));
-
-            $advancedpage->add(new admin_setting_configmulticheckbox(
-                'theme_nit/' . \theme_nit\local\gear_menu::setting_name($key, 'pages'),
-                get_string('gearmenupages', 'theme_nit', $groupname),
-                get_string('gearmenupages_desc', 'theme_nit', $groupname),
-                array_fill_keys($group['default'], 1),
-                $pagechoices
-            ));
-        }
+        $advancedpage->add(new admin_setting_configtextarea(
+            'theme_nit/gearmenuitems',
+            get_string('gearmenuitems', 'theme_nit'),
+            get_string('gearmenuitems_desc', 'theme_nit'),
+            \theme_nit\local\gear_menu::default_definition(),
+            PARAM_RAW,
+            '50',
+            '12'
+        ));
     }
 }
