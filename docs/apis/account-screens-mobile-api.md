@@ -455,17 +455,23 @@ No parameters.
   "cannotbeundone": "This cannot be undone",
   "warning": "Deleting your account removes your access to every course you have purchased and to the certificates you have earned. This cannot be undone.",
   "retained": "Financial records are retained. Certificates already issued remain publicly verifiable.",
+  "passwordrequired": true,
   "passwordlabel": "Enter your password to confirm",
+  "passwordnote": "",
   "confirmword": "DELETE",
   "confirmlabel": "Type DELETE to confirm",
   "warnings": []
 }
 ```
 
-- `allowed: false` → show `refusedreason` and no form. Three accounts are refused:
-  the guest account, an administrator (a site nobody can administer is a worse
-  outcome than an inconvenient account), and an account that signs in through
-  Google, which has no password here to give the required confirmation with.
+- `allowed: false` → show `refusedreason` and no form. Two accounts are refused:
+  the guest account and an administrator (a site nobody can administer is a worse
+  outcome than an inconvenient account).
+- `passwordrequired: false` → the account signs in through Google (or another
+  external provider) and holds no password here. Do **not** draw the password
+  box; show `passwordnote` in its place (`passwordlabel` is `""`) and send only
+  `confirmword` to `delete_account`. The typed word is that account's whole
+  confirmation — the web form does exactly the same.
 - Show **all three** sentences. `retained` matters most to somebody hesitating: a
   learner who believes deletion revokes the certificate they earned will not
   click, and that would be the wrong reason to stay.
@@ -485,6 +491,8 @@ POST wsfunction=local_profilefields_delete_account
 
 - Wrong password or wrong word → `deleted: false` with `warnings` on `password`
   and/or `confirmword`. Nothing is destroyed.
+- `password` is optional (defaults to `""`). When `get_delete_account_info` said
+  `passwordrequired: false` it is ignored entirely — omit it.
 - Both confirmations are required, and for different reasons: the password rules
   out an unattended signed-in phone; the typed word is because this is the one
   action on the site with no undo, and a single tap behind a saved password is not

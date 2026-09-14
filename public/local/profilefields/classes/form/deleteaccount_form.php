@@ -60,9 +60,22 @@ class deleteaccount_form extends moodleform {
             'alert alert-danger'
         ));
 
-        $mform->addElement('password', 'password',
-            get_string('deleteaccountconfirm', 'local_profilefields'));
-        $mform->setType('password', PARAM_RAW);
+        // An account that signs in through Google has no password here, so a
+        // password box on this form is one that can only ever say "not correct".
+        // For that account the typed word is the whole confirmation, and the form
+        // says so rather than leaving a learner to guess at a password they never
+        // set. The page decides with account::can_verify_password() - see
+        // {@see self::password_required()}.
+        if ($this->password_required()) {
+            $mform->addElement('password', 'password',
+                get_string('deleteaccountconfirm', 'local_profilefields'));
+            $mform->setType('password', PARAM_RAW);
+        } else {
+            $mform->addElement('html', \html_writer::div(
+                get_string('deleteaccountnopassword', 'local_profilefields'),
+                'nit-account__help mb-3'
+            ));
+        }
 
         $mform->addElement('text', 'confirmword',
             get_string('deleteaccounttype', 'local_profilefields',
@@ -88,7 +101,8 @@ class deleteaccount_form extends moodleform {
 
         $errors = parent::validation($data, $files);
 
-        if (!\local_profilefields\account::verify_password((int) $USER->id, (string) ($data['password'] ?? ''))) {
+        if ($this->password_required()
+                && !\local_profilefields\account::verify_password((int) $USER->id, (string) ($data['password'] ?? ''))) {
             $errors['password'] = get_string('deleteaccountwrongpassword', 'local_profilefields');
         }
 
@@ -102,5 +116,18 @@ class deleteaccount_form extends moodleform {
         }
 
         return $errors;
+    }
+
+    /**
+     * Does this form ask for (and check) a password?
+     *
+     * Read from the `passwordrequired` custom data the page passes in from
+     * account::can_verify_password(). Absent means yes: a caller that forgot to
+     * say should get the stricter form, not the looser one.
+     *
+     * @return bool
+     */
+    protected function password_required(): bool {
+        return (bool) ($this->_customdata['passwordrequired'] ?? true);
     }
 }

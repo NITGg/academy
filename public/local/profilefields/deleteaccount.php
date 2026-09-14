@@ -58,7 +58,11 @@ if (!accountdeletion::allowed($USER)) {
         null, \core\output\notification::NOTIFY_ERROR);
 }
 
-$form = new deleteaccount_form($url);
+// A Google account has no password here to type, so the form asks only for the
+// confirmation word (and says why) - see deleteaccount_form::definition().
+$passwordrequired = account::can_verify_password($USER);
+
+$form = new deleteaccount_form($url, ['passwordrequired' => $passwordrequired]);
 
 if ($form->is_cancelled()) {
     redirect(account::url());
@@ -82,7 +86,9 @@ if ($form->is_cancelled()) {
 
 // The confirmation box is a password box, and a password box with no reveal
 // control is one you cannot check before committing to something irreversible.
-account::password_toggle();
+if ($passwordrequired) {
+    account::password_toggle();
+}
 
 echo $OUTPUT->header();
 

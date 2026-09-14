@@ -265,31 +265,17 @@ $string['continueasguest'] = 'Continue as a guest';
 $string['navmanagement'] = 'Management';
 $string['navgallery'] = 'Design gallery';
 
-// The gear menu setting — appended to the core Advanced theme settings page
-// (Appearance → Advanced theme settings), beside the two core navbar menus that
-// are written the same way. Parsed by theme_nit\local\gear_menu.
+// The gear menu settings — appended to the core Advanced theme settings page
+// (Appearance → Advanced theme settings), beside the two core navbar menus.
+// Three controls per group; the groups and pages are theme_nit\local\gear_menu.
 $string['gearmenu'] = 'Navigation bar gear menu';
-$string['gearmenu_desc'] = 'The gear icon on the navigation bar opens a list of groups, each a heading over a few pages — <em>Navigation</em> with My courses and Site administration, <em>Management</em> with the coupons, offers and subscriptions screens, and so on. The groups, their names, the pages under each one and their order are all set by the text below. The Edit mode switch, for users who have one, is placed after the first group.';
-$string['gearmenuitems'] = 'Gear menu items';
-$string['gearmenuitems_desc'] = '<p>One line per group heading or page:</p>
-<ul>
-<li>A line <b>without</b> a leading hyphen starts a new group and is its heading.</li>
-<li>A line <b>with</b> a leading hyphen is a page in the current group, written as <code>-Label|URL|who</code>, separated by pipe characters.</li>
-</ul>
-<p>A heading or label is either plain text (<code>{mlang}</code> spans work) or a language string as <code>identifier,component</code>, for example <code>mycourses,core</code>. The URL is relative to the site (<code>/local/nit_commerce/manage_coupons.php</code>) or a full address. The third part says who sees the page and may be left out:</p>
-<ul>
-<li>empty — everyone, including visitors who are not logged in;</li>
-<li><code>loggedin</code> — any logged-in user (not the guest account);</li>
-<li><code>admin</code> — anyone who can open Site administration;</li>
-<li>a capability such as <code>local/nit_commerce:managecoupons</code> — users who hold it site-wide. A capability the site does not have hides the page.</li>
-</ul>
-<p>A group whose pages are all hidden from a user is hidden from that user too, heading included. Leave the box empty to show no groups at all. For example:</p>
-<pre>navigation,core
--mycourses,core|/my/courses.php|loggedin
--administrationsite,core|/admin/search.php|admin
-Management
--Manage coupons|/local/nit_commerce/manage_coupons.php|local/nit_commerce:managecoupons
--{mlang en}Reports{mlang}{mlang ar}التقارير{mlang}|/reportbuilder/index.php|moodle/site:config</pre>';
+$string['gearmenu_desc'] = 'The gear icon on the navigation bar opens two groups of links: <em>Navigation</em> (My courses, Site administration) and <em>Management</em> (coupons, offers, subscriptions and the other administration screens). For each group, choose below whether it is shown, what it is called, and which pages it lists. A page is only ever shown to users who are allowed to open it, so a student never sees the management screens whatever is ticked here. The Edit mode switch, for users who have one, sits after the first group.';
+$string['gearmenushow'] = 'Show the "{$a}" group';
+$string['gearmenushow_desc'] = 'Untick to remove the whole group, heading and pages, from the gear menu.';
+$string['gearmenuname'] = '"{$a}" group name';
+$string['gearmenuname_desc'] = 'The heading shown above the group\'s pages. Leave empty to use "{$a}" (translated for each language). To give your own name in both languages write it as <code>{mlang en}Name{mlang}{mlang ar}الاسم{mlang}</code>.';
+$string['gearmenupages'] = 'Pages in the "{$a}" group';
+$string['gearmenupages_desc'] = 'Tick the pages to list under this group, in the order shown. A page may be ticked in both groups, or in neither.';
 
 
 // Logo size — shown on the core Logos page (Appearance → Logos), directly under

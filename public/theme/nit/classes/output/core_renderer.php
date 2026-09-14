@@ -846,12 +846,11 @@ JS;
     /**
      * The whole gear dropdown on the navbar — button and panel — or nothing.
      *
-     * The panel is the groups the administrator wrote into the
-     * `theme_nit/gearmenuitems` setting (Appearance → Advanced theme settings;
-     * see theme_nit\local\gear_menu for the syntax), with core's edit-mode
-     * switch relocated in after the first of them — that is where it always
-     * sat, between Navigation and Management, and a row that moves around as
-     * groups are renamed is harder to find than one that stays put.
+     * The panel is the groups the administrator switched on under Appearance →
+     * Advanced theme settings (see theme_nit\local\gear_menu), with core's
+     * edit-mode switch relocated in after the first of them — that is where it
+     * always sat, between Navigation and Management, and a row that moves
+     * around as groups are renamed is harder to find than one that stays put.
      *
      * Each piece is empty for some visitor — a guest has no group left once
      * every logged-in row is gone, a student never edits — and a gear that
@@ -882,9 +881,9 @@ JS;
     /**
      * The gear dropdown's groups, as this viewer gets to see them.
      *
-     * Reads the administrator's definition (theme_nit\local\gear_menu), keeps
-     * the rows whose rule this viewer passes, and drops any group that has no
-     * row left — a heading over nothing is not a group.
+     * Takes the configured groups (theme_nit\local\gear_menu), keeps the rows
+     * whose rule this viewer passes, and drops any group that has no row left
+     * — a heading over nothing is not a group.
      *
      * A row is marked active when it is the page being viewed: same path, and
      * every parameter the row's URL names has that value on the page (so the
@@ -914,7 +913,7 @@ JS;
         }
 
         $groups = [];
-        foreach (gear_menu::parse(gear_menu::definition()) as $group) {
+        foreach (gear_menu::configured_groups() as $group) {
             $items = [];
             foreach ($group['items'] as $item) {
                 if (!gear_menu::rule_allows($item['rule'], $this->page)) {
@@ -923,7 +922,7 @@ JS;
                 $url = gear_menu::url($item['url'])->out(false);
                 $key = self::navbar_path_key((string) parse_url($url, PHP_URL_PATH));
                 $items[] = [
-                    'text' => gear_menu::label($item['label']),
+                    'text' => get_string($item['label'][0], $item['label'][1]),
                     'url' => $url,
                     'isactive' => $this->navbar_custom_menu_is_active(['url' => $url], $currentpath)
                         || !empty($coreactive[$key]),
@@ -932,10 +931,9 @@ JS;
             if (empty($items)) {
                 continue;
             }
-            $heading = $group['heading'] === '' ? '' : gear_menu::label($group['heading']);
             $groups[] = [
-                'heading' => $heading,
-                'hasheading' => $heading !== '',
+                'heading' => $group['heading'],
+                'hasheading' => $group['heading'] !== '',
                 'items' => $items,
             ];
         }

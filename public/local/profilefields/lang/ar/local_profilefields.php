@@ -412,6 +412,7 @@ $string['emailchangelocked'] = 'لا يمكن تغيير بريدك الإلكت
 $string['passwordexternal'] = 'أنت تسجّل الدخول عبر حساب خارجي، لذا لا توجد كلمة مرور محفوظة هنا.';
 $string['deleteaccountcannotbeundone'] = 'لا يمكن التراجع عن هذا الإجراء';
 $string['deleteaccountretained'] = 'تُحفظ السجلات المالية. وتظل الشهادات الصادرة قابلة للتحقق العلني.';
+$string['deleteaccountnopassword'] = 'أنت تسجّل الدخول عبر حساب خارجي (مثل Google)، لذا لا توجد كلمة مرور لإدخالها هنا. كتابة الكلمة أدناه هي تأكيدك.';
 
 // عناوين مجموعات حقول الملف الشخصي وأسماء حقول المدرّب.
 $string['instructorcategory'] = 'بيانات المدرّب';

@@ -432,22 +432,28 @@ class account_api {
         $allowed = accountdeletion::allowed($user);
 
         // The password box is AC-4.5.7's, and an account that signs in through
-        // Google has no password here to check - the same wall the web form puts
-        // in front of it. Said plainly rather than left to a failed attempt.
-        $canverify = account::can_verify_password($user);
+        // Google has no password here to check. That account is still allowed to
+        // leave - the typed word is its whole confirmation, exactly as on the web
+        // form - so the client is told not to draw the box, and given the sentence
+        // that explains its absence.
+        $passwordrequired = account::can_verify_password($user);
 
         return [
-            'allowed' => $allowed && $canverify,
-            'refusedreason' => ($allowed && $canverify)
+            'allowed' => $allowed,
+            'refusedreason' => $allowed
                 ? ''
-                : ($allowed
-                    ? get_string('passwordexternal', 'local_profilefields')
-                    : get_string('deleteaccountrefused', 'local_profilefields')),
+                : get_string('deleteaccountrefused', 'local_profilefields'),
             'title' => get_string('deleteaccount', 'local_profilefields'),
             'cannotbeundone' => get_string('deleteaccountcannotbeundone', 'local_profilefields'),
             'warning' => get_string('deleteaccountwarning', 'local_profilefields'),
             'retained' => get_string('deleteaccountretained', 'local_profilefields'),
-            'passwordlabel' => get_string('deleteaccountconfirm', 'local_profilefields'),
+            'passwordrequired' => $passwordrequired,
+            'passwordlabel' => $passwordrequired
+                ? get_string('deleteaccountconfirm', 'local_profilefields')
+                : '',
+            'passwordnote' => $passwordrequired
+                ? ''
+                : get_string('deleteaccountnopassword', 'local_profilefields'),
             // Localised, so an Arabic interface asks for the Arabic word - a
             // learner should not have to type a language they do not read to
             // leave. Compare case-insensitively; the server does.
@@ -462,17 +468,20 @@ class account_api {
      * Check what the delete form checks.
      *
      * The same two gates, in the same order, with the same messages
-     * ({@see form\deleteaccount_form::validation()}).
+     * ({@see form\deleteaccount_form::validation()}). The password gate is
+     * skipped for an account that has no password here (Google), as the form
+     * skips it - the client was told so by deletion_info()'s `passwordrequired`.
      *
      * @param stdClass $user the account being deleted
-     * @param string $password the account password, as typed
+     * @param string $password the account password, as typed ('' when none is held)
      * @param string $confirmword the confirmation word, as typed
      * @return array<string,string> field name => message; empty when it may proceed
      */
     public static function deletion_errors(stdClass $user, string $password, string $confirmword): array {
         $errors = [];
 
-        if (!account::verify_password((int) $user->id, $password)) {
+        if (account::can_verify_password($user)
+                && !account::verify_password((int) $user->id, $password)) {
             $errors['password'] = get_string('deleteaccountwrongpassword', 'local_profilefields');
         }
 

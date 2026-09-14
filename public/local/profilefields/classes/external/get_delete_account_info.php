@@ -32,10 +32,13 @@ defined('MOODLE_INTERNAL') || die();
  *
  * Ask this before drawing the screen. Two accounts may not delete themselves at
  * all - the guest account, and an administrator, because a site nobody can
- * administer is a worse outcome than an inconvenient account - and an account
- * that signs in through Google has no password here to confirm with, so the
- * confirmation the specification requires cannot be given. A client that draws
- * the form regardless offers all three of them a button that can only fail.
+ * administer is a worse outcome than an inconvenient account. A client that
+ * draws the form regardless offers both of them a button that can only fail.
+ *
+ * An account that signs in through Google has no password here to confirm
+ * with, so for it the typed word is the whole confirmation: `passwordrequired`
+ * is false, `passwordlabel` is empty and `passwordnote` carries the sentence to
+ * show in the box's place. Draw the password box only when `passwordrequired`.
  *
  * The three sentences of the warning come back translated. They are AC-4.5.4's
  * wording and they matter: a learner who thinks deleting the account revokes the
@@ -90,7 +93,15 @@ class get_delete_account_info extends external_api {
             'retained' => new external_value(PARAM_RAW,
                 'What survives - financial records, and certificates already issued stay verifiable. '
                 . 'Show it: it is the part somebody hesitating most needs.'),
-            'passwordlabel' => new external_value(PARAM_RAW, 'Label for the password box.'),
+            'passwordrequired' => new external_value(PARAM_BOOL,
+                'True: draw the password box and send `password` to local_profilefields_delete_account. '
+                . 'False: this account signs in through an external provider (Google) and holds no '
+                . 'password here - show `passwordnote` instead of the box and omit `password`.'),
+            'passwordlabel' => new external_value(PARAM_RAW,
+                'Label for the password box. "" when `passwordrequired` is false.'),
+            'passwordnote' => new external_value(PARAM_RAW,
+                'The sentence to show where the password box would be when `passwordrequired` is false. '
+                . '"" otherwise.'),
             'confirmword' => new external_value(PARAM_RAW,
                 'The word the user must type, localised. Send it back as `confirmword`; it is compared '
                 . 'case-insensitively and trimmed.'),

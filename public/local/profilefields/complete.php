@@ -146,7 +146,9 @@ if ($data = $form->get_data()) {
 
     \core\notification::success(get_string('completedone', 'local_profilefields'));
 
-    redirect($returnurl !== '' ? new moodle_url($returnurl) : new moodle_url('/'));
+    // Registration is finished: land on the site home page, not on whatever page
+    // the completion gate caught them on (usually /my/ straight after login).
+    redirect(new moodle_url('/'));
 }
 
 echo $OUTPUT->header();

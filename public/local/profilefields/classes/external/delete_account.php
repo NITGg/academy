@@ -44,6 +44,10 @@ defined('MOODLE_INTERNAL') || die();
  * `local_profilefields_get_delete_account_info`; it is localised, so an Arabic
  * interface asks for the Arabic one.
  *
+ * An account that signs in through Google holds no password here, so for it the
+ * typed word is the whole confirmation: `get_delete_account_info` says so with
+ * `passwordrequired: false`, and `password` may then be left out (it is ignored).
+ *
  * The deletion is an anonymisation, not a hard delete: financial records stay
  * intact and certificates already issued stay publicly verifiable. What goes is
  * the personal data, every session, every remembered device and every
@@ -63,7 +67,13 @@ class delete_account extends external_api {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-            'password' => new external_value(PARAM_RAW, 'The account\'s current password.'),
+            // Optional so an account with no password here (Google) can leave it
+            // out; core fills in '' before execute() runs, and deletion_errors()
+            // does not look at it for that account.
+            'password' => new external_value(PARAM_RAW,
+                'The account\'s current password. Omit (or send "") when '
+                . 'local_profilefields_get_delete_account_info said `passwordrequired: false`; '
+                . 'it is not checked for that account.', VALUE_DEFAULT, ''),
             'confirmword' => new external_value(PARAM_TEXT,
                 'The confirmation word, exactly as local_profilefields_get_delete_account_info gave it. '
                 . 'Compared trimmed and case-insensitively.'),
@@ -73,7 +83,7 @@ class delete_account extends external_api {
     /**
      * Delete the calling account.
      *
-     * @param string $password the account's current password
+     * @param string $password the account's current password ('' when none is held here)
      * @param string $confirmword the confirmation word, as typed
      * @return array
      */

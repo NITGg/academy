@@ -21,42 +21,24 @@ use moodle_page;
 use moodle_url;
 
 /**
- * The navbar gear menu, as the administrator wrote it down.
+ * The navbar gear menu, as the administrator configured it.
  *
- * The gear dropdown on the navigation bar is a list of groups, each a heading
- * over a few links (Navigation: My courses, Site administration; Management:
- * Manage coupons, ...). Which groups there are, what they are called, which
- * pages sit under them and in what order is the administrator's to decide, so
- * the whole list is one setting - `theme_nit/gearmenuitems`, on Site
- * administration → Appearance → Advanced theme settings, beside the two core
- * menus (`custommenuitems`, `customusermenuitems`) that are written the same way.
+ * The gear dropdown on the navigation bar is two groups, each a heading over a
+ * few links: Navigation (My courses, Site administration) and Management (the
+ * coupons, offers, subscriptions ... screens). Whether each group is shown,
+ * what it is called and which pages it lists are three settings per group on
+ * Site administration → Appearance → Advanced theme settings — a tick box, a
+ * text box and a list of tick boxes — beside the two core navbar menus.
  *
- * The syntax, line by line
- * ------------------------
- *   Heading                      a line without a leading dash starts a group
- *   -Label|/some/page.php|rule   a line with one is a page in the current group
+ * The pages themselves are a fixed catalogue (pages()): every screen the menu
+ * has ever carried, each with the URL it opens and the rule that says who may
+ * see it. The rule is not the administrator's to change - a row is only ever
+ * shown to a user who could open the page - so the settings page never shows
+ * it. A page may be ticked in either group, or in both, or in neither.
  *
- * `Heading` and `Label` are either plain text (multilang `{mlang}` spans are
- * honoured) or a language string as `identifier,component` - `mycourses,core`
- * - exactly as the user menu setting on the same page spells them, so a site
- * that runs in two languages does not have to type both.
- *
- * `rule` says who sees the row and is optional:
- *   (empty)                   everyone, visitors included
- *   loggedin                  any logged-in user (the guest account excluded)
- *   admin                     whoever may open Site administration - the same
- *                             test core applies to that row
- *   local/plugin:capability   holders of that capability in the system context;
- *                             a capability the site does not have (the plugin is
- *                             not installed) hides the row rather than raising
- *
- * A page whose lines all fail their rule takes its heading with it, and a menu
- * with no group left in it shows only the Edit mode switch, if the viewer has
- * one; the renderer drops the gear altogether when there is nothing at all.
- *
- * This class is the parser and the rule; it holds no state. What the viewer's
- * page needs - the active row, the rendered HTML - is the renderer's business
- * (theme_nit\output\core_renderer::navbar_gear_menu).
+ * This class is the catalogue and the rule; it holds no state. What the
+ * viewer's page needs - the active row, the rendered HTML - is the renderer's
+ * business (theme_nit\output\core_renderer::navbar_gear_menu).
  *
  * @package    theme_nit
  * @copyright  2026 NIT
@@ -70,142 +52,186 @@ class gear_menu {
     /** @var string Rule: anyone who may open Site administration. */
     public const RULE_ADMIN = 'admin';
 
+    /** @var string Rule: everyone, visitors included. */
+    public const RULE_EVERYONE = '';
+
     /**
-     * The menu a fresh site gets: the groups and rows the theme hard-coded
-     * before the setting existed, in the same order, so upgrading changes
-     * nothing until an administrator edits the text.
+     * The two groups of the menu, in the order they are drawn.
      *
-     * Rows for plugins the site may not run (`local_nit_commerce`, ...) are
-     * safe to list: their capability is unknown on such a site, and an unknown
-     * capability hides the row.
+     * Each has the language string its heading falls back to when the
+     * administrator leaves the name empty, and the pages ticked on a fresh
+     * site - which is the menu the theme hard-coded before the settings
+     * existed, so upgrading changes nothing until someone edits them.
      *
-     * @return string
+     * @return array key => ['heading' => [identifier, component], 'default' => list of page keys]
      */
-    public static function default_definition(): string {
-        $lines = [
-            'navigation,core',
-            '-mycourses,core|/my/courses.php|' . self::RULE_LOGGEDIN,
-            '-administrationsite,core|/admin/search.php|' . self::RULE_ADMIN,
-            'navmanagement,theme_nit',
-            '-managecoupons,local_nit_commerce|/local/nit_commerce/manage_coupons.php|local/nit_commerce:managecoupons',
-            '-manageoffers,local_nit_commerce|/local/nit_commerce/manage_offers.php|local/nit_commerce:manageoffers',
-            '-managesubscriptions,local_nit_subscriptions|/local/nit_subscriptions/manage_subscriptions.php'
-                . '|local/nit_subscriptions:managesubscriptions',
-            '-managejobform,local_jobform|/local/jobform/manage.php|local/jobform:manage',
-            '-navgallery,theme_nit|/theme/nit/gallery.php|moodle/site:config',
-            '-pluginname,local_nit_media|/admin/settings.php?section=local_nit_media_settings|moodle/site:config',
-            // Course purchases + the enrolment-source report (AC-4.10.5). Last in
-            // the group: it is the screen that gets *read* rather than edited, so
-            // it sits after the things an administrator goes to the menu to change.
-            '-managecourses,local_nit_subscriptions|/local/nit_subscriptions/manage_courses.php'
-                . '|local/nit_subscriptions:managesubscriptions',
+    public static function groups(): array {
+        return [
+            'navigation' => [
+                'heading' => ['navigation', 'core'],
+                'default' => ['mycourses', 'siteadmin'],
+            ],
+            'management' => [
+                'heading' => ['navmanagement', 'theme_nit'],
+                'default' => ['managecoupons', 'manageoffers', 'managesubscriptions', 'managejobform',
+                    'gallery', 'sitemedia', 'managecourses'],
+            ],
         ];
-        return implode("\n", $lines);
     }
 
     /**
-     * The definition in force: the setting when it has been saved, the default
-     * until then. A setting saved empty is honoured as empty - the administrator
-     * asked for no groups - which is why this is not a plain `?:`.
+     * Every page the menu can carry, in the order they are drawn within a group.
      *
+     * `component` is the plugin the page belongs to: a site that does not run
+     * it has neither the page nor its strings, so such a row is left out of
+     * the settings page and the menu alike (see installed_pages()).
+     *
+     * @return array key => ['label' => [identifier, component], 'url' => string, 'rule' => string, 'component' => string]
+     */
+    public static function pages(): array {
+        return [
+            'mycourses' => [
+                'label' => ['mycourses', 'core'],
+                'url' => '/my/courses.php',
+                'rule' => self::RULE_LOGGEDIN,
+                'component' => 'core',
+            ],
+            'siteadmin' => [
+                'label' => ['administrationsite', 'core'],
+                'url' => '/admin/search.php',
+                'rule' => self::RULE_ADMIN,
+                'component' => 'core',
+            ],
+            'managecoupons' => [
+                'label' => ['managecoupons', 'local_nit_commerce'],
+                'url' => '/local/nit_commerce/manage_coupons.php',
+                'rule' => 'local/nit_commerce:managecoupons',
+                'component' => 'local_nit_commerce',
+            ],
+            'manageoffers' => [
+                'label' => ['manageoffers', 'local_nit_commerce'],
+                'url' => '/local/nit_commerce/manage_offers.php',
+                'rule' => 'local/nit_commerce:manageoffers',
+                'component' => 'local_nit_commerce',
+            ],
+            'managesubscriptions' => [
+                'label' => ['managesubscriptions', 'local_nit_subscriptions'],
+                'url' => '/local/nit_subscriptions/manage_subscriptions.php',
+                'rule' => 'local/nit_subscriptions:managesubscriptions',
+                'component' => 'local_nit_subscriptions',
+            ],
+            'managejobform' => [
+                'label' => ['managejobform', 'local_jobform'],
+                'url' => '/local/jobform/manage.php',
+                'rule' => 'local/jobform:manage',
+                'component' => 'local_jobform',
+            ],
+            'gallery' => [
+                'label' => ['navgallery', 'theme_nit'],
+                'url' => '/theme/nit/gallery.php',
+                'rule' => 'moodle/site:config',
+                'component' => 'theme_nit',
+            ],
+            'sitemedia' => [
+                'label' => ['pluginname', 'local_nit_media'],
+                'url' => '/admin/settings.php?section=local_nit_media_settings',
+                'rule' => 'moodle/site:config',
+                'component' => 'local_nit_media',
+            ],
+            // Course purchases + the enrolment-source report (AC-4.10.5). Last:
+            // it is the screen that gets *read* rather than edited, so it sits
+            // after the things an administrator goes to the menu to change.
+            'managecourses' => [
+                'label' => ['managecourses', 'local_nit_subscriptions'],
+                'url' => '/local/nit_subscriptions/manage_courses.php',
+                'rule' => 'local/nit_subscriptions:managesubscriptions',
+                'component' => 'local_nit_subscriptions',
+            ],
+        ];
+    }
+
+    /**
+     * pages(), minus the ones whose plugin this site does not run.
+     *
+     * @return array same shape as pages()
+     */
+    public static function installed_pages(): array {
+        return array_filter(self::pages(), function (array $page): bool {
+            return $page['component'] === 'core'
+                || \core_component::get_component_directory($page['component']) !== null;
+        });
+    }
+
+    /**
+     * The name of one of a group's three settings, as stored under theme_nit.
+     *
+     * @param string $group a key of groups()
+     * @param string $what 'show' | 'name' | 'pages'
      * @return string
      */
-    public static function definition(): string {
-        $text = get_config('theme_nit', 'gearmenuitems');
-        if ($text === false) {
-            return self::default_definition();
-        }
-        return (string) $text;
+    public static function setting_name(string $group, string $what): string {
+        return 'gearmenu_' . $group . '_' . $what;
     }
 
     /**
-     * Read a definition into groups.
+     * The menu as configured: each group with its resolved heading and the
+     * pages ticked for it, before any per-viewer filtering.
      *
-     * Blank lines are skipped. A page line before any heading opens a group
-     * with no heading, so a menu that is one flat list still works. A page line
-     * without a URL is dropped - there is nothing to link to - the way core
-     * drops such a line from the user menu.
+     * A group switched off, or left with no page, is not returned. A setting
+     * that was never saved (the site has not opened the settings page since the
+     * upgrade) reads as its default, so a fresh site gets the menu it had.
      *
-     * @param string $text the setting text
-     * @return array list of ['heading' => string, 'items' => list of ['label' => string, 'url' => string, 'rule' => string]]
-     *               with labels and headings still raw (see label())
+     * @return array list of ['key' => string, 'heading' => string, 'items' => list of ['key', 'url', 'rule', 'label' => [identifier, component]]]
      */
-    public static function parse(string $text): array {
+    public static function configured_groups(): array {
+        $pages = self::installed_pages();
         $groups = [];
-        $current = null;
 
-        foreach (preg_split('/\r\n|\r|\n/', $text) as $line) {
-            $line = trim($line);
-            if ($line === '') {
+        foreach (self::groups() as $key => $group) {
+            $show = get_config('theme_nit', self::setting_name($key, 'show'));
+            if ($show !== false && !$show) {
                 continue;
             }
 
-            if ($line[0] !== '-') {
-                if ($current !== null) {
-                    $groups[] = $current;
+            $ticked = get_config('theme_nit', self::setting_name($key, 'pages'));
+            $ticked = $ticked === false ? $group['default'] : array_filter(explode(',', (string) $ticked));
+
+            $items = [];
+            foreach ($pages as $pagekey => $page) {
+                if (in_array($pagekey, $ticked, true)) {
+                    $items[] = ['key' => $pagekey] + $page;
                 }
-                $current = ['heading' => $line, 'items' => []];
+            }
+            if (empty($items)) {
                 continue;
             }
 
-            $bits = array_map('trim', explode('|', ltrim($line, '-'), 3));
-            $label = $bits[0];
-            $url = $bits[1] ?? '';
-            $rule = $bits[2] ?? '';
-            if ($label === '' || $url === '') {
-                continue;
-            }
-
-            if ($current === null) {
-                $current = ['heading' => '', 'items' => []];
-            }
-            $current['items'][] = ['label' => $label, 'url' => $url, 'rule' => $rule];
-        }
-
-        if ($current !== null) {
-            $groups[] = $current;
+            $name = trim((string) get_config('theme_nit', self::setting_name($key, 'name')));
+            $groups[] = [
+                'key' => $key,
+                'heading' => $name === ''
+                    ? get_string($group['heading'][0], $group['heading'][1])
+                    // The administrator's own text: format_string() resolves
+                    // `{mlang}` spans and neutralises markup, and the template
+                    // prints it unescaped, as it does core's own navigation text.
+                    : format_string($name, true, ['context' => context_system::instance()]),
+                'items' => $items,
+            ];
         }
 
         return $groups;
     }
 
     /**
-     * A heading or label as the viewer should read it.
+     * Does this viewer get to see a page with this rule?
      *
-     * `identifier,component` names a language string when such a string exists
-     * (`mycourses,core`; `mycourses,` means core, as it does for the user menu).
-     * Anything else is the administrator's own text, run through format_string()
-     * so `{mlang}` spans resolve and markup is neutralised - the templates print
-     * it unescaped, as they do core's own navigation text.
-     *
-     * @param string $raw
-     * @return string
-     */
-    public static function label(string $raw): string {
-        $bits = explode(',', $raw, 2);
-        if (count($bits) === 2) {
-            $identifier = clean_param(trim($bits[0]), PARAM_STRINGID);
-            $component = clean_param(trim($bits[1]) ?: 'core', PARAM_COMPONENT);
-            if ($identifier !== '' && $component !== ''
-                    && get_string_manager()->string_exists($identifier, $component)) {
-                return get_string($identifier, $component);
-            }
-        }
-
-        return format_string($raw, true, ['context' => context_system::instance()]);
-    }
-
-    /**
-     * Does this viewer get to see a row with this rule?
-     *
-     * @param string $rule the third column of a page line, '' for "everyone"
+     * @param string $rule a page's rule: '' for everyone, RULE_LOGGEDIN, RULE_ADMIN, or a capability
      * @param moodle_page $page the page being rendered - the `admin` rule reads
      *                          its settings navigation, as core does
      * @return bool
      */
     public static function rule_allows(string $rule, moodle_page $page): bool {
-        $rule = trim($rule);
-        if ($rule === '') {
+        if ($rule === self::RULE_EVERYONE) {
             return true;
         }
 
@@ -233,13 +259,12 @@ class gear_menu {
     }
 
     /**
-     * The URL of a page line as a moodle_url: a path is taken relative to the
-     * site, an absolute address is left alone.
+     * A page's URL as a moodle_url: the catalogue writes paths relative to the site.
      *
-     * @param string $url the second column of a page line
+     * @param string $url
      * @return moodle_url
      */
     public static function url(string $url): moodle_url {
-        return new moodle_url(trim($url));
+        return new moodle_url($url);
     }
 }
