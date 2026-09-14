@@ -400,7 +400,7 @@ $string['geodiag_nocountry'] = 'empty';
 $string['geodiag_yourcountry'] = 'Country you would be priced on';
 $string['geodiag_appguest'] = 'Mobile app guest-browsing account';
 $string['geodiag_appguest_ok'] = '{$a} &mdash; priced as a visitor: IP address, then the country the app sends, then the Default price.';
-$string['geodiag_appguest_none'] = 'none recognised &mdash; the app\'s pre-login calls are priced as a member with no country (price 0, "set your country"). Run local/multitopics/cli/app_guest_token.php --create, which gives the account the nit_app_guest role.';
+$string['geodiag_appguest_none'] = 'none recognised &mdash; the app\'s pre-login calls are priced as a member with no country (price 0, "set your country"). Type the account\'s user id into Site administration &rarr; Plugins &rarr; Local plugins &rarr; Mobile app settings &rarr; "Guest browsing account", or run local/multitopics/cli/app_guest_token.php --create --userid=ID.';
 $string['geodiag_testip'] = 'Test another IP address';
 $string['geodiag_testgo'] = 'Look it up';
 $string['geodiag_courserows'] = 'Price rows';

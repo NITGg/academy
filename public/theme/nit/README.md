@@ -50,3 +50,8 @@ editing `amd/src/`.
   the override budget.
 - No `pix/screenshot.png` yet (added with the M3 visual identity); the theme
   selector shows a placeholder until then.
+- The navbar gear menu (Navigation / Management groups) is data, not code:
+  `theme_nit/gearmenuitems` on Site administration → Appearance → Advanced
+  theme settings, in the same line syntax as core's custom menu items. The
+  parser and the visibility rules live in `classes/local/gear_menu.php`; the
+  renderer (`core_renderer::navbar_gear_menu`) only filters and draws.

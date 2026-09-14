@@ -30,8 +30,8 @@
       * A light/dark switch (output.navbar_mode_toggle) that selects a Brand
         Colors group rather than carrying a palette of its own.
       * The horizontal primary navigation is collapsed into a single gear-icon
-        dropdown (built from `mobileprimarynav`), which carries a second,
-        NIT-only group of management links (output.navbar_management_menu).
+        dropdown whose groups and pages the administrator writes down on
+        Appearance → Advanced theme settings (theme_nit/gearmenuitems).
       * Right cluster order: site search (output.navbar_site_search), notifications
         (navbar_plugin_output), gear nav, user menu. Core's search_box is replaced by
         ours rather than shown alongside it — AC-4.22.1 asks for a single control.
@@ -105,9 +105,10 @@
             {{/output.navbar_plugin_output}}
 
             {{! NIT: primary navigation collapsed into a single gear-icon dropdown
-                (theme_nit/navbar_gear_menu): core's My courses / Site administration
-                rows, the relocated edit-mode switch, and the management group.
-                Empty — no gear on the bar at all — when all three would be, which
+                (theme_nit/navbar_gear_menu): the groups from the gearmenuitems
+                setting — by default Navigation and Management — with the
+                relocated edit-mode switch after the first. Empty — no gear on
+                the bar at all — when every group and the switch would be, which
                 is the case for a guest and for a student with nothing to open. }}
             {{{ output.navbar_gear_menu }}}
 

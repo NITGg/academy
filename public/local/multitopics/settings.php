@@ -42,6 +42,13 @@ if ($hassiteconfig) {
         get_string('admin_token', 'local_multitopics'),
         get_string('admin_token_desc', 'local_multitopics'), '', PARAM_ALPHANUM, 60));
 
+    // The account behind that token, so pricing can treat its calls as a visitor's
+    // (see \local_multitopics\app_guest). 0 = rely on the nit_app_guest role /
+    // the token above alone.
+    $settings->add(new admin_setting_configtext('local_multitopics/guest_userid',
+        get_string('guest_userid', 'local_multitopics'),
+        get_string('guest_userid_desc', 'local_multitopics'), 0, PARAM_INT, 10));
+
     $settings->add(new admin_setting_configtext('local_multitopics/google_client_id',
         get_string('google_client_id', 'local_multitopics'),
         get_string('google_client_id_desc', 'local_multitopics'), '', PARAM_RAW_TRIMMED, 80));

@@ -902,10 +902,13 @@ JS;
         $currentpath = $this->page->has_set_url() ? $this->page->url->get_path() : null;
 
         // Core's own verdict on its rows, keyed by path (see the doc block).
+        // Home is left out: core lights it as the fallback for any page that
+        // matches nothing else, so a row pointing at `/` would be "current" on
+        // a static page, a search, anywhere — path matching alone is right there.
         $coreactive = [];
         foreach ($this->page->primarynav->children as $node) {
             $action = $node->action();
-            if ($action instanceof \moodle_url) {
+            if ($node->key !== 'home' && $action instanceof \moodle_url) {
                 $coreactive[self::navbar_path_key($action->get_path())] = (bool) $node->isactive;
             }
         }

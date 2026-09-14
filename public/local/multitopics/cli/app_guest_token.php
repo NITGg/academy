@@ -345,7 +345,8 @@ if ($token !== '' && $published === $token) {
     $say('OK', 'getsettings.php already publishes this token');
 } else if ($token !== '' && !empty($options['save'])) {
     set_config('admin_token', $token, 'local_multitopics');
-    $say('SAVED', 'stored as local_multitopics/admin_token - getsettings.php now publishes it');
+    set_config('guest_userid', (int) $user->id, 'local_multitopics');
+    $say('SAVED', 'stored as local_multitopics/admin_token - getsettings.php now publishes it (and guest_userid = ' . $user->id . ')');
 } else if ($token !== '') {
     $say('TODO', 'paste the token into Site administration → Plugins → Local plugins → Mobile app settings, or re-run with --save');
 }

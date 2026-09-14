@@ -99,7 +99,7 @@ body:has(.acad-cr) {
     }
 }
 body:has(.acad-cr) #page-header .page-context-header {
-    display: none;
+    display: none !important; // Core's own `.d-flex` utility on it is !important.
 }
 
 /* Canvas: keep the branded page background across the content wrappers. */
@@ -407,6 +407,7 @@ body:has(.acad-cr) .acad-cr__grid {
     align-items: start;
     padding-block: 32px 48px;
 }
+body:has(.acad-cr) .acad-cr__grid--single { grid-template-columns: minmax(0, 1fr); }
 body:has(.acad-cr) .acad-cr__main,
 body:has(.acad-cr) .acad-cr__aside {
     display: flex;
@@ -530,10 +531,12 @@ body:has(.acad-cr) .acad-cr__learn-grouph {
     color: var(--cr-muted);
 }
 
-/* One tile per outcome — the design's 127 x 110 boxes, as many as there are. */
+/* One tile per outcome — the design's 127 x 110 boxes, as many as there are.
+   The minimum is wider than the design's because an outcome is a sentence, not
+   the design's three words: three tiles to the card's row. */
 body:has(.acad-cr) .acad-cr__tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(127px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 16px;
 }
 body:has(.acad-cr) .acad-cr__tile {
@@ -702,6 +705,24 @@ body:has(.acad-cr) .acad-cr__act {
     font-size: 15px;
 }
 body:has(.acad-cr) .acad-cr__act-ico { width: 22px; height: 22px; flex-shrink: 0; }
+/* Core's icon container (purpose-coloured glyph) as a small tinted tile. Core
+   sizes the container and lets the <img> inherit, so size the box, not the image. */
+body:has(.acad-cr) .acad-cr__act-icobox.activityiconcontainer {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    max-width: 32px;
+    max-height: 32px;
+    padding: 5px;
+    border-radius: 8px;
+    background: var(--cr-pill);
+}
+body:has(.acad-cr) .acad-cr__act-icobox.activityiconcontainer .activityicon {
+    width: 22px;
+    height: 22px;
+    max-width: 22px;
+    max-height: 22px;
+}
 body:has(.acad-cr) .acad-cr__act-name { flex: 1; min-width: 0; color: var(--cr-ink); font-weight: 600; }
 body:has(.acad-cr) .acad-cr__act-name a { color: var(--cr-ink); }
 body:has(.acad-cr) .acad-cr__act-name a:hover { color: var(--cr-link); }

@@ -175,10 +175,12 @@ class format_topics_renderer extends \format_topics\output\renderer {
 
         $o  = html_writer::start_div('acad-cr');
         $o .= html_writer::div($this->acad_hero($course, $modinfo, $context, $data), 'acad-cr__wrap');
+        // A course with nothing for the aside (no sections, no teacher, no
+        // category) gives the main column the whole width rather than a gap.
         $o .= html_writer::div(
             html_writer::div($main, 'acad-cr__main') .
-            html_writer::tag('aside', $aside, ['class' => 'acad-cr__aside']),
-            'acad-cr__wrap acad-cr__grid');
+            ($aside !== '' ? html_writer::tag('aside', $aside, ['class' => 'acad-cr__aside']) : ''),
+            'acad-cr__wrap acad-cr__grid' . ($aside === '' ? ' acad-cr__grid--single' : ''));
         $o .= html_writer::end_div();
 
         // Accordion helper. A format renderer runs after <head> is flushed, so
@@ -1180,11 +1182,13 @@ class format_topics_renderer extends \format_topics\output\renderer {
         if ($visitems > 0) {
             $meta .= ' : ' . $this->acad_count($visitems, 'acad_nitem', 'acad_nitems');
         }
-        $o .= html_writer::tag('div', format_string($title), ['class' => 'acad-cr__mod-title']);
+        // Spans, not divs: a <button> may only hold phrasing content. The grid
+        // on the button lays the three out as blocks regardless.
+        $o .= html_writer::tag('span', format_string($title), ['class' => 'acad-cr__mod-title']);
         $o .= html_writer::tag('span',
             get_string('acad_moduledetails', 'theme_nit') . $this->acad_icon('chevron'),
             ['class' => 'acad-cr__mod-toggle']);
-        $o .= html_writer::tag('div', $meta, ['class' => 'acad-cr__mod-meta']);
+        $o .= html_writer::tag('span', $meta, ['class' => 'acad-cr__mod-meta']);
         $o .= html_writer::end_tag('button');
 
         // Body.
@@ -1249,9 +1253,7 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $isfree = $locked && !empty($free[(int) $cm->id]);
             $islocked = $locked && !$isfree;
 
-            $ico = html_writer::empty_tag('img', [
-                'src' => $cm->get_icon_url(), 'alt' => '', 'class' => 'acad-cr__act-ico', 'aria-hidden' => 'true',
-            ]);
+            $ico = $this->acad_act_icon($cm);
 
             // A locked lesson is not a link: clicking it only bounces the visitor to the
             // checkout, so the row says what to do instead of pretending to be playable.
@@ -1286,6 +1288,31 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $o .= html_writer::div($body, $rowclass);
         }
         return $o;
+    }
+
+    /**
+     * The activity's icon, coloured by its module purpose.
+     *
+     * Core's monochrome activity icons are black SVGs that core recolours with a
+     * per-purpose filter — but only inside its own `.activityiconcontainer`
+     * markup. Printed as a bare <img> (as this page once did) the forum, page
+     * and quiz icons stayed black, invisible on the dark brand. So the icon is
+     * rendered through core's own activity_icon output class, which prints that
+     * container, and the purpose colours (plus theme_nit's own "other" purpose
+     * rule in _activityicons.scss) apply here as everywhere else.
+     *
+     * @param \cm_info $cm
+     * @return string
+     */
+    protected function acad_act_icon($cm): string {
+        if (class_exists('\core_course\output\activity_icon')) {
+            $icon = \core_course\output\activity_icon::from_cm_info($cm)
+                ->set_extra_classes('acad-cr__act-icobox');
+            return $this->output->render($icon);
+        }
+        return html_writer::empty_tag('img', [
+            'src' => $cm->get_icon_url(), 'alt' => '', 'class' => 'acad-cr__act-ico', 'aria-hidden' => 'true',
+        ]);
     }
 
     /**

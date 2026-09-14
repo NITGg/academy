@@ -28,10 +28,11 @@ defined('MOODLE_INTERNAL') || die();
  * treats visitors differently from members — pricing, above all — asks here
  * before trusting $USER->id.
  *
- * The account is recognised by the `nit_app_guest` system role the CLI assigns
- * it (the role exists for exactly this: to mark the account), and, as a second
- * signal, by owning the token getsettings.php publishes — so a site whose admin
- * never saved the token into the settings page is still covered.
+ * The account is recognised three ways, any one of which is enough: the
+ * `nit_app_guest` system role the CLI assigns it (the role exists for exactly
+ * this: to mark the account); the "Guest browsing account" id typed into the
+ * Mobile app settings page (for an account made by hand); and owning the token
+ * getsettings.php publishes.
  *
  * @package    local_multitopics
  * @copyright  2026 NIT
@@ -50,7 +51,7 @@ class app_guest {
      *
      * Normally exactly one. Empty when the CLI has never been run on this site.
      *
-     * @return array<int, string> userid => 'role' | 'token'
+     * @return array<int, string> userid => 'role' | 'setting' | 'token'
      */
     public static function accounts(): array {
         global $DB;
@@ -71,7 +72,13 @@ class app_guest {
             self::$accounts[(int) $userid] = 'role';
         }
 
-        // 2. The owner of the published token.
+        // 2. The account named on the settings page.
+        $named = (int) get_config('local_multitopics', 'guest_userid');
+        if ($named > 0 && !isset(self::$accounts[$named])) {
+            self::$accounts[$named] = 'setting';
+        }
+
+        // 3. The owner of the published token.
         $token = trim((string) get_config('local_multitopics', 'admin_token'));
         if (preg_match('/^[a-f0-9]{32}$/i', $token)) {
             $owner = (int) $DB->get_field('external_tokens', 'userid', ['token' => $token]);

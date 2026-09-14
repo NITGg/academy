@@ -395,7 +395,7 @@ $string['geodiag_nocountry'] = 'فارغة';
 $string['geodiag_yourcountry'] = 'الدولة التي ستُسعَّر عليها';
 $string['geodiag_appguest'] = 'حساب تصفّح الزائر في تطبيق الموبايل';
 $string['geodiag_appguest_ok'] = '{$a} — يُسعَّر كزائر: عنوان الـIP، ثم الدولة التي يرسلها التطبيق، ثم السعر الافتراضي.';
-$string['geodiag_appguest_none'] = 'لم يُتعرَّف على أي حساب — طلبات التطبيق قبل تسجيل الدخول تُسعَّر كعضو بلا دولة (سعر 0 و«حدّد دولتك»). شغّل local/multitopics/cli/app_guest_token.php --create وهو يمنح الحساب دور nit_app_guest.';
+$string['geodiag_appguest_none'] = 'لم يُتعرَّف على أي حساب — طلبات التطبيق قبل تسجيل الدخول تُسعَّر كعضو بلا دولة (سعر 0 و«حدّد دولتك»). اكتب معرّف الحساب في إدارة الموقع ← الإضافات ← الإضافات المحلية ← إعدادات تطبيق الموبايل ← «حساب تصفح الضيوف»، أو شغّل local/multitopics/cli/app_guest_token.php --create --userid=ID.';
 $string['geodiag_testip'] = 'اختبر عنوان IP آخر';
 $string['geodiag_testgo'] = 'ابحث عنه';
 $string['geodiag_courserows'] = 'صفوف الأسعار';
