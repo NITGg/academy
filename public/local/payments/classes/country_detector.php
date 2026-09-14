@@ -74,7 +74,8 @@ class country_detector {
      *
      * Guests are NOT blocked: they have no profile to fill in, so they keep the IP →
      * default-price ladder in {@see self::detect_for_pricing()} and the shop window still
-     * shows real prices to visitors who have not signed up yet.
+     * shows real prices to visitors who have not signed up yet. The mobile app's
+     * guest-browsing account counts as a guest for the same reason — see {@see self::is_guest()}.
      *
      * @param int|null $userid defaults to the current user
      * @return bool
@@ -136,7 +137,13 @@ class country_detector {
     }
 
     /**
-     * Anonymous (id 0) or the site guest account — nobody with a profile to price on.
+     * Anonymous (id 0), the site guest account, or the mobile app's guest-browsing
+     * account — nobody with a profile to price on.
+     *
+     * The app browses the catalogue before sign-in on one shared read-only token
+     * (local_multitopics, cli/app_guest_token.php). To Moodle that is a signed-in
+     * user, but the person holding the phone is a visitor: treating the account as
+     * a member would withhold every price and point at a profile nobody can edit.
      *
      * @param int $userid
      * @return bool
@@ -144,8 +151,10 @@ class country_detector {
     private static function is_guest(int $userid): bool {
         global $CFG;
 
-        return ($userid <= 0)
-            || (!empty($CFG->siteguest) && (int) $userid === (int) $CFG->siteguest);
+        if ($userid <= 0 || (!empty($CFG->siteguest) && (int) $userid === (int) $CFG->siteguest)) {
+            return true;
+        }
+        return class_exists('\local_multitopics\app_guest') && \local_multitopics\app_guest::is($userid);
     }
 
     /**

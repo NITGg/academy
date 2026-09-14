@@ -37,6 +37,10 @@
  *
  * Without --create nothing is written.
  *
+ * Pricing knows this account: local_payments\country_detector treats whoever holds the
+ * published token as a VISITOR (IP → the app's country hint → the Default price), not as
+ * a member with an empty profile country — see \local_multitopics\app_guest.
+ *
  * @package    local_multitopics
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later

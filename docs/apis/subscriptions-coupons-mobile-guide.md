@@ -487,6 +487,14 @@ Every visual state on a card maps to a field, so the app can match the web witho
 Guests see the catalogue but must not reach checkout: `get_available_subscriptions` is the only call
 here that works without a login, and every other one needs a token.
 
+Before sign-in the app calls it with the **guest-browsing token** from `getsettings.php`. That token's
+account is priced as a *visitor*, never as a member: the server places the caller by IP address
+first, then by the `country` you pass (send `ip_country` from `getsettings`, or the device
+country when that key is absent), and finally on the plan's Default price. So with that token
+`country_required` is always `false` and a price always comes back; `country` in the response says
+which market won. Note the order: when the server can place the IP, an explicit `country` that
+disagrees with it does not change the price.
+
 ---
 
 ## 5. Field/format notes
