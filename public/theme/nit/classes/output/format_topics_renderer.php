@@ -665,12 +665,21 @@ class format_topics_renderer extends \format_topics\output\renderer {
     /**
      * URL of the first activity the reader can open, in curriculum order.
      *
+     * The "General" section (0) is looked at last: on most courses it holds the
+     * announcements forum, and "Go to course" should open the first lesson, not
+     * the notice board. It is still the answer when nothing else is openable.
+     *
      * @param \course_modinfo $modinfo
      * @param stdClass $data
      * @return moodle_url|null null when no visible activity has a page of its own
      */
     protected function acad_first_activity_url($modinfo, $data): ?moodle_url {
-        foreach ($data->modulerows as $snum => $section) {
+        $order = array_keys($data->modulerows);
+        usort($order, function ($a, $b) {
+            return ($a === 0) <=> ($b === 0);
+        });
+        foreach ($order as $snum) {
+            $section = $data->modulerows[$snum];
             if (!$section->uservisible || empty($modinfo->sections[$snum])) {
                 continue;
             }

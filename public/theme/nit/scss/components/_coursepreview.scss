@@ -171,8 +171,9 @@ body:has(.acad-cr) {
 
         .acad-cr__act-lockmsg {
             flex-basis: 100%;
-            // Clear the icon column, so the prompt lines up with the lesson name.
-            margin-inline-start: 32px;
+            // Clear the icon column (the 32px purpose-coloured icon box plus the
+            // row gap), so the prompt lines up with the lesson name.
+            margin-inline-start: 44px;
             color: var(--cr-muted);
             font-size: 13px;
             font-weight: 400;
