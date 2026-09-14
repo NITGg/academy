@@ -26,20 +26,26 @@ use moodle_url;
  * The gear dropdown on the navigation bar is a list of groups, each a heading
  * over a few links (Navigation: My courses, Site administration; Management:
  * Manage coupons, ...). Which groups there are, what they are called in each
- * language, which pages sit under them and in what order is one setting -
- * `theme_nit/gearmenuitems`, on Site administration → Appearance → Advanced
- * theme settings, written the way the Custom menu items box beside it is:
+ * language, which pages sit under them, in what order and for whom is one
+ * setting - `theme_nit/gearmenuitems`, on Site administration → Appearance →
+ * Advanced theme settings, written the way the Custom menu items box beside
+ * it is:
  *
- *   English name|Arabic name              a line without a dash starts a group
- *   -English name|Arabic name|/link.php   a line with one is a page in it
+ *   English name|Arabic name                    a line without a dash starts a group
+ *   -English name|Arabic name|/link.php|who     a line with one is a page in it
  *
- * The Arabic name may be left out (`-English name|/link.php`): the one name
- * then serves both languages. A viewer whose interface is Arabic reads the
- * Arabic column, everyone else the English one; a column left empty falls back
- * to the other. Nothing else has to be typed: who may see a link is decided
- * here, from the link itself (see rule_for()), because a "Manage coupons" row
- * that a student can see is a broken link, and the administrator should not
- * have to know the capability names to avoid that.
+ * `who` is one or more of `guest` (a visitor who is not logged in), `user` (a
+ * logged-in user who is not an administrator), `admin` (whoever may open Site
+ * administration) or `all`, comma-separated: `guest,user`. Left out, it is
+ * worked out from the link (audience_for()). The Arabic name may be left out
+ * too (`-English name|/link.php`): the one name then serves both languages. A
+ * viewer whose interface is Arabic reads the Arabic column, everyone else the
+ * English one; a column left empty falls back to the other.
+ *
+ * Whatever `who` says, a page the theme knows to require a capability - the
+ * management screens - is never shown to a viewer who lacks it: a "Manage
+ * coupons" row that opens onto an error is a broken link, and the setting
+ * cannot make one.
  *
  * This class is the parser and the rule; it holds no state. What the viewer's
  * page needs - the active row, the rendered HTML - is the renderer's business
@@ -51,57 +57,66 @@ use moodle_url;
  */
 class gear_menu {
 
-    /** @var string Rule: everyone, visitors included. */
-    public const RULE_EVERYONE = '';
+    /** @var string Audience: everyone, visitors included. */
+    public const AUDIENCE_ALL = 'all';
 
-    /** @var string Rule: any logged-in user, guest account excluded. */
-    public const RULE_LOGGEDIN = 'loggedin';
+    /** @var string Audience: a visitor who is not logged in (the guest account counts as one). */
+    public const AUDIENCE_GUEST = 'guest';
 
-    /** @var string Rule: anyone who may open Site administration. */
-    public const RULE_ADMIN = 'admin';
+    /** @var string Audience: a logged-in user who may not open Site administration. */
+    public const AUDIENCE_USER = 'user';
+
+    /** @var string Audience: anyone who may open Site administration. */
+    public const AUDIENCE_ADMIN = 'admin';
+
+    /** @var string Audience: any logged-in user - `user,admin` in one word, kept for lines already saved. */
+    public const AUDIENCE_LOGGEDIN = 'loggedin';
 
     /**
      * The screens the theme knows, keyed by the path (and, for a settings
      * section, the `section` parameter) a line would name them by.
      *
-     * Two jobs. The rule is what gates the row when the administrator links to
-     * that page — the same capability the page itself requires. The label is
-     * how default_definition() writes the shipped menu: from the language
-     * packs, so the default text carries the real English and Arabic names.
+     * Three jobs. `capability` is what the page itself requires, and gates the
+     * row whatever the line says. `audience` is who the row is for when the
+     * line does not say. `label` is how default_definition() writes the
+     * shipped menu: from the language packs, so the default text carries the
+     * real English and Arabic names.
      *
-     * @return array list of ['path' => string, 'section' => ?string, 'rule' => string,
-     *                        'label' => [identifier, component], 'component' => string]
+     * @return array list of ['path' => string, 'section' => ?string, 'capability' => ?string,
+     *                        'audience' => string, 'label' => [identifier, component], 'component' => string]
      */
     public static function catalogue(): array {
+        $signedin = self::AUDIENCE_USER . ',' . self::AUDIENCE_ADMIN;
         return [
-            'mycourses' => ['path' => '/my/courses.php', 'section' => null, 'rule' => self::RULE_LOGGEDIN,
-                'label' => ['mycourses', 'core'], 'component' => 'core'],
-            'dashboard' => ['path' => '/my/', 'section' => null, 'rule' => self::RULE_LOGGEDIN,
-                'label' => ['myhome', 'core'], 'component' => 'core'],
-            'siteadmin' => ['path' => '/admin/search.php', 'section' => null, 'rule' => self::RULE_ADMIN,
-                'label' => ['administrationsite', 'core'], 'component' => 'core'],
+            'mycourses' => ['path' => '/my/courses.php', 'section' => null, 'capability' => null,
+                'audience' => $signedin, 'label' => ['mycourses', 'core'], 'component' => 'core'],
+            'dashboard' => ['path' => '/my/', 'section' => null, 'capability' => null,
+                'audience' => $signedin, 'label' => ['myhome', 'core'], 'component' => 'core'],
+            'siteadmin' => ['path' => '/admin/search.php', 'section' => null, 'capability' => null,
+                'audience' => self::AUDIENCE_ADMIN, 'label' => ['administrationsite', 'core'], 'component' => 'core'],
             'managecoupons' => ['path' => '/local/nit_commerce/manage_coupons.php', 'section' => null,
-                'rule' => 'local/nit_commerce:managecoupons',
+                'capability' => 'local/nit_commerce:managecoupons', 'audience' => self::AUDIENCE_ADMIN,
                 'label' => ['managecoupons', 'local_nit_commerce'], 'component' => 'local_nit_commerce'],
             'manageoffers' => ['path' => '/local/nit_commerce/manage_offers.php', 'section' => null,
-                'rule' => 'local/nit_commerce:manageoffers',
+                'capability' => 'local/nit_commerce:manageoffers', 'audience' => self::AUDIENCE_ADMIN,
                 'label' => ['manageoffers', 'local_nit_commerce'], 'component' => 'local_nit_commerce'],
             'managesubscriptions' => ['path' => '/local/nit_subscriptions/manage_subscriptions.php', 'section' => null,
-                'rule' => 'local/nit_subscriptions:managesubscriptions',
+                'capability' => 'local/nit_subscriptions:managesubscriptions', 'audience' => self::AUDIENCE_ADMIN,
                 'label' => ['managesubscriptions', 'local_nit_subscriptions'], 'component' => 'local_nit_subscriptions'],
             'managejobform' => ['path' => '/local/jobform/manage.php', 'section' => null,
-                'rule' => 'local/jobform:manage',
+                'capability' => 'local/jobform:manage', 'audience' => self::AUDIENCE_ADMIN,
                 'label' => ['managejobform', 'local_jobform'], 'component' => 'local_jobform'],
-            'gallery' => ['path' => '/theme/nit/gallery.php', 'section' => null, 'rule' => 'moodle/site:config',
+            'gallery' => ['path' => '/theme/nit/gallery.php', 'section' => null,
+                'capability' => 'moodle/site:config', 'audience' => self::AUDIENCE_ADMIN,
                 'label' => ['navgallery', 'theme_nit'], 'component' => 'theme_nit'],
             'sitemedia' => ['path' => '/admin/settings.php', 'section' => 'local_nit_media_settings',
-                'rule' => 'moodle/site:config',
+                'capability' => 'moodle/site:config', 'audience' => self::AUDIENCE_ADMIN,
                 'label' => ['pluginname', 'local_nit_media'], 'component' => 'local_nit_media'],
             // Course purchases + the enrolment-source report (AC-4.10.5). Last:
             // it is the screen that gets *read* rather than edited, so it sits
             // after the things an administrator goes to the menu to change.
             'managecourses' => ['path' => '/local/nit_subscriptions/manage_courses.php', 'section' => null,
-                'rule' => 'local/nit_subscriptions:managesubscriptions',
+                'capability' => 'local/nit_subscriptions:managesubscriptions', 'audience' => self::AUDIENCE_ADMIN,
                 'label' => ['managecourses', 'local_nit_subscriptions'], 'component' => 'local_nit_subscriptions'],
         ];
     }
@@ -109,8 +124,9 @@ class gear_menu {
     /**
      * The menu a fresh site gets, as text: the groups and rows the theme
      * hard-coded before the setting existed, in the same order, with each name
-     * taken from the English and the Arabic language packs. Upgrading changes
-     * nothing until an administrator edits the box.
+     * taken from the English and the Arabic language packs and each row's
+     * audience written out - so the box shows the syntax by example.
+     * Upgrading changes nothing until an administrator edits the box.
      *
      * Rows for plugins the site does not run are left out - there would be no
      * page to open and no strings to name it by.
@@ -135,7 +151,7 @@ class gear_menu {
                     continue;
                 }
                 $url = $page['path'] . ($page['section'] !== null ? '?section=' . $page['section'] : '');
-                $lines[] = '-' . self::names_column($page['label']) . '|' . $url;
+                $lines[] = '-' . self::names_column($page['label']) . '|' . $url . '|' . $page['audience'];
             }
         }
 
@@ -184,7 +200,7 @@ class gear_menu {
      *
      * @param string $text the setting text
      * @return array list of ['names' => ['en' => string, 'ar' => string],
-     *               'items' => list of ['names' => [...], 'url' => string, 'rule' => string]]
+     *               'items' => list of ['names' => [...], 'url' => string, 'audience' => string]]
      */
     public static function parse(string $text): array {
         $groups = [];
@@ -224,51 +240,68 @@ class gear_menu {
     }
 
     /**
-     * Read one page line - `-English|Arabic|link`, with some forgiveness.
+     * Read one page line - `-English|Arabic|link|who` - with some forgiveness.
      *
-     * The link is the third part when there are three. With fewer, the last
-     * part is the link if it reads like one (`-English|link`, one name for
-     * both languages), and when it does not, a link glued onto the end of a
-     * name is peeled off it: `-Calendar|التقويم/calendar/view.php` is the most
-     * common slip - a `|` forgotten before the link - and is read as the
-     * writer meant. A fourth part, when present, is an explicit rule
-     * (rule_for() explains). `url` is '' when no link could be found.
+     * The link is found by what it looks like (it starts with `/` or a
+     * scheme), not by its position, so `-English|link|who` - one name for both
+     * languages, and an audience - reads right too. Everything before the link
+     * is names, the part after it is the audience (audience_allows() lists the
+     * words). When no part is a link, a link glued onto the end of a name is
+     * peeled off it: `-Calendar|التقويم/calendar/view.php` is the most common
+     * slip - a `|` forgotten before the link - and is read as the writer
+     * meant. `url` is '' when no link could be found; `audience` is '' when
+     * none was written.
      *
      * @param string $line a trimmed line starting with '-'
-     * @return array ['names' => ['en' => string, 'ar' => string], 'url' => string, 'rule' => string]
+     * @return array ['names' => ['en' => string, 'ar' => string], 'url' => string, 'audience' => string]
      */
     public static function page_line(string $line): array {
         $bits = array_map('trim', explode('|', ltrim($line, '-'), 4));
 
-        if (count($bits) >= 3) {
-            [$en, $ar, $url] = $bits;
-            $rule = $bits[3] ?? '';
-        } else {
-            $rule = '';
-            $last = array_pop($bits);
-            if (self::looks_like_link($last)) {
-                $url = $last;
-            } else if (preg_match('~^(.*?)((?:/|[a-z][a-z0-9+.-]*://)\S*)$~iu', $last, $found)) {
-                $bits[] = trim($found[1]);
-                $url = $found[2];
-            } else {
-                $bits[] = $last;
-                $url = '';
+        $linkat = null;
+        foreach ($bits as $i => $bit) {
+            if (self::looks_like_link($bit)) {
+                $linkat = $i;
+                break;
             }
-            $en = $bits[0];
-            $ar = $bits[1] ?? '';
+        }
+        if ($linkat === null) {
+            foreach ($bits as $i => $bit) {
+                if (preg_match('~^(.*?)((?:/|[a-z][a-z0-9+.-]*://)\S*)$~iu', $bit, $found)) {
+                    $bits[$i] = trim($found[1]);
+                    array_splice($bits, $i + 1, 0, [$found[2]]);
+                    $linkat = $i + 1;
+                    break;
+                }
+            }
         }
 
-        return ['names' => ['en' => $en, 'ar' => $ar], 'url' => $url, 'rule' => $rule];
+        if ($linkat === null) {
+            $names = $bits;
+            $url = '';
+            $audience = '';
+        } else {
+            $names = array_slice($bits, 0, $linkat);
+            $url = $bits[$linkat];
+            $audience = $bits[$linkat + 1] ?? '';
+        }
+
+        return [
+            'names' => ['en' => $names[0] ?? '', 'ar' => $names[1] ?? ''],
+            'url' => $url,
+            'audience' => strtolower($audience),
+        ];
     }
 
     /**
      * What is wrong with a definition, for the settings page to show before
-     * it saves: every page line that names no link, and every one that has a
-     * link but no name. A heading line can never be wrong.
+     * it saves: every page line that names no link, every one that has a link
+     * but no name, and every audience word that is not one of the known ones.
+     * A heading line can never be wrong.
      *
      * @param string $text the text as typed
-     * @return array list of ['line' => int (1-based), 'text' => string, 'problem' => 'nolink'|'noname']
+     * @return array list of ['line' => int (1-based), 'text' => string,
+     *               'problem' => 'nolink'|'noname'|'audience', 'word' => string (audience only)]
      */
     public static function problems(string $text): array {
         $problems = [];
@@ -280,8 +313,16 @@ class gear_menu {
             $item = self::page_line($line);
             if ($item['url'] === '') {
                 $problems[] = ['line' => $number + 1, 'text' => $line, 'problem' => 'nolink'];
-            } else if ($item['names']['en'] === '' && $item['names']['ar'] === '') {
+                continue;
+            }
+            if ($item['names']['en'] === '' && $item['names']['ar'] === '') {
                 $problems[] = ['line' => $number + 1, 'text' => $line, 'problem' => 'noname'];
+                continue;
+            }
+            foreach (self::audience_words($item['audience']) as $word) {
+                if (!self::is_audience_word($word)) {
+                    $problems[] = ['line' => $number + 1, 'text' => $line, 'problem' => 'audience', 'word' => $word];
+                }
             }
         }
         return $problems;
@@ -315,24 +356,12 @@ class gear_menu {
     }
 
     /**
-     * Who may see a link, worked out from the link itself.
-     *
-     * An explicit rule on the line wins. Otherwise a link the catalogue knows
-     * gets that page's rule - the capability the page requires. Anything else
-     * under /admin/ is for whoever may open Site administration, since every
-     * page there checks at least that; any other link is for everyone, the way
-     * a Custom menu items line is.
+     * The catalogue entry a link points at, if the theme knows the page.
      *
      * @param string $url the link as written
-     * @param string $explicit the line's fourth part, '' when absent
-     * @return string RULE_EVERYONE, RULE_LOGGEDIN, RULE_ADMIN, or a capability
+     * @return array|null one entry of catalogue(), or null
      */
-    public static function rule_for(string $url, string $explicit = ''): string {
-        $explicit = trim($explicit);
-        if ($explicit !== '') {
-            return $explicit;
-        }
-
+    public static function catalogue_entry(string $url): ?array {
         $moodleurl = self::url($url);
         $path = self::path_key($moodleurl->get_path());
         $section = $moodleurl->get_param('section');
@@ -344,14 +373,62 @@ class gear_menu {
             if ($page['section'] !== null && $page['section'] !== $section) {
                 continue;
             }
-            return $page['rule'];
+            return $page;
+        }
+        return null;
+    }
+
+    /**
+     * Who a row is for.
+     *
+     * What the line says, when it says. Otherwise a link the catalogue knows
+     * gets that page's audience; anything else under /admin/ is for
+     * administrators, since every page there checks at least that; any other
+     * link is for everyone, the way a Custom menu items line is.
+     *
+     * @param string $url the link as written
+     * @param string $typed the line's fourth part, '' when absent
+     * @return string comma-separated audience words
+     */
+    public static function audience_for(string $url, string $typed = ''): string {
+        $typed = trim($typed);
+        if ($typed !== '') {
+            return $typed;
         }
 
-        if (strpos($path, '/admin/') === 0) {
-            return self::RULE_ADMIN;
+        $page = self::catalogue_entry($url);
+        if ($page !== null) {
+            return $page['audience'];
         }
 
-        return self::RULE_EVERYONE;
+        if (strpos(self::path_key(self::url($url)->get_path()), '/admin/') === 0) {
+            return self::AUDIENCE_ADMIN;
+        }
+
+        return self::AUDIENCE_ALL;
+    }
+
+    /**
+     * Does this viewer get to see this row?
+     *
+     * The audience decides - and, for a page the theme knows to require a
+     * capability, the viewer must hold it too, whatever the line says: the
+     * administrator may widen who is *offered* a management screen, but not
+     * who may open it, so the row is withheld rather than shown broken.
+     *
+     * @param string $url the link as written
+     * @param string $typed the line's fourth part, '' when absent
+     * @param moodle_page $page the page being rendered
+     * @return bool
+     */
+    public static function visible(string $url, string $typed, moodle_page $page): bool {
+        $entry = self::catalogue_entry($url);
+        if ($entry !== null && $entry['capability'] !== null
+                && !self::audience_allows($entry['capability'], $page)) {
+            return false;
+        }
+
+        return self::audience_allows(self::audience_for($url, $typed), $page);
     }
 
     /**
@@ -374,39 +451,106 @@ class gear_menu {
     }
 
     /**
-     * Does this viewer get to see a link with this rule?
+     * The words of an audience column.
      *
-     * @param string $rule from rule_for()
-     * @param moodle_page $page the page being rendered - the `admin` rule reads
-     *                          its settings navigation, as core does
+     * @param string $audience e.g. 'guest, user'
+     * @return string[] lower-case, trimmed, empties dropped
+     */
+    public static function audience_words(string $audience): array {
+        $words = array_map('trim', explode(',', strtolower($audience)));
+        return array_values(array_filter($words, fn($word) => $word !== ''));
+    }
+
+    /**
+     * Is this a word audience_allows() understands?
+     *
+     * The four everyday words, the legacy `loggedin`, or a capability the site
+     * has - the last for an administrator who knows one and wants a row for
+     * exactly its holders.
+     *
+     * @param string $word
      * @return bool
      */
-    public static function rule_allows(string $rule, moodle_page $page): bool {
-        if ($rule === self::RULE_EVERYONE) {
+    public static function is_audience_word(string $word): bool {
+        if (in_array($word, [self::AUDIENCE_ALL, self::AUDIENCE_GUEST, self::AUDIENCE_USER,
+                self::AUDIENCE_ADMIN, self::AUDIENCE_LOGGEDIN], true)) {
+            return true;
+        }
+        return strpos($word, ':') !== false && get_capability_info($word) !== null;
+    }
+
+    /**
+     * Does this viewer belong to any of these audiences?
+     *
+     * @param string $audience comma-separated words; '' means everyone
+     * @param moodle_page $page the page being rendered - `admin` reads its
+     *                          settings navigation, as core does
+     * @return bool
+     */
+    public static function audience_allows(string $audience, moodle_page $page): bool {
+        $words = self::audience_words($audience);
+        if (empty($words)) {
             return true;
         }
 
-        if ($rule === self::RULE_LOGGEDIN) {
-            return isloggedin() && !isguestuser();
+        foreach ($words as $word) {
+            switch ($word) {
+                case self::AUDIENCE_ALL:
+                    return true;
+
+                case self::AUDIENCE_GUEST:
+                    if (!isloggedin() || isguestuser()) {
+                        return true;
+                    }
+                    break;
+
+                case self::AUDIENCE_USER:
+                    if (isloggedin() && !isguestuser() && !self::is_admin_viewer($page)) {
+                        return true;
+                    }
+                    break;
+
+                case self::AUDIENCE_ADMIN:
+                    if (self::is_admin_viewer($page)) {
+                        return true;
+                    }
+                    break;
+
+                case self::AUDIENCE_LOGGEDIN:
+                    if (isloggedin() && !isguestuser()) {
+                        return true;
+                    }
+                    break;
+
+                default:
+                    // A capability. Asked about first, because has_capability()
+                    // on a name the site never installed logs a developer
+                    // warning on every page.
+                    if (get_capability_info($word) !== null && has_capability($word, context_system::instance())) {
+                        return true;
+                    }
+            }
         }
 
-        // Core's own test for the Site administration row
-        // (\core\navigation\views\primary::get_site_admin_node): the row is
-        // there when the settings navigation has an admin root, which it has
-        // for anyone who may open any part of the admin tree.
-        if ($rule === self::RULE_ADMIN) {
-            $settingsnav = $page->settingsnav;
-            $node = $settingsnav->find('siteadministration', \navigation_node::TYPE_SITE_ADMIN)
-                ?: $settingsnav->find('root', \navigation_node::TYPE_SITE_ADMIN);
-            return (bool) $node;
-        }
+        return false;
+    }
 
-        // A capability. Asked about first, because has_capability() on a name
-        // the site never installed logs a developer warning on every page.
-        if (get_capability_info($rule) === null) {
-            return false;
-        }
-        return has_capability($rule, context_system::instance());
+    /**
+     * May this viewer open Site administration?
+     *
+     * Core's own test for the Site administration row
+     * (\core\navigation\views\primary::get_site_admin_node): the settings
+     * navigation has an admin root for anyone who may open any part of the
+     * admin tree. The navigation is built once per request, so asking it for
+     * every `admin` and `user` word on the page costs two lookups each.
+     *
+     * @param moodle_page $page
+     * @return bool
+     */
+    protected static function is_admin_viewer(moodle_page $page): bool {
+        $settingsnav = $page->settingsnav;
+        return (bool) ($settingsnav->find('siteadministration', \navigation_node::TYPE_SITE_ADMIN)
+            ?: $settingsnav->find('root', \navigation_node::TYPE_SITE_ADMIN));
     }
 
     /**

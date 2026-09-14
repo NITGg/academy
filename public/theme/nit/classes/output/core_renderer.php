@@ -883,7 +883,7 @@ JS;
      * The gear dropdown's groups, as this viewer gets to see them.
      *
      * Reads the administrator's lines (theme_nit\local\gear_menu), keeps the
-     * rows whose rule this viewer passes, and drops any group that has no row
+     * rows this viewer is in the audience of, and drops any group that has no row
      * left — a heading over nothing is not a group.
      *
      * A row is marked active when it is the page being viewed: same path, and
@@ -917,7 +917,7 @@ JS;
         foreach (gear_menu::parse(gear_menu::definition()) as $group) {
             $items = [];
             foreach ($group['items'] as $item) {
-                if (!gear_menu::rule_allows(gear_menu::rule_for($item['url'], $item['rule']), $this->page)) {
+                if (!gear_menu::visible($item['url'], $item['audience'], $this->page)) {
                     continue;
                 }
                 $url = gear_menu::url($item['url'])->out(false);

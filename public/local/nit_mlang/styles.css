@@ -50,6 +50,51 @@
     min-width: 0;
 }
 
+/* Inline renaming — the pencil beside a section or activity name on the course
+   page. The same boxes as a form field, packed to sit inside a heading: the
+   language code as a small badge beside each box, and Save/Cancel underneath,
+   because with a second box "click away to cancel" is easy to trip over. */
+.nitml--inplace {
+    display: inline-flex;
+    width: auto;
+    max-width: 100%;
+    gap: 0.35rem;
+    font-weight: 400;
+    vertical-align: middle;
+}
+
+.nitml--inplace .nitml__row {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nitml--inplace .nitml__lang {
+    flex: 0 0 auto;
+    min-width: 2.4rem;
+    margin: 0;
+    padding: 0.15rem 0.45rem;
+    border: 1px solid color-mix(in srgb, var(--nit-brand-textprimary, #212529) 18%, transparent);
+    border-radius: 999px;
+    text-align: center;
+    line-height: 1.3;
+}
+
+/* Core sizes its single box at 330px from the sm breakpoint up; keep that width
+   and let it shrink on a phone, where 330px plus the badge would overflow. The
+   long selector is what it takes to outrank core's own rule. */
+.inplaceeditable.inplaceeditingon .nitml--inplace .nitml__input {
+    flex: 1 1 auto;
+    width: min(330px, 62vw);
+    min-width: 0;
+}
+
+.nitml__actions {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: flex-end;
+}
+
 .nitml-tabs {
     display: flex;
     flex-wrap: wrap;

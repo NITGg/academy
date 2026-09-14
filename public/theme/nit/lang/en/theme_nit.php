@@ -269,22 +269,26 @@ $string['navgallery'] = 'Design gallery';
 // (Appearance → Advanced theme settings), beside the two core navbar menus.
 // One text box, written like Custom menu items; the parser is theme_nit\local\gear_menu.
 $string['gearmenu'] = 'Navigation bar gear menu';
-$string['gearmenu_desc'] = 'The gear icon on the navigation bar opens a list of groups, each a heading over a few pages — <em>Navigation</em> (My courses, Site administration) and <em>Management</em> (coupons, offers, subscriptions and the other administration screens). The groups, their names in both languages, the pages under each one and their order are all set by the text below, written the same way as Custom menu items above. The Edit mode switch, for users who have one, sits after the first group.';
+$string['gearmenu_desc'] = 'The gear icon on the navigation bar opens a list of groups, each a heading over a few pages — <em>Navigation</em> (My courses, Site administration) and <em>Management</em> (coupons, offers, subscriptions and the other administration screens). The groups, their names in both languages, the pages under each one, their order and who sees each one are all set by the text below, written the same way as Custom menu items above. The Edit mode switch, for users who have one, sits after the first group.';
 $string['gearmenuitems'] = 'Gear menu items';
 $string['gearmenuitems_desc'] = '<p>One line per item, the parts separated by <code>|</code>:</p>
 <ul>
 <li>A line <b>without</b> a hyphen starts a group: <code>English name|Arabic name</code></li>
-<li>A line <b>starting with a hyphen</b> is a page in that group: <code>-English name|Arabic name|link</code></li>
+<li>A line <b>starting with a hyphen</b> is a page in that group: <code>-English name|Arabic name|link|who</code></li>
 </ul>
-<p>The link is a page on this site (<code>/my/courses.php</code>) or a full address. Give one name only and it is used in both languages. Site administration pages and the management screens are shown only to users allowed to open them; any other link is shown to everyone (add <code>|loggedin</code> at the end of a line to limit it to logged-in users). Leave the box empty to show no groups. For example:</p>
+<p>The link is a page on this site (<code>/my/courses.php</code>) or a full address. Give one name only and it is used in both languages.</p>
+<p><b>who</b> says who sees the page: <code>guest</code> (a visitor who is not logged in), <code>user</code> (a logged-in user who is not an administrator), <code>admin</code> (an administrator), or <code>all</code>. Combine with commas: <code>guest,user</code>. Leave it out and it is worked out from the link: management screens and Site administration pages for administrators, anything else for everyone. Whatever you write, a management screen is never shown to someone who cannot open it.</p>
+<p>Leave the box empty to show no groups. For example:</p>
 <pre>Navigation|التصفح
--My courses|مقرراتي الدراسية|/my/courses.php
--Site administration|إدارة الموقع|/admin/search.php
+-My courses|مقرراتي الدراسية|/my/courses.php|user,admin
+-Site administration|إدارة الموقع|/admin/search.php|admin
+-Log in|تسجيل الدخول|/login/index.php|guest
 Management|الإدارة
--Manage coupons|إدارة الكوبونات|/local/nit_commerce/manage_coupons.php
--Reports|التقارير|/reportbuilder/index.php|loggedin</pre>';
+-Manage coupons|إدارة الكوبونات|/local/nit_commerce/manage_coupons.php|admin
+-Calendar|التقويم|/calendar/view.php|all</pre>';
 $string['gearmenuerrornolink'] = 'Line {$a->line} has no link, so nothing was saved: "{$a->text}". Write a page as -English name|Arabic name|link, with a | before the link.';
 $string['gearmenuerrornoname'] = 'Line {$a->line} has a link but no name, so nothing was saved: "{$a->text}".';
+$string['gearmenuerroraudience'] = 'Line {$a->line} says "{$a->word}" for who sees the page, which is not a known word, so nothing was saved: "{$a->text}". Use guest, user, admin or all — or leave that part out.';
 
 
 // Logo size — shown on the core Logos page (Appearance → Logos), directly under

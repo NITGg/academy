@@ -36,6 +36,7 @@ installed, the plugin does nothing at all.
 |-------|----|
 | `<input type="text">` — Name, Full name, Title, Grade item name, Block title, Forum subject … | one labelled input per language, stacked |
 | Rich text editor — Description, Summary, Intro, Question text … | a language tab strip above the editor; the editor holds one language at a time so the toolbar, file picker and HTML view keep working normally. A dot on a tab means that language has content. |
+| Inline renaming — the pencil beside a section or activity name on the course page | one box per language in place of core's single box, with the language code as a badge beside each; Enter or *Save* saves both, Escape, *Cancel* or clicking away cancels |
 
 ## Which fields (`classes/registry.php`)
 
@@ -59,6 +60,45 @@ Both lists can be extended by an administrator in
 *Site administration → Plugins → Local plugins → Multilingual fields*, so covering
 a newly added field never needs a code change. The page type to use in a rule is
 in the `<body>` class of the page.
+
+## Inline renaming (`registry::INLINE_ITEMS`)
+
+The pencil beside a section or activity name on the course page is not a form
+field. It is a `core/inplace_editable`: core swaps the name for one `<input>`
+that saves on Enter and cancels on blur, and calls the
+`core_update_inplace_editable` web service with whatever was typed. Nothing in
+the registry above can reach it, and one box cannot hold two languages.
+
+So `fields.js` takes the click on the pencil away from core — in the capture
+phase at the document, which is the only place that runs before core's
+body-level handler — for the controls listed in `INLINE_ITEMS`, keyed by the
+editable's `component|itemtype` pair:
+
+```
+format_*|sectionname       section name (course formats own it, hence the wildcard)
+format_*|sectionnamenl     the same, in the "no link" header variant
+core_course|activityname   activity name
+```
+
+The same `<span>` is then filled with one box per language, pre-filled by
+parsing the stored value out of `data-value`. Saving composes the `{mlang}`
+markup exactly as a form field would and hands it to core's own public
+`getInplaceEditable().setValue()`, so the web service call, the re-render and
+the `core/inplace_editable:updated` event the course editor listens for (it
+refreshes its state from that) are all core's. Toggles, selects, autocompletes
+and any text editable not in the list fall through to core untouched.
+
+Two things worth knowing if it ever needs touching:
+
+* The widget marks the span with the attributes core uses (`inplaceeditingon`,
+  `data-oldcontent`, `data-inplace-in-draggable`), so either side can close a
+  control the other opened, and dragging of the section/activity is paused while
+  the boxes are open, as core does.
+* Closing removes those markers *before* restoring the markup. Removing a
+  focused box fires `focusout` synchronously, the blur-cancels handler
+  re-enters the close routine, and if the markers were still there it would
+  replace the content a second time under the first replacement — Chrome aborts
+  that with a `NotFoundError` and the save never happens.
 
 ## Custom profile field *values* (`classes/profilefields.php`)
 
@@ -115,9 +155,6 @@ No Moodle core file is touched.
 
 ## Known gaps
 
-* **Inline renaming** (the pencil next to an activity or section name on the course
-  page) is a single AJAX field that saves on blur, which is incompatible with a
-  multi-input widget. Use the activity's *Settings* page for translations.
 * A field whose combined value exceeds the column length can still be rejected by
   the server; the markup adds roughly 25 characters per language.
 

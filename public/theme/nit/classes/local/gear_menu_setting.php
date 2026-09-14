@@ -56,6 +56,7 @@ class gear_menu_setting extends \admin_setting_configtextarea {
                 'line' => $problem['line'],
                 // Plain text: core escapes the message when it draws it under the box.
                 'text' => $problem['text'],
+                'word' => $problem['word'] ?? '',
             ]);
         }
 

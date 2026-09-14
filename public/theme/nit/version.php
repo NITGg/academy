@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'theme_nit';
-$plugin->version   = 2026091401;        // YYYYMMDDXX — Navbar gear menu written as `English|Arabic|link` lines on Advanced theme settings (theme_nit/gearmenuitems); earlier shapes cleared.
+$plugin->version   = 2026091402;        // YYYYMMDDXX — Navbar gear menu: a fourth part per page line says who sees it (guest / user / admin / all); untouched default rewritten to show it.
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline (pinned per CI matrix).
 $plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_ALPHA;    // Foundation + rendering + branding (M2–M5); pre-1.0.

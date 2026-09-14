@@ -53,7 +53,10 @@ editing `amd/src/`.
 - The navbar gear menu (Navigation / Management groups) is a text setting, not
   code: `theme_nit/gearmenuitems` on Site administration → Appearance →
   Advanced theme settings, written like core's Custom menu items —
-  `English|Arabic` for a group, `-English|Arabic|link` for a page. Who may see
-  a link is worked out from the link (`gear_menu::rule_for`), never typed. The
-  parser lives in `classes/local/gear_menu.php`; the renderer
+  `English|Arabic` for a group, `-English|Arabic|link|who` for a page, where
+  `who` is `guest` / `user` / `admin` / `all` (comma-combinable) and, left
+  out, is inferred from the link (`gear_menu::audience_for`). A management
+  screen is never shown to someone without its capability, whatever `who`
+  says. The parser lives in `classes/local/gear_menu.php`, the save-time
+  checks in `gear_menu_setting.php`; the renderer
   (`core_renderer::navbar_gear_menu`) only filters and draws.

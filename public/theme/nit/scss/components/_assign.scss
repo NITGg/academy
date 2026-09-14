@@ -1,0 +1,186 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+// =============================================================================
+// Assignment (mod_assign) — the Submissions / grading table and the status
+// cells it shares with the student's own submission-status table.
+//
+// mod/assign/styles.css paints all of this in light-theme literals and never
+// asks the theme: `white` for the grading table's header row and every
+// unselected data cell, `#fec` for a ticked row, `#fc9` for a quick-grading
+// cell that was edited, and a set of pastel status chips — #cfefcf (submitted /
+// graded / on time), #efefcf (draft / locked), #efcfcf (late / grading due),
+// #efefef (no submission / reopened) — each with `color: black`. Bootstrap still
+// stripes the rows with an inset box-shadow read from `--bs-table-striped-bg`,
+// which theme_nit binds to Hover Background, so on the dark brand the table
+// came out as alternating white and navy rows with near-white text on both.
+//
+// Every selector below mirrors the core one exactly, so it wins at equal
+// specificity by cascade order (a plugin's styles.css is emitted before the
+// theme's SCSS) and nothing needs `!important`.
+// =============================================================================
+
+// ---- Status chips ----------------------------------------------------------
+// Each state keeps its meaning and takes the matching brand role as a tint:
+// Success for submitted / graded / on time, Warning for draft / locked /
+// grading due, Error for late, Info for reopened, and a plain wash of the text
+// role for "no submission". The label stays on Text primary so it reads on
+// every group, light or dark, instead of the role colour itself (a mid-tone
+// green or amber on a white surface would fall under 4.5:1).
+@mixin nit-assign-chip($role, $amount: 22%) {
+    color: var(--nit-brand-textprimary);
+    background-color: color-mix(in srgb, var(--nit-brand-#{$role}) $amount, transparent);
+}
+
+.path-mod-assign td.submissionstatus,
+.path-mod-assign div.submissionstatus,
+.path-mod-assign a:link.submissionstatus {
+    color: var(--nit-brand-textprimary);
+    background-color: color-mix(in srgb, var(--nit-brand-textprimary) 10%, transparent);
+}
+
+.path-mod-assign td.submissionreopened,
+.path-mod-assign div.submissionreopened {
+    @include nit-assign-chip(info);
+}
+
+.path-mod-assign td.submissionstatusdraft,
+.path-mod-assign div.submissionstatusdraft,
+.path-mod-assign a:link.submissionstatusdraft,
+.path-mod-assign td.submissionlocked,
+.path-mod-assign div.submissionlocked,
+.path-mod-assign td.gradingreminder,
+.path-mod-assign div.gradingreminder {
+    @include nit-assign-chip(warning);
+}
+
+.path-mod-assign td.submissionstatussubmitted,
+.path-mod-assign div.submissionstatussubmitted,
+.path-mod-assign a:link.submissionstatussubmitted,
+.path-mod-assign td.submissiongraded,
+.path-mod-assign div.submissiongraded,
+.path-mod-assign td.earlysubmission,
+.path-mod-assign div.earlysubmission {
+    @include nit-assign-chip(success);
+}
+
+.path-mod-assign td.latesubmission,
+.path-mod-assign a:link.latesubmission,
+.path-mod-assign div.latesubmission {
+    @include nit-assign-chip(error);
+}
+
+.path-mod-assign td.submissionnotgraded,
+.path-mod-assign div.submissionnotgraded {
+    color: var(--nit-brand-textprimary);
+}
+
+// Plain red text in core: "x hours late" next to the timestamp, the "overdue
+// by" line under a status, the "editable" note and the previous-feedback
+// warning. All are the Error role as text.
+.path-mod-assign .submittedlate,
+.path-mod-assign td.submissioneditable,
+.path-mod-assign .overduesubmission,
+.path-mod-assign .previousfeedbackwarning {
+    color: var(--nit-brand-error);
+}
+
+// ---- The grading table -----------------------------------------------------
+.path-mod-assign .gradingtable {
+    // Header row and resting data cells sit on Surface (the role for tables);
+    // the stripe Bootstrap paints over them stays the Hover Background wash
+    // `.table` already reads, so odd rows differ from even by a shade.
+    thead th {
+        background-color: var(--nit-brand-surface);
+    }
+
+    tr.unselectedrow td {
+        background-color: var(--nit-brand-surface);
+    }
+
+    // A ticked row. Core paints the cells #fec; here a Primary tint over
+    // Surface. It is set through Bootstrap's own state slot as well as the
+    // background, because the stripe shadow would otherwise cover it on every
+    // odd row — and a state beats a stripe in Bootstrap's own precedence.
+    tr.selectedrow td {
+        --bs-table-bg-state: color-mix(in srgb, var(--nit-brand-primary) 26%, var(--nit-brand-surface));
+        background-color: color-mix(in srgb, var(--nit-brand-primary) 26%, var(--nit-brand-surface));
+    }
+
+    // Quick grading: a cell whose grade or comment was edited but not yet
+    // saved. Core marks it #fc9; a Warning tint says the same thing.
+    tr .quickgrademodified {
+        --bs-table-bg-state: color-mix(in srgb, var(--nit-brand-warning) 22%, var(--nit-brand-surface));
+        background-color: color-mix(in srgb, var(--nit-brand-warning) 22%, var(--nit-brand-surface));
+    }
+
+    // The quick-grading controls are bare `<input>` / `<textarea>` / `<select>`
+    // elements with no Bootstrap class, so they render as the browser's white
+    // boxes. Same roles as any other input: Surface fill, Text primary ink,
+    // Border primary ring.
+    .quickgrade {
+        color: var(--nit-brand-textprimary);
+        background-color: var(--nit-brand-surface);
+        border: 1px solid var(--nit-brand-borderprimary);
+        border-radius: 0.25rem;
+
+        &:focus {
+            border-color: var(--nit-brand-primary);
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--nit-brand-primary) 25%, transparent);
+        }
+    }
+
+    // The "select all" box in the header and the per-row select boxes are
+    // native checkboxes (no `.form-check-input`), so they ignore the Checkbox
+    // roles the Brand Colors card sets. Give them the same look as every other
+    // box on the site by extending the branded class — that carries the fill,
+    // the ring and the per-group tick picture with it.
+    input[type="checkbox"] {
+        @extend .form-check-input;
+        margin-top: 0;
+        vertical-align: middle;
+    }
+
+    // Initials avatar in the participant column: core ships a light grey chip
+    // (#e9ecef behind #343a40 text), a pale island on the dark brand.
+    .userinitials {
+        background-color: color-mix(in srgb, var(--nit-brand-primary) 22%, var(--nit-brand-surface));
+        color: var(--nit-brand-textprimary);
+        border: 1px solid var(--nit-brand-borderprimary);
+    }
+}
+
+// ---- The "Advanced" filter dropdown ----------------------------------------
+// Its "Close" control is `.text-dark` — a Bootstrap utility with `!important`,
+// invisible on the dark dropdown. It is a link, so it takes Accent Text; the
+// utility can only be beaten with `!important` of our own. The checkbox next
+// to "Include suspended participants" is native for the same reason as the
+// table's, and gets the same treatment.
+.path-mod-assign .extrafilters {
+    .text-dark {
+        color: var(--nit-brand-accenttext) !important;
+
+        &:hover,
+        &:focus {
+            color: var(--nit-brand-hovertext) !important;
+        }
+    }
+
+    input[type="checkbox"] {
+        @extend .form-check-input;
+        margin-top: 0;
+    }
+}

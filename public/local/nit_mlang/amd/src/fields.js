@@ -32,6 +32,9 @@
  *   - rich text editors           -> a language tab strip above the editor, since
  *                                    stacking several TinyMCE instances is neither
  *                                    fast nor usable.
+ *   - inline renaming             -> the pencil beside a section or activity name
+ *                                    on the course page (core/inplace_editable)
+ *                                    opens one box per language instead of one.
  *
  * Everything is re-run through a MutationObserver, so forms that arrive later —
  * modal/dynamic forms, repeated elements, the activity chooser — are enhanced too.
@@ -505,6 +508,241 @@ define('local_nit_mlang/fields', [], function() {
     }
 
     /**
+     * Is this inline-rename control one whose value is a display string?
+     *
+     * `core/inplace_editable` also drives toggles, selects and autocompletes; only
+     * its plain text shape — the one that swaps the name for an input — can carry
+     * a multilang value, and only when its `component|itemtype` pair is listed.
+     *
+     * @param {HTMLElement} el the `[data-inplaceeditable]` span
+     * @return {Boolean}
+     */
+    function isInlineTranslatable(el) {
+        var type = el.getAttribute('data-type') || 'text';
+        if (type !== 'text' || !(cfg.inlineitems && cfg.inlineitems.length)) {
+            return false;
+        }
+        var key = (el.getAttribute('data-component') || '') + '|' + (el.getAttribute('data-itemtype') || '');
+        return matchesAny(key, cfg.inlineitems);
+    }
+
+    /**
+     * Put an inline-rename control back to its display state.
+     *
+     * Mirrors core's own turnEditingOff: the display markup was parked in
+     * `data-oldcontent` when editing began, and any ancestor whose dragging was
+     * paused for the duration is re-enabled. Using the attributes core uses means
+     * either side can close a control the other opened.
+     *
+     * @param {HTMLElement} el the `[data-inplaceeditable]` span
+     * @param {Boolean} refocus move focus back to the pencil
+     * @return {void}
+     */
+    function closeInline(el, refocus) {
+        if (!el.classList.contains('inplaceeditingon')) {
+            return;
+        }
+        // Markers first, markup second: removing a focused box fires focusout
+        // synchronously, and the blur-cancels handler below re-enters here. With
+        // the markers already gone that call is a no-op; the other way round it
+        // would replace the content a second time, under the feet of the first
+        // replacement, and Chrome aborts that with a NotFoundError.
+        var oldcontent = el.getAttribute('data-oldcontent') || '';
+        el.removeAttribute('data-oldcontent');
+        el.classList.remove('inplaceeditingon');
+        el.innerHTML = oldcontent;
+        for (var p = el.parentElement; p; p = p.parentElement) {
+            if (p.getAttribute('data-inplace-in-draggable') === 'true') {
+                p.setAttribute('draggable', 'true');
+                p.setAttribute('data-inplace-in-draggable', 'false');
+            }
+        }
+        var link = refocus ? el.querySelector('[data-inplaceeditablelink]') : null;
+        if (link) {
+            link.focus();
+        }
+    }
+
+    /**
+     * Replace the single box of an inline-rename control with one box per language.
+     *
+     * The control is core's `core/inplace_editable`: a `<span>` holding the name
+     * and a pencil link, which core swaps for one `<input>` that saves on Enter and
+     * cancels on blur. One box cannot hold two languages, so the click on the
+     * pencil is taken over (see init) and the same span is filled with this widget
+     * instead. Saving goes back through core's public `setValue()`, so the web
+     * service call, the re-render and the `core/inplace_editable:updated` event the
+     * course editor listens for are all core's own.
+     *
+     * @param {HTMLElement} el the `[data-inplaceeditable]` span
+     * @return {void}
+     */
+    function openInline(el) {
+        // One control open at a time, whichever side opened it.
+        Array.prototype.forEach.call(document.querySelectorAll('.inplaceeditable.inplaceeditingon'), function(other) {
+            closeInline(other, false);
+        });
+
+        el.classList.add('inplaceeditingon');
+        el.setAttribute('data-oldcontent', el.innerHTML);
+        // Text selection inside an input is broken by a draggable ancestor in some
+        // browsers, so dragging is paused while the boxes are open — with the
+        // attributes core uses, so its own turnEditingOff restores them as well.
+        for (var p = el.parentElement; p; p = p.parentElement) {
+            if (p.getAttribute('draggable') === 'true') {
+                p.setAttribute('data-inplace-in-draggable', 'true');
+                p.setAttribute('draggable', 'false');
+            }
+        }
+
+        var parsed = parse(el.getAttribute('data-value'));
+        var values = parsed.values;
+        var extras = parsed.extras;
+        var editlabel = el.getAttribute('data-editlabel') || '';
+
+        var widget = document.createElement('div');
+        widget.className = 'nitml nitml--inplace';
+        widget.setAttribute('data-nitml-widget', 'inplace');
+
+        var instr = document.createElement('span');
+        instr.className = 'editinstructions';
+        instr.id = 'nitml_instr_' + (++seq);
+        instr.textContent = cfg.strings.instructions;
+        widget.appendChild(instr);
+
+        var inputs = [];
+        cfg.langs.forEach(function(lang) {
+            var row = document.createElement('div');
+            row.className = 'nitml__row';
+
+            var field = document.createElement('input');
+            field.type = 'text';
+            field.id = 'nitml_inplace_' + (++seq);
+            field.className = 'form-control nitml__input ignoredirty';
+            field.value = values[lang.code] || '';
+            field.setAttribute('dir', lang.dir);
+            field.setAttribute('lang', lang.code);
+            field.setAttribute('autocomplete', 'off');
+            field.setAttribute('aria-label', editlabel + ' — ' + lang.name + ' (' + lang.code + ')');
+            field.setAttribute('aria-describedby', instr.id);
+
+            var label = document.createElement('label');
+            label.className = 'nitml__lang';
+            label.htmlFor = field.id;
+            label.textContent = lang.code;
+            label.title = lang.name + ' (' + lang.code + ')';
+
+            field.addEventListener('input', function() {
+                values[lang.code] = field.value;
+            });
+
+            row.appendChild(label);
+            row.appendChild(field);
+            widget.appendChild(row);
+            inputs.push(field);
+        });
+
+        var actions = document.createElement('div');
+        actions.className = 'nitml__actions';
+        var save = document.createElement('button');
+        save.type = 'button';
+        save.className = 'btn btn-sm btn-primary';
+        save.textContent = cfg.strings.save;
+        var cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.className = 'btn btn-sm btn-secondary';
+        cancel.textContent = cfg.strings.cancel;
+        actions.appendChild(save);
+        actions.appendChild(cancel);
+        widget.appendChild(actions);
+
+        var commit = function() {
+            var value = compose(values, extras);
+            closeInline(el, false);
+            // Focus follows the re-rendered control, as it does after a core save.
+            var parent = el.parentElement;
+            if (parent) {
+                parent.addEventListener('core/inplace_editable:updated', function(event) {
+                    var link = event.target.querySelector ? event.target.querySelector('[data-inplaceeditablelink]') : null;
+                    if (link) {
+                        link.focus();
+                    }
+                }, {once: true});
+            }
+            require(['core/inplace_editable'], function(InplaceEditable) {
+                // getInplaceEditable() finds its control with parent.querySelector();
+                // handing it the span itself behind that one method means it can
+                // never pick a sibling control instead.
+                InplaceEditable.getInplaceEditable({
+                    querySelector: function() {
+                        return el;
+                    }
+                }).setValue(value);
+            });
+        };
+
+        widget.addEventListener('keydown', function(event) {
+            if (event.isComposing) {
+                return;
+            }
+            if (event.key === 'Enter' && event.target.tagName === 'INPUT') {
+                event.preventDefault();
+                commit();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                closeInline(el, true);
+            }
+        });
+        // Leaving the widget altogether cancels, as core's single box does; moving
+        // between its own boxes and buttons does not.
+        widget.addEventListener('focusout', function(event) {
+            if (event.relatedTarget && widget.contains(event.relatedTarget)) {
+                return;
+            }
+            closeInline(el, false);
+        });
+        // Keep focus inside the widget while a button is pressed, so the blur
+        // above cannot cancel before the click lands.
+        actions.addEventListener('mousedown', function(event) {
+            event.preventDefault();
+        });
+        save.addEventListener('click', commit);
+        cancel.addEventListener('click', function() {
+            closeInline(el, true);
+        });
+
+        el.innerHTML = '';
+        el.appendChild(widget);
+        inputs[0].focus();
+        inputs[0].select();
+    }
+
+    /**
+     * Take the pencil click away from core for the controls listed in `inlineitems`.
+     *
+     * Core binds its handler to the body (jQuery, delegated) and stops propagation
+     * inside it, so the one place to get in first is the capture phase at the
+     * document. Everything else — controls not listed, toggles, selects — falls
+     * through to core untouched.
+     *
+     * @param {Event} event click or keypress
+     * @return {void}
+     */
+    function interceptInline(event) {
+        if (event.type === 'keypress' && event.key !== 'Enter') {
+            return;
+        }
+        var link = event.target.closest ? event.target.closest('[data-inplaceeditablelink]') : null;
+        var el = link ? link.closest('[data-inplaceeditable]') : null;
+        if (!el || !isInlineTranslatable(el)) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        openInline(el);
+    }
+
+    /**
      * Enhance every field in `root` that qualifies.
      *
      * @param {ParentNode} root
@@ -583,6 +821,14 @@ define('local_nit_mlang/fields', [], function() {
         // Modal and dynamic forms, repeated elements and the activity chooser all
         // add their fields after this point.
         new MutationObserver(rescan).observe(document.body, {childList: true, subtree: true});
+
+        // Inline renaming is not a field that can be scanned for: the pencil is a
+        // link, and the box only exists once core has swapped it in. So the click
+        // is caught on its way down, before core's body-level handler sees it.
+        if (cfg.inlineitems && cfg.inlineitems.length) {
+            document.addEventListener('click', interceptInline, true);
+            document.addEventListener('keypress', interceptInline, true);
+        }
 
         // Final flush: catch keystrokes TinyMCE has not raised a change event for.
         // Capturing at the document means this runs before any handler bound to the

@@ -48,5 +48,21 @@ function xmldb_theme_nit_upgrade($oldversion): bool {
         upgrade_plugin_savepoint(true, 2026091401, 'theme', 'nit');
     }
 
+    if ($oldversion < 2026091402) {
+        // The page lines gained a fourth part, who sees the page (`|admin`,
+        // `|user,admin`...). A box the administrator never touched still holds
+        // the three-part default, which works — the audience is inferred —
+        // but shows nothing of the new syntax. Rewrite exactly that box to the
+        // new default; an edited box is the administrator's and is left alone.
+        $current = get_config('theme_nit', 'gearmenuitems');
+        $new = \theme_nit\local\gear_menu::default_definition();
+        $old = preg_replace('/^(-.*)\|[a-z,]+$/m', '$1', $new);
+        if ($current !== false && trim((string) $current) === trim($old)) {
+            set_config('gearmenuitems', $new, 'theme_nit');
+        }
+
+        upgrade_plugin_savepoint(true, 2026091402, 'theme', 'nit');
+    }
+
     return true;
 }
