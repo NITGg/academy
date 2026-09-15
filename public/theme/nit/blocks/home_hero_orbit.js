@@ -242,10 +242,10 @@
 
   // The two corner controls (language swap, light/dark switch). Their rest
   // state is inline in the block; this is only what an inline style cannot
-  // say: hover, focus and the phone spacing. The switch's glyph show/hide is
-  // the theme's own `.nit-mode-toggle` rule (scss/components/_navbar.scss),
-  // shared with the bar's button, and its click is the theme's handler - the
-  // block only primes the button from window.NIT_MODE_TOGGLE.
+  // say: hover, focus, the phone spacing, and which glyph the switch shows
+  // once the theme's click handler has flipped data-nit-mode (the click
+  // itself is the theme's handler - the block only primes the button from
+  // window.NIT_MODE_TOGGLE).
   function toolsStyle() {
     if (document.getElementById('nit-hero-tools-style')) {
       return;
@@ -255,6 +255,15 @@
       '[data-nit-hero-tool]:hover,[data-nit-hero-tool]:focus-visible{background:var(--nit-brand-hoverbackground)!important;' +
       'color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-hoverbackground)!important;text-decoration:none;transform:translateY(-1px)}' +
       '[data-nit-hero-tool]:focus-visible{outline:2px solid var(--nit-brand-accent);outline-offset:2px}' +
+      // Which glyph the switch shows, keyed off the attribute the theme's
+      // click handler flips. !important because the block sets the glyphs'
+      // display INLINE for the first paint (see the block's comment), and an
+      // inline style would otherwise pin the glyph through every click. Own
+      // rule rather than the theme's .nit-mode-toggle one so the block is
+      // right on a site whose theme CSS has not been rebuilt yet.
+      '[data-nit-hero-mode] .nit-mode-icon{display:none!important}' +
+      '[data-nit-hero-mode][data-nit-mode="light"] .nit-mode-icon-dark,' +
+      '[data-nit-hero-mode][data-nit-mode="dark"] .nit-mode-icon-light{display:block!important}' +
       // A phone has no 64px top padding to spare: the section keeps it, but
       // the pair sits a little higher so the logo below has its full row.
       '@media (max-width:767px){[data-nit-hero-tools]{top:12px!important}}' +

@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_profilefields';
-$plugin->version   = 2026091501;        // YYYYMMDDXX - confirmation "Continue" returns to the page the learner signed up from; home only when none.
+$plugin->version   = 2026091502;        // YYYYMMDDXX - confirmation "Continue" and completion "Save and continue" return to the page the learner came from; home only when none (verification::is_page_to_return_to).
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
 $plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_STABLE;

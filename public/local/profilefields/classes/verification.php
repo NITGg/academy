@@ -382,4 +382,60 @@ class verification {
 
         return $url;
     }
+
+    /**
+     * Pages a freshly registered learner is never sent back to.
+     *
+     * Path prefixes under wwwroot. Each is a step of registering or logging
+     * in rather than a place the learner was: the account screens, our sign-up
+     * notice, the completion gate, core's own profile completion page - and
+     * the dashboard, which is where core drops a signed-in user who was going
+     * nowhere in particular, and so the page the completion gate most often
+     * catches a Google sign-up on.
+     */
+    const NO_RETURN_PATHS = [
+        '/login/',
+        '/my/',
+        '/user/edit.php',
+        '/local/profilefields/complete.php',
+        '/local/profilefields/verify.php',
+    ];
+
+    /**
+     * Is a remembered URL a page worth sending a freshly registered learner
+     * back to, rather than {@see self::landing_url()}?
+     *
+     * A page on this site other than its home and other than any of
+     * {@see self::NO_RETURN_PATHS}. Shared by the two ends of registration
+     * that hold such a URL: the confirmation page's "Continue" button (the
+     * `wantsurl` core carried across the email) and the completion gate's
+     * "Save and continue" (its `returnurl`).
+     *
+     * @param string $url a full or site-relative URL, possibly empty
+     * @return bool
+     */
+    public static function is_page_to_return_to(string $url): bool {
+        if ($url === '') {
+            return false;
+        }
+
+        try {
+            $local = (new \moodle_url($url))->out_as_local_url(false);
+        } catch (\Throwable $e) {
+            // Not on this site; core would ignore it too.
+            return false;
+        }
+
+        $path = (string) parse_url($local, PHP_URL_PATH);
+        if ($local === '' || $path === '' || $path === '/' || $path === '/index.php') {
+            return false;
+        }
+        foreach (self::NO_RETURN_PATHS as $prefix) {
+            if (strpos($path, $prefix) === 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

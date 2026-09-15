@@ -52,6 +52,9 @@
 // Only at lg and up, where the site footer is raised. Below that the drawer is a
 // modal (z-index 1035) that has to stay over everything, the footer keeps
 // `z-index: auto`, and Boost's z-index 3 already beats it.
+//
+// The assignment grading table is the exception: its bar is taken out of the
+// fixed flow altogether (next block), so none of this applies there.
 // -----------------------------------------------------------------------------
 @include media-breakpoint-up(lg) {
     #page.drawers.show-drawer-left,
@@ -74,6 +77,65 @@
 
         .sticky-footer-content-wrapper {
             margin-inline-end: 0;
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Assignment grading table (mod/assign/view.php?action=grading): the bar sits
+// under the table, in the page flow, and the site footer comes after both.
+//
+// Boost paints the bar `position: fixed` across the bottom of the viewport with
+// `z-index: 3`. Our site footer band outranks that once a drawer is open (it is
+// raised to 1016 so the drawer cannot cover it, components/_sitefooter.scss), so
+// scrolling a grading table to the bottom buried the "Show / paging / Save" bar
+// behind the footer. mod_assign echoes the bar straight after the table, so
+// letting it stay where it is rendered gives the reading the design wants: table,
+// then its paging bar, then the footer over neither.
+//
+// Everything Boost adds for the fixed variant is undone here, for this page only
+// (`body.path-mod-assign`; the grading page is the only mod_assign page that
+// renders a core/sticky_footer):
+//   - the fixed box, its height and its slide-in `bottom` transition;
+//   - the room `#page` keeps under itself for the bar (`hasstickyfooter`
+//     margin-bottom at lg+), and the lift the floating "?" button gets for it;
+//   - the drawer offsets on the content wrapper - the bar is now inside the
+//     content column, which is already beside the drawer;
+//   - the `limitedwidth` cap on `.sticky-footer-content`, so the bar spans the
+//     table it belongs to rather than a narrower column under it.
+// The `.border-top` utility is `!important`, hence the `!important` on the edge.
+// -----------------------------------------------------------------------------
+body.path-mod-assign {
+    #sticky-footer.stickyfooter {
+        position: static;
+        height: auto;
+        bottom: auto;
+        transition: none;
+        box-shadow: none;
+        border-top: 0 !important;
+        border-bottom: 1px solid var(--nit-brand-borderprimary);
+
+        .sticky-footer-content-wrapper {
+            margin-inline: 0;
+            padding: 0;
+        }
+
+        .sticky-footer-content {
+            max-width: none;
+        }
+    }
+
+    #page.drawers.hasstickyfooter {
+        margin-bottom: 0;
+    }
+
+    &.hasstickyfooter {
+        .btn-footer-popover {
+            bottom: 2rem; // Boost's resting position for the button.
+        }
+
+        .btn-footer-communication {
+            bottom: 5rem;
         }
     }
 }

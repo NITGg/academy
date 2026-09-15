@@ -286,42 +286,11 @@ class hook_callbacks {
             return;
         }
 
-        if (self::is_page_to_return_to((string) ($SESSION->wantsurl ?? ''))) {
+        if (verification::is_page_to_return_to((string) ($SESSION->wantsurl ?? ''))) {
             return;
         }
 
         $SESSION->wantsurl = verification::landing_url()->out(false);
-    }
-
-    /**
-     * Is a remembered wantsurl a page worth sending a freshly confirmed learner
-     * back to?
-     *
-     * A page on this site other than its home, and other than any account
-     * screen: the login, sign-up and forgot-password pages are where the
-     * visitor was *going*, not where they were.
-     *
-     * @param string $url the remembered URL, possibly empty
-     * @return bool
-     */
-    protected static function is_page_to_return_to(string $url): bool {
-        if ($url === '') {
-            return false;
-        }
-
-        try {
-            $local = (new \moodle_url($url))->out_as_local_url(false);
-        } catch (\Throwable $e) {
-            // Not on this site; core would ignore it too.
-            return false;
-        }
-
-        $path = (string) parse_url($local, PHP_URL_PATH);
-        if ($local === '' || $path === '' || $path === '/' || $path === '/index.php') {
-            return false;
-        }
-
-        return strpos($path, '/login/') !== 0;
     }
 
     /**

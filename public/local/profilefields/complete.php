@@ -35,6 +35,7 @@ use local_profilefields\completion;
 use local_profilefields\form\complete_form;
 use local_profilefields\manager;
 use local_profilefields\signup;
+use local_profilefields\verification;
 
 // require_login() MUST NOT be used here. It runs user_not_fully_set_up(), which
 // would bounce an incomplete user to /user/edit.php before this page ever draws -
@@ -146,9 +147,13 @@ if ($data = $form->get_data()) {
 
     \core\notification::success(get_string('completedone', 'local_profilefields'));
 
-    // Registration is finished: land on the site home page, not on whatever page
-    // the completion gate caught them on (usually /my/ straight after login).
-    redirect(new moodle_url('/'));
+    // Registration is finished: back to the page the gate caught them on when it
+    // is somewhere they were - a course they were pricing, a category, a static
+    // page - and the site home otherwise (usually /my/ straight after a login
+    // that had nowhere to return to; the rule is verification's).
+    redirect(verification::is_page_to_return_to($data->returnurl ?? '')
+        ? new moodle_url($data->returnurl)
+        : verification::landing_url());
 }
 
 echo $OUTPUT->header();

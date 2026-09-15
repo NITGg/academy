@@ -26,8 +26,8 @@ defined('MOODLE_INTERNAL') || die();
 
 $callbacks = [
     [
-        // The navbar's "Log in" link names the page to come back to (nitreturn=);
-        // write it into $SESSION->wantsurl before login/index.php reads it.
+        // Log in comes back to the page it was clicked on (nitreturn= -> $SESSION->wantsurl
+        // before login/index.php reads it), and so does Log out (the referer).
         'hook'     => \core\hook\after_config::class,
         'callback' => \theme_nit\local\hook_callbacks::class . '::after_config',
     ],

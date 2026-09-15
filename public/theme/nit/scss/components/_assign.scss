@@ -295,6 +295,14 @@
     background-color: var(--nit-brand-surface);
 }
 
+// Marking guide: the "show marker / student description" boxes are #f5f5f5
+// wells in core — the same light slab the grade panel was.
+.path-mod-assign [data-region="grade-panel"] .showmarkerdesc,
+.path-mod-assign [data-region="grade-panel"] .showstudentdesc {
+    background-color: var(--nit-brand-surface);
+    color: var(--nit-brand-textprimary);
+}
+
 // ---- The "Filter" popover under the user selector --------------------------
 // A white card with a white arrow (`::after`) over a black-alpha arrow
 // (`::before`) that draws its outline.
@@ -335,6 +343,11 @@
 
     &:hover {
         background-color: var(--nit-brand-primary);
+    }
+
+    // Keyboard focus: core draws a dotted #333 ring.
+    &:focus {
+        outline-color: var(--nit-brand-primary);
     }
 }
 
@@ -450,4 +463,89 @@
 
 .comment-paging .curpage {
     border-color: var(--nit-brand-borderprimary);
+}
+
+// ---- Height of the top bar ------------------------------------------------
+// Core fixes the navigation bar at 85px and starts the two panels below it at
+// `top: 85px` — exactly the room three lines of Boost's 16px text need (name,
+// email, due date) with 6px of padding. The brand font is taller, so the due
+// date line fell under the grade panel's opaque background and was cut in half.
+// One custom property drives the bar's height and both panels' top edge so the
+// three stay in step; the bar gets its breathing room as padding below the row.
+// Under 768px core drops the fixed layout (height: auto, panels static /
+// relative) from a media query that is emitted BEFORE this file, so the fixed
+// height and the top offsets are scoped to the desktop range or they would win
+// there too.
+.path-mod-assign {
+    --nit-grader-nav-height: 6.75rem;
+}
+
+.path-mod-assign [data-region="grading-navigation"] {
+    padding-bottom: 0.75rem;
+}
+
+.path-mod-assign [data-region="user-info"] {
+    height: auto;
+}
+
+@media (min-width: 768px) {
+    .path-mod-assign [data-region="grading-navigation-panel"] {
+        height: var(--nit-grader-nav-height);
+    }
+
+    .path-mod-assign [data-region="review-panel"],
+    .path-mod-assign [data-region="grade-panel"] {
+        top: var(--nit-grader-nav-height);
+    }
+}
+
+// ---- The "Comments (n)" expander arrow --------------------------------------
+// core/comment draws the arrow as a raw `<img>` of pix/t/collapsed.svg — a
+// black glyph baked into the file, invisible on a dark group and never on
+// brand on a light one. The image is hidden and the same chevron is drawn as
+// a mask on a pseudo-element of the link, so its colour is the Accent role (an
+// icon, not text — see the Accent / Accent Text split) and Hover Text on hover.
+// Expanded state comes from `aria-expanded`, which comment.js sets alongside
+// the src swap; RTL points the chevron the other way, as core's *_rtl.svg did.
+// (`.jsenabled .comment-link` keeps core's display: block, so the pseudo is
+// an inline box of its own rather than a flex item.)
+.comment-link {
+    img.icon {
+        display: none;
+    }
+
+    &::before {
+        content: "";
+        display: inline-block;
+        width: 0.75em;
+        height: 0.75em;
+        vertical-align: -0.05em;
+        margin-inline-end: 0.35rem;
+        background-color: var(--nit-brand-accent);
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath d='M310.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-192 192c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L242.7 256 73.4 86.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l192 192z'/%3E%3C/svg%3E");
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath d='M310.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-192 192c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L242.7 256 73.4 86.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l192 192z'/%3E%3C/svg%3E");
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        transition: transform 0.15s ease;
+    }
+
+    &[aria-expanded="true"]::before {
+        transform: rotate(90deg);
+    }
+
+    &:hover::before,
+    &:focus::before {
+        background-color: var(--nit-brand-hovertext);
+    }
+}
+
+// The collapsed chevron points into the reading direction; the expanded one
+// (90°) is the same in both. Written as a body-class rule rather than a flipped
+// property because rtlcss has nothing to flip in a transform.
+body.dir-rtl .comment-link:not([aria-expanded="true"])::before {
+    transform: scaleX(-1);
 }

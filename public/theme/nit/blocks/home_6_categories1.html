@@ -125,6 +125,21 @@
        of that reading. The switch button's hidden label is in the page's own
        language, so it needs nothing.
 
+       The switch is a LINK with role="button", not a button element. It was
+       a button first, and the editor lifted both svg glyphs out of it on
+       save: the page showed a moon and a sun side by side and an empty
+       circle after them. The editor leaves svg inside a link alone - the
+       language pill beside it is the proof - and the theme's click handler
+       calls preventDefault, so the "#" never navigates.
+
+       Which glyph shows: each svg carries its display INLINE (the sun, for
+       a dark page, by default), the loader at the bottom sets both from the
+       real mode before first paint, and toolsStyle() in home_hero_orbit.js
+       keys them off data-nit-mode with !important from then on, so the
+       click handler's attribute flip changes the glyph. That is deliberately
+       independent of the theme's own .nit-mode-toggle rule: a site whose CSS
+       has not been rebuilt yet would otherwise show both glyphs at once.
+
        Colour: a translucent surface pill with the primary border and the
        page's text colour, so the pair reads as quiet chrome against any
        Brand Colors group, light or dark. Hover and focus are in
@@ -139,23 +154,24 @@
         <path fill="currentColor"
           d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.92 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.987 7.987 0 0 1 5.08 16zm2.95-8H5.08a7.987 7.987 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2s.07-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z">
         </path>
-      </svg><span data-nit-hero-lang-label="">AR</span></a> <button
+      </svg><span data-nit-hero-lang-label="">AR</span></a> <a
       class="nit-mode-toggle"
-      style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border-radius: 50%; cursor: pointer; border: 1px solid var(--nit-brand-borderprimary); background: color-mix(in srgb, var(--nit-brand-surface) 72%, transparent); color: var(--nit-brand-textprimary); line-height: 1;"
-      type="button" data-nit-hero-tool="" data-nit-hero-mode=""
+      style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border-radius: 50%; cursor: pointer; border: 1px solid var(--nit-brand-borderprimary); background: color-mix(in srgb, var(--nit-brand-surface) 72%, transparent); color: var(--nit-brand-textprimary); line-height: 1; text-decoration: none;"
+      href="#" role="button" data-nit-hero-tool="" data-nit-hero-mode=""
       data-nit-mode-toggle="" data-nit-mode="dark"><svg
         class="nit-mode-icon nit-mode-icon-dark" width="20" height="20"
-        viewBox="0 0 24 24" aria-hidden="true">
+        viewBox="0 0 24 24" aria-hidden="true" style="display: none;">
         <path fill="currentColor"
           d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z">
         </path>
       </svg><svg class="nit-mode-icon nit-mode-icon-light" width="20"
-        height="20" viewBox="0 0 24 24" aria-hidden="true">
+        height="20" viewBox="0 0 24 24" aria-hidden="true"
+        style="display: block;">
         <path fill="currentColor"
           d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 0 0 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z">
         </path>
       </svg><span class="visually-hidden nit-mode-toggle-label">{mlang
-        en}Switch mode{mlang} {mlang ar}تبديل الوضع{mlang}</span></button></div>
+        en}Switch mode{mlang} {mlang ar}تبديل الوضع{mlang}</span></a></div>
   <!-- Logo row. A real img with a src, never an empty element: the editor
        deletes anything with no content of its own.
 
@@ -364,6 +380,14 @@
           }
           btn.setAttribute('data-nit-mode', modeInfo.mode);
           btn.setAttribute('data-nit-mode-config', JSON.stringify(modeInfo.config));
+          // The glyph is the mode the button switches TO: a moon on a light
+          // page, a sun on a dark one. Inline, so it is right before any
+          // stylesheet has arrived; toolsStyle() takes over after a click.
+          var dark = modeInfo.mode === 'dark';
+          Array.prototype.forEach.call(btn.querySelectorAll('.nit-mode-icon'), function(icon) {
+            var forLight = icon.classList.contains('nit-mode-icon-light');
+            icon.style.display = (forLight === dark) ? 'block' : 'none';
+          });
           btn.setAttribute('aria-label', modeInfo.label);
           btn.setAttribute('title', modeInfo.label);
           var sr = btn.querySelector('.nit-mode-toggle-label');

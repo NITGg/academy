@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'theme_nit';
-$plugin->version   = 2026091501;        // YYYYMMDDXX — Navbar "Log in" carries the page to come back to (nitreturn= → $SESSION->wantsurl via after_config); footer login line agrees.
+$plugin->version   = 2026091502;        // YYYYMMDDXX — Log in and Log out both come back to the page they were clicked on (after_config: nitreturn= / referer); footer login line agrees.
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline (pinned per CI matrix).
 $plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_ALPHA;    // Foundation + rendering + branding (M2–M5); pre-1.0.

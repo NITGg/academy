@@ -26,6 +26,31 @@ namespace theme_nit\local;
 class hook_callbacks {
 
     /**
+     * Two things a visitor's account links promise and core does not keep:
+     * "Log in" brings you back to the page you were on, and so does "Log out".
+     *
+     * after_config, because it runs before the login and logout scripts
+     * themselves and before any redirect either may issue (an alternate login
+     * URL, for one) - the one moment guaranteed to precede everything core does
+     * with the session. Cheap on every other request: the script name is
+     * checked first.
+     *
+     * @param \core\hook\after_config $hook
+     */
+    public static function after_config(\core\hook\after_config $hook): void {
+        global $SCRIPT;
+
+        switch ($SCRIPT ?? '') {
+            case '/login/index.php':
+                self::remember_login_return();
+                break;
+            case '/login/logout.php':
+                self::logout_to_current_page();
+                break;
+        }
+    }
+
+    /**
      * Honour the `nitreturn=` the navbar's "Log in" link carries: the page the
      * visitor was on, which is where they should land once signed in.
      *
@@ -39,22 +64,14 @@ class hook_callbacks {
      * after a password or an OAuth2 login, signup.php keeps it, auth_email
      * carries it across the confirmation email, confirm.php restores it.
      *
-     * after_config, because it runs before login/index.php itself and before
-     * any redirect that page may issue (an alternate login URL, for one) - the
-     * one moment guaranteed to precede everything core does with wantsurl.
-     * Cheap on every other request: the script name is checked first.
-     *
      * The value is a PARAM_LOCALURL - a page on this site, or nothing - so the
      * link cannot be made to send a visitor elsewhere after they log in.
      *
-     * @param \core\hook\after_config $hook
+     * @return void
      */
-    public static function after_config(\core\hook\after_config $hook): void {
-        global $SCRIPT, $SESSION;
+    protected static function remember_login_return(): void {
+        global $SESSION;
 
-        if (($SCRIPT ?? '') !== '/login/index.php') {
-            return;
-        }
         // Somebody already signed in has no Log in link to have clicked;
         // whatever they are doing on the login page is not this.
         if (isloggedin() && !isguestuser()) {
@@ -67,6 +84,111 @@ class hook_callbacks {
         }
 
         $SESSION->wantsurl = (new \moodle_url($return))->out(false);
+    }
+
+    /**
+     * Areas a visitor is never sent back to after logging out.
+     *
+     * Path prefixes under wwwroot. Each exists only for a signed-in account -
+     * the dashboard, the profile, administration, messaging, grades, an
+     * activity page, our account and management screens - so landing there
+     * signed out would only bounce the visitor onto the login form, which
+     * looks like the site refusing to let them go. Any path with a `manage`
+     * segment counts too, whichever plugin it belongs to. The home page stands
+     * in instead, as core does.
+     */
+    const LOGOUT_NO_RETURN_PATHS = [
+        '/admin/', '/my/', '/user/', '/login/', '/message/', '/calendar/', '/grade/',
+        '/report/', '/mod/', '/badges/', '/notes/', '/blog/', '/cohort/', '/group/',
+        '/backup/', '/enrol/', '/question/', '/course/edit', '/course/modedit',
+        '/course/loginas', '/course/user.php',
+        '/local/profilefields/account.php', '/local/profilefields/complete.php',
+        '/local/profilefields/verify.php', '/theme/nit/gallery.php',
+    ];
+
+    /**
+     * Sign the user out and send them back to the page they logged out from.
+     *
+     * Core's logout.php ends every session on the site home, and offers no way
+     * to say otherwise: the only thing that can change its destination is an
+     * auth plugin's logoutpage_hook(). The Log out link is core's as well -
+     * built in user_get_user_navigation_info() *after* the extend_user_menu
+     * hook has run, so no plugin can decorate it - which leaves the request's
+     * own evidence of where the click came from: the HTTP referer, a page on
+     * this site or nothing (PARAM_LOCALURL). That is the same source core's
+     * login page reads its return page from, and a link click on the site
+     * always sends it.
+     *
+     * Exactly what logout.php does is repeated here, in its order - the auth
+     * plugins' logoutpage_hook() (each may redirect elsewhere by changing
+     * $redirect, and that still wins), then require_logout(), then the
+     * redirect - so an auth plugin that takes part in logout, single-logout
+     * included, sees no difference. Everything else is left to core: no
+     * session to end, a missing or stale sesskey (core prints its confirmation
+     * page), `loginpage=1` (core sends the visitor to the login form), or a
+     * page there is no point returning to ({@see self::LOGOUT_NO_RETURN_PATHS}).
+     *
+     * @return void
+     */
+    protected static function logout_to_current_page(): void {
+        global $redirect;
+
+        if (!isloggedin() || optional_param('loginpage', 0, PARAM_BOOL)) {
+            return;
+        }
+        // The same check as logout.php, deliberately not required_param: a
+        // missing key means core's "are you sure?" page, not an error.
+        if (!confirm_sesskey(optional_param('sesskey', '__notpresent__', PARAM_RAW))) {
+            return;
+        }
+
+        $return = self::logout_return_url();
+        if ($return === null) {
+            return;
+        }
+
+        $redirect = $return;
+        foreach (get_enabled_auth_plugins() as $authname) {
+            get_auth_plugin($authname)->logoutpage_hook();
+        }
+
+        require_logout();
+
+        redirect($redirect);
+    }
+
+    /**
+     * The page the current user should come back to after logging out, as a
+     * full URL - or null when there is none worth returning to.
+     *
+     * @return string|null
+     */
+    protected static function logout_return_url(): ?string {
+        $referer = get_local_referer(false);
+        if ($referer === '') {
+            return null;
+        }
+
+        try {
+            $local = (new \moodle_url($referer))->out_as_local_url(false);
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        $path = (string) parse_url($local, PHP_URL_PATH);
+        if ($local === '' || $path === '' || $path === '/' || $path === '/index.php') {
+            return null;
+        }
+        foreach (self::LOGOUT_NO_RETURN_PATHS as $prefix) {
+            if (strpos($path, $prefix) === 0) {
+                return null;
+            }
+        }
+        if (preg_match('~/manage~', $path)) {
+            return null;
+        }
+
+        return (new \moodle_url($local))->out(false);
     }
 
     /**
