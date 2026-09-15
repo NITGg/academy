@@ -101,12 +101,6 @@ class entry_form extends \moodleform {
             if ($usesections) {
                 $mform->closeHeaderBefore('jobform_declaration');
             }
-            // The signature line: the applicant's name written over a rule and
-            // today's date beside it. Display only — the account of record is
-            // what signs, so nothing is posted.
-            global $USER;
-            $mform->addElement('static', 'jobform_signature', '',
-                self::signature_html(fullname($USER), time()));
 
             // Send the form.
             $buttonarray = [];
@@ -116,30 +110,6 @@ class entry_form extends \moodleform {
             $buttonarray[] = $mform->createElement('cancel');
             $mform->addGroup($buttonarray, 'buttonar', '', ' ', false);
         }
-    }
-
-    /**
-     * The signature line at the foot of the sheet.
-     *
-     * Also printed by the read-only sheet (mod_jobform/entry_page) with the
-     * date the form was sent, so both states end the same way.
-     *
-     * @param string $name the applicant's name, as it signs
-     * @param int $time the date written beside it
-     * @return string HTML
-     */
-    public static function signature_html(string $name, int $time): string {
-        $cell = function(string $value, string $key): string {
-            return \html_writer::div(
-                \html_writer::span($value, 'jobform-signature-value') .
-                \html_writer::span($key, 'jobform-signature-key'),
-                'jobform-signature-cell');
-        };
-        return \html_writer::div(
-            $cell(s($name), get_string('signature', 'mod_jobform')) .
-            $cell(userdate($time, get_string('strftimedate', 'langconfig')),
-                get_string('date_new', 'mod_jobform')),
-            'jobform-signature');
     }
 
     /**

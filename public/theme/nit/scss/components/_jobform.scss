@@ -471,16 +471,6 @@ $jobform-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg
         }
     }
 
-    // "Signed" line: the applicant's name written over a rule, the date next to
-    // it — the part of a paper form that makes sending it feel like signing it.
-    #fitem_id_jobform_signature {
-        margin-top: 0.75rem !important;
-
-        > .col-form-label {
-            display: none;
-        }
-    }
-
     #fgroup_id_buttonar {
         margin-top: 1rem !important;
 
@@ -675,45 +665,4 @@ $jobform-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg
         padding-inline: 1.75rem;
         font-weight: 600;
     }
-}
-
-// ---- Signature line ----------------------------------------------------------
-// Shared by the editable footer (a static element in the form) and the
-// read-only sheet (printed by the template).
-.jobform-signature {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem 2.5rem;
-    margin-top: 0.5rem;
-}
-
-.jobform-signature-cell {
-    display: flex;
-    flex-direction: column;
-    min-width: 12rem;
-    flex: 1 1 12rem;
-}
-
-.jobform-signature-value {
-    padding: 0.35rem 0.25rem 0.3rem;
-    border-bottom: 1px solid var(--nit-brand-textprimary);
-    font-style: italic;
-    font-size: 1.1rem;
-    color: var(--nit-brand-textprimary);
-    min-height: 2rem;
-}
-
-.jobform-signature-key {
-    margin-top: 0.3rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--nit-brand-textsecondary);
-}
-
-.jobform-entry-readonly .jobform-signature {
-    margin-top: 1.5rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--nit-brand-borderprimary);
 }
