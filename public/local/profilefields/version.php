@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_profilefields';
-$plugin->version   = 2026091300;        // YYYYMMDDXX - trimmed Preferences page, Profile menu -> account screen.
+$plugin->version   = 2026091501;        // YYYYMMDDXX - confirmation "Continue" returns to the page the learner signed up from; home only when none.
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
 $plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_STABLE;

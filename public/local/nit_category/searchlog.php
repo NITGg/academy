@@ -114,7 +114,7 @@ $table->attributes['class'] = 'generaltable';
 $table->data = [];
 
 foreach ($terms as $term) {
-    $tryurl = new moodle_url('/local/nit_category/search.php', ['q' => $term->term]);
+    $tryurl = new moodle_url('/local/nit_category/catalogue.php', ['q' => $term->term]);
     $deleteurl = new moodle_url('/local/nit_category/searchlog.php',
         ['sort' => $sort, 'delete' => $term->id, 'sesskey' => sesskey()]);
 

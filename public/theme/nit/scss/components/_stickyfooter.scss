@@ -29,3 +29,51 @@
     border-top-color: var(--nit-brand-borderprimary) !important;
     color: var(--nit-brand-textprimary);
 }
+
+// -----------------------------------------------------------------------------
+// Keep the bar above the site footer when a drawer is open.
+//
+// Boost paints the bar `position: fixed; left: 0; right: 0; z-index: 3` — the
+// full page width, with only its content wrapper pushed sideways to clear an
+// open drawer (sticky-footer.scss). That works in Boost because nothing in the
+// page outranks z-index 3. Our site footer band does: with the course index or
+// block drawer open it is pulled under the drawer and raised to z-index 1016 so
+// the drawer cannot cover it (components/_sitefooter.scss) — and from then on it
+// covers the bar instead. Scroll a grading table (mod/assign, action=grading) to
+// the bottom and the "Show / paging / Save" bar disappears behind the footer.
+//
+// Raising the bar above 1016 alone would put its full-width box over the bottom
+// of the open drawer (z-index 1015 at lg+) and hide the drawer's last rows. So
+// the bar's own edge is inset by the drawer width instead — the wrapper margin
+// Boost used for that is then redundant and is zeroed; Boost's inner padding
+// (`0 3rem 0 1rem` etc.) is left alone. Logical properties throughout: the
+// drawer sits on the other side in Arabic and rtlcss flips Boost's rule for it.
+//
+// Only at lg and up, where the site footer is raised. Below that the drawer is a
+// modal (z-index 1035) that has to stay over everything, the footer keeps
+// `z-index: auto`, and Boost's z-index 3 already beats it.
+// -----------------------------------------------------------------------------
+@include media-breakpoint-up(lg) {
+    #page.drawers.show-drawer-left,
+    #page.drawers.show-drawer-right {
+        #sticky-footer.stickyfooter {
+            z-index: 1017;
+        }
+    }
+
+    #page.drawers.show-drawer-left #sticky-footer.stickyfooter {
+        inset-inline-start: $drawer-left-width;
+
+        .sticky-footer-content-wrapper {
+            margin-inline-start: 0;
+        }
+    }
+
+    #page.drawers.show-drawer-right #sticky-footer.stickyfooter {
+        inset-inline-end: $drawer-right-width;
+
+        .sticky-footer-content-wrapper {
+            margin-inline-end: 0;
+        }
+    }
+}

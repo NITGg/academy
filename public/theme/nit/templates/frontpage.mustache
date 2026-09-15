@@ -39,6 +39,8 @@
     * belowcontent / hasbelowcontent - NIT region below the main content column.
     * fullwidthbottom / hasfullwidthbottom - NIT full-width closing region.
     * nitshownavbar - NIT: false when the Home page chrome setting hides the navbar here.
+    * nitmodetogglejson - NIT: the light/dark switch as JSON (window.NIT_MODE_TOGGLE), or null.
+    * nitlangtogglejson - NIT: the language swap as JSON (window.NIT_LANG_TOGGLE), or null.
 
     Example context (json):
     {
@@ -73,6 +75,8 @@ window.NIT_MY_COURSES = {{{ nitmycoursesjson }}};
 window.NIT_CATEGORIES = {{{ nitcategoriesjson }}};
 window.NIT_LOGO = {{{ nitlogojson }}};
 window.NIT_LOGO_FULL = {{{ nitlogofulljson }}};
+window.NIT_MODE_TOGGLE = {{{ nitmodetogglejson }}};
+window.NIT_LANG_TOGGLE = {{{ nitlangtogglejson }}};
 (function () {
     function esc(s) {
         var d = document.createElement('div');

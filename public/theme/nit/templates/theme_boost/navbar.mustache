@@ -112,10 +112,29 @@
                 is the case for a guest and for a student with nothing to open. }}
             {{{ output.navbar_gear_menu }}}
 
-            {{! NIT: user menu (avatar) — Dashboard / Profile / Grades / Log out / Switch role. }}
+            {{! NIT: user menu (avatar) — Dashboard / Profile / Grades / Log out / Switch role.
+                A visitor gets core's "Log in" line, except that the link is
+                output.navbar_login_url: the login page told which page to come
+                back to (see the renderer). Core's user_menu partial draws that link
+                from `url`, which is get_login_url() and nothing else, so its guest
+                branch is repeated here with our link; the logged-in branch is
+                still the partial. }}
             {{#usermenu}}
                 <div class="d-flex align-items-stretch usermenu-container ms-1" data-region="usermenu">
-                    {{> core/user_menu }}
+                    {{#unauthenticateduser}}
+                        <div class="usermenu">
+                            <span class="login ps-2">
+                                {{#guest}}
+                                    {{#str}} loggedinasguest, core {{/str}}
+                                    <div class="divider border-start h-75 align-self-center mx-2"></div>
+                                {{/guest}}
+                                <a href="{{{ output.navbar_login_url }}}">{{#str}} login, core {{/str}}</a>
+                            </span>
+                        </div>
+                    {{/unauthenticateduser}}
+                    {{^unauthenticateduser}}
+                        {{> core/user_menu }}
+                    {{/unauthenticateduser}}
                 </div>
             {{/usermenu}}
         </div>

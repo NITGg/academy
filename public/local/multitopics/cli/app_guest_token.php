@@ -89,6 +89,7 @@ $defaultfunctions = [
     // Ours.
     'local_payments_get_courses_with_pricing',
     'local_nit_category_search',
+    'local_nit_category_get_home_hero',
     'local_nit_commerce_get_available_coupons',
     'local_nit_commerce_preview_discount',
     'local_nit_subscriptions_get_available_subscriptions',

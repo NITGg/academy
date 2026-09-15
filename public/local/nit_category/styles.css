@@ -718,26 +718,15 @@
     }
 }
 
-/* ══ Site search (search.php + the navbar panel) ══════════════════════════════════
+/* ══ Site search (the navbar panel, served by search.php?fragment=1) ══════════════
  *
- * These rules are used in two places at once: the results page, which sets the --c*
- * slots on its .nitcat wrapper, and the panel under the header search box, which does
- * not — it is a theme_nit popover with no wrapper of its own. So every colour here
- * names the slot AND its brand fallback: inside the page the slot wins, inside the
- * panel the fallback does, and one set of rules dresses both.
+ * The panel is a theme_nit popover with no .nitcat wrapper of its own, so the --c* slots
+ * the catalogue sets are not defined here. Every colour therefore names the slot AND its
+ * brand fallback: the fallback is what the panel actually uses, and the slot keeps these
+ * rows in step with the catalogue should they ever be drawn inside it.
  *
  * Every horizontal property is logical, so the rows mirror themselves in Arabic.
  */
-
-.nitsearch__wrap {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 clamp(16px, 4vw, 40px);
-}
-
-.nitsearch__body {
-    padding-bottom: 32px;
-}
 
 /* ── A group: one kind of result, under its own heading, with its own count ─────── */
 
@@ -922,27 +911,6 @@
     font-size: 13.5px;
     line-height: 1.6;
     color: var(--ctext2, var(--nit-brand-textsecondary));
-}
-
-/* ── Page-only pieces ──────────────────────────────────────────────────────────── */
-
-.nitsearch__refine {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    margin-top: 8px;
-    padding-top: 18px;
-    border-top: 1px solid color-mix(in srgb, var(--cborder) 45%, transparent);
-    font-size: 14px;
-    color: var(--ctext2);
-}
-
-.nitsearch__emptylinks {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
 }
 
 /* ── Inside the navbar panel the rows are tighter: it is a preview, not the page ── */

@@ -574,16 +574,11 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // one is a bulb and not the usual sun because at 14px `fa-sun` and the
     // `fa-gear` two buttons along it are the same silhouette — see the note in
     // theme_nit/navbar_mode_toggle.
-    .nit-mode-toggle {
-        .nit-mode-icon {
-            display: none;
-        }
-
-        &[data-nit-mode="light"] .nit-mode-icon-dark,
-        &[data-nit-mode="dark"] .nit-mode-icon-light {
-            display: inline-block;
-        }
-    }
+    //
+    // The rule itself is at the top level, after this block: the Site home's
+    // hero draws a copy of the switch OUTSIDE the bar (for when "Home page
+    // chrome" hides the bar there), and a rule nested under `.nit-navbar` would
+    // leave both glyphs showing on that copy.
 
     // ---- Right cluster: bare icon buttons -----------------------------------
     // The design ("nav" component, Figma 640:2850) puts NO chrome on these: the
@@ -1229,6 +1224,25 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
                 color: var(--nit-navbaraccenthover, #{$nit-gold-400});
             }
         }
+    }
+}
+
+// ---- Light/dark switch: which glyph shows ------------------------------------
+// Both glyphs are in the markup and this hides the one that does not apply,
+// keyed off the `data-nit-mode` attribute the click handler flips (a moon while
+// the site is light, a bulb/sun while it is dark: the mode the button switches
+// TO). Top level rather than under `.nit-navbar` because the switch is drawn in
+// two places: the bar, and the Site home's hero block, which paints its own
+// copy in the corner when the bar is hidden there and wires it to the same
+// handler through window.NIT_MODE_TOGGLE. See core_renderer::mode_toggle_context().
+.nit-mode-toggle {
+    .nit-mode-icon {
+        display: none;
+    }
+
+    &[data-nit-mode="light"] .nit-mode-icon-dark,
+    &[data-nit-mode="dark"] .nit-mode-icon-light {
+        display: inline-block;
     }
 }
 

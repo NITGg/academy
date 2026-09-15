@@ -288,15 +288,6 @@ class site_search {
     // =========================================================================
 
     /**
-     * This search as its own page.
-     *
-     * @return string
-     */
-    public function url(): string {
-        return (new \moodle_url('/local/nit_category/search.php', ['q' => $this->query]))->out(false);
-    }
-
-    /**
      * The same term handed to the catalogue, where it can be filtered and sorted.
      *
      * @return string

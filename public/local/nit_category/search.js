@@ -16,10 +16,10 @@
 /**
  * The header search box (SRS 4.22).
  *
- * The control works with none of this: it is a plain GET form pointing at search.php, so
- * pressing Enter gives the full results page, grouped and counted, with its own address.
- * What this file adds is the preview panel — the same groups, from the same endpoint,
- * shown while you type — plus the keyboard handling a combobox owes its user.
+ * The control works with none of this: it is a plain GET form pointing at search.php, and
+ * pressing Enter lands in the catalogue with the term applied. What this file adds is the
+ * preview panel — the result groups, from the same endpoint, shown while you type — plus
+ * the keyboard handling a combobox owes its user.
  *
  * It also closes the one hole in AC-4.22.4: a learner who reads "Nothing found" in the
  * panel has no reason to press Enter, so the miss would never reach the report. When the

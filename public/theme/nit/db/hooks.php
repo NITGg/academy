@@ -26,6 +26,12 @@ defined('MOODLE_INTERNAL') || die();
 
 $callbacks = [
     [
+        // The navbar's "Log in" link names the page to come back to (nitreturn=);
+        // write it into $SESSION->wantsurl before login/index.php reads it.
+        'hook'     => \core\hook\after_config::class,
+        'callback' => \theme_nit\local\hook_callbacks::class . '::after_config',
+    ],
+    [
         // Switch app WebView pages to the chrome-free `embedded` layout.
         'hook'     => \core\hook\output\before_http_headers::class,
         'callback' => \theme_nit\local\hook_callbacks::class . '::before_http_headers',

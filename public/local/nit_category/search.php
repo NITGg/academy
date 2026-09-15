@@ -17,17 +17,19 @@
 /**
  * What the header search box finds (SRS 4.22).
  *
- * One file answers the same question three ways, which is the whole point of it being one
- * file — the drop-down under the navbar and the full results page can never disagree about
- * what "digital marketing" finds, because there is one engine ({@see site_search}) and one
- * set of result rows below:
+ * The endpoint behind the header search box. One engine ({@see site_search}) answers
+ * three requests:
  *
- *   (no parameter)  the results page: every group, every row, with the totals.
- *   fragment=1      the same groups, capped and stripped of page furniture — the panel the
- *                   navbar script drops under the search box while you type.
- *   action=logmiss  no output; records a term that found nothing (AC-4.22.4). The page
- *                   itself records a miss without being asked; this exists for the panel,
- *                   where a learner may read "nothing found" and never press Enter.
+ *   fragment=1      the result groups, capped and stripped of page furniture — the panel
+ *                   the navbar script drops under the search box while you type.
+ *   action=logmiss  no output; records a term that found nothing (AC-4.22.4). This exists
+ *                   for the panel, where a learner may read "nothing found" and never
+ *                   press Enter.
+ *   (no parameter)  Enter in the box, or the panel's "see all" link: a redirect to the
+ *                   catalogue carrying the same term. There is no results page of its own —
+ *                   the catalogue already lists what the term finds and has the filter
+ *                   panel to do something with it, so a page between the two was one
+ *                   click for nothing.
  *
  * @package    local_nit_category
  * @copyright  2026 NIT
@@ -73,21 +75,27 @@ if ($action === 'logmiss') {
     exit;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────────────────
+// No parameter — the form submitted, or the panel's "see all" link followed.
+//
+// AC-4.22.4: a term that found nothing is recorded before handing over, because the
+// catalogue does not know it is answering a search. The panel usually reports the miss
+// first (see search.js).
+// ─────────────────────────────────────────────────────────────────────────────────────────
+if (!$fragment) {
+    if ($search->is_answerable() && !$search->has_results()) {
+        search_log::record_miss($search->query());
+    }
+    redirect($search->catalogue_url());
+}
+
 $context = context_system::instance();
 $PAGE->set_url($baseurl, $search->query() !== '' ? ['q' => $search->query()] : []);
 $PAGE->set_context($context);
-$PAGE->set_pagelayout('nit_fullwidth');
-$PAGE->set_title(get_string('searchtitle', 'local_nit_category'));
-$PAGE->set_heading(get_string('searchtitle', 'local_nit_category'));
 
-// The panel is a preview, so it shows a handful of each. The page caps courses only:
-// a one-word term can match hundreds, every row drawn costs a price lookup and a
-// file-area query, and whatever is left over is one link away in the catalogue.
-// Categories are listed in full — they are cheap, and since the all-categories grid
-// was retired there is no second page to send an overflow to.
-$groups = $search->is_answerable()
-    ? ($fragment ? $search->groups(5, 5) : $search->groups(24, 0))
-    : [];
+// The panel is a preview, so it shows a handful of each; whatever is left over is one
+// link away in the catalogue.
+$groups = $search->is_answerable() ? $search->groups(5, 5) : [];
 $total = $search->is_answerable() ? $search->total() : 0;
 
 $countrynotice = pricing::country_notice();
@@ -240,133 +248,26 @@ $rendergroups = function () use ($groups, $search, $renderrow, $pricetag): void 
 };
 
 // ─────────────────────────────────────────────────────────────────────────────────────────
-// fragment=1 — the panel under the navbar box. Same groups, same rows, no page furniture.
+// fragment=1 — the panel under the navbar box. Groups and rows, no page furniture.
 //
 // data-nitsearch-total is what the navbar script watches: a zero there is what makes it
 // report the miss back to action=logmiss a moment later, once the typing has settled.
 // ─────────────────────────────────────────────────────────────────────────────────────────
-if ($fragment) {
-    header('Content-Type: text/html; charset=utf-8');
-    header('X-Frame-Options: DENY');
-    ?>
-    <div class="nitsearch nitsearch--panel" dir="auto" data-nitsearch-total="<?= (int) $total ?>">
-      <?php if (!$search->is_answerable()): ?>
-        <p class="nitsearch__hint"><?= s(get_string('searchhint', 'local_nit_category')) ?></p>
-      <?php elseif ($total === 0): ?>
-        <p class="nitsearch__hint"><?= s(get_string('searchnothing', 'local_nit_category',
-          $search->query())) ?></p>
-      <?php else: ?>
-        <?php $rendergroups(); ?>
-        <a class="nitsearch__all" href="<?= s($search->url()) ?>"><?=
-          s($total === 1
-            ? get_string('searchseeallone', 'local_nit_category')
-            : get_string('searchseeall', 'local_nit_category', $total)) ?></a>
-      <?php endif; ?>
-    </div>
-    <?php
-    exit;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────────────────
-// The full page.
-//
-// AC-4.22.4: a term that reached this page and found nothing is what EAAC wants to see in
-// the report, so it is recorded here — deliberately after the results are known, and only
-// for a term that could have matched something.
-// ─────────────────────────────────────────────────────────────────────────────────────────
-if ($search->is_answerable() && $total === 0) {
-    search_log::record_miss($search->query());
-}
-
-// The eight local colour slots map to brand roles by job, exactly as the catalogue and the
-// category grid do, so all three are one design under one palette and re-skin together.
-// --ctext4 is the ink ON a --cbg4 (Primary) fill, so it is "Text on main button", not
-// Text primary (see the note in index.php).
-$stylevars =
-    '--cbg1: var(--nit-brand-background); '
-  . '--cbg2: var(--nit-brand-surface); '
-  . '--cbg3: color-mix(in srgb, var(--nit-brand-surface) 88%, var(--nit-brand-textprimary)); '
-  . '--cbg4: var(--nit-brand-primary); '
-  . '--ctext1: var(--nit-brand-textprimary); '
-  . '--ctext2: var(--nit-brand-textsecondary); '
-  . '--ctext3: var(--nit-brand-accenttext); '
-  . '--caccent: var(--nit-brand-accent); '
-  . '--ctext4: var(--nit-brand-onprimary); '
-  . '--cborder: var(--nit-brand-borderprimary); '
-  . '--csuccess: var(--nit-brand-success); ';
-
-echo $OUTPUT->header();
+header('Content-Type: text/html; charset=utf-8');
+header('X-Frame-Options: DENY');
 ?>
-
-<div dir="auto" class="nitcat nitsearch" style="<?= $stylevars ?>">
- <div class="nitsearch__wrap">
-  <header class="nitcat__head">
-    <nav class="nitcat__crumbs" aria-label="<?= s(get_string('breadcrumb', 'local_nit_category')) ?>">
-      <a href="<?= s((new moodle_url('/'))->out()) ?>"><?= s(get_string('home')) ?></a>
-      <span aria-hidden="true">›</span>
-      <span aria-current="page"><?= s(get_string('searchtitle', 'local_nit_category')) ?></span>
-    </nav>
-
-    <h1 class="nitcat__title"><?= s(get_string('searchtitle', 'local_nit_category')) ?></h1>
-
-    <form method="get" action="<?= s($baseurl->out_omit_querystring()) ?>" class="nitcat__search" role="search">
-      <label class="sr-only visually-hidden" for="nitsearch-q"><?=
-        s(get_string('searchplaceholder', 'local_nit_category')) ?></label>
-      <input type="search" id="nitsearch-q" name="q" value="<?= s($search->query()) ?>"
-             placeholder="<?= s(get_string('searchplaceholder', 'local_nit_category')) ?>" autofocus>
-      <button type="submit" class="btn btn-primary fw-bold"><?= s(get_string('search')) ?></button>
-    </form>
-
-    <?php if ($search->query() === ''): ?>
-      <p class="nitcat__intro"><?= s(get_string('searchhint', 'local_nit_category')) ?></p>
-    <?php elseif (!$search->is_answerable()): ?>
-      <?php // With MIN_LENGTH at 1 this branch is no longer "too short": one character is a
-            // search now. It survives for the queries that fold away to nothing in
-            // text_util::normalise() — a lone hamza, a tatweel, a string of harakat — which
-            // are non-empty as typed but carry no word to match on. "Type a letter or a
-            // number" is the useful thing to say about those; "type at least 1 letters" is
-            // not. ?>
-      <p class="nitcat__intro"><?= s(get_string('searchnowords', 'local_nit_category')) ?></p>
-    <?php else: ?>
-      <p class="nitcat__total" role="status">
-        <?= s($total === 1
-          ? get_string('searchoneresult', 'local_nit_category', $search->query())
-          : get_string('searchresults', 'local_nit_category',
-              ['count' => $total, 'query' => $search->query()])) ?>
-      </p>
-    <?php endif; ?>
-  </header>
-
-  <div class="nitsearch__body">
-    <?php if ($search->is_answerable() && $total === 0): ?>
-      <div class="nitcat__empty">
-        <div class="nitcat__emptyicon" aria-hidden="true">🔍</div>
-        <p class="nitcat__emptytitle"><?= s(get_string('searchnothing', 'local_nit_category',
-          $search->query())) ?></p>
-        <p class="nitcat__emptyhint"><?= s(get_string('searchnothinghint', 'local_nit_category')) ?></p>
-        <div class="nitsearch__emptylinks">
-          <a class="btn btn-outline-primary fw-bold" href="<?=
-            s((new moodle_url('/local/nit_category/catalogue.php'))->out()) ?>"><?=
-            s(get_string('catalogue', 'local_nit_category')) ?></a>
-        </div>
-      </div>
-    <?php else: ?>
-      <?php $rendergroups(); ?>
-
-      <?php if ($total > 0): ?>
-        <!-- The results are a list, on purpose: what to do with a result is a decision the
-             catalogue is built for. Rather than grow a second filter panel here, the page
-             that already has one is offered the same term. -->
-        <div class="nitsearch__refine">
-          <span><?= s(get_string('searchrefine', 'local_nit_category')) ?></span>
-          <a class="btn btn-outline-primary fw-bold" href="<?= s($search->catalogue_url()) ?>"><?=
-            s(get_string('searchrefinecourses', 'local_nit_category')) ?></a>
-        </div>
-      <?php endif; ?>
-    <?php endif; ?>
-  </div>
- </div>
+<div class="nitsearch nitsearch--panel" dir="auto" data-nitsearch-total="<?= (int) $total ?>">
+  <?php if (!$search->is_answerable()): ?>
+    <p class="nitsearch__hint"><?= s(get_string('searchhint', 'local_nit_category')) ?></p>
+  <?php elseif ($total === 0): ?>
+    <p class="nitsearch__hint"><?= s(get_string('searchnothing', 'local_nit_category',
+      $search->query())) ?></p>
+  <?php else: ?>
+    <?php $rendergroups(); ?>
+    <!-- Straight to the catalogue: it carries the term and has the filters. -->
+    <a class="nitsearch__all" href="<?= s($search->catalogue_url()) ?>"><?=
+      s($total === 1
+        ? get_string('searchseeallone', 'local_nit_category')
+        : get_string('searchseeall', 'local_nit_category', $total)) ?></a>
+  <?php endif; ?>
 </div>
-
-<?php
-echo $OUTPUT->footer();

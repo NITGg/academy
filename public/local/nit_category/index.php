@@ -96,6 +96,118 @@ if (empty($subcategories)) {
 // Drop empty subtrees.
 $rootnodes = array_values(array_filter($rootnodes, static fn($n) => $counttree($n) > 0));
 
+// ── Course levels ─────────────────────────────────────────────────────────────────────────
+//
+// The third tier of the view. A category holds sub-categories, a sub-category holds
+// courses, and every course sits on a rung of the site's Level ladder (the "Level" field
+// under "Course File Summary" on the course settings form). The page groups each
+// category's courses rung by rung, prints the rung on every card, and offers the ladder
+// as a filter next to the sub-category bar. Read once here for every course on the page.
+$collectids = function (array $node) use (&$collectids): array {
+    $ids = array_map(static fn($c) => (int) $c->id, array_values($node['courses']));
+    foreach ($node['children'] as $child) {
+        $ids = array_merge($ids, $collectids($child));
+    }
+    return $ids;
+};
+$allcourseids = [];
+foreach ($rootnodes as $node) {
+    $allcourseids = array_merge($allcourseids, $collectids($node));
+}
+$courselevels = \local_nit_category\course_level::for_courses($allcourseids);
+$ladder       = \local_nit_category\course_level::ladder();   // rung => label (select field)
+$levelmax     = count($ladder);                                // 0 = a text field / no ladder
+
+// Every level a course on this page carries, keyed the way the filter bar and the URL
+// name it: a select field's rung number, or — for a text field, whose labels have no
+// order — a running number in alphabetical order. A select field lists EVERY rung of the
+// ladder, holding one or not, so the bar always reads as the same ladder on every page.
+$levelkeys = [];   // label => key
+$levelinfo = [];   // key => ['index' => rung, 'label' => label, 'count' => n]
+if ($levelmax > 0) {
+    foreach ($ladder as $index => $label) {
+        $levelkeys[$label] = (string) $index;
+        $levelinfo[(string) $index] = ['index' => $index, 'label' => $label, 'count' => 0];
+    }
+} else {
+    $labels = array_values(array_unique(array_map(static fn($l) => $l['label'], $courselevels)));
+    usort($labels, [\local_nit_category\text_util::class, 'collate']);
+    foreach ($labels as $i => $label) {
+        $levelkeys[$label] = (string) ($i + 1);
+        $levelinfo[(string) ($i + 1)] = ['index' => $i + 1, 'label' => $label, 'count' => 0];
+    }
+}
+foreach ($courselevels as $lv) {
+    $key = $levelkeys[$lv['label']] ?? null;
+    if ($key !== null) {
+        $levelinfo[$key]['count']++;
+    }
+}
+$haslevels = !empty($courselevels);
+
+// The level a course is on, as the page keys it — 'none' when it has no level. A course
+// keeps that key on its card, so the filter bar can pick cards out without a round trip.
+$levelkeyof = function (int $courseid) use ($courselevels, $levelkeys): string {
+    $lv = $courselevels[$courseid] ?? null;
+    return $lv ? ($levelkeys[$lv['label']] ?? 'none') : 'none';
+};
+
+// ?level=N starts the page filtered to one rung (like ?sub= for a sub-category). Unknown
+// rung -> "all". Only decides first paint; the bar filters in place after that.
+$levelfilter = optional_param('level', '', PARAM_ALPHANUMEXT);
+if ($levelfilter !== '' && !isset($levelinfo[$levelfilter])) {
+    $levelfilter = '';
+}
+
+// Courses in a node's subtree that the level filter lets through.
+$countvisible = function (array $node) use (&$countvisible, $levelfilter, $levelkeyof): int {
+    $n = 0;
+    foreach ($node['courses'] as $course) {
+        if ($levelfilter === '' || $levelkeyof((int) $course->id) === $levelfilter) {
+            $n++;
+        }
+    }
+    foreach ($node['children'] as $child) {
+        $n += $countvisible($child);
+    }
+    return $n;
+};
+
+// The rungs the courses of a subtree stand on, lowest first (ladder fields only — a text
+// field's labels have no rungs). Feeds the "Levels 1–3" summary under a section title.
+$collectrungs = function (array $node) use (&$collectrungs, $courselevels, $levelmax): array {
+    if ($levelmax <= 0) {
+        return [];
+    }
+    $rungs = [];
+    foreach ($node['courses'] as $course) {
+        $lv = $courselevels[(int) $course->id] ?? null;
+        if ($lv && $lv['index'] > 0) {
+            $rungs[$lv['index']] = true;
+        }
+    }
+    foreach ($node['children'] as $child) {
+        foreach ($collectrungs($child) as $r) {
+            $rungs[$r] = true;
+        }
+    }
+    ksort($rungs);
+    return array_keys($rungs);
+};
+
+// A course's level as a little meter: rung N of the ladder, lit up to N. Nothing for a
+// text-field level (no ladder to climb) or a course with no level.
+$levelmeter = function (int $index) use ($levelmax): string {
+    if ($levelmax <= 0 || $index <= 0) {
+        return '';
+    }
+    $h = '<span class="nit-lvl-meter" aria-hidden="true">';
+    for ($i = 1; $i <= $levelmax; $i++) {
+        $h .= '<i' . ($i <= $index ? ' class="on"' : '') . '></i>';
+    }
+    return $h . '</span>';
+};
+
 // Hero banner always shows the grand total for the whole parent category, regardless
 // of any subcategory filter currently selected.
 $bannertotal = $category->get_courses_count(['recursive' => true]);
@@ -161,6 +273,20 @@ if (file_exists($themenitlib)) {
 $isar = (strpos(current_language(), 'ar') === 0);
 $t = function (string $en, string $ar) use ($isar) {
     return $isar ? $ar : $en;
+};
+// "3 courses" in either language. English is one/many; Arabic has its own count forms
+// (one, two, 3–10, 11+), and for one and two the number lives in the word itself.
+$ncount = function (int $n, array $en, array $ar) use ($isar): string {
+    if (!$isar) {
+        return $n . ' ' . ($n === 1 ? $en[0] : $en[1]);
+    }
+    if ($n === 1) {
+        return $ar[0];
+    }
+    if ($n === 2) {
+        return $ar[1];
+    }
+    return $n . ' ' . ($n <= 10 ? $ar[2] : $ar[3]);
 };
 
 // "Why thousands choose us" — the section under the hero. Site-wide content the admin
@@ -352,18 +478,100 @@ echo $OUTPUT->header();
       display: inline-flex; align-items: center; gap: 8px;
     }
 
-    /* Category image — sits above the badge. `contain` so wide banners and square
-       logos both read correctly, on a lifted surface tile like the course cards. */
-    .nit-hero__logo {
-      display: block; margin: 0 auto 1.5rem;
-      max-width: min(320px, 70vw); max-height: 140px;
-      width: auto; height: auto;
-      object-fit: contain;
-      border-radius: 16px;
-      background: var(--cbg3);
-      padding: 14px;
-      box-sizing: border-box;
-      animation: nit-fadedown 0.8s ease both;
+    /* Category image — IS the section's backdrop (.nit-hero--art), not a tile above the
+       badge. Two copies of the same picture: a blurred, over-scaled "wash" that bleeds
+       the category's own colours across the full width whatever the image's shape, and
+       the sharp picture standing at the inline-end edge, letterboxed so a square logo
+       and a wide banner both read whole. A scrim in the surface colour rises from the
+       start side and the bottom, so the copy sits on solid ground and the section
+       melts into the page below. Everything is decorative (alt="") — the badge already
+       names the category. Both are <img>, not CSS url(), so the file name never has to
+       survive CSS-string escaping. */
+    .nit-hero--art {
+      min-height: min(78vh, 760px);
+      align-items: flex-start;
+      text-align: start;
+      padding-inline: 6%;
+    }
+    .nit-hero__wash, .nit-hero__art, .nit-hero__scrim {
+      position: absolute; pointer-events: none; user-select: none;
+    }
+    .nit-hero__wash {
+      inset: 0; width: 100%; height: 100%;
+      object-fit: cover; object-position: center;
+      filter: blur(44px) saturate(1.25);
+      transform: scale(1.18);
+      opacity: 0.5;
+    }
+    .nit-hero__art {
+      inset-block: 100px 40px; inset-inline-end: 0;
+      width: min(46%, 640px);
+      z-index: 0;
+      animation: nit-fadedown 1s ease both;
+    }
+    .nit-hero__art img {
+      display: block; width: 100%; height: 100%;
+      object-fit: contain; object-position: right center;
+      /* Soft vignette: a logo's own box edge (most uploads are a glyph on a white
+         rounded square) melts into the wash instead of printing as a card. */
+      -webkit-mask-image: radial-gradient(ellipse 62% 62% at center, #000 52%, transparent 100%);
+      mask-image: radial-gradient(ellipse 62% 62% at center, #000 52%, transparent 100%);
+    }
+    .nit-hero--art[dir="rtl"] .nit-hero__art img { object-position: left center; }
+    .nit-hero__scrim {
+      inset: 0;
+      background:
+        linear-gradient(90deg,
+          var(--cbg2) 0%,
+          color-mix(in srgb, var(--cbg2) 92%, transparent) 34%,
+          color-mix(in srgb, var(--cbg2) 55%, transparent) 56%,
+          transparent 100%),
+        linear-gradient(0deg,
+          var(--cbg2) 0%,
+          color-mix(in srgb, var(--cbg2) 60%, transparent) 22%,
+          transparent 48%);
+    }
+    .nit-hero--art[dir="rtl"] .nit-hero__scrim {
+      background:
+        linear-gradient(270deg,
+          var(--cbg2) 0%,
+          color-mix(in srgb, var(--cbg2) 92%, transparent) 34%,
+          color-mix(in srgb, var(--cbg2) 55%, transparent) 56%,
+          transparent 100%),
+        linear-gradient(0deg,
+          var(--cbg2) 0%,
+          color-mix(in srgb, var(--cbg2) 60%, transparent) 22%,
+          transparent 48%);
+    }
+    /* The copy column: start-aligned on the solid side of the scrim, capped so the
+       title wraps at three or four words a line and never runs under the picture. */
+    .nit-hero--art .nit-hero__inner { margin: 0; max-width: min(680px, 56%); }
+    .nit-hero--art .nit-hero__title { font-size: clamp(32px, 4.6vw, 56px); max-width: 20ch; }
+    .nit-hero--art .nit-hero__sub { margin-inline: 0; max-width: 560px; }
+    .nit-hero--art .nit-hero__stats { justify-content: flex-start; gap: 36px; margin: 2rem 0; }
+    .nit-hero--art .nit-hero__stats > div {
+      padding-inline-start: 14px;
+      border-inline-start: 2px solid var(--caccent);
+    }
+    .nit-hero--art .nit-hero__btns { justify-content: flex-start; }
+    @media (max-width: 900px) {
+      /* One column: the picture drops behind the copy at a whisper, cropped to the
+         viewport, and the scrim becomes a top-to-bottom fade so the text stays legible
+         over whichever part of it shows. */
+      .nit-hero--art { padding-inline: 5%; min-height: 0; }
+      .nit-hero--art .nit-hero__inner { max-width: 100%; }
+      .nit-hero__art { inset: 0; width: 100%; opacity: 0.22; }
+      .nit-hero__art img { object-fit: cover; object-position: center; }
+      .nit-hero--art[dir="rtl"] .nit-hero__art img { object-position: center; }
+      .nit-hero__scrim, .nit-hero--art[dir="rtl"] .nit-hero__scrim {
+        background: linear-gradient(180deg,
+          color-mix(in srgb, var(--cbg2) 45%, transparent) 0%,
+          color-mix(in srgb, var(--cbg2) 88%, transparent) 55%,
+          var(--cbg2) 100%);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .nit-hero *, .nit-hero__grid { animation: none !important; }
     }
 
     /* Badge — X-Trade .hero-badge */
@@ -426,18 +634,21 @@ echo $OUTPUT->header();
       font-size: 16px; font-weight: 700;
     }
   </style>
-  <div class="nit-hero">
+  <div class="nit-hero<?= $hasrealimage ? ' nit-hero--art' : '' ?>" dir="<?= $isar ? 'rtl' : 'ltr' ?>">
+    <?php if ($hasrealimage): ?>
+    <!-- Category image (local_nit_category) as the section's backdrop: blurred wash
+         across the whole section, the sharp picture at the end edge, scrim on top.
+         Only when this category really has one — the site logo is never a backdrop. -->
+    <img class="nit-hero__wash" src="<?= s($categoryimage) ?>" alt="" aria-hidden="true">
+    <div class="nit-hero__art" aria-hidden="true"><img src="<?= s($categoryimage) ?>" alt=""></div>
+    <div class="nit-hero__scrim"></div>
+    <?php else: ?>
     <div class="nit-hero__grid"></div>
     <div class="nit-hero__glow-a"></div>
     <div class="nit-hero__glow-b"></div>
+    <?php endif; ?>
 
     <div class="nit-hero__inner">
-
-      <!-- Category image (local_nit_category): only when this category really has one. -->
-      <?php if ($hasrealimage): ?>
-      <?php // $categoryname comes from format_string(), so it is already attribute-safe. ?>
-      <img class="nit-hero__logo" src="<?= s($categoryimage) ?>" alt="<?= $categoryname ?>">
-      <?php endif; ?>
 
       <!-- Badge: category name with pulsing dot, and this category's icon if it has one -->
       <div class="nit-hero__badge">
@@ -702,6 +913,45 @@ echo $OUTPUT->header();
   </div>
   <?php endif; ?>
 
+  <!-- Level ladder (All levels + one pill per rung). The second filter dimension: the
+       sub-category bar above picks WHERE, this picks HOW FAR ALONG. Each pill is a real
+       link (?level=N) so it works without JavaScript; with it, the click filters in place. -->
+  <?php if ($haslevels): ?>
+  <div id="nit-cat-levels" class="nit-lvl-bar" data-nit-levelfilter>
+    <div class="nit-lvl-bar__inner">
+      <span class="nit-lvl-bar__label"><?= get_string('filterlevel', 'local_nit_category') ?></span>
+      <div class="nit-lvl-bar__pills" role="group" aria-label="<?= get_string('filterlevel', 'local_nit_category') ?>">
+        <?php
+          $lvlurl = function (string $key) use ($categoryid, $subid): moodle_url {
+              $params = ['id' => $categoryid];
+              if ($subid) {
+                  $params['sub'] = $subid;
+              }
+              if ($key !== '') {
+                  $params['level'] = $key;
+              }
+              return new moodle_url('/local/nit_category/index.php', $params);
+          };
+        ?>
+        <a href="<?= $lvlurl('')->out() ?>" class="nit-lvl-pill<?= $levelfilter === '' ? ' is-on' : '' ?>"
+           data-nit-lvl="" aria-pressed="<?= $levelfilter === '' ? 'true' : 'false' ?>">
+          <span class="nit-lvl-pill__name"><?= $t('All levels', 'كل المستويات') ?></span>
+          <span class="nit-lvl-pill__count"><?= count($courselevels) ?></span>
+        </a>
+        <?php foreach ($levelinfo as $key => $lv): ?>
+        <?php $key = (string) $key; /* PHP turns a numeric array key into an int */ $on = $levelfilter === $key; $empty = $lv['count'] === 0; ?>
+        <a href="<?= $lvlurl($key)->out() ?>" class="nit-lvl-pill<?= $on ? ' is-on' : '' ?><?= $empty ? ' is-empty' : '' ?>"
+           data-nit-lvl="<?= s($key) ?>" aria-pressed="<?= $on ? 'true' : 'false' ?>"<?= $empty ? ' aria-disabled="true" tabindex="-1"' : '' ?>>
+          <?php if ($levelmax > 0): ?><span class="nit-lvl-step"><?= $lv['index'] ?></span><?php endif; ?>
+          <span class="nit-lvl-pill__name"><?= $lv['label'] ?></span>
+          <span class="nit-lvl-pill__count"><?= $lv['count'] ?></span>
+        </a>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
+
   <?php
   // ── "Continue learning", narrowed to this category ────────────────────────────────────────
   //
@@ -730,7 +980,7 @@ echo $OUTPUT->header();
       <?php
         // One card renderer, shared by every section. $sectionname is the category the
         // card lives under (its header), so the card can show that category's name.
-        $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo, $nitpricetags, $nitcountrynotice) {
+        $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo, $nitpricetags, $nitcountrynotice, $courselevels, $levelkeyof, $levelmeter, $levelmax, $levelfilter) {
             $courseurl  = new moodle_url('/course/view.php', ['id' => $course->id]);
             $coursename = $course->get_formatted_name();
 
@@ -758,14 +1008,29 @@ echo $OUTPUT->header();
             $detailsurl = $courseurl->out();
             $enrolurl   = (new moodle_url('/local/nit_subscriptions/enrol.php',
                 ['courseid' => $course->id, 'sesskey' => sesskey()]))->out(false);
+
+            // The course's rung on the Level ladder: printed as a badge beside the category
+            // chip, and kept on the card (data-nit-level) for the level bar to filter on.
+            $level    = $courselevels[(int) $course->id] ?? null;
+            $levelkey = $levelkeyof((int) $course->id);
+            $hidden   = ($levelfilter !== '' && $levelkey !== $levelfilter);
         ?>
         <!-- Course Card: fixed min-height + stretch grid => every card is the same size. -->
-        <div style="background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; height: 100%; min-height: 320px; transition: box-shadow 0.3s ease;" onmouseover="this.style.boxShadow='0 12px 28px rgba(0,0,0,0.38)';" onmouseout="this.style.boxShadow='none';">
+        <div class="nit-course-card" data-nit-course="<?= (int) $course->id ?>" data-nit-level="<?= s($levelkey) ?>"<?= $hidden ? ' hidden' : '' ?> style="background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; height: 100%; min-height: 320px; transition: box-shadow 0.3s ease;" onmouseover="this.style.boxShadow='0 12px 28px rgba(0,0,0,0.38)';" onmouseout="this.style.boxShadow='none';">
 
-          <!-- Category name pill: rounded tint + circle icon (matches nested titles) -->
-          <div class="nit-card-cat">
-            <span class="nit-card-cat-dot"></span>
-            <span><?= $sectionname ?></span>
+          <!-- Top row: category chip (where the course lives) + level badge (its rung). -->
+          <div class="nit-card-top">
+            <!-- Category name pill: rounded tint + circle icon (matches nested titles) -->
+            <div class="nit-card-cat">
+              <span class="nit-card-cat-dot"></span>
+              <span><?= $sectionname ?></span>
+            </div>
+            <?php if ($level): ?>
+            <span class="nit-card-lvl"<?= $levelmax > 0 ? ' title="' . s($t('Level', 'المستوى') . ' ' . $level['index'] . ' / ' . $levelmax) . '"' : '' ?>>
+              <?= $levelmeter($level['index']) ?>
+              <span><?= $level['label'] ?></span>
+            </span>
+            <?php endif; ?>
           </div>
 
           <!-- Course name -->
@@ -858,15 +1123,52 @@ echo $OUTPUT->header();
         //
         // A top-level block carries data-nit-block=<category id> for the filter bar, and
         // starts hidden when the page opened filtered to a different child (?sub=).
-        $rendernode = function (array $node, int $depth) use (&$rendernode, $rendercard, $counttree, $subid): void {
+        $rendernode = function (array $node, int $depth) use (&$rendernode, $rendercard, $counttree, $countvisible, $collectrungs,
+                $subid, $t, $ncount, $levelkeyof, $levelinfo, $levelmeter, $levelmax, $levelfilter): void {
             $cat   = $node['cat'];
             $name  = $cat->get_formatted_name();
             $count = $counttree($node);
             $blockclass = 'nit-spec-block' . ($depth > 0 ? ' nit-spec-block--nested' : '');
-            $blockattrs = '';
+            // Hidden on first paint when the page opened filtered away from it: a top-level
+            // block by ?sub=, any block by ?level= leaving it no course to show.
+            $blockhidden = $countvisible($node) === 0;
+            $blockattrs = ' data-nit-catblock="' . (int) $cat->id . '"';
             if ($depth === 0) {
-                $blockattrs = ' data-nit-block="' . (int) $cat->id . '"'
-                    . (($subid && (int) $cat->id !== $subid) ? ' hidden' : '');
+                $blockattrs .= ' data-nit-block="' . (int) $cat->id . '"';
+                $blockhidden = $blockhidden || ($subid && (int) $cat->id !== $subid);
+            }
+            $blockattrs .= $blockhidden ? ' hidden' : '';
+
+            // The node's own courses, rung by rung: lowest level first, then the courses
+            // with no level. A node whose courses carry no level at all keeps a plain grid;
+            // as soon as one of them has a level, every group gets its rung header so the
+            // reader can see the ladder (and where a course without a level falls off it).
+            $groups = [];
+            foreach ($node['courses'] as $course) {
+                $key = $levelkeyof((int) $course->id);
+                if (!isset($groups[$key])) {
+                    $groups[$key] = [
+                        'key'     => $key,
+                        'index'   => $key === 'none' ? PHP_INT_MAX : ($levelinfo[$key]['index'] ?? PHP_INT_MAX),
+                        'label'   => $key === 'none' ? $t('Other courses', 'دورات أخرى') : ($levelinfo[$key]['label'] ?? ''),
+                        'courses' => [],
+                    ];
+                }
+                $groups[$key]['courses'][] = $course;
+            }
+            uasort($groups, static fn($a, $b) => $a['index'] <=> $b['index']);
+            $showrungs = count($groups) > 1 || (count($groups) === 1 && !isset($groups['none']));
+
+            // The one-line structure summary under a top-level title: how many
+            // sub-categories and courses sit inside, and which rungs of the ladder they
+            // span — so the shape of a specialization is readable before scrolling it.
+            $subcount = count($node['children']);
+            $rungs = $collectrungs($node);
+            $levelspan = '';
+            if (!empty($rungs)) {
+                $levelspan = count($rungs) === 1
+                    ? $t('Level', 'المستوى') . ' ' . $rungs[0]
+                    : $t('Levels', 'المستويات') . ' ' . $rungs[0] . '–' . end($rungs);
             }
             // What stands in for the generic pin/dot, best first: the category's own
             // icon, else its own image, else nothing (the pin/dot stays). Inheritance is
@@ -891,6 +1193,27 @@ echo $OUTPUT->header();
               <span class="nit-spec-name"><?= $name ?></span>
               <span class="nit-spec-count">(<?= $count ?>)</span>
             </h3>
+            <?php if ($subcount > 0 || $levelspan !== ''): ?>
+            <!-- Structure line: what is inside, before it is scrolled. -->
+            <div class="nit-spec-meta">
+              <?php if ($subcount > 0): ?>
+              <span class="nit-spec-meta__item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h5l2 2h11v10H3z"/></svg>
+                <?= $ncount($subcount, ['sub-category', 'sub-categories'], ['تصنيف فرعي واحد', 'تصنيفان فرعيان', 'تصنيفات فرعية', 'تصنيفًا فرعيًا']) ?>
+              </span>
+              <?php endif; ?>
+              <span class="nit-spec-meta__item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 0 2 2h14"/></svg>
+                <?= $ncount($count, ['course', 'courses'], ['دورة واحدة', 'دورتان', 'دورات', 'دورة']) ?>
+              </span>
+              <?php if ($levelspan !== ''): ?>
+              <span class="nit-spec-meta__item nit-spec-meta__item--lvl">
+                <?= $levelmeter(end($rungs)) ?>
+                <?= $levelspan ?>
+              </span>
+              <?php endif; ?>
+            </div>
+            <?php endif; ?>
             <?php else: ?>
             <!-- Nested subcategory: soft accent chip + image (or circle icon). -->
             <h3 class="nit-spec-title nit-spec-title--sub">
@@ -907,10 +1230,35 @@ echo $OUTPUT->header();
             <?php endif; ?>
           </div>
 
-          <?php if (!empty($node['courses'])): ?>
-          <div class="nit-spec-grid">
-            <?php foreach ($node['courses'] as $course): ?>
-              <?php $rendercard($course, $name); ?>
+          <?php if (!empty($groups)): ?>
+          <div class="nit-lvl-groups">
+            <?php foreach ($groups as $group): ?>
+            <?php
+              $grouphidden = ($levelfilter !== '' && $group['key'] !== $levelfilter);
+              $isnone = $group['key'] === 'none';
+            ?>
+            <!-- One rung of the ladder: its header (step number + label + meter + count)
+                 and the cards that stand on it. The level bar shows/hides whole rungs. -->
+            <section class="nit-lvl-group<?= $isnone ? ' nit-lvl-group--none' : '' ?>" data-nit-lvlgroup="<?= s($group['key']) ?>"<?= $grouphidden ? ' hidden' : '' ?>>
+              <?php if ($showrungs): ?>
+              <header class="nit-lvl-head">
+                <?php if (!$isnone && $levelmax > 0): ?>
+                <span class="nit-lvl-step"><?= $group['index'] ?></span>
+                <?php else: ?>
+                <span class="nit-lvl-step nit-lvl-step--none" aria-hidden="true">·</span>
+                <?php endif; ?>
+                <span class="nit-lvl-name"><?= $group['label'] ?></span>
+                <?= $isnone ? '' : $levelmeter($group['index']) ?>
+                <span class="nit-lvl-line" aria-hidden="true"></span>
+                <span class="nit-lvl-count"><?= $ncount(count($group['courses']), ['course', 'courses'], ['دورة واحدة', 'دورتان', 'دورات', 'دورة']) ?></span>
+              </header>
+              <?php endif; ?>
+              <div class="nit-spec-grid">
+                <?php foreach ($group['courses'] as $course): ?>
+                  <?php $rendercard($course, $name); ?>
+                <?php endforeach; ?>
+              </div>
+            </section>
             <?php endforeach; ?>
           </div>
           <?php endif; ?>
@@ -1010,6 +1358,117 @@ echo $OUTPUT->header();
           width: 9px; height: 9px; border-radius: 50%;
           background: var(--ctext3); flex: 0 0 auto;
         }
+
+        /* ── Levels ─────────────────────────────────────────────────────────────
+           The third tier. A rung is drawn the same way everywhere it appears — a
+           numbered step circle, the label, and a small meter lit up to that rung —
+           so the ladder in the filter bar, the rung headers inside a category and
+           the badge on a card all read as one thing. */
+
+        /* The hidden attribute must beat the cards' inline display:flex. */
+        .nit-course-card[hidden], .nit-lvl-group[hidden], .nit-spec-block[hidden] { display: none !important; }
+
+        /* Card top row: category chip at the start, level badge at the end. */
+        .nit-card-top {
+          display: flex; align-items: flex-start; justify-content: space-between;
+          gap: 8px; margin-bottom: 16px;
+        }
+        .nit-card-top .nit-card-cat { margin-bottom: 0; }
+        .nit-card-lvl {
+          display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto;
+          padding: 6px 10px; border-radius: 4px;
+          background: color-mix(in srgb, var(--cbg4) 12%, transparent);
+          border: 1px solid color-mix(in srgb, var(--cbg4) 40%, transparent);
+          color: var(--ctext1); font-size: 12px; font-weight: bold; white-space: nowrap;
+        }
+
+        /* The meter: one bar per rung of the ladder, lit up to the course's rung. */
+        .nit-lvl-meter { display: inline-flex; align-items: flex-end; gap: 2px; flex: 0 0 auto; }
+        .nit-lvl-meter i {
+          display: block; width: 4px; height: 12px; border-radius: 2px;
+          background: color-mix(in srgb, currentColor 22%, transparent);
+        }
+        .nit-lvl-meter i.on { background: currentColor; }
+
+        /* The step circle: the rung number. */
+        .nit-lvl-step {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 26px; height: 26px; border-radius: 50%; flex: 0 0 auto;
+          background: var(--cbg4); color: var(--ctext4);
+          font-size: 13px; font-weight: 800; line-height: 1;
+        }
+        .nit-lvl-step--none {
+          background: color-mix(in srgb, var(--ctext2) 22%, transparent); color: var(--ctext2);
+          font-size: 18px;
+        }
+
+        /* Rung header inside a category: step + label + meter, a rule out to the count. */
+        .nit-lvl-groups { display: flex; flex-direction: column; gap: 26px; }
+        .nit-lvl-head {
+          display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+          color: var(--ctext1);
+        }
+        .nit-lvl-head .nit-lvl-name { font-size: 16px; font-weight: 800; white-space: nowrap; }
+        .nit-lvl-head .nit-lvl-meter { color: var(--ctext3); }
+        .nit-lvl-head .nit-lvl-line {
+          flex: 1 1 auto; height: 1px;
+          background: color-mix(in srgb, var(--cborder) 55%, transparent);
+        }
+        .nit-lvl-head .nit-lvl-count { font-size: 12px; font-weight: 700; color: var(--ctext2); white-space: nowrap; }
+        .nit-lvl-group--none .nit-lvl-name { color: var(--ctext2); font-weight: 700; }
+
+        /* Structure line under a top-level title: sub-categories · courses · level span. */
+        .nit-spec-meta {
+          display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
+          margin: 10px 0 0; padding-inline-start: 18px;
+          font-size: 13px; font-weight: 600; color: var(--ctext2);
+        }
+        .nit-spec-meta__item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .nit-spec-meta__item svg { flex: 0 0 auto; opacity: .8; }
+        .nit-spec-meta__item--lvl { color: var(--ctext3); }
+
+        /* The level bar under the sub-category pills: a label, then the ladder as a row
+           of compact pills. Deliberately smaller and cooler than the sub-category
+           buttons above it, so the two dimensions read as two different questions. */
+        .nit-lvl-bar { padding: 20px 16px 0; }
+        .nit-lvl-bar__inner {
+          max-width: 1200px; margin: 0 auto;
+          display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 14px;
+        }
+        .nit-lvl-bar__label {
+          font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+          color: var(--ctext2);
+        }
+        .nit-lvl-bar__pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+        .nit-lvl-pill {
+          display: inline-flex; align-items: center; gap: 8px;
+          padding-block: 6px; padding-inline: 6px 12px; border-radius: 50px;
+          background: color-mix(in srgb, var(--cbg2) 70%, transparent);
+          border: 1px solid color-mix(in srgb, var(--cborder) 60%, transparent);
+          color: var(--ctext1); font-size: 13px; font-weight: 700; line-height: 1;
+          text-decoration: none; transition: background .2s ease, border-color .2s ease, color .2s ease;
+        }
+        .nit-lvl-pill:hover, .nit-lvl-pill:focus { text-decoration: none; color: var(--ctext1); border-color: var(--cbg4); }
+        .nit-lvl-pill:focus { outline: none; box-shadow: none; }
+        .nit-lvl-pill:focus-visible { outline: 2px solid var(--cbg4); outline-offset: 2px; }
+        .nit-lvl-pill.is-on:hover, .nit-lvl-pill.is-on:focus { color: var(--ctext4); }
+        /* "All levels" has no step circle: pad its start like the others' text. */
+        .nit-lvl-pill:not(:has(.nit-lvl-step)) { padding-inline-start: 14px; }
+        .nit-lvl-pill .nit-lvl-step { width: 24px; height: 24px; font-size: 12px; }
+        .nit-lvl-pill__count {
+          min-width: 22px; padding: 3px 7px; border-radius: 50px; text-align: center;
+          font-size: 11px; font-weight: 800;
+          background: color-mix(in srgb, var(--ctext2) 16%, transparent); color: var(--ctext2);
+        }
+        .nit-lvl-pill.is-on {
+          background: var(--cbg4); border-color: var(--cbg4); color: var(--ctext4);
+        }
+        .nit-lvl-pill.is-on .nit-lvl-step { background: var(--ctext4); color: var(--cbg4); }
+        .nit-lvl-pill.is-on .nit-lvl-pill__count {
+          background: color-mix(in srgb, var(--ctext4) 22%, transparent); color: var(--ctext4);
+        }
+        /* A rung nobody stands on: shown so the ladder stays whole, but not clickable. */
+        .nit-lvl-pill.is-empty { opacity: .45; pointer-events: none; }
       </style>
 
       <?php foreach ($rootnodes as $node): ?>
@@ -1021,7 +1480,7 @@ echo $OUTPUT->header();
         // subcategory with no (visible) courses — whose block was never rendered.
         $anyvisible = false;
         foreach ($rootnodes as $node) {
-            if (!$subid || (int) $node['cat']->id === $subid) {
+            if ((!$subid || (int) $node['cat']->id === $subid) && $countvisible($node) > 0) {
                 $anyvisible = true;
                 break;
             }
@@ -1034,76 +1493,120 @@ echo $OUTPUT->header();
     </div>
   </div>
 
-  <?php if (!empty($subcategories)): ?>
+  <?php if (!empty($subcategories) || $haslevels): ?>
   <script>
     (function() {
-      /* The subcategory filter bar, without a round trip. Every subcategory's section is
-         already on the page (rendered whatever ?sub= said); a pill only decides which of
-         them is shown. The URL is kept in step with history.pushState so the filtered view
-         can still be bookmarked, shared, or reached with Back/Forward — and the same
-         ?sub= link works with JavaScript off, because each pill is a real link. */
-      var bar = document.querySelector('[data-nit-catfilter]');
-      if (!bar) {
+      /* The two filter bars — sub-category and level — without a round trip. Every
+         section and every card is already on the page (rendered whatever ?sub= / ?level=
+         said); the bars only decide what is shown. A top-level block is shown when the
+         sub-category filter picks it; a card when the level filter picks it; a rung
+         group, or any category block, when at least one card inside it is shown — so a
+         sub-category with nothing on the chosen rung folds away instead of standing
+         there empty. The URL is kept in step with history.pushState so the filtered view
+         can be bookmarked, shared, or reached with Back/Forward — and the same links
+         work with JavaScript off, because every pill is a real link. */
+      var subbar = document.querySelector('[data-nit-catfilter]');
+      var lvlbar = document.querySelector('[data-nit-levelfilter]');
+      if (!subbar && !lvlbar) {
         return;
       }
-      var pills  = Array.prototype.slice.call(bar.querySelectorAll('[data-nit-sub]'));
-      var blocks = Array.prototype.slice.call(document.querySelectorAll('[data-nit-block]'));
-      var descs  = Array.prototype.slice.call(bar.querySelectorAll('[data-nit-subdesc]'));
-      var empty  = document.querySelector('[data-nit-empty]');
+      var subpills = subbar ? Array.prototype.slice.call(subbar.querySelectorAll('[data-nit-sub]')) : [];
+      var lvlpills = lvlbar ? Array.prototype.slice.call(lvlbar.querySelectorAll('[data-nit-lvl]')) : [];
+      var descs    = subbar ? Array.prototype.slice.call(subbar.querySelectorAll('[data-nit-subdesc]')) : [];
+      var cards    = Array.prototype.slice.call(document.querySelectorAll('[data-nit-course]'));
+      var groups   = Array.prototype.slice.call(document.querySelectorAll('[data-nit-lvlgroup]'));
+      var blocks   = Array.prototype.slice.call(document.querySelectorAll('[data-nit-catblock]'));
+      var empty    = document.querySelector('[data-nit-empty]');
 
-      function apply(sub) {
-        var shown = 0;
-        var all = (sub === '0');
-        blocks.forEach(function(b) {
-          var on = all || b.getAttribute('data-nit-block') === sub;
-          b.hidden = !on;
-          if (on) {
-            shown++;
+      function visibleInside(el) {
+        return el.querySelector('[data-nit-course]:not([hidden])') !== null;
+      }
+
+      function apply(sub, level) {
+        cards.forEach(function(c) {
+          c.hidden = !(level === '' || c.getAttribute('data-nit-level') === level);
+        });
+        groups.forEach(function(g) {
+          g.hidden = !visibleInside(g);
+        });
+        /* Deepest first, so a parent asks about children that have already decided. */
+        blocks.slice().reverse().forEach(function(b) {
+          var on = visibleInside(b);
+          if (b.hasAttribute('data-nit-block')) {
+            on = on && (sub === '0' || b.getAttribute('data-nit-block') === sub);
           }
+          b.hidden = !on;
         });
         descs.forEach(function(d) {
           d.hidden = d.getAttribute('data-nit-subdesc') !== sub;
         });
-        pills.forEach(function(p) {
+        subpills.forEach(function(p) {
           var on = p.getAttribute('data-nit-sub') === sub;
           p.classList.toggle('btn-primary', on);
           p.classList.toggle('btn-outline-primary', !on);
           p.setAttribute('aria-pressed', on ? 'true' : 'false');
         });
+        lvlpills.forEach(function(p) {
+          var on = p.getAttribute('data-nit-lvl') === level;
+          p.classList.toggle('is-on', on);
+          p.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
         if (empty) {
-          empty.hidden = shown > 0;
+          var shown = blocks.some(function(b) { return !b.hidden && b.hasAttribute('data-nit-block'); });
+          empty.hidden = shown;
         }
       }
 
       function current() {
-        var m = /[?&]sub=(\d+)/.exec(window.location.search);
-        return m && m[1] !== '0' ? m[1] : '0';
+        var q = new URLSearchParams(window.location.search);
+        var sub = q.get('sub');
+        var level = q.get('level');
+        return {
+          sub: sub && sub !== '0' ? sub : '0',
+          level: level || ''
+        };
       }
 
-      pills.forEach(function(p) {
-        p.addEventListener('click', function(e) {
-          /* A modifier click means "open in a new tab": leave that to the browser. */
-          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
-            return;
-          }
-          e.preventDefault();
-          var sub = p.getAttribute('data-nit-sub');
-          if (sub === current()) {
-            return;
-          }
-          apply(sub);
-          var url = new URL(window.location.href);
-          if (sub === '0') {
-            url.searchParams.delete('sub');
-          } else {
-            url.searchParams.set('sub', sub);
-          }
-          window.history.pushState({nitsub: sub}, '', url.toString());
+      function push(state) {
+        var url = new URL(window.location.href);
+        if (state.sub === '0') {
+          url.searchParams.delete('sub');
+        } else {
+          url.searchParams.set('sub', state.sub);
+        }
+        if (state.level === '') {
+          url.searchParams.delete('level');
+        } else {
+          url.searchParams.set('level', state.level);
+        }
+        window.history.pushState({nitsub: state.sub, nitlevel: state.level}, '', url.toString());
+      }
+
+      function wire(pills, attr, key) {
+        pills.forEach(function(p) {
+          p.addEventListener('click', function(e) {
+            /* A modifier click means "open in a new tab": leave that to the browser. */
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+              return;
+            }
+            e.preventDefault();
+            var state = current();
+            var value = p.getAttribute(attr);
+            if (state[key] === value) {
+              return;
+            }
+            state[key] = value;
+            apply(state.sub, state.level);
+            push(state);
+          });
         });
-      });
+      }
+      wire(subpills, 'data-nit-sub', 'sub');
+      wire(lvlpills, 'data-nit-lvl', 'level');
 
       window.addEventListener('popstate', function() {
-        apply(current());
+        var state = current();
+        apply(state.sub, state.level);
       });
     })();
   </script>

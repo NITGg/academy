@@ -185,3 +185,269 @@
         margin-top: 0;
     }
 }
+
+// =============================================================================
+// The grading app — view.php?action=grader — the "grade one student" screen.
+//
+// Core lays it out as three fixed regions (navigation bar on top, the scrolling
+// grade panel, the action bar on the bottom) plus, when a PDF review is
+// available, the annotator on the left behind a draggable resizer. Every one of
+// them is painted in mod/assign/styles.css from light-theme literals: the grade
+// panel is #f5f5f5, the two bars and the review-panel toggle are white with #ddd
+// / #ccc hairlines, the "Not graded" / overdue lines are #ca3120 red, and the
+// "Filter" card that drops from the user selector is a white popover. On the
+// dark brand that gave a near-white panel with near-white text on it.
+//
+// The mapping follows the roles by job: the two fixed bars are page sections on
+// Surface; the panel between them, which cards and inputs sit on, is Background;
+// every hairline is Border primary; status text is Error; the popover and the
+// popped-out editor are Surface like any other dropdown or modal.
+// =============================================================================
+
+// ---- The three fixed regions ----------------------------------------------
+.path-mod-assign [data-region="grading-navigation-panel"] {
+    background-color: var(--nit-brand-surface);
+    border-bottom-color: var(--nit-brand-borderprimary);
+}
+
+.path-mod-assign [data-region="grade-actions-panel"] {
+    background-color: var(--nit-brand-surface);
+    border-top-color: var(--nit-brand-borderprimary);
+}
+
+.path-mod-assign [data-region="grade-panel"] {
+    background-color: var(--nit-brand-background);
+    color: var(--nit-brand-textprimary);
+}
+
+// Below 768px the bars stop being fixed and the assignment title gets its own
+// hairline under it. Same colour as every other divider.
+@media (max-width: 767px) {
+    .path-mod-assign [data-region="assignment-info"] {
+        border-bottom-color: var(--nit-brand-borderprimary);
+    }
+}
+
+// "Saving..." scrim while a grade is being written. Core dims the app with a
+// #ddd wash at 40%; the brand's own Background does the same job in either
+// scheme.
+.path-mod-assign [data-region="overlay"] {
+    background-color: var(--nit-brand-background);
+}
+
+// ---- Status lines inside the grade panel -----------------------------------
+// Core repeats "Not graded" with a more specific selector here than the one the
+// submissions table uses, in plain #ca3120, and adds "overdue". All are Error.
+.path-mod-assign .overdue,
+.path-mod-assign .overduesubmission,
+.path-mod-assign [data-region="grade-panel"] td.submissionnotgraded,
+.path-mod-assign [data-region="grade-panel"] div.submissionnotgraded {
+    color: var(--nit-brand-error);
+}
+
+// Last row of the submission summary table, and the last attempt-setting row.
+.path-mod-assign [data-region="grade-panel"] div.submissionsummarytable table tbody tr.lastrow td.c0,
+.path-mod-assign [data-region="grade-panel"] div.submissionsummarytable table tbody tr.lastrow td.c1,
+.path-mod-assign #page-content [data-region="grade-panel"] .mform:not(.unresponsive) #id_attemptsettings .fitem:last-of-type .fitemtitle,
+.path-mod-assign #page-content [data-region="grade-panel"] .mform:not(.unresponsive) #id_attemptsettings .fitem:last-of-type .felement {
+    border-bottom-color: var(--nit-brand-borderprimary);
+}
+
+// Attempt history (shown when the student has been given another go): three
+// greys in core — the frame, the title cells and the body cells.
+.path-mod-assign .submissionhistory {
+    background-color: var(--nit-brand-borderprimary);
+}
+
+.path-mod-assign .submissionhistory .cell {
+    background-color: var(--nit-brand-surface);
+    color: var(--nit-brand-textprimary);
+}
+
+.path-mod-assign .submissionhistory .cell.historytitle {
+    background-color: var(--nit-brand-hoverbackground);
+}
+
+// ---- The editor / file / rubric cards and their pop-out ---------------------
+// Boost draws each of these fitems as a card (bg already bridged to Surface in
+// foundation/_corebridge.scss) with a Group-1-baked border, and a header row
+// underlined in `currentColor`. The popped-out copy sits on `--bs-body-bg` with
+// a black-alpha frame; as a modal it is Surface with the same ring.
+.path-mod-assign [data-region="grade-panel"] .fitem.has-popout {
+    border-color: var(--nit-brand-borderprimary);
+}
+
+.path-mod-assign [data-region="grade-panel"] .has-popout .col-md-3 {
+    border-bottom-color: var(--nit-brand-borderprimary);
+}
+
+.path-mod-assign [data-region="grade-panel"] .popout {
+    background-color: var(--nit-brand-surface);
+}
+
+.path-mod-assign [data-region="grade-panel"] .fitem.popout {
+    border-color: var(--nit-brand-borderprimary);
+}
+
+// Rubric levels are white cells in core; the criterion rows around them are
+// already transparent.
+.path-mod-assign [data-region="grade-panel"] .gradingform_rubric .criterion .levels {
+    background-color: var(--nit-brand-surface);
+}
+
+// ---- The "Filter" popover under the user selector --------------------------
+// A white card with a white arrow (`::after`) over a black-alpha arrow
+// (`::before`) that draws its outline.
+.path-mod-assign [data-region="configure-filters"] {
+    background-color: var(--nit-brand-surface);
+    color: var(--nit-brand-textprimary);
+}
+
+.path-mod-assign [data-region="configure-filters"]::before {
+    border-bottom-color: var(--nit-brand-borderprimary);
+}
+
+.path-mod-assign [data-region="configure-filters"]::after {
+    border-bottom-color: var(--nit-brand-surface);
+}
+
+// ---- The review (PDF annotation) panel -------------------------------------
+// The panel's frame: the collapse / expand tab, the hairline between the
+// annotator's header and the grade panel, the drawing region's border and the
+// drag handle between the two panels. The desktop and the under-768px tab rules
+// share one selector in core, so one override here covers both.
+.path-mod-assign [data-region="review-panel"] [data-region="review-panel-toggle"] {
+    background-color: var(--nit-brand-surface);
+    border-color: var(--nit-brand-borderprimary);
+    color: var(--nit-brand-textprimary);
+}
+
+.path-mod-assign [data-region="review-panel"] .pageheader {
+    border-inline-end-color: var(--nit-brand-borderprimary);
+}
+
+.path-mod-assign [data-region="review-panel"] .drawingregion {
+    border-color: var(--nit-brand-borderprimary);
+}
+
+.path-mod-assign [data-region="resizer"] {
+    background-color: var(--nit-brand-bordersecondary);
+
+    &:hover {
+        background-color: var(--nit-brand-primary);
+    }
+}
+
+// The annotator itself (assignfeedback_editpdf): a grey header strip holding
+// white toolbar groups, a grey well the page sits in, and radial-gradient
+// button states. Header strip = Surface; toolbar groups = Background so they
+// read as boxes on it; the well = Background; hovered / pressed / selected
+// buttons = Hover Background and a Primary tint.
+.assignfeedback_editpdf_widget .pageheader {
+    background-color: var(--nit-brand-surface);
+    border-bottom-color: var(--nit-brand-borderprimary);
+    color: var(--nit-brand-textprimary);
+}
+
+.assignfeedback_editpdf_widget .pageheader .toolbar,
+.assignfeedback_editpdf_widget .pageheader .navigation-search,
+.assignfeedback_editpdf_widget .pageheader .navigation-expcol,
+.assignfeedback_editpdf_widget .pageheader .navigation {
+    background-color: var(--nit-brand-background);
+    border-color: var(--nit-brand-borderprimary);
+}
+
+.assignfeedback_editpdf_widget .pageheader select {
+    background-color: var(--nit-brand-background);
+    color: var(--nit-brand-textprimary);
+}
+
+.assignfeedback_editpdf_widget .pageheader .navigation button + button,
+.assignfeedback_editpdf_widget .pageheader .toolbar button + button,
+.assignfeedback_editpdf_widget .pageheader .navigation select + button,
+.assignfeedback_editpdf_widget .pageheader .toolbar select + button,
+.assignfeedback_editpdf_widget .pageheader .navigation button {
+    border-color: var(--nit-brand-borderprimary);
+}
+
+.assignfeedback_editpdf_widget .pageheader button:hover,
+.assignfeedback_editpdf_widget .pageheader button:active {
+    background-color: var(--nit-brand-hoverbackground);
+    background-image: none;
+}
+
+.assignfeedback_editpdf_widget .pageheader button.assignfeedback_editpdf_selectedbutton:hover,
+.assignfeedback_editpdf_widget .pageheader button.assignfeedback_editpdf_selectedbutton {
+    background-color: color-mix(in srgb, var(--nit-brand-primary) 30%, var(--nit-brand-surface));
+    background-image: none;
+}
+
+.assignfeedback_editpdf_widget .drawingregion {
+    background-color: var(--nit-brand-background);
+    border-color: var(--nit-brand-borderprimary);
+}
+
+.assignfeedback_editpdf_widget .drawingcanvas {
+    background-color: var(--nit-brand-surface);
+}
+
+// The notice Boost styles as an info alert inside the widget.
+.assignfeedback_editpdf_widget .label {
+    color: var(--nit-brand-textprimary);
+    background-color: color-mix(in srgb, var(--nit-brand-info) 18%, var(--nit-brand-surface));
+    border-color: color-mix(in srgb, var(--nit-brand-info) 40%, transparent);
+    background-image: none;
+}
+
+// The stamp / colour / comment-search menus the toolbar opens.
+.assignfeedback_editpdf_menu li a,
+.assignfeedback_editpdf_search li a {
+    color: var(--nit-brand-textprimary);
+}
+
+.assignfeedback_editpdf_menu li:hover {
+    background-color: var(--nit-brand-hoverbackground);
+}
+
+.assignfeedback_editpdf_commentsearch ul li pre {
+    background-color: var(--nit-brand-surface);
+    color: var(--nit-brand-textprimary);
+}
+
+.assignfeedback_editpdf_commentsearch ul li pre:hover {
+    background-color: var(--nit-brand-hoverbackground);
+}
+
+// The sticky-note textareas drawn ON the page keep core's black ink on purpose:
+// their background is the note colour the marker picked (yellow, white, ...),
+// not a brand surface.
+
+// ---- The comments widget (core/comment) ------------------------------------
+// The "Comments (n)" expander the submission-comments plugin embeds here, and
+// the same widget on the submission page. Its textarea is a bare `<textarea>`
+// (browser white, black ink, grey ring); the author/date meta is `gray` and the
+// current page number in its pager is boxed in a grey hairline.
+.comment-area textarea {
+    color: var(--nit-brand-textprimary);
+    background-color: var(--nit-brand-surface);
+    border: 1px solid var(--nit-brand-borderprimary);
+    border-radius: 0.25rem;
+
+    &::placeholder {
+        color: var(--nit-brand-textsecondary);
+    }
+
+    &:focus {
+        border-color: var(--nit-brand-primary);
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--nit-brand-primary) 25%, transparent);
+    }
+}
+
+.comment-meta span {
+    color: var(--nit-brand-textsecondary);
+}
+
+.comment-paging .curpage {
+    border-color: var(--nit-brand-borderprimary);
+}

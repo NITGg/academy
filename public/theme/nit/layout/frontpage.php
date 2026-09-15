@@ -314,6 +314,16 @@ $templatecontext = [
     // shows the brand as a section of its own wants the wide lock-up, and only
     // falls back to the compact one when no full logo has been uploaded.
     'nitlogofulljson' => json_encode(($OUTPUT->get_logo_url(null, 300) ?: $OUTPUT->get_compact_logo_url(null, 300))?->out(false) ?: '', JSON_UNESCAPED_UNICODE),
+    // NIT: the navbar's two switches as data, for a hero block that draws its
+    // own copies when "Home page chrome" hides the bar on this page. Both come
+    // from the very methods the bar renders through (core_renderer
+    // ::mode_toggle_context() / ::lang_toggle_context()), so a hero button and
+    // a navbar button can never switch differently; `null` when the control
+    // would do nothing here, and the block hides its button on that. Asking for
+    // the mode context also queues the click handler, which is what makes the
+    // block's button work with no script of its own.
+    'nitmodetogglejson' => json_encode($OUTPUT->mode_toggle_context(), JSON_UNESCAPED_UNICODE),
+    'nitlangtogglejson' => json_encode($OUTPUT->lang_toggle_context(), JSON_UNESCAPED_UNICODE),
     // NIT: full-width region payloads for theme_nit/frontpage.
     'fullwidthtop' => $fullwidthtop,
     'hasfullwidthtop' => $hasfullwidthtop,

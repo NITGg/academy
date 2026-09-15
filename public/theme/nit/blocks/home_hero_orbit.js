@@ -240,6 +240,31 @@
     (document.head || document.documentElement).appendChild(st);
   }
 
+  // The two corner controls (language swap, light/dark switch). Their rest
+  // state is inline in the block; this is only what an inline style cannot
+  // say: hover, focus and the phone spacing. The switch's glyph show/hide is
+  // the theme's own `.nit-mode-toggle` rule (scss/components/_navbar.scss),
+  // shared with the bar's button, and its click is the theme's handler - the
+  // block only primes the button from window.NIT_MODE_TOGGLE.
+  function toolsStyle() {
+    if (document.getElementById('nit-hero-tools-style')) {
+      return;
+    }
+    var css =
+      '[data-nit-hero-tool]{transition:background-color .2s ease,color .2s ease,border-color .2s ease,transform .2s ease}' +
+      '[data-nit-hero-tool]:hover,[data-nit-hero-tool]:focus-visible{background:var(--nit-brand-hoverbackground)!important;' +
+      'color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-hoverbackground)!important;text-decoration:none;transform:translateY(-1px)}' +
+      '[data-nit-hero-tool]:focus-visible{outline:2px solid var(--nit-brand-accent);outline-offset:2px}' +
+      // A phone has no 64px top padding to spare: the section keeps it, but
+      // the pair sits a little higher so the logo below has its full row.
+      '@media (max-width:767px){[data-nit-hero-tools]{top:12px!important}}' +
+      '@media (prefers-reduced-motion:reduce){[data-nit-hero-tool]{transition:none;transform:none!important}}';
+    var st = document.createElement('style');
+    st.id = 'nit-hero-tools-style';
+    st.textContent = css;
+    (document.head || document.documentElement).appendChild(st);
+  }
+
   // ------------------------------------------------------------------
   // The constellation.
   //
@@ -1067,6 +1092,7 @@
     orbitStyle();
     hoverStyle();
     playStyle();
+    toolsStyle();
     setupLogo();
     drawOrbits();
     wireHero();

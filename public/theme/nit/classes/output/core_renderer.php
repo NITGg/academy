@@ -92,7 +92,8 @@ JS;
 
     private const MODE_TOGGLE_JS = <<<'JS'
 require([], function() {
-    document.querySelectorAll('[data-nit-mode-toggle]').forEach(function(btn) {
+    var buttons = document.querySelectorAll('[data-nit-mode-toggle]');
+    buttons.forEach(function(btn) {
         var config;
         try {
             config = JSON.parse(btn.getAttribute('data-nit-mode-config') || '{}');
@@ -110,16 +111,23 @@ require([], function() {
             var next = current === 'dark' ? 'light' : 'dark';
             swap((config.classes || {})[current], false);
             swap((config.classes || {})[next], true);
-            btn.setAttribute('data-nit-mode', next);
             var label = (config.labels || {})[next];
-            if (label) {
-                btn.setAttribute('aria-label', label);
-                btn.setAttribute('title', label);
-                var sr = btn.querySelector('.nit-mode-toggle-label');
-                if (sr) {
-                    sr.textContent = label;
+            // EVERY switch on the page, not only the one clicked. The Site home
+            // draws a second copy inside the hero block (window.NIT_MODE_TOGGLE)
+            // for when the bar is hidden there, and while editing both are on
+            // the page at once - left alone, the other one would still show the
+            // old mode's icon and flip the page back on its next click.
+            buttons.forEach(function(other) {
+                other.setAttribute('data-nit-mode', next);
+                if (label) {
+                    other.setAttribute('aria-label', label);
+                    other.setAttribute('title', label);
+                    var sr = other.querySelector('.nit-mode-toggle-label');
+                    if (sr) {
+                        sr.textContent = label;
+                    }
                 }
-            }
+            });
             // The logos. Everything else the switch does is CSS and lands at
             // once; an <img src> was picked by the server, so without this the
             // colours flip and the mark stays on the previous mode's version
@@ -363,6 +371,180 @@ JS;
     }
 
     /**
+     * The one-click language swap of a two-language site, as template context.
+     *
+     * The half of navbar_language_menu() that is also wanted OFF the bar: the
+     * Site home may hide the navbar altogether ("Home page chrome"), and the
+     * hero block then draws its own language button in the corner. That button
+     * has to switch exactly the way the bar's does — same URL, same label, same
+     * accessible name — so the front-page layout prints this very array as
+     * window.NIT_LANG_TOGGLE rather than letting the block guess a ?lang= URL
+     * (which would be wrong for a language pack code with a region, and
+     * would not know the target language's own name for the tooltip).
+     *
+     * Null when the control is not a swap: no language menu at all, or three or
+     * more installed languages, where the bar falls back to core's dropdown and
+     * the hero simply shows no language control.
+     *
+     * @param array|null $langmenu core's exported language menu, when the caller
+     *                             already has it; built here otherwise
+     * @return array|null url, label ("AR"), title ("العربية (ar)"), langcode ("ar")
+     */
+    public function lang_toggle_context(?array $langmenu = null): ?array {
+        if ($langmenu === null) {
+            $languagemenu = new \core\output\language_menu($this->page);
+            $langmenu = $languagemenu->export_for_template($this);
+        }
+        if (empty($langmenu)) {
+            return null;
+        }
+
+        // The languages the visitor is not currently reading in. Core marks the
+        // active one with `isactive` and points it at '#'.
+        $others = [];
+        foreach ($langmenu['items'] ?? [] as $item) {
+            if (empty($item['isactive'])) {
+                $others[] = $item;
+            }
+        }
+        if (count($others) !== 1) {
+            return null;
+        }
+
+        $target = $others[0];
+        // The code of the language the button switches to ("AR" / "EN"). The
+        // URL core built for that language carries it as ?lang=xx.
+        $langcode = $target['url'] instanceof \moodle_url
+            ? (string) $target['url']->get_param('lang')
+            : '';
+        $label = strtoupper(explode('_', $langcode)[0]);
+
+        return [
+            'url' => $target['url'] instanceof \moodle_url
+                ? $target['url']->out(false)
+                : (string) $target['url'],
+            'label' => $label,
+            // The full name of the target language ("العربية"), for the
+            // tooltip and for screen readers — two letters alone say very
+            // little when read aloud.
+            'title' => $target['title'] ?? $label,
+            'langcode' => $langcode,
+        ];
+    }
+
+    /**
+     * Pages a visitor is never sent back to after logging in.
+     *
+     * Path prefixes, compared against the page's path under wwwroot. The
+     * account screens themselves (log in, sign up, forgot password, the
+     * confirmation page), our own sign-up notice and the profile completion
+     * gate are all steps *of* logging in, not places to return to; a visitor
+     * who logs in from one of them gets core's default landing instead.
+     */
+    const LOGIN_NO_RETURN_PATHS = [
+        '/login/',
+        '/local/profilefields/verify.php',
+        '/local/profilefields/complete.php',
+    ];
+
+    /**
+     * The "Log in" link on the navbar: the login page, told where to come back to.
+     *
+     * A visitor who clicks Log in on a course, a category, a static page should
+     * land back on that page once signed in - and once a sign-up begun from
+     * there is confirmed. Core has the mechanism ($SESSION->wantsurl, which
+     * login/index.php honours, signup.php keeps, auth_email carries across the
+     * confirmation email and confirm.php restores) but not the intent: the
+     * login page only guesses the page from the HTTP referer, and only when
+     * nothing is already in wantsurl. Both fail the visitor here. A referer is
+     * an optional header; and wantsurl is pinned by every "log in first" door
+     * on the site (a locked course, enrol/index.php) and survives the visitor
+     * walking away from it, so a later Log in from the About page still lands
+     * on the course they looked at an hour earlier.
+     *
+     * So the link says it outright: `nitreturn=` carries the current page, and
+     * theme_nit's after_config hook writes it into $SESSION->wantsurl on the
+     * login page, ahead of anything stale. The parameter is ours - core's
+     * `wantsurl=` on that page is honoured only under Behat.
+     *
+     * Only a visitor gets the parameter (a logged-in user has no Log in link),
+     * and only from a page worth returning to: not the front page, where core's
+     * own choice between the front page and the dashboard is the better answer,
+     * and none of {@see self::LOGIN_NO_RETURN_PATHS}.
+     *
+     * @return string the login URL, HTML-escaped for an href
+     */
+    public function navbar_login_url(): string {
+        $login = new \moodle_url(get_login_url());
+
+        $return = $this->login_return_url();
+        if ($return !== null) {
+            $login->param('nitreturn', $return);
+        }
+
+        return $login->out();
+    }
+
+    /**
+     * The page the current visitor should come back to after logging in, as a
+     * site-relative URL ("/course/view.php?id=5") - or null when there is none.
+     *
+     * @return string|null
+     */
+    protected function login_return_url(): ?string {
+        if (isloggedin() && !isguestuser()) {
+            return null;
+        }
+        // A page that never declared its URL (core prints a debugging notice
+        // when one is read) and the error page count as nowhere in particular.
+        if (!$this->page->has_set_url()) {
+            return null;
+        }
+
+        try {
+            $local = $this->page->url->out_as_local_url(false);
+        } catch (\Throwable $e) {
+            // Not under wwwroot; nothing to return to.
+            return null;
+        }
+
+        $path = (string) parse_url($local, PHP_URL_PATH);
+        if ($local === '' || $path === '' || $path === '/' || $path === '/index.php') {
+            return null;
+        }
+        foreach (self::LOGIN_NO_RETURN_PATHS as $prefix) {
+            if (strpos($path, $prefix) === 0) {
+                return null;
+            }
+        }
+
+        return $local;
+    }
+
+    /**
+     * The footer's "You are not logged in. (Log in)" line, with its link
+     * pointed where the navbar's is, so the two ways off a page agree on where
+     * the visitor comes back to.
+     *
+     * Core builds the line as a string around get_login_url(); the link is the
+     * only part that changes, so the string is edited rather than rebuilt.
+     *
+     * @param bool|null $withlinks see core
+     * @return string HTML
+     */
+    public function login_info($withlinks = null) {
+        $html = parent::login_info($withlinks);
+
+        $target = $this->navbar_login_url();
+        $plain = get_login_url();
+        if ($target !== $plain) {
+            $html = str_replace('href="' . $plain . '"', 'href="' . $target . '"', $html);
+        }
+
+        return $html;
+    }
+
+    /**
      * Render the standalone navbar language menu for every user.
      *
      * Core exposes the standalone language menu (primary::export_for_template)
@@ -390,36 +572,10 @@ JS;
             return '';
         }
 
-        // The languages the visitor is not currently reading in. Core marks the
-        // active one with `isactive` and points it at '#'.
-        $others = [];
-        foreach ($langmenu['items'] ?? [] as $item) {
-            if (empty($item['isactive'])) {
-                $others[] = $item;
-            }
-        }
-
         // Exactly one alternative → a direct swap button, no menu.
-        if (count($others) === 1) {
-            $target = $others[0];
-            // The code of the language the button switches to ("AR" / "EN"). The
-            // URL core built for that language carries it as ?lang=xx.
-            $langcode = $target['url'] instanceof \moodle_url
-                ? (string) $target['url']->get_param('lang')
-                : '';
-            $label = strtoupper(explode('_', $langcode)[0]);
-
-            return $this->render_from_template('theme_nit/navbar_lang_toggle', [
-                'url' => $target['url'] instanceof \moodle_url
-                    ? $target['url']->out(false)
-                    : (string) $target['url'],
-                'label' => $label,
-                // The full name of the target language ("العربية"), for the
-                // tooltip and for screen readers — two letters alone say very
-                // little when read aloud.
-                'title' => $target['title'] ?? $label,
-                'langcode' => $langcode,
-            ]);
+        $toggle = $this->lang_toggle_context($langmenu);
+        if ($toggle !== null) {
+            return $this->render_from_template('theme_nit/navbar_lang_toggle', $toggle);
         }
 
         // Three or more languages: core's dropdown. The bar shows the two-letter
@@ -501,6 +657,50 @@ JS;
      * @return string HTML, or '' when the switch would be a no-op
      */
     public function navbar_mode_toggle(): string {
+        $toggle = $this->mode_toggle_context();
+        if ($toggle === null) {
+            return '';
+        }
+
+        return $this->render_from_template('theme_nit/navbar_mode_toggle', [
+            'mode' => $toggle['mode'],
+            'label' => $toggle['label'],
+            'config' => json_encode($toggle['config']),
+        ]);
+    }
+
+    /**
+     * Whether the light/dark click handler has been queued for this page.
+     *
+     * The handler binds every `[data-nit-mode-toggle]` on the page in one go, so
+     * it must be queued exactly once however many switches ask for it — the bar's
+     * and the hero block's both do on an edited Site home. Queued twice it would
+     * bind twice, and one click would flip the mode there and straight back.
+     *
+     * @var bool
+     */
+    private bool $modetogglejsqueued = false;
+
+    /**
+     * Everything the light/dark switch needs, as data, and its click handler queued.
+     *
+     * The working half of navbar_mode_toggle(). Split out because the switch is
+     * wanted in TWO places: the bar, which renders it through the template, and
+     * the Site home's hero block, which draws its own button when "Home page
+     * chrome" hides the bar and takes this same array from
+     * window.NIT_MODE_TOGGLE (layout/frontpage.php). One source means the two
+     * buttons can never disagree about which classes a mode owns, which logos
+     * it wants, or what the cookie is called.
+     *
+     * Calling this queues the click handler, so a page that prints the array
+     * gets a working button with no script of its own — the block only has to
+     * copy `config` onto `data-nit-mode-config`.
+     *
+     * @return array|null mode ("light"/"dark"), label (the mode it switches TO),
+     *                    config (array; see the handler) — or null when the
+     *                    switch would change nothing on this page
+     */
+    public function mode_toggle_context(): ?array {
         global $CFG;
 
         require_once($CFG->dirroot . '/theme/nit/lib.php');
@@ -563,7 +763,7 @@ JS;
         // `nit-mode-light` / `nit-mode-dark`, which is a hook, not a look.
         if (theme_nit_active_chrome_group('light') === theme_nit_active_chrome_group('dark')
                 && $samelogos) {
-            return '';
+            return null;
         }
 
         $config = [
@@ -582,13 +782,16 @@ JS;
             'secure' => (strpos($CFG->wwwroot, 'https://') === 0),
         ];
 
-        $this->page->requires->js_amd_inline(self::MODE_TOGGLE_JS);
+        if (!$this->modetogglejsqueued) {
+            $this->page->requires->js_amd_inline(self::MODE_TOGGLE_JS);
+            $this->modetogglejsqueued = true;
+        }
 
-        return $this->render_from_template('theme_nit/navbar_mode_toggle', [
+        return [
             'mode' => $mode,
             'label' => $config['labels'][$mode],
-            'config' => json_encode($config),
-        ]);
+            'config' => $config,
+        ];
     }
 
     /**
@@ -725,7 +928,7 @@ JS;
      * and needs no code. One line per link:
      *
      *     الرئيسية|/
-     *     الدورات|/local/nit_category/search.php?q=
+     *     الدورات|/local/nit_category/catalogue.php?q=
      *
      * Only *this* method is needed on top of the setting, because the NIT navbar
      * collapses core's horizontal primary navigation into the gear dropdown and
@@ -973,7 +1176,7 @@ JS;
      * "من نحن" and "اتصل بنا" are both /local/profilefields/page.php and differ
      * only by `?page=`, so on a path-only test the whole pair lights up at once.
      *
-     * A parameter the link leaves empty (`search.php?q=`) is not compared — that
+     * A parameter the link leaves empty (`catalogue.php?q=`) is not compared — that
      * line means "the courses page", not "a search for nothing", so it stays
      * marked while the visitor refines a search. Everything else about the
      * address is ignored, so a sesskey or an anchor changes nothing.

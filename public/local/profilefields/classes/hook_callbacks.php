@@ -234,16 +234,24 @@ class hook_callbacks {
     }
 
     /**
-     * Point the "Continue" button on core's confirmation page at the site home.
+     * Point the "Continue" button on core's confirmation page at the page the
+     * learner signed up from - or at the site home when there is no such page.
      *
      * `/login/confirm.php` builds that button from core_login_get_return_url(),
-     * which prefers `$SESSION->wantsurl` - and for a self-registered account
-     * that is whatever page the visitor was on when they clicked "Create new
-     * account": signup.php stores it, auth_email carries it on the user record
-     * across the email round-trip, and confirm.php puts it back in the session
-     * the moment the account is confirmed. A course they were browsing, a page
-     * that had asked them to log in, the dashboard - the first click after
-     * confirming went there. The academy wants it to land on the site home.
+     * which prefers `$SESSION->wantsurl`. For a self-registered account that is
+     * the page the visitor was on when they clicked Log in: theme_nit's navbar
+     * link names it (nitreturn=), signup.php keeps it, auth_email carries it on
+     * the user record across the email round-trip, and confirm.php puts it back
+     * in the session the moment the account is confirmed. A course they were
+     * pricing, a category, a static page - the first click after confirming
+     * goes back there, which is where a visitor who registered *from* that page
+     * expects to continue.
+     *
+     * When nothing was remembered, core's fallback is `wwwroot/`, and on a site
+     * whose home is the dashboard that button opens the dashboard. The academy
+     * wants a fresh account to see the site home instead, so the empty case -
+     * and a value that is only a login screen, which signup.php also treats as
+     * nothing - is replaced by verification::landing_url().
      *
      * Done by overwriting the very session value core reads, from the one hook
      * that runs after confirm.php has restored it and before the button exists:
@@ -278,7 +286,42 @@ class hook_callbacks {
             return;
         }
 
+        if (self::is_page_to_return_to((string) ($SESSION->wantsurl ?? ''))) {
+            return;
+        }
+
         $SESSION->wantsurl = verification::landing_url()->out(false);
+    }
+
+    /**
+     * Is a remembered wantsurl a page worth sending a freshly confirmed learner
+     * back to?
+     *
+     * A page on this site other than its home, and other than any account
+     * screen: the login, sign-up and forgot-password pages are where the
+     * visitor was *going*, not where they were.
+     *
+     * @param string $url the remembered URL, possibly empty
+     * @return bool
+     */
+    protected static function is_page_to_return_to(string $url): bool {
+        if ($url === '') {
+            return false;
+        }
+
+        try {
+            $local = (new \moodle_url($url))->out_as_local_url(false);
+        } catch (\Throwable $e) {
+            // Not on this site; core would ignore it too.
+            return false;
+        }
+
+        $path = (string) parse_url($local, PHP_URL_PATH);
+        if ($local === '' || $path === '' || $path === '/' || $path === '/index.php') {
+            return false;
+        }
+
+        return strpos($path, '/login/') !== 0;
     }
 
     /**

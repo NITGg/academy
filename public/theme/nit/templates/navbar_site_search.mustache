@@ -18,7 +18,8 @@
     @template theme_nit/navbar_site_search
 
     The single search control in the header (AC-4.22.1). One box, searching courses
-    and subject areas together; the results page groups them and counts them.
+    and subject areas together; the panel groups them and counts them, and Enter lands
+    in the catalogue with the term applied.
 
     It is a plain GET form, so it works with scripting off and every search has its
     own address. local_nit_category/search.js adds the preview panel and the arrow-key
@@ -30,8 +31,8 @@
     which would make "a single search control" true only on paper.
 
     Context variables required for this template:
-    * action - URL of the results page (local_nit_category/search.php)
-    * query - the term to prefill, '' on every page but the results page
+    * action - URL of the search endpoint (local_nit_category/search.php)
+    * query - the term to prefill, '' on every page that did not declare `q` its own
 }}
 <div class="nit-navsearch" data-nitsearch>
     <button type="button" class="btn nit-navbar-icon nit-navsearch__toggle"
@@ -68,8 +69,8 @@
                 <button type="submit" class="nit-navsearch__submit">{{#str}}search{{/str}}</button>
             </form>
 
-            {{! Filled by the script with search.php?fragment=1 — the same groups and counts
-                the results page prints, capped to the first few of each. A sibling of the
+            {{! Filled by the script with search.php?fragment=1 — the result groups and their
+                counts, capped to the first few of each. A sibling of the
                 form rather than a child of it: the form is the dialog's top row and lays its
                 children out in a line, which would put the results beside the field. }}
             <div id="nit-navsearch-panel" class="nit-navsearch__panel" data-nitsearch-panel

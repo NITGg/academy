@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_category';
-$plugin->version   = 2026091200;        // YYYYMMDDXX — the "Why choose us" section under the category hero.
+$plugin->version   = 2026091500;        // YYYYMMDDXX — local_nit_category_get_home_hero for the app's home screen.
 $plugin->requires  = 2022041900;
 
 // The home.php JSON feed answers in the caller's language via

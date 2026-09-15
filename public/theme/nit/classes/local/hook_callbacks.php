@@ -26,6 +26,50 @@ namespace theme_nit\local;
 class hook_callbacks {
 
     /**
+     * Honour the `nitreturn=` the navbar's "Log in" link carries: the page the
+     * visitor was on, which is where they should land once signed in.
+     *
+     * The login page decides where to send a signed-in user from
+     * $SESSION->wantsurl, and reads the HTTP referer into it only when it is
+     * empty - a guess, and one that loses to whatever a "log in first" door
+     * (a locked course, enrol/index.php) left there earlier in the session. The
+     * navbar link therefore names the page outright (core_renderer::
+     * navbar_login_url), and this writes it into wantsurl ahead of the stale
+     * value. From there core does the rest: login/index.php redirects to it
+     * after a password or an OAuth2 login, signup.php keeps it, auth_email
+     * carries it across the confirmation email, confirm.php restores it.
+     *
+     * after_config, because it runs before login/index.php itself and before
+     * any redirect that page may issue (an alternate login URL, for one) - the
+     * one moment guaranteed to precede everything core does with wantsurl.
+     * Cheap on every other request: the script name is checked first.
+     *
+     * The value is a PARAM_LOCALURL - a page on this site, or nothing - so the
+     * link cannot be made to send a visitor elsewhere after they log in.
+     *
+     * @param \core\hook\after_config $hook
+     */
+    public static function after_config(\core\hook\after_config $hook): void {
+        global $SCRIPT, $SESSION;
+
+        if (($SCRIPT ?? '') !== '/login/index.php') {
+            return;
+        }
+        // Somebody already signed in has no Log in link to have clicked;
+        // whatever they are doing on the login page is not this.
+        if (isloggedin() && !isguestuser()) {
+            return;
+        }
+
+        $return = optional_param('nitreturn', '', PARAM_LOCALURL);
+        if ($return === '') {
+            return;
+        }
+
+        $SESSION->wantsurl = (new \moodle_url($return))->out(false);
+    }
+
+    /**
      * Force a chrome-free ("embedded") page layout when a page is being viewed
      * inside the mobile app's in-app WebView.
      *

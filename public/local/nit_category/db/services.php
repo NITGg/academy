@@ -46,4 +46,17 @@ $functions = [
         'ajax'        => true,
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    // The front-page hero's words ("Learn Today / Advance Tomorrow" and the paragraph
+    // under it), read from the pasted hero block so the app follows the block editor.
+    // Pre-login: the hero is the first thing a visitor sees, before any token exists.
+    'local_nit_category_get_home_hero' => [
+        'classname'     => 'local_nit_category\external\get_home_hero',
+        'methodname'    => 'execute',
+        'description'   => 'The front-page hero text as data: the heading lines and the paragraph under them, '
+            . 'resolved to one language, as the site front page currently shows them.',
+        'type'          => 'read',
+        'ajax'          => true,
+        'loginrequired' => false,
+        'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
 ];

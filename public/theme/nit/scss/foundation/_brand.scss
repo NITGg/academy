@@ -885,6 +885,14 @@ $nit-b-buttonroles: (
             "g1": $nit-b-g1-hoverbackground, "g2": $nit-b-g2-hoverbackground,
             "g3": $nit-b-g3-hoverbackground, "g4": $nit-b-g4-hoverbackground,
             "g5": $nit-b-g5-hoverbackground), $g);
+        // Bootstrap 5.3 paints `a:hover` by swapping `--bs-link-color-rgb` for
+        // `--bs-link-hover-color-rgb`, so `--bs-link-hover-color` above never
+        // reaches a hovered link: without its own triplet every link on the site
+        // hovered to the stock Bootstrap blue.
+        $hovtext: map-get((
+            "g1": $nit-b-g1-hovertext, "g2": $nit-b-g2-hovertext,
+            "g3": $nit-b-g3-hovertext, "g4": $nit-b-g4-hovertext,
+            "g5": $nit-b-g5-hovertext), $g);
 
         --bs-secondary-bg-rgb: #{red($bg2)}, #{green($bg2)}, #{blue($bg2)};
         --bs-tertiary-bg-rgb: #{red($hov)}, #{green($hov)}, #{blue($hov)};
@@ -893,6 +901,7 @@ $nit-b-buttonroles: (
         --bs-body-bg-rgb: #{red($bg)}, #{green($bg)}, #{blue($bg)};
         --bs-secondary-color-rgb: #{red($muted)}, #{green($muted)}, #{blue($muted)};
         --bs-link-color-rgb: #{red($link)}, #{green($link)}, #{blue($link)};
+        --bs-link-hover-color-rgb: #{red($hovtext)}, #{green($hovtext)}, #{blue($hovtext)};
         --bs-primary-rgb: #{red($pri)}, #{green($pri)}, #{blue($pri)};
     }
 }
