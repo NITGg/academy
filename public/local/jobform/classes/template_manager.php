@@ -101,7 +101,10 @@ class template_manager {
     }
 
     /**
-     * Move a field one step up or down and swap sort order with its neighbour.
+     * Move a field one step up or down within its group.
+     *
+     * The neighbour is the previous / next field of the same group — the one
+     * the table shows next to it — see field_order::move().
      *
      * @param int $id
      * @param int $direction -1 to move up, +1 to move down
@@ -109,27 +112,10 @@ class template_manager {
      */
     public static function reorder(int $id, int $direction): void {
         global $DB;
-        $fields = array_values(self::get_fields());
-        $index = null;
-        foreach ($fields as $i => $f) {
-            if ((int) $f->id === $id) {
-                $index = $i;
-                break;
-            }
+        $changes = field_order::move(self::get_fields(), group_manager::get_groups(), $id, $direction);
+        foreach ($changes as $fieldid => $sortorder) {
+            $DB->set_field(self::TABLE, 'sortorder', $sortorder, ['id' => $fieldid]);
         }
-        if ($index === null) {
-            return;
-        }
-        $swap = $index + ($direction < 0 ? -1 : 1);
-        if ($swap < 0 || $swap >= count($fields)) {
-            return;
-        }
-        $a = $fields[$index];
-        $b = $fields[$swap];
-        // Swap their sortorder values (normalise first in case of ties).
-        $tmp = (int) $a->sortorder;
-        $DB->set_field(self::TABLE, 'sortorder', (int) $b->sortorder, ['id' => $a->id]);
-        $DB->set_field(self::TABLE, 'sortorder', $tmp, ['id' => $b->id]);
     }
 
     /**

@@ -16,6 +16,7 @@
 
 namespace mod_jobform;
 
+use local_jobform\field_order;
 use local_jobform\field_types;
 
 /**
@@ -178,7 +179,10 @@ class instance_manager {
     }
 
     /**
-     * Move a field up or down within its activity.
+     * Move a field one step up or down within its group.
+     *
+     * The neighbour is the previous / next field of the same group — the one
+     * the table shows next to it — see field_order::move().
      *
      * @param int $id
      * @param int $jobformid
@@ -187,26 +191,11 @@ class instance_manager {
      */
     public static function reorder(int $id, int $jobformid, int $direction): void {
         global $DB;
-        $fields = array_values(self::get_fields($jobformid));
-        $index = null;
-        foreach ($fields as $i => $f) {
-            if ((int) $f->id === $id) {
-                $index = $i;
-                break;
-            }
+        $changes = field_order::move(self::get_fields($jobformid),
+            group_manager::get_groups($jobformid), $id, $direction);
+        foreach ($changes as $fieldid => $sortorder) {
+            $DB->set_field(self::TABLE, 'sortorder', $sortorder, ['id' => $fieldid, 'jobformid' => $jobformid]);
         }
-        if ($index === null) {
-            return;
-        }
-        $swap = $index + ($direction < 0 ? -1 : 1);
-        if ($swap < 0 || $swap >= count($fields)) {
-            return;
-        }
-        $a = $fields[$index];
-        $b = $fields[$swap];
-        $tmp = (int) $a->sortorder;
-        $DB->set_field(self::TABLE, 'sortorder', (int) $b->sortorder, ['id' => $a->id]);
-        $DB->set_field(self::TABLE, 'sortorder', $tmp, ['id' => $b->id]);
     }
 
     /**

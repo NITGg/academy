@@ -74,23 +74,10 @@ class fields_ui {
             return $out;
         }
 
-        // Rank fields by global sort order so move up/down bounds stay correct.
-        $order = array_values($fields);
-        $total = count($order);
-        $rank = [];
-        foreach ($order as $idx => $f) {
-            $rank[(int) $f->id] = $idx;
-        }
-
-        // Bucket fields by group (unknown/zero group id falls to the ungrouped bucket).
-        $bygroup = [];
-        foreach ($order as $f) {
-            $gid = (int) ($f->groupid ?? 0);
-            if (!$gid || !isset($groups[$gid])) {
-                $gid = 0;
-            }
-            $bygroup[$gid][] = $f;
-        }
+        // Bucket fields by section: one per group, then the ungrouped ones. The
+        // move up / down arrows walk a section (field_order::move()), so the
+        // first/last flags that hide an arrow are per section too.
+        $sections = field_order::sections($fields, $groups);
 
         $table = new html_table();
         $table->head = [
@@ -107,33 +94,44 @@ class fields_ui {
             // One section per group, in order, then a section for ungrouped fields.
             foreach ($groups as $group) {
                 $table->data[] = self::group_header_row($group, $colspan, $editurl, $groupediturl, $actionurl);
-                if (empty($bygroup[$group->id])) {
+                if (empty($sections[$group->id])) {
                     $table->data[] = self::empty_row($colspan);
                     continue;
                 }
-                foreach ($bygroup[$group->id] as $f) {
-                    $table->data[] = self::field_row($f, $editurl, $actionurl,
-                        $rank[$f->id] === 0, $rank[$f->id] === $total - 1);
-                }
+                self::field_rows($table, $sections[$group->id], $editurl, $actionurl);
             }
-            if (!empty($bygroup[0])) {
+            if (!empty($sections[0])) {
                 $table->data[] = self::group_header_row(null, $colspan, $editurl, null, null);
-                foreach ($bygroup[0] as $f) {
-                    $table->data[] = self::field_row($f, $editurl, $actionurl,
-                        $rank[$f->id] === 0, $rank[$f->id] === $total - 1);
-                }
+                self::field_rows($table, $sections[0], $editurl, $actionurl);
             }
         } else {
             // No groups defined — a plain flat list.
-            foreach ($order as $f) {
-                $table->data[] = self::field_row($f, $editurl, $actionurl,
-                    $rank[$f->id] === 0, $rank[$f->id] === $total - 1);
-            }
+            self::field_rows($table, $sections[0] ?? [], $editurl, $actionurl);
         }
 
         $out .= html_writer::table($table);
         $out .= html_writer::end_div();
         return $out;
+    }
+
+    /**
+     * Append one section's field rows to the table.
+     *
+     * First/last — which hide the up/down arrow — are relative to the section,
+     * because that is what the arrows move within.
+     *
+     * @param html_table $table
+     * @param array $fields the section's field records, in display order
+     * @param moodle_url $editurl
+     * @param moodle_url $actionurl
+     * @return void
+     */
+    protected static function field_rows(html_table $table, array $fields, moodle_url $editurl,
+            moodle_url $actionurl): void {
+        $last = count($fields) - 1;
+        foreach (array_values($fields) as $i => $f) {
+            $table->data[] = self::field_row($f, $editurl, $actionurl, $i === 0, $i === $last);
+        }
     }
 
     /**
