@@ -311,7 +311,10 @@ class field_types {
             case self::TYPE_CHECKBOX:
                 return $value ? get_string('yes') : get_string('no');
             case self::TYPE_DATE:
-                return $value !== '' ? userdate((int) $value, get_string('strftimedate', 'langconfig')) : '';
+                // An optional date the applicant left blank is stored as 0 (the
+                // date_selector's "disabled" value) - that is "no date", not 1970.
+                return ($value !== '' && (int) $value !== 0)
+                    ? userdate((int) $value, get_string('strftimedate', 'langconfig')) : '';
             case self::TYPE_PHONE:
                 // Stored as "EG:1012345678" (AC-4.20.4), read as "+20 1012345678".
                 // Answers written before the country control existed are plain

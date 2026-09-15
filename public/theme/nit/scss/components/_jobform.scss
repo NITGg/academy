@@ -42,6 +42,12 @@
         grid-template-columns: minmax(0, 1fr) 15rem;
         gap: 2rem;
     }
+
+    // Once sent there is nothing left to track, so the rail is not rendered and
+    // the sheet takes the full width.
+    &.jobform-entry-sent {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 // ---- The sheet ---------------------------------------------------------------
@@ -431,8 +437,58 @@
 }
 
 // ---- Sent: the read-only answers on the same sheet ----------------------------
+// local_jobform/styles.css draws each group as a Surface box with a border —
+// the same Surface the sheet is, so on the sheet it is a box on a box. Here
+// the groups are the same numbered sections the applicant filled in, and the
+// answers are printed under dotted rules the way a filled-in form reads.
 .jobform-entry-sent .jobform-readonly {
-    margin-top: 1rem;
+    margin-top: 0.5rem;
+    counter-reset: jobform-section;
+
+    .jobform-ro-section {
+        counter-increment: jobform-section;
+        margin: 0;
+        padding: 1.5rem 0 0.5rem;
+        border-top: 1px solid var(--nit-brand-borderprimary);
+
+        &:first-child {
+            border-top: 0;
+        }
+    }
+
+    .jobform-ro-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin: 0 0 0.75rem;
+        padding: 0;
+        border: 0;
+        background: none;
+        font-size: 1.15rem;
+        font-weight: 700;
+
+        &::before {
+            content: counter(jobform-section, decimal-leading-zero);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            font-variant-numeric: tabular-nums;
+            color: var(--nit-brand-accenttext);
+            padding: 0.15rem 0.45rem;
+            border: 1px solid color-mix(in srgb, var(--nit-brand-accent) 45%, transparent);
+            border-radius: 0.3rem;
+            line-height: 1.2;
+        }
+    }
+
+    .jobform-ro-row {
+        padding-inline: 0;
+        border-bottom-style: dashed;
+    }
+
+    .jobform-ro-label {
+        font-size: 0.85rem;
+    }
 }
 
 // ---- The rail: progress + the sections in view --------------------------------
@@ -458,6 +514,7 @@
     // "1 / 4" is read left to right in either language; inline so it still
     // sits at the start edge of the card.
     display: inline-flex;
+    /*!rtl:ignore*/
     direction: ltr;
     align-items: baseline;
     gap: 0.35rem;

@@ -174,9 +174,7 @@ class entry_page implements renderable, templatable {
                 'picture'  => $output->user_picture($this->user, ['size' => 48, 'link' => false]),
             ],
             'date'         => userdate($when, get_string('strftimedate', 'langconfig')),
-            'datelabel'    => $status === 'new'
-                ? get_string('date_today', 'mod_jobform')
-                : get_string('date_saved', 'mod_jobform'),
+            'datelabel'    => get_string('date_' . $status, 'mod_jobform'),
             'status'       => $status,
             'statustext'   => $statustext,
             'sent'         => $this->sent,

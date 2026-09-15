@@ -47,6 +47,7 @@
     }
 }}
 <div class="jobform-entry jobform-entry-{{status}}" data-region="jobform-entry" data-required="{{required}}">
+    {{^sent}}
     <aside class="jobform-rail" aria-label="{{#str}} railtitle, mod_jobform {{/str}}"{{^hassections}}{{^hasrequired}} hidden{{/hasrequired}}{{/hassections}}>
         {{#hasrequired}}{{^sent}}
         <div class="jobform-rail-progress" data-region="progress">
@@ -73,6 +74,7 @@
         </ol>
         {{/hassections}}
     </aside>
+    {{/sent}}
 
     <div class="jobform-sheet">
         <header class="jobform-docket">
