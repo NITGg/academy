@@ -577,3 +577,19 @@
         counter-reset: jobform-section;
     }
 }
+
+// ---- Update (a sent form the applicant may resend) ----------------------------
+// The read-only sheet ends the way the editable one does — a rule, then the one
+// button — so "Update" sits exactly where "Send" sat.
+.jobform-update {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--nit-brand-borderprimary);
+
+    .jobform-update-btn {
+        padding-inline: 1.75rem;
+        font-weight: 600;
+    }
+}

@@ -502,10 +502,9 @@ echo $OUTPUT->header();
     /* Gradients have no logical direction: flip the drawn scrim as a whole for RTL. */
     .nit-hero--art[dir="rtl"] .nit-hero__scrim { transform: scaleX(-1); }
     /* Ink on the veil: fixed white where the mode palette would otherwise pick a dark
-       Text role in light mode. The count (.nit-hero__n1) reads the palette's Text primary
-       role, --nit-brand-textprimary, in every variant. */
+       Text role in light mode. The whole H1 — count and subtitle — is one colour, set
+       on the heading; the spans inherit it. */
     .nit-hero--art .nit-hero__title,
-    .nit-hero--art .nit-hero__title .nit-hero__n2,
     .nit-hero--art .nit-hero__stat-num { color: var(--hero-ink); }
     .nit-hero--art .nit-hero__sub,
     .nit-hero--art .nit-hero__sub *,
@@ -576,8 +575,9 @@ echo $OUTPUT->header();
       color: var(--ctext1);
       animation: nit-fadeup 0.9s ease 0.1s both;
     }
-    .nit-hero__title .nit-hero__n1 { color: var(--nit-brand-textprimary, var(--ctext1)); }
-    .nit-hero__title .nit-hero__n2 { color: var(--ctext1); }
+    /* Both spans inherit the heading's colour: the whole sentence reads one variable. */
+    .nit-hero__title .nit-hero__n1,
+    .nit-hero__title .nit-hero__n2 { color: inherit; }
 
     /* Description — X-Trade .hero-sub : clamp(1rem, 2vw, 1.25rem) = 16/20px.
        format_text() wraps this in its own <div>/<p> that carries the theme's

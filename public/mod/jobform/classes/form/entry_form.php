@@ -104,8 +104,9 @@ class entry_form extends \moodleform {
 
             // Send the form.
             $buttonarray = [];
+            // Reopening a sent form: the button says what it does — Update.
             $buttonarray[] = $mform->createElement('submit', 'submitform',
-                get_string('sendform', 'mod_jobform'));
+                get_string(!empty($this->_customdata['update']) ? 'updateform' : 'sendform', 'mod_jobform'));
             $buttonarray[] = $mform->createElement('cancel');
             $mform->addGroup($buttonarray, 'buttonar', '', ' ', false);
         }

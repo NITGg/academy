@@ -53,6 +53,8 @@ class entry_page implements renderable, templatable {
     protected bool $readonly;
     /** @var array[] earlier sent versions: each {version, timesent, body} */
     protected array $versions;
+    /** @var \moodle_url|null where the Update button on a read-only sheet leads */
+    protected ?\moodle_url $editurl;
 
     /**
      * @param string $body the rendered moodleform, or the read-only answers
@@ -64,9 +66,12 @@ class entry_page implements renderable, templatable {
      * @param bool $readonly the body is the sent answers, not the form
      * @param array[] $versions earlier sent versions to list under the sheet,
      *                          each {version: int, timesent: int, body: string}
+     * @param \moodle_url|null $editurl for a read-only sheet the applicant may
+     *                          resend: the URL that reopens the fields
      */
     public function __construct(string $body, object $jobform, object $course, array $fields,
-            $submission, object $user, bool $readonly = false, array $versions = []) {
+            $submission, object $user, bool $readonly = false, array $versions = [],
+            ?\moodle_url $editurl = null) {
         $this->body = $body;
         $this->jobform = $jobform;
         $this->course = $course;
@@ -75,6 +80,7 @@ class entry_page implements renderable, templatable {
         $this->user = $user;
         $this->readonly = $readonly;
         $this->versions = $versions;
+        $this->editurl = $editurl;
     }
 
     /**
@@ -135,10 +141,16 @@ class entry_page implements renderable, templatable {
             'version'     => $version,
             'showversion' => $version > 1,
             'readonly'    => $this->readonly,
-            // A sent form that is open for editing: say so, and what a resend does.
+            // A sent form the applicant may update: on the read-only sheet the
+            // note says it can be updated (next to the Update button); with the
+            // fields reopened it says an update is in progress.
             'resendnote'  => ($status === 'sent' && !$this->readonly)
-                ? get_string('resendnote', 'mod_jobform', userdate($when, $dateformat))
-                : '',
+                ? get_string('updatingnote', 'mod_jobform', userdate($when, $dateformat))
+                : (($status === 'sent' && $this->editurl)
+                    ? get_string('resendnote', 'mod_jobform', userdate($when, $dateformat))
+                    : ''),
+            'updating'    => $status === 'sent' && !$this->readonly,
+            'editurl'     => $this->editurl ? $this->editurl->out(false) : '',
             'hasrequired' => $required > 0,
             'body'        => $this->body,
             'versions'    => $versions,

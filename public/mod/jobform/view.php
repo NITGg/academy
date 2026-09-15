@@ -127,18 +127,28 @@ $fields = instance_manager::get_fields($jobform->id);
 $groups = group_manager::get_groups($jobform->id);
 $entryform = null;
 
+$sent = false;
+$locked = false;
+$updating = false;
 if ($studentmode) {
     $gated = !submission_manager::has_certificate($jobform, $USER->id);
     $existing = submission_manager::get_submission($jobform->id, $USER->id);
-    $locked = $existing && $existing->status === submission_manager::STATUS_SUBMITTED
-        && empty($jobform->allowresubmit);
+    $sent = $existing && $existing->status === submission_manager::STATUS_SUBMITTED;
+    // Sent and the admin did not allow a resend: read-only for good.
+    $locked = $sent && empty($jobform->allowresubmit);
+    // Sent and a resend IS allowed: the sheet shows what was sent until the
+    // applicant presses Update, which reopens the fields (?edit=1). The form
+    // posts back to that same URL so a validation error keeps it open.
+    $updating = $sent && !$locked && optional_param('edit', 0, PARAM_BOOL);
 
-    if (!$gated && !$locked) {
-        $entryform = new entry_form($viewurl,
-            ['fields' => array_values($fields), 'groups' => $groups]);
+    if (!$gated && !$locked && (!$sent || $updating)) {
+        $formurl = $updating ? new moodle_url($viewurl, ['edit' => 1]) : $viewurl;
+        $entryform = new entry_form($formurl,
+            ['fields' => array_values($fields), 'groups' => $groups, 'update' => $updating]);
 
         if ($entryform->is_cancelled()) {
-            redirect(new moodle_url('/course/view.php', ['id' => $course->id]));
+            // Cancelling an update goes back to the sent sheet, not out of the activity.
+            redirect($updating ? $viewurl : new moodle_url('/course/view.php', ['id' => $course->id]));
         } else if ($data = $entryform->get_data()) {
             $status = !empty($data->savedraft)
                 ? submission_manager::STATUS_DRAFT
@@ -149,9 +159,13 @@ if ($studentmode) {
                 // AC-4.20.8: acknowledge to the applicant, notify the reviewer.
                 notifier::submission_sent($jobform, $cm, $course, $USER, $submissionid);
             }
-            $msg = $status === submission_manager::STATUS_SUBMITTED
-                ? get_string('formsent', 'mod_jobform')
-                : get_string('draftsaved', 'mod_jobform');
+            if ($status !== submission_manager::STATUS_SUBMITTED) {
+                $msg = get_string('draftsaved', 'mod_jobform');
+            } else if ($updating) {
+                $msg = get_string('formupdated', 'mod_jobform');
+            } else {
+                $msg = get_string('formsent', 'mod_jobform');
+            }
             redirect($viewurl, $msg, null, \core\output\notification::NOTIFY_SUCCESS);
         } else {
             // Name and email come from the account of record (AC-4.20.2); anything
@@ -262,23 +276,26 @@ if ($cansmanage) {
         echo $OUTPUT->notification(get_string('certificaterequired', 'mod_jobform'),
             \core\output\notification::NOTIFY_WARNING);
     } else if ($entryform === null) {
-        // Locked: already submitted and resubmission disabled — show read-only answers
-        // as a clean brand-styled display (not a frozen form), on the same sheet
-        // the applicant filled in, now stamped "Sent".
-        echo $OUTPUT->notification(get_string('alreadysubmitted', 'mod_jobform'),
-            \core\output\notification::NOTIFY_INFO);
-        $existing = submission_manager::get_submission($jobform->id, $USER->id);
+        // Sent: the answers as sent, on the same sheet the applicant filled in,
+        // stamped "Sent" — a clean brand-styled display, not a frozen form.
+        // Locked (no resend allowed) says so; otherwise the sheet carries an
+        // Update button that reopens the fields.
+        if ($locked) {
+            echo $OUTPUT->notification(get_string('alreadysubmitted', 'mod_jobform'),
+                \core\output\notification::NOTIFY_INFO);
+        }
         $answers = submission_manager::get_answers($existing->id);
+        $editurl = $locked ? null : new moodle_url($viewurl, ['edit' => 1]);
         echo $OUTPUT->render(new entry_page(
             \mod_jobform\output\submission_display::render($fields, $groups, $answers),
-            $jobform, $course, $fields, $existing, $USER, true));
+            $jobform, $course, $fields, $existing, $USER, true, [], $editurl));
     } else {
         if (!$fields) {
             echo $OUTPUT->notification(get_string('noformfields', 'mod_jobform'),
                 \core\output\notification::NOTIFY_INFO);
         } else {
             // The form itself is unchanged; the sheet around it (docket, numbered
-            // sections, progress rail) is what makes it read as a real form.
+            // sections) is what makes it read as a real form.
             echo $OUTPUT->render(new entry_page($entryform->render(),
                 $jobform, $course, $fields, $existing, $USER));
         }

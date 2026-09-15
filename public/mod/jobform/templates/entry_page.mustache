@@ -31,7 +31,9 @@
     * statustext
     * version, showversion
     * readonly - bool, the body is the read-only answers
-    * resendnote - text shown when a sent form is open for editing, else empty
+    * updating - bool, a sent form with its fields reopened
+    * editurl - on a read-only sheet the applicant may resend, the URL that reopens it; else empty
+    * resendnote - the note that goes with either of those, else empty
     * hasrequired
     * body - the HTML to frame
     * versions - earlier sent versions: number, timesent, body
@@ -45,14 +47,14 @@
         "date": "15 September 2026", "datelabel": "Sent on",
         "status": "sent", "statustext": "Sent",
         "version": 2, "showversion": true,
-        "readonly": true, "resendnote": "",
+        "readonly": true, "updating": false, "editurl": "", "resendnote": "",
         "hasrequired": true,
         "body": "<div></div>",
         "versions": [{"number": 1, "timesent": "14 September 2026", "body": "<div></div>"}],
         "hasversions": true
     }
 }}
-<div class="jobform-entry jobform-entry-{{status}}{{#readonly}} jobform-entry-readonly{{/readonly}}" data-region="jobform-entry">
+<div class="jobform-entry jobform-entry-{{status}}{{#readonly}} jobform-entry-readonly{{/readonly}}{{#updating}} jobform-entry-updating{{/updating}}" data-region="jobform-entry">
     <div class="jobform-sheet">
         <header class="jobform-docket">
             <div class="jobform-docket-form">
@@ -96,6 +98,12 @@
         <div class="jobform-body">
             {{{body}}}
         </div>
+
+        {{#editurl}}
+        <div class="jobform-update">
+            <a href="{{editurl}}" class="btn btn-primary jobform-update-btn">{{#str}} updateform, mod_jobform {{/str}}</a>
+        </div>
+        {{/editurl}}
     </div>
 
     {{#hasversions}}
