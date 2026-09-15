@@ -86,10 +86,22 @@ try {
         // ── Playback ────────────────────────────────────────────────────────────
         // Mint a short-lived OTP for the video on this activity, watermarked with
         // the requesting user's identity. Call this immediately before playback.
+        // Also marks the activity viewed for the user (what mod/vdocipher/view.php
+        // does on the website), so an "automatic, require view" completion — and
+        // anything restricted on it — works for the app too.
         case 'get_playback':
             $cmid = required_param('cmid', PARAM_INT);
             vdocipher_respond(['status' => 'success',
                 'data' => \local_vdocipher\playback_service::get_playback($cmid, $USER)]);
+            break;
+
+        // Mark the activity viewed without minting an OTP. get_playback already
+        // does this; the explicit door exists for a client that wants to record
+        // the view again (e.g. when its player closes). Same inputs, idempotent.
+        case 'mark_viewed':
+            $cmid = required_param('cmid', PARAM_INT);
+            vdocipher_respond(['status' => 'success',
+                'data' => \local_vdocipher\playback_service::mark_viewed($cmid, $USER)]);
             break;
 
         // ── Teacher CRUD ────────────────────────────────────────────────────────

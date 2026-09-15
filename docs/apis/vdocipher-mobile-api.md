@@ -72,7 +72,9 @@ GET {otpurl}
     "otp": "20160313versASE323…",
     "playbackInfo": "eyJ2aWRlb0lkIjoiYWJj…",
     "watermark": "Ahmed Mohamed · ahmed@example.com",
-    "ttl": 300
+    "ttl": 300,
+    "viewed": true,
+    "completionstate": 1
   }
 }
 ```
@@ -84,6 +86,38 @@ GET {otpurl}
 
 > You may also build the URL yourself instead of using `otpurl`:
 > `POST /local/vdocipher/api.php?function=get_playback` with body `token=<wstoken>&cmid=<cmid>`.
+
+### Completion: minting the OTP counts as viewing the activity
+
+The app never loads `mod/vdocipher/view.php`, so the OTP call is where the
+server learns the student opened the video. `get_playback` therefore does what
+`view.php` does for the website once the OTP has been minted: it marks the
+activity **viewed** for the token's user and logs the module's *viewed* event.
+That is what completes an activity set to *automatic · require view*, and what
+unlocks any activity restricted on that completion.
+
+- `viewed` — `true` when the view was recorded.
+- `completionstate` — the user's completion of the activity after the call:
+  `1` = complete, `0` = incomplete (other rules still pending), `null` when
+  completion is not enabled for that activity.
+- A failed mint (VdoCipher unreachable, no access…) records nothing — a view is
+  only counted for a video the student was actually granted.
+- Idempotent: every mint, including a retry after an expired OTP, is safe.
+
+`core_completion_get_activities_completion_status` reflects the new state
+immediately, so re-reading completion when the player closes still works — but
+the app can also update its tick from `completionstate` without a second call.
+
+**`mark_viewed`** — same inputs, records the view without minting an OTP:
+
+```
+GET /local/vdocipher/api.php?function=mark_viewed&cmid=<cmid>&token=<wstoken>
+→ { "status": "success", "data": { "cmid": 1234, "viewed": true, "completionstate": 1 } }
+```
+
+`get_playback` already does this, so most apps never need it; it is there for a
+client that wants to record the view again (for example when its player
+closes). Same access check, same failure envelope, idempotent.
 
 ---
 

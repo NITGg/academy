@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "0561443d-5941-474d-a458-fe424fa3a15e",
+    "_postman_id": "a4d4196a-fa33-49a7-9b8a-ee20e3921077",
     "name": "EAAC Mobile API",
     "description": "# EAAC Mobile API\n\nEvery endpoint the EAAC mobile app calls on the Moodle 5.2 backend, ordered the way a user meets them: sign-in → browse → learn → pay → account.\n\n## Three transports\n\n| Transport | URL | Auth | Errors |\n|---|---|---|---|\n| **Moodle web service** (most calls) | `{{baseUrl}}/webservice/rest/server.php?wsfunction=…&moodlewsrestformat=json` | `wstoken` | HTTP 200 with `{\"exception\",\"errorcode\",\"message\"}` |\n| **Academy JSON protocol** (login, OTP, quizzes, instructors, video OTP) | `{{baseUrl}}/local/academy/api.php?function=…` and `/local/vdocipher/api.php` | `token` | `{\"status\":\"fail\",\"error\",\"errorcode\"}`; HTTP **401** only when the token is dead |\n| **Plain endpoints** | `getalltopics.php`, `home.php`, `design_system.php`, `certificate.php`, `googleauth/token.php` | varies (see each) | varies |\n\n## Variables (collection → Variables tab)\n\n| Variable | Meaning |\n|---|---|\n| `baseUrl` | Site root **without** trailing slash |\n| `regtoken` | Shared *Registration API* token — pre-login calls (sign-up, OTP, login, public content) |\n| `wstoken` | The signed-in user's token — filled automatically from the Login response |\n| `userid` | Filled automatically by Login / Site info |\n| `service` | `moodle_mobile_app` |\n| `lang` | `en` or `ar` — sent as `moodlewssettinglang` / `lang` |\n| `country` | ISO-2 override for pricing (e.g. `EG`, `SA`) |\n| `courseid` `cmid` `categoryid` `transactionid` `subscriptionid` | Sample ids used by the requests |\n\n## Conventions in this collection\n\n- **Read** functions are `GET` with query params; **write** functions are `POST` with an `x-www-form-urlencoded` body. Moodle accepts either for both.\n- Optional parameters are present but **unchecked** (disabled) so you can see them without sending them. Tick to send.\n- Array parameters use Moodle's form syntax: `fields[0][name]`, `customprofilefields[0][value]`, `courseids[0]`.\n- A collection-level test flags Moodle `exception` envelopes and academy `status: fail` envelopes as failed, even though the HTTP status is 200.\n- `errorcode: accessexception` means the function is **not in the token's service** — fix on the server with `php local/payments/cli/ws_diagnose.php --token=… --fix`, not in the app.\n\nSource of truth: `public/local/*/db/services.php`, `public/mod/jobform/db/services.php`, `public/local/academy/api.php`, and the guides in `docs/apis/`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -2163,7 +2163,7 @@
               "request": {
                 "method": "GET",
                 "header": [],
-                "description": "**`/local/vdocipher/api.php?function=get_playback`** — GET\n\nEnvelope: `{\"status\":\"success\",\"data\":…}` or `{\"status\":\"fail\",\"error\":\"<show>\",\"errorcode\":\"<branch on>\"}`. HTTP 401 only when the token is dead (sign the user out).\n\nSuccess → `{videoid, otp, playbackInfo, watermark, ttl}` for `EmbedInfo.streaming`. Fail → not enrolled / no access / no video attached.",
+                "description": "**`/local/vdocipher/api.php?function=get_playback`** — GET\n\nEnvelope: `{\"status\":\"success\",\"data\":…}` or `{\"status\":\"fail\",\"error\":\"<show>\",\"errorcode\":\"<branch on>\"}`. HTTP 401 only when the token is dead (sign the user out).\n\nSuccess → `{videoid, otp, playbackInfo, watermark, ttl, viewed, completionstate}` — `otp` + `playbackInfo` go to `EmbedInfo.streaming`. Minting also **marks the activity viewed** for the user (what `mod/vdocipher/view.php` does on the website), so an \"automatic · require view\" completion turns complete and anything restricted on it unlocks: `viewed` true, `completionstate` 1 = complete (null when completion is off for that activity). Fail → not enrolled / no access / no video attached.",
                 "url": {
                   "raw": "{{baseUrl}}/local/vdocipher/api.php?function=get_playback&token={{wstoken}}&cmid={{cmid}}",
                   "host": [
@@ -2191,6 +2191,52 @@
                       "key": "cmid",
                       "value": "{{cmid}}",
                       "description": "(required) Course module id of the VdoCipher activity (or just GET the activity's `otpurl`).",
+                      "disabled": false
+                    },
+                    {
+                      "key": "lang",
+                      "value": "{{lang}}",
+                      "description": "(optional) Language of error messages (en / ar).",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Mark video viewed (no OTP)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "description": "**`/local/vdocipher/api.php?function=mark_viewed`** — GET\n\nEnvelope: `{\"status\":\"success\",\"data\":…}` or `{\"status\":\"fail\",\"error\":\"<show>\",\"errorcode\":\"<branch on>\"}`. HTTP 401 only when the token is dead (sign the user out).\n\nRecords the view without minting an OTP — `get_playback` already does this, so most apps never call it; it exists for re-recording (e.g. when the player closes). Idempotent. Success → `{cmid, viewed, completionstate}`.",
+                "url": {
+                  "raw": "{{baseUrl}}/local/vdocipher/api.php?function=mark_viewed&token={{wstoken}}&cmid={{cmid}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "local",
+                    "vdocipher",
+                    "api.php"
+                  ],
+                  "query": [
+                    {
+                      "key": "function",
+                      "value": "mark_viewed",
+                      "description": "(required) ",
+                      "disabled": false
+                    },
+                    {
+                      "key": "token",
+                      "value": "{{wstoken}}",
+                      "description": "(required) Web-service token of the signed-in user.",
+                      "disabled": false
+                    },
+                    {
+                      "key": "cmid",
+                      "value": "{{cmid}}",
+                      "description": "(required) Course module id of the VdoCipher activity.",
                       "disabled": false
                     },
                     {
