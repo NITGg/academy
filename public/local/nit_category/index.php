@@ -247,20 +247,6 @@ if (file_exists($themenitlib)) {
     require_once($themenitlib);
 }
 
-// The hero over a category picture is a DARK surface in both display modes (a black
-// veil on a photograph, like the course page's hero), so its "Important words" colour
-// must come from the group that paints this page's DARK mode — the light group's
-// value is authored for a white page and goes dull on black. Same reasoning the theme
-// applies to the navbar. theme_nit_active_chrome_group('dark') honours a category's
-// own style pair; every group's roles are published on :root as --nit-brand-gN-*.
-$herowordsvar = 'var(--nit-brand-accentwords)';
-if (function_exists('theme_nit_active_chrome_group')) {
-    $darkgroup = theme_nit_active_chrome_group('dark');
-    if (preg_match('/^g[1-9]$/', $darkgroup)) {
-        $herowordsvar = 'var(--nit-brand-' . $darkgroup . '-accentwords, var(--nit-brand-accentwords))';
-    }
-}
-
 // Bilingual inline helper (site is en/ar); mirrors the theme's {mlang} pairs.
 $isar = (strpos(current_language(), 'ar') === 0);
 $t = function (string $en, string $ar) use ($isar) {
@@ -516,10 +502,8 @@ echo $OUTPUT->header();
     /* Gradients have no logical direction: flip the drawn scrim as a whole for RTL. */
     .nit-hero--art[dir="rtl"] .nit-hero__scrim { transform: scaleX(-1); }
     /* Ink on the veil: fixed white where the mode palette would otherwise pick a dark
-       Text role in light mode. The count is the palette's "Important words" role, read
-       from the DARK-mode group (--hero-words, set on the element from PHP above) because
-       this surface is dark whichever mode the visitor is in. */
-    .nit-hero--art .nit-hero__title .nit-hero__n1 { color: var(--hero-words, var(--nit-brand-accentwords)); }
+       Text role in light mode. The count is the palette's "Important words" role
+       (.nit-hero__n1 → --nit-brand-accentwords), as a word highlighted inside a heading. */
     .nit-hero--art .nit-hero__title,
     .nit-hero--art .nit-hero__title .nit-hero__n2,
     .nit-hero--art .nit-hero__stat-num { color: var(--hero-ink); }
@@ -630,7 +614,7 @@ echo $OUTPUT->header();
       font-size: 16px; font-weight: 700;
     }
   </style>
-  <div class="nit-hero<?= $hasrealimage ? ' nit-hero--art' : '' ?>" dir="<?= $isar ? 'rtl' : 'ltr' ?>"<?= $hasrealimage ? ' style="--hero-words: ' . $herowordsvar . '"' : '' ?>>
+  <div class="nit-hero<?= $hasrealimage ? ' nit-hero--art' : '' ?>" dir="<?= $isar ? 'rtl' : 'ltr' ?>">
     <?php if ($hasrealimage): ?>
     <!-- Category image (local_nit_category) as the section's backdrop: full-bleed cover,
          scrim on top. Only when this category really has one — the site logo is never
