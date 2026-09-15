@@ -142,6 +142,14 @@ class api {
      * @return void
      */
     public static function save_from_module(object $cm, \stdClass $data): void {
+        // The form did not ask, so there is nothing to store — and running on
+        // anyway would be destructive: a missing filemanager reads as an empty
+        // draft area, which file_save_draft_area_files() takes as "delete every
+        // file", and a missing checkbox reads as "switch it off".
+        if (ui::FORM_HIDDEN) {
+            return;
+        }
+
         $context = \context_module::instance((int) $cm->id);
         $change = helper::save_draft_and_detect_change($context, (int) ($data->nitai_transcript ?? 0));
         $describe = source::describe($cm);

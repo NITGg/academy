@@ -123,11 +123,22 @@ class output_callbacks {
         // fallbacks for a non-NIT theme). The course-edit form paints `.felement
         // input` with !important, so the typing field's colour/border rules are
         // !important with a descendant selector to reliably beat it.
+        //
+        // The two filled pieces — the Add button and each saved chip — are the
+        // site's main button, not a look of their own. The button IS one: it
+        // carries `.btn.btn-primary`, so theme_nit's wiring of that class to the
+        // six "Main button" roles (fill, text, border and their hover trio, see
+        // theme/nit/scss/foundation/_brand.scss) paints it, and its rule here is
+        // layout only. The chip keeps its pill shape but reads the same six
+        // roles by name, because `.btn`'s block metrics do not fit a pill with a
+        // remove control inside. Neither may fall back to Text primary: that is
+        // the page ink, which on a light group is near-black on the blue fill.
         $css = <<<'CSS'
 .nit-chips{display:flex;flex-direction:column;gap:9px;width:100%;padding:9px;border:1px solid color-mix(in srgb, var(--nit-brand-primary,#C0392B) 35%, transparent);border-radius:8px;background:var(--nit-brand-surface,#0D2149) !important;box-sizing:border-box}
 .nit-chips .nit-chips__list{display:flex;flex-wrap:wrap;gap:6px}
 .nit-chips .nit-chips__list:empty{display:none}
-.nit-chips .nit-chips__chip{display:inline-flex;align-items:center;gap:8px;background:var(--nit-brand-primary,#C0392B) !important;color:var(--nit-brand-textprimary,#fff) !important;font-weight:600;font-size:13px;padding:4px 6px 4px 12px;border-radius:40px;line-height:1.5;max-width:100%;cursor:pointer}
+.nit-chips .nit-chips__chip{display:inline-flex;align-items:center;gap:8px;background:var(--nit-brand-primary,#C0392B) !important;color:var(--nit-brand-onprimary,#fff) !important;border:1px solid var(--nit-brand-btnprimaryborder,var(--nit-brand-primary,#C0392B));font-weight:600;font-size:13px;padding:4px 6px 4px 12px;border-radius:40px;line-height:1.5;max-width:100%;cursor:pointer}
+.nit-chips .nit-chips__chip:hover{background:var(--nit-brand-btnprimaryhoverbg,var(--nit-brand-primary,#C0392B)) !important;color:var(--nit-brand-btnprimaryhovertext,#fff) !important;border-color:var(--nit-brand-btnprimaryhoverborder,var(--nit-brand-primary,#C0392B))}
 .nit-chips .nit-chips__vals{display:inline-flex;align-items:center;gap:7px;overflow:hidden}
 .nit-chips .nit-chips__label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px;color:inherit !important}
 .nit-chips .nit-chips__label:empty{display:none}
@@ -141,8 +152,7 @@ class output_callbacks {
 .nit-chips .nit-chips__input{width:100%;border:1px solid color-mix(in srgb, var(--nit-brand-textprimary,#fff) 16%, transparent) !important;outline:none !important;background:color-mix(in srgb, var(--nit-brand-textprimary,#fff) 5%, transparent) !important;color:var(--nit-brand-textprimary,#fff) !important;font:inherit;border-radius:6px;padding:8px 10px !important;margin:0 !important;height:auto !important;box-shadow:none !important;box-sizing:border-box}
 .nit-chips .nit-chips__input:focus{border-color:var(--nit-brand-primary,#C0392B) !important}
 .nit-chips .nit-chips__input::placeholder{color:var(--nit-brand-textsecondary,#8A9AB5) !important;opacity:1}
-.nit-chips .nit-chips__add{flex:0 0 auto;align-self:flex-end;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none !important;cursor:pointer;background:var(--nit-brand-primary,#C0392B) !important;color:var(--nit-brand-textprimary,#fff) !important;font:inherit;font-weight:600;border-radius:6px;padding:8px 16px !important;line-height:1.5;height:38px}
-.nit-chips .nit-chips__add:hover{background:color-mix(in srgb, var(--nit-brand-primary,#C0392B) 86%, #000) !important}
+.nit-chips .nit-chips__add{flex:0 0 auto;align-self:flex-end;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;cursor:pointer}
 CSS;
 
         // The widget attaches only to the element names PHP put in $chipnames above —
@@ -224,9 +234,11 @@ require([], function() {
 
         var enF = makeField(L.en, 'ltr', 'nit-chips__input--en');
         var arF = makeField(L.ar, 'rtl', 'nit-chips__input--ar');
+        // A real site button: `.btn.btn-primary` is what the theme paints from the
+        // "Main button" brand roles; the widget's own class only places it.
         var addBtn = document.createElement('button');
         addBtn.type = 'button';
-        addBtn.className = 'nit-chips__add';
+        addBtn.className = 'btn btn-primary nit-chips__add';
         addBtn.textContent = L.add;
 
         fields.appendChild(enF.field);

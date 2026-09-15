@@ -40,6 +40,30 @@ class ui {
     const CHAT_DRAWER_HIDDEN = true;
 
     /**
+     * Temporary kill switch for the "Smart assistant" section of the activity
+     * settings form.
+     *
+     * Hard-coded on request, and a hide rather than a removal: the section is
+     * not drawn, so the form neither loads the stored transcript into a draft
+     * area nor submits the switches — and api::save_from_module() honours the
+     * same flag, because a save that ran without those fields would read them
+     * as "off, no file" and wipe what a teacher already uploaded and approved.
+     * Everything stored stays exactly as it is. Flip this to false to bring
+     * the section back.
+     */
+    const FORM_HIDDEN = true;
+
+    /**
+     * Temporary kill switch for the teacher's "Smart assistant — transcript
+     * review" panel on the activity page.
+     *
+     * Hard-coded on request. Only the panel goes: the approve endpoint, the
+     * quiz generator page and every stored row stay as they are. Flip this to
+     * false to bring the panel back.
+     */
+    const REVIEW_PANEL_HIDDEN = true;
+
+    /**
      * Add the assistant's fields to an activity form.
      *
      * Three controls, and only one of them is a question the teacher has to
@@ -51,6 +75,10 @@ class ui {
      * @return void
      */
     public static function add_form_elements(\MoodleQuickForm $mform, ?object $cm = null): void {
+        if (self::FORM_HIDDEN) {
+            return;
+        }
+
         $mform->addElement('header', 'nitaiheader', get_string('formheader', 'local_nit_ai'));
 
         $mform->addElement('advcheckbox', 'nitai_enabled', get_string('enabled', 'local_nit_ai'));
@@ -127,6 +155,10 @@ class ui {
      * @return void
      */
     public static function prepare_form_defaults(array &$defaults, ?\context $context, int $cmid): void {
+        if (self::FORM_HIDDEN) {
+            return; // No elements to fill, and no reason to copy the file into a draft area.
+        }
+
         $draftitemid = file_get_submitted_draft_itemid('nitai_transcript');
 
         file_prepare_draft_area(
@@ -170,6 +202,10 @@ class ui {
      */
     public static function review_panel(object $cm, \context $context): string {
         global $OUTPUT;
+
+        if (self::REVIEW_PANEL_HIDDEN) {
+            return '';
+        }
 
         if (!has_capability('local/nit_ai:manage', $context)) {
             return '';
