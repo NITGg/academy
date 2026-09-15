@@ -297,6 +297,11 @@ JS;
         // button that vanished.
         [$context->nitisguest, $context->nithomeurl] = $this->guest_continue_context();
 
+        // The light/dark switch, beside the language menu in the utility line.
+        // The log-in layout has no navigation bar to carry the site's, and the
+        // mode is a cookie, so what is chosen here is what the site opens in.
+        $context->nitmodetoggle = $this->auth_mode_toggle_context();
+
         return $this->render_from_template('core/loginform', $context);
     }
 
@@ -347,6 +352,8 @@ JS;
         $context['logintoken'] = \core\session\manager::get_login_token();
         // Already the guest: a link home stands in for the button (see render_login()).
         [$context['nitisguest'], $context['nithomeurl']] = $this->guest_continue_context();
+        // The light/dark switch, the same as the log-in card's (see render_login()).
+        $context['nitmodetoggle'] = $this->auth_mode_toggle_context();
 
         return $this->render_from_template('core/signup_form_layout', $context);
     }
@@ -667,6 +674,32 @@ JS;
             'label' => $toggle['label'],
             'config' => json_encode($toggle['config']),
         ]);
+    }
+
+    /**
+     * The light/dark switch for the account screens, as template context.
+     *
+     * The log-in layout has no navigation bar, so the switch the bar carries
+     * everywhere else is missing from exactly the screens a visitor meets
+     * first — and the mode is a cookie, not a preference, so a choice made
+     * here is the mode the whole site opens in once they are through. The
+     * log-in and sign-up cards draw it in their utility line, beside the
+     * language menu, through the theme_nit/auth_mode_toggle partial.
+     *
+     * The same context as the bar's button (mode_toggle_context(): same
+     * classes, same cookie, same click handler), with `config` already encoded
+     * the way the template's data attribute wants it. Null when the switch
+     * would change nothing, and the templates then draw no control.
+     *
+     * @return array|null mode, label, config (JSON string) — or null
+     */
+    public function auth_mode_toggle_context(): ?array {
+        $toggle = $this->mode_toggle_context();
+        if ($toggle === null) {
+            return null;
+        }
+        $toggle['config'] = json_encode($toggle['config']);
+        return $toggle;
     }
 
     /**

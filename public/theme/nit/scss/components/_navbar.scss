@@ -1232,17 +1232,31 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
 // keyed off the `data-nit-mode` attribute the click handler flips (a moon while
 // the site is light, a bulb/sun while it is dark: the mode the button switches
 // TO). Top level rather than under `.nit-navbar` because the switch is drawn in
-// two places: the bar, and the Site home's hero block, which paints its own
-// copy in the corner when the bar is hidden there and wires it to the same
-// handler through window.NIT_MODE_TOGGLE. See core_renderer::mode_toggle_context().
+// three places: the bar; the Site home's hero block, which paints its own copy
+// in the corner when the bar is hidden there and wires it to the same handler
+// through window.NIT_MODE_TOGGLE; and the account screens' utility line
+// (theme_nit/auth_mode_toggle), where the bar does not exist at all. See
+// core_renderer::mode_toggle_context().
+//
+// `.nit-mode-text` is the worded copy of the same choice ("Dark mode" /
+// "Light mode") that the account screens' button carries beside its glyph, and
+// it follows the attribute the same way. Keyed here, next to the glyph rule,
+// so a copy of the switch can never show one half's word with the other
+// half's icon.
 .nit-mode-toggle {
-    .nit-mode-icon {
+    .nit-mode-icon,
+    .nit-mode-text {
         display: none;
     }
 
     &[data-nit-mode="light"] .nit-mode-icon-dark,
     &[data-nit-mode="dark"] .nit-mode-icon-light {
         display: inline-block;
+    }
+
+    &[data-nit-mode="light"] .nit-mode-text-dark,
+    &[data-nit-mode="dark"] .nit-mode-text-light {
+        display: inline;
     }
 }
 

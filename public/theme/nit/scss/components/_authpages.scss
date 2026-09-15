@@ -711,6 +711,39 @@
                 text-decoration: none;
             }
         }
+
+        // The light/dark switch: the bar's control in this line's clothes - a
+        // glyph and a word at the size of the text beside it, not the bar's
+        // 42px icon box. Which glyph and which word show is decided with the
+        // bar's rule (`.nit-mode-toggle` in _navbar.scss); this only lays them
+        // out. A flex row, so the glyph sits centred on the text in both
+        // directions; core's `.icon` brings a 16px box and a trailing margin,
+        // both replaced by the row's own gap and the button's font size.
+        //
+        // The hover underline the line's buttons share is moved onto the word:
+        // propagated to the whole row it ran under the glyph too, and an
+        // underlined moon reads as a rendering fault.
+        .nit-auth-mode-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+
+            .icon {
+                margin: 0;
+                width: auto;
+                height: auto;
+                font-size: 1em;
+            }
+
+            &:hover,
+            &:focus {
+                text-decoration: none;
+
+                .nit-mode-text {
+                    text-decoration: underline;
+                }
+            }
+        }
     }
 }
 

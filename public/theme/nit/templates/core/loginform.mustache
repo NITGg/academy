@@ -37,6 +37,8 @@
     adds:
 
     * nitrememberme - whether local_profilefields offers the 30-day "Remember me"
+    * nitmodetoggle - the light/dark switch beside the language menu, as
+      theme_nit/auth_mode_toggle context, or null when it would change nothing
 
     Everything else is core's - see lib/templates/loginform.mustache for the full
     list and an example context.
@@ -193,9 +195,13 @@
     {{/hasinstructions}}
 
     {{!
-        The utility line: the two things that are on this screen because the
-        page needs them somewhere, not because a returning learner came for them
-        - the language switcher and guest access.
+        The utility line: the things that are on this screen because the page
+        needs them somewhere, not because a returning learner came for them -
+        the language switcher, the light/dark switch and guest access.
+
+        The light/dark switch is the navigation bar's, which this layout does
+        not have: without it, these are the only screens on the site with no
+        way to choose a mode, and they are the first screens a visitor meets.
 
         Guest access sits here rather than as a full-width button of its own. It
         is not a second way to sign in - it is a way to look around without an
@@ -210,6 +216,9 @@
                 {{>core/action_menu}}
             </div>
         {{/languagemenu}}
+        {{#nitmodetoggle}}
+            {{> theme_nit/auth_mode_toggle }}
+        {{/nitmodetoggle}}
         {{#canloginasguest}}
             <form action="{{loginurl}}" method="post" id="guestlogin" class="nit-auth-guest">
                 <input type="hidden" name="logintoken" value="{{logintoken}}">
