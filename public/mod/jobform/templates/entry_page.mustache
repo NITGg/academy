@@ -106,6 +106,58 @@
         {{/editurl}}
     </div>
 
+    {{#updating}}
+    {{#js}}
+    (function() {
+        // Updating a sent form: nothing to send until something has changed,
+        // so the Update button waits, disabled, for the first edit. "Changed"
+        // is measured against what the page was rendered with — each control's
+        // default value / checked / selected state — not against a snapshot,
+        // so it needs no timing and undoing an edit disables the button again.
+        var form = document.querySelector('[data-region="jobform-entry"] form.mform');
+        var button = form && form.querySelector('#id_submitform');
+        if (!form || !button) {
+            return;
+        }
+        var changed = function() {
+            var controls = form.querySelectorAll('input, select, textarea');
+            for (var i = 0; i < controls.length; i++) {
+                var c = controls[i];
+                if (c.type === 'hidden' || c.type === 'submit' || c.type === 'button' || !c.name) {
+                    continue;
+                }
+                if (c.type === 'checkbox' || c.type === 'radio') {
+                    if (c.checked !== c.defaultChecked) {
+                        return true;
+                    }
+                } else if (c.tagName === 'SELECT') {
+                    for (var j = 0; j < c.options.length; j++) {
+                        if (c.options[j].selected !== c.options[j].defaultSelected) {
+                            return true;
+                        }
+                    }
+                } else if (c.value !== c.defaultValue) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        var refresh = function() {
+            button.disabled = !changed();
+        };
+        button.setAttribute('title', {{#quote}}{{#str}} updatenochange, mod_jobform {{/str}}{{/quote}});
+        form.addEventListener('input', refresh);
+        form.addEventListener('change', refresh);
+        // core_form/submit re-enables submit buttons as it initialises; the
+        // gate is re-applied a few times while the page's scripts settle.
+        refresh();
+        [0, 300, 1000, 2500].forEach(function(ms) {
+            setTimeout(refresh, ms);
+        });
+    })();
+    {{/js}}
+    {{/updating}}
+
     {{#hasversions}}
     <section class="jobform-versions" aria-labelledby="jobform-versions-title">
         <h3 id="jobform-versions-title" class="jobform-versions-title">{{#str}} earlierversions, mod_jobform {{/str}}</h3>

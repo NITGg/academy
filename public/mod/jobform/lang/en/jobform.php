@@ -79,6 +79,7 @@ $string['resendnote'] = 'You sent this form on {$a}. You can still update it; th
 $string['updateform'] = 'Update';
 $string['formupdated'] = 'Your application has been updated. The reviewer will see this version.';
 $string['updatingnote'] = 'You are updating the form you sent on {$a}. Press Update when you are done; the reviewer sees the latest version and keeps the earlier ones.';
+$string['updatenochange'] = 'Nothing has changed yet.';
 $string['privacy:metadata:jobform_submission_version'] = 'The earlier sent versions of a submission, kept when the student resends the form.';
 $string['privacy:metadata:jobform_submission_version:answers'] = 'The answers as they were in that version.';
 $string['privacy:metadata:jobform_submission_version:timesent'] = 'When that version was sent.';

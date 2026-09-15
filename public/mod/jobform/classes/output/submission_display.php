@@ -89,10 +89,18 @@ class submission_display {
         }
         foreach ($fields as $field) {
             $value = field_types::format_value($field, $answers[$field->id] ?? '');
+            if ($value === '') {
+                $shown = html_writer::span('—', 'text-muted');
+            } else if ($field->type === field_types::TYPE_PHONE) {
+                // "+20 1012345678" is left-to-right in any language; on an RTL
+                // page the bidi algorithm would otherwise put the "+20" last.
+                $shown = html_writer::span(s($value), '', ['dir' => 'ltr']);
+            } else {
+                $shown = s($value);
+            }
             $out .= html_writer::div(
                 html_writer::span(mlang::display($field->name), 'jobform-ro-label') .
-                html_writer::span($value !== '' ? s($value)
-                    : html_writer::span('—', 'text-muted'), 'jobform-ro-value'),
+                html_writer::span($shown, 'jobform-ro-value'),
                 'jobform-ro-row');
         }
         $out .= html_writer::end_div();
