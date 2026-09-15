@@ -17,21 +17,19 @@
 namespace mod_jobform\output;
 
 use local_jobform\field_types;
-use local_jobform\mlang;
 use mod_jobform\submission_manager;
 use renderable;
 use renderer_base;
 use templatable;
 
 /**
- * The applicant's page: the form (or the sent answers) laid out as one sheet.
+ * A Job Form laid out as one sheet: the applicant's form, their sent answers,
+ * or — for a reviewer — someone else's submission with its earlier versions.
  *
- * The moodleform itself is untouched — it still validates and saves exactly as
- * before. This only wraps its HTML in the frame a paper application form has:
- * a docket on top (which form, for which course, who is filling it in, when,
- * and its status), the numbered sections, and a side rail that tracks the
- * required fields as they are filled. The rail is progressive: without
- * JavaScript it is a plain list of the sections.
+ * The moodleform itself is untouched; this only wraps whatever HTML it is
+ * given in the frame a paper application form has: a docket on top (which
+ * form, for which course, who is filling it in, when, its status and version)
+ * and the numbered sections below. theme_nit's _jobform.scss does the layout.
  *
  * @package    mod_jobform
  * @copyright  2026 NIT
@@ -47,95 +45,41 @@ class entry_page implements renderable, templatable {
     protected object $course;
     /** @var object[] the activity's fields */
     protected array $fields;
-    /** @var array group records keyed by id, in order */
-    protected array $groups;
     /** @var object|false the applicant's submission row, if any */
     protected $submission;
     /** @var object the applicant */
     protected object $user;
-    /** @var bool true when the sheet shows sent answers rather than the form */
-    protected bool $sent;
+    /** @var bool true when the body is the sent answers rather than the form */
+    protected bool $readonly;
+    /** @var array[] earlier sent versions: each {version, timesent, body} */
+    protected array $versions;
 
     /**
      * @param string $body the rendered moodleform, or the read-only answers
      * @param object $jobform
      * @param object $course
      * @param object[] $fields
-     * @param array $groups
-     * @param object|false $submission
-     * @param object $user
-     * @param bool $sent
+     * @param object|false $submission the applicant's submission row, if any
+     * @param object $user the applicant
+     * @param bool $readonly the body is the sent answers, not the form
+     * @param array[] $versions earlier sent versions to list under the sheet,
+     *                          each {version: int, timesent: int, body: string}
      */
     public function __construct(string $body, object $jobform, object $course, array $fields,
-            array $groups, $submission, object $user, bool $sent = false) {
+            $submission, object $user, bool $readonly = false, array $versions = []) {
         $this->body = $body;
         $this->jobform = $jobform;
         $this->course = $course;
         $this->fields = array_values($fields);
-        $this->groups = $groups;
         $this->submission = $submission;
         $this->user = $user;
-        $this->sent = $sent;
+        $this->readonly = $readonly;
+        $this->versions = $versions;
     }
 
     /**
-     * The sections in the order the form shows them, mirroring
-     * {@see \mod_jobform\form\entry_form::definition()} so the rail's anchors
-     * match the fieldset ids the form emits (`id_jfgroup_N`).
-     *
-     * @return array[] each {index, number, name, anchor, required}
-     */
-    protected function sections(): array {
-        $bygroup = [];
-        foreach ($this->fields as $field) {
-            $gid = (int) ($field->groupid ?? 0);
-            if (!$gid || !isset($this->groups[$gid])) {
-                $gid = 0;
-            }
-            $bygroup[$gid][] = $field;
-        }
-        $grouped = array_diff(array_keys($bygroup), [0]);
-        if (!count($this->groups) || !count($grouped)) {
-            return [];
-        }
-
-        $sections = [];
-        $i = 0;
-        foreach ($this->groups as $group) {
-            if (empty($bygroup[$group->id])) {
-                continue;
-            }
-            $sections[] = $this->section($i++, mlang::resolve($group->name), $bygroup[$group->id]);
-        }
-        if (!empty($bygroup[0])) {
-            $sections[] = $this->section($i++, get_string('generalsection', 'mod_jobform'), $bygroup[0]);
-        }
-        return $sections;
-    }
-
-    /**
-     * One rail entry.
-     *
-     * @param int $index zero-based
-     * @param string $name resolved section title
-     * @param object[] $fields the section's fields
-     * @return array
-     */
-    protected function section(int $index, string $name, array $fields): array {
-        return [
-            'index'    => $index,
-            'number'   => sprintf('%02d', $index + 1),
-            'name'     => $name,
-            'anchor'   => 'id_jfgroup_' . $index,
-            'required' => count(array_filter($fields, [self::class, 'counts_as_required'])),
-        ];
-    }
-
-    /**
-     * Whether a field takes part in the "required fields filled" count.
-     *
-     * A fixed value is supplied by the admin, so it is never something the
-     * applicant has to fill in.
+     * Whether a field is one the applicant has to fill in (a fixed value is
+     * supplied by the admin, so it never is).
      *
      * @param object $field
      * @return bool
@@ -149,40 +93,56 @@ class entry_page implements renderable, templatable {
      * @return array
      */
     public function export_for_template(renderer_base $output): array {
+        // The status is the submission's, whatever the sheet is showing: a sent
+        // form the applicant is allowed to edit again still reads "Sent".
         $status = 'new';
-        $statustext = get_string('status_new', 'mod_jobform');
         $when = time();
-        if ($this->sent) {
+        if ($this->submission && $this->submission->status === submission_manager::STATUS_SUBMITTED) {
             $status = 'sent';
-            $statustext = get_string('status_sent', 'mod_jobform');
-            $when = (int) ($this->submission->timemodified ?? $when);
+            $when = (int) $this->submission->timemodified;
         } else if ($this->submission && $this->submission->status === submission_manager::STATUS_DRAFT) {
             $status = 'draft';
-            $statustext = get_string('status_draft', 'mod_jobform');
             $when = (int) $this->submission->timemodified;
         }
+        $dateformat = get_string('strftimedate', 'langconfig');
 
-        $sections = $this->sections();
+        // Version N = the earlier sent versions kept, plus the live one.
+        $version = $this->submission ? submission_manager::count_versions((int) $this->submission->id) + 1 : 1;
+
+        $versions = [];
+        foreach ($this->versions as $v) {
+            $versions[] = [
+                'number'   => (int) $v['version'],
+                'timesent' => userdate((int) $v['timesent'], $dateformat),
+                'body'     => $v['body'],
+            ];
+        }
+
         $required = count(array_filter($this->fields, [self::class, 'counts_as_required']));
 
         return [
-            'title'        => format_string($this->jobform->name),
-            'coursename'   => format_string($this->course->fullname),
-            'applicant'    => [
+            'title'       => format_string($this->jobform->name),
+            'coursename'  => format_string($this->course->fullname),
+            'applicant'   => [
                 'fullname' => fullname($this->user),
                 'email'    => $this->user->email,
                 'picture'  => $output->user_picture($this->user, ['size' => 48, 'link' => false]),
             ],
-            'date'         => userdate($when, get_string('strftimedate', 'langconfig')),
-            'datelabel'    => get_string('date_' . $status, 'mod_jobform'),
-            'status'       => $status,
-            'statustext'   => $statustext,
-            'sent'         => $this->sent,
-            'sections'     => $sections,
-            'hassections'  => count($sections) > 0,
-            'required'     => $required,
-            'hasrequired'  => $required > 0,
-            'body'         => $this->body,
+            'date'        => userdate($when, $dateformat),
+            'datelabel'   => get_string('date_' . $status, 'mod_jobform'),
+            'status'      => $status,
+            'statustext'  => get_string('status_' . $status, 'mod_jobform'),
+            'version'     => $version,
+            'showversion' => $version > 1,
+            'readonly'    => $this->readonly,
+            // A sent form that is open for editing: say so, and what a resend does.
+            'resendnote'  => ($status === 'sent' && !$this->readonly)
+                ? get_string('resendnote', 'mod_jobform', userdate($when, $dateformat))
+                : '',
+            'hasrequired' => $required > 0,
+            'body'        => $this->body,
+            'versions'    => $versions,
+            'hasversions' => count($versions) > 0,
         ];
     }
 }

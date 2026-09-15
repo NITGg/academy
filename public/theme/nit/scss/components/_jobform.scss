@@ -32,22 +32,8 @@
 // =============================================================================
 
 .jobform-entry {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.5rem;
-    align-items: start;
+    max-width: 62rem;
     margin-block: 1rem 2.5rem;
-
-    @include media-breakpoint-up(lg) {
-        grid-template-columns: minmax(0, 1fr) 15rem;
-        gap: 2rem;
-    }
-
-    // Once sent there is nothing left to track, so the rail is not rendered and
-    // the sheet takes the full width.
-    &.jobform-entry-sent {
-        grid-template-columns: minmax(0, 1fr);
-    }
 }
 
 // ---- The sheet ---------------------------------------------------------------
@@ -194,6 +180,18 @@
     margin: 0.75rem 0 0;
     font-size: 0.85rem;
     color: var(--nit-brand-textsecondary);
+}
+
+// A sent form that is open for editing again: one line saying so.
+.jobform-resendnote {
+    margin: 1rem 0 0;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--nit-brand-textprimary);
+    background-color: color-mix(in srgb, var(--nit-brand-info) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--nit-brand-info) 40%, transparent);
 }
 
 // ---- The form itself ----------------------------------------------------------
@@ -441,7 +439,7 @@
 // the same Surface the sheet is, so on the sheet it is a box on a box. Here
 // the groups are the same numbered sections the applicant filled in, and the
 // answers are printed under dotted rules the way a filled-in form reads.
-.jobform-entry-sent .jobform-readonly {
+.jobform-entry-readonly .jobform-readonly {
     margin-top: 0.5rem;
     counter-reset: jobform-section;
 
@@ -491,154 +489,91 @@
     }
 }
 
-// ---- The rail: progress + the sections in view --------------------------------
-.jobform-rail {
-    order: -1; // On a phone it is read first: a summary above the sheet.
-
-    @include media-breakpoint-up(lg) {
-        order: 1; // After the sheet in the grid, i.e. the end-side column.
-        position: sticky;
-        top: 5rem;
-    }
+// ---- Earlier versions (reviewer) ---------------------------------------------
+// Each version the applicant replaced, folded under its own summary line so
+// the live answers stay the thing on the page; opened, it prints on the same
+// numbered sections.
+.jobform-versions {
+    margin-top: 2rem;
 }
 
-.jobform-rail-progress {
-    padding: 1rem 1.15rem;
+.jobform-versions-title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--nit-brand-textsecondary);
+    margin: 0 0 0.75rem;
+}
+
+.jobform-version {
     border: 1px solid var(--nit-brand-borderprimary);
     border-radius: 0.75rem;
     background-color: var(--nit-brand-surface);
-    margin-bottom: 1rem;
-}
-
-.jobform-rail-count {
-    // "1 / 4" is read left to right in either language; inline so it still
-    // sits at the start edge of the card.
-    display: inline-flex;
-    /*!rtl:ignore*/
-    direction: ltr;
-    align-items: baseline;
-    gap: 0.35rem;
-    font-size: 1.6rem;
-    font-weight: 700;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
     color: var(--nit-brand-textprimary);
+    margin-bottom: 0.75rem;
 
-    .jobform-rail-of {
-        font-size: 0.95rem;
-        font-weight: 500;
-        color: var(--nit-brand-textsecondary);
+    &[open] .jobform-version-summary {
+        border-bottom: 1px solid var(--nit-brand-borderprimary);
     }
 }
 
-.jobform-rail-label {
-    margin-top: 0.25rem;
-    font-size: 0.8rem;
+.jobform-version-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1.25rem;
+    padding: 0.85rem 1.15rem;
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+
+    &::before {
+        content: "";
+        width: 0.5rem;
+        height: 0.5rem;
+        // A chevron pointing down (closed) or up (open): neither direction is
+        // a reading direction, so the RTL pass must leave the angles alone.
+        /*!rtl:begin:ignore*/
+        border-right: 2px solid currentcolor;
+        border-bottom: 2px solid currentcolor;
+        transform: rotate(45deg);
+        /*!rtl:end:ignore*/
+        margin-bottom: 0.2rem;
+        margin-inline-end: 0.35rem;
+        opacity: 0.7;
+        align-self: center;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nit-brand-primary);
+        outline-offset: -2px;
+        border-radius: 0.75rem;
+    }
+}
+
+.jobform-version[open] .jobform-version-summary::before {
+    /*!rtl:ignore*/
+    transform: rotate(-135deg);
+    margin-bottom: -0.2rem;
+}
+
+.jobform-version-number {
+    font-weight: 700;
+}
+
+.jobform-version-date {
+    font-size: 0.9rem;
     color: var(--nit-brand-textsecondary);
 }
 
-.jobform-rail-bar {
-    height: 0.4rem;
-    margin-top: 0.75rem;
-    border-radius: 999px;
-    background-color: color-mix(in srgb, var(--nit-brand-textprimary) 10%, transparent);
-    overflow: hidden;
+.jobform-version-body {
+    padding: 0.25rem 1.15rem 1rem;
 
-    span {
-        display: block;
-        height: 100%;
-        width: 0;
-        border-radius: inherit;
-        background-color: var(--nit-brand-primary);
-
-        @media (prefers-reduced-motion: no-preference) {
-            transition: width 0.25s ease;
-        }
-    }
-}
-
-.jobform-complete .jobform-rail-bar span {
-    background-color: var(--nit-brand-success);
-}
-
-.jobform-rail-sections {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-
-    @include media-breakpoint-up(lg) {
-        flex-direction: column;
-        gap: 0.15rem;
-    }
-
-    a {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        padding: 0.45rem 0.6rem;
-        border-radius: 0.5rem;
-        color: var(--nit-brand-textsecondary);
-        text-decoration: none;
-        font-size: 0.9rem;
-        line-height: 1.3;
-
-        &:hover {
-            color: var(--nit-brand-hovertext);
-            background-color: var(--nit-brand-hoverbackground);
-        }
-
-        &:focus-visible {
-            outline: 2px solid var(--nit-brand-primary);
-            outline-offset: 2px;
-        }
-    }
-
-    .jobform-rail-num {
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        font-variant-numeric: tabular-nums;
-        color: var(--nit-brand-accenttext);
-    }
-
-    .jobform-rail-name {
-        flex: 1 1 auto;
-        min-width: 0;
-    }
-
-    // The tick: an empty ring until the section's required fields are in.
-    .jobform-rail-tick {
-        flex: none;
-        width: 1rem;
-        height: 1rem;
-        border-radius: 50%;
-        border: 1.5px solid var(--nit-brand-borderprimary);
-        position: relative;
-    }
-
-    li.is-optional .jobform-rail-tick {
-        border-style: dashed;
-    }
-
-    li.is-done .jobform-rail-tick {
-        border-color: var(--nit-brand-success);
-        background-color: var(--nit-brand-success);
-
-        &::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background:
-                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.4 6.8 11 12 5.5'/%3E%3C/svg%3E")
-                center / 0.8rem no-repeat;
-        }
-    }
-
-    li.is-current a {
-        color: var(--nit-brand-textprimary);
-        font-weight: 600;
+    .jobform-readonly {
+        counter-reset: jobform-section;
     }
 }

@@ -71,10 +71,14 @@ $string['status_sent'] = 'Sent';
 $string['date_new'] = 'Date';
 $string['date_draft'] = 'Last saved';
 $string['date_sent'] = 'Sent on';
-$string['railtitle'] = 'Form progress';
-$string['requiredfilled'] = 'required fields filled';
 $string['requiredlegend'] = 'marks a required field. Everything else is optional.';
 $string['declaration'] = 'By sending this form you confirm that the information above is accurate and up to date.';
+$string['versionlabel'] = 'Version';
+$string['earlierversions'] = 'Earlier versions';
+$string['resendnote'] = 'You sent this form on {$a}. You can change it and send it again; the reviewer sees the latest version and keeps the earlier ones.';
+$string['privacy:metadata:jobform_submission_version'] = 'The earlier sent versions of a submission, kept when the student resends the form.';
+$string['privacy:metadata:jobform_submission_version:answers'] = 'The answers as they were in that version.';
+$string['privacy:metadata:jobform_submission_version:timesent'] = 'When that version was sent.';
 
 // AC-4.20.8 — acknowledgement email to the applicant. The subject is contractual.
 $string['ackemailsubject'] = 'We have received your application — EAAC';

@@ -54,6 +54,10 @@ class provider implements
         $collection->add_database_table('jobform_submission_data', [
             'value' => 'privacy:metadata:jobform_submission_data:value',
         ], 'privacy:metadata:jobform_submission_data');
+        $collection->add_database_table('jobform_submission_version', [
+            'answers'  => 'privacy:metadata:jobform_submission_version:answers',
+            'timesent' => 'privacy:metadata:jobform_submission_version:timesent',
+        ], 'privacy:metadata:jobform_submission_version');
 
         return $collection;
     }
@@ -139,10 +143,22 @@ class provider implements
                 $answers[] = ['field' => $row->fieldname, 'value' => $row->value];
             }
 
+            // Earlier sent versions (kept when the applicant resent the form).
+            $versions = [];
+            foreach ($DB->get_records('jobform_submission_version',
+                    ['submissionid' => $submission->id], 'version ASC') as $version) {
+                $versions[] = [
+                    'version'  => $version->version,
+                    'timesent' => \core_privacy\local\request\transform::datetime($version->timesent),
+                    'answers'  => json_decode((string) $version->answers, true) ?: [],
+                ];
+            }
+
             $data = (object) [
                 'status'       => $submission->status,
                 'timemodified' => \core_privacy\local\request\transform::datetime($submission->timemodified),
                 'answers'      => $answers,
+                'versions'     => $versions,
             ];
             $context_data = helper::get_context_data($context, $contextlist->get_user());
             writer::with_context($context)->export_data([], $context_data);
@@ -230,6 +246,7 @@ class provider implements
             return;
         }
         [$insql, $params] = $DB->get_in_or_equal($submissionids);
+        $DB->delete_records_select('jobform_submission_version', "submissionid $insql", $params);
         $DB->delete_records_select('jobform_submission_data', "submissionid $insql", $params);
         $DB->delete_records_select('jobform_submission', "id $insql", $params);
     }

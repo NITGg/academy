@@ -25,11 +25,11 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_jobform';
-$plugin->version   = 2026090500;                // Applicant acknowledgement can be switched off.
+$plugin->version   = 2026091500;                // Sent versions are kept when the applicant resends.
 $plugin->requires  = 2024100700;              // Moodle 4.5 LTS baseline.
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.6.0';
+$plugin->release   = '0.7.0';
 $plugin->dependencies = [
     'local_jobform' => 2026090200,            // Shared field types, default template, phone helper.
 ];

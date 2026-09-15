@@ -17,65 +17,42 @@
 {{!
     @template mod_jobform/entry_page
 
-    The applicant's sheet: a docket (which form, for which course, who, when,
-    status), the form or the sent answers, and a side rail tracking the
-    required fields. Styled by theme_nit (scss/components/_jobform.scss).
+    A Job Form as one sheet: a docket (which form, for which course, who, when,
+    status, version) and the form or the sent answers under it; for a reviewer,
+    the earlier sent versions after that. Styled by theme_nit
+    (scss/components/_jobform.scss).
 
     Context variables required for this template:
     * title - the activity name
     * coursename
-    * applicant - {fullname, email, picture}
+    * applicant - fullname, email, picture
     * date, datelabel
     * status - new | draft | sent
     * statustext
-    * sent - bool, the body is the read-only answers
-    * sections - [{number, name, anchor, required}]
-    * hassections, required, hasrequired
+    * version, showversion
+    * readonly - bool, the body is the read-only answers
+    * resendnote - text shown when a sent form is open for editing, else empty
+    * hasrequired
     * body - the HTML to frame
+    * versions - earlier sent versions: number, timesent, body
+    * hasversions
 
     Example context (json):
     {
         "title": "Job application",
         "coursename": "ReactJS",
         "applicant": {"fullname": "Sara Ali", "email": "sara@example.com", "picture": ""},
-        "date": "15 September 2026", "datelabel": "Date",
-        "status": "draft", "statustext": "Draft",
-        "sent": false,
-        "sections": [{"number": "01", "name": "Personal data", "anchor": "id_jfgroup_0", "required": 2}],
-        "hassections": true, "required": 3, "hasrequired": true,
-        "body": "<form></form>"
+        "date": "15 September 2026", "datelabel": "Sent on",
+        "status": "sent", "statustext": "Sent",
+        "version": 2, "showversion": true,
+        "readonly": true, "resendnote": "",
+        "hasrequired": true,
+        "body": "<div></div>",
+        "versions": [{"number": 1, "timesent": "14 September 2026", "body": "<div></div>"}],
+        "hasversions": true
     }
 }}
-<div class="jobform-entry jobform-entry-{{status}}" data-region="jobform-entry" data-required="{{required}}">
-    {{^sent}}
-    <aside class="jobform-rail" aria-label="{{#str}} railtitle, mod_jobform {{/str}}"{{^hassections}}{{^hasrequired}} hidden{{/hasrequired}}{{/hassections}}>
-        {{#hasrequired}}{{^sent}}
-        <div class="jobform-rail-progress" data-region="progress">
-            <div class="jobform-rail-count">
-                <span data-region="filled">0</span><span class="jobform-rail-of">/ {{required}}</span>
-            </div>
-            <div class="jobform-rail-label">{{#str}} requiredfilled, mod_jobform {{/str}}</div>
-            <div class="jobform-rail-bar" role="progressbar" aria-valuemin="0" aria-valuemax="{{required}}" aria-valuenow="0" aria-label="{{#str}} requiredfilled, mod_jobform {{/str}}">
-                <span data-region="bar"></span>
-            </div>
-        </div>
-        {{/sent}}{{/hasrequired}}
-        {{#hassections}}
-        <ol class="jobform-rail-sections">
-            {{#sections}}
-            <li data-section="{{anchor}}" data-required="{{required}}">
-                <a href="#{{anchor}}">
-                    <span class="jobform-rail-num" aria-hidden="true">{{number}}</span>
-                    <span class="jobform-rail-name">{{name}}</span>
-                    <span class="jobform-rail-tick" aria-hidden="true"></span>
-                </a>
-            </li>
-            {{/sections}}
-        </ol>
-        {{/hassections}}
-    </aside>
-    {{/sent}}
-
+<div class="jobform-entry jobform-entry-{{status}}{{#readonly}} jobform-entry-readonly{{/readonly}}" data-region="jobform-entry">
     <div class="jobform-sheet">
         <header class="jobform-docket">
             <div class="jobform-docket-form">
@@ -95,108 +72,46 @@
                     <span class="jobform-docket-key">{{datelabel}}</span>
                     <span class="jobform-docket-value">{{date}}</span>
                 </div>
+                {{#showversion}}
+                <div class="jobform-docket-date">
+                    <span class="jobform-docket-key">{{#str}} versionlabel, mod_jobform {{/str}}</span>
+                    <span class="jobform-docket-value">{{version}}</span>
+                </div>
+                {{/showversion}}
                 <span class="jobform-stamp jobform-stamp-{{status}}">{{statustext}}</span>
             </div>
         </header>
 
-        {{^sent}}{{#hasrequired}}
+        {{#resendnote}}
+        <p class="jobform-resendnote">{{resendnote}}</p>
+        {{/resendnote}}
+
+        {{^readonly}}{{#hasrequired}}
         <p class="jobform-legend">
             <span class="jobform-legend-mark" aria-hidden="true">{{#pix}} req, core {{/pix}}</span>
             {{#str}} requiredlegend, mod_jobform {{/str}}
         </p>
-        {{/hasrequired}}{{/sent}}
+        {{/hasrequired}}{{/readonly}}
 
         <div class="jobform-body">
             {{{body}}}
         </div>
     </div>
+
+    {{#hasversions}}
+    <section class="jobform-versions" aria-labelledby="jobform-versions-title">
+        <h3 id="jobform-versions-title" class="jobform-versions-title">{{#str}} earlierversions, mod_jobform {{/str}}</h3>
+        {{#versions}}
+        <details class="jobform-version">
+            <summary class="jobform-version-summary">
+                <span class="jobform-version-number">{{#str}} versionlabel, mod_jobform {{/str}} {{number}}</span>
+                <span class="jobform-version-date">{{#str}} date_sent, mod_jobform {{/str}} {{timesent}}</span>
+            </summary>
+            <div class="jobform-version-body">
+                {{{body}}}
+            </div>
+        </details>
+        {{/versions}}
+    </section>
+    {{/hasversions}}
 </div>
-{{#js}}
-(function() {
-    var root = document.querySelector('[data-region="jobform-entry"]');
-    if (!root || root.classList.contains('jobform-entry-sent')) {
-        return;
-    }
-    var body = root.querySelector('.jobform-body');
-    var filledEl = root.querySelector('[data-region="filled"]');
-    var barEl = root.querySelector('[data-region="bar"]');
-    var barBox = root.querySelector('.jobform-rail-bar');
-
-    // A required row is one whose own label carries the required marker. The
-    // fieldsets are .fitem too, so the marker must be in the row's label, not
-    // anywhere below it.
-    var requiredRows = function(scope) {
-        return Array.prototype.filter.call(scope.querySelectorAll('.fitem'), function(row) {
-            return row.querySelector(':scope > .col-form-label .form-label-addon .text-danger') !== null;
-        });
-    };
-    var isFilled = function(row) {
-        var ctrls = Array.prototype.filter.call(
-            row.querySelectorAll('input:not([type="hidden"]), select, textarea'),
-            function(c) {
-                // The phone country is preselected, so only the number decides.
-                return !c.classList.contains('profilefield-phone-country');
-            });
-        if (!ctrls.length) {
-            return false;
-        }
-        return ctrls.every(function(c) {
-            return c.type === 'checkbox' ? c.checked : String(c.value || '').trim() !== '';
-        });
-    };
-
-    var update = function() {
-        var rows = requiredRows(body);
-        var filled = rows.filter(isFilled);
-        rows.forEach(function(row) {
-            row.classList.toggle('jobform-filled', isFilled(row));
-        });
-        if (filledEl) {
-            filledEl.textContent = filled.length;
-        }
-        if (barEl && rows.length) {
-            barEl.style.width = Math.round(filled.length / rows.length * 100) + '%';
-        }
-        if (barBox) {
-            barBox.setAttribute('aria-valuenow', filled.length);
-        }
-        root.classList.toggle('jobform-complete', rows.length > 0 && filled.length === rows.length);
-
-        Array.prototype.forEach.call(root.querySelectorAll('.jobform-rail-sections li'), function(li) {
-            var section = document.getElementById(li.getAttribute('data-section'));
-            if (!section) {
-                return;
-            }
-            var need = requiredRows(section);
-            var done = need.length > 0 && need.every(isFilled);
-            li.classList.toggle('is-done', done);
-            li.classList.toggle('is-optional', need.length === 0);
-        });
-    };
-
-    body.addEventListener('input', update);
-    body.addEventListener('change', update);
-    update();
-
-    // The rail's links: highlight the section in view.
-    var links = root.querySelectorAll('.jobform-rail-sections li');
-    if ('IntersectionObserver' in window && links.length) {
-        var observer = new IntersectionObserver(function(entries) {
-            entries.forEach(function(entry) {
-                if (!entry.isIntersecting) {
-                    return;
-                }
-                Array.prototype.forEach.call(links, function(li) {
-                    li.classList.toggle('is-current', li.getAttribute('data-section') === entry.target.id);
-                });
-            });
-        }, {rootMargin: '-30% 0px -60% 0px'});
-        Array.prototype.forEach.call(links, function(li) {
-            var section = document.getElementById(li.getAttribute('data-section'));
-            if (section) {
-                observer.observe(section);
-            }
-        });
-    }
-})();
-{{/js}}

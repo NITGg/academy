@@ -126,6 +126,9 @@ class submissions_ui {
         if (!self::available()) {
             return;
         }
+        if ($DB->get_manager()->table_exists('jobform_submission_version')) {
+            $DB->delete_records('jobform_submission_version', ['submissionid' => $submissionid]);
+        }
         $DB->delete_records('jobform_submission_data', ['submissionid' => $submissionid]);
         $DB->delete_records('jobform_submission', ['id' => $submissionid]);
     }

@@ -87,5 +87,15 @@ function xmldb_jobform_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026081502, 'jobform');
     }
 
+    if ($oldversion < 2026091500) {
+        // Resending keeps the sent versions: a snapshot table of the answers a
+        // later resend replaced, so a reviewer can see what changed.
+        if (!$dbman->table_exists('jobform_submission_version')) {
+            $dbman->install_one_table_from_xmldb_file(
+                $CFG->dirroot . '/mod/jobform/db/install.xml', 'jobform_submission_version');
+        }
+        upgrade_mod_savepoint(true, 2026091500, 'jobform');
+    }
+
     return true;
 }

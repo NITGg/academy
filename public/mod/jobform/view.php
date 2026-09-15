@@ -271,7 +271,7 @@ if ($cansmanage) {
         $answers = submission_manager::get_answers($existing->id);
         echo $OUTPUT->render(new entry_page(
             \mod_jobform\output\submission_display::render($fields, $groups, $answers),
-            $jobform, $course, $fields, $groups, $existing, $USER, true));
+            $jobform, $course, $fields, $existing, $USER, true));
     } else {
         if (!$fields) {
             echo $OUTPUT->notification(get_string('noformfields', 'mod_jobform'),
@@ -280,7 +280,7 @@ if ($cansmanage) {
             // The form itself is unchanged; the sheet around it (docket, numbered
             // sections, progress rail) is what makes it read as a real form.
             echo $OUTPUT->render(new entry_page($entryform->render(),
-                $jobform, $course, $fields, $groups, $existing, $USER));
+                $jobform, $course, $fields, $existing, $USER));
         }
     }
 } else {

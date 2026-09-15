@@ -25,8 +25,10 @@
 require(__DIR__ . '/../../config.php');
 
 use local_jobform\field_types;
-use local_jobform\mlang;
+use mod_jobform\group_manager;
 use mod_jobform\instance_manager;
+use mod_jobform\output\entry_page;
+use mod_jobform\output\submission_display;
 use mod_jobform\submission_manager;
 
 $cmid = required_param('id', PARAM_INT);
@@ -52,34 +54,37 @@ $PAGE->set_heading(format_string($course->fullname));
 $PAGE->navbar->add(get_string('tabsubmissions', 'local_jobform'), $submissionsurl);
 $PAGE->navbar->add(get_string('viewsubmission', 'local_jobform'));
 
-$user = core_user::get_user($submission->userid);
+$user = core_user::get_user($submission->userid) ?: (object) [
+    'id' => $submission->userid, 'firstname' => '', 'lastname' => '', 'email' => '',
+    'picture' => 0, 'imagealt' => '', 'firstnamephonetic' => '', 'lastnamephonetic' => '',
+    'middlename' => '', 'alternatename' => '',
+];
 $fields = instance_manager::get_fields($jobform->id);
+$groups = group_manager::get_groups($jobform->id);
 $answers = submission_manager::get_answers($submissionid);
+
+// Every earlier sent version (kept when the applicant resent the form), newest
+// first, each printed on the same sections as the live answers.
+$versions = [];
+foreach (array_reverse(submission_manager::get_versions($submissionid)) as $version) {
+    $versions[] = [
+        'version'  => $version->version,
+        'timesent' => $version->timesent,
+        'body'     => submission_display::render($fields, $groups, $version->answers),
+    ];
+}
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('viewsubmission', 'local_jobform'));
 
-$meta = new html_table();
-$meta->attributes['class'] = 'generaltable';
-$meta->data[] = [get_string('student', 'local_jobform'), $user ? fullname($user) : $submission->userid];
-$meta->data[] = [get_string('submittedon', 'local_jobform'), userdate($submission->timemodified)];
-echo html_writer::table($meta);
-
-echo $OUTPUT->heading(get_string('answers', 'local_jobform'), 4);
 if (!$fields) {
     echo html_writer::div(get_string('noanswers', 'local_jobform'), 'alert alert-info');
 } else {
-    $table = new html_table();
-    $table->head = [get_string('fieldname', 'local_jobform'), get_string('answer', 'local_jobform')];
-    $table->attributes['class'] = 'generaltable';
-    foreach ($fields as $field) {
-        $value = $answers[$field->id] ?? '';
-        $table->data[] = [
-            mlang::display($field->name),
-            s(field_types::format_value($field, $value)),
-        ];
-    }
-    echo html_writer::table($table);
+    // The reviewer sees the sheet exactly as the applicant does, stamped with
+    // the submission's own status (a draft the applicant never sent reads Draft).
+    echo $OUTPUT->render(new entry_page(
+        submission_display::render($fields, $groups, $answers),
+        $jobform, $course, $fields, $submission, $user, true, $versions));
 }
 
 echo html_writer::div(

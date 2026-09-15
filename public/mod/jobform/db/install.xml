@@ -98,5 +98,22 @@
         <INDEX NAME="submission_idx" UNIQUE="false" FIELDS="submissionid"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="jobform_submission_version" COMMENT="A sent version of a submission that was later replaced: the answers as they stood when the applicant resent the form (allowresubmit).">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="submissionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="version" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1 for the first version that was sent, counting up."/>
+        <FIELD NAME="answers" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON object fieldid => stored value, as jobform_submission_data held it."/>
+        <FIELD NAME="timesent" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="When this version was sent."/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="When it was superseded (snapshot taken)."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="submission" TYPE="foreign" FIELDS="submissionid" REFTABLE="jobform_submission" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="submission_version_idx" UNIQUE="true" FIELDS="submissionid, version"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

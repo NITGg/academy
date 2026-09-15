@@ -79,6 +79,7 @@ class submission_manager {
                 ['id' => $submissionid, 'jobformid' => $jobformid])) {
             return;
         }
+        $DB->delete_records('jobform_submission_version', ['submissionid' => $submissionid]);
         $DB->delete_records('jobform_submission_data', ['submissionid' => $submissionid]);
         $DB->delete_records('jobform_submission', ['id' => $submissionid]);
     }
@@ -114,6 +115,11 @@ class submission_manager {
         $now = time();
         $submission = self::get_submission($jobformid, $userid);
         if ($submission) {
+            if ($submission->status === self::STATUS_SUBMITTED) {
+                // A sent form is about to be overwritten (allowresubmit): keep
+                // what was sent, so a reviewer can see every version.
+                self::snapshot_version($submission);
+            }
             $submission->status = $status;
             $submission->timemodified = $now;
             $DB->update_record('jobform_submission', $submission);
@@ -138,5 +144,59 @@ class submission_manager {
         }
 
         return (int) $submission->id;
+    }
+
+    /**
+     * Store the answers a submission currently holds as its next sent version.
+     *
+     * Called just before a resend replaces them. The row records when that
+     * version was sent (the submission's timemodified at the time), so the
+     * reviewer's list reads "version 1, sent on …; version 2, sent on …".
+     *
+     * @param object $submission the row as it stands, status submitted
+     * @return int the version number stored
+     */
+    public static function snapshot_version(object $submission): int {
+        global $DB;
+        $version = self::count_versions((int) $submission->id) + 1;
+        $DB->insert_record('jobform_submission_version', (object) [
+            'submissionid' => $submission->id,
+            'version'      => $version,
+            'answers'      => json_encode(self::get_answers((int) $submission->id)),
+            'timesent'     => $submission->timemodified,
+            'timecreated'  => time(),
+        ]);
+        return $version;
+    }
+
+    /**
+     * How many earlier sent versions a submission has.
+     *
+     * The live row is the one after them: with two stored versions, the answers
+     * in jobform_submission_data are version 3.
+     *
+     * @param int $submissionid
+     * @return int
+     */
+    public static function count_versions(int $submissionid): int {
+        global $DB;
+        return $DB->count_records('jobform_submission_version', ['submissionid' => $submissionid]);
+    }
+
+    /**
+     * The earlier sent versions of a submission, oldest first, answers decoded.
+     *
+     * @param int $submissionid
+     * @return object[] each {id, version, answers (fieldid => value), timesent}
+     */
+    public static function get_versions(int $submissionid): array {
+        global $DB;
+        $rows = $DB->get_records('jobform_submission_version',
+            ['submissionid' => $submissionid], 'version ASC');
+        foreach ($rows as $row) {
+            $decoded = json_decode((string) $row->answers, true);
+            $row->answers = is_array($decoded) ? $decoded : [];
+        }
+        return array_values($rows);
     }
 }

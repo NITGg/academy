@@ -71,10 +71,14 @@ $string['status_sent'] = 'تم الإرسال';
 $string['date_new'] = 'التاريخ';
 $string['date_draft'] = 'آخر حفظ';
 $string['date_sent'] = 'أُرسلت في';
-$string['railtitle'] = 'تقدّم الاستمارة';
-$string['requiredfilled'] = 'حقول مطلوبة تم ملؤها';
 $string['requiredlegend'] = 'تعني أن الحقل مطلوب. باقي الحقول اختيارية.';
 $string['declaration'] = 'بإرسال هذه الاستمارة تؤكد أن البيانات أعلاه صحيحة ومحدَّثة.';
+$string['versionlabel'] = 'النسخة';
+$string['earlierversions'] = 'النسخ السابقة';
+$string['resendnote'] = 'أرسلت هذه الاستمارة في {$a}. يمكنك تعديلها وإرسالها من جديد؛ يرى المراجع أحدث نسخة ويحتفظ بالنسخ السابقة.';
+$string['privacy:metadata:jobform_submission_version'] = 'النسخ المرسلة السابقة من الاستمارة، تُحفظ عندما يعيد الطالب الإرسال.';
+$string['privacy:metadata:jobform_submission_version:answers'] = 'الإجابات كما كانت في تلك النسخة.';
+$string['privacy:metadata:jobform_submission_version:timesent'] = 'وقت إرسال تلك النسخة.';
 
 // AC-4.20.8 — رسالة تأكيد الاستلام للمتقدّم. عنوان الرسالة متفق عليه حرفيًا.
 $string['ackemailsubject'] = 'تم استلام طلبك — EAAC';
