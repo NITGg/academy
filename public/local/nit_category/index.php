@@ -502,12 +502,11 @@ echo $OUTPUT->header();
     /* Gradients have no logical direction: flip the drawn scrim as a whole for RTL. */
     .nit-hero--art[dir="rtl"] .nit-hero__scrim { transform: scaleX(-1); }
     /* Ink on the veil: fixed white where the mode palette would otherwise pick a dark
-       Text/Accent-text role in light mode; the accent count is a light tint of the
-       brand Accent so it still reads as brand without dropping below the veil. */
+       Text role in light mode. The count keeps the palette's Accent Text role
+       (.nit-hero__n1 → --ctext3) exactly as on every other heading of this page. */
     .nit-hero--art .nit-hero__title,
     .nit-hero--art .nit-hero__title .nit-hero__n2,
     .nit-hero--art .nit-hero__stat-num { color: var(--hero-ink); }
-    .nit-hero--art .nit-hero__title .nit-hero__n1 { color: color-mix(in srgb, var(--caccent) 60%, #fff); }
     .nit-hero--art .nit-hero__sub,
     .nit-hero--art .nit-hero__sub *,
     .nit-hero--art .nit-hero__stat-label { color: var(--hero-muted); }

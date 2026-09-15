@@ -1,0 +1,200 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_jobform/entry_page
+
+    The applicant's sheet: a docket (which form, for which course, who, when,
+    status), the form or the sent answers, and a side rail tracking the
+    required fields. Styled by theme_nit (scss/components/_jobform.scss).
+
+    Context variables required for this template:
+    * title - the activity name
+    * coursename
+    * applicant - {fullname, email, picture}
+    * date, datelabel
+    * status - new | draft | sent
+    * statustext
+    * sent - bool, the body is the read-only answers
+    * sections - [{number, name, anchor, required}]
+    * hassections, required, hasrequired
+    * body - the HTML to frame
+
+    Example context (json):
+    {
+        "title": "Job application",
+        "coursename": "ReactJS",
+        "applicant": {"fullname": "Sara Ali", "email": "sara@example.com", "picture": ""},
+        "date": "15 September 2026", "datelabel": "Date",
+        "status": "draft", "statustext": "Draft",
+        "sent": false,
+        "sections": [{"number": "01", "name": "Personal data", "anchor": "id_jfgroup_0", "required": 2}],
+        "hassections": true, "required": 3, "hasrequired": true,
+        "body": "<form></form>"
+    }
+}}
+<div class="jobform-entry jobform-entry-{{status}}" data-region="jobform-entry" data-required="{{required}}">
+    <aside class="jobform-rail" aria-label="{{#str}} railtitle, mod_jobform {{/str}}"{{^hassections}}{{^hasrequired}} hidden{{/hasrequired}}{{/hassections}}>
+        {{#hasrequired}}{{^sent}}
+        <div class="jobform-rail-progress" data-region="progress">
+            <div class="jobform-rail-count">
+                <span data-region="filled">0</span><span class="jobform-rail-of">/ {{required}}</span>
+            </div>
+            <div class="jobform-rail-label">{{#str}} requiredfilled, mod_jobform {{/str}}</div>
+            <div class="jobform-rail-bar" role="progressbar" aria-valuemin="0" aria-valuemax="{{required}}" aria-valuenow="0" aria-label="{{#str}} requiredfilled, mod_jobform {{/str}}">
+                <span data-region="bar"></span>
+            </div>
+        </div>
+        {{/sent}}{{/hasrequired}}
+        {{#hassections}}
+        <ol class="jobform-rail-sections">
+            {{#sections}}
+            <li data-section="{{anchor}}" data-required="{{required}}">
+                <a href="#{{anchor}}">
+                    <span class="jobform-rail-num" aria-hidden="true">{{number}}</span>
+                    <span class="jobform-rail-name">{{name}}</span>
+                    <span class="jobform-rail-tick" aria-hidden="true"></span>
+                </a>
+            </li>
+            {{/sections}}
+        </ol>
+        {{/hassections}}
+    </aside>
+
+    <div class="jobform-sheet">
+        <header class="jobform-docket">
+            <div class="jobform-docket-form">
+                <span class="jobform-eyebrow">{{#str}} sheeteyebrow, mod_jobform {{/str}}</span>
+                <h2 class="jobform-docket-title">{{title}}</h2>
+                <span class="jobform-docket-course">{{coursename}}</span>
+            </div>
+            <div class="jobform-docket-meta">
+                <div class="jobform-applicant">
+                    <span class="jobform-applicant-picture">{{{applicant.picture}}}</span>
+                    <span class="jobform-applicant-text">
+                        <span class="jobform-applicant-name">{{applicant.fullname}}</span>
+                        <span class="jobform-applicant-email">{{applicant.email}}</span>
+                    </span>
+                </div>
+                <div class="jobform-docket-date">
+                    <span class="jobform-docket-key">{{datelabel}}</span>
+                    <span class="jobform-docket-value">{{date}}</span>
+                </div>
+                <span class="jobform-stamp jobform-stamp-{{status}}">{{statustext}}</span>
+            </div>
+        </header>
+
+        {{^sent}}{{#hasrequired}}
+        <p class="jobform-legend">
+            <span class="jobform-legend-mark" aria-hidden="true">{{#pix}} req, core {{/pix}}</span>
+            {{#str}} requiredlegend, mod_jobform {{/str}}
+        </p>
+        {{/hasrequired}}{{/sent}}
+
+        <div class="jobform-body">
+            {{{body}}}
+        </div>
+    </div>
+</div>
+{{#js}}
+(function() {
+    var root = document.querySelector('[data-region="jobform-entry"]');
+    if (!root || root.classList.contains('jobform-entry-sent')) {
+        return;
+    }
+    var body = root.querySelector('.jobform-body');
+    var filledEl = root.querySelector('[data-region="filled"]');
+    var barEl = root.querySelector('[data-region="bar"]');
+    var barBox = root.querySelector('.jobform-rail-bar');
+
+    // A required row is one whose own label carries the required marker. The
+    // fieldsets are .fitem too, so the marker must be in the row's label, not
+    // anywhere below it.
+    var requiredRows = function(scope) {
+        return Array.prototype.filter.call(scope.querySelectorAll('.fitem'), function(row) {
+            return row.querySelector(':scope > .col-form-label .form-label-addon .text-danger') !== null;
+        });
+    };
+    var isFilled = function(row) {
+        var ctrls = Array.prototype.filter.call(
+            row.querySelectorAll('input:not([type="hidden"]), select, textarea'),
+            function(c) {
+                // The phone country is preselected, so only the number decides.
+                return !c.classList.contains('profilefield-phone-country');
+            });
+        if (!ctrls.length) {
+            return false;
+        }
+        return ctrls.every(function(c) {
+            return c.type === 'checkbox' ? c.checked : String(c.value || '').trim() !== '';
+        });
+    };
+
+    var update = function() {
+        var rows = requiredRows(body);
+        var filled = rows.filter(isFilled);
+        rows.forEach(function(row) {
+            row.classList.toggle('jobform-filled', isFilled(row));
+        });
+        if (filledEl) {
+            filledEl.textContent = filled.length;
+        }
+        if (barEl && rows.length) {
+            barEl.style.width = Math.round(filled.length / rows.length * 100) + '%';
+        }
+        if (barBox) {
+            barBox.setAttribute('aria-valuenow', filled.length);
+        }
+        root.classList.toggle('jobform-complete', rows.length > 0 && filled.length === rows.length);
+
+        Array.prototype.forEach.call(root.querySelectorAll('.jobform-rail-sections li'), function(li) {
+            var section = document.getElementById(li.getAttribute('data-section'));
+            if (!section) {
+                return;
+            }
+            var need = requiredRows(section);
+            var done = need.length > 0 && need.every(isFilled);
+            li.classList.toggle('is-done', done);
+            li.classList.toggle('is-optional', need.length === 0);
+        });
+    };
+
+    body.addEventListener('input', update);
+    body.addEventListener('change', update);
+    update();
+
+    // The rail's links: highlight the section in view.
+    var links = root.querySelectorAll('.jobform-rail-sections li');
+    if ('IntersectionObserver' in window && links.length) {
+        var observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (!entry.isIntersecting) {
+                    return;
+                }
+                Array.prototype.forEach.call(links, function(li) {
+                    li.classList.toggle('is-current', li.getAttribute('data-section') === entry.target.id);
+                });
+            });
+        }, {rootMargin: '-30% 0px -60% 0px'});
+        Array.prototype.forEach.call(links, function(li) {
+            var section = document.getElementById(li.getAttribute('data-section'));
+            if (section) {
+                observer.observe(section);
+            }
+        });
+    }
+})();
+{{/js}}

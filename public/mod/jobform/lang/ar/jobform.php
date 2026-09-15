@@ -63,6 +63,18 @@ $string['savedraft'] = 'حفظ كمسودة';
 $string['formsent'] = 'شكرًا لك. تم استلام طلبك. سيتواصل معك فريقنا في حال مطابقة ملفك لمتطلبات الوظيفة.';
 $string['draftsaved'] = 'تم حفظ المسودة.';
 
+// ورقة المتقدّم (view.php): الترويسة، الشريط الجانبي، والتذييل.
+$string['sheeteyebrow'] = 'استمارة تقديم';
+$string['status_new'] = 'لم تُرسل بعد';
+$string['status_draft'] = 'مسودة';
+$string['status_sent'] = 'تم الإرسال';
+$string['date_today'] = 'التاريخ';
+$string['date_saved'] = 'آخر حفظ';
+$string['railtitle'] = 'تقدّم الاستمارة';
+$string['requiredfilled'] = 'حقول مطلوبة تم ملؤها';
+$string['requiredlegend'] = 'تعني أن الحقل مطلوب. باقي الحقول اختيارية.';
+$string['declaration'] = 'بإرسال هذه الاستمارة تؤكد أن البيانات أعلاه صحيحة ومحدَّثة.';
+
 // AC-4.20.8 — رسالة تأكيد الاستلام للمتقدّم. عنوان الرسالة متفق عليه حرفيًا.
 $string['ackemailsubject'] = 'تم استلام طلبك — EAAC';
 $string['ackemailgreeting'] = 'مرحبًا {$a}،';

@@ -34,6 +34,7 @@ use mod_jobform\submission_manager;
 use mod_jobform\notifier;
 use mod_jobform\form\entry_form;
 use mod_jobform\output\activity_submissions;
+use mod_jobform\output\entry_page;
 
 $id = required_param('id', PARAM_INT); // Course module id.
 
@@ -262,18 +263,24 @@ if ($cansmanage) {
             \core\output\notification::NOTIFY_WARNING);
     } else if ($entryform === null) {
         // Locked: already submitted and resubmission disabled — show read-only answers
-        // as a clean brand-styled display (not a frozen form).
+        // as a clean brand-styled display (not a frozen form), on the same sheet
+        // the applicant filled in, now stamped "Sent".
         echo $OUTPUT->notification(get_string('alreadysubmitted', 'mod_jobform'),
             \core\output\notification::NOTIFY_INFO);
         $existing = submission_manager::get_submission($jobform->id, $USER->id);
         $answers = submission_manager::get_answers($existing->id);
-        echo \mod_jobform\output\submission_display::render($fields, $groups, $answers);
+        echo $OUTPUT->render(new entry_page(
+            \mod_jobform\output\submission_display::render($fields, $groups, $answers),
+            $jobform, $course, $fields, $groups, $existing, $USER, true));
     } else {
         if (!$fields) {
             echo $OUTPUT->notification(get_string('noformfields', 'mod_jobform'),
                 \core\output\notification::NOTIFY_INFO);
         } else {
-            $entryform->display();
+            // The form itself is unchanged; the sheet around it (docket, numbered
+            // sections, progress rail) is what makes it read as a real form.
+            echo $OUTPUT->render(new entry_page($entryform->render(),
+                $jobform, $course, $fields, $groups, $existing, $USER));
         }
     }
 } else {

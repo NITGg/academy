@@ -93,6 +93,15 @@ class entry_form extends \moodleform {
         if ($readonly) {
             $mform->hardFreeze();
         } else {
+            // The declaration and the buttons are the sheet's footer, not part
+            // of whichever section happens to come last: a header element in a
+            // moodleform swallows everything after it, so close it first.
+            $mform->addElement('static', 'jobform_declaration', '',
+                get_string('declaration', 'mod_jobform'));
+            if ($usesections) {
+                $mform->closeHeaderBefore('jobform_declaration');
+            }
+
             // Send the form.
             $buttonarray = [];
             $buttonarray[] = $mform->createElement('submit', 'submitform',

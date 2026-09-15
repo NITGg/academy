@@ -1,0 +1,584 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+// =============================================================================
+// Job Form (mod_jobform) — the applicant's sheet.
+//
+// A moodleform, left alone, reads as a settings page: a label column on the
+// left, a short box on the right, collapsible fieldsets, "Collapse all". What an
+// applicant expects is a form: one sheet, a docket on top saying which form
+// this is and who is filling it in, numbered sections divided by rules, labels
+// sitting above full-width fields, and a footer with a declaration and the one
+// button that sends it. mod_jobform/entry_page wraps the (unchanged) form in
+// that frame; this partial lays it out. The moodleform's own classes are the
+// hooks — nothing in core is touched.
+//
+// Every colour is a brand role: the sheet is Surface on the page's Background,
+// rules are Border primary, section numbers are Accent Text, labels are Text
+// secondary, and the status stamp takes Warning (draft) or Success (sent).
+// Written LTR with logical properties; the RTL sheet is generated.
+// =============================================================================
+
+.jobform-entry {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+    margin-block: 1rem 2.5rem;
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: minmax(0, 1fr) 15rem;
+        gap: 2rem;
+    }
+}
+
+// ---- The sheet ---------------------------------------------------------------
+.jobform-sheet {
+    @include nit-elevation(1);
+    background-color: var(--nit-brand-surface);
+    color: var(--nit-brand-textprimary);
+    border: 1px solid var(--nit-brand-borderprimary);
+    border-radius: 0.75rem;
+    padding: clamp(1.25rem, 3vw, 2.5rem);
+    // A form is a tall thing; the top edge carries a thicker rule the way a
+    // printed sheet carries its header band.
+    border-top: 4px solid var(--nit-brand-primary);
+}
+
+// ---- Docket: which form, for which course, who, when, status ----------------
+.jobform-docket {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.25rem 2rem;
+    padding-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--nit-brand-borderprimary);
+}
+
+.jobform-docket-form {
+    flex: 1 1 18rem;
+    min-width: 0;
+}
+
+.jobform-eyebrow {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--nit-brand-textsecondary);
+    margin-bottom: 0.35rem;
+}
+
+.jobform-docket-title {
+    font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+    font-weight: 700;
+    line-height: 1.15;
+    margin: 0 0 0.25rem;
+    color: var(--nit-brand-textprimary);
+    overflow-wrap: anywhere;
+}
+
+.jobform-docket-course {
+    display: block;
+    color: var(--nit-brand-textsecondary);
+}
+
+.jobform-docket-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.75rem;
+}
+
+.jobform-applicant {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.jobform-applicant-picture .userpicture {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    border: 1px solid var(--nit-brand-borderprimary);
+}
+
+.jobform-applicant-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.jobform-applicant-name {
+    font-weight: 600;
+    color: var(--nit-brand-textprimary);
+}
+
+.jobform-applicant-email {
+    font-size: 0.85rem;
+    color: var(--nit-brand-textsecondary);
+    overflow-wrap: anywhere;
+}
+
+.jobform-docket-date {
+    display: flex;
+    flex-direction: column;
+}
+
+.jobform-docket-key {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--nit-brand-textsecondary);
+}
+
+.jobform-docket-value {
+    color: var(--nit-brand-textprimary);
+    font-variant-numeric: tabular-nums;
+}
+
+// The status stamp: the one flourish. An inked rubber stamp, slightly askew, in
+// the colour its state means — a quiet outline while nothing is sent, Warning
+// for a draft, Success once it has gone.
+.jobform-stamp {
+    display: inline-block;
+    padding: 0.3rem 0.75rem;
+    border: 2px solid currentcolor;
+    border-radius: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    color: var(--nit-brand-textsecondary);
+    transform: rotate(-5deg);
+    opacity: 0.9;
+
+    &.jobform-stamp-draft {
+        color: var(--nit-brand-warning);
+    }
+
+    &.jobform-stamp-sent {
+        color: var(--nit-brand-success);
+    }
+}
+
+// The "! = required" key under the docket.
+.jobform-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.75rem 0 0;
+    font-size: 0.85rem;
+    color: var(--nit-brand-textsecondary);
+}
+
+// ---- The form itself ----------------------------------------------------------
+.jobform-body .mform {
+    // "Collapse all" and the per-section chevrons: a sheet does not fold. The
+    // "! Required" key core appends under the buttons is the one the docket
+    // already shows at the top, where a form keeps it.
+    .collapsible-actions,
+    fieldset.collapsible .ftoggler a.fheader,
+    .fdescription.required {
+        display: none !important;
+    }
+
+    // Each fieldset is a section: a rule above it, a numbered title.
+    counter-reset: jobform-section;
+
+    fieldset.collapsible {
+        counter-increment: jobform-section;
+        margin: 0;
+        padding: 1.5rem 0 0.5rem;
+        border-top: 1px solid var(--nit-brand-borderprimary);
+
+        &:first-of-type {
+            border-top: 0;
+        }
+
+        // Core wraps the title in a flex row with a toggler; keep the row, drop
+        // its bottom gap, and put the number in front of the title.
+        > .d-flex.align-items-center {
+            margin-bottom: 1rem !important;
+        }
+
+        .ftoggler {
+            margin: 0 !important;
+        }
+
+        .ftoggler h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--nit-brand-textprimary);
+            gap: 0.75rem;
+
+            &::before {
+                content: counter(jobform-section, decimal-leading-zero);
+                font-size: 0.8rem;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                font-variant-numeric: tabular-nums;
+                color: var(--nit-brand-accenttext);
+                padding: 0.15rem 0.45rem;
+                border: 1px solid color-mix(in srgb, var(--nit-brand-accent) 45%, transparent);
+                border-radius: 0.3rem;
+                line-height: 1.2;
+            }
+        }
+
+        // The fields: two columns where there is room, one where there is not.
+        .fcontainer {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+            gap: 1.1rem 1.5rem;
+
+            // Sections that are always shown: nothing to animate.
+            &.collapse:not(.show) {
+                display: grid;
+            }
+        }
+    }
+
+    // A form row becomes label-over-field. `.row` is Bootstrap's gutter grid;
+    // both halves are told to fill the cell instead of splitting it 3/9.
+    .fitem.row {
+        display: block;
+        margin: 0 !important;
+        min-width: 0;
+
+        > .col-form-label,
+        > .felement {
+            width: 100%;
+            max-width: 100%;
+            flex: none;
+            padding: 0;
+        }
+
+        > .col-form-label {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-bottom: 0.35rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--nit-brand-textsecondary);
+
+            label {
+                margin: 0;
+            }
+
+            // Boost pushes the required mark to the far end of a label column
+            // (margin-left: auto above md); with the label on its own line the
+            // mark belongs right after the words, the way an asterisk does.
+            .form-label-addon {
+                align-self: center;
+                margin-left: 0.25rem; // Physical on purpose: rtlcss flips it, as it flips Boost's.
+            }
+        }
+
+        > .felement {
+            flex-direction: column;
+            align-items: stretch;
+
+            > .form-control,
+            > .form-select,
+            > .form-autocomplete-container {
+                width: 100%;
+            }
+
+            // The error line under a field.
+            .form-control-feedback {
+                width: 100%;
+            }
+        }
+    }
+
+    // The phone control, a multi-pick list and a date (three selects and an
+    // Enable box) are wide; give them the whole line.
+    .fitem:has(> .felement[data-fieldtype="group"]),
+    .fitem:has(> .felement[data-fieldtype="autocomplete"]),
+    .fitem:has(> .felement[data-fieldtype="date_selector"]) {
+        grid-column: 1 / -1;
+    }
+
+    // The multi-pick list: the chosen chips on one line, the search box under
+    // them, both as wide as the field.
+    .felement[data-fieldtype="autocomplete"] {
+        .form-autocomplete-input {
+            display: block !important;
+            width: 100%;
+            margin-inline-end: 0 !important;
+
+            .form-control {
+                width: 100%;
+            }
+        }
+    }
+
+    // Core's group layout for the phone control is a d-flex row; keep it a row
+    // (the column direction above is for the single-control case only).
+    .felement[data-fieldtype="group"] {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    // A tick box: the box first, its wording after it, on one line.
+    .fitem:has(> .felement[data-fieldtype="advcheckbox"]) {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 0.6rem;
+
+        > .col-form-label {
+            width: auto;
+            margin: 0;
+            font-weight: 500;
+            color: var(--nit-brand-textprimary);
+        }
+
+        > .felement {
+            width: auto;
+        }
+    }
+
+    // A fixed value the admin set: printed on the form, not typed in.
+    .felement[data-fieldtype="static"] .form-control-static {
+        padding: 0.4rem 0;
+        border-bottom: 1px dashed var(--nit-brand-borderprimary);
+        color: var(--nit-brand-textprimary);
+    }
+
+    // A date is three selects and, when optional, an Enable box; they read as a
+    // group, so keep them on one line and let each keep its own width.
+    .felement[data-fieldtype="date_selector"] {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    // ---- Footer: declaration + Send ---------------------------------------
+    // Both sit outside the last section (entry_form closes the header before
+    // the declaration), so they can carry the sheet's closing rule.
+    #fitem_id_jobform_declaration {
+        margin-top: 1.5rem !important;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--nit-brand-borderprimary);
+
+        > .col-form-label {
+            display: none;
+        }
+
+        .form-control-static {
+            font-size: 0.9rem;
+            color: var(--nit-brand-textsecondary);
+            line-height: 1.5;
+        }
+    }
+
+    #fgroup_id_buttonar {
+        margin-top: 1rem !important;
+
+        > .col-form-label {
+            display: none;
+        }
+
+        > .felement {
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 0.5rem;
+
+            .fitem {
+                margin: 0 !important;
+            }
+        }
+
+        #id_submitform {
+            padding-inline: 1.75rem;
+            font-weight: 600;
+        }
+
+        #id_cancel {
+            @extend .btn-link;
+            color: var(--nit-brand-textsecondary);
+
+            &:hover,
+            &:focus {
+                color: var(--nit-brand-hovertext);
+            }
+        }
+    }
+}
+
+// ---- Sent: the read-only answers on the same sheet ----------------------------
+.jobform-entry-sent .jobform-readonly {
+    margin-top: 1rem;
+}
+
+// ---- The rail: progress + the sections in view --------------------------------
+.jobform-rail {
+    order: -1; // On a phone it is read first: a summary above the sheet.
+
+    @include media-breakpoint-up(lg) {
+        order: 1; // After the sheet in the grid, i.e. the end-side column.
+        position: sticky;
+        top: 5rem;
+    }
+}
+
+.jobform-rail-progress {
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--nit-brand-borderprimary);
+    border-radius: 0.75rem;
+    background-color: var(--nit-brand-surface);
+    margin-bottom: 1rem;
+}
+
+.jobform-rail-count {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--nit-brand-textprimary);
+
+    .jobform-rail-of {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--nit-brand-textsecondary);
+    }
+}
+
+.jobform-rail-label {
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--nit-brand-textsecondary);
+}
+
+.jobform-rail-bar {
+    height: 0.4rem;
+    margin-top: 0.75rem;
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--nit-brand-textprimary) 10%, transparent);
+    overflow: hidden;
+
+    span {
+        display: block;
+        height: 100%;
+        width: 0;
+        border-radius: inherit;
+        background-color: var(--nit-brand-primary);
+
+        @media (prefers-reduced-motion: no-preference) {
+            transition: width 0.25s ease;
+        }
+    }
+}
+
+.jobform-complete .jobform-rail-bar span {
+    background-color: var(--nit-brand-success);
+}
+
+.jobform-rail-sections {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+
+    @include media-breakpoint-up(lg) {
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
+    a {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.45rem 0.6rem;
+        border-radius: 0.5rem;
+        color: var(--nit-brand-textsecondary);
+        text-decoration: none;
+        font-size: 0.9rem;
+        line-height: 1.3;
+
+        &:hover {
+            color: var(--nit-brand-hovertext);
+            background-color: var(--nit-brand-hoverbackground);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--nit-brand-primary);
+            outline-offset: 2px;
+        }
+    }
+
+    .jobform-rail-num {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        font-variant-numeric: tabular-nums;
+        color: var(--nit-brand-accenttext);
+    }
+
+    .jobform-rail-name {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    // The tick: an empty ring until the section's required fields are in.
+    .jobform-rail-tick {
+        flex: none;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        border: 1.5px solid var(--nit-brand-borderprimary);
+        position: relative;
+    }
+
+    li.is-optional .jobform-rail-tick {
+        border-style: dashed;
+    }
+
+    li.is-done .jobform-rail-tick {
+        border-color: var(--nit-brand-success);
+        background-color: var(--nit-brand-success);
+
+        &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.4 6.8 11 12 5.5'/%3E%3C/svg%3E")
+                center / 0.8rem no-repeat;
+        }
+    }
+
+    li.is-current a {
+        color: var(--nit-brand-textprimary);
+        font-weight: 600;
+    }
+}

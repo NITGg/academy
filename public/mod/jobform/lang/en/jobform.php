@@ -63,6 +63,18 @@ $string['savedraft'] = 'Save draft';
 $string['formsent'] = 'Thank you. Your application has been received. Our team will contact you if your profile matches the role.';
 $string['draftsaved'] = 'Your draft has been saved.';
 
+// The applicant's sheet (view.php): the docket, the rail and the footer.
+$string['sheeteyebrow'] = 'Application form';
+$string['status_new'] = 'Not sent';
+$string['status_draft'] = 'Draft';
+$string['status_sent'] = 'Sent';
+$string['date_today'] = 'Date';
+$string['date_saved'] = 'Last saved';
+$string['railtitle'] = 'Form progress';
+$string['requiredfilled'] = 'required fields filled';
+$string['requiredlegend'] = 'marks a required field. Everything else is optional.';
+$string['declaration'] = 'By sending this form you confirm that the information above is accurate and up to date.';
+
 // AC-4.20.8 — acknowledgement email to the applicant. The subject is contractual.
 $string['ackemailsubject'] = 'We have received your application — EAAC';
 $string['ackemailgreeting'] = 'Hi {$a},';
