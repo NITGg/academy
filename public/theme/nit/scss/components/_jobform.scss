@@ -455,7 +455,10 @@
 }
 
 .jobform-rail-count {
-    display: flex;
+    // "1 / 4" is read left to right in either language; inline so it still
+    // sits at the start edge of the card.
+    display: inline-flex;
+    direction: ltr;
     align-items: baseline;
     gap: 0.35rem;
     font-size: 1.6rem;

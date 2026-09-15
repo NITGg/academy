@@ -502,8 +502,8 @@ echo $OUTPUT->header();
     /* Gradients have no logical direction: flip the drawn scrim as a whole for RTL. */
     .nit-hero--art[dir="rtl"] .nit-hero__scrim { transform: scaleX(-1); }
     /* Ink on the veil: fixed white where the mode palette would otherwise pick a dark
-       Text role in light mode. The count keeps the palette's Accent Text role
-       (.nit-hero__n1 → --ctext3) exactly as on every other heading of this page. */
+       Text role in light mode. The count is the palette's "Important words" role
+       (.nit-hero__n1 → --nit-brand-accentwords), as a word highlighted inside a heading. */
     .nit-hero--art .nit-hero__title,
     .nit-hero--art .nit-hero__title .nit-hero__n2,
     .nit-hero--art .nit-hero__stat-num { color: var(--hero-ink); }
@@ -576,7 +576,7 @@ echo $OUTPUT->header();
       color: var(--ctext1);
       animation: nit-fadeup 0.9s ease 0.1s both;
     }
-    .nit-hero__title .nit-hero__n1 { color: var(--ctext3); }
+    .nit-hero__title .nit-hero__n1 { color: var(--nit-brand-accentwords, var(--ctext3)); }
     .nit-hero__title .nit-hero__n2 { color: var(--ctext1); }
 
     /* Description — X-Trade .hero-sub : clamp(1rem, 2vw, 1.25rem) = 16/20px.
