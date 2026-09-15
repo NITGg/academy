@@ -36,6 +36,7 @@
     * resendnote - the note that goes with either of those, else empty
     * hasrequired
     * body - the HTML to frame
+    * signature - on a read-only sheet, the signature line HTML; else empty
     * versions - earlier sent versions: number, timesent, body
     * hasversions
 
@@ -50,6 +51,7 @@
         "readonly": true, "updating": false, "editurl": "", "resendnote": "",
         "hasrequired": true,
         "body": "<div></div>",
+        "signature": "",
         "versions": [{"number": 1, "timesent": "14 September 2026", "body": "<div></div>"}],
         "hasversions": true
     }
@@ -98,6 +100,8 @@
         <div class="jobform-body">
             {{{body}}}
         </div>
+
+        {{{signature}}}
 
         {{#editurl}}
         <div class="jobform-update">

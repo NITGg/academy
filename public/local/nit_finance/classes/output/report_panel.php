@@ -244,14 +244,11 @@ class report_panel {
 .nitfr-intro { color: var(--nit-brand-textsecondary); max-width: 80ch; margin-bottom: 1rem; }
 
 /* Scope strip: only the master report shows one, but it is styled here so that page and the
-   four embedded panels cannot drift apart. */
+   four embedded panels cannot drift apart. Each pill is a real `.btn` — `btn-primary` when
+   selected, `btn-outline-primary` otherwise — so its colours are the Brand Colors button roles
+   and match the Apply button beside it; only the pill shape is added here. */
 .nitfr-scopes { display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:1rem; }
-.nitfr-scopes button { border:1px solid var(--nit-brand-borderprimary); background:var(--nit-brand-surface);
-    color:var(--nit-brand-textprimary); border-radius:999px; padding:.3rem .9rem; cursor:pointer;
-    font-size:.9rem; }
-.nitfr-scopes button:hover { border-color:var(--nit-brand-primary); }
-.nitfr-scopes button.is-active { background:var(--nit-brand-primary);
-    border-color:var(--nit-brand-primary); color:var(--nit-brand-hovertext, var(--nit-brand-textprimary)); }
+.nitfr-scopes .btn { border-radius:999px; padding:.3rem .9rem; font-size:.9rem; }
 
 /* Filters */
 .nitfr-filters { display:flex; flex-wrap:wrap; gap:var(--nitfr-gap); align-items:flex-end; margin-bottom:1rem; }

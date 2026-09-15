@@ -80,6 +80,7 @@ $string['updateform'] = 'تحديث';
 $string['formupdated'] = 'تم تحديث استمارتك. سيرى المراجع هذه النسخة.';
 $string['updatingnote'] = 'أنت تحدّث الاستمارة التي أرسلتها في {$a}. اضغط «تحديث» عند الانتهاء؛ يرى المراجع أحدث نسخة ويحتفظ بالنسخ السابقة.';
 $string['updatenochange'] = 'لم يتغير شيء بعد.';
+$string['signature'] = 'التوقيع';
 $string['privacy:metadata:jobform_submission_version'] = 'النسخ المرسلة السابقة من الاستمارة، تُحفظ عندما يعيد الطالب الإرسال.';
 $string['privacy:metadata:jobform_submission_version:answers'] = 'الإجابات كما كانت في تلك النسخة.';
 $string['privacy:metadata:jobform_submission_version:timesent'] = 'وقت إرسال تلك النسخة.';

@@ -30,6 +30,16 @@ namespace local_nit_ai;
 class ui {
 
     /**
+     * Temporary kill switch for the student's "Ask about the lesson" drawer.
+     *
+     * Hard-coded on request: the feature is not to be shown to students for
+     * now, but nothing else changes — teachers keep the review panel, the
+     * transcript stays stored and approved, and the ask web service is
+     * untouched. Flip this to false to bring the drawer back.
+     */
+    const CHAT_DRAWER_HIDDEN = true;
+
+    /**
      * Add the assistant's fields to an activity form.
      *
      * Three controls, and only one of them is a question the teacher has to
@@ -331,6 +341,10 @@ class ui {
      */
     public static function chat_drawer(object $cm, \context $context): string {
         global $OUTPUT, $PAGE;
+
+        if (self::CHAT_DRAWER_HIDDEN) {
+            return '';
+        }
 
         $describe = source::describe($cm);
         if (!api::is_available($cm, $context, $describe['ref'])) {

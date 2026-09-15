@@ -37,16 +37,49 @@
 }
 
 // ---- The sheet ---------------------------------------------------------------
+// The paper: Surface warmed by a touch of the Warning role (a hair of ochre —
+// on the light group a cream, on a dark group barely there) under a faint
+// grain. The grain is a tiny SVG turbulence at 4%, the same on every group.
+$jobform-paper: color-mix(in srgb, var(--nit-brand-surface) 97%, var(--nit-brand-warning));
+$jobform-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+
 .jobform-sheet {
-    @include nit-elevation(1);
-    background-color: var(--nit-brand-surface);
+    position: relative;
+    background-color: $jobform-paper;
+    background-image: $jobform-grain;
     color: var(--nit-brand-textprimary);
     border: 1px solid var(--nit-brand-borderprimary);
-    border-radius: 0.75rem;
-    padding: clamp(1.25rem, 3vw, 2.5rem);
+    // Paper has a corner, not a pill: the site's radius scaled right down.
+    border-radius: 0.25rem;
+    padding: clamp(1.25rem, 3vw, 2.75rem);
     // A form is a tall thing; the top edge carries a thicker rule the way a
     // printed sheet carries its header band.
     border-top: 4px solid var(--nit-brand-primary);
+    // The page lies on the desk: a soft close shadow plus the sheet beneath it
+    // in the stack, peeking out at the bottom edge, a degree askew.
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.12),
+        0 10px 28px -12px rgba(0, 0, 0, 0.35);
+
+    &::before {
+        content: "";
+        position: absolute;
+        inset: 0.5rem -0.25rem -0.5rem 0.25rem;
+        z-index: -1;
+        background-color: $jobform-paper;
+        border: 1px solid var(--nit-brand-borderprimary);
+        border-radius: 0.25rem;
+        /*!rtl:ignore*/
+        transform: rotate(0.6deg);
+        opacity: 0.9;
+    }
+}
+
+.jobform-entry {
+    // The stacked sheet behind sits at z-index -1: give it a stacking context
+    // of its own so it stays above the page background.
+    position: relative;
+    z-index: 0;
 }
 
 // ---- Docket: which form, for which course, who, when, status ----------------
@@ -90,11 +123,33 @@
     color: var(--nit-brand-textsecondary);
 }
 
+// The meta block reads as the boxed cells of a printed form header: applicant,
+// date, version butted into one row of ruled cells, the stamp beside them.
 .jobform-docket-meta {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 1rem 1.75rem;
+    align-items: stretch;
+    gap: 0;
+
+    > .jobform-applicant,
+    > .jobform-docket-date {
+        padding: 0.55rem 0.9rem;
+        border: 1px solid var(--nit-brand-borderprimary);
+        justify-content: center;
+    }
+
+    > .jobform-docket-date + .jobform-docket-date,
+    > .jobform-applicant + .jobform-docket-date {
+        // Neighbouring cells share one rule: overlap the borders rather than
+        // dropping one, so a cell that wraps onto its own line on a phone
+        // still has all four edges.
+        margin-inline-start: -1px;
+    }
+
+    > .jobform-stamp {
+        align-self: center;
+        margin-inline-start: 1.25rem;
+    }
 }
 
 .jobform-applicant {
@@ -131,6 +186,7 @@
 .jobform-docket-date {
     display: flex;
     flex-direction: column;
+    white-space: nowrap;
 }
 
 .jobform-docket-key {
@@ -151,17 +207,21 @@
 // for a draft, Success once it has gone.
 .jobform-stamp {
     display: inline-block;
-    padding: 0.3rem 0.75rem;
+    padding: 0.35rem 0.8rem;
     border: 2px solid currentcolor;
-    border-radius: 0.35rem;
+    outline: 1px solid currentcolor;
+    outline-offset: 2px;
+    border-radius: 0.3rem;
     font-size: 0.78rem;
     font-weight: 700;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     line-height: 1.2;
     color: var(--nit-brand-textsecondary);
     transform: rotate(-5deg);
-    opacity: 0.9;
+    opacity: 0.85;
+    // Ink never sits perfectly: a hair of blur on the edges.
+    text-shadow: 0 0 0.4px currentcolor;
 
     &.jobform-stamp-draft {
         color: var(--nit-brand-warning);
@@ -218,10 +278,14 @@
             border-top: 0;
         }
 
-        // Core wraps the title in a flex row with a toggler; keep the row, drop
-        // its bottom gap, and put the number in front of the title.
+        // Core wraps the title in a flex row with a toggler; the row becomes a
+        // printed band across the sheet, the number in a box in front of the
+        // title.
         > .d-flex.align-items-center {
-            margin-bottom: 1rem !important;
+            margin-bottom: 1.1rem !important;
+            padding: 0.4rem 0.7rem;
+            background-color: color-mix(in srgb, var(--nit-brand-textprimary) 5%, transparent);
+            border-block: 1px solid color-mix(in srgb, var(--nit-brand-textprimary) 12%, transparent);
         }
 
         .ftoggler {
@@ -306,6 +370,15 @@
             > .form-select,
             > .form-autocomplete-container {
                 width: 100%;
+            }
+
+            // The boxes are printed on the paper: paper-coloured, a ruled edge,
+            // a square-ish corner. Focus keeps the site's own ring.
+            .form-control,
+            .form-select {
+                background-color: color-mix(in srgb, var(--nit-brand-background) 30%, $jobform-paper);
+                border-color: color-mix(in srgb, var(--nit-brand-textprimary) 28%, transparent);
+                border-radius: 0.2rem;
             }
 
             // The error line under a field.
@@ -395,6 +468,16 @@
             font-size: 0.9rem;
             color: var(--nit-brand-textsecondary);
             line-height: 1.5;
+        }
+    }
+
+    // "Signed" line: the applicant's name written over a rule, the date next to
+    // it — the part of a paper form that makes sending it feel like signing it.
+    #fitem_id_jobform_signature {
+        margin-top: 0.75rem !important;
+
+        > .col-form-label {
+            display: none;
         }
     }
 
@@ -592,4 +675,45 @@
         padding-inline: 1.75rem;
         font-weight: 600;
     }
+}
+
+// ---- Signature line ----------------------------------------------------------
+// Shared by the editable footer (a static element in the form) and the
+// read-only sheet (printed by the template).
+.jobform-signature {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2.5rem;
+    margin-top: 0.5rem;
+}
+
+.jobform-signature-cell {
+    display: flex;
+    flex-direction: column;
+    min-width: 12rem;
+    flex: 1 1 12rem;
+}
+
+.jobform-signature-value {
+    padding: 0.35rem 0.25rem 0.3rem;
+    border-bottom: 1px solid var(--nit-brand-textprimary);
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--nit-brand-textprimary);
+    min-height: 2rem;
+}
+
+.jobform-signature-key {
+    margin-top: 0.3rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--nit-brand-textsecondary);
+}
+
+.jobform-entry-readonly .jobform-signature {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--nit-brand-borderprimary);
 }

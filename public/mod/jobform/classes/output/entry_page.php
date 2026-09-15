@@ -153,6 +153,10 @@ class entry_page implements renderable, templatable {
             'editurl'     => $this->editurl ? $this->editurl->out(false) : '',
             'hasrequired' => $required > 0,
             'body'        => $this->body,
+            // The read-only sheet ends on the signature line, dated as sent.
+            'signature'   => $this->readonly && $status !== 'new'
+                ? \mod_jobform\form\entry_form::signature_html(fullname($this->user), $when)
+                : '',
             'versions'    => $versions,
             'hasversions' => count($versions) > 0,
         ];

@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_nit_finance';
-$plugin->version   = 2026091201;   // Shared financial report panel + reset_financial_data CLI.
+$plugin->version   = 2026091500;   // Report scope pills are brand buttons (btn-primary / btn-outline-primary).
 $plugin->requires  = 2024100700;              // Moodle 4.5 LTS baseline.
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_ALPHA;

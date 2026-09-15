@@ -276,7 +276,11 @@
         nav.hidden = false;
         nav.innerHTML = '';
         CFG.scopes.forEach(function (scope) {
-            var btn = el('button', scope.key === state.scope ? 'is-active' : '', esc(scope.label));
+            // The strip is a row of the site's own buttons: the selected scope is the filled
+            // primary (the same fill and text as "Apply" beside it) and the rest are the outline
+            // one, so every colour comes from the Brand Colors button roles.
+            var btn = el('button', 'btn btn-sm ' + (scope.key === state.scope
+                ? 'btn-primary is-active' : 'btn-outline-primary'), esc(scope.label));
             btn.type = 'button';
             btn.addEventListener('click', function () {
                 if (scope.key === state.scope) {
