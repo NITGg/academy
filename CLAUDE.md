@@ -54,6 +54,14 @@ original against ours whenever Moodle or `mod_customcert` moves:
   registry hard-codes the bundled types and cannot be overridden in place. If
   upstream ever makes `studentname` snapshot-aware, drop ours and convert the
   rows back.
+- **`public/mod/customcert/load_template.php`** carries our ONE edit to upstream
+  `mod_customcert` (5.2.4): the no-op `use action_link;` at the top was deleted.
+  PHP warns "use statement … has no effect" at *compile* time — before
+  `config.php` runs — so on a server with `display_errors` on the warning is
+  output before the headers and the *Load template* confirm page dies with
+  `sessionstarterror`. Upstream `main` still had the line when we patched it
+  (2026-09-15); after every `mod_customcert` update re-check the file and delete
+  the line again if it is back.
 
 ## Two plugins of ours that live outside `local/`
 
@@ -84,6 +92,7 @@ done | sort -u \
   | grep -vE '^public/(local|theme/nit|blocks/nit_section)/' \
   | grep -vE '^public/user/profile/field/phone/' \
   | grep -vE '^public/mod/customcert/element/nitstudentname/' \
+  | grep -v '^public/mod/customcert/load_template.php$' \
   | grep -vE '\.upgradenotes/|\.github/|^\.git|docs/|README|SECURITY|robots|config\.php'
 ```
 
