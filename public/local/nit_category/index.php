@@ -477,30 +477,55 @@ echo $OUTPUT->header();
       display: block; width: 100%; height: 100%;
       object-fit: cover; object-position: center;
     }
-    .nit-hero__scrim {
-      inset: 0;
-      background:
+    /* The scrim is BLACK whatever the mode — the same one the course page's hero
+       wears (theme_nit _coursepage.scss --cr-scrim): a photograph under a dark veil is
+       a surface whose luminance is fixed, so its ink is fixed too (white), and the
+       section reads the same in light and dark. The brand only supplies the accents.
+       Solid on the text side, clearing to the picture on the other; a lighter band
+       along the bottom keeps the buttons and any print baked into the banner apart. */
+    .nit-hero--art {
+      --hero-ink: #fff;
+      --hero-muted: rgba(255, 255, 255, .74);
+      --hero-scrim:
         linear-gradient(90deg,
-          var(--cbg2) 0%,
-          color-mix(in srgb, var(--cbg2) 88%, transparent) 34%,
-          color-mix(in srgb, var(--cbg2) 45%, transparent) 56%,
-          transparent 100%),
+          rgba(0, 0, 0, .84) 0%,
+          rgba(0, 0, 0, .84) 34%,
+          rgba(0, 0, 0, .48) 52%,
+          rgba(0, 0, 0, .14) 72%,
+          rgba(0, 0, 0, .06) 100%),
         linear-gradient(0deg,
-          var(--cbg2) 0%,
-          color-mix(in srgb, var(--cbg2) 60%, transparent) 22%,
-          transparent 48%);
+          rgba(0, 0, 0, .45) 0%,
+          transparent 40%);
+      color: var(--hero-ink);
     }
-    .nit-hero--art[dir="rtl"] .nit-hero__scrim {
-      background:
-        linear-gradient(270deg,
-          var(--cbg2) 0%,
-          color-mix(in srgb, var(--cbg2) 88%, transparent) 34%,
-          color-mix(in srgb, var(--cbg2) 45%, transparent) 56%,
-          transparent 100%),
-        linear-gradient(0deg,
-          var(--cbg2) 0%,
-          color-mix(in srgb, var(--cbg2) 60%, transparent) 22%,
-          transparent 48%);
+    .nit-hero__scrim { inset: 0; background: var(--hero-scrim); }
+    /* Gradients have no logical direction: flip the drawn scrim as a whole for RTL. */
+    .nit-hero--art[dir="rtl"] .nit-hero__scrim { transform: scaleX(-1); }
+    /* Ink on the veil: fixed white where the mode palette would otherwise pick a dark
+       Text/Accent-text role in light mode; the accent count is a light tint of the
+       brand Accent so it still reads as brand without dropping below the veil. */
+    .nit-hero--art .nit-hero__title,
+    .nit-hero--art .nit-hero__title .nit-hero__n2,
+    .nit-hero--art .nit-hero__stat-num { color: var(--hero-ink); }
+    .nit-hero--art .nit-hero__title .nit-hero__n1 { color: color-mix(in srgb, var(--caccent) 60%, #fff); }
+    .nit-hero--art .nit-hero__sub,
+    .nit-hero--art .nit-hero__sub *,
+    .nit-hero--art .nit-hero__stat-label { color: var(--hero-muted); }
+    .nit-hero--art .nit-hero__badge {
+      background: rgba(255, 255, 255, .12);
+      border-color: rgba(255, 255, 255, .28);
+      color: var(--hero-ink);
+    }
+    .nit-hero--art .nit-hero__btns .btn-outline-primary {
+      color: var(--hero-ink);
+      border-color: rgba(255, 255, 255, .55);
+      background: rgba(255, 255, 255, .06);
+    }
+    .nit-hero--art .nit-hero__btns .btn-outline-primary:hover,
+    .nit-hero--art .nit-hero__btns .btn-outline-primary:focus-visible {
+      color: #111;
+      background: var(--hero-ink);
+      border-color: var(--hero-ink);
     }
     /* The copy column: start-aligned on the solid side of the scrim, capped so the
        title wraps at three or four words a line and never runs under the picture. */
@@ -519,12 +544,11 @@ echo $OUTPUT->header();
          text sits — so it stays legible over whichever part of the picture shows. */
       .nit-hero--art { padding-inline: 5%; min-height: 0; }
       .nit-hero--art .nit-hero__inner { max-width: 100%; }
-      .nit-hero__scrim, .nit-hero--art[dir="rtl"] .nit-hero__scrim {
-        background: linear-gradient(180deg,
-          color-mix(in srgb, var(--cbg2) 30%, transparent) 0%,
-          color-mix(in srgb, var(--cbg2) 86%, transparent) 34%,
-          color-mix(in srgb, var(--cbg2) 95%, transparent) 62%,
-          var(--cbg2) 100%);
+      .nit-hero--art {
+        --hero-scrim: linear-gradient(180deg,
+          rgba(0, 0, 0, .40) 0%,
+          rgba(0, 0, 0, .74) 34%,
+          rgba(0, 0, 0, .82) 100%);
       }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -831,6 +855,27 @@ echo $OUTPUT->header();
   </section>
   <?php endif; ?>
 
+  <?php
+  // ── "Continue learning", narrowed to this category ────────────────────────────────────────
+  //
+  // The same block the home page uses, asked a narrower question: the courses this learner
+  // already owns INSIDE this category. It is rendered from the theme's block file rather than
+  // written out again here, so the card design has exactly one definition — see
+  // local_nit_category_render_home_block(). The only things changed are the block's own data-*
+  // attributes, which are the contract between a block and the page hosting it.
+  //
+  // data-empty="hide": on the home page a learner with nothing enrolled is invited to browse
+  // the catalogue, but they are already standing in the catalogue here, so an empty section
+  // simply stays away. The block hides itself until the feed answers, so there is never a gap.
+  echo local_nit_category_render_home_block('home_my_course_block.html', [
+      'data-nit-mycourse=""' => 'data-nit-mycourse="" data-category="' . (int) $categoryid . '"',
+      'data-limit="2"'       => 'data-limit="3"',
+      'data-empty="show"'    => 'data-empty="hide"',
+      'data-viewall="/local/nit_category/mycourses.php"'
+          => 'data-viewall="/local/nit_category/mycourses.php?categoryid=' . (int) $categoryid . '"',
+  ], $context);
+  ?>
+
   <!-- Subcategory Filter Bar (All + children). Filters in place — see the script below. -->
   <?php if (!empty($subcategories)): ?>
   <div id="nit-cat-filters" style="padding: 32px 16px 0;" data-nit-catfilter data-category="<?= (int) $categoryid ?>">
@@ -869,27 +914,6 @@ echo $OUTPUT->header();
   </div>
   <?php endif; ?>
 
-  <?php
-  // ── "Continue learning", narrowed to this category ────────────────────────────────────────
-  //
-  // The same block the home page uses, asked a narrower question: the courses this learner
-  // already owns INSIDE this category. It is rendered from the theme's block file rather than
-  // written out again here, so the card design has exactly one definition — see
-  // local_nit_category_render_home_block(). The only things changed are the block's own data-*
-  // attributes, which are the contract between a block and the page hosting it.
-  //
-  // data-empty="hide": on the home page a learner with nothing enrolled is invited to browse
-  // the catalogue, but they are already standing in the catalogue here, so an empty section
-  // simply stays away. The block hides itself until the feed answers, so there is never a gap.
-  echo local_nit_category_render_home_block('home_my_course_block.html', [
-      'data-nit-mycourse=""' => 'data-nit-mycourse="" data-category="' . (int) $categoryid . '"',
-      'data-limit="2"'       => 'data-limit="3"',
-      'data-empty="show"'    => 'data-empty="hide"',
-      'data-viewall="/local/nit_category/mycourses.php"'
-          => 'data-viewall="/local/nit_category/mycourses.php?categoryid=' . (int) $categoryid . '"',
-  ], $context);
-  ?>
-
   <!-- Courses Section (the "Explore specializations" landing spot on a leaf category) -->
   <div id="nit-cat-courses" style="padding: 32px 16px 16px;">
     <div style="max-width: 1200px; margin: 0 auto;">
@@ -897,7 +921,7 @@ echo $OUTPUT->header();
       <?php
         // One card renderer, shared by every section. $sectionname is the category the
         // card lives under (its header), so the card can show that category's name.
-        $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo, $nitpricetags, $nitcountrynotice, $courselevels, $levelmeter, $levelmax) {
+        $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo, $nitpricetags, $nitcountrynotice) {
             $courseurl  = new moodle_url('/course/view.php', ['id' => $course->id]);
             $coursename = $course->get_formatted_name();
 
@@ -925,27 +949,14 @@ echo $OUTPUT->header();
             $detailsurl = $courseurl->out();
             $enrolurl   = (new moodle_url('/local/nit_subscriptions/enrol.php',
                 ['courseid' => $course->id, 'sesskey' => sesskey()]))->out(false);
-
-            // The course's rung on the Level ladder, printed as a badge beside the category
-            // chip.
-            $level    = $courselevels[(int) $course->id] ?? null;
         ?>
         <!-- Course Card: fixed min-height + stretch grid => every card is the same size. -->
         <div class="nit-course-card" data-nit-course="<?= (int) $course->id ?>" style="background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; height: 100%; min-height: 320px; transition: box-shadow 0.3s ease;" onmouseover="this.style.boxShadow='0 12px 28px rgba(0,0,0,0.38)';" onmouseout="this.style.boxShadow='none';">
 
-          <!-- Top row: category chip (where the course lives) + level badge (its rung). -->
-          <div class="nit-card-top">
-            <!-- Category name pill: rounded tint + circle icon (matches nested titles) -->
-            <div class="nit-card-cat">
-              <span class="nit-card-cat-dot"></span>
-              <span><?= $sectionname ?></span>
-            </div>
-            <?php if ($level): ?>
-            <span class="nit-card-lvl"<?= $levelmax > 0 ? ' title="' . s($t('Level', 'المستوى') . ' ' . $level['index'] . ' / ' . $levelmax) . '"' : '' ?>>
-              <?= $levelmeter($level['index']) ?>
-              <span><?= $level['label'] ?></span>
-            </span>
-            <?php endif; ?>
+          <!-- Category name pill: rounded tint + circle icon (matches nested titles) -->
+          <div class="nit-card-cat">
+            <span class="nit-card-cat-dot"></span>
+            <span><?= $sectionname ?></span>
           </div>
 
           <!-- Course name -->
@@ -1105,7 +1116,6 @@ echo $OUTPUT->header();
               <span class="nit-spec-pin">📌</span>
               <?php endif; ?>
               <span class="nit-spec-name"><?= $name ?></span>
-              <span class="nit-spec-count">(<?= $count ?>)</span>
             </h3>
             <?php if ($subcount > 0 || $levelspan !== ''): ?>
             <!-- Structure line: what is inside, before it is scrolled. -->
@@ -1139,14 +1149,9 @@ echo $OUTPUT->header();
             <section class="nit-lvl-group<?= $isnone ? ' nit-lvl-group--none' : '' ?>" data-nit-lvlgroup="<?= s($group['key']) ?>">
               <?php if ($showrungs): ?>
               <h4 class="nit-spec-title nit-spec-title--sub nit-lvl-title">
-                <?php if (!$isnone && $levelmax > 0): ?>
-                <span class="nit-lvl-step"><?= $group['index'] ?></span>
-                <?php else: ?>
                 <span class="nit-spec-dot"></span>
-                <?php endif; ?>
                 <span class="nit-spec-subname"><?= $group['label'] ?></span>
                 <?= $isnone ? '' : $levelmeter($group['index']) ?>
-                <span class="nit-spec-count">(<?= count($group['courses']) ?>)</span>
               </h4>
               <?php endif; ?>
               <div class="nit-spec-grid">
@@ -1258,26 +1263,12 @@ echo $OUTPUT->header();
         /* ── Levels ─────────────────────────────────────────────────────────────
            The third tier. A category (any depth) gets the big title above; its
            courses are then grouped rung by rung, and each rung wears the soft accent
-           chip a nested category used to wear — a step circle, the label, a small
-           meter lit up to that rung, and the count. The same meter sits on every card. */
+           chip a nested category used to wear — dot, label, and a small meter lit up
+           to that rung. */
 
         .nit-course-card[hidden], .nit-lvl-group[hidden], .nit-spec-block[hidden] { display: none !important; }
 
-        /* Card top row: category chip at the start, level badge at the end. */
-        .nit-card-top {
-          display: flex; align-items: flex-start; justify-content: space-between;
-          gap: 8px; margin-bottom: 16px;
-        }
-        .nit-card-top .nit-card-cat { margin-bottom: 0; }
-        .nit-card-lvl {
-          display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto;
-          padding: 6px 10px; border-radius: 4px;
-          background: color-mix(in srgb, var(--cbg4) 12%, transparent);
-          border: 1px solid color-mix(in srgb, var(--cbg4) 40%, transparent);
-          color: var(--ctext1); font-size: 12px; font-weight: bold; white-space: nowrap;
-        }
-
-        /* The meter: one bar per rung of the ladder, lit up to the course's rung. */
+        /* The meter: one bar per rung of the ladder, lit up to the rung in question. */
         .nit-lvl-meter { display: inline-flex; align-items: flex-end; gap: 2px; flex: 0 0 auto; }
         .nit-lvl-meter i {
           display: block; width: 4px; height: 12px; border-radius: 2px;
@@ -1285,18 +1276,10 @@ echo $OUTPUT->header();
         }
         .nit-lvl-meter i.on { background: currentColor; }
 
-        /* The step circle: the rung number, standing where the chip's dot would be. */
-        .nit-lvl-step {
-          display: inline-flex; align-items: center; justify-content: center;
-          width: 26px; height: 26px; border-radius: 50%; flex: 0 0 auto;
-          background: var(--ctext3); color: var(--cbg2);
-          font-size: 13px; font-weight: 800; line-height: 1;
-        }
-
         /* Rung chip inside a category. */
         .nit-lvl-groups { display: flex; flex-direction: column; gap: 28px; }
         .nit-lvl-title { margin-bottom: 18px; }
-        .nit-lvl-title .nit-lvl-meter { color: var(--ctext3); margin-inline-start: 2px; }
+        .nit-lvl-title .nit-lvl-meter { color: var(--ctext3); }
         .nit-lvl-group--none .nit-lvl-title {
           background: color-mix(in srgb, var(--ctext2) 12%, transparent);
           border-color: color-mix(in srgb, var(--ctext2) 35%, transparent);
