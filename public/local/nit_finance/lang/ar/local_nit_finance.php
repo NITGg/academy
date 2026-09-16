@@ -176,6 +176,7 @@ $string['rep_detail_couponbeaten'] = 'الكوبون {$a} لم يُطبَّق ل
 $string['rep_offer'] = 'عرض';
 $string['rep_nocode'] = 'بدون كود';
 $string['rep_itemgone'] = '(محذوف)';
+$string['rep_userdeleted'] = '(حساب محذوف)';
 
 // كيف تم الاسترداد.
 $string['rep_refund_gateway'] = 'عبر بوابة الدفع';

@@ -380,7 +380,7 @@ class revenue {
 
         $sql = "SELECT t.id, t.userid, t.courseid, t.amount, t.original_amount, t.currency,
                        t.status, t.order_id, t.metadata, t.country, t.timecreated, t.timemodified,
-                       u.firstname, u.lastname, u.email,
+                       u.firstname, u.lastname, u.email, u.deleted,
                        rf.refunded, rf.refundcount, rf.refundtime, rf.allmanual
                   FROM {local_payments_transactions} t
                   JOIN {user} u ON u.id = t.userid
@@ -494,7 +494,11 @@ class revenue {
             'timeformatted'   => userdate((int) $rec->timecreated, get_string('strftimedatetimeshort', 'langconfig')),
             'userid'          => (int) $rec->userid,
             'user'            => fullname($rec),
-            'email'           => (string) $rec->email,
+            // delete_user() keeps the row but overwrites the e-mail with md5(username), which
+            // reads as a random hash on the report. Say what it is instead.
+            'email'           => !empty($rec->deleted)
+                                     ? get_string('rep_userdeleted', 'local_nit_finance')
+                                     : (string) $rec->email,
             'itemtype'        => $itemtype,
             'itemid'          => $itemid,
             'item'            => self::item_name($itemtype, $itemid, $meta),

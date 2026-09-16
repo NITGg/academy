@@ -176,6 +176,7 @@ $string['rep_detail_couponbeaten'] = 'Coupon {$a} was set aside: the item was on
 $string['rep_offer'] = 'Offer';
 $string['rep_nocode'] = 'No code';
 $string['rep_itemgone'] = '(deleted)';
+$string['rep_userdeleted'] = '(deleted account)';
 
 // How a refund was made.
 $string['rep_refund_gateway'] = 'Through the payment gateway';
