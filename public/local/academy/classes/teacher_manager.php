@@ -15,11 +15,12 @@ defined('MOODLE_INTERNAL') || die();
  * tables. Those fields are still present in every response for contract parity,
  * but with empty/default values (hours=[], years=[], busy_times=[], rating=0,
  * approved=1, available=1). The Moodle-native fields (userid, fullname, email,
- * phone, bio, photourl) carry real data; headline / experience / subjects are
- * fed from the instructor's *approved* Academic and Professional Background
- * (local_nit_instructors: specialty + years of teaching), and the single-teacher
- * view adds the background's qualifications / positions / certifications plus a
- * `courses` list — a superset that never breaks the old shape.
+ * phone, bio, photourl) carry real data; headline / bio / experience / subjects
+ * are fed from the "Instructor Fields" custom profile group (the same fields the
+ * course page's instructor card shows — see instructor_fields()), and the
+ * single-teacher view adds the rest of that group (qualifications, certificates,
+ * awards, social links, cover image, résumé) plus a `courses` list — a superset
+ * that never breaks the old shape.
  *
  * A "teacher" = any non-deleted user holding a role with the 'teacher' or
  * 'editingteacher' archetype in at least one course. No custom tables, no core
@@ -222,34 +223,34 @@ class teacher_manager {
             ));
         }
 
-        // The instructor's approved Academic and Professional Background
-        // (local_nit_instructors, AC-4.5.9+). Only the published version — a
-        // change waiting for review is invisible to learners (AC-4.5.14).
-        $bg = self::background((int) $u->id, $withcourses);
+        // The "Instructor Fields" profile group — the same data the course page's
+        // instructor card and dialog draw (theme_nit format_topics_renderer).
+        $ins = self::instructor_fields((int) $u->id, $withcourses);
 
         // Old academy shape — Flex-only fields kept as defaults for contract parity.
-        // headline / experience / subjects are fed from the background where it
-        // exists (specialty, years of teaching); the rest stay empty.
+        // headline / bio / experience / subjects are fed from the instructor
+        // fields where they are filled in; the tutoring-only ones stay empty.
         $out = [
             'userid'     => (int) $u->id,
             'fullname'   => fullname($u),
             'email'      => $u->email ?? '',
             'phone'      => $u->phone1 ?? '',
-            'headline'   => $bg['specialty'],
-            'bio'        => $bio,
-            'experience' => $bg['years_experience'] > 0
-                ? get_string('yearsvalue', 'local_nit_instructors', $bg['years_experience']) : '',
+            'headline'   => $ins['specialization'],
+            // The Biography instructor field first; the account's own description
+            // is what a non-instructor profile has, so it stays as the fallback.
+            'bio'        => $ins['biography'] !== '' ? $ins['biography'] : $bio,
+            'experience' => $ins['experience'],
             'photourl'   => self::picture_url($u),
             'rating'     => 0,
             'approved'   => 1,
             'available'  => 1,
-            'subjects'   => $bg['specialty'] !== '' ? [$bg['specialty']] : [],
+            'subjects'   => $ins['specialization'] !== '' ? [$ins['specialization']] : [],
             'years'      => [],
             'hours'      => [],
             'busy_times' => [],
             // Superset (never in the old shape, additive): quick course info.
             'coursecount' => self::course_count((int) $u->id),
-        ] + $bg;
+        ] + $ins;
         if (!$withemail) {
             unset($out['email']);
         }
@@ -260,59 +261,220 @@ class teacher_manager {
     }
 
     /**
-     * The approved instructor background as flat, language-picked values.
+     * The "Instructor Fields" custom profile fields, as one flat array.
      *
-     * Additive keys (never in the old shape): specialty, years_experience and —
-     * for the single-teacher view only — qualifications / positions /
-     * certifications, each a list of {title, organisation, period}. Bilingual
-     * pairs are resolved with profile::pick() so the `lang` request parameter
-     * decides which half the app gets, with the other half as fallback.
+     * The group was built by hand on the site (local_profilefields only knows
+     * its labels — see \local_profilefields\provision::INSTRUCTOR_FIELDS), so
+     * fields are found by shortname, the one part of a profile field that is a
+     * code. Same mapping as the course page's instructor card:
+     *
+     *   specialization, yearsofexperience, languages ... short text
+     *   biography, experience, qualifications,
+     *   certificates, awards ........................... rich text → plain text
+     *   linkedin, website, facebook, instagram,
+     *   twitter, youtube ............................... social → absolute URL
+     *   coverimage, resume ............................. file → token-embedded URL
+     *
+     * Every key is always present, so a client can read them without guarding,
+     * and a field the site does not have simply stays at its empty value.
+     * Field visibility is honoured through the profile API (is_visible() for the
+     * token's user), the values are authored as {mlang} pairs and resolve to the
+     * request language via the `lang` parameter, and a rich-text field arrives
+     * as plain text (lists keep their bullets) — the app renders it, not HTML.
      *
      * @param int $userid
-     * @param bool $withentries include the repeating entries (one more query)
+     * @param bool $full include the long fields, social links and files (single
+     *                   view); a listing gets just the short ones
      * @return array
      */
-    private static function background(int $userid, bool $withentries): array {
-        $out = ['specialty' => '', 'years_experience' => 0];
-        if ($withentries) {
-            $out += ['qualifications' => [], 'positions' => [], 'certifications' => []];
-        }
+    private static function instructor_fields(int $userid, bool $full): array {
+        global $CFG;
+        require_once($CFG->dirroot . '/user/profile/lib.php');
 
-        if (!class_exists(\local_nit_instructors\profile::class)) {
-            return $out;
-        }
-        try {
-            $version = \local_nit_instructors\profile::approved($userid);
-        } catch (\Throwable $e) {
-            // Plugin present but its tables not installed yet — behave as "no background".
-            return $out;
-        }
-        if (!$version) {
-            return $out;
-        }
-
-        $out['specialty'] = \local_nit_instructors\profile::pick(
-            (string) $version->specialtyen, (string) $version->specialtyar);
-        $out['years_experience'] = (int) $version->years;
-
-        if ($withentries) {
-            $keys = [
-                \local_nit_instructors\profile::TYPE_QUALIFICATION => 'qualifications',
-                \local_nit_instructors\profile::TYPE_POSITION => 'positions',
-                \local_nit_instructors\profile::TYPE_CERTIFICATION => 'certifications',
+        $out = [
+            'specialization'   => '',
+            'years_experience' => 0,
+            'languages'        => [],
+            'biography'        => '',
+            'experience'       => '',
+        ];
+        if ($full) {
+            $out += [
+                'qualifications' => '',
+                'certificates'   => '',
+                'awards'         => '',
+                'social'         => [
+                    'linkedin' => '', 'website' => '', 'facebook' => '',
+                    'instagram' => '', 'twitter' => '', 'youtube' => '',
+                ],
+                'cover_url'      => '',
+                'resume_url'     => '',
             ];
-            $entries = \local_nit_instructors\profile::entries((int) $version->id);
-            foreach ($keys as $type => $key) {
-                foreach ($entries[$type] ?? [] as $e) {
-                    $out[$key][] = [
-                        'title'        => \local_nit_instructors\profile::pick((string) $e->titleen, (string) $e->titlear),
-                        'organisation' => \local_nit_instructors\profile::pick((string) $e->orgen, (string) $e->orgar),
-                        'period'       => \local_nit_instructors\profile::pick((string) $e->perioden, (string) $e->periodar),
-                    ];
+        }
+
+        $short = ['specialization', 'yearsofexperience', 'languages'];
+        $rich  = ['biography', 'experience'];
+        $files = [];
+        if ($full) {
+            $rich  = array_merge($rich, ['qualifications', 'certificates', 'awards']);
+            $files = ['coverimage' => 'cover_url', 'resume' => 'resume_url'];
+        }
+
+        $usercontext = \context_user::instance($userid, IGNORE_MISSING);
+        if (!$usercontext) {
+            return $out;
+        }
+
+        foreach (profile_get_user_fields_with_data($userid) as $f) {
+            $name = (string) ($f->field->shortname ?? '');
+            if (!$f->is_visible()) {
+                continue;
+            }
+
+            // File fields: the file is the value, whatever the data row says.
+            if (isset($files[$name])) {
+                $file = self::profile_file($usercontext, (int) $f->field->id);
+                if ($file && ($name !== 'coverimage' || $file->is_valid_image())) {
+                    $out[$files[$name]] = ws_files::tokenize(\moodle_url::make_pluginfile_url(
+                        $file->get_contextid(), 'profilefield_file', 'files',
+                        $file->get_itemid(), $file->get_filepath(), $file->get_filename()
+                    )->out(false), self::$token);
                 }
+                continue;
+            }
+
+            if ($f->is_empty()) {
+                continue;
+            }
+
+            if (in_array($name, $short, true)) {
+                $text = self::ml((string) $f->data);
+                if ($name === 'specialization') {
+                    $out['specialization'] = $text;
+                } else if ($name === 'yearsofexperience') {
+                    // "12", "12+" — anything else the admin typed is not a number.
+                    $out['years_experience'] = preg_match('/^\s*(\d{1,2})\s*\+?\s*$/', $text, $m) ? (int) $m[1] : 0;
+                } else {
+                    // "Arabic, English" / "العربية، الإنجليزية" → one entry each.
+                    $out['languages'] = preg_split('/\s*[,،|\/\n]+\s*/u', $text, -1, PREG_SPLIT_NO_EMPTY);
+                }
+            } else if (in_array($name, $rich, true)) {
+                // The field's own renderer formats it (embedded files, filters);
+                // {mlang} is resolved again in case the filter is off for content.
+                $out[$name] = self::plain(self::ml($f->display_data()));
+            } else if ($full && isset($out['social'][$name])) {
+                $out['social'][$name] = self::social_url($name, (string) $f->data);
             }
         }
+
         return $out;
+    }
+
+    /**
+     * Resolve a possibly-bilingual "{mlang}" value to plain text in the current
+     * language — which the `lang` request parameter sets.
+     *
+     * format_string() lets the site's multilang filter do it when that filter is
+     * enabled for strings; the fallback resolver covers a site where it is not,
+     * so the app never receives raw {mlang} markup. Same rule as the course page:
+     * the current language wins, then an "other" block, then the first block, so
+     * a value written in one language only is shown rather than lost.
+     *
+     * @param string $raw
+     * @return string
+     */
+    private static function ml(string $raw): string {
+        if (trim($raw) === '') {
+            return '';
+        }
+        if (stripos($raw, '{mlang') === false) {
+            return trim($raw);
+        }
+        if (!preg_match_all('/\{mlang\s+([^}]+)\}(.*?)\{mlang\}/is', $raw, $matches, PREG_SET_ORDER)) {
+            return trim($raw);
+        }
+        $lang = current_language();
+        $matched = $other = '';
+        $first = null;
+        foreach ($matches as $block) {
+            $langs = array_map('trim', explode(',', strtolower($block[1])));
+            $first = $first ?? $block[2];
+            if (in_array($lang, $langs, true)) {
+                $matched .= $block[2];
+            }
+            if (in_array('other', $langs, true)) {
+                $other .= $block[2];
+            }
+        }
+        return trim($matched !== '' ? $matched : ($other !== '' ? $other : ($first ?? '')));
+    }
+
+    /**
+     * Rich text as the plain text an app label can show.
+     *
+     * Not html_to_text(): that one shouts <strong> in capitals and indents nested
+     * lists with tabs, which is fine in an e-mail and wrong on a phone. Here a
+     * list item becomes a "• " line, a paragraph/line break a newline, every other
+     * tag is dropped, and entities are decoded.
+     *
+     * @param string $html
+     * @return string
+     */
+    private static function plain(string $html): string {
+        $text = preg_replace('~<li\b[^>]*>~i', '• ', $html);
+        $text = preg_replace('~<(br\s*/?|ul\b[^>]*|ol\b[^>]*)>~i', "\n", $text);
+        $text = preg_replace('~</(li|ul|ol|tr)\s*>~i', "\n", $text);
+        $text = preg_replace('~</(p|div|h[1-6]|blockquote)\s*>~i', "\n\n", $text);
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // Non-breaking spaces from the editor, then per-line trim, then at most
+        // one blank line between paragraphs.
+        $text = str_replace("\u{a0}", ' ', $text);
+        $text = implode("\n", array_map('trim', explode("\n", $text)));
+        $text = preg_replace("/\n{3,}/", "\n\n", $text);
+        return trim($text);
+    }
+
+    /**
+     * A social field's value as an absolute https URL, or '' when it is not one.
+     *
+     * The fields are free text: a full address, a bare domain ("example.com") or
+     * a handle ("@name") all happen. A domain gets its scheme, a handle goes to
+     * the network the field is for, and anything that still is not a URL is
+     * dropped rather than handed to the app as a broken link.
+     *
+     * @param string $network field shortname (which network)
+     * @param string $raw stored value, possibly {mlang} markup
+     * @return string
+     */
+    private static function social_url(string $network, string $raw): string {
+        $raw = self::ml($raw);
+        if ($raw === '') {
+            return '';
+        }
+        $hosts = ['twitter' => 'x.com/', 'instagram' => 'instagram.com/', 'youtube' => 'youtube.com/@',
+            'facebook' => 'facebook.com/', 'linkedin' => 'linkedin.com/in/'];
+        if ($raw[0] === '@' && isset($hosts[$network])) {
+            $raw = 'https://' . $hosts[$network] . ltrim($raw, '@');
+        } else if (!preg_match('~^https?://~i', $raw)) {
+            $raw = 'https://' . ltrim($raw, '/');
+        }
+        $clean = clean_param($raw, PARAM_URL);
+        return preg_match('~^https?://[^/\s]+~i', $clean) ? $clean : '';
+    }
+
+    /**
+     * The one file stored in a profilefield_file field for a user — where that
+     * field type keeps it: the user's context, component `profilefield_file`,
+     * area `files`, itemid = the field id.
+     *
+     * @param \context_user $usercontext
+     * @param int $fieldid
+     * @return \stored_file|null
+     */
+    private static function profile_file(\context_user $usercontext, int $fieldid): ?\stored_file {
+        $files = get_file_storage()->get_area_files($usercontext->id, 'profilefield_file', 'files',
+            $fieldid, 'itemid, filepath, filename', false);
+        return $files ? reset($files) : null;
     }
 
     /** How many visible courses this teacher teaches. */
