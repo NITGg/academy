@@ -209,7 +209,7 @@ Relevant parts of the response:
   `/webservice/pluginfile.php` URL, so append `&token={wstoken}` (use `?` if the
   URL has no query string yet) before loading it.
 - **Instructors:** `contacts[]` gives id + fullname without needing enrolment.
-  For the full instructor profile (bio, photo, subjects, courses taught) call
+  For the full instructor profile (specialization, biography, qualifications, social links, courses taught — §2.8) call
   `GET /local/academy/api.php?function=get_teacher&teacherid={id}&token={token}`.
 
 ## 2.2 The custom-field catalogue
@@ -350,6 +350,66 @@ until 2026-09-13 and were removed precisely because a tick goes stale: a course
 whose prices were deleted stayed "paid" on its own page, and a course that
 gained a certificate activity advertised none. A course is free when nobody can
 be charged for it, and it carries a certificate when there is one to earn.
+
+---
+
+## 2.8 The instructor profile — `get_teacher`
+
+```
+GET {wwwroot}/local/academy/api.php?function=get_teacher&teacherid=126&token={token}&lang=en
+```
+
+The instructor card and the **"About the instructor"** dialog on the web course
+page are drawn from the **"Instructor Fields"** custom profile group (an
+administrator fills it in; the instructor cannot). `get_teacher` returns the same
+group, flattened. Every key below is always present — a field the admin left
+empty is `""` / `0` / `[]`, so render what is non-empty and drop the rest, exactly
+as §2.2 says for course fields.
+
+```jsonc
+{ "status": "success",
+  "data": {
+    "userid": 126, "fullname": "Teacher Account", "phone": "",
+    "photourl": "…/webservice/pluginfile.php/…/f1?token=…",
+
+    // old-academy keys, now filled from the group
+    "headline":   "Software Engineer",          // = specialization
+    "bio":        "My Biography",               // Biography field (plain text); falls back to the account description
+    "experience": "Lead Engineer — …\n\n…",     // Experience field (plain text)
+    "subjects":   ["Software Engineer"],        // [specialization] or []
+
+    // the group itself
+    "specialization":   "Software Engineer",
+    "years_experience": 20,                     // int; 0 when not a number
+    "languages":        ["Arabic", "English"],  // split on , ، | /
+    "biography":        "My Biography",
+    "qualifications":   "• PhD …\n• MSc …",     // rich text → plain text, one "• " line per list item
+    "certificates":     "• AWS …",
+    "awards":           "",
+    "social": { "linkedin": "https://www.linkedin.com/in/…", "website": "https://…",
+                "facebook": "https://…", "instagram": "", "twitter": "", "youtube": "https://…" },
+    "cover_url":  "…/webservice/pluginfile.php/…/profilefield_file/files/11/cover.jpg?token=…",
+    "resume_url": "…/webservice/pluginfile.php/…/profilefield_file/files/26/cv.pdf?token=…",
+
+    // unchanged, always these values (no tutoring engine here)
+    "rating": 0, "approved": 1, "available": 1, "years": [], "hours": [], "busy_times": [],
+
+    "coursecount": 2,
+    "courses": [ { "id": 5, "fullname": "ReactJS", "shortname": "…", "summary": "…", "imageurl": "…", "url": "…" } ]
+  } }
+```
+
+- `lang=ar|en` picks the language of every text value (the fields are authored
+  as `{mlang}` pairs); a value written in one language only is returned in that
+  language rather than as an empty string. No `{mlang}` markup ever reaches the app.
+- `social.*` are absolute `https://` URLs or `""` — a bare domain or an `@handle`
+  typed by the admin has already been normalised; never build a URL yourself.
+- `cover_url` / `resume_url` / `photourl` carry the caller's token: load them as-is.
+- Rich-text fields arrive as **plain text** with `\n` line breaks and `• ` bullets;
+  show them in a multi-line label, not a web view.
+- `browse_teachers` and `get_all_teachers` return the same shape minus the long
+  fields (`qualifications`, `certificates`, `awards`, `social`, `cover_url`,
+  `resume_url`, `courses`).
 
 ---
 
