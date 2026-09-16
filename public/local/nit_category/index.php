@@ -477,15 +477,26 @@ echo $OUTPUT->header();
       display: block; width: 100%; height: 100%;
       object-fit: cover; object-position: center;
     }
-    /* The scrim is BLACK whatever the mode — the same one the course page's hero
-       wears (theme_nit _coursepage.scss --cr-scrim): a photograph under a dark veil is
-       a surface whose luminance is fixed, so its ink is fixed too (white), and the
-       section reads the same in light and dark. The brand only supplies the accents.
-       Solid on the text side, clearing to the picture on the other; a lighter band
-       along the bottom keeps the buttons and any print baked into the banner apart. */
-    .nit-hero--art {
+    /* The hero's INK — the ONE colour on this page that is not a Brand role, and the
+       one variable every white text in the section reads. No role can play it: each is
+       authored per group (a light group's "Text on main button" is near-black), but
+       two surfaces here keep the same luminance whatever the group — the black veil
+       over the category picture, and a CTA's solid Primary fill — so the ink on them
+       is fixed too, white. Declared once, on BOTH hero variants (not only the picture
+       one), so the CTA labels below can read it on the plain ground as well; the H1,
+       stats and badge read it only over the veil. The course page's hero says the
+       same thing as --cr-hero-ink (theme_nit _coursepage.scss). */
+    .nit-hero {
       --hero-ink: #fff;
       --hero-muted: rgba(255, 255, 255, .74);
+    }
+    /* The scrim is BLACK whatever the mode — the same one the course page's hero
+       wears (theme_nit _coursepage.scss --cr-scrim): a photograph under a dark veil is
+       a surface whose luminance is fixed, so its ink is fixed too (--hero-ink above),
+       and the section reads the same in light and dark. The brand only supplies the
+       accents. Solid on the text side, clearing to the picture on the other; a lighter
+       band along the bottom keeps the buttons and any print baked into the banner apart. */
+    .nit-hero--art {
       --hero-scrim:
         linear-gradient(90deg,
           rgba(0, 0, 0, .84) 0%,
@@ -620,20 +631,33 @@ echo $OUTPUT->header();
       padding: 14px 40px; border-radius: 8px;
       font-size: 16px; font-weight: 700;
     }
-    /* "Explore specializations" (.btn-primary) — its LABEL is fixed white in every
-       state and in both hero variants, over the picture and on the plain ground alike.
-       The theme paints the fill from the group's Primary role and the label from that
-       group's "Text on main button" (onprimary) role, which is authored per palette:
-       the Engineering group's orange carries a near-black onprimary, so the one big
-       CTA read dark while the H1, the stats and the outline CTAs beside it are all
-       white. Pinned through Bootstrap's tokens (rest / hover / active — :focus-visible
-       reads the hover token) so the fill, border and hover fill keep following the
-       group; only the ink is fixed. Literal #fff, not --hero-ink: that variable exists
-       only on .nit-hero--art and this is meant to hold on the image-less hero too. */
+    /* The CTA LABELS are the hero ink (--hero-ink, white) wherever a button is FILLED, in
+       both hero variants (over the picture and on the plain ground alike) and in every
+       group and mode:
+       - "Explore specializations" (.btn-primary) in every state — the theme paints its
+         fill from the group's Primary role and its label from that group's "Text on
+         main button" (onprimary) role, which is authored per palette: the Engineering
+         group's orange carries a near-black onprimary, so the one big CTA read dark
+         while the H1, the stats and the outline CTAs beside it are all white;
+       - "Flexible plans" / "Coupon plans" (.btn-outline-primary) once HOVERED or pressed
+         — the theme fills them from the group's outline-hover roles and inks them with
+         that block's hover-text role, which in the same group is dark again, so the
+         label flipped from white to black under the cursor right next to a primary
+         button whose label stays white. Their RESTING label is not touched here: it is
+         the hero's ink on the picture (pinned above) and the group's outline-text role
+         on the plain ground, where the ghost button sits on the page and not on a fill.
+       Pinned through Bootstrap's tokens (:focus-visible reads the hover token) so the
+       fill, border and hover fill keep following the group; only the ink is fixed —
+       and it is the section's one ink variable, not a private #fff, so a label can
+       never drift from the H1 and the stats it stands under. */
     .nit-hero__btns .btn-primary {
-      --bs-btn-color: #fff;
-      --bs-btn-hover-color: #fff;
-      --bs-btn-active-color: #fff;
+      --bs-btn-color: var(--hero-ink);
+      --bs-btn-hover-color: var(--hero-ink);
+      --bs-btn-active-color: var(--hero-ink);
+    }
+    .nit-hero__btns .btn-outline-primary {
+      --bs-btn-hover-color: var(--hero-ink);
+      --bs-btn-active-color: var(--hero-ink);
     }
   </style>
   <div class="nit-hero<?= $hasrealimage ? ' nit-hero--art' : '' ?>" dir="<?= $isar ? 'rtl' : 'ltr' ?>">
