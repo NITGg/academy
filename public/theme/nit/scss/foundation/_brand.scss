@@ -16,481 +16,57 @@
 // =============================================================================
 // NIT Brand Colors — the semantic colour layer (gallery "Brand Colors" tab).
 //
-// A "group" is a complete named set of the 59 semantic roles (Primary, Surface,
+// A "group" is a complete named set of the semantic roles (Primary, Surface,
 // Text primary, …). Every component references a role by its ACTIVE name
 // (`--nit-brand-primary`) and, by default, resolves it from Group 1. Wrapping a
-// component in `.nit-brand-2` / `.nit-brand-3` re-points all 39 names at that
+// component in `.nit-brand-2` … `.nit-brand-17` re-points every name at that
 // group's values — same variable names, different palette.
 //
 // Emission order (one combined stream): pre_scss defines `$nit-b-<gkey>-<role>`
-// SCSS vars (saved value, else the Group 1 seed); this file republishes them as
-// custom properties; _root.scss then aliases the legacy `--nit-*` properties
-// onto the active layer here, so the whole existing site follows the brand.
+// SCSS vars (saved value, else the group's seed) AND the same values as one
+// nested map, `$nit-b-groups` (group key => (role => value)); this file loops
+// the map to republish every group as custom properties; _root.scss then
+// aliases the legacy `--nit-*` properties onto the active layer here, so the
+// whole existing site follows the brand.
+//
+// Nothing below names a group. It cannot: the groups are whatever
+// theme_nit_brand_groups() lists, and the six category pairs
+// (theme_nit_brand_hues()) are twelve more of them. Every rule that used to be
+// written once per group — the per-group reference tier, the switch class, the
+// Bootstrap bridge, the -rgb triplets, the checkbox pictures — is a loop over
+// the map, and a new group is a PHP change only. SCSS cannot build a variable
+// name from a string (`$nit-b-#{$g}-#{$role}` is not a thing), which is why the
+// map exists at all.
 // =============================================================================
 
-// --- The button (and checkbox) roles, as a map --------------------------------
-// Twenty-six roles per group: the border and the three hover colours of the main
-// and the secondary button, the whole resting-plus-hover set of each outline
-// button, and the six the tick box / switch is drawn from. Published three times
-// over (per-group reference, the active layer, and each of the five switch
-// classes) = nearly 400 declarations, which is why they are looped rather than
-// written out the way the roles above are.
-//
-// A map is what makes the loop possible at all: SCSS cannot build a variable
-// name by interpolation, so `$nit-b-#{$g}-#{$role}` is not a thing that can be
-// written. Naming each variable once here is the only place the ninety-odd
-// `$nit-b-*` button variables have to appear.
-//
-// One of these is not always a colour: `btnoutlinebg` is re-declared as the
-// keyword `transparent` by theme_nit_get_pre_scss() whenever a group's outline
-// Fill switch is off, which is the default. Interpolation carries a keyword as
-// happily as a hex, and nothing here does colour arithmetic on it.
-$nit-b-buttonroles: (
-    "g1": (
-        "btnprimaryborder": $nit-b-g1-btnprimaryborder,
-        "btnprimaryhoverbg": $nit-b-g1-btnprimaryhoverbg,
-        "btnprimaryhovertext": $nit-b-g1-btnprimaryhovertext,
-        "btnprimaryhoverborder": $nit-b-g1-btnprimaryhoverborder,
-        "btnsecondaryborder": $nit-b-g1-btnsecondaryborder,
-        "btnsecondaryhoverbg": $nit-b-g1-btnsecondaryhoverbg,
-        "btnsecondaryhovertext": $nit-b-g1-btnsecondaryhovertext,
-        "btnsecondaryhoverborder": $nit-b-g1-btnsecondaryhoverborder,
-        "btnoutlineprimarybg": $nit-b-g1-btnoutlineprimarybg,
-        "btnoutlineprimarytext": $nit-b-g1-btnoutlineprimarytext,
-        "btnoutlineprimaryborder": $nit-b-g1-btnoutlineprimaryborder,
-        "btnoutlineprimaryhoverbg": $nit-b-g1-btnoutlineprimaryhoverbg,
-        "btnoutlineprimaryhovertext": $nit-b-g1-btnoutlineprimaryhovertext,
-        "btnoutlineprimaryhoverborder": $nit-b-g1-btnoutlineprimaryhoverborder,
-        "btnoutlinebg": $nit-b-g1-btnoutlinebg,
-        "btnoutlinetext": $nit-b-g1-btnoutlinetext,
-        "btnoutlineborder": $nit-b-g1-btnoutlineborder,
-        "btnoutlinehoverbg": $nit-b-g1-btnoutlinehoverbg,
-        "btnoutlinehovertext": $nit-b-g1-btnoutlinehovertext,
-        "btnoutlinehoverborder": $nit-b-g1-btnoutlinehoverborder,
-        "checkbg": $nit-b-g1-checkbg,
-        "checkborder": $nit-b-g1-checkborder,
-        "checkknob": $nit-b-g1-checkknob,
-        "checkcheckedbg": $nit-b-g1-checkcheckedbg,
-        "checkcheckedborder": $nit-b-g1-checkcheckedborder,
-        "checkcheckedmark": $nit-b-g1-checkcheckedmark
-    ),
-    "g2": (
-        "btnprimaryborder": $nit-b-g2-btnprimaryborder,
-        "btnprimaryhoverbg": $nit-b-g2-btnprimaryhoverbg,
-        "btnprimaryhovertext": $nit-b-g2-btnprimaryhovertext,
-        "btnprimaryhoverborder": $nit-b-g2-btnprimaryhoverborder,
-        "btnsecondaryborder": $nit-b-g2-btnsecondaryborder,
-        "btnsecondaryhoverbg": $nit-b-g2-btnsecondaryhoverbg,
-        "btnsecondaryhovertext": $nit-b-g2-btnsecondaryhovertext,
-        "btnsecondaryhoverborder": $nit-b-g2-btnsecondaryhoverborder,
-        "btnoutlineprimarybg": $nit-b-g2-btnoutlineprimarybg,
-        "btnoutlineprimarytext": $nit-b-g2-btnoutlineprimarytext,
-        "btnoutlineprimaryborder": $nit-b-g2-btnoutlineprimaryborder,
-        "btnoutlineprimaryhoverbg": $nit-b-g2-btnoutlineprimaryhoverbg,
-        "btnoutlineprimaryhovertext": $nit-b-g2-btnoutlineprimaryhovertext,
-        "btnoutlineprimaryhoverborder": $nit-b-g2-btnoutlineprimaryhoverborder,
-        "btnoutlinebg": $nit-b-g2-btnoutlinebg,
-        "btnoutlinetext": $nit-b-g2-btnoutlinetext,
-        "btnoutlineborder": $nit-b-g2-btnoutlineborder,
-        "btnoutlinehoverbg": $nit-b-g2-btnoutlinehoverbg,
-        "btnoutlinehovertext": $nit-b-g2-btnoutlinehovertext,
-        "btnoutlinehoverborder": $nit-b-g2-btnoutlinehoverborder,
-        "checkbg": $nit-b-g2-checkbg,
-        "checkborder": $nit-b-g2-checkborder,
-        "checkknob": $nit-b-g2-checkknob,
-        "checkcheckedbg": $nit-b-g2-checkcheckedbg,
-        "checkcheckedborder": $nit-b-g2-checkcheckedborder,
-        "checkcheckedmark": $nit-b-g2-checkcheckedmark
-    ),
-    "g3": (
-        "btnprimaryborder": $nit-b-g3-btnprimaryborder,
-        "btnprimaryhoverbg": $nit-b-g3-btnprimaryhoverbg,
-        "btnprimaryhovertext": $nit-b-g3-btnprimaryhovertext,
-        "btnprimaryhoverborder": $nit-b-g3-btnprimaryhoverborder,
-        "btnsecondaryborder": $nit-b-g3-btnsecondaryborder,
-        "btnsecondaryhoverbg": $nit-b-g3-btnsecondaryhoverbg,
-        "btnsecondaryhovertext": $nit-b-g3-btnsecondaryhovertext,
-        "btnsecondaryhoverborder": $nit-b-g3-btnsecondaryhoverborder,
-        "btnoutlineprimarybg": $nit-b-g3-btnoutlineprimarybg,
-        "btnoutlineprimarytext": $nit-b-g3-btnoutlineprimarytext,
-        "btnoutlineprimaryborder": $nit-b-g3-btnoutlineprimaryborder,
-        "btnoutlineprimaryhoverbg": $nit-b-g3-btnoutlineprimaryhoverbg,
-        "btnoutlineprimaryhovertext": $nit-b-g3-btnoutlineprimaryhovertext,
-        "btnoutlineprimaryhoverborder": $nit-b-g3-btnoutlineprimaryhoverborder,
-        "btnoutlinebg": $nit-b-g3-btnoutlinebg,
-        "btnoutlinetext": $nit-b-g3-btnoutlinetext,
-        "btnoutlineborder": $nit-b-g3-btnoutlineborder,
-        "btnoutlinehoverbg": $nit-b-g3-btnoutlinehoverbg,
-        "btnoutlinehovertext": $nit-b-g3-btnoutlinehovertext,
-        "btnoutlinehoverborder": $nit-b-g3-btnoutlinehoverborder,
-        "checkbg": $nit-b-g3-checkbg,
-        "checkborder": $nit-b-g3-checkborder,
-        "checkknob": $nit-b-g3-checkknob,
-        "checkcheckedbg": $nit-b-g3-checkcheckedbg,
-        "checkcheckedborder": $nit-b-g3-checkcheckedborder,
-        "checkcheckedmark": $nit-b-g3-checkcheckedmark
-    ),
-    "g4": (
-        "btnprimaryborder": $nit-b-g4-btnprimaryborder,
-        "btnprimaryhoverbg": $nit-b-g4-btnprimaryhoverbg,
-        "btnprimaryhovertext": $nit-b-g4-btnprimaryhovertext,
-        "btnprimaryhoverborder": $nit-b-g4-btnprimaryhoverborder,
-        "btnsecondaryborder": $nit-b-g4-btnsecondaryborder,
-        "btnsecondaryhoverbg": $nit-b-g4-btnsecondaryhoverbg,
-        "btnsecondaryhovertext": $nit-b-g4-btnsecondaryhovertext,
-        "btnsecondaryhoverborder": $nit-b-g4-btnsecondaryhoverborder,
-        "btnoutlineprimarybg": $nit-b-g4-btnoutlineprimarybg,
-        "btnoutlineprimarytext": $nit-b-g4-btnoutlineprimarytext,
-        "btnoutlineprimaryborder": $nit-b-g4-btnoutlineprimaryborder,
-        "btnoutlineprimaryhoverbg": $nit-b-g4-btnoutlineprimaryhoverbg,
-        "btnoutlineprimaryhovertext": $nit-b-g4-btnoutlineprimaryhovertext,
-        "btnoutlineprimaryhoverborder": $nit-b-g4-btnoutlineprimaryhoverborder,
-        "btnoutlinebg": $nit-b-g4-btnoutlinebg,
-        "btnoutlinetext": $nit-b-g4-btnoutlinetext,
-        "btnoutlineborder": $nit-b-g4-btnoutlineborder,
-        "btnoutlinehoverbg": $nit-b-g4-btnoutlinehoverbg,
-        "btnoutlinehovertext": $nit-b-g4-btnoutlinehovertext,
-        "btnoutlinehoverborder": $nit-b-g4-btnoutlinehoverborder,
-        "checkbg": $nit-b-g4-checkbg,
-        "checkborder": $nit-b-g4-checkborder,
-        "checkknob": $nit-b-g4-checkknob,
-        "checkcheckedbg": $nit-b-g4-checkcheckedbg,
-        "checkcheckedborder": $nit-b-g4-checkcheckedborder,
-        "checkcheckedmark": $nit-b-g4-checkcheckedmark
-    ),
-    "g5": (
-        "btnprimaryborder": $nit-b-g5-btnprimaryborder,
-        "btnprimaryhoverbg": $nit-b-g5-btnprimaryhoverbg,
-        "btnprimaryhovertext": $nit-b-g5-btnprimaryhovertext,
-        "btnprimaryhoverborder": $nit-b-g5-btnprimaryhoverborder,
-        "btnsecondaryborder": $nit-b-g5-btnsecondaryborder,
-        "btnsecondaryhoverbg": $nit-b-g5-btnsecondaryhoverbg,
-        "btnsecondaryhovertext": $nit-b-g5-btnsecondaryhovertext,
-        "btnsecondaryhoverborder": $nit-b-g5-btnsecondaryhoverborder,
-        "btnoutlineprimarybg": $nit-b-g5-btnoutlineprimarybg,
-        "btnoutlineprimarytext": $nit-b-g5-btnoutlineprimarytext,
-        "btnoutlineprimaryborder": $nit-b-g5-btnoutlineprimaryborder,
-        "btnoutlineprimaryhoverbg": $nit-b-g5-btnoutlineprimaryhoverbg,
-        "btnoutlineprimaryhovertext": $nit-b-g5-btnoutlineprimaryhovertext,
-        "btnoutlineprimaryhoverborder": $nit-b-g5-btnoutlineprimaryhoverborder,
-        "btnoutlinebg": $nit-b-g5-btnoutlinebg,
-        "btnoutlinetext": $nit-b-g5-btnoutlinetext,
-        "btnoutlineborder": $nit-b-g5-btnoutlineborder,
-        "btnoutlinehoverbg": $nit-b-g5-btnoutlinehoverbg,
-        "btnoutlinehovertext": $nit-b-g5-btnoutlinehovertext,
-        "btnoutlinehoverborder": $nit-b-g5-btnoutlinehoverborder,
-        "checkbg": $nit-b-g5-checkbg,
-        "checkborder": $nit-b-g5-checkborder,
-        "checkknob": $nit-b-g5-checkknob,
-        "checkcheckedbg": $nit-b-g5-checkcheckedbg,
-        "checkcheckedborder": $nit-b-g5-checkcheckedborder,
-        "checkcheckedmark": $nit-b-g5-checkcheckedmark
-    )
-);
+// Every switch selector, with the group it selects. `:root` carries Group 1
+// for pages with no class at all; `.nit-brand-1` exists as well because the
+// navbar scroll switch works by putting a group's class on the BAR, and a bar
+// scrolling INTO Group 1 needs a class to say that with. Built here once and
+// read by every loop below, so all of them agree on what a group is called.
+$nit-b-switchmap: (":root": "g1");
+$nit-b-switchselectors: ":root";
+@each $g, $roles in $nit-b-groups {
+    $sel: ".nit-brand-#{str-slice($g, 2)}";
+    $nit-b-switchmap: map-merge($nit-b-switchmap, ($sel: $g)) !global;
+    $nit-b-switchselectors: "#{$nit-b-switchselectors}, #{$sel}" !global;
+}
 
 :root {
     // --- Per-group raw palettes (reference values; the switch classes read
-    //     these). The 39 written out here, plus the 14 button roles looped in
-    //     below from $nit-b-buttonroles. -----------------------------------
-    --nit-brand-g1-primary: #{$nit-b-g1-primary};
-    --nit-brand-g1-secondary: #{$nit-b-g1-secondary};
-    --nit-brand-g1-accent: #{$nit-b-g1-accent};
-    --nit-brand-g1-accenttext: #{$nit-b-g1-accenttext};
-    --nit-brand-g1-background: #{$nit-b-g1-background};
-    --nit-brand-g1-background2: #{$nit-b-g1-background2};
-    --nit-brand-g1-navbarbackground1: #{$nit-b-g1-navbarbackground1};
-    --nit-brand-g1-navbarbackground2: #{$nit-b-g1-navbarbackground2};
-    --nit-brand-g1-footerbackground1: #{$nit-b-g1-footerbackground1};
-    --nit-brand-g1-footerbackground2: #{$nit-b-g1-footerbackground2};
-    --nit-brand-g1-footerheading: #{$nit-b-g1-footerheading};
-    --nit-brand-g1-footerlink: #{$nit-b-g1-footerlink};
-    --nit-brand-g1-footericon: #{$nit-b-g1-footericon};
-    --nit-brand-g1-surface: #{$nit-b-g1-surface};
-    --nit-brand-g1-textprimary: #{$nit-b-g1-textprimary};
-    --nit-brand-g1-navbariconcolor: #{$nit-b-g1-navbariconcolor};
-    --nit-brand-g1-textsecondary: #{$nit-b-g1-textsecondary};
-    --nit-brand-g1-borderprimary: #{$nit-b-g1-borderprimary};
-    --nit-brand-g1-bordersecondary: #{$nit-b-g1-bordersecondary};
-    --nit-brand-g1-hoverbackground: #{$nit-b-g1-hoverbackground};
-    --nit-brand-g1-hoverbackgroundsecondary: #{$nit-b-g1-hoverbackgroundsecondary};
-    --nit-brand-g1-hovertext: #{$nit-b-g1-hovertext};
-    --nit-brand-g1-hovertextsecondary: #{$nit-b-g1-hovertextsecondary};
-    --nit-brand-g1-error: #{$nit-b-g1-error};
-    --nit-brand-g1-success: #{$nit-b-g1-success};
-    --nit-brand-g1-warning: #{$nit-b-g1-warning};
-    --nit-brand-g1-info: #{$nit-b-g1-info};
-
-    --nit-brand-g2-primary: #{$nit-b-g2-primary};
-    --nit-brand-g2-secondary: #{$nit-b-g2-secondary};
-    --nit-brand-g2-accent: #{$nit-b-g2-accent};
-    --nit-brand-g2-accenttext: #{$nit-b-g2-accenttext};
-    --nit-brand-g2-background: #{$nit-b-g2-background};
-    --nit-brand-g2-background2: #{$nit-b-g2-background2};
-    --nit-brand-g2-navbarbackground1: #{$nit-b-g2-navbarbackground1};
-    --nit-brand-g2-navbarbackground2: #{$nit-b-g2-navbarbackground2};
-    --nit-brand-g2-footerbackground1: #{$nit-b-g2-footerbackground1};
-    --nit-brand-g2-footerbackground2: #{$nit-b-g2-footerbackground2};
-    --nit-brand-g2-footerheading: #{$nit-b-g2-footerheading};
-    --nit-brand-g2-footerlink: #{$nit-b-g2-footerlink};
-    --nit-brand-g2-footericon: #{$nit-b-g2-footericon};
-    --nit-brand-g2-surface: #{$nit-b-g2-surface};
-    --nit-brand-g2-textprimary: #{$nit-b-g2-textprimary};
-    --nit-brand-g2-navbariconcolor: #{$nit-b-g2-navbariconcolor};
-    --nit-brand-g2-textsecondary: #{$nit-b-g2-textsecondary};
-    --nit-brand-g2-borderprimary: #{$nit-b-g2-borderprimary};
-    --nit-brand-g2-bordersecondary: #{$nit-b-g2-bordersecondary};
-    --nit-brand-g2-hoverbackground: #{$nit-b-g2-hoverbackground};
-    --nit-brand-g2-hoverbackgroundsecondary: #{$nit-b-g2-hoverbackgroundsecondary};
-    --nit-brand-g2-hovertext: #{$nit-b-g2-hovertext};
-    --nit-brand-g2-hovertextsecondary: #{$nit-b-g2-hovertextsecondary};
-    --nit-brand-g2-error: #{$nit-b-g2-error};
-    --nit-brand-g2-success: #{$nit-b-g2-success};
-    --nit-brand-g2-warning: #{$nit-b-g2-warning};
-    --nit-brand-g2-info: #{$nit-b-g2-info};
-
-    --nit-brand-g3-primary: #{$nit-b-g3-primary};
-    --nit-brand-g3-secondary: #{$nit-b-g3-secondary};
-    --nit-brand-g3-accent: #{$nit-b-g3-accent};
-    --nit-brand-g3-accenttext: #{$nit-b-g3-accenttext};
-    --nit-brand-g3-background: #{$nit-b-g3-background};
-    --nit-brand-g3-background2: #{$nit-b-g3-background2};
-    --nit-brand-g3-navbarbackground1: #{$nit-b-g3-navbarbackground1};
-    --nit-brand-g3-navbarbackground2: #{$nit-b-g3-navbarbackground2};
-    --nit-brand-g3-footerbackground1: #{$nit-b-g3-footerbackground1};
-    --nit-brand-g3-footerbackground2: #{$nit-b-g3-footerbackground2};
-    --nit-brand-g3-footerheading: #{$nit-b-g3-footerheading};
-    --nit-brand-g3-footerlink: #{$nit-b-g3-footerlink};
-    --nit-brand-g3-footericon: #{$nit-b-g3-footericon};
-    --nit-brand-g3-surface: #{$nit-b-g3-surface};
-    --nit-brand-g3-textprimary: #{$nit-b-g3-textprimary};
-    --nit-brand-g3-navbariconcolor: #{$nit-b-g3-navbariconcolor};
-    --nit-brand-g3-textsecondary: #{$nit-b-g3-textsecondary};
-    --nit-brand-g3-borderprimary: #{$nit-b-g3-borderprimary};
-    --nit-brand-g3-bordersecondary: #{$nit-b-g3-bordersecondary};
-    --nit-brand-g3-hoverbackground: #{$nit-b-g3-hoverbackground};
-    --nit-brand-g3-hoverbackgroundsecondary: #{$nit-b-g3-hoverbackgroundsecondary};
-    --nit-brand-g3-hovertext: #{$nit-b-g3-hovertext};
-    --nit-brand-g3-hovertextsecondary: #{$nit-b-g3-hovertextsecondary};
-    --nit-brand-g3-error: #{$nit-b-g3-error};
-    --nit-brand-g3-success: #{$nit-b-g3-success};
-    --nit-brand-g3-warning: #{$nit-b-g3-warning};
-    --nit-brand-g3-info: #{$nit-b-g3-info};
-
-    --nit-brand-g4-primary: #{$nit-b-g4-primary};
-    --nit-brand-g4-secondary: #{$nit-b-g4-secondary};
-    --nit-brand-g4-accent: #{$nit-b-g4-accent};
-    --nit-brand-g4-accenttext: #{$nit-b-g4-accenttext};
-    --nit-brand-g4-background: #{$nit-b-g4-background};
-    --nit-brand-g4-background2: #{$nit-b-g4-background2};
-    --nit-brand-g4-navbarbackground1: #{$nit-b-g4-navbarbackground1};
-    --nit-brand-g4-navbarbackground2: #{$nit-b-g4-navbarbackground2};
-    --nit-brand-g4-footerbackground1: #{$nit-b-g4-footerbackground1};
-    --nit-brand-g4-footerbackground2: #{$nit-b-g4-footerbackground2};
-    --nit-brand-g4-footerheading: #{$nit-b-g4-footerheading};
-    --nit-brand-g4-footerlink: #{$nit-b-g4-footerlink};
-    --nit-brand-g4-footericon: #{$nit-b-g4-footericon};
-    --nit-brand-g4-surface: #{$nit-b-g4-surface};
-    --nit-brand-g4-textprimary: #{$nit-b-g4-textprimary};
-    --nit-brand-g4-navbariconcolor: #{$nit-b-g4-navbariconcolor};
-    --nit-brand-g4-textsecondary: #{$nit-b-g4-textsecondary};
-    --nit-brand-g4-borderprimary: #{$nit-b-g4-borderprimary};
-    --nit-brand-g4-bordersecondary: #{$nit-b-g4-bordersecondary};
-    --nit-brand-g4-hoverbackground: #{$nit-b-g4-hoverbackground};
-    --nit-brand-g4-hoverbackgroundsecondary: #{$nit-b-g4-hoverbackgroundsecondary};
-    --nit-brand-g4-hovertext: #{$nit-b-g4-hovertext};
-    --nit-brand-g4-hovertextsecondary: #{$nit-b-g4-hovertextsecondary};
-    --nit-brand-g4-error: #{$nit-b-g4-error};
-    --nit-brand-g4-success: #{$nit-b-g4-success};
-    --nit-brand-g4-warning: #{$nit-b-g4-warning};
-    --nit-brand-g4-info: #{$nit-b-g4-info};
-
-    --nit-brand-g5-primary: #{$nit-b-g5-primary};
-    --nit-brand-g5-secondary: #{$nit-b-g5-secondary};
-    --nit-brand-g5-accent: #{$nit-b-g5-accent};
-    --nit-brand-g5-accenttext: #{$nit-b-g5-accenttext};
-    --nit-brand-g5-background: #{$nit-b-g5-background};
-    --nit-brand-g5-background2: #{$nit-b-g5-background2};
-    --nit-brand-g5-navbarbackground1: #{$nit-b-g5-navbarbackground1};
-    --nit-brand-g5-navbarbackground2: #{$nit-b-g5-navbarbackground2};
-    --nit-brand-g5-footerbackground1: #{$nit-b-g5-footerbackground1};
-    --nit-brand-g5-footerbackground2: #{$nit-b-g5-footerbackground2};
-    --nit-brand-g5-footerheading: #{$nit-b-g5-footerheading};
-    --nit-brand-g5-footerlink: #{$nit-b-g5-footerlink};
-    --nit-brand-g5-footericon: #{$nit-b-g5-footericon};
-    --nit-brand-g5-surface: #{$nit-b-g5-surface};
-    --nit-brand-g5-textprimary: #{$nit-b-g5-textprimary};
-    --nit-brand-g5-navbariconcolor: #{$nit-b-g5-navbariconcolor};
-    --nit-brand-g5-textsecondary: #{$nit-b-g5-textsecondary};
-    --nit-brand-g5-borderprimary: #{$nit-b-g5-borderprimary};
-    --nit-brand-g5-bordersecondary: #{$nit-b-g5-bordersecondary};
-    --nit-brand-g5-hoverbackground: #{$nit-b-g5-hoverbackground};
-    --nit-brand-g5-hoverbackgroundsecondary: #{$nit-b-g5-hoverbackgroundsecondary};
-    --nit-brand-g5-hovertext: #{$nit-b-g5-hovertext};
-    --nit-brand-g5-hovertextsecondary: #{$nit-b-g5-hovertextsecondary};
-    --nit-brand-g5-error: #{$nit-b-g5-error};
-    --nit-brand-g5-success: #{$nit-b-g5-success};
-    --nit-brand-g5-warning: #{$nit-b-g5-warning};
-    --nit-brand-g5-info: #{$nit-b-g5-info};
-
-
-    // Navbar roles (added later than the rest, so they are grouped here rather
-    // than threaded back through each block above). The bar owns a full
-    // rest / hover / active triple for each of the three things drawn on it —
-    // its titles, its icon cluster and the log-in link — plus the two colours
-    // the title's hover / active SHAPE is drawn in. Which shape that is is not a
-    // colour and so is not here: see theme_nit_navbar_style_scss().
-    --nit-brand-g1-navbartitlecolor: #{$nit-b-g1-navbartitlecolor};
-    --nit-brand-g1-navbartitlehovercolor: #{$nit-b-g1-navbartitlehovercolor};
-    --nit-brand-g1-navbartitleactivecolor: #{$nit-b-g1-navbartitleactivecolor};
-    --nit-brand-g1-navbartitlehoverstylecolor: #{$nit-b-g1-navbartitlehoverstylecolor};
-    --nit-brand-g1-navbartitleactivestylecolor: #{$nit-b-g1-navbartitleactivestylecolor};
-    --nit-brand-g1-navbariconhovercolor: #{$nit-b-g1-navbariconhovercolor};
-    --nit-brand-g1-navbariconactivecolor: #{$nit-b-g1-navbariconactivecolor};
-    --nit-brand-g1-navbarlogincolor: #{$nit-b-g1-navbarlogincolor};
-    --nit-brand-g1-navbarloginhovercolor: #{$nit-b-g1-navbarloginhovercolor};
-    --nit-brand-g1-navbarloginactivecolor: #{$nit-b-g1-navbarloginactivecolor};
-    --nit-brand-g1-navbarloginhoverstylecolor: #{$nit-b-g1-navbarloginhoverstylecolor};
-    --nit-brand-g1-navbarloginactivestylecolor: #{$nit-b-g1-navbarloginactivestylecolor};
-
-    --nit-brand-g2-navbartitlecolor: #{$nit-b-g2-navbartitlecolor};
-    --nit-brand-g2-navbartitlehovercolor: #{$nit-b-g2-navbartitlehovercolor};
-    --nit-brand-g2-navbartitleactivecolor: #{$nit-b-g2-navbartitleactivecolor};
-    --nit-brand-g2-navbartitlehoverstylecolor: #{$nit-b-g2-navbartitlehoverstylecolor};
-    --nit-brand-g2-navbartitleactivestylecolor: #{$nit-b-g2-navbartitleactivestylecolor};
-    --nit-brand-g2-navbariconhovercolor: #{$nit-b-g2-navbariconhovercolor};
-    --nit-brand-g2-navbariconactivecolor: #{$nit-b-g2-navbariconactivecolor};
-    --nit-brand-g2-navbarlogincolor: #{$nit-b-g2-navbarlogincolor};
-    --nit-brand-g2-navbarloginhovercolor: #{$nit-b-g2-navbarloginhovercolor};
-    --nit-brand-g2-navbarloginactivecolor: #{$nit-b-g2-navbarloginactivecolor};
-    --nit-brand-g2-navbarloginhoverstylecolor: #{$nit-b-g2-navbarloginhoverstylecolor};
-    --nit-brand-g2-navbarloginactivestylecolor: #{$nit-b-g2-navbarloginactivestylecolor};
-
-    --nit-brand-g3-navbartitlecolor: #{$nit-b-g3-navbartitlecolor};
-    --nit-brand-g3-navbartitlehovercolor: #{$nit-b-g3-navbartitlehovercolor};
-    --nit-brand-g3-navbartitleactivecolor: #{$nit-b-g3-navbartitleactivecolor};
-    --nit-brand-g3-navbartitlehoverstylecolor: #{$nit-b-g3-navbartitlehoverstylecolor};
-    --nit-brand-g3-navbartitleactivestylecolor: #{$nit-b-g3-navbartitleactivestylecolor};
-    --nit-brand-g3-navbariconhovercolor: #{$nit-b-g3-navbariconhovercolor};
-    --nit-brand-g3-navbariconactivecolor: #{$nit-b-g3-navbariconactivecolor};
-    --nit-brand-g3-navbarlogincolor: #{$nit-b-g3-navbarlogincolor};
-    --nit-brand-g3-navbarloginhovercolor: #{$nit-b-g3-navbarloginhovercolor};
-    --nit-brand-g3-navbarloginactivecolor: #{$nit-b-g3-navbarloginactivecolor};
-    --nit-brand-g3-navbarloginhoverstylecolor: #{$nit-b-g3-navbarloginhoverstylecolor};
-    --nit-brand-g3-navbarloginactivestylecolor: #{$nit-b-g3-navbarloginactivestylecolor};
-
-    --nit-brand-g4-navbartitlecolor: #{$nit-b-g4-navbartitlecolor};
-    --nit-brand-g4-navbartitlehovercolor: #{$nit-b-g4-navbartitlehovercolor};
-    --nit-brand-g4-navbartitleactivecolor: #{$nit-b-g4-navbartitleactivecolor};
-    --nit-brand-g4-navbartitlehoverstylecolor: #{$nit-b-g4-navbartitlehoverstylecolor};
-    --nit-brand-g4-navbartitleactivestylecolor: #{$nit-b-g4-navbartitleactivestylecolor};
-    --nit-brand-g4-navbariconhovercolor: #{$nit-b-g4-navbariconhovercolor};
-    --nit-brand-g4-navbariconactivecolor: #{$nit-b-g4-navbariconactivecolor};
-    --nit-brand-g4-navbarlogincolor: #{$nit-b-g4-navbarlogincolor};
-    --nit-brand-g4-navbarloginhovercolor: #{$nit-b-g4-navbarloginhovercolor};
-    --nit-brand-g4-navbarloginactivecolor: #{$nit-b-g4-navbarloginactivecolor};
-    --nit-brand-g4-navbarloginhoverstylecolor: #{$nit-b-g4-navbarloginhoverstylecolor};
-    --nit-brand-g4-navbarloginactivestylecolor: #{$nit-b-g4-navbarloginactivestylecolor};
-
-    --nit-brand-g5-navbartitlecolor: #{$nit-b-g5-navbartitlecolor};
-    --nit-brand-g5-navbartitlehovercolor: #{$nit-b-g5-navbartitlehovercolor};
-    --nit-brand-g5-navbartitleactivecolor: #{$nit-b-g5-navbartitleactivecolor};
-    --nit-brand-g5-navbartitlehoverstylecolor: #{$nit-b-g5-navbartitlehoverstylecolor};
-    --nit-brand-g5-navbartitleactivestylecolor: #{$nit-b-g5-navbartitleactivestylecolor};
-    --nit-brand-g5-navbariconhovercolor: #{$nit-b-g5-navbariconhovercolor};
-    --nit-brand-g5-navbariconactivecolor: #{$nit-b-g5-navbariconactivecolor};
-    --nit-brand-g5-navbarlogincolor: #{$nit-b-g5-navbarlogincolor};
-    --nit-brand-g5-navbarloginhovercolor: #{$nit-b-g5-navbarloginhovercolor};
-    --nit-brand-g5-navbarloginactivecolor: #{$nit-b-g5-navbarloginactivecolor};
-    --nit-brand-g5-navbarloginhoverstylecolor: #{$nit-b-g5-navbarloginhoverstylecolor};
-    --nit-brand-g5-navbarloginactivestylecolor: #{$nit-b-g5-navbarloginactivestylecolor};
-
-    // Text-on-button roles (added later than the rest, so they are grouped
-    // here rather than threaded back through each block above).
-    --nit-brand-g1-onprimary: #{$nit-b-g1-onprimary};
-    --nit-brand-g1-onsecondary: #{$nit-b-g1-onsecondary};
-    --nit-brand-g2-onprimary: #{$nit-b-g2-onprimary};
-    --nit-brand-g2-onsecondary: #{$nit-b-g2-onsecondary};
-    --nit-brand-g3-onprimary: #{$nit-b-g3-onprimary};
-    --nit-brand-g3-onsecondary: #{$nit-b-g3-onsecondary};
-    --nit-brand-g4-onprimary: #{$nit-b-g4-onprimary};
-    --nit-brand-g4-onsecondary: #{$nit-b-g4-onsecondary};
-    --nit-brand-g5-onprimary: #{$nit-b-g5-onprimary};
-    --nit-brand-g5-onsecondary: #{$nit-b-g5-onsecondary};
-
-    // The two accents split off "Accent Text" (see theme_nit_brand_roles()).
-    // Grouped here rather than threaded back through each block above, the same
-    // way onprimary / onsecondary were when they arrived late.
-    --nit-brand-g1-accentwords: #{$nit-b-g1-accentwords};
-    --nit-brand-g1-accentunderline: #{$nit-b-g1-accentunderline};
-    --nit-brand-g2-accentwords: #{$nit-b-g2-accentwords};
-    --nit-brand-g2-accentunderline: #{$nit-b-g2-accentunderline};
-    --nit-brand-g3-accentwords: #{$nit-b-g3-accentwords};
-    --nit-brand-g3-accentunderline: #{$nit-b-g3-accentunderline};
-    --nit-brand-g4-accentwords: #{$nit-b-g4-accentwords};
-    --nit-brand-g4-accentunderline: #{$nit-b-g4-accentunderline};
-    --nit-brand-g5-accentwords: #{$nit-b-g5-accentwords};
-    --nit-brand-g5-accentunderline: #{$nit-b-g5-accentunderline};
-
-    // --- Active layer — the names components actually use. Defaults to Group 1.
-    --nit-brand-primary: var(--nit-brand-g1-primary);
-    --nit-brand-secondary: var(--nit-brand-g1-secondary);
-    --nit-brand-accent: var(--nit-brand-g1-accent);
-    --nit-brand-accenttext: var(--nit-brand-g1-accenttext);
-    --nit-brand-accentwords: var(--nit-brand-g1-accentwords);
-    --nit-brand-accentunderline: var(--nit-brand-g1-accentunderline);
-    --nit-brand-background: var(--nit-brand-g1-background);
-    --nit-brand-background2: var(--nit-brand-g1-background2);
-    --nit-brand-navbarbackground1: var(--nit-brand-g1-navbarbackground1);
-    --nit-brand-navbarbackground2: var(--nit-brand-g1-navbarbackground2);
-    --nit-brand-navbartitlecolor: var(--nit-brand-g1-navbartitlecolor);
-    --nit-brand-navbartitlehovercolor: var(--nit-brand-g1-navbartitlehovercolor);
-    --nit-brand-navbartitleactivecolor: var(--nit-brand-g1-navbartitleactivecolor);
-    --nit-brand-navbartitlehoverstylecolor: var(--nit-brand-g1-navbartitlehoverstylecolor);
-    --nit-brand-navbartitleactivestylecolor: var(--nit-brand-g1-navbartitleactivestylecolor);
-    --nit-brand-navbariconhovercolor: var(--nit-brand-g1-navbariconhovercolor);
-    --nit-brand-navbariconactivecolor: var(--nit-brand-g1-navbariconactivecolor);
-    --nit-brand-navbarlogincolor: var(--nit-brand-g1-navbarlogincolor);
-    --nit-brand-navbarloginhovercolor: var(--nit-brand-g1-navbarloginhovercolor);
-    --nit-brand-navbarloginactivecolor: var(--nit-brand-g1-navbarloginactivecolor);
-    --nit-brand-navbarloginhoverstylecolor: var(--nit-brand-g1-navbarloginhoverstylecolor);
-    --nit-brand-navbarloginactivestylecolor: var(--nit-brand-g1-navbarloginactivestylecolor);
-    --nit-brand-footerbackground1: var(--nit-brand-g1-footerbackground1);
-    --nit-brand-footerbackground2: var(--nit-brand-g1-footerbackground2);
-    --nit-brand-footerheading: var(--nit-brand-g1-footerheading);
-    --nit-brand-footerlink: var(--nit-brand-g1-footerlink);
-    --nit-brand-footericon: var(--nit-brand-g1-footericon);
-    --nit-brand-surface: var(--nit-brand-g1-surface);
-    --nit-brand-textprimary: var(--nit-brand-g1-textprimary);
-    --nit-brand-navbariconcolor: var(--nit-brand-g1-navbariconcolor);
-    --nit-brand-textsecondary: var(--nit-brand-g1-textsecondary);
-    --nit-brand-borderprimary: var(--nit-brand-g1-borderprimary);
-    --nit-brand-bordersecondary: var(--nit-brand-g1-bordersecondary);
-    --nit-brand-hoverbackground: var(--nit-brand-g1-hoverbackground);
-    --nit-brand-hoverbackgroundsecondary: var(--nit-brand-g1-hoverbackgroundsecondary);
-    --nit-brand-hovertext: var(--nit-brand-g1-hovertext);
-    --nit-brand-hovertextsecondary: var(--nit-brand-g1-hovertextsecondary);
-    --nit-brand-error: var(--nit-brand-g1-error);
-    --nit-brand-success: var(--nit-brand-g1-success);
-    --nit-brand-warning: var(--nit-brand-g1-warning);
-    --nit-brand-info: var(--nit-brand-g1-info);
-    --nit-brand-onprimary: var(--nit-brand-g1-onprimary);
-    --nit-brand-onsecondary: var(--nit-brand-g1-onsecondary);
-    // Legacy alias, kept because five component partials already read it.
-    --nit-brand-on-primary: var(--nit-brand-g1-onprimary);
-
-    // The button roles, both tiers at once: every group's reference values, then
-    // the active names pointed at Group 1 like every other role above. Looped
-    // from the map because there are seventy of the first and fourteen of the
-    // second, and a hand-written list of eighty-four would only be a list of
-    // places to mistype a group number.
-    @each $g, $roles in $nit-b-buttonroles {
+    //     these): `--nit-brand-<gkey>-<role>`, every role of every group.
+    @each $g, $roles in $nit-b-groups {
         @each $role, $value in $roles {
             --nit-brand-#{$g}-#{$role}: #{$value};
         }
     }
-    @each $role, $value in map-get($nit-b-buttonroles, "g1") {
+
+    // --- Active layer — the names components actually use. Defaults to Group 1.
+    @each $role, $value in map-get($nit-b-groups, "g1") {
         --nit-brand-#{$role}: var(--nit-brand-g1-#{$role});
     }
+    // Legacy alias, kept because five component partials already read it.
+    --nit-brand-on-primary: var(--nit-brand-g1-onprimary);
 
     // --- Derived helpers. These reference the ACTIVE role vars, so they follow
     //     whichever group is in scope automatically (no per-group duplication).
@@ -527,271 +103,26 @@ $nit-b-buttonroles: (
 //     palette; the derived helpers above follow because they read the active
 //     vars, which are overridden here.
 // Group 1 is the site default and every role above already resolves to it, so
-// this class is a no-op on a page — and load-bearing on the navigation bar. The
+// its class is a no-op on a page — and load-bearing on the navigation bar. The
 // scroll switch works by putting a group's class on the BAR
 // (theme_nit_navbar_scroll_group()), and a bar scrolling INTO Group 1 needs a
 // class to say that with; without one, "switch to Group 1" would be the single
 // combination the control could not express.
-.nit-brand-1 {
-    --nit-brand-primary: var(--nit-brand-g1-primary);
-    --nit-brand-secondary: var(--nit-brand-g1-secondary);
-    --nit-brand-accent: var(--nit-brand-g1-accent);
-    --nit-brand-accenttext: var(--nit-brand-g1-accenttext);
-    --nit-brand-accentwords: var(--nit-brand-g1-accentwords);
-    --nit-brand-accentunderline: var(--nit-brand-g1-accentunderline);
-    --nit-brand-background: var(--nit-brand-g1-background);
-    --nit-brand-background2: var(--nit-brand-g1-background2);
-    --nit-brand-navbarbackground1: var(--nit-brand-g1-navbarbackground1);
-    --nit-brand-navbarbackground2: var(--nit-brand-g1-navbarbackground2);
-    --nit-brand-navbartitlecolor: var(--nit-brand-g1-navbartitlecolor);
-    --nit-brand-navbartitlehovercolor: var(--nit-brand-g1-navbartitlehovercolor);
-    --nit-brand-navbartitleactivecolor: var(--nit-brand-g1-navbartitleactivecolor);
-    --nit-brand-navbartitlehoverstylecolor: var(--nit-brand-g1-navbartitlehoverstylecolor);
-    --nit-brand-navbartitleactivestylecolor: var(--nit-brand-g1-navbartitleactivestylecolor);
-    --nit-brand-navbariconhovercolor: var(--nit-brand-g1-navbariconhovercolor);
-    --nit-brand-navbariconactivecolor: var(--nit-brand-g1-navbariconactivecolor);
-    --nit-brand-navbarlogincolor: var(--nit-brand-g1-navbarlogincolor);
-    --nit-brand-navbarloginhovercolor: var(--nit-brand-g1-navbarloginhovercolor);
-    --nit-brand-navbarloginactivecolor: var(--nit-brand-g1-navbarloginactivecolor);
-    --nit-brand-navbarloginhoverstylecolor: var(--nit-brand-g1-navbarloginhoverstylecolor);
-    --nit-brand-navbarloginactivestylecolor: var(--nit-brand-g1-navbarloginactivestylecolor);
-    --nit-brand-footerbackground1: var(--nit-brand-g1-footerbackground1);
-    --nit-brand-footerbackground2: var(--nit-brand-g1-footerbackground2);
-    --nit-brand-footerheading: var(--nit-brand-g1-footerheading);
-    --nit-brand-footerlink: var(--nit-brand-g1-footerlink);
-    --nit-brand-footericon: var(--nit-brand-g1-footericon);
-    --nit-brand-surface: var(--nit-brand-g1-surface);
-    --nit-brand-textprimary: var(--nit-brand-g1-textprimary);
-    --nit-brand-navbariconcolor: var(--nit-brand-g1-navbariconcolor);
-    --nit-brand-textsecondary: var(--nit-brand-g1-textsecondary);
-    --nit-brand-borderprimary: var(--nit-brand-g1-borderprimary);
-    --nit-brand-bordersecondary: var(--nit-brand-g1-bordersecondary);
-    --nit-brand-hoverbackground: var(--nit-brand-g1-hoverbackground);
-    --nit-brand-hoverbackgroundsecondary: var(--nit-brand-g1-hoverbackgroundsecondary);
-    --nit-brand-hovertext: var(--nit-brand-g1-hovertext);
-    --nit-brand-hovertextsecondary: var(--nit-brand-g1-hovertextsecondary);
-    --nit-brand-error: var(--nit-brand-g1-error);
-    --nit-brand-success: var(--nit-brand-g1-success);
-    --nit-brand-warning: var(--nit-brand-g1-warning);
-    --nit-brand-info: var(--nit-brand-g1-info);
-    --nit-brand-onprimary: var(--nit-brand-g1-onprimary);
-    --nit-brand-onsecondary: var(--nit-brand-g1-onsecondary);
-    // Legacy alias, kept because five component partials already read it.
-    --nit-brand-on-primary: var(--nit-brand-g1-onprimary);
-}
-
-.nit-brand-2 {
-    --nit-brand-primary: var(--nit-brand-g2-primary);
-    --nit-brand-secondary: var(--nit-brand-g2-secondary);
-    --nit-brand-accent: var(--nit-brand-g2-accent);
-    --nit-brand-accenttext: var(--nit-brand-g2-accenttext);
-    --nit-brand-accentwords: var(--nit-brand-g2-accentwords);
-    --nit-brand-accentunderline: var(--nit-brand-g2-accentunderline);
-    --nit-brand-background: var(--nit-brand-g2-background);
-    --nit-brand-background2: var(--nit-brand-g2-background2);
-    --nit-brand-navbarbackground1: var(--nit-brand-g2-navbarbackground1);
-    --nit-brand-navbarbackground2: var(--nit-brand-g2-navbarbackground2);
-    --nit-brand-navbartitlecolor: var(--nit-brand-g2-navbartitlecolor);
-    --nit-brand-navbartitlehovercolor: var(--nit-brand-g2-navbartitlehovercolor);
-    --nit-brand-navbartitleactivecolor: var(--nit-brand-g2-navbartitleactivecolor);
-    --nit-brand-navbartitlehoverstylecolor: var(--nit-brand-g2-navbartitlehoverstylecolor);
-    --nit-brand-navbartitleactivestylecolor: var(--nit-brand-g2-navbartitleactivestylecolor);
-    --nit-brand-navbariconhovercolor: var(--nit-brand-g2-navbariconhovercolor);
-    --nit-brand-navbariconactivecolor: var(--nit-brand-g2-navbariconactivecolor);
-    --nit-brand-navbarlogincolor: var(--nit-brand-g2-navbarlogincolor);
-    --nit-brand-navbarloginhovercolor: var(--nit-brand-g2-navbarloginhovercolor);
-    --nit-brand-navbarloginactivecolor: var(--nit-brand-g2-navbarloginactivecolor);
-    --nit-brand-navbarloginhoverstylecolor: var(--nit-brand-g2-navbarloginhoverstylecolor);
-    --nit-brand-navbarloginactivestylecolor: var(--nit-brand-g2-navbarloginactivestylecolor);
-    --nit-brand-footerbackground1: var(--nit-brand-g2-footerbackground1);
-    --nit-brand-footerbackground2: var(--nit-brand-g2-footerbackground2);
-    --nit-brand-footerheading: var(--nit-brand-g2-footerheading);
-    --nit-brand-footerlink: var(--nit-brand-g2-footerlink);
-    --nit-brand-footericon: var(--nit-brand-g2-footericon);
-    --nit-brand-surface: var(--nit-brand-g2-surface);
-    --nit-brand-textprimary: var(--nit-brand-g2-textprimary);
-    --nit-brand-navbariconcolor: var(--nit-brand-g2-navbariconcolor);
-    --nit-brand-textsecondary: var(--nit-brand-g2-textsecondary);
-    --nit-brand-borderprimary: var(--nit-brand-g2-borderprimary);
-    --nit-brand-bordersecondary: var(--nit-brand-g2-bordersecondary);
-    --nit-brand-hoverbackground: var(--nit-brand-g2-hoverbackground);
-    --nit-brand-hoverbackgroundsecondary: var(--nit-brand-g2-hoverbackgroundsecondary);
-    --nit-brand-hovertext: var(--nit-brand-g2-hovertext);
-    --nit-brand-hovertextsecondary: var(--nit-brand-g2-hovertextsecondary);
-    --nit-brand-error: var(--nit-brand-g2-error);
-    --nit-brand-success: var(--nit-brand-g2-success);
-    --nit-brand-warning: var(--nit-brand-g2-warning);
-    --nit-brand-info: var(--nit-brand-g2-info);
-    --nit-brand-onprimary: var(--nit-brand-g2-onprimary);
-    --nit-brand-onsecondary: var(--nit-brand-g2-onsecondary);
-    // Legacy alias, kept because five component partials already read it.
-    --nit-brand-on-primary: var(--nit-brand-g2-onprimary);
-}
-
-.nit-brand-3 {
-    --nit-brand-primary: var(--nit-brand-g3-primary);
-    --nit-brand-secondary: var(--nit-brand-g3-secondary);
-    --nit-brand-accent: var(--nit-brand-g3-accent);
-    --nit-brand-accenttext: var(--nit-brand-g3-accenttext);
-    --nit-brand-accentwords: var(--nit-brand-g3-accentwords);
-    --nit-brand-accentunderline: var(--nit-brand-g3-accentunderline);
-    --nit-brand-background: var(--nit-brand-g3-background);
-    --nit-brand-background2: var(--nit-brand-g3-background2);
-    --nit-brand-navbarbackground1: var(--nit-brand-g3-navbarbackground1);
-    --nit-brand-navbarbackground2: var(--nit-brand-g3-navbarbackground2);
-    --nit-brand-navbartitlecolor: var(--nit-brand-g3-navbartitlecolor);
-    --nit-brand-navbartitlehovercolor: var(--nit-brand-g3-navbartitlehovercolor);
-    --nit-brand-navbartitleactivecolor: var(--nit-brand-g3-navbartitleactivecolor);
-    --nit-brand-navbartitlehoverstylecolor: var(--nit-brand-g3-navbartitlehoverstylecolor);
-    --nit-brand-navbartitleactivestylecolor: var(--nit-brand-g3-navbartitleactivestylecolor);
-    --nit-brand-navbariconhovercolor: var(--nit-brand-g3-navbariconhovercolor);
-    --nit-brand-navbariconactivecolor: var(--nit-brand-g3-navbariconactivecolor);
-    --nit-brand-navbarlogincolor: var(--nit-brand-g3-navbarlogincolor);
-    --nit-brand-navbarloginhovercolor: var(--nit-brand-g3-navbarloginhovercolor);
-    --nit-brand-navbarloginactivecolor: var(--nit-brand-g3-navbarloginactivecolor);
-    --nit-brand-navbarloginhoverstylecolor: var(--nit-brand-g3-navbarloginhoverstylecolor);
-    --nit-brand-navbarloginactivestylecolor: var(--nit-brand-g3-navbarloginactivestylecolor);
-    --nit-brand-footerbackground1: var(--nit-brand-g3-footerbackground1);
-    --nit-brand-footerbackground2: var(--nit-brand-g3-footerbackground2);
-    --nit-brand-footerheading: var(--nit-brand-g3-footerheading);
-    --nit-brand-footerlink: var(--nit-brand-g3-footerlink);
-    --nit-brand-footericon: var(--nit-brand-g3-footericon);
-    --nit-brand-surface: var(--nit-brand-g3-surface);
-    --nit-brand-textprimary: var(--nit-brand-g3-textprimary);
-    --nit-brand-navbariconcolor: var(--nit-brand-g3-navbariconcolor);
-    --nit-brand-textsecondary: var(--nit-brand-g3-textsecondary);
-    --nit-brand-borderprimary: var(--nit-brand-g3-borderprimary);
-    --nit-brand-bordersecondary: var(--nit-brand-g3-bordersecondary);
-    --nit-brand-hoverbackground: var(--nit-brand-g3-hoverbackground);
-    --nit-brand-hoverbackgroundsecondary: var(--nit-brand-g3-hoverbackgroundsecondary);
-    --nit-brand-hovertext: var(--nit-brand-g3-hovertext);
-    --nit-brand-hovertextsecondary: var(--nit-brand-g3-hovertextsecondary);
-    --nit-brand-error: var(--nit-brand-g3-error);
-    --nit-brand-success: var(--nit-brand-g3-success);
-    --nit-brand-warning: var(--nit-brand-g3-warning);
-    --nit-brand-info: var(--nit-brand-g3-info);
-    --nit-brand-onprimary: var(--nit-brand-g3-onprimary);
-    --nit-brand-onsecondary: var(--nit-brand-g3-onsecondary);
-    // Legacy alias, kept because five component partials already read it.
-    --nit-brand-on-primary: var(--nit-brand-g3-onprimary);
-}
-
-// Group 4 is the LIGHT palette (Daylight) — the pair Group 5 is the dark half
-// of. Both are ordinary group switches; nothing about them is special
-// cased except the one line at the end of this block.
-.nit-brand-4 {
-    --nit-brand-primary: var(--nit-brand-g4-primary);
-    --nit-brand-secondary: var(--nit-brand-g4-secondary);
-    --nit-brand-accent: var(--nit-brand-g4-accent);
-    --nit-brand-accenttext: var(--nit-brand-g4-accenttext);
-    --nit-brand-accentwords: var(--nit-brand-g4-accentwords);
-    --nit-brand-accentunderline: var(--nit-brand-g4-accentunderline);
-    --nit-brand-background: var(--nit-brand-g4-background);
-    --nit-brand-background2: var(--nit-brand-g4-background2);
-    --nit-brand-navbarbackground1: var(--nit-brand-g4-navbarbackground1);
-    --nit-brand-navbarbackground2: var(--nit-brand-g4-navbarbackground2);
-    --nit-brand-navbartitlecolor: var(--nit-brand-g4-navbartitlecolor);
-    --nit-brand-navbartitlehovercolor: var(--nit-brand-g4-navbartitlehovercolor);
-    --nit-brand-navbartitleactivecolor: var(--nit-brand-g4-navbartitleactivecolor);
-    --nit-brand-navbartitlehoverstylecolor: var(--nit-brand-g4-navbartitlehoverstylecolor);
-    --nit-brand-navbartitleactivestylecolor: var(--nit-brand-g4-navbartitleactivestylecolor);
-    --nit-brand-navbariconhovercolor: var(--nit-brand-g4-navbariconhovercolor);
-    --nit-brand-navbariconactivecolor: var(--nit-brand-g4-navbariconactivecolor);
-    --nit-brand-navbarlogincolor: var(--nit-brand-g4-navbarlogincolor);
-    --nit-brand-navbarloginhovercolor: var(--nit-brand-g4-navbarloginhovercolor);
-    --nit-brand-navbarloginactivecolor: var(--nit-brand-g4-navbarloginactivecolor);
-    --nit-brand-navbarloginhoverstylecolor: var(--nit-brand-g4-navbarloginhoverstylecolor);
-    --nit-brand-navbarloginactivestylecolor: var(--nit-brand-g4-navbarloginactivestylecolor);
-    --nit-brand-footerbackground1: var(--nit-brand-g4-footerbackground1);
-    --nit-brand-footerbackground2: var(--nit-brand-g4-footerbackground2);
-    --nit-brand-footerheading: var(--nit-brand-g4-footerheading);
-    --nit-brand-footerlink: var(--nit-brand-g4-footerlink);
-    --nit-brand-footericon: var(--nit-brand-g4-footericon);
-    --nit-brand-surface: var(--nit-brand-g4-surface);
-    --nit-brand-textprimary: var(--nit-brand-g4-textprimary);
-    --nit-brand-navbariconcolor: var(--nit-brand-g4-navbariconcolor);
-    --nit-brand-textsecondary: var(--nit-brand-g4-textsecondary);
-    --nit-brand-borderprimary: var(--nit-brand-g4-borderprimary);
-    --nit-brand-bordersecondary: var(--nit-brand-g4-bordersecondary);
-    --nit-brand-hoverbackground: var(--nit-brand-g4-hoverbackground);
-    --nit-brand-hoverbackgroundsecondary: var(--nit-brand-g4-hoverbackgroundsecondary);
-    --nit-brand-hovertext: var(--nit-brand-g4-hovertext);
-    --nit-brand-hovertextsecondary: var(--nit-brand-g4-hovertextsecondary);
-    --nit-brand-error: var(--nit-brand-g4-error);
-    --nit-brand-success: var(--nit-brand-g4-success);
-    --nit-brand-warning: var(--nit-brand-g4-warning);
-    --nit-brand-info: var(--nit-brand-g4-info);
-    --nit-brand-onprimary: var(--nit-brand-g4-onprimary);
-    --nit-brand-onsecondary: var(--nit-brand-g4-onsecondary);
-    // Legacy alias, kept because five component partials already read it.
-    --nit-brand-on-primary: var(--nit-brand-g4-onprimary);
-}
-
-
-// Group 5 is the DARK half of that pair (Graphite).
-.nit-brand-5 {
-    --nit-brand-primary: var(--nit-brand-g5-primary);
-    --nit-brand-secondary: var(--nit-brand-g5-secondary);
-    --nit-brand-accent: var(--nit-brand-g5-accent);
-    --nit-brand-accenttext: var(--nit-brand-g5-accenttext);
-    --nit-brand-accentwords: var(--nit-brand-g5-accentwords);
-    --nit-brand-accentunderline: var(--nit-brand-g5-accentunderline);
-    --nit-brand-background: var(--nit-brand-g5-background);
-    --nit-brand-background2: var(--nit-brand-g5-background2);
-    --nit-brand-navbarbackground1: var(--nit-brand-g5-navbarbackground1);
-    --nit-brand-navbarbackground2: var(--nit-brand-g5-navbarbackground2);
-    --nit-brand-navbartitlecolor: var(--nit-brand-g5-navbartitlecolor);
-    --nit-brand-navbartitlehovercolor: var(--nit-brand-g5-navbartitlehovercolor);
-    --nit-brand-navbartitleactivecolor: var(--nit-brand-g5-navbartitleactivecolor);
-    --nit-brand-navbartitlehoverstylecolor: var(--nit-brand-g5-navbartitlehoverstylecolor);
-    --nit-brand-navbartitleactivestylecolor: var(--nit-brand-g5-navbartitleactivestylecolor);
-    --nit-brand-navbariconhovercolor: var(--nit-brand-g5-navbariconhovercolor);
-    --nit-brand-navbariconactivecolor: var(--nit-brand-g5-navbariconactivecolor);
-    --nit-brand-navbarlogincolor: var(--nit-brand-g5-navbarlogincolor);
-    --nit-brand-navbarloginhovercolor: var(--nit-brand-g5-navbarloginhovercolor);
-    --nit-brand-navbarloginactivecolor: var(--nit-brand-g5-navbarloginactivecolor);
-    --nit-brand-navbarloginhoverstylecolor: var(--nit-brand-g5-navbarloginhoverstylecolor);
-    --nit-brand-navbarloginactivestylecolor: var(--nit-brand-g5-navbarloginactivestylecolor);
-    --nit-brand-footerbackground1: var(--nit-brand-g5-footerbackground1);
-    --nit-brand-footerbackground2: var(--nit-brand-g5-footerbackground2);
-    --nit-brand-footerheading: var(--nit-brand-g5-footerheading);
-    --nit-brand-footerlink: var(--nit-brand-g5-footerlink);
-    --nit-brand-footericon: var(--nit-brand-g5-footericon);
-    --nit-brand-surface: var(--nit-brand-g5-surface);
-    --nit-brand-textprimary: var(--nit-brand-g5-textprimary);
-    --nit-brand-navbariconcolor: var(--nit-brand-g5-navbariconcolor);
-    --nit-brand-textsecondary: var(--nit-brand-g5-textsecondary);
-    --nit-brand-borderprimary: var(--nit-brand-g5-borderprimary);
-    --nit-brand-bordersecondary: var(--nit-brand-g5-bordersecondary);
-    --nit-brand-hoverbackground: var(--nit-brand-g5-hoverbackground);
-    --nit-brand-hoverbackgroundsecondary: var(--nit-brand-g5-hoverbackgroundsecondary);
-    --nit-brand-hovertext: var(--nit-brand-g5-hovertext);
-    --nit-brand-hovertextsecondary: var(--nit-brand-g5-hovertextsecondary);
-    --nit-brand-error: var(--nit-brand-g5-error);
-    --nit-brand-success: var(--nit-brand-g5-success);
-    --nit-brand-warning: var(--nit-brand-g5-warning);
-    --nit-brand-info: var(--nit-brand-g5-info);
-    --nit-brand-onprimary: var(--nit-brand-g5-onprimary);
-    --nit-brand-onsecondary: var(--nit-brand-g5-onsecondary);
-    // Legacy alias, kept because five component partials already read it.
-    --nit-brand-on-primary: var(--nit-brand-g5-onprimary);
-}
-
-// The button roles' half of the same five switch classes. A separate block and
-// not fourteen more lines inside each one above, for the same reason the :root
-// tier is looped: the five bodies are identical apart from the group number, and
-// that is exactly the kind of list a copy-paste gets wrong in one place.
 //
-// Declaring them after the hand-written blocks is safe because these are names
-// those blocks never mention — same specificity, no property declared twice.
-@each $sel, $g in (".nit-brand-1": "g1", ".nit-brand-2": "g2", ".nit-brand-3": "g3",
-                   ".nit-brand-4": "g4", ".nit-brand-5": "g5") {
-    #{$sel} {
-        @each $role, $value in map-get($nit-b-buttonroles, $g) {
+// Group 4 (Daylight) and the six light category groups are the light palettes;
+// nothing about them is special-cased here. The one thing a light group needs
+// that a dark one does not — its glass built from the other navbar colour — is
+// in _root.scss, keyed off `$nit-b-lightgroups`.
+@each $g, $roles in $nit-b-groups {
+    .nit-brand-#{str-slice($g, 2)} {
+        @each $role, $value in $roles {
             --nit-brand-#{$role}: var(--nit-brand-#{$g}-#{$role});
         }
+        // Legacy alias, kept because five component partials already read it.
+        --nit-brand-on-primary: var(--nit-brand-#{$g}-onprimary);
     }
 }
+
 
 // --- Bootstrap bridge -------------------------------------------------------
 // Bootstrap 5.3 paints the page through its own custom properties
@@ -810,12 +141,7 @@ $nit-b-buttonroles: (
 //
 // Under Group 1 these resolve to the same values pre_scss already baked, so the
 // default site is unchanged to the pixel.
-:root,
-.nit-brand-1,
-.nit-brand-2,
-.nit-brand-3,
-.nit-brand-4,
-.nit-brand-5 {
+#{$nit-b-switchselectors} {
     --bs-body-bg: var(--nit-brand-background);
     --bs-body-color: var(--nit-brand-textprimary);
     --bs-border-color: var(--nit-brand-borderprimary);
@@ -851,48 +177,24 @@ $nit-b-buttonroles: (
 // A triplet cannot be derived from a hex custom property in CSS, so each group
 // emits its own at compile time from the same SCSS variable the role is built
 // from — otherwise every translucent tint in Bootstrap stays on Group 1.
-@each $sel, $g in (":root": "g1", ".nit-brand-1": "g1", ".nit-brand-2": "g2",
-                   ".nit-brand-3": "g3", ".nit-brand-4": "g4", ".nit-brand-5": "g5") {
+@each $sel, $g in $nit-b-switchmap {
     #{$sel} {
-        $ink: map-get((
-            "g1": $nit-b-g1-textprimary, "g2": $nit-b-g2-textprimary,
-            "g3": $nit-b-g3-textprimary, "g4": $nit-b-g4-textprimary,
-            "g5": $nit-b-g5-textprimary), $g);
-        $bg: map-get((
-            "g1": $nit-b-g1-background, "g2": $nit-b-g2-background,
-            "g3": $nit-b-g3-background, "g4": $nit-b-g4-background,
-            "g5": $nit-b-g5-background), $g);
-        $muted: map-get((
-            "g1": $nit-b-g1-textsecondary, "g2": $nit-b-g2-textsecondary,
-            "g3": $nit-b-g3-textsecondary, "g4": $nit-b-g4-textsecondary,
-            "g5": $nit-b-g5-textsecondary), $g);
-        $link: map-get((
-            "g1": $nit-b-g1-accenttext, "g2": $nit-b-g2-accenttext,
-            "g3": $nit-b-g3-accenttext, "g4": $nit-b-g4-accenttext,
-            "g5": $nit-b-g5-accenttext), $g);
-        $pri: map-get((
-            "g1": $nit-b-g1-primary, "g2": $nit-b-g2-primary,
-            "g3": $nit-b-g3-primary, "g4": $nit-b-g4-primary,
-            "g5": $nit-b-g5-primary), $g);
+        $roles: map-get($nit-b-groups, $g);
+        $ink: map-get($roles, "textprimary");
+        $bg: map-get($roles, "background");
+        $muted: map-get($roles, "textsecondary");
+        $link: map-get($roles, "accenttext");
+        $pri: map-get($roles, "primary");
         // The two neutral fills need triplets of their own: `.bg-body-secondary`
         // is `rgba(var(--bs-secondary-bg-rgb), var(--bs-bg-opacity))`, so setting
         // only `--bs-secondary-bg` above left it on Bootstrap's own grey.
-        $bg2: map-get((
-            "g1": $nit-b-g1-background2, "g2": $nit-b-g2-background2,
-            "g3": $nit-b-g3-background2, "g4": $nit-b-g4-background2,
-            "g5": $nit-b-g5-background2), $g);
-        $hov: map-get((
-            "g1": $nit-b-g1-hoverbackground, "g2": $nit-b-g2-hoverbackground,
-            "g3": $nit-b-g3-hoverbackground, "g4": $nit-b-g4-hoverbackground,
-            "g5": $nit-b-g5-hoverbackground), $g);
+        $bg2: map-get($roles, "background2");
+        $hov: map-get($roles, "hoverbackground");
         // Bootstrap 5.3 paints `a:hover` by swapping `--bs-link-color-rgb` for
         // `--bs-link-hover-color-rgb`, so `--bs-link-hover-color` above never
         // reaches a hovered link: without its own triplet every link on the site
         // hovered to the stock Bootstrap blue.
-        $hovtext: map-get((
-            "g1": $nit-b-g1-hovertext, "g2": $nit-b-g2-hovertext,
-            "g3": $nit-b-g3-hovertext, "g4": $nit-b-g4-hovertext,
-            "g5": $nit-b-g5-hovertext), $g);
+        $hovtext: map-get($roles, "hovertext");
 
         --bs-secondary-bg-rgb: #{red($bg2)}, #{green($bg2)}, #{blue($bg2)};
         --bs-tertiary-bg-rgb: #{red($hov)}, #{green($hov)}, #{blue($hov)};
@@ -933,12 +235,7 @@ $nit-b-buttonroles: (
 // for these states (85% / 90% / 80% against white), read back off the compiled
 // stylesheet, so under Group 1 every one of these resolves to the same colour
 // that is already on the page. Only the group being different makes them differ.
-:root,
-.nit-brand-1,
-.nit-brand-2,
-.nit-brand-3,
-.nit-brand-4,
-.nit-brand-5 {
+#{$nit-b-switchselectors} {
     --bs-link-color: var(--nit-brand-accenttext);
     // Inline <code> anywhere on the site. Bootstrap ships a raw magenta that no
     // brand group has ever contained; a code span is an emphasised word, so it
@@ -1105,6 +402,7 @@ input.form-check-input:focus {
     box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--nit-brand-checkcheckedbg) 35%, transparent);
 }
 
+
 // The pictures: the tick, the radio dot, the half-ticked dash, and the switch
 // knob in its off and on states. All five are SVG data-URIs, and a data-URI is a
 // string — it cannot contain `var()`. So each is compiled once per group from
@@ -1120,16 +418,9 @@ input.form-check-input:focus {
 // The focus picture of an OFF switch is Bootstrap's focus-tinted knob; here it
 // stays the knob role so the ring alone says "focused", the way it does on a
 // tick box.
-@each $sel, $g in (":root": "g1", ".nit-brand-1": "g1", ".nit-brand-2": "g2",
-                   ".nit-brand-3": "g3", ".nit-brand-4": "g4", ".nit-brand-5": "g5") {
-    $mark: map-get((
-        "g1": $nit-b-g1-checkcheckedmark, "g2": $nit-b-g2-checkcheckedmark,
-        "g3": $nit-b-g3-checkcheckedmark, "g4": $nit-b-g4-checkcheckedmark,
-        "g5": $nit-b-g5-checkcheckedmark), $g);
-    $knob: map-get((
-        "g1": $nit-b-g1-checkknob, "g2": $nit-b-g2-checkknob,
-        "g3": $nit-b-g3-checkknob, "g4": $nit-b-g4-checkknob,
-        "g5": $nit-b-g5-checkknob), $g);
+@each $sel, $g in $nit-b-switchmap {
+    $mark: map-get(map-get($nit-b-groups, $g), "checkcheckedmark");
+    $knob: map-get(map-get($nit-b-groups, $g), "checkknob");
 
     $tick: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path fill='none' stroke='#{$mark}' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/></svg>");
     $dot: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'><circle r='2' fill='#{$mark}'/></svg>");

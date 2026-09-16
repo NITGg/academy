@@ -240,27 +240,40 @@
 
 // Light-group correction for the frosted bar.
 //
-// The five groups arrange their two navbar colours the opposite way round:
+// The dark and the light groups arrange their two navbar colours the opposite
+// way round:
 //
-//   group          page bg    navbar bg1   navbar bg2
-//   1 / 2 / 3 / 5  (dark)     == page      one step lighter   -> bg2 separates
-//   4  (Daylight)  #f6f8fb    #ffffff      == page            -> bg1 separates
+//   group                     page bg    navbar bg1   navbar bg2
+//   1 / 2 / 3 / 5 (dark)      == page    one step lighter   -> bg2 separates
+//   4 (Daylight) and the six  #f6f8fb    #ffffff      == page            -> bg1 separates
+//   light category groups
 //
-// So the glass above is built on colour 2, which is right for the four dark
-// groups and exactly wrong for the light one — there bg2 seeds to the page
-// colour and a translucent pane of it would melt into the ground, the very
-// thing this change set out to fix. Group 4 therefore builds its glass from
-// colour 1 (#ffffff against an off-white page), which is already the distinct
-// one there. `:root.nit-brand-4` and not a bare `.nit-brand-4`: _brand.scss is
+// So the glass above is built on colour 2, which is right for a dark group and
+// exactly wrong for a light one — there bg2 seeds to the page colour and a
+// translucent pane of it would melt into the ground, the very thing this change
+// set out to fix. A light group therefore builds its glass from colour 1
+// (#ffffff against an off-white page), which is already the distinct one there.
+// `:root.nit-brand-4` and not a bare `.nit-brand-4`: _brand.scss is
 // concatenated BEFORE this file, so a single-class selector ties with `:root`
 // on specificity and loses on source order.
 //
 // `.nit-navbar.nit-brand-4` is the same correction for the bar wearing Group 4
 // on its own — the scroll switch puts a group class on the BAR, so a bar that
 // scrolls into Group 4 needs this as much as a page rendered in it does.
-:root.nit-brand-4,
-.nit-navbar.nit-brand-4 {
-    --nit-navbarglass: color-mix(in srgb, var(--nit-navbarbg) var(--nit-navbaropacity, 72%), transparent);
+//
+// Which groups are light is not written here: `$nit-b-lightgroups` is emitted
+// by theme_nit_get_pre_scss() from theme_nit_brand_group_scheme(), which
+// measures each group's own page Background against its Text primary — so a
+// group an admin re-tunes to the other scheme moves to the right side of this
+// rule by itself, and the six light category groups (theme_nit_brand_hues())
+// are covered without being named.
+@each $g in $nit-b-lightgroups {
+    $n: str-slice($g, 2);
+
+    :root.nit-brand-#{$n},
+    .nit-navbar.nit-brand-#{$n} {
+        --nit-navbarglass: color-mix(in srgb, var(--nit-navbarbg) var(--nit-navbaropacity, 72%), transparent);
+    }
 }
 
 // No prefers-color-scheme override: Group 1 of the Brand Colors palette is

@@ -288,12 +288,15 @@ function theme_nit_button_outline_variants(): array {
  * theme_nit_get_pre_scss() re-emits the token as `transparent` and the button
  * looks exactly as it always did.
  *
- * @param string $group brand group key (g1..g5)
+ * A hue group with no row of its own follows its parent's switch
+ * (theme_nit_group_setting()).
+ *
+ * @param string $group brand group key (g1..g17)
  * @param string $variant an outline variant key (theme_nit_button_outline_variants())
  * @return bool true if that variant's Background role should be painted
  */
 function theme_nit_button_outline_fill(string $group, string $variant): bool {
-    return get_config('theme_nit', $variant . 'fill_' . $group) === '1';
+    return theme_nit_group_setting($group, $variant . 'fill_') === '1';
 }
 
 /**
@@ -682,15 +685,17 @@ function theme_nit_navbar_shape_states(): array {
  *
  * Three answers are distinguishable and all three are meant: never saved (the
  * state's default), saved empty (no shape — a deliberate choice), and a set.
+ * A hue group that was never saved reads its parent's row first
+ * (theme_nit_group_setting()), so Emerald-light starts with Daylight's shapes.
  *
- * @param string $group group key (g1..g5)
+ * @param string $group group key (g1..g17)
  * @param string $state state key (see theme_nit_navbar_shape_states())
  * @return string[] keys of theme_nit_navbar_shape_treatments(), possibly empty
  */
 function theme_nit_navbar_shape(string $group, string $state): array {
     $states = theme_nit_navbar_shape_states();
     $valid = array_keys(theme_nit_navbar_shape_treatments());
-    $value = get_config('theme_nit', 'navbarshape_' . $group . '_' . $state);
+    $value = theme_nit_group_setting($group, 'navbarshape_', '_' . $state);
 
     if (!is_string($value)) {
         return $states[$state]['default'] ?? [];
@@ -782,9 +787,10 @@ function theme_nit_navbar_weights(): array {
  * The size an administrator set for one group / subject, in px.
  *
  * Clamped to the subject's own range, so a saved value that predates a narrower
- * range (or a hand-edited config row) still renders something sane.
+ * range (or a hand-edited config row) still renders something sane. A hue group
+ * with no row of its own reads its parent's (theme_nit_group_setting()).
  *
- * @param string $group group key (g1..g5)
+ * @param string $group group key (g1..g17)
  * @param string $subject subject key (see theme_nit_navbar_type_subjects())
  * @return int pixels
  */
@@ -793,7 +799,7 @@ function theme_nit_navbar_type_size(string $group, string $subject): int {
     if ($meta === null) {
         return 16;
     }
-    $value = get_config('theme_nit', 'navbarsize_' . $group . '_' . $subject);
+    $value = theme_nit_group_setting($group, 'navbarsize_', '_' . $subject);
     if (!is_numeric($value)) {
         return $meta['size'];
     }
@@ -801,9 +807,10 @@ function theme_nit_navbar_type_size(string $group, string $subject): int {
 }
 
 /**
- * The font weight an administrator set for one group / subject.
+ * The font weight an administrator set for one group / subject — or, for a hue
+ * group that was never saved, for its parent (theme_nit_group_setting()).
  *
- * @param string $group group key (g1..g5)
+ * @param string $group group key (g1..g17)
  * @param string $subject subject key (see theme_nit_navbar_type_subjects())
  * @return int a key of theme_nit_navbar_weights()
  */
@@ -812,7 +819,7 @@ function theme_nit_navbar_type_weight(string $group, string $subject): int {
     if ($meta === null) {
         return 400;
     }
-    $value = get_config('theme_nit', 'navbarweight_' . $group . '_' . $subject);
+    $value = theme_nit_group_setting($group, 'navbarweight_', '_' . $subject);
     return array_key_exists((int) $value, theme_nit_navbar_weights()) ? (int) $value : $meta['weight'];
 }
 
@@ -850,12 +857,15 @@ function theme_nit_navbar_icon_box(int $glyph): int {
  * nothing behind them, which no administrator reaching for this control is
  * asking for.
  *
- * @param string $group group key (g1..g5)
+ * Both rows fall back to the parent group's for a hue group that has never been
+ * saved (theme_nit_group_setting()).
+ *
+ * @param string $group group key (g1..g17)
  * @return array{on:bool, transparency:int} the switch, and 0-90
  */
 function theme_nit_navbar_glass(string $group): array {
-    $on = get_config('theme_nit', 'navbarglass_' . $group);
-    $value = get_config('theme_nit', 'navbartransparency_' . $group);
+    $on = theme_nit_group_setting($group, 'navbarglass_');
+    $value = theme_nit_group_setting($group, 'navbartransparency_');
     return [
         'on' => !is_string($on) || $on !== '0',
         'transparency' => is_numeric($value) ? min(90, max(0, (int) $value)) : 28,
@@ -891,11 +901,24 @@ define('THEME_NIT_NAVBAR_BLUR', 'blur(18px) saturate(160%)');
  * Answering with the group itself — the default — means "do not change", and
  * nothing is emitted or scripted for it at all.
  *
- * @param string $group group key (g1..g5)
+ * A hue group with no answer of its own follows its parent — translated, not
+ * copied: if Daylight scrolls into Graphite, an Emerald-light bar scrolls into
+ * Emerald-dark, not into Graphite; if Daylight scrolls into Group 2, so does
+ * Emerald; and "do not change" stays "do not change".
+ *
+ * @param string $group group key (g1..g17)
  * @return string a group key; equal to $group when the bar does not change
  */
 function theme_nit_navbar_scroll_group(string $group): string {
     $value = get_config('theme_nit', 'navbarscrollgroup_' . $group);
+    if (!is_string($value) && ($parent = theme_nit_brand_group_parent($group)) !== null) {
+        $value = get_config('theme_nit', 'navbarscrollgroup_' . $parent);
+        if ($value === $parent) {
+            $value = $group;
+        } else if ($value === theme_nit_brand_group_partner($parent)) {
+            $value = theme_nit_brand_group_partner($group);
+        }
+    }
     return (is_string($value) && array_key_exists($value, theme_nit_brand_groups()))
         ? $value : $group;
 }
@@ -903,16 +926,20 @@ function theme_nit_navbar_scroll_group(string $group): string {
 /**
  * The ordered Brand-Colors groups.
  *
- * A "group" is a complete named set of all 23 roles — a swappable palette.
+ * A "group" is a complete named set of all the roles — a swappable palette.
  * Group 1 is the site-wide default; a component can opt into another group via
- * the matching wrapper class (`.nit-brand-2`, `.nit-brand-3`), keeping the same
- * variable names but resolving them from that group's values. Groups 2 and 3
- * seed equal to Group 1 and are tuned later on the gallery page.
+ * the matching wrapper class (`.nit-brand-2`, `.nit-brand-3`, …), keeping the
+ * same variable names but resolving them from that group's values. Groups 2 and
+ * 3 seed equal to Group 1 and are tuned later on the gallery page.
  *
- * @return array<string, string> group key (g1/g2/g3) => display label
+ * Groups 6 onwards are the category pairs — see theme_nit_brand_hues() — and are
+ * listed from that table rather than written out here, so a hue is added in one
+ * place.
+ *
+ * @return array<string, string> group key (g1..g17) => display label
  */
 function theme_nit_brand_groups(): array {
-    return [
+    $groups = [
         'g1' => 'Group 1',
         'g2' => 'Group 2',
         'g3' => 'Group 3',
@@ -923,6 +950,188 @@ function theme_nit_brand_groups(): array {
         'g4' => 'Group 4 (Daylight — light)',
         'g5' => 'Group 5 (Graphite — dark)',
     ];
+    // The same pair again, once per category hue, labelled the same way.
+    foreach (theme_nit_brand_hues() as $hue) {
+        $groups[$hue['light']] = 'Group ' . substr($hue['light'], 1) . ' (' . $hue['name'] . ' — light)';
+        $groups[$hue['dark']] = 'Group ' . substr($hue['dark'], 1) . ' (' . $hue['name'] . ' — dark)';
+    }
+    return $groups;
+}
+
+/**
+ * The category accents: one light + dark pair of groups per hue.
+ *
+ * Every main category on the catalogue carries an icon drawn in its own colour,
+ * and a category page should wear that colour the way the site wears azure —
+ * not as a re-coloured logo but as the whole palette: buttons, links, hover
+ * states, the navbar underline, the footer. So each hue gets a pair of groups
+ * that are Daylight (Group 4) and Graphite (Group 5) with the azure swapped out
+ * and NOTHING else changed: the same neutrals, the same grounds, the same text
+ * inks, the same status colours. Assign the pair on the gallery "Change style"
+ * tab (Category styles → light / dark) and the category is branded.
+ *
+ * `rungs` is the azure ramp of the two parent groups rebuilt in this hue. Each
+ * rung keeps the LIGHTNESS of the azure rung it replaces (OKLCH L, the scale
+ * contrast is measured on), takes the hue of the icon, and carries the smaller
+ * of the azure rung's chroma and the icon's — so a vivid icon does not become a
+ * neon palette, a calm one is not pushed past what it is, and every text /
+ * background pair lands within a few percent of the contrast the parent group
+ * was tuned to (white on A600 is 5.2–6.0 across the six; on the parent, 5.6).
+ *
+ *   A200 A300 A400          the light tints (dark-mode links, hover text, checks)
+ *   A600 A700 A800          the deep inks (light-mode buttons, links, hovers)
+ *   H85 H90                 A600 mixed 85 / 90 % with white — the primary button's
+ *                           hover fill and border, exactly as Daylight seeds them
+ *   V Vh Vd                 the vivid fill Graphite's buttons are painted in, its
+ *                           hover step, and the deeper tone under the navbar's
+ *                           hover / active shape
+ *
+ * `icon` is the dominant fill measured off the category icon the hue was taken
+ * from (local_nit_category `categoryicon`), kept so the next person can tell
+ * where a hue came from and re-measure it if the icon is redrawn. The rung
+ * hexes are literals on purpose — the theme has no colour maths at runtime, and
+ * a palette that is computed on every request is a palette nobody can read.
+ *
+ * Keys are assigned in pairs from g6 upward, so a new hue is one more entry
+ * here and nothing else: the groups list, the switch classes, the defaults, the
+ * SCSS maps and the gallery editor all read this table.
+ *
+ * @return array<string, array{name:string, icon:string, light:string, dark:string,
+ *         rungs: array<string, string>}> keyed by hue slug, in display order
+ */
+function theme_nit_brand_hues(): array {
+    return [
+        // Accounting & Finance.
+        'emerald' => [
+            'name' => 'Emerald', 'icon' => '#4fa92e', 'light' => 'g6', 'dark' => 'g7',
+            'rungs' => [
+                'A200' => '#c6e1be', 'A300' => '#a0cc94', 'A400' => '#7db76c',
+                'A600' => '#347c18', 'A700' => '#216300', 'A800' => '#174a00',
+                'H85' => '#52903b', 'H90' => '#48892f',
+                'V' => '#4ca62a', 'Vh' => '#459f21', 'Vd' => '#297600',
+            ],
+        ],
+        // Engineering & Industry.
+        'amber' => [
+            'name' => 'Amber', 'icon' => '#fe7e02', 'light' => 'g8', 'dark' => 'g9',
+            'rungs' => [
+                'A200' => '#f6ceb7', 'A300' => '#ecae88', 'A400' => '#e08e5a',
+                'A600' => '#a34e00', 'A700' => '#813c00', 'A800' => '#612c00',
+                'H85' => '#b16926', 'H90' => '#ac6019',
+                'V' => '#d96a00', 'Vh' => '#cf6500', 'Vd' => '#984900',
+            ],
+        ],
+        // Hospital Management.
+        'teal' => [
+            'name' => 'Teal', 'icon' => '#02a0b2', 'light' => 'g10', 'dark' => 'g11',
+            'rungs' => [
+                'A200' => '#aee2eb', 'A300' => '#72cedc', 'A400' => '#36b8ca',
+                'A600' => '#007785', 'A700' => '#005d68', 'A800' => '#00464e',
+                'H85' => '#268b97', 'H90' => '#198591',
+                'V' => '#01a0b2', 'Vh' => '#0098a9', 'Vd' => '#006f7c',
+            ],
+        ],
+        // International Trade / Logistics.
+        'sapphire' => [
+            'name' => 'Sapphire', 'icon' => '#056dca', 'light' => 'g12', 'dark' => 'g13',
+            'rungs' => [
+                'A200' => '#bfdafc', 'A300' => '#95c1f6', 'A400' => '#6da8ee',
+                'A600' => '#1869bc', 'A700' => '#00529b', 'A800' => '#003c76',
+                'H85' => '#3b80c6', 'H90' => '#2f78c3',
+                'V' => '#378fef', 'Vh' => '#2f88e7', 'Vd' => '#0062b7',
+            ],
+        ],
+        // Languages.
+        'rose' => [
+            'name' => 'Rose', 'icon' => '#ee3071', 'light' => 'g14', 'dark' => 'g15',
+            'rungs' => [
+                'A200' => '#f9c9d1', 'A300' => '#f0a5b3', 'A400' => '#e48398',
+                'A600' => '#ac3b5a', 'A700' => '#8d2545', 'A800' => '#6b1932',
+                'H85' => '#b85873', 'H90' => '#b44f6b',
+                'V' => '#f43776', 'Vh' => '#ec2e6f', 'Vd' => '#b5004f',
+            ],
+        ],
+        // Law.
+        'amethyst' => [
+            'name' => 'Amethyst', 'icon' => '#613dab', 'light' => 'g16', 'dark' => 'g17',
+            'rungs' => [
+                'A200' => '#d9d1f9', 'A300' => '#c0b3f2', 'A400' => '#a995e9',
+                'A600' => '#7053b6', 'A700' => '#583d96', 'A800' => '#422c73',
+                'H85' => '#856dc1', 'H90' => '#7e64bd',
+                'V' => '#9575e8', 'Vh' => '#8e6ee1', 'Vd' => '#6a48b6',
+            ],
+        ],
+    ];
+}
+
+/**
+ * The group a hue group was built from: Group 4 for a light one, Group 5 for a
+ * dark one, null for the five originals.
+ *
+ * Read by the per-group NAVBAR settings (shape, size, weight, glass, outline
+ * fill — theme_nit_group_setting()) so a hue group that has never been saved
+ * looks like its parent in every way and not only in colour: the same title
+ * size, the same hover treatment, the same frosting. Its colours do not go
+ * through here — they are seeded once from the parent (theme_nit_brand_hue_templates())
+ * and are its own from then on, because a parent role that later turns azure
+ * must not leak into a group whose whole point is not being azure.
+ *
+ * @param string $group group key (g1..g17)
+ * @return string|null 'g4' | 'g5' | null
+ */
+function theme_nit_brand_group_parent(string $group): ?string {
+    foreach (theme_nit_brand_hues() as $hue) {
+        if ($hue['light'] === $group) {
+            return 'g4';
+        }
+        if ($hue['dark'] === $group) {
+            return 'g5';
+        }
+    }
+    return null;
+}
+
+/**
+ * The other half of a group's light/dark pair, if it has one.
+ *
+ * @param string $group group key (g1..g17)
+ * @return string|null the partner's key, or null for Groups 1-3
+ */
+function theme_nit_brand_group_partner(string $group): ?string {
+    if ($group === 'g4' || $group === 'g5') {
+        return $group === 'g4' ? 'g5' : 'g4';
+    }
+    foreach (theme_nit_brand_hues() as $hue) {
+        if ($hue['light'] === $group) {
+            return $hue['dark'];
+        }
+        if ($hue['dark'] === $group) {
+            return $hue['light'];
+        }
+    }
+    return null;
+}
+
+/**
+ * One of a group's non-colour settings, falling back to its parent group's.
+ *
+ * `theme_nit/<prefix><group><suffix>` if that row exists; else, for a hue group,
+ * the same row for its parent (theme_nit_brand_group_parent()); else false —
+ * exactly what get_config() answers for a missing row, so every caller's own
+ * default still applies after it. Saving a hue group's navbar section writes
+ * its own rows and it stops following; Reset removes them and it follows again.
+ *
+ * @param string $group group key (g1..g17)
+ * @param string $prefix the config name up to the group key, e.g. 'navbarsize_'
+ * @param string $suffix the rest of it, e.g. '_title', or ''
+ * @return mixed the stored string, or false
+ */
+function theme_nit_group_setting(string $group, string $prefix, string $suffix = '') {
+    $value = get_config('theme_nit', $prefix . $group . $suffix);
+    if (!is_string($value) && ($parent = theme_nit_brand_group_parent($group)) !== null) {
+        $value = get_config('theme_nit', $prefix . $parent . $suffix);
+    }
+    return $value;
 }
 
 /**
@@ -979,7 +1188,7 @@ function theme_nit_hex_luminance(string $hex): ?float {
  * hiding groups is a change to the site, and this answer exists to describe the
  * site, not to overrule it.
  *
- * @param string $group group key (g1..g5)
+ * @param string $group group key (g1..g17)
  * @return string 'light' | 'dark'
  */
 function theme_nit_brand_group_scheme(string $group): string {
@@ -1069,7 +1278,7 @@ function theme_nit_category_group_map(string $mode): array {
  *
  * @param int $categoryid the category whose page is being rendered
  * @param string|null $mode 'light' | 'dark'; null = the mode this request renders in
- * @return string one of the group keys from theme_nit_brand_groups() (g1..g5)
+ * @return string one of the group keys from theme_nit_brand_groups() (g1..g17)
  */
 function theme_nit_category_brand_group(int $categoryid, ?string $mode = null): string {
     return theme_nit_category_brand_group_assigned($categoryid, $mode) ?? 'g1';
@@ -1096,7 +1305,7 @@ function theme_nit_category_brand_group(int $categoryid, ?string $mode = null): 
  *
  * @param int $categoryid the category being rendered, or a course's category
  * @param string|null $mode 'light' | 'dark'; null = the mode this request renders in
- * @return string|null a group key (g1..g5), or null when nothing is assigned
+ * @return string|null a group key (g1..g17), or null when nothing is assigned
  */
 function theme_nit_category_brand_group_assigned(int $categoryid, ?string $mode = null): ?string {
     static $resolved = [];
@@ -1255,7 +1464,7 @@ function theme_nit_page_categoryid(): int {
  * not pin it to Group 1.
  *
  * @param string|null $mode 'light' | 'dark'; null = the mode this request renders in
- * @return string|null group key (g1..g5), or null when the page is not in a styled category
+ * @return string|null group key (g1..g17), or null when the page is not in a styled category
  */
 function theme_nit_page_brand_group(?string $mode = null): ?string {
     $catid = theme_nit_page_categoryid();
@@ -1268,21 +1477,18 @@ function theme_nit_page_brand_group(?string $mode = null): ?string {
 /**
  * The CSS body/wrapper class that switches an element to a brand group.
  *
- * Group 1 is the default layer (no class); groups 2/3 map to the switch classes
- * declared in scss/foundation/_brand.scss.
+ * Group 1 is the default layer (no class); every other group maps to the switch
+ * class of the same number, `nit-brand-<N>`, which scss/foundation/_brand.scss
+ * declares for every group in `$nit-b-groups` (theme_nit_get_pre_scss()).
  *
- * @param string $group a group key (g1/g2/g3)
- * @return string '' | 'nit-brand-2' | 'nit-brand-3'
+ * @param string $group a group key (g1..g17)
+ * @return string '' | 'nit-brand-2' … 'nit-brand-17'
  */
 function theme_nit_brand_group_class(string $group): string {
-    $classes = [
-        'g1' => '',
-        'g2' => 'nit-brand-2',
-        'g3' => 'nit-brand-3',
-        'g4' => 'nit-brand-4',
-        'g5' => 'nit-brand-5',
-    ];
-    return $classes[$group] ?? '';
+    if ($group === 'g1' || !array_key_exists($group, theme_nit_brand_groups())) {
+        return '';
+    }
+    return 'nit-brand-' . substr($group, 1);
 }
 
 /**
@@ -1489,12 +1695,18 @@ function theme_nit_html_classes_for(string $mode, string $group): string {
  * scss/foundation/_brand.scss. It is also why `--nit-navbartext` reads the navbar
  * icon role rather than the body ink (scss/foundation/_root.scss).
  *
+ * Groups 6 onward are the category pairs: Daylight and Graphite again, once per
+ * hue in theme_nit_brand_hues(), with the azure rungs swapped for that hue's.
+ * They are generated from the two templates below rather than written out, so
+ * the twelve of them cannot drift apart from one another or from the pair they
+ * copy.
+ *
  * A role missing from a group falls back to theme_nit_brand_roles()['default'].
  *
- * @return array<string, array<string, string>> group key (g1..g5) => role => #hex
+ * @return array<string, array<string, string>> group key (g1..g17) => role => #hex
  */
 function theme_nit_brand_group_defaults(): array {
-    return [
+    $defaults = [
         // --- Group 1 : Slate blue (calm, cool). -------------------------------
         'g1' => [
             'primary'           => '#5488c4',
@@ -1949,6 +2161,214 @@ function theme_nit_brand_group_defaults(): array {
             'info'              => '#3bb2e3',
         ],
     ];
+
+    // --- Groups 6-17 : the category pairs. ---------------------------------
+    // Each hue is Daylight and Graphite again with the azure rungs replaced —
+    // see theme_nit_brand_hue_templates() for which role reads which rung.
+    $templates = theme_nit_brand_hue_templates();
+    foreach (theme_nit_brand_hues() as $hue) {
+        $defaults[$hue['light']] = theme_nit_brand_rehue($templates['light'], $hue['rungs']);
+        $defaults[$hue['dark']] = theme_nit_brand_rehue($templates['dark'], $hue['rungs']);
+    }
+    return $defaults;
+}
+
+/**
+ * The two palettes every hue pair is cut from, with the accent written as rung
+ * names instead of colours.
+ *
+ * A hex is a hex — the same in every hue. A bare rung name (`A600`, `V`, …) is
+ * looked up in the hue's ramp by theme_nit_brand_rehue(). Which is which is the
+ * whole design: the neutrals, grounds, inks, borders and status colours are the
+ * parent's and identical across the six; only the roles that carried azure (or,
+ * on the dark side, Graphite's red) take the hue.
+ *
+ * These are Groups 4 and 5 AS THE SITE RUNS THEM — a snapshot of the live
+ * palette taken on 2026-09-16, not the code seeds above. The two differ: the
+ * site's Daylight puts its navbar titles in the body ink and its hover shape in
+ * A700, and its Graphite paints its buttons in a vivid fill under a near-black
+ * page. The admin was asked for "the same as 4 and 5", and that is the pair
+ * they see, so it is the pair these copy. A snapshot and not a live read on
+ * purpose (see theme_nit_brand_group_parent()).
+ *
+ * The one deliberate departure: the dark template labels its vivid fill with
+ * the page ink (#0d1117) where the live Graphite uses white. White on a fill at
+ * this lightness is 3.1-3.7:1 across the six hues — under the 4.5 a button label
+ * needs — and the ink is 5.1-6.1, which is also how Groups 4/5 were seeded
+ * before the site re-painted them. It is one role per group to flip back on the
+ * gallery page (onprimary, and the three hover-text roles beside it) for a site
+ * that wants the white regardless.
+ *
+ * @return array{light: array<string, string>, dark: array<string, string>}
+ *         role => #hex or rung name
+ */
+function theme_nit_brand_hue_templates(): array {
+    return [
+        // --- Daylight, re-hued. Light content, light chrome, deep-ink accent.
+        'light' => [
+            'primary'           => 'A600',
+            'secondary'         => '#e6e8eb',   // N200
+            'onprimary'         => '#ffffff',
+            'onsecondary'       => '#000000',
+            'accent'            => 'A600',
+            'accenttext'        => 'A700',
+            'accentwords'       => 'A600',
+            'accentunderline'   => 'A800',
+            'btnprimaryborder'  => 'A600',
+            'btnprimaryhoverbg' => 'H85',
+            'btnprimaryhovertext' => '#ffffff',
+            'btnprimaryhoverborder' => 'H90',
+            'btnsecondaryborder' => '#e6e8eb',   // N200
+            'btnsecondaryhoverbg' => '#d5d9df',   // N300
+            'btnsecondaryhovertext' => '#14191f',   // N900
+            'btnsecondaryhoverborder' => '#d5d9df',   // N300
+            'btnoutlineprimarybg' => '#f6f8fb',   // N50
+            'btnoutlineprimarytext' => 'A600',
+            'btnoutlineprimaryborder' => 'A600',
+            'btnoutlineprimaryhoverbg' => 'A600',
+            'btnoutlineprimaryhovertext' => '#ffffff',
+            'btnoutlineprimaryhoverborder' => 'A600',
+            'btnoutlinebg'      => '#f6f8fb',   // N50
+            'btnoutlinetext'    => '#14191f',   // N900
+            'btnoutlineborder'  => '#a7abb1',   // N400
+            'btnoutlinehoverbg' => '#f1f3f6',   // N100
+            'btnoutlinehovertext' => 'A800',
+            'btnoutlinehoverborder' => '#a7abb1',   // N400
+            'checkbg'           => '#ffffff',
+            'checkborder'       => '#d5d9df',   // N300
+            'checkknob'         => '#5e646b',   // N600
+            'checkcheckedbg'    => 'A600',
+            'checkcheckedborder' => 'A600',
+            'checkcheckedmark'  => '#ffffff',
+            'background'        => '#f6f8fb',   // N50
+            'background2'       => '#f1f3f6',   // N100
+            'navbarbackground1' => '#ffffff',
+            'navbarbackground2' => '#f6f8fb',   // N50
+            // The bar's three subjects stay the body ink in every state; only
+            // the shape under them (the underline) takes the hue.
+            'navbartitlecolor'  => '#14191f',   // N900
+            'navbartitlehovercolor' => '#14191f',
+            'navbartitleactivecolor' => '#14191f',
+            'navbartitlehoverstylecolor' => 'A700',
+            'navbartitleactivestylecolor' => 'A700',
+            'navbariconcolor'   => '#14191f',
+            'navbariconhovercolor' => 'A800',
+            'navbariconactivecolor' => 'A700',
+            'navbarlogincolor'  => '#14191f',
+            'navbarloginhovercolor' => '#14191f',
+            'navbarloginactivecolor' => '#14191f',
+            'navbarloginhoverstylecolor' => 'A700',
+            'navbarloginactivestylecolor' => 'A700',
+            'footerbackground1' => '#f1f3f6',   // N100
+            'footerbackground2' => '#e6e8eb',   // N200
+            'footerheading'     => 'A700',
+            'footerlink'        => 'A600',
+            'footericon'        => 'A600',
+            'surface'           => '#ffffff',
+            'textprimary'       => '#14191f',   // N900
+            'textsecondary'     => '#5e646b',   // N600
+            'borderprimary'     => '#d5d9df',   // N300
+            'bordersecondary'   => '#a7abb1',   // N400
+            'hoverbackground'   => '#f1f3f6',   // N100
+            'hoverbackgroundsecondary' => '#e6e8eb',   // N200
+            'hovertext'         => 'A800',
+            'hovertextsecondary' => '#43484f',   // N700
+            'error'             => '#9a3c16',
+            'success'           => '#00703e',
+            'warning'           => '#775800',
+            'info'              => '#006789',
+        ],
+        // --- Graphite, re-hued. Near-black page, white text, vivid fill.
+        'dark' => [
+            'primary'           => 'V',
+            'secondary'         => '#2a2e35',   // N800
+            'onprimary'         => '#0d1117',   // N950 — see the docblock
+            'onsecondary'       => '#f6f8fb',   // N50
+            'accent'            => 'V',
+            // Links are white in the site's Graphite and hover to the pale tint.
+            'accenttext'        => '#ffffff',
+            'accentwords'       => 'V',
+            'accentunderline'   => '#ffffff',
+            'btnprimaryborder'  => 'V',
+            'btnprimaryhoverbg' => 'Vh',
+            'btnprimaryhovertext' => '#0d1117',
+            'btnprimaryhoverborder' => 'Vh',
+            'btnsecondaryborder' => '#2a2e35',   // N800
+            'btnsecondaryhoverbg' => '#24272d',
+            'btnsecondaryhovertext' => '#f6f8fb',   // N50
+            'btnsecondaryhoverborder' => '#22252a',
+            'btnoutlineprimarybg' => '#0d1117',   // N950
+            'btnoutlineprimarytext' => '#ffffff',
+            'btnoutlineprimaryborder' => 'V',
+            'btnoutlineprimaryhoverbg' => 'V',
+            'btnoutlineprimaryhovertext' => '#0d1117',
+            'btnoutlineprimaryhoverborder' => 'V',
+            'btnoutlinebg'      => '#0d1117',   // N950
+            'btnoutlinetext'    => '#ffffff',
+            'btnoutlineborder'  => '#43484f',   // N700
+            // The neutral outline button fills with the hue on hover, as the
+            // site's Graphite fills with red.
+            'btnoutlinehoverbg' => 'V',
+            'btnoutlinehovertext' => '#0d1117',
+            'btnoutlinehoverborder' => 'V',
+            'checkbg'           => '#1f232a',   // N850
+            'checkborder'       => '#a7abb1',   // N400
+            'checkknob'         => '#a7abb1',   // N400
+            'checkcheckedbg'    => 'A400',
+            'checkcheckedborder' => 'A400',
+            'checkcheckedmark'  => '#0d1117',   // N950
+            'background'        => '#121212',
+            'background2'       => '#14191f',   // N900
+            'navbarbackground1' => '#0d1117',
+            'navbarbackground2' => '#121212',
+            'navbartitlecolor'  => '#ffffff',
+            'navbartitlehovercolor' => '#ffffff',
+            'navbartitleactivecolor' => '#ffffff',
+            'navbartitlehoverstylecolor' => 'Vd',
+            'navbartitleactivestylecolor' => 'Vd',
+            'navbariconcolor'   => '#f6f8fb',
+            'navbariconhovercolor' => 'A200',
+            'navbariconactivecolor' => 'A300',
+            'navbarlogincolor'  => '#ffffff',
+            'navbarloginhovercolor' => '#ffffff',
+            'navbarloginactivecolor' => '#ffffff',
+            'navbarloginhoverstylecolor' => 'Vd',
+            'navbarloginactivestylecolor' => 'Vd',
+            'footerbackground1' => '#0d1117',
+            'footerbackground2' => '#14191f',
+            'footerheading'     => 'A300',
+            'footerlink'        => 'A400',
+            'footericon'        => 'A400',
+            'surface'           => '#1f232a',   // N850
+            'textprimary'       => '#f6f8fb',   // N50
+            'textsecondary'     => '#a7abb1',   // N400
+            'borderprimary'     => '#2a2e35',   // N800
+            'bordersecondary'   => '#43484f',   // N700
+            'hoverbackground'   => '#14191f',   // N900
+            'hoverbackgroundsecondary' => '#1f232a',   // N850
+            'hovertext'         => 'A200',
+            'hovertextsecondary' => '#d5d9df',   // N300
+            'error'             => '#e68867',
+            'success'           => '#5cbc82',
+            'warning'           => '#c89e3a',
+            'info'              => '#3bb2e3',
+        ],
+    ];
+}
+
+/**
+ * One hue's palette: a template with every rung name replaced by that hue's hex.
+ *
+ * @param array<string, string> $template role => #hex or rung name
+ * @param array<string, string> $rungs rung name => #hex (theme_nit_brand_hues()['rungs'])
+ * @return array<string, string> role => #hex
+ */
+function theme_nit_brand_rehue(array $template, array $rungs): array {
+    $out = [];
+    foreach ($template as $role => $value) {
+        $out[$role] = ($value[0] === '#') ? $value : ($rungs[$value] ?? $value);
+    }
+    return $out;
 }
 
 /**
@@ -1963,10 +2383,18 @@ function theme_nit_brand_group_defaults(): array {
  * falling back to the shared role default (theme_nit_brand_roles()) when a group
  * does not override a role — so every group ships as a distinct palette.
  *
+ * Built once per request: it is pure (code constants only), and
+ * theme_nit_brandcolour() asks for it once per role it resolves — which, with
+ * seventeen groups, the SCSS build does well over a thousand times.
+ *
  * @return array<string, array{group:string, groupkey:string, role:string,
  *         label:string, usage:string, default:string}> ordered map keyed by token key
  */
 function theme_nit_brand_palette(): array {
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
     $out = [];
     $roles = theme_nit_brand_roles();
     $groupdefaults = theme_nit_brand_group_defaults();
@@ -1988,6 +2416,7 @@ function theme_nit_brand_palette(): array {
             ];
         }
     }
+    $cache = $out;
     return $out;
 }
 
@@ -2917,6 +3346,41 @@ function theme_nit_get_pre_scss($theme) {
         }
     }
 
+    // The same tokens once more, as ONE nested map — `$nit-b-groups`, group key
+    // => (role => value). This is what _brand.scss loops over to publish every
+    // group's custom properties, its switch class, its Bootstrap bridge and its
+    // checkbox pictures; the map is the only reason the file does not have to
+    // name a group. SCSS cannot build a variable name from a string
+    // (`$nit-b-#{$g}-#{$role}` is not a thing), so a group can only be reached
+    // by looping a map, and the map has to be emitted here where the group list
+    // is known. The two outline-button grounds carry the same `transparent`
+    // the variables above do, for the same reason.
+    //
+    // `$nit-b-lightgroups` beside it: which groups are authored light
+    // (theme_nit_brand_group_scheme()), for the one rule in _root.scss that has
+    // to treat a light bar differently from a dark one.
+    $scss .= '$nit-b-groups: (' . "\n";
+    foreach (array_keys(theme_nit_brand_groups()) as $gkey) {
+        $entries = [];
+        foreach (array_keys(theme_nit_brand_roles()) as $role) {
+            $value = theme_nit_brandcolour($gkey . '_' . $role);
+            foreach (array_keys(theme_nit_button_outline_variants()) as $variant) {
+                if ($role === $variant . 'bg' && !theme_nit_button_outline_fill($gkey, $variant)) {
+                    $value = 'transparent';
+                }
+            }
+            $entries[] = '"' . $role . '": ' . $value;
+        }
+        $scss .= '    "' . $gkey . '": (' . implode(', ', $entries) . "),\n";
+    }
+    $scss .= ");\n";
+    // Trailing comma so one group is still a list and none is an empty one.
+    $light = '';
+    foreach (theme_nit_groups_for_scheme('light') as $gkey) {
+        $light .= '"' . $gkey . '", ';
+    }
+    $scss .= '$nit-b-lightgroups: (' . $light . ");\n";
+
     // Drive the Bootstrap / semantic SCSS layer from Group 1 — the site-wide
     // default group. Unlike the legacy colour map above (applied only when the
     // admin saved a value), the brand always sets these, so buttons, cards,
@@ -3120,7 +3584,7 @@ function theme_nit_logo_variants(): array {
  * and it means a group an admin retunes on the Brand Colors tab starts or stops
  * counting as light on its own — nobody has to remember to flip a second switch.
  *
- * @param string $group group key (g1..g5)
+ * @param string $group group key (g1..g17)
  * @return bool true when the bar is light enough to need a dark mark
  */
 function theme_nit_group_is_light(string $group): bool {
@@ -3154,7 +3618,7 @@ function theme_nit_group_is_light(string $group): bool {
  * a light one, and the mark would disappear.
  *
  * @param string|null $mode 'light' | 'dark'; null = the mode this request renders in
- * @return string group key (g1..g5)
+ * @return string group key (g1..g17)
  */
 function theme_nit_active_chrome_group(?string $mode = null): string {
     $mode = ($mode === 'dark' || $mode === 'light') ? $mode : theme_nit_current_mode();

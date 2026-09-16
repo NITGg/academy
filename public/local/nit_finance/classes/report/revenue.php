@@ -286,7 +286,13 @@ class revenue {
             $where[] = 't.status = :stcompleted';
             $params['stcompleted'] = 'completed';
         } else if ($f['state'] === self::STATE_REFUNDED) {
-            $where[] = '(t.status IN (:strefunded, :stpartial) OR rf.refundcount IS NOT NULL)';
+            // Refunded: the status says so, or a refund row does (a route that never updated the
+            // status). The second door is only for paid orders — a refund row hanging off a
+            // cancelled or voided one describes money the report never counted coming in, so
+            // it is not a refund here either (see row()).
+            $where[] = '(t.status IN (:strefunded, :stpartial)
+                         OR (rf.refundcount IS NOT NULL AND t.status = :stcompletedref))';
+            $params['stcompletedref'] = 'completed';
             $params['strefunded'] = 'refunded';
             $params['stpartial'] = 'partially_refunded';
         } else if ($f['state'] === self::STATE_LOST) {
@@ -330,7 +336,10 @@ class revenue {
                 break;
 
             case self::SCOPE_REFUNDS:
-                $where[] = '(t.status IN (:rstrefunded, :rstpartial) OR rf.refundcount IS NOT NULL)';
+                // Same rule as the "Refunded only" state above.
+                $where[] = '(t.status IN (:rstrefunded, :rstpartial)
+                             OR (rf.refundcount IS NOT NULL AND t.status = :rstcompletedref))';
+                $params['rstcompletedref'] = 'completed';
                 $params['rstrefunded'] = 'refunded';
                 $params['rstpartial'] = 'partially_refunded';
                 break;

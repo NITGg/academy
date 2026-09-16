@@ -25,7 +25,7 @@
 // { background-color: #0c141f }`, `.form-control { background-color: #121e2d }`,
 // `.dimmed_text { color: #94a3b8 }` — and a hex cannot follow anything.
 //
-// So a brand-group switch (`.nit-brand-2` … `.nit-brand-5`) recoloured every
+// So a brand-group switch (`.nit-brand-2` … `.nit-brand-17`) recoloured every
 // component that reads a `--nit-brand-*` name and left everything core painted
 // on Group 1. While all the groups were dark and close in value that was nearly
 // invisible. Group 4 is light, and it became impossible to miss: a near-white
