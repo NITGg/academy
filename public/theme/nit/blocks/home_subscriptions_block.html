@@ -6,10 +6,10 @@
      color-mix from those same brand variables (no hard-coded colours).
      The buttons are the theme's own two button components and carry NO colour of their
      own: "Subscribe now" / "Proceed to payment" are the Main button (.btn.btn-primary) and
-     "View details" / "Apply" / "Cancel" are the Secondary button (.btn.btn-secondary), so
-     fill, label, ring and hover all come from those two blocks of the Brand Colors editor
-     — the same two every other button on the category page is drawn with. Only size and
-     shape are inline. (--bs-btn-disabled-opacity: 1 on "Subscribe now" keeps the "Your
+     "View details" / "Apply" / "Cancel" are the Outline button (brand)
+     (.btn.btn-outline-primary), so fill, label, ring and hover all come from those two
+     blocks of the Brand Colors editor — the same two every other button on the category
+     page is drawn with. Only size and shape are inline. (--bs-btn-disabled-opacity: 1 on "Subscribe now" keeps the "Your
      current plan" state, which the script paints itself and disables, fully opaque.)
      Optional: if it can't find the API, set data-base to your Moodle URL,
      e.g. data-base="https://academy2026.nitg-eg.com/moodle-new"
@@ -94,7 +94,7 @@
             style="padding: 12px; border-radius: 10px; font-weight: bold; font-size: 14px; width: 100%; --bs-btn-disabled-opacity: 1;"
             type="button" data-nit-buy=""> {mlang en}Subscribe now{mlang}{mlang
             ar}ابدأ الآن{mlang} </button> <!-- Details: the course list, the full description
-            and the team prices all live one click away. --> <a class="btn btn-secondary"
+            and the team prices all live one click away. --> <a class="btn btn-outline-primary"
             style="display: block; box-sizing: border-box; padding: 11px; border-radius: 10px; font-weight: bold; font-size: 13.5px; width: 100%;"
             href="#" data-nit-details=""> {mlang en}View details{mlang}{mlang
             ar}عرض التفاصيل{mlang} </a></div>
@@ -160,7 +160,7 @@
             en}Coupon{mlang}{mlang ar}كوبون{mlang}</span> <input
             style="flex: 1; min-width: 0; background: var(--nit-brand-surface); border: 1px solid color-mix(in srgb, var(--nit-brand-textprimary) 15%, transparent); border-radius: 8px; color: var(--nit-brand-textprimary); padding: 7px 10px; font-size: 14px;"
             autocomplete="off" type="text" data-nit-m-coupon=""> <button
-            class="btn btn-secondary"
+            class="btn btn-outline-primary"
             style="flex: 0 0 auto; border-radius: 8px; padding: 7px 14px; font-weight: bold; font-size: 14px;"
             type="button" data-nit-m-apply="">{mlang en}Apply{mlang}{mlang
             ar}تطبيق{mlang}</button></div>
@@ -187,7 +187,7 @@
         data-nit-m-error=""> </div>
       <div
         style="display: flex; justify-content: flex-end; gap: 10px; padding: 18px 24px 22px;">
-        <button class="btn btn-secondary"
+        <button class="btn btn-outline-primary"
           style="border-radius: 8px; padding: 9px 18px; font-weight: bold;"
           type="button" data-nit-m-cancel="">{mlang en}Cancel{mlang}{mlang
           ar}إلغاء{mlang}</button> <button class="btn btn-primary"

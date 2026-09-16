@@ -594,16 +594,16 @@ echo $OUTPUT->header();
 
     /* Buttons — the site's own .btn components (gallery.php), and only two of them:
        "Explore specializations" is the Main button (.btn-primary) and "Flexible plans" /
-       "Coupon plans" are the Secondary button (.btn-secondary). Only size and shape are
-       set here; every colour — fill, label, ring, and the three again under the cursor
-       or pressed — is that block's six roles in the group's Brand Colors editor, wired
-       in theme_nit scss/foundation/_brand.scss. The same two components are the course
+       "Coupon plans" are the Outline button (brand) (.btn-outline-primary). Only size and
+       shape are set here; every colour — fill, label, ring, and the three again under the
+       cursor or pressed — is that block's six roles in the group's Brand Colors editor,
+       wired in theme_nit scss/foundation/_brand.scss. The same two components are the course
        cards', the plan cards' and the coupon cards' buttons below, so an administrator
        recolours every button on this page from those two blocks and nothing else.
        Nothing is pinned any more (neither a ghost fill for the veil nor the hero ink as
        a label): a colour an admin cannot reach from the editor is exactly what this
        page must not carry. A label that has to be white over the picture is the
-       block's "Text on main button" / "Text on secondary button" card, set there. */
+       block's "Text on main button" / "Brand outline button text" card, set there. */
     .nit-hero__btns {
       display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
       animation: nit-fadeup 0.9s ease 0.55s both;
@@ -668,12 +668,12 @@ echo $OUTPUT->header();
           <?= $t('Explore specializations', 'استكشف التخصصات') ?>
         </a>
         <?php if ($hasplans): ?>
-        <a href="#nit-cat-plans" class="btn btn-secondary" data-nit-scrollto="nit-cat-plans">
+        <a href="#nit-cat-plans" class="btn btn-outline-primary" data-nit-scrollto="nit-cat-plans">
           <?= $t('Flexible plans', 'خطط مرنة') ?>
         </a>
         <?php endif; ?>
         <?php if ($hascoupons): ?>
-        <a href="#nit-cat-coupons" class="btn btn-secondary" data-nit-scrollto="nit-cat-coupons">
+        <a href="#nit-cat-coupons" class="btn btn-outline-primary" data-nit-scrollto="nit-cat-coupons">
           <?= $t('Coupon plans', 'كوبونات الخصم') ?>
         </a>
         <?php endif; ?>
@@ -1011,30 +1011,30 @@ echo $OUTPUT->header();
             </div>
 
             <!-- Actions: the gallery's two button components and no other — the Main button
-                 (.btn-primary) for the one thing to do next and the Secondary button
-                 (.btn-secondary) for "Course details" — so a card's buttons are the hero's
+                 (.btn-primary) for the one thing to do next and the Outline button (brand)
+                 (.btn-outline-primary) for "Course details" — so a card's buttons are the hero's
                  and the plan / coupon cards' buttons, recoloured from the same two blocks
                  of the Brand Colors editor. Enrolled shows one button; every other state
                  shows two. -->
             <div class="d-grid gap-2">
               <?php if ($info['enrolled'] || $info['purchased']): ?>
-                <a href="<?= $detailsurl ?>" class="btn btn-secondary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif ($info['covered']): ?>
                 <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= $t('Enroll', 'التحاق') ?></a>
-                <a href="<?= $detailsurl ?>" class="btn btn-secondary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif (!empty($info['countryrequired']) && $nitcountrynotice): // No profile
                      // country: buying is refused server-side anyway, so offer the fix instead
                      // of a Buy button that can only fail. ?>
                 <a href="<?= s($nitcountrynotice['url']) ?>" class="btn btn-primary fw-bold"><?= s($nitcountrynotice['action']) ?></a>
-                <a href="<?= $detailsurl ?>" class="btn btn-secondary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif ($info['haspricing']): ?>
                 <button type="button" class="btn btn-primary fw-bold" data-nit-buy-course
                   data-courseid="<?= (int) $course->id ?>" data-name="<?= s($coursename) ?>"
                   data-price="<?= s((string) $info['price']) ?>" data-currency="<?= s($info['currency']) ?>"><?= $t('Buy now', 'اشترِ الآن') ?></button>
-                <a href="<?= $detailsurl ?>" class="btn btn-secondary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php else: // Free course. ?>
                 <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= $t('Enroll', 'التحاق') ?></a>
-                <a href="<?= $detailsurl ?>" class="btn btn-secondary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php endif; ?>
             </div>
           </div>

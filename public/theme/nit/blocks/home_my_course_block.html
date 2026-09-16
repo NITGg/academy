@@ -201,8 +201,11 @@
         {mlang en}You are not enrolled in any course yet. Browse the catalogue
         and pick the one to start with.{mlang}{mlang ar}لست مسجّلاً في أي دورة
         بعد. تصفّح الكتالوج واختر الدورة التي تبدأ بها.{mlang}</p>
-      <a class="nit-btn-solid"
-        style="display: inline-flex; align-items: center; justify-content: center; background: var(--nit-brand-primary); border: 1px solid var(--nit-brand-primary); color: var(--nit-brand-onprimary); font-size: 18px; font-weight: 600; padding: 15px 40px; border-radius: 8px; text-decoration: none;"
+      <!-- The theme's Main button (.btn.btn-primary), no colour of its own: fill, label,
+           ring and hover are that block's roles in the Brand Colors editor, like every
+           other button on the category page this block is also rendered on. -->
+      <a class="btn btn-primary"
+        style="display: inline-flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600; padding: 15px 40px; border-radius: 8px;"
         href="#" data-nit-mc-browse="">{mlang en}Browse the catalogue{mlang}{mlang
         ar}تصفّح الكتالوج{mlang}</a>
     </div>
