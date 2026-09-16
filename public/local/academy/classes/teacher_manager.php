@@ -11,11 +11,14 @@ defined('MOODLE_INTERNAL') || die();
  * so the existing web/mobile clients work unchanged.
  *
  * Difference from the old academy: this build is Moodle-native (courses model,
- * not the Flex tutoring engine), so it has no teacher-profile/subjects/hours
+ * not the Flex tutoring engine), so it has no tutoring hours/years/busy-times
  * tables. Those fields are still present in every response for contract parity,
- * but with empty/default values (subjects=[], hours=[], years=[], busy_times=[],
- * rating=0, approved=1, available=1, headline/experience=''). The Moodle-native
- * fields (userid, fullname, email, phone, bio, photourl) carry real data, plus a
+ * but with empty/default values (hours=[], years=[], busy_times=[], rating=0,
+ * approved=1, available=1). The Moodle-native fields (userid, fullname, email,
+ * phone, bio, photourl) carry real data; headline / experience / subjects are
+ * fed from the instructor's *approved* Academic and Professional Background
+ * (local_nit_instructors: specialty + years of teaching), and the single-teacher
+ * view adds the background's qualifications / positions / certifications plus a
  * `courses` list — a superset that never breaks the old shape.
  *
  * A "teacher" = any non-deleted user holding a role with the 'teacher' or
@@ -219,31 +222,95 @@ class teacher_manager {
             ));
         }
 
+        // The instructor's approved Academic and Professional Background
+        // (local_nit_instructors, AC-4.5.9+). Only the published version — a
+        // change waiting for review is invisible to learners (AC-4.5.14).
+        $bg = self::background((int) $u->id, $withcourses);
+
         // Old academy shape — Flex-only fields kept as defaults for contract parity.
+        // headline / experience / subjects are fed from the background where it
+        // exists (specialty, years of teaching); the rest stay empty.
         $out = [
             'userid'     => (int) $u->id,
             'fullname'   => fullname($u),
             'email'      => $u->email ?? '',
             'phone'      => $u->phone1 ?? '',
-            'headline'   => '',
+            'headline'   => $bg['specialty'],
             'bio'        => $bio,
-            'experience' => '',
+            'experience' => $bg['years_experience'] > 0
+                ? get_string('yearsvalue', 'local_nit_instructors', $bg['years_experience']) : '',
             'photourl'   => self::picture_url($u),
             'rating'     => 0,
             'approved'   => 1,
             'available'  => 1,
-            'subjects'   => [],
+            'subjects'   => $bg['specialty'] !== '' ? [$bg['specialty']] : [],
             'years'      => [],
             'hours'      => [],
             'busy_times' => [],
             // Superset (never in the old shape, additive): quick course info.
             'coursecount' => self::course_count((int) $u->id),
-        ];
+        ] + $bg;
         if (!$withemail) {
             unset($out['email']);
         }
         if ($withcourses) {
             $out['courses'] = self::get_teacher_courses((int) $u->id);
+        }
+        return $out;
+    }
+
+    /**
+     * The approved instructor background as flat, language-picked values.
+     *
+     * Additive keys (never in the old shape): specialty, years_experience and —
+     * for the single-teacher view only — qualifications / positions /
+     * certifications, each a list of {title, organisation, period}. Bilingual
+     * pairs are resolved with profile::pick() so the `lang` request parameter
+     * decides which half the app gets, with the other half as fallback.
+     *
+     * @param int $userid
+     * @param bool $withentries include the repeating entries (one more query)
+     * @return array
+     */
+    private static function background(int $userid, bool $withentries): array {
+        $out = ['specialty' => '', 'years_experience' => 0];
+        if ($withentries) {
+            $out += ['qualifications' => [], 'positions' => [], 'certifications' => []];
+        }
+
+        if (!class_exists(\local_nit_instructors\profile::class)) {
+            return $out;
+        }
+        try {
+            $version = \local_nit_instructors\profile::approved($userid);
+        } catch (\Throwable $e) {
+            // Plugin present but its tables not installed yet — behave as "no background".
+            return $out;
+        }
+        if (!$version) {
+            return $out;
+        }
+
+        $out['specialty'] = \local_nit_instructors\profile::pick(
+            (string) $version->specialtyen, (string) $version->specialtyar);
+        $out['years_experience'] = (int) $version->years;
+
+        if ($withentries) {
+            $keys = [
+                \local_nit_instructors\profile::TYPE_QUALIFICATION => 'qualifications',
+                \local_nit_instructors\profile::TYPE_POSITION => 'positions',
+                \local_nit_instructors\profile::TYPE_CERTIFICATION => 'certifications',
+            ];
+            $entries = \local_nit_instructors\profile::entries((int) $version->id);
+            foreach ($keys as $type => $key) {
+                foreach ($entries[$type] ?? [] as $e) {
+                    $out[$key][] = [
+                        'title'        => \local_nit_instructors\profile::pick((string) $e->titleen, (string) $e->titlear),
+                        'organisation' => \local_nit_instructors\profile::pick((string) $e->orgen, (string) $e->orgar),
+                        'period'       => \local_nit_instructors\profile::pick((string) $e->perioden, (string) $e->periodar),
+                    ];
+                }
+            }
         }
         return $out;
     }
