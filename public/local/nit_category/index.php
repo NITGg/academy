@@ -514,16 +514,19 @@ echo $OUTPUT->header();
       border-color: rgba(255, 255, 255, .28);
       color: var(--hero-ink);
     }
+    /* The outline CTAs ("Flexible plans" / "Coupon plans") wear the SAME Brand roles
+       as "Course details" on every card below — theme_nit .btn-outline-primary: ring,
+       label and hover from the group's "Outline button (brand)" block — so they
+       re-colour with the palette like the rest of the page. They used to be repainted
+       here as white ghost buttons, which read as off-brand grey next to the cards.
+       The one thing a card supplies that the veil cannot is the ground those roles
+       were authored against, its Surface (--cbg2): paint it behind the button, so
+       the ring and label meet the same white (light) / graphite (dark) they meet on
+       a card, instead of a brand-blue label sinking into the black scrim (≈3:1).
+       Only the resting fill is set, and only through Bootstrap's token — hover and
+       active keep the theme's own --bs-btn-hover-bg / colour. */
     .nit-hero--art .nit-hero__btns .btn-outline-primary {
-      color: var(--hero-ink);
-      border-color: rgba(255, 255, 255, .55);
-      background: rgba(255, 255, 255, .06);
-    }
-    .nit-hero--art .nit-hero__btns .btn-outline-primary:hover,
-    .nit-hero--art .nit-hero__btns .btn-outline-primary:focus-visible {
-      color: #111;
-      background: var(--hero-ink);
-      border-color: var(--hero-ink);
+      --bs-btn-bg: var(--cbg2);
     }
     /* The copy column: start-aligned on the solid side of the scrim, capped so the
        title wraps at three or four words a line and never runs under the picture. */
