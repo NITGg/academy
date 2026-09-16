@@ -361,7 +361,10 @@ class gallery implements renderable, templatable {
         // the chosen group's switch class on <html>. Same shape as the category
         // rows above (one selector per row, pre-set to the stored assignment)
         // because it is the same decision made about a different subject.
+        // `isdefault` marks the mode a visitor with no `nit_mode` cookie opens in
+        // (theme_nit_default_mode()) — one radio per row, saved with the same button.
         $modegroups = [];
+        $defaultmode = \theme_nit_default_mode();
         foreach (\theme_nit_mode_groups() as $mode => $current) {
             $options = [];
             foreach ($grouplabels as $gkey => $glabel) {
@@ -371,6 +374,7 @@ class gallery implements renderable, templatable {
                 'mode' => $mode,
                 'label' => $modelabels[$mode] ?? $mode,
                 'options' => $options,
+                'isdefault' => ($mode === $defaultmode),
             ];
         }
 

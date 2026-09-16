@@ -137,7 +137,7 @@ class get_static_page extends external_api {
 
         $version = staticpages::policy_version($slug);
 
-        return [
+        $result = [
             'slug'            => $slug,
             'kind'            => $view['kind'],
             'published'       => true,
@@ -153,6 +153,40 @@ class get_static_page extends external_api {
             'faq'             => $faq,
             'warnings'        => [],
         ];
+
+        // The About page's hero and lists. Only on that page: a client reading
+        // another page should not have to skip an empty block.
+        if (!empty($view['about'])) {
+            $about = $view['about'];
+            $result['about'] = [
+                'tagline'    => format_string($about['tagline'], true, $opts),
+                'lede'       => format_string($about['lede'], true, $opts),
+                'heroimage'  => $about['heroimage'],
+                'video'      => $about['video'],
+                'facts'      => array_map(static function (array $fact) use ($opts): array {
+                    return [
+                        'value' => format_string($fact['value'], true, $opts),
+                        'label' => format_string($fact['label'], true, $opts),
+                    ];
+                }, $about['facts']),
+                'pillars'    => array_map(static function (array $pillar) use ($opts): array {
+                    return [
+                        'icon'  => $pillar['icon'],
+                        'title' => format_string($pillar['title'], true, $opts),
+                        'text'  => format_string($pillar['text'], true, $opts),
+                    ];
+                }, $about['pillars']),
+                'milestones' => array_map(static function (array $milestone) use ($opts): array {
+                    return [
+                        'year'  => format_string($milestone['year'], true, $opts),
+                        'title' => format_string($milestone['title'], true, $opts),
+                        'text'  => format_string($milestone['text'], true, $opts),
+                    ];
+                }, $about['milestones']),
+            ];
+        }
+
+        return $result;
     }
 
     /**
@@ -235,6 +269,33 @@ class get_static_page extends external_api {
                     'answer'   => new external_value(PARAM_RAW, 'The answer as formatted HTML'),
                 ]), 'FAQ page only: the questions, in display order. Hidden questions are absent.', VALUE_DEFAULT, []
             ),
+            'about' => new external_single_structure([
+                'tagline'   => new external_value(PARAM_TEXT, 'The short line above the title, may be empty'),
+                'lede'      => new external_value(PARAM_TEXT, 'The introduction under the title, may be empty'),
+                'heroimage' => new external_value(PARAM_RAW, 'URL of the hero picture, or empty'),
+                'video'     => new external_single_structure([
+                    'provider' => new external_value(PARAM_ALPHA, 'youtube, vimeo or file; empty when there is no video'),
+                    'embed'    => new external_value(PARAM_RAW, 'The player URL (or the file URL for a file)'),
+                    'url'      => new external_value(PARAM_RAW, 'The address as the administrator typed it'),
+                ], 'The hero video'),
+                'facts'     => new external_multiple_structure(
+                    new external_single_structure([
+                        'value' => new external_value(PARAM_TEXT, 'The figure, e.g. "2009" or "4,800+"'),
+                        'label' => new external_value(PARAM_TEXT, 'What it is, in the requested language'),
+                    ]), 'The facts strip, in display order'),
+                'pillars'   => new external_multiple_structure(
+                    new external_single_structure([
+                        'icon'  => new external_value(PARAM_TEXT, 'FontAwesome 6 classes, may be empty'),
+                        'title' => new external_value(PARAM_TEXT, 'Heading, in the requested language'),
+                        'text'  => new external_value(PARAM_TEXT, 'Text, in the requested language'),
+                    ]), 'What the academy stands for, in display order'),
+                'milestones' => new external_multiple_structure(
+                    new external_single_structure([
+                        'year'  => new external_value(PARAM_TEXT, 'The year, as typed'),
+                        'title' => new external_value(PARAM_TEXT, 'Heading, in the requested language'),
+                        'text'  => new external_value(PARAM_TEXT, 'Text, in the requested language'),
+                    ]), 'The milestones, in the order the administrator listed them'),
+            ], 'About page only: the hero and its lists. Absent on every other page.', VALUE_OPTIONAL),
             'warnings' => new external_warnings(),
         ]);
     }

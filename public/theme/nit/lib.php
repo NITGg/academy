@@ -1578,17 +1578,32 @@ function theme_nit_home_chrome(): array {
 }
 
 /**
+ * The display mode a visitor who has never pressed the switch gets.
+ *
+ * Chosen by the admin on the gallery "Change style" tab ("Site styles" section,
+ * the "Default" radio) and stored as the theme_nit config `nit_mode_default`.
+ * Dark when nothing was ever saved: the brand is dark-first, and the site is
+ * meant to open that way for a first-time visitor.
+ *
+ * @return string 'light' | 'dark'
+ */
+function theme_nit_default_mode(): string {
+    $mode = (string) get_config('theme_nit', 'nit_mode_default');
+    return array_key_exists($mode, theme_nit_modes()) ? $mode : 'dark';
+}
+
+/**
  * The display mode this request should render in.
  *
  * Read from the visitor's cookie; anything we do not recognise (and the very
- * first visit) is "light", so the site looks the way it always has until
- * somebody presses the button.
+ * first visit) is the admin's default mode (theme_nit_default_mode()), so the
+ * site opens the way the admin chose until somebody presses the button.
  *
  * @return string 'light' | 'dark'
  */
 function theme_nit_current_mode(): string {
     $mode = isset($_COOKIE[THEME_NIT_MODE_COOKIE]) ? (string) $_COOKIE[THEME_NIT_MODE_COOKIE] : '';
-    return array_key_exists($mode, theme_nit_modes()) ? $mode : 'light';
+    return array_key_exists($mode, theme_nit_modes()) ? $mode : theme_nit_default_mode();
 }
 
 /**
@@ -2539,7 +2554,14 @@ function theme_nit_brand_export(): array {
     // The site's own light/dark pair: which group each scheme is worn as. Same
     // map the navbar switch uses, so a client that reads it is looking at the
     // site's answer rather than at a copy of it made on release day.
-    return ['roles' => $roles, 'schemes' => theme_nit_mode_groups(), 'groups' => $groups];
+    return [
+        'roles' => $roles,
+        'schemes' => theme_nit_mode_groups(),
+        // The scheme a visitor with no stored choice opens in — the same answer
+        // theme_nit_current_mode() gives a request that carries no cookie.
+        'defaultscheme' => theme_nit_default_mode(),
+        'groups' => $groups,
+    ];
 }
 
 /**

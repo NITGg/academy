@@ -93,9 +93,11 @@ $string['categorygroupssaved'] = 'Category styles saved.';
 // Site styles: which Brand Colors group the navbar light/dark switch shows in
 // each mode ("Change style" tab, next to the category styles).
 $string['sitestyles'] = 'Site styles';
-$string['sitestyles_desc'] = 'Choose which Brand Colors group the site uses in each display mode. The light/dark button in the navigation bar switches between the two — it carries no palette of its own, it selects one of the groups below, so a visitor pressing it sees exactly the colours you tuned on the Brand Colors tab. Give the two modes different groups; when they are the same the button changes nothing and is not shown. Pages inside a category that has its own styles use those instead, and the button moves between that category\'s pair.';
+$string['sitestyles_desc'] = 'Choose which Brand Colors group the site uses in each display mode. The light/dark button in the navigation bar switches between the two — it carries no palette of its own, it selects one of the groups below, so a visitor pressing it sees exactly the colours you tuned on the Brand Colors tab. Give the two modes different groups; when they are the same the button changes nothing and is not shown. "Default" is the mode a visitor who has never pressed the button opens in; once pressed, the browser remembers their choice. Pages inside a category that has its own styles use those instead, and the button moves between that category\'s pair.';
 $string['sitestyles_col_mode'] = 'Display mode';
 $string['sitestyles_col_group'] = 'Brand group';
+$string['sitestyles_col_default'] = 'Default';
+$string['sitestyles_default_aria'] = 'Open the site in {$a} for visitors who have not chosen a mode';
 $string['savesitestyles'] = 'Save site styles';
 $string['sitestylessaved'] = 'Site styles saved.';
 // Home page chrome: the navigation bar and the site footer on the Site home.

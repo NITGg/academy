@@ -564,7 +564,14 @@ class staticpages {
             'mapembed'   => '',
             'maplink'    => '',
             'faq'        => [],
+            'about'      => null,
         ];
+
+        // The About page's hero, facts, pillars and milestones - see about.php for
+        // why they are structured data rather than more body.
+        if ($slug === about::SLUG) {
+            $view['about'] = about::view();
+        }
 
         if ($kind === self::KIND_POLICY) {
             $version = self::policy_version($slug);

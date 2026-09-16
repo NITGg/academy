@@ -1,0 +1,127 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_profilefields/about_hero
+
+    The About page's opening: tagline, title and lede on one side, the picture or
+    film on a "sheet" on the other, with the facts strip as the sheet's title
+    block. Rendered inside the `about` section of the page context, so `title`
+    and friends resolve up to the page.
+
+    The film waits behind the picture until it is pressed (a facade): the anchor
+    is a real link to the film for a browser without the module, and
+    local_profilefields/aboutpage swaps it for the player on click.
+
+    Context variables required for this template:
+    * title - the page name (from the parent context)
+    * tagline, lede - the short lines, may be empty
+    * hasmedia, hasimage, hasvideo, videofacade, videofile - what to draw
+    * heroimage - picture URL
+    * video - {provider, embed, url}
+    * videoembed - the player URL
+    * hasfacts, facts, factcount - the title block
+    * coursesurl, contacturl - the two doors; contacturl may be empty
+
+    Example context (json):
+    {
+        "title": "Who we are",
+        "tagline": "Engineering and industry, taught by practitioners",
+        "lede": "EAAC trains engineers and technicians for the plant floor.",
+        "hasmedia": true,
+        "hasimage": true,
+        "hasvideo": false,
+        "videofacade": false,
+        "videofile": false,
+        "heroimage": "https://example.com/hero.jpg",
+        "video": {"provider": "", "embed": "", "url": ""},
+        "videoembed": "",
+        "hasfacts": true,
+        "facts": [{"value": "2009", "label": "Founded"}],
+        "factcount": 1,
+        "coursesurl": "#",
+        "contacturl": "#"
+    }
+}}
+<header class="nit-about-hero{{^hasmedia}} nit-about-hero--text{{/hasmedia}}">
+    <div class="nit-about-hero-inner">
+        <div class="nit-about-copy">
+            {{#tagline}}
+                <p class="nit-about-eyebrow">{{tagline}}</p>
+            {{/tagline}}
+            <h1 class="nit-about-title">{{title}}</h1>
+            {{#lede}}
+                <p class="nit-about-lede">{{lede}}</p>
+            {{/lede}}
+            <div class="nit-about-actions">
+                <a href="{{coursesurl}}" class="btn btn-primary nit-about-btn">
+                    {{#str}}aboutbrowsecourses, local_profilefields{{/str}}
+                </a>
+                {{#contacturl}}
+                    <a href="{{contacturl}}" class="btn btn-outline-secondary nit-about-btn">
+                        {{#str}}aboutcontactus, local_profilefields{{/str}}
+                    </a>
+                {{/contacturl}}
+            </div>
+        </div>
+
+        {{#hasmedia}}
+            <figure class="nit-about-sheet">
+                <div class="nit-about-media" data-about-media>
+                    {{#videofacade}}
+                        <a href="{{video.url}}" class="nit-about-poster" target="_blank" rel="noopener"
+                           data-about-play data-embed="{{videoembed}}" data-provider="{{video.provider}}"
+                           data-title="{{title}}">
+                            <img src="{{heroimage}}" alt="" decoding="async">
+                            <span class="nit-about-playbtn" aria-hidden="true">
+                                <i class="fa-solid fa-play"></i>
+                            </span>
+                            <span class="visually-hidden">{{#str}}aboutplayvideo, local_profilefields{{/str}}</span>
+                        </a>
+                    {{/videofacade}}
+                    {{^videofacade}}
+                        {{#hasvideo}}
+                            {{#videofile}}
+                                <video controls preload="metadata" playsinline src="{{videoembed}}"></video>
+                            {{/videofile}}
+                            {{^videofile}}
+                                <iframe src="{{videoembed}}" title="{{title}}" loading="lazy"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                            {{/videofile}}
+                        {{/hasvideo}}
+                        {{^hasvideo}}
+                            <img src="{{heroimage}}" alt="" decoding="async" fetchpriority="high">
+                        {{/hasvideo}}
+                    {{/videofacade}}
+                </div>
+                {{#hasfacts}}
+                    <figcaption class="nit-about-sheet-block">
+                        {{> local_profilefields/about_facts }}
+                    </figcaption>
+                {{/hasfacts}}
+            </figure>
+        {{/hasmedia}}
+    </div>
+
+    {{^hasmedia}}
+        {{#hasfacts}}
+            <div class="nit-about-hero-inner nit-about-hero-facts">
+                {{> local_profilefields/about_facts }}
+            </div>
+        {{/hasfacts}}
+    {{/hasmedia}}
+</header>

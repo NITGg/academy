@@ -477,26 +477,15 @@ echo $OUTPUT->header();
       display: block; width: 100%; height: 100%;
       object-fit: cover; object-position: center;
     }
-    /* The hero's INK — the ONE colour on this page that is not a Brand role, and the
-       one variable every white text in the section reads. No role can play it: each is
-       authored per group (a light group's "Text on main button" is near-black), but
-       two surfaces here keep the same luminance whatever the group — the black veil
-       over the category picture, and a CTA's solid Primary fill — so the ink on them
-       is fixed too, white. Declared once, on BOTH hero variants (not only the picture
-       one), so the CTA labels below can read it on the plain ground as well; the H1,
-       stats and badge read it only over the veil. The course page's hero says the
-       same thing as --cr-hero-ink (theme_nit _coursepage.scss). */
-    .nit-hero {
-      --hero-ink: #fff;
-      --hero-muted: rgba(255, 255, 255, .74);
-    }
     /* The scrim is BLACK whatever the mode — the same one the course page's hero
        wears (theme_nit _coursepage.scss --cr-scrim): a photograph under a dark veil is
-       a surface whose luminance is fixed, so its ink is fixed too (--hero-ink above),
-       and the section reads the same in light and dark. The brand only supplies the
-       accents. Solid on the text side, clearing to the picture on the other; a lighter
-       band along the bottom keeps the buttons and any print baked into the banner apart. */
+       a surface whose luminance is fixed, so its ink is fixed too (white), and the
+       section reads the same in light and dark. The brand only supplies the accents.
+       Solid on the text side, clearing to the picture on the other; a lighter band
+       along the bottom keeps the buttons and any print baked into the banner apart. */
     .nit-hero--art {
+      --hero-ink: #fff;
+      --hero-muted: rgba(255, 255, 255, .74);
       --hero-scrim:
         linear-gradient(90deg,
           rgba(0, 0, 0, .84) 0%,
@@ -524,24 +513,6 @@ echo $OUTPUT->header();
       background: rgba(255, 255, 255, .12);
       border-color: rgba(255, 255, 255, .28);
       color: var(--hero-ink);
-    }
-    /* The outline CTAs ("Flexible plans" / "Coupon plans") take their RING from the
-       same Brand role as "Course details" on every card below — theme_nit
-       .btn-outline-primary, the group's "Outline button (brand)" block — so it
-       re-colours with the palette like the rest of the page. They used to be repainted
-       here as white ghost buttons, which read as off-brand grey next to the cards.
-       Two things are pinned, both through Bootstrap's tokens so hover and active keep
-       the theme's own --bs-btn-hover-* roles:
-       - the resting fill is transparent: ghost buttons over the picture by design,
-         whatever the group's "Fill the background" switch says (that switch re-emits
-         --nit-brand-btnoutlineprimarybg as a colour the theme rule would paint here);
-       - the resting label is the hero's ink — fixed white, like the H1 and the stat
-         numbers — because it sits on the black scrim, not on a card: the group's
-         outline-text role is authored against a card surface and a light group's
-         brand blue sinks into the veil (≈3:1). */
-    .nit-hero--art .nit-hero__btns .btn-outline-primary {
-      --bs-btn-bg: transparent;
-      --bs-btn-color: var(--hero-ink);
     }
     /* The copy column: start-aligned on the solid side of the scrim, capped so the
        title wraps at three or four words a line and never runs under the picture. */
@@ -621,8 +592,18 @@ echo $OUTPUT->header();
     .nit-hero__stat-num { font-size: 35px; font-weight: 800; color: var(--ctext3); display: block; line-height: 1; }
     .nit-hero__stat-label { font-size: 13px; color: var(--ctext2); font-weight: 500; }
 
-    /* Buttons — reuse the site's .btn components (gallery.php); only size/shape
-       here, colour + hover come from the theme's Bootstrap button tokens. */
+    /* Buttons — the site's own .btn components (gallery.php), and only two of them:
+       "Explore specializations" is the Main button (.btn-primary) and "Flexible plans" /
+       "Coupon plans" are the Secondary button (.btn-secondary). Only size and shape are
+       set here; every colour — fill, label, ring, and the three again under the cursor
+       or pressed — is that block's six roles in the group's Brand Colors editor, wired
+       in theme_nit scss/foundation/_brand.scss. The same two components are the course
+       cards', the plan cards' and the coupon cards' buttons below, so an administrator
+       recolours every button on this page from those two blocks and nothing else.
+       Nothing is pinned any more (neither a ghost fill for the veil nor the hero ink as
+       a label): a colour an admin cannot reach from the editor is exactly what this
+       page must not carry. A label that has to be white over the picture is the
+       block's "Text on main button" / "Text on secondary button" card, set there. */
     .nit-hero__btns {
       display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
       animation: nit-fadeup 0.9s ease 0.55s both;
@@ -630,34 +611,6 @@ echo $OUTPUT->header();
     .nit-hero__btns .btn {
       padding: 14px 40px; border-radius: 8px;
       font-size: 16px; font-weight: 700;
-    }
-    /* The CTA LABELS are the hero ink (--hero-ink, white) wherever a button is FILLED, in
-       both hero variants (over the picture and on the plain ground alike) and in every
-       group and mode:
-       - "Explore specializations" (.btn-primary) in every state — the theme paints its
-         fill from the group's Primary role and its label from that group's "Text on
-         main button" (onprimary) role, which is authored per palette: the Engineering
-         group's orange carries a near-black onprimary, so the one big CTA read dark
-         while the H1, the stats and the outline CTAs beside it are all white;
-       - "Flexible plans" / "Coupon plans" (.btn-outline-primary) once HOVERED or pressed
-         — the theme fills them from the group's outline-hover roles and inks them with
-         that block's hover-text role, which in the same group is dark again, so the
-         label flipped from white to black under the cursor right next to a primary
-         button whose label stays white. Their RESTING label is not touched here: it is
-         the hero's ink on the picture (pinned above) and the group's outline-text role
-         on the plain ground, where the ghost button sits on the page and not on a fill.
-       Pinned through Bootstrap's tokens (:focus-visible reads the hover token) so the
-       fill, border and hover fill keep following the group; only the ink is fixed —
-       and it is the section's one ink variable, not a private #fff, so a label can
-       never drift from the H1 and the stats it stands under. */
-    .nit-hero__btns .btn-primary {
-      --bs-btn-color: var(--hero-ink);
-      --bs-btn-hover-color: var(--hero-ink);
-      --bs-btn-active-color: var(--hero-ink);
-    }
-    .nit-hero__btns .btn-outline-primary {
-      --bs-btn-hover-color: var(--hero-ink);
-      --bs-btn-active-color: var(--hero-ink);
     }
   </style>
   <div class="nit-hero<?= $hasrealimage ? ' nit-hero--art' : '' ?>" dir="<?= $isar ? 'rtl' : 'ltr' ?>">
@@ -715,12 +668,12 @@ echo $OUTPUT->header();
           <?= $t('Explore specializations', 'استكشف التخصصات') ?>
         </a>
         <?php if ($hasplans): ?>
-        <a href="#nit-cat-plans" class="btn btn-outline-primary" data-nit-scrollto="nit-cat-plans">
+        <a href="#nit-cat-plans" class="btn btn-secondary" data-nit-scrollto="nit-cat-plans">
           <?= $t('Flexible plans', 'خطط مرنة') ?>
         </a>
         <?php endif; ?>
         <?php if ($hascoupons): ?>
-        <a href="#nit-cat-coupons" class="btn btn-outline-primary" data-nit-scrollto="nit-cat-coupons">
+        <a href="#nit-cat-coupons" class="btn btn-secondary" data-nit-scrollto="nit-cat-coupons">
           <?= $t('Coupon plans', 'كوبونات الخصم') ?>
         </a>
         <?php endif; ?>
@@ -1057,27 +1010,31 @@ echo $OUTPUT->header();
               <?php endif; ?>
             </div>
 
-            <!-- Actions: gallery button components (.btn-primary / .btn-outline-primary).
-                 Enrolled shows one button; every other state shows two. -->
+            <!-- Actions: the gallery's two button components and no other — the Main button
+                 (.btn-primary) for the one thing to do next and the Secondary button
+                 (.btn-secondary) for "Course details" — so a card's buttons are the hero's
+                 and the plan / coupon cards' buttons, recoloured from the same two blocks
+                 of the Brand Colors editor. Enrolled shows one button; every other state
+                 shows two. -->
             <div class="d-grid gap-2">
               <?php if ($info['enrolled'] || $info['purchased']): ?>
-                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-secondary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif ($info['covered']): ?>
                 <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= $t('Enroll', 'التحاق') ?></a>
-                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-secondary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif (!empty($info['countryrequired']) && $nitcountrynotice): // No profile
                      // country: buying is refused server-side anyway, so offer the fix instead
                      // of a Buy button that can only fail. ?>
                 <a href="<?= s($nitcountrynotice['url']) ?>" class="btn btn-primary fw-bold"><?= s($nitcountrynotice['action']) ?></a>
-                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-secondary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif ($info['haspricing']): ?>
                 <button type="button" class="btn btn-primary fw-bold" data-nit-buy-course
                   data-courseid="<?= (int) $course->id ?>" data-name="<?= s($coursename) ?>"
                   data-price="<?= s((string) $info['price']) ?>" data-currency="<?= s($info['currency']) ?>"><?= $t('Buy now', 'اشترِ الآن') ?></button>
-                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-secondary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php else: // Free course. ?>
                 <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= $t('Enroll', 'التحاق') ?></a>
-                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-secondary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php endif; ?>
             </div>
           </div>

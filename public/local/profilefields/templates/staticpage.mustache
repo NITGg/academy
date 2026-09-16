@@ -34,6 +34,8 @@
     * hascontent - whether content is worth drawing
     * iscontact - draw the contact block and the map
     * isfaq - draw the question list
+    * isabout - draw the About hero and sections (about_hero, about_sections) instead
+    * about - the About page's extras, see classes/about.php (about::view())
     * canedit - the viewer may edit this page
     * editurl - the tab that edits it
     * published - false when the page is switched off (only an editor sees it)
@@ -45,6 +47,8 @@
         "hascontent": true,
         "iscontact": false,
         "isfaq": false,
+        "isabout": false,
+        "about": null,
         "canedit": false,
         "editurl": "#",
         "published": true,
@@ -59,17 +63,24 @@
         "faq": []
     }
 }}
-<div class="nit-staticpage" data-page="{{slug}}">
-    <header class="nit-staticpage-head">
-        <div class="nit-staticpage-inner">
-            <h1 class="nit-staticpage-title">{{title}}</h1>
-            {{#policyname}}
-                <p class="nit-staticpage-lede">
-                    <a href="{{policyurl}}" class="nit-link-plain">{{policyname}}</a>
-                </p>
-            {{/policyname}}
-        </div>
-    </header>
+<div class="nit-staticpage{{#isabout}} nit-staticpage--about{{/isabout}}" data-page="{{slug}}">
+    {{#isabout}}
+        {{#about}}
+            {{> local_profilefields/about_hero }}
+        {{/about}}
+    {{/isabout}}
+    {{^isabout}}
+        <header class="nit-staticpage-head">
+            <div class="nit-staticpage-inner">
+                <h1 class="nit-staticpage-title">{{title}}</h1>
+                {{#policyname}}
+                    <p class="nit-staticpage-lede">
+                        <a href="{{policyurl}}" class="nit-link-plain">{{policyname}}</a>
+                    </p>
+                {{/policyname}}
+            </div>
+        </header>
+    {{/isabout}}
 
     <div class="nit-staticpage-inner">
         {{#canedit}}
@@ -83,9 +94,17 @@
             </div>
         {{/canedit}}
 
-        {{#hascontent}}
-            <div class="nit-staticpage-body">{{{content}}}</div>
-        {{/hascontent}}
+        {{#isabout}}
+            {{#about}}
+                {{> local_profilefields/about_sections }}
+            {{/about}}
+        {{/isabout}}
+
+        {{^isabout}}
+            {{#hascontent}}
+                <div class="nit-staticpage-body">{{{content}}}</div>
+            {{/hascontent}}
+        {{/isabout}}
 
         {{^hascontent}}
             {{^iscontact}}

@@ -335,3 +335,608 @@
         }
     }
 }
+
+// -----------------------------------------------------------------------------
+// The About page (local_profilefields/page.php?page=about).
+//
+// The other five pages are prose and get the reading column above. "Who we are"
+// is a different job: the one page a visitor reads to decide whether the people
+// behind the courses are worth trusting. So it opens like the academy itself
+// would - a picture or a film of the place, one line on what it is, and the
+// figures a visitor checks before anything else - and only then the story.
+//
+// The visual idea is borrowed from the academy's own subject. An engineering
+// drawing carries its identification in a *title block*: a strip of cells in
+// the corner of the sheet, each a small label over a value. The hero picture
+// sits on such a sheet - hairline frame, registration marks in two corners -
+// and the facts strip is its title block. Everything below it is quiet: each
+// section is a label in the margin and its content beside it, the way a
+// specification is laid out, and nothing else on the page is decorated.
+//
+// Every colour is a Brand Colors role, every direction-sensitive property is
+// logical, so the Arabic page and the dark groups need no rules of their own.
+// -----------------------------------------------------------------------------
+
+// The stagger on load. Only the hero moves, once, and only when the visitor
+// has not asked for less motion.
+@keyframes nit-about-rise {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes nit-about-settle {
+    from {
+        opacity: 0;
+        transform: scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.nit-staticpage.nit-staticpage--about {
+    // Local aliases, each a brand role, so the page tracks the palette and any
+    // group switch without a hex in sight.
+    --about-ink: var(--nit-brand-textprimary);
+    --about-ink-2: var(--nit-brand-textsecondary);
+    --about-line: var(--nit-brand-borderprimary);
+    --about-line-2: var(--nit-brand-bordersecondary);
+    --about-mark: var(--nit-brand-primary);
+    --about-words: var(--nit-brand-accentwords);
+    --about-sheet: var(--nit-brand-surface);
+    --about-width: 1180px;
+    --about-gutter: clamp(1rem, 4vw, 2rem);
+    // Alpha colours live in custom properties because the RTL build drops a
+    // modern rgb()/color-mix() written inline in a declaration.
+    --about-scrim: color-mix(in srgb, var(--nit-brand-textprimary) 28%, transparent);
+    --about-halo: color-mix(in srgb, var(--nit-brand-primary) 22%, transparent);
+    --about-halo-2: color-mix(in srgb, var(--nit-brand-primary) 14%, transparent);
+
+    // The sections share the hero's width, not the prose column.
+    .nit-staticpage-inner {
+        max-width: var(--about-width);
+        padding-inline: var(--about-gutter);
+    }
+
+    .nit-staticpage-adminbar {
+        margin-top: 1rem;
+        margin-bottom: 0;
+    }
+
+    // ---- Hero ---------------------------------------------------------------
+    .nit-about-hero {
+        padding-block: clamp(2.25rem, 6vw, 5rem) clamp(2rem, 5vw, 4rem);
+    }
+
+    .nit-about-hero-inner {
+        width: 100%;
+        max-width: var(--about-width);
+        margin-inline: auto;
+        padding-inline: var(--about-gutter);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: clamp(2rem, 5vw, 4rem);
+        align-items: center;
+
+        @include media-breakpoint-up(lg) {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+        }
+    }
+
+    // Text-only hero: the copy takes the full width and the measure caps it.
+    .nit-about-hero--text .nit-about-hero-inner {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .nit-about-copy {
+        min-width: 0;
+
+        > * {
+            animation: nit-about-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+        }
+
+        > :nth-child(2) { animation-delay: 0.06s; }
+        > :nth-child(3) { animation-delay: 0.12s; }
+        > :nth-child(4) { animation-delay: 0.18s; }
+    }
+
+    // The tagline: a rule, then the words, in the palette's "accent words" role
+    // - the same role the home page gives the second line of its headline.
+    .nit-about-eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin: 0 0 1.1rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--about-words);
+
+        &::before {
+            content: "";
+            flex: 0 0 1.75rem;
+            height: 2px;
+            background: currentColor;
+        }
+    }
+
+    .nit-about-title {
+        margin: 0;
+        font-size: clamp(2.25rem, 5.2vw, 4rem);
+        font-weight: 800;
+        line-height: 1.06;
+        letter-spacing: -0.02em;
+        color: var(--about-ink);
+        text-wrap: balance;
+    }
+
+    .nit-about-lede {
+        max-width: 52ch;
+        margin: 1.25rem 0 0;
+        font-size: clamp(1.0625rem, 1.4vw, 1.25rem);
+        line-height: 1.7;
+        color: var(--about-ink-2);
+        text-wrap: pretty;
+    }
+
+    .nit-about-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 2rem;
+    }
+
+    .nit-about-btn {
+        padding: 0.8rem 1.5rem;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+
+    // ---- The sheet ---------------------------------------------------------
+    //
+    // A figure: the picture (or film) in a hairline frame with registration
+    // marks at two corners, and the facts as its title block. Sharper corners
+    // than the rest of the site on purpose - this is a drawing, not a card.
+    .nit-about-sheet {
+        position: relative;
+        margin: 0;
+        min-width: 0;
+        animation: nit-about-settle 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.1s both;
+
+        // Registration marks: an L at the top-start and bottom-end corners,
+        // just outside the frame.
+        &::before,
+        &::after {
+            content: "";
+            position: absolute;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 0 solid var(--about-line-2);
+            pointer-events: none;
+        }
+
+        &::before {
+            inset-block-start: -0.625rem;
+            inset-inline-start: -0.625rem;
+            border-block-start-width: 1px;
+            border-inline-start-width: 1px;
+        }
+
+        &::after {
+            inset-block-end: -0.625rem;
+            inset-inline-end: -0.625rem;
+            border-block-end-width: 1px;
+            border-inline-end-width: 1px;
+        }
+    }
+
+    .nit-about-media {
+        position: relative;
+        aspect-ratio: 5 / 4;
+        overflow: hidden;
+        border: 1px solid var(--about-line);
+        border-radius: 6px;
+        background: var(--about-sheet);
+
+        img,
+        video,
+        iframe {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        img,
+        video {
+            object-fit: cover;
+        }
+
+        // A film is 16:9; the frame follows it instead of cropping it.
+        &:has(iframe),
+        &:has(video),
+        &.nit-about-media--playing {
+            aspect-ratio: 16 / 9;
+        }
+    }
+
+    // When the title block sits under the picture the two share their edge:
+    // the frame keeps its top corners, the block its bottom ones.
+    .nit-about-sheet:has(.nit-about-sheet-block) .nit-about-media {
+        border-end-start-radius: 0;
+        border-end-end-radius: 0;
+        border-block-end: 0;
+    }
+
+    .nit-about-sheet-block {
+        margin: 0;
+
+        .nit-about-titleblock {
+            border-start-start-radius: 0;
+            border-start-end-radius: 0;
+        }
+    }
+
+    // The film behind its picture. The whole poster is the button; the disc
+    // is where the eye goes.
+    .nit-about-poster {
+        display: block;
+        position: relative;
+        width: 100%;
+        height: 100%;
+        color: inherit;
+        text-decoration: none;
+
+        img {
+            transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+        }
+
+        &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: var(--about-scrim);
+            transition: opacity 0.25s ease;
+        }
+
+        &:hover img,
+        &:focus-visible img {
+            transform: scale(1.03);
+        }
+
+        &:hover::after,
+        &:focus-visible::after {
+            opacity: 0.6;
+        }
+
+        &:focus-visible {
+            outline: 3px solid var(--nit-brand-accent);
+            outline-offset: 3px;
+        }
+    }
+
+    .nit-about-playbtn {
+        position: absolute;
+        z-index: 1;
+        // Centred by auto margins, not a translate: nothing here needs
+        // flipping for Arabic.
+        inset: 0;
+        margin: auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 4.5rem;
+        height: 4.5rem;
+        border-radius: 50%;
+        background: var(--nit-brand-primary);
+        color: var(--nit-brand-onprimary);
+        font-size: 1.35rem;
+        box-shadow: 0 0 0 0.6rem var(--about-halo);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+        // The glyph is a triangle and reads off-centre unless it is nudged
+        // towards its point.
+        i {
+            margin-inline-start: 0.2rem;
+        }
+
+        .nit-about-poster:hover &,
+        .nit-about-poster:focus-visible & {
+            transform: scale(1.06);
+            box-shadow: 0 0 0 0.9rem var(--about-halo-2);
+        }
+    }
+
+    // ---- Title block --------------------------------------------------------
+    //
+    // One cell per fact: a small label over a large value, hairlines between.
+    // The count is a custom property set by the template, so the strip divides
+    // evenly whatever number of facts were written.
+    .nit-about-titleblock {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin: 0;
+        border: 1px solid var(--about-line);
+        border-radius: 6px;
+        background: var(--about-sheet);
+        overflow: hidden;
+
+        @include media-breakpoint-up(md) {
+            grid-template-columns: repeat(var(--nit-about-facts, 4), minmax(0, 1fr));
+        }
+    }
+
+    .nit-about-cell {
+        min-width: 0;
+        padding: 0.85rem 1rem 0.9rem;
+        border-block-start: 1px solid var(--about-line);
+        border-inline-start: 1px solid var(--about-line);
+
+        // The first row and the first column carry the outer border already.
+        &:nth-child(-n + 2) {
+            border-block-start: 0;
+        }
+
+        &:nth-child(2n + 1) {
+            border-inline-start: 0;
+        }
+
+        @include media-breakpoint-up(md) {
+            border-block-start: 0;
+
+            &:nth-child(2n + 1) {
+                border-inline-start: 1px solid var(--about-line);
+            }
+
+            &:first-child {
+                border-inline-start: 0;
+            }
+        }
+    }
+
+    .nit-about-cell-label {
+        margin: 0 0 0.3rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--about-ink-2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .nit-about-cell-value {
+        margin: 0;
+        font-size: clamp(1.125rem, 1.6vw, 1.375rem);
+        font-weight: 700;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+        color: var(--about-ink);
+        overflow-wrap: anywhere;
+    }
+
+    // Facts under a text-only hero: the strip alone, the width of the copy.
+    .nit-about-hero-facts {
+        display: block;
+        margin-top: clamp(1.5rem, 4vw, 2.5rem);
+    }
+
+    // ---- Sections -----------------------------------------------------------
+    //
+    // Label in the margin, content beside it. The label is sticky on a wide
+    // screen, so a long story keeps its name in view.
+    .nit-about-section {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1.25rem clamp(2rem, 5vw, 4rem);
+        padding-block: clamp(2.25rem, 5vw, 4rem);
+        border-block-start: 1px solid var(--about-line);
+
+        @include media-breakpoint-up(md) {
+            grid-template-columns: 11rem minmax(0, 1fr);
+            align-items: start;
+        }
+    }
+
+    .nit-about-label {
+        margin: 0;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        line-height: 1.4;
+        color: var(--about-ink-2);
+
+        span {
+            display: block;
+            padding-block-start: 0.85rem;
+            border-block-start: 2px solid var(--about-mark);
+        }
+
+        @include media-breakpoint-up(md) {
+            position: sticky;
+            top: calc(#{$navbar-height} + 1.5rem);
+        }
+    }
+
+    .nit-about-section-body {
+        min-width: 0;
+    }
+
+    // The story keeps the reading measure even though the page is wide.
+    .nit-about-story .nit-about-section-body {
+        max-width: 68ch;
+    }
+
+    // ---- Pillars ------------------------------------------------------------
+    .nit-about-pillars {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+        gap: 1.75rem 2rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .nit-about-pillar {
+        min-width: 0;
+        padding-block-start: 1.25rem;
+        border-block-start: 1px solid var(--about-line);
+        transition: border-color 0.2s ease;
+
+        &:hover {
+            border-block-start-color: var(--about-mark);
+        }
+    }
+
+    .nit-about-pillar-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        border: 1px solid var(--about-line);
+        border-radius: 8px;
+        background: var(--about-sheet);
+        color: var(--about-mark);
+        font-size: 1.1rem;
+    }
+
+    .nit-about-pillar-title {
+        margin: 1rem 0 0.4rem;
+        font-size: 1.125rem;
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--about-ink);
+    }
+
+    .nit-about-pillar-text {
+        margin: 0;
+        font-size: 0.975rem;
+        line-height: 1.65;
+        color: var(--about-ink-2);
+    }
+
+    // ---- Milestones ---------------------------------------------------------
+    //
+    // A list, because a history is a sequence: the year is the marker, in
+    // the palette's primary, and the rows are separated by the same hairline
+    // as everything else.
+    .nit-about-milestones {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .nit-about-milestone {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.35rem 1.5rem;
+        padding-block: 1.1rem;
+        border-block-start: 1px solid var(--about-line);
+
+        &:first-child {
+            border-block-start: 0;
+            padding-block-start: 0;
+        }
+
+        @include media-breakpoint-up(sm) {
+            grid-template-columns: 5.5rem minmax(0, 1fr);
+        }
+    }
+
+    .nit-about-year {
+        font-size: 1.125rem;
+        font-weight: 700;
+        line-height: 1.4;
+        font-variant-numeric: tabular-nums;
+        color: var(--about-mark);
+    }
+
+    .nit-about-milestone-body {
+        min-width: 0;
+    }
+
+    .nit-about-milestone-title {
+        margin: 0 0 0.25rem;
+        font-size: 1.0625rem;
+        font-weight: 700;
+        line-height: 1.4;
+        color: var(--about-ink);
+    }
+
+    .nit-about-milestone-text {
+        margin: 0;
+        line-height: 1.65;
+        color: var(--about-ink-2);
+    }
+
+    // ---- Closing ------------------------------------------------------------
+    .nit-about-cta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.25rem 2rem;
+        margin-block: clamp(1.5rem, 4vw, 3rem) clamp(2rem, 5vw, 4rem);
+        padding: clamp(1.5rem, 4vw, 2.5rem);
+        border: 1px solid var(--about-line);
+        border-radius: 6px;
+        background: var(--about-sheet);
+    }
+
+    .nit-about-cta-copy {
+        min-width: 0;
+        flex: 1 1 28rem;
+    }
+
+    .nit-about-cta-title {
+        margin: 0 0 0.35rem;
+        font-size: clamp(1.25rem, 2.2vw, 1.625rem);
+        font-weight: 700;
+        line-height: 1.25;
+        color: var(--about-ink);
+    }
+
+    .nit-about-cta-text {
+        margin: 0;
+        color: var(--about-ink-2);
+        line-height: 1.6;
+    }
+}
+
+// Arabic letters join; tracking them apart breaks the words. The Arabic page
+// keeps the sizes and weights and drops the spacing.
+body.dir-rtl .nit-staticpage.nit-staticpage--about {
+    .nit-about-title,
+    .nit-about-eyebrow,
+    .nit-about-label,
+    .nit-about-cell-label {
+        letter-spacing: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nit-staticpage.nit-staticpage--about {
+        .nit-about-copy > *,
+        .nit-about-sheet {
+            animation: none;
+        }
+
+        .nit-about-poster img,
+        .nit-about-playbtn {
+            transition: none;
+        }
+    }
+}

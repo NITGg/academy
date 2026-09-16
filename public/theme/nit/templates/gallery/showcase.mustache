@@ -43,7 +43,7 @@
                    logoinput, logoremove, haslogo, logourl } ] } (one entry per display mode)
     * catmodecolumns - array of { mode, label, stylelabel, logolabel } - the per-mode column headings
     * catlogofields - comma-separated names of every category-logo file input on the form
-    * modegroups - array of { mode, label, options: [ { value, label, selected } ] } (light / dark)
+    * modegroups - array of { mode, label, isdefault, options: [ { value, label, selected } ] } (light / dark)
     * homechrome - array of { key, label, description, checked } (navbar / footer on the Site home)
     * fonts - array of { input, label, family, sample, rtl, hasfont, filename }
     * authimages - array of { key, input, label, description, hasimage, filename, url }
@@ -495,6 +495,7 @@
                             <tr>
                                 <th scope="col">{{#str}}sitestyles_col_mode, theme_nit{{/str}}</th>
                                 <th scope="col" style="width: 12rem;">{{#str}}sitestyles_col_group, theme_nit{{/str}}</th>
+                                <th scope="col" class="text-center" style="width: 8rem;">{{#str}}sitestyles_col_default, theme_nit{{/str}}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -507,6 +508,11 @@
                                         <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
                                         {{/options}}
                                     </select>
+                                </td>
+                                <td class="text-center">
+                                    <input type="radio" class="form-check-input" name="modedefault" value="{{mode}}"
+                                           {{#isdefault}}checked{{/isdefault}}
+                                           aria-label="{{#str}}sitestyles_default_aria, theme_nit, {{label}}{{/str}}">
                                 </td>
                             </tr>
                             {{/modegroups}}

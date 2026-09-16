@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 function xmldb_local_academy_upgrade($oldversion) {
-    global $DB;
+    global $CFG, $DB;
     $dbman = $DB->get_manager();
 
     if ($oldversion < 2026070404) {
@@ -148,6 +148,28 @@ function xmldb_local_academy_upgrade($oldversion) {
         }
 
         upgrade_plugin_savepoint(true, 2026091301, 'local', 'academy');
+    }
+
+    if ($oldversion < 2026091600) {
+        // The site opens in Arabic. Two core settings decide what a visitor with
+        // no language history sees (Site administration > Language > Language
+        // settings): the default language, and "Language autodetect", which
+        // would still hand an English-browser visitor English regardless of the
+        // default. Only the stock 'en' is moved — a site whose admin already
+        // chose a default keeps it — and only when the Arabic pack is installed,
+        // or every page would fall back to English string by string.
+        if (get_string_manager()->translation_exists('ar', false)) {
+            if (empty($CFG->lang) || $CFG->lang === 'en') {
+                set_config('lang', 'ar');
+                mtrace('local_academy: default site language set to Arabic (ar).');
+            }
+            set_config('autolang', 0);
+        } else {
+            mtrace('local_academy: Arabic language pack not installed - default language left as is. '
+                . 'Install it at Site administration > Language > Language packs, then set the default language to Arabic.');
+        }
+
+        upgrade_plugin_savepoint(true, 2026091600, 'local', 'academy');
     }
 
     return true;

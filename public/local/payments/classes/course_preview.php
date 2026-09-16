@@ -137,18 +137,29 @@ class course_preview {
      * Called from the after_config hook, which runs after the session is up (so $USER is
      * known) and before any page script calls require_login().
      *
+     * Every request with a session first loses whatever grant the previous request made, then
+     * earns its own, or not. What differs between kinds of request is only whether the
+     * visitor has MOVED ON, because that is what decides whether the guest login we made for
+     * the preview is dropped again:
+     *
+     *   * a navigation (the browser loading a page) to something that is not a preview means
+     *     they left, so the preview is forgotten and the auto-guest dropped;
+     *   * a file, an AJAX call or a fetch() fired BY the preview page is not the visitor going
+     *     anywhere. Such a request is not granted anything it does not qualify for on its own
+     *     (a locked activity's file stays locked), but it must never end the visit either:
+     *     the course index loads its state over AJAX right after the page, every open or
+     *     collapse of a section in it is another call, and core's ajax.js sends the browser
+     *     to the login form the moment one of those finds no login. That is exactly what
+     *     happened when the site logo, served by pluginfile.php from the system context, was
+     *     mistaken for "the visitor left": a guest who used the sidebar landed on the login
+     *     page — but only when the logo was not in the browser cache.
+     *
      * @return void
      */
     public static function setup(): void {
         global $CFG, $DB, $USER, $SESSION;
 
         if (CLI_SCRIPT || WS_SERVER || during_initial_install()) {
-            return;
-        }
-        if (defined('AJAX_SCRIPT') && AJAX_SCRIPT) {
-            // Requests fired BY a preview page (user preferences, toasts…). They must not be
-            // treated as "the visitor left the preview", or the cleanup below would end the
-            // session mid-visit.
             return;
         }
         if (!isset($USER) || !is_object($USER)) {
@@ -159,28 +170,51 @@ class course_preview {
         // Always drop a grant left over from an earlier request BEFORE deciding about this
         // one: $USER (and its temp roles) live in the session, so a preview that survived
         // would keep the activities of that course unlocked for the rest of the session.
-        self::revoke();
+        // The course it was for stays remembered until a navigation says the visitor moved
+        // on, so the page's own AJAX calls can inherit it.
+        $remembered = self::revoke();
+
+        $script = $_SERVER['SCRIPT_NAME'] ?? '';
+        $isajax = defined('AJAX_SCRIPT') && AJAX_SCRIPT;
+        $isfile = self::script_is($script, '/pluginfile.php');
+        $isnavigation = !$isajax && !$isfile && self::is_navigation();
 
         if (!self::is_enabled()) {
+            if ($isnavigation) {
+                self::forget();
+            }
             return;
         }
 
-        $script = $_SERVER['SCRIPT_NAME'] ?? '';
-        $courseid = self::requested_courseid();
-        $isfile = false;
-        if (!$courseid) {
+        if ($isajax) {
+            // Only what the course index needs, and only for the course the last page
+            // previewed. Anything else a guest might call gets the same answer core gives a
+            // guest with no enrolment.
+            $courseid = ($remembered && self::ajax_may_inherit()) ? $remembered : 0;
+        } else if ($isfile) {
             $courseid = self::requested_file_courseid($script);
-            $isfile = ($courseid > 0);
+        } else {
+            $courseid = self::requested_courseid();
         }
+
         if (!$courseid) {
             // The visitor has left the preview: if they are only "logged in" because we made
             // them the guest to read a course page, drop them back to anonymous so the rest of
             // the site behaves exactly as it does for any anonymous visitor (login form, not a
             // guest dashboard). A guest who chose to log in as one is left alone.
-            if (!empty($USER->{self::AUTOGUESTKEY}) && isguestuser()) {
-                self::drop_autoguest();
+            if ($isnavigation) {
+                self::forget();
+                if (!empty($USER->{self::AUTOGUESTKEY}) && isguestuser()) {
+                    self::drop_autoguest();
+                }
             }
             return;
+        }
+
+        if ($isnavigation) {
+            // A page that is turned down below (hidden course, already enrolled) must not
+            // leave the previous preview's course behind for its AJAX to inherit.
+            self::forget();
         }
 
         $course = $DB->get_record('course', ['id' => $courseid], 'id, visible, category', IGNORE_MISSING);
@@ -210,10 +244,10 @@ class course_preview {
         // Not logged in at all: become the site guest, the same way core does when
         // $CFG->autologinguests is on (see require_login() in lib/moodlelib.php). Scoped to
         // this one page, so the rest of the site still asks anonymous users to log in.
-        // Never for a file request: those carry the session cookie the page already
-        // created, and starting a session from an <img> is not worth it.
+        // Only a navigation starts a session: a file or a call carries the cookie the page
+        // already created, and starting a session from an <img> is not worth it.
         if (!isloggedin()) {
-            if ($isfile) {
+            if (!$isnavigation) {
                 return;
             }
             if (!empty($CFG->forcelogin) || empty($CFG->siteguest)) {
@@ -245,24 +279,92 @@ class course_preview {
     }
 
     /**
-     * Undo a preview grant made on an earlier request in this session.
+     * Undo the access a preview grant made on an earlier request in this session gave.
      *
-     * @return void
+     * The course the grant was for stays remembered on $USER; {@see forget()} clears it.
+     *
+     * @return int the course the revoked grant was for, or 0 when there was none
      */
-    protected static function revoke(): void {
+    protected static function revoke(): int {
         global $USER;
 
         if (empty($USER->{self::USERKEY})) {
-            return;
+            return 0;
         }
         $courseid = (int) $USER->{self::USERKEY};
-        unset($USER->{self::USERKEY});
         unset($USER->enrol['tempguest'][$courseid]);
 
         $context = \context_course::instance($courseid, IGNORE_MISSING);
         if ($context) {
             remove_temp_course_roles($context);
         }
+
+        return $courseid;
+    }
+
+    /**
+     * Stop remembering which course the session last previewed.
+     *
+     * @return void
+     */
+    protected static function forget(): void {
+        global $USER;
+
+        unset($USER->{self::USERKEY});
+    }
+
+    /**
+     * Is this request the browser loading a page, as opposed to something a page fetched?
+     *
+     * Read from the Fetch Metadata header every current browser sends. A request without it
+     * (an old browser, curl) is taken for a navigation, which is what every request used to
+     * be taken for.
+     *
+     * @return bool
+     */
+    protected static function is_navigation(): bool {
+        $dest = strtolower((string) ($_SERVER['HTTP_SEC_FETCH_DEST'] ?? ''));
+        if ($dest === '') {
+            return true;
+        }
+
+        return in_array($dest, ['document', 'iframe', 'frame'], true);
+    }
+
+    /**
+     * Web-service functions an AJAX call may run with the previewed course's grant.
+     *
+     * The two the course index cannot live without: loading its state after the page, and
+     * recording which sections the visitor collapsed (a guest's preferences only live in the
+     * session anyway). Anything wider would let a previewer read locked activities through
+     * the "get by courses" functions the guest role can otherwise call.
+     */
+    protected const AJAX_FUNCTIONS = [
+        'core_courseformat_get_state',
+        'core_courseformat_update_course',
+    ];
+
+    /**
+     * May this AJAX request inherit the remembered course's grant?
+     *
+     * lib/ajax/service.php reads the calls it is asked to make from the request body as JSON;
+     * so do we, and every call in the batch has to be one of AJAX_FUNCTIONS. The body can be
+     * read more than once, so service.php still sees it afterwards.
+     *
+     * @return bool
+     */
+    protected static function ajax_may_inherit(): bool {
+        $calls = json_decode((string) file_get_contents('php://input'), true);
+        if (!is_array($calls) || !$calls) {
+            return false;
+        }
+        foreach ($calls as $call) {
+            if (!is_array($call) || !in_array($call['methodname'] ?? '', self::AJAX_FUNCTIONS, true)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_academy';
-$plugin->version   = 2026091301; // Course custom field group renamed "Course File Summary" (bilingual); "Level" second.
+$plugin->version   = 2026091600; // Site opens in Arabic: default language ar, language autodetect off (only moves the stock 'en').
 $plugin->requires  = 2024100700; // Moodle 4.5+
 $plugin->supported = [405, 502];
 $plugin->maturity  = MATURITY_STABLE;

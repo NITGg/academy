@@ -1,0 +1,99 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_profilefields/about_sections
+
+    Everything under the About hero: the story (the body an administrator wrote),
+    what the academy stands for, its milestones, and the closing invitation.
+    Each section is a label in the margin and its content beside it - the same
+    device throughout, so the page reads as one sheet rather than a stack of
+    unrelated blocks. Rendered inside the `about` section of the page context.
+
+    Context variables required for this template:
+    * hascontent, content - the story (from the parent context)
+    * haspillars, pillars - list of {icon, title, text}
+    * hasmilestones, milestones - list of {year, title, text}
+    * coursesurl - where "Browse courses" goes
+
+    Example context (json):
+    {
+        "hascontent": true,
+        "content": "<p>The academy was founded…</p>",
+        "haspillars": true,
+        "pillars": [{"icon": "fa-solid fa-gears", "title": "Hands on", "text": "Every course is built around a real task."}],
+        "hasmilestones": true,
+        "milestones": [{"year": "2009", "title": "Founded in Cairo", "text": "Three workshops and one classroom."}],
+        "coursesurl": "#"
+    }
+}}
+{{#hascontent}}
+    <section class="nit-about-section nit-about-story" aria-labelledby="nit-about-story-label">
+        <h2 class="nit-about-label" id="nit-about-story-label">
+            <span>{{#str}}aboutstory, local_profilefields{{/str}}</span>
+        </h2>
+        <div class="nit-about-section-body nit-staticpage-body">{{{content}}}</div>
+    </section>
+{{/hascontent}}
+
+{{#haspillars}}
+    <section class="nit-about-section" aria-labelledby="nit-about-pillars-label">
+        <h2 class="nit-about-label" id="nit-about-pillars-label">
+            <span>{{#str}}aboutpillarsheading, local_profilefields{{/str}}</span>
+        </h2>
+        <ul class="nit-about-pillars">
+            {{#pillars}}
+                <li class="nit-about-pillar">
+                    <span class="nit-about-pillar-icon" aria-hidden="true">
+                        {{#icon}}<i class="{{icon}}"></i>{{/icon}}
+                        {{^icon}}<i class="fa-solid fa-check"></i>{{/icon}}
+                    </span>
+                    {{#title}}<h3 class="nit-about-pillar-title">{{title}}</h3>{{/title}}
+                    {{#text}}<p class="nit-about-pillar-text">{{text}}</p>{{/text}}
+                </li>
+            {{/pillars}}
+        </ul>
+    </section>
+{{/haspillars}}
+
+{{#hasmilestones}}
+    <section class="nit-about-section" aria-labelledby="nit-about-milestones-label">
+        <h2 class="nit-about-label" id="nit-about-milestones-label">
+            <span>{{#str}}aboutmilestonesheading, local_profilefields{{/str}}</span>
+        </h2>
+        <ol class="nit-about-milestones">
+            {{#milestones}}
+                <li class="nit-about-milestone">
+                    <span class="nit-about-year">{{year}}</span>
+                    <div class="nit-about-milestone-body">
+                        {{#title}}<h3 class="nit-about-milestone-title">{{title}}</h3>{{/title}}
+                        {{#text}}<p class="nit-about-milestone-text">{{text}}</p>{{/text}}
+                    </div>
+                </li>
+            {{/milestones}}
+        </ol>
+    </section>
+{{/hasmilestones}}
+
+<aside class="nit-about-cta">
+    <div class="nit-about-cta-copy">
+        <h2 class="nit-about-cta-title">{{#str}}aboutctatitle, local_profilefields{{/str}}</h2>
+        <p class="nit-about-cta-text">{{#str}}aboutctatext, local_profilefields{{/str}}</p>
+    </div>
+    <a href="{{coursesurl}}" class="btn btn-primary nit-about-btn">
+        {{#str}}aboutbrowsecourses, local_profilefields{{/str}}
+    </a>
+</aside>

@@ -404,6 +404,13 @@ if (($data = data_submitted()) && confirm_sesskey()) {
             }
         }
         set_config('nit_mode_groups', json_encode($map), 'theme_nit');
+        // Which of the two a first-time visitor (no `nit_mode` cookie yet) opens
+        // in — the "Default" radio in the same table. Read back by
+        // theme_nit_default_mode(); an unknown value leaves the stored one alone.
+        $default = optional_param('modedefault', '', PARAM_ALPHA);
+        if (array_key_exists($default, theme_nit_modes())) {
+            set_config('nit_mode_default', $default, 'theme_nit');
+        }
         // Back to the tab the form was posted from (see the hash handler below).
         redirect(new moodle_url('/theme/nit/gallery.php', null, 'nit-tab-catstyles'),
             get_string('sitestylessaved', 'theme_nit'), null,

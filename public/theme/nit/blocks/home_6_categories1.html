@@ -173,7 +173,9 @@
       </svg><span class="visually-hidden nit-mode-toggle-label">{mlang
         en}Switch mode{mlang} {mlang ar}تبديل الوضع{mlang}</span></a></div>
   <!-- Logo row. A real img with a src, never an empty element: the editor
-       deletes anything with no content of its own.
+       deletes anything with no content of its own. The img sits inside a
+       link to the About us page (local/profilefields/page.php?page=about),
+       written site-relative like the Start Now button below it.
 
        The height is NOT optional. The src is only the last-resort fallback
        and the real mark arrives later, and the two are different sizes: the
@@ -195,10 +197,13 @@
        that does not print window.NIT_LOGO. -->
   <div
     style="max-width: 1230px; margin: 0 auto 40px; display: flex; align-items: center; justify-content: center;"
-    data-nit-hero-brand=""> <img class="img-fluid"
-      style="display: block; height: clamp(120px, 16vw, 200px); width: auto; max-width: 100%; object-fit: contain; opacity: 0; transition: opacity .25s ease;"
-      src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
-      data-nit-hero-brandmark="" data-nit-logo="compact"> </div>
+    data-nit-hero-brand=""> <a style="display: block; line-height: 0;"
+      href="/moodle-new/local/profilefields/page.php?page=about"
+      title="{mlang en}About us{mlang} {mlang ar}من نحن{mlang}"
+      data-nit-hero-brandlink=""> <img class="img-fluid"
+        style="display: block; height: clamp(120px, 16vw, 200px); width: auto; max-width: 100%; object-fit: contain; opacity: 0; transition: opacity .25s ease;"
+        src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
+        data-nit-hero-brandmark="" data-nit-logo="compact"> </a> </div>
   <div
     style="max-width: 1230px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 40px 20px;"
     data-nit-hero-split=""><!-- Text column. Flat on purpose: the heading, the paragraph and the button

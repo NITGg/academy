@@ -290,8 +290,11 @@ function local_profilefields_pluginfile($course, $cm, $context, $filearea, $args
         $forcedownload, array $options = []) {
     global $CFG, $DB;
 
-    if ($context->contextlevel !== CONTEXT_SYSTEM
-            || $filearea !== \local_profilefields\staticpages::FILEAREA) {
+    $areas = [
+        \local_profilefields\staticpages::FILEAREA,
+        \local_profilefields\about::HERO_FILEAREA,
+    ];
+    if ($context->contextlevel !== CONTEXT_SYSTEM || !in_array($filearea, $areas, true)) {
         return false;
     }
 
@@ -301,12 +304,19 @@ function local_profilefields_pluginfile($course, $cm, $context, $filearea, $args
 
     $itemid = (int) array_shift($args);
 
-    $row = $DB->get_record(\local_profilefields\staticpages::TABLE, ['id' => $itemid], 'id, slug');
-    if (!$row) {
-        return false;
+    // The body's images are keyed by the row they were pasted into; the About hero
+    // is one file at item id 0 and belongs to the page, not to a language.
+    if ($filearea === \local_profilefields\about::HERO_FILEAREA) {
+        $slug = \local_profilefields\about::SLUG;
+    } else {
+        $row = $DB->get_record(\local_profilefields\staticpages::TABLE, ['id' => $itemid], 'id, slug');
+        if (!$row) {
+            return false;
+        }
+        $slug = $row->slug;
     }
 
-    if (!\local_profilefields\staticpages::enabled($row->slug)
+    if (!\local_profilefields\staticpages::enabled($slug)
             && !has_capability('moodle/site:config', $context)) {
         return false;
     }

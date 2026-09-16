@@ -4,6 +4,12 @@
      Colours read from the Brand Colors palette (theme/nit gallery). Gold accents map to
      --nit-brand-accent, the teal "positive" accent maps to --nit-brand-success; shades are
      derived with color-mix from those same brand variables (no hard-coded colours).
+     A card's two buttons are the theme's own two button components and carry NO colour of
+     their own: the code chip (tap to copy) is the Main button (.btn.btn-primary) and "View
+     details" is the Secondary button (.btn.btn-secondary), so fill, label, ring and hover
+     all come from those two blocks of the Brand Colors editor — the same two every other
+     button on the category page is drawn with. Only size, shape and the chip's monospace
+     face are inline; the copy feedback is still a 1.2 s success ring set by the script.
      The server sends only the coupons this visitor could actually redeem (AC-4.7.10), so
      the block starts hidden and shows itself only once it has at least one card: a visitor
      with nothing to claim sees no block and no gap where one would have been (AC-4.7.11).
@@ -72,8 +78,8 @@
               <p
                 style="display: none; margin: 0; font-size: 13px; line-height: 1.7; color: var(--nit-brand-textsecondary); overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"
                 data-nit-desc="">{{description}}</p>
-              <button
-                style="align-self: stretch; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: bold; font-size: 16px; letter-spacing: 1px; color: var(--nit-brand-textprimary); background: color-mix(in srgb, var(--nit-brand-textprimary) 6%, transparent); border: 1px dashed color-mix(in srgb, var(--nit-brand-accent) 50%, transparent); border-radius: 10px; padding: 10px 14px; cursor: pointer;"
+              <button class="btn btn-primary"
+                style="align-self: stretch; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: bold; font-size: 16px; letter-spacing: 1px; border-radius: 10px; padding: 10px 14px;"
                 type="button" data-nit-copy="" data-code="{{code}}"><span
                   data-nit-codetext="">{{code}}</span> <span aria-hidden="true">⧉</span></button>
               <!-- Meta chips. What the coupon applies to is NOT here any more: one truncated
@@ -83,8 +89,8 @@
                   data-nit-usage="">{{usage}}</span> <span
                   style="display: none; font-size: 11.5px; font-weight: 600; color: var(--nit-brand-textsecondary); background: color-mix(in srgb, var(--nit-brand-textprimary) 6%, transparent); border-radius: 50px; padding: 4px 11px;"
                   data-nit-dates="">{{dates}}</span></div>
-              <a class="nit-btn-ghost"
-                style="display: block; box-sizing: border-box; margin-top: auto; background: transparent; border: 1px solid var(--nit-brand-bordersecondary); color: var(--nit-brand-textprimary); padding: 11px; border-radius: 10px; font-weight: bold; font-size: 13.5px; text-align: center; text-decoration: none;"
+              <a class="btn btn-secondary"
+                style="display: block; box-sizing: border-box; margin-top: auto; padding: 11px; border-radius: 10px; font-weight: bold; font-size: 13.5px;"
                 href="#" data-nit-details="">{mlang en}View details{mlang}{mlang
                 ar}عرض التفاصيل{mlang}</a>
             </div>
@@ -419,7 +425,7 @@
         '.nit-btn-solid,.nit-btn-ghost,[data-nit-copy],[data-nit-scroll],[data-nit-coupons-scroll],[data-nit-categories]>a,[data-nit-my-courses]>div,[data-nit-about-card]{transition:background-color .2s ease,background .2s ease,color .2s ease,border-color .2s ease,transform .2s ease,box-shadow .2s ease}' +
         '.nit-btn-solid:not(:disabled):hover{filter:brightness(.9);transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
         '.nit-btn-ghost:not(:disabled):hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-bordersecondary)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
-        '[data-nit-copy]:hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-hoverbackground)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
+        '[data-nit-copy]:not(.btn):hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-hoverbackground)!important;transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}' +
         '[data-nit-scroll]:hover,[data-nit-coupons-scroll]:hover{background:var(--nit-brand-hoverbackground)!important;color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-hoverbackground)!important;transform:translateY(-50%) scale(1.08)!important}' +
         '[data-nit-categories]>a:hover,[data-nit-my-courses]>div:not([data-nit-my-course-card]):not([data-nit-my-courses-empty]):hover{transform:translateY(-6px);border-color:var(--nit-brand-accent)!important;box-shadow:0 16px 40px rgba(0,0,0,.45)}' +
         '[data-nit-categories]>a:hover [data-nit-cta]{background:var(--nit-brand-primary-hover)!important;color:var(--nit-brand-onprimary)!important}' +

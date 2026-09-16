@@ -1,0 +1,42 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_profilefields/about_facts
+
+    The About page's facts, drawn as a drawing-sheet title block: one cell per
+    fact, a small label over a large value, hairlines between. It sits under the
+    hero picture when there is one and under the hero copy when there is not,
+    which is why it is a partial rather than part of about_hero.
+
+    Context variables required for this template:
+    * facts - list of {value, label}
+    * factcount - how many, for the column count
+
+    Example context (json):
+    {
+        "facts": [{"value": "2009", "label": "Founded"}],
+        "factcount": 1
+    }
+}}
+<dl class="nit-about-titleblock" style="--nit-about-facts: {{factcount}};">
+    {{#facts}}
+        <div class="nit-about-cell">
+            <dt class="nit-about-cell-label">{{label}}</dt>
+            <dd class="nit-about-cell-value">{{value}}</dd>
+        </div>
+    {{/facts}}
+</dl>

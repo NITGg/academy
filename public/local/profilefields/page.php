@@ -78,6 +78,29 @@ $view['published'] = staticpages::enabled($slug);
 $view['iscontact'] = $view['kind'] === staticpages::KIND_CONTACT;
 $view['isfaq'] = $view['kind'] === staticpages::KIND_FAQ;
 
+// The About page: the hero and its lists, plus the two doors it opens at the
+// bottom. Every "has" flag is decided here so the template only draws.
+$view['isabout'] = $view['about'] !== null;
+if ($view['isabout']) {
+    $about = $view['about'];
+    $about['hasimage'] = $about['heroimage'] !== '';
+    $about['hasvideo'] = $about['video']['provider'] !== '';
+    $about['videofile'] = $about['video']['provider'] === 'file';
+    $about['videoembed'] = $about['video']['embed'];
+    // A film with a picture waits behind it for a click; a film without one is
+    // the picture, so it loads at once.
+    $about['videofacade'] = $about['hasvideo'] && $about['hasimage'];
+    $about['hasmedia'] = $about['hasimage'] || $about['hasvideo'];
+    $about['hasfacts'] = !empty($about['facts']);
+    $about['factcount'] = count($about['facts']);
+    $about['haspillars'] = !empty($about['pillars']);
+    $about['hasmilestones'] = !empty($about['milestones']);
+    $about['coursesurl'] = (new moodle_url('/course/index.php'))->out(false);
+    $about['contacturl'] = staticpages::enabled('contact') ? staticpages::url('contact')->out(false) : '';
+    $view['about'] = $about;
+    $PAGE->requires->js_call_amd('local_profilefields/aboutpage', 'init');
+}
+
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_profilefields/staticpage', $view);
 echo $OUTPUT->footer();

@@ -34,6 +34,8 @@
  *     // light/dark switch moves between. Follow this instead of hard-coding
  *     // group keys: renumbering the groups then costs no client release.
  *     "schemes": { "light": "g4", "dark": "g5" },
+ *     // The scheme a visitor who never touched the switch opens in.
+ *     "defaultscheme": "dark",
  *     "groups": [
  *       // "scheme" is how the group's OWN roles are authored ("light" = dark
  *       // ink on a bright ground), measured from its Background against its
