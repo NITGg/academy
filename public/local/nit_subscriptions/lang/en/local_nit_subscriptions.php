@@ -123,7 +123,7 @@ $string['pkg_unassign_paid'] = ' — <strong>{$a}</strong> paid';
 // The plan's two prices (create/edit form) — the same rows, rules and wording as a
 // course's "Course pricing" section in local_payments. {$a} is the home country's name.
 $string['sub_price_home_hdr']     = '1. {$a} — the local price';
-$string['sub_price_home_help']    = 'What a subscriber in {$a} pays, in the currency you pick here.';
+$string['sub_price_home_help']    = 'What a subscriber in {$a} pays, always in the local currency.';
 $string['sub_price_default_hdr']  = '2. Everyone else — the Default price';
 $string['sub_price_default_help'] = 'What every subscriber OUTSIDE {$a} pays, in an international currency. This is also the price shown to any visitor the site cannot place in a country.';
 $string['err_homeprice_required']    = 'A plan needs the {$a} price as well as the Default price.';

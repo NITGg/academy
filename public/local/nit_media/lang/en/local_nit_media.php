@@ -66,3 +66,12 @@ $string['diagnostics_desc'] =
     . '{$a} '
     . 'as a site administrator. It reports what the server holds - file name, size and MIME type - '
     . 'without downloading the video.';
+
+// Course promo video — the field under "Course image" on the course settings form.
+$string['promovideo'] = 'Course promo video';
+$string['promovideo_help'] = 'A short trailer for the course. On the course page it replaces the course image: a play button appears over the image, and the video plays in its place while the title and details fade out.
+
+Upload an **MP4 (H.264 video, AAC audio)** or WebM file, or leave this empty and paste a link in the field below. When both are set, the uploaded file is used.';
+$string['promovideo_url'] = 'Promo video link';
+$string['promovideo_url_help'] = 'Instead of uploading a file, paste a **YouTube** or **Vimeo** page address (e.g. https://www.youtube.com/watch?v=… or https://vimeo.com/…), or a direct link to an .mp4 / .webm file.';
+$string['promovideo_url_invalid'] = 'This link is not a YouTube or Vimeo video, nor a direct .mp4 / .webm / .ogv file address.';

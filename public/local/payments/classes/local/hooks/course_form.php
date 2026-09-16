@@ -113,17 +113,27 @@ class course_form {
                     'alert alert-warning mb-0'));
         }
 
-        // ── 1. The home country, in the currency of the admin's choosing ─────
+        // ── 1. The home country, always in the home currency ─────────────────
+        // The currency is not a choice any more (2026-09-16): the local price is
+        // always in the home country's own money, so the picker is a read-only
+        // label and nothing is posted for it — the two hooks below stamp the
+        // home currency onto the data themselves. A legacy row saved in another
+        // currency moves to the home currency on the next save.
         $group = [
-            $mform->createElement('select', 'lpp_homecurrency', get_string('currency', 'local_payments'), $currencies),
+            $mform->createElement('static', 'lpp_homecurrencylabel', '',
+                \html_writer::empty_tag('input', [
+                    'type' => 'text',
+                    'class' => 'form-control',
+                    'value' => $currencies[$homecurrency] ?? $homecurrency,
+                    'readonly' => 'readonly',
+                    'aria-label' => get_string('currency', 'local_payments'),
+                ])),
             $mform->createElement('text', 'lpp_homeprice', get_string('price', 'local_payments'),
                 ['size' => 8, 'placeholder' => get_string('price', 'local_payments')]),
         ];
         $mform->addGroup($group, 'lpp_homegrp',
             get_string('pricing_first_homehdr', 'local_payments', $homename), ' ', false);
-        $mform->setType('lpp_homecurrency', PARAM_ALPHA);
         $mform->setType('lpp_homeprice', PARAM_RAW_TRIMMED);
-        $mform->setDefault('lpp_homecurrency', $current->home->currency ?? $homecurrency);
         $mform->setDefault('lpp_homeprice', course_pricing::display_price($current->home->price ?? null));
         $mform->addElement('static', 'lpp_homehelp', '',
             get_string('pricing_first_homehelp', 'local_payments', $homename));
@@ -190,6 +200,7 @@ class course_form {
         if (empty($data['lpp_present'])) {
             return;
         }
+        $data['lpp_homecurrency'] = course_pricing::home_currency();
         $hook->add_errors(course_pricing::validate($data));
     }
 
@@ -210,6 +221,9 @@ class course_form {
         if (empty($data->lpp_present) || empty($data->id)) {
             return;
         }
+        // The form has no currency field for the local row (see the definition
+        // hook): the home currency is fixed, so it is stamped on here.
+        $data->lpp_homecurrency = course_pricing::home_currency();
         course_pricing::save((int) $data->id, $data, (int) $USER->id);
     }
 }

@@ -24,7 +24,10 @@
  *
  *   1. a hero banner — the course image under a dark scrim, carrying the top
  *      category, title, subject line, a summary excerpt, a row of fact chips
- *      (certificate, duration, level, start date, enrolled) and ONE button;
+ *      (certificate, duration, level, start date, enrolled) and ONE button.
+ *      A course with a promo video (local_nit_media's field under "Course
+ *      image") also carries a play button over the picture; pressing it turns
+ *      the banner into the player and fades the text out — see acad_hero_promo();
  *   2. a two-column body — the main column (inline-start) holds the "About this
  *      course" card (summary, "What will you learn?" tiles, skills), the
  *      requirements card and the curriculum accordion; the aside holds the
@@ -269,6 +272,12 @@ class format_topics_renderer extends \format_topics\output\renderer {
 
         // Course image.
         $d->image = $this->acad_course_image_url($context);
+
+        // Course promo video — the "Course promo video" field local_nit_media adds
+        // under "Course image" on the settings form. null when the course has
+        // none, in which case the hero is the picture alone, as before.
+        $d->promo = class_exists('\local_nit_media\promo_video')
+            ? \local_nit_media\promo_video::for_course((int) $course->id) : null;
 
         // Start date.
         $d->startlabel = $course->startdate ? userdate($course->startdate, get_string('strftimedatefullshort')) : '';
@@ -577,6 +586,19 @@ class format_topics_renderer extends \format_topics\output\renderer {
             // drawn (cover, scrim, fallback) and the markup only says which one.
             $attrs['style'] = '--cr-hero-img:url("' . $data->image->out(false) . '")';
         }
+        // A promo video turns the hero into a player on demand: the play button
+        // sits over the picture, and a click fades the text out and the video in
+        // (AcademyUI.crPromoPlay). The player itself is NOT in the markup — an
+        // iframe or <video> would start fetching on page load — only its address
+        // and kind, which the script reads when the button is pressed.
+        if (!empty($data->promo)) {
+            $attrs['class'] .= ' has-video';
+            $attrs['data-promo-src'] = $data->promo->src;
+            $attrs['data-promo-player'] = $data->promo->player;
+            if ($data->image) {
+                $attrs['data-promo-poster'] = $data->image->out(false);
+            }
+        }
         $o  = html_writer::start_tag('section', $attrs);
         $o .= html_writer::start_div('acad-cr__hero-body');
 
@@ -610,7 +632,41 @@ class format_topics_renderer extends \format_topics\output\renderer {
         $o .= html_writer::end_div(); // hero-actions.
 
         $o .= html_writer::end_div(); // hero-body.
+
+        if (!empty($data->promo)) {
+            $o .= $this->acad_hero_promo();
+        }
+
         $o .= html_writer::end_tag('section');
+        return $o;
+    }
+
+    /**
+     * The promo video controls of the hero: the play button and the empty player layer.
+     *
+     * The play button is placed over the photograph side of the banner (the
+     * stylesheet positions it; on a narrow screen it moves to the top corner),
+     * with a pulsing halo and a label under it. The layer it reveals is empty
+     * until the click — the script fills it with a <video> or an <iframe> and a
+     * close button — so a visitor who never presses play never loads a player.
+     *
+     * @return string HTML
+     */
+    protected function acad_hero_promo(): string {
+        $watch = get_string('acad_watchpromo', 'theme_nit');
+        $o  = html_writer::start_tag('button', [
+            'type' => 'button',
+            'class' => 'acad-cr__play',
+            'aria-label' => $watch,
+            'onclick' => 'AcademyUI.crPromoPlay(this)',
+        ]);
+        $o .= html_writer::span($this->acad_icon('play'), 'acad-cr__play-disc');
+        $o .= html_writer::span(s($watch), 'acad-cr__play-label');
+        $o .= html_writer::end_tag('button');
+        $o .= html_writer::div('', 'acad-cr__video', [
+            'aria-hidden' => 'true',
+            'data-close-label' => get_string('acad_closevideo', 'theme_nit'),
+        ]);
         return $o;
     }
 
@@ -911,23 +967,74 @@ class format_topics_renderer extends \format_topics\output\renderer {
      * The people card: one row per instructor (avatar, then name), then the
      * top-level category as "Offered by".
      *
+     * The instructor row keeps the design's shape — the round picture, the
+     * "Instructor" label, the name — and grows a compact profile under it, read
+     * from the "Instructor Fields" profile group (see {@see INSTRUCTOR_FIELDS}):
+     * specialization and years of experience on a meta line, the opening of
+     * the biography, the social links as icon pills, and one button that opens
+     * the full profile in a dialog ({@see acad_instructor_dialog()}). An
+     * instructor who has filled nothing in gets exactly the row they had.
+     *
      * @param stdClass $course
      * @param stdClass $data
      * @return string
      */
     protected function acad_people($course, $data) {
         $rows = '';
+        $dialogs = '';
 
         foreach ($data->teachers as $t) {
-            $userpic = new user_picture($t);
-            $userpic->size = 100;
-            $userpic->link = false;
+            $ins = $this->acad_instructor($t, $data);
             $profileurl = new moodle_url('/user/view.php', ['id' => $t->id, 'course' => $course->id]);
-            $rows .= $this->acad_fact_row(
-                $this->output->render($userpic),
+            $dialogid = 'acad-ins-' . (int) $t->id;
+
+            // Name, then the meta line (specialization · years of experience).
+            $value = html_writer::link($profileurl, s(fullname($t)), ['class' => 'acad-cr__tutor-name']);
+            $meta = [];
+            if ($ins->specialization !== '') {
+                $meta[] = html_writer::span($ins->specialization, 'acad-cr__tutor-spec');
+            }
+            if ($ins->years !== '') {
+                $meta[] = html_writer::span($this->acad_years_label($ins->years), 'acad-cr__tutor-years');
+            }
+            if ($meta) {
+                $value .= html_writer::div(
+                    implode(html_writer::span('·', 'acad-cr__tutor-dot', ['aria-hidden' => 'true']), $meta),
+                    'acad-cr__tutor-meta');
+            }
+
+            $row = $this->acad_fact_row(
+                $this->acad_avatar($t, 100),
                 get_string('acad_instructorlabel', 'theme_nit'),
-                html_writer::link($profileurl, s(fullname($t)), ['class' => 'acad-cr__tutor-name']),
+                $value,
                 ' acad-cr__glance-ico--avatar');
+
+            // Under the row: the opening of the biography, then the social
+            // pills beside the "About the instructor" button.
+            $extra = '';
+            if ($ins->excerpt !== '') {
+                $extra .= html_writer::tag('p', s($ins->excerpt), ['class' => 'acad-cr__tutor-bio']);
+            }
+            $actions = '';
+            if ($ins->social) {
+                $actions .= $this->acad_social_links($ins->social, 'acad-cr__tutor-social');
+            }
+            if ($ins->hasprofile) {
+                $actions .= html_writer::tag('button',
+                    $this->acad_icon('idcard') . html_writer::span(get_string('acad_aboutinstructor', 'theme_nit')),
+                    [
+                        'type'          => 'button',
+                        'class'         => 'btn btn-outline-primary btn-sm acad-cr__tutor-more',
+                        'data-dialog'   => $dialogid,
+                        'onclick'       => 'AcademyUI.crInstructorOpen(this)',
+                    ]);
+                $dialogs .= $this->acad_instructor_dialog($t, $ins, $profileurl, $dialogid);
+            }
+            if ($actions !== '') {
+                $extra .= html_writer::div($actions, 'acad-cr__tutor-actions');
+            }
+
+            $rows .= html_writer::div($row . $extra, 'acad-cr__tutor' . ($extra !== '' ? ' acad-cr__tutor--rich' : ''));
         }
 
         // Offered by = top-level category.
@@ -944,7 +1051,387 @@ class format_topics_renderer extends \format_topics\output\renderer {
 
         return html_writer::div(
             html_writer::tag('h2', get_string('acad_instructors', 'theme_nit'), ['class' => 'visually-hidden']) . $rows,
-            'acad-cr__card acad-cr__people');
+            'acad-cr__card acad-cr__people') . $dialogs;
+    }
+
+    // -------------------------------------------------------------------------
+    // Instructor profile — the "Instructor Fields" group, on the card and in a dialog
+    // -------------------------------------------------------------------------
+
+    /**
+     * The instructor profile fields this page reads, by the part each plays.
+     *
+     * Keyed by shortname — the one part of a profile field that is a code and
+     * never changes; the labels are the fields' own (bilingual) names. The
+     * group was built by hand on the site and local_profilefields knows the same
+     * list ({@see \local_profilefields\provision::INSTRUCTOR_FIELDS}); it is
+     * repeated here so the theme does not depend on that plugin to draw a card.
+     *
+     *   cover ..... the banner across the top of the dialog (a file field)
+     *   meta ...... one line under the name: specialization, years, languages
+     *   section ... a heading and a body in the dialog, in this order
+     *   social .... an icon link (card pills and dialog footer)
+     *   file ...... the résumé, offered as a download in the dialog footer
+     *
+     * @var string[] shortname => part
+     */
+    const INSTRUCTOR_FIELDS = [
+        'coverimage'        => 'cover',
+        'specialization'    => 'meta',
+        'yearsofexperience' => 'meta',
+        'languages'         => 'meta',
+        'biography'         => 'section',
+        'experience'        => 'section',
+        'qualifications'    => 'section',
+        'certificates'      => 'section',
+        'awards'            => 'section',
+        'linkedin'          => 'social',
+        'website'           => 'social',
+        'facebook'          => 'social',
+        'instagram'         => 'social',
+        'twitter'           => 'social',
+        'youtube'           => 'social',
+        'resume'            => 'file',
+    ];
+
+    /** @var string[] The glyph each dialog section is headed with (shortname => icon key). */
+    const INSTRUCTOR_SECTION_ICONS = [
+        'biography'      => 'user',
+        'experience'     => 'briefcase',
+        'qualifications' => 'grad',
+        'certificates'   => 'cert',
+        'awards'         => 'award',
+    ];
+
+    /**
+     * Longest biography opening the card shows, in characters.
+     *
+     * Two lines beside the picture; the dialog carries the whole text.
+     */
+    const BIO_CHARS = 150;
+
+    /**
+     * Everything the card and the dialog need about one instructor, in one pass
+     * over their profile fields.
+     *
+     * Field visibility is honoured through the profile API itself
+     * ({@see profile_field_base::show_field_content()}): a field the site keeps
+     * private, or for teachers only, is simply not read for the viewer. Text is
+     * resolved to the current language (the fields are authored as {mlang}
+     * pairs by local_nit_mlang); rich text is formatted by the field's own
+     * renderer so embedded files and the multilang filter both apply.
+     *
+     * @param stdClass $user the instructor (a get_role_users() record)
+     * @param stdClass $data page data (for the course context)
+     * @return stdClass cover, specialization, years, languages[], excerpt,
+     *                  sections[], social[], resume, hasprofile
+     */
+    protected function acad_instructor($user, $data): stdClass {
+        global $CFG;
+        require_once($CFG->dirroot . '/user/profile/lib.php');
+
+        $p = (object) [
+            'cover'          => '',
+            'specialization' => '',
+            'years'          => '',
+            'languages'      => [],
+            'excerpt'        => '',
+            'sections'       => [],
+            'social'         => [],
+            'resume'         => null,
+            'hasprofile'     => false,
+        ];
+
+        $usercontext = \context_user::instance($user->id, IGNORE_MISSING);
+        if (!$usercontext) {
+            return $p;
+        }
+
+        foreach (profile_get_user_fields_with_data((int) $user->id) as $f) {
+            $short = (string) ($f->field->shortname ?? '');
+            $part  = self::INSTRUCTOR_FIELDS[$short] ?? null;
+            if ($part === null || !$f->is_visible()) {
+                continue;
+            }
+
+            // The two file fields: the file is the value, whatever the data row says.
+            if ($part === 'cover' || $part === 'file') {
+                $file = $this->acad_profile_file($usercontext, (int) $f->field->id);
+                if (!$file) {
+                    continue;
+                }
+                $url = moodle_url::make_pluginfile_url($file->get_contextid(), 'profilefield_file', 'files',
+                    $file->get_itemid(), $file->get_filepath(), $file->get_filename());
+                if ($part === 'cover') {
+                    if ($file->is_valid_image()) {
+                        $p->cover = $url->out(false);
+                    }
+                } else {
+                    $p->resume = (object) ['url' => $url, 'name' => $file->get_filename(), 'label' => $f->display_name()];
+                }
+                continue;
+            }
+
+            if ($f->is_empty()) {
+                continue;
+            }
+
+            switch ($part) {
+                case 'meta':
+                    $text = $this->acad_ml((string) $f->data, $data);
+                    if ($text === '') {
+                        break;
+                    }
+                    if ($short === 'specialization') {
+                        $p->specialization = $text;
+                    } else if ($short === 'yearsofexperience') {
+                        $p->years = $text;
+                    } else {
+                        // "Arabic, English" / "العربية، الإنجليزية" → one chip each.
+                        $p->languages = preg_split('/\s*[,،|\/\n]+\s*/u', $text, -1, PREG_SPLIT_NO_EMPTY);
+                    }
+                    break;
+
+                case 'section':
+                    $html  = $f->display_data();
+                    $plain = trim(preg_replace('/\s+/u', ' ', strip_tags($html)));
+                    if ($plain === '') {
+                        break;
+                    }
+                    $p->sections[] = (object) ['key' => $short, 'label' => $f->display_name(), 'html' => $html];
+                    if ($short === 'biography') {
+                        $p->excerpt = shorten_text($plain, self::BIO_CHARS);
+                    }
+                    break;
+
+                case 'social':
+                    $url = $this->acad_social_url($short, (string) $f->data);
+                    if ($url === '') {
+                        break;
+                    }
+                    $p->social[] = (object) ['key' => $short, 'label' => $f->display_name(), 'url' => $url];
+                    break;
+            }
+        }
+
+        // Sections in this page's order (biography first, awards last), not the
+        // order the admin happened to sort the fields in.
+        $order = array_flip(array_keys(self::INSTRUCTOR_FIELDS));
+        usort($p->sections, function ($a, $b) use ($order) {
+            return $order[$a->key] <=> $order[$b->key];
+        });
+
+        // The dialog is worth opening when it would show something the row does
+        // not already: a section, a résumé or a cover photograph.
+        $p->hasprofile = !empty($p->sections) || $p->resume !== null || $p->cover !== '' || !empty($p->languages);
+
+        return $p;
+    }
+
+    /**
+     * The one file stored in a profilefield_file field for a user.
+     *
+     * Mirrors where profilefield_file keeps it: the user's context, component
+     * `profilefield_file`, area `files`, itemid = the field id.
+     *
+     * @param \context_user $usercontext
+     * @param int $fieldid
+     * @return \stored_file|null
+     */
+    protected function acad_profile_file($usercontext, int $fieldid) {
+        $files = get_file_storage()->get_area_files($usercontext->id, 'profilefield_file', 'files',
+            $fieldid, 'itemid, filepath, filename', false);
+        return $files ? reset($files) : null;
+    }
+
+    /**
+     * A social field's value as an absolute https URL, or '' when it is not one.
+     *
+     * The fields are free text: a full address, a bare domain ("example.com") or
+     * a handle ("@name") all happen. A domain gets its scheme; a handle goes to
+     * the network the field is for; anything that still is not a URL is dropped
+     * rather than printed as a broken link.
+     *
+     * @param string $short field shortname (which network)
+     * @param string $raw stored value, possibly {mlang} markup
+     * @return string
+     */
+    protected function acad_social_url(string $short, string $raw): string {
+        $raw = trim(stripos($raw, '{mlang') !== false ? $this->acad_resolve_mlang($raw) : $raw);
+        if ($raw === '') {
+            return '';
+        }
+        $hosts = ['twitter' => 'x.com/', 'instagram' => 'instagram.com/', 'youtube' => 'youtube.com/@',
+            'facebook' => 'facebook.com/', 'linkedin' => 'linkedin.com/in/'];
+        if ($raw[0] === '@' && isset($hosts[$short])) {
+            $raw = 'https://' . $hosts[$short] . ltrim($raw, '@');
+        } else if (!preg_match('~^https?://~i', $raw)) {
+            $raw = 'https://' . ltrim($raw, '/');
+        }
+        $clean = clean_param($raw, PARAM_URL);
+        return preg_match('~^https?://[^/\s]+~i', $clean) ? $clean : '';
+    }
+
+    /**
+     * "12 years of experience" for a number; anything else is printed as typed.
+     *
+     * @param string $years
+     * @return string HTML-safe
+     */
+    protected function acad_years_label(string $years): string {
+        if (preg_match('/^\s*(\d{1,2})\s*\+?\s*$/', $years, $m)) {
+            return get_string(((int) $m[1] === 1) ? 'acad_1yearexp' : 'acad_nyearsexp', 'theme_nit', (int) $m[1]);
+        }
+        return $years;
+    }
+
+    /**
+     * The instructor's picture at the requested size, never a link.
+     *
+     * @param stdClass $user
+     * @param int $size
+     * @return string HTML
+     */
+    protected function acad_avatar($user, int $size): string {
+        $userpic = new user_picture($user);
+        $userpic->size = $size;
+        $userpic->link = false;
+        return $this->output->render($userpic);
+    }
+
+    /**
+     * The social links as a row of round icon buttons.
+     *
+     * @param stdClass[] $links from {@see acad_instructor()}
+     * @param string $class wrapper class
+     * @return string HTML
+     */
+    protected function acad_social_links(array $links, string $class): string {
+        $o = '';
+        foreach ($links as $l) {
+            $o .= html_writer::link($l->url, $this->acad_icon($l->key), [
+                'class'      => 'acad-cr__social acad-cr__social--' . $l->key,
+                'title'      => $l->label,
+                'aria-label' => $l->label,
+                'target'     => '_blank',
+                'rel'        => 'noopener',
+            ]);
+        }
+        return html_writer::div($o, $class);
+    }
+
+    /**
+     * The full instructor profile as a native <dialog>.
+     *
+     * A banner (the cover photograph under the page's own scrim, or a brand
+     * gradient when there is none) carries the picture, the name and the meta
+     * line; a strip of facts (years, languages, specialization) sits under it;
+     * then one section per filled rich-text field; and a footer with the social
+     * links, the résumé and the link to the full Moodle profile. The element is
+     * in the top layer, so it renders above everything wherever it is emitted,
+     * and the browser owns focus, Escape and the backdrop.
+     *
+     * @param stdClass $user
+     * @param stdClass $ins from {@see acad_instructor()}
+     * @param moodle_url $profileurl
+     * @param string $id element id
+     * @return string HTML
+     */
+    protected function acad_instructor_dialog($user, $ins, $profileurl, string $id): string {
+        $name = s(fullname($user));
+
+        // Banner.
+        $meta = [];
+        if ($ins->specialization !== '') {
+            $meta[] = html_writer::span($ins->specialization, 'acad-ins__spec');
+        }
+        if ($ins->years !== '') {
+            $meta[] = html_writer::span($this->acad_years_label($ins->years), 'acad-ins__years');
+        }
+        $head  = html_writer::div($this->acad_avatar($user, 200), 'acad-ins__avatar');
+        $head .= html_writer::div(
+            html_writer::div(get_string('acad_instructorlabel', 'theme_nit'), 'acad-ins__eyebrow') .
+            html_writer::tag('h2', $name, ['class' => 'acad-ins__name', 'id' => $id . '-title']) .
+            ($meta ? html_writer::div(implode(html_writer::span('·', 'acad-ins__dot', ['aria-hidden' => 'true']), $meta),
+                'acad-ins__meta') : ''),
+            'acad-ins__who');
+        $hero = html_writer::div(html_writer::div($head, 'acad-ins__head'),
+            'acad-ins__hero' . ($ins->cover !== '' ? ' has-cover' : ''),
+            // The photograph rides in as a custom property so the stylesheet
+            // can layer the scrim over it without a second element.
+            $ins->cover !== '' ? ['style' => '--ins-cover: url("' . s($ins->cover) . '")'] : []);
+
+        // Facts strip.
+        $facts = [];
+        if ($ins->years !== '') {
+            $facts[] = ['clock', get_string('acad_yearsexp', 'theme_nit'), s($ins->years)];
+        }
+        if ($ins->languages) {
+            $chips = '';
+            foreach ($ins->languages as $lang) {
+                $chips .= html_writer::span($lang, 'acad-ins__chip');
+            }
+            $facts[] = ['lang', get_string('acad_speaks', 'theme_nit'), html_writer::div($chips, 'acad-ins__chips')];
+        }
+        if ($ins->specialization !== '') {
+            $facts[] = ['bulb', get_string('acad_specialization', 'theme_nit'), $ins->specialization];
+        }
+        $strip = '';
+        foreach ($facts as $f) {
+            $strip .= html_writer::div(
+                html_writer::div($this->acad_icon($f[0]), 'acad-ins__fact-ico') .
+                html_writer::div(html_writer::div($f[1], 'acad-ins__fact-k') . html_writer::div($f[2], 'acad-ins__fact-v'),
+                    'acad-ins__fact-txt'),
+                'acad-ins__fact');
+        }
+        if ($strip !== '') {
+            $strip = html_writer::div($strip, 'acad-ins__facts');
+        }
+
+        // Sections.
+        $body = '';
+        foreach ($ins->sections as $s) {
+            $icon = self::INSTRUCTOR_SECTION_ICONS[$s->key] ?? 'list';
+            $body .= html_writer::tag('section',
+                html_writer::tag('h3',
+                    html_writer::span($this->acad_icon($icon), 'acad-ins__sec-ico') . html_writer::span($s->label),
+                    ['class' => 'acad-ins__sec-h']) .
+                html_writer::div($s->html, 'acad-ins__sec-body'),
+                ['class' => 'acad-ins__sec acad-ins__sec--' . $s->key]);
+        }
+        if ($body !== '') {
+            $body = html_writer::div($body, 'acad-ins__body');
+        }
+
+        // Footer: social pills, then the résumé and the profile link.
+        $foot = '';
+        if ($ins->social) {
+            $foot .= $this->acad_social_links($ins->social, 'acad-ins__social');
+        }
+        $links = '';
+        if ($ins->resume) {
+            $links .= html_writer::link($ins->resume->url,
+                $this->acad_icon('download') . html_writer::span(get_string('acad_downloadresume', 'theme_nit')),
+                ['class' => 'btn btn-outline-primary acad-ins__btn', 'download' => $ins->resume->name]);
+        }
+        $links .= html_writer::link($profileurl,
+            html_writer::span(get_string('acad_viewfullprofile', 'theme_nit')) . $this->acad_icon('arrow'),
+            ['class' => 'btn btn-primary acad-ins__btn']);
+        $foot .= html_writer::div($links, 'acad-ins__links');
+        $foot = html_writer::div($foot, 'acad-ins__foot');
+
+        $close = html_writer::tag('button', $this->acad_icon('close'), [
+            'type'       => 'button',
+            'class'      => 'acad-ins__close',
+            'aria-label' => get_string('closebuttontitle'),
+            'onclick'    => 'AcademyUI.crInstructorClose(this)',
+        ]);
+
+        // The close button is a sibling of the frame, not inside it, so it stays
+        // in the corner while the profile scrolls under it.
+        return html_writer::tag('dialog',
+            $close . html_writer::div($hero . $strip . $body . $foot, 'acad-ins__frame'),
+            ['class' => 'acad-ins', 'id' => $id, 'aria-labelledby' => $id . '-title']);
     }
 
     // =========================================================================
@@ -1406,6 +1893,29 @@ class format_topics_renderer extends \format_topics\output\renderer {
             'pen'      => '<path d="M4 20l4.2-1 10.3-10.3-3.2-3.2L5 15.8z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M13 7.7l3.2 3.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
             'book'     => '<path d="M4 4.5h6a2.5 2.5 0 0 1 2.5 2.5v13A2.5 2.5 0 0 0 10 17.5H4z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M20 4.5h-6A2.5 2.5 0 0 0 11.5 7v13a2.5 2.5 0 0 1 2.5-2.5h6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
             'chat'     => '<path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9.5L4 21z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 9h8M8 12.5h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+            // The two promo-video glyphs. A play triangle points the same way in
+            // both languages (it is "play", not "next"), and nothing flips it.
+            'play'     => '<path d="M9 6.5v11l9-5.5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
+            'close'    => '<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+            // The instructor profile: section heads, the card button, the
+            // footer actions, and one brand mark per social network. The marks
+            // are drawn as outlines like every other glyph, so they take the
+            // accent colour rather than each network's own.
+            'user'      => '<circle cx="12" cy="8" r="3.6" stroke="currentColor" stroke-width="1.7"/><path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+            'briefcase' => '<rect x="3" y="7.5" width="18" height="12.5" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 7.5V5.5a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2M3 13h18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M10.5 13v2h3v-2" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
+            'grad'      => '<path d="M2.5 9.5L12 5l9.5 4.5L12 14z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M6.5 11.8v4.2c0 1.4 2.5 2.8 5.5 2.8s5.5-1.4 5.5-2.8v-4.2M21.5 9.5v5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+            'award'     => '<circle cx="12" cy="9" r="5.5" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 13.5L7 21l5-2.5 5 2.5-1.5-7.5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 6.5l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 8.6l2-.3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>',
+            'idcard'    => '<rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="8.5" cy="11" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 16a3 3 0 0 1 6 0M13.5 9.5H18M13.5 12.5H18M13.5 15.5h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+            'download'  => '<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 16.5v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+            // A "go there" arrow: points forward. The RTL build does not touch
+            // inline SVG, so _coursepeople.scss flips it under body.dir-rtl.
+            'arrow'     => '<path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+            'linkedin'  => '<rect x="3.5" y="3.5" width="17" height="17" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M8 10.5V17M8 7.5v.01M12 17v-3.7a2.2 2.2 0 0 1 4.4 0V17M12 10.5V17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+            'website'   => '<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c2.8 2.8 2.8 14.2 0 17M12 3.5c-2.8 2.8-2.8 14.2 0 17" stroke="currentColor" stroke-width="1.6"/>',
+            'facebook'  => '<path d="M14.5 21v-7h2.4l.4-3h-2.8V9.2c0-.9.3-1.5 1.5-1.5h1.5V5.1c-.3 0-1.2-.1-2.2-.1-2.2 0-3.8 1.3-3.8 3.8V11H9v3h2.5v7" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+            'instagram' => '<rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3.8" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="7" r="1" fill="currentColor"/>',
+            'twitter'   => '<path d="M4 4l16 16M20 4L4 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+            'youtube'   => '<rect x="2.5" y="5.5" width="19" height="13" rx="4" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v6l5-3z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>',
         ];
         $p = $paths[$key] ?? '';
         return '<svg class="acad-cr__ico acad-cr__ico--' . $key . '" viewBox="0 0 24 24" fill="none" aria-hidden="true">'
@@ -1431,6 +1941,149 @@ class format_topics_renderer extends \format_topics\output\renderer {
         var open = row.classList.toggle('is-open');
         btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     };
+
+    // ---- Promo video -------------------------------------------------------
+    // The hero becomes the player: its text fades out, the scrim clears, the
+    // banner eases to 16:9 and the video fades in over the picture. Every
+    // visual step is a CSS transition keyed off .is-playing; the script only
+    // fixes the two heights (a height can be animated, an aspect ratio cannot),
+    // builds the player on demand and takes it down again on close / Escape.
+    var promoHeight = function (hero) {
+        return Math.max(Math.round(hero.clientWidth * 9 / 16), 220);
+    };
+    var promoIcon = function (d) {
+        return '<svg class="acad-cr__ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="' + d +
+            '" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    };
+
+    w.AcademyUI.crPromoPlay = function (btn) {
+        var hero = btn.closest('.acad-cr__hero');
+        var layer = hero && hero.querySelector('.acad-cr__video');
+        if (!hero || !layer || hero.classList.contains('is-playing')) { return; }
+
+        var src = hero.getAttribute('data-promo-src');
+        var kind = hero.getAttribute('data-promo-player');
+        if (!src) { return; }
+
+        // Pin the resting height so the change to the player's height is a
+        // transition rather than a jump, and remember it for the way back.
+        var rest = hero.getBoundingClientRect().height;
+        hero.style.height = rest + 'px';
+        void hero.offsetHeight; // Commit the pinned height before changing it.
+        hero.dataset.promoRest = String(rest);
+
+        // The player. Created here, not in the markup, so nothing is fetched
+        // until the visitor asks for it; the click is the user gesture that
+        // lets autoplay through.
+        var player;
+        if (kind === 'video') {
+            player = document.createElement('video');
+            player.src = src;
+            player.controls = true;
+            player.autoplay = true;
+            player.playsInline = true;
+            player.preload = 'auto';
+            var poster = hero.getAttribute('data-promo-poster');
+            if (poster) { player.poster = poster; }
+        } else {
+            player = document.createElement('iframe');
+            player.src = src;
+            player.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; encrypted-media');
+            player.setAttribute('allowfullscreen', '');
+            player.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+            player.setAttribute('title', btn.getAttribute('aria-label') || '');
+        }
+        var close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'acad-cr__video-close';
+        close.setAttribute('aria-label', layer.getAttribute('data-close-label') || '');
+        close.innerHTML = promoIcon('M6 6l12 12M18 6L6 18');
+        close.addEventListener('click', function () { w.AcademyUI.crPromoClose(hero); });
+        layer.replaceChildren(player, close);
+        layer.setAttribute('aria-hidden', 'false');
+
+        hero.classList.add('is-playing');
+        hero.style.height = promoHeight(hero) + 'px';
+
+        if (kind === 'video') {
+            var p = player.play();
+            if (p && p.catch) { p.catch(function () { /* the controls are there */ }); }
+        }
+        hero._promoKey = function (e) {
+            if (e.key === 'Escape') { w.AcademyUI.crPromoClose(hero); }
+        };
+        hero._promoResize = function () {
+            hero.style.height = promoHeight(hero) + 'px';
+        };
+        document.addEventListener('keydown', hero._promoKey);
+        w.addEventListener('resize', hero._promoResize);
+        close.focus({preventScroll: true});
+    };
+
+    w.AcademyUI.crPromoClose = function (hero) {
+        var layer = hero.querySelector('.acad-cr__video');
+        if (!hero.classList.contains('is-playing')) { return; }
+
+        var video = layer.querySelector('video');
+        if (video) { video.pause(); }
+        document.removeEventListener('keydown', hero._promoKey);
+        w.removeEventListener('resize', hero._promoResize);
+
+        hero.classList.remove('is-playing');
+        layer.setAttribute('aria-hidden', 'true');
+        hero.style.height = (hero.dataset.promoRest || '') + 'px';
+
+        // Take the player down once the banner is back at rest (and no later
+        // than the transition would take, for a reduced-motion visitor whose
+        // transitions never end because they never start).
+        var done = function (e) {
+            if (e && (e.target !== hero || e.propertyName !== 'height')) { return; }
+            hero.removeEventListener('transitionend', done);
+            clearTimeout(timer);
+            hero.style.height = '';
+            layer.replaceChildren();
+        };
+        var timer = setTimeout(done, 900);
+        hero.addEventListener('transitionend', done);
+
+        var play = hero.querySelector('.acad-cr__play');
+        if (play) { play.focus({preventScroll: true}); }
+    };
+
+    // ---- Instructor profile dialog ----------------------------------------
+    // A native <dialog>: the browser owns the top layer, the focus trap, Escape
+    // and the backdrop; the stylesheet owns the entrance. The script only opens
+    // it, closes it, and treats a click on the backdrop (the dialog element
+    // itself, outside its frame) as a close. On the rare browser without
+    // showModal() the button falls back to the instructor's profile page.
+    w.AcademyUI.crInstructorOpen = function (btn) {
+        var dlg = document.getElementById(btn.getAttribute('data-dialog') || '');
+        if (!dlg || typeof dlg.showModal !== 'function') {
+            var link = btn.closest('.acad-cr__tutor');
+            link = link && link.querySelector('.acad-cr__tutor-name');
+            if (link) { w.location.href = link.href; }
+            return;
+        }
+        dlg._opener = btn;
+        dlg.showModal();
+        // Start at the top whichever section was read last time.
+        var frame = dlg.querySelector('.acad-ins__frame');
+        if (frame) { frame.scrollTop = 0; }
+    };
+    w.AcademyUI.crInstructorClose = function (el) {
+        var dlg = el.closest('dialog');
+        if (dlg && dlg.open) { dlg.close(); }
+    };
+    document.addEventListener('click', function (e) {
+        var dlg = e.target.closest && e.target.closest('dialog.acad-ins');
+        if (dlg && e.target === dlg) { dlg.close(); }
+    });
+    document.addEventListener('close', function (e) {
+        var dlg = e.target;
+        if (dlg && dlg.classList && dlg.classList.contains('acad-ins') && dlg._opener) {
+            dlg._opener.focus({preventScroll: true});
+        }
+    }, true);
 })(window);
 JS;
     }

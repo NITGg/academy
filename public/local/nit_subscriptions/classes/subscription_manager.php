@@ -468,9 +468,9 @@ class subscription_manager {
             throw new \moodle_exception('err_pricepositive', 'local_nit_subscriptions');
         }
 
-        // The home row's currency is the admin's choice; blank means the country's own.
-        $homecurrency = trim((string) ($data['home_currency'] ?? ''));
-        $homecurrency = self::normalize_currency($homecurrency !== '' ? $homecurrency : self::home_currency());
+        // The home row is always in the home country's own currency (fixed on
+        // 2026-09-16, same as the course form): whatever was posted is ignored.
+        $homecurrency = self::normalize_currency(self::home_currency());
         $currency = self::normalize_currency($data['currency'] ?? '');
         if (!isset($currencies[$homecurrency]) || !isset($currencies[$currency])) {
             throw new \moodle_exception('err_currency', 'local_nit_subscriptions');

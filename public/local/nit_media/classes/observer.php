@@ -14,19 +14,28 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace local_nit_media;
+
 /**
- * Plugin version and metadata for the NIT site media store.
+ * Event observers for local_nit_media.
  *
  * @package    local_nit_media
  * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+class observer {
 
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->component = 'local_nit_media';
-$plugin->version   = 2026091600;        // YYYYMMDDXX.
-$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
-$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.3.0';
+    /**
+     * A deleted course takes its promo link row with it.
+     *
+     * The file area is already gone: core deletes every file of the course
+     * context, whichever component owns it.
+     *
+     * @param \core\event\course_deleted $event
+     * @return void
+     */
+    public static function course_deleted(\core\event\course_deleted $event): void {
+        global $DB;
+        $DB->delete_records(promo_video::TABLE, ['courseid' => $event->objectid]);
+    }
+}

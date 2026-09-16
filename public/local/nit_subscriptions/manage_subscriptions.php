@@ -78,7 +78,7 @@ $STR = local_nit_subscriptions_string_map(array(
 ));
 
 // A plan is priced exactly like a course (local_payments course_pricing): the home
-// country's price in a currency of the admin's choosing, and the Default price —
+// country's price, always in the home currency, and the Default price —
 // everyone else, and anyone the site cannot place — in a different currency.
 $homecountry = subscription_manager::home_country();
 $homecurrency = subscription_manager::home_currency();
@@ -191,7 +191,11 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             <div class="form-group">
                 <label for="f-homeprice"><?php echo $STR['sub_price_home_hdr']; ?></label>
                 <div class="sub-pricerow">
-                    <select class="form-control" id="f-homecurrency"><?php echo $currencyoptions($currencies); ?></select>
+                    <!-- The local price is always in the home currency (2026-09-16): a read-only
+                         label plus the code in a hidden field, not a picker. -->
+                    <input type="text" class="form-control" id="f-homecurrency-label" readonly
+                           value="<?php echo s($currencies[$homecurrency] ?? $homecurrency); ?>">
+                    <input type="hidden" id="f-homecurrency" value="<?php echo s($homecurrency); ?>">
                     <input type="number" class="form-control" id="f-homeprice" min="0" step="0.01">
                 </div>
                 <small class="text-muted"><?php echo $STR['sub_price_home_help']; ?></small>
@@ -344,7 +348,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
 
         /* A price row: the currency picker and the amount side by side. */
         .sub-pricerow { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem; }
-        .sub-pricerow select { flex: 1 1 60%; }
+        .sub-pricerow select, .sub-pricerow input[readonly] { flex: 1 1 60%; }
         .sub-pricerow input[type="number"] { flex: 1 1 40%; }
         /* In-form category placement picker, framed so it reads as its own optional panel. */
         .sub-cats-box {
@@ -671,7 +675,8 @@ echo html_writer::script(<<<'JS'
         $('f-desc-en').value  = ds.en;
         $('f-desc-ar').value  = ds.ar;
         var home = homeRow(sub);
-        $('f-homecurrency').value = home ? home.currency : CFG.homecurrency;
+        // Fixed to the home currency whatever a legacy row was saved in.
+        $('f-homecurrency').value = CFG.homecurrency;
         $('f-homeprice').value    = home ? home.price : '';
         setDefaultCurrency((sub && sub.currency) ? sub.currency : CFG.defaultcurrency);
         $('f-price').value    = sub ? sub.price : '';

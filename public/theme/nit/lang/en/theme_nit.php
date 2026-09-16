@@ -219,11 +219,23 @@ $string['acad_1modulein'] = 'There is {$a} module in this course';
 // Course-detail page — hero chips, the one button, and "what you'll learn" sub-groups.
 $string['acad_instructorlabel'] = 'Instructor';
 $string['acad_gotocourse'] = 'Go to course';
+$string['acad_watchpromo'] = 'Watch the promo';
+$string['acad_closevideo'] = 'Close the video';
 $string['acad_hascert'] = 'Certificate included';
 $string['acad_startson'] = 'Starts {$a}';
 $string['acad_nenrolled'] = '{$a} enrolled';
 $string['acad_ilos'] = 'Intended learning outcomes';
 $string['acad_bytheend'] = 'By the end of this program you will be able to';
+
+// Course-detail page — the instructor card and its profile dialog.
+$string['acad_aboutinstructor'] = 'About the instructor';
+$string['acad_nyearsexp'] = '{$a} years of experience';
+$string['acad_1yearexp'] = '1 year of experience';
+$string['acad_yearsexp'] = 'Years of experience';
+$string['acad_speaks'] = 'Teaches in';
+$string['acad_specialization'] = 'Specialization';
+$string['acad_downloadresume'] = 'Download résumé';
+$string['acad_viewfullprofile'] = 'View full profile';
 
 // Sign-up: password strength meter and reveal ("eye") toggle.
 $string['passwordstrength'] = 'Password strength';

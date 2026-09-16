@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the NIT site media store.
+ * Hook callbacks for local_nit_media.
  *
  * @package    local_nit_media
  * @copyright  2026 NIT
@@ -24,9 +24,20 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_nit_media';
-$plugin->version   = 2026091600;        // YYYYMMDDXX.
-$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
-$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.3.0';
+$callbacks = [
+    // The "Course promo video" field of the course settings form (course/edit.php):
+    // an upload or a link, drawn under "Course image", checked and saved with
+    // the rest of the course.
+    [
+        'hook' => \core_course\hook\after_form_definition::class,
+        'callback' => [\local_nit_media\hook\course_form::class, 'after_form_definition'],
+    ],
+    [
+        'hook' => \core_course\hook\after_form_validation::class,
+        'callback' => [\local_nit_media\hook\course_form::class, 'after_form_validation'],
+    ],
+    [
+        'hook' => \core_course\hook\after_form_submission::class,
+        'callback' => [\local_nit_media\hook\course_form::class, 'after_form_submission'],
+    ],
+];

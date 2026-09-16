@@ -409,7 +409,7 @@ $string['geodiag_nowinner'] = 'nothing &mdash; this course has no active price r
 
 // ── The "Course pricing" section of course/edit.php (local\hooks\course_form + course_pricing) ──
 $string['pricing_first_homehdr'] = '1. {$a} — the local price';
-$string['pricing_first_homehelp'] = 'What a buyer in {$a} pays, in the currency you pick here. Without this row they fall through to the Default price below and are quoted a foreign currency.';
+$string['pricing_first_homehelp'] = 'What a buyer in {$a} pays, always in the local currency. Without this row they fall through to the Default price below and are quoted a foreign currency.';
 $string['pricing_first_defaulthdr'] = '2. Everyone else — the Default price';
 $string['pricing_first_defaulthelp'] = 'What every buyer OUTSIDE {$a} pays, in an international currency. This row is also used for any visitor the site cannot place in a country at all, so a course can never be without it.';
 $string['error_same_currency'] = 'The Default price must be in a different currency from the local one — otherwise it is the local price twice, and buyers abroad are quoted local money.';

@@ -215,11 +215,23 @@ $string['acad_1modulein'] = 'يحتوي هذا الكورس على وحدة وا
 // صفحة تفاصيل المقرر — شرائح الترويسة، الزر الوحيد، ومجموعات "ماذا تتعلم".
 $string['acad_instructorlabel'] = 'المدرّب';
 $string['acad_gotocourse'] = 'الذهاب إلى الكورس';
+$string['acad_watchpromo'] = 'شاهد الفيديو التعريفي';
+$string['acad_closevideo'] = 'إغلاق الفيديو';
 $string['acad_hascert'] = 'شهادة معتمدة';
 $string['acad_startson'] = 'يبدأ {$a}';
 $string['acad_nenrolled'] = '{$a} ملتحق';
 $string['acad_ilos'] = 'النتائج التعليمية المرجوة';
 $string['acad_bytheend'] = 'بنهاية هذا البرنامج التدريبي ستتمكّن من';
+
+// صفحة تفاصيل المقرر — بطاقة المدرّب ونافذة ملفه التعريفي.
+$string['acad_aboutinstructor'] = 'عن المدرّب';
+$string['acad_nyearsexp'] = '{$a} سنة خبرة';
+$string['acad_1yearexp'] = 'سنة خبرة واحدة';
+$string['acad_yearsexp'] = 'سنوات الخبرة';
+$string['acad_speaks'] = 'يدرّس باللغة';
+$string['acad_specialization'] = 'التخصص';
+$string['acad_downloadresume'] = 'تحميل السيرة الذاتية';
+$string['acad_viewfullprofile'] = 'عرض الملف الشخصي الكامل';
 
 // التسجيل: مؤشر قوة كلمة المرور وزر إظهار/إخفاء كلمة المرور.
 $string['passwordstrength'] = 'قوة كلمة المرور';

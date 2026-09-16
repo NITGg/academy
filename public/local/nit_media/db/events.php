@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for the NIT site media store.
+ * Event observers for local_nit_media.
  *
  * @package    local_nit_media
  * @copyright  2026 NIT
@@ -24,9 +24,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_nit_media';
-$plugin->version   = 2026091600;        // YYYYMMDDXX.
-$plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
-$plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.3.0';
+$observers = [
+    // The uploaded promo clip goes with the course context; the link row does not.
+    [
+        'eventname' => '\core\event\course_deleted',
+        'callback' => '\local_nit_media\observer::course_deleted',
+    ],
+];
