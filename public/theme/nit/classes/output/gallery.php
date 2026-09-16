@@ -44,7 +44,7 @@ class gallery implements renderable, templatable {
         //
         // Only ONE group's editor is shown at a time (the pills at the top of
         // the tab switch between them) and only one section within it, because
-        // five groups × 59 roles is 295 colour wells and finding anything in
+        // seventeen groups × 69 roles is 1,173 colour wells and finding anything in
         // that by scrolling is the thing this page was worst at.
         // Built keyed (group → section → block) and flattened into lists at the
         // end, because everything below wants to reach a named block — the shape
