@@ -304,6 +304,7 @@ $string['refund_err_alreadyasked'] = 'There is already a refund request for this
 $string['refund_err_windowclosed'] = 'The refund window for this payment has closed. Please request a refund instead.';
 $string['refund_err_needreason'] = 'Please say why you are asking for a refund.';
 $string['refund_err_decided'] = 'That request has already been decided.';
+$string['refund_err_nolongercompleted'] = 'This payment is no longer completed (it is now: {$a}), so the refund cannot be sent. Decline the request instead, and say why in the note.';
 $string['refund_err_gateway'] = 'The payment gateway used for this payment cannot process refunds automatically. Raise it in the gateway dashboard instead.';
 $string['refund_err_gatewayfailed'] = 'The payment gateway refused the refund. Nothing has been taken back; check the payment logs.';
 $string['refund_err_noreference'] = 'This payment has no gateway reference recorded, so it cannot be refunded automatically.';

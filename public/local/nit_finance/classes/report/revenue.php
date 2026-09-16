@@ -485,6 +485,12 @@ class revenue {
         // An attempt that never paid is not revenue, however much it was for. Its value is
         // carried in `lost` instead of `net`, so that "Every attempt" and "Never paid" stay
         // honest views rather than ones that quietly count abandoned baskets as income.
+        //
+        // The same gate covers the refund. An order can end up in a never-paid status with a
+        // refund row behind it (bought, cancelled by an unenrolment, then a pending refund
+        // request approved), and counting that money out while its money in is dropped shows a
+        // negative profit on a view where nothing was ever collected. Never paid means neither
+        // side moves; the refund route is still kept so the Refunds tab can list the order.
         $paid = in_array($rec->status, self::paid_statuses(), true);
 
         return [
@@ -515,7 +521,7 @@ class revenue {
             'discount'        => $paid ? $cut : 0.0,
             'net'             => $paid ? $net : 0.0,
             'lost'            => $paid ? 0.0 : $net,
-            'refunded'        => $refunded,
+            'refunded'        => $paid ? $refunded : 0.0,
             'refundkind'      => $refundkind,
             'refundkindlabel' => $refundkind === '' ? '' : get_string('rep_refund_' . $refundkind, 'local_nit_finance'),
             'refundtime'      => (int) ($rec->refundtime ?? 0),

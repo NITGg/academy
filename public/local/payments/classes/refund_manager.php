@@ -169,6 +169,20 @@ class refund_manager {
         $transaction = $DB->get_record('local_payments_transactions',
             ['id' => $request->transaction_id], '*', MUST_EXIST);
 
+        // The request was made against a completed payment, but the order can have moved on
+        // since: an unenrolment cancels the purchase, a webhook can void it or a second route can
+        // refund it. Refunding it now would send money out against an order the books no longer
+        // count as paid, and status_machine would refuse the transition anyway, leaving a refund
+        // row hanging off a cancelled order. Stop here and let the administrator decide the
+        // request instead.
+        if ($transaction->status !== status_machine::COMPLETED) {
+            return (object) [
+                'success' => false,
+                'message' => get_string('refund_err_nolongercompleted', 'local_payments',
+                    get_string('status_' . $transaction->status, 'local_payments')),
+            ];
+        }
+
         // Honour what the buyer was quoted, not what today's settings say.
         $quote = refund_policy::quote($transaction);
         if ($request->quoted_amount !== null) {
