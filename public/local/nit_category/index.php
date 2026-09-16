@@ -620,6 +620,21 @@ echo $OUTPUT->header();
       padding: 14px 40px; border-radius: 8px;
       font-size: 16px; font-weight: 700;
     }
+    /* "Explore specializations" (.btn-primary) — its LABEL is fixed white in every
+       state and in both hero variants, over the picture and on the plain ground alike.
+       The theme paints the fill from the group's Primary role and the label from that
+       group's "Text on main button" (onprimary) role, which is authored per palette:
+       the Engineering group's orange carries a near-black onprimary, so the one big
+       CTA read dark while the H1, the stats and the outline CTAs beside it are all
+       white. Pinned through Bootstrap's tokens (rest / hover / active — :focus-visible
+       reads the hover token) so the fill, border and hover fill keep following the
+       group; only the ink is fixed. Literal #fff, not --hero-ink: that variable exists
+       only on .nit-hero--art and this is meant to hold on the image-less hero too. */
+    .nit-hero__btns .btn-primary {
+      --bs-btn-color: #fff;
+      --bs-btn-hover-color: #fff;
+      --bs-btn-active-color: #fff;
+    }
   </style>
   <div class="nit-hero<?= $hasrealimage ? ' nit-hero--art' : '' ?>" dir="<?= $isar ? 'rtl' : 'ltr' ?>">
     <?php if ($hasrealimage): ?>
