@@ -514,19 +514,23 @@ echo $OUTPUT->header();
       border-color: rgba(255, 255, 255, .28);
       color: var(--hero-ink);
     }
-    /* The outline CTAs ("Flexible plans" / "Coupon plans") wear the SAME Brand roles
-       as "Course details" on every card below — theme_nit .btn-outline-primary: ring,
-       label and hover from the group's "Outline button (brand)" block — so they
-       re-colour with the palette like the rest of the page. They used to be repainted
+    /* The outline CTAs ("Flexible plans" / "Coupon plans") take their RING from the
+       same Brand role as "Course details" on every card below — theme_nit
+       .btn-outline-primary, the group's "Outline button (brand)" block — so it
+       re-colours with the palette like the rest of the page. They used to be repainted
        here as white ghost buttons, which read as off-brand grey next to the cards.
-       The resting fill is pinned to transparent: these are ghost buttons over the
-       picture by design, whatever the group's "Fill the background" switch says
-       (that switch re-emits --nit-brand-btnoutlineprimarybg as a colour, which the
-       theme rule would otherwise paint here too). Only the resting fill is set, and
-       only through Bootstrap's token — hover and active keep the theme's own
-       --bs-btn-hover-bg / colour. */
+       Two things are pinned, both through Bootstrap's tokens so hover and active keep
+       the theme's own --bs-btn-hover-* roles:
+       - the resting fill is transparent: ghost buttons over the picture by design,
+         whatever the group's "Fill the background" switch says (that switch re-emits
+         --nit-brand-btnoutlineprimarybg as a colour the theme rule would paint here);
+       - the resting label is the hero's ink — fixed white, like the H1 and the stat
+         numbers — because it sits on the black scrim, not on a card: the group's
+         outline-text role is authored against a card surface and a light group's
+         brand blue sinks into the veil (≈3:1). */
     .nit-hero--art .nit-hero__btns .btn-outline-primary {
       --bs-btn-bg: transparent;
+      --bs-btn-color: var(--hero-ink);
     }
     /* The copy column: start-aligned on the solid side of the scrim, capped so the
        title wraps at three or four words a line and never runs under the picture. */
