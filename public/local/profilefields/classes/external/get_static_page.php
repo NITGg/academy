@@ -23,6 +23,7 @@ use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
 use core_external\external_warnings;
+use local_profilefields\about;
 use local_profilefields\staticpages;
 
 defined('MOODLE_INTERNAL') || die();
@@ -162,6 +163,8 @@ class get_static_page extends external_api {
                 'tagline'    => format_string($about['tagline'], true, $opts),
                 'lede'       => format_string($about['lede'], true, $opts),
                 'heroimage'  => $about['heroimage'],
+                'coursesurl' => about::courses_url()->out(false),
+                'contacturl' => staticpages::enabled('contact') ? staticpages::url('contact')->out(false) : '',
                 'video'      => $about['video'],
                 'facts'      => array_map(static function (array $fact) use ($opts): array {
                     return [
@@ -273,11 +276,19 @@ class get_static_page extends external_api {
                 'tagline'   => new external_value(PARAM_TEXT, 'The short line above the title, may be empty'),
                 'lede'      => new external_value(PARAM_TEXT, 'The introduction under the title, may be empty'),
                 'heroimage' => new external_value(PARAM_RAW, 'URL of the hero picture, or empty'),
+                'coursesurl' => new external_value(PARAM_URL,
+                    'Where the "Browse courses" button goes (the course catalogue); a native client opens its own '
+                    . 'catalogue screen instead'),
+                'contacturl' => new external_value(PARAM_RAW,
+                    'Where "Contact us" goes - the Contact static page; empty when that page is unpublished'),
                 'video'     => new external_single_structure([
-                    'provider' => new external_value(PARAM_ALPHA, 'youtube, vimeo or file; empty when there is no video'),
-                    'embed'    => new external_value(PARAM_RAW, 'The player URL (or the file URL for a file)'),
-                    'url'      => new external_value(PARAM_RAW, 'The address as the administrator typed it'),
-                ], 'The hero video'),
+                    'provider' => new external_value(PARAM_ALPHA,
+                        '"file" when there is a video (play url in a native player), "" when there is none'),
+                    'embed'    => new external_value(PARAM_RAW, 'Same as url; kept for a client that reads this key'),
+                    'url'      => new external_value(PARAM_RAW,
+                        'Direct URL of the uploaded video file (mp4/webm/ogv), served by pluginfile.php; empty when none'),
+                    'mimetype' => new external_value(PARAM_RAW, 'e.g. video/mp4; empty when none'),
+                ], 'The hero video. Show heroimage as its poster when both are set.'),
                 'facts'     => new external_multiple_structure(
                     new external_single_structure([
                         'value' => new external_value(PARAM_TEXT, 'The figure, e.g. "2009" or "4,800+"'),

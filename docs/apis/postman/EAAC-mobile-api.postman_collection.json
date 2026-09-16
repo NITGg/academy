@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "a4d4196a-fa33-49a7-9b8a-ee20e3921077",
+    "_postman_id": "b52dcfdc-300f-4ed0-879c-c00edfbc89cd",
     "name": "EAAC Mobile API",
     "description": "# EAAC Mobile API\n\nEvery endpoint the EAAC mobile app calls on the Moodle 5.2 backend, ordered the way a user meets them: sign-in → browse → learn → pay → account.\n\n## Three transports\n\n| Transport | URL | Auth | Errors |\n|---|---|---|---|\n| **Moodle web service** (most calls) | `{{baseUrl}}/webservice/rest/server.php?wsfunction=…&moodlewsrestformat=json` | `wstoken` | HTTP 200 with `{\"exception\",\"errorcode\",\"message\"}` |\n| **Academy JSON protocol** (login, OTP, quizzes, instructors, video OTP) | `{{baseUrl}}/local/academy/api.php?function=…` and `/local/vdocipher/api.php` | `token` | `{\"status\":\"fail\",\"error\",\"errorcode\"}`; HTTP **401** only when the token is dead |\n| **Plain endpoints** | `getalltopics.php`, `home.php`, `design_system.php`, `certificate.php`, `googleauth/token.php` | varies (see each) | varies |\n\n## Variables (collection → Variables tab)\n\n| Variable | Meaning |\n|---|---|\n| `baseUrl` | Site root **without** trailing slash |\n| `regtoken` | Shared *Registration API* token — pre-login calls (sign-up, OTP, login, public content) |\n| `wstoken` | The signed-in user's token — filled automatically from the Login response |\n| `userid` | Filled automatically by Login / Site info |\n| `service` | `moodle_mobile_app` |\n| `lang` | `en` or `ar` — sent as `moodlewssettinglang` / `lang` |\n| `country` | ISO-2 override for pricing (e.g. `EG`, `SA`) |\n| `courseid` `cmid` `categoryid` `transactionid` `subscriptionid` | Sample ids used by the requests |\n\n## Conventions in this collection\n\n- **Read** functions are `GET` with query params; **write** functions are `POST` with an `x-www-form-urlencoded` body. Moodle accepts either for both.\n- Optional parameters are present but **unchecked** (disabled) so you can see them without sending them. Tick to send.\n- Array parameters use Moodle's form syntax: `fields[0][name]`, `customprofilefields[0][value]`, `courseids[0]`.\n- A collection-level test flags Moodle `exception` envelopes and academy `status: fail` envelopes as failed, even though the HTTP status is 200.\n- `errorcode: accessexception` means the function is **not in the token's service** — fix on the server with `php local/payments/cli/ws_diagnose.php --token=… --fix`, not in the app.\n\nSource of truth: `public/local/*/db/services.php`, `public/mod/jobform/db/services.php`, `public/local/academy/api.php`, and the guides in `docs/apis/`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -1023,7 +1023,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "description": "**`local_profilefields_get_static_pages`** — read · pre-login\n\nSlug, kind, name and web address of every published static page (about, contact, terms, privacy, refund, faq).",
+            "description": "**`local_profilefields_get_static_pages`** — read · pre-login\n\nSlug, kind, name and web address of every published static page (about, contact, terms, privacy, refund, faq).\n\nDoc: docs/apis/static-pages-mobile-api.md",
             "url": {
               "raw": "{{baseUrl}}/webservice/rest/server.php?wstoken={{regtoken}}&wsfunction=local_profilefields_get_static_pages&moodlewsrestformat=json",
               "host": [
@@ -1081,7 +1081,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "description": "**`local_profilefields_get_static_page`** — read · pre-login\n\nBody as HTML, plus contact rows/social links (Contact) or Q&A (FAQ). Legal pages return the mapped tool_policy document.",
+            "description": "**`local_profilefields_get_static_page`** — read · pre-login\n\nBody as HTML, plus contact rows/social links (Contact) or Q&A (FAQ). Legal pages return the mapped tool_policy document. `page=about` adds an `about` block: tagline, lede, heroimage, video {provider, url, mimetype} (an uploaded file - play it natively, picture as poster), facts, pillars, milestones, coursesurl, contacturl.\n\nDoc: docs/apis/static-pages-mobile-api.md",
             "url": {
               "raw": "{{baseUrl}}/webservice/rest/server.php?wstoken={{regtoken}}&wsfunction=local_profilefields_get_static_page&moodlewsrestformat=json&page=about",
               "host": [

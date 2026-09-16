@@ -22,17 +22,18 @@
     block. Rendered inside the `about` section of the page context, so `title`
     and friends resolve up to the page.
 
-    The film waits behind the picture until it is pressed (a facade): the anchor
-    is a real link to the film for a browser without the module, and
+    The film is an uploaded file and plays in the site's own <video> tag. With a
+    picture it waits behind it until pressed (a facade): the anchor is a real
+    link to the file for a browser without the module, and
     local_profilefields/aboutpage swaps it for the player on click.
 
     Context variables required for this template:
     * title - the page name (from the parent context)
     * tagline, lede - the short lines, may be empty
-    * hasmedia, hasimage, hasvideo, videofacade, videofile - what to draw
+    * hasmedia, hasimage, hasvideo, videofacade - what to draw
     * heroimage - picture URL
-    * video - {provider, embed, url}
-    * videoembed - the player URL
+    * video - {provider, embed, url, mimetype}; provider is "file" or ""
+    * videoembed - the file URL
     * hasfacts, facts, factcount - the title block
     * coursesurl, contacturl - the two doors; contacturl may be empty
 
@@ -45,9 +46,8 @@
         "hasimage": true,
         "hasvideo": false,
         "videofacade": false,
-        "videofile": false,
         "heroimage": "https://example.com/hero.jpg",
-        "video": {"provider": "", "embed": "", "url": ""},
+        "video": {"provider": "", "embed": "", "url": "", "mimetype": ""},
         "videoembed": "",
         "hasfacts": true,
         "facts": [{"value": "2009", "label": "Founded"}],
@@ -94,14 +94,7 @@
                     {{/videofacade}}
                     {{^videofacade}}
                         {{#hasvideo}}
-                            {{#videofile}}
-                                <video controls preload="metadata" playsinline src="{{videoembed}}"></video>
-                            {{/videofile}}
-                            {{^videofile}}
-                                <iframe src="{{videoembed}}" title="{{title}}" loading="lazy"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-                            {{/videofile}}
+                            <video controls preload="metadata" playsinline src="{{videoembed}}"></video>
                         {{/hasvideo}}
                         {{^hasvideo}}
                             <img src="{{heroimage}}" alt="" decoding="async" fetchpriority="high">

@@ -592,14 +592,15 @@ echo $OUTPUT->header();
     .nit-hero__stat-num { font-size: 35px; font-weight: 800; color: var(--ctext3); display: block; line-height: 1; }
     .nit-hero__stat-label { font-size: 13px; color: var(--ctext2); font-weight: 500; }
 
-    /* Buttons — the site's own .btn components (gallery.php), and only two of them:
-       "Explore specializations" is the Main button (.btn-primary) and "Flexible plans" /
-       "Coupon plans" are the Outline button (brand) (.btn-outline-primary). Only size and
-       shape are set here; every colour — fill, label, ring, and the three again under the
-       cursor or pressed — is that block's six roles in the group's Brand Colors editor,
-       wired in theme_nit scss/foundation/_brand.scss. The same two components are the course
-       cards', the plan cards' and the coupon cards' buttons below, so an administrator
-       recolours every button on this page from those two blocks and nothing else.
+    /* Buttons — the site's own .btn component, and all three the SAME one: "Explore
+       specializations", "Flexible plans" and "Coupon plans" are each the Main button
+       (.btn-primary) — three equal doors into the page, not one CTA and two ghosts. Only
+       size and shape are set here; every colour — fill, label, ring, and the three again
+       under the cursor or pressed — is that block's six roles in the group's Brand
+       Colors editor, wired in theme_nit scss/foundation/_brand.scss. Below, the course,
+       plan and coupon cards pair that same Main button with the Outline button (brand)
+       (.btn-outline-primary) for their secondary action, so an administrator recolours
+       every button on this page from those two blocks and nothing else.
        Nothing is pinned any more (neither a ghost fill for the veil nor the hero ink as
        a label): a colour an admin cannot reach from the editor is exactly what this
        page must not carry. A label that has to be white over the picture is the
@@ -668,12 +669,12 @@ echo $OUTPUT->header();
           <?= $t('Explore specializations', 'استكشف التخصصات') ?>
         </a>
         <?php if ($hasplans): ?>
-        <a href="#nit-cat-plans" class="btn btn-outline-primary" data-nit-scrollto="nit-cat-plans">
+        <a href="#nit-cat-plans" class="btn btn-primary" data-nit-scrollto="nit-cat-plans">
           <?= $t('Flexible plans', 'خطط مرنة') ?>
         </a>
         <?php endif; ?>
         <?php if ($hascoupons): ?>
-        <a href="#nit-cat-coupons" class="btn btn-outline-primary" data-nit-scrollto="nit-cat-coupons">
+        <a href="#nit-cat-coupons" class="btn btn-primary" data-nit-scrollto="nit-cat-coupons">
           <?= $t('Coupon plans', 'كوبونات الخصم') ?>
         </a>
         <?php endif; ?>

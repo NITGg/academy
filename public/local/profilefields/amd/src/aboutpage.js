@@ -17,11 +17,12 @@
  * The About page's video facade.
  *
  * When the page has both a picture and a film, the picture is drawn with a play
- * button over it and the player is not loaded until the button is pressed - a
- * YouTube iframe alone pulls in half a megabyte of script before anyone has
- * decided to watch. The facade is an ordinary link to the film, so without this
- * module the click opens it in a new tab; with it, the player takes the picture's
- * place and starts.
+ * button over it and the film is not fetched until the button is pressed - a
+ * hero video that starts downloading on page load is what makes the page slow
+ * for the visitors who never press play. The facade is an ordinary link to the
+ * file, so without this module the click opens it in a new tab; with it, the
+ * site's own player takes the picture's place and starts, with the picture as
+ * its poster.
  *
  * @module     local_profilefields/aboutpage
  * @copyright  2026 NIT
@@ -41,21 +42,16 @@ const play = (poster) => {
     }
 
     const frame = poster.closest('[data-about-media]') || poster.parentElement;
-    let player;
+    const picture = poster.querySelector('img');
 
-    if (poster.dataset.provider === 'file') {
-        player = document.createElement('video');
-        player.src = embed;
-        player.controls = true;
-        player.autoplay = true;
-        player.playsInline = true;
-    } else {
-        player = document.createElement('iframe');
-        player.src = embed + (embed.indexOf('?') === -1 ? '?' : '&') + 'autoplay=1';
-        player.title = poster.dataset.title || '';
-        player.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
-        player.referrerPolicy = 'strict-origin-when-cross-origin';
-        player.allowFullscreen = true;
+    const player = document.createElement('video');
+    player.src = embed;
+    player.controls = true;
+    player.autoplay = true;
+    player.playsInline = true;
+    player.setAttribute('aria-label', poster.dataset.title || '');
+    if (picture && picture.src) {
+        player.poster = picture.src;
     }
 
     frame.classList.add('nit-about-media--playing');

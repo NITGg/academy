@@ -139,10 +139,10 @@ class staticpage_form extends \moodleform {
     /**
      * The About page's picture and film.
      *
-     * One of each, shared by both languages. When both are set the page shows the
-     * picture with a play button over it and only loads the player when it is
-     * pressed - a film that autoplays on an "about us" page is the thing people
-     * close the tab over.
+     * One of each, shared by both languages, both uploaded. When both are set the
+     * page shows the picture with a play button over it and starts the film only
+     * when it is pressed - a film that autoplays on an "about us" page is the
+     * thing people close the tab over.
      *
      * @return void
      */
@@ -157,9 +157,8 @@ class staticpage_form extends \moodleform {
             null, about::hero_file_options());
         $mform->addHelpButton('heroimage', 'aboutheroimage', 'local_profilefields');
 
-        $mform->addElement('text', 'herovideo', get_string('aboutherovideo', 'local_profilefields'),
-            ['size' => 80, 'dir' => 'ltr', 'placeholder' => 'https://www.youtube.com/watch?v=...']);
-        $mform->setType('herovideo', PARAM_RAW_TRIMMED);
+        $mform->addElement('filemanager', 'herovideo', get_string('aboutherovideo', 'local_profilefields'),
+            null, about::video_file_options());
         $mform->addHelpButton('herovideo', 'aboutherovideo', 'local_profilefields');
     }
 
@@ -390,16 +389,6 @@ class staticpage_form extends \moodleform {
             $errors['maplink'] = get_string('staticpagemaplinkinvalid', 'local_profilefields');
         }
 
-        // The film address is dropped into a player at render time, so it is
-        // checked here: an address the page cannot play should be refused on the
-        // form, not discovered as an empty frame on the page.
-        if (!empty($data['herovideo'])) {
-            $video = about::video((string) $data['herovideo']);
-            if ($video['provider'] === '') {
-                $errors['herovideo'] = get_string('aboutherovideoinvalid', 'local_profilefields');
-            }
-        }
-
         return $errors;
     }
 
@@ -533,12 +522,17 @@ class staticpage_form extends \moodleform {
             $data->{'tagline_' . $lang} = $stored['tagline'][$lang];
             $data->{'lede_' . $lang} = $stored['lede'][$lang];
         }
-        $data->herovideo = $stored['video'];
+        $context = \context_system::instance();
 
         $draftid = 0;
-        file_prepare_draft_area($draftid, \context_system::instance()->id, staticpages::COMPONENT,
+        file_prepare_draft_area($draftid, $context->id, staticpages::COMPONENT,
             about::HERO_FILEAREA, 0, about::hero_file_options());
         $data->heroimage = $draftid;
+
+        $draftid = 0;
+        file_prepare_draft_area($draftid, $context->id, staticpages::COMPONENT,
+            about::VIDEO_FILEAREA, 0, about::video_file_options());
+        $data->herovideo = $draftid;
 
         foreach ($stored['facts'] as $i => $fact) {
             $data->fact_value[$i] = $fact['value'];
@@ -575,16 +569,20 @@ class staticpage_form extends \moodleform {
             $sections['tagline'][$lang] = (string) ($data->{'tagline_' . $lang} ?? '');
             $sections['lede'][$lang] = (string) ($data->{'lede_' . $lang} ?? '');
         }
-        $sections['video'] = clean_param(trim((string) ($data->herovideo ?? '')), PARAM_URL);
         $sections['facts'] = self::about_rows($data, 'fact', 'value', ['label']);
         $sections['pillars'] = self::about_rows($data, 'pillar', 'icon', ['title', 'text']);
         $sections['milestones'] = self::about_rows($data, 'milestone', 'year', ['title', 'text']);
 
         about::save($sections);
 
+        $context = \context_system::instance();
         if (isset($data->heroimage)) {
-            file_save_draft_area_files((int) $data->heroimage, \context_system::instance()->id,
+            file_save_draft_area_files((int) $data->heroimage, $context->id,
                 staticpages::COMPONENT, about::HERO_FILEAREA, 0, about::hero_file_options());
+        }
+        if (isset($data->herovideo)) {
+            file_save_draft_area_files((int) $data->herovideo, $context->id,
+                staticpages::COMPONENT, about::VIDEO_FILEAREA, 0, about::video_file_options());
         }
     }
 }

@@ -39,10 +39,10 @@ defined('MOODLE_INTERNAL') || die();
  * two labels must never be reordered or deleted apart. The document is small (a
  * dozen short strings), read once per page view, and needs no schema of its own.
  *
- * The hero picture is a file, in its own file area with a fixed item id, because
- * the page has one hero and the body's file area is keyed by row (one per
- * language) - a picture that is the same in both languages does not belong to
- * either row.
+ * The hero picture and the film are files, each in its own file area with a fixed
+ * item id, because the page has one of each and the body's file area is keyed by
+ * row (one per language) - a picture that is the same in both languages does not
+ * belong to either row.
  *
  * Everything is resolved to the display language by {@see about::view()} the same
  * way {@see staticpages::view()} resolves the title: interface language, English,
@@ -62,6 +62,9 @@ class about {
 
     /** @var string The file area the hero picture lives in. Item id is always 0. */
     const HERO_FILEAREA = 'pagehero';
+
+    /** @var string The file area the film lives in. Item id is always 0. */
+    const VIDEO_FILEAREA = 'pagevideo';
 
     /** @var int Facts are a strip under the picture; more than this and it wraps into a table. */
     const MAX_FACTS = 6;
@@ -83,7 +86,6 @@ class about {
         return [
             'tagline'    => $bylang,
             'lede'       => $bylang,
-            'video'      => '',
             'facts'      => [],
             'pillars'    => [],
             'milestones' => [],
@@ -111,7 +113,6 @@ class about {
                 $data[$key][$lang] = trim((string) ($stored[$key][$lang] ?? ''));
             }
         }
-        $data['video'] = trim((string) ($stored['video'] ?? ''));
         $data['facts'] = self::clean_items($stored['facts'] ?? [], ['value'], ['label'], self::MAX_FACTS);
         $data['pillars'] = self::clean_items($stored['pillars'] ?? [], ['icon'], ['title', 'text'], self::MAX_PILLARS);
         $data['milestones'] = self::clean_items($stored['milestones'] ?? [], ['year'], ['title', 'text'],
@@ -137,7 +138,6 @@ class about {
                 $clean[$key][$lang] = trim((string) ($data[$key][$lang] ?? ''));
             }
         }
-        $clean['video'] = trim((string) ($data['video'] ?? ''));
         $clean['facts'] = self::clean_items($data['facts'] ?? [], ['value'], ['label'], self::MAX_FACTS);
         $clean['pillars'] = self::clean_items($data['pillars'] ?? [], ['icon'], ['title', 'text'], self::MAX_PILLARS);
         $clean['milestones'] = self::clean_items($data['milestones'] ?? [], ['year'], ['title', 'text'],
@@ -202,7 +202,13 @@ class about {
     }
 
     // -----------------------------------------------------------------
-    // The hero picture.
+    // The hero picture and the film.
+    //
+    // Both are files, one each, in their own file areas at item id 0 - the page
+    // has one picture and one film whatever language it is read in. The film is
+    // uploaded rather than linked: an administrator's phone footage of the
+    // workshop is what this page wants, and a hosted-video link would bring a
+    // third party's player, cookies and branding onto the site's front door.
     // -----------------------------------------------------------------
 
     /**
@@ -222,16 +228,56 @@ class about {
     }
 
     /**
+     * The file options of the film.
+     *
+     * Only the formats a browser plays natively: an uploaded .mov or .avi would
+     * save fine and then draw a dead player, so those are refused at the picker.
+     *
+     * @return array
+     */
+    public static function video_file_options(): array {
+        global $CFG;
+
+        return [
+            'subdirs'        => 0,
+            'maxbytes'       => $CFG->maxbytes,
+            'maxfiles'       => 1,
+            'accepted_types' => ['.mp4', '.m4v', '.webm', '.ogv'],
+        ];
+    }
+
+    /**
+     * The one file in a hero file area, or null.
+     *
+     * @param string $filearea HERO_FILEAREA or VIDEO_FILEAREA
+     * @return \stored_file|null
+     */
+    protected static function area_file(string $filearea): ?\stored_file {
+        $files = get_file_storage()->get_area_files(context_system::instance()->id,
+            staticpages::COMPONENT, $filearea, 0, 'itemid, filepath, filename', false);
+
+        $file = reset($files);
+        return $file ?: null;
+    }
+
+    /**
+     * Where a stored file is served from.
+     *
+     * @param \stored_file $file
+     * @return string URL
+     */
+    protected static function file_url(\stored_file $file): string {
+        return moodle_url::make_pluginfile_url($file->get_contextid(), $file->get_component(),
+            $file->get_filearea(), $file->get_itemid(), $file->get_filepath(), $file->get_filename())->out(false);
+    }
+
+    /**
      * The stored hero picture, or null.
      *
      * @return \stored_file|null
      */
     public static function hero_file(): ?\stored_file {
-        $files = get_file_storage()->get_area_files(context_system::instance()->id,
-            staticpages::COMPONENT, self::HERO_FILEAREA, 0, 'itemid, filepath, filename', false);
-
-        $file = reset($files);
-        return $file ?: null;
+        return self::area_file(self::HERO_FILEAREA);
     }
 
     /**
@@ -241,79 +287,47 @@ class about {
      */
     public static function hero_image_url(): string {
         $file = self::hero_file();
-        if (!$file) {
-            return '';
-        }
-
-        return moodle_url::make_pluginfile_url($file->get_contextid(), $file->get_component(),
-            $file->get_filearea(), $file->get_itemid(), $file->get_filepath(), $file->get_filename())->out(false);
+        return $file ? self::file_url($file) : '';
     }
 
-    // -----------------------------------------------------------------
-    // The film.
-    // -----------------------------------------------------------------
+    /**
+     * The stored film, or null.
+     *
+     * @return \stored_file|null
+     */
+    public static function video_file(): ?\stored_file {
+        return self::area_file(self::VIDEO_FILEAREA);
+    }
 
     /**
-     * Turn the address an administrator pasted into something a page can play.
+     * The film, as the page and the app play it.
      *
-     * Accepts the addresses people actually copy - a YouTube watch, share, shorts or
-     * embed link, a Vimeo page or player link, or a direct .mp4/.webm file - and
-     * says which it was, because the page plays a file with a <video> tag and the
-     * other two inside a player iframe.
+     * The shape is kept general - `provider` says how to play `embed` - so a
+     * client written against it keeps working if a hosted provider is ever
+     * allowed again. Today the only provider is `file`: a direct address the
+     * platform's own <video> tag (or the app's native player) plays.
      *
-     * @param string $url as typed
-     * @return array{provider: string, embed: string, url: string} provider is
-     *         youtube|vimeo|file, or '' when the address is not one the page can play
+     * @return array{provider: string, embed: string, url: string, mimetype: string}
+     *         provider is 'file', or '' when there is no film
      */
-    public static function video(string $url): array {
-        $url = trim($url);
-        $none = ['provider' => '', 'embed' => '', 'url' => $url];
-        if ($url === '' || !preg_match('~^https://~i', $url)) {
-            return $none;
+    public static function video(): array {
+        $file = self::video_file();
+        if (!$file) {
+            return ['provider' => '', 'embed' => '', 'url' => '', 'mimetype' => ''];
         }
 
-        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
-        $path = (string) parse_url($url, PHP_URL_PATH);
-        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+        $url = self::file_url($file);
+        return ['provider' => 'file', 'embed' => $url, 'url' => $url, 'mimetype' => (string) $file->get_mimetype()];
+    }
 
-        $id = '';
-        if (preg_match('~(^|\.)youtube(-nocookie)?\.com$~', $host)) {
-            if (preg_match('~^/(embed|shorts|live|v)/([A-Za-z0-9_-]{6,})~', $path, $m)) {
-                $id = $m[2];
-            } else if (!empty($query['v']) && preg_match('~^[A-Za-z0-9_-]{6,}$~', (string) $query['v'])) {
-                $id = (string) $query['v'];
-            }
-            if ($id !== '') {
-                return [
-                    'provider' => 'youtube',
-                    'embed'    => 'https://www.youtube-nocookie.com/embed/' . $id . '?rel=0&modestbranding=1&playsinline=1',
-                    'url'      => $url,
-                ];
-            }
-            return $none;
-        }
-
-        if ($host === 'youtu.be' && preg_match('~^/([A-Za-z0-9_-]{6,})~', $path, $m)) {
-            return [
-                'provider' => 'youtube',
-                'embed'    => 'https://www.youtube-nocookie.com/embed/' . $m[1] . '?rel=0&modestbranding=1&playsinline=1',
-                'url'      => $url,
-            ];
-        }
-
-        if (preg_match('~(^|\.)vimeo\.com$~', $host) && preg_match('~/(?:video/)?(\d{5,})(?:/|$)~', $path, $m)) {
-            return [
-                'provider' => 'vimeo',
-                'embed'    => 'https://player.vimeo.com/video/' . $m[1] . '?dnt=1&title=0&byline=0&portrait=0',
-                'url'      => $url,
-            ];
-        }
-
-        if (preg_match('~\.(mp4|webm|m4v)$~i', $path)) {
-            return ['provider' => 'file', 'embed' => $url, 'url' => $url];
-        }
-
-        return $none;
+    /**
+     * Where "Browse courses" goes - the course catalogue, the same door the home
+     * page opens. One place, so the web page and the app agree.
+     *
+     * @return moodle_url
+     */
+    public static function courses_url(): moodle_url {
+        return new moodle_url('/local/nit_category/catalogue.php');
     }
 
     // -----------------------------------------------------------------
@@ -364,7 +378,7 @@ class about {
             'tagline'    => self::text($data['tagline']),
             'lede'       => self::text($data['lede']),
             'heroimage'  => self::hero_image_url(),
-            'video'      => self::video($data['video']),
+            'video'      => self::video(),
             'facts'      => $facts,
             'pillars'    => $pillars,
             'milestones' => $milestones,

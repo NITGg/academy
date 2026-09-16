@@ -36,6 +36,7 @@
 
 require(__DIR__ . '/../../config.php');
 
+use local_profilefields\about;
 use local_profilefields\staticpages;
 
 $slug = required_param('page', PARAM_ALPHA);
@@ -85,7 +86,6 @@ if ($view['isabout']) {
     $about = $view['about'];
     $about['hasimage'] = $about['heroimage'] !== '';
     $about['hasvideo'] = $about['video']['provider'] !== '';
-    $about['videofile'] = $about['video']['provider'] === 'file';
     $about['videoembed'] = $about['video']['embed'];
     // A film with a picture waits behind it for a click; a film without one is
     // the picture, so it loads at once.
@@ -95,7 +95,7 @@ if ($view['isabout']) {
     $about['factcount'] = count($about['facts']);
     $about['haspillars'] = !empty($about['pillars']);
     $about['hasmilestones'] = !empty($about['milestones']);
-    $about['coursesurl'] = (new moodle_url('/course/index.php'))->out(false);
+    $about['coursesurl'] = about::courses_url()->out(false);
     $about['contacturl'] = staticpages::enabled('contact') ? staticpages::url('contact')->out(false) : '';
     $view['about'] = $about;
     $PAGE->requires->js_call_amd('local_profilefields/aboutpage', 'init');
