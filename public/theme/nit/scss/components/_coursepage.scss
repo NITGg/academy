@@ -454,86 +454,99 @@ body:has(.acad-cr) .acad-cr__hero.is-playing::before {
 }
 
 /* ---- The play button ----------------------------------------------------
- * Centred in the photograph half of the banner (the text owns the other half),
- * a brand-Primary disc with a breathing halo and a label under it. */
+ * In the action row, beside the one button ("Go to course" / buy), so the
+ * trailer and the call to action are read as one choice: a ringed disc in the
+ * hero ink with a breathing halo and the label beside it. Hover fills the disc
+ * with the brand Primary. The row widens to hold both; on a phone the play
+ * button drops under the button. */
+body:has(.acad-cr) .acad-cr__hero.has-video .acad-cr__hero-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 14px 22px;
+    max-width: 560px;
+}
+/* The button (or the price + button block) takes the room the play button leaves. */
+body:has(.acad-cr) .acad-cr__hero.has-video .acad-cr__hero-actions > .acad-cr-btn,
+body:has(.acad-cr) .acad-cr__hero.has-video .acad-cr__hero-actions > .acad-cr__offer {
+    flex: 1 1 240px;
+    max-width: 415px;
+}
 body:has(.acad-cr) .acad-cr__play {
-    position: absolute;
-    z-index: 2;
-    top: 50%;
-    inset-inline-end: calc(25% - 100px);
-    width: 200px;
-    display: flex;
-    flex-direction: column;
+    display: inline-flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
+    flex: 0 0 auto;
     margin: 0;
-    padding: 12px 0;
+    padding: 0;
     border: 0;
     background: transparent;
     color: var(--cr-hero-ink);
     cursor: pointer;
-    transform: translateY(-50%);
-    transition: transform .5s var(--cr-play-ease), opacity .3s ease, visibility 0s linear 0s;
+    transition: transform .5s var(--cr-play-ease), opacity .3s ease;
 }
 body:has(.acad-cr) .acad-cr__play-disc {
     position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 92px;
-    height: 92px;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
-    border: 3px solid var(--cr-play-ring);
-    background: var(--nit-brand-primary);
-    color: var(--nit-brand-onprimary);
+    border: 2px solid var(--cr-play-ring);
+    background: var(--cr-glass);
+    color: var(--cr-hero-ink);
     box-shadow: var(--cr-play-shadow);
-    transition: transform .35s var(--cr-play-ease), background-color .2s ease, color .2s ease;
+    transition: transform .35s var(--cr-play-ease), background-color .2s ease, color .2s ease, border-color .2s ease;
 }
 body:has(.acad-cr) .acad-cr__play-disc .acad-cr__ico {
-    width: 44px;
-    height: 44px;
+    width: 22px;
+    height: 22px;
     /* Optically centre the triangle: its visual weight sits to the left. */
-    margin-inline-start: 5px;
+    margin-inline-start: 3px;
 }
 /* The halo: one ring, breathing outwards from behind the disc. */
 body:has(.acad-cr) .acad-cr__play-disc::before {
     content: "";
     position: absolute;
-    inset: -3px;
+    inset: -2px;
     border-radius: 50%;
     border: 2px solid var(--cr-play-halo);
     animation: acad-cr-halo 2.6s ease-out infinite;
     pointer-events: none;
 }
 @keyframes acad-cr-halo {
-    0%   { transform: scale(1);    opacity: .9; }
-    70%  { transform: scale(1.75); opacity: 0; }
-    100% { transform: scale(1.75); opacity: 0; }
+    0%   { transform: scale(1);   opacity: .9; }
+    70%  { transform: scale(1.7); opacity: 0; }
+    100% { transform: scale(1.7); opacity: 0; }
 }
 body:has(.acad-cr) .acad-cr__play-label {
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 600;
     line-height: 1.3;
-    text-align: center;
+    white-space: nowrap;
     color: var(--cr-hero-ink);
-    text-shadow: 0 1px 12px #000;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 4px;
+    transition: text-decoration-color .2s ease;
 }
 body:has(.acad-cr) .acad-cr__play:hover .acad-cr__play-disc,
 body:has(.acad-cr) .acad-cr__play:focus-visible .acad-cr__play-disc {
-    transform: scale(1.08);
-    background: var(--nit-brand-hoverbackground);
-    color: var(--nit-brand-hovertext);
+    transform: scale(1.1);
+    border-color: var(--nit-brand-primary);
+    background: var(--nit-brand-primary);
+    color: var(--nit-brand-onprimary);
+}
+body:has(.acad-cr) .acad-cr__play:hover .acad-cr__play-label {
+    text-decoration-color: currentColor;
 }
 body:has(.acad-cr) .acad-cr__play:hover .acad-cr__play-disc::before {
     animation-duration: 1.4s;
 }
-/* Pressed: the disc swells into the player and is gone. */
+/* Pressed: the disc swells a touch as the whole body lifts away. */
 body:has(.acad-cr) .acad-cr__hero.is-playing .acad-cr__play {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transform: translateY(-50%) scale(1.6);
-    transition: transform .5s var(--cr-play-ease), opacity .3s ease, visibility 0s linear .3s;
+    transform: scale(1.15);
 }
 
 /* ---- The player layer ---------------------------------------------------
@@ -590,30 +603,10 @@ body:has(.acad-cr) .acad-cr__video-close:hover {
     transform: scale(1.06);
 }
 
-/* Narrower than the design: the text takes most of the banner, so the button
-   moves to the top corner — a smaller disc, the label beside it, then no label. */
-@media (max-width: 1024px) {
-    body:has(.acad-cr) .acad-cr__play {
-        top: 22px;
-        inset-inline-end: 22px;
-        width: auto;
-        flex-direction: row;
-        gap: 12px;
-        padding: 0;
-        transform: none;
-    }
-    body:has(.acad-cr) .acad-cr__hero.is-playing .acad-cr__play { transform: scale(1.4); }
-    body:has(.acad-cr) .acad-cr__play-disc { width: 64px; height: 64px; }
-    body:has(.acad-cr) .acad-cr__play-disc .acad-cr__ico { width: 30px; height: 30px; margin-inline-start: 4px; }
-    body:has(.acad-cr) .acad-cr__play-label { font-size: 15px; }
-    /* Keep the category line clear of the button. */
-    body:has(.acad-cr) .acad-cr__hero.has-video .acad-cr__provider { padding-inline-end: 240px; }
-}
 @media (max-width: 640px) {
-    body:has(.acad-cr) .acad-cr__play { top: 16px; inset-inline-end: 16px; }
-    body:has(.acad-cr) .acad-cr__play-disc { width: 56px; height: 56px; }
-    body:has(.acad-cr) .acad-cr__play-label { display: none; }
-    body:has(.acad-cr) .acad-cr__hero.has-video .acad-cr__provider { padding-inline-end: 64px; }
+    body:has(.acad-cr) .acad-cr__hero.has-video .acad-cr__hero-actions { max-width: none; }
+    body:has(.acad-cr) .acad-cr__hero.has-video .acad-cr__hero-actions > .acad-cr-btn,
+    body:has(.acad-cr) .acad-cr__hero.has-video .acad-cr__hero-actions > .acad-cr__offer { max-width: none; }
     body:has(.acad-cr) .acad-cr__video-close { top: 10px; inset-inline-end: 10px; width: 38px; height: 38px; }
 }
 

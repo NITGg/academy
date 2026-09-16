@@ -182,6 +182,49 @@ require([], function() {
 JS;
 
     /**
+     * The page header — with the course index drawer closed on the course
+     * landing page.
+     *
+     * The landing page (format_topics_renderer::is_landing_page()) is the
+     * course's storefront: a hero, the curriculum accordion and the instructor
+     * card. The course index drawer sliding open beside it on every visit
+     * squeezes that layout for no gain, so it starts closed there; the toggle
+     * still opens it.
+     *
+     * Boost's `drawers` layout reads the state straight from the user
+     * preference `drawer-open-index`, and it does so inside parent::header()
+     * (the layout file runs there). Rather than copying that ~110-line layout
+     * into the theme for one condition, the preference is overridden in memory
+     * for the duration of the call and put back afterwards: nothing is written,
+     * and `$USER` — which lives in the session — leaves this method exactly as
+     * it came in, so no other page sees the override. Preferences are loaded
+     * first so the layout's own read cannot reload them over the override.
+     *
+     * @return string HTML
+     */
+    public function header() {
+        global $USER;
+
+        if (!isloggedin() || isguestuser() || !format_topics_renderer::is_landing_page($this->page)) {
+            return parent::header();
+        }
+
+        check_user_preferences_loaded($USER);
+        $had = array_key_exists('drawer-open-index', $USER->preference);
+        $was = $had ? $USER->preference['drawer-open-index'] : null;
+        $USER->preference['drawer-open-index'] = 0;
+        try {
+            return parent::header();
+        } finally {
+            if ($had) {
+                $USER->preference['drawer-open-index'] = $was;
+            } else {
+                unset($USER->preference['drawer-open-index']);
+            }
+        }
+    }
+
+    /**
      * Render a NIT view-model through its (theme-overridable) template.
      *
      * @param view_model $viewmodel the view-model to render

@@ -27,7 +27,7 @@
  *      (certificate, duration, level, start date, enrolled) and ONE button.
  *      A course with a promo video (local_nit_media's field under "Course
  *      image") also carries a play button over the picture; pressing it turns
- *      the banner into the player and fades the text out — see acad_hero_promo();
+ *      the banner into the player and fades the text out — see acad_hero_play();
  *   2. a two-column body — the main column (inline-start) holds the "About this
  *      course" card (summary, "What will you learn?" tiles, skills), the
  *      requirements card and the curriculum accordion; the aside holds the
@@ -134,14 +134,33 @@ class format_topics_renderer extends \format_topics\output\renderer {
      * @return string the widget HTML
      */
     public function render(renderable $widget) {
-        if ($widget instanceof content && !$this->page->user_is_editing()) {
-            $format = course_get_format($this->page->course);
-            // get_sectionid() is null on the "all sections" landing page.
-            if (!$format->get_sectionid()) {
-                return $this->acad_render_page($format);
-            }
+        if ($widget instanceof content && self::is_landing_page($this->page)) {
+            return $this->acad_render_page(course_get_format($this->page->course));
         }
         return parent::render($widget);
+    }
+
+    /**
+     * Is this request the branded course landing page?
+     *
+     * True on course/view.php for a topics-format course when nobody is editing
+     * and no single section is selected — exactly the case {@see render()}
+     * replaces the course body. Shared with the theme's core renderer, which
+     * uses it to keep the course index drawer closed on this page.
+     *
+     * @param \moodle_page $page
+     * @return bool
+     */
+    public static function is_landing_page(\moodle_page $page): bool {
+        if (strpos($page->pagetype, 'course-view-') !== 0 || $page->user_is_editing()) {
+            return false;
+        }
+        $course = $page->course;
+        if (empty($course->id) || $course->id == SITEID || ($course->format ?? '') !== 'topics') {
+            return false;
+        }
+        // get_sectionid() is null on the "all sections" landing page.
+        return !course_get_format($course)->get_sectionid();
     }
 
     /**
@@ -629,12 +648,17 @@ class format_topics_renderer extends \format_topics\output\renderer {
         } else {
             $o .= $this->acad_offer($course);
         }
+        // The promo's play button sits in the same row as the one button, so
+        // "watch the trailer" and "go to course / buy" are read as one choice.
+        if (!empty($data->promo)) {
+            $o .= $this->acad_hero_play();
+        }
         $o .= html_writer::end_div(); // hero-actions.
 
         $o .= html_writer::end_div(); // hero-body.
 
         if (!empty($data->promo)) {
-            $o .= $this->acad_hero_promo();
+            $o .= $this->acad_hero_video_layer();
         }
 
         $o .= html_writer::end_tag('section');
@@ -642,17 +666,16 @@ class format_topics_renderer extends \format_topics\output\renderer {
     }
 
     /**
-     * The promo video controls of the hero: the play button and the empty player layer.
+     * The promo video's play button: a ringed disc with a pulsing halo and its label.
      *
-     * The play button is placed over the photograph side of the banner (the
-     * stylesheet positions it; on a narrow screen it moves to the top corner),
-     * with a pulsing halo and a label under it. The layer it reveals is empty
-     * until the click — the script fills it with a <video> or an <iframe> and a
-     * close button — so a visitor who never presses play never loads a player.
+     * Rendered inside the hero's action row, beside the "Go to course" / buy
+     * button (the stylesheet lays the two out side by side, and stacks them on
+     * a phone). Since it lives in the hero body it fades out with the text when
+     * the player opens — see {@see acad_hero_video_layer()}.
      *
      * @return string HTML
      */
-    protected function acad_hero_promo(): string {
+    protected function acad_hero_play(): string {
         $watch = get_string('acad_watchpromo', 'theme_nit');
         $o  = html_writer::start_tag('button', [
             'type' => 'button',
@@ -663,11 +686,24 @@ class format_topics_renderer extends \format_topics\output\renderer {
         $o .= html_writer::span($this->acad_icon('play'), 'acad-cr__play-disc');
         $o .= html_writer::span(s($watch), 'acad-cr__play-label');
         $o .= html_writer::end_tag('button');
-        $o .= html_writer::div('', 'acad-cr__video', [
+        return $o;
+    }
+
+    /**
+     * The empty player layer of the hero.
+     *
+     * Empty until the click — the script fills it with a <video> or an <iframe>
+     * and a close button — so a visitor who never presses play never loads a
+     * player. A direct child of the hero (not of the fading body) so it can
+     * cover the whole banner.
+     *
+     * @return string HTML
+     */
+    protected function acad_hero_video_layer(): string {
+        return html_writer::div('', 'acad-cr__video', [
             'aria-hidden' => 'true',
             'data-close-label' => get_string('acad_closevideo', 'theme_nit'),
         ]);
-        return $o;
     }
 
     /**
@@ -1028,7 +1064,7 @@ class format_topics_renderer extends \format_topics\output\renderer {
                         'data-dialog'   => $dialogid,
                         'onclick'       => 'AcademyUI.crInstructorOpen(this)',
                     ]);
-                $dialogs .= $this->acad_instructor_dialog($t, $ins, $profileurl, $dialogid);
+                $dialogs .= $this->acad_instructor_dialog($t, $ins, $dialogid);
             }
             if ($actions !== '') {
                 $extra .= html_writer::div($actions, 'acad-cr__tutor-actions');
@@ -1071,7 +1107,7 @@ class format_topics_renderer extends \format_topics\output\renderer {
      *   meta ...... one line under the name: specialization, years, languages
      *   section ... a heading and a body in the dialog, in this order
      *   social .... an icon link (card pills and dialog footer)
-     *   file ...... the résumé, offered as a download in the dialog footer
+     *   file ...... the résumé, a download tile in the dialog's facts strip
      *
      * @var string[] shortname => part
      */
@@ -1121,10 +1157,17 @@ class format_topics_renderer extends \format_topics\output\renderer {
      * pairs by local_nit_mlang); rich text is formatted by the field's own
      * renderer so embedded files and the multilang filter both apply.
      *
+     * Every field in the group is shown, not only the ones this page knows by
+     * name: the group is identified as "the categories the known shortnames
+     * live in", and a field the admin has since added there is rendered by its
+     * type — a rich-text area becomes a section, a file a download tile, and
+     * anything else (text, menu, date, checkbox) a fact tile with the field's
+     * own label and value.
+     *
      * @param stdClass $user the instructor (a get_role_users() record)
      * @param stdClass $data page data (for the course context)
      * @return stdClass cover, specialization, years, languages[], excerpt,
-     *                  sections[], social[], resume, hasprofile
+     *                  sections[], social[], facts[], files[], hasprofile
      */
     protected function acad_instructor($user, $data): stdClass {
         global $CFG;
@@ -1138,7 +1181,8 @@ class format_topics_renderer extends \format_topics\output\renderer {
             'excerpt'        => '',
             'sections'       => [],
             'social'         => [],
-            'resume'         => null,
+            'facts'          => [],
+            'files'          => [],
             'hasprofile'     => false,
         ];
 
@@ -1147,14 +1191,29 @@ class format_topics_renderer extends \format_topics\output\renderer {
             return $p;
         }
 
-        foreach (profile_get_user_fields_with_data((int) $user->id) as $f) {
+        $fields = profile_get_user_fields_with_data((int) $user->id);
+
+        // The instructor group = every category one of the known fields sits in.
+        $groups = [];
+        foreach ($fields as $f) {
+            if (isset(self::INSTRUCTOR_FIELDS[(string) ($f->field->shortname ?? '')])) {
+                $groups[(int) $f->field->categoryid] = true;
+            }
+        }
+
+        foreach ($fields as $f) {
             $short = (string) ($f->field->shortname ?? '');
-            $part  = self::INSTRUCTOR_FIELDS[$short] ?? null;
-            if ($part === null || !$f->is_visible()) {
+            if (!isset($groups[(int) $f->field->categoryid]) || !$f->is_visible()) {
                 continue;
             }
+            $part = self::INSTRUCTOR_FIELDS[$short] ?? null;
+            if ($part === null) {
+                // A field this page does not know by name: go by its type.
+                $type = (string) $f->field->datatype;
+                $part = ($type === 'file') ? 'file' : (($type === 'textarea') ? 'section' : 'fact');
+            }
 
-            // The two file fields: the file is the value, whatever the data row says.
+            // File fields: the file is the value, whatever the data row says.
             if ($part === 'cover' || $part === 'file') {
                 $file = $this->acad_profile_file($usercontext, (int) $f->field->id);
                 if (!$file) {
@@ -1167,7 +1226,7 @@ class format_topics_renderer extends \format_topics\output\renderer {
                         $p->cover = $url->out(false);
                     }
                 } else {
-                    $p->resume = (object) ['url' => $url, 'name' => $file->get_filename(), 'label' => $f->display_name()];
+                    $p->files[] = (object) ['url' => $url, 'name' => $file->get_filename(), 'label' => $f->display_name()];
                 }
                 continue;
             }
@@ -1177,6 +1236,13 @@ class format_topics_renderer extends \format_topics\output\renderer {
             }
 
             switch ($part) {
+                case 'fact':
+                    $html = trim($f->display_data());
+                    if ($html !== '') {
+                        $p->facts[] = (object) ['label' => $f->display_name(), 'html' => $html];
+                    }
+                    break;
+
                 case 'meta':
                     $text = $this->acad_ml((string) $f->data, $data);
                     if ($text === '') {
@@ -1215,15 +1281,18 @@ class format_topics_renderer extends \format_topics\output\renderer {
         }
 
         // Sections in this page's order (biography first, awards last), not the
-        // order the admin happened to sort the fields in.
+        // order the admin happened to sort the fields in; fields the page does
+        // not know by name keep the admin's order, after the known ones.
         $order = array_flip(array_keys(self::INSTRUCTOR_FIELDS));
-        usort($p->sections, function ($a, $b) use ($order) {
-            return $order[$a->key] <=> $order[$b->key];
+        $n = count($order);
+        usort($p->sections, function ($a, $b) use ($order, $n) {
+            return ($order[$a->key] ?? $n) <=> ($order[$b->key] ?? $n);
         });
 
         // The dialog is worth opening when it would show something the row does
-        // not already: a section, a résumé or a cover photograph.
-        $p->hasprofile = !empty($p->sections) || $p->resume !== null || $p->cover !== '' || !empty($p->languages);
+        // not already: a section, a fact, a file or a cover photograph.
+        $p->hasprofile = !empty($p->sections) || !empty($p->files) || !empty($p->facts)
+            || $p->cover !== '' || !empty($p->languages);
 
         return $p;
     }
@@ -1325,19 +1394,20 @@ class format_topics_renderer extends \format_topics\output\renderer {
      *
      * A banner (the cover photograph under the page's own scrim, or a brand
      * gradient when there is none) carries the picture, the name and the meta
-     * line; a strip of facts (years, languages, specialization) sits under it;
-     * then one section per filled rich-text field; and a footer with the social
-     * links, the résumé and the link to the full Moodle profile. The element is
-     * in the top layer, so it renders above everything wherever it is emitted,
-     * and the browser owns focus, Escape and the backdrop.
+     * line; a strip of facts (years, languages, specialization, any other short
+     * field, and each uploaded file as a download tile) sits under it; then one
+     * section per filled rich-text field; and a footer with the social links.
+     * Everything the group holds is here — the dialog IS the instructor's
+     * profile, so it links nowhere else. The element is in the top layer, so it
+     * renders above everything wherever it is emitted, and the browser owns
+     * focus, Escape and the backdrop.
      *
      * @param stdClass $user
      * @param stdClass $ins from {@see acad_instructor()}
-     * @param moodle_url $profileurl
      * @param string $id element id
      * @return string HTML
      */
-    protected function acad_instructor_dialog($user, $ins, $profileurl, string $id): string {
+    protected function acad_instructor_dialog($user, $ins, string $id): string {
         $name = s(fullname($user));
 
         // Banner.
@@ -1376,6 +1446,16 @@ class format_topics_renderer extends \format_topics\output\renderer {
         if ($ins->specialization !== '') {
             $facts[] = ['bulb', get_string('acad_specialization', 'theme_nit'), $ins->specialization];
         }
+        // Any other short field in the group, with its own label.
+        foreach ($ins->facts as $f) {
+            $facts[] = ['idcard', $f->label, $f->html];
+        }
+        // Each uploaded file (the résumé) as a download tile.
+        foreach ($ins->files as $f) {
+            $facts[] = ['download', $f->label, html_writer::link($f->url,
+                html_writer::span(s($f->name)) . $this->acad_icon('download'),
+                ['class' => 'acad-ins__file', 'download' => $f->name])];
+        }
         $strip = '';
         foreach ($facts as $f) {
             $strip .= html_writer::div(
@@ -1403,22 +1483,11 @@ class format_topics_renderer extends \format_topics\output\renderer {
             $body = html_writer::div($body, 'acad-ins__body');
         }
 
-        // Footer: social pills, then the résumé and the profile link.
+        // Footer: the social pills, when there are any.
         $foot = '';
         if ($ins->social) {
-            $foot .= $this->acad_social_links($ins->social, 'acad-ins__social');
+            $foot = html_writer::div($this->acad_social_links($ins->social, 'acad-ins__social'), 'acad-ins__foot');
         }
-        $links = '';
-        if ($ins->resume) {
-            $links .= html_writer::link($ins->resume->url,
-                $this->acad_icon('download') . html_writer::span(get_string('acad_downloadresume', 'theme_nit')),
-                ['class' => 'btn btn-outline-primary acad-ins__btn', 'download' => $ins->resume->name]);
-        }
-        $links .= html_writer::link($profileurl,
-            html_writer::span(get_string('acad_viewfullprofile', 'theme_nit')) . $this->acad_icon('arrow'),
-            ['class' => 'btn btn-primary acad-ins__btn']);
-        $foot .= html_writer::div($links, 'acad-ins__links');
-        $foot = html_writer::div($foot, 'acad-ins__foot');
 
         $close = html_writer::tag('button', $this->acad_icon('close'), [
             'type'       => 'button',
@@ -1907,9 +1976,6 @@ class format_topics_renderer extends \format_topics\output\renderer {
             'award'     => '<circle cx="12" cy="9" r="5.5" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 13.5L7 21l5-2.5 5 2.5-1.5-7.5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 6.5l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 8.6l2-.3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>',
             'idcard'    => '<rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="8.5" cy="11" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 16a3 3 0 0 1 6 0M13.5 9.5H18M13.5 12.5H18M13.5 15.5h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
             'download'  => '<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 16.5v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
-            // A "go there" arrow: points forward. The RTL build does not touch
-            // inline SVG, so _coursepeople.scss flips it under body.dir-rtl.
-            'arrow'     => '<path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
             'linkedin'  => '<rect x="3.5" y="3.5" width="17" height="17" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M8 10.5V17M8 7.5v.01M12 17v-3.7a2.2 2.2 0 0 1 4.4 0V17M12 10.5V17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
             'website'   => '<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c2.8 2.8 2.8 14.2 0 17M12 3.5c-2.8 2.8-2.8 14.2 0 17" stroke="currentColor" stroke-width="1.6"/>',
             'facebook'  => '<path d="M14.5 21v-7h2.4l.4-3h-2.8V9.2c0-.9.3-1.5 1.5-1.5h1.5V5.1c-.3 0-1.2-.1-2.2-.1-2.2 0-3.8 1.3-3.8 3.8V11H9v3h2.5v7" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',

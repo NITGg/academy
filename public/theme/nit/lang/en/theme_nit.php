@@ -234,8 +234,6 @@ $string['acad_1yearexp'] = '1 year of experience';
 $string['acad_yearsexp'] = 'Years of experience';
 $string['acad_speaks'] = 'Teaches in';
 $string['acad_specialization'] = 'Specialization';
-$string['acad_downloadresume'] = 'Download résumé';
-$string['acad_viewfullprofile'] = 'View full profile';
 
 // Sign-up: password strength meter and reveal ("eye") toggle.
 $string['passwordstrength'] = 'Password strength';

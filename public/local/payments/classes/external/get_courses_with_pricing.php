@@ -132,7 +132,13 @@ class get_courses_with_pricing extends external_api {
                 }
             }
 
-            $courses[] = array_merge($course_data, $pricing);
+            // The course promo video (local_nit_media's field under "Course image"),
+            // in the same row as the picture and the custom fields the app reads.
+            // Absent when that plugin is not installed — the keys are VALUE_OPTIONAL.
+            $promo = class_exists('\local_nit_media\promo_video')
+                ? \local_nit_media\promo_video::for_app($courseid) : [];
+
+            $courses[] = array_merge($course_data, $pricing, $promo);
         }
 
         return [
@@ -165,6 +171,18 @@ class get_courses_with_pricing extends external_api {
                 . 'is returned and it cannot be bought until one is set', VALUE_OPTIONAL),
             'country_message'     => new external_value(PARAM_TEXT,
                 'localised message to show in place of the price when country_required is true', VALUE_OPTIONAL),
+            // Course promo video — see \local_nit_media\promo_video::for_app().
+            'promo_video_type'    => new external_value(PARAM_ALPHA,
+                'empty = no promo video; else file | youtube | vimeo | direct', VALUE_OPTIONAL),
+            'promo_video_player'  => new external_value(PARAM_ALPHA,
+                'how to play promo_video_url: video (native player) | iframe (WebView); empty when none', VALUE_OPTIONAL),
+            'promo_video_url'     => new external_value(PARAM_URL,
+                'the address to play. file: a webservice/pluginfile.php URL, append ?token= like the course '
+                . 'image; youtube/vimeo: the embed URL with autoplay; direct: the file link', VALUE_OPTIONAL),
+            'promo_video_id'      => new external_value(PARAM_RAW,
+                'YouTube / Vimeo video id for a native SDK player; empty otherwise', VALUE_OPTIONAL),
+            'promo_video_source'  => new external_value(PARAM_URL,
+                'the link as entered by the teacher (e.g. the YouTube watch page); empty for an upload', VALUE_OPTIONAL),
         ];
         // $returns->keys['courses'] is an external_multiple_structure; its ->content is the
         // per-course external_single_structure we augment with the pricing keys.

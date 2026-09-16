@@ -45,6 +45,8 @@ use stdClass;
  *   ->src    the address the player loads: a pluginfile URL, an embed URL, or the
  *            direct link (string)
  *   ->player 'video' for a <video> element (file / direct), 'iframe' otherwise
+ *   ->id     the YouTube / Vimeo video id ('' for a file or a direct link)
+ *   ->source the link as typed ('' for an uploaded file)
  *
  * Autoplay is asked for on the embed address — the player is only ever created
  * after a click on the play button, which is a user gesture, so browsers honour
@@ -105,6 +107,8 @@ class promo_video {
                 'src' => moodle_url::make_pluginfile_url(
                     $context->id, 'local_nit_media', self::FILEAREA, 0,
                     $file->get_filepath(), $file->get_filename())->out(false),
+                'id' => '',
+                'source' => '',
             ];
         }
 
@@ -113,6 +117,59 @@ class promo_video {
             return null;
         }
         return self::embed($url);
+    }
+
+    /**
+     * The promo of a course in the shape the mobile app reads.
+     *
+     * Appended to every course row of local_payments_get_courses_with_pricing (and so
+     * to local_nit_category_search, which hands its rows to that function), next to
+     * the "Course File Summary" custom fields and the course picture the app already
+     * parses. Every key is always present so the app can bind without null checks;
+     * a course with no promo has `promo_video_type` = '' and the rest empty.
+     *
+     *   promo_video_type    '' | 'file' | 'youtube' | 'vimeo' | 'direct'
+     *   promo_video_player  '' | 'video' | 'iframe' — what to play promo_video_url in:
+     *                       a native video player, or a WebView
+     *   promo_video_url     what to play. For 'file' it is a webservice/pluginfile.php
+     *                       address — append `?token=` exactly as for the course
+     *                       picture (overviewfiles[].fileurl). For 'youtube' / 'vimeo'
+     *                       it is the embed address, autoplay on, ready for a WebView.
+     *                       For 'direct' it is the link as typed.
+     *   promo_video_id      the YouTube / Vimeo video id, for a native SDK player
+     *                       (e.g. youtube_player_flutter); '' otherwise
+     *   promo_video_source  the link as the teacher typed it (the watch page); '' for
+     *                       an uploaded file
+     *
+     * @param int $courseid
+     * @return array
+     */
+    public static function for_app(int $courseid): array {
+        $out = [
+            'promo_video_type' => '',
+            'promo_video_player' => '',
+            'promo_video_url' => '',
+            'promo_video_id' => '',
+            'promo_video_source' => '',
+        ];
+        $promo = self::for_course($courseid);
+        if (!$promo) {
+            return $out;
+        }
+        $out['promo_video_type'] = $promo->kind;
+        $out['promo_video_player'] = $promo->player;
+        $out['promo_video_url'] = $promo->src;
+        $out['promo_video_id'] = $promo->id;
+        $out['promo_video_source'] = $promo->source;
+        if ($promo->kind === 'file') {
+            // The app fetches files through the token door, like the course picture.
+            $context = context_course::instance($courseid);
+            $file = self::stored_file($context);
+            $out['promo_video_url'] = moodle_url::make_webservice_pluginfile_url(
+                $context->id, 'local_nit_media', self::FILEAREA, 0,
+                $file->get_filepath(), $file->get_filename())->out(false);
+        }
+        return $out;
     }
 
     /**
@@ -231,6 +288,8 @@ class promo_video {
                 'player' => 'iframe',
                 'src' => 'https://www.youtube-nocookie.com/embed/' . $id
                     . '?autoplay=1&rel=0&modestbranding=1&playsinline=1',
+                'id' => $id,
+                'source' => $url,
             ];
         }
 
@@ -244,13 +303,13 @@ class promo_video {
             if (preg_match('#/' . $m[1] . '/([a-f0-9]{6,})#', $path, $h)) {
                 $src .= '&h=' . $h[1];
             }
-            return (object) ['kind' => 'vimeo', 'player' => 'iframe', 'src' => $src];
+            return (object) ['kind' => 'vimeo', 'player' => 'iframe', 'src' => $src, 'id' => $m[1], 'source' => $url];
         }
 
         // A file address on any host.
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         if (in_array('.' . $ext, self::ACCEPTED_TYPES, true)) {
-            return (object) ['kind' => 'direct', 'player' => 'video', 'src' => $url];
+            return (object) ['kind' => 'direct', 'player' => 'video', 'src' => $url, 'id' => '', 'source' => $url];
         }
 
         return null;

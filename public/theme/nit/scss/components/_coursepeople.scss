@@ -7,7 +7,8 @@
 // grows a compact profile under it — a meta line, the opening of the biography,
 // the social links as round pills and one button — and the button opens a native
 // <dialog> carrying the whole "Instructor Fields" profile group: cover banner,
-// facts strip, one section per rich-text field, and a footer with the résumé.
+// facts strip (with the résumé as a download tile), one section per rich-text
+// field, and a footer with the social links.
 //
 // Colours come from the --cr-* alias layer declared in _coursepage.scss, so the
 // card and the dialog track the brand palette and any category group switch.
@@ -364,7 +365,7 @@ body:has(.acad-cr) .acad-ins__sec-body :is(h1, h2, h3, h4, strong, b) { color: v
 body:has(.acad-cr) .acad-ins__sec-body a { color: var(--cr-link); }
 body:has(.acad-cr) .acad-ins__sec-body img { max-width: 100%; height: auto; border-radius: var(--cr-radius-sm); }
 
-/* ---- Footer: pills, résumé, full profile ----------------------------------- */
+/* ---- Footer: the social pills ---------------------------------------------- */
 body:has(.acad-cr) .acad-ins__foot {
     position: sticky;
     inset-block-end: 0;
@@ -378,26 +379,22 @@ body:has(.acad-cr) .acad-ins__foot {
     border-block-start: 1px solid var(--cr-hairline);
     background: var(--cr-card);
 }
-body:has(.acad-cr) .acad-ins__links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-inline-start: auto;
-}
-body:has(.acad-cr) .acad-ins__btn {
+/* A file tile's value: the filename as a download link with a small arrow. */
+body:has(.acad-cr) .acad-ins__file {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 18px;
-    border-radius: 999px;
-    font-weight: 600;
+    gap: 6px;
+    max-width: 100%;
+    color: var(--cr-link);
+    text-decoration: none;
+}
+body:has(.acad-cr) .acad-ins__file > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
-body:has(.acad-cr) .acad-ins__btn .acad-cr__ico { width: 18px; height: 18px; }
-// The "go there" arrow points forward. The RTL pass mirrors layout, not inline
-// SVG, so the glyph is flipped by hand under the RTL body class (the same
-// treatment _coursepage.scss gives the hero scrim).
-body.dir-rtl:has(.acad-cr) .acad-ins__btn .acad-cr__ico--arrow { transform: scaleX(-1); }
+body:has(.acad-cr) .acad-ins__file .acad-cr__ico { flex: 0 0 16px; width: 16px; height: 16px; }
+body:has(.acad-cr) .acad-ins__file:hover { text-decoration: underline; }
 
 /* ---- Reduced motion -------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
@@ -434,11 +431,7 @@ body.dir-rtl:has(.acad-cr) .acad-ins__btn .acad-cr__ico--arrow { transform: scal
     body:has(.acad-cr) .acad-ins__facts { padding: 16px 18px 0; grid-template-columns: 1fr; }
     body:has(.acad-cr) .acad-ins__body { padding: 18px 18px 4px; gap: 20px; }
     body:has(.acad-cr) .acad-ins__sec-body { padding-inline-start: 0; }
-    // Three rows of footer would pin down half a phone screen: let it scroll
-    // with the text instead.
-    body:has(.acad-cr) .acad-ins__foot { position: static; padding: 14px 18px 18px; }
-    body:has(.acad-cr) .acad-ins__links { width: 100%; margin-inline-start: 0; }
-    body:has(.acad-cr) .acad-ins__btn { flex: 1 1 auto; justify-content: center; }
+    body:has(.acad-cr) .acad-ins__foot { padding: 14px 18px 18px; }
 }
 @keyframes acad-ins-up {
     from { opacity: 0; transform: translateY(40px); }

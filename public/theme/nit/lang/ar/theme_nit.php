@@ -230,8 +230,6 @@ $string['acad_1yearexp'] = 'سنة خبرة واحدة';
 $string['acad_yearsexp'] = 'سنوات الخبرة';
 $string['acad_speaks'] = 'يدرّس باللغة';
 $string['acad_specialization'] = 'التخصص';
-$string['acad_downloadresume'] = 'تحميل السيرة الذاتية';
-$string['acad_viewfullprofile'] = 'عرض الملف الشخصي الكامل';
 
 // التسجيل: مؤشر قوة كلمة المرور وزر إظهار/إخفاء كلمة المرور.
 $string['passwordstrength'] = 'قوة كلمة المرور';
