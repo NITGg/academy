@@ -519,14 +519,14 @@ echo $OUTPUT->header();
        label and hover from the group's "Outline button (brand)" block — so they
        re-colour with the palette like the rest of the page. They used to be repainted
        here as white ghost buttons, which read as off-brand grey next to the cards.
-       The one thing a card supplies that the veil cannot is the ground those roles
-       were authored against, its Surface (--cbg2): paint it behind the button, so
-       the ring and label meet the same white (light) / graphite (dark) they meet on
-       a card, instead of a brand-blue label sinking into the black scrim (≈3:1).
-       Only the resting fill is set, and only through Bootstrap's token — hover and
-       active keep the theme's own --bs-btn-hover-bg / colour. */
+       The resting fill is pinned to transparent: these are ghost buttons over the
+       picture by design, whatever the group's "Fill the background" switch says
+       (that switch re-emits --nit-brand-btnoutlineprimarybg as a colour, which the
+       theme rule would otherwise paint here too). Only the resting fill is set, and
+       only through Bootstrap's token — hover and active keep the theme's own
+       --bs-btn-hover-bg / colour. */
     .nit-hero--art .nit-hero__btns .btn-outline-primary {
-      --bs-btn-bg: var(--cbg2);
+      --bs-btn-bg: transparent;
     }
     /* The copy column: start-aligned on the solid side of the scrim, capped so the
        title wraps at three or four words a line and never runs under the picture. */
