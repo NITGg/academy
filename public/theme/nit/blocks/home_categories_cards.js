@@ -98,7 +98,7 @@
             // space above the letters leave the tops ~0.35em below the line box,
             // so the name is lifted by that (tuned by eye on the live cards) -
             // relative offset, so the logo and the row do not move.
-            '.nit-cc-name{position:relative;top:-0.55em;',
+            '.nit-cc-name{position:relative;top:-0.35em;',
             'display:block;flex:0 1 auto;min-width:0;margin:0;max-width:72cqi;',
             'font-size:clamp(16px,5.5cqi,22px);line-height:1.364;font-weight:600;',
             'color:var(--nit-brand-textprimary);text-align:start;overflow-wrap:anywhere}',

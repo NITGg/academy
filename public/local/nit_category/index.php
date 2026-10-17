@@ -607,6 +607,8 @@ echo $OUTPUT->header();
       text-align: center;
       border-inline-end: 1px solid #64748b;
     }
+    /* A divider BETWEEN columns only — nothing after the last one. */
+    .nit-hero__stats > div:last-child { border-inline-end: 0; }
     .nit-hero__stat-num { font-size: clamp(28px, 2.5vw, 36px); font-weight: 500; color: var(--ctext3); display: block; line-height: 1.2; }
     .nit-hero__stat-label { font-size: 16px; color: var(--ctext2); font-weight: 500; }
 
