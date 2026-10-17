@@ -359,9 +359,10 @@ class teacher_manager {
                     $out['languages'] = preg_split('/\s*[,،|\/\n]+\s*/u', $text, -1, PREG_SPLIT_NO_EMPTY);
                 }
             } else if (in_array($name, $rich, true)) {
-                // The field's own renderer formats it (embedded files, filters);
-                // {mlang} is resolved again in case the filter is off for content.
-                $out[$name] = self::plain(self::ml($f->display_data()));
+                // The raw value, not display_data(): the multilang *filter* drops
+                // a half written in the other language outright, so an English-only
+                // biography came back empty in Arabic. ml() falls back instead.
+                $out[$name] = self::plain(self::ml((string) $f->data));
             } else if ($full && isset($out['social'][$name])) {
                 $out['social'][$name] = self::social_url($name, (string) $f->data);
             }
@@ -374,39 +375,49 @@ class teacher_manager {
      * Resolve a possibly-bilingual "{mlang}" value to plain text in the current
      * language — which the `lang` request parameter sets.
      *
-     * format_string() lets the site's multilang filter do it when that filter is
-     * enabled for strings; the fallback resolver covers a site where it is not,
-     * so the app never receives raw {mlang} markup. Same rule as the course page:
-     * the current language wins, then an "other" block, then the first block, so
-     * a value written in one language only is shown rather than lost.
+     * Resolved here rather than by the site's multilang filter, because the
+     * filter *drops* a half written in the other language: an English-only value
+     * read in Arabic comes back empty. The rule here is the course page's, one
+     * step kinder — the current language wins, then an "other" block, then the
+     * first block that actually says something — so a value written in one
+     * language only is shown rather than lost, and a blank half (an admin who
+     * left the Arabic box empty) never wins over a filled one.
      *
      * @param string $raw
      * @return string
      */
     private static function ml(string $raw): string {
-        if (trim($raw) === '') {
-            return '';
-        }
-        if (stripos($raw, '{mlang') === false) {
-            return trim($raw);
-        }
-        if (!preg_match_all('/\{mlang\s+([^}]+)\}(.*?)\{mlang\}/is', $raw, $matches, PREG_SET_ORDER)) {
+        if (stripos($raw, '{mlang') === false
+                || !preg_match_all('/\{mlang\s+([^}]+)\}(.*?)\{mlang\}/is', $raw, $matches, PREG_SET_ORDER)) {
             return trim($raw);
         }
         $lang = current_language();
-        $matched = $other = '';
-        $first = null;
+        $matched = $other = $first = '';
         foreach ($matches as $block) {
+            if (self::blank($block[2])) {
+                continue;
+            }
             $langs = array_map('trim', explode(',', strtolower($block[1])));
-            $first = $first ?? $block[2];
             if (in_array($lang, $langs, true)) {
                 $matched .= $block[2];
-            }
-            if (in_array('other', $langs, true)) {
+            } else if (in_array('other', $langs, true)) {
                 $other .= $block[2];
+            } else if ($first === '') {
+                $first = $block[2];
             }
         }
-        return trim($matched !== '' ? $matched : ($other !== '' ? $other : ($first ?? '')));
+        return trim($matched !== '' ? $matched : ($other !== '' ? $other : $first));
+    }
+
+    /**
+     * Is this value "nothing"? A cleared rich-text editor still reports markup
+     * such as `<p><br></p>` — the same test local_nit_mlang's widget applies.
+     *
+     * @param string $value
+     * @return bool
+     */
+    private static function blank(string $value): bool {
+        return (bool) preg_match('~^(?:\s|&nbsp;|<p>|</p>|<br\s*/?>|<div>|</div>)*$~i', $value);
     }
 
     /**

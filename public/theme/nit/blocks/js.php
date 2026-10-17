@@ -59,6 +59,7 @@ $allowed = [
     'home_subscriptions',
     'home_my_course',
     'home_hero_orbit',
+    'home_categories_cards',
 ];
 
 $name = isset($_GET['name']) ? (string) $_GET['name'] : '';

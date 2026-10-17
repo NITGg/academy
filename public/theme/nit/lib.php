@@ -4358,7 +4358,7 @@ function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
  * Exposed to JavaScript as `window.NIT_CATEGORIES`.
  *
  * @param int $limit maximum number of categories
- * @return array<int, array{id:int,name:string,names:array<string,string>,coursecount:int,icon:string,iconurl:string,image:string,url:string}>
+ * @return array<int, array{id:int,name:string,names:array<string,string>,coursecount:int,icon:string,iconurl:string,image:string,logolight:string,logodark:string,url:string}>
  */
 function theme_nit_get_categories(int $limit = 4): array {
     global $CFG, $OUTPUT;
@@ -4407,6 +4407,10 @@ function theme_nit_get_categories(int $limit = 4): array {
             'icon' => $caticonemoji !== '' ? $caticonemoji : $icons[$i % count($icons)],
             'iconurl' => $caticonurl,
             'image' => $catimage !== '' ? $catimage : $logourl,
+            // The category's own logo for each display mode (the "Change style" tab),
+            // '' when that slot is empty. Callers pick their own fallback.
+            'logolight' => ($catlogo = theme_nit_category_logo_url((int) $cat->id, 'light')) ? $catlogo->out(false) : '',
+            'logodark' => ($catlogo = theme_nit_category_logo_url((int) $cat->id, 'dark')) ? $catlogo->out(false) : '',
             // Build the details-page URL here so the frontend never has to guess wwwroot.
             'url' => (new moodle_url('/local/nit_category/index.php', ['id' => $cat->id]))->out(false),
         ];

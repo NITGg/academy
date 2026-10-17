@@ -1,0 +1,71 @@
+<!-- NIT - Category PHOTO CARDS, home-page block (Figma "home 13").
+     Paste into an HTML block on the FRONT PAGE (Site home), in place of the
+     current categories block.
+
+     A heading (a small eyebrow line over a big title) and a grid of the site's
+     top-level categories, three per row on a desktop, two on a tablet, one on a
+     phone. Each card is a link to that category and shows:
+       the category IMAGE as the photo filling the card,
+       a scrim over it in the page background colour,
+       the category LOGO (the one uploaded on the category's "Change style"
+       tab - the light-mode logo in light mode, the dark-mode logo in dark),
+       the category name.
+     A category with no logo for the current mode shows the site logo for that
+     mode instead.
+
+     ALL BEHAVIOUR LIVES IN theme/nit/blocks/home_categories_cards.js, served by
+     js.php beside it. This file is markup and a four-line loader, so a fix to
+     the cards ships with a git pull and never needs a re-paste.
+
+     WHERE THE CATEGORIES COME FROM - window.NIT_CATEGORIES, printed by theme_nit's
+     front-page layout, so this block belongs on the front page.
+
+     WHICH categories, and in what order, is data-ids on the grid element: a
+     plain list of category ids, drawn in that order. Empty = the first
+     data-limit the site returns. The ids are visible in the address bar on
+     course/management.php.
+
+     COLOURS read from the Brand Colors palette (--nit-brand-*): the eyebrow is
+     Primary, the title and card text are Text primary, the scrim is the page
+     Background. The light/dark switch repaints everything with no reload.
+
+     House rules, each learned the hard way: never write a tag - a less-than
+     sign followed by a letter and closed by a greater-than sign - anywhere in
+     these comments (HTML Purifier eats everything before it); no bare web
+     address inside the script; no empty elements (the editor deletes them,
+     which is why the grid holds a placeholder line the script replaces); no
+     {mlang} markup inside an attribute.
+
+     The two heading lines are bilingual {mlang} text, so this needs
+     local_nit_mlang's "Include rich text editors" OFF and the "Multi-language
+     content (v2)" filter ON - the same as home_6_categories2.html. Paste into an
+     EMPTY block. -->
+<div dir="auto"
+  style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: clamp(40px, 6vw, 80px) clamp(16px, 4vw, 48px);"
+  data-nit-catcards="">
+  <div
+    style="width: 100%; max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 25px;">
+    <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; text-align: center;">
+      <p dir="auto"
+        style="margin: 0; font-size: clamp(16px, 1.6vw, 22px); font-weight: 600; line-height: normal; color: var(--nit-brand-primary);">
+        {mlang ar}استكشاف الفئة الرئيسية{mlang}{mlang other}Explore the main categories{mlang}</p>
+      <h2 dir="auto"
+        style="margin: 0; font-size: clamp(24px, 2.6vw, 36px); font-weight: 700; line-height: normal; color: var(--nit-brand-textprimary);">
+        {mlang ar}دورات تدريبية في جميع المجالات{mlang}{mlang other}Training courses in every field{mlang}</h2>
+    </div>
+    <div style="width: 100%;" data-nit-catcards-grid="" data-ids="" data-limit="6">
+      <span style="display: block; text-align: center; opacity: .6;">...</span>
+    </div>
+  </div>
+  <script>
+    // Loads the behaviour. Keep this short and keep the "less than" character
+    // out of it - see the note at the top of this file.
+    (function() {
+      var here = document.currentScript;
+      var base = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : '';
+      var s = document.createElement('script');
+      s.src = base + '/theme/nit/blocks/js.php?name=home_categories_cards';
+      (here && here.parentNode ? here.parentNode : document.body).appendChild(s);
+    })();
+  </script>
+</div>
