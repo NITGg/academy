@@ -22,6 +22,8 @@
  * Options on the [data-nit-catcards] element:
  *   data-ids    comma list of category ids, drawn in that order (empty = all)
  *   data-limit  how many cards at most (default 6)
+ *   data-split-ar / data-split-en  how many words of the name go on the
+ *               card's first line, the rest on the second (default 2)
  */
 (function() {
     'use strict';
@@ -44,11 +46,17 @@
             'overflow:hidden;isolation:isolate;container-type:inline-size;',
             'background:var(--nit-brand-surface);color:var(--nit-brand-textprimary)!important;',
             'text-decoration:none!important}',
-            '.nit-cc-card:focus-visible{outline:3px solid var(--nit-brand-primary);outline-offset:3px}',
+            '.nit-cc-card:focus-visible{outline:3px solid var(--nit-brand-accent);outline-offset:3px}',
 
-            '.nit-cc-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;',
-            'z-index:-2;transition:transform .6s ease}',
-            '.nit-cc-card:hover .nit-cc-photo{transform:scale(1.06)}',
+            '.nit-cc-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}',
+
+            // Hover: a border in the brand red (Accent), as in the Figma frame.
+            // Drawn by an overlay rather than the card's own border because the
+            // photo (z-index -2 inside the card) would paint over that, and an
+            // overlay adds no width so nothing in the grid moves.
+            '.nit-cc-card::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;',
+            'border-radius:inherit;border:2px solid transparent;transition:border-color .2s ease}',
+            '.nit-cc-card:hover::after,.nit-cc-card:focus-visible::after{border-color:var(--nit-brand-accent)}',
 
             // The scrim is darkest behind the text, which sits at the inline
             // start: the right in Arabic, the left in English.
@@ -79,12 +87,12 @@
             '.nit-cc-logo--crop{inset:auto;left:0;top:0;width:337.8%;height:138.7%;object-fit:fill}',
             'html.nit-mode-dark .nit-cc-logo--light,html:not(.nit-mode-dark) .nit-cc-logo--dark{display:none}',
 
-            '.nit-cc-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;',
-            'flex:0 1 auto;min-width:0;margin:0;max-width:224px;font-size:clamp(16px,5.5cqi,22px);line-height:1.364;font-weight:600;',
+            '.nit-cc-name{display:block;flex:0 1 auto;min-width:0;margin:0;max-width:72cqi;',
+            'font-size:clamp(16px,5.5cqi,22px);line-height:1.364;font-weight:600;',
             'color:var(--nit-brand-textprimary);text-align:start;overflow-wrap:anywhere}',
+            '.nit-cc-line{display:block}',
 
-            '@media (prefers-reduced-motion:reduce){.nit-cc-photo{transition:none}',
-            '.nit-cc-card:hover .nit-cc-photo{transform:none}}',
+            '@media (prefers-reduced-motion:reduce){.nit-cc-card::after{transition:none}}',
 
             // The header: the curved band behind the logo (Figma "Rectangle
             // 2691") - the page background with a soft shadow under its curve.
@@ -148,6 +156,20 @@
         return img;
     }
 
+    // The name in two lines: the first N words, then the rest. N comes from
+    // the grid's data-split-ar / data-split-en (Arabic: "منصة إياك" then the
+    // field; English: "EAAC ... Platform" then the field). A name of N words
+    // or fewer stays on one line.
+    function splitName(text, count) {
+        var words = String(text).trim().split(/\s+/).filter(Boolean);
+        if (!(count > 0) || words.length <= count) {
+            return [words.join(' ')];
+        }
+        return [words.slice(0, count).join(' '), words.slice(count).join(' ')];
+    }
+
+    var nameSplit = 0;
+
     function buildCard(cat) {
         var a = document.createElement('a');
         a.className = 'nit-cc-card';
@@ -189,7 +211,12 @@
 
         var name = document.createElement('span');
         name.className = 'nit-cc-name';
-        name.textContent = cat.name || '';
+        splitName(cat.name || '', nameSplit).forEach(function(text) {
+            var line = document.createElement('span');
+            line.className = 'nit-cc-line';
+            line.textContent = text;
+            name.appendChild(line);
+        });
         body.appendChild(name);
 
         a.appendChild(body);
@@ -230,6 +257,9 @@
         var ids = (grid.getAttribute('data-ids') || '').split(',').map(function(s) {
             return s.trim();
         }).filter(Boolean);
+        var arabic = /^ar(-|_|$)/i.test(document.documentElement.getAttribute('lang') || '');
+        nameSplit = parseInt(grid.getAttribute(arabic ? 'data-split-ar' : 'data-split-en'), 10) ||
+            2;
         var limit = parseInt(grid.getAttribute('data-limit'), 10);
         if (!(limit > 0)) {
             limit = 6;

@@ -520,11 +520,12 @@ echo $OUTPUT->header();
     .nit-hero--art .nit-hero__title,
     .nit-hero--art .nit-hero__stat-num { color: var(--hero-ink); }
     .nit-hero--art .nit-hero__sub,
-    .nit-hero--art .nit-hero__sub *,
-    .nit-hero--art .nit-hero__stat-label { color: var(--hero-muted); }
+    .nit-hero--art .nit-hero__sub * { color: var(--hero-muted); }
+    .nit-hero--art .nit-hero__stat-label { color: var(--hero-ink); }
+    /* Figma: a frosted tag over the picture — 8% white fill, a 4% white hairline. */
     .nit-hero--art .nit-hero__badge {
-      background: rgba(255, 255, 255, .12);
-      border-color: rgba(255, 255, 255, .28);
+      background: rgba(255, 255, 255, .08);
+      border-color: rgba(255, 255, 255, .04);
       color: var(--hero-ink);
     }
     /* The copy column: start-aligned on the solid side of the scrim, capped so the
@@ -532,11 +533,7 @@ echo $OUTPUT->header();
     .nit-hero--art .nit-hero__inner { margin: 0; max-width: min(680px, 56%); }
     .nit-hero--art .nit-hero__title { font-size: clamp(26px, 2.5vw, 36px); max-width: 24ch; }
     .nit-hero--art .nit-hero__sub { margin-inline: 0; max-width: 560px; }
-    .nit-hero--art .nit-hero__stats { justify-content: flex-start; gap: 36px; margin: 2rem 0; }
-    .nit-hero--art .nit-hero__stats > div {
-      padding-inline-start: 14px;
-      border-inline-start: 2px solid var(--caccent);
-    }
+    .nit-hero--art .nit-hero__stats { justify-content: flex-start; margin: 1.5rem 0 1.25rem; }
     .nit-hero--art .nit-hero__btns { justify-content: flex-start; }
     @media (max-width: 900px) {
       /* One column: the picture stays full-bleed behind the copy, and the scrim becomes
@@ -555,14 +552,14 @@ echo $OUTPUT->header();
       .nit-hero *, .nit-hero__grid { animation: none !important; }
     }
 
-    /* Badge — X-Trade .hero-badge */
+    /* Badge — Figma: a 42px tag with 12px corners (not a pill), 22px Medium. */
     .nit-hero__badge {
       display: inline-flex; align-items: center; gap: 0.5rem;
       background: color-mix(in srgb, var(--cbg4) 12%, transparent);
       border: 1px solid color-mix(in srgb, var(--cbg4) 30%, transparent);
-      border-radius: 50px; padding: 6px 19px;
-      font-size: 14px; color: var(--ctext3); font-weight: 600;
-      margin-bottom: 2rem;
+      border-radius: 12px; min-height: 42px; padding: 0 16px; box-sizing: border-box;
+      font-size: clamp(16px, 1.6vw, 22px); color: var(--ctext3); font-weight: 500;
+      margin-bottom: 1.5rem;
       animation: nit-fadedown 0.8s ease both;
     }
     .nit-hero__badge-dot {
@@ -577,9 +574,11 @@ echo $OUTPUT->header();
       color: var(--ctext1);
       animation: nit-fadeup 0.9s ease 0.1s both;
     }
-    /* Both spans inherit the heading's colour: the whole sentence reads one variable. */
-    .nit-hero__title .nit-hero__n1,
+    /* The count line ("21 برنامجًا تدريبيًا") wears the Accent Words role — the same
+       colour as "لماذا يختار الآلاف" below — and the rest of the heading its ink. */
     .nit-hero__title .nit-hero__n2 { color: inherit; }
+    .nit-hero__title .nit-hero__n1,
+    .nit-hero--art .nit-hero__title .nit-hero__n1 { color: var(--nit-brand-accentwords, var(--ctext3)); }
 
     /* Description — X-Trade .hero-sub : clamp(1rem, 2vw, 1.25rem) = 16/20px.
        format_text() wraps this in its own <div>/<p> that carries the theme's
@@ -596,24 +595,29 @@ echo $OUTPUT->header();
     }
     .nit-hero__sub p, .nit-hero__sub div { margin: 0; }
 
-    /* Stats — X-Trade .hero-stats : gap 3rem, .stat-num 2.2rem, .stat-label 0.8rem */
+    /* Stats — Figma: 157px columns 16px apart, number over label, both centred, each
+       column closed by a 1px slate rule on its inline-end side (left in Arabic). */
     .nit-hero__stats {
-      display: flex; gap: 48px; margin: 2.5rem 0;
+      display: flex; gap: 16px; margin: 2rem 0;
       justify-content: center; flex-wrap: wrap;
       animation: nit-fadeup 0.9s ease 0.4s both;
+    }
+    .nit-hero__stats > div {
+      min-width: 157px; box-sizing: border-box; padding: 4px 12px;
+      text-align: center;
+      border-inline-end: 1px solid #64748b;
     }
     .nit-hero__stat-num { font-size: clamp(28px, 2.5vw, 36px); font-weight: 500; color: var(--ctext3); display: block; line-height: 1.2; }
     .nit-hero__stat-label { font-size: 16px; color: var(--ctext2); font-weight: 500; }
 
-    /* Buttons — the site's own .btn component, and all three the SAME one: "Explore
-       specializations", "Flexible plans" and "Coupon plans" are each the Main button
-       (.btn-primary) — three equal doors into the page, not one CTA and two ghosts. Only
-       size and shape are set here; every colour — fill, label, ring, and the three again
-       under the cursor or pressed — is that block's six roles in the group's Brand
-       Colors editor, wired in theme_nit scss/foundation/_brand.scss. Below, the course,
-       plan and coupon cards pair that same Main button with the Outline button (brand)
-       (.btn-outline-primary) for their secondary action, so an administrator recolours
-       every button on this page from those two blocks and nothing else.
+    /* Buttons — the site's own .btn components, as in the Figma hero: "Explore
+       specializations" is the Main button (.btn-primary), "Flexible plans" and "Coupon
+       plans" the Outline button (brand) (.btn-outline-primary) with the design's 2px
+       ring. Only size and shape are set here; every colour — fill, label, ring, and the
+       three again under the cursor or pressed — is those blocks' roles in the group's
+       Brand Colors editor, wired in theme_nit scss/foundation/_brand.scss. The course,
+       plan and coupon cards below use the same two buttons, so an administrator
+       recolours every button on this page from those two blocks and nothing else.
        Nothing is pinned any more (neither a ghost fill for the veil nor the hero ink as
        a label): a colour an admin cannot reach from the editor is exactly what this
        page must not carry. A label that has to be white over the picture is the
@@ -626,6 +630,7 @@ echo $OUTPUT->header();
       padding: 12px 32px; border-radius: 8px;
       font-size: 18px; font-weight: 500;
     }
+    .nit-hero__btns .btn-outline-primary { border-width: 2px; padding: 11px 31px; }
   </style>
   <div class="nit-hero<?= $hasrealimage ? ' nit-hero--art' : '' ?>" dir="<?= $isar ? 'rtl' : 'ltr' ?>">
     <?php if ($hasrealimage): ?>
@@ -682,12 +687,12 @@ echo $OUTPUT->header();
           <?= $t('Explore specializations', 'استكشف التخصصات') ?>
         </a>
         <?php if ($hasplans): ?>
-        <a href="#nit-cat-plans" class="btn btn-primary" data-nit-scrollto="nit-cat-plans">
+        <a href="#nit-cat-plans" class="btn btn-outline-primary" data-nit-scrollto="nit-cat-plans">
           <?= $t('Flexible plans', 'خطط مرنة') ?>
         </a>
         <?php endif; ?>
         <?php if ($hascoupons): ?>
-        <a href="#nit-cat-coupons" class="btn btn-primary" data-nit-scrollto="nit-cat-coupons">
+        <a href="#nit-cat-coupons" class="btn btn-outline-primary" data-nit-scrollto="nit-cat-coupons">
           <?= $t('Coupon plans', 'كوبونات الخصم') ?>
         </a>
         <?php endif; ?>

@@ -55,7 +55,7 @@
      course/management.php.
 
      COLOURS read from the Brand Colors palette (--nit-brand-*): the eyebrow is
-     Primary, the title and card text are Text primary, the scrim and the curved
+     Accent (the brand red), the title and card text are Text primary, the scrim and the curved
      band are the page Background, the controls use Surface, Border primary and
      the hover roles. The light/dark switch repaints everything with no reload.
 
@@ -203,13 +203,13 @@
     </script>
     <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; text-align: center;">
       <p
-        style="margin: 0; font-size: clamp(16px, 1.6vw, 22px); font-weight: 600; line-height: normal; color: var(--nit-brand-primary);">
+        style="margin: 0; padding-bottom: 12px; font-size: clamp(16px, 1.6vw, 22px); font-weight: 600; line-height: normal; color: var(--nit-brand-accent);">
         {mlang ar}استكشاف الفئة الرئيسية{mlang}{mlang other}Explore the main categories{mlang}</p>
       <h2
         style="margin: 0; font-size: clamp(24px, 2.6vw, 36px); font-weight: 700; line-height: normal; color: var(--nit-brand-textprimary);">
         {mlang ar}دورات تدريبية في جميع المجالات{mlang}{mlang other}Training courses in every field{mlang}</h2>
     </div>
-    <div style="width: 100%;" data-nit-catcards-grid="" data-ids="" data-limit="6">
+    <div style="width: 100%;" data-nit-catcards-grid="" data-ids="" data-limit="6" data-split-ar="2" data-split-en="2">
       <span style="display: block; text-align: center; opacity: .6;">...</span>
     </div>
   </div>
