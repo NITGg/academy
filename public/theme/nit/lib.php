@@ -3516,7 +3516,7 @@ function theme_nit_logo_slots(): array {
         'navbar' => [
             'setting'  => 'logoheightnavbar',
             'property' => '--nit-logo-navbar',
-            'default'  => 66,
+            'default'  => 56,
         ],
         // The header of the phone-width primary drawer (Boost's
         // primary-drawer-mobile template): the same mark, in the menu that
@@ -3925,15 +3925,14 @@ function theme_nit_logo_height(string $slot): int {
  * `$navbar-height` drives both the bar itself and the content offset underneath
  * it in every Boost layout (drawer.scss, layout.scss, navbar.scss), so a logo
  * taller than the bar would spill out of it rather than push it open. Grow-only:
- * the bar keeps its designed 100px until the logo plus its breathing room needs
- * more, so shrinking the logo never shrinks the header.
+ * the bar keeps its designed 80px (the Figma nav) until the logo plus its
+ * breathing room needs more, so shrinking the logo below 56px never shrinks it.
  *
  * @return int height in pixels
  */
 function theme_nit_navbar_height(): int {
-    // 12px of clearance above and below the mark, matching the space the 66px
-    // default leaves in the 100px bar.
-    return (int) max(100, theme_nit_logo_height('navbar') + 24);
+    // 12px of clearance above and below the mark: the 56px default fills the 80px bar.
+    return (int) max(80, theme_nit_logo_height('navbar') + 24);
 }
 
 /**

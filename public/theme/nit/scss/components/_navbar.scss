@@ -211,7 +211,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // draws if the custom property has not been published yet. The bar grows to
     // fit a taller logo — see theme_nit_navbar_height().
     .nit-navbar-logo {
-        height: var(--nit-logo-navbar, 66px);
+        height: var(--nit-logo-navbar, 56px);
         width: auto;
     }
 
@@ -1081,7 +1081,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         box-shadow: $nit-navpanel-shadow;
         color: $nit-navpanel-item;
 
-        // Position: Moodle pins the panel at `top: $navbar-height` (100px),
+        // Position: Moodle pins the panel at `top: $navbar-height` (80px by default),
         // which leaves it floating ~58px below the shorter bell button. Re-anchor
         // it snug under the toggle with the same 12px gap as the other panels.
         top: calc(100% + 12px) !important;
@@ -1430,7 +1430,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         // The floor is the bar plus a gutter, not a bare 3rem: on a short
         // viewport 12vh resolves to less than the bar's own height and the
         // dialog opens tucked under it — the overlap this dialog exists to
-        // avoid. `$navbar-height` is the same 100px the bar is drawn at.
+        // avoid. `$navbar-height` is the same height the bar is drawn at.
         padding: clamp(#{$navbar-height + 16px}, 12vh, 8rem) 1rem 1rem;
         overflow-y: auto;
     }

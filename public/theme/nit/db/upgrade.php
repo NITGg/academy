@@ -84,5 +84,18 @@ function xmldb_theme_nit_upgrade($oldversion): bool {
         upgrade_plugin_savepoint(true, 2026101701, 'theme', 'nit');
     }
 
+    if ($oldversion < 2026101702) {
+        // The top bar is 80px now (the Figma nav), down from 100px, and the logo
+        // default went from 66px to 56px so it fits with 12px either side. A site
+        // still on the old default gets the new one; a height an administrator
+        // chose is theirs and is left alone (the bar grows to carry it).
+        if ((string) get_config('theme_nit', 'logoheightnavbar') === '66') {
+            set_config('logoheightnavbar', 56, 'theme_nit');
+        }
+        theme_reset_all_caches();
+
+        upgrade_plugin_savepoint(true, 2026101702, 'theme', 'nit');
+    }
+
     return true;
 }

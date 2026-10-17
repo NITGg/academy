@@ -54,7 +54,7 @@
 // (`.navbar.fixed-top .navbar-brand .logo` in boost/scss/moodle/navbar.scss):
 // anything shorter loses to it on specificity no matter how late it is loaded.
 .navbar.fixed-top .navbar-brand .logo {
-    max-height: var(--nit-logo-navbar, 66px);
+    max-height: var(--nit-logo-navbar, 56px);
     width: auto;
     object-fit: contain;
 }

@@ -175,15 +175,25 @@ $collectrungs = function (array $node) use (&$collectrungs, $courselevels, $leve
 
 // A course's level as a little meter: rung N of the ladder, lit up to N. Nothing for a
 // text-field level (no ladder to climb) or a course with no level.
+//
+// Drawn as the design's "signal" glyph (Figma "No Connection"): one outlined, rounded bar
+// per rung, rising left to right; the bars up to N are filled. A 24px box whatever the
+// ladder's length, so a 4-rung ladder just gets narrower bars.
 $levelmeter = function (int $index) use ($levelmax): string {
     if ($levelmax <= 0 || $index <= 0) {
         return '';
     }
-    $h = '<span class="nit-lvl-meter" aria-hidden="true">';
+    $gap = 2.5;
+    $w = (20 - ($levelmax - 1) * $gap) / $levelmax;
+    $bars = '';
     for ($i = 1; $i <= $levelmax; $i++) {
-        $h .= '<i' . ($i <= $index ? ' class="on"' : '') . '></i>';
+        $h = $levelmax === 1 ? 16 : 8 + 12 * ($i - 1) / ($levelmax - 1);
+        $x = 2 + ($i - 1) * ($w + $gap);
+        $bars .= sprintf('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" rx="1.2"%s/>',
+            $x + 0.6, 21.4 - $h, $w - 1.2, $h, $i <= $index ? ' fill="currentColor"' : '');
     }
-    return $h . '</span>';
+    return '<span class="nit-lvl-meter" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"'
+        . ' fill="none" stroke="currentColor" stroke-width="1.6">' . $bars . '</svg></span>';
 };
 
 // Hero banner always shows the grand total for the whole parent category, regardless
@@ -1119,8 +1129,8 @@ echo $OUTPUT->header();
             <section class="nit-lvl-group<?= $isnone ? ' nit-lvl-group--none' : '' ?>" data-nit-lvlgroup="<?= s($group['key']) ?>">
               <?php if ($showrungs): ?>
               <h4 class="nit-spec-title nit-spec-title--sub nit-lvl-title">
-                <span class="nit-spec-subname"><?= $group['label'] ?></span>
                 <?= $isnone ? '' : $levelmeter($group['index']) ?>
+                <span class="nit-spec-subname"><?= $group['label'] ?></span>
               </h4>
               <?php endif; ?>
               <div class="nit-spec-grid">
@@ -1210,17 +1220,13 @@ echo $OUTPUT->header();
         .nitcc[hidden], .nit-lvl-group[hidden], .nit-spec-block[hidden] { display: none !important; }
 
         /* The meter: one bar per rung of the ladder, lit up to the rung in question. */
-        .nit-lvl-meter { display: inline-flex; align-items: flex-end; gap: 2px; flex: 0 0 auto; }
-        .nit-lvl-meter i {
-          display: block; width: 4px; height: 12px; border-radius: 2px;
-          background: color-mix(in srgb, currentColor 22%, transparent);
-        }
-        .nit-lvl-meter i.on { background: currentColor; }
+        .nit-lvl-meter { display: inline-flex; flex: 0 0 auto; color: var(--ctext2); }
+        .nit-lvl-meter svg { display: block; width: 24px; height: 24px; }
+        .nit-spec-meta .nit-lvl-meter svg { width: 18px; height: 18px; }
 
         /* Rung chip inside a category. */
         .nit-lvl-groups { display: flex; flex-direction: column; gap: 28px; }
         .nit-lvl-title { margin-bottom: 18px; }
-        .nit-lvl-title .nit-lvl-meter { color: var(--ctext3); }
         .nit-lvl-group--none .nit-lvl-title .nit-spec-subname { color: var(--ctext2); }
 
         /* Structure line beside a category title, in brackets as in the design:
