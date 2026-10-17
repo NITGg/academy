@@ -71,11 +71,10 @@
             'html[dir=rtl] .nit-cc-card::before{',
             'background:linear-gradient(to left,' + scrimStrong + ' 0%,' + scrimStrong + ' 68%,' + scrimSoft + ' 100%)}',
 
-            // One ROW, centred on a line 40% down the card (above the middle, so
-            // the text sits clear of the busy lower half of the photo), 25px in
-            // from the inline start: the logo, a "|" rule, then the name - right
-            // to left in Arabic, left to right in English.
-            '.nit-cc-body{position:absolute;top:40%;transform:translateY(-50%);inset-inline-start:6.25%;',
+            // One ROW, vertically centred, 25px in from the inline start: the
+            // logo, a "|" rule, then the name - right to left in Arabic, left to
+            // right in English.
+            '.nit-cc-body{position:absolute;top:50%;transform:translateY(-50%);inset-inline-start:6.25%;',
             'display:flex;flex-direction:row;align-items:flex-start;gap:10px;max-width:87.5%}',
 
             // The logo box: 40px wide with 6px either side, and the rule on its
@@ -94,7 +93,11 @@
             '.nit-cc-logo--crop{inset:auto;left:0;top:0;width:337.8%;height:138.7%;object-fit:fill}',
             'html.nit-mode-dark .nit-cc-logo--light,html:not(.nit-mode-dark) .nit-cc-logo--dark{display:none}',
 
-            '.nit-cc-name{display:block;flex:0 1 auto;min-width:0;margin:0;max-width:72cqi;',
+            // The name alone sits higher than the logo: lifted 10% of the
+            // card's height (6.25cqi of a 400x250 card) without moving the logo
+            // or the row - relative offset, so nothing else reflows.
+            '.nit-cc-name{position:relative;top:-6.25cqi;',
+            'display:block;flex:0 1 auto;min-width:0;margin:0;max-width:72cqi;',
             'font-size:clamp(16px,5.5cqi,22px);line-height:1.364;font-weight:600;',
             'color:var(--nit-brand-textprimary);text-align:start;overflow-wrap:anywhere}',
             '.nit-cc-line{display:block}',
@@ -208,7 +211,11 @@
         mark.className = 'nit-cc-mark';
         var box = document.createElement('span');
         box.className = 'nit-cc-markbox';
-        if (light && light === dark) {
+        if (cat.iconurl) {
+            // The category's own icon (local_nit_category "Category icon" tab):
+            // the mark already cut out as a picture of its own, drawn whole.
+            box.appendChild(logoImg(cat.iconurl, '', false));
+        } else if (light && light === dark) {
             box.appendChild(logoImg(light, '', !!cat.logolight));
         } else {
             if (light) {
