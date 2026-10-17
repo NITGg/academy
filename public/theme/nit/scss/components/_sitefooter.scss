@@ -25,7 +25,9 @@
 // Direction: no `left`/`right` anywhere. The columns are a grid, which reverses
 // itself under `dir="rtl"`, and every offset is a logical property — so the
 // Arabic site gets the contact column on the right and the logo on the left
-// with no RTL-specific rules.
+// with no RTL-specific rules. Alignment follows the same rule: every column,
+// heading, link, the social row and the copyright line sit at the `start` edge,
+// so the English footer reads from the left and the Arabic one from the right.
 // =============================================================================
 
 .nit-sitefooter {
@@ -108,6 +110,13 @@
         }
     }
 
+    // The nit_fullwidth layout already zeroes `#page`'s padding (fullwidth.mustache),
+    // so there is nothing to cancel: pulling out by 3rem there pushed the band past
+    // both edges of the viewport and clipped the first and last column.
+    body.nit-fullwidth-page #page.drawers > & {
+        margin-inline: 0;
+    }
+
     // Once the band spans the whole page it runs under the open drawer, which is
     // `position: fixed` full-height with an opaque background — so without this
     // the sidebar paints over the left third of the footer. Sit one step above
@@ -175,7 +184,7 @@
 
 .nit-sitefooter__col {
     min-width: 0;
-    text-align: center;
+    text-align: start;
 }
 
 .nit-sitefooter__heading {
@@ -223,9 +232,6 @@
     margin: 0;
     padding: 0;
     list-style: none;
-    // The rows read as a block of prose, not as a centred list like the link
-    // columns: an address wraps over three lines and centring it is unreadable.
-    text-align: start;
 }
 
 .nit-sitefooter__contactrow {
@@ -269,7 +275,7 @@
 .nit-sitefooter__col--brand {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 1.625rem;
 }
 
@@ -291,7 +297,10 @@
 .nit-sitefooter__social {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
+    // Full column width, so the icons wrap inside the column instead of running
+    // past it as one max-content row.
+    align-self: stretch;
     gap: 1rem;
     margin: 0;
     padding: 0;
@@ -330,7 +339,7 @@
     padding-top: 1.5rem;
     border-top: 1px solid var(--nit-footerborder);
     font-size: 0.875rem;
-    text-align: center;
+    text-align: start;
     // The muted brand role rather than opacity on the primary one: opacity fades
     // the text towards the background whatever the brand is, which on a light
     // group would drop it below the contrast floor.

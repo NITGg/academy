@@ -230,10 +230,11 @@ class get_footer extends external_api {
             'social' => new external_multiple_structure(
                 new external_single_structure([
                     'network' => new external_value(PARAM_ALPHA,
-                        'Machine name: facebook, instagram, linkedin, twitter, youtube, tiktok, whatsapp or telegram'),
+                        'Machine name: facebook, instagram, linkedin, twitter, youtube, tiktok, whatsapp, telegram or email'),
                     'name'    => new external_value(PARAM_TEXT, 'The brand\'s own name, for a label or aria-label'),
-                    'icon'    => new external_value(PARAM_TEXT, 'FontAwesome 6 brand classes for the icon'),
-                    'url'     => new external_value(PARAM_URL, 'The profile to open'),
+                    'icon'    => new external_value(PARAM_TEXT, 'FontAwesome 6 classes for the icon'),
+                    // RAW, not URL: PARAM_URL refuses mailto:, which would blank the email row.
+                    'url'     => new external_value(PARAM_RAW, 'The profile to open, or a mailto: link for email'),
                 ]), 'The social links, in display order. A network with no URL set is absent.'
             ),
             'logourl'   => new external_value(PARAM_URL, 'The site logo the footer shows'),

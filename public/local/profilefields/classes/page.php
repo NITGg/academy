@@ -1275,7 +1275,8 @@ class page {
         foreach (array_keys(footer::networks()) as $network) {
             $rows .= self::footer_plain_row('footersocial' . $network, footer::get('social' . $network),
                 get_string('footersocial' . $network, 'local_profilefields'),
-                get_string('footersocialurl_desc', 'local_profilefields'), 'ltr');
+                get_string($network === 'email' ? 'footersocialemail_desc' : 'footersocialurl_desc',
+                    'local_profilefields'), 'ltr');
         }
 
         return self::footer_heading('footersocialsection') .

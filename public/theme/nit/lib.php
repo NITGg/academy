@@ -4553,6 +4553,8 @@ function theme_nit_get_site_footer_context($output): ?array {
             // "LinkedIn" and "X" read as their brands rather than as ucfirst() of
             // a config key.
             'network' => $item['name'],
+            // A mailto: opens the mail client; a new tab would just be left blank.
+            'newtab'  => strpos($item['url'], 'mailto:') !== 0,
         ];
     }
 

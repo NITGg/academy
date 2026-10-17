@@ -483,6 +483,9 @@ $string['footersocialyoutube'] = 'YouTube';
 $string['footersocialtiktok'] = 'TikTok';
 $string['footersocialwhatsapp'] = 'WhatsApp';
 $string['footersocialtelegram'] = 'Telegram';
+$string['footersocialemail'] = 'Email';
+$string['footersocialemail_desc'] = 'An email address, e.g. info@example.com. Shown as an envelope icon that opens a new email. Leave empty to hide this icon.';
+$string['footersocialbademail'] = 'Email was not saved: "{$a}" is not a valid email address.';
 
 $string['footercopyrightsection'] = 'Copyright';
 $string['footercopyrightyear'] = 'Copyright year';

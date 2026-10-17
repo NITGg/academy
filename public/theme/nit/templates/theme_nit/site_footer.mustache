@@ -32,7 +32,7 @@
     * contactrows - [{icon, text, url, haslink}]
     * columns - [{heading, hasheading, links: [{label, url}]}]
     * haslogo / logourl / sitename - the site logo, read the way the navbar reads it
-    * hassocial / social - [{icon, url, network}]
+    * hassocial / social - [{icon, url, network, newtab}] - newtab is false for a mailto: link
     * copyright - the copyright line, year already substituted
 
     Example context (json):
@@ -49,7 +49,7 @@
         "logourl": "https://example.com/theme/nit/pix/footer-logo.png",
         "sitename": "EAAC Learning",
         "hassocial": true,
-        "social": [{"icon": "fa-brands fa-facebook-f", "url": "https://facebook.com/eaac", "network": "Facebook"}],
+        "social": [{"icon": "fa-brands fa-facebook-f", "url": "https://facebook.com/eaac", "network": "Facebook", "newtab": true}],
         "copyright": "© 2026 EAAC. All rights reserved."
     }
 }}
@@ -98,7 +98,7 @@
                     <ul class="nit-sitefooter__social">
                         {{#social}}
                             <li>
-                                <a href="{{url}}" aria-label="{{network}}" rel="noopener noreferrer" target="_blank">
+                                <a href="{{url}}" aria-label="{{network}}"{{#newtab}} rel="noopener noreferrer" target="_blank"{{/newtab}}>
                                     <i class="{{icon}}" aria-hidden="true"></i>
                                 </a>
                             </li>

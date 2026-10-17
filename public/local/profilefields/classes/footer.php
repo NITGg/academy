@@ -96,6 +96,9 @@ class footer {
             'tiktok'    => 'fa-brands fa-tiktok',
             'whatsapp'  => 'fa-brands fa-whatsapp',
             'telegram'  => 'fa-brands fa-telegram',
+            // Not a network, but drawn in the same row of round icons. It is
+            // stored as a bare address and becomes a mailto: link in config().
+            'email'     => 'fa-solid fa-envelope',
         ];
     }
 
@@ -118,6 +121,7 @@ class footer {
             'tiktok'    => 'TikTok',
             'whatsapp'  => 'WhatsApp',
             'telegram'  => 'Telegram',
+            'email'     => get_string('footersocialemail', 'local_profilefields'),
         ];
     }
 
@@ -405,6 +409,9 @@ class footer {
             if ($url === '') {
                 continue;
             }
+            if ($network === 'email') {
+                $url = 'mailto:' . $url;
+            }
             $social[] = [
                 'network' => $network,
                 'name'    => self::networknames()[$network] ?? ucfirst($network),
@@ -522,6 +529,18 @@ class footer {
 
         foreach (array_keys(self::networks()) as $network) {
             $raw = trim(optional_param('footersocial' . $network, '', PARAM_RAW_TRIMMED));
+
+            if ($network === 'email') {
+                // A bare address; a pasted "mailto:" is forgiven rather than refused.
+                $email = trim(preg_replace('/^mailto:/i', '', $raw));
+                if ($email !== '' && !validate_email($email)) {
+                    $problems[] = get_string('footersocialbademail', 'local_profilefields', s($raw));
+                    $email = '';
+                }
+                set_config('footersocial' . $network, $email, self::COMPONENT);
+                continue;
+            }
+
             $url = clean_param($raw, PARAM_URL);
             if ($raw !== '' && $url === '') {
                 $problems[] = get_string('footersocialbadurl', 'local_profilefields',

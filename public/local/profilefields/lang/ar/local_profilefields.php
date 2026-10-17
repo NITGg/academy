@@ -476,6 +476,9 @@ $string['footersocialyoutube'] = 'YouTube';
 $string['footersocialtiktok'] = 'TikTok';
 $string['footersocialwhatsapp'] = 'WhatsApp';
 $string['footersocialtelegram'] = 'Telegram';
+$string['footersocialemail'] = 'البريد الإلكتروني';
+$string['footersocialemail_desc'] = 'عنوان بريد إلكتروني، مثل info@example.com. يظهر كأيقونة ظرف تفتح رسالة جديدة. اتركه فارغًا لإخفاء هذه الأيقونة.';
+$string['footersocialbademail'] = 'لم يُحفَظ البريد الإلكتروني: «{$a}» ليس عنوان بريد إلكتروني صالحًا.';
 
 $string['footercopyrightsection'] = 'حقوق النشر';
 $string['footercopyrightyear'] = 'سنة حقوق النشر';
