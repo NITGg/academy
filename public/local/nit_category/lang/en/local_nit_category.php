@@ -207,3 +207,9 @@ $string['whycard_titlerequired'] = 'Give the card a heading in at least one lang
 $string['whycard_none'] = 'No cards yet — the section shows its texts only.';
 $string['whycard_deleted'] = 'Card deleted.';
 $string['whycard_confirmdelete'] = 'Delete the card "{$a}"? Its picture is deleted with it.';
+
+// Course card stats row (classes/course_card.php).
+$string['cardlessons'] = '{$a} lessons';
+$string['cardhours'] = '{$a} hours';
+$string['cardhoursweek'] = '{$a} h / week';
+$string['cardweeks'] = '{$a} weeks';

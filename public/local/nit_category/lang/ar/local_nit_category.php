@@ -205,3 +205,9 @@ $string['whycard_titlerequired'] = 'أدخل عنوانًا للبطاقة بل�
 $string['whycard_none'] = 'لا توجد بطاقات بعد — يعرض القسم نصوصه فقط.';
 $string['whycard_deleted'] = 'تم حذف البطاقة.';
 $string['whycard_confirmdelete'] = 'هل تريد حذف البطاقة «{$a}»؟ ستُحذف صورتها معها.';
+
+// Course card stats row (classes/course_card.php).
+$string['cardlessons'] = '{$a} درس';
+$string['cardhours'] = '{$a} ساعة';
+$string['cardhoursweek'] = '{$a} ساعة/ أسبوع';
+$string['cardweeks'] = '{$a} أسبوع';

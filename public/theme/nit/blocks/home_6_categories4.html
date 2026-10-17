@@ -29,9 +29,9 @@
      with the navbar's mark. The picture in the markup is only the fallback
      for a site with no logo uploaded: the small script right after it swaps
      in the real logo while the page is still being parsed and keeps the
-     picture invisible over a pulsing skeleton (the logo's own size, so
-     nothing below it moves) until it has loaded - so the old fallback never
-     flashes on screen first.
+     picture invisible until it has loaded, then fades it in. Its space is
+     held empty and transparent at the logo's own size, so nothing below it
+     moves and no box or old logo ever shows first.
 
      THE TWO CONTROLS are copies of the navbar's own, with the same contract as
      the hero block (home_6_categories1.html): window.NIT_LANG_TOGGLE and
@@ -76,11 +76,16 @@
 <div
   style="position: relative; overflow: hidden; background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(16px, 4vw, 48px) clamp(40px, 6vw, 80px);"
   data-nit-catcards="">
-  <!-- The curved band behind the logo. Its colour and shadow are set by the
-       script's stylesheet from the palette, not here. -->
+  <!-- The curved band behind the logo. Its colour, place and size are INLINE
+       on purpose: an svg path with no colour of its own is drawn black, so
+       left to the script's stylesheet the band showed as a black block
+       behind the logo until that script arrived. The script only adds the
+       soft shadow under the curve. -->
   <svg viewBox="0 0 1444 338" preserveAspectRatio="none" aria-hidden="true"
+    style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: min(1444px, 100%); height: clamp(200px, 24vw, 338px); overflow: visible; pointer-events: none; z-index: 0;"
     data-nit-catcards-arc="">
-    <path d="M0 292.9C568.3 350.4 884.9 355.6 1444 292.9V0H0Z"></path>
+    <path style="fill: var(--nit-brand-background);"
+      d="M0 292.9C568.3 350.4 884.9 355.6 1444 292.9V0H0Z"></path>
   </svg>
   <!-- Corner controls: the language swap, then the light/dark switch. -->
   <div
@@ -162,43 +167,28 @@
     <div
       style="display: flex; justify-content: center; width: 100%; margin-bottom: clamp(32px, 6vw, 84px);">
       <span
-        style="display: block; height: clamp(96px, 13.7vw, 197px); aspect-ratio: 548 / 197; max-width: 100%; border-radius: 14px; background: color-mix(in srgb, var(--nit-brand-textprimary) 8%, transparent);"
-        data-nit-catcards-skel="" data-nit-skel-anim=""><img
-        style="display: block; height: 100%; width: auto; max-width: 100%; margin: 0 auto; opacity: 0; transition: opacity .3s ease;"
+        style="display: block; height: clamp(96px, 13.7vw, 197px); aspect-ratio: 548 / 197; max-width: 100%;"
+        data-nit-catcards-logobox=""><img
+        style="display: block; height: 100%; width: auto; max-width: 100%; margin: 0 auto; opacity: 0; transition: opacity .4s ease;"
         src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
         data-nit-catcards-brand="" data-nit-logo="full"></span></div>
     <script>
       // The big logo, set while the page is still being parsed: the real
       // site logo goes in before the fallback in the markup can paint, and
-      // the picture stays invisible over its skeleton until it has loaded.
-      // No less-than character in here.
+      // the picture stays invisible - its space held, empty and transparent -
+      // until it has loaded, then fades in. No less-than character in here.
       (function() {
         var here = document.currentScript;
         var row = here ? here.previousElementSibling : null;
         var img = row ? row.querySelector('[data-nit-catcards-brand]') : null;
-        var skel = row ? row.querySelector('[data-nit-catcards-skel]') : null;
+        var box = row ? row.querySelector('[data-nit-catcards-logobox]') : null;
         if (!img) {
           return;
         }
-        if (!document.getElementById('nit-catcards-skel-style')) {
-          var st = document.createElement('style');
-          st.id = 'nit-catcards-skel-style';
-          st.textContent = '[data-nit-skel-anim]{animation:nitCatSkel 1.2s ease-in-out infinite}' +
-            '@keyframes nitCatSkel{0%,100%{opacity:1}50%{opacity:.5}}' +
-            '@media (prefers-reduced-motion:reduce){[data-nit-skel-anim]{animation:none}}';
-          (document.head || document.documentElement).appendChild(st);
-        }
-        var shown = false;
         var show = function() {
-          if (shown) {
-            return;
-          }
-          shown = true;
           img.style.opacity = '1';
-          if (skel) {
-            skel.removeAttribute('data-nit-skel-anim');
-            skel.style.background = 'none';
-            skel.style.aspectRatio = 'auto';
+          if (box) {
+            box.style.aspectRatio = 'auto';
           }
         };
         img.addEventListener('load', show);

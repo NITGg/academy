@@ -427,38 +427,58 @@
 
 .nitcat__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
     gap: 20px;
     align-items: stretch;
 }
 
-/* ── Course card ───────────────────────────────────────────────────────────────── */
+/* ── Course card (Figma "Course Card", file "الوجيستيات") ──────────────────────────
+ *
+ * Printed by local_nit_category\course_card on the category page and the catalogue. Every
+ * colour is a page slot (--c*) with its Brand Colors role behind it, so the card also reads
+ * right on a page that sets no slots. Logical properties only: it mirrors itself in Arabic.
+ *
+ *   4px brand strip · cover picture (400×160) · 20px padding, 16px rhythm ·
+ *   title 18/600 · second line 16/500 muted · rule · stats 16/500 muted, icons in brand ·
+ *   two 44px buttons, 18/500, 8px radius, 16px apart.
+ */
 
-.nitcat-card {
+.nitcc {
+    --nitcc-brand: var(--cbg4, var(--nit-brand-primary));
+    --nitcc-ink: var(--ctext1, var(--nit-brand-textprimary));
+    --nitcc-muted: var(--ctext2, var(--nit-brand-textsecondary));
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--cbg2);
-    border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent);
+    min-width: 0;
+    background: color-mix(in srgb, #fff 4%, transparent);
+    border: 1px solid var(--cborder, var(--nit-brand-borderprimary));
     border-radius: 16px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     transition: box-shadow 0.25s ease, transform 0.25s ease;
 }
 
-.nitcat-card:hover {
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+.nitcc:hover {
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
     transform: translateY(-2px);
 }
 
-.nitcat-card__media {
+.nitcc__strip {
+    display: block;
+    flex: 0 0 4px;
+    background: var(--nitcc-brand);
+}
+
+.nitcc__media {
     display: block;
     position: relative;
-    aspect-ratio: 16 / 9;
-    background: var(--cbg3);
+    aspect-ratio: 400 / 160;
+    background: var(--cbg3, color-mix(in srgb, var(--nitcc-brand) 12%, transparent));
     overflow: hidden;
 }
 
-.nitcat-card__media img {
+.nitcc__media img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -467,97 +487,161 @@
 
 /* No picture: the tile keeps the card's proportions and shows the course name, which is
    more useful than a grey rectangle. */
-.nitcat-card__noimage {
+.nitcc__noimage {
     position: absolute;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 14px;
+    padding: 16px;
     text-align: center;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 600;
-    color: var(--ctext2);
+    color: var(--nitcc-muted);
 }
 
-.nitcat-card__body {
+.nitcc__body {
     display: flex;
     flex-direction: column;
+    gap: 16px;
     flex: 1 1 auto;
-    padding: 16px 18px 18px;
+    padding: 20px;
 }
 
-.nitcat-card__cat {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--ctext3);
-    margin-bottom: 6px;
+.nitcc__titles {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
-.nitcat-card__title {
+.nitcc__context {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ctext3, var(--nitcc-brand));
+}
+
+.nitcc__title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.nitcc__title a {
+    color: var(--nitcc-ink);
+}
+
+.nitcc__title a:hover {
+    color: var(--ctext3, var(--nitcc-brand));
+}
+
+.nitcc__sub {
     font-size: 16px;
-    font-weight: 700;
-    line-height: 1.4;
-    margin: 0 0 10px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--nitcc-muted);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
-.nitcat-card__title a {
-    color: var(--ctext1);
+.nitcc__teacher {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--nitcc-muted);
 }
 
-.nitcat-card__title a:hover {
-    color: var(--ctext3);
+.nitcc__rule {
+    margin: 0;
+    border: 0;
+    border-top: 1px solid color-mix(in srgb, var(--nitcc-muted) 35%, transparent);
+    opacity: 1;
 }
 
-.nitcat-card__chips {
+.nitcc__stats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.nitcc__stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 30px;
+    color: var(--nitcc-muted);
+    white-space: nowrap;
+}
+
+.nitcc__icon {
+    flex: 0 0 auto;
+    color: var(--nitcc-brand);
+}
+
+.nitcc__chips {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-bottom: 10px;
 }
 
-.nitcat-card__chip {
+.nitcc__chip {
     display: inline-flex;
     align-items: center;
-    background: color-mix(in srgb, var(--ctext1) 8%, transparent);
-    border: 1px solid color-mix(in srgb, var(--cborder) 45%, transparent);
-    color: var(--ctext2);
+    background: color-mix(in srgb, var(--nitcc-brand) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--nitcc-brand) 35%, transparent);
+    color: var(--nitcc-muted);
     border-radius: 50px;
-    padding: 2px 10px;
-    font-size: 11px;
-    font-weight: 600;
+    padding: 2px 12px;
+    font-size: 13px;
+    font-weight: 500;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.nitcat-card__meta {
-    font-size: 12px;
-    color: var(--ctext2);
-    margin-bottom: 10px;
-}
-
-.nitcat-card__foot {
+.nitcc__foot {
     margin-top: auto;
-    padding-top: 14px;
 }
 
 /* Reserved height so the buttons sit on the same line in every card, whatever the
    status row has to say. */
-.nitcat-card__status {
+.nitcc__status {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
     min-height: 30px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
+}
+
+/* The design's two buttons: Main (.btn-primary) and Outline (.btn-outline-primary), full
+   width, 44px tall. Only size and shape here — every colour is the Brand Colors blocks. */
+.nitcc__actions {
+    display: grid;
+    gap: 16px;
+}
+
+.nitcc__actions .btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.3;
 }
 
 .nitcat-card__free {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--csuccess);
 }
@@ -709,11 +793,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .nitcat-card {
+    .nitcc {
         transition: none;
     }
 
-    .nitcat-card:hover {
+    .nitcc:hover {
         transform: none;
     }
 }

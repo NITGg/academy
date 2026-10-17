@@ -454,6 +454,7 @@ echo $OUTPUT->header();
     /* Keep the pill's icon and label on one line with a real gap. */
     .nit-cat-pill {
       display: inline-flex; align-items: center; gap: 8px;
+      font-size: 18px; font-weight: 500 !important; /* beats the pill's own .fw-bold */
     }
 
     /* Category image — IS the section's backdrop (.nit-hero--art), not a tile above the
@@ -517,7 +518,7 @@ echo $OUTPUT->header();
     /* The copy column: start-aligned on the solid side of the scrim, capped so the
        title wraps at three or four words a line and never runs under the picture. */
     .nit-hero--art .nit-hero__inner { margin: 0; max-width: min(680px, 56%); }
-    .nit-hero--art .nit-hero__title { font-size: clamp(32px, 4.6vw, 56px); max-width: 20ch; }
+    .nit-hero--art .nit-hero__title { font-size: clamp(26px, 2.5vw, 36px); max-width: 24ch; }
     .nit-hero--art .nit-hero__sub { margin-inline: 0; max-width: 560px; }
     .nit-hero--art .nit-hero__stats { justify-content: flex-start; gap: 36px; margin: 2rem 0; }
     .nit-hero--art .nit-hero__stats > div {
@@ -557,10 +558,10 @@ echo $OUTPUT->header();
       animation: nit-hpulse 2s infinite; flex-shrink: 0;
     }
 
-    /* H1 — X-Trade .hero h1 : clamp(2.4rem, 6vw, 4.5rem) @16px root = 38/72px */
+    /* H1 — Figma "الوجيستيات": 36px Bold at the 1440 design width, 26px on a phone. */
     .nit-hero__title {
-      font-size: clamp(38px, 6vw, 72px);
-      font-weight: 800; line-height: 1.15; margin: 0;
+      font-size: clamp(26px, 2.5vw, 36px);
+      font-weight: 700; line-height: 1.5; margin: 0;
       color: var(--ctext1);
       animation: nit-fadeup 0.9s ease 0.1s both;
     }
@@ -589,8 +590,8 @@ echo $OUTPUT->header();
       justify-content: center; flex-wrap: wrap;
       animation: nit-fadeup 0.9s ease 0.4s both;
     }
-    .nit-hero__stat-num { font-size: 35px; font-weight: 800; color: var(--ctext3); display: block; line-height: 1; }
-    .nit-hero__stat-label { font-size: 13px; color: var(--ctext2); font-weight: 500; }
+    .nit-hero__stat-num { font-size: clamp(28px, 2.5vw, 36px); font-weight: 500; color: var(--ctext3); display: block; line-height: 1.2; }
+    .nit-hero__stat-label { font-size: 16px; color: var(--ctext2); font-weight: 500; }
 
     /* Buttons — the site's own .btn component, and all three the SAME one: "Explore
        specializations", "Flexible plans" and "Coupon plans" are each the Main button
@@ -610,8 +611,8 @@ echo $OUTPUT->header();
       animation: nit-fadeup 0.9s ease 0.55s both;
     }
     .nit-hero__btns .btn {
-      padding: 14px 40px; border-radius: 8px;
-      font-size: 16px; font-weight: 700;
+      padding: 12px 32px; border-radius: 8px;
+      font-size: 18px; font-weight: 500;
     }
   </style>
   <div class="nit-hero<?= $hasrealimage ? ' nit-hero--art' : '' ?>" dir="<?= $isar ? 'rtl' : 'ltr' ?>">
@@ -731,12 +732,12 @@ echo $OUTPUT->header();
     .nit-why__inner { max-width: 1280px; margin: 0 auto; }
     .nit-why__head { text-align: center; max-width: 660px; margin: 0 auto 44px; }
     .nit-why__h1 {
-      font-size: clamp(30px, 4vw, 48px); font-weight: 600; line-height: 1.3;
+      font-size: clamp(30px, 3.4vw, 48px); font-weight: 700; line-height: 1.3;
       color: var(--nit-brand-accentwords, var(--ctext3)); margin: 0;
     }
     .nit-why__h2wrap { display: inline-block; position: relative; padding-bottom: 16px; }
     .nit-why__h2 {
-      font-size: clamp(22px, 3vw, 36px); font-weight: 600; line-height: 1.4;
+      font-size: clamp(22px, 2.5vw, 36px); font-weight: 600; line-height: 1.4;
       color: var(--ctext1); margin: 0;
     }
     /* The hand-drawn underline sits under the first word (the inline-start end). */
@@ -746,7 +747,7 @@ echo $OUTPUT->header();
       color: var(--nit-brand-accentunderline, var(--nit-brand-accentwords, var(--ctext3)));
     }
     .nit-why__desc {
-      font-size: clamp(16px, 1.8vw, 22px); font-weight: 500; line-height: 1.45;
+      font-size: clamp(16px, 1.6vw, 22px); font-weight: 500; line-height: 1.4;
       color: var(--ctext2); margin: 14px auto 0; max-width: 630px;
     }
 
@@ -797,7 +798,7 @@ echo $OUTPUT->header();
     }
     .nit-why__text { display: flex; flex-direction: column; gap: 4px; width: 100%; }
     .nit-why__title { font-size: 16px; font-weight: 600; color: var(--ctext1); margin: 0; line-height: 1.5; }
-    .nit-why__body  { font-size: 14px; font-weight: 400; color: var(--ctext2); margin: 0; line-height: 1.65; }
+    .nit-why__body  { font-size: 14px; font-weight: 500; color: var(--ctext2); margin: 0; line-height: 1.65; }
     @media (max-width: 640px) {
       .nit-why { padding-top: 40px; }
       .nit-why__head { margin-bottom: 28px; }
@@ -906,7 +907,7 @@ echo $OUTPUT->header();
           }
           $shown = $subid === (int) $sc->id;
           echo '<div class="nit-cat-subdesc" data-nit-subdesc="' . (int) $sc->id . '"' . ($shown ? '' : ' hidden')
-              . ' style="max-width: 900px; margin: 24px auto 0; text-align: center; color: var(--ctext2); font-size: 15px; line-height: 1.7;">'
+              . ' style="max-width: 900px; margin: 24px auto 0; text-align: center; color: var(--ctext2); font-size: 16px; font-weight: 500; line-height: 1.7;">'
               . $subdescription . '</div>';
       }
     ?>
@@ -915,72 +916,35 @@ echo $OUTPUT->header();
 
   <!-- Courses Section (the "Explore specializations" landing spot on a leaf category) -->
   <div id="nit-cat-courses" style="padding: 32px 16px 16px;">
-    <div style="max-width: 1200px; margin: 0 auto;">
+    <div style="max-width: 1280px; margin: 0 auto;">
 
       <?php
-        // One card renderer, shared by every section. $sectionname is the category the
-        // card lives under (its header), so the card can show that category's name.
-        $rendercard = function (core_course_list_element $course, string $sectionname) use ($t, $nitcourseinfo, $nitpricetags, $nitcountrynotice) {
-            $courseurl  = new moodle_url('/course/view.php', ['id' => $course->id]);
+        // One card renderer, shared by every section. The card itself (picture, titles,
+        // stats) is local_nit_category\course_card — the catalogue prints the same one —
+        // and only the footer, which needs this page's price helpers, is written here. The
+        // section heading already names the category, so the card does not repeat it.
+        $rendercard = function (core_course_list_element $course) use ($t, $nitcourseinfo, $nitpricetags, $nitcountrynotice) {
             $coursename = $course->get_formatted_name();
-
-            // Short plain-text summary (no course image is used in this design).
-            $summary = '';
-            if ($course->has_summary()) {
-                $coursecontext = context_course::instance($course->id);
-                $plain = html_to_text(
-                    format_text($course->summary, $course->summaryformat, ['context' => $coursecontext, 'noclean' => true]),
-                    0,
-                    false
-                );
-                $summary = shorten_text(trim($plain), 160);
-            }
 
             // AC-4.5.17: the instructor's name links to their public profile where
             // they have one. The helper returns already-escaped HTML - a link, or a
-            // plain name when there is nothing to link to - so the echo below must
-            // not escape it a second time.
+            // plain name when there is nothing to link to - so it is passed on as HTML.
             $teacher    = function_exists('theme_nit_course_teacher_link')
                 ? theme_nit_course_teacher_link((int) $course->id)
                 : '';
             $info       = $nitcourseinfo($course->id);
 
-            $detailsurl = $courseurl->out();
+            $detailsurl = (new moodle_url('/course/view.php', ['id' => $course->id]))->out();
             $enrolurl   = (new moodle_url('/local/nit_subscriptions/enrol.php',
                 ['courseid' => $course->id, 'sesskey' => sesskey()]))->out(false);
+
+            echo \local_nit_category\course_card::open($course, ['teacherhtml' => $teacher]);
         ?>
-        <!-- Course Card: fixed min-height + stretch grid => every card is the same size. -->
-        <div class="nit-course-card" data-nit-course="<?= (int) $course->id ?>" style="background: var(--cbg2); border: 1px solid color-mix(in srgb, var(--cborder) 55%, transparent); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; height: 100%; min-height: 320px; transition: box-shadow 0.3s ease;" onmouseover="this.style.boxShadow='0 12px 28px rgba(0,0,0,0.38)';" onmouseout="this.style.boxShadow='none';">
-
-          <!-- Category name pill: rounded tint + circle icon (matches nested titles) -->
-          <div class="nit-card-cat">
-            <span class="nit-card-cat-dot"></span>
-            <span><?= $sectionname ?></span>
-          </div>
-
-          <!-- Course name -->
-          <h3 style="font-size: 18px; font-weight: bold; color: var(--ctext1); margin: 0 0 10px; line-height: 1.4;">
-            <?= $coursename ?>
-          </h3>
-
-          <?php if ($teacher !== ''): ?>
-          <div style="font-size: 12px; color: var(--ctext2); margin: 0 0 10px;">
-            👤 <?= $teacher ?>
-          </div>
-          <?php endif; ?>
-
-          <!-- Course description -->
-          <?php if ($summary !== ''): ?>
-          <p style="font-size: 13px; color: var(--ctext2); line-height: 1.7; margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-            <?= s($summary) ?>
-          </p>
-          <?php endif; ?>
-
           <!-- Footer: pinned to the bottom. A fixed-height status/price row sits above the
                buttons so the buttons never move — a free course simply leaves it empty,
                a paid course shows its price in the SAME reserved slot. -->
-          <div style="margin-top: auto; padding-top: 18px;">
-            <div style="min-height: 30px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+          <div class="nitcc__foot">
+            <div class="nitcc__status">
               <?php if ($info['enrolled']): ?>
                 <span style="display: inline-flex; align-items: center; gap: 5px; background: color-mix(in srgb, var(--csuccess) 16%, transparent); color: var(--csuccess); border: 1px solid color-mix(in srgb, var(--csuccess) 45%, transparent); font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 50px;">
                   ✓ <?= $t('Enrolled', 'مُسجَّل') ?>
@@ -1017,29 +981,29 @@ echo $OUTPUT->header();
                  and the plan / coupon cards' buttons, recoloured from the same two blocks
                  of the Brand Colors editor. Enrolled shows one button; every other state
                  shows two. -->
-            <div class="d-grid gap-2">
+            <div class="nitcc__actions">
               <?php if ($info['enrolled'] || $info['purchased']): ?>
-                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif ($info['covered']): ?>
-                <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= $t('Enroll', 'التحاق') ?></a>
-                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $enrolurl ?>" class="btn btn-primary"><?= $t('Enroll', 'التحاق') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif (!empty($info['countryrequired']) && $nitcountrynotice): // No profile
                      // country: buying is refused server-side anyway, so offer the fix instead
                      // of a Buy button that can only fail. ?>
-                <a href="<?= s($nitcountrynotice['url']) ?>" class="btn btn-primary fw-bold"><?= s($nitcountrynotice['action']) ?></a>
-                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= s($nitcountrynotice['url']) ?>" class="btn btn-primary"><?= s($nitcountrynotice['action']) ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php elseif ($info['haspricing']): ?>
-                <button type="button" class="btn btn-primary fw-bold" data-nit-buy-course
+                <button type="button" class="btn btn-primary" data-nit-buy-course
                   data-courseid="<?= (int) $course->id ?>" data-name="<?= s($coursename) ?>"
                   data-price="<?= s((string) $info['price']) ?>" data-currency="<?= s($info['currency']) ?>"><?= $t('Buy now', 'اشترِ الآن') ?></button>
-                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php else: // Free course. ?>
-                <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= $t('Enroll', 'التحاق') ?></a>
-                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
+                <a href="<?= $enrolurl ?>" class="btn btn-primary"><?= $t('Enroll', 'التحاق') ?></a>
+                <a href="<?= $detailsurl ?>" class="btn btn-outline-primary"><?= $t('Course details', 'تفاصيل الكورس') ?></a>
               <?php endif; ?>
             </div>
           </div>
-        </div>
+        <?= \local_nit_category\course_card::close() ?>
         <?php
         };
 
@@ -1159,7 +1123,7 @@ echo $OUTPUT->header();
               <?php endif; ?>
               <div class="nit-spec-grid">
                 <?php foreach ($group['courses'] as $course): ?>
-                  <?php $rendercard($course, $name); ?>
+                  <?php $rendercard($course); ?>
                 <?php endforeach; ?>
               </div>
             </section>
@@ -1194,7 +1158,7 @@ echo $OUTPUT->header();
         .nit-spec-head { margin-bottom: 22px; }
         .nit-spec-title {
           display: inline-flex; align-items: center; gap: 10px;
-          margin: 0; font-size: 29px; font-weight: 800; line-height: 1.3;
+          margin: 0; font-size: 22px; font-weight: 700; line-height: 1.4;
           border-inline-start: 4px solid var(--cbg4);
           padding-inline-start: 14px;
         }
@@ -1223,7 +1187,7 @@ echo $OUTPUT->header();
           border-inline-start: none; padding: 8px 20px; border-radius: 50px;
           background: color-mix(in srgb, var(--caccent) 16%, transparent);
           border: 1px solid color-mix(in srgb, var(--caccent) 45%, transparent);
-          font-size: 20px; color: var(--ctext3);
+          font-size: 18px; font-weight: 700; color: var(--ctext3);
         }
         .nit-spec-title--sub .nit-spec-subname { color: var(--ctext3); }
         .nit-spec-title--sub .nit-spec-count { color: var(--ctext3); font-size: 14px; }
@@ -1237,9 +1201,11 @@ echo $OUTPUT->header();
           background: color-mix(in srgb, var(--ctext3) 15%, transparent);
         }
 
+        /* Three 400px cards to a 1280px row in the design (40px gutters); fewer as the
+           viewport narrows, one on a phone. */
         .nit-spec-grid {
-          display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 24px; align-items: stretch;
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
+          gap: 32px; align-items: stretch;
         }
         /* Nested subcategory groups sit indented under their parent. */
         .nit-spec-children { margin-top: 28px; display: flex; flex-direction: column; gap: 8px; }
@@ -1249,27 +1215,13 @@ echo $OUTPUT->header();
           border-inline-start: 2px solid color-mix(in srgb, var(--cbg4) 18%, transparent);
         }
 
-        /* Course-card category chip — same soft chip + circle icon as nested titles
-           (and the same Accent-wash / Accent-Text pairing, for the same reason). */
-        .nit-card-cat {
-          align-self: flex-start; display: inline-flex; align-items: center; gap: 8px;
-          background: color-mix(in srgb, var(--caccent) 16%, transparent);
-          border: 1px solid color-mix(in srgb, var(--caccent) 45%, transparent);
-          color: var(--ctext3); padding: 6px 14px; border-radius: 4px;
-          font-size: 12px; font-weight: bold; margin-bottom: 16px;
-        }
-        .nit-card-cat-dot {
-          width: 9px; height: 9px; border-radius: 50%;
-          background: var(--ctext3); flex: 0 0 auto;
-        }
-
         /* ── Levels ─────────────────────────────────────────────────────────────
            The third tier. A category (any depth) gets the big title above; its
            courses are then grouped rung by rung, and each rung wears the soft accent
            chip a nested category used to wear — dot, label, and a small meter lit up
            to that rung. */
 
-        .nit-course-card[hidden], .nit-lvl-group[hidden], .nit-spec-block[hidden] { display: none !important; }
+        .nitcc[hidden], .nit-lvl-group[hidden], .nit-spec-block[hidden] { display: none !important; }
 
         /* The meter: one bar per rung of the ladder, lit up to the rung in question. */
         .nit-lvl-meter { display: inline-flex; align-items: flex-end; gap: 2px; flex: 0 0 auto; }
@@ -1295,7 +1247,7 @@ echo $OUTPUT->header();
         .nit-spec-meta {
           display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
           margin: 10px 0 0; padding-inline-start: 18px;
-          font-size: 13px; font-weight: 600; color: var(--ctext2);
+          font-size: 16px; font-weight: 600; color: var(--ctext2);
         }
         .nit-spec-meta__item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
         .nit-spec-meta__item svg { flex: 0 0 auto; opacity: .8; }

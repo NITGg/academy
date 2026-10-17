@@ -33,6 +33,7 @@ require_once($CFG->dirroot . '/course/lib.php');
 require_once($CFG->dirroot . '/local/nit_category/lib.php');
 require_once($CFG->libdir . '/filelib.php');
 
+use local_nit_category\course_card;
 use local_nit_category\catalogue;
 use local_nit_category\filter_panel;
 use local_nit_category\pricing;
@@ -379,59 +380,24 @@ echo $OUTPUT->header();
             $course = $row['course'];
             $info = pricing::info($row['id']);
             $coursename = $course->get_formatted_name();
-            $coursecontext = context_course::instance($row['id']);
             $detailsurl = (new moodle_url('/course/view.php', ['id' => $row['id']]))->out();
             $enrolurl = (new moodle_url('/local/nit_subscriptions/enrol.php',
                 ['courseid' => $row['id'], 'sesskey' => sesskey()]))->out(false);
 
-            // Thumbnail: the course's own overview file, or the tinted placeholder tile the
-            // grid uses so a course without a picture still keeps the card's proportions.
-            $imageurl = '';
-            foreach (get_file_storage()->get_area_files($coursecontext->id, 'course', 'overviewfiles', 0,
-                    'sortorder DESC, id DESC', false) as $file) {
-                $imageurl = moodle_url::make_pluginfile_url($coursecontext->id, 'course', 'overviewfiles', null,
-                    $file->get_filepath(), $file->get_filename())->out(false);
-                break;
-            }
-
-            // Card chips and meta come from the same field values the filters were built
-            // from, so what a card advertises is exactly what can be filtered on.
+            // Card chips come from the same field values the filters were built from, so
+            // what a card advertises is exactly what can be filtered on. The hours chip is
+            // dropped: the card's stats row already prints the hours.
             ['chips' => $chips, 'meta' => $meta] = $catalogue->card_labels($row);
+            $hoursunit = trim(get_string('hoursshort', 'local_nit_category', ''));
+            $chips = array_filter($chips, static fn($c) => !preg_match('/^[\d.,]+\s*' . preg_quote($hoursunit, '/') . '$/u', $c));
+
+            // The card's top half is the category page's card, from one renderer.
+            echo course_card::open($course, ['context' => $row['catname'], 'chips' => array_merge($chips, $meta)]);
             ?>
-            <article class="nitcat-card">
-              <a class="nitcat-card__media" href="<?= $detailsurl ?>" tabindex="-1" aria-hidden="true">
-                <?php if ($imageurl !== ''): ?>
-                  <img src="<?= s($imageurl) ?>" alt="" loading="lazy">
-                <?php else: ?>
-                  <span class="nitcat-card__noimage"><?= s(shorten_text(text_util::plain($coursename), 40)) ?></span>
-                <?php endif; ?>
-              </a>
-
-              <div class="nitcat-card__body">
-                <?php if ($row['catname'] !== ''): ?>
-                  <div class="nitcat-card__cat"><?= s($row['catname']) ?></div>
-                <?php endif; ?>
-
-                <h3 class="nitcat-card__title">
-                  <a href="<?= $detailsurl ?>"><?= $coursename ?></a>
-                </h3>
-
-                <?php if (!empty($chips)): ?>
-                  <div class="nitcat-card__chips">
-                    <?php foreach ($chips as $chip): ?>
-                      <span class="nitcat-card__chip"><?= s($chip) ?></span>
-                    <?php endforeach; ?>
-                  </div>
-                <?php endif; ?>
-
-                <?php if (!empty($meta)): ?>
-                  <div class="nitcat-card__meta"><?= s(implode(' · ', $meta)) ?></div>
-                <?php endif; ?>
-
-                <div class="nitcat-card__foot">
+                <div class="nitcc__foot">
                   <!-- A fixed-height status/price row keeps the buttons on the same line in
                        every card: a free course simply leaves it empty. -->
-                  <div class="nitcat-card__status">
+                  <div class="nitcc__status">
                     <?php if ($info['enrolled']): ?>
                       <?php // No price beside "Enrolled": the learner already has the course, and a
                             // number next to that badge reads as something still owed. ?>
@@ -449,31 +415,30 @@ echo $OUTPUT->header();
                     <?php endif; ?>
                   </div>
 
-                  <div class="d-grid gap-2">
+                  <div class="nitcc__actions">
                     <?php if ($info['enrolled'] || $info['purchased']): ?>
-                      <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= s(get_string('coursedetails', 'local_nit_category')) ?></a>
+                      <a href="<?= $detailsurl ?>" class="btn btn-outline-primary"><?= s(get_string('coursedetails', 'local_nit_category')) ?></a>
                     <?php elseif ($info['covered']): ?>
-                      <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= s(get_string('enrol', 'local_nit_category')) ?></a>
-                      <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= s(get_string('coursedetails', 'local_nit_category')) ?></a>
+                      <a href="<?= $enrolurl ?>" class="btn btn-primary"><?= s(get_string('enrol', 'local_nit_category')) ?></a>
+                      <a href="<?= $detailsurl ?>" class="btn btn-outline-primary"><?= s(get_string('coursedetails', 'local_nit_category')) ?></a>
                     <?php elseif (!empty($info['countryrequired']) && $countrynotice): ?>
                       <?php // Buying is refused server-side without a profile country, so the card
                             // offers the fix instead of a Buy button that can only fail. ?>
-                      <a href="<?= s($countrynotice['url']) ?>" class="btn btn-primary fw-bold"><?= s($countrynotice['action']) ?></a>
-                      <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= s(get_string('coursedetails', 'local_nit_category')) ?></a>
+                      <a href="<?= s($countrynotice['url']) ?>" class="btn btn-primary"><?= s($countrynotice['action']) ?></a>
+                      <a href="<?= $detailsurl ?>" class="btn btn-outline-primary"><?= s(get_string('coursedetails', 'local_nit_category')) ?></a>
                     <?php elseif ($info['haspricing'] && $hascheckout): ?>
-                      <button type="button" class="btn btn-primary fw-bold" data-nit-buy-course
+                      <button type="button" class="btn btn-primary" data-nit-buy-course
                         data-courseid="<?= (int) $row['id'] ?>" data-name="<?= s($coursename) ?>"
                         data-price="<?= s((string) $info['price']) ?>" data-currency="<?= s($info['currency']) ?>"><?=
                         s(get_string('buynow', 'local_nit_category')) ?></button>
-                      <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= s(get_string('coursedetails', 'local_nit_category')) ?></a>
+                      <a href="<?= $detailsurl ?>" class="btn btn-outline-primary"><?= s(get_string('coursedetails', 'local_nit_category')) ?></a>
                     <?php else: ?>
-                      <a href="<?= $enrolurl ?>" class="btn btn-primary fw-bold"><?= s(get_string('enrol', 'local_nit_category')) ?></a>
-                      <a href="<?= $detailsurl ?>" class="btn btn-outline-primary fw-bold"><?= s(get_string('coursedetails', 'local_nit_category')) ?></a>
+                      <a href="<?= $enrolurl ?>" class="btn btn-primary"><?= s(get_string('enrol', 'local_nit_category')) ?></a>
+                      <a href="<?= $detailsurl ?>" class="btn btn-outline-primary"><?= s(get_string('coursedetails', 'local_nit_category')) ?></a>
                     <?php endif; ?>
                   </div>
                 </div>
-              </div>
-            </article>
+            <?= course_card::close() ?>
           <?php endforeach; ?>
         </div>
 
