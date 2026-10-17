@@ -149,24 +149,15 @@ class course_card {
     /**
      * The muted second line under the title.
      *
-     * The design puts the course name in the other language there. A bilingual name
-     * ({mlang en}…{mlang}{mlang ar}…{mlang}) has one, so that is used; otherwise the
-     * opening of the summary stands in, which says more than repeating the title.
+     * The opening of the summary, in the viewer's language. The design shows the course
+     * name in the other language here, but a card speaks one language: an Arabic viewer
+     * sees only the Arabic name, an English one only the English (the title is already
+     * resolved by format_string), so the other half of a bilingual name is never printed.
      *
      * @param core_course_list_element $course
      * @return string plain text, '' for none
      */
     public static function subtitle(core_course_list_element $course): string {
-        $current = text_util::ml($course->fullname);
-        if (stripos((string) $course->fullname, '{mlang') !== false
-                && preg_match_all('/\{mlang\s+([^}]+)\}(.*?)\{mlang\}/is', $course->fullname, $m, PREG_SET_ORDER)) {
-            foreach ($m as $block) {
-                $text = trim(strip_tags($block[2]));
-                if ($text !== '' && $text !== $current) {
-                    return $text;
-                }
-            }
-        }
         if (!$course->has_summary()) {
             return '';
         }

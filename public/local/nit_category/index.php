@@ -1072,19 +1072,22 @@ echo $OUTPUT->header();
         <div class="<?= $blockclass ?>"<?= $blockattrs ?>>
           <div class="nit-spec-head">
             <!-- Category title, the same at every depth — a sub-sub-category is a category
-                 too: image (or icon, or pin) + name + coloured start-border. Depth shows in
-                 the indent and the rail, not in a different kind of heading. -->
+                 too. One row, as in the design: the icon in an outlined box (its own icon,
+                 else its image, else a generic glyph), the name, then "( courses · levels )".
+                 Depth shows in the indent and the rail, not in a different kind of heading. -->
             <h3 class="nit-spec-title">
-              <?php if ($secicon !== ''): ?>
-              <?= $secicon ?>
-              <?php elseif ($secimage !== ''): ?>
-              <img class="nit-spec-img" src="<?= s($secimage) ?>" alt="<?= $name ?>">
-              <?php else: ?>
-              <span class="nit-spec-pin">📌</span>
-              <?php endif; ?>
+              <span class="nit-spec-iconbox">
+                <?php if ($secicon !== ''): ?>
+                <?= $secicon ?>
+                <?php elseif ($secimage !== ''): ?>
+                <img class="nit-spec-img" src="<?= s($secimage) ?>" alt="">
+                <?php else: ?>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 8-4 4 4 4M15 8l4 4-4 4"/></svg>
+                <?php endif; ?>
+              </span>
               <span class="nit-spec-name"><?= $name ?></span>
             </h3>
-            <?php if ($subcount > 0 || $levelspan !== ''): ?>
+            <?php if ($count > 0 || $subcount > 0 || $levelspan !== ''): ?>
             <!-- Structure line: what is inside, before it is scrolled. -->
             <div class="nit-spec-meta">
               <?php if ($subcount > 0): ?>
@@ -1111,12 +1114,11 @@ echo $OUTPUT->header();
           <div class="nit-lvl-groups">
             <?php foreach ($groups as $group): ?>
             <?php $isnone = $group['key'] === 'none'; ?>
-            <!-- One rung of the ladder: a soft accent chip (dot + label + meter + count),
-                 then the cards that stand on it. -->
+            <!-- One rung of the ladder: its name in the brand colour with the meter beside
+                 it, then the cards that stand on it. -->
             <section class="nit-lvl-group<?= $isnone ? ' nit-lvl-group--none' : '' ?>" data-nit-lvlgroup="<?= s($group['key']) ?>">
               <?php if ($showrungs): ?>
               <h4 class="nit-spec-title nit-spec-title--sub nit-lvl-title">
-                <span class="nit-spec-dot"></span>
                 <span class="nit-spec-subname"><?= $group['label'] ?></span>
                 <?= $isnone ? '' : $levelmeter($group['index']) ?>
               </h4>
@@ -1155,51 +1157,35 @@ echo $OUTPUT->header();
 
         /* Top-level subcategory title — X-Trade .specialty-title, on brand vars. */
         .nit-spec-block { margin-bottom: 44px; }
-        .nit-spec-head { margin-bottom: 22px; }
-        .nit-spec-title {
-          display: inline-flex; align-items: center; gap: 10px;
-          margin: 0; font-size: 22px; font-weight: 700; line-height: 1.4;
-          border-inline-start: 4px solid var(--cbg4);
-          padding-inline-start: 14px;
+        /* Category heading — Figma "الوجيستيات": one row of icon box, name (22 Bold) and
+           the muted "( 3 courses · levels 1–2 )" line, wrapping only on a narrow screen. */
+        .nit-spec-head {
+          display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+          margin-bottom: 22px;
         }
-        .nit-spec-title .nit-spec-name {
+        .nit-spec-title {
+          display: inline-flex; align-items: center; gap: 12px;
+          margin: 0; font-size: 22px; font-weight: 700; line-height: 1.4;
+        }
+        .nit-spec-title .nit-spec-name { color: var(--ctext1); }
+        /* The outlined square the icon sits in. Whatever the category has — an emoji, an
+           uploaded icon, its image, or the generic glyph — fits the same box. */
+        .nit-spec-iconbox {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 40px; height: 40px; flex: 0 0 auto; box-sizing: border-box;
+          border: 1.5px solid var(--cbg4); border-radius: 8px;
+          color: var(--cbg4); overflow: hidden;
+        }
+        .nit-spec-iconbox .nit-cat-icon--spec { width: 26px; height: 26px; font-size: 21px; }
+        .nit-spec-iconbox .nit-spec-img { width: 100%; height: 100%; object-fit: contain; padding: 4px; box-sizing: border-box; }
+
+        /* A level heading under a category: the rung's name in the brand's accent text
+           colour (18 Bold) with its meter beside it — plain text, no chip. */
+        .nit-spec-title--sub {
+          font-size: 18px; font-weight: 700; gap: 8px;
           color: var(--ctext3);
         }
-        .nit-spec-title .nit-spec-pin { font-size: 24px; line-height: 1; }
-        .nit-spec-title .nit-spec-count { font-size: 15px; font-weight: 700; color: var(--ctext3); }
-        /* A subcategory's own image, standing in for the pin when it has one. */
-        .nit-spec-title .nit-spec-img {
-          width: 40px; height: 40px; flex: 0 0 auto;
-          object-fit: contain; border-radius: 10px;
-          background: var(--cbg3); padding: 5px; box-sizing: border-box;
-        }
-
-        /* Nested subcategory title — a soft accent chip + circle icon instead of the
-           pin; no gradient / start-border so it reads as a chip.
-
-           Soft, not filled: a light wash of Accent over the surface, with Accent TEXT
-           as the ink — the same pairing as the "In your subscription" badge on the
-           cards. Accent Text is a text role, chosen per group to read on that group's
-           surface, so the chip is legible in a light group and a dark one alike. The
-           old version filled the chip 70% with Accent and wrote Text primary on it,
-           which in a light group is near-black ink on a mid-blue fill. */
-        .nit-spec-title--sub {
-          border-inline-start: none; padding: 8px 20px; border-radius: 50px;
-          background: color-mix(in srgb, var(--caccent) 16%, transparent);
-          border: 1px solid color-mix(in srgb, var(--caccent) 45%, transparent);
-          font-size: 18px; font-weight: 700; color: var(--ctext3);
-        }
         .nit-spec-title--sub .nit-spec-subname { color: var(--ctext3); }
-        .nit-spec-title--sub .nit-spec-count { color: var(--ctext3); font-size: 14px; }
-        .nit-spec-title--sub .nit-spec-dot {
-          width: 12px; height: 12px; border-radius: 50%;
-          background: var(--ctext3); flex: 0 0 auto;
-        }
-        /* Smaller inside the chip, and round to match the dot it replaces. */
-        .nit-spec-title--sub .nit-spec-img {
-          width: 28px; height: 28px; border-radius: 50%; padding: 3px;
-          background: color-mix(in srgb, var(--ctext3) 15%, transparent);
-        }
 
         /* Three 400px cards to a 1280px row in the design (40px gutters); fewer as the
            viewport narrows, one on a phone. */
@@ -1235,23 +1221,21 @@ echo $OUTPUT->header();
         .nit-lvl-groups { display: flex; flex-direction: column; gap: 28px; }
         .nit-lvl-title { margin-bottom: 18px; }
         .nit-lvl-title .nit-lvl-meter { color: var(--ctext3); }
-        .nit-lvl-group--none .nit-lvl-title {
-          background: color-mix(in srgb, var(--ctext2) 12%, transparent);
-          border-color: color-mix(in srgb, var(--ctext2) 35%, transparent);
-        }
-        .nit-lvl-group--none .nit-lvl-title .nit-spec-subname,
-        .nit-lvl-group--none .nit-lvl-title .nit-spec-count { color: var(--ctext2); }
-        .nit-lvl-group--none .nit-lvl-title .nit-spec-dot { background: var(--ctext2); }
+        .nit-lvl-group--none .nit-lvl-title .nit-spec-subname { color: var(--ctext2); }
 
-        /* Structure line under a category title: sub-categories · courses · level span. */
+        /* Structure line beside a category title, in brackets as in the design:
+           ( sub-categories · courses · level span ). Brackets are mirrored characters,
+           so the same CSS reads right in Arabic. */
         .nit-spec-meta {
-          display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
-          margin: 10px 0 0; padding-inline-start: 18px;
-          font-size: 16px; font-weight: 600; color: var(--ctext2);
+          display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 0;
+          margin: 0;
+          font-size: 16px; font-weight: 500; color: var(--ctext2);
         }
+        .nit-spec-meta::before { content: "("; margin-inline-end: 6px; }
+        .nit-spec-meta::after { content: ")"; margin-inline-start: 6px; }
+        .nit-spec-meta__item + .nit-spec-meta__item { margin-inline-start: 14px; }
         .nit-spec-meta__item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-        .nit-spec-meta__item svg { flex: 0 0 auto; opacity: .8; }
-        .nit-spec-meta__item--lvl { color: var(--ctext3); }
+        .nit-spec-meta__item svg { flex: 0 0 auto; opacity: .8; width: 16px; height: 16px; }
       </style>
 
       <?php foreach ($rootnodes as $node): ?>
