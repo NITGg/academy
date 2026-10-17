@@ -1114,6 +1114,20 @@ JS;
     }
 
     /**
+     * The avatar dropdown, minus the core rows switched off in theme_nit/usermenuhide.
+     *
+     * The layout's `usermenu` is built by core's primary class inside a Boost
+     * layout file, out of the theme's reach, so the navbar template draws this
+     * instead (see theme_nit\output\primary::get_user_menu).
+     *
+     * @return string HTML
+     */
+    public function navbar_user_menu(): string {
+        $primary = new primary($this->page);
+        return $this->render_from_template('core/user_menu', $primary->get_user_menu($this));
+    }
+
+    /**
      * The mobile drawer's rows: core's merged primary + custom list, minus what a
      * visitor should not see.
      *

@@ -217,5 +217,24 @@ if ($ADMIN->fulltree) {
             '50',
             '12'
         ));
+
+        // The rows core adds to the avatar menu in code, after the User menu
+        // items lines — that box cannot remove them. Log out always stays.
+        $advancedpage->add(new admin_setting_heading(
+            'theme_nit/usermenuheading',
+            get_string('usermenuheading', 'theme_nit'),
+            ''
+        ));
+        $choices = [];
+        foreach (\theme_nit\output\primary::USERMENU_HIDEABLE as $key) {
+            $choices[$key] = get_string('usermenuhide_' . $key, 'theme_nit');
+        }
+        $advancedpage->add(new admin_setting_configmulticheckbox(
+            'theme_nit/usermenuhide',
+            get_string('usermenuhide', 'theme_nit'),
+            get_string('usermenuhide_desc', 'theme_nit'),
+            array_fill_keys(\theme_nit\output\primary::USERMENU_HIDEABLE, 1),
+            $choices
+        ));
     }
 }

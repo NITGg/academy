@@ -118,7 +118,8 @@
                 back to (see the renderer). Core's user_menu partial draws that link
                 from `url`, which is get_login_url() and nothing else, so its guest
                 branch is repeated here with our link; the logged-in branch is
-                still the partial. }}
+                still core's template, drawn by output.navbar_user_menu so the rows
+                switched off in "User menu: hide core items" are gone. }}
             {{#usermenu}}
                 <div class="d-flex align-items-stretch usermenu-container ms-1" data-region="usermenu">
                     {{#unauthenticateduser}}
@@ -133,7 +134,7 @@
                         </div>
                     {{/unauthenticateduser}}
                     {{^unauthenticateduser}}
-                        {{> core/user_menu }}
+                        {{{ output.navbar_user_menu }}}
                     {{/unauthenticateduser}}
                 </div>
             {{/usermenu}}

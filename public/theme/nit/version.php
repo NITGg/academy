@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'theme_nit';
-$plugin->version   = 2026091600;        // YYYYMMDDXX — Default display mode (nit_mode_default, dark unless changed) chosen on the Site styles table; design_system publishes brandcolors.defaultscheme.
+$plugin->version   = 2026101700;        // YYYYMMDDXX — usermenuhide: Preferences / Language / Switch role can be taken off the avatar menu (all hidden by default).
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline (pinned per CI matrix).
 $plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_ALPHA;    // Foundation + rendering + branding (M2–M5); pre-1.0.
