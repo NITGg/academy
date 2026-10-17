@@ -1,6 +1,7 @@
 <!-- NIT — Available coupons home-page block. Paste into an HTML block on the home page.
      Inline styles only (editor-safe). Fetches live coupons from the plugin and renders a dark slider.
-     Shows: code, discount value, applies-to scope, per-student usage limit, valid dates.
+     Shows: site mark, discount value, name, description, code. The usage limit and the valid
+     dates are on the coupon's details page, not the card.
      Colours read from the Brand Colors palette (theme/nit gallery). Gold accents map to
      --nit-brand-accent, the teal "positive" accent maps to --nit-brand-success; shades are
      derived with color-mix from those same brand variables (no hard-coded colours).
@@ -72,8 +73,12 @@
             <p
               style="margin: 0; max-width: 100%; font-size: 14px; font-weight: 500; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
               data-nit-name="">{{name}}</p>
+            <!-- Description: ALWAYS one line tall, even when the coupon has none (the line is
+                 then kept but invisible), so the code box, perforation and button sit at the
+                 same height on every card in the row. Longer text is cut with an ellipsis; the
+                 full text is its tooltip and is on the details page. -->
             <p
-              style="display: none; margin: 6px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--nit-brand-textsecondary); overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"
+              style="display: block; align-self: stretch; height: 20px; margin: 6px 0 0; font-size: 12.5px; line-height: 20px; color: var(--nit-brand-textsecondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; visibility: hidden;"
               data-nit-desc="">{{description}}</p>
             <!-- The code, in the design's dashed box. A copy control rather than a button
                  component, so it carries no fill; the shared hover rule lights it up. -->
@@ -81,12 +86,8 @@
               style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; max-width: 241px; height: 36px; margin-top: 16px; padding: 0 12px; box-sizing: border-box; background: rgba(0,0,0,.03); border: 1px dashed color-mix(in srgb, var(--nit-brand-textprimary) 16%, transparent); border-radius: 6px; color: var(--nit-brand-textprimary); font-size: 14px; font-weight: 500; letter-spacing: .5px; cursor: pointer;"
               type="button" data-nit-copy="" data-code="{{code}}"><span
                 data-nit-codetext="">{{code}}</span> <span aria-hidden="true" style="opacity: .7;">⧉</span></button>
-            <!-- Meta chips: not in the design, kept because they are the coupon's terms. -->
-            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px;"><span
-                style="display: none; font-size: 11.5px; font-weight: 600; color: var(--nit-brand-textsecondary); background: color-mix(in srgb, var(--nit-brand-textprimary) 6%, transparent); border-radius: 50px; padding: 3px 10px;"
-                data-nit-usage="">{{usage}}</span> <span
-                style="display: none; font-size: 11.5px; font-weight: 600; color: var(--nit-brand-textsecondary); background: color-mix(in srgb, var(--nit-brand-textprimary) 6%, transparent); border-radius: 50px; padding: 3px 10px;"
-                data-nit-dates="">{{dates}}</span></div>
+            <!-- No usage / validity chips on the card: they made cards uneven and are spelled
+                 out under "Terms" on the details page. -->
             <div style="align-self: stretch; margin-top: auto; padding-top: 20px;">
               <a class="btn btn-outline-primary"
                 style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 100%; height: 46px; padding: 0 24px; border-radius: 8px; font-weight: 500; font-size: 15px;"
@@ -167,12 +168,6 @@
         ).toLocaleString(undefined, {
           minimumFractionDigits: 0
         });
-      }
-
-      function fmt(ts) {
-        return ts ?
-          new Date(ts * 1000).toLocaleDateString() :
-          null;
       }
 
       /* The block ships hidden and only ever appears with cards in it, so a catalogue
@@ -287,37 +282,6 @@
             var name = (c.name || '').trim() || c.code;
             var description = strip(c.description || '');
 
-            var s = fmt(c.startdate);
-            var e = fmt(c.enddate);
-
-            var dates =
-              s || e ?
-              '{mlang en}Valid{mlang}{mlang ar}صالح{mlang} ' +
-              (s || '…') +
-              ' → ' +
-              (e || '…') :
-              '';
-
-            /* The admin's "Usage limit per student" spelled out: how many times ONE student
-               may use the code and — when the visitor is signed in — how many of their own
-               uses are left. The site-wide cap is not the visitor's concern; it is on the
-               details page, and the feed already drops a coupon that has reached it. */
-            var usage;
-
-            if (c.user_limit > 0) {
-              usage =
-                '{mlang en}Per student{mlang}{mlang ar}للطالب الواحد{mlang}: ' +
-                '{mlang en}' + c.user_limit + ' time(s){mlang}{mlang ar}' + c.user_limit + ' مرة{mlang}';
-
-              if (c.user_uses_left != null) {
-                var left = Math.max(0, c.user_uses_left);
-                usage +=
-                  ' — {mlang en}' + left + ' left for you{mlang}{mlang ar}متبقٍ لك ' + left + '{mlang}';
-              }
-            } else {
-              usage =
-                '{mlang en}Per student: unlimited{mlang}{mlang ar}للطالب الواحد: غير محدود{mlang}';
-            }
             var html = tpl.innerHTML
               .replace(/\{\{value\}\}/g, esc(value))
               .replace(
@@ -326,9 +290,7 @@
               )
               .replace(/\{\{code\}\}/g, esc(c.code))
               .replace(/\{\{name\}\}/g, esc(name))
-              .replace(/\{\{description\}\}/g, esc(description))
-              .replace(/\{\{usage\}\}/g, esc(usage))
-              .replace(/\{\{dates\}\}/g, esc(dates));
+              .replace(/\{\{description\}\}/g, esc(description));
 
             var wrap = document.createElement('div');
 
@@ -351,19 +313,13 @@
 
             wrap.innerHTML = html;
 
-            /* Every optional line starts hidden in the template and is switched on only
-               when the coupon actually has one, so a sparse coupon leaves no empty gaps. */
-            function show(sel, on, how) {
-              var el = wrap.querySelector(sel);
-
-              if (el && on) {
-                el.style.display = how;
-              }
+            /* The description line is always there (see the template); it is only made
+               visible when the coupon has one, so every card keeps the same layout. */
+            var descEl = wrap.querySelector('[data-nit-desc]');
+            if (descEl && description) {
+              descEl.style.visibility = 'visible';
+              descEl.title = description;
             }
-
-            show('[data-nit-desc]', !!description, '-webkit-box');
-            show('[data-nit-usage]', !!usage, 'inline-block');
-            show('[data-nit-dates]', !!dates, 'inline-block');
 
             var details =
               wrap.querySelector('[data-nit-details]');
