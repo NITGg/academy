@@ -215,6 +215,7 @@ $string['acad_1modulein'] = 'يحتوي هذا الكورس على وحدة وا
 // صفحة تفاصيل المقرر — شرائح الترويسة، الزر الوحيد، ومجموعات "ماذا تتعلم".
 $string['acad_instructorlabel'] = 'المدرّب';
 $string['acad_gotocourse'] = 'الذهاب إلى الكورس';
+$string['acad_startnow'] = 'ابدأ الآن';
 $string['acad_watchpromo'] = 'شاهد الفيديو التعريفي';
 $string['acad_closevideo'] = 'إغلاق الفيديو';
 $string['acad_hascert'] = 'شهادة معتمدة';

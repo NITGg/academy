@@ -219,6 +219,7 @@ $string['acad_1modulein'] = 'There is {$a} module in this course';
 // Course-detail page — hero chips, the one button, and "what you'll learn" sub-groups.
 $string['acad_instructorlabel'] = 'Instructor';
 $string['acad_gotocourse'] = 'Go to course';
+$string['acad_startnow'] = 'Start Now';
 $string['acad_watchpromo'] = 'Watch the promo';
 $string['acad_closevideo'] = 'Close the video';
 $string['acad_hascert'] = 'Certificate included';

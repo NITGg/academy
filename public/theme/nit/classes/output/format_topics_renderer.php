@@ -592,8 +592,8 @@ class format_topics_renderer extends \format_topics\output\renderer {
         // them to pay for something they can already open. The same capability
         // local_payments' own gate lets through (hook_callbacks), so the button
         // is shown exactly to the people the checkout would accept.
-        $hasaccess = is_enrolled($context, $USER->id, '', true)
-            || has_capability('moodle/course:view', $context);
+        $isenrolled = is_enrolled($context, $USER->id, '', true);
+        $hasaccess = $isenrolled || has_capability('moodle/course:view', $context);
 
         // Provider = top-level category.
         $provider = !empty($data->catnames) ? $data->catnames[0] : format_string($course->shortname);
@@ -643,7 +643,10 @@ class format_topics_renderer extends \format_topics\output\renderer {
             // Into the first lesson the reader can open; failing that (a course
             // with no openable activity yet), down to the curriculum.
             $target = $this->acad_first_activity_url($modinfo, $data) ?? '#modules';
-            $o .= html_writer::link($target, s(get_string('acad_gotocourse', 'theme_nit')),
+            // A learner who is enrolled is invited to "Start now"; staff who read
+            // the course through moodle/course:view keep the neutral "Go to course".
+            $label = $isenrolled ? 'acad_startnow' : 'acad_gotocourse';
+            $o .= html_writer::link($target, s(get_string($label, 'theme_nit')),
                 ['class' => 'btn btn-primary acad-cr-btn']);
         } else {
             $o .= $this->acad_offer($course);
