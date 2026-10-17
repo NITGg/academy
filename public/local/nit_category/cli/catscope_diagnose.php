@@ -77,8 +77,11 @@ foreach ($catids as $catid) {
 
     cli_separator();
     cli_writeln("Category {$catid}: {$name}");
-    cli_writeln('  branch (matched against): ' . implode(', ', $branch));
-    cli_writeln('  subtree (its courses):    ' . implode(', ', $subtree));
+    // A plan or coupon with a category shows here when this page is inside it, i.e. when its
+    // category is one of these; offers (and legacy plans placed by their courses) use the branch.
+    cli_writeln('  self+ancestors (plans/coupons): ' . implode(', ', \local_nit_core\helper\category::ancestry($catid)));
+    cli_writeln('  branch (offers, legacy plans):  ' . implode(', ', $branch));
+    cli_writeln('  subtree (its courses):          ' . implode(', ', $subtree));
 
     // ── Plans ──
     cli_writeln('  Plans:');

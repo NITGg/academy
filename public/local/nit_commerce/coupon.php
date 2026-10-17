@@ -205,6 +205,15 @@ foreach ($coupon['applies_to'] as $scope) {
         $group['linktext'] = get_string('cpn_open_course', 'local_nit_commerce');
 
     } else if ($type === 'course' && $itemid === 0 && $coupcat) {
+        // "All courses" of one category is a list worth printing, unlike all of the site's.
+        foreach (\local_nit_core\helper\category::subtree($coupcat) as $catid) {
+            foreach ($DB->get_records('course', ['category' => $catid], 'fullname ASC', 'id') as $row) {
+                $course = $visiblecourse((int) $row->id);
+                if ($course) {
+                    $group['courses'][] = $course;
+                }
+            }
+        }
         $group['link'] = new moodle_url('/local/nit_category/index.php', ['id' => $coupcat]);
         $group['linktext'] = get_string('cpn_open_category', 'local_nit_commerce');
 
